@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <iostream>
+#include <vector>
 #include "nifti1_io.h"
 
 #if defined (_OPENMP)
@@ -98,7 +99,79 @@ inline int fabs(int _x)
    return (int)fabs((float)(_x));
 }
 #endif // If on windows...
+/* *************************************************************** */
+struct _reg_sorted_point3D
+{
+    float target[3];
+    float result[3];
 
+    double distance;
+
+    _reg_sorted_point3D(float * t, float * r, double d)
+        :distance(d)
+    {
+        target[0] = t[0];
+        target[1] = t[1];
+        target[2] = t[2];
+
+        result[0] = r[0];
+        result[1] = r[1];
+        result[2] = r[2];
+    }
+
+    bool operator <(const _reg_sorted_point3D &sp) const
+    {
+        return (sp.distance < distance);
+    }
+};
+typedef struct _reg_sorted_point3D _reg_sorted_point3D;
+/* *************************************************************** */
+struct _reg_sorted_point2D
+{
+    float target[2];
+    float result[2];
+
+    double distance;
+
+    _reg_sorted_point2D(float * t, float * r, double d)
+        :distance(d)
+    {
+        target[0] = t[0];
+        target[1] = t[1];
+
+        result[0] = r[0];
+        result[1] = r[1];
+    }
+    bool operator <(const _reg_sorted_point2D &sp) const
+    {
+        return (sp.distance < distance);
+    }
+};
+typedef struct _reg_sorted_point2D _reg_sorted_point2D;
+/* *************************************************************** */
+//struct _reg_sorted_point2D
+//{
+//    float target[3];
+//    float result[3];
+//
+//    double distance;
+//
+//    _reg_sorted_point2D(float * t, float * r, double d)
+//        :distance(d)
+//    {
+//        target[0] = t[0];
+//        target[1] = t[1];
+//        target[2] = 0;
+//
+//        result[0] = r[0];
+//        result[1] = r[1];
+//        result[2] = 0;
+//    }
+//    bool operator <(const _reg_sorted_point2D &sp) const
+//    {
+//        return (sp.distance < distance);
+//    }
+//};
 /* *************************************************************** */
 /* Functions calling the Eigen library                             */
 /* See http://eigen.tuxfamily.org/index.php?title=Main_Page        */
@@ -136,17 +209,96 @@ void reg_matrixInvertMultiply(T *mat,
 /* *************************************************************** */
 /* *************************************************************** */
 /* *************************************************************** */
+/* *************************************************************** */
+extern "C++" template<class T>
+T* reg_matrix1DAllocate(size_t arraySize);
+/* *************************************************************** */
+extern "C++" template<class T>
+T* reg_matrix1DAllocateAndInitToZero(size_t arraySize);
+/* *************************************************************** */
+extern "C++" template<class T>
+void reg_matrix1DDeallocate(T* mat);
+/* *************************************************************** */
 extern "C++" template<class T>
 T** reg_matrix2DAllocate(size_t arraySizeX, size_t arraySizeY);
+/* *************************************************************** */
+extern "C++" template<class T>
+T** reg_matrix2DAllocateAndInitToZero(size_t arraySizeX, size_t arraySizeY);
+/* *************************************************************** */
+extern "C++" template<class T>
+void reg_matrix2DDeallocate(size_t arraySizeX, T** mat);
 /* *************************************************************** */
 extern "C++" template<class T>
 T** reg_matrix2DTranspose(T** mat, size_t arraySizeX, size_t arraySizeY);
 /* *************************************************************** */
 extern "C++" template<class T>
-T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y);
+T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, bool transposeMat2);
+extern "C++" template<class T>
+void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, T** res, bool transposeMat2);
+/* *************************************************************** */
+extern "C++" template<class T>
+T* reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect);
+extern "C++" template<class T>
+void reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect, T* res);
+/* *************************************************************** */
+extern "C++" template<class T>
+T reg_matrix2DDet(T** mat, size_t m, size_t n);
+/* *************************************************************** */
+/* *************************************************************** */
+void optimize_2D(float** targetPosition, float** resultPosition,
+    int definedActiveBlock, int percent_to_keep, int max_iter, int tol,
+    mat44 * final, bool affine);
+/* *************************************************************** */
+void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
+/* *************************************************************** */
+void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
+/* *************************************************************** */
+void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);
+/* *************************************************************** */
+void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);
 /* *************************************************************** */
 /* *************************************************************** */
 /* *************************************************************** */
+/* *************************************************************** */
+/** @brief Add two 3-by-3 matrices
+*/
+mat33 reg_mat33_add(mat33 const* A, mat33 const* B);
+mat33 operator+(mat33 A, mat33 B);
+/* *************************************************************** */
+/** @brief Multipy two 3-by-3 matrices
+*/
+mat33 reg_mat33_mul(mat33 const* A,
+    mat33 const* B);
+mat33 operator*(mat33 A,
+    mat33 B);
+/* *************************************************************** */
+//The mat44 represent a 3x3 matrix
+void reg_mat33_mul(mat44 const* mat, float const* in, float *out);
+/* *************************************************************** */
+/** @brief Substract two 3-by-3 matrices
+*/
+mat33 reg_mat33_minus(mat33 const* A, mat33 const* B);
+mat33 operator-(mat33 A, mat33 B);
+/* *************************************************************** */
+/** @brief Transpose a 3-by-3 matrix
+*/
+mat33 reg_mat33_trans(mat33 A);
+/* *************************************************************** */
+/** @brief Diagonalize a 3-by-3 matrix
+*/
+void reg_mat33_diagonalize(mat33 const* A, mat33 * Q, mat33 * D);
+/* *************************************************************** */
+/** @brief Set up a 3-by-3 matrix with an identity
+*/
+void reg_mat33_eye(mat33 *mat);
+/* *************************************************************** */
+/** @brief Compute the determinant of a 3-by-3 matrix
+*/
+template<class T> T reg_mat33_det(mat33 const* A);
+/* *************************************************************** */
+/** @brief Transform a mat44 to a mat33 matrix
+*/
+mat33 reg_mat44_to_mat33(mat44 const* A);
 extern "C++"
 void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
 /* *************************************************************** */
@@ -158,19 +310,12 @@ bool operator==(mat44 A,mat44 B);
 /* *************************************************************** */
 bool operator!=(mat44 A,mat44 B);
 /* *************************************************************** */
-/** @brief here
- */
-mat33 reg_mat44_to_mat33(mat44 const* A);
-/* *************************************************************** */
 /** @brief Multipy two 4-by-4 matrices
  */
 mat44 reg_mat44_mul(mat44 const* A,
                     mat44 const* B);
 mat44 operator*(mat44 A,
                 mat44 B);
-
-mat33 operator*(mat33 A,
-                mat33 B);
 /* *************************************************************** */
 /** @brief Multipy a vector with a 4-by-4 matrix
  */
@@ -187,31 +332,15 @@ void reg_mat44_mul(mat44 const* mat,
 mat44 reg_mat44_mul(mat44 const* mat,
                     double scalar);
 /* *************************************************************** */
-/** @brief Add two 3-by-3 matrices
- */
-mat33 reg_mat33_add(mat33 const* A, mat33 const* B);
-mat33 operator+(mat33 A,mat33 B);
-mat33 reg_mat33_trans(mat33 A);
-void reg_mat33_diagonalize(mat33 const* A, mat33 * Q, mat33 * D);
-/* *************************************************************** */
 /** @brief Add two 4-by-4 matrices
  */
 mat44 reg_mat44_add(mat44 const* A, mat44 const* B);
 mat44 operator+(mat44 A,mat44 B);
 /* *************************************************************** */
-/** @brief Substract two 3-by-3 matrices
- */
-mat33 reg_mat33_minus(mat33 const* A, mat33 const* B);
-mat33 operator-(mat33 A,mat33 B);
-/* *************************************************************** */
 /** @brief Substract two 4-by-4 matrices
  */
 mat44 reg_mat44_minus(mat44 const* A, mat44 const* B);
 mat44 operator-(mat44 A,mat44 B);
-/* *************************************************************** */
-/** @brief Set up a 3-by-3 matrix with an identity
- */
-void reg_mat33_eye (mat33 *mat);
 /* *************************************************************** */
 /** @brief Set up a 4-by-4 matrix with an identity
  */
@@ -219,11 +348,7 @@ void reg_mat44_eye(mat44 *mat);
 /* *************************************************************** */
 /** @brief Compute the determinant of a 4-by-4 matrix
  */
-float reg_mat44_det(mat44 const* A);
-/* *************************************************************** */
-/** @brief Compute the inverse of a 4-by-4 matrix
- */
-mat44 reg_mat44_inv(mat44 const* A);
+template<class T> T reg_mat44_det(mat44 const* A);
 /* *************************************************************** */
 float reg_mat44_norm_inf(mat44 const* mat);
 /* *************************************************************** */
@@ -246,7 +371,7 @@ mat44 reg_mat44_avg2(mat44 const* A, mat44 const* b);
 /* *************************************************************** */
 /** @brief Compute the inverse of a  4-by-4 matrix
 */
-mat44 reg_mat44_invEigen(mat44 const* mat);
+mat44 reg_mat44_inv(mat44 const* mat);
 /* *************************************************************** */
 /** @brief Display a mat44 matrix
  */
@@ -258,5 +383,8 @@ void reg_mat44_disp(mat44 *mat,
 void reg_mat33_disp(mat33 *mat,
                     char * title);
 /* *************************************************************** */
+double get_square_distance3D(float * first_point3D, float * second_point3D);
+/* *************************************************************** */
+double get_square_distance2D(float * first_point2D, float * second_point2D);
 /* *************************************************************** */
 #endif // _REG_MATHS_H

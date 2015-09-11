@@ -454,6 +454,10 @@ std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename)
     //std::cout << "The number of line of the matrix is:" << nbLine << std::endl;
     //std::cout << "The number of column of the matrix is:" << nbColumn << std::endl;
     std::pair <size_t, size_t> result(nbLine, nbColumn);
+#ifndef NDEBUG
+    std::cout << "nbLine=" << nbLine << std::endl;
+    std::cout << "nbColumn=" << nbColumn << std::endl;
+#endif
     return result;
 }
 /* *************************************************************** */

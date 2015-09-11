@@ -164,6 +164,18 @@ mark_as_advanced(BUILDNAME)
     add_test(${EXEC}_uchar_3D  ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz uchar  ${DATA_FOLDER}/refImg3D_uchar.nii.gz)
     add_test(${EXEC}_float_3D  ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz float  ${DATA_FOLDER}/refImg3D_float.nii.gz)
     add_test(${EXEC}_double_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz double ${DATA_FOLDER}/refImg3D_double.nii.gz)
+
+    set(EXEC reg_test_leastTrimmedSquares)
+    add_executable(${EXEC} ${EXEC}.cpp)
+    target_link_libraries(${EXEC} _reg_aladin)
+    add_test(${EXEC}_RigidLS2D   ${EXEC} ${DATA_FOLDER}/P1_2D.txt ${DATA_FOLDER}/P2_2D.txt 1 0 ${DATA_FOLDER}/expectedRigidLTS_2D_1.txt)
+    add_test(${EXEC}_AffineLS2D  ${EXEC} ${DATA_FOLDER}/P1_2D.txt ${DATA_FOLDER}/P2_2D.txt 1 1 ${DATA_FOLDER}/expectedAffineLTS_2D_1.txt)
+    add_test(${EXEC}_RigidLS3D   ${EXEC} ${DATA_FOLDER}/P1_3D.txt ${DATA_FOLDER}/P2_3D.txt 1 0 ${DATA_FOLDER}/expectedRigidLTS_3D_1.txt)
+    add_test(${EXEC}_AffineLS3D  ${EXEC} ${DATA_FOLDER}/P1_3D.txt ${DATA_FOLDER}/P2_3D.txt 1 1 ${DATA_FOLDER}/expectedAffineLTS_3D_1.txt)
+    add_test(${EXEC}_RigidLTS2D   ${EXEC} ${DATA_FOLDER}/P1_2D.txt ${DATA_FOLDER}/P2_2D.txt 0.7 0 ${DATA_FOLDER}/expectedRigidLTS_2D_0.7.txt)
+    add_test(${EXEC}_AffineLTS2D  ${EXEC} ${DATA_FOLDER}/P1_2D.txt ${DATA_FOLDER}/P2_2D.txt 0.7 1 ${DATA_FOLDER}/expectedAffineLTS_2D_0.7.txt)
+    add_test(${EXEC}_RigidLTS3D   ${EXEC} ${DATA_FOLDER}/P1_3D.txt ${DATA_FOLDER}/P2_3D.txt 0.7 0 ${DATA_FOLDER}/expectedRigidLTS_3D_0.7.txt)
+    add_test(${EXEC}_AffineLTS3D  ${EXEC} ${DATA_FOLDER}/P1_3D.txt ${DATA_FOLDER}/P2_3D.txt 0.7 1 ${DATA_FOLDER}/expectedAffineLTS_3D_0.7.txt)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

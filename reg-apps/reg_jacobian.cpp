@@ -225,7 +225,7 @@ int main(int argc, char **argv)
       if(!reg_isAnImageFileName(param->inputTransName)){
          mat44 *affineTransformation=(mat44 *)malloc(sizeof(mat44));
          reg_tool_ReadAffineFile(affineTransformation,param->inputTransName);
-         printf("%g\n", reg_mat44_det(affineTransformation));
+         printf("%g\n", reg_mat44_det<double>(affineTransformation));
          return EXIT_SUCCESS;
       }
 

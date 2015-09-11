@@ -73,9 +73,15 @@ int main(int argc, char **argv)
 
     if (check_matrix_difference(*expectedMultMatrix, (*inputMatrix1)*(*inputMatrix2), (char *) "matrix multiplication", max_difference)) return EXIT_FAILURE;
 
+    if (check_matrix_difference(*expectedMultMatrix, reg_mat44_mul(inputMatrix1, inputMatrix2), (char *) "matrix multiplication", max_difference)) return EXIT_FAILURE;
+
     if (check_matrix_difference(*expectedAddMatrix, (*inputMatrix1) + (*inputMatrix2), (char *) "matrix addition", max_difference)) return EXIT_FAILURE;
 
+    if (check_matrix_difference(*expectedAddMatrix, reg_mat44_add(inputMatrix1, inputMatrix2), (char *) "matrix addition", max_difference)) return EXIT_FAILURE;
+
     if (check_matrix_difference(*expectedSubMatrix, (*inputMatrix1) - (*inputMatrix2), (char *) "matrix subtraction", max_difference)) return EXIT_FAILURE;
+
+    if (check_matrix_difference(*expectedSubMatrix, reg_mat44_minus(inputMatrix1, inputMatrix2), (char *) "matrix subtraction", max_difference)) return EXIT_FAILURE;
 
     if (check_matrix_difference(*expectedExpMatrix, reg_mat44_expm(inputMatrix1), (char *) "matrix exponentiation", max_difference)) return EXIT_FAILURE;
 
@@ -83,9 +89,8 @@ int main(int argc, char **argv)
 
     if (check_matrix_difference(*expectedInvMatrix, reg_mat44_inv(inputMatrix1), (char *) "reg_mat44_inv matrix inverse", max_difference)) return EXIT_FAILURE;
 
-    if (check_matrix_difference(*expectedInvMatrix, reg_mat44_invEigen(inputMatrix1), (char *) "reg_mat44_invEigen matrix inverse", max_difference)) return EXIT_FAILURE;
-
     if (check_matrix_difference(*expectedInvMatrix, nifti_mat44_inverse(*inputMatrix1), (char *) "nifti_mat44_inverse matrix inverse", max_difference)) return EXIT_FAILURE;
+
     ////////////////////////
 #ifndef NDEBUG
     fprintf(stdout, "reg_test_matrix_operation ok: %g (<%g)\n", max_difference, EPS);

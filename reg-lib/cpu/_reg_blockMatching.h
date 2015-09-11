@@ -94,9 +94,7 @@ struct _reg_blockMatchingParam
       if(activeBlock) free(activeBlock);
    }
 };
-
-
-
+/* *************************************************************** */
 /** @brief This function initialise a _reg_blockMatchingParam structure
  * according to the the provided arguments
  * @param referenceImage Reference image where the blocks are defined
@@ -132,16 +130,6 @@ void block_matching_method(nifti_image * referenceImage,
                            _reg_blockMatchingParam *params,
                            int *mask);
 
-/** @brief Apply the given affine transformation to a point
- * @todo I should remove this function as it is redondant
- * @param mat Transformation matrix
- * @param pt Input position
- * @param pr Output position
- */
-void apply_affine(mat44 * mat,
-                  float *pt,
-                  float *pr);
-
 /** @brief Find the optimal affine transformation that matches the points
  * in the target image to the point in the result image
  * @param params Block-matching structure that contains the relevant information
@@ -152,9 +140,4 @@ void apply_affine(mat44 * mat,
 void optimize(_reg_blockMatchingParam *params,
               mat44 * transformation_matrix,
               bool affine = true);
-
-void optimize_rigid3D(_reg_blockMatchingParam *params, mat44 *final);
-void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final);
-
-
 #endif

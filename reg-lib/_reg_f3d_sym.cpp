@@ -517,7 +517,7 @@ void reg_f3d_sym<T>::Initialise()
       reg_tools_multiplyValueToImage(this->backwardControlPointGrid,this->backwardControlPointGrid,-1.f);
       reg_getDeformationFromDisplacement(this->backwardControlPointGrid);
       for(int i=0; i<this->backwardControlPointGrid->num_ext; ++i){
-         mat44 tempMatrix=reg_mat44_inv(reinterpret_cast<mat44 *>(this->backwardControlPointGrid->ext_list[i].edata));
+          mat44 tempMatrix = nifti_mat44_inverse(*reinterpret_cast<mat44 *>(this->backwardControlPointGrid->ext_list[i].edata));
          memcpy(this->backwardControlPointGrid->ext_list[i].edata,
                 &tempMatrix,
                 sizeof(mat44));
