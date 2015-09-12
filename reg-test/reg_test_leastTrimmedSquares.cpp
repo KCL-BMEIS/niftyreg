@@ -14,7 +14,7 @@ int check_matrix_difference(mat44 matrix1, mat44 matrix2, char *name, float &max
             float difference = fabsf(matrix1.m[i][j] - matrix2.m[i][j]);
             max_difference = std::max(difference, max_difference);
             if (difference > EPS){
-                fprintf(stderr, "reg_test_leastSquares - %s failed %g>%g\n",
+                fprintf(stderr, "reg_test_leastTrimmedSquares - %s failed %g>%g\n",
                     name, difference, EPS);
                 return EXIT_FAILURE;
             }
@@ -27,13 +27,13 @@ int main(int argc, char **argv)
 {
 
     if (argc != 6) {
-        fprintf(stderr, "Usage: %s <inputMatrix1> <inputMatrix2> <percentToKeep> <isAffine> <expectedLTSMatrix> \n", argv[0]);
+        fprintf(stderr, "Usage: %s <inputPoints1> <inputPoints2> <percentToKeep> <isAffine> <expectedLTSMatrix> \n", argv[0]);
         return EXIT_FAILURE;
     }
 
     char *inputMatrix1Filename = argv[1];
     char *inputMatrix2Filename = argv[2];
-    float percentToKeep = atoi(argv[3]);
+    unsigned int percentToKeep = atoi(argv[3]);
     bool isAffine = atoi(argv[4]);
     char *expectedLTSMatrixFilename = argv[5];
 
@@ -54,73 +54,66 @@ int main(int argc, char **argv)
     mat44 *expectedLSMatrix = reg_tool_ReadMat44File(expectedLTSMatrixFilename);
     ////////////////////////
     float max_difference = 0;
+    unsigned int num_points = m1;
     //2-D
     if (n1 == 2) {
-        std::vector<_reg_sorted_point2D> points;
-        mat44* test_leastSquares = (mat44 *)malloc(sizeof(mat44));
-        reg_mat44_eye(test_leastSquares);
-        for (unsigned int i = 0; i < m1; i++) {
-            points.push_back(_reg_sorted_point2D(inputMatrix1[i], inputMatrix2[i], 0.0));
+
+        mat44* test_LTS = (mat44 *)malloc(sizeof(mat44));
+        reg_mat44_eye(test_LTS);
+
+        float* referencePosition = new float[num_points*n1];
+        float* warpedPosition = new float[num_points*n1];
+
+        unsigned int compteur = 0;
+        for (unsigned int j = 0; j < num_points; j++) {
+           referencePosition[compteur] = inputMatrix1[j][0];
+           referencePosition[compteur+1] = inputMatrix1[j][1];
+           warpedPosition[compteur] = inputMatrix2[j][0];
+           warpedPosition[compteur+1] = inputMatrix2[j][1];
+           compteur +=n1;
         }
-        if (isAffine) {
-            estimate_affine_transformation2D(points, test_leastSquares);
+
+        optimize_2D(referencePosition, warpedPosition, num_points, percentToKeep, 30, 0.001, test_LTS, isAffine);
 #ifndef NDEBUG
-            reg_mat44_disp(test_leastSquares, "test_affine_transformation2D");
+            reg_mat44_disp(test_LTS, (char *) "test_optimize_2D");
 #endif
-            if (check_matrix_difference(*expectedLSMatrix, *test_leastSquares, (char *) "LTS matrices 2D affine", max_difference)) return EXIT_FAILURE;
-        }
-        else {
-            estimate_rigid_transformation2D(points, test_leastSquares);
-#ifndef NDEBUG
-            reg_mat44_disp(test_leastSquares, "test_rigid_transformation2D");
-#endif
-            if (check_matrix_difference(*expectedLSMatrix, *test_leastSquares, (char *) "LTS matrices 2D rigid", max_difference)) return EXIT_FAILURE;
-        }
+        if (check_matrix_difference(*expectedLSMatrix, *test_LTS, (char *) "LTS matrices 2D affine - rigid", max_difference)) return EXIT_FAILURE;
 
         ////////////////////////
         // FREE THE MEMORY: ////
         ////////////////////////
-        //for (std::vector<float *>::iterator it = points1.begin(); it != points1.end(); ++it) {
-        //    free(*it);
-        //}
-        //for (std::vector<float *>::iterator it = points2.begin(); it != points2.end(); ++it) {
-        //    free(*it);
-        //}
         free(expectedLSMatrix);
         reg_matrix2DDeallocate(m2, inputMatrix2);
         reg_matrix2DDeallocate(m1, inputMatrix1);
     }
     else if (n1 == 3) {
-        std::vector<_reg_sorted_point3D> points;
-        mat44* test_leastSquares = (mat44 *)malloc(sizeof(mat44));
-        reg_mat44_eye(test_leastSquares);
-        for (unsigned int i = 0; i < m1; i++) {
-            points.push_back(_reg_sorted_point3D(inputMatrix1[i], inputMatrix2[i], 0.0));
+
+        mat44* test_LTS = (mat44 *)malloc(sizeof(mat44));
+        reg_mat44_eye(test_LTS);
+
+        float* referencePosition = new float[num_points*n1];
+        float* warpedPosition = new float[num_points*n1];
+
+        unsigned int compteur = 0;
+        for (unsigned int j = 0; j < num_points; j++) {
+           referencePosition[compteur] = inputMatrix1[j][0];
+           referencePosition[compteur+1] = inputMatrix1[j][1];
+           referencePosition[compteur+2] = inputMatrix1[j][2];
+           warpedPosition[compteur] = inputMatrix2[j][0];
+           warpedPosition[compteur+1] = inputMatrix2[j][1];
+           warpedPosition[compteur+2] = inputMatrix2[j][2];
+           compteur +=n1;
         }
-        if (isAffine) {
-            estimate_affine_transformation3D(points, test_leastSquares);
+
+        optimize_3D(referencePosition, warpedPosition, num_points, percentToKeep, 30, 0.001, test_LTS, isAffine);
 #ifndef NDEBUG
-            reg_mat44_disp(test_leastSquares, "test_affine_transformation3D");
+            reg_mat44_disp(test_LTS, (char *) "test_optimize_3D");
 #endif
-            if (check_matrix_difference(*expectedLSMatrix, *test_leastSquares, (char *) "LTS matrices 3D affine", max_difference)) return EXIT_FAILURE;
-        }
-        else {
-            estimate_rigid_transformation3D(points, test_leastSquares);
-#ifndef NDEBUG
-            reg_mat44_disp(test_leastSquares, "test_rigid_transformation3D");
-#endif
-            if (check_matrix_difference(*expectedLSMatrix, *test_leastSquares, (char *) "LTS matrices 3D rigid", max_difference)) return EXIT_FAILURE;
-        }
+            if (check_matrix_difference(*expectedLSMatrix, *test_LTS, (char *) "LTS matrices 3D affine - rigid", max_difference)) return EXIT_FAILURE;
 
         ////////////////////////
         // FREE THE MEMORY: ////
         ////////////////////////
-        //for (std::vector<float *>::iterator it = points1.begin(); it != points1.end(); ++it) {
-        //    free(*it);
-        //}
-        //for (std::vector<float *>::iterator it = points2.begin(); it != points2.end(); ++it) {
-        //    free(*it);
-        //}
         free(expectedLSMatrix);
         reg_matrix2DDeallocate(m2, inputMatrix2);
         reg_matrix2DDeallocate(m1, inputMatrix1);
@@ -130,10 +123,8 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     //
-
-    //
 #ifndef NDEBUG
-    fprintf(stdout, "reg_test_leastSquares ok: %g (<%g)\n", max_difference, EPS);
+    fprintf(stdout, "reg_test_leastTrimmedSquares ok: %g (<%g)\n", max_difference, EPS);
 #endif
     return EXIT_SUCCESS;
 }

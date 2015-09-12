@@ -337,14 +337,14 @@ template void reg_matrixInvertMultiply<double>(double *, size_t, size_t *, doubl
 template<class T>
 void reg_matrixMultiply(T *mat1,
     T *mat2,
-    int *dim1,
-    int *dim2,
+    size_t *dim1,
+    size_t *dim2,
     T * &res)
 {
     // First check that the dimension are appropriate
     if (dim1[1] != dim2[0])
     {
-        char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%i %i] [%i %i]",
+        char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%zu %zu] [%zu %zu]",
             dim1[0], dim1[1], dim2[0], dim2[1]);
         reg_print_fct_error("reg_matrixMultiply");
         reg_print_msg_error(text);
@@ -369,8 +369,8 @@ void reg_matrixMultiply(T *mat1,
         } // i
     } // j
 }
-template void reg_matrixMultiply<float>(float *, float *, int *, int *, float * &);
-template void reg_matrixMultiply<double>(double *, double *, int *, int *, double * &);
+template void reg_matrixMultiply<float>(float *, float *, size_t *, size_t *, float * &);
+template void reg_matrixMultiply<double>(double *, double *, size_t *, size_t *, double * &);
 /* *************************************************************** */
 /* *************************************************************** */
 /* *************************************************************** */
@@ -419,8 +419,8 @@ T** reg_matrix2DAllocateAndInitToZero(size_t arraySizeX, size_t arraySizeY) {
     }
     return res;
 }
-template float** reg_matrix2DAllocate<float>(size_t arraySizeX, size_t arraySizeY);
-template double** reg_matrix2DAllocate<double>(size_t arraySizeX, size_t arraySizeY);
+template float** reg_matrix2DAllocateAndInitToZero<float>(size_t arraySizeX, size_t arraySizeY);
+template double** reg_matrix2DAllocateAndInitToZero<double>(size_t arraySizeX, size_t arraySizeY);
 /* *************************************************************** */
 template<class T>
 void reg_matrix2DDeallocate(size_t arraySizeX, T** mat) {
@@ -454,7 +454,7 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
     if (transposeMat2 == false) {
         // First check that the dimension are appropriate
         if (mat1Y != mat2X) {
-            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%i %i] [%i %i]",
+            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%zu %zu] [%zu %zu]",
                 mat1X, mat1Y, mat2X, mat2Y);
             reg_print_fct_error("reg_matrix2DMultiply");
             reg_print_msg_error(text);
@@ -463,11 +463,11 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
         size_t nbElement = mat1Y;
         T** res;
         res = (T**)malloc(mat1X*sizeof(T*));
-        for (int i = 0; i < mat1X; i++) {
+        for (size_t i = 0; i < mat1X; i++) {
             res[i] = (T*)malloc(mat2Y*sizeof(T));
         }
-        for (int i = 0; i < mat1X; i++) {
-            for (int j = 0; j < mat2Y; j++) {
+        for (size_t i = 0; i < mat1X; i++) {
+            for (size_t j = 0; j < mat2Y; j++) {
                 res[i][j] = 0;
                 for (int k = 0; k < nbElement; k++) {
                     res[i][j] += static_cast<T>(static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[k][j]));
@@ -479,7 +479,7 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
     else {
         // First check that the dimension are appropriate
         if (mat1Y != mat2Y) {
-            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%i %i] [%i %i]",
+            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%zu %zu] [%zu %zu]",
                 mat1X, mat1Y, mat2Y, mat2X);
             reg_print_fct_error("reg_matrix2DMultiply");
             reg_print_msg_error(text);
@@ -488,13 +488,13 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
         size_t nbElement = mat1Y;
         T** res;
         res = (T**)malloc(mat1X*sizeof(T*));
-        for (int i = 0; i < mat1X; i++) {
+        for (size_t i = 0; i < mat1X; i++) {
             res[i] = (T*)malloc(mat2X*sizeof(T));
         }
-        for (int i = 0; i < mat1X; i++) {
-            for (int j = 0; j < mat2X; j++) {
+        for (size_t i = 0; i < mat1X; i++) {
+            for (size_t j = 0; j < mat2X; j++) {
                 res[i][j] = 0;
-                for (int k = 0; k < nbElement; k++) {
+                for (size_t k = 0; k < nbElement; k++) {
                     res[i][j] += static_cast<T>(static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[j][k]));
                 }
             }
@@ -510,7 +510,7 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
     if (transposeMat2 == false) {
         // First check that the dimension are appropriate
         if (mat1Y != mat2X) {
-            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%i %i] [%i %i]",
+            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%zu %zu] [%zu %zu]",
                 mat1X, mat1Y, mat2X, mat2Y);
             reg_print_fct_error("reg_matrix2DMultiply");
             reg_print_msg_error(text);
@@ -518,10 +518,10 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
         }
         size_t nbElement = mat1Y;
 
-        for (int i = 0; i < mat1X; i++) {
-            for (int j = 0; j < mat2Y; j++) {
+        for (size_t i = 0; i < mat1X; i++) {
+            for (size_t j = 0; j < mat2Y; j++) {
                 res[i][j] = 0;
-                for (int k = 0; k < nbElement; k++) {
+                for (size_t k = 0; k < nbElement; k++) {
                     res[i][j] += static_cast<T>(static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[k][j]));
                 }
             }
@@ -530,7 +530,7 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
     else {
         // First check that the dimension are appropriate
         if (mat1Y != mat2Y) {
-            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%i %i] [%i %i]",
+            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%zu %zu] [%zu %zu]",
                 mat1X, mat1Y, mat2Y, mat2X);
             reg_print_fct_error("reg_matrix2DMultiply");
             reg_print_msg_error(text);
@@ -538,10 +538,10 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
         }
         size_t nbElement = mat1Y;
 
-        for (int i = 0; i < mat1X; i++) {
-            for (int j = 0; j < mat2X; j++) {
+        for (size_t i = 0; i < mat1X; i++) {
+            for (size_t j = 0; j < mat2X; j++) {
                 res[i][j] = 0;
-                for (int k = 0; k < nbElement; k++) {
+                for (size_t k = 0; k < nbElement; k++) {
                     res[i][j] += static_cast<T>(static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[j][k]));
                 }
             }
@@ -583,7 +583,7 @@ template void reg_matrix2DVectorMultiply<double>(double** mat, size_t m, size_t 
 template<class T>
 T reg_matrix2DDet(T** mat, size_t m, size_t n) {
     if (m != n) {
-        char text[255]; sprintf(text, "The matrix have to be square: [%i %i]",
+        char text[255]; sprintf(text, "The matrix have to be square: [%zu %zu]",
             m, n);
         reg_print_fct_error("reg_matrix2DDeterminant");
         reg_print_msg_error(text);
@@ -871,8 +871,10 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, m
     for (unsigned int i = 0; i < num_points; i++) {
         points1[i][0] = points[i].target[0];
         points1[i][1] = points[i].target[1];
+        points1[i][2] = points[i].target[2];
         points2[i][0] = points[i].result[0];
         points2[i][1] = points[i].result[1];
+        points2[i][2] = points[i].result[2];
     }
     estimate_rigid_transformation3D(points1, points2, num_points, transformation);
     //FREE MEMORY
@@ -1100,18 +1102,20 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
     for (unsigned int i = 0; i < num_points; i++) {
         points1[i][0] = points[i].target[0];
         points1[i][1] = points[i].target[1];
+        points1[i][2] = points[i].target[2];
         points2[i][0] = points[i].result[0];
         points2[i][1] = points[i].result[1];
+        points2[i][2] = points[i].result[2];
     }
     estimate_affine_transformation3D(points1, points2, num_points, transformation);
     //FREE MEMORY
     reg_matrix2DDeallocate(num_points, points1);
     reg_matrix2DDeallocate(num_points, points2);
 }
-///LTS 2D
 /* *************************************************************** */
-void optimize_2D(float** targetPosition, float** resultPosition,
-    int definedActiveBlock, int percent_to_keep, int max_iter, int tol,
+///LTS 2D
+void optimize_2D(float* referencePosition, float* warpedPosition,
+    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
     mat44 * final, bool affine) {
 
     // Set the current transformation to identity
@@ -1130,7 +1134,7 @@ void optimize_2D(float** targetPosition, float** resultPosition,
     // The initial vector with all the input points
     for (unsigned j = 0; j < num_points * 2; j += 2)
     {
-        top_points.push_back(_reg_sorted_point2D(targetPosition[j], resultPosition[j], 0.0));
+        top_points.push_back(_reg_sorted_point2D(&referencePosition[j], &warpedPosition[j], 0.0));
     }
     if (affine) {
         estimate_affine_transformation2D(top_points, final);
@@ -1141,7 +1145,7 @@ void optimize_2D(float** targetPosition, float** resultPosition,
 
     const unsigned long num_to_keep = (unsigned long)(num_points * (percent_to_keep / 100.0f));
     num_equations = num_to_keep * 2;
-    float * newResultPosition = new float[num_points * 2];
+    float * newWarpedPosition = new float[num_points * 2];
 
     mat44 lastTransformation;
     memset(&lastTransformation, 0, sizeof(mat44));
@@ -1151,14 +1155,14 @@ void optimize_2D(float** targetPosition, float** resultPosition,
         // Transform the points in the target
         for (unsigned j = 0; j < num_points * 2; j += 2)
         {
-            reg_mat33_mul(final, targetPosition[j], &newResultPosition[j]);
+            reg_mat33_mul(final, &referencePosition[j], &newWarpedPosition[j]);
         }
         queue = std::multimap<double, _reg_sorted_point2D>();
         for (unsigned j = 0; j < num_points * 2; j += 2)
         {
-            distance = get_square_distance2D(&newResultPosition[j], resultPosition[j]);
+            distance = get_square_distance2D(&newWarpedPosition[j], &warpedPosition[j]);
             queue.insert(std::pair<double, _reg_sorted_point2D>(distance,
-                _reg_sorted_point2D(targetPosition[j], resultPosition[j], distance)));
+                _reg_sorted_point2D(&referencePosition[j], &warpedPosition[j], distance)));
         }
 
         distance = 0.0;
@@ -1176,6 +1180,7 @@ void optimize_2D(float** targetPosition, float** resultPosition,
         // If the change is not substantial, we return
         if ((distance > lastDistance) || (lastDistance - distance) < tol)
         {
+            // restore the last transformation
             memcpy(final, &lastTransformation, sizeof(mat44));
             break;
         }
@@ -1188,8 +1193,87 @@ void optimize_2D(float** targetPosition, float** resultPosition,
             estimate_rigid_transformation2D(top_points, final);
         }
     }
-    delete[] newResultPosition;
+    delete[] newWarpedPosition;
 
+}
+/* *************************************************************** */
+///LTS 3D
+void optimize_3D(float *referencePosition, float *warpedPosition,
+	unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+	mat44 *final, bool affine) {
+
+    // Set the current transformation to identity
+    reg_mat44_eye(final);
+
+    const unsigned num_points = definedActiveBlock;
+    unsigned long num_equations = num_points * 3;
+    // Keep a sorted list of the distance measure
+    std::multimap<double, _reg_sorted_point3D> queue;
+    std::vector<_reg_sorted_point3D> top_points;
+    double distance = 0.0;
+    double lastDistance = std::numeric_limits<double>::max();
+    unsigned long i;
+
+    // The initial vector with all the input points
+    for (unsigned j = 0; j < num_points*3; j+=3) {
+       top_points.push_back(_reg_sorted_point3D(&referencePosition[j],
+                                                &warpedPosition[j],
+                                                0.0));
+    }
+    if (affine) {
+        estimate_affine_transformation3D(top_points, final);
+    } else {
+        estimate_rigid_transformation3D(top_points, final);
+    }
+    unsigned long num_to_keep = (unsigned long)(num_points * (percent_to_keep/100.0f));
+    num_equations = num_to_keep*3;
+    float* newWarpedPosition = new float[num_points*3];
+
+    mat44 lastTransformation;
+    memset(&lastTransformation,0,sizeof(mat44));
+
+    for (unsigned count = 0; count < max_iter; ++count)
+    {
+       // Transform the points in the target
+       for (unsigned j = 0; j < num_points * 3; j+=3) {
+          reg_mat44_mul(final, &referencePosition[j], &newWarpedPosition[j]);
+       }
+       queue = std::multimap<double, _reg_sorted_point3D>();
+       for (unsigned j = 0; j < num_points * 3; j+= 3)
+       {
+          distance = get_square_distance3D(&newWarpedPosition[j], &warpedPosition[j]);
+          queue.insert(std::pair<double,
+                       _reg_sorted_point3D>(distance,
+                                            _reg_sorted_point3D(&referencePosition[j],
+                                                                &warpedPosition[j],
+                                                                distance)));
+       }
+
+       distance = 0.0;
+       i = 0;
+       top_points.clear();
+       for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin();it != queue.end(); ++it, ++i)
+       {
+          if (i >= num_to_keep) break;
+          top_points.push_back((*it).second);
+          distance += (*it).first;
+       }
+
+       // If the change is not substantial, we return
+       if ((distance > lastDistance) || (lastDistance - distance) < tol)
+       {
+          memcpy(final, &lastTransformation, sizeof(mat44));
+          break;
+       }
+       lastDistance = distance;
+       memcpy(&lastTransformation, final, sizeof(mat44));
+       if(affine) {
+           estimate_affine_transformation3D(top_points, final);
+       } else {
+           estimate_rigid_transformation3D(top_points, final);
+       }
+    }
+    delete [] newWarpedPosition;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1416,6 +1500,20 @@ void reg_mat33_mul(mat44 const* mat,
     return;
 }
 /* *************************************************************** */
+void reg_mat33_mul(mat33 const* mat,
+    float const* in,
+    float *out)
+{
+    out[0] = static_cast<float>(
+        static_cast<double>(in[0])*static_cast<double>(mat->m[0][0]) +
+        static_cast<double>(in[1])*static_cast<double>(mat->m[0][1]) +
+        static_cast<double>(mat->m[0][2]));
+    out[1] = static_cast<float>(
+        static_cast<double>(in[0])*static_cast<double>(mat->m[1][0]) +
+        static_cast<double>(in[1])*static_cast<double>(mat->m[1][1]) +
+        static_cast<double>(mat->m[1][2]));
+    return;
+}
 /* *************************************************************** */
 mat33 reg_mat33_mul(mat33 const* A, mat33 const* B)
 {

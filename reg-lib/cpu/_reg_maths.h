@@ -197,8 +197,8 @@ void reg_LUdecomposition(T *inputMatrix,
 extern "C++" template <class T>
 void reg_matrixMultiply(T *mat1,
                         T *mat2,
-                        int *dim1,
-                        int *dim2,
+                        size_t *dim1,
+                        size_t *dim2,
                         T * &res);
 /* *************************************************************** */
 extern "C++" template <class T>
@@ -245,13 +245,17 @@ extern "C++" template<class T>
 T reg_matrix2DDet(T** mat, size_t m, size_t n);
 /* *************************************************************** */
 /* *************************************************************** */
-void optimize_2D(float** targetPosition, float** resultPosition,
-    int definedActiveBlock, int percent_to_keep, int max_iter, int tol,
-    mat44 * final, bool affine);
+void optimize_2D(float* referencePosition, float* warpedPosition,
+    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    mat44* final, bool affine);
 /* *************************************************************** */
 void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
 /* *************************************************************** */
 void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
+/* *************************************************************** */
+void optimize_3D(float* referencePosition, float* warpedPosition,
+    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    mat44* final, bool affine);
 /* *************************************************************** */
 void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);
 /* *************************************************************** */
@@ -274,6 +278,7 @@ mat33 operator*(mat33 A,
 /* *************************************************************** */
 //The mat44 represent a 3x3 matrix
 void reg_mat33_mul(mat44 const* mat, float const* in, float *out);
+void reg_mat33_mul(mat33 const* mat, float const* in, float *out);
 /* *************************************************************** */
 /** @brief Substract two 3-by-3 matrices
 */
