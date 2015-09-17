@@ -1,4 +1,5 @@
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_globalTrans.h"
 #include "_reg_tools.h"
 

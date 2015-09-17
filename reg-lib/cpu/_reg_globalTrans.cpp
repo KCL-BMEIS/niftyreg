@@ -15,10 +15,6 @@
 #include "_reg_globalTrans.h"
 #include "_reg_maths.h"
 
-//STD
-#include <iostream>
-#include <string>
-
 /* *************************************************************** */
 /* *************************************************************** */
 template <class FieldTYPE>
@@ -197,351 +193,664 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
       free(tempMask);
 }
 /* *************************************************************** */
-/* *************************************************************** */
-void reg_tool_ReadAffineFile(mat44 *mat,
-                             nifti_image *target,
-                             nifti_image *source,
-                             char *fileName,
-                             bool flirtFile)
+void estimate_rigid_transformation2D(float** points1, float** points2, int num_points, mat44 * transformation)
 {
-   std::ifstream affineFile;
-   affineFile.open(fileName);
-   if(affineFile.is_open())
-   {
-      int i=0;
-      float value1,value2,value3,value4;
-      while(!affineFile.eof())
-      {
-         affineFile >> value1 >> value2 >> value3 >> value4;
-         mat->m[i][0] = value1;
-         mat->m[i][1] = value2;
-         mat->m[i][2] = value3;
-         mat->m[i][3] = value4;
-         i++;
-         if(i>3) break;
-      }
-   }
-   else
-   {
-      char text[255];sprintf(text, "The affine file can not be read: %s", fileName);
-      reg_print_fct_error("reg_tool_ReadAffineFile");
-      reg_print_msg_error(text);
-      reg_exit(1);
-   }
-   affineFile.close();
 
-#ifndef NDEBUG
-   reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Read affine transformation");
-#endif
+    double centroid_target[2] = { 0.0 };
+    double centroid_result[2] = { 0.0 };
 
-   if(flirtFile)
-   {
-      mat44 absoluteTarget;
-      mat44 absoluteSource;
-      for(int i=0; i<4; i++)
-      {
-         for(int j=0; j<4; j++)
-         {
-            absoluteTarget.m[i][j]=absoluteSource.m[i][j]=0.0;
-         }
-      }
-      //If the target sform is defined, it is used; qform otherwise;
-      mat44 *targetMatrix;
-      if(target->sform_code > 0)
-      {
-         targetMatrix = &(target->sto_xyz);
-#ifndef NDEBUG
-         reg_print_msg_debug("The target sform matrix is defined and used");
-#endif
-      }
-      else targetMatrix = &(target->qto_xyz);
-      //If the source sform is defined, it is used; qform otherwise;
-      mat44 *sourceMatrix;
-      if(source->sform_code > 0)
-      {
-#ifndef NDEBUG
-         reg_print_msg_debug(" The source sform matrix is defined and used");
-#endif
-         sourceMatrix = &(source->sto_xyz);
-      }
-      else sourceMatrix = &(source->qto_xyz);
-
-      for(int i=0; i<3; i++)
-      {
-         absoluteTarget.m[i][i]=sqrt(targetMatrix->m[0][i]*targetMatrix->m[0][i]
-               + targetMatrix->m[1][i]*targetMatrix->m[1][i]
-               + targetMatrix->m[2][i]*targetMatrix->m[2][i]);
-         absoluteSource.m[i][i]=sqrt(sourceMatrix->m[0][i]*sourceMatrix->m[0][i]
-               + sourceMatrix->m[1][i]*sourceMatrix->m[1][i]
-               + sourceMatrix->m[2][i]*sourceMatrix->m[2][i]);
-      }
-      absoluteTarget.m[3][3]=absoluteSource.m[3][3]=1.0;
-#ifndef NDEBUG
-      reg_print_msg_debug("An flirt affine file is assumed and is converted to a real word affine matrix");
-      reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Matrix read from the input file");
-      reg_mat44_disp(targetMatrix, (char *)"[NiftyReg DEBUG] Target Matrix");
-      reg_mat44_disp(sourceMatrix, (char *)"[NiftyReg DEBUG] Source Matrix");
-      reg_mat44_disp(&(absoluteTarget), (char *)"[NiftyReg DEBUG] Target absolute Matrix");
-      reg_mat44_disp(&(absoluteSource), (char *)"[NiftyReg DEBUG] Source absolute Matrix");
-#endif
-
-      absoluteSource = nifti_mat44_inverse(absoluteSource);
-      *mat = nifti_mat44_inverse(*mat);
-
-      *mat = reg_mat44_mul(&absoluteSource,mat);
-      *mat = reg_mat44_mul(mat, &absoluteTarget);
-      *mat = reg_mat44_mul(sourceMatrix,mat);
-      mat44 tmp = nifti_mat44_inverse(*targetMatrix);
-      *mat = reg_mat44_mul(mat, &tmp);
-   }
-
-#ifndef NDEBUG
-   reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Affine matrix");
-#endif
-}
-/* *************************************************************** */
-/* *************************************************************** */
-void reg_tool_ReadAffineFilev2(mat44 *mat, char *filename)
-{
-#ifndef NDEBUG
-    std::cout.precision(20);
-#endif
-      std::string line;
-      std::ifstream affineFile (filename);
-      double currentValue = 0;
-      if (affineFile.is_open())
-      {
-        int j=0;
-        while(std::getline(affineFile,line))
-        {
-#ifndef NDEBUG
-          std::cout << line << '\n';
-#endif
-          std::string delimiter = " ";
-          int i=0;
-          size_t pos = 0;
-          std::string token;
-          while ((pos = line.find(delimiter)) != std::string::npos)
-          {
-              token = line.substr(0, pos);
-#ifndef NDEBUG
-              std::cout << token << std::endl;
-#endif
-              currentValue = atof(token.c_str());
-              mat->m[j][i] = currentValue;
-              //mat->m[j][i] = std::stof(token);
-#ifndef NDEBUG
-              std::cout << "currentValue=" << currentValue << std::endl;
-              std::cout << "mat->m[j][i]=" << mat->m[j][i] << std::endl;
-#endif
-              line.erase(0, pos + delimiter.length());
-              i++;
-          }
-#ifndef NDEBUG
-          std::cout << line << std::endl;
-#endif
-          currentValue = atof(line.c_str());
-          mat->m[j][i] = currentValue;
-#ifndef NDEBUG
-          std::cout << "currentValue=" << currentValue << std::endl;
-          std::cout << "mat->m[j][i]=" << mat->m[j][i] << std::endl;
-#endif
-          j++;
-        }
-        affineFile.close();
-      }
-      else
-      {
-              char text[255];
-              sprintf(text, "The affine file can not be read: %s", filename);
-              reg_print_fct_error("reg_tool_ReadAffineFilev2");
-              reg_print_msg_error(text);
-              reg_exit(1);
-      }
-#ifndef NDEBUG
-   reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Affine matrix");
-#endif
-}
-/* *************************************************************** */
-/* *************************************************************** */
-void reg_tool_ReadAffineFile(mat44 *mat,
-                             char *fileName)
-{
-   std::ifstream affineFile;
-   affineFile.open(fileName);
-   if(affineFile.is_open())
-   {
-      int i=0;
-      double value1,value2,value3,value4;
-      while(!affineFile.eof())
-      {
-         affineFile >> value1 >> value2 >> value3 >> value4;
-#ifndef NDEBUG
-         char text[255];
-         sprintf(text, "Affine matrix values - value1 - value2 - value3 - value4: %f - %f - %f - %f", value1,value2, value3, value4);
-         reg_print_msg_debug(text);
-#endif
-         mat->m[i][0] = (float) value1;
-         mat->m[i][1] = (float) value2;
-         mat->m[i][2] = (float) value3;
-         mat->m[i][3] = (float) value4;
-         i++;
-         if(i>3) break;
-      }
-   }
-   else
-   {
-      char text[255];sprintf(text, "The affine file can not be read: %s", fileName);
-      reg_print_fct_error("reg_tool_ReadAffineFile");
-      reg_print_msg_error(text);
-      reg_exit(1);
-   }
-   affineFile.close();
-
-#ifndef NDEBUG
-   reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Affine matrix");
-#endif
-}
-/* *************************************************************** */
-/* *************************************************************** */
-void reg_tool_WriteAffineFile(mat44 *mat,
-                              const char *fileName)
-{
-   FILE *affineFile;
-   affineFile=fopen(fileName, "w");
-   for(int i=0; i<4; i++)
-      fprintf(affineFile, "%.7g %.7g %.7g %.7g\n", mat->m[i][0], mat->m[i][1], mat->m[i][2], mat->m[i][3]);
-   fclose(affineFile);
-}
-/* *************************************************************** */
-/* *************************************************************** */
-/* *************************************************************** */
-/* *************************************************************** */
-std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename)
-{
-    //FIRST LET'S DETERMINE THE NUMBER OF LINE AND COLUMN
-    std::string line;
-    std::ifstream matrixFile(filename);
-    size_t nbLine = 0;
-    size_t nbColumn = 0;
-    if (matrixFile.is_open()) {
-        std::getline(matrixFile, line);
-        nbLine++;
-        std::string delimiter = " ";
-        size_t pos = 0;
-        std::string token;
-        //
-        while ((pos = line.find(delimiter)) != std::string::npos) {
-            token = line.substr(0, pos);
-            nbColumn++;
-            line.erase(0, pos + delimiter.length());
-        }
-        nbColumn++;
-        //
-        while (std::getline(matrixFile, line)) {
-            nbLine++;
-        }
-        //
-        matrixFile.close();
+    for (unsigned j = 0; j < num_points; ++j) {
+        centroid_target[0] += points1[j][0];
+        centroid_target[1] += points1[j][1];
+        centroid_result[0] += points2[j][0];
+        centroid_result[1] += points2[j][1];
     }
-    else {
-        char text[255];
-        sprintf(text, "The file can not be read: %s", filename);
-        reg_print_fct_error("reg_tool_ReadMatrixFile");
-        reg_print_msg_error(text);
-        reg_exit(1);
+
+    centroid_target[0] /= static_cast<double>(num_points);
+    centroid_target[1] /= static_cast<double>(num_points);
+
+    centroid_result[0] /= static_cast<double>(num_points);
+    centroid_result[1] /= static_cast<double>(num_points);
+
+    float **u = reg_matrix2DAllocateAndInitToZero<float>(2, 2);
+    float * w = reg_matrix1DAllocate<float>(2);
+    float **v = reg_matrix2DAllocate<float>(2, 2);
+    float **ut = reg_matrix2DAllocate<float>(2, 2);
+    float **r = reg_matrix2DAllocate<float>(2, 2);
+
+    // Demean the input points
+    for (unsigned j = 0; j < num_points; ++j) {
+        points1[j][0] -= centroid_target[0];
+        points1[j][1] -= centroid_target[1];
+
+        points2[j][0] -= centroid_result[0];
+        points2[j][1] -= centroid_result[1];
+
+        u[0][0] += points1[j][0] * points2[j][0];
+        u[0][1] += points1[j][0] * points2[j][1];
+
+        u[1][0] += points1[j][1] * points2[j][0];
+        u[1][1] += points1[j][1] * points2[j][1];
     }
-    //std::cout << "The number of line of the matrix is:" << nbLine << std::endl;
-    //std::cout << "The number of column of the matrix is:" << nbColumn << std::endl;
-    std::pair <size_t, size_t> result(nbLine, nbColumn);
-#ifndef NDEBUG
-    std::cout << "nbLine=" << nbLine << std::endl;
-    std::cout << "nbColumn=" << nbColumn << std::endl;
-#endif
-    return result;
+
+    svd(u, 2, 2, w, v);
+
+    // Calculate transpose
+    ut[0][0] = u[0][0];
+    ut[1][0] = u[0][1];
+
+    ut[0][1] = u[1][0];
+    ut[1][1] = u[1][1];
+
+    // Calculate the rotation matrix
+    reg_matrix2DMultiply<float>(v, 2, 2, ut, 2, 2, r, false);
+
+    float det = reg_matrix2DDet<float>(r, 2, 2);
+
+    // Take care of possible reflection
+    if (det < 0.0f) {
+        v[0][1] = -v[0][1];
+        v[1][1] = -v[1][1];
+        reg_matrix2DMultiply<float>(v, 2, 2, ut, 2, 2, r, false);
+    }
+
+    // Calculate the translation
+    float t[2];
+    t[0] = centroid_result[0] - (r[0][0] * centroid_target[0] +
+        r[0][1] * centroid_target[1]);
+
+    t[1] = centroid_result[1] - (r[1][0] * centroid_target[0] +
+        r[1][1] * centroid_target[1]);
+
+    transformation->m[0][0] = r[0][0];
+    transformation->m[0][1] = r[0][1];
+    transformation->m[0][3] = t[0];
+
+    transformation->m[1][0] = r[1][0];
+    transformation->m[1][1] = r[1][1];
+    transformation->m[1][3] = t[1];
+
+    transformation->m[2][0] = 0.0f;
+    transformation->m[2][1] = 0.0f;
+    transformation->m[2][2] = 1.0f;
+    transformation->m[2][3] = 0.0f;
+
+    transformation->m[0][2] = 0.0f;
+    transformation->m[1][2] = 0.0f;
+    transformation->m[3][2] = 0.0f;
+
+    transformation->m[3][0] = 0.0f;
+    transformation->m[3][1] = 0.0f;
+    transformation->m[3][2] = 0.0f;
+    transformation->m[3][3] = 1.0f;
+
+    // Do the deletion here
+    reg_matrix2DDeallocate(2, u);
+    reg_matrix1DDeallocate(w);
+    reg_matrix2DDeallocate(2, v);
+    reg_matrix2DDeallocate(2, ut);
+    reg_matrix2DDeallocate(2, r);
 }
 /* *************************************************************** */
-/* *************************************************************** */
-template<class T>
-T** reg_tool_ReadMatrixFile(char *filename, size_t nbLine, size_t nbColumn)
+void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44 * transformation)
 {
-    //THEN CONSTRUCT THE MATRIX
-    // Allocate the matrices
-    T** mat = reg_matrix2DAllocate<T>(nbLine, nbColumn);
-    //STORE THE VALUES
-    std::string line;
-    std::ifstream matrixFile(filename);
-    double currentValue = 0;
-    if (matrixFile.is_open()) {
-        int j = 0;
-        while (std::getline(matrixFile, line))
-        {
-            std::string delimiter = " ";
-            int i = 0;
-            size_t pos = 0;
-            std::string token;
-            while ((pos = line.find(delimiter)) != std::string::npos)
-            {
-                token = line.substr(0, pos);
-                currentValue = atof(token.c_str());
-                mat[j][i] = currentValue;
-                line.erase(0, pos + delimiter.length());
-                i++;
-            }
-            currentValue = atof(line.c_str());
-            mat[j][i] = currentValue;
-            j++;
-        }
-        matrixFile.close();
+
+    unsigned int num_points = points.size();
+    float** points1 = reg_matrix2DAllocate<float>(num_points, 2);
+    float** points2 = reg_matrix2DAllocate<float>(num_points, 2);
+    for (unsigned int i = 0; i < num_points; i++) {
+        points1[i][0] = points[i].target[0];
+        points1[i][1] = points[i].target[1];
+        points2[i][0] = points[i].result[0];
+        points2[i][1] = points[i].result[1];
     }
-    else
+    estimate_rigid_transformation2D(points1, points2, num_points, transformation);
+    //FREE MEMORY
+    reg_matrix2DDeallocate(num_points, points1);
+    reg_matrix2DDeallocate(num_points, points2);
+}
+/* *************************************************************** */
+void estimate_rigid_transformation3D(float** points1, float** points2, int num_points, mat44 * transformation)
+{
+
+    double centroid_target[3] = { 0.0 };
+    double centroid_result[3] = { 0.0 };
+
+
+    for (unsigned j = 0; j < num_points; ++j)
     {
-        char text[255];
-        sprintf(text, "The matrix file can not be read: %s", filename);
-        reg_print_fct_error("reg_tool_ReadMatrixFile");
-        reg_print_msg_error(text);
-        reg_exit(1);
-    }
-    //
-    return mat;
-}
-template float** reg_tool_ReadMatrixFile<float>(char *filename, size_t nbLine, size_t nbColumn);
-template double** reg_tool_ReadMatrixFile<double>(char *filename, size_t nbLine, size_t nbColumn);
-/* *************************************************************** */
-/* *************************************************************** */
-mat44* reg_tool_ReadMat44File(char *fileName)
-{
-    mat44 *mat = (mat44 *)malloc(sizeof(mat44));
-    std::ifstream matrixFile;
-    matrixFile.open(fileName);
-    if (matrixFile.is_open()) {
-        int i = 0;
-        double value1, value2, value3, value4;
-        while (!matrixFile.eof()) {
-            matrixFile >> value1 >> value2 >> value3 >> value4;
+        centroid_target[0] += points1[j][0];
+        centroid_target[1] += points1[j][1];
+        centroid_target[2] += points1[j][2];
 
-            mat->m[i][0] = (float) value1;
-            mat->m[i][1] = (float) value2;
-            mat->m[i][2] = (float) value3;
-            mat->m[i][3] = (float) value4;
-            i++;
-            if (i>3) break;
+        centroid_result[0] += points2[j][0];
+        centroid_result[1] += points2[j][1];
+        centroid_result[2] += points2[j][2];
+    }
+
+    centroid_target[0] /= static_cast<double>(num_points);
+    centroid_target[1] /= static_cast<double>(num_points);
+    centroid_target[2] /= static_cast<double>(num_points);
+
+    centroid_result[0] /= static_cast<double>(num_points);
+    centroid_result[1] /= static_cast<double>(num_points);
+    centroid_result[2] /= static_cast<double>(num_points);
+
+    float **u  = reg_matrix2DAllocateAndInitToZero<float>(3, 3);
+    float * w = reg_matrix1DAllocate<float>(3);
+    float **v  = reg_matrix2DAllocate<float>(3, 3);
+    float **ut = reg_matrix2DAllocate<float>(3, 3);
+    float **r  = reg_matrix2DAllocate<float>(3, 3);
+
+    // Demean the input points
+    for (unsigned j = 0; j < num_points; ++j)
+    {
+        points1[j][0] -= centroid_target[0];
+        points1[j][1] -= centroid_target[1];
+        points1[j][2] -= centroid_target[2];
+
+        points2[j][0] -= centroid_result[0];
+        points2[j][1] -= centroid_result[1];
+        points2[j][2] -= centroid_result[2];
+
+        u[0][0] += points1[j][0] * points2[j][0];
+        u[0][1] += points1[j][0] * points2[j][1];
+        u[0][2] += points1[j][0] * points2[j][2];
+
+        u[1][0] += points1[j][1] * points2[j][0];
+        u[1][1] += points1[j][1] * points2[j][1];
+        u[1][2] += points1[j][1] * points2[j][2];
+
+        u[2][0] += points1[j][2] * points2[j][0];
+        u[2][1] += points1[j][2] * points2[j][1];
+        u[2][2] += points1[j][2] * points2[j][2];
+
+    }
+
+    svd(u, 3, 3, w, v);
+
+    // Calculate transpose
+    ut[0][0] = u[0][0];
+    ut[1][0] = u[0][1];
+    ut[2][0] = u[0][2];
+
+    ut[0][1] = u[1][0];
+    ut[1][1] = u[1][1];
+    ut[2][1] = u[1][2];
+
+    ut[0][2] = u[2][0];
+    ut[1][2] = u[2][1];
+    ut[2][2] = u[2][2];
+
+    // Calculate the rotation matrix
+    reg_matrix2DMultiply<float>(v, 3, 3, ut, 3, 3, r, false);
+
+    float det = reg_matrix2DDet<float>(r, 3, 3);
+
+    // Take care of possible reflection
+    if (det < 0.0f)
+    {
+        v[0][2] = -v[0][2];
+        v[1][2] = -v[1][2];
+        v[2][2] = -v[2][2];
+
+    }
+    // Calculate the rotation matrix
+    reg_matrix2DMultiply<float>(v, 3, 3, ut, 3, 3, r, false);
+
+    // Calculate the translation
+    float t[3];
+    t[0] = centroid_result[0] - (r[0][0] * centroid_target[0] +
+        r[0][1] * centroid_target[1] +
+        r[0][2] * centroid_target[2]);
+
+    t[1] = centroid_result[1] - (r[1][0] * centroid_target[0] +
+        r[1][1] * centroid_target[1] +
+        r[1][2] * centroid_target[2]);
+
+    t[2] = centroid_result[2] - (r[2][0] * centroid_target[0] +
+        r[2][1] * centroid_target[1] +
+        r[2][2] * centroid_target[2]);
+
+    transformation->m[0][0] = r[0][0];
+    transformation->m[0][1] = r[0][1];
+    transformation->m[0][2] = r[0][2];
+    transformation->m[0][3] = t[0];
+
+    transformation->m[1][0] = r[1][0];
+    transformation->m[1][1] = r[1][1];
+    transformation->m[1][2] = r[1][2];
+    transformation->m[1][3] = t[1];
+
+    transformation->m[2][0] = r[2][0];
+    transformation->m[2][1] = r[2][1];
+    transformation->m[2][2] = r[2][2];
+    transformation->m[2][3] = t[2];
+
+    transformation->m[3][0] = 0.0f;
+    transformation->m[3][1] = 0.0f;
+    transformation->m[3][2] = 0.0f;
+    transformation->m[3][3] = 1.0f;
+
+    // Do the deletion here
+    reg_matrix2DDeallocate(2, u);
+    reg_matrix1DDeallocate(w);
+    reg_matrix2DDeallocate(2, v);
+    reg_matrix2DDeallocate(2, ut);
+    reg_matrix2DDeallocate(2, r);
+}
+/* *************************************************************** */
+void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44 * transformation)
+{
+    unsigned int num_points = points.size();
+    float** points1 = reg_matrix2DAllocate<float>(num_points, 3);
+    float** points2 = reg_matrix2DAllocate<float>(num_points, 3);
+    for (unsigned int i = 0; i < num_points; i++) {
+        points1[i][0] = points[i].target[0];
+        points1[i][1] = points[i].target[1];
+        points1[i][2] = points[i].target[2];
+        points2[i][0] = points[i].result[0];
+        points2[i][1] = points[i].result[1];
+        points2[i][2] = points[i].result[2];
+    }
+    estimate_rigid_transformation3D(points1, points2, num_points, transformation);
+    //FREE MEMORY
+    reg_matrix2DDeallocate(num_points, points1);
+    reg_matrix2DDeallocate(num_points, points2);
+}
+/* *************************************************************** */
+void estimate_affine_transformation2D(float** points1, float** points2, int num_points, mat44 * transformation)
+{
+    //We assume same number of points in both arrays
+    int num_equations = num_points * 2;
+    unsigned c = 0;
+    float** A = reg_matrix2DAllocate<float>(num_equations, 6);
+
+    for (unsigned k = 0; k < num_points; ++k) {
+        c = k * 2;
+
+        A[c][0] = points1[k][0];
+        A[c][1] = points1[k][1];
+        A[c][2] = A[c][3] = A[c][5] = 0.0f;
+        A[c][4] = 1.0f;
+
+        A[c + 1][2] = points1[k][0];
+        A[c + 1][3] = points1[k][1];
+        A[c + 1][0] = A[c + 1][1] = A[c + 1][4] = 0.0f;
+        A[c + 1][5] = 1.0f;
+    }
+
+    float* w  = reg_matrix1DAllocate<float>(6);
+    float** v = reg_matrix2DAllocate<float>(6, 6);
+
+    svd(A, num_equations, 6, w, v);
+
+    for (unsigned k = 0; k < 6; ++k) {
+        if (w[k] < 0.0001) {
+            w[k] = 0.0f;
+        }
+        else {
+            w[k] = static_cast<float>(1.0 / static_cast<double>(w[k]));
         }
     }
-    else {
-        char text[255]; sprintf(text, "The mat44 file can not be read: %s", fileName);
-        reg_print_fct_error("reg_tool_ReadMat44File");
-        reg_print_msg_error(text);
-        reg_exit(1);
+
+    // Now we can compute the pseudoinverse which is given by
+    // V*inv(W)*U'
+    // First compute the V * inv(w) in place.
+    // Simply scale each column by the corresponding singular value
+    for (unsigned k = 0; k < 6; ++k) {
+        for (unsigned j = 0; j < 6; ++j) {
+            v[j][k] = static_cast<float>(static_cast<double>(v[j][k]) * static_cast<double>(w[k]));
+        }
     }
-    matrixFile.close();
 
-#ifndef NDEBUG
-    reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] mat44 matrix");
-#endif
+    float** r = reg_matrix2DAllocate<float>(6, num_equations);
+    reg_matrix2DMultiply<float>(v, 6, 6, A, num_equations, 6, r, true);
+    // Now r contains the pseudoinverse
+    // Create vector b and then multiple r*b to get the affine paramsA
+    float* b = reg_matrix1DAllocate<float>(num_equations);
+    for (unsigned k = 0; k < num_points; ++k) {
+        c = k * 2;
+        b[c] = points2[k][0];
+        b[c + 1] = points2[k][1];
+    }
 
-    return mat;
+    float* transform = reg_matrix1DAllocate<float>(6);
+    reg_matrix2DVectorMultiply<float>(r, 6, num_equations, b, transform);
+
+    transformation->m[0][0] = transform[0];
+    transformation->m[0][1] = transform[1];
+    transformation->m[0][2] = 0.0f;
+    transformation->m[0][3] = transform[4];
+
+    transformation->m[1][0] = transform[2];
+    transformation->m[1][1] = transform[3];
+    transformation->m[1][2] = 0.0f;
+    transformation->m[1][3] = transform[5];
+
+    transformation->m[2][0] = 0.0f;
+    transformation->m[2][1] = 0.0f;
+    transformation->m[2][2] = 1.0f;
+    transformation->m[2][3] = 0.0f;
+
+    transformation->m[3][0] = 0.0f;
+    transformation->m[3][1] = 0.0f;
+    transformation->m[3][2] = 0.0f;
+    transformation->m[3][3] = 1.0f;
+
+    // Do the deletion here
+    reg_matrix1DDeallocate(transform);
+    reg_matrix1DDeallocate(b);
+    reg_matrix2DDeallocate(6, r);
+    reg_matrix2DDeallocate(6, v);
+    reg_matrix1DDeallocate(w);
+    reg_matrix2DDeallocate(num_equations, A);
 }
 /* *************************************************************** */
+void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44 * transformation)
+{
+    unsigned int num_points = points.size();
+    float** points1 = reg_matrix2DAllocate<float>(num_points, 2);
+    float** points2 = reg_matrix2DAllocate<float>(num_points, 2);
+    for (unsigned int i = 0; i < num_points; i++) {
+        points1[i][0] = points[i].target[0];
+        points1[i][1] = points[i].target[1];
+        points2[i][0] = points[i].result[0];
+        points2[i][1] = points[i].result[1];
+    }
+    estimate_affine_transformation2D(points1, points2, num_points, transformation);
+    //FREE MEMORY
+    reg_matrix2DDeallocate(num_points, points1);
+    reg_matrix2DDeallocate(num_points, points2);
+}
+/* *************************************************************** */
+// estimate an affine transformation using least square
+void estimate_affine_transformation3D(float** points1, float** points2, int num_points, mat44 * transformation)
+{
+    //We assume same number of points in both arrays
+
+    // Create our A matrix
+    // we need at least 4 points. Assuming we have that here.
+    int num_equations = num_points * 3;
+    unsigned c = 0;
+    float** A = reg_matrix2DAllocate<float>(num_equations, 12);
+
+    for (unsigned k = 0; k < num_points; ++k) {
+        c = k * 3;
+        A[c][0] = points1[k][0];
+        A[c][1] = points1[k][1];
+        A[c][2] = points1[k][2];
+        A[c][3] = A[c][4] = A[c][5] = A[c][6] = A[c][7] = A[c][8] = A[c][10] = A[c][11] = 0.0f;
+        A[c][9] = 1.0f;
+
+        A[c + 1][3] = points1[k][0];
+        A[c + 1][4] = points1[k][1];
+        A[c + 1][5] = points1[k][2];
+        A[c + 1][0] = A[c + 1][1] = A[c + 1][2] = A[c + 1][6] = A[c + 1][7] = A[c + 1][8] = A[c + 1][9] = A[c + 1][11] = 0.0f;
+        A[c + 1][10] = 1.0f;
+
+        A[c + 2][6] = points1[k][0];
+        A[c + 2][7] = points1[k][1];
+        A[c + 2][8] = points1[k][2];
+        A[c + 2][0] = A[c + 2][1] = A[c + 2][2] = A[c + 2][3] = A[c + 2][4] = A[c + 2][5] = A[c + 2][9] = A[c + 2][10] = 0.0f;
+        A[c + 2][11] = 1.0f;
+    }
+
+    float* w = reg_matrix1DAllocate<float>(12);
+    float** v = reg_matrix2DAllocate<float>(12, 12);
+    // Now we can compute our svd
+    svd(A, num_equations, 12, w, v);
+
+    // First we make sure that the really small singular values
+    // are set to 0. and compute the inverse by taking the reciprocal
+    // of the entries
+    for (unsigned k = 0; k < 12; ++k) {
+        if (w[k] < 0.0001) {
+            w[k] = 0.0f;
+        }
+        else {
+            w[k] = static_cast<float>(1.0 / static_cast<double>(w[k]));
+        }
+    }
+
+    // Now we can compute the pseudoinverse which is given by
+    // V*inv(W)*U'
+    // First compute the V * inv(w) in place.
+    // Simply scale each column by the corresponding singular value
+    for (unsigned k = 0; k < 12; ++k) {
+        for (unsigned j = 0; j < 12; ++j) {
+            v[j][k] = static_cast<float>(static_cast<double>(v[j][k]) * static_cast<double>(w[k]));
+        }
+    }
+
+    // Now multiply the matrices together
+    // Pseudoinverse = v * w * A(transpose)
+    float** r = reg_matrix2DAllocate<float>(12, num_equations);
+    reg_matrix2DMultiply<float>(v, 12, 12, A, num_equations, 12, r, true);
+    // Now r contains the pseudoinverse
+    // Create vector b and then multiple rb to get the affine paramsA
+    float* b = reg_matrix1DAllocate<float>(num_equations);
+    for (unsigned k = 0; k < num_points; ++k) {
+        c = k * 3;
+        b[c] = points2[k][0];
+        b[c + 1] = points2[k][1];
+        b[c + 2] = points2[k][2];
+    }
+
+    float * transform = reg_matrix1DAllocate<float>(12);
+    //mul_matvec(r, 12, num_equations, b, transform);
+    reg_matrix2DVectorMultiply<float>(r, 12, num_equations, b, transform);
+
+    transformation->m[0][0] = transform[0];
+    transformation->m[0][1] = transform[1];
+    transformation->m[0][2] = transform[2];
+    transformation->m[0][3] = transform[9];
+
+    transformation->m[1][0] = transform[3];
+    transformation->m[1][1] = transform[4];
+    transformation->m[1][2] = transform[5];
+    transformation->m[1][3] = transform[10];
+
+    transformation->m[2][0] = transform[6];
+    transformation->m[2][1] = transform[7];
+    transformation->m[2][2] = transform[8];
+    transformation->m[2][3] = transform[11];
+
+    transformation->m[3][0] = 0.0f;
+    transformation->m[3][1] = 0.0f;
+    transformation->m[3][2] = 0.0f;
+    transformation->m[3][3] = 1.0f;
+
+    // Do the deletion here
+    reg_matrix1DDeallocate(transform);
+    reg_matrix1DDeallocate(b);
+    reg_matrix2DDeallocate(12, r);
+    reg_matrix2DDeallocate(12, v);
+    reg_matrix1DDeallocate(w);
+    reg_matrix2DDeallocate(num_equations, A);
+}
+/* *************************************************************** */
+// estimate an affine transformation using least square
+void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44 * transformation)
+{
+    unsigned int num_points = points.size();
+    float** points1 = reg_matrix2DAllocate<float>(num_points, 3);
+    float** points2 = reg_matrix2DAllocate<float>(num_points, 3);
+    for (unsigned int i = 0; i < num_points; i++) {
+        points1[i][0] = points[i].target[0];
+        points1[i][1] = points[i].target[1];
+        points1[i][2] = points[i].target[2];
+        points2[i][0] = points[i].result[0];
+        points2[i][1] = points[i].result[1];
+        points2[i][2] = points[i].result[2];
+    }
+    estimate_affine_transformation3D(points1, points2, num_points, transformation);
+    //FREE MEMORY
+    reg_matrix2DDeallocate(num_points, points1);
+    reg_matrix2DDeallocate(num_points, points2);
+}
+/* *************************************************************** */
+///LTS 2D
+void optimize_2D(float* referencePosition, float* warpedPosition,
+    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    mat44 * final, bool affine) {
+
+    // Set the current transformation to identity
+    reg_mat44_eye(final);
+
+    const unsigned num_points = definedActiveBlock;
+    unsigned long num_equations = num_points * 2;
+    // Keep a sorted list of the distance measure
+    std::multimap<double, _reg_sorted_point2D> queue;
+    std::vector<_reg_sorted_point2D> top_points;
+
+    double distance = 0.0;
+    double lastDistance = std::numeric_limits<double>::max();
+    unsigned long i;
+
+    // The initial vector with all the input points
+    for (unsigned j = 0; j < num_points * 2; j += 2)
+    {
+        top_points.push_back(_reg_sorted_point2D(&referencePosition[j], &warpedPosition[j], 0.0));
+    }
+    if (affine) {
+        estimate_affine_transformation2D(top_points, final);
+    }
+    else {
+        estimate_rigid_transformation2D(top_points, final);
+    }
+
+    const unsigned long num_to_keep = (unsigned long)(num_points * (percent_to_keep / 100.0f));
+    num_equations = num_to_keep * 2;
+    float * newWarpedPosition = new float[num_points * 2];
+
+    mat44 lastTransformation;
+    memset(&lastTransformation, 0, sizeof(mat44));
+
+    for (unsigned count = 0; count < max_iter; ++count)
+    {
+        // Transform the points in the target
+        for (unsigned j = 0; j < num_points * 2; j += 2)
+        {
+            reg_mat33_mul(final, &referencePosition[j], &newWarpedPosition[j]);
+        }
+        queue = std::multimap<double, _reg_sorted_point2D>();
+        for (unsigned j = 0; j < num_points * 2; j += 2)
+        {
+            distance = get_square_distance2D(&newWarpedPosition[j], &warpedPosition[j]);
+            queue.insert(std::pair<double, _reg_sorted_point2D>(distance,
+                _reg_sorted_point2D(&referencePosition[j], &warpedPosition[j], distance)));
+        }
+
+        distance = 0.0;
+        i = 0;
+        top_points.clear();
+
+        for (std::multimap<double, _reg_sorted_point2D>::iterator it = queue.begin();
+            it != queue.end(); ++it, ++i)
+        {
+            if (i >= num_to_keep) break;
+            top_points.push_back((*it).second);
+            distance += (*it).first;
+        }
+
+        // If the change is not substantial, we return
+        if ((distance > lastDistance) || (lastDistance - distance) < tol)
+        {
+            // restore the last transformation
+            memcpy(final, &lastTransformation, sizeof(mat44));
+            break;
+        }
+        lastDistance = distance;
+        memcpy(&lastTransformation, final, sizeof(mat44));
+        if (affine) {
+            estimate_affine_transformation2D(top_points, final);
+        }
+        else {
+            estimate_rigid_transformation2D(top_points, final);
+        }
+    }
+    delete[] newWarpedPosition;
+
+}
+/* *************************************************************** */
+///LTS 3D
+void optimize_3D(float *referencePosition, float *warpedPosition,
+    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    mat44 *final, bool affine) {
+
+    // Set the current transformation to identity
+    reg_mat44_eye(final);
+
+    const unsigned num_points = definedActiveBlock;
+    unsigned long num_equations = num_points * 3;
+    // Keep a sorted list of the distance measure
+    std::multimap<double, _reg_sorted_point3D> queue;
+    std::vector<_reg_sorted_point3D> top_points;
+    double distance = 0.0;
+    double lastDistance = std::numeric_limits<double>::max();
+    unsigned long i;
+
+    // The initial vector with all the input points
+    for (unsigned j = 0; j < num_points*3; j+=3) {
+       top_points.push_back(_reg_sorted_point3D(&referencePosition[j],
+                                                &warpedPosition[j],
+                                                0.0));
+    }
+    if (affine) {
+        estimate_affine_transformation3D(top_points, final);
+    } else {
+        estimate_rigid_transformation3D(top_points, final);
+    }
+    unsigned long num_to_keep = (unsigned long)(num_points * (percent_to_keep/100.0f));
+    num_equations = num_to_keep*3;
+    float* newWarpedPosition = new float[num_points*3];
+
+    mat44 lastTransformation;
+    memset(&lastTransformation,0,sizeof(mat44));
+
+    for (unsigned count = 0; count < max_iter; ++count)
+    {
+       // Transform the points in the target
+       for (unsigned j = 0; j < num_points * 3; j+=3) {
+          reg_mat44_mul(final, &referencePosition[j], &newWarpedPosition[j]);
+       }
+       queue = std::multimap<double, _reg_sorted_point3D>();
+       for (unsigned j = 0; j < num_points * 3; j+= 3)
+       {
+          distance = get_square_distance3D(&newWarpedPosition[j], &warpedPosition[j]);
+          queue.insert(std::pair<double,
+                       _reg_sorted_point3D>(distance,
+                                            _reg_sorted_point3D(&referencePosition[j],
+                                                                &warpedPosition[j],
+                                                                distance)));
+       }
+
+       distance = 0.0;
+       i = 0;
+       top_points.clear();
+       for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin();it != queue.end(); ++it, ++i)
+       {
+          if (i >= num_to_keep) break;
+          top_points.push_back((*it).second);
+          distance += (*it).first;
+       }
+
+       // If the change is not substantial, we return
+       if ((distance > lastDistance) || (lastDistance - distance) < tol)
+       {
+          memcpy(final, &lastTransformation, sizeof(mat44));
+          break;
+       }
+       lastDistance = distance;
+       memcpy(&lastTransformation, final, sizeof(mat44));
+       if(affine) {
+           estimate_affine_transformation3D(top_points, final);
+       } else {
+           estimate_rigid_transformation3D(top_points, final);
+       }
+    }
+    delete [] newWarpedPosition;
+}
 /* *************************************************************** */
 #endif

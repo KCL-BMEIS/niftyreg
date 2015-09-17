@@ -1,9 +1,9 @@
 #ifndef _REG_ALADIN_CPP
 #define _REG_ALADIN_CPP
 
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_aladin.h"
 #include "Platform.h"
-//#include "Kernels.h"
 #include "AffineDeformationFieldKernel.h"
 #include "ResampleImageKernel.h"
 #include "BlockMatchingKernel.h"

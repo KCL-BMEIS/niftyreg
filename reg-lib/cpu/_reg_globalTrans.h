@@ -15,11 +15,58 @@
 #define _REG_AFFINETRANS_H
 
 #include "nifti1_io.h"
-#include <fstream>
 #include <limits>
 #include "_reg_tools.h"
+/* *************************************************************** */
+struct _reg_sorted_point3D
+{
+    float target[3];
+    float result[3];
 
+    double distance;
 
+    _reg_sorted_point3D(float * t, float * r, double d)
+        :distance(d)
+    {
+        target[0] = t[0];
+        target[1] = t[1];
+        target[2] = t[2];
+
+        result[0] = r[0];
+        result[1] = r[1];
+        result[2] = r[2];
+    }
+
+    bool operator <(const _reg_sorted_point3D &sp) const
+    {
+        return (sp.distance < distance);
+    }
+};
+typedef struct _reg_sorted_point3D _reg_sorted_point3D;
+/* *************************************************************** */
+struct _reg_sorted_point2D
+{
+    float target[2];
+    float result[2];
+
+    double distance;
+
+    _reg_sorted_point2D(float * t, float * r, double d)
+        :distance(d)
+    {
+        target[0] = t[0];
+        target[1] = t[1];
+
+        result[0] = r[0];
+        result[1] = r[1];
+    }
+    bool operator <(const _reg_sorted_point2D &sp) const
+    {
+        return (sp.distance < distance);
+    }
+};
+typedef struct _reg_sorted_point2D _reg_sorted_point2D;
+/* *************************************************************** */
 /** @brief This Function compute a deformation field based
  * on affine transformation matrix
  * @param affine This matrix contains the affine transformation
@@ -32,70 +79,21 @@ void reg_affine_getDeformationField(mat44 *affine,
                                     nifti_image *deformationField,
                                     bool compose=false,
                                     int *mask = NULL);
-
-/** @brief Read a text file that contains a affine transformation
- * and store it into a mat44 structure. This function can also read
- * affine parametrisation from Flirt (FSL package) and convert it
- * to a standard millimeter parametrisation
- * @param mat Structure that will be updated with the affine
- * transformation matrix
- * @param referenceImage Reference image of the current transformation
- * @param floatingImage Floating image of the current transformation.
- * Note that referenceImage and floating image have to be defined but
- * are only used when dealing with a Flirt affine matrix.
- * @param filename Filename for the text file that contains the matrix
- * to read
- * @param flirtFile If this flag is set to true the matrix is converted
- * from a Flirt (FSL) parametrisation to a standard parametrisation
- */
-extern "C++"
-void reg_tool_ReadAffineFile(mat44 *mat,
-                             nifti_image *referenceImage,
-                             nifti_image *floatingImage,
-                             char *fileName,
-                             bool flirtFile);
-/** @brief Read a file that contains a 4-by-4 matrix and store it into
- * a mat44 structure
- * @param mat mat44 structure that will be updated with the affine matrix
- * @param filename Filename of the text file that contains the matrix to read
- */
-extern "C++"
-void reg_tool_ReadAffineFilev2(mat44 *mat,
-                               char *filename);
-
-extern "C++"
-void reg_tool_ReadAffineFile(mat44 *mat,
-                             char *filename);
-
-/** @brief This function save a 4-by-4 matrix to the disk as a text file
- * @param mat Matrix to be saved on the disk
- * @param filename Name of the text file to save on the disk
- */
-extern "C++"
-void reg_tool_WriteAffineFile(mat44 *mat,
-                              const char *fileName);
-
-/**
-* @brief Read a file that contains a m-by-n matrix and return its size
-* @param filename Filename of the text file that contains the matrix to read
-**/
-extern "C++"
-std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename);
-/**
-* @brief Read a file that contains a m-by-n matrix and store it into
-* an appropriate structure
-* @param nbLine number of line of the imput matrix
-* @param nbColumn number of column of the imput matrix
-* @param filename Filename of the text file that contains the matrix to read
-**/
-extern "C++" template <class T>
-T** reg_tool_ReadMatrixFile(char *filename, size_t nbLine, size_t nbColumn);
-/**
-* @brief Read a file that contains a 4-by-4 matrix and store it into
-* a mat44 structure
-* @param filename Filename of the text file that contains the matrix to read
-**/
-extern "C++"
-mat44* reg_tool_ReadMat44File(char *fileName);
-
+/* *************************************************************** */
+void optimize_2D(float* referencePosition, float* warpedPosition,
+    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    mat44* final, bool affine);
+/* *************************************************************** */
+void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
+/* *************************************************************** */
+void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
+/* *************************************************************** */
+void optimize_3D(float* referencePosition, float* warpedPosition,
+    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    mat44* final, bool affine);
+/* *************************************************************** */
+void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);
+/* *************************************************************** */
+void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);
+/* *************************************************************** */
 #endif

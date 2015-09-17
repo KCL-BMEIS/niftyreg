@@ -1,4 +1,5 @@
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_globalTrans.h"
 #include "_reg_tools.h"
 
@@ -40,8 +41,7 @@ int main(int argc, char **argv)
     // Read the input affine matrix
     mat44 *inputMatrix = (mat44 *)malloc(sizeof(mat44));
     reg_tool_ReadAffineFile(inputMatrix, inputMatFileName);
-    //
-    reg_tool_ReadAffineFilev2(inputMatrix, inputMatFileName);
+
     // Read the input deformation field image image
     nifti_image *inputDeformationField = reg_io_ReadImageFile(inputDefImageName);
     if (inputDeformationField == NULL){

@@ -10,6 +10,7 @@
  */
 
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_f3d2.h"
 #include "reg_f3d.h"
 #include <float.h>

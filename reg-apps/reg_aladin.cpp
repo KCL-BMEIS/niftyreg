@@ -9,10 +9,8 @@
  *
  */
 
-#ifndef _MM_ALADIN_CPP
-#define _MM_ALADIN_CPP
-
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_aladin_sym.h"
 #include "_reg_tools.h"
 #include "reg_aladin.h"
@@ -639,5 +637,3 @@ int main(int argc, char **argv)
 #endif
    return EXIT_SUCCESS;
 }
-
-#endif

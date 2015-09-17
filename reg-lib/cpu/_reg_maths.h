@@ -100,79 +100,6 @@ inline int fabs(int _x)
 }
 #endif // If on windows...
 /* *************************************************************** */
-struct _reg_sorted_point3D
-{
-    float target[3];
-    float result[3];
-
-    double distance;
-
-    _reg_sorted_point3D(float * t, float * r, double d)
-        :distance(d)
-    {
-        target[0] = t[0];
-        target[1] = t[1];
-        target[2] = t[2];
-
-        result[0] = r[0];
-        result[1] = r[1];
-        result[2] = r[2];
-    }
-
-    bool operator <(const _reg_sorted_point3D &sp) const
-    {
-        return (sp.distance < distance);
-    }
-};
-typedef struct _reg_sorted_point3D _reg_sorted_point3D;
-/* *************************************************************** */
-struct _reg_sorted_point2D
-{
-    float target[2];
-    float result[2];
-
-    double distance;
-
-    _reg_sorted_point2D(float * t, float * r, double d)
-        :distance(d)
-    {
-        target[0] = t[0];
-        target[1] = t[1];
-
-        result[0] = r[0];
-        result[1] = r[1];
-    }
-    bool operator <(const _reg_sorted_point2D &sp) const
-    {
-        return (sp.distance < distance);
-    }
-};
-typedef struct _reg_sorted_point2D _reg_sorted_point2D;
-/* *************************************************************** */
-//struct _reg_sorted_point2D
-//{
-//    float target[3];
-//    float result[3];
-//
-//    double distance;
-//
-//    _reg_sorted_point2D(float * t, float * r, double d)
-//        :distance(d)
-//    {
-//        target[0] = t[0];
-//        target[1] = t[1];
-//        target[2] = 0;
-//
-//        result[0] = r[0];
-//        result[1] = r[1];
-//        result[2] = 0;
-//    }
-//    bool operator <(const _reg_sorted_point2D &sp) const
-//    {
-//        return (sp.distance < distance);
-//    }
-//};
-/* *************************************************************** */
 /* Functions calling the Eigen library                             */
 /* See http://eigen.tuxfamily.org/index.php?title=Main_Page        */
 /* *************************************************************** */
@@ -243,23 +170,6 @@ void reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect, T* res);
 /* *************************************************************** */
 extern "C++" template<class T>
 T reg_matrix2DDet(T** mat, size_t m, size_t n);
-/* *************************************************************** */
-/* *************************************************************** */
-void optimize_2D(float* referencePosition, float* warpedPosition,
-    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
-    mat44* final, bool affine);
-/* *************************************************************** */
-void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
-/* *************************************************************** */
-void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
-/* *************************************************************** */
-void optimize_3D(float* referencePosition, float* warpedPosition,
-    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
-    mat44* final, bool affine);
-/* *************************************************************** */
-void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);
-/* *************************************************************** */
-void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);
 /* *************************************************************** */
 /* *************************************************************** */
 /* *************************************************************** */

@@ -13,6 +13,7 @@
 #define _MM_TRANSFORM_CPP
 
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_resampling.h"
 #include "_reg_globalTrans.h"
 #include "_reg_localTrans.h"
