@@ -6,31 +6,39 @@
 #include "Kernel.h"
 #include "AffineDeformationFieldKernel.h"
 #include "Platform.h"
+
 #include "Content.h"
+#ifdef _USE_CUDA
+#include "CudaContent.h"
+#endif
+#ifdef _USE_OPENCL
+#include "CLContent.h"
+#endif
 
 #define EPS 0.000001
 
-void test(Content *con) {
+void test(Content *con, int platformCode) {
 
-    Platform *cpuPlatform = new Platform(NR_PLATFORM_CPU);
+    Platform *platform = new Platform(platformCode);
 
-    Kernel *affineDeformKernel = cpuPlatform->createKernel(AffineDeformationFieldKernel::getName(), con);
+    Kernel *affineDeformKernel = platform->createKernel(AffineDeformationFieldKernel::getName(), con);
     affineDeformKernel->castTo<AffineDeformationFieldKernel>()->calculate();
 
     delete affineDeformKernel;
-    delete cpuPlatform;
+    delete platform;
 }
 
 int main(int argc, char **argv)
 {
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s <refImage> <inputMatrix> <expectedField>\n", argv[0]);
+    if (argc != 5) {
+        fprintf(stderr, "Usage: %s <refImage> <inputMatrix> <expectedField> <platformCode>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     char *inputRefImageName = argv[1];
     char *inputMatFileName = argv[2];
     char *inputDefImageName = argv[3];
+    int platformCode = atoi(argv[4]);
 
     // Read the input reference image
     nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
@@ -59,14 +67,31 @@ int main(int argc, char **argv)
 
     // Create a deformation field
     nifti_image *test_field = nifti_copy_nim_info(inputDeformationField);
-    test_field->data = (void *)malloc(test_field->nvox*test_field->nbyper);
+    test_field->data = (void *) malloc(test_field->nvox*test_field->nbyper);
 
     // Compute the affine deformation field
+    Content *con = NULL;
+    if (platformCode == NR_PLATFORM_CPU) {
+        con = new Content(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+    }
+#ifdef _USE_CUDA
+    else if (platformCode == NR_PLATFORM_CUDA) {
+        con = new CudaContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+    }
+#endif
+#ifdef _USE_OPENCL
+    else if (platformCode == NR_PLATFORM_CL) {
+        con = new ClContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+    }
+#endif
+    else {
+        reg_print_msg_error("The platform code is not suppoted");
+        return EXIT_FAILURE;
+    }
 
-    //CPU code
+    //CPU or GPU code
     reg_tools_changeDatatype<float>(referenceImage);
-    Content *con = new Content(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
-    test(con);
+    test(con, platformCode);
     test_field = con->getCurrentDeformationField();
 
     // Compute the difference between the computed and inputed deformation field

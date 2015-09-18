@@ -2,30 +2,35 @@
 #include "_reg_resampling.h"
 #include "_reg_tools.h"
 
-#include "Kernel.h"
 #include "ResampleImageKernel.h"
 #include "Platform.h"
 #include "Content.h"
+#ifdef _USE_CUDA
+#include "CudaContent.h"
+#endif
+#ifdef _USE_OPENCL
+#include "CLContent.h"
+#endif
 
 #define EPS 0.0001
 
-void test(Content *con, const unsigned int interp) {
+void test(Content *con, const unsigned int interp, int platformCode) {
 
-    Platform *cpuPlatform = new Platform(NR_PLATFORM_CPU);
+    Platform *platform = new Platform(platformCode);
 
-    Kernel *resampleImageKernel = cpuPlatform->createKernel(ResampleImageKernel::getName(), con);
+    Kernel *resampleImageKernel = platform->createKernel(ResampleImageKernel::getName(), con);
     resampleImageKernel->castTo<ResampleImageKernel>()->calculate(interp, std::numeric_limits<float>::quiet_NaN());
 
     delete resampleImageKernel;
-    delete cpuPlatform;
+    delete platform;
 }
 
 
 int main(int argc, char **argv)
 {
-   if(argc!=5)
+   if(argc!=6)
    {
-      fprintf(stderr, "Usage: %s <floImage> <inputDefField> <expectedWarpedImage> <order>\n", argv[0]);
+      fprintf(stderr, "Usage: %s <floImage> <inputDefField> <expectedWarpedImage> <order> <platformCode>\n", argv[0]);
       return EXIT_FAILURE;
    }
 
@@ -33,6 +38,7 @@ int main(int argc, char **argv)
    char *inputDefImageName=argv[2];
    char *inputWarpedImageName=argv[3];
    int interpolation=atoi(argv[4]);
+   int platformCode = atoi(argv[5]);
 
    // Read the input floating image
    nifti_image *floatingImage = reg_io_ReadImageFile(inputfloatingImageName);
@@ -73,15 +79,33 @@ int main(int argc, char **argv)
    nifti_image *test_warped=nifti_copy_nim_info(warpedImage);
    test_warped->data=(void *)malloc(test_warped->nvox*test_warped->nbyper);
 
-   //CPU code
+   //CPU - GPU code
    int *tempMask = (int *)calloc(test_warped->nvox, sizeof(int));
 
-   Content *con = new Content(NULL, floatingImage, NULL, sizeof(float));
+   Content *con = NULL;
+   if (platformCode == NR_PLATFORM_CPU) {
+       con = new Content(NULL, floatingImage, NULL, sizeof(float));
+   }
+#ifdef _USE_CUDA
+   else if (platformCode == NR_PLATFORM_CUDA) {
+       con = new CudaContent(NULL, floatingImage, NULL, sizeof(float));
+   }
+#endif
+#ifdef _USE_OPENCL
+   else if (platformCode == NR_PLATFORM_CL) {
+       con = new ClContent(NULL, floatingImage, NULL, sizeof(float));
+   }
+#endif
+   else {
+       reg_print_msg_error("The platform code is not suppoted");
+       return EXIT_FAILURE;
+   }
+
    con->setCurrentWarped(test_warped);
    con->setCurrentDeformationField(inputDeformationField);
    con->setCurrentReferenceMask(tempMask, test_warped->nvox);
 
-   test(con, interpolation);
+   test(con, interpolation, platformCode);
    test_warped = con->getCurrentWarped(warpedImage->datatype);//check
 
    // Compute the difference between the computed and inputed warped image

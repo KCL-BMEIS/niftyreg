@@ -1,4 +1,6 @@
 #include "_reg_ReadWriteMatrix.h"
+//STD
+#include <string>
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_tool_ReadAffineFile(mat44 *mat,

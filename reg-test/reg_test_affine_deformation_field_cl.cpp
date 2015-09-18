@@ -21,7 +21,7 @@ void test(Content *con) {
 	delete affineDeformKernel;
 	delete clPlatform;
 }
-
+//CAN BE DELETED - TEST INCLUDED IN THE DEFORMATION FIELD
 int main(int argc, char **argv) {
 	if (argc != 4) {
 		fprintf(stderr, "Usage: %s <refImage> <inputMatrix> <expectedField>\n", argv[0]);

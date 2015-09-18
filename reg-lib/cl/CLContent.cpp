@@ -145,10 +145,10 @@ void ClContent::allocateClPtrs()
 	if (this->blockMatchingParams != NULL)
 	{
 		//targetPositionClmem
-		this->referencePositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * 3 * sizeof(float), this->blockMatchingParams->targetPosition, &this->errNum);
+		this->referencePositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * 3 * sizeof(float), this->blockMatchingParams->referencePosition, &this->errNum);
 		this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (referencePositionClmem): ");
 		//resultPositionClmem
-		this->warpedPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * 3 * sizeof(float), this->blockMatchingParams->resultPosition, &this->errNum);
+		this->warpedPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * 3 * sizeof(float), this->blockMatchingParams->warpedPosition, &this->errNum);
 		this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (warpedPositionClmem): ");
 		//activeBlockClmem
 		this->activeBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->numBlocks * sizeof(int), this->blockMatchingParams->activeBlock, &this->errNum);
@@ -175,9 +175,9 @@ nifti_image *ClContent::getCurrentDeformationField()
 /* *************************************************************** */
 _reg_blockMatchingParam* ClContent::getBlockMatchingParams()
 {
-	this->errNum = clEnqueueReadBuffer(this->commandQueue, warpedPositionClmem, CL_TRUE, 0, sizeof(float) * this->blockMatchingParams->activeBlockNumber * 3, this->blockMatchingParams->resultPosition, 0, NULL, NULL); //CLCONTEXT
+	this->errNum = clEnqueueReadBuffer(this->commandQueue, warpedPositionClmem, CL_TRUE, 0, sizeof(float) * this->blockMatchingParams->activeBlockNumber * 3, this->blockMatchingParams->warpedPosition, 0, NULL, NULL); //CLCONTEXT
 	this->sContext->checkErrNum(this->errNum, "CLContext: failed result position: ");
-	this->errNum = clEnqueueReadBuffer(this->commandQueue, referencePositionClmem, CL_TRUE, 0, sizeof(float) * this->blockMatchingParams->activeBlockNumber * 3, this->blockMatchingParams->targetPosition, 0, NULL, NULL); //CLCONTEXT
+	this->errNum = clEnqueueReadBuffer(this->commandQueue, referencePositionClmem, CL_TRUE, 0, sizeof(float) * this->blockMatchingParams->activeBlockNumber * 3, this->blockMatchingParams->referencePosition, 0, NULL, NULL); //CLCONTEXT
 	this->sContext->checkErrNum(this->errNum, "CLContext: failed target position: ");
 	return this->blockMatchingParams;
 }

@@ -380,6 +380,7 @@ T* reg_matrix1DAllocate(size_t arraySize) {
     T* res = (T*)malloc(arraySize*sizeof(T));
     return res;
 }
+template bool* reg_matrix1DAllocate<bool>(size_t arraySize);
 template float* reg_matrix1DAllocate<float>(size_t arraySize);
 template double* reg_matrix1DAllocate<double>(size_t arraySize);
 /* *************************************************************** */
@@ -388,6 +389,7 @@ T* reg_matrix1DAllocateAndInitToZero(size_t arraySize) {
     T* res = (T*)calloc(arraySize, sizeof(T));
     return res;
 }
+template bool* reg_matrix1DAllocateAndInitToZero<bool>(size_t arraySize);
 template float* reg_matrix1DAllocateAndInitToZero<float>(size_t arraySize);
 template double* reg_matrix1DAllocateAndInitToZero<double>(size_t arraySize);
 /* *************************************************************** */
@@ -395,6 +397,7 @@ template<class T>
 void reg_matrix1DDeallocate(T* mat) {
     free(mat);
 }
+template void reg_matrix1DDeallocate<bool>(bool* mat);
 template void reg_matrix1DDeallocate<float>(float* mat);
 template void reg_matrix1DDeallocate<double>(double* mat);
 /* *************************************************************** */

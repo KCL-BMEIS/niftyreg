@@ -1,4 +1,5 @@
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_globalTrans.h"
 #include "_reg_tools.h"
 
@@ -20,7 +21,7 @@ void test(Content* con) {
 	delete affineDeformKernel;
 	delete cudaPlatform;
 }
-
+//CAN BE DELETED - TEST INCLUDED IN THE DEFORMATION FIELD
 int main(int argc, char **argv)
 {
    if(argc!=4)

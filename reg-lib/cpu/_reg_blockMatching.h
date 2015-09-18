@@ -21,7 +21,7 @@
 #define MAX_ITERATIONS 30
 
 #define BLOCK_WIDTH 4
-#define BLOCK_SIZE 64
+#define BLOCK_3D_SIZE 64
 #define BLOCK_2D_SIZE 16
 #define OVERLAP_SIZE 3
 
@@ -33,13 +33,13 @@
  *
  * Main algorithm of Ourselin et al.
  * The essence of the algorithm is as follows:
- * - Subdivide the target image into a number of blocks and find
- *   the block in the result image that is most similar.
- * - Get the point pair between the target and the result image block
+ * - Subdivide the reference image into a number of blocks and find
+ *   the block in the warped image that is most similar.
+ * - Get the point pair between the reference and the warped image block
  *   for the most similar block.
  *
- * target: Pointer to the nifti target image.
- * result: Pointer to the nifti result image.
+ * reference: Pointer to the nifti reference image.
+ * warped: Pointer to the nifti warped image.
  *
  *
  * block_size: Size of the block.
@@ -64,8 +64,8 @@ struct _reg_blockMatchingParam
    int blockNumber[3];
    int percent_to_keep;
 
-   float *targetPosition;
-   float *resultPosition;
+   float *referencePosition;
+   float *warpedPosition;
 
    int activeBlockNumber;
    int *activeBlock;
@@ -78,8 +78,8 @@ struct _reg_blockMatchingParam
 
    _reg_blockMatchingParam()
       : percent_to_keep(0),
-        targetPosition(0),
-        resultPosition(0),
+        referencePosition(0),
+        warpedPosition(0),
         activeBlockNumber(0),
         activeBlock(0),
         definedActiveBlock(0),
@@ -89,8 +89,8 @@ struct _reg_blockMatchingParam
 
    ~_reg_blockMatchingParam()
    {
-      if(targetPosition) free(targetPosition);
-      if(resultPosition) free(resultPosition);
+      if(referencePosition) free(referencePosition);
+      if(warpedPosition) free(warpedPosition);
       if(activeBlock) free(activeBlock);
    }
 };
@@ -103,10 +103,10 @@ struct _reg_blockMatchingParam
  * optimisation process
  * @param percentToKeep_opt Hmmmm ... I actually don't remember.
  * Need to check the source :)
+ * @param stepSize_block To define
  * @param mask Array than contains a mask of the voxel form the reference
  * image to consider for the registration
- * @param runningOnGPU Has to be set to true if the registration is
- * registration has to be performed on the GPU
+ * @param runningOnGPU Has to be set to true if the registration has to be performed on the GPU
  */
 extern "C++"
 void initialise_block_matching_method(nifti_image * referenceImage,
@@ -118,11 +118,11 @@ void initialise_block_matching_method(nifti_image * referenceImage,
                                       bool runningOnGPU = false);
 
 /** @brief Interface for the block matching algorithm.
- * @param referenceImage Reference image in the currrent registration task
+ * @param referenceImage Reference image in the current registration task
  * @param warpedImage Warped floating image in the currrent registration task
  * @param params Block matching parameter structure that contains all
  * relevant information
- * @param mask Maks array where only voxel defined as active are considered
+ * @param mask Mask array where only voxel defined as active are considered
  */
 extern "C++"
 void block_matching_method(nifti_image * referenceImage,
@@ -131,7 +131,7 @@ void block_matching_method(nifti_image * referenceImage,
                            int *mask);
 
 /** @brief Find the optimal affine transformation that matches the points
- * in the target image to the point in the result image
+ * in the reference image to the point in the warped image
  * @param params Block-matching structure that contains the relevant information
  * @param transformation_matrix Initial transformation matrix that is updated
  * @param affine Returns an affine transformation (12 DoFs) if set to true;

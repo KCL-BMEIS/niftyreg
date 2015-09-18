@@ -210,8 +210,8 @@ nifti_image *CudaContent::getCurrentDeformationField()
 _reg_blockMatchingParam* CudaContent::getBlockMatchingParams()
 {
 
-	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->resultPosition, &resultPosition_d, blockMatchingParams->definedActiveBlock * 3);
-	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->targetPosition, &targetPosition_d, blockMatchingParams->definedActiveBlock * 3);
+	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->warpedPosition, &resultPosition_d, blockMatchingParams->definedActiveBlock * 3);
+	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->referencePosition, &targetPosition_d, blockMatchingParams->definedActiveBlock * 3);
 	return blockMatchingParams;
 }
 /* *************************************************************** */
