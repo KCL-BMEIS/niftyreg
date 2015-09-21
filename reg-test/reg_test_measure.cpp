@@ -37,7 +37,6 @@ int main(int argc, char **argv)
               inputRefImageName);
       return EXIT_FAILURE;
    }
-   reg_checkAndCorrectDimension(refImage);
    reg_tools_changeDatatype<float>(refImage);
 
    /* Read the warped image */
@@ -48,7 +47,6 @@ int main(int argc, char **argv)
               inputWarImageName);
       return EXIT_FAILURE;
    }
-   reg_checkAndCorrectDimension(warImage);
    reg_tools_changeDatatype<float>(warImage);
 
    // Check if the input images have the same size

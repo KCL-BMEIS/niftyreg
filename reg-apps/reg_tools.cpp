@@ -302,7 +302,6 @@ int main(int argc, char **argv)
       fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->inputImageName);
       return EXIT_FAILURE;
    }
-   reg_checkAndCorrectDimension(image);
 
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
@@ -422,7 +421,6 @@ int main(int argc, char **argv)
             fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
             return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(image2);
       }
       // Images are converted to the higher datatype
       if(image2!=NULL){
@@ -523,7 +521,6 @@ int main(int argc, char **argv)
          fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->rmsImageName);
          return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(image2);
       // Check image dimension
       if(image->dim[0]!=image2->dim[0] ||
             image->dim[1]!=image2->dim[1] ||
@@ -569,7 +566,6 @@ int main(int argc, char **argv)
          fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
          return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(maskImage);
 
       nifti_image *resultImage = nifti_copy_nim_info(image);
       resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);

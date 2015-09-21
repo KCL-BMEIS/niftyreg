@@ -49,6 +49,26 @@ void reg_checkAndCorrectDimension(nifti_image *image)
                                             image->qfac);
       image->qto_ijk=nifti_mat44_inverse(image->qto_xyz);
    }
+   // Set the voxel spacing to millimeters
+   if(image->xyz_units==NIFTI_UNITS_MICRON)
+   {
+      for(int d=1; d<=image->ndim; ++d)
+         image->pixdim[d] /= 1000.f;
+      image->xyz_units=NIFTI_UNITS_MM;
+   }
+   if(image->xyz_units==NIFTI_UNITS_METER)
+   {
+      for(int d=1; d<=image->ndim; ++d)
+         image->pixdim[d] *= 1000.f;
+      image->xyz_units=NIFTI_UNITS_MM;
+   }
+   image->dx=image->pixdim[1];
+   image->dy=image->pixdim[2];
+   image->dz=image->pixdim[3];
+   image->dt=image->pixdim[4];
+   image->du=image->pixdim[5];
+   image->dv=image->pixdim[6];
+   image->dw=image->pixdim[7];
 }
 /* *************************************************************** */
 /* *************************************************************** */

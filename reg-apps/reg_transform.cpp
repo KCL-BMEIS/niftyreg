@@ -310,7 +310,6 @@ int main(int argc, char **argv)
                     param->inputTransName);
             return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(inputTransformationImage);
          // If the input transformation is a grid, check that the reference image has been specified
          if(inputTransformationImage->intent_p1==SPLINE_GRID ||
                inputTransformationImage->intent_p1==SPLINE_VEL_GRID)
@@ -329,7 +328,6 @@ int main(int argc, char **argv)
                        param->referenceImageName);
                return EXIT_FAILURE;
             }
-            reg_checkAndCorrectDimension(referenceImage);
          }
       }
       else
@@ -351,7 +349,6 @@ int main(int argc, char **argv)
                     param->referenceImageName);
             return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(referenceImage);
       }
       // Create a dense field
       if(affineTransformation!=NULL ||
@@ -573,7 +570,6 @@ int main(int argc, char **argv)
                     param->inputTransName);
             return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(input1TransImage);
       }
       // Read the second transformation
       if(!reg_isAnImageFileName(param->input2TransName))
@@ -590,7 +586,6 @@ int main(int argc, char **argv)
                     param->input2TransName);
             return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(input2TransImage);
       }
       // Check if the two input transformations are affine transformation
       if(affine1Trans!=NULL && affine2Trans!=NULL)
@@ -619,7 +614,6 @@ int main(int argc, char **argv)
                        param->referenceImageName);
                return EXIT_FAILURE;
             }
-            reg_checkAndCorrectDimension(referenceImage);
          }
          else if(input1TransImage->intent_p1==SPLINE_GRID || input1TransImage->intent_p1==SPLINE_VEL_GRID)
          {
@@ -637,7 +631,6 @@ int main(int argc, char **argv)
                        param->referenceImageName);
                return EXIT_FAILURE;
             }
-            reg_checkAndCorrectDimension(referenceImage);
          }
          // Read the second reference image if specified
          if(flag->referenceImage2Flag==true)
@@ -877,7 +870,6 @@ int main(int argc, char **argv)
                  param->inputTransName);
          return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(image);
       // Read the affine transformation
       mat44 *affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
       reg_tool_ReadAffineFile(affineTransformation,
@@ -933,7 +925,6 @@ int main(int argc, char **argv)
                     param->inputTransName);
             return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(inputTransImage);
          switch(reg_round(inputTransImage->intent_p1))
          {
          case SPLINE_GRID:
@@ -991,7 +982,6 @@ int main(int argc, char **argv)
                  param->inputTransName);
          return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(inputTransImage);
       // Read the provided floating space image
       nifti_image *floatingImage = reg_io_ReadImageFile(param->input2TransName);
       if(floatingImage==NULL)
@@ -1000,7 +990,6 @@ int main(int argc, char **argv)
                  param->input2TransName);
          return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(floatingImage);
       // Create a field to store the transformation
       nifti_image *outputTransImage=nifti_copy_nim_info(floatingImage);
       outputTransImage->ndim=outputTransImage->dim[0]=5;
@@ -1038,7 +1027,6 @@ int main(int argc, char **argv)
                     param->referenceImageName);
             return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(referenceImage);
          // Create a deformation field or a flow field
          nifti_image *tempField=nifti_copy_nim_info(referenceImage);
          tempField->ndim=tempField->dim[0]=5;

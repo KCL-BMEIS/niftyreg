@@ -208,7 +208,6 @@ int main(int argc, char **argv)
               param->refImageName);
       return EXIT_FAILURE;
    }
-   reg_checkAndCorrectDimension(refImage);
    reg_tools_changeDatatype<float>(refImage);
 
    /* Read the floating image */
@@ -219,7 +218,6 @@ int main(int argc, char **argv)
               param->floImageName);
       return EXIT_FAILURE;
    }
-   reg_checkAndCorrectDimension(floImage);
    reg_tools_changeDatatype<float>(floImage);
 
    /* Read and create the mask array */
@@ -233,7 +231,6 @@ int main(int argc, char **argv)
                  param->refMaskImageName);
          return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(refMaskImage);
       reg_createMaskPyramid<float>(refMaskImage, &refMask, 1, 1, &refMaskVoxNumber);
    }
    else{

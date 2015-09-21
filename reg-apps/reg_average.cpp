@@ -184,7 +184,6 @@ int main(int argc, char **argv)
             reg_print_msg_error(argv[3]);
             return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(tempImage);
 
          // Create the average image
          nifti_image *averageImage=nifti_copy_nim_info(tempImage);
@@ -208,7 +207,6 @@ int main(int argc, char **argv)
                reg_print_msg_error(argv[i]);
                return EXIT_FAILURE;
             }
-            reg_checkAndCorrectDimension(tempImage);
             if(sizeof(PrecisionTYPE)==sizeof(double))
                reg_tools_changeDatatype<double>(tempImage);
             else reg_tools_changeDatatype<float>(tempImage);
@@ -570,7 +568,6 @@ int main(int argc, char **argv)
                   reg_print_msg_error(argv[i]);
                   return EXIT_FAILURE;
                }
-               reg_checkAndCorrectDimension(inputTransformationImage);
             }
             else
             {
@@ -654,7 +651,6 @@ int main(int argc, char **argv)
 
             // Read the floating image
             nifti_image *floatingImage = reg_io_ReadImageFile(argv[i+1]);
-            reg_checkAndCorrectDimension(floatingImage);
             reg_tools_changeDatatype<float>(floatingImage);
 
             // Create a warped image

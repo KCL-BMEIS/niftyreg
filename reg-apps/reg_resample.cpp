@@ -251,7 +251,6 @@ int main(int argc, char **argv)
               param->referenceImageName);
       return EXIT_FAILURE;
    }
-   reg_checkAndCorrectDimension(referenceImage);
 
    /* Read the floating image */
    nifti_image *floatingImage = reg_io_ReadImageFile(param->floatingImageName);
@@ -261,9 +260,6 @@ int main(int argc, char **argv)
               param->floatingImageName);
       return EXIT_FAILURE;
    }
-   reg_checkAndCorrectDimension(floatingImage);
-
-
 
    /* *********************************** */
    /* DISPLAY THE RESAMPLING PARAMETERS */
@@ -301,7 +297,6 @@ int main(int argc, char **argv)
                     param->inputTransName);
             return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(inputTransformationImage);
       }
       else
       {

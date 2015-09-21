@@ -235,7 +235,6 @@ int main(int argc, char **argv)
          fprintf(stderr,"** ERROR Error when reading the transformation image: %s\n",param->inputTransName);
          return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(inputTransformation);
    }
    else
    {
@@ -261,7 +260,6 @@ int main(int argc, char **argv)
          reg_print_msg_error("Error when reading the reference image.");
          reg_exit(1);
       }
-      reg_checkAndCorrectDimension(referenceImage);
    }
 
    if(flag->outputJacDetFlag || flag->outputLogDetFlag){
