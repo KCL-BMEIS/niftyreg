@@ -74,15 +74,16 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
                             }
                         }
                     }
-                    if (voxelNumber > BLOCK_3D_SIZE / 2) {
-                        mean /= voxelNumber;
-                        float variance = 0.0f;
-                        for (int i = 0; i < BLOCK_3D_SIZE; i++) {
-                            if (referenceValues[i] == referenceValues[i])
-                                variance += (mean - (float)referenceValues[i]) * (mean - (float)referenceValues[i]);
-                        }
+                    //Let's calculate the variance of the block
+                    mean /= voxelNumber;
+                    float variance = 0.0f;
+                    for (int i = 0; i < BLOCK_3D_SIZE; i++) {
+                        if (referenceValues[i] == referenceValues[i])
+                            variance += (mean - (float)referenceValues[i]) * (mean - (float)referenceValues[i]);
+                    }
+                    variance /= voxelNumber;
 
-                        variance /= voxelNumber;
+                    if (voxelNumber > BLOCK_3D_SIZE / 2 && variance > 0) {
                         varianceArray[blockIndex] = variance;
                     }
                     else {
@@ -126,15 +127,16 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
                         }
                     }
                 }
-                if (voxelNumber > BLOCK_2D_SIZE / 2) {
-                    mean /= voxelNumber;
-                    float variance = 0.0f;
-                    for (int i = 0; i < BLOCK_2D_SIZE; i++) {
-                        if (referenceValues[i] == referenceValues[i])
-                            variance += (mean - (float)referenceValues[i]) * (mean - (float)referenceValues[i]);
-                    }
+                //Let's calculate the variance of the block
+                mean /= voxelNumber;
+                float variance = 0.0f;
+                for (int i = 0; i < BLOCK_2D_SIZE; i++) {
+                    if (referenceValues[i] == referenceValues[i])
+                        variance += (mean - (float)referenceValues[i]) * (mean - (float)referenceValues[i]);
+                }
+                variance /= voxelNumber;
 
-                    variance /= voxelNumber;
+                if (voxelNumber > BLOCK_2D_SIZE / 2 && variance > 0) {
                     varianceArray[blockIndex] = variance;
                 }
                 else {
@@ -148,13 +150,19 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
     }
     free(referenceValues);
 
-    //TEMP
+    //DEBUG TEMP
     //unusableBlock = 0;
-    //TEMP
+    //DEBUG TEMP
+
     params->activeBlockNumber = params->activeBlockNumber < ((int)totalBlockNumber - unusableBlock) ? params->activeBlockNumber : (totalBlockNumber - unusableBlock);
 
     reg_heapSort(varianceArray, indexArray, totalBlockNumber);
-
+    //DEBUG
+    //for(int i=0;i<totalBlockNumber;i++) {
+    //std::cout<<"varianceArray[i]="<< varianceArray[i] << std::endl;
+    //std::cout<<"indexArray[i]="<< indexArray[i] << std::endl;
+    //}
+    //DEBUG
     int *indexArrayPtr = &indexArray[totalBlockNumber - 1];
     int count = 0;
     for (int i = 0; i < params->activeBlockNumber; i++) {
@@ -163,7 +171,12 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
     for (size_t i = params->activeBlockNumber; i < totalBlockNumber; ++i) {
         params->activeBlock[*indexArrayPtr--] = -1;
     }
-
+    //DEBUG
+    //for(int i=0;i<totalBlockNumber;i++) {
+    //std::cout<<"i="<< i << std::endl;
+    //std::cout<<"params->activeBlock[i]="<< params->activeBlock[i] << std::endl;
+    //}
+    //DEBUG
     count = 0;
     if (runningOnGPU) {
         for (size_t i = 0; i < totalBlockNumber; ++i) {
@@ -235,7 +248,7 @@ void initialise_block_matching_method(nifti_image * reference, _reg_blockMatchin
     reg_print_msg_debug(text)
 #endif
         //if (reference->nz > 1) {
-        params->referencePosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
+    params->referencePosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
     params->warpedPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
     //} else {
     //	params->referencePosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
@@ -747,12 +760,7 @@ void block_matching_method2D3D(nifti_image * reference, nifti_image * warped, _r
 
     unsigned int BLOCK_SIZE = 0;
     //dim is 2 or 3!
-    if (dim == 2) {
-        BLOCK_SIZE = BLOCK_2D_SIZE;
-    }
-    else {
-        BLOCK_SIZE = BLOCK_3D_SIZE;
-    }
+    BLOCK_SIZE = std::pow(BLOCK_WIDTH,dim);
 
     mat44 *referenceMatrix_xyz;
     if (reference->sform_code > 0) {
@@ -812,7 +820,7 @@ void block_matching_method2D3D(nifti_image * reference, nifti_image * warped, _r
                 referenceIndex_start_x = i * BLOCK_WIDTH;
                 referenceIndex_end_x = referenceIndex_start_x + BLOCK_WIDTH;
                 //DEBUG
-                std::cout << "params->activeBlock[blockIndex]=" << params->activeBlock[blockIndex] << std::endl;
+                //std::cout << "params->activeBlock[blockIndex]=" << params->activeBlock[blockIndex] << std::endl;
                 //DEBUG
                 if (params->activeBlock[blockIndex] > -1) {
                     referenceIndex = 0;
@@ -856,7 +864,12 @@ void block_matching_method2D3D(nifti_image * reference, nifti_image * warped, _r
                     bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
                     bestDisplacement[1] = 0.f;
                     bestDisplacement[2] = 0.f;
-
+                    //DEBUG
+                    if(i==4 && j==4)
+                    {
+                        std::cout<<"BP"<<std::endl;
+                    }
+                    //DEBUG
                     // iteration over the warped blocks
                     for (n = -1 * params->voxelCaptureRange; n <= params->voxelCaptureRange; n += params->stepSize) {
                         warpedIndex_start_z = referenceIndex_start_z + n;
@@ -960,6 +973,7 @@ void block_matching_method2D3D(nifti_image * reference, nifti_image * warped, _r
 
                     reg_mat44_mul(referenceMatrix_xyz, referencePosition_temp, tempPosition);
 
+                    positionIndex = 3 * params->activeBlock[blockIndex];
                     temp_reference_position[positionIndex] = tempPosition[0];
                     temp_reference_position[positionIndex + 1] = tempPosition[1];
                     temp_reference_position[positionIndex + 2] = tempPosition[2];
@@ -967,11 +981,10 @@ void block_matching_method2D3D(nifti_image * reference, nifti_image * warped, _r
                     temp_warped_position[positionIndex] = tempPosition[0];
                     temp_warped_position[positionIndex + 1] = tempPosition[1];
                     temp_warped_position[positionIndex + 2] = tempPosition[2];
-                    positionIndex += 3;
                 }
                 else {
                     //It is an unasable block, should never enter here normally
-                    reg_print_msg_warn("It is an unasable block, should never enter here normally");
+                    //reg_print_msg_warn("It is an unasable block, should never enter here normally");
                 }
                 blockIndex++;
             }
@@ -982,6 +995,7 @@ void block_matching_method2D3D(nifti_image * reference, nifti_image * warped, _r
     params->definedActiveBlock = 0;
     j = 0;
     for (i = 0; i < 3 * params->activeBlockNumber; i += 3) {
+        //I think we should not put the if here because otherwise we loose the correspondance
         //if (temp_reference_position[i] == temp_reference_position[i]) {
         params->referencePosition[j] = temp_reference_position[i];
         params->referencePosition[j + 1] = temp_reference_position[i + 1];
@@ -989,7 +1003,9 @@ void block_matching_method2D3D(nifti_image * reference, nifti_image * warped, _r
         params->warpedPosition[j] = temp_warped_position[i];
         params->warpedPosition[j + 1] = temp_warped_position[i + 1];
         params->warpedPosition[j + 2] = temp_warped_position[i + 2];
-        params->definedActiveBlock++;
+        if (temp_reference_position[i] == temp_reference_position[i]) {
+            params->definedActiveBlock++;
+        }
         j += 3;
         //}
     }

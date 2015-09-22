@@ -17,6 +17,26 @@
 
 #define EPS 0.000001
 
+int check_matching_difference(float* referencePosition, float* warpedPosition, float* expectedReferencePositions,
+                              float* expectedWarpedPosition, int dim, float &max_difference)
+{
+    float difference = 0;
+    for (int i = 0; i < dim; i++) {
+        difference = fabsf(referencePosition[i] - expectedReferencePositions[i]);
+        max_difference = std::max(difference, max_difference);
+        if (difference > EPS){
+            fprintf(stderr, "reg_test_blockMatching reference position failed %g>%g\n", difference, EPS);
+            return EXIT_FAILURE;
+        }
+        difference = fabsf(warpedPosition[i] - expectedWarpedPosition[i]);
+        max_difference = std::max(difference, max_difference);
+        if (difference > EPS){
+            fprintf(stderr, "reg_test_blockMatching warped position failed %g>%g\n", difference, EPS);
+            return EXIT_FAILURE;
+        }
+    }
+}
+
 void test(Content *con, int platformCode) {
 
     Platform *platform = new Platform(platformCode);
@@ -48,6 +68,8 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     reg_tools_changeDatatype<float>(referenceImage);
+    //dim
+    int imgDim = referenceImage->dim[0];
 
     // Read the input floating image
     nifti_image *warpedImage = reg_io_ReadImageFile(inputWarpedImageName);
@@ -61,7 +83,7 @@ int main(int argc, char **argv)
     std::pair<size_t, size_t> inputMatrixSize = reg_tool_sizeInputMatrixFile(expectedBlockMatchingMatrixName);
     size_t m = inputMatrixSize.first;
     size_t n = inputMatrixSize.second;
-    float **inputSVDMatrix = reg_tool_ReadMatrixFile<float>(expectedBlockMatchingMatrixName, m, n);
+    float **expectedBlockMatchingMatrix = reg_tool_ReadMatrixFile<float>(expectedBlockMatchingMatrixName, m, n);
 
     // Create a mask - Why ?
     int *mask = (int *)malloc(referenceImage->nvox*sizeof(int));
@@ -96,30 +118,45 @@ int main(int argc, char **argv)
     blockMatchingParams = con->getBlockMatchingParams();
 
 #ifndef NDEBUG
-
     std::cout << "blockMatchingParams->definedActiveBlock = " << blockMatchingParams->definedActiveBlock << std::endl;
+#endif
 
+    float max_difference = 0;
+
+    int blockIndex = 0;
     int positionIndex = 0;
+    int matrixIndex=0;
     for (int z = 0; z < 1; z += 3){
         for (int y = 1; y < blockMatchingParams->blockNumber[1]; y=y+3){
             for (int x = 1; x < blockMatchingParams->blockNumber[0]; x=x+3){
-                positionIndex = 3*(y * blockMatchingParams->blockNumber[0] + x);
-                std::cout << "ref position - warped position: ";
-                std::cout << blockMatchingParams->referencePosition[positionIndex] << " ";
-                std::cout << blockMatchingParams->referencePosition[positionIndex + 1] << " ";
-                std::cout << blockMatchingParams->warpedPosition[positionIndex] << " ";
-                std::cout << blockMatchingParams->warpedPosition[positionIndex + 1] << std::endl;
+                blockIndex = (y * blockMatchingParams->blockNumber[0] + x);
+                positionIndex = 3 * blockMatchingParams->activeBlock[blockIndex];
+                if(positionIndex > -3) {
+#ifndef NDEBUG
+                    std::cout << "positionIndex="<< positionIndex << std::endl;
+                    std::cout << "ref position - warped position: ";
+                    std::cout << blockMatchingParams->referencePosition[positionIndex] << " ";
+                    std::cout << blockMatchingParams->referencePosition[positionIndex + 1] << " ";
+                    std::cout << blockMatchingParams->warpedPosition[positionIndex] << " ";
+                    std::cout << blockMatchingParams->warpedPosition[positionIndex + 1] << std::endl;
+#endif
+                    check_matching_difference(&blockMatchingParams->referencePosition[positionIndex], &blockMatchingParams->warpedPosition[positionIndex],
+                                              &expectedBlockMatchingMatrix[matrixIndex][0], &expectedBlockMatchingMatrix[matrixIndex][imgDim], imgDim, max_difference);
+                    matrixIndex++;
+                }
             }
         }
     }
 
-#endif
-    /*
+
+
+
     nifti_image_free(referenceImage);
-    nifti_image_free(floatingImage);
+    nifti_image_free(warpedImage);
     free(mask);
+    reg_matrix2DDeallocate(m,expectedBlockMatchingMatrix);
     delete con;
-    */
+
     return EXIT_SUCCESS;
 }
 
