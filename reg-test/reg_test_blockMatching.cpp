@@ -15,13 +15,15 @@
 #include "CLContent.h"
 #endif
 
+#include <algorithm>
+
 #define EPS 0.000001
 
 int check_matching_difference(float* referencePosition, float* warpedPosition, float* expectedReferencePositions,
-                              float* expectedWarpedPosition, int dim, float &max_difference)
+    float* expectedWarpedPosition, float &max_difference)
 {
     float difference = 0;
-    for (int i = 0; i < dim; i++) {
+    for (int i = 0; i < 3; i++) {
         difference = fabsf(referencePosition[i] - expectedReferencePositions[i]);
         max_difference = std::max(difference, max_difference);
         if (difference > EPS){
@@ -35,6 +37,7 @@ int check_matching_difference(float* referencePosition, float* warpedPosition, f
             return EXIT_FAILURE;
         }
     }
+    return EXIT_SUCCESS;
 }
 
 void test(Content *con, int platformCode) {
@@ -125,37 +128,54 @@ int main(int argc, char **argv)
 
     int blockIndex = 0;
     int positionIndex = 0;
-    int matrixIndex=0;
-    for (int z = 0; z < 1; z += 3){
-        for (int y = 1; y < blockMatchingParams->blockNumber[1]; y=y+3){
-            for (int x = 1; x < blockMatchingParams->blockNumber[0]; x=x+3){
-                blockIndex = (y * blockMatchingParams->blockNumber[0] + x);
+    int matrixIndex = 0;
+
+    int zMax = 0;
+    if (imgDim == 3) {
+        zMax = blockMatchingParams->blockNumber[2] - 1;
+    } else {
+        zMax = 2;
+    }
+
+    for (int z = 1; z < zMax; z += 3) {
+        for (int y = 1; y < blockMatchingParams->blockNumber[1] - 1; y += 3) {
+            for (int x = 1; x < blockMatchingParams->blockNumber[0] - 1; x += 3) {
+
+                if (imgDim == 3) {
+                    blockIndex = z*blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] +
+                        (y * blockMatchingParams->blockNumber[0] + x);
+                }
+                else {
+                    blockIndex = y * blockMatchingParams->blockNumber[0] + x;
+                }
+
                 positionIndex = 3 * blockMatchingParams->activeBlock[blockIndex];
-                if(positionIndex > -3) {
+                if (positionIndex > -3) {
 #ifndef NDEBUG
-                    std::cout << "positionIndex="<< positionIndex << std::endl;
                     std::cout << "ref position - warped position: ";
                     std::cout << blockMatchingParams->referencePosition[positionIndex] << " ";
                     std::cout << blockMatchingParams->referencePosition[positionIndex + 1] << " ";
+                    std::cout << blockMatchingParams->referencePosition[positionIndex + 2] << " ";
                     std::cout << blockMatchingParams->warpedPosition[positionIndex] << " ";
-                    std::cout << blockMatchingParams->warpedPosition[positionIndex + 1] << std::endl;
+                    std::cout << blockMatchingParams->warpedPosition[positionIndex + 1] << " ";
+                    std::cout << blockMatchingParams->warpedPosition[positionIndex + 2] << std::endl;
 #endif
                     check_matching_difference(&blockMatchingParams->referencePosition[positionIndex], &blockMatchingParams->warpedPosition[positionIndex],
-                                              &expectedBlockMatchingMatrix[matrixIndex][0], &expectedBlockMatchingMatrix[matrixIndex][imgDim], imgDim, max_difference);
+                        &expectedBlockMatchingMatrix[matrixIndex][0], &expectedBlockMatchingMatrix[matrixIndex][imgDim], max_difference);
                     matrixIndex++;
                 }
             }
         }
     }
 
-
-
-
-    nifti_image_free(referenceImage);
-    nifti_image_free(warpedImage);
-    free(mask);
-    reg_matrix2DDeallocate(m,expectedBlockMatchingMatrix);
     delete con;
+    free(mask);
+    reg_matrix2DDeallocate(m, expectedBlockMatchingMatrix);
+    nifti_image_free(referenceImage);
+
+#ifndef NDEBUG
+    fprintf(stdout, "reg_test_blockMatching ok: %g (<%g)\n", max_difference, EPS);
+#endif
 
     return EXIT_SUCCESS;
 }

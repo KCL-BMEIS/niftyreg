@@ -96,8 +96,14 @@ public:
 	{
 		CurrentWarped = CurrentWarpedImageIn;
 	}
-	virtual void setCurrentReferenceMask(int *, size_t) {}
+	
+    virtual void setCurrentReferenceMask(int *, size_t) {}
 	void setCaptureRange(const int captureRangeIn);
+
+    virtual void setBlockMatchingParams(_reg_blockMatchingParam* bmp)
+    {
+        blockMatchingParams = bmp;
+    }
 
 protected:
 	nifti_image *CurrentDeformationField;
