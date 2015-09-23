@@ -16,11 +16,6 @@
 #include <limits>
 #include <cmath>
 /* *************************************************************** */
-//template<class DTYPE>
-//void _reg_set_all_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU) {
-//    const size_t totalBlockNumber = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
-//    etc ...
-//}
 template<class DTYPE>
 void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU) {
     const size_t totalBlockNumber = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
@@ -157,19 +152,9 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
     }
     free(referenceValues);
 
-    //DEBUG TEMP
-    //unusableBlock = 0;
-    //DEBUG TEMP
-
     params->activeBlockNumber = params->activeBlockNumber < ((int)totalBlockNumber - unusableBlock) ? params->activeBlockNumber : (totalBlockNumber - unusableBlock);
 
     reg_heapSort(varianceArray, indexArray, totalBlockNumber);
-    //DEBUG
-    //for(int i=0;i<totalBlockNumber;i++) {
-    //std::cout<<"varianceArray[i]="<< varianceArray[i] << std::endl;
-    //std::cout<<"indexArray[i]="<< indexArray[i] << std::endl;
-    //}
-    //DEBUG
     int *indexArrayPtr = &indexArray[totalBlockNumber - 1];
     int count = 0;
     for (int i = 0; i < params->activeBlockNumber; i++) {
@@ -178,12 +163,7 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
     for (size_t i = params->activeBlockNumber; i < totalBlockNumber; ++i) {
         params->activeBlock[*indexArrayPtr--] = -1;
     }
-    //DEBUG
-    //for(int i=0;i<totalBlockNumber;i++) {
-    //std::cout<<"i="<< i << std::endl;
-    //std::cout<<"params->activeBlock[i]="<< params->activeBlock[i] << std::endl;
-    //}
-    //DEBUG
+
     count = 0;
     if (runningOnGPU) {
         for (size_t i = 0; i < totalBlockNumber; ++i) {
@@ -214,7 +194,6 @@ void initialise_block_matching_method(nifti_image * reference, _reg_blockMatchin
     }
 
     params->voxelCaptureRange = 3;
-    //Why ceil and not floor ?
     params->blockNumber[0] = (int)std::ceil((double)reference->nx / (double)BLOCK_WIDTH);
     params->blockNumber[1] = (int)std::ceil((double)reference->ny / (double)BLOCK_WIDTH);
     if (reference->nz > 1) {
@@ -254,13 +233,14 @@ void initialise_block_matching_method(nifti_image * reference, _reg_blockMatchin
         params->activeBlockNumber, params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2]);
     reg_print_msg_debug(text)
 #endif
-    //if (reference->nz > 1) {
-    params->referencePosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
-    params->warpedPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
-    //} else {
-    //	params->referencePosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
-    //	params->warpedPosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
-    //}
+    if (reference->nz > 1) {
+       params->referencePosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
+       params->warpedPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
+    }
+    else {
+       params->referencePosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
+       params->warpedPosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
+    }
 #ifndef NDEBUG
     reg_print_msg_debug("block matching initialisation done.");
 #endif
@@ -313,7 +293,6 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
         temp_reference_position[i] = std::numeric_limits<float>::quiet_NaN();
     }
 
-
     for (j = 0; j < params->blockNumber[1]; j++) {
         referenceIndex_start_y = j * BLOCK_WIDTH;
         referenceIndex_end_y = referenceIndex_start_y + BLOCK_WIDTH;
@@ -335,8 +314,6 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                         for (x = referenceIndex_start_x; x < referenceIndex_end_x; x++) {
                             if (-1 < x && x < reference->nx) {
                                 value = *referencePtr_XY;
-                                //Why ????? value==value is for NaN
-                                //if (value == value && value != 0. && *maskPtr_XY > -1) {
                                 if (value == value && *maskPtr_XY > -1) {
                                     referenceValues[referenceIndex] = value;
                                     referenceOverlap[referenceIndex] = 1;
@@ -374,8 +351,7 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                                 for (x = warpedIndex_start_x; x < warpedIndex_end_x; x++) {
                                     if (-1 < x && x < warped->nx) {
                                         value = *warpedPtr_XY;
-                                        //if (value == value && value != 0. && *maskPtr_XY > -1) {
-                                        if (value == value) {
+                                        if (value == value && *maskPtr_XY > -1) {
                                             warpedValues[warpedIndex] = value;
                                             warpedOverlap[warpedIndex] = 1;
                                         }
@@ -432,10 +408,6 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                     referencePosition_temp[1] = (float)(j * BLOCK_WIDTH);
                     referencePosition_temp[2] = 0.0f;
 
-                    if (i == 4 && j == 1) {
-                        std::cout << "2nd block" << std::endl;
-                    }
-
                     bestDisplacement[0] += referencePosition_temp[0];
                     bestDisplacement[1] += referencePosition_temp[1];
                     bestDisplacement[2] = 0.0f;
@@ -446,33 +418,7 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                     reg_mat44_mul(referenceMatrix_xyz, bestDisplacement, tempPosition);
                     temp_warped_position[z] = tempPosition[0];
                     temp_warped_position[z + 1] = tempPosition[1];
-                    z = z + 2;
-                }
-                else {
-                    //NAN - IN THEORIE WE SHOULD NEVER ENTER HERE IN REAL LIFE - ONLY FOR THE UNIT TESTS
-
-                    bestDisplacement[0] = 0.0;
-                    bestDisplacement[1] = 0.0;
-
-                    referencePosition_temp[0] = (float)(i * BLOCK_WIDTH);
-                    referencePosition_temp[1] = (float)(j * BLOCK_WIDTH);
-                    referencePosition_temp[2] = 0.0f;
-
-                    if (i == 4 && j == 1) {
-                        std::cout << "2nd block" << std::endl;
-                    }
-
-                    bestDisplacement[0] += referencePosition_temp[0];
-                    bestDisplacement[1] += referencePosition_temp[1];
-                    bestDisplacement[2] = 0.0f;
-
-                    reg_mat44_mul(referenceMatrix_xyz, referencePosition_temp, tempPosition);
-                    temp_reference_position[z] = tempPosition[0];
-                    temp_reference_position[z + 1] = tempPosition[1];
-                    reg_mat44_mul(referenceMatrix_xyz, bestDisplacement, tempPosition);
-                    temp_warped_position[z] = tempPosition[0];
-                    temp_warped_position[z + 1] = tempPosition[1];
-                    z = z + 2;
+                    z += 2;
                 }
             }
             blockIndex++;
@@ -690,23 +636,12 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
                                     }
 
                                     localCC = fabs(localCC / sqrt(referenceVar * warpedVar));
-                                    /*bool predicate = i * BLOCK_WIDTH == 16 && j * BLOCK_WIDTH == 24 && k * BLOCK_WIDTH == 24;
-                                     if (predicate && 0.981295 - localCC < 0.04 && fabs(0.981295 - localCC) >= 0)
-                                     printf("C|%d-%d-%d|%.0f|TMN:%f|TVR:%f|RMN:%f|RVR:%f|LCC:%lf|BCC:%lf\n", l, m, n, voxelNumber, referenceMean, referenceVar, warpedMean, warpedVar, localCC, bestCC);
-                                     //*/
-
-                                    //hack for Marc's integration tests
-                                    //									if (localCC > bestCC || (fabs(localCC - 0.981295)<0.000001 && fabs(bestCC-0.981295)<0.000001)) {
                                     if (localCC > bestCC) {
                                         bestCC = localCC;
                                         bestDisplacement[0] = (float)l;
                                         bestDisplacement[1] = (float)m;
                                         bestDisplacement[2] = (float)n;
                                     }
-                                    /*bool predicate = i * BLOCK_WIDTH == 16 && j * BLOCK_WIDTH == 24 && k * BLOCK_WIDTH == 24;
-                                     if (predicate )
-                                     printf("C|%d-%d-%d|%f-%f-%f\n", l, m, n, bestDisplacement[0], bestDisplacement[1], bestDisplacement[2]);*/
-
                                 }
                             }
                         }
@@ -759,373 +694,45 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
 #endif
 }
 /* *************************************************************** */
-template<typename DTYPE>
-void block_matching_method2D3D(nifti_image * reference, nifti_image * warped, _reg_blockMatchingParam *params, int *mask, int dim) {
-
-    DTYPE *referencePtr = static_cast<DTYPE *>(reference->data);
-    DTYPE *warpedPtr = static_cast<DTYPE *>(warped->data);
-
-    //DEBUG
-    /*std::cout << "warped voxel values" << std::endl;
-    for (int j = 0; j < warped->ny; j++) {
-        for (int i = 0; i < warped->nx; i++) {
-            int index = i + warped->nx * j;
-            if (i == (warped->nx - 2)) {
-                std::cout << "value=" << warpedPtr[index] << std::endl;
-            }
-        }
-    }*/
-    //DEBUG
-
-    unsigned int BLOCK_SIZE = 0;
-    //dim is 2 or 3!
-    BLOCK_SIZE = std::pow(BLOCK_WIDTH,dim);
-
-    mat44 *referenceMatrix_xyz;
-    if (reference->sform_code > 0) {
-        referenceMatrix_xyz = &(reference->sto_xyz);
-    }
-    else {
-        referenceMatrix_xyz = &(reference->qto_xyz);
-    }
-
-    int referenceIndex_start_x;
-    int referenceIndex_start_y;
-    int referenceIndex_start_z;
-    int referenceIndex_end_x;
-    int referenceIndex_end_y;
-    int referenceIndex_end_z;
-    int warpedIndex_start_x;
-    int warpedIndex_start_y;
-    int warpedIndex_start_z;
-    int warpedIndex_end_x;
-    int warpedIndex_end_y;
-    int warpedIndex_end_z;
-
-    int index, i, j, k, l, m, n, x, y, z;
-    int *maskPtr_Z, *maskPtr_XYZ;
-    DTYPE *referencePtr_Z, *referencePtr_XYZ, *warpedPtr_Z, *warpedPtr_XYZ;
-    DTYPE value, bestCC, referenceMean, warpedMean, referenceVar, warpedVar;
-    DTYPE voxelNumber, localCC, referenceTemp, warpedTemp;
-    float bestDisplacement[3], referencePosition_temp[3], tempPosition[3];
-    size_t referenceIndex, warpedIndex, blockIndex, tid = 0, positionIndex = 0;
-
-    //Let's see OPENMP later...
-    DTYPE* referenceValues = reg_matrix1DAllocate<DTYPE>(BLOCK_SIZE);
-    DTYPE* warpedValues = reg_matrix1DAllocate<DTYPE>(BLOCK_SIZE);
-    bool* referenceOverlap = reg_matrix1DAllocate<bool>(BLOCK_SIZE);
-    bool* warpedOverlap = reg_matrix1DAllocate<bool>(BLOCK_SIZE);
-
-    float *temp_reference_position = (float *)malloc(3 * params->activeBlockNumber * sizeof(float));
-    float *temp_warped_position = (float *)malloc(3 * params->activeBlockNumber * sizeof(float));
-    for (i = 0; i < 3 * params->activeBlockNumber; i += 3) {
-        temp_reference_position[i] = std::numeric_limits<float>::quiet_NaN();
-    }
-
-    for (k = 0; k < params->blockNumber[2]; k++) {
-        blockIndex = k * params->blockNumber[0] * params->blockNumber[1];
-        referenceIndex_start_z = k * BLOCK_WIDTH;
-        referenceIndex_end_z = referenceIndex_start_z + BLOCK_WIDTH;
-        //2D
-        if (dim == 2) {
-            referenceIndex_end_z = 1;
-        }
-
-        for (j = 0; j < params->blockNumber[1]; j++) {
-            referenceIndex_start_y = j * BLOCK_WIDTH;
-            referenceIndex_end_y = referenceIndex_start_y + BLOCK_WIDTH;
-
-            for (i = 0; i < params->blockNumber[0]; i++) {
-                referenceIndex_start_x = i * BLOCK_WIDTH;
-                referenceIndex_end_x = referenceIndex_start_x + BLOCK_WIDTH;
-                //DEBUG
-                //std::cout << "params->activeBlock[blockIndex]=" << params->activeBlock[blockIndex] << std::endl;
-                //DEBUG
-                if (params->activeBlock[blockIndex] > -1) {
-                    referenceIndex = 0;
-                    memset(referenceOverlap, 0, BLOCK_SIZE * sizeof(bool));
-
-                    for (z = referenceIndex_start_z; z < referenceIndex_end_z; z++) {
-                        if (-1 < z && z < reference->nz) {
-                            index = z * reference->nx * reference->ny;
-                            //2D-3D - NOT NECESSARY IN THEORY...
-                            //if (dim == 2) {
-                            //    referencePtr_Z = referencePtr;
-                            //    maskPtr_Z = mask;
-                            //}
-                            //else {
-                                referencePtr_Z = &referencePtr[index];
-                                maskPtr_Z = &mask[index];
-                            //}
-                            
-
-                            for (y = referenceIndex_start_y; y < referenceIndex_end_y; y++) {
-                                if (-1 < y && y < reference->ny) {
-                                    index = y * reference->nx + referenceIndex_start_x;
-                                    referencePtr_XYZ = &referencePtr_Z[index];
-                                    maskPtr_XYZ = &maskPtr_Z[index];
-
-                                    for (x = referenceIndex_start_x; x < referenceIndex_end_x; x++) {
-                                        if (-1 < x && x < reference->nx) {
-                                            value = *referencePtr_XYZ;
-                                            if (value == value && *maskPtr_XYZ > -1) {
-                                                referenceValues[referenceIndex] = value;
-                                                referenceOverlap[referenceIndex] = 1;
-                                            }
-                                        }
-                                        referencePtr_XYZ++;
-                                        maskPtr_XYZ++;
-                                        referenceIndex++;
-                                    }
-                                }
-                                else {
-                                    referenceIndex += BLOCK_WIDTH;
-                                }
-                            }
-                        }
-                        else {
-                            referenceIndex += BLOCK_WIDTH * BLOCK_WIDTH;
-                        }
-                    }
-                    bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0.0; //only when misaligned images are registered
-                    bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
-                    bestDisplacement[1] = 0.f;
-                    bestDisplacement[2] = 0.f;
-
-                    //DEBUG
-                    if (i == 1 && j==1) {
-                        std::cout << "BP" << std::endl;
-                    }
-                    //DEBUG
-
-                    // iteration over the warped blocks
-                    for (n = -1 * params->voxelCaptureRange; n <= params->voxelCaptureRange; n += params->stepSize) {
-                        warpedIndex_start_z = referenceIndex_start_z + n;
-                        warpedIndex_end_z = warpedIndex_start_z + BLOCK_WIDTH;
-                        if (dim == 2) {
-                            n = params->voxelCaptureRange + 1;
-                            warpedIndex_start_z = 0;
-                            warpedIndex_end_z = 1;
-                        }
-
-                        for (m = -1 * params->voxelCaptureRange; m <= params->voxelCaptureRange; m += params->stepSize) {
-                            warpedIndex_start_y = referenceIndex_start_y + m;
-                            warpedIndex_end_y = warpedIndex_start_y + BLOCK_WIDTH;
-                            for (l = -1 * params->voxelCaptureRange; l <= params->voxelCaptureRange; l += params->stepSize) {
-
-                                warpedIndex_start_x = referenceIndex_start_x + l;
-                                warpedIndex_end_x = warpedIndex_start_x + BLOCK_WIDTH;
-                                warpedIndex = 0;
-                                memset(warpedOverlap, 0, BLOCK_SIZE * sizeof(bool));
-
-                                for (z = warpedIndex_start_z; z < warpedIndex_end_z; z++) {
-                                    if (-1 < z && z < warped->nz) {
-                                        index = z * warped->nx * warped->ny;
-                                        warpedPtr_Z = &warpedPtr[index];
-                                        int *maskPtr_Z = &mask[index];
-
-                                        for (y = warpedIndex_start_y; y < warpedIndex_end_y; y++) {
-                                            if (-1 < y && y < warped->ny) {
-                                                index = y * warped->nx + warpedIndex_start_x;
-                                                warpedPtr_XYZ = &warpedPtr_Z[index];
-                                                int *maskPtr_XYZ = &maskPtr_Z[index];
-                                                for (x = warpedIndex_start_x; x < warpedIndex_end_x; x++) {
-                                                    if (-1 < x && x < warped->nx) {
-                                                        value = *warpedPtr_XYZ;
-                                                        if (value == value && *maskPtr_XYZ > -1) {
-                                                            warpedValues[warpedIndex] = value;
-                                                            warpedOverlap[warpedIndex] = 1;
-                                                        }
-                                                    }
-                                                    warpedPtr_XYZ++;
-                                                    warpedIndex++;
-                                                    maskPtr_XYZ++;
-                                                }
-                                            }
-                                            else {
-                                                warpedIndex += BLOCK_WIDTH;
-                                            }
-                                        }
-                                    }
-                                    else {
-                                        warpedIndex += BLOCK_WIDTH * BLOCK_WIDTH;
-                                    }
-                                }
-                                referenceMean = 0.0;
-                                warpedMean = 0.0;
-                                voxelNumber = 0.0;
-                                //DEBUG
-                                if (i == 1 && j == 1) {
-                                    std::cout << "BP" << std::endl;
-                                }
-                                //DEBUG
-                                for (int a = 0; a < BLOCK_SIZE; a++) {
-                                    if (referenceOverlap[a] && warpedOverlap[a]) {
-                                        //DEBUG
-                                        if (i == 1 && j == 1) {
-                                            std::cout << "referenceValues[a]=" << referenceValues[a] << std::endl;
-                                            std::cout << "warpedValues[a]=" << warpedValues[a] << std::endl;
-                                        }
-                                        //DEBUG
-                                        referenceMean += referenceValues[a];
-                                        warpedMean += warpedValues[a];
-                                        voxelNumber++;
-                                    }
-                                }
-
-                                if (voxelNumber > BLOCK_SIZE / 2) {
-                                    referenceMean /= voxelNumber;
-                                    warpedMean /= voxelNumber;
-
-                                    referenceVar = 0.0;
-                                    warpedVar = 0.0;
-                                    localCC = 0.0;
-
-                                    for (int a = 0; a < BLOCK_SIZE; a++) {
-                                        if (referenceOverlap[a] && warpedOverlap[a]) {
-                                            referenceTemp = (referenceValues[a] - referenceMean);
-                                            warpedTemp = (warpedValues[a] - warpedMean);
-                                            referenceVar += (referenceTemp)* (referenceTemp);
-                                            warpedVar += (warpedTemp)* (warpedTemp);
-                                            localCC += (referenceTemp)* (warpedTemp);
-                                        }
-                                    }
-                                    //To be consistent with the variables name
-                                    referenceVar = referenceVar / voxelNumber;
-                                    warpedVar = warpedVar / voxelNumber;
-                                    localCC = localCC / voxelNumber;
-
-                                    localCC = (referenceVar * warpedVar) > 0.0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
-                                    if (localCC > bestCC) {
-                                        bestCC = localCC;
-                                        bestDisplacement[0] = (float)l;
-                                        bestDisplacement[1] = (float)m;
-                                        bestDisplacement[2] = dim == 2 ? 0 : (float)n;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    referencePosition_temp[0] = (float)(i * BLOCK_WIDTH);
-                    referencePosition_temp[1] = (float)(j * BLOCK_WIDTH);
-                    referencePosition_temp[2] = (float)(k * BLOCK_WIDTH);
-
-                    bestDisplacement[0] += referencePosition_temp[0];
-                    bestDisplacement[1] += referencePosition_temp[1];
-                    bestDisplacement[2] += referencePosition_temp[2];
-
-                    reg_mat44_mul(referenceMatrix_xyz, referencePosition_temp, tempPosition);
-
-                    //DEBUG
-                    if (tempPosition[0] == -86 && tempPosition[1] == 20) {
-                        std::cout << "BP" << std::endl;
-                    }
-                    //DEBUG
-
-                    positionIndex = 3 * params->activeBlock[blockIndex];
-                    temp_reference_position[positionIndex] = tempPosition[0];
-                    temp_reference_position[positionIndex + 1] = tempPosition[1];
-                    temp_reference_position[positionIndex + 2] = tempPosition[2];
-                    reg_mat44_mul(referenceMatrix_xyz, bestDisplacement, tempPosition);
-                    temp_warped_position[positionIndex] = tempPosition[0];
-                    temp_warped_position[positionIndex + 1] = tempPosition[1];
-                    temp_warped_position[positionIndex + 2] = tempPosition[2];
-                }
-                else {
-                    //It is an unasable block, should never enter here normally
-                    //reg_print_msg_warn("It is an unasable block, should never enter here normally");
-                }
-                blockIndex++;
-            }
-        }
-    }
-
-    // Removing the NaNs and defining the number of active block
-    params->definedActiveBlock = 0;
-    j = 0;
-    for (i = 0; i < 3 * params->activeBlockNumber; i += 3) {
-        //I think we should not put the if here because otherwise we loose the correspondance
-        //if (temp_reference_position[i] == temp_reference_position[i]) {
-        params->referencePosition[j] = temp_reference_position[i];
-        params->referencePosition[j + 1] = temp_reference_position[i + 1];
-        params->referencePosition[j + 2] = temp_reference_position[i + 2];
-        params->warpedPosition[j] = temp_warped_position[i];
-        params->warpedPosition[j + 1] = temp_warped_position[i + 1];
-        params->warpedPosition[j + 2] = temp_warped_position[i + 2];
-        if (temp_reference_position[i] == temp_reference_position[i]) {
-            params->definedActiveBlock++;
-        }
-        j += 3;
-        //}
-    }
-    free(temp_reference_position);
-    free(temp_warped_position);
-    free(referenceValues);
-    free(warpedValues);
-    free(referenceOverlap);
-    free(warpedOverlap);
-}
-/* *************************************************************** */
 // Block matching interface function
 void block_matching_method(nifti_image * reference, nifti_image * warped, _reg_blockMatchingParam *params, int *mask) {
     if (reference->datatype != warped->datatype) {
         reg_print_fct_error("block_matching_method");
         reg_print_msg_error("Both input images are expected to be of the same type");
     }
-    //TODO: create a unique function for 2D and 3D !
-    //if (reference->nz == 1) {
-    //	switch (reference->datatype) {
-    //	case NIFTI_TYPE_FLOAT64:
-    //		block_matching_method2D<double>(reference, warped, params, mask);
-    //		break;
-    //	case NIFTI_TYPE_FLOAT32:
-    //		block_matching_method2D<float>(reference, warped, params, mask);
-    //		break;
-    //	default:
-    //		reg_print_fct_error("block_matching_method");
-    //		reg_print_msg_error("The reference image data type is not supported");
-    //		reg_exit(1);
-    //	}
-    //} else {
-    //	switch (reference->datatype) {
-    //	case NIFTI_TYPE_FLOAT64:
-    //		block_matching_method3D<double>(reference, warped, params, mask);
-    //		break;
-    //	case NIFTI_TYPE_FLOAT32:
-    //		block_matching_method3D<float>(reference, warped, params, mask);
-    //		break;
-    //	default:
-    //		reg_print_fct_error("block_matching_method");
-    //		reg_print_msg_error("The reference image data type is not supported");
-    //		reg_exit(1);
-    //	}
-    //}
-    int dim = 0;
     if (reference->nz == 1) {
-        dim = 2;
-    }
-    else {
-        dim = 3;
-    }
-    switch (reference->datatype) {
-    case NIFTI_TYPE_FLOAT64:
-        block_matching_method2D3D<double>(reference, warped, params, mask, dim);
-        break;
-    case NIFTI_TYPE_FLOAT32:
-        block_matching_method2D3D<float>(reference, warped, params, mask, dim);
-        break;
-    default:
-        reg_print_fct_error("block_matching_method");
-        reg_print_msg_error("The reference image data type is not supported");
-        reg_exit(1);
+      switch (reference->datatype) {
+      case NIFTI_TYPE_FLOAT64:
+         block_matching_method2D<double>(reference, warped, params, mask);
+         break;
+      case NIFTI_TYPE_FLOAT32:
+         block_matching_method2D<float>(reference, warped, params, mask);
+         break;
+      default:
+         reg_print_fct_error("block_matching_method");
+         reg_print_msg_error("The reference image data type is not supported");
+         reg_exit(1);
+      }
+    } else {
+      switch (reference->datatype) {
+      case NIFTI_TYPE_FLOAT64:
+         block_matching_method3D<double>(reference, warped, params, mask);
+         break;
+      case NIFTI_TYPE_FLOAT32:
+         block_matching_method3D<float>(reference, warped, params, mask);
+         break;
+      default:
+         reg_print_fct_error("block_matching_method");
+         reg_print_msg_error("The reference image data type is not supported");
+         reg_exit(1);
+      }
     }
 }
 /* *************************************************************** */
 // Find the optimal transformation - affine or rigid
 void optimize(_reg_blockMatchingParam *params,
-    mat44 *transformation_matrix,
-    bool affine)
+              mat44 *transformation_matrix,
+              bool affine)
 {
     // The block matching provide correspondences in millimeters
     // in the space of the reference image. All warped image coordinates
