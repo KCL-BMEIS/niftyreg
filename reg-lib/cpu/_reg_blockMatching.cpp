@@ -272,7 +272,6 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
 
     unsigned int blockIndex = 0;
     unsigned int activeBlockIndex = 0;
-    params->definedActiveBlock = 0;
 
     int index, i, j, k, l, m, n, x, y, z = 0;
     int *maskPtr_XY;
@@ -391,6 +390,10 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                                     localCC += (referenceTemp)* (warpedTemp);
                                 }
                             }
+                            //To be consistent with the variables name
+                            referenceVar = referenceVar / voxelNumber;
+                            warpedVar = warpedVar / voxelNumber;
+                            localCC = localCC / voxelNumber;
 
                             localCC = (referenceVar * warpedVar) > 0.0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
 
@@ -413,12 +416,12 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                     bestDisplacement[2] = 0.0f;
 
                     reg_mat44_mul(referenceMatrix_xyz, referencePosition_temp, tempPosition);
+                    z = 2 * params->activeBlock[blockIndex];
                     temp_reference_position[z] = tempPosition[0];
                     temp_reference_position[z + 1] = tempPosition[1];
                     reg_mat44_mul(referenceMatrix_xyz, bestDisplacement, tempPosition);
                     temp_warped_position[z] = tempPosition[0];
                     temp_warped_position[z + 1] = tempPosition[1];
-                    z += 2;
                 }
             }
             blockIndex++;
@@ -429,11 +432,12 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
     params->definedActiveBlock = 0;
     j = 0;
     for (i = 0; i < 2 * params->activeBlockNumber; i += 2) {
-        if (temp_reference_position[i] == temp_reference_position[i]) {
             params->referencePosition[j] = temp_reference_position[i];
             params->referencePosition[j + 1] = temp_reference_position[i + 1];
             params->warpedPosition[j] = temp_warped_position[i];
             params->warpedPosition[j + 1] = temp_warped_position[i + 1];
+            //To not loose the correspondance
+            if (temp_reference_position[i] == temp_reference_position[i]) {
             params->definedActiveBlock++;
             j += 2;
         }
@@ -473,7 +477,7 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
     DTYPE voxelNumber, localCC, referenceTemp, warpedTemp;
     float bestDisplacement[3], referencePosition_temp[3], tempPosition[3];
     size_t referenceIndex, warpedIndex, blockIndex, tid = 0;
-    params->definedActiveBlock = 0;
+
 #if defined (_OPENMP)
     int threadNumber = omp_get_max_threads();
     if (threadNumber > 16)
@@ -634,8 +638,13 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
                                             localCC += (referenceTemp)* (warpedTemp);
                                         }
                                     }
+                                    //To be consistent with the variables name
+                                    referenceVar = referenceVar / voxelNumber;
+                                    warpedVar = warpedVar / voxelNumber;
+                                    localCC = localCC / voxelNumber;
 
-                                    localCC = fabs(localCC / sqrt(referenceVar * warpedVar));
+                                    localCC = (referenceVar * warpedVar) > 0.0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
+
                                     if (localCC > bestCC) {
                                         bestCC = localCC;
                                         bestDisplacement[0] = (float)l;
@@ -675,13 +684,14 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
     params->definedActiveBlock = 0;
     j = 0;
     for (i = 0; i < 3 * params->activeBlockNumber; i += 3) {
-        if (temp_reference_position[i] == temp_reference_position[i]) {
             params->referencePosition[j] = temp_reference_position[i];
             params->referencePosition[j + 1] = temp_reference_position[i + 1];
             params->referencePosition[j + 2] = temp_reference_position[i + 2];
             params->warpedPosition[j] = temp_warped_position[i];
             params->warpedPosition[j + 1] = temp_warped_position[i + 1];
             params->warpedPosition[j + 2] = temp_warped_position[i + 2];
+            //To not loose the correspondance
+            if (temp_reference_position[i] == temp_reference_position[i]) {
             params->definedActiveBlock++;
             j += 3;
         }
