@@ -76,13 +76,37 @@ mark_as_advanced(BUILDNAME)
 		endif(NOT ${test_data_extract_status} STREQUAL "")
 	endif(NOT EXISTS "${DATA_FOLDER}/refImg2D.nii.gz")
 #-----------------------------------------------------------------------------
+#AffineDF test
+#-----------------------------------------------------------------------------
+        set(EXEC reg_test_affine_deformation_field)
+        add_executable(${EXEC} ${EXEC}.cpp)
+        target_link_libraries(${EXEC} _reg_aladin)
+        add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt ${DATA_FOLDER}/affine_def2D.nii.gz 0)
+        add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz 0)
+        if(USE_CUDA)
+            add_test(${EXEC}_2D_cuda ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt ${DATA_FOLDER}/affine_def2D.nii.gz 1)
+            add_test(${EXEC}_3D_cuda ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz 1)
+        endif(USE_CUDA)
+        if(USE_OPENCL)
+            add_test(${EXEC}_2D_cl ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt ${DATA_FOLDER}/affine_def2D.nii.gz 2)
+            add_test(${EXEC}_3D_cl ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz 2)
+        endif(USE_OPENCL)
+#-----------------------------------------------------------------------------
+#BM test
+#-----------------------------------------------------------------------------
 	set(EXEC reg_test_blockMatching)
 	add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_aladin)
-	add_test(${EXEC}_rig_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/warped_lin2D.nii.gz 0)
-	add_test(${EXEC}_aff_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/warped_lin2D.nii.gz 1)
-	add_test(${EXEC}_rig_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 0)
-	add_test(${EXEC}_aff_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+        add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/warpedBlockMatchingImg2D.nii.gz ${DATA_FOLDER}/expectedBlockMatching_mat2D.txt 0)
+        add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warpedBlockMatchingImg3D.nii.gz ${DATA_FOLDER}/expectedBlockMatching_mat3D.txt 0)
+        if(USE_CUDA)
+            add_test(${EXEC}_2D_cuda ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/warpedBlockMatchingImg2D.nii.gz ${DATA_FOLDER}/expectedBlockMatching_mat2D.txt 1)
+            add_test(${EXEC}_3D_cuda ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warpedBlockMatchingImg3D.nii.gz ${DATA_FOLDER}/expectedBlockMatching_mat3D.txt 1)
+        endif(USE_CUDA)
+        if(USE_OPENCL)
+            add_test(${EXEC}_2D_cl ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/warpedBlockMatchingImg2D.nii.gz ${DATA_FOLDER}/expectedBlockMatching_mat2D.txt 2)
+            add_test(${EXEC}_3D_cl ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warpedBlockMatchingImg3D.nii.gz ${DATA_FOLDER}/expectedBlockMatching_mat3D.txt 2)
+        endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
 	set(EXEC reg_test_matrix_operation)
 	add_executable(${EXEC} ${EXEC}.cpp)
@@ -93,12 +117,6 @@ mark_as_advanced(BUILDNAME)
 	add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_aladin)
 	add_test(${EXEC} ${EXEC})
-#-----------------------------------------------------------------------------
-	set(EXEC reg_test_affine_deformation_field)
-	add_executable(${EXEC} ${EXEC}.cpp)
-    target_link_libraries(${EXEC} _reg_aladin)
-	add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt ${DATA_FOLDER}/affine_def2D.nii.gz)
-	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
 #-----------------------------------------------------------------------------
 	set(EXEC reg_test_nonlinear_deformation_field)
 	add_executable(${EXEC} ${EXEC}.cpp)
@@ -187,80 +205,80 @@ mark_as_advanced(BUILDNAME)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
-if(USE_OPENCL)
+#if(USE_OPENCL)
 
-	#integration fullAffine_cl tests
-	set(EXEC reg_test_fullAffine_cl)
-	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_aladin)
-	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt)
+#	#integration fullAffine_cl tests
+#	set(EXEC reg_test_fullAffine_cl)
+#	add_executable(${EXEC} ${EXEC}.cpp)
+#	target_link_libraries(${EXEC} _reg_aladin)
+#	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt)
 	
-	#blockMatching cl tests
-	set(EXEC reg_test_blockMatching_cl)
-	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_aladin)
-	add_test(${EXEC}_rig_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 0)
-	add_test(${EXEC}_aff_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
-	
-	
-	#interpolation cl tests
-	set(EXEC reg_test_interpolation_cl)
-	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_aladin)
-	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
-	add_test(${EXEC}_1_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
-	add_test(${EXEC}_3_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_cub3D.nii.gz 3)
-	add_test(${EXEC}_4_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz 4)
-	
-	#affine cl tests
-	set(EXEC reg_test_affine_deformation_field_cl)
-	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_aladin)
-	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
-	#include_directories(${OPENCL_INCLUDE_DIRS})
-	
-endif(USE_OPENCL)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-if(USE_CUDA)
-
-	#integration aladin cuda tests
-	set(EXEC reg_test_fullAffine_cuda)
-	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_aladin)
-	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt)
-
-	#blockMatching cuda tests
-	set(EXEC reg_test_blockMatching_cuda)
-	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_aladin)
-	add_test(${EXEC}_rig_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 0)
-	add_test(${EXEC}_aff_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
-	
-	
-	#blockMatching cuda tests
-#	set(EXEC reg_test_blockMatching_cuda_cusvd)
+#	#blockMatching cl tests
+#	set(EXEC reg_test_blockMatching_cl)
 #	add_executable(${EXEC} ${EXEC}.cpp)
 #	target_link_libraries(${EXEC} _reg_aladin)
 #	add_test(${EXEC}_rig_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 0)
+#	add_test(${EXEC}_aff_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	
+	
+#	#interpolation cl tests
+#	set(EXEC reg_test_interpolation_cl)
+#	add_executable(${EXEC} ${EXEC}.cpp)
+#	target_link_libraries(${EXEC} _reg_aladin)
+#	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
+#	add_test(${EXEC}_1_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+#	add_test(${EXEC}_3_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_cub3D.nii.gz 3)
+#	add_test(${EXEC}_4_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz 4)
+	
+#	#affine cl tests
+#	set(EXEC reg_test_affine_deformation_field_cl)
+#	add_executable(${EXEC} ${EXEC}.cpp)
+#	target_link_libraries(${EXEC} _reg_aladin)
+#	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+#	#include_directories(${OPENCL_INCLUDE_DIRS})
+	
+#endif(USE_OPENCL)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+#if(USE_CUDA)
+
+#	#integration aladin cuda tests
+#	set(EXEC reg_test_fullAffine_cuda)
+#	add_executable(${EXEC} ${EXEC}.cpp)
+#	target_link_libraries(${EXEC} _reg_aladin)
+#	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt)
+
+#	#blockMatching cuda tests
+#	set(EXEC reg_test_blockMatching_cuda)
+#	add_executable(${EXEC} ${EXEC}.cpp)
+#	target_link_libraries(${EXEC} _reg_aladin)
+#	add_test(${EXEC}_rig_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 0)
+#	add_test(${EXEC}_aff_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	
+	
+#	#blockMatching cuda tests
+##	set(EXEC reg_test_blockMatching_cuda_cusvd)
+##	add_executable(${EXEC} ${EXEC}.cpp)
+##	target_link_libraries(${EXEC} _reg_aladin)
+##	add_test(${EXEC}_rig_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 0)
 
 	
-	#interpolation cuda tests
-	set(EXEC reg_test_interpolation_cuda)
-	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_aladin)
-	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
-	add_test(${EXEC}_1_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
-	add_test(${EXEC}_3_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_cub3D.nii.gz 3)
-	add_test(${EXEC}_4_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz 4)
+#	#interpolation cuda tests
+#	set(EXEC reg_test_interpolation_cuda)
+#	add_executable(${EXEC} ${EXEC}.cpp)
+#	target_link_libraries(${EXEC} _reg_aladin)
+#	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
+#	add_test(${EXEC}_1_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+#	add_test(${EXEC}_3_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_cub3D.nii.gz 3)
+#	add_test(${EXEC}_4_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz 4)
 
-	#affine cuda tests
-	set(EXEC reg_test_affine_deformation_field_cuda)
-	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_aladin)
-	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+#	#affine cuda tests
+#	set(EXEC reg_test_affine_deformation_field_cuda)
+#	add_executable(${EXEC} ${EXEC}.cpp)
+#	target_link_libraries(${EXEC} _reg_aladin)
+#	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
 
-endif(USE_CUDA)
+#endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 

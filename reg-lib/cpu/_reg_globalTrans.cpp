@@ -42,7 +42,7 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
    reg_mat44_disp(&transformationMatrix, (char *)"[NiftyReg DEBUG] Global affine transformation");
 #endif
 
-    float voxel[3]={0,0,0}, position[3]={0,0,0};
+    double voxel[3]={0,0,0}, position[3]={0,0,0};
     int x=0, y=0;
     size_t index=0;
  #if defined (_OPENMP)
@@ -54,10 +54,10 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
      for(y=0; y<deformationFieldImage->ny; y++)
      {
         index=y*deformationFieldImage->nx;
-        voxel[1]=(float)y;
+        voxel[1]=(double)y;
         for(x=0; x<deformationFieldImage->nx; x++)
         {
-           voxel[0]=(float)x;
+           voxel[0]=(double)x;
            if(mask[index]>-1)
            {
               if(composition==true)
@@ -75,6 +75,7 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
            index++;
         }
      }
+     //deformationFieldImage->data = static_cast<FieldTYPE *>(deformationFieldImage->data);
 }
 /* *************************************************************** */
 template <class FieldTYPE>

@@ -177,12 +177,17 @@ void reg_tool_ReadAffineFile(mat44 *mat,
     {
         int i=0;
         double value1,value2,value3,value4;
+#ifndef NDEBUG
+        char text_header[255];
+        sprintf(text_header, "Affine matrix values:");
+        reg_print_msg_debug(text_header);
+#endif
         while(!affineFile.eof())
         {
             affineFile >> value1 >> value2 >> value3 >> value4;
 #ifndef NDEBUG
             char text[255];
-            sprintf(text, "Affine matrix values - value1 - value2 - value3 - value4: %f - %f - %f - %f", value1,value2, value3, value4);
+            sprintf(text, "%f - %f - %f - %f", value1, value2, value3, value4);
             reg_print_msg_debug(text);
 #endif
             mat->m[i][0] = (float) value1;
