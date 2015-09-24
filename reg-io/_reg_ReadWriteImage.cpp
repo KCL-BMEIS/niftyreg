@@ -170,33 +170,27 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename)
    return;
 }
 /* *************************************************************** */
-template <class FieldTYPE>
-void reg_io_diplayImageData1(FieldTYPE *data, int nx, int ny, int nz)
+template <class DTYPE>
+void reg_io_diplayImageData1(nifti_image *image)
 {
     reg_print_msg_debug("image values:");
-    for(int z=0; z<nz; z++)
+    size_t voxelNumber = (size_t)image->nx * image->ny * image->nz;
+    DTYPE *data = static_cast<DTYPE *>(image->data);
+    char text[255];
+
+    size_t voxelIndex=0;
+    for(int z=0; z<image->nz; z++)
     {
-       for(int y=0; y<ny; y++)
+       for(int y=0; y<image->ny; y++)
        {
-          for(int x=0; x<nx; x++)
+          for(int x=0; x<image->nx; x++)
           {
-              FieldTYPE xValue = 0;
-              FieldTYPE yValue = 0;
-              FieldTYPE zValue = 0;
-
-              if (nz==1) {
-                  xValue = data[x+y*nx+z*nx*ny];
-                  yValue = data[x+y*nx+z*nx*ny+nx*ny*nz];
-              }
-              else {
-                  xValue = data[x+y*nx+z*nx*ny];
-                  yValue = data[x+y*nx+z*nx*ny+nx*ny*nz];
-                  zValue = data[x+y*nx+z*nx*ny+2*nx*ny*nz];
-              }
-
-              char text[255];
-              sprintf(text, "current indice: %d - %d - %d -- current values: %f %f %f ",x,y,z,xValue,yValue,zValue);
-              reg_print_msg_debug(text);
+             sprintf(text, "[%d - %d - %d] = [", x, y, z);
+             for(int tu=0;tu<image->nt*image->nu; ++tu){
+                sprintf(text,"%s%g ", text, static_cast<double>(data[voxelIndex + tu*voxelNumber]));
+             }
+             sprintf(text,"%s]", text);
+             reg_print_msg_debug(text);
           }
        }
     }
@@ -204,35 +198,31 @@ void reg_io_diplayImageData1(FieldTYPE *data, int nx, int ny, int nz)
 //
 void reg_io_diplayImageData(nifti_image *image)
 {
-    int xSize = image->nx;
-    int ySize = image->ny;
-    int zSize = image->nz;
-
     switch(image->datatype)
     {
     case NIFTI_TYPE_UINT8:
-       reg_io_diplayImageData1<unsigned char>(static_cast<unsigned char *> (image->data),xSize,ySize,zSize);
+       reg_io_diplayImageData1<unsigned char>(image);
        break;
     case NIFTI_TYPE_INT8:
-       reg_io_diplayImageData1<char>(static_cast<char *> (image->data),xSize,ySize,zSize);
+       reg_io_diplayImageData1<char>(image);
        break;
     case NIFTI_TYPE_UINT16:
-       reg_io_diplayImageData1<unsigned short>(static_cast<unsigned short *> (image->data),xSize,ySize,zSize);
+       reg_io_diplayImageData1<unsigned short>(image);
        break;
     case NIFTI_TYPE_INT16:
-       reg_io_diplayImageData1<short>(static_cast<short *> (image->data),xSize,ySize,zSize);
+       reg_io_diplayImageData1<short>(image);
        break;
     case NIFTI_TYPE_UINT32:
-       reg_io_diplayImageData1<unsigned int>(static_cast<unsigned int *> (image->data),xSize,ySize,zSize);
+       reg_io_diplayImageData1<unsigned int>(image);
        break;
     case NIFTI_TYPE_INT32:
-       reg_io_diplayImageData1<int>(static_cast<int *> (image->data),xSize,ySize,zSize);
+       reg_io_diplayImageData1<int>(image);
        break;
     case NIFTI_TYPE_FLOAT32:
-       reg_io_diplayImageData1<float>(static_cast<float *> (image->data),xSize,ySize,zSize);
+       reg_io_diplayImageData1<float>(image);
        break;
     case NIFTI_TYPE_FLOAT64:
-       reg_io_diplayImageData1<double>(static_cast<double *> (image->data),xSize,ySize,zSize);
+       reg_io_diplayImageData1<double>(image);
        break;
     default:
        reg_print_fct_error("reg_io_diplayImageData");
