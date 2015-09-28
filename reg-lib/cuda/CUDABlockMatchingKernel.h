@@ -2,6 +2,7 @@
 #define CUDABLOCKMATCHINGKERNEL_H
 
 #include "BlockMatchingKernel.h"
+#include "CUDAContent.h"
 
 //Kernel functions for block matching
 class CudaBlockMatchingKernel: public BlockMatchingKernel

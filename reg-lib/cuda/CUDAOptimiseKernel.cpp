@@ -1,4 +1,4 @@
-#include "CudaOptimiseKernel.h"
+#include "CUDAOptimiseKernel.h"
 
 /* *************************************************************** */
 CudaOptimiseKernel::CudaOptimiseKernel(Content *conIn, std::string name) :

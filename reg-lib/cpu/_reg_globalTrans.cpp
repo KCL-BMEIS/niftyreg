@@ -62,20 +62,19 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
            {
               if(composition==true)
               {
-                 voxel[0]=deformationFieldPtrX[index];
-                 voxel[1]=deformationFieldPtrY[index];
+                 voxel[0]= (double) deformationFieldPtrX[index];
+                 voxel[1]= (double) deformationFieldPtrY[index];
                  reg_mat44_mul(&transformationMatrix, voxel, position);
               }
               else reg_mat44_mul(&transformationMatrix, voxel, position);
 
               /* the deformation field (real coordinates) is stored */
-              deformationFieldPtrX[index] = position[0];
-              deformationFieldPtrY[index] = position[1];
+              deformationFieldPtrX[index] = (FieldTYPE) position[0];
+              deformationFieldPtrY[index] = (FieldTYPE) position[1];
            }
            index++;
         }
      }
-     //deformationFieldImage->data = static_cast<FieldTYPE *>(deformationFieldImage->data);
 }
 /* *************************************************************** */
 template <class FieldTYPE>
@@ -105,7 +104,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
    reg_mat44_disp(&transformationMatrix, (char *)"[NiftyReg DEBUG] Global affine transformation");
 #endif
 
-   float voxel[3]={0,0,0}, position[3]={0,0,0};
+   double voxel[3]={0,0,0}, position[3]={0,0,0};
    int x=0, y=0, z=0;
    size_t index=0;
 #if defined (_OPENMP)
@@ -117,27 +116,27 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
    for(z=0; z<deformationFieldImage->nz; z++)
    {
       index=z*deformationFieldImage->nx*deformationFieldImage->ny;
-      voxel[2]=(float)z;
+      voxel[2]=(double) z;
       for(y=0; y<deformationFieldImage->ny; y++)
       {
-         voxel[1]=(float)y;
+         voxel[1]=(double) y;
          for(x=0; x<deformationFieldImage->nx; x++)
          {
-            voxel[0]=(float)x;
+            voxel[0]=(double) x;
             if(mask[index]>-1)
             {
                if(composition==true)
                {
-                  voxel[0]=deformationFieldPtrX[index];
-                  voxel[1]=deformationFieldPtrY[index];
-                  voxel[2]=deformationFieldPtrZ[index];
+                  voxel[0]= (double) deformationFieldPtrX[index];
+                  voxel[1]= (double) deformationFieldPtrY[index];
+                  voxel[2]= (double) deformationFieldPtrZ[index];
                }
                reg_mat44_mul(&transformationMatrix, voxel, position);
 
                /* the deformation field (real coordinates) is stored */
-               deformationFieldPtrX[index] = position[0];
-               deformationFieldPtrY[index] = position[1];
-               deformationFieldPtrZ[index] = position[2];
+               deformationFieldPtrX[index] = (FieldTYPE) position[0];
+               deformationFieldPtrY[index] = (FieldTYPE) position[1];
+               deformationFieldPtrZ[index] = (FieldTYPE) position[2];
             }
             index++;
          }

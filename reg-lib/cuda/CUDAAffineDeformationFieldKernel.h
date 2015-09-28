@@ -2,6 +2,7 @@
 #define CUDAAFFINEDEFORMATIONFIELDKERNEL_H
 
 #include "AffineDeformationFieldKernel.h"
+#include "CUDAContent.h"
 
 //Kernel functions for affine deformation field
 class CudaAffineDeformationFieldKernel: public AffineDeformationFieldKernel

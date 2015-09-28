@@ -9,13 +9,13 @@
 
 #include "Content.h"
 #ifdef _USE_CUDA
-#include "CudaContent.h"
+#include "CUDAContent.h"
 #endif
 #ifdef _USE_OPENCL
 #include "CLContent.h"
 #endif
 
-#define EPS 0.00005
+#define EPS 0.000001
 
 void test(Content *con, int platformCode) {
 
@@ -95,9 +95,11 @@ int main(int argc, char **argv)
     test_field = con->getCurrentDeformationField();
 
     // Compute the difference between the computed and inputed deformation field
-    reg_tools_substractImageToImage(inputDeformationField, test_field, test_field);
-    reg_tools_abs_image(test_field);
-    double max_difference = reg_tools_getMaxValue(test_field);
+    nifti_image *diff_field = nifti_copy_nim_info(inputDeformationField);
+    diff_field->data = (void *) malloc(diff_field->nvox*diff_field->nbyper);
+    reg_tools_substractImageToImage(inputDeformationField, test_field, diff_field);
+    reg_tools_abs_image(diff_field);
+    double max_difference = reg_tools_getMaxValue(diff_field);
 
     nifti_image_free(referenceImage);
     nifti_image_free(inputDeformationField);

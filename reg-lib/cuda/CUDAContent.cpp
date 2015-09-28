@@ -1,4 +1,4 @@
-#include "CudaContent.h"
+#include "CUDAContent.h"
 #include "_reg_common_cuda.h"
 #include "_reg_tools.h"
 #include <algorithm>

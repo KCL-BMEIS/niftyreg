@@ -1,4 +1,5 @@
-#include "CudaConvolutionKernel.h"
+#include "CUDAConvolutionKernel.h"
+#include "_reg_tools.h"
 
 /* *************************************************************** */
 void CudaConvolutionKernel::calculate(nifti_image *image,

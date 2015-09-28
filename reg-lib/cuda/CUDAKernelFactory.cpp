@@ -1,5 +1,9 @@
-#include "CudaKernelFactory.h"
-#include "CudaKernels.h"
+#include "CUDAKernelFactory.h"
+#include "CUDAAffineDeformationFieldKernel.h"
+#include "CUDAConvolutionKernel.h"
+#include "CUDABlockMatchingKernel.h"
+#include "CUDAResampleImageKernel.h"
+#include "CUDAOptimiseKernel.h"
 #include "Content.h"
 
 Kernel *CudaKernelFactory::produceKernel(std::string name,  Content *con) const {

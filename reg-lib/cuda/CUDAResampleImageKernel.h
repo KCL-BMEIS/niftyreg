@@ -2,6 +2,7 @@
 #define CUDARESAMPLEIMAGEKERNEL_H
 
 #include "ResampleImageKernel.h"
+#include "CUDAContent.h"
 
 /*
  * kernel functions for image resampling with three interpolation variations

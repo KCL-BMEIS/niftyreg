@@ -592,7 +592,7 @@ void ResampleImage2D(nifti_image *floatingImage,
 
       FloatingTYPE *xyzPointer;
       double xTempNewValue, intensity;
-      FieldTYPE world[3], position[3];
+      double world[3], position[3];
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
@@ -608,8 +608,8 @@ void ResampleImage2D(nifti_image *floatingImage,
 
          if((maskPtr[index])>-1)
          {
-            world[0]=static_cast<FieldTYPE>(deformationFieldPtrX[index]);
-            world[1]=static_cast<FieldTYPE>(deformationFieldPtrY[index]);
+            world[0]=static_cast<double>(deformationFieldPtrX[index]);
+            world[1]=static_cast<double>(deformationFieldPtrY[index]);
             world[2]=0;
 
             // real -> voxel; floating space
@@ -618,15 +618,15 @@ void ResampleImage2D(nifti_image *floatingImage,
             previous[0] = static_cast<int>(reg_floor(position[0]));
             previous[1] = static_cast<int>(reg_floor(position[1]));
 
-            relative[0]=position[0]-static_cast<FieldTYPE>(previous[0]);
-            relative[1]=position[1]-static_cast<FieldTYPE>(previous[1]);
+            relative[0]=position[0]-static_cast<double>(previous[0]);
+            relative[1]=position[1]-static_cast<double>(previous[1]);
 
             (*kernelCompFctPtr)(relative[0], xBasis);
             (*kernelCompFctPtr)(relative[1], yBasis);
             previous[0]-=kernel_offset;
             previous[1]-=kernel_offset;
 
-            intensity=static_cast<FieldTYPE>(0);
+            intensity=0.0;
             for(b=0; b<kernel_size; b++)
             {
                Y= previous[1]+b;

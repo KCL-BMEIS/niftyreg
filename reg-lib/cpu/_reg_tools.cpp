@@ -2419,22 +2419,21 @@ float reg_tools_getMinValue(nifti_image *image)
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-float reg_tools_getMaxValue1(nifti_image *image)
+DTYPE reg_tools_getMaxValue1(nifti_image *image)
 {
    // Create a pointer to the image data
    DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
    // Set a variable to store the maximal value
-   float maxValue=-std::numeric_limits<DTYPE>::max();
+   double maxValue=-std::numeric_limits<DTYPE>::max();
    if(image->scl_slope==0) image->scl_slope=1.f;
    // Loop over all voxel to find the lowest value
    for(size_t i=0; i<image->nvox; ++i)
    {
-      DTYPE currentVal = static_cast<DTYPE>(imgPtr[i] * image->scl_slope + image->scl_inter);
-      float fVal = static_cast<float>(currentVal);
-      maxValue=fVal>maxValue?fVal:maxValue;
+      double currentVal = (static_cast<double>(imgPtr[i]) * image->scl_slope + image->scl_inter);
+      maxValue=currentVal>maxValue?currentVal:maxValue;
    }
    // The lowest value is returned
-   return maxValue;
+   return (DTYPE) maxValue;
 }
 /* *************************************************************** */
 float reg_tools_getMaxValue(nifti_image *image)

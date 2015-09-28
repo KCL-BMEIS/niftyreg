@@ -131,8 +131,6 @@ set(_reg_aladin_files
 	Platform.cpp
 	Platform.h
 	Kernel.h
-        #cpu/CPUKernels.cpp
-        #cpu/CPUKernels.h
         cpu/CPUAffineDeformationFieldKernel.h
         cpu/CPUAffineDeformationFieldKernel.cpp
         cpu/CPUBlockMatchingKernel.h

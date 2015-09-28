@@ -9,7 +9,7 @@
 
 #include "Content.h"
 #ifdef _USE_CUDA
-#include "CudaContent.h"
+#include "CUDAContent.h"
 #endif
 #ifdef _USE_OPENCL
 #include "CLContent.h"

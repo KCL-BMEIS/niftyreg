@@ -25,7 +25,6 @@
 #include <vector>
 #include "_reg_maths.h"
 
-#include "CudaKernelFuncs.h"
 
 
 

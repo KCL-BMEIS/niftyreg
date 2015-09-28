@@ -3,7 +3,7 @@
 #include "KernelFactory.h"
 #include "CPUKernelFactory.h"
 #ifdef _USE_CUDA
-#include "CudaKernelFactory.h"
+#include "CUDAKernelFactory.h"
 #endif
 #ifdef _USE_OPENCL
 #include "CLKernelFactory.h"

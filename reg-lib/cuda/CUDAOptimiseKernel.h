@@ -2,6 +2,7 @@
 #define CUDAOPTIMISEKERNEL_H
 
 #include "OptimiseKernel.h"
+#include "CUDAContent.h"
 
 //kernel functions for numerical optimisation
 class CudaOptimiseKernel: public OptimiseKernel

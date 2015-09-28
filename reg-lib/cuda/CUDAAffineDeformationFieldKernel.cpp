@@ -1,4 +1,5 @@
-#include "CudaAffineDeformationFieldKernel.h"
+#include "CUDAAffineDeformationFieldKernel.h"
+#include "CUDAKernelFuncs.h"
 
 /* *************************************************************** */
 CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Content *conIn, std::string nameIn) :
