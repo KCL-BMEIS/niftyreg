@@ -200,7 +200,7 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
     double centroid_target[2] = { 0.0 };
     double centroid_result[2] = { 0.0 };
 
-    for (unsigned j = 0; j < num_points; ++j) {
+    for (int j = 0; j < num_points; ++j) {
         centroid_target[0] += points1[j][0];
         centroid_target[1] += points1[j][1];
         centroid_result[0] += points2[j][0];
@@ -220,7 +220,7 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
     float **r = reg_matrix2DAllocate<float>(2, 2);
 
     // Demean the input points
-    for (unsigned j = 0; j < num_points; ++j) {
+    for (int j = 0; j < num_points; ++j) {
         points1[j][0] -= centroid_target[0];
         points1[j][1] -= centroid_target[1];
 
@@ -318,7 +318,7 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
     double centroid_result[3] = { 0.0 };
 
 
-    for (unsigned j = 0; j < num_points; ++j)
+    for (int j = 0; j < num_points; ++j)
     {
         centroid_target[0] += points1[j][0];
         centroid_target[1] += points1[j][1];
@@ -344,7 +344,7 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
     float **r  = reg_matrix2DAllocate<float>(3, 3);
 
     // Demean the input points
-    for (unsigned j = 0; j < num_points; ++j)
+    for (int j = 0; j < num_points; ++j)
     {
         points1[j][0] -= centroid_target[0];
         points1[j][1] -= centroid_target[1];
@@ -467,7 +467,7 @@ void estimate_affine_transformation2D(float** points1, float** points2, int num_
     unsigned c = 0;
     float** A = reg_matrix2DAllocate<float>(num_equations, 6);
 
-    for (unsigned k = 0; k < num_points; ++k) {
+    for (int k = 0; k < num_points; ++k) {
         c = k * 2;
 
         A[c][0] = points1[k][0];
@@ -510,7 +510,7 @@ void estimate_affine_transformation2D(float** points1, float** points2, int num_
     // Now r contains the pseudoinverse
     // Create vector b and then multiple r*b to get the affine paramsA
     float* b = reg_matrix1DAllocate<float>(num_equations);
-    for (unsigned k = 0; k < num_points; ++k) {
+    for (int k = 0; k < num_points; ++k) {
         c = k * 2;
         b[c] = points2[k][0];
         b[c + 1] = points2[k][1];
@@ -576,7 +576,7 @@ void estimate_affine_transformation3D(float** points1, float** points2, int num_
     unsigned c = 0;
     float** A = reg_matrix2DAllocate<float>(num_equations, 12);
 
-    for (unsigned k = 0; k < num_points; ++k) {
+    for (int k = 0; k < num_points; ++k) {
         c = k * 3;
         A[c][0] = points1[k][0];
         A[c][1] = points1[k][1];
@@ -631,7 +631,7 @@ void estimate_affine_transformation3D(float** points1, float** points2, int num_
     // Now r contains the pseudoinverse
     // Create vector b and then multiple rb to get the affine paramsA
     float* b = reg_matrix1DAllocate<float>(num_equations);
-    for (unsigned k = 0; k < num_points; ++k) {
+    for (int k = 0; k < num_points; ++k) {
         c = k * 3;
         b[c] = points2[k][0];
         b[c + 1] = points2[k][1];
@@ -728,7 +728,7 @@ void optimize_2D(float* referencePosition, float* warpedPosition,
     mat44 lastTransformation;
     memset(&lastTransformation, 0, sizeof(mat44));
 
-    for (unsigned count = 0; count < max_iter; ++count)
+    for (int count = 0; count < max_iter; ++count)
     {
         // Transform the points in the target
         for (unsigned j = 0; j < num_points * 2; j += 2)
@@ -810,7 +810,7 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
     mat44 lastTransformation;
     memset(&lastTransformation,0,sizeof(mat44));
 
-    for (unsigned count = 0; count < max_iter; ++count)
+    for (int count = 0; count < max_iter; ++count)
     {
        // Transform the points in the target
        for (unsigned j = 0; j < num_points * 3; j+=3) {

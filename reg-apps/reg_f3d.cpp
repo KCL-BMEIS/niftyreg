@@ -115,8 +115,11 @@ void Usage(char *exec)
 #if defined (_OPENMP)
    reg_print_info(exec, "");
    reg_print_info(exec, "*** OpenMP-related options:");
-   sprintf(text, "\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]",
-          omp_get_num_procs());
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
    reg_print_info(exec, "");
@@ -146,8 +149,11 @@ int main(int argc, char **argv)
    int verbose=true;
 
 #if defined (_OPENMP)
-   // Set the default number of thread to one
-   omp_set_num_threads(1);
+   // Set the default number of thread
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
 #endif
 
    char text[1024];
@@ -627,12 +633,15 @@ int main(int argc, char **argv)
 //      else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
 //         iso=true;
 //      }
-#if defined (_OPENMP)
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
+#if defined (_OPENMP)
          omp_set_num_threads(atoi(argv[++i]));
-      }
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
 #endif
+      }
       /* All the following arguments should have already been parsed */
       else if(strcmp(argv[i], "-help")!=0 && strcmp(argv[i], "-Help")!=0 &&
       strcmp(argv[i], "-HELP")!=0 && strcmp(argv[i], "-h")!=0 &&

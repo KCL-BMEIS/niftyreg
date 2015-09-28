@@ -51,8 +51,11 @@ void usage(char *exec)
    reg_print_info(exec, "\t-demean2 <referenceImage> <NonRigidTrans1> <floatingImage1> ... <NonRigidTransN> <floatingImageN>");
    reg_print_info(exec, "\t-demean3 <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>");
 #if defined (_OPENMP)
-   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]",
-          omp_get_num_procs());
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
 #ifdef _GIT_HASH
@@ -86,8 +89,11 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
 #if defined (_OPENMP)
-   // Set the default number of thread to one
-   omp_set_num_threads(1);
+   // Set the default number of thread
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
 #endif
    // Check if the --xml information is required
    if(strcmp(argv[1], "--xml")==0)
@@ -114,12 +120,15 @@ int main(int argc, char **argv)
          printf("%s",xml_average);
          return EXIT_SUCCESS;
       }
-#if defined (_OPENMP)
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
+#if defined (_OPENMP)
          omp_set_num_threads(atoi(argv[++i]));
-      }
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
 #endif
+      }
 #ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||

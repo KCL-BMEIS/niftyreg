@@ -152,7 +152,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
     long sm, sn, sn2, min_dim;
     long size__m = (long)size_m, size__n = (long)size_n;
 #else
-    size_t sm, sn, sn2, min_dim;
+    size_t sm, sn, min_dim;
     size_t size__m = size_m, size__n = size_n;
 #endif
     Eigen::MatrixXd m(size__m, size__n);
@@ -173,11 +173,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 
     Eigen::JacobiSVD<Eigen::MatrixXd> svd(m, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
-    //std::cout << "Its singular values are:" << std::endl << svd.singularValues() << std::endl;
-    //std::cout << "Its left singular vectors are the columns of the thin U matrix:" << std::endl << svd.matrixU() << std::endl;
-    //std::cout << "Its right singular vectors are the columns of the thin V matrix:" << std::endl << svd.matrixV() << std::endl;
-
-    int i, j;
+    size_t i, j;
     min_dim = std::min(size__m, size__n);
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
@@ -308,14 +304,14 @@ void reg_matrixInvertMultiply(T *mat,
         reg_LUdecomposition(mat, dim, index);
 
     int ii = 0;
-    for (int i = 0; i < (int)dim; ++i)
+    for (size_t i = 0; i < dim; ++i)
     {
         int ip = index[i];
         T sum = vec[ip];
         vec[ip] = vec[i];
         if (ii != 0)
         {
-            for (int j = ii - 1; j < i; ++j)
+            for (int j = ii - 1; j < (int)i; ++j)
                 sum -= mat(i, j, dim)*vec[j];
         }
         else if (sum != 0)
@@ -336,10 +332,10 @@ template void reg_matrixInvertMultiply<double>(double *, size_t, size_t *, doubl
 /* *************************************************************** */
 template<class T>
 void reg_matrixMultiply(T *mat1,
-    T *mat2,
-    size_t *dim1,
-    size_t *dim2,
-    T * &res)
+                        T *mat2,
+                        size_t *dim1,
+                        size_t *dim2,
+                        T * &res)
 {
     // First check that the dimension are appropriate
     if (dim1[1] != dim2[0])
@@ -350,18 +346,18 @@ void reg_matrixMultiply(T *mat1,
         reg_print_msg_error(text);
         reg_exit(1);
     }
-    int resDim[2] = { dim1[0], dim2[1] };
+    size_t resDim[2] = {dim1[0], dim2[1]};
     // Allocate the result matrix
     if (res != NULL)
         free(res);
     res = (T *)calloc(resDim[0] * resDim[1], sizeof(T));
     // Multiply both matrices
-    for (int j = 0; j < resDim[1]; ++j)
+    for (size_t j = 0; j < resDim[1]; ++j)
     {
-        for (int i = 0; i < resDim[0]; ++i)
+        for (size_t i = 0; i < resDim[0]; ++i)
         {
             double sum = 0.0;
-            for (int k = 0; k < dim1[1]; ++k)
+            for (size_t k = 0; k < dim1[1]; ++k)
             {
                 sum += mat1[k * dim1[0] + i] * mat2[j * dim2[0] + k];
             }
@@ -405,7 +401,7 @@ template<class T>
 T** reg_matrix2DAllocate(size_t arraySizeX, size_t arraySizeY) {
     T** res;
     res = (T**)malloc(arraySizeX*sizeof(T*));
-    for (int i = 0; i < arraySizeX; i++) {
+    for (size_t i = 0; i < arraySizeX; i++) {
         res[i] = (T*)malloc(arraySizeY*sizeof(T));
     }
     return res;
@@ -417,7 +413,7 @@ template<class T>
 T** reg_matrix2DAllocateAndInitToZero(size_t arraySizeX, size_t arraySizeY) {
     T** res;
     res = (T**)calloc(arraySizeX, sizeof(T*));
-    for (int i = 0; i < arraySizeX; i++) {
+    for (size_t i = 0; i < arraySizeX; i++) {
         res[i] = (T*)calloc(arraySizeY, sizeof(T));
     }
     return res;
@@ -427,7 +423,7 @@ template double** reg_matrix2DAllocateAndInitToZero<double>(size_t arraySizeX, s
 /* *************************************************************** */
 template<class T>
 void reg_matrix2DDeallocate(size_t arraySizeX, T** mat) {
-    for (int i = 0; i < arraySizeX; i++) {
+    for (size_t i = 0; i < arraySizeX; i++) {
         free(mat[i]);
     }
     free(mat);
@@ -439,11 +435,11 @@ template<class T>
 T** reg_matrix2DTranspose(T** mat, size_t arraySizeX, size_t arraySizeY) {
     T** res;
     res = (T**)malloc(arraySizeY*sizeof(T*));
-    for (int i = 0; i < arraySizeY; i++) {
+    for (size_t i = 0; i < arraySizeY; i++) {
         res[i] = (T*)malloc(arraySizeX*sizeof(T));
     }
-    for (int i = 0; i < arraySizeX; i++) {
-        for (int j = 0; j < arraySizeY; j++) {
+    for (size_t i = 0; i < arraySizeX; i++) {
+        for (size_t j = 0; j < arraySizeY; j++) {
             res[j][i] = mat[i][j];
         }
     }
@@ -472,7 +468,7 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
         for (size_t i = 0; i < mat1X; i++) {
             for (size_t j = 0; j < mat2Y; j++) {
                 res[i][j] = 0;
-                for (int k = 0; k < nbElement; k++) {
+                for (size_t k = 0; k < nbElement; k++) {
                     res[i][j] += static_cast<T>(static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[k][j]));
                 }
             }
@@ -560,9 +556,9 @@ T* reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect) {
 
     T* res = (T*)malloc(m*sizeof(T));
 
-    for (int i = 0; i < m; i++) {
+    for (size_t i = 0; i < m; i++) {
         res[i] = 0;
-        for (int k = 0; k < n; k++) {
+        for (size_t k = 0; k < n; k++) {
             res[i] += static_cast<T>(static_cast<double>(mat[i][k]) * static_cast<double>(vect[k]));
         }
     }
@@ -573,9 +569,9 @@ template double* reg_matrix2DVectorMultiply<double>(double** mat, size_t m, size
 /* *************************************************************** */
 template<class T>
 void reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect, T* res) {
-    for (int i = 0; i < m; i++) {
+    for (size_t i = 0; i < m; i++) {
         res[i] = 0;
-        for (int k = 0; k < n; k++) {
+        for (size_t k = 0; k < n; k++) {
             res[i] += static_cast<T>(static_cast<double>(mat[i][k]) * static_cast<double>(vect[k]));
         }
     }
@@ -604,8 +600,8 @@ T reg_matrix2DDet(T** mat, size_t m, size_t n) {
     else {
         // Convert to Eigen format
         Eigen::MatrixXd eigenRes(m, n);
-        for (int i = 0; i < m; i++) {
-            for (int j = 0; j < n; j++) {
+        for (size_t i = 0; i < m; i++) {
+            for (size_t j = 0; j < n; j++) {
                 eigenRes(i, j) = static_cast<double>(mat[i][j]);
             }
         }

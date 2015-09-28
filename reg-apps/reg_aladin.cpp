@@ -93,8 +93,11 @@ void Usage(char *exec)
 #endif
    reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
 #if defined (_OPENMP)
-   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]",
-          omp_get_num_procs());
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
    reg_print_info(exec, "\t-voff\t\t\tTurns verbose off [on]");
@@ -172,8 +175,11 @@ int main(int argc, char **argv)
    bool cusvd =false;
 
 #if defined (_OPENMP)
-   // Set the default number of thread to one
-   omp_set_num_threads(1);
+   // Set the default number of thread
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
 #endif
 
    /* read the input parameter */
@@ -369,12 +375,15 @@ int main(int argc, char **argv)
       {
           captureRangeVox=atoi(argv[++i]);
       }
-#if defined (_OPENMP)
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
+#if defined (_OPENMP)
          omp_set_num_threads(atoi(argv[++i]));
-      }
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
 #endif
+      }
       else
       {
 

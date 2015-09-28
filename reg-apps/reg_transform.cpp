@@ -133,8 +133,13 @@ void Usage(char *exec)
    printf("\t\tfilename4 - Output affine transformation file name\n\n");
 
 #if defined (_OPENMP)
-   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]\n",
-          omp_get_num_procs());
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   char text[255];
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
+   reg_print_info(exec, text);
 #endif
 
 #ifdef _GIT_HASH
@@ -167,8 +172,11 @@ int main(int argc, char **argv)
    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
 
 #if defined (_OPENMP)
-   // Set the default number of thread to one
-   omp_set_num_threads(1);
+   // Set the default number of thread
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
 #endif
 
    // Parse the input data
@@ -185,12 +193,15 @@ int main(int argc, char **argv)
          Usage(argv[0]);
          return EXIT_SUCCESS;
       }
-#if defined (_OPENMP)
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
+#if defined (_OPENMP)
          omp_set_num_threads(atoi(argv[++i]));
-      }
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
 #endif
+      }
 #ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||

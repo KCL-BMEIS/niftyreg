@@ -271,9 +271,8 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
     unsigned int warpedIndex;
 
     unsigned int blockIndex = 0;
-    unsigned int activeBlockIndex = 0;
 
-    int index, i, j, k, l, m, n, x, y, z = 0;
+    int index, i, j, l, m, x, y, z = 0;
     int *maskPtr_XY;
     DTYPE *referencePtr_XY, *warpedPtr_XY;
     DTYPE value, bestCC, referenceMean, warpedMean, referenceVar, warpedVar;

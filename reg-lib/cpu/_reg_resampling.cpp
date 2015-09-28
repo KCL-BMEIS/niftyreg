@@ -1064,10 +1064,8 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
         FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
         double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative[3];
-        double xBasisSamp[SINC_KERNEL_SIZE], yBasisSamp[SINC_KERNEL_SIZE], zBasisSamp[SINC_KERNEL_SIZE], relativeSamp[3];
+        double xBasisSamp[SINC_KERNEL_SIZE], yBasisSamp[SINC_KERNEL_SIZE], zBasisSamp[SINC_KERNEL_SIZE];
         int a, b, c, Y, Z, previous[3];
-
-        float psf_xyz[3];
 
         interpWindowedSincKernel(0.00001, xBasisSamp);
         interpWindowedSincKernel(0.00001, yBasisSamp);
@@ -1380,7 +1378,9 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
     for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
     {
 #ifndef NDEBUG
-        printf("[NiftyReg DEBUG] 3D resampling of volume number %lu\n",t);
+       char text[255];
+       sprintf(text,"PSF 3D resampling of volume number %lu\n",t);
+       reg_print_msg_debug(text);
 #endif
 
         FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
@@ -1392,7 +1392,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
         float psf_xyz[3];
 
         mat33 P, invP, ASAt, A,TmS,TmS_EigVec,TmS_EigVec_trans,TmS_EigVal,TmS_EigVal_inv;
-        float currentDeterminant, maxDiag, psfKernelShift[3], psfSampleSpacing, psfWeightSum,curLambda;
+        float currentDeterminant, psfKernelShift[3], psfSampleSpacing, psfWeightSum,curLambda;
         float psfNumbSamples;
 
         FloatingTYPE *zPointer, *xyzPointer;

@@ -69,8 +69,13 @@ void Usage(char *exec)
    printf("\t-ssd\t\tReturns the SSD value\n");
    printf("\n\t-out\t\tText file output where to store the value(s).\n\t\t\tThe stdout is used by default\n");
 #if defined (_OPENMP)
-   printf("\t-omp <int>\tNumber of thread to use with OpenMP. [1/%i]\n",
-          omp_get_num_procs());
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   char text[255];
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
+   reg_print_info(exec, text);
 #endif
 #ifdef _GIT_HASH
    printf("\n\t--version\tPrint current source code git hash key and exit\n\t\t\t(%s)\n",_GIT_HASH);
@@ -88,8 +93,11 @@ int main(int argc, char **argv)
    param->paddingValue=std::numeric_limits<float>::quiet_NaN();
 
 #if defined (_OPENMP)
-   // Set the default number of thread to one
-   omp_set_num_threads(1);
+   // Set the default number of thread
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
 #endif
 
    /* read the input parameter */
@@ -107,12 +115,15 @@ int main(int argc, char **argv)
 //         printf("%s",xml_measure);
 //         return exit_success;
 //      }
-#if defined (_OPENMP)
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
+#if defined (_OPENMP)
          omp_set_num_threads(atoi(argv[++i]));
-      }
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
 #endif
+      }
 #ifdef _GIT_HASH
       else if( strcmp(argv[i], "-version")==0 ||
             strcmp(argv[i], "-Version")==0 ||
