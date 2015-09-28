@@ -551,6 +551,32 @@ void ResampleImage2D(nifti_image *floatingImage,
       floatingIJKMatrix=&(floatingImage->sto_ijk);
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
+   int kernel_size;
+   int kernel_offset=0;
+   void (*kernelCompFctPtr)(double,double *);
+   switch(kernel){
+   case 0:
+      kernel_size=2;
+      kernelCompFctPtr=&interpNearestNeighKernel;
+      kernel_offset=0;
+      break; // nereast-neighboor interpolation
+   case 1:
+      kernel_size=2;
+      kernelCompFctPtr=&interpLinearKernel;
+      kernel_offset=0;
+      break; // linear interpolation
+   case 4:
+      kernel_size=SINC_KERNEL_SIZE;
+      kernelCompFctPtr=&interpWindowedSincKernel;
+      kernel_offset=SINC_KERNEL_RADIUS;
+      break; // sinc interpolation
+   default:
+      kernel_size=4;
+      kernelCompFctPtr=&interpCubicSplineKernel;
+      kernel_offset=1;
+      break; // cubic spline interpolation
+   }
+
    // Iteration over the different volume along the 4th axis
    for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
    {
@@ -562,35 +588,10 @@ void ResampleImage2D(nifti_image *floatingImage,
       FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
       FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
-      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], relative[2];
       int a, b, Y, previous[2];
-      int kernel_size;
-      int kernel_offset=0;
-      void (*kernelCompFctPtr)(double,double *);
-      switch(kernel){
-      case 0:
-         kernel_size=2;
-         kernelCompFctPtr=&interpNearestNeighKernel;
-         kernel_offset=0;
-         break; // nereast-neighboor interpolation
-      case 1:
-         kernel_size=2;
-         kernelCompFctPtr=&interpLinearKernel;
-         kernel_offset=0;
-         break; // linear interpolation
-      case 4:
-         kernel_size=SINC_KERNEL_SIZE;
-         kernelCompFctPtr=&interpWindowedSincKernel;
-         kernel_offset=SINC_KERNEL_RADIUS;
-         break; // sinc interpolation
-      default:
-         kernel_size=4;
-         kernelCompFctPtr=&interpCubicSplineKernel;
-         kernel_offset=1;
-         break; // cubic spline interpolation
-      }
 
       FloatingTYPE *xyzPointer;
+      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], relative[2];
       double xTempNewValue, intensity;
       double world[3], position[3];
 #if defined (_OPENMP)

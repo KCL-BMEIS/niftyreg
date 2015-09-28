@@ -6,13 +6,13 @@
 #include "Platform.h"
 #include "Content.h"
 #ifdef _USE_CUDA
-#include "CudaContent.h"
+#include "CUDAContent.h"
 #endif
 #ifdef _USE_OPENCL
 #include "CLContent.h"
 #endif
 
-#define EPS 0.0001
+#define EPS 0.000001
 
 void test(Content *con, const unsigned int interp, int platformCode) {
 
