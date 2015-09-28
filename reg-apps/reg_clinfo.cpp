@@ -4,7 +4,6 @@
 
 #include "../reg-lib/cl/CLContextSingletton.h"
 #include "../reg-lib/cl/InfoDevice.h"
-//#include <pthread.h>
 
 void showInfo(void)
 {
@@ -47,7 +46,7 @@ void showInfo(void)
 			DeviceLog<cl_bool>::show(devices[j], CL_DEVICE_COMPILER_AVAILABLE, "CL_DEVICE_COMPILER_AVAILABLE");
 			DeviceLog<cl_device_exec_capabilities>::show(devices[j], CL_DEVICE_EXECUTION_CAPABILITIES, "CL_DEVICE_EXECUTION_CAPABILITIES");
 			DeviceLog<cl_command_queue_properties>::show(devices[j], CL_DEVICE_QUEUE_PROPERTIES, "CL_DEVICE_QUEUE_PROPERTIES");
-
+			DeviceLog<cl_int>::show(devices[j], CL_DEVICE_DOUBLE_FP_CONFIG, "CL_DEVICE_DOUBLE_FP_CONFIG");
 			std::cout << std::endl;
 		}
 	}

@@ -92,10 +92,11 @@ __device__ __inline__ void getPosition(float* position, float* matrix, float* vo
 /* *************************************************************** */
 __device__ __inline__ double getPosition(float* matrix, double* voxel, const unsigned int idx)
 {
-	return ((double) matrix[idx * 4 + 0]) * voxel[0] +
-			((double) matrix[idx * 4 + 1]) * voxel[1] +
-			((double) matrix[idx * 4 + 2]) * voxel[2] +
-			((double) matrix[idx * 4 + 3]);
+	unsigned long index = idx*4;
+	return (double) matrix[index++] * voxel[0] +
+			 (double) matrix[index++] * voxel[1] +
+			 (double) matrix[index++] * voxel[2] +
+			 (double) matrix[index];
 }
 /* *************************************************************** */
 __inline__ __device__ void interpWindowedSincKernel(double relative, double *basis)
@@ -284,29 +285,27 @@ __global__ void affineKernel(float* transformationMatrix,
 									  const unsigned long voxelNumber,
 									  const bool composition)
 {
-
-	float *deformationFieldPtrX = defField;
-	float *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
-	float *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber];
-
-	double voxel[3];
-
-	const unsigned int z = blockIdx.z * blockDim.z + threadIdx.z;
-	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	// Get the current coordinate
 	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int z = blockIdx.z * blockDim.z + threadIdx.z;
+	const unsigned long index = x + dims.x * ( y + z * dims.y);
 
-	const unsigned long index = x + y * dims.x + z * dims.x * dims.y;
+	if( z<dims.z && y<dims.y && x<dims.x &&  mask[index] >= 0 )
+	{
+		double voxel[3];
+		float *deformationFieldPtrX = &defField[index] ;
+		float *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
+		float *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber];
 
-	if (z < dims.z && y < dims.y && x < dims.x && mask[index] >= 0) {
+		voxel[0] = composition ? *deformationFieldPtrX : x;
+		voxel[1] = composition ? *deformationFieldPtrY : y;
+		voxel[2] = composition ? *deformationFieldPtrZ : z;
 
-		voxel[0] = composition ? deformationFieldPtrX[index] : (double) x;
-		voxel[1] = composition ? deformationFieldPtrY[index] : (double) y;
-		voxel[2] = composition ? deformationFieldPtrZ[index] : (double) z;
-
-		deformationFieldPtrX[index] = (float) getPosition(transformationMatrix, voxel, 0);
-		deformationFieldPtrY[index] = (float) getPosition(transformationMatrix, voxel, 1);
-		deformationFieldPtrZ[index] = (float) getPosition(transformationMatrix, voxel, 2);
-
+		/* the deformation field (real coordinates) is stored */
+		*deformationFieldPtrX = (float)getPosition(transformationMatrix, voxel, 0);
+		*deformationFieldPtrY = (float)getPosition(transformationMatrix, voxel, 1);
+		*deformationFieldPtrZ = (float)getPosition(transformationMatrix, voxel, 2);
 	}
 }
 /* *************************************************************** */
@@ -355,7 +354,7 @@ void launchAffine(mat44 *affineTransformation,
 	free(trans);
 
 	uint3 dims_d = make_uint3(deformationField->nx, deformationField->ny, deformationField->nz);
-	affineKernel<< <G1_b, B1_b >> >(*trans_d, *def_d, *mask_d, dims_d, deformationField->nx* deformationField->ny* deformationField->nz, compose);
+	affineKernel<<<G1_b, B1_b >>>(*trans_d, *def_d, *mask_d, dims_d, deformationField->nx* deformationField->ny* deformationField->nz, compose);
 	NR_CUDA_CHECK_KERNEL(G1_b, B1_b)
 			NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 

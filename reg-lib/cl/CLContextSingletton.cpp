@@ -32,7 +32,8 @@ void CLContextSingletton::init()
 	this->devices = new cl_device_id[this->numDevices];
 	errNum = clGetDeviceIDs(this->platformIds[0], CL_DEVICE_TYPE_ALL, this->numDevices, this->devices, NULL);
 
-	if(clIdx<0)pickCard();
+	if(clIdx<0)
+		pickCard();
 
 	cl_context_properties contextProperties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) this->platformIds[0], 0 };
 	this->context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_GPU, NULL, NULL, &errNum);
