@@ -71,6 +71,11 @@ void CLContextSingletton::queryGridDims()
 /* *************************************************************** */
 void CLContextSingletton::pickCard()
 {
+   if(getenv("NIFTYREG_OPENCL_CARD")!=NULL){
+       this->clIdx=atoi(getenv("NIFTYREG_OPENCL_CARD"));
+      return;
+   }
+
 	cl_uint maxProcs = 0;
 	this->clIdx = 0;
 	cl_int errNum;

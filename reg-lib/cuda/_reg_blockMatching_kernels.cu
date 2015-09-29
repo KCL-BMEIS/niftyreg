@@ -95,14 +95,14 @@ float blockReduceSum(float val, int tid)
 }
 /* *************************************************************** */
 //recently switched to this kernel as it can accomodate greater capture range
-__global__ void blockMatchingKernel(float *resultPosition,
-												float *targetPosition,
-												int *mask,
-												float* targetMatrix_xyz,
-												unsigned int *definedBlock,
-												uint3 c_ImageSize,
-												const int blocksRange,
-												const unsigned int stepSize)
+__global__ void blockMatchingKernel3D(float *resultPosition,
+												  float *targetPosition,
+												  int *mask,
+												  float* targetMatrix_xyz,
+												  unsigned int *definedBlock,
+												  uint3 c_ImageSize,
+												  const int blocksRange,
+												  const unsigned int stepSize)
 {
 	extern __shared__ float sResultValues[];
 

@@ -39,6 +39,13 @@ void block_matching_method_gpu(nifti_image *targetImage,
 										 int **mask_d,
 										 float** targetMat_d)
 {
+	if(targetImage->nz==1){
+		//TODO
+		reg_print_fct_error("block_matching_method_gpu");
+		reg_print_msg_error("Need to implement the 2D version");
+		reg_exit(1);
+	}
+
 	// Copy some required parameters over to the device
 	uint3 imageSize = make_uint3(targetImage->nx, targetImage->ny, targetImage->nz); // Image size
 
@@ -58,14 +65,14 @@ void block_matching_method_gpu(nifti_image *targetImage,
 	dim3 BlocksGrid3D(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
 	const int blockRange = params->voxelCaptureRange % 4 ? params->voxelCaptureRange / 4 + 1 : params->voxelCaptureRange / 4;
 	const unsigned int sMem = (blockRange * 2 + 1) * (blockRange * 2 + 1) * (blockRange * 2 + 1) * 64 * sizeof(float);
-	blockMatchingKernel<< <BlocksGrid3D, BlockDims1D, sMem >> >(*resultPosition_d,
-																					*targetPosition_d,
-																					*mask_d,
-																					*targetMat_d,
-																					definedBlock_d,
-																					imageSize,
-																					blockRange,
-																					params->stepSize);
+	blockMatchingKernel3D<< <BlocksGrid3D, BlockDims1D, sMem >> >(*resultPosition_d,
+																					  *targetPosition_d,
+																					  *mask_d,
+																					  *targetMat_d,
+																					  definedBlock_d,
+																					  imageSize,
+																					  blockRange,
+																					  params->stepSize);
 
 #ifndef NDEBUG
 	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)

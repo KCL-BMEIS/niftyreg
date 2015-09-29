@@ -106,68 +106,6 @@ void reg_tool_ReadAffineFile(mat44 *mat,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_tool_ReadAffineFilev2(mat44 *mat, char *filename)
-{
-#ifndef NDEBUG
-    std::cout.precision(20);
-#endif
-    std::string line;
-    std::ifstream affineFile (filename);
-    double currentValue = 0;
-    if (affineFile.is_open())
-    {
-        int j=0;
-        while(std::getline(affineFile,line))
-        {
-#ifndef NDEBUG
-            std::cout << line << '\n';
-#endif
-            std::string delimiter = " ";
-            int i=0;
-            size_t pos = 0;
-            std::string token;
-            while ((pos = line.find(delimiter)) != std::string::npos)
-            {
-                token = line.substr(0, pos);
-#ifndef NDEBUG
-                std::cout << token << std::endl;
-#endif
-                currentValue = atof(token.c_str());
-                mat->m[j][i] = currentValue;
-#ifndef NDEBUG
-                std::cout << "currentValue=" << currentValue << std::endl;
-                std::cout << "mat->m[j][i]=" << mat->m[j][i] << std::endl;
-#endif
-                line.erase(0, pos + delimiter.length());
-                i++;
-            }
-#ifndef NDEBUG
-            std::cout << line << std::endl;
-#endif
-            currentValue = atof(line.c_str());
-            mat->m[j][i] = currentValue;
-#ifndef NDEBUG
-            std::cout << "currentValue=" << currentValue << std::endl;
-            std::cout << "mat->m[j][i]=" << mat->m[j][i] << std::endl;
-#endif
-            j++;
-        }
-        affineFile.close();
-    }
-    else
-    {
-        char text[255];
-        sprintf(text, "The affine file can not be read: %s", filename);
-        reg_print_fct_error("reg_tool_ReadAffineFilev2");
-        reg_print_msg_error(text);
-        reg_exit(1);
-    }
-#ifndef NDEBUG
-    reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Affine matrix");
-#endif
-}
-/* *************************************************************** */
-/* *************************************************************** */
 void reg_tool_ReadAffineFile(mat44 *mat,
                              char *fileName)
 {
@@ -260,13 +198,7 @@ std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename)
         reg_print_msg_error(text);
         reg_exit(1);
     }
-    //std::cout << "The number of line of the matrix is:" << nbLine << std::endl;
-    //std::cout << "The number of column of the matrix is:" << nbColumn << std::endl;
     std::pair <size_t, size_t> result(nbLine, nbColumn);
-#ifndef NDEBUG
-    std::cout << "nbLine=" << nbLine << std::endl;
-    std::cout << "nbColumn=" << nbColumn << std::endl;
-#endif
     return result;
 }
 /* *************************************************************** */
