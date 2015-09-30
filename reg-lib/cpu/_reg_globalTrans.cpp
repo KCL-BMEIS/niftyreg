@@ -199,20 +199,30 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
     double centroid_target[2] = { 0.0 };
     double centroid_result[2] = { 0.0 };
 
+    float centroid_targetFloat[2] = { 0.0 };
+    float centroid_resultFloat[2] = { 0.0 };
+
     for (int j = 0; j < num_points; ++j) {
-        centroid_target[0] += points1[j][0];
-        centroid_target[1] += points1[j][1];
-        centroid_result[0] += points2[j][0];
-        centroid_result[1] += points2[j][1];
+        centroid_target[0] += (double) points1[j][0];
+        centroid_target[1] += (double) points1[j][1];
+        centroid_result[0] += (double) points2[j][0];
+        centroid_result[1] += (double) points2[j][1];
     }
 
     centroid_target[0] /= static_cast<double>(num_points);
     centroid_target[1] /= static_cast<double>(num_points);
 
+    centroid_targetFloat[0] = static_cast<float>(centroid_target[0]);
+    centroid_targetFloat[1] = static_cast<float>(centroid_target[1]);
+
     centroid_result[0] /= static_cast<double>(num_points);
     centroid_result[1] /= static_cast<double>(num_points);
 
-    float **u = reg_matrix2DAllocateAndInitToZero<float>(2, 2);
+    centroid_resultFloat[0] = static_cast<float>(centroid_result[0]);
+    centroid_resultFloat[1] = static_cast<float>(centroid_result[1]);
+
+    float **p1t = reg_matrix2DAllocate<float>(2, num_points);
+    float **u = reg_matrix2DAllocate<float>(2, 2);
     float * w = reg_matrix1DAllocate<float>(2);
     float **v = reg_matrix2DAllocate<float>(2, 2);
     float **ut = reg_matrix2DAllocate<float>(2, 2);
@@ -220,27 +230,20 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
 
     // Demean the input points
     for (int j = 0; j < num_points; ++j) {
-        points1[j][0] -= centroid_target[0];
-        points1[j][1] -= centroid_target[1];
+        points1[j][0] = static_cast<float>(static_cast<double>(points1[j][0]) - static_cast<double>(centroid_targetFloat[0]));
+        points1[j][1] = static_cast<float>(static_cast<double>(points1[j][1]) - static_cast<double>(centroid_targetFloat[1]));
 
-        points2[j][0] -= centroid_result[0];
-        points2[j][1] -= centroid_result[1];
-
-        u[0][0] += points1[j][0] * points2[j][0];
-        u[0][1] += points1[j][0] * points2[j][1];
-
-        u[1][0] += points1[j][1] * points2[j][0];
-        u[1][1] += points1[j][1] * points2[j][1];
+        points2[j][0] = static_cast<float>(static_cast<double>(points2[j][0]) - static_cast<double>(centroid_resultFloat[0]));
+        points2[j][1] = static_cast<float>(static_cast<double>(points2[j][1]) - static_cast<double>(centroid_resultFloat[1]));
     }
+
+    p1t = reg_matrix2DTranspose<float>(points1, num_points, 2);
+    u = reg_matrix2DMultiply<float>(p1t,2, num_points, points2, num_points, 2, false);
 
     svd(u, 2, 2, w, v);
 
     // Calculate transpose
-    ut[0][0] = u[0][0];
-    ut[1][0] = u[0][1];
-
-    ut[0][1] = u[1][0];
-    ut[1][1] = u[1][1];
+    ut = reg_matrix2DTranspose<float>(u, 2, 2);
 
     // Calculate the rotation matrix
     reg_matrix2DMultiply<float>(v, 2, 2, ut, 2, 2, r, false);
@@ -248,7 +251,7 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
     float det = reg_matrix2DDet<float>(r, 2, 2);
 
     // Take care of possible reflection
-    if (det < 0.0f) {
+    if (det < 0.0) {
         v[0][1] = -v[0][1];
         v[1][1] = -v[1][1];
         reg_matrix2DMultiply<float>(v, 2, 2, ut, 2, 2, r, false);
@@ -256,11 +259,11 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
 
     // Calculate the translation
     float t[2];
-    t[0] = centroid_result[0] - (r[0][0] * centroid_target[0] +
-        r[0][1] * centroid_target[1]);
+    t[0] = static_cast<float>(static_cast<double>(centroid_resultFloat[0]) - (static_cast<double>(r[0][0]) * static_cast<double>(centroid_targetFloat[0]) +
+                                                                              static_cast<double>(r[0][1]) * static_cast<double>(centroid_targetFloat[1])));
 
-    t[1] = centroid_result[1] - (r[1][0] * centroid_target[0] +
-        r[1][1] * centroid_target[1]);
+    t[1] = static_cast<float>(static_cast<double>(centroid_resultFloat[1]) - (static_cast<double>(r[1][0]) * static_cast<double>(centroid_targetFloat[0]) +
+                                                                              static_cast<double>(r[1][1]) * static_cast<double>(centroid_targetFloat[1])));
 
     transformation->m[0][0] = r[0][0];
     transformation->m[0][1] = r[0][1];
@@ -290,6 +293,7 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
     reg_matrix2DDeallocate(2, v);
     reg_matrix2DDeallocate(2, ut);
     reg_matrix2DDeallocate(2, r);
+    reg_matrix2DDeallocate(2, p1t);
 }
 /* *************************************************************** */
 void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44 * transformation)
@@ -316,71 +320,63 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
     double centroid_target[3] = { 0.0 };
     double centroid_result[3] = { 0.0 };
 
+    float centroid_targetFloat[3] = { 0.0 };
+    float centroid_resultFloat[3] = { 0.0 };
+
 
     for (int j = 0; j < num_points; ++j)
     {
-        centroid_target[0] += points1[j][0];
-        centroid_target[1] += points1[j][1];
-        centroid_target[2] += points1[j][2];
+        centroid_target[0] += (double) points1[j][0];
+        centroid_target[1] += (double) points1[j][1];
+        centroid_target[2] += (double) points1[j][2];
 
-        centroid_result[0] += points2[j][0];
-        centroid_result[1] += points2[j][1];
-        centroid_result[2] += points2[j][2];
+        centroid_result[0] += (double) points2[j][0];
+        centroid_result[1] += (double) points2[j][1];
+        centroid_result[2] += (double) points2[j][2];
     }
 
     centroid_target[0] /= static_cast<double>(num_points);
     centroid_target[1] /= static_cast<double>(num_points);
     centroid_target[2] /= static_cast<double>(num_points);
 
+    centroid_targetFloat[0] = static_cast<float>(centroid_target[0]);
+    centroid_targetFloat[1] = static_cast<float>(centroid_target[1]);
+    centroid_targetFloat[2] = static_cast<float>(centroid_target[2]);
+
     centroid_result[0] /= static_cast<double>(num_points);
     centroid_result[1] /= static_cast<double>(num_points);
     centroid_result[2] /= static_cast<double>(num_points);
 
-    float **u  = reg_matrix2DAllocateAndInitToZero<float>(3, 3);
+    centroid_resultFloat[0] = static_cast<float>(centroid_result[0]);
+    centroid_resultFloat[1] = static_cast<float>(centroid_result[1]);
+    centroid_resultFloat[2] = static_cast<float>(centroid_result[2]);
+
+    float **p1t  = reg_matrix2DAllocate<float>(3, num_points);
+    float **u  = reg_matrix2DAllocate<float>(3, 3);
     float * w = reg_matrix1DAllocate<float>(3);
     float **v  = reg_matrix2DAllocate<float>(3, 3);
     float **ut = reg_matrix2DAllocate<float>(3, 3);
     float **r  = reg_matrix2DAllocate<float>(3, 3);
 
     // Demean the input points
-    for (int j = 0; j < num_points; ++j)
-    {
-        points1[j][0] -= centroid_target[0];
-        points1[j][1] -= centroid_target[1];
-        points1[j][2] -= centroid_target[2];
+    for (int j = 0; j < num_points; ++j) {
+        points1[j][0] = static_cast<float>(static_cast<double>(points1[j][0]) - static_cast<double>(centroid_targetFloat[0]));
+        points1[j][1] = static_cast<float>(static_cast<double>(points1[j][1]) - static_cast<double>(centroid_targetFloat[1]));
+        points1[j][2] = static_cast<float>(static_cast<double>(points1[j][2]) - static_cast<double>(centroid_targetFloat[2]));
 
-        points2[j][0] -= centroid_result[0];
-        points2[j][1] -= centroid_result[1];
-        points2[j][2] -= centroid_result[2];
-
-        u[0][0] += points1[j][0] * points2[j][0];
-        u[0][1] += points1[j][0] * points2[j][1];
-        u[0][2] += points1[j][0] * points2[j][2];
-
-        u[1][0] += points1[j][1] * points2[j][0];
-        u[1][1] += points1[j][1] * points2[j][1];
-        u[1][2] += points1[j][1] * points2[j][2];
-
-        u[2][0] += points1[j][2] * points2[j][0];
-        u[2][1] += points1[j][2] * points2[j][1];
-        u[2][2] += points1[j][2] * points2[j][2];
-
+        points2[j][0] = static_cast<float>(static_cast<double>(points2[j][0]) - static_cast<double>(centroid_resultFloat[0]));
+        points2[j][1] = static_cast<float>(static_cast<double>(points2[j][1]) - static_cast<double>(centroid_resultFloat[1]));
+        points2[j][2] = static_cast<float>(static_cast<double>(points2[j][2]) - static_cast<double>(centroid_resultFloat[2]));
     }
+    //T** reg_matrix2DTranspose(T** mat, size_t arraySizeX, size_t arraySizeY);
+    //T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, bool transposeMat2);
+    p1t = reg_matrix2DTranspose<float>(points1, num_points, 3);
+    u = reg_matrix2DMultiply<float>(p1t,3, num_points, points2, num_points, 3, false);
 
     svd(u, 3, 3, w, v);
 
     // Calculate transpose
-    ut[0][0] = u[0][0];
-    ut[1][0] = u[0][1];
-    ut[2][0] = u[0][2];
-
-    ut[0][1] = u[1][0];
-    ut[1][1] = u[1][1];
-    ut[2][1] = u[1][2];
-
-    ut[0][2] = u[2][0];
-    ut[1][2] = u[2][1];
-    ut[2][2] = u[2][2];
+    ut = reg_matrix2DTranspose<float>(u, 3, 3);
 
     // Calculate the rotation matrix
     reg_matrix2DMultiply<float>(v, 3, 3, ut, 3, 3, r, false);
@@ -388,29 +384,26 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
     float det = reg_matrix2DDet<float>(r, 3, 3);
 
     // Take care of possible reflection
-    if (det < 0.0f)
-    {
+    if (det < 0.0) {
         v[0][2] = -v[0][2];
         v[1][2] = -v[1][2];
         v[2][2] = -v[2][2];
-
+        reg_matrix2DMultiply<float>(v, 3, 3, ut, 3, 3, r, false);
     }
-    // Calculate the rotation matrix
-    reg_matrix2DMultiply<float>(v, 3, 3, ut, 3, 3, r, false);
 
     // Calculate the translation
     float t[3];
-    t[0] = centroid_result[0] - (r[0][0] * centroid_target[0] +
-        r[0][1] * centroid_target[1] +
-        r[0][2] * centroid_target[2]);
+    t[0] = static_cast<float>(static_cast<double>(centroid_resultFloat[0]) - (static_cast<double>(r[0][0]) * static_cast<double>(centroid_targetFloat[0]) +
+                                                                              static_cast<double>(r[0][1]) * static_cast<double>(centroid_targetFloat[1]) +
+                                                                              static_cast<double>(r[0][2]) * static_cast<double>(centroid_targetFloat[2])));
 
-    t[1] = centroid_result[1] - (r[1][0] * centroid_target[0] +
-        r[1][1] * centroid_target[1] +
-        r[1][2] * centroid_target[2]);
+    t[1] = static_cast<float>(static_cast<double>(centroid_resultFloat[1]) - (static_cast<double>(r[1][0]) * static_cast<double>(centroid_targetFloat[0]) +
+                                                                              static_cast<double>(r[1][1]) * static_cast<double>(centroid_targetFloat[1]) +
+                                                                              static_cast<double>(r[1][2]) * static_cast<double>(centroid_targetFloat[2])));
 
-    t[2] = centroid_result[2] - (r[2][0] * centroid_target[0] +
-        r[2][1] * centroid_target[1] +
-        r[2][2] * centroid_target[2]);
+    t[2] = static_cast<float>(static_cast<double>(centroid_resultFloat[2]) - (static_cast<double>(r[2][0]) * static_cast<double>(centroid_targetFloat[0]) +
+                                                                              static_cast<double>(r[2][1]) * static_cast<double>(centroid_targetFloat[1]) +
+                                                                              static_cast<double>(r[2][2]) * static_cast<double>(centroid_targetFloat[2])));
 
     transformation->m[0][0] = r[0][0];
     transformation->m[0][1] = r[0][1];
@@ -433,11 +426,12 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
     transformation->m[3][3] = 1.0f;
 
     // Do the deletion here
-    reg_matrix2DDeallocate(2, u);
+    reg_matrix2DDeallocate(3, u);
     reg_matrix1DDeallocate(w);
-    reg_matrix2DDeallocate(2, v);
-    reg_matrix2DDeallocate(2, ut);
-    reg_matrix2DDeallocate(2, r);
+    reg_matrix2DDeallocate(3, v);
+    reg_matrix2DDeallocate(3, ut);
+    reg_matrix2DDeallocate(3, r);
+    reg_matrix2DDeallocate(3, p1t);
 }
 /* *************************************************************** */
 void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44 * transformation)

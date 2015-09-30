@@ -143,7 +143,7 @@ mark_as_advanced(BUILDNAME)
 	target_link_libraries(${EXEC} _reg_aladin)
 	add_test(${EXEC} ${EXEC} ${DFOLDER}/inputMatrix1.txt ${DFOLDER}/inputMatrix2.txt ${DFOLDER}/expectedMulMatrix.txt ${DFOLDER}/expectedAddMatrix.txt ${DFOLDER}/expectedSubMatrix.txt ${DFOLDER}/expectedExpMatrix.txt ${DFOLDER}/expectedLogMatrix.txt ${DFOLDER}/expectedInvMatrix.txt)
 #-----------------------------------------------------------------------------
-				set(EXEC reg_test_svd)
+        set(EXEC reg_test_svd)
 	add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_aladin)
 	add_test(${EXEC} ${EXEC} ${DFOLDER}/inputSVDMatrix.txt ${DFOLDER}/expectedUMatrix.txt ${DFOLDER}/expectedSMatrix.txt ${DFOLDER}/expectedVMatrix.txt)

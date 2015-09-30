@@ -117,7 +117,7 @@ void svd(T **in, size_t size_m, size_t size_n, T * w, T **v) {
    private(sn2, sn, sm)
 #endif
     for (sn = 0; sn < size__n; sn++) {
-        w[sn] = svd.singularValues()(sn);
+        w[sn] = static_cast<T>(svd.singularValues()(sn));
         for (sn2 = 0; sn2 < size__n; sn2++) {
             v[sn2][sn] = static_cast<T>(svd.matrixV()(sn2, sn));
         }
@@ -459,21 +459,28 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
             reg_print_msg_error(text);
             reg_exit(1);
         }
+
         size_t nbElement = mat1Y;
-        T** res;
-        res = (T**)malloc(mat1X*sizeof(T*));
-        for (size_t i = 0; i < mat1X; i++) {
-            res[i] = (T*)malloc(mat2Y*sizeof(T));
-        }
+        double** res = reg_matrix2DAllocate<double>(mat1X,mat2Y);
+
         for (size_t i = 0; i < mat1X; i++) {
             for (size_t j = 0; j < mat2Y; j++) {
                 res[i][j] = 0;
                 for (size_t k = 0; k < nbElement; k++) {
-                    res[i][j] += static_cast<T>(static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[k][j]));
+                    res[i][j] += static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[k][j]);
                 }
             }
         }
-        return res;
+
+        //Output
+        T** resT = reg_matrix2DAllocate<T>(mat1X,mat2Y);
+        for (size_t i = 0; i < mat1X; i++) {
+            for (size_t j = 0; j < mat2Y; j++) {
+                resT[i][j]=static_cast<T>(res[i][j]);
+            }
+        }
+        reg_matrix2DDeallocate(mat1X, res);
+        return resT;
     }
     else {
         // First check that the dimension are appropriate
@@ -485,27 +492,33 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
             reg_exit(1);
         }
         size_t nbElement = mat1Y;
-        T** res;
-        res = (T**)malloc(mat1X*sizeof(T*));
-        for (size_t i = 0; i < mat1X; i++) {
-            res[i] = (T*)malloc(mat2X*sizeof(T));
-        }
+        double** res = reg_matrix2DAllocate<double>(mat1X,mat2X);
+
         for (size_t i = 0; i < mat1X; i++) {
             for (size_t j = 0; j < mat2X; j++) {
                 res[i][j] = 0;
                 for (size_t k = 0; k < nbElement; k++) {
-                    res[i][j] += static_cast<T>(static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[j][k]));
+                    res[i][j] += static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[j][k]);
                 }
             }
         }
-        return res;
+
+        //Output
+        T** resT = reg_matrix2DAllocate<T>(mat1X,mat2X);
+        for (size_t i = 0; i < mat1X; i++) {
+            for (size_t j = 0; j < mat2X; j++) {
+                resT[i][j]=static_cast<T>(res[i][j]);
+            }
+        }
+        reg_matrix2DDeallocate(mat1X, res);
+        return resT;
     }
 }
 template float** reg_matrix2DMultiply<float>(float** mat1, size_t mat1X, size_t mat1Y, float** mat2, size_t mat2X, size_t mat2Y, bool transposeMat2);
 template double** reg_matrix2DMultiply<double>(double** mat1, size_t mat1X, size_t mat1Y, double** mat2, size_t mat2X, size_t mat2Y, bool transposeMat2);
 /* *************************************************************** */
 template<class T>
-void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, T** res, bool transposeMat2) {
+void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, T** resT, bool transposeMat2) {
     if (transposeMat2 == false) {
         // First check that the dimension are appropriate
         if (mat1Y != mat2X) {
@@ -516,15 +529,23 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
             reg_exit(1);
         }
         size_t nbElement = mat1Y;
+        double** res = reg_matrix2DAllocate<double>(mat1X,mat2Y);
 
         for (size_t i = 0; i < mat1X; i++) {
             for (size_t j = 0; j < mat2Y; j++) {
                 res[i][j] = 0;
                 for (size_t k = 0; k < nbElement; k++) {
-                    res[i][j] += static_cast<T>(static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[k][j]));
+                    res[i][j] += static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[k][j]);
                 }
             }
         }
+        //Output
+        for (size_t i = 0; i < mat1X; i++) {
+            for (size_t j = 0; j < mat2Y; j++) {
+                resT[i][j]=static_cast<T>(res[i][j]);
+            }
+        }
+        reg_matrix2DDeallocate(mat1X, res);
     }
     else {
         // First check that the dimension are appropriate
@@ -536,6 +557,7 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
             reg_exit(1);
         }
         size_t nbElement = mat1Y;
+        double** res = reg_matrix2DAllocate<double>(mat1X,mat2X);
 
         for (size_t i = 0; i < mat1X; i++) {
             for (size_t j = 0; j < mat2X; j++) {
@@ -545,36 +567,56 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
                 }
             }
         }
+        //Output
+        for (size_t i = 0; i < mat1X; i++) {
+            for (size_t j = 0; j < mat2X; j++) {
+                resT[i][j]=static_cast<T>(res[i][j]);
+            }
+        }
+        reg_matrix2DDeallocate(mat1X, res);
     }
 }
-template void reg_matrix2DMultiply<float>(float** mat1, size_t mat1X, size_t mat1Y, float** mat2, size_t mat2X, size_t mat2Y, float** res, bool transposeMat2);
-template void reg_matrix2DMultiply<double>(double** mat1, size_t mat1X, size_t mat1Y, double** mat2, size_t mat2X, size_t mat2Y, double** res, bool transposeMat2);
+template void reg_matrix2DMultiply<float>(float** mat1, size_t mat1X, size_t mat1Y, float** mat2, size_t mat2X, size_t mat2Y, float** resT, bool transposeMat2);
+template void reg_matrix2DMultiply<double>(double** mat1, size_t mat1X, size_t mat1Y, double** mat2, size_t mat2X, size_t mat2Y, double** resT, bool transposeMat2);
 /* *************************************************************** */
 // Multiply a matrix with a vector - we assume correct dimension
 template<class T>
 T* reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect) {
 
-    T* res = (T*)malloc(m*sizeof(T));
+    T* resT = reg_matrix1DAllocate<T>(m);
+    double* res = reg_matrix1DAllocate<double>(m);
 
     for (size_t i = 0; i < m; i++) {
         res[i] = 0;
         for (size_t k = 0; k < n; k++) {
-            res[i] += static_cast<T>(static_cast<double>(mat[i][k]) * static_cast<double>(vect[k]));
+            res[i] += static_cast<double>(mat[i][k]) * static_cast<double>(vect[k]);
         }
     }
-    return res;
+    for (size_t i = 0; i < m; i++) {
+        resT[i]=static_cast<T>(res[i]);
+    }
+    reg_matrix1DDeallocate(res);
+    return resT;
 }
 template float* reg_matrix2DVectorMultiply<float>(float** mat, size_t m, size_t n, float* vect);
 template double* reg_matrix2DVectorMultiply<double>(double** mat, size_t m, size_t n, double* vect);
 /* *************************************************************** */
 template<class T>
 void reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect, T* res) {
+
+    double* res_double = reg_matrix1DAllocate<double>(m);
+
     for (size_t i = 0; i < m; i++) {
-        res[i] = 0;
+        res_double[i] = 0;
         for (size_t k = 0; k < n; k++) {
-            res[i] += static_cast<T>(static_cast<double>(mat[i][k]) * static_cast<double>(vect[k]));
+            res_double[i] += static_cast<double>(mat[i][k]) * static_cast<double>(vect[k]);
         }
     }
+
+    for (size_t i = 0; i < m; i++) {
+        res[i]=static_cast<T>(res_double[i]);
+    }
+    reg_matrix1DDeallocate(res_double);
 }
 template void reg_matrix2DVectorMultiply<float>(float** mat, size_t m, size_t n, float* vect, float* res);
 template void reg_matrix2DVectorMultiply<double>(double** mat, size_t m, size_t n, double* vect, double* res);
@@ -858,9 +900,9 @@ mat33 reg_mat33_mul(mat33 const* A, mat33 const* B)
     {
         for (int j = 0; j < 3; j++)
         {
-            R.m[i][j] = A->m[i][0] * B->m[0][j] +
-                A->m[i][1] * B->m[1][j] +
-                A->m[i][2] * B->m[2][j];
+            R.m[i][j] = static_cast<float>(static_cast<double>(A->m[i][0]) * static_cast<double>(B->m[0][j]) +
+                                           static_cast<double>(A->m[i][1]) * static_cast<double>(B->m[1][j]) +
+                                           static_cast<double>(A->m[i][2]) * static_cast<double>(B->m[2][j]));
         }
     }
     return R;
@@ -879,7 +921,7 @@ mat33 reg_mat33_add(mat33 const* A, mat33 const* B)
     {
         for (int j = 0; j < 3; j++)
         {
-            R.m[i][j] = A->m[i][j] + B->m[i][j];
+            R.m[i][j] = static_cast<float>(static_cast<double>(A->m[i][j]) + static_cast<double>(B->m[i][j]));
         }
     }
     return R;
@@ -913,7 +955,7 @@ mat44 reg_mat44_add(mat44 const* A, mat44 const* B)
     {
         for (int j = 0; j < 4; j++)
         {
-            R.m[i][j] = A->m[i][j] + B->m[i][j];
+            R.m[i][j] = static_cast<float>(static_cast<double>(A->m[i][j]) + static_cast<double>(B->m[i][j]));
         }
     }
     return R;
@@ -933,7 +975,7 @@ mat33 reg_mat33_minus(mat33 const* A, mat33 const* B)
     {
         for (int j = 0; j < 3; j++)
         {
-            R.m[i][j] = A->m[i][j] - B->m[i][j];
+            R.m[i][j] = static_cast<float>(static_cast<double>(A->m[i][j]) - static_cast<double>(B->m[i][j]));
         }
     }
     return R;
@@ -1066,7 +1108,7 @@ mat44 reg_mat44_minus(mat44 const* A, mat44 const* B)
     {
         for (int j = 0; j < 4; j++)
         {
-            R.m[i][j] = A->m[i][j] - B->m[i][j];
+            R.m[i][j] = static_cast<float>(static_cast<double>(A->m[i][j]) - static_cast<double>(B->m[i][j]));
         }
     }
     return R;
@@ -1126,7 +1168,6 @@ void reg_mat44_mul(mat44 const* mat,
         static_cast<double>(mat->m[2][1]) * static_cast<double>(in[1]) +
         static_cast<double>(mat->m[2][2]) * static_cast<double>(in[2]) +
         static_cast<double>(mat->m[2][3]));
-    return;
 }
 /* *************************************************************** */
 /* *************************************************************** */

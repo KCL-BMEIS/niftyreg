@@ -416,7 +416,8 @@ void ResampleImage3D(nifti_image *floatingImage,
 
       FloatingTYPE *zPointer, *xyzPointer;
       double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative[3];
-      double xTempNewValue, yTempNewValue, intensity, world[3], position[3];
+      double xTempNewValue, yTempNewValue, intensity;
+      float world[3], position[3];
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
@@ -432,9 +433,9 @@ void ResampleImage3D(nifti_image *floatingImage,
 
          if((maskPtr[index])>-1)
          {
-            world[0]=static_cast<double>(deformationFieldPtrX[index]);
-            world[1]=static_cast<double>(deformationFieldPtrY[index]);
-            world[2]=static_cast<double>(deformationFieldPtrZ[index]);
+            world[0]=static_cast<float>(deformationFieldPtrX[index]);
+            world[1]=static_cast<float>(deformationFieldPtrY[index]);
+            world[2]=static_cast<float>(deformationFieldPtrZ[index]);
 
             // real -> voxel; floating space
             reg_mat44_mul(floatingIJKMatrix, world, position);
@@ -443,9 +444,9 @@ void ResampleImage3D(nifti_image *floatingImage,
             previous[1] = static_cast<int>(reg_floor(position[1]));
             previous[2] = static_cast<int>(reg_floor(position[2]));
 
-            relative[0]=position[0]-static_cast<double>(previous[0]);
-            relative[1]=position[1]-static_cast<double>(previous[1]);
-            relative[2]=position[2]-static_cast<double>(previous[2]);
+            relative[0]=static_cast<double>(position[0])-static_cast<double>(previous[0]);
+            relative[1]=static_cast<double>(position[1])-static_cast<double>(previous[1]);
+            relative[2]=static_cast<double>(position[2])-static_cast<double>(previous[2]);
 
             (*kernelCompFctPtr)(relative[0], xBasis);
             (*kernelCompFctPtr)(relative[1], yBasis);
@@ -476,7 +477,7 @@ void ResampleImage3D(nifti_image *floatingImage,
                      else
                      {
                         // paddingValue
-                        xTempNewValue +=  paddingValue * xBasis[a];
+                        xTempNewValue +=  static_cast<double>(paddingValue) * xBasis[a];
                      }
                      xyzPointer++;
                   }
@@ -593,7 +594,7 @@ void ResampleImage2D(nifti_image *floatingImage,
       FloatingTYPE *xyzPointer;
       double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], relative[2];
       double xTempNewValue, intensity;
-      double world[3], position[3];
+      float world[3], position[3];
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
@@ -609,8 +610,8 @@ void ResampleImage2D(nifti_image *floatingImage,
 
          if((maskPtr[index])>-1)
          {
-            world[0]=static_cast<double>(deformationFieldPtrX[index]);
-            world[1]=static_cast<double>(deformationFieldPtrY[index]);
+            world[0]=static_cast<float>(deformationFieldPtrX[index]);
+            world[1]=static_cast<float>(deformationFieldPtrY[index]);
             world[2]=0;
 
             // real -> voxel; floating space
@@ -619,8 +620,8 @@ void ResampleImage2D(nifti_image *floatingImage,
             previous[0] = static_cast<int>(reg_floor(position[0]));
             previous[1] = static_cast<int>(reg_floor(position[1]));
 
-            relative[0]=position[0]-static_cast<double>(previous[0]);
-            relative[1]=position[1]-static_cast<double>(previous[1]);
+            relative[0]=static_cast<double>(position[0])-static_cast<double>(previous[0]);
+            relative[1]=static_cast<double>(position[1])-static_cast<double>(previous[1]);
 
             (*kernelCompFctPtr)(relative[0], xBasis);
             (*kernelCompFctPtr)(relative[1], yBasis);
@@ -643,7 +644,7 @@ void ResampleImage2D(nifti_image *floatingImage,
                   else
                   {
                      // paddingValue
-                     xTempNewValue +=  paddingValue * xBasis[a];
+                     xTempNewValue +=  static_cast<double>(paddingValue) * xBasis[a];
                   }
                   xyzPointer++;
                }

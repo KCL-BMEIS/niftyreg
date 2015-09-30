@@ -12,7 +12,7 @@
 #include "CLContent.h"
 #endif
 
-#define EPS 0.001
+#define EPS 0.000001
 
 void test(Content *con, const unsigned int interp, int platformCode) {
 
