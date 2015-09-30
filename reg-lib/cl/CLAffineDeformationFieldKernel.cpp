@@ -10,20 +10,40 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content *conIn, s
 
     //path to kernel files
     const char* niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");
+    const char* niftyreg_src_dir = getenv("NIFTYREG_SRC_DIR");
+    
     std::string clInstallPath;
+    std::string clSrcPath;
+    //src dir
+    if (niftyreg_src_dir != NULL){
+        char opencl_kernel_path[255];
+        sprintf(opencl_kernel_path, "%s/reg-lib/cl/", niftyreg_src_dir);
+        clSrcPath = opencl_kernel_path;
+    }
+    else clSrcPath = CL_KERNELS_SRC_PATH;
+    //install dir
     if(niftyreg_install_dir!=NULL){
         char opencl_kernel_path[255];
         sprintf(opencl_kernel_path, "%s/include/cl/", niftyreg_install_dir);
         clInstallPath = opencl_kernel_path;
     }
     else clInstallPath = CL_KERNELS_PATH;
+
     std::string clKernel("affineDeformationKernel.cl");
+
+    //Let's check if we did an install
+    std::string clKernelPath = (clInstallPath + clKernel);
+    std::ifstream kernelFile(clKernelPath.c_str(), std::ios::in);
+    if (kernelFile.is_open() == 0) {
+        //"affineDeformationKernel.cl propbably not installed - let's use the src location"
+         clKernelPath = (clSrcPath + clKernel);
+    }
 
     //get opencl context params
     sContext = &CLContextSingletton::Instance();
     clContext = sContext->getContext();
     commandQueue = sContext->getCommandQueue();
-    program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
+    program = sContext->CreateProgram(clKernelPath.c_str());
 
     //get cpu ptrs
     this->deformationFieldImage = con->Content::getCurrentDeformationField();
@@ -58,16 +78,11 @@ void CLAffineDeformationFieldKernel::calculate(bool compose) {
              (this->deformationFieldImage->ny / yThreads) : (this->deformationFieldImage->ny / yThreads) + 1;
     const unsigned int zBlocks = ((this->deformationFieldImage->nz % zThreads) == 0) ?
              (this->deformationFieldImage->nz / zThreads) : (this->deformationFieldImage->nz / zThreads) + 1;
-    const cl_uint dims = this->deformationFieldImage->nz>1?3:2;
-    size_t globalWorkSize[dims], localWorkSize[dims];
-    globalWorkSize[0]=xBlocks * xThreads;
-    globalWorkSize[1]=yBlocks * yThreads;
-    localWorkSize[0]=xThreads;
-    localWorkSize[1]=yThreads;
-    if(dims==3){
-       globalWorkSize[2]=zBlocks * zThreads;
-       localWorkSize[2]=zThreads;
-    }
+    //const cl_uint dims = this->deformationFieldImage->nz>1?3:2;
+    //Back to the old version... at least I could compile
+    const cl_uint dims = 3;
+    const size_t globalWorkSize[dims] = { xBlocks * xThreads, yBlocks * yThreads, zBlocks * zThreads };
+    const size_t localWorkSize[dims] = { xThreads, yThreads, zThreads };
 
     mat44 transformationMatrix = (compose == true) ?
              *this->affineTransformation : reg_mat44_mul(this->affineTransformation, ReferenceMatrix);

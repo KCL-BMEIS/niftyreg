@@ -10,7 +10,18 @@ CLResampleImageKernel::CLResampleImageKernel(Content *conIn, std::string name) :
 
     //path to kernel file
     const char* niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");
-    std::string clInstallPath;
+	const char* niftyreg_src_dir = getenv("NIFTYREG_SRC_DIR");
+	
+	std::string clInstallPath;
+    std::string clSrcPath;
+    //src dir
+    if (niftyreg_src_dir != NULL){
+        char opencl_kernel_path[255];
+        sprintf(opencl_kernel_path, "%s/reg-lib/cl/", niftyreg_src_dir);
+        clSrcPath = opencl_kernel_path;
+    }
+    else clSrcPath = CL_KERNELS_SRC_PATH;
+    //install dir
     if(niftyreg_install_dir!=NULL){
         char opencl_kernel_path[255];
         sprintf(opencl_kernel_path, "%s/include/cl/", niftyreg_install_dir);
@@ -18,12 +29,19 @@ CLResampleImageKernel::CLResampleImageKernel(Content *conIn, std::string name) :
     }
     else clInstallPath = CL_KERNELS_PATH;
     std::string clKernel("resampleKernel.cl");
+	//Let's check if we did an install
+    std::string clKernelPath = (clInstallPath + clKernel);
+    std::ifstream kernelFile(clKernelPath.c_str(), std::ios::in);
+    if (kernelFile.is_open() == 0) {
+        //"clKernel.cl propbably not installed - let's use the src location"
+        clKernelPath = (clSrcPath + clKernel);
+    }
 
     //get opencl context params
     sContext = &CLContextSingletton::Instance();
     clContext = sContext->getContext();
     commandQueue = sContext->getCommandQueue();
-    program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
+    program = sContext->CreateProgram(clKernelPath.c_str());
 
     //get cpu ptrs
     floatingImage = con->Content::getCurrentFloating();

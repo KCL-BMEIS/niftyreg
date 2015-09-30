@@ -1,5 +1,4 @@
 #include "CPUKernelFactory.h"
-//#include "CPUKernels.h"
 #include "CPUAffineDeformationFieldKernel.h"
 #include "CPUConvolutionKernel.h"
 #include "CPUBlockMatchingKernel.h"

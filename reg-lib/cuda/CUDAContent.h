@@ -67,6 +67,7 @@ public:
 	void setCurrentWarped(nifti_image *warpedImageIn);
 	void setCurrentDeformationField(nifti_image *CurrentDeformationFieldIn);
 	void setCurrentReferenceMask(int *maskIn, size_t size);
+    void setBlockMatchingParams(_reg_blockMatchingParam* bmp);
 
 private:
 	void initVars();

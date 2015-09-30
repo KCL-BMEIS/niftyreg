@@ -99,9 +99,8 @@ public:
 	
     virtual void setCurrentReferenceMask(int *, size_t) {}
 	void setCaptureRange(const int captureRangeIn);
-
-    virtual void setBlockMatchingParams(_reg_blockMatchingParam* bmp)
-    {
+    //
+    virtual void setBlockMatchingParams(_reg_blockMatchingParam* bmp) {
         blockMatchingParams = bmp;
     }
 

@@ -115,6 +115,7 @@ int main(int argc, char **argv)
     //2-D
     if (n1 == 2) {
 
+        blockMatchingParams->dim = n1;
         blockMatchingParams->blockNumber[2] = 1;
         blockMatchingParams->referencePosition = new float[num_points * n1];
         blockMatchingParams->warpedPosition = new float[num_points * n1];
@@ -130,6 +131,7 @@ int main(int argc, char **argv)
     }
     else if (n1 == 3) {
 
+        blockMatchingParams->dim = n1;
         blockMatchingParams->blockNumber[2] = 2;
         blockMatchingParams->referencePosition = new float[num_points * n1];
         blockMatchingParams->warpedPosition = new float[num_points * n1];

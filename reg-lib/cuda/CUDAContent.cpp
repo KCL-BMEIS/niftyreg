@@ -145,12 +145,12 @@ void CudaContent::allocateCuPtrs()
 	}
 
 	if (this->blockMatchingParams != NULL) {
-		cudaCommon_allocateArrayToDevice<float>(&targetPosition_d, blockMatchingParams->activeBlockNumber * 3);
-		cudaCommon_allocateArrayToDevice<float>(&resultPosition_d, blockMatchingParams->activeBlockNumber * 3);
+        cudaCommon_allocateArrayToDevice<float>(&targetPosition_d, blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim);
+        cudaCommon_allocateArrayToDevice<float>(&resultPosition_d, blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim);
 		cudaCommon_allocateArrayToDevice<int>(&activeBlock_d, numBlocks);
 
 		if (cusvd) {
-			unsigned int m = blockMatchingParams->activeBlockNumber * 3;
+            unsigned int m = blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim;
 			unsigned int n = 12;
 
 			cudaCommon_allocateArrayToDevice<float>(&AR_d, m * n);
@@ -158,7 +158,7 @@ void CudaContent::allocateCuPtrs()
 			cudaCommon_allocateArrayToDevice<float>(&VT_d, n * n);
 			cudaCommon_allocateArrayToDevice<float>(&Sigma_d, std::min(m, n));
 			cudaCommon_allocateArrayToDevice<float>(&lengths_d, blockMatchingParams->activeBlockNumber);
-			cudaCommon_allocateArrayToDevice<float>(&newResultPos_d, blockMatchingParams->activeBlockNumber * 3);
+            cudaCommon_allocateArrayToDevice<float>(&newResultPos_d, blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim);
 		}
 	}
 }
@@ -210,8 +210,8 @@ nifti_image *CudaContent::getCurrentDeformationField()
 _reg_blockMatchingParam* CudaContent::getBlockMatchingParams()
 {
 
-	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->warpedPosition, &resultPosition_d, blockMatchingParams->definedActiveBlock * 3);
-	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->referencePosition, &targetPosition_d, blockMatchingParams->definedActiveBlock * 3);
+    cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->warpedPosition, &resultPosition_d, this->blockMatchingParams->definedActiveBlock * this->blockMatchingParams->dim);
+    cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->referencePosition, &targetPosition_d, blockMatchingParams->definedActiveBlock * this->blockMatchingParams->dim);
 	return blockMatchingParams;
 }
 /* *************************************************************** */
@@ -246,6 +246,11 @@ void CudaContent::setCurrentWarped(nifti_image *currentWarped)
 
 	cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, CurrentWarped->nvox);
 	cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, this->CurrentWarped);
+}
+/* *************************************************************** */
+void CudaContent::setBlockMatchingParams(_reg_blockMatchingParam* bmp) {
+
+    Content::setBlockMatchingParams(bmp);
 }
 /* *************************************************************** */
 template<class DataType>

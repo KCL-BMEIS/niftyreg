@@ -173,7 +173,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 
     Eigen::JacobiSVD<Eigen::MatrixXd> svd(m, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
-    size_t i, j;
+    int i, j;
     min_dim = std::min(size__m, size__n);
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
@@ -461,26 +461,20 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
         }
 
         size_t nbElement = mat1Y;
-        double** res = reg_matrix2DAllocate<double>(mat1X,mat2Y);
+        double resTemp = 0;
+        T** res = reg_matrix2DAllocate<T>(mat1X,mat2Y);
 
         for (size_t i = 0; i < mat1X; i++) {
             for (size_t j = 0; j < mat2Y; j++) {
-                res[i][j] = 0;
+                resTemp = 0;
                 for (size_t k = 0; k < nbElement; k++) {
-                    res[i][j] += static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[k][j]);
+                    resTemp += static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[k][j]);
                 }
+                res[i][j] = static_cast<T>(resTemp);
             }
         }
-
         //Output
-        T** resT = reg_matrix2DAllocate<T>(mat1X,mat2Y);
-        for (size_t i = 0; i < mat1X; i++) {
-            for (size_t j = 0; j < mat2Y; j++) {
-                resT[i][j]=static_cast<T>(res[i][j]);
-            }
-        }
-        reg_matrix2DDeallocate(mat1X, res);
-        return resT;
+       return res;
     }
     else {
         // First check that the dimension are appropriate
@@ -492,26 +486,20 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
             reg_exit(1);
         }
         size_t nbElement = mat1Y;
-        double** res = reg_matrix2DAllocate<double>(mat1X,mat2X);
+        double resTemp = 0;
+        T** res = reg_matrix2DAllocate<T>(mat1X,mat2X);
 
         for (size_t i = 0; i < mat1X; i++) {
             for (size_t j = 0; j < mat2X; j++) {
-                res[i][j] = 0;
+                resTemp = 0;
                 for (size_t k = 0; k < nbElement; k++) {
-                    res[i][j] += static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[j][k]);
+                    resTemp += static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[j][k]);
                 }
+                res[i][j] = static_cast<T>(resTemp);
             }
         }
-
         //Output
-        T** resT = reg_matrix2DAllocate<T>(mat1X,mat2X);
-        for (size_t i = 0; i < mat1X; i++) {
-            for (size_t j = 0; j < mat2X; j++) {
-                resT[i][j]=static_cast<T>(res[i][j]);
-            }
-        }
-        reg_matrix2DDeallocate(mat1X, res);
-        return resT;
+        return res;
     }
 }
 template float** reg_matrix2DMultiply<float>(float** mat1, size_t mat1X, size_t mat1Y, float** mat2, size_t mat2X, size_t mat2Y, bool transposeMat2);
@@ -529,23 +517,17 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
             reg_exit(1);
         }
         size_t nbElement = mat1Y;
-        double** res = reg_matrix2DAllocate<double>(mat1X,mat2Y);
+        double resTemp;
 
         for (size_t i = 0; i < mat1X; i++) {
             for (size_t j = 0; j < mat2Y; j++) {
-                res[i][j] = 0;
+                resTemp = 0;
                 for (size_t k = 0; k < nbElement; k++) {
-                    res[i][j] += static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[k][j]);
+                    resTemp += static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[k][j]);
                 }
+                resT[i][j] = static_cast<T>(resTemp);
             }
         }
-        //Output
-        for (size_t i = 0; i < mat1X; i++) {
-            for (size_t j = 0; j < mat2Y; j++) {
-                resT[i][j]=static_cast<T>(res[i][j]);
-            }
-        }
-        reg_matrix2DDeallocate(mat1X, res);
     }
     else {
         // First check that the dimension are appropriate
@@ -557,23 +539,17 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
             reg_exit(1);
         }
         size_t nbElement = mat1Y;
-        double** res = reg_matrix2DAllocate<double>(mat1X,mat2X);
+        double resTemp;
 
         for (size_t i = 0; i < mat1X; i++) {
             for (size_t j = 0; j < mat2X; j++) {
-                res[i][j] = 0;
+                resTemp = 0;
                 for (size_t k = 0; k < nbElement; k++) {
-                    res[i][j] += static_cast<T>(static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[j][k]));
+                    resTemp += static_cast<double>(mat1[i][k]) * static_cast<double>(mat2[j][k]);
                 }
+                resT[i][j] = static_cast<T>(resTemp);
             }
         }
-        //Output
-        for (size_t i = 0; i < mat1X; i++) {
-            for (size_t j = 0; j < mat2X; j++) {
-                resT[i][j]=static_cast<T>(res[i][j]);
-            }
-        }
-        reg_matrix2DDeallocate(mat1X, res);
     }
 }
 template void reg_matrix2DMultiply<float>(float** mat1, size_t mat1X, size_t mat1Y, float** mat2, size_t mat2X, size_t mat2Y, float** resT, bool transposeMat2);
@@ -583,20 +559,17 @@ template void reg_matrix2DMultiply<double>(double** mat1, size_t mat1X, size_t m
 template<class T>
 T* reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect) {
 
-    T* resT = reg_matrix1DAllocate<T>(m);
-    double* res = reg_matrix1DAllocate<double>(m);
+    T* res = reg_matrix1DAllocate<T>(m);
+    double resTemp;
 
     for (size_t i = 0; i < m; i++) {
-        res[i] = 0;
+        resTemp = 0;
         for (size_t k = 0; k < n; k++) {
-            res[i] += static_cast<double>(mat[i][k]) * static_cast<double>(vect[k]);
+            resTemp += static_cast<double>(mat[i][k]) * static_cast<double>(vect[k]);
         }
+        res[i] = static_cast<T>(resTemp);
     }
-    for (size_t i = 0; i < m; i++) {
-        resT[i]=static_cast<T>(res[i]);
-    }
-    reg_matrix1DDeallocate(res);
-    return resT;
+    return res;
 }
 template float* reg_matrix2DVectorMultiply<float>(float** mat, size_t m, size_t n, float* vect);
 template double* reg_matrix2DVectorMultiply<double>(double** mat, size_t m, size_t n, double* vect);
@@ -604,19 +577,15 @@ template double* reg_matrix2DVectorMultiply<double>(double** mat, size_t m, size
 template<class T>
 void reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect, T* res) {
 
-    double* res_double = reg_matrix1DAllocate<double>(m);
+    double resTemp = 0;
 
     for (size_t i = 0; i < m; i++) {
-        res_double[i] = 0;
+        resTemp = 0;
         for (size_t k = 0; k < n; k++) {
-            res_double[i] += static_cast<double>(mat[i][k]) * static_cast<double>(vect[k]);
+            resTemp += static_cast<double>(mat[i][k]) * static_cast<double>(vect[k]);
         }
+        res[i] = static_cast<T>(resTemp);
     }
-
-    for (size_t i = 0; i < m; i++) {
-        res[i]=static_cast<T>(res_double[i]);
-    }
-    reg_matrix1DDeallocate(res_double);
 }
 template void reg_matrix2DVectorMultiply<float>(float** mat, size_t m, size_t n, float* vect, float* res);
 template void reg_matrix2DVectorMultiply<double>(double** mat, size_t m, size_t n, double* vect, double* res);

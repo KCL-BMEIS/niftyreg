@@ -65,6 +65,7 @@ struct _reg_blockMatchingParam
    //Number of block we keep for LTS
    int percent_to_keep;
 
+   unsigned int dim;
    float *referencePosition;
    float *warpedPosition;
    //Number of block we keep in total or Number of block we keep in total - unuseable blocks
@@ -79,6 +80,7 @@ struct _reg_blockMatchingParam
 
    _reg_blockMatchingParam()
       : percent_to_keep(0),
+        dim(0),
         referencePosition(0),
         warpedPosition(0),
         activeBlockNumber(0),

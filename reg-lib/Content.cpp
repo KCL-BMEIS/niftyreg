@@ -5,11 +5,14 @@ using namespace std;
 /* *************************************************************** */
 Content::Content()
 {
-	int dim[8] = { 2, 20, 20, 1, 1, 1, 1, 1 };
-	this->CurrentFloating = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
-	this->CurrentReference = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
-	this->CurrentReferenceMask = NULL;
+	//int dim[8] = { 2, 20, 20, 1, 1, 1, 1, 1 };
+	//this->CurrentFloating = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
+	//this->CurrentReference = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
+	//this->CurrentReferenceMask = NULL;
     //
+    this->CurrentReference = NULL;
+    this->CurrentReferenceMask = NULL;
+    this->CurrentFloating = NULL;
     this->blockMatchingParams = NULL;
     this->bytes = sizeof(float);//Default
 	//

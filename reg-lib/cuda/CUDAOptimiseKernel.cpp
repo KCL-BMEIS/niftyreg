@@ -25,38 +25,38 @@ CudaOptimiseKernel::CudaOptimiseKernel(Content *conIn, std::string name) :
 /* *************************************************************** */
 void CudaOptimiseKernel::calculate(bool affine, bool ils, bool cusvd)
 {
-    //for now. Soon we will have a GPU version of it
-#ifndef CUDA7
+//for now. Soon we will have a GPU version of it
+//#ifndef CUDA7
     this->blockMatchingParams = con->getBlockMatchingParams();
     optimize(this->blockMatchingParams, transformationMatrix, affine);
-#else
-    const unsigned long num_to_keep = (unsigned long) (blockMatchingParams->definedActiveBlock *
-                                                                        (blockMatchingParams->percent_to_keep / 100.0f));
-    if (affine) {
-        if (cusvd)
-            optimize_affine3D_cuda(transformationMatrix,
-                                          transformationMatrix_d,
-                                          AR_d,
-                                          U_d,
-                                          Sigma_d,
-                                          VT_d,
-                                          lengths_d,
-                                          targetPos_d,
-                                          resultPos_d,
-                                          newResultPos_d,
-                                          blockMatchingParams->definedActiveBlock * 3,
-                                          12,
-                                          num_to_keep,
-                                          ils);
-        else {
-            this->blockMatchingParams = con->getBlockMatchingParams();
-            optimize(this->blockMatchingParams, transformationMatrix, affine);
-        }
-    }
-    else {
-        this->blockMatchingParams = con->getBlockMatchingParams();
-        optimize(this->blockMatchingParams, transformationMatrix, affine);
-    }
-#endif
+//#else
+//    const unsigned long num_to_keep = (unsigned long) (blockMatchingParams->definedActiveBlock *
+//                                                                        (blockMatchingParams->percent_to_keep / 100.0f));
+//    if (affine) {
+//        if (cusvd)
+//            optimize_affine3D_cuda(transformationMatrix,
+//                                          transformationMatrix_d,
+//                                          AR_d,
+//                                          U_d,
+//                                          Sigma_d,
+//                                          VT_d,
+//                                          lengths_d,
+//                                          targetPos_d,
+//                                          resultPos_d,
+//                                          newResultPos_d,
+//                                          blockMatchingParams->definedActiveBlock * 3,
+//                                          12,
+//                                          num_to_keep,
+//                                          ils);
+//        else {
+//            this->blockMatchingParams = con->getBlockMatchingParams();
+//            optimize(this->blockMatchingParams, transformationMatrix, affine);
+//        }
+//    }
+//    else {
+//        this->blockMatchingParams = con->getBlockMatchingParams();
+//        optimize(this->blockMatchingParams, transformationMatrix, affine);
+//    }
+//#endif
 }
 /* *************************************************************** */
