@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <CL/cl_ext.h>
 
 #include "../reg-lib/cl/CLContextSingletton.h"
 #include "../reg-lib/cl/InfoDevice.h"
