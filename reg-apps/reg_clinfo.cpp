@@ -1,7 +1,10 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
+#ifndef __APPLE__
 #include <CL/cl_ext.h>
+#endif
 
 #include "../reg-lib/cl/CLContextSingletton.h"
 #include "../reg-lib/cl/InfoDevice.h"
