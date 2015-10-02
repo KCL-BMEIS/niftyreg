@@ -20,6 +20,7 @@ void test(Content *con, const unsigned int interp, int platformCode) {
 
     Kernel *resampleImageKernel = platform->createKernel(ResampleImageKernel::getName(), con);
     resampleImageKernel->castTo<ResampleImageKernel>()->calculate(interp, std::numeric_limits<float>::quiet_NaN());
+    //resampleImageKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
 
     delete resampleImageKernel;
     delete platform;
@@ -61,6 +62,9 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(warpedImage);
+   //DEBUG
+   std::cout << "warpedImage->datatype = " << warpedImage->datatype << std::endl;
+   //DEBUG
    // Check the dimension of the input images
    if(warpedImage->nx != inputDeformationField->nx ||
       warpedImage->ny != inputDeformationField->ny ||
@@ -75,9 +79,10 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
 
-   // Create a deformation field
+   // Initialize a deformation field image
    nifti_image *test_warped=nifti_copy_nim_info(warpedImage);
    test_warped->data=(void *)malloc(test_warped->nvox*test_warped->nbyper);
+   //test_warped->data = (void *)calloc(test_warped->nvox, sizeof(float));
 
    //CPU - GPU code
    int *tempMask = (int *)calloc(test_warped->nvox, sizeof(int));
@@ -108,10 +113,27 @@ int main(int argc, char **argv)
    test(con, interpolation, platformCode);
    test_warped = con->getCurrentWarped(warpedImage->datatype);//check
 
+#ifndef NDEBUG
+   int pixelIndex;
+   float* imageData = (float*) test_warped->data;
+   for (int z = 0; z < test_warped->nz; z++) {
+       for (int y = 0; y < test_warped->ny; y++) {
+           for (int x = 0; x < test_warped->nx; x++) {
+               pixelIndex = z * (test_warped->nx * test_warped->ny) + y * test_warped->nx + x;
+               //std::cout << "pixelIndex=" << imageData[pixelIndex] << std::endl;
+           }
+       }
+   }
+#endif
+
+   // Compute the difference between the computed and inputed deformation field
+   nifti_image *diff_field = nifti_copy_nim_info(test_warped);
+   diff_field->data = (void *)malloc(diff_field->nvox*diff_field->nbyper);
+
    // Compute the difference between the computed and inputed warped image
-   reg_tools_substractImageToImage(warpedImage,test_warped,test_warped);
-   reg_tools_abs_image(test_warped);
-   double max_difference=reg_tools_getMaxValue(test_warped);
+   reg_tools_substractImageToImage(warpedImage, test_warped, diff_field);
+   reg_tools_abs_image(diff_field);
+   double max_difference = reg_tools_getMaxValue(diff_field);
 
 #ifndef NDEBUG
 	if (max_difference > EPS) {

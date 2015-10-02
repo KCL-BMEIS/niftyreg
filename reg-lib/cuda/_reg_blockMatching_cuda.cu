@@ -33,11 +33,11 @@ void block_matching_method_gpu(nifti_image *targetImage,
 										 _reg_blockMatchingParam *params,
 										 float **targetImageArray_d,
 										 float **resultImageArray_d,
-										 float **targetPosition_d,
-										 float **resultPosition_d,
+										 float **referencePosition_d,
+										 float **warpedPosition_d,
 										 int **activeBlock_d,
 										 int **mask_d,
-										 float** targetMat_d)
+										 float** referenceMat_d)
 {
 	if(targetImage->nz==1){
 		//TODO
@@ -65,10 +65,10 @@ void block_matching_method_gpu(nifti_image *targetImage,
 	dim3 BlocksGrid3D(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
 	const int blockRange = params->voxelCaptureRange % 4 ? params->voxelCaptureRange / 4 + 1 : params->voxelCaptureRange / 4;
 	const unsigned int sMem = (blockRange * 2 + 1) * (blockRange * 2 + 1) * (blockRange * 2 + 1) * 64 * sizeof(float);
-	blockMatchingKernel3D<< <BlocksGrid3D, BlockDims1D, sMem >> >(*resultPosition_d,
-																					  *targetPosition_d,
+	blockMatchingKernel3D<< <BlocksGrid3D, BlockDims1D, sMem >> >(*warpedPosition_d,
+																					  *referencePosition_d,
 																					  *mask_d,
-																					  *targetMat_d,
+																					  *referenceMat_d,
 																					  definedBlock_d,
 																					  imageSize,
 																					  blockRange,

@@ -150,7 +150,7 @@ void Content::AllocateWarpedImage()
 	this->CurrentWarped->datatype = this->CurrentFloating->datatype;
 	this->CurrentWarped->nbyper = this->CurrentFloating->nbyper;
 	this->CurrentWarped->data = (void *) calloc(this->CurrentWarped->nvox, this->CurrentWarped->nbyper);
-	this->floatingDatatype = this->CurrentFloating->datatype;
+	//this->floatingDatatype = this->CurrentFloating->datatype;
 }
 /* *************************************************************** */
 void Content::AllocateDeformationField(size_t bytes)
@@ -191,7 +191,6 @@ void Content::AllocateDeformationField(size_t bytes)
 	this->CurrentDeformationField->scl_slope = 1.f;
 	this->CurrentDeformationField->scl_inter = 0.f;
 	this->CurrentDeformationField->data = (void *) calloc(this->CurrentDeformationField->nvox, this->CurrentDeformationField->nbyper);
-	return;
 }
 /* *************************************************************** */
 void Content::setCaptureRange(const int voxelCaptureRangeIn)

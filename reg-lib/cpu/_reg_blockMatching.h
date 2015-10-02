@@ -87,7 +87,8 @@ struct _reg_blockMatchingParam
         activeBlock(0),
         definedActiveBlock(0),
         voxelCaptureRange(0),
-        stepSize(0)
+        stepSize(0),
+        cusvd(0)
    {}
 
    ~_reg_blockMatchingParam()

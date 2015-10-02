@@ -17,8 +17,8 @@ CudaOptimiseKernel::CudaOptimiseKernel(Content *conIn, std::string name) :
     Sigma_d = con->getSigma_d();
     VT_d = con->getVT_d();
     lengths_d = con->getLengths_d();
-    referencePos_d = con->getTargetPosition_d();
-    warpedPos_d = con->getResultPosition_d();
+    referencePos_d = con->getReferencePosition_d();
+    warpedPos_d = con->getWarpedPosition_d();
     newWarpedPos_d = con->getNewResultPos_d();
 
 }

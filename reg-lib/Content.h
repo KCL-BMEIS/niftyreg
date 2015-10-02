@@ -75,12 +75,10 @@ public:
 	{
 		return this->transformationMatrix;
 	}
-	int getFloatingDatatype()
-	{
-		return this->floatingDatatype;
-	}
-	virtual _reg_blockMatchingParam* getBlockMatchingParams()
-	{
+	//int getFloatingDatatype() {
+	//	return this->floatingDatatype;
+	//}
+	virtual _reg_blockMatchingParam* getBlockMatchingParams() {
 		return blockMatchingParams;
 	}
 	//setters
@@ -117,7 +115,7 @@ protected:
 	mat44 floMatrix_ijk;
 	_reg_blockMatchingParam* blockMatchingParams;
 
-	int floatingDatatype;
+	//int floatingDatatype;
 	size_t bytes;
 	unsigned int currentPercentageOfBlockToUse;
 	unsigned int inlierLts;

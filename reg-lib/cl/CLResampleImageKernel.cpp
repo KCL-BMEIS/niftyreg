@@ -74,7 +74,7 @@ void CLResampleImageKernel::calculate(int interp,
     kernel = clCreateKernel(program, "ResampleImage3D", &errNum);
     sContext->checkErrNum(errNum, "Error setting kernel ResampleImage3D.");
 
-    long targetVoxelNumber = (long) warpedImage->nx * warpedImage->ny * warpedImage->nz;
+    long targetVoxelNumber = (long) this->warpedImage->nx * this->warpedImage->ny * this->warpedImage->nz;
     const unsigned int maxThreads = sContext->getMaxThreads();
     const unsigned int maxBlocks = sContext->getMaxBlocks();
 
@@ -89,17 +89,14 @@ void CLResampleImageKernel::calculate(int interp,
     int numMats = 0; //needs to be a parameter
     float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
 
-    cl_long2 voxelNumber = {{ (cl_long)warpedImage->nx * warpedImage->ny * warpedImage->nz,
-                                      (cl_long)floatingImage->nx * floatingImage->ny * floatingImage->nz }};
-    cl_uint3 fi_xyz = {{ (cl_uint)floatingImage->nx,
-                                (cl_uint)floatingImage->ny,
-                                (cl_uint)floatingImage->nz }};
-    cl_uint2 wi_tu = {{ (cl_uint)warpedImage->nt,
-                              (cl_uint)warpedImage->nu }};
+    cl_long2 voxelNumber = { (cl_long)warpedImage->nx * warpedImage->ny * warpedImage->nz, (cl_long)floatingImage->nx * floatingImage->ny * floatingImage->nz };
+    cl_uint3 fi_xyz = { (cl_uint)floatingImage->nx, (cl_uint)floatingImage->ny, (cl_uint)floatingImage->nz };
+    cl_uint2 wi_tu = { (cl_uint)warpedImage->nt, (cl_uint)warpedImage->nu };
 
     if (numMats)
         mat33ToCptr(jacMat, jacMat_h, numMats);
-    int datatype = con->getFloatingDatatype();
+    //int datatype = con->getFloatingDatatype();
+    int datatype = this->floatingImage->datatype;
 
     errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->clCurrentFloating);
     sContext->checkErrNum(errNum, "Error setting interp kernel arguments 0.");

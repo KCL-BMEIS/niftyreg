@@ -13,11 +13,9 @@
 
 #include "_reg_common_cuda.h"
 #include "_reg_maths.h"
-
 /* ******************************** */
 /* ******************************** */
-
-template < class NIFTI_TYPE>
+template <class NIFTI_TYPE>
 int cudaCommon_transferNiftiToNiftiOnDevice1(nifti_image **image_d, nifti_image *img) {
 
 	const unsigned int memSize = img->dim[1] * img->dim[2] * img->dim[3] * sizeof(NIFTI_TYPE);
@@ -649,5 +647,38 @@ template int cudaCommon_transferFromDeviceToNiftiSimple1<float>(float **array_d,
 template int cudaCommon_transferFromDeviceToNiftiSimple1<double>(double **array_d, double *img, const unsigned);
 /* ******************************** */
 /* ******************************** */
+/* ******************************** */
+/* ******************************** */
+template <class DTYPE>
+int cudaCommon_transferArrayFromCpuToDevice(DTYPE **array_d, DTYPE *array_cpu, const unsigned int nElements) {
 
+    const unsigned int memSize = nElements * sizeof(DTYPE);
+    //copyData
+    NR_CUDA_SAFE_CALL(cudaMemcpy(*array_d, array_cpu, memSize, cudaMemcpyHostToDevice));
+    //
+    return EXIT_SUCCESS;
+}
+template int cudaCommon_transferArrayFromCpuToDevice<int>(int **array_d, int *array_cpu, const unsigned int nElements);
+template int cudaCommon_transferArrayFromCpuToDevice<float>(float **array_d, float *array_cpu, const unsigned int nElements);
+template int cudaCommon_transferArrayFromCpuToDevice<double>(double **array_d, double *array_cpu, const unsigned int nElements);
+/* ******************************** */
+/* ******************************** */
+/* ******************************** */
+/* ******************************** */
+template <class DTYPE>
+int cudaCommon_transferArrayFromDeviceToCpu(DTYPE *array_cpu, DTYPE **array_d, const unsigned int nElements) {
+
+    const unsigned int memSize = nElements * sizeof(DTYPE);
+    //copyData
+    NR_CUDA_SAFE_CALL(cudaMemcpy(array_cpu, *array_d, memSize, cudaMemcpyDeviceToHost));
+    //
+    return EXIT_SUCCESS;
+}
+template int cudaCommon_transferArrayFromDeviceToCpu<int>(int *array_cpu, int **array_d, const unsigned int nElements);
+template int cudaCommon_transferArrayFromDeviceToCpu<float>(float *array_cpu, float **array_d, const unsigned int nElements);
+template int cudaCommon_transferArrayFromDeviceToCpu<double>(double *array_cpu, double **array_d, const unsigned int nElements);
+/* ******************************** */
+/* ******************************** */
+/* ******************************** */
+/* ******************************** */
 #endif

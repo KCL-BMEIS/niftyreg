@@ -152,7 +152,7 @@ int main(int argc, char **argv)
     }
 
     con->setBlockMatchingParams(blockMatchingParams);
-    test(con, platformCode, isAffine, 1, 1);
+    test(con, platformCode, isAffine, 0, 0);
 
 #ifndef NDEBUG
     reg_mat44_disp(con->getTransformationMatrix(), (char *) "test_optimize_2D");

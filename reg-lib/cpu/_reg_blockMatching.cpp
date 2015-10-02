@@ -751,8 +751,7 @@ void optimize(_reg_blockMatchingParam *params,
     {
         float in[2];
         float out[2];
-        for (size_t i = 0; i < static_cast<size_t>(params->activeBlockNumber); ++i)
-        {
+        for (size_t i = 0; i < static_cast<size_t>(params->activeBlockNumber); ++i) {
             size_t index = 2 * i;
             in[0] = params->warpedPosition[index];
             in[1] = params->warpedPosition[index + 1];
@@ -769,8 +768,7 @@ void optimize(_reg_blockMatchingParam *params,
     {
         float in[3];
         float out[3];
-        for (size_t i = 0; i < static_cast<size_t>(params->activeBlockNumber); ++i)
-        {
+        for (size_t i = 0; i < static_cast<size_t>(params->activeBlockNumber); ++i) {
             size_t index = 3 * i;
             in[0] = params->warpedPosition[index];
             in[1] = params->warpedPosition[index + 1];

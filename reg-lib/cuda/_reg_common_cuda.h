@@ -157,5 +157,20 @@ template <class DTYPE>
 int cudaCommon_transferFromDeviceToCpu(DTYPE *cpuPtr, DTYPE **cuPtr, const unsigned int nElements);
 /* ******************************** */
 /* ******************************** */
-
+/* ******************************** */
+/* ******************************** */
+extern "C++"
+template <class DTYPE>
+int cudaCommon_transferArrayFromCpuToDevice(DTYPE **array_d, DTYPE *array_cpu, const unsigned int nElements);
+/* ******************************** */
+/* ******************************** */
+/* ******************************** */
+/* ******************************** */
+extern "C++"
+template <class DTYPE>
+int cudaCommon_transferArrayFromDeviceToCpu(DTYPE *array_cpu, DTYPE **array_d, const unsigned int nElements);
+/* ******************************** */
+/* ******************************** */
+/* ******************************** */
+/* ******************************** */
 #endif

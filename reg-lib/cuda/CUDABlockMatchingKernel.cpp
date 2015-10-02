@@ -15,11 +15,11 @@ CudaBlockMatchingKernel::CudaBlockMatchingKernel(Content *conIn, std::string nam
    //get cuda ptrs
    referenceImageArray_d = con->getReferenceImageArray_d();
    warpedImageArray_d = con->getWarpedImageArray_d();
-   referencePosition_d = con->getTargetPosition_d();
-   warpedPosition_d = con->getResultPosition_d();
+   referencePosition_d = con->getReferencePosition_d();
+   warpedPosition_d = con->getWarpedPosition_d();
    activeBlock_d = con->getActiveBlock_d();
    mask_d = con->getMask_d();
-   referenceMat_d = con->getTargetMat_d();
+   referenceMat_d = con->getReferenceMat_d();
 }
 /* *************************************************************** */
 void CudaBlockMatchingKernel::calculate()

@@ -39,10 +39,10 @@ public:
 	float* getFloatingImageArray_d();
 	float* getWarpedImageArray_d();
 	float* getTransformationMatrix_d();
-	float* getTargetPosition_d();
-	float* getResultPosition_d();
+    float* getReferencePosition_d();
+    float* getWarpedPosition_d();
 	float* getDeformationFieldArray_d();
-	float* getTargetMat_d();
+	float* getReferenceMat_d();
 	float* getFloIJKMat_d();
 
 	float* getAR_d();
@@ -76,18 +76,16 @@ private:
 	void allocateCuPtrs();
 	void freeCuPtrs();
 
-	unsigned int numBlocks;
-
 	float *referenceImageArray_d;
 	float *floatingImageArray_d;
 	float *warpedImageArray_d;
 	float *deformationFieldArray_d;
-	float *targetPosition_d;
-	float *resultPosition_d;
+	float *referencePosition_d;
+	float *warpedPosition_d;
 	int *activeBlock_d, *mask_d;
 
 	float* transformationMatrix_d;
-	float* targetMat_d;
+	float* referenceMat_d;
 	float* floIJKMat_d;
 
 	//svd
@@ -109,5 +107,5 @@ private:
 	FloatingTYPE fillWarpedImageData(float intensity, int datatype);
 
 	unsigned long nVoxels;
-	bool cusvd;
+    bool cudaSVD;
 };

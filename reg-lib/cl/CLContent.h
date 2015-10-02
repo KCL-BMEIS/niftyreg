@@ -76,7 +76,6 @@ private:
 	void allocateClPtrs();
 	void freeClPtrs();
 
-	unsigned int numBlocks;
 	CLContextSingletton *sContext;
 	cl_context clContext;
 	cl_int errNum;

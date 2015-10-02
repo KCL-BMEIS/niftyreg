@@ -37,19 +37,18 @@ void reg_mat44_logm_cuda(float* mat)
 template<class DTYPE>
 __device__ __inline__ void reg_mat44_mul_cuda(DTYPE const* mat, DTYPE const* in, DTYPE *out)
 {
-	out[0] = mat[0 * 4 + 0] * in[0] + mat[0 * 4 + 1] * in[1] + mat[0 * 4 + 2] * in[2] + mat[0 * 4 + 3];
-	out[1] = mat[1 * 4 + 0] * in[0] + mat[1 * 4 + 1] * in[1] + mat[1 * 4 + 2] * in[2] + mat[1 * 4 + 3];
-	out[2] = mat[2 * 4 + 0] * in[0] + mat[2 * 4 + 1] * in[1] + mat[2 * 4 + 2] * in[2] + mat[2 * 4 + 3];
+    out[0] = (DTYPE)((double)mat[0 * 4 + 0] * (double)in[0] + (double)mat[0 * 4 + 1] * (double)in[1] + (double)mat[0 * 4 + 2] * (double)in[2] + (double)mat[0 * 4 + 3]);
+    out[1] = (DTYPE)((double)mat[1 * 4 + 0] * (double)in[0] + (double)mat[1 * 4 + 1] * (double)in[1] + (double)mat[1 * 4 + 2] * (double)in[2] + (double)mat[1 * 4 + 3]);
+    out[2] = (DTYPE)((double)mat[2 * 4 + 0] * (double)in[0] + (double)mat[2 * 4 + 1] * (double)in[1] + (double)mat[2 * 4 + 2] * (double)in[2] + (double)mat[2 * 4 + 3]);
 	return;
 }
 /* *************************************************************** */
 template<class DTYPE>
-__device__ __inline__
-void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out)
+__device__ __inline__ void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out)
 {
-	out[0] = (DTYPE) mat[0 * 4 + 0] * in[0] + (DTYPE) mat[0 * 4 + 1] * in[1] + (DTYPE) mat[0 * 4 + 2] * in[2] + (DTYPE) mat[0 * 4 + 3];
-	out[1] = (DTYPE) mat[1 * 4 + 0] * in[0] + (DTYPE) mat[1 * 4 + 1] * in[1] + (DTYPE) mat[1 * 4 + 2] * in[2] + (DTYPE) mat[1 * 4 + 3];
-	out[2] = (DTYPE) mat[2 * 4 + 0] * in[0] + (DTYPE) mat[2 * 4 + 1] * in[1] + (DTYPE) mat[2 * 4 + 2] * in[2] + (DTYPE) mat[2 * 4 + 3];
+    out[0] = (DTYPE)((double)mat[0 * 4 + 0] * (double)in[0] + (double)mat[0 * 4 + 1] * (double)in[1] + (double)mat[0 * 4 + 2] * (double)in[2] + (double)mat[0 * 4 + 3]);
+    out[1] = (DTYPE)((double)mat[1 * 4 + 0] * (double)in[0] + (double)mat[1 * 4 + 1] * (double)in[1] + (double)mat[1 * 4 + 2] * (double)in[2] + (double)mat[1 * 4 + 3]);
+    out[2] = (DTYPE)((double)mat[2 * 4 + 0] * (double)in[0] + (double)mat[2 * 4 + 1] * (double)in[1] + (double)mat[2 * 4 + 2] * (double)in[2] + (double)mat[2 * 4 + 3]);
 	return;
 }
 /* *************************************************************** */
@@ -215,22 +214,23 @@ __global__ void ResampleImage3D(float* floatingImage,
 			if (maskPtr[index] > -1) {
 
 				int previous[3];
-				double world[3], position[3], relative[3];
+                float world[3], position[3];
+                double relative[3];
 
-				world[0] = static_cast<double>(deformationFieldPtrX[index]);
-				world[1] = static_cast<double>(deformationFieldPtrY[index]);
-				world[2] = static_cast<double>(deformationFieldPtrZ[index]);
+				world[0] = static_cast<float>(deformationFieldPtrX[index]);
+				world[1] = static_cast<float>(deformationFieldPtrY[index]);
+				world[2] = static_cast<float>(deformationFieldPtrZ[index]);
 
 				// real -> voxel; floating space
-				reg_mat44_mul_cuda<double>(sourceIJKMatrix, world, position);
+				reg_mat44_mul_cuda<float>(sourceIJKMatrix, world, position);
 
 				previous[0] = static_cast<int>(cuda_reg_floor(position[0]));
 				previous[1] = static_cast<int>(cuda_reg_floor(position[1]));
 				previous[2] = static_cast<int>(cuda_reg_floor(position[2]));
 
-				relative[0] = position[0] - static_cast<double>(previous[0]);
-				relative[1] = position[1] - static_cast<double>(previous[1]);
-				relative[2] = position[2] - static_cast<double>(previous[2]);
+                relative[0] = static_cast<double>(position[0]) - static_cast<double>(previous[0]);
+                relative[1] = static_cast<double>(position[1]) - static_cast<double>(previous[1]);
+                relative[2] = static_cast<double>(position[2]) - static_cast<double>(previous[2]);
 
 				if (kernelType == 0) {
 
@@ -396,10 +396,10 @@ void launchResample(nifti_image *floatingImage,
 	uint3 fi_xyz = make_uint3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 	uint2 wi_tu = make_uint2(warpedImage->nt, warpedImage->nu);
 
-	ResampleImage3D<< <mygrid, myblocks >> >(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, *sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue, interp);
+	ResampleImage3D<<<mygrid, myblocks>>>(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, *sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue, interp);
 
-	NR_CUDA_CHECK_KERNEL(mygrid, myblocks)
-			NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+    NR_CUDA_CHECK_KERNEL(mygrid, myblocks);
+    NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 }
 /* *************************************************************** */
 void identityConst()
