@@ -1,5 +1,4 @@
 #include "CLKernelFactory.h"
-//#include "CLKernels.h"
 #include "CLAffineDeformationFieldKernel.h"
 #include "CLConvolutionKernel.h"
 #include "CLBlockMatchingKernel.h"
