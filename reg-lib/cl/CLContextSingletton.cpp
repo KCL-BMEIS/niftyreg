@@ -111,7 +111,15 @@ cl_program CLContextSingletton::CreateProgram(const char* fileName)
 	checkErrNum(errNum, "Failed to create CL program");
 
 	errNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
-	if (errNum != CL_SUCCESS) checDebugKernelInfo(program,this->deviceId, (char *)"Errors in kernel: ");
+    if (errNum != CL_SUCCESS) {
+        checDebugKernelInfo(program,this->deviceId, (char *)"Errors in kernel: ");
+        //create log
+        size_t length;
+        char buffer[2048];
+        clGetProgramBuildInfo(program, this->devices[this->clIdx], CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &length);
+        std::cout<<"--- Build log ---\n "<<buffer<<std::endl;
+        exit(1);
+    }
 
 	return program;
 }
