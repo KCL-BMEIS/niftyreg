@@ -65,7 +65,7 @@ public:
 	}
 	virtual nifti_image *getCurrentWarped(int = 0)
 	{
-		return CurrentWarped;
+		return this->CurrentWarped;
 	}
 	int *getCurrentReferenceMask()
 	{
@@ -79,20 +79,20 @@ public:
 	//	return this->floatingDatatype;
 	//}
 	virtual _reg_blockMatchingParam* getBlockMatchingParams() {
-		return blockMatchingParams;
+        return this->blockMatchingParams;
 	}
 	//setters
 	virtual void setTransformationMatrix(mat44 *transformationMatrixIn)
 	{
-		transformationMatrix = transformationMatrixIn;
+        this->transformationMatrix = transformationMatrixIn;
 	}
 	virtual void setCurrentDeformationField(nifti_image *CurrentDeformationFieldIn)
 	{
-		CurrentDeformationField = CurrentDeformationFieldIn;
+        this->CurrentDeformationField = CurrentDeformationFieldIn;
 	}
 	virtual void setCurrentWarped(nifti_image *CurrentWarpedImageIn)
 	{
-		CurrentWarped = CurrentWarpedImageIn;
+        this->CurrentWarped = CurrentWarpedImageIn;
 	}
 	
     virtual void setCurrentReferenceMask(int *, size_t) {}

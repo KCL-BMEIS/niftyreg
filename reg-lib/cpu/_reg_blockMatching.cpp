@@ -198,9 +198,11 @@ void initialise_block_matching_method(nifti_image * reference, _reg_blockMatchin
     params->blockNumber[1] = (int)std::ceil((double)reference->ny / (double)BLOCK_WIDTH);
     if (reference->nz > 1) {
         params->blockNumber[2] = (int)std::ceil((double)reference->nz / (double)BLOCK_WIDTH);
+        params->dim = 3;
     }
     else {
         params->blockNumber[2] = 1;
+        params->dim = 2;
     }
 
     params->stepSize = stepSize_block;

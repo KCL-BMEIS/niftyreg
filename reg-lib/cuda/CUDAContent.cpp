@@ -138,18 +138,22 @@ void CudaContent::initVars()
 void CudaContent::allocateCuPtrs()
 {
 
-	if (this->transformationMatrix != NULL)
-		cudaCommon_allocateArrayToDevice<float>(&transformationMatrix_d, 16);
-	if (this->CurrentReferenceMask != NULL)
-		cudaCommon_allocateArrayToDevice<int>(&mask_d, referenceVoxels);
+    if (this->transformationMatrix != NULL) {
+        cudaCommon_allocateArrayToDevice<float>(&transformationMatrix_d, 16);
+    }
+    if (this->CurrentReferenceMask != NULL) {
+        cudaCommon_allocateArrayToDevice<int>(&mask_d, referenceVoxels);
+    }
 	if (this->CurrentReference != NULL) {
 		cudaCommon_allocateArrayToDevice<float>(&referenceImageArray_d, referenceVoxels);
 		cudaCommon_allocateArrayToDevice<float>(&referenceMat_d, 16);
 	}
-	if (this->CurrentWarped != NULL)
-		cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, this->CurrentWarped->nvox);
-	if (this->CurrentDeformationField != NULL)
-		cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, this->CurrentDeformationField->nvox);
+    if (this->CurrentWarped != NULL) {
+        cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, this->CurrentWarped->nvox);
+    }
+    if (this->CurrentDeformationField != NULL) {
+        cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, this->CurrentDeformationField->nvox);
+    }
 	if (this->CurrentFloating != NULL) {
 		cudaCommon_allocateArrayToDevice<float>(&floatingImageArray_d, floatingVoxels);
 		cudaCommon_allocateArrayToDevice<float>(&floIJKMat_d, 16);
@@ -206,8 +210,6 @@ void CudaContent::uploadContent()
 
 		float *sourceIJKMatrix_h = (float*) malloc(16 * sizeof(float));
 		mat44ToCptr(this->floMatrix_ijk, sourceIJKMatrix_h);
-
-		//sourceIJKMatrix_d
 		NR_CUDA_SAFE_CALL(cudaMemcpy(floIJKMat_d, sourceIJKMatrix_h, 16 * sizeof(float), cudaMemcpyHostToDevice));
 		free(sourceIJKMatrix_h);
 	}
@@ -241,7 +243,16 @@ _reg_blockMatchingParam* CudaContent::getBlockMatchingParams()
 /* *************************************************************** */
 void CudaContent::setTransformationMatrix(mat44 *transformationMatrixIn)
 {
+    if (this->transformationMatrix != NULL)
+        cudaCommon_free<float>(&transformationMatrix_d);
+
 	Content::setTransformationMatrix(transformationMatrixIn);
+    float *tmpMat_h = (float*)malloc(16 * sizeof(float));
+    mat44ToCptr(*(this->transformationMatrix), tmpMat_h);
+
+    cudaCommon_allocateArrayToDevice<float>(&transformationMatrix_d, 16);
+    NR_CUDA_SAFE_CALL(cudaMemcpy(this->transformationMatrix_d, tmpMat_h, 16 * sizeof(float), cudaMemcpyHostToDevice));
+    free(tmpMat_h);
 }
 /* *************************************************************** */
 void CudaContent::setCurrentDeformationField(nifti_image *CurrentDeformationFieldIn)
@@ -256,7 +267,9 @@ void CudaContent::setCurrentDeformationField(nifti_image *CurrentDeformationFiel
 /* *************************************************************** */
 void CudaContent::setCurrentReferenceMask(int *maskIn, size_t nvox)
 {
-
+    if (this->CurrentReferenceMask != NULL)
+        cudaCommon_free<int>(&mask_d);
+    this->CurrentReferenceMask = maskIn;
 	cudaCommon_allocateArrayToDevice<int>(&mask_d, nvox);
 	cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, maskIn, nvox);
 }
@@ -484,21 +497,26 @@ void CudaContent::freeCuPtrs()
 {
 	if (this->transformationMatrix != NULL)
 		cudaCommon_free<float>(&transformationMatrix_d);
+
 	if (this->CurrentReference != NULL) {
 		cudaCommon_free<float>(&referenceImageArray_d);
 		cudaCommon_free<float>(&referenceMat_d);
 	}
+
 	if (this->CurrentFloating != NULL) {
 		cudaCommon_free<float>(&floatingImageArray_d);
 		cudaCommon_free<float>(&floIJKMat_d);
 	}
+
 	if (this->CurrentWarped != NULL)
 		cudaCommon_free<float>(&warpedImageArray_d);
+
 	if (this->CurrentDeformationField != NULL)
 		cudaCommon_free<float>(&deformationFieldArray_d);
 
 	if (this->CurrentReferenceMask != NULL)
 		cudaCommon_free<int>(&mask_d);
+
 	if (this->blockMatchingParams != NULL) {
 		cudaCommon_free<int>(&activeBlock_d);
 		cudaCommon_free<float>(&referencePosition_d);

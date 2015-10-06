@@ -61,10 +61,15 @@ int main(int argc, char **argv)
       reg_print_msg_error("The input warped image could not be read");
       return EXIT_FAILURE;
    }
+   //The expected warped image contains NaN, let's change them to quietNaN to be consitent
    reg_tools_changeDatatype<float>(warpedImage);
-   //DEBUG
-   std::cout << "warpedImage->datatype = " << warpedImage->datatype << std::endl;
-   //DEBUG
+   float* wid = (float*) warpedImage->data;
+   for (size_t i = 0; i < warpedImage->nvox; i++) {
+       if (wid[i] != wid[i]) {
+           wid[i] = std::numeric_limits<float>::quiet_NaN();
+       }
+   }
+
    // Check the dimension of the input images
    if(warpedImage->nx != inputDeformationField->nx ||
       warpedImage->ny != inputDeformationField->ny ||
@@ -140,9 +145,9 @@ int main(int argc, char **argv)
 		const char* tmpdir = getenv("TMPDIR");
 		char filename[255];
 		if(tmpdir!=NULL)
-			sprintf(filename,"%s/difference_warp_%iD_%i.nii", tmpdir, (warpedImage->nz>1?3:2), interpolation);
-		else sprintf(filename,"./difference_warp_%iD_%i.nii", (warpedImage->nz>1?3:2), interpolation);
-		reg_io_WriteImageFile(test_warped,filename);
+            sprintf(filename, "%s/difference_warp_%iD_%i.nii", tmpdir, (diff_field->nz>1 ? 3 : 2), interpolation);
+        else sprintf(filename, "./difference_warp_%iD_%i.nii", (diff_field->nz>1 ? 3 : 2), interpolation);
+        reg_io_WriteImageFile(diff_field, filename);
 		reg_print_msg_error("Saving temp warped image:");
 		reg_print_msg_error(filename);
 	}

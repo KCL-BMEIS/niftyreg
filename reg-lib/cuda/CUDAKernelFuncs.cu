@@ -151,16 +151,45 @@ __inline__ __device__ void interpNearestNeighKernel(double relative, double *bas
 		basis[0] = 1;
 }
 /* *************************************************************** */
-__inline__ __device__ double interpLoop(float* floatingIntensity,
+__inline__ __device__ double interpLoop2D(float* floatingIntensity,
+    double* xBasis,
+    double* yBasis,
+    double* zBasis,
+    int *previous,
+    uint3 fi_xyz,
+    float paddingValue,
+    unsigned int kernel_size)
+{
+    double intensity = (double)(0.0);
+    
+        for (int b = 0; b < kernel_size; b++) {
+            int Y = previous[1] + b;
+            bool yInBounds = -1 < Y && Y < fi_xyz.y;
+            double xTempNewValue = 0.0;
+
+            for (int a = 0; a < kernel_size; a++) {
+                int X = previous[0] + a;
+                bool xInBounds = -1 < X && X < fi_xyz.x;
+
+                const unsigned int idx = Y * fi_xyz.x + X;
+
+                xTempNewValue += (xInBounds && yInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
+            }
+            intensity += xTempNewValue * yBasis[b];
+        }
+    return intensity;
+}
+/* *************************************************************** */
+__inline__ __device__ double interpLoop3D(float* floatingIntensity,
 													 double* xBasis,
 													 double* yBasis,
 													 double* zBasis,
 													 int *previous,
 													 uint3 fi_xyz,
-													 double paddingValue,
+													 float paddingValue,
 													 unsigned int kernel_size)
 {
-	double intensity = static_cast<double>(paddingValue);
+	double intensity = (double)(0.0);
 	for (int c = 0; c < kernel_size; c++) {
 		int Z = previous[2] + c;
 		bool zInBounds = -1 < Z && Z < fi_xyz.z;
@@ -173,6 +202,7 @@ __inline__ __device__ double interpLoop(float* floatingIntensity,
 				int X = previous[0] + a;
 				bool xInBounds = -1 < X && X < fi_xyz.x;
 				const unsigned int idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
+
 				xTempNewValue += (xInBounds && yInBounds && zInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
 			}
 			yTempNewValue += xTempNewValue * yBasis[b];
@@ -180,6 +210,98 @@ __inline__ __device__ double interpLoop(float* floatingIntensity,
 		intensity += yTempNewValue * zBasis[c];
 	}
 	return intensity;
+}
+/* *************************************************************** */
+__global__ void ResampleImage2D(float* floatingImage,
+    float* deformationField,
+    float* warpedImage,
+    int *mask,
+    float* sourceIJKMatrix,
+    ulong2 voxelNumber,
+    uint3 fi_xyz,
+    uint2 wi_tu,
+    float paddingValue,
+    int kernelType)
+{
+    float *sourceIntensityPtr = (floatingImage);
+    float *resultIntensityPtr = (warpedImage);
+    float *deformationFieldPtrX = (deformationField);
+    float *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber.x];
+
+    int *maskPtr = &mask[0];
+
+    long index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    while (index < voxelNumber.x) {
+
+        for (unsigned int t = 0; t < wi_tu.x * wi_tu.y; t++) {
+
+            float *resultIntensity = &resultIntensityPtr[t * voxelNumber.x];
+            float *floatingIntensity = &sourceIntensityPtr[t * voxelNumber.y];
+            double intensity = paddingValue;
+
+            if (maskPtr[index] > -1) {
+
+                int previous[3];
+                float world[3], position[3];
+                double relative[3];
+
+                world[0] = (float)(deformationFieldPtrX[index]);
+                world[1] = (float)(deformationFieldPtrY[index]);
+                world[2] = 0.0f;
+
+                // real -> voxel; floating space
+                reg_mat44_mul_cuda<float>(sourceIJKMatrix, world, position);
+
+                previous[0] = cuda_reg_floor(position[0]);
+                previous[1] = cuda_reg_floor(position[1]);
+
+                relative[0] = (double)(position[0]) - (double)(previous[0]);
+                relative[1] = (double)(position[1]) - (double)(previous[1]);
+
+                if (kernelType == 0) {
+
+                    double xBasisIn[2], yBasisIn[2], zBasisIn[2];
+                    interpNearestNeighKernel(relative[0], xBasisIn);
+                    interpNearestNeighKernel(relative[1], yBasisIn);
+                    intensity = interpLoop2D(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 2);
+                }
+                else if (kernelType == 1) {
+
+                    double xBasisIn[2], yBasisIn[2], zBasisIn[2];
+                    interpLinearKernel(relative[0], xBasisIn);
+                    interpLinearKernel(relative[1], yBasisIn);
+                    intensity = interpLoop2D(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 2);
+                }
+                else if (kernelType == 4) {
+
+                    double xBasisIn[6], yBasisIn[6], zBasisIn[6];
+
+                    previous[0] -= SINC_KERNEL_RADIUS;
+                    previous[1] -= SINC_KERNEL_RADIUS;
+                    previous[2] -= SINC_KERNEL_RADIUS;
+
+                    interpWindowedSincKernel(relative[0], xBasisIn);
+                    interpWindowedSincKernel(relative[1], yBasisIn);
+                    intensity = interpLoop2D(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 6);
+                }
+                else {
+
+                    double xBasisIn[4], yBasisIn[4], zBasisIn[4];
+
+                    previous[0]--;
+                    previous[1]--;
+                    previous[2]--;
+
+                    interpCubicSplineKernel(relative[0], xBasisIn);
+                    interpCubicSplineKernel(relative[1], yBasisIn);
+                    intensity = interpLoop2D(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 4);
+                }
+            }
+            resultIntensity[index] = intensity;
+        }
+        index += blockDim.x * gridDim.x;
+    }
 }
 /* *************************************************************** */
 __global__ void ResampleImage3D(float* floatingImage,
@@ -217,20 +339,20 @@ __global__ void ResampleImage3D(float* floatingImage,
                 float world[3], position[3];
                 double relative[3];
 
-				world[0] = static_cast<float>(deformationFieldPtrX[index]);
-				world[1] = static_cast<float>(deformationFieldPtrY[index]);
-				world[2] = static_cast<float>(deformationFieldPtrZ[index]);
+				world[0] = (float) (deformationFieldPtrX[index]);
+                world[1] = (float) (deformationFieldPtrY[index]);
+                world[2] = (float) (deformationFieldPtrZ[index]);
 
 				// real -> voxel; floating space
 				reg_mat44_mul_cuda<float>(sourceIJKMatrix, world, position);
 
-				previous[0] = static_cast<int>(cuda_reg_floor(position[0]));
-				previous[1] = static_cast<int>(cuda_reg_floor(position[1]));
-				previous[2] = static_cast<int>(cuda_reg_floor(position[2]));
+				previous[0] = cuda_reg_floor(position[0]);
+				previous[1] = cuda_reg_floor(position[1]);
+				previous[2] = cuda_reg_floor(position[2]);
 
-                relative[0] = static_cast<double>(position[0]) - static_cast<double>(previous[0]);
-                relative[1] = static_cast<double>(position[1]) - static_cast<double>(previous[1]);
-                relative[2] = static_cast<double>(position[2]) - static_cast<double>(previous[2]);
+                relative[0] = (double)(position[0]) - (double)(previous[0]);
+                relative[1] = (double)(position[1]) - (double)(previous[1]);
+                relative[2] = (double)(position[2]) - (double)(previous[2]);
 
 				if (kernelType == 0) {
 
@@ -238,14 +360,14 @@ __global__ void ResampleImage3D(float* floatingImage,
 					interpNearestNeighKernel(relative[0], xBasisIn);
 					interpNearestNeighKernel(relative[1], yBasisIn);
 					interpNearestNeighKernel(relative[2], zBasisIn);
-					intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 2);
+					intensity = interpLoop3D(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 2);
 				} else if (kernelType == 1) {
 
 					double xBasisIn[2], yBasisIn[2], zBasisIn[2];
 					interpLinearKernel(relative[0], xBasisIn);
 					interpLinearKernel(relative[1], yBasisIn);
 					interpLinearKernel(relative[2], zBasisIn);
-					intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 2);
+					intensity = interpLoop3D(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 2);
 				} else if (kernelType == 4) {
 
 					double xBasisIn[6], yBasisIn[6], zBasisIn[6];
@@ -257,7 +379,7 @@ __global__ void ResampleImage3D(float* floatingImage,
 					interpWindowedSincKernel(relative[0], xBasisIn);
 					interpWindowedSincKernel(relative[1], yBasisIn);
 					interpWindowedSincKernel(relative[2], zBasisIn);
-					intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 6);
+					intensity = interpLoop3D(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 6);
 				} else {
 
 					double xBasisIn[4], yBasisIn[4], zBasisIn[4];
@@ -269,13 +391,13 @@ __global__ void ResampleImage3D(float* floatingImage,
 					interpCubicSplineKernel(relative[0], xBasisIn);
 					interpCubicSplineKernel(relative[1], yBasisIn);
 					interpCubicSplineKernel(relative[2], zBasisIn);
-					intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 4);
+					intensity = interpLoop3D(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 4);
 				}
 			}
 			resultIntensity[index] = intensity;
 		}
+        index += blockDim.x * gridDim.x;
 	}
-	index += blockDim.x * gridDim.x;
 }
 /* *************************************************************** */
 __global__ void affineKernel(float* transformationMatrix,
@@ -356,7 +478,7 @@ void launchAffine(mat44 *affineTransformation,
 	uint3 dims_d = make_uint3(deformationField->nx, deformationField->ny, deformationField->nz);
 	affineKernel<<<G1_b, B1_b >>>(*trans_d, *def_d, *mask_d, dims_d, deformationField->nx* deformationField->ny* deformationField->nz, compose);
 	NR_CUDA_CHECK_KERNEL(G1_b, B1_b)
-			NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 
 }
 /* *************************************************************** */
@@ -395,8 +517,18 @@ void launchResample(nifti_image *floatingImage,
 	ulong2 voxelNumber = make_ulong2(warpedImage->nx * warpedImage->ny * warpedImage->nz, floatingImage->nx * floatingImage->ny * floatingImage->nz);
 	uint3 fi_xyz = make_uint3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 	uint2 wi_tu = make_uint2(warpedImage->nt, warpedImage->nu);
-
-	ResampleImage3D<<<mygrid, myblocks>>>(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, *sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue, interp);
+    if (floatingImage->nz > 1) {
+        ResampleImage3D <<<mygrid, myblocks >>>(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, *sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue, interp);
+    }
+    else if (floatingImage->nz == 1){
+        ResampleImage2D <<<mygrid, myblocks >>>(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, *sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue, interp);
+    }
+    else {
+        //DO NOT WORK
+        reg_print_fct_error("launchResample");
+        reg_print_msg_error("The image dimension is not supported. Exit.");
+        reg_exit(1);
+    }
 
     NR_CUDA_CHECK_KERNEL(mygrid, myblocks);
     NR_CUDA_SAFE_CALL(cudaThreadSynchronize());

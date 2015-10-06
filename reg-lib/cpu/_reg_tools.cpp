@@ -479,8 +479,9 @@ void reg_tools_changeDatatype1(nifti_image *image,int type)
 #endif
    image->data = (void *)calloc(image->nvox,sizeof(NewTYPE));
    NewTYPE *dataPtr = static_cast<NewTYPE *>(image->data);
-   for(size_t i=0; i<image->nvox; i++)
-      dataPtr[i] = (NewTYPE)(initialValue[i]);
+   for (size_t i = 0; i < image->nvox; i++) {
+       dataPtr[i] = (NewTYPE)(initialValue[i]);
+   }
 
    free(initialValue);
    return;
@@ -581,10 +582,11 @@ void reg_tools_operationImageToImage(nifti_image *img1,
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
-      for(i=0; i<voxelNumber; i++)
-         resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
-                              ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
-                              (double)img1->scl_inter)/(double)img1->scl_slope);
+       for (i = 0; i < voxelNumber; i++) {
+               resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
+                   					((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
+                   				     (double)img1->scl_inter) / (double)img1->scl_slope);
+       }
       break;
    case 2:
 #if defined (_OPENMP)
@@ -592,10 +594,11 @@ void reg_tools_operationImageToImage(nifti_image *img1,
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
-      for(i=0; i<voxelNumber; i++)
-         resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
-                              ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
-                              (double)img1->scl_inter)/(double)img1->scl_slope);
+       for (i = 0; i < voxelNumber; i++) {
+           resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
+               ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
+               (double)img1->scl_inter) / (double)img1->scl_slope);
+       }
       break;
    case 3:
 #if defined (_OPENMP)

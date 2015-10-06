@@ -13,6 +13,7 @@ Content::Content()
     this->CurrentReference = NULL;
     this->CurrentReferenceMask = NULL;
     this->CurrentFloating = NULL;
+    this->transformationMatrix = NULL;
     this->blockMatchingParams = NULL;
     this->bytes = sizeof(float);//Default
 	//
@@ -70,6 +71,7 @@ Content::Content(nifti_image *CurrentReferenceIn,
 		inlierLts(inlierLtsIn),
 		stepSizeBlock(stepSizeBlockIn)
 {
+    this->transformationMatrix = NULL;
 	this->blockMatchingParams = new _reg_blockMatchingParam();
 	initVars();
 }
@@ -83,6 +85,7 @@ Content::Content(nifti_image *CurrentReferenceIn,
 		CurrentReferenceMask(CurrentReferenceMaskIn),
 		bytes(bytesIn)
 {
+    this->transformationMatrix = NULL;
 	this->blockMatchingParams = NULL;
 	initVars();
 }
@@ -97,33 +100,37 @@ Content::~Content()
 /* *************************************************************** */
 void Content::initVars()
 {
-	if (this->CurrentFloating != NULL && this->CurrentReference != NULL)
-		this->AllocateWarpedImage();
-	else
-		this->CurrentWarped = NULL;
+    if (this->CurrentFloating != NULL && this->CurrentReference != NULL) {
+        this->AllocateWarpedImage();
+    }
+    else {
+        this->CurrentWarped = NULL;
+    }
 
 	if (this->CurrentReference != NULL){
 		this->AllocateDeformationField(bytes);
 		refMatrix_xyz = (CurrentReference->sform_code > 0) ? (CurrentReference->sto_xyz) : (CurrentReference->qto_xyz);
 	}
-	else
-		this->CurrentDeformationField = NULL;
+    else {
+        this->CurrentDeformationField = NULL;
+    }
 
 	if (this->CurrentReferenceMask == NULL && this->CurrentReference != NULL)
 		this->CurrentReferenceMask = (int *) calloc(this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz, sizeof(int));
 
 
-	if (this->CurrentFloating != NULL){
+	if (this->CurrentFloating != NULL) {
 		floMatrix_ijk = (CurrentFloating->sform_code > 0) ? (CurrentFloating->sto_ijk) :  (CurrentFloating->qto_ijk);
 	}
-	if (blockMatchingParams != NULL)
-		initialise_block_matching_method(CurrentReference,
-													blockMatchingParams,
-													currentPercentageOfBlockToUse,
-													inlierLts,
-													stepSizeBlock,
-													CurrentReferenceMask,
-													false);
+    if (blockMatchingParams != NULL) {
+        initialise_block_matching_method(CurrentReference,
+            blockMatchingParams,
+            currentPercentageOfBlockToUse,
+            inlierLts,
+            stepSizeBlock,
+            CurrentReferenceMask,
+            false);
+    }
 #ifndef NDEBUG
 	if(this->CurrentReference==NULL) reg_print_msg_debug("CurrentReference image is NULL");
 	if(this->CurrentFloating==NULL) reg_print_msg_debug("CurrentFloating image is NULL");

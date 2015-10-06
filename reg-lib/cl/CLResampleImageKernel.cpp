@@ -71,15 +71,25 @@ void CLResampleImageKernel::calculate(int interp,
         reg_exit(1);
     }
 
-    kernel = clCreateKernel(program, "ResampleImage3D", &errNum);
-    sContext->checkErrNum(errNum, "Error setting kernel ResampleImage3D.");
+    if (this->floatingImage->nz > 1) {
+        this->kernel = clCreateKernel(program, "ResampleImage3D", &errNum);
+    }
+    else if (this->floatingImage->nz == 1) {
+        //2D case
+        this->kernel = clCreateKernel(program, "ResampleImage2D", &errNum);
+    }
+    else {
+		reg_print_fct_error("CLResampleImageKernel::calculate");
+        reg_print_msg_error("The image dimension is not supported. Exit.");
+        reg_exit(1);
+    }
+    sContext->checkErrNum(errNum, "Error setting kernel ResampleImage.");
 
     long targetVoxelNumber = (long) this->warpedImage->nx * this->warpedImage->ny * this->warpedImage->nz;
     const unsigned int maxThreads = sContext->getMaxThreads();
     const unsigned int maxBlocks = sContext->getMaxBlocks();
 
     unsigned int blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
-    //blocks = min_cl(blocks, maxBlocks);
     blocks = std::min(blocks, maxBlocks);
 
     const cl_uint dims = 1;
@@ -89,13 +99,13 @@ void CLResampleImageKernel::calculate(int interp,
     int numMats = 0; //needs to be a parameter
     float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
 
-    cl_long2 voxelNumber = { (cl_long)warpedImage->nx * warpedImage->ny * warpedImage->nz, (cl_long)floatingImage->nx * floatingImage->ny * floatingImage->nz };
+    cl_long2 voxelNumber = { (cl_long)warpedImage->nx * warpedImage->ny * warpedImage->nz, (cl_long) this->floatingImage->nx * floatingImage->ny * this->floatingImage->nz };
     cl_uint3 fi_xyz = { (cl_uint)floatingImage->nx, (cl_uint)floatingImage->ny, (cl_uint)floatingImage->nz };
     cl_uint2 wi_tu = { (cl_uint)warpedImage->nt, (cl_uint)warpedImage->nu };
 
     if (numMats)
         mat33ToCptr(jacMat, jacMat_h, numMats);
-    //int datatype = con->getFloatingDatatype();
+
     int datatype = this->floatingImage->datatype;
 
     errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->clCurrentFloating);

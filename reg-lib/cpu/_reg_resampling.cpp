@@ -594,7 +594,8 @@ void ResampleImage2D(nifti_image *floatingImage,
       FloatingTYPE *xyzPointer;
       double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], relative[2];
       double xTempNewValue, intensity;
-      float world[3], position[3];
+      float world[3] = { 0.0 };
+      float position[3] = { 0.0 };
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
@@ -607,12 +608,16 @@ void ResampleImage2D(nifti_image *floatingImage,
       {
 
          intensity=paddingValue;
-
+//#ifndef NDEBUG
+//         //pixelIndex = z * (test_warped->nx * test_warped->ny) + y * test_warped->nx + x;
+//         int pixelCoordX = ((int)index)%((int)warpedImage->nx);
+//         int pixelCoordY = (int)((double)index / (double)warpedImage->nx);
+//         int pixelCoordZ = 0;
+//#endif
          if((maskPtr[index])>-1)
          {
             world[0]=static_cast<float>(deformationFieldPtrX[index]);
             world[1]=static_cast<float>(deformationFieldPtrY[index]);
-            world[2]=0;
 
             // real -> voxel; floating space
             reg_mat44_mul(floatingIJKMatrix, world, position);
