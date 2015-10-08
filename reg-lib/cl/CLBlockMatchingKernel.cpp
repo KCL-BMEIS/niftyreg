@@ -67,8 +67,8 @@ void CLBlockMatchingKernel::calculate() {
     unsigned int *definedBlock_h = (unsigned int*) malloc(sizeof(unsigned int));
     *definedBlock_h = 0;
     cl_int errNum;
-    cl_mem definedBlock = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(unsigned int), definedBlock_h, &errNum);
-    this->sContext->checkErrNum(errNum, "CLBlockMatchingKernel::calculate failed to allocate memory (definedBlock): ");
+    cl_mem cldefinedBlock = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(unsigned int), definedBlock_h, &errNum);
+    this->sContext->checkErrNum(errNum, "CLBlockMatchingKernel::calculate failed to allocate memory (cldefinedBlock): ");
 
     const unsigned int blockRange = params->voxelCaptureRange%4?params->voxelCaptureRange/4+1:params->voxelCaptureRange/4;
     const unsigned int stepSize = params->stepSize;
@@ -97,8 +97,8 @@ void CLBlockMatchingKernel::calculate() {
     sContext->checkErrNum(errNum, "Error setting mask.");
     errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &this->clReferenceMat);
     sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
-    errNum |= clSetKernelArg(kernel, 8, sizeof(cl_mem), &definedBlock);
-    sContext->checkErrNum(errNum, "Error setting definedBlock.");
+    errNum |= clSetKernelArg(kernel, 8, sizeof(cl_mem), &cldefinedBlock);
+    sContext->checkErrNum(errNum, "Error setting cldefinedBlock.");
     errNum |= clSetKernelArg(kernel, 9, sizeof(cl_uint3), &imageSize);
     sContext->checkErrNum(errNum, "Error setting image size.");
     errNum |= clSetKernelArg(kernel, 10, sizeof(cl_uint), &blockRange);
@@ -115,12 +115,12 @@ void CLBlockMatchingKernel::calculate() {
     sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution: ");
     clFinish(commandQueue);
 
-    errNum = clEnqueueReadBuffer(this->commandQueue, definedBlock, CL_TRUE, 0, sizeof(unsigned int), definedBlock_h, 0, NULL, NULL);
+    errNum = clEnqueueReadBuffer(this->commandQueue, cldefinedBlock, CL_TRUE, 0, sizeof(unsigned int), definedBlock_h, 0, NULL, NULL);
     sContext->checkErrNum(errNum, "Error reading  var after for execution: ");
     params->definedActiveBlock = *definedBlock_h;
 
     free(definedBlock_h);
-    clReleaseMemObject(definedBlock);
+    clReleaseMemObject(cldefinedBlock);
 }
 /* *************************************************************** */
 CLBlockMatchingKernel::~CLBlockMatchingKernel() {

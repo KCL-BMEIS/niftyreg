@@ -209,7 +209,9 @@ void initialise_block_matching_method(nifti_image * reference, _reg_blockMatchin
 
     params->percent_to_keep = percentToKeep_opt;
     params->activeBlockNumber = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2] * percentToKeep_block / 100;
-
+    //DEBUG
+	std::cout<< "params->activeBlockNumber=" << params->activeBlockNumber <<std::endl;
+	
     params->activeBlock = (int *)malloc(params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2] * sizeof(int));
     switch (reference->datatype) {
     case NIFTI_TYPE_FLOAT32:
@@ -236,12 +238,16 @@ void initialise_block_matching_method(nifti_image * reference, _reg_blockMatchin
     reg_print_msg_debug(text)
 #endif
     if (reference->nz > 1) {
-       params->referencePosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
-       params->warpedPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
+       //params->referencePosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
+       //params->warpedPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
+        params->referencePosition = (float *)calloc(params->activeBlockNumber * 3, sizeof(float));
+        params->warpedPosition = (float *)calloc(params->activeBlockNumber * 3, sizeof(float));
     }
     else {
-       params->referencePosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
-       params->warpedPosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
+       //params->referencePosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
+       //params->warpedPosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
+        params->referencePosition = (float *)calloc(params->activeBlockNumber * 2, sizeof(float));
+        params->warpedPosition = (float *)calloc(params->activeBlockNumber * 2, sizeof(float));
     }
 #ifndef NDEBUG
     reg_print_msg_debug("block matching initialisation done.");

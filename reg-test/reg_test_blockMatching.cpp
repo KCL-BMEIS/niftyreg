@@ -188,12 +188,14 @@ int main(int argc, char **argv)
             positionIndex = imgDim * blockMatchingParams->activeBlock[blockIndex];
 
             if (positionIndex > -1) {
-               check_matching_difference(imgDim,
-                                         &blockMatchingParams->referencePosition[positionIndex],
-                                         &blockMatchingParams->warpedPosition[positionIndex],
-                                         &expectedBlockMatchingMatrix[matrixIndex][0],
-                     &expectedBlockMatchingMatrix[matrixIndex][3],
-                     max_difference);
+                std::cout << "blockMatchingParams->referencePosition[positionIndex]" << blockMatchingParams->referencePosition[positionIndex] << " " << blockMatchingParams->referencePosition[positionIndex + 1] << " " << blockMatchingParams->referencePosition[positionIndex + 2] << std::endl;
+                std::cout << "blockMatchingParams->warpedPosition[positionIndex]" << blockMatchingParams->warpedPosition[positionIndex] << " " << blockMatchingParams->warpedPosition[positionIndex + 1] << " " << blockMatchingParams->warpedPosition[positionIndex + 2] << std::endl;
+               //check_matching_difference(imgDim,
+               //                          &blockMatchingParams->referencePosition[positionIndex],
+               //                          &blockMatchingParams->warpedPosition[positionIndex],
+               //                          &expectedBlockMatchingMatrix[matrixIndex][0],
+               //      &expectedBlockMatchingMatrix[matrixIndex][3],
+               //      max_difference);
                matrixIndex++;
             }
          }

@@ -46,11 +46,11 @@ __inline__ float reduceCustom(__local float* sData2,
 __kernel void blockMatchingKernel(__local float *sResultValues,
 																	__global float* resultImageArray,
 																	__global float* targetImageArray,
-																	__global float *resultPosition,
-																	__global float *targetPosition,
+																	__global float *warpedPosition,
+																	__global float *referencePosition,
 																	__global int *activeBlock,
 																	__global int* mask,
-																	__global float* targetMatrix_xyz,
+																	__global float* referenceMatrix_xyz,
 																	__global unsigned int* definedBlock,
 																	uint3 c_ImageSize,
 																	const int blocksRange,
@@ -155,8 +155,11 @@ __kernel void blockMatchingKernel(__local float *sResultValues,
 														if (tid == 0 && localCC > bestCC) {
 																bestCC = localCC;
 																bestDisplacement[0] = l - 4.0f;
-																bestDisplacement[1] = m - 4.0f;
-																bestDisplacement[2] = n - 4.0f;
+                                                                bestDisplacement[1] = m - 4.0f;
+                                                                bestDisplacement[2] = n - 4.0f;
+                                                                //bestDisplacement[0] = l;
+                                                                //bestDisplacement[1] = m;
+                                                                //bestDisplacement[2] = n;
 														}
 												}
 										}
@@ -168,17 +171,17 @@ __kernel void blockMatchingKernel(__local float *sResultValues,
 
 						const unsigned int posIdx = 3 * atomic_add(definedBlock, 1);
 
-						resultPosition += posIdx;
-						targetPosition += posIdx;
+						warpedPosition += posIdx;
+						referencePosition += posIdx;
 
-						const float targetPosition_temp[3] = {(float)xBaseImage,(float)yBaseImage, (float)zBaseImage };
+						const float referencePosition_temp[3] = {(float)xBaseImage,(float)yBaseImage, (float)zBaseImage };
 
-						bestDisplacement[0] += targetPosition_temp[0];
-						bestDisplacement[1] += targetPosition_temp[1];
-						bestDisplacement[2] += targetPosition_temp[2];
+						bestDisplacement[0] += referencePosition_temp[0];
+						bestDisplacement[1] += referencePosition_temp[1];
+						bestDisplacement[2] += referencePosition_temp[2];
 
-						reg_mat44_mul_cl(targetMatrix_xyz, targetPosition_temp, targetPosition);
-						reg_mat44_mul_cl(targetMatrix_xyz, bestDisplacement, resultPosition);
+						reg_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, referencePosition);
+						reg_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, warpedPosition);
 
 				}
 		}
