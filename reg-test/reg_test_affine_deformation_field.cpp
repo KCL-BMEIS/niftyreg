@@ -11,8 +11,24 @@
 #ifdef _USE_CUDA
 #include "CUDAContent.h"
 #endif
+
 #ifdef _USE_OPENCL
 #include "CLContent.h"
+#if defined(cl_khr_fp64)  // Khronos extension available?
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#define DOUBLE_SUPPORT_AVAILABLE
+#elif defined(cl_amd_fp64)  // AMD extension available?
+#pragma OPENCL EXTENSION cl_amd_fp64 : enable
+#define DOUBLE_SUPPORT_AVAILABLE
+#else
+#warning "double precision floating point not supported by OpenCL implementation.";
+#endif
+#endif
+
+#if defined(DOUBLE_SUPPORT_AVAILABLE)
+#define EPS_CL 0.000001
+#else
+#define EPS_CL 0.0001
 #endif
 
 #define EPS 0.000001
@@ -58,9 +74,9 @@ int main(int argc, char **argv)
     }
     // Check the dimension of the input images
     if (referenceImage->nx != inputDeformationField->nx ||
-        referenceImage->ny != inputDeformationField->ny ||
-        referenceImage->nz != inputDeformationField->nz ||
-        (referenceImage->nz > 1 ? 3 : 2) != inputDeformationField->nu){
+            referenceImage->ny != inputDeformationField->ny ||
+            referenceImage->nz != inputDeformationField->nz ||
+            (referenceImage->nz > 1 ? 3 : 2) != inputDeformationField->nu){
         reg_print_msg_error("The input reference and deformation field images do not have corresponding sizes");
         return EXIT_FAILURE;
     }
@@ -107,14 +123,26 @@ int main(int argc, char **argv)
     delete con;
     free(inputMatrix);
 
-    if (max_difference > EPS){
+    //Check if platform == CL
+    double proper_eps = 0;
+    if (platformCode == NR_PLATFORM_CL) {
+        proper_eps = EPS_CL;
+    }
+    else {
+        proper_eps = EPS;
+    }
+
+
+    if (max_difference > proper_eps){
         fprintf(stderr, "reg_test_affine_deformation_field error too large: %g (>%g)\n",
-            max_difference, EPS);
+                max_difference, proper_eps);
         return EXIT_FAILURE;
     }
 #ifndef NDEBUG
     fprintf(stdout, "reg_test_affine_deformation_field ok: %g (<%g)\n",
-        max_difference, EPS);
+            max_difference, proper_eps);
 #endif
+
     return EXIT_SUCCESS;
 }
+

@@ -4,7 +4,7 @@
 #include "_reg_tools.h"
 
 CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content *conIn, std::string nameIn) :
-        AffineDeformationFieldKernel(nameIn) {
+    AffineDeformationFieldKernel(nameIn) {
     //populate the CLContent object ptr
     con = static_cast<ClContent*>(conIn);
 
@@ -36,7 +36,7 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content *conIn, s
     std::ifstream kernelFile(clKernelPath.c_str(), std::ios::in);
     if (kernelFile.is_open() == 0) {
         //"affineDeformationKernel.cl propbably not installed - let's use the src location"
-         clKernelPath = (clSrcPath + clKernel);
+        clKernelPath = (clSrcPath + clKernel);
     }
 
     //get opencl context params
@@ -53,7 +53,7 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content *conIn, s
     cl_int errNum;
     // Create OpenCL kernel
     if(this->deformationFieldImage->nz>1)
-       kernel = clCreateKernel(program, "affineKernel3D", &errNum);
+        kernel = clCreateKernel(program, "affineKernel3D", &errNum);
     else kernel = clCreateKernel(program, "affineKernel2D", &errNum);
     sContext->checkErrNum(errNum, "Error setting kernel CLAffineDeformationFieldKernel.");
 
@@ -68,16 +68,34 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content *conIn, s
 }
 /* *************************************************************** */
 void CLAffineDeformationFieldKernel::calculate(bool compose) {
-    const unsigned int xThreads = 8;
-    const unsigned int yThreads = 8;
-    const unsigned int zThreads = 8;
+    //localWorkSize[0]*localWorkSize[1]*localWorkSize[2]... should be lower than the value specified by CL_DEVICE_MAX_WORK_GROUP_SIZE
+    cl_uint maxWG = 0;
+    cl_int errNum;
+    std::size_t paramValueSize;
+    errNum = clGetDeviceInfo(sContext->getDeviceId(), CL_DEVICE_MAX_WORK_GROUP_SIZE, 0, NULL, &paramValueSize);
+    sContext->checkErrNum(errNum, "Failed to getDeviceId() OpenCL device info ");
+    cl_uint * info = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSize);
+    errNum = clGetDeviceInfo(sContext->getDeviceId(), CL_DEVICE_MAX_WORK_GROUP_SIZE, paramValueSize, info, NULL);
+    sContext->checkErrNum(errNum, "Failed to getDeviceId() OpenCL device info ");
+    maxWG = *info;
+
+    //8=default value
+    unsigned int xThreads = 8;
+    unsigned int yThreads = 8;
+    unsigned int zThreads = 8;
+
+    while(xThreads*yThreads*zThreads > maxWG) {
+        xThreads = xThreads/2;
+        yThreads = yThreads/2;
+        zThreads = zThreads/2;
+    }
 
     const unsigned int xBlocks = ((this->deformationFieldImage->nx % xThreads) == 0) ?
-             (this->deformationFieldImage->nx / xThreads) : (this->deformationFieldImage->nx / xThreads) + 1;
+                (this->deformationFieldImage->nx / xThreads) : (this->deformationFieldImage->nx / xThreads) + 1;
     const unsigned int yBlocks = ((this->deformationFieldImage->ny % yThreads) == 0) ?
-             (this->deformationFieldImage->ny / yThreads) : (this->deformationFieldImage->ny / yThreads) + 1;
+                (this->deformationFieldImage->ny / yThreads) : (this->deformationFieldImage->ny / yThreads) + 1;
     const unsigned int zBlocks = ((this->deformationFieldImage->nz % zThreads) == 0) ?
-             (this->deformationFieldImage->nz / zThreads) : (this->deformationFieldImage->nz / zThreads) + 1;
+                (this->deformationFieldImage->nz / zThreads) : (this->deformationFieldImage->nz / zThreads) + 1;
     //const cl_uint dims = this->deformationFieldImage->nz>1?3:2;
     //Back to the old version... at least I could compile
     const cl_uint dims = 3;
@@ -85,12 +103,10 @@ void CLAffineDeformationFieldKernel::calculate(bool compose) {
     const size_t localWorkSize[dims] = { xThreads, yThreads, zThreads };
 
     mat44 transformationMatrix = (compose == true) ?
-             *this->affineTransformation : reg_mat44_mul(this->affineTransformation, ReferenceMatrix);
+                *this->affineTransformation : reg_mat44_mul(this->affineTransformation, ReferenceMatrix);
 
     float* trans = (float *) malloc(16 * sizeof(float));
     mat44ToCptr(transformationMatrix, trans);
-
-    cl_int errNum;
 
     cl_uint3 pms_d = {{ (cl_uint)this->deformationFieldImage->nx,
                         (cl_uint)this->deformationFieldImage->ny,
