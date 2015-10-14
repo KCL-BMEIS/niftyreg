@@ -1,12 +1,11 @@
 #ifndef CUDABLOCKMATCHINGKERNEL_H
 #define CUDABLOCKMATCHINGKERNEL_H
 
-#include "BlockMatchingKernel.h"
+#include "../BlockMatchingKernel.h"
 #include "CUDAContent.h"
 
 //Kernel functions for block matching
-class CudaBlockMatchingKernel: public BlockMatchingKernel
-{
+class CudaBlockMatchingKernel : public BlockMatchingKernel {
 public:
 
     CudaBlockMatchingKernel(Content *conIn, std::string name);

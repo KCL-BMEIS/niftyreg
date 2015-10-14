@@ -1,5 +1,5 @@
 #include "CUDABlockMatchingKernel.h"
-#include "_reg_blockMatching_cuda.h"
+#include "blockMatchingKernel.h"
 
 /* *************************************************************** */
 CudaBlockMatchingKernel::CudaBlockMatchingKernel(Content *conIn, std::string name) :

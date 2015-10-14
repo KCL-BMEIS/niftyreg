@@ -40,12 +40,12 @@ install(TARGETS ${NAME}
 	ARCHIVE DESTINATION lib
 )
 #-----------------------------------------------------------------------------
-install(FILES CLContextSingletton.h CLContent.h CLKernelFactory.h #CLKernels.h
+install(FILES CLContextSingletton.h CLContent.h CLKernelFactory.h
         CLAffineDeformationFieldKernel.h
         CLBlockMatchingKernel.h
         CLConvolutionKernel.h
         CLOptimiseKernel.h
         CLResampleImageKernel.h
-        DESTINATION include)
+        DESTINATION include/cl)
 install(FILES resampleKernel.cl affineDeformationKernel.cl blockMatchingKernel.cl DESTINATION include/cl)
 #-----------------------------------------------------------------------------

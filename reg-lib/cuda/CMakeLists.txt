@@ -64,28 +64,29 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES ${NAME}.h DESTINATION include)
+install(FILES ${NAME}.h DESTINATION include/cuda)
 #-----------------------------------------------------------------------------
 set(NAME _reg_cuda_kernels)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
-	_reg_blockMatching_cuda.cu
-	_reg_blockMatching_kernels.cu
+	    blockMatchingKernel.cu
         CUDAContent.cpp
         CUDAKernelFactory.cpp
-        CUDAKernelFuncs.cu
+        resampleKernel.cu
+        affineDeformationKernel.cu
         CUDAAffineDeformationFieldKernel.cpp
         CUDABlockMatchingKernel.cpp
         CUDAConvolutionKernel.cpp
         CUDAOptimiseKernel.cpp
         CUDAResampleImageKernel.cpp
 	../Content.cpp
+    ../Platform.cpp
 )
-target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda )
+target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION lib
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES _reg_blockMatching_cuda.h CUDAContent.h DESTINATION include)
-install(FILES CUDAKernelFactory.h CUDAKernelFuncs.h CUDAAffineDeformationFieldKernel.h CUDABlockMatchingKernel.h CUDAConvolutionKernel.h CUDAOptimiseKernel.h CUDAResampleImageKernel.h DESTINATION include)
+install(FILES blockMatchingKernel.h CUDAContent.h DESTINATION include/cuda)
+install(FILES CUDAKernelFactory.h affineDeformationKernel.h resampleKernel.h CUDAAffineDeformationFieldKernel.h CUDABlockMatchingKernel.h CUDAConvolutionKernel.h CUDAOptimiseKernel.h CUDAResampleImageKernel.h DESTINATION include/cuda)
 #-----------------------------------------------------------------------------

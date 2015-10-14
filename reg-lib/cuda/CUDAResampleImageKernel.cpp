@@ -1,5 +1,5 @@
 #include "CUDAResampleImageKernel.h"
-#include "CUDAKernelFuncs.h"
+#include "resampleKernel.h"
 
 /* *************************************************************** */
 CudaResampleImageKernel::CudaResampleImageKernel(Content *conIn, std::string name) :
