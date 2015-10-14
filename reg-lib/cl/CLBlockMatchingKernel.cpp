@@ -108,7 +108,7 @@ void CLBlockMatchingKernel::calculate() {
         sContext->checkErrNum(errNum, "Error setting mask.");
         errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &this->clReferenceMat);
         sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
-        errNum |= clSetKernelArg(kernel, 8, sizeof(cl_uint), &cldefinedBlock);
+        errNum |= clSetKernelArg(kernel, 8, sizeof(cl_mem), &cldefinedBlock);
         sContext->checkErrNum(errNum, "Error setting cldefinedBlock.");
         errNum |= clSetKernelArg(kernel, 9, sizeof(cl_uint3), &imageSize);
         sContext->checkErrNum(errNum, "Error setting image size.");
@@ -143,7 +143,7 @@ void CLBlockMatchingKernel::calculate() {
         sContext->checkErrNum(errNum, "Error setting mask.");
         errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &this->clReferenceMat);
         sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
-        errNum |= clSetKernelArg(kernel, 8, sizeof(cl_uint), &cldefinedBlock);
+        errNum |= clSetKernelArg(kernel, 8, sizeof(cl_mem), &cldefinedBlock);
         sContext->checkErrNum(errNum, "Error setting cldefinedBlock.");
         errNum |= clSetKernelArg(kernel, 9, sizeof(cl_uint3), &imageSize);
         sContext->checkErrNum(errNum, "Error setting image size.");
