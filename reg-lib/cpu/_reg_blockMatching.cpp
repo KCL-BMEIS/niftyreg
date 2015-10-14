@@ -18,9 +18,9 @@
 /* *************************************************************** */
 template<class DTYPE>
 void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU) {
-    const size_t totalBlockNumber = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
-    float *varianceArray = (float *)malloc(totalBlockNumber * sizeof(float));
-    int *indexArray = (int *)malloc(totalBlockNumber * sizeof(int));
+
+    float *varianceArray = (float *)malloc(params->totalBlockNumber * sizeof(float));
+    int *indexArray = (int *)malloc(params->totalBlockNumber * sizeof(int));
 
     int *maskPtr = &mask[0];
 
@@ -152,24 +152,25 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
     }
     free(referenceValues);
 
-    params->activeBlockNumber = params->activeBlockNumber < ((int)totalBlockNumber - unusableBlock) ? params->activeBlockNumber : (totalBlockNumber - unusableBlock);
+    //params->activeBlockNumber = params->activeBlockNumber < ((int)params->totalBlockNumber - unusableBlock) ? params->activeBlockNumber : (params->totalBlockNumber - unusableBlock);
+    params->activeBlockNumber = params->totalBlockNumber - unusableBlock;
 
-    reg_heapSort(varianceArray, indexArray, totalBlockNumber);
-    int *indexArrayPtr = &indexArray[totalBlockNumber - 1];
+    reg_heapSort(varianceArray, indexArray, params->totalBlockNumber);
+    int *indexArrayPtr = &indexArray[params->totalBlockNumber - 1];
     int count = 0;
     for (int i = 0; i < params->activeBlockNumber; i++) {
-        params->activeBlock[*indexArrayPtr--] = count++;
+        params->totalBlock[*indexArrayPtr--] = count++;
     }
-    for (size_t i = params->activeBlockNumber; i < totalBlockNumber; ++i) {
-        params->activeBlock[*indexArrayPtr--] = -1;
+    for (size_t i = params->activeBlockNumber; i < params->totalBlockNumber; ++i) {
+        params->totalBlock[*indexArrayPtr--] = -1;
     }
 
     count = 0;
     if (runningOnGPU) {
-        for (size_t i = 0; i < totalBlockNumber; ++i) {
-            if (params->activeBlock[i] != -1) {
-                params->activeBlock[i] = -1;
-                params->activeBlock[count] = i;
+        for (size_t i = 0; i < params->totalBlockNumber; ++i) {
+            if (params->totalBlock[i] != -1) {
+                params->totalBlock[i] = -1;
+                params->totalBlock[count] = i;
                 ++count;
             }
         }
@@ -180,10 +181,11 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
 }
 /* *************************************************************** */
 void initialise_block_matching_method(nifti_image * reference, _reg_blockMatchingParam *params, int percentToKeep_block, int percentToKeep_opt, int stepSize_block, int *mask, bool runningOnGPU) {
-    if (params->activeBlock != NULL) {
-        free(params->activeBlock);
-        params->activeBlock = NULL;
+    if (params->totalBlock != NULL) {
+        free(params->totalBlock);
+        params->totalBlock = NULL;
     }
+
     if (params->referencePosition != NULL) {
         free(params->referencePosition);
         params->referencePosition = NULL;
@@ -204,15 +206,14 @@ void initialise_block_matching_method(nifti_image * reference, _reg_blockMatchin
         params->blockNumber[2] = 1;
         params->dim = 2;
     }
+    params->totalBlockNumber = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
 
     params->stepSize = stepSize_block;
 
     params->percent_to_keep = percentToKeep_opt;
-    params->activeBlockNumber = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2] * percentToKeep_block / 100;
-    //DEBUG
-	std::cout<< "params->activeBlockNumber=" << params->activeBlockNumber <<std::endl;
 	
-    params->activeBlock = (int *)malloc(params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2] * sizeof(int));
+    params->totalBlock = (int *)malloc(params->totalBlockNumber * sizeof(int));
+
     switch (reference->datatype) {
     case NIFTI_TYPE_FLOAT32:
         _reg_set_active_blocks<float>(reference, params, mask, runningOnGPU);
@@ -234,21 +235,13 @@ void initialise_block_matching_method(nifti_image * reference, _reg_blockMatchin
 #ifndef NDEBUG
     char text[255];
     sprintf(text, "There are %i active block(s) out of %i.",
-        params->activeBlockNumber, params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2]);
+        params->activeBlockNumber, params->totalBlockNumber);
     reg_print_msg_debug(text)
 #endif
-    if (reference->nz > 1) {
-       //params->referencePosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
-       //params->warpedPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
-        params->referencePosition = (float *)calloc(params->activeBlockNumber * 3, sizeof(float));
-        params->warpedPosition = (float *)calloc(params->activeBlockNumber * 3, sizeof(float));
-    }
-    else {
-       //params->referencePosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
-       //params->warpedPosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
-        params->referencePosition = (float *)calloc(params->activeBlockNumber * 2, sizeof(float));
-        params->warpedPosition = (float *)calloc(params->activeBlockNumber * 2, sizeof(float));
-    }
+        //params->activeBlock = (int *)malloc(params->activeBlockNumber * sizeof(int));
+        params->referencePosition = (float *)malloc(params->activeBlockNumber * params->dim * sizeof(float));
+        params->warpedPosition = (float *)malloc(params->activeBlockNumber * params->dim * sizeof(float));
+
 #ifndef NDEBUG
     reg_print_msg_debug("block matching initialisation done.");
 #endif
@@ -292,10 +285,11 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
     DTYPE warpedValues[BLOCK_2D_SIZE];
     bool warpedOverlap[BLOCK_2D_SIZE];
 
-    float *temp_reference_position = (float *)malloc(2 * params->activeBlockNumber * sizeof(float));
-    float *temp_warped_position = (float *)malloc(2 * params->activeBlockNumber * sizeof(float));
+    float *temp_reference_position = (float *)malloc(2 * params->totalBlockNumber * sizeof(float));
+    float *temp_warped_position = (float *)malloc(2 * params->totalBlockNumber * sizeof(float));
+    params->definedActiveBlockNumber = 0;
 
-    for (i = 0; i < 2 * params->activeBlockNumber; i += 2) {
+    for (i = 0; i < 2 * params->totalBlockNumber; i += 2) {
         temp_reference_position[i] = std::numeric_limits<float>::quiet_NaN();
     }
 
@@ -307,7 +301,7 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
             referenceIndex_start_x = i * BLOCK_WIDTH;
             referenceIndex_end_x = referenceIndex_start_x + BLOCK_WIDTH;
 
-            if (params->activeBlock[blockIndex] > -1) {
+            if (params->totalBlock[blockIndex] > -1) {
 
                 referenceIndex = 0;
                 memset(referenceOverlap, 0, BLOCK_2D_SIZE * sizeof(bool));
@@ -413,7 +407,7 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                     }
                 }
 
-                if (bestDisplacement[0] == bestDisplacement[0]) {
+                //if (bestDisplacement[0] == bestDisplacement[0]) {
                     referencePosition_temp[0] = (float)(i * BLOCK_WIDTH);
                     referencePosition_temp[1] = (float)(j * BLOCK_WIDTH);
                     referencePosition_temp[2] = 0.0f;
@@ -423,32 +417,43 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                     bestDisplacement[2] = 0.0f;
 
                     reg_mat44_mul(referenceMatrix_xyz, referencePosition_temp, tempPosition);
-                    z = 2 * params->activeBlock[blockIndex];
-                    temp_reference_position[z] = tempPosition[0];
-                    temp_reference_position[z + 1] = tempPosition[1];
+                    z = 2 * params->totalBlock[blockIndex];
+                    
+                    //temp_reference_position[z] = tempPosition[0];
+                    //temp_reference_position[z + 1] = tempPosition[1];
+                    params->referencePosition[z] = tempPosition[0];
+                    params->referencePosition[z + 1] = tempPosition[1];
+
                     reg_mat44_mul(referenceMatrix_xyz, bestDisplacement, tempPosition);
-                    temp_warped_position[z] = tempPosition[0];
-                    temp_warped_position[z + 1] = tempPosition[1];
-                }
+                    
+                    //temp_warped_position[z] = tempPosition[0];
+                    //temp_warped_position[z + 1] = tempPosition[1];
+                    params->warpedPosition[z] = tempPosition[0];
+                    params->warpedPosition[z + 1] = tempPosition[1];
+                    if (bestDisplacement[0] == bestDisplacement[0]) {
+                        params->definedActiveBlockNumber++;
+                    }
+                //}
             }
             blockIndex++;
         }
     }
 
     // Removing the NaNs and defining the number of active block
-    params->definedActiveBlock = 0;
-    j = 0;
-    for (i = 0; i < 2 * params->activeBlockNumber; i += 2) {
-            params->referencePosition[j] = temp_reference_position[i];
-            params->referencePosition[j + 1] = temp_reference_position[i + 1];
-            params->warpedPosition[j] = temp_warped_position[i];
-            params->warpedPosition[j + 1] = temp_warped_position[i + 1];
-            //To not loose the correspondance
-            if (temp_reference_position[i] == temp_reference_position[i]) {
-            params->definedActiveBlock++;
-            j += 2;
-        }
-    }
+    //params->definedActiveBlockNumber = 0;
+    //j = 0;
+    //for (i = 0; i < 2 * params->activeBlockNumber; i += 2) {
+    //        params->referencePosition[j] = temp_reference_position[i];
+    //        params->referencePosition[j + 1] = temp_reference_position[i + 1];
+    //        params->warpedPosition[j] = temp_warped_position[i];
+    //        params->warpedPosition[j + 1] = temp_warped_position[i + 1];
+    //        //To not loose the correspondance
+    //        if (temp_reference_position[i] == temp_reference_position[i]) {
+    //        params->definedActiveBlockNumber++;
+    //        j += 2;
+    //    }
+    //}
+
     free(temp_reference_position);
     free(temp_warped_position);
 }
@@ -500,9 +505,11 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
     bool warpedOverlap[1][BLOCK_3D_SIZE];
 #endif
 
-    float *temp_reference_position = (float *)malloc(3 * params->activeBlockNumber * sizeof(float));
-    float *temp_warped_position = (float *)malloc(3 * params->activeBlockNumber * sizeof(float));
-    for (i = 0; i < 3 * params->activeBlockNumber; i += 3)
+    float *temp_reference_position = (float *)malloc(3 * params->totalBlockNumber * sizeof(float));
+    float *temp_warped_position = (float *)malloc(3 * params->totalBlockNumber * sizeof(float));
+    params->definedActiveBlockNumber = 0;
+
+    for (i = 0; i < 3 * params->totalBlockNumber; i += 3)
         temp_reference_position[i] = std::numeric_limits<float>::quiet_NaN();
 
 #if defined (_OPENMP)
@@ -536,7 +543,7 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
                 referenceIndex_start_x = i * BLOCK_WIDTH;
                 referenceIndex_end_x = referenceIndex_start_x + BLOCK_WIDTH;
 
-                if (params->activeBlock[blockIndex] > -1) {
+                if (params->totalBlock[blockIndex] > -1) {
                     referenceIndex = 0;
                     memset(referenceOverlap[tid], 0, BLOCK_3D_SIZE * sizeof(bool));
                     for (z = referenceIndex_start_z; z < referenceIndex_end_z; z++) {
@@ -662,7 +669,7 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
                             }
                         }
                     }
-                    if (bestDisplacement[0] == bestDisplacement[0]) {
+                    //if (bestDisplacement[0] == bestDisplacement[0]) {
                         referencePosition_temp[0] = (float)(i * BLOCK_WIDTH);
                         referencePosition_temp[1] = (float)(j * BLOCK_WIDTH);
                         referencePosition_temp[2] = (float)(k * BLOCK_WIDTH);
@@ -672,15 +679,26 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
                         bestDisplacement[2] += referencePosition_temp[2];
 
                         reg_mat44_mul(referenceMatrix_xyz, referencePosition_temp, tempPosition);
-                        z = 3 * params->activeBlock[blockIndex];
-                        temp_reference_position[z] = tempPosition[0];
-                        temp_reference_position[z + 1] = tempPosition[1];
-                        temp_reference_position[z + 2] = tempPosition[2];
+                        z = 3 * params->totalBlock[blockIndex];
+                        //temp_reference_position[z] = tempPosition[0];
+                        //temp_reference_position[z + 1] = tempPosition[1];
+                        //temp_reference_position[z + 2] = tempPosition[2];
+                        params->referencePosition[z] = tempPosition[0];
+                        params->referencePosition[z+1] = tempPosition[1];
+                        params->referencePosition[z+2] = tempPosition[2];
+
                         reg_mat44_mul(referenceMatrix_xyz, bestDisplacement, tempPosition);
-                        temp_warped_position[z] = tempPosition[0];
-                        temp_warped_position[z + 1] = tempPosition[1];
-                        temp_warped_position[z + 2] = tempPosition[2];
-                    }
+                        
+                        //temp_warped_position[z] = tempPosition[0];
+                        //temp_warped_position[z + 1] = tempPosition[1];
+                        //temp_warped_position[z + 2] = tempPosition[2];
+                        params->warpedPosition[z] = tempPosition[0];
+                        params->warpedPosition[z + 1] = tempPosition[1];
+                        params->warpedPosition[z + 2] = tempPosition[2];
+                        if (bestDisplacement[0] == bestDisplacement[0]) {
+                            params->definedActiveBlockNumber++;
+                        }
+                    //}
                 }
                 blockIndex++;
             }
@@ -688,21 +706,21 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
     }
 
     // Removing the NaNs and defining the number of active block
-    params->definedActiveBlock = 0;
-    j = 0;
-    for (i = 0; i < 3 * params->activeBlockNumber; i += 3) {
-            params->referencePosition[j] = temp_reference_position[i];
-            params->referencePosition[j + 1] = temp_reference_position[i + 1];
-            params->referencePosition[j + 2] = temp_reference_position[i + 2];
-            params->warpedPosition[j] = temp_warped_position[i];
-            params->warpedPosition[j + 1] = temp_warped_position[i + 1];
-            params->warpedPosition[j + 2] = temp_warped_position[i + 2];
-            //To not loose the correspondance
-            if (temp_reference_position[i] == temp_reference_position[i]) {
-            params->definedActiveBlock++;
-            j += 3;
-        }
-    }
+    //params->definedActiveBlockNumber = 0;
+    //j = 0;
+    //for (i = 0; i < 3 * params->activeBlockNumber; i += 3) {
+    //        params->referencePosition[j] = temp_reference_position[i];
+    //        params->referencePosition[j + 1] = temp_reference_position[i + 1];
+    //        params->referencePosition[j + 2] = temp_reference_position[i + 2];
+    //        params->warpedPosition[j] = temp_warped_position[i];
+    //        params->warpedPosition[j + 1] = temp_warped_position[i + 1];
+    //        params->warpedPosition[j + 2] = temp_warped_position[i + 2];
+    //        //To not loose the correspondance
+    //        if (temp_reference_position[i] == temp_reference_position[i]) {
+    //        params->definedActiveBlockNumber++;
+    //        j += 3;
+    //    }
+    //}
     free(temp_reference_position);
     free(temp_warped_position);
 
@@ -768,7 +786,7 @@ void optimize(_reg_blockMatchingParam *params,
             params->warpedPosition[index + 1] = out[1];
         }
         optimize_2D(params->referencePosition, params->warpedPosition,
-            params->definedActiveBlock, params->percent_to_keep,
+            params->activeBlockNumber, params->percent_to_keep,
             MAX_ITERATIONS, TOLERANCE,
             transformation_matrix, affine);
     }
@@ -787,7 +805,7 @@ void optimize(_reg_blockMatchingParam *params,
             params->warpedPosition[index + 2] = out[2];
         }
         optimize_3D(params->referencePosition, params->warpedPosition,
-            params->definedActiveBlock, params->percent_to_keep,
+            params->activeBlockNumber, params->percent_to_keep,
             MAX_ITERATIONS, TOLERANCE,
             transformation_matrix, affine);
     }

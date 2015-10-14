@@ -52,7 +52,7 @@ public:
 	float* getLengths_d();
 	float* getNewResultPos_d();
 
-	int *getActiveBlock_d();
+	int *getTotalBlock_d();
 	int *getMask_d();
 
 	int *getReferenceDims();
@@ -72,7 +72,7 @@ public:
 private:
 	void initVars();
 
-	void uploadContent();
+	//void uploadContent();
 	void allocateCuPtrs();
 	void freeCuPtrs();
 
@@ -82,7 +82,7 @@ private:
 	float *deformationFieldArray_d;
 	float *referencePosition_d;
 	float *warpedPosition_d;
-	int *activeBlock_d, *mask_d;
+	int   *totalBlock_d, *mask_d;
 
 	float* transformationMatrix_d;
 	float* referenceMat_d;

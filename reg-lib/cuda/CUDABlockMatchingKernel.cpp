@@ -17,7 +17,7 @@ CudaBlockMatchingKernel::CudaBlockMatchingKernel(Content *conIn, std::string nam
    warpedImageArray_d = con->getWarpedImageArray_d();
    referencePosition_d = con->getReferencePosition_d();
    warpedPosition_d = con->getWarpedPosition_d();
-   activeBlock_d = con->getActiveBlock_d();
+   totalBlock_d = con->getTotalBlock_d();
    mask_d = con->getMask_d();
    referenceMat_d = con->getReferenceMat_d();
 }
@@ -30,7 +30,7 @@ void CudaBlockMatchingKernel::calculate()
                              &warpedImageArray_d,
                              &referencePosition_d,
                              &warpedPosition_d,
-                             &activeBlock_d,
+                             &totalBlock_d,
                              &mask_d,
                              &referenceMat_d);
 }

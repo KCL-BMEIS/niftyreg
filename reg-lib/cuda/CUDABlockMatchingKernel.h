@@ -19,7 +19,7 @@ private:
 
     float *referenceImageArray_d, *warpedImageArray_d, *referencePosition_d;
     float *warpedPosition_d, *referenceMat_d;
-    int *activeBlock_d, *mask_d;
+    int   *totalBlock_d, *mask_d;
 
 };
 

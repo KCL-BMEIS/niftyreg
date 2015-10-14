@@ -49,7 +49,7 @@ public:
 	cl_mem getReferencePositionClmem();
 	cl_mem getWarpedPositionClmem();
 	cl_mem getDeformationFieldArrayClmem();
-	cl_mem getActiveBlockClmem();
+    cl_mem getTotalBlockClmem();
 	cl_mem getMaskClmem();
 	cl_mem getRefMatClmem();
 	cl_mem getFloMatClmem();
@@ -87,7 +87,7 @@ private:
 	cl_mem deformationFieldClmem;
 	cl_mem referencePositionClmem;
 	cl_mem warpedPositionClmem;
-	cl_mem activeBlockClmem;
+	cl_mem totalBlockClmem;
 	cl_mem maskClmem;
 	cl_mem refMatClmem;
 	cl_mem floMatClmem;

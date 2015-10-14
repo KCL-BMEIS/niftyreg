@@ -160,7 +160,7 @@ int main(int argc, char **argv)
    blockMatchingParams = con->getBlockMatchingParams();
 
 #ifndef NDEBUG
-   std::cout << "blockMatchingParams->definedActiveBlock = " << blockMatchingParams->definedActiveBlock << std::endl;
+   std::cout << "blockMatchingParams->definedActiveBlock = " << blockMatchingParams->definedActiveBlockNumber << std::endl;
 #endif
 
    float max_difference = 0;
@@ -185,17 +185,15 @@ int main(int argc, char **argv)
                blockIndex = y * blockMatchingParams->blockNumber[0] + x;
             }
 
-            positionIndex = imgDim * blockMatchingParams->activeBlock[blockIndex];
+            positionIndex = imgDim * blockMatchingParams->totalBlock[blockIndex];
 
             if (positionIndex > -1) {
-                std::cout << "blockMatchingParams->referencePosition[positionIndex]" << blockMatchingParams->referencePosition[positionIndex] << " " << blockMatchingParams->referencePosition[positionIndex + 1] << " " << blockMatchingParams->referencePosition[positionIndex + 2] << std::endl;
-                std::cout << "blockMatchingParams->warpedPosition[positionIndex]" << blockMatchingParams->warpedPosition[positionIndex] << " " << blockMatchingParams->warpedPosition[positionIndex + 1] << " " << blockMatchingParams->warpedPosition[positionIndex + 2] << std::endl;
-               //check_matching_difference(imgDim,
-               //                          &blockMatchingParams->referencePosition[positionIndex],
-               //                          &blockMatchingParams->warpedPosition[positionIndex],
-               //                          &expectedBlockMatchingMatrix[matrixIndex][0],
-               //      &expectedBlockMatchingMatrix[matrixIndex][3],
-               //      max_difference);
+                check_matching_difference(imgDim,
+                                         &blockMatchingParams->referencePosition[positionIndex],
+                                         &blockMatchingParams->warpedPosition[positionIndex],
+                                         &expectedBlockMatchingMatrix[matrixIndex][0],
+                                         &expectedBlockMatchingMatrix[matrixIndex][3],
+                                         max_difference);
                matrixIndex++;
             }
          }

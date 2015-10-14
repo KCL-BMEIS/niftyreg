@@ -89,7 +89,7 @@ void ClContent::initVars()
 	this->deformationFieldClmem = 0;
 	this->referencePositionClmem = 0;
 	this->warpedPositionClmem = 0;
-	this->activeBlockClmem = 0;
+	this->totalBlockClmem = 0;
 	this->maskClmem = 0;
 
 	if (this->CurrentReference != NULL && this->CurrentReference->nbyper != NIFTI_TYPE_FLOAT32)
@@ -147,26 +147,15 @@ void ClContent::allocateClPtrs()
             //targetPositionClmem
             this->referencePositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float), this->blockMatchingParams->referencePosition, &this->errNum);
             this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (referencePositionClmem): ");
-            //DEBUG
-            for (int z = 1; z < blockMatchingParams->blockNumber[2] - 1; z += 3) {
-                for (int y = 1; y < blockMatchingParams->blockNumber[1] - 1; y += 3) {
-                    for (int x = 1; x < blockMatchingParams->blockNumber[0] - 1; x += 3) {
-                        
-                        int blockIndex = (z * blockMatchingParams->blockNumber[1] + y) * blockMatchingParams->blockNumber[0] + x;
-                        int positionIndex = 3* blockIndex;
-                        std::cout << "blockMatchingParams->referencePosition[positionIndex]" << blockMatchingParams->referencePosition[positionIndex] << " " << blockMatchingParams->referencePosition[positionIndex + 1] << " " << blockMatchingParams->referencePosition[positionIndex + 2] << std::endl;
-                    }
-                }
-            }
         }
         if (this->blockMatchingParams->warpedPosition != NULL) {
             //resultPositionClmem
             this->warpedPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float), this->blockMatchingParams->warpedPosition, &this->errNum);
             this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (warpedPositionClmem): ");
         }
-        if (this->blockMatchingParams->activeBlock != NULL) {
-            //activeBlockClmem
-            this->activeBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * sizeof(int), this->blockMatchingParams->activeBlock, &this->errNum);
+        if (this->blockMatchingParams->totalBlock != NULL) {
+            //totalBlockClmem
+            this->totalBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->totalBlockNumber * sizeof(int), this->blockMatchingParams->totalBlock, &this->errNum);
             this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (activeBlockClmem): ");
         }
 	}
@@ -250,10 +239,10 @@ void ClContent::setBlockMatchingParams(_reg_blockMatchingParam* bmp) {
         this->warpedPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float), this->blockMatchingParams->warpedPosition, &this->errNum);
         this->sContext->checkErrNum(this->errNum, "ClContent::setBlockMatchingParams failed to allocate memory (warpedPositionClmem): ");
     }
-    if (this->blockMatchingParams->activeBlock != NULL) {
-        clReleaseMemObject(this->activeBlockClmem);
-        //activeBlockClmem
-        this->activeBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * sizeof(int), this->blockMatchingParams->activeBlock, &this->errNum);
+    if (this->blockMatchingParams->totalBlock != NULL) {
+        clReleaseMemObject(this->totalBlockClmem);
+        //totalBlockClmem
+        this->totalBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->totalBlockNumber * sizeof(int), this->blockMatchingParams->totalBlock, &this->errNum);
         this->sContext->checkErrNum(this->errNum, "ClContent::setBlockMatchingParams failed to allocate memory (activeBlockClmem): ");
     }
 }
@@ -288,9 +277,9 @@ cl_mem ClContent::getDeformationFieldArrayClmem()
 	return this->deformationFieldClmem;
 }
 /* *************************************************************** */
-cl_mem ClContent::getActiveBlockClmem()
+cl_mem ClContent::getTotalBlockClmem()
 {
-	return this->activeBlockClmem;
+	return this->totalBlockClmem;
 }
 /* *************************************************************** */
 cl_mem ClContent::getMaskClmem()
@@ -436,7 +425,7 @@ void ClContent::freeClPtrs()
 		clReleaseMemObject(this->maskClmem);
 	if(this->blockMatchingParams != NULL)
 	{
-		clReleaseMemObject(this->activeBlockClmem);
+		clReleaseMemObject(this->totalBlockClmem);
 		clReleaseMemObject(this->referencePositionClmem);
 		clReleaseMemObject(this->warpedPositionClmem);
 	}

@@ -303,10 +303,10 @@ void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, m
     float** points1 = reg_matrix2DAllocate<float>(num_points, 2);
     float** points2 = reg_matrix2DAllocate<float>(num_points, 2);
     for (unsigned int i = 0; i < num_points; i++) {
-        points1[i][0] = points[i].target[0];
-        points1[i][1] = points[i].target[1];
-        points2[i][0] = points[i].result[0];
-        points2[i][1] = points[i].result[1];
+        points1[i][0] = points[i].reference[0];
+        points1[i][1] = points[i].reference[1];
+        points2[i][0] = points[i].warped[0];
+        points2[i][1] = points[i].warped[1];
     }
     estimate_rigid_transformation2D(points1, points2, num_points, transformation);
     //FREE MEMORY
@@ -440,12 +440,12 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, m
     float** points1 = reg_matrix2DAllocate<float>(num_points, 3);
     float** points2 = reg_matrix2DAllocate<float>(num_points, 3);
     for (unsigned int i = 0; i < num_points; i++) {
-        points1[i][0] = points[i].target[0];
-        points1[i][1] = points[i].target[1];
-        points1[i][2] = points[i].target[2];
-        points2[i][0] = points[i].result[0];
-        points2[i][1] = points[i].result[1];
-        points2[i][2] = points[i].result[2];
+        points1[i][0] = points[i].reference[0];
+        points1[i][1] = points[i].reference[1];
+        points1[i][2] = points[i].reference[2];
+        points2[i][0] = points[i].warped[0];
+        points2[i][1] = points[i].warped[1];
+        points2[i][2] = points[i].warped[2];
     }
     estimate_rigid_transformation3D(points1, points2, num_points, transformation);
     //FREE MEMORY
@@ -547,10 +547,10 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, 
     float** points1 = reg_matrix2DAllocate<float>(num_points, 2);
     float** points2 = reg_matrix2DAllocate<float>(num_points, 2);
     for (unsigned int i = 0; i < num_points; i++) {
-        points1[i][0] = points[i].target[0];
-        points1[i][1] = points[i].target[1];
-        points2[i][0] = points[i].result[0];
-        points2[i][1] = points[i].result[1];
+        points1[i][0] = points[i].reference[0];
+        points1[i][1] = points[i].reference[1];
+        points2[i][0] = points[i].warped[0];
+        points2[i][1] = points[i].warped[1];
     }
     estimate_affine_transformation2D(points1, points2, num_points, transformation);
     //FREE MEMORY
@@ -671,12 +671,12 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
     float** points1 = reg_matrix2DAllocate<float>(num_points, 3);
     float** points2 = reg_matrix2DAllocate<float>(num_points, 3);
     for (unsigned int i = 0; i < num_points; i++) {
-        points1[i][0] = points[i].target[0];
-        points1[i][1] = points[i].target[1];
-        points1[i][2] = points[i].target[2];
-        points2[i][0] = points[i].result[0];
-        points2[i][1] = points[i].result[1];
-        points2[i][2] = points[i].result[2];
+        points1[i][0] = points[i].reference[0];
+        points1[i][1] = points[i].reference[1];
+        points1[i][2] = points[i].reference[2];
+        points2[i][0] = points[i].warped[0];
+        points2[i][1] = points[i].warped[1];
+        points2[i][2] = points[i].warped[2];
     }
     estimate_affine_transformation3D(points1, points2, num_points, transformation);
     //FREE MEMORY
@@ -686,13 +686,13 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
 /* *************************************************************** */
 ///LTS 2D
 void optimize_2D(float* referencePosition, float* warpedPosition,
-    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    unsigned int activeBlockNumber, int percent_to_keep, int max_iter, double tol,
     mat44 * final, bool affine) {
 
     // Set the current transformation to identity
     reg_mat44_eye(final);
 
-    const unsigned num_points = definedActiveBlock;
+    const unsigned num_points = activeBlockNumber;
     unsigned long num_equations = num_points * 2;
     // Keep a sorted list of the distance measure
     std::multimap<double, _reg_sorted_point2D> queue;
@@ -770,13 +770,13 @@ void optimize_2D(float* referencePosition, float* warpedPosition,
 /* *************************************************************** */
 ///LTS 3D
 void optimize_3D(float *referencePosition, float *warpedPosition,
-    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    unsigned int activeBlockNumber, int percent_to_keep, int max_iter, double tol,
     mat44 *final, bool affine) {
 
     // Set the current transformation to identity
     reg_mat44_eye(final);
 
-    const unsigned num_points = definedActiveBlock;
+    const unsigned num_points = activeBlockNumber;
     unsigned long num_equations = num_points * 3;
     // Keep a sorted list of the distance measure
     std::multimap<double, _reg_sorted_point3D> queue;

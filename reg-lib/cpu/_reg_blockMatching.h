@@ -61,6 +61,8 @@
  */
 struct _reg_blockMatchingParam
 {
+   int totalBlockNumber;
+   int *totalBlock;
    int blockNumber[3];
    //Number of block we keep for LTS
    int percent_to_keep;
@@ -68,24 +70,31 @@ struct _reg_blockMatchingParam
    unsigned int dim;
    float *referencePosition;
    float *warpedPosition;
-   //Number of block we keep in total or Number of block we keep in total - unuseable blocks
-   int activeBlockNumber;
-   int *activeBlock;
 
-   int definedActiveBlock;
+   //Before:
+   //Min between Number of block we keep in total (totalBlockNumber*percent_to_keep) and Number of total block - unuseable blocks
+   //Now:
+   //Number of total block - unuseable blocks
+   int activeBlockNumber;
+   //int *activeBlock;
+
+   //Number of active block which has a displacement vector (not NaN)
+   int definedActiveBlockNumber;
+   //int *definedActiveBlock;
+
    int voxelCaptureRange;
 
    int stepSize;
    bool cusvd;
 
    _reg_blockMatchingParam()
-      : percent_to_keep(0),
+       : totalBlockNumber(0),
+        totalBlock(0),
+        percent_to_keep(0),
         dim(0),
         referencePosition(0),
         warpedPosition(0),
         activeBlockNumber(0),
-        activeBlock(0),
-        definedActiveBlock(0),
         voxelCaptureRange(0),
         stepSize(0),
         cusvd(0)
@@ -93,9 +102,9 @@ struct _reg_blockMatchingParam
 
    ~_reg_blockMatchingParam()
    {
-      if(referencePosition) free(referencePosition);
-      if(warpedPosition) free(warpedPosition);
-      if(activeBlock) free(activeBlock);
+      if (referencePosition) free(referencePosition);
+      if (warpedPosition) free(warpedPosition);
+      if (totalBlock) free(totalBlock);
    }
 };
 /* *************************************************************** */

@@ -21,7 +21,11 @@
 #pragma OPENCL EXTENSION cl_amd_fp64 : enable
 #define DOUBLE_SUPPORT_AVAILABLE
 #else
-#warning "double precision floating point not supported by OpenCL implementation.";
+#if _MSC_VER
+#pragma message("double precision floating point not supported by OpenCL implementation.")
+#else
+#warning "double precision floating point not supported by OpenCL implementation."
+#endif
 #endif
 #endif
 

@@ -35,17 +35,10 @@ void block_matching_method_gpu(nifti_image *targetImage,
 										 float **resultImageArray_d,
 										 float **referencePosition_d,
 										 float **warpedPosition_d,
-										 int **activeBlock_d,
+										 int **totalBlock_d,
 										 int **mask_d,
 										 float** referenceMat_d)
 {
-	if(targetImage->nz==1){
-		//TODO
-		reg_print_fct_error("block_matching_method_gpu");
-		reg_print_msg_error("Need to implement the 2D version");
-		reg_exit(1);
-	}
-
 	// Copy some required parameters over to the device
 	uint3 imageSize = make_uint3(targetImage->nx, targetImage->ny, targetImage->nz); // Image size
 
@@ -53,7 +46,7 @@ void block_matching_method_gpu(nifti_image *targetImage,
 	const unsigned int numBlocks = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, targetImageArray_texture, *targetImageArray_d, targetImage->nvox * sizeof(float)));
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, resultImageArray_texture, *resultImageArray_d, targetImage->nvox * sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, activeBlock_texture, *activeBlock_d, numBlocks * sizeof(int)));
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, totalBlock_texture, *totalBlock_d, numBlocks * sizeof(int)));
 
 	unsigned int *definedBlock_d;
 	unsigned int *definedBlock_h = (unsigned int*) malloc(sizeof(unsigned int));
@@ -61,10 +54,27 @@ void block_matching_method_gpu(nifti_image *targetImage,
 	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&definedBlock_d), sizeof(unsigned int)));
 	NR_CUDA_SAFE_CALL(cudaMemcpy(definedBlock_d, definedBlock_h, sizeof(unsigned int), cudaMemcpyHostToDevice));
 
-	dim3 BlockDims1D(64, 1, 1);
-	dim3 BlocksGrid3D(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
 	const int blockRange = params->voxelCaptureRange % 4 ? params->voxelCaptureRange / 4 + 1 : params->voxelCaptureRange / 4;
-	const unsigned int sMem = (blockRange * 2 + 1) * (blockRange * 2 + 1) * (blockRange * 2 + 1) * 64 * sizeof(float);
+    dim3 BlockDims1D(64,1,1);
+    dim3 BlocksGrid3D(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
+
+    if (targetImage->nz == 1){
+
+        BlockDims1D.x=16;
+
+        const unsigned int sMem = (blockRange * 2 + 1) * (blockRange * 2 + 1) * 16 * sizeof(float);
+        blockMatchingKernel2D << <BlocksGrid3D, BlockDims1D, sMem >> >(*warpedPosition_d,
+            *referencePosition_d,
+            *mask_d,
+            *referenceMat_d,
+            definedBlock_d,
+            imageSize,
+            blockRange,
+            params->stepSize);
+    }
+    else {
+
+        const unsigned int sMem = (blockRange * 2 + 1) * (blockRange * 2 + 1) * (blockRange * 2 + 1) * 64 * sizeof(float);
 	blockMatchingKernel3D<< <BlocksGrid3D, BlockDims1D, sMem >> >(*warpedPosition_d,
 																					  *referencePosition_d,
 																					  *mask_d,
@@ -73,6 +83,7 @@ void block_matching_method_gpu(nifti_image *targetImage,
 																					  imageSize,
 																					  blockRange,
 																					  params->stepSize);
+    }
 
 #ifndef NDEBUG
 	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)
@@ -80,11 +91,11 @@ void block_matching_method_gpu(nifti_image *targetImage,
 	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 
 	NR_CUDA_SAFE_CALL(cudaMemcpy((void * )definedBlock_h, (void * )definedBlock_d, sizeof(unsigned int), cudaMemcpyDeviceToHost));
-	params->definedActiveBlock = *definedBlock_h;
-//	printf("kernel definedActiveBlock: %d\n", params->definedActiveBlock);
+	params->definedActiveBlockNumber = *definedBlock_h;
+    printf("kernel definedActiveBlock: %d\n", params->definedActiveBlockNumber);
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(targetImageArray_texture));
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(resultImageArray_texture));
-	NR_CUDA_SAFE_CALL(cudaUnbindTexture(activeBlock_texture));
+	NR_CUDA_SAFE_CALL(cudaUnbindTexture(totalBlock_texture));
 
 	free(definedBlock_h);
 	cudaFree(definedBlock_d);

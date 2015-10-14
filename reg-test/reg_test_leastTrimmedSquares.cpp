@@ -105,7 +105,7 @@ int main(int argc, char **argv)
     blockMatchingParams->blockNumber[1] = 1;
 
     blockMatchingParams->activeBlockNumber = num_points;
-    blockMatchingParams->definedActiveBlock = num_points;
+    blockMatchingParams->definedActiveBlockNumber = num_points;
     blockMatchingParams->percent_to_keep = percentToKeep;
 
     mat44* test_LTS = (mat44 *)malloc(sizeof(mat44));

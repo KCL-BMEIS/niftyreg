@@ -38,7 +38,7 @@ __device__          __constant__ float4 t_m_c;
 
 texture<float, 1, cudaReadModeElementType> targetImageArray_texture;
 texture<float, 1, cudaReadModeElementType> resultImageArray_texture;
-texture<int, 1, cudaReadModeElementType> activeBlock_texture;
+texture<int, 1, cudaReadModeElementType> totalBlock_texture;
 /* *************************************************************** */
 // Apply the transformation matrix
 __device__ inline void apply_affine(const float4 &pt, float * result)
@@ -49,6 +49,15 @@ __device__ inline void apply_affine(const float4 &pt, float * result)
     result[1] = (mat.x * pt.x) + (mat.y * pt.y) + (mat.z * pt.z) + (mat.w);
     mat = t_m_c;
     result[2] = (mat.x * pt.x) + (mat.y * pt.y) + (mat.z * pt.z) + (mat.w);
+}
+/* *************************************************************** */
+template<class DTYPE>
+__device__ __inline__
+void reg2D_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out)
+{
+    out[0] = (DTYPE)mat[0 * 4 + 0] * in[0] + (DTYPE)mat[0 * 4 + 1] * in[1] + (DTYPE)mat[0 * 4 + 2] * 0 + (DTYPE)mat[0 * 4 + 3];
+    out[1] = (DTYPE)mat[1 * 4 + 0] * in[0] + (DTYPE)mat[1 * 4 + 1] * in[1] + (DTYPE)mat[1 * 4 + 2] * 0 + (DTYPE)mat[1 * 4 + 3];
+    return;
 }
 /* *************************************************************** */
 template<class DTYPE>
@@ -78,6 +87,23 @@ float warpReduceSum(float val)
 }
 /* *************************************************************** */
 __inline__ __device__
+float blockReduce2DSum(float val, int tid)
+{
+    static __shared__ float shared[2];
+    int laneId = tid % 8;
+    int warpId = tid / 8;
+
+    val = warpReduceSum(val);     // Each warp performs partial reduction
+
+    if (laneId == 0)
+        shared[warpId] = val;
+    //if (blockIdx.x == 8 && blockIdx.y == 0 && blockIdx.z == 0) printf("idx: %d | lane: %d \n", tid, lane);
+    __syncthreads();
+
+    return shared[0] + shared[1];
+}
+/* *************************************************************** */
+__inline__ __device__
 float blockReduceSum(float val, int tid)
 {
     static __shared__ float shared[2];
@@ -95,8 +121,143 @@ float blockReduceSum(float val, int tid)
 }
 /* *************************************************************** */
 //recently switched to this kernel as it can accomodate greater capture range
-__global__ void blockMatchingKernel3D(float *resultPosition,
-    float *targetPosition,
+__global__ void blockMatchingKernel2D(float *warpedPosition,
+    float *referencePosition,
+    int *mask,
+    float* targetMatrix_xyz,
+    unsigned int *definedBlock,
+    uint3 c_ImageSize,
+    const int blocksRange,
+    const unsigned int stepSize)
+{
+    extern __shared__ float sResultValues[];
+
+    const unsigned int numBlocks = blocksRange * 2 + 1;
+
+    const unsigned int idy = threadIdx.x/4;
+    const unsigned int idx = threadIdx.x - 4 * idy;
+
+    const unsigned int blockIndex = blockIdx.x + gridDim.x * blockIdx.y;
+
+    const unsigned int xBaseImage = blockIdx.x * 4;
+    const unsigned int yBaseImage = blockIdx.y * 4;
+
+    const unsigned int tid = threadIdx.x;     //0-blockSize
+
+    const unsigned int xImage = xBaseImage + idx;
+    const unsigned int yImage = yBaseImage + idy;
+
+    const unsigned long imgIdx = xImage + yImage * (c_ImageSize.x);
+    const bool targetInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y;
+
+    const int currentBlockIndex = tex1Dfetch(totalBlock_texture, blockIndex);
+
+    float* start_warpedPosition = &warpedPosition[0];
+    float* start_referencePosition = &referencePosition[0];
+
+    if (currentBlockIndex > -1) {
+
+        float bestDisplacement[3] = { nanf("sNaN"), 0.0f, 0.0f };
+        float bestCC = blocksRange > 1 ? 0.9f : 0.0f;
+
+        //populate shared memory with resultImageArray's values
+            for (int m = -1 * blocksRange; m <= blocksRange; m += 1) {
+                for (int l = -1 * blocksRange; l <= blocksRange; l += 1) {
+                    const int x = l * 4 + idx;
+                    const int y = m * 4 + idy;
+
+                    const unsigned int sIdx = (y + blocksRange * 4) * numBlocks * 4 + (x + blocksRange * 4);
+
+                    const int xImageIn = xBaseImage + x;
+                    const int yImageIn = yBaseImage + y;
+
+                    const int indexXYZIn = xImageIn + yImageIn * (c_ImageSize.x);
+
+                    const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) && (yImageIn >= 0 && yImageIn < c_ImageSize.y);
+                    //sResultValues[sIdx] = (valid /*&& mask[indexXYZIn]>-1*/) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");     //for some reason the mask here creates probs
+                    sResultValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");     //for some reason the mask here creates probs
+
+                }
+            }
+
+        //for most cases we need this out of th loop
+        //value if the block is 4x4x4 NaN otherwise
+        float rTargetValue = (targetInBounds && mask[imgIdx] > -1) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
+        const bool finiteTargetIntensity = isfinite(rTargetValue);
+        rTargetValue = finiteTargetIntensity ? rTargetValue : 0.f;
+
+        const unsigned int targetBlockSize = __syncthreads_count(finiteTargetIntensity);
+
+        if (targetBlockSize > 8) {
+            //the target values must remain constant throughout the block matching process
+            const float targetMean = __fdividef(blockReduce2DSum(rTargetValue, tid), targetBlockSize);
+            const float targetTemp = finiteTargetIntensity ? rTargetValue - targetMean : 0.f;
+            const float targetVar = blockReduce2DSum(targetTemp * targetTemp, tid);
+
+            // iteration over the result blocks (block matching part)
+                for (unsigned int m = 1; m < blocksRange * 8 /*2*4*/; m += stepSize) {
+                    for (unsigned int l = 1; l < blocksRange * 8 /*2*4*/; l += stepSize) {
+
+                        const unsigned int sIdxIn = (idy + m) * numBlocks * 4 + idx + l;
+                        const float rResultValue = sResultValues[sIdxIn];
+                        const bool overlap = isfinite(rResultValue) && finiteTargetIntensity;
+                        const unsigned int blockSize = __syncthreads_count(overlap);
+
+                        if (blockSize > 8) {
+
+                            //the target values must remain intact at each loop, so please do not touch this!
+                            float newTargetTemp = targetTemp;
+                            float newTargetVar = targetVar;
+                            if (blockSize != targetBlockSize) {
+
+                                const float newTargetValue = overlap ? rTargetValue : 0.0f;
+                                const float newTargetMean = __fdividef(blockReduce2DSum(newTargetValue, tid), blockSize);
+                                newTargetTemp = overlap ? newTargetValue - newTargetMean : 0.0f;
+                                newTargetVar = blockReduce2DSum(newTargetTemp * newTargetTemp, tid);
+                            }
+
+                            const float rChecked = overlap ? rResultValue : 0.0f;
+                            const float resultMean = __fdividef(blockReduce2DSum(rChecked, tid), blockSize);
+                            const float resultTemp = overlap ? rChecked - resultMean : 0.0f;
+                            const float resultVar = blockReduce2DSum(resultTemp * resultTemp, tid);
+
+                            const float sumTargetResult = blockReduce2DSum((newTargetTemp)* (resultTemp), tid);
+                            const float localCC = fabs((sumTargetResult)* rsqrtf(newTargetVar * resultVar));
+
+                            if (tid == 0 && localCC > bestCC) {
+                                bestCC = localCC;
+                                bestDisplacement[0] = l - blocksRange * 4.0f;
+                                bestDisplacement[1] = m - blocksRange * 4.0f;
+                                bestDisplacement[2] = 0.0;
+                            }
+                        }
+                    }
+                }
+        }
+        if (tid == 0 /*&& isfinite(bestDisplacement[0])*/) {
+            const unsigned int posIdx = 2 * currentBlockIndex;
+
+            referencePosition = start_referencePosition + posIdx;
+            warpedPosition = start_warpedPosition + posIdx;
+
+            const float referencePosition_temp[3] = { (float)xBaseImage, (float)yBaseImage, (float) 0 };
+
+            bestDisplacement[0] += referencePosition_temp[0];
+            bestDisplacement[1] += referencePosition_temp[1];
+            bestDisplacement[2] += 0;
+
+            reg2D_mat44_mul_cuda<float>(targetMatrix_xyz, referencePosition_temp, referencePosition);
+            reg2D_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, warpedPosition);
+            if (isfinite(bestDisplacement[0])) {
+                atomicAdd(definedBlock, 1);
+            }
+        }
+    }
+}
+/* *************************************************************** */
+//recently switched to this kernel as it can accomodate greater capture range
+__global__ void blockMatchingKernel3D(float *warpedPosition,
+    float *referencePosition,
     int *mask,
     float* targetMatrix_xyz,
     unsigned int *definedBlock,
@@ -127,7 +288,10 @@ __global__ void blockMatchingKernel3D(float *resultPosition,
     const unsigned long imgIdx = xImage + yImage * (c_ImageSize.x) + zImage * (c_ImageSize.x * c_ImageSize.y);
     const bool targetInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y && zImage < c_ImageSize.z;
 
-    const int currentBlockIndex = tex1Dfetch(activeBlock_texture, blockIndex);
+    const int currentBlockIndex = tex1Dfetch(totalBlock_texture, blockIndex);
+
+    float* start_warpedPosition = &warpedPosition[0];
+    float* start_referencePosition = &referencePosition[0];
 
     if (currentBlockIndex > -1) {
 
@@ -214,22 +378,23 @@ __global__ void blockMatchingKernel3D(float *resultPosition,
                 }
             }
         }
-        if (tid == 0 && isfinite(bestDisplacement[0])) {
-            const unsigned int posIdx = 3 * atomicAdd(definedBlock, 1);
+        if (tid == 0 /*&& isfinite(bestDisplacement[0])*/) {
+            const unsigned int posIdx = 3 * currentBlockIndex;
 
-            resultPosition += posIdx;
-            targetPosition += posIdx;
+            referencePosition = start_referencePosition + posIdx;
+            warpedPosition = start_warpedPosition + posIdx;
 
-            const float targetPosition_temp[3] = { (float)xBaseImage, (float)yBaseImage, (float)zBaseImage };
+            const float referencePosition_temp[3] = { (float)xBaseImage, (float)yBaseImage, (float)zBaseImage };
 
-            bestDisplacement[0] += targetPosition_temp[0];
-            bestDisplacement[1] += targetPosition_temp[1];
-            bestDisplacement[2] += targetPosition_temp[2];
+            bestDisplacement[0] += referencePosition_temp[0];
+            bestDisplacement[1] += referencePosition_temp[1];
+            bestDisplacement[2] += referencePosition_temp[2];
 
-            //float  tempPosition[3];
-            reg_mat44_mul_cuda<float>(targetMatrix_xyz, targetPosition_temp, targetPosition);
-            reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, resultPosition);
-            //				if (posIdx/3<32) printf("%d: in(%f-%f-%f)  | Cuda\n", posIdx/3, targetPosition[0], targetPosition[1], targetPosition[2]);
+            reg_mat44_mul_cuda<float>(targetMatrix_xyz, referencePosition_temp, referencePosition);
+            reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, warpedPosition);
+            if (isfinite(bestDisplacement[0])){
+                atomicAdd(definedBlock, 1);
+            }
         }
     }
 }

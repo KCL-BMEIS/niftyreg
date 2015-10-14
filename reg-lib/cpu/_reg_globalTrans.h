@@ -20,21 +20,21 @@
 /* *************************************************************** */
 struct _reg_sorted_point3D
 {
-    float target[3];
-    float result[3];
+    float reference[3];
+    float warped[3];
 
     double distance;
 
     _reg_sorted_point3D(float * t, float * r, double d)
         :distance(d)
     {
-        target[0] = t[0];
-        target[1] = t[1];
-        target[2] = t[2];
+        reference[0] = t[0];
+        reference[1] = t[1];
+        reference[2] = t[2];
 
-        result[0] = r[0];
-        result[1] = r[1];
-        result[2] = r[2];
+        warped[0] = r[0];
+        warped[1] = r[1];
+        warped[2] = r[2];
     }
 
     bool operator <(const _reg_sorted_point3D &sp) const
@@ -46,19 +46,19 @@ typedef struct _reg_sorted_point3D _reg_sorted_point3D;
 /* *************************************************************** */
 struct _reg_sorted_point2D
 {
-    float target[2];
-    float result[2];
+    float reference[2];
+    float warped[2];
 
     double distance;
 
     _reg_sorted_point2D(float * t, float * r, double d)
         :distance(d)
     {
-        target[0] = t[0];
-        target[1] = t[1];
+        reference[0] = t[0];
+        reference[1] = t[1];
 
-        result[0] = r[0];
-        result[1] = r[1];
+        warped[0] = r[0];
+        warped[1] = r[1];
     }
     bool operator <(const _reg_sorted_point2D &sp) const
     {

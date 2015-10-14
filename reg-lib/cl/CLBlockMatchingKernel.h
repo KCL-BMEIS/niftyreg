@@ -19,7 +19,7 @@ class CLBlockMatchingKernel : public BlockMatchingKernel {
        cl_context clContext;
        cl_program program;
        cl_command_queue commandQueue;
-       cl_mem clActiveBlock;
+       cl_mem clTotalBlock;
        cl_mem clReferenceImageArray;
        cl_mem clWarpedImageArray;
        cl_mem clReferencePosition;
