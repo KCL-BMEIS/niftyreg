@@ -18,12 +18,12 @@
 
 #define IDX2C(i,j,ld) (((j)*(ld))+(i))
 /* *************************************************************** */
-__inline__ __device__
-void reg_mat44_mul_cuda(float* mat, float const* in, float *out)
+template<class DTYPE>
+__device__ __inline__ void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out)
 {
-    out[0] = mat[0 * 4 + 0] * in[0] + mat[0 * 4 + 1] * in[1] + mat[0 * 4 + 2] * in[2] + mat[0 * 4 + 3];
-    out[1] = mat[1 * 4 + 0] * in[0] + mat[1 * 4 + 1] * in[1] + mat[1 * 4 + 2] * in[2] + mat[1 * 4 + 3];
-    out[2] = mat[2 * 4 + 0] * in[0] + mat[2 * 4 + 1] * in[1] + mat[2 * 4 + 2] * in[2] + mat[2 * 4 + 3];
+    out[0] = (DTYPE)((double)mat[0 * 4 + 0] * (double)in[0] + (double)mat[0 * 4 + 1] * (double)in[1] + (double)mat[0 * 4 + 2] * (double)in[2] + (double)mat[0 * 4 + 3]);
+    out[1] = (DTYPE)((double)mat[1 * 4 + 0] * (double)in[0] + (double)mat[1 * 4 + 1] * (double)in[1] + (double)mat[1 * 4 + 2] * (double)in[2] + (double)mat[1 * 4 + 3]);
+    out[2] = (DTYPE)((double)mat[2 * 4 + 0] * (double)in[0] + (double)mat[2 * 4 + 1] * (double)in[1] + (double)mat[2 * 4 + 2] * (double)in[2] + (double)mat[2 * 4 + 3]);
     return;
 }
 /* *************************************************************** */
@@ -89,7 +89,7 @@ __global__ void transformResultPointsKernel(float* transform, float* in, float* 
         const unsigned int posIdx = 3 * tid;
         in += posIdx;
         out += posIdx;
-        reg_mat44_mul_cuda(transform, in, out);
+        reg_mat44_mul_cuda<float>(transform, in, out);
     }
 }
 /* *************************************************************** */

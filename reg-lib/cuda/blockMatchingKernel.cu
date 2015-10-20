@@ -53,19 +53,20 @@ texture<float, 1, cudaReadModeElementType> targetImageArray_texture;
 texture<float, 1, cudaReadModeElementType> resultImageArray_texture;
 texture<int, 1, cudaReadModeElementType> totalBlock_texture;
 /* *************************************************************** */
+template<class DTYPE>
 __inline__ __device__
-void reg2D_mat44_mul_cuda(float* mat, float const* in, float *out)
+void reg2D_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out)
 {
-    out[0] = mat[0 * 4 + 0] * in[0] + mat[0 * 4 + 1] * in[1] + mat[0 * 4 + 2] * 0 + mat[0 * 4 + 3];
-    out[1] = mat[1 * 4 + 0] * in[0] + mat[1 * 4 + 1] * in[1] + mat[1 * 4 + 2] * 0 + mat[1 * 4 + 3];
+    out[0] = (DTYPE)((double)mat[0 * 4 + 0] * (double)in[0] + (double)mat[0 * 4 + 1] * (double)in[1] + (double)mat[0 * 4 + 2] * 0 + (double)mat[0 * 4 + 3]);
+    out[1] = (DTYPE)((double)mat[1 * 4 + 0] * (double)in[0] + (double)mat[1 * 4 + 1] * (double)in[1] + (double)mat[1 * 4 + 2] * 0 + (double)mat[1 * 4 + 3]);
     return;
 }
-__inline__ __device__
-void reg_mat44_mul_cuda(float* mat, float const* in, float *out)
+template<class DTYPE>
+__device__ __inline__ void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out)
 {
-    out[0] = mat[0 * 4 + 0] * in[0] + mat[0 * 4 + 1] * in[1] + mat[0 * 4 + 2] * in[2] + mat[0 * 4 + 3];
-    out[1] = mat[1 * 4 + 0] * in[0] + mat[1 * 4 + 1] * in[1] + mat[1 * 4 + 2] * in[2] + mat[1 * 4 + 3];
-    out[2] = mat[2 * 4 + 0] * in[0] + mat[2 * 4 + 1] * in[1] + mat[2 * 4 + 2] * in[2] + mat[2 * 4 + 3];
+    out[0] = (DTYPE)((double)mat[0 * 4 + 0] * (double)in[0] + (double)mat[0 * 4 + 1] * (double)in[1] + (double)mat[0 * 4 + 2] * (double)in[2] + (double)mat[0 * 4 + 3]);
+    out[1] = (DTYPE)((double)mat[1 * 4 + 0] * (double)in[0] + (double)mat[1 * 4 + 1] * (double)in[1] + (double)mat[1 * 4 + 2] * (double)in[2] + (double)mat[1 * 4 + 3]);
+    out[2] = (DTYPE)((double)mat[2 * 4 + 0] * (double)in[0] + (double)mat[2 * 4 + 1] * (double)in[1] + (double)mat[2 * 4 + 2] * (double)in[2] + (double)mat[2 * 4 + 3]);
     return;
 }
 // Apply the transformation matrix
@@ -255,8 +256,8 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
             bestDisplacement[1] += referencePosition_temp[1];
             bestDisplacement[2] += 0;
 
-            reg2D_mat44_mul_cuda(targetMatrix_xyz, referencePosition_temp, referencePosition);
-            reg2D_mat44_mul_cuda(targetMatrix_xyz, bestDisplacement, warpedPosition);
+            reg2D_mat44_mul_cuda<float>(targetMatrix_xyz, referencePosition_temp, referencePosition);
+            reg2D_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, warpedPosition);
             if (isfinite(bestDisplacement[0])) {
                 atomicAdd(definedBlock, 1);
             }
@@ -399,8 +400,8 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
             bestDisplacement[1] += referencePosition_temp[1];
             bestDisplacement[2] += referencePosition_temp[2];
 
-            reg_mat44_mul_cuda(targetMatrix_xyz, referencePosition_temp, referencePosition);
-            reg_mat44_mul_cuda(targetMatrix_xyz, bestDisplacement, warpedPosition);
+            reg_mat44_mul_cuda<float>(targetMatrix_xyz, referencePosition_temp, referencePosition);
+            reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, warpedPosition);
             if (isfinite(bestDisplacement[0])){
                 atomicAdd(definedBlock, 1);
             }

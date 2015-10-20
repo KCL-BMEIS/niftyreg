@@ -89,10 +89,12 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	../Content.cpp
     ../Platform.cpp
 )
-message("target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)")
+#
 if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    message("${NAME} ${CUDA_CUDA_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusolver_LIBRARY} _reg_common_cuda")
 	target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusolver_LIBRARY} _reg_common_cuda)
 else( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    message("target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)")
 	target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
 endif( CMAKE_SIZEOF_VOID_P EQUAL 8 )
 install(TARGETS ${NAME}
