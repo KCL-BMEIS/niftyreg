@@ -24,4 +24,4 @@ install(TARGETS _reg_ReadWriteImage
         LIBRARY DESTINATION lib COMPONENT Development
         ARCHIVE DESTINATION lib COMPONENT Development
 )
-install(FILES _reg_ReadWriteImage.h DESTINATION include COMPONENT Development)
+install(FILES _reg_ReadWriteImage.h _reg_ReadWriteMatrix.h DESTINATION include COMPONENT Development)

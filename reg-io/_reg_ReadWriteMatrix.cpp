@@ -1,4 +1,5 @@
 #include "_reg_ReadWriteMatrix.h"
+#include "_reg_maths.h"
 //STD
 #include <string>
 /* *************************************************************** */

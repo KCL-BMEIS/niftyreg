@@ -16,7 +16,6 @@
 #define _REG_READWRITEMATRIX_H
 
 #include "nifti1_io.h"
-#include "_reg_maths.h"
 //STD
 #include <fstream>
 #include <utility>

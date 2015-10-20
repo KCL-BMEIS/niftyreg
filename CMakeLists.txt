@@ -1,11 +1,11 @@
 project(NiftyReg)
 #-----------------------------------------------------------------------------
-cmake_minimum_required(VERSION 2.8.8)
-if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.8$")
+cmake_minimum_required(VERSION 3.2.0)
+if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^3\\.2\\.0$")
  mark_as_advanced(FORCE CMAKE_BACKWARDS_COMPATIBILITY)
-else("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.8$")
+else("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^3\\.2\\.0$")
  mark_as_advanced(CLEAR CMAKE_BACKWARDS_COMPATIBILITY)
-endif("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.8$")
+endif("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^3\\.2\\.0$")
 #-----------------------------------------------------------------------------
 if(APPLE)
 	set(CMAKE_MACOSX_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
@@ -40,6 +40,11 @@ endif(NOT MSVC)
 set(NiftyReg_VERSION_MAJOR 1)
 set(NiftyReg_VERSION_MINOR 4)
 set(NiftyReg_VERSION_PATCH 0)
+#-----------------------------------------------------------------------------
+if(MSVC)
+	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /bigobj")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /bigobj")
+endif(MSVC)
 #-----------------------------------------------------------------------------
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 		add_definitions(/W1)

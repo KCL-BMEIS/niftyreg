@@ -14,6 +14,8 @@
 
 #include "_reg_resampling.h"
 #include "_reg_maths.h"
+#include "_reg_maths_eigen.h"
+#include "_reg_tools.h"
 
 #define SINC_KERNEL_RADIUS 3
 #define SINC_KERNEL_SIZE SINC_KERNEL_RADIUS*2

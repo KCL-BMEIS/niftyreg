@@ -100,22 +100,6 @@ inline int fabs(int _x)
 }
 #endif // If on windows...
 /* *************************************************************** */
-/* Functions calling the Eigen library                             */
-/* See http://eigen.tuxfamily.org/index.php?title=Main_Page        */
-/* *************************************************************** */
-extern "C++"
-void reg_logarithm_tensor(mat33 *in_tensor);
-/* *************************************************************** */
-extern "C++"
-void reg_exponentiate_logged_tensor(mat33 *in_tensor);
-/* *************************************************************** */
-extern "C++" template <class T>
-void svd(T **in, size_t m, size_t n, T * w, T **v);
-/* *************************************************************** */
-extern "C++" template <class T>
-void svd(T **in, size_t m, size_t n, T ***U, T ***S, T ***V);
-/* *************************************************************** */
-/* *************************************************************** */
 extern "C++" template <class T>
 void reg_LUdecomposition(T *inputMatrix,
                          size_t dim,
@@ -167,9 +151,6 @@ extern "C++" template<class T>
 T* reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect);
 extern "C++" template<class T>
 void reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect, T* res);
-/* *************************************************************** */
-extern "C++" template<class T>
-T reg_matrix2DDet(T** mat, size_t m, size_t n);
 /* *************************************************************** */
 /* *************************************************************** */
 /* *************************************************************** */
@@ -266,27 +247,6 @@ void reg_mat44_eye(mat44 *mat);
 template<class T> T reg_mat44_det(mat44 const* A);
 /* *************************************************************** */
 float reg_mat44_norm_inf(mat44 const* mat);
-/* *************************************************************** */
-/** @brief Compute the square root of a 4-by-4 matrix
- */
-mat44 reg_mat44_sqrt(mat44 const* mat);
-/* *************************************************************** */
-/** @brief Compute the exp of a 4-by-4 matrix
- */
-mat44 reg_mat44_expm(const mat44 *mat);
-/* *************************************************************** */
-/** @brief Compute the log of a 4-by-4 matrix
- */
-mat44 reg_mat44_logm(const mat44 *mat);
-/* *************************************************************** */
-/** @brief Compute the average of two matrices using a log-euclidean
- * framework
- */
-mat44 reg_mat44_avg2(mat44 const* A, mat44 const* b);
-/* *************************************************************** */
-/** @brief Compute the inverse of a  4-by-4 matrix
-*/
-mat44 reg_mat44_inv(mat44 const* mat);
 /* *************************************************************** */
 /** @brief Display a mat44 matrix
  */

@@ -1,6 +1,12 @@
 #-----------------------------------------------------------------------------
 # Check if the CUDA drivers are available
 find_package(CUDA)
+
+message("cuda include dir: ${CUDA_INCLUDE_DIRS}")
+message("cuda libraries: ${CUDA_LIBRARIES}")
+message("cuda cublas libraries: ${CUDA_CUBLAS_LIBRARIES}")
+message("cuda cusolver libraries: ${CUDA_cusolver_LIBRARY}")
+
 mark_as_advanced(CUDA_SDK_ROOT_DIR)
 #-----------------------------------------------------------------------------
 if(NOT CUDA_FOUND)
@@ -10,6 +16,7 @@ endif(NOT CUDA_FOUND)
 #-----------------------------------------------------------------------------
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
 #-----------------------------------------------------------------------------
+#SET(CUDA_SEPARABLE_COMPILATION ON)
 # Compile an executable to check if there is at least one suitable graphical card
 try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/checkCudaCard.cpp
 	CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${CUDA_INCLUDE_DIRS} -DLINK_LIBRARIES:STRING=${CUDA_LIBRARIES}
@@ -68,11 +75,12 @@ install(FILES ${NAME}.h DESTINATION include/cuda)
 #-----------------------------------------------------------------------------
 set(NAME _reg_cuda_kernels)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
-	    blockMatchingKernel.cu
-        CUDAContent.cpp
+		CUDAContent.cpp
         CUDAKernelFactory.cpp
+		affineDeformationKernel.cu
+		blockMatchingKernel.cu
         resampleKernel.cu
-        affineDeformationKernel.cu
+		optimizeKernel.cu
         CUDAAffineDeformationFieldKernel.cpp
         CUDABlockMatchingKernel.cpp
         CUDAConvolutionKernel.cpp
@@ -81,12 +89,17 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	../Content.cpp
     ../Platform.cpp
 )
-target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
+message("target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)")
+if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+	target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusolver_LIBRARY} _reg_common_cuda)
+else( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+	target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
+endif( CMAKE_SIZEOF_VOID_P EQUAL 8 )
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION lib
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
 install(FILES blockMatchingKernel.h CUDAContent.h DESTINATION include/cuda)
-install(FILES CUDAKernelFactory.h affineDeformationKernel.h resampleKernel.h CUDAAffineDeformationFieldKernel.h CUDABlockMatchingKernel.h CUDAConvolutionKernel.h CUDAOptimiseKernel.h CUDAResampleImageKernel.h DESTINATION include/cuda)
+install(FILES CUDAKernelFactory.h affineDeformationKernel.h resampleKernel.h optimizeKernel.h CUDAAffineDeformationFieldKernel.h CUDABlockMatchingKernel.h CUDAConvolutionKernel.h CUDAOptimiseKernel.h CUDAResampleImageKernel.h DESTINATION include/cuda)
 #-----------------------------------------------------------------------------

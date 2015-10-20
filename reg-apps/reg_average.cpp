@@ -11,14 +11,15 @@
 #ifndef MM_AVERAGE_CPP
 #define MM_AVERAGE_CPP
 
+#include "reg_average.h"
+
 #include "_reg_ReadWriteImage.h"
 #include "_reg_ReadWriteMatrix.h"
 #include "_reg_tools.h"
 #include "_reg_resampling.h"
 #include "_reg_globalTrans.h"
 #include "_reg_localTrans.h"
-
-#include "reg_average.h"
+#include "_reg_maths_eigen.h"
 
 #define PrecisionTYPE float
 

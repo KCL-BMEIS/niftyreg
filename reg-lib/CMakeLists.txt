@@ -17,6 +17,8 @@ endif(USE_CUDA)
 add_library(_reg_maths ${NIFTYREG_LIBRARY_TYPE}
 	cpu/_reg_maths.h
 	cpu/_reg_maths.cpp
+    cpu/_reg_maths_eigen.h
+	cpu/_reg_maths_eigen.cpp
 )
 target_link_libraries(_reg_maths
 )
@@ -25,7 +27,7 @@ install(TARGETS _reg_maths
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_maths.h DESTINATION include)
+install(FILES cpu/_reg_maths.h cpu/_reg_maths_eigen.h DESTINATION include)
 #-----------------------------------------------------------------------------
 add_library(_reg_tools ${NIFTYREG_LIBRARY_TYPE}
 	cpu/_reg_tools.h

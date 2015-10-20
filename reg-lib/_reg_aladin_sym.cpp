@@ -1,6 +1,8 @@
-#include "_reg_aladin_sym.h"
 #ifndef _REG_ALADIN_SYM_CPP
 #define _REG_ALADIN_SYM_CPP
+
+#include "_reg_aladin_sym.h"
+#include "_reg_maths_eigen.h"
 
 /* *************************************************************** */
 template <class T>

@@ -8,11 +8,6 @@
 #include "_reg_common_cuda.h"
 #include"_reg_tools.h"
 #include"_reg_ReadWriteImage.h"
-#include <thrust/sort.h>
-
-#include <thrust/device_vector.h>
-#include <thrust/device_ptr.h>
-#include <thrust/gather.h>
 
 #define SINC_KERNEL_RADIUS 3
 #define SINC_KERNEL_SIZE SINC_KERNEL_RADIUS*2
@@ -383,25 +378,6 @@ __global__ void ResampleImage3D(float* floatingImage,
 	}
 }
 /* *************************************************************** */
-__inline__ __device__ double getSquareDistance3Dcu(float * first_point3D, float * second_point3D)
-{
-	return sqrt((first_point3D[0] - second_point3D[0]) * (first_point3D[0] - second_point3D[0]) + (first_point3D[1] - second_point3D[1]) * (first_point3D[1] - second_point3D[1]) + (first_point3D[2] - second_point3D[2]) * (first_point3D[2] - second_point3D[2]));
-}
-/* *************************************************************** */
-//threads: 512 | blocks:numEquations/512
-__global__ void populateLengthsKernel(float* lengths, float* result_d, float* newResult_d, unsigned int numEquations)
-{
-	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	unsigned int c = tid * 3;
-
-	if (tid < numEquations) {
-		newResult_d += c;
-		result_d += c;
-		lengths[tid] = getSquareDistance3Dcu(result_d, newResult_d);
-	}
-
-}
-/* *************************************************************** */
 void launchResample(nifti_image *floatingImage,
 						  nifti_image *warpedImage,
 						  int interp,
@@ -466,39 +442,5 @@ void identityConst()
 	final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
 	mat44ToCptr(*final, mat_h);
 	cudaMemcpyToSymbol(cIdentity, &mat_h, 16 * sizeof(float));
-}
-/* *************************************************************** */
-double sortAndReduce(float* lengths_d,
-							float* target_d,
-							float* result_d,
-							float* newResult_d,
-							const unsigned int numBlocks,
-							const unsigned int numToKeep,
-							const unsigned int m)
-{
-	//populateLengthsKernel
-	populateLengthsKernel<<<numBlocks, 512>>>(lengths_d, result_d, newResult_d, m/3);
-
-	// The initial vector with all the input points
-	thrust::device_ptr<float> target_d_ptr(target_d);
-	thrust::device_vector<float> vecTarget_d(target_d_ptr, target_d_ptr + m);
-
-	thrust::device_ptr<float> result_d_ptr(result_d);
-	thrust::device_vector<float> vecResult_d(result_d_ptr, result_d_ptr + m);
-
-	thrust::device_ptr<float> lengths_d_ptr(lengths_d);
-	thrust::device_vector<float> vec_lengths_d(lengths_d_ptr, lengths_d_ptr + m/3);
-
-	// initialize indices vector to [0,1,2,..m]
-	thrust::counting_iterator<int> iter(0);
-	thrust::device_vector<int> indices(m);
-	thrust::copy(iter, iter + indices.size(), indices.begin());
-
-	//sort an indices array by lengths as key. Then use it to sort target and result arrays
-	thrust::sort_by_key(vec_lengths_d.begin(), vec_lengths_d.end(), indices.begin());
-	thrust::gather(indices.begin(), indices.end(), vecTarget_d.begin(), vecTarget_d.begin());//end()?
-	thrust::gather(indices.begin(), indices.end(), vecResult_d.begin(), vecResult_d.begin());//end()?
-
-	return thrust::reduce(lengths_d_ptr, lengths_d_ptr + numToKeep,0, thrust::plus<double>());
 }
 /* *************************************************************** */

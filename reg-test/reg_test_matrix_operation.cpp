@@ -1,5 +1,6 @@
 #include "nifti1_io.h"
 #include "_reg_maths.h"
+#include "_reg_maths_eigen.h"
 #include "_reg_ReadWriteMatrix.h"
 //STD
 #include <algorithm>
