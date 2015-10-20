@@ -73,6 +73,7 @@ install(TARGETS ${NAME}
 )
 install(FILES ${NAME}.h DESTINATION include/cuda)
 #-----------------------------------------------------------------------------
+if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
 set(NAME _reg_cuda_kernels)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 		CUDAContent.cpp
@@ -89,11 +90,24 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	../Content.cpp
     ../Platform.cpp
 )
-#
-if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
     message("${NAME} ${CUDA_CUDA_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusolver_LIBRARY} _reg_common_cuda")
 	target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusolver_LIBRARY} _reg_common_cuda)
 else( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+set(NAME _reg_cuda_kernels)
+cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
+		CUDAContent.cpp
+        CUDAKernelFactory.cpp
+		affineDeformationKernel.cu
+		blockMatchingKernel.cu
+        resampleKernel.cu
+        CUDAAffineDeformationFieldKernel.cpp
+        CUDABlockMatchingKernel.cpp
+        CUDAConvolutionKernel.cpp
+        CUDAOptimiseKernel.cpp
+        CUDAResampleImageKernel.cpp
+	../Content.cpp
+    ../Platform.cpp
+)
     message("target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)")
 	target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
 endif( CMAKE_SIZEOF_VOID_P EQUAL 8 )

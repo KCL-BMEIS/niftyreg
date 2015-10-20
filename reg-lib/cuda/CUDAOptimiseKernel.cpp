@@ -28,15 +28,14 @@ OptimiseKernel(name)
 /* *************************************************************** */
 void CudaOptimiseKernel::calculate(bool affine, bool ils, bool cusvd)
 {
-#ifdef __i386__
-    this->blockMatchingParams = con->getBlockMatchingParams();
-    optimize(this->blockMatchingParams, transformationMatrix, affine);
-#else
+#if _WIN64 || __x86_64__ || __ppc64__
+
     //for now. Soon we will have a GPU version of it
     int* cudaRunTimeVersion = (int*)malloc(sizeof(int));
     int* cudaDriverVersion = (int*)malloc(sizeof(int));
     cudaRuntimeGetVersion(cudaRunTimeVersion);
     cudaDriverGetVersion(cudaDriverVersion);
+
 #ifndef DEBUG
     printf("CUDA RUNTIME VERSION=%i", *cudaRunTimeVersion);
     printf("CUDA DRIVER VERSION=%i", *cudaDriverVersion);
@@ -63,6 +62,12 @@ void CudaOptimiseKernel::calculate(bool affine, bool ils, bool cusvd)
             num_to_keep,
             ils, affine);
     }
+
+#else
+
+    this->blockMatchingParams = con->getBlockMatchingParams();
+    optimize(this->blockMatchingParams, transformationMatrix, affine);
+
 #endif
 }
 /* *************************************************************** */
