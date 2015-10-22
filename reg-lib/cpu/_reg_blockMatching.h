@@ -85,7 +85,6 @@ struct _reg_blockMatchingParam
    int voxelCaptureRange;
 
    int stepSize;
-   bool cusvd;
 
    _reg_blockMatchingParam()
        : totalBlockNumber(0),
@@ -96,8 +95,7 @@ struct _reg_blockMatchingParam
         warpedPosition(0),
         activeBlockNumber(0),
         voxelCaptureRange(0),
-        stepSize(0),
-        cusvd(0)
+        stepSize(0)
    {}
 
    ~_reg_blockMatchingParam()

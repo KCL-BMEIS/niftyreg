@@ -173,4 +173,12 @@ int cudaCommon_transferArrayFromDeviceToCpu(DTYPE *array_cpu, DTYPE **array_d, c
 /* ******************************** */
 /* ******************************** */
 /* ******************************** */
+/*extern "C++"
+template<typename T>
+void cudaCommon_transfer2DMatrixFromCpuToDevice(T* M_d, T** M_h, unsigned int m, unsigned int n);
+
+extern "C++"
+template<typename T>
+void cudaCommon_transferFromDeviceTo2DMatrixCpu(T* M_d, T** M_h, unsigned int m, unsigned int n);
+*/
 #endif

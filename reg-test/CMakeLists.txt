@@ -145,8 +145,10 @@ mark_as_advanced(BUILDNAME)
 #-----------------------------------------------------------------------------
         set(EXEC reg_test_svd)
 	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_aladin)
-	add_test(${EXEC} ${EXEC} ${DFOLDER}/inputSVDMatrix.txt ${DFOLDER}/expectedUMatrix.txt ${DFOLDER}/expectedSMatrix.txt ${DFOLDER}/expectedVMatrix.txt)
+        target_link_libraries(${EXEC} _reg_aladin)
+	foreach(CURRENT_PLATFORM ${PLATFORM_LIST})
+            add_test(${EXEC}_${CURRENT_PLATFORM} ${EXEC} ${DFOLDER}/inputSVDMatrix.txt ${DFOLDER}/expectedUMatrix.txt ${DFOLDER}/expectedSMatrix.txt ${DFOLDER}/expectedVMatrix.txt ${CURRENT_PLATFORM})
+	endforeach(CURRENT_PLATFORM)
 #-----------------------------------------------------------------------------
 #	set(EXEC reg_test_fullAffine)
 #	add_executable(${EXEC} ${EXEC}.cpp)

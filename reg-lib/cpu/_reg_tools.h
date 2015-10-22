@@ -399,11 +399,22 @@ float reg_test_compare_images(nifti_image *imgA,
 extern "C++"
 void reg_tools_abs_image(nifti_image *img);
 /* *************************************************************** */
-//t_dev
 extern "C++"
 void mat44ToCptr(mat44 mat, float* cMat);
+/* *************************************************************** */
 extern "C++"
 void cPtrToMat44(mat44 *mat, float* cMat);
+/* *************************************************************** */
 extern "C++"
 void mat33ToCptr(mat33* mat, float* cMat, const unsigned int numMats);
+/* *************************************************************** */
+extern "C++"
+void cPtrToMat33(mat33 *mat, float* cMat);
+/* *************************************************************** */
+extern "C++" template<typename T>
+void matmnToCptr(T** mat, T* cMat, unsigned int m, unsigned int n);
+/* *************************************************************** */
+extern "C++" template<typename T>
+void cPtrToMatmn(T** mat, T* cMat, unsigned int m, unsigned int n);
+/* *************************************************************** */
 #endif

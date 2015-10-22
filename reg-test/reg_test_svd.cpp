@@ -1,15 +1,64 @@
-#include "_reg_maths.h"
+#include "_reg_tools.h"
 #include "_reg_maths_eigen.h"
 #include "_reg_ReadWriteMatrix.h"
+
+#ifdef _USE_CUDA
+#include "cusolverDn.h"
+#include "_reg_common_cuda.h"
+#include "optimizeKernel.h"
+#endif
 //STD
 #include <algorithm>
 
 #define EPS 0.000001
 
+#ifdef _USE_CUDA
+/***********************/
+/* CUDA ERROR CHECKING */
+/***********************/
+void gpuAssert(cudaError_t code, char *file, int line, bool abort=true)
+{
+    if (code != cudaSuccess)
+    {
+        fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+        if (abort) { exit(code); }
+    }
+}
+void gpuErrchk(cudaError_t ans) { gpuAssert((ans), __FILE__, __LINE__); }
+
+
+/* ******************************** */
+template<typename T>
+void cudaCommon_transfer2DMatrixFromCpuToDevice(T* M_d, T** M_h, unsigned int m, unsigned int n) {
+
+    T *tmpMat_h = (T*)malloc(m*n * sizeof(T));
+    matmnToCptr<T>(M_h, tmpMat_h, m, n);
+    NR_CUDA_SAFE_CALL(cudaMemcpy(M_d, tmpMat_h, m*n * sizeof(T), cudaMemcpyHostToDevice));
+    free(tmpMat_h);
+
+}
+template void cudaCommon_transfer2DMatrixFromCpuToDevice<float>(float* M_d, float** M_h, unsigned int m, unsigned int n);
+template void cudaCommon_transfer2DMatrixFromCpuToDevice<double>(double* M_d, double** M_h, unsigned int m, unsigned int n);
+/* ******************************** */
+/* ******************************** */
+template<typename T>
+void cudaCommon_transferFromDeviceTo2DMatrixCpu(T* M_d, T** M_h, unsigned int m, unsigned int n) {
+
+    T *tmpMat_h = (T*)malloc(m*n * sizeof(T));
+    NR_CUDA_SAFE_CALL(cudaMemcpy(tmpMat_h, M_d, m*n * sizeof(T), cudaMemcpyDeviceToHost));
+    cPtrToMatmn<T>(M_h, tmpMat_h, m, n);
+    free(tmpMat_h);
+
+}
+template void cudaCommon_transferFromDeviceTo2DMatrixCpu<float>(float* M_d, float** M_h, unsigned int m, unsigned int n);
+template void cudaCommon_transferFromDeviceTo2DMatrixCpu<double>(double* M_d, double** M_h, unsigned int m, unsigned int n);
+#endif
+
 int main(int argc, char **argv)
 {
-    if (argc != 5) {
-        fprintf(stderr, "Usage: %s <inputSVDMatrix> <expectedUMatrix> <expectedSMatrix> <expectedVMatrix>\n", argv[0]);
+    //NOT REALLY PLATFORM... HAVE TO CHANGE THAT LATER
+    if (argc != 6) {
+        fprintf(stderr, "Usage: %s <inputSVDMatrix> <expectedUMatrix> <expectedSMatrix> <expectedVMatrix> <platform>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -17,11 +66,13 @@ int main(int argc, char **argv)
     char *expectedUMatrixFilename = argv[2];
     char *expectedSMatrixFilename = argv[3];
     char *expectedVMatrixFilename = argv[4];
+    int platformCode = atoi(argv[5]);
 
     std::pair<size_t, size_t> inputMatrixSize = reg_tool_sizeInputMatrixFile(inputSVDMatrixFilename);
     size_t m = inputMatrixSize.first;
     size_t n = inputMatrixSize.second;
     size_t min_size = std::min(m, n);
+    size_t max_size = std::max(m, n);
 #ifndef NDEBUG
     std::cout << "min_size=" << min_size << std::endl;
 #endif
@@ -54,7 +105,93 @@ int main(int argc, char **argv)
         float **inputSVDMatrixNotTouched = reg_tool_ReadMatrixFile<float>(inputSVDMatrixFilename, m, n);
         float *test_SVect = (float*)malloc(min_size*sizeof(float));
         //SVD
-        svd<float>(inputSVDMatrix, m, n, test_SVect, test_VMatrix);
+#ifdef _USE_CUDA
+        if(platformCode != 1) {
+#endif
+            svd<float>(inputSVDMatrix, m, n, test_SVect, test_VMatrix);
+            //U
+            for (size_t i = 0; i < m; i++) {
+                for (size_t j = 0; j < n; j++) {
+                    test_UMatrix[i][j] = inputSVDMatrix[i][j];
+                }
+            }
+#ifdef _USE_CUDA
+        }
+        else{
+            float* inputSVDMatrix_d;
+            NR_CUDA_SAFE_CALL(cudaCommon_allocateArrayToDevice<float>(&inputSVDMatrix_d, m * n));
+            float **inputSVDMatrix_h = reg_tool_ReadMatrixFile<float>(inputSVDMatrixFilename, m, n);
+            cudaCommon_transfer2DMatrixFromCpuToDevice<float>(inputSVDMatrix_d,inputSVDMatrix_h,m,n);
+
+            float* Sigma_d;
+            NR_CUDA_SAFE_CALL(cudaCommon_allocateArrayToDevice<float>(&Sigma_d, min_size));
+            float* U_d;
+            NR_CUDA_SAFE_CALL(cudaCommon_allocateArrayToDevice<float>(&U_d, max_size * max_size));
+            float* VT_d;
+            NR_CUDA_SAFE_CALL(cudaCommon_allocateArrayToDevice<float>(&VT_d, min_size * min_size));
+
+            //CUDA EXECUTION
+            //cusolverSVD(inputSVDMatrix_d, m, n, Sigma_d, VT_d, U_d);
+            // --- device side SVD workspace and matrices
+            int Lwork = 0;
+            int *devInfo;
+            gpuErrchk(cudaMalloc(&devInfo, sizeof(int)));
+            cusolverStatus_t stat;
+
+            // --- CUDA solver initialization
+            cusolverDnHandle_t solver_handle;
+            cusolverDnCreate(&solver_handle);
+
+            stat = cusolverDnSgesvd_bufferSize(solver_handle, m, n, &Lwork);
+            if(stat != CUSOLVER_STATUS_SUCCESS ) std::cout << "Initialization of cuSolver failed. \n";
+
+            float *work_d;
+            gpuErrchk(cudaMalloc(&work_d, Lwork * sizeof(float)));
+
+            // --- CUDA SVD execution
+            stat = cusolverDnSgesvd(solver_handle, 'A', 'A', m, n, inputSVDMatrix_d, m, Sigma_d, U_d, max_size, VT_d, min_size, work_d, Lwork, NULL, devInfo);
+            //stat = cusolverDnSgesvd(solver_handle, 'N', 'N', M, N, d_A, M, d_S, d_U, M, d_V, N, work, work_size, NULL, devInfo);
+            cudaDeviceSynchronize();
+
+            int devInfo_h = 0;
+            gpuErrchk(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            std::cout << "devInfo = " << devInfo_h << "\n";
+
+            switch(stat){
+            case CUSOLVER_STATUS_SUCCESS:           std::cout << "SVD computation success\n";                       break;
+            case CUSOLVER_STATUS_NOT_INITIALIZED:   std::cout << "Library cuSolver not initialized correctly\n";    break;
+            case CUSOLVER_STATUS_INVALID_VALUE:     std::cout << "Invalid parameters passed\n";                     break;
+            case CUSOLVER_STATUS_INTERNAL_ERROR:    std::cout << "Internal operation failed\n";                     break;
+            }
+
+            if (devInfo_h == 0 && stat == CUSOLVER_STATUS_SUCCESS) std::cout    << "SVD successful\n\n";
+
+            // --- Moving the results from device to host
+            gpuErrchk(cudaMemcpy(test_SVect, Sigma_d, n * sizeof(float), cudaMemcpyDeviceToHost));
+
+            for(int i = 0; i < n; i++) std::cout << "d_S["<<i<<"] = " << test_SVect[i] << std::endl;
+
+            cusolverDnDestroy(solver_handle);
+
+            //RETRIEVE THE RESULTS FROM THE GPU
+            float **test_UMatrixCUDA = reg_matrix2DAllocate<float>(m, m);
+            cudaCommon_transferArrayFromDeviceToCpu<float>(test_SVect, &Sigma_d, min_size);
+            cudaCommon_transferFromDeviceTo2DMatrixCpu<float>(VT_d, test_VMatrix, min_size, min_size);
+            test_VMatrix = reg_matrix2DTranspose<float>(test_VMatrix, min_size, min_size);
+            cudaCommon_transferFromDeviceTo2DMatrixCpu<float>(U_d, test_UMatrixCUDA, m, m);
+
+#ifndef NDEBUG
+            std::cout << "test_UMatrixCUDA[i][j]=" << std::endl;
+            for (size_t i = 0; i < m; i++) {
+                for (size_t j = 0; j < m; j++) {
+                    std::cout << test_UMatrixCUDA[i][j] << " ";
+                }
+                std::cout << std::endl;
+            }
+#endif
+
+        }
+#endif
         //S
         for (size_t i = 0; i < min_size; i++) {
             for (size_t j = 0; j < min_size; j++) {
@@ -64,12 +201,6 @@ int main(int argc, char **argv)
                 else {
                     test_SMatrix[i][j] = 0;
                 }
-            }
-        }
-        //U
-        for (size_t i = 0; i < m; i++) {
-            for (size_t j = 0; j < n; j++) {
-                    test_UMatrix[i][j] = inputSVDMatrix[i][j];
             }
         }
 

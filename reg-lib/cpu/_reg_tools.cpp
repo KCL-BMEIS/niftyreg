@@ -3057,4 +3057,41 @@ void mat33ToCptr(mat33 *mat, float* cMat, const unsigned int numMats)
 	}
 }
 /* *************************************************************** */
+void cPtrToMat33(mat33 *mat, float* cMat)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+             mat->m[i][j]=cMat[i * 3 + j];
+        }
+    }
+}
+/* *************************************************************** */
+template<typename T>
+void matmnToCptr(T** mat, T* cMat, unsigned int m, unsigned int n) {
+    for (unsigned int i = 0; i < m; i++)
+    {
+        for (unsigned int j = 0; j < n; j++)
+        {
+            cMat[i * n + j] = mat[i][j];
+        }
+    }
+}
+template void matmnToCptr<float>(float** mat, float* cMat, unsigned int m, unsigned int n);
+template void matmnToCptr<double>(double** mat, double* cMat, unsigned int m, unsigned int n);
+/* *************************************************************** */
+template<typename T>
+void cPtrToMatmn(T** mat, T* cMat, unsigned int m, unsigned int n) {
+    for (unsigned int i = 0; i < m; i++)
+    {
+        for (unsigned int j = 0; j < n; j++)
+        {
+             mat[i][j]=cMat[i * n + j];
+        }
+    }
+}
+template void cPtrToMatmn<float>(float** mat, float* cMat, unsigned int m, unsigned int n);
+template void cPtrToMatmn<double>(double** mat, double* cMat, unsigned int m, unsigned int n);
+/* *************************************************************** */
 #endif

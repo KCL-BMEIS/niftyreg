@@ -104,6 +104,7 @@ int main(int argc, char **argv)
     blockMatchingParams->blockNumber[0] = 1;
     blockMatchingParams->blockNumber[1] = 1;
 
+    blockMatchingParams->totalBlockNumber = num_points;
     blockMatchingParams->activeBlockNumber = num_points;
     blockMatchingParams->definedActiveBlockNumber = num_points;
     blockMatchingParams->percent_to_keep = percentToKeep;
@@ -152,7 +153,7 @@ int main(int argc, char **argv)
     }
 
     con->setBlockMatchingParams(blockMatchingParams);
-    test(con, platformCode, isAffine, 0, 0);
+    test(con, platformCode, isAffine, 0, 1);
 
 #ifndef NDEBUG
     reg_mat44_disp(con->getTransformationMatrix(), (char *) "test_optimize_2D");

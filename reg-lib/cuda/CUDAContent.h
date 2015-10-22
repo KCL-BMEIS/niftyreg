@@ -50,7 +50,7 @@ public:
 	float* getVT_d();
 	float* getSigma_d();
 	float* getLengths_d();
-	float* getNewResultPos_d();
+    float* getNewWarpedPos_d();
 
 	int *getTotalBlock_d();
 	int *getMask_d();
@@ -94,7 +94,7 @@ private:
 	float* VT_d;
 	float* Sigma_d;
 	float* lengths_d;
-	float* newResultPos_d;
+    float* newWarpedPos_d;
 
 	int referenceDims[4];
 	int floatingDims[4];

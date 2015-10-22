@@ -12,7 +12,7 @@
 #define _REG_COMMON_GPU_CU
 
 #include "_reg_common_cuda.h"
-#include "_reg_maths.h"
+#include "_reg_tools.h"
 /* ******************************** */
 /* ******************************** */
 template <class NIFTI_TYPE>
@@ -678,7 +678,6 @@ template int cudaCommon_transferArrayFromDeviceToCpu<int>(int *array_cpu, int **
 template int cudaCommon_transferArrayFromDeviceToCpu<float>(float *array_cpu, float **array_d, const unsigned int nElements);
 template int cudaCommon_transferArrayFromDeviceToCpu<double>(double *array_cpu, double **array_d, const unsigned int nElements);
 /* ******************************** */
-/* ******************************** */
-/* ******************************** */
-/* ******************************** */
 #endif
+/* ******************************** */
+/* ******************************** */
