@@ -2,11 +2,6 @@
 # Check if the CUDA drivers are available
 find_package(CUDA)
 
-message("cuda include dir: ${CUDA_INCLUDE_DIRS}")
-message("cuda libraries: ${CUDA_LIBRARIES}")
-message("cuda cublas libraries: ${CUDA_CUBLAS_LIBRARIES}")
-message("cuda cusolver libraries: ${CUDA_cusolver_LIBRARY}")
-
 mark_as_advanced(CUDA_SDK_ROOT_DIR)
 #-----------------------------------------------------------------------------
 if(NOT CUDA_FOUND)
@@ -36,11 +31,11 @@ else(NOT COMPILE_RESULT_VAR)
 	message(STATUS "Found CUDA (v${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}) and a CUDA-enabled card (capability ${RUN_OUTPUT_VAR})")
 	set(CUDA_NVCC_FLAGS "")
 	#check cuda version and adjust compile flags
-	string(REPLACE "." "" CAPABILITY_CODE ${RUN_OUTPUT_VAR})
 	if(NOT "${RUN_OUTPUT_VAR}" MATCHES "^3\\.0$")
 		set(USE_CUDA OFF CACHE BOOL "To use the CUDA platform" FORCE)
-		message(ERROR "CUDA card with capability 1.x are not supported. The USE_CUDA flag is turned OFF")
+		message(ERROR "CUDA card with capability 1.x or 2.x are not supported. The USE_CUDA flag is turned OFF")
 	endif(NOT "${RUN_OUTPUT_VAR}" MATCHES "^3\\.0$")
+	string(REPLACE "." "" CAPABILITY_CODE ${RUN_OUTPUT_VAR})
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_${CAPABILITY_CODE},code=sm_${CAPABILITY_CODE}")
 	#adjust for debug and release versions
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -48,16 +43,6 @@ else(NOT COMPILE_RESULT_VAR)
 	else()
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --ptxas-options=-O3")
 	endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-#	if(CUDA_PRECISE_SQRT)
-#	    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --prec-sqrt=true")
-#	elseif(CUDA_PRECISE_SQRT)
-#	    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --prec-sqrt=false")
-#	endif(CUDA_PRECISE_SQRT)
-#	if(CUDA_PRECISE_DIV)
-#	    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --prec-div=true")
-#	elseif(CUDA_PRECISE_DIV)
-#	    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --prec-div=false")
-#	endif(CUDA_PRECISE_DIV)
 	if(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUAL "OFF")
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -use_fast_math")
 	endif(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUAL "OFF")
@@ -73,44 +58,22 @@ install(TARGETS ${NAME}
 )
 install(FILES ${NAME}.h DESTINATION include/cuda)
 #-----------------------------------------------------------------------------
-if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
 set(NAME _reg_cuda_kernels)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CUDAContent.cpp
-        CUDAKernelFactory.cpp
+	CUDAKernelFactory.cpp
 	affineDeformationKernel.cu
 	blockMatchingKernel.cu
-        resampleKernel.cu
-	optimizeKernel.cu
-        CUDAAffineDeformationFieldKernel.cpp
-        CUDABlockMatchingKernel.cpp
-        CUDAConvolutionKernel.cpp
-        CUDAOptimiseKernel.cpp
-        CUDAResampleImageKernel.cpp
+	resampleKernel.cu
+	CUDAAffineDeformationFieldKernel.cpp
+	CUDABlockMatchingKernel.cpp
+	CUDAConvolutionKernel.cpp
+	CUDAOptimiseKernel.cpp
+	CUDAResampleImageKernel.cpp
 	../Content.cpp
-        ../Platform.cpp
+	../Platform.cpp
 )
-message("${NAME} ${CUDA_CUDA_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusolver_LIBRARY} _reg_common_cuda")
-target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusolver_LIBRARY} _reg_common_cuda)
-else( CMAKE_SIZEOF_VOID_P EQUAL 8 )
-set(NAME _reg_cuda_kernels)
-cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
-	CUDAContent.cpp
-        CUDAKernelFactory.cpp
-	affineDeformationKernel.cu
-	blockMatchingKernel.cu
-        resampleKernel.cu
-        CUDAAffineDeformationFieldKernel.cpp
-        CUDABlockMatchingKernel.cpp
-        CUDAConvolutionKernel.cpp
-        CUDAOptimiseKernel.cpp
-        CUDAResampleImageKernel.cpp
-	../Content.cpp
-        ../Platform.cpp
-)
-message("target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)")
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
-endif( CMAKE_SIZEOF_VOID_P EQUAL 8 )
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION lib
 	LIBRARY DESTINATION lib

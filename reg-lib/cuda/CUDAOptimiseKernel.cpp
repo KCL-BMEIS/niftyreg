@@ -27,6 +27,7 @@ CudaOptimiseKernel::CudaOptimiseKernel(Content *conIn, std::string name) :
 }
 /* *************************************************************** */
 void CudaOptimiseKernel::calculate(bool affine, bool ils, bool cusvd) {
+/*
 #if _WIN64 || __x86_64__ || __ppc64__
 
     //for now. Soon we will have a GPU version of it
@@ -72,5 +73,8 @@ void CudaOptimiseKernel::calculate(bool affine, bool ils, bool cusvd) {
     this->blockMatchingParams = con->getBlockMatchingParams();
     optimize(this->blockMatchingParams, transformationMatrix, affine);
 #endif
+*/
+   this->blockMatchingParams = con->getBlockMatchingParams();
+   optimize(this->blockMatchingParams, transformationMatrix, affine);
 }
 /* *************************************************************** */

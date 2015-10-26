@@ -12,7 +12,7 @@ endif(NOT OPENCL_FOUND)
 #-----------------------------------------------------------------------------
 set(SOURCE_PATH ${CMAKE_BINARY_DIR})
 #-----------------------------------------------------------------------------
-configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h CONFIGURE IMMEDIATE)
+configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h IMMEDIATE)
 mark_as_advanced(_OPENCL_CPP_INCLUDE_DIRS)
 #-----------------------------------------------------------------------------
 include_directories(${CMAKE_BINARY_DIR})
@@ -25,11 +25,11 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CLContextSingletton.cpp
 	CLContent.cpp
 	CLKernelFactory.cpp
-        CLAffineDeformationFieldKernel.cpp
-        CLBlockMatchingKernel.cpp
-        CLConvolutionKernel.cpp
-        CLOptimiseKernel.cpp
-        CLResampleImageKernel.cpp
+				CLAffineDeformationFieldKernel.cpp
+				CLBlockMatchingKernel.cpp
+				CLConvolutionKernel.cpp
+				CLOptimiseKernel.cpp
+				CLResampleImageKernel.cpp
 	../Content.cpp
 	../Platform.cpp
 )
@@ -41,11 +41,11 @@ install(TARGETS ${NAME}
 )
 #-----------------------------------------------------------------------------
 install(FILES CLContextSingletton.h CLContent.h CLKernelFactory.h
-        CLAffineDeformationFieldKernel.h
-        CLBlockMatchingKernel.h
-        CLConvolutionKernel.h
-        CLOptimiseKernel.h
-        CLResampleImageKernel.h
-        DESTINATION include/cl)
+				CLAffineDeformationFieldKernel.h
+				CLBlockMatchingKernel.h
+				CLConvolutionKernel.h
+				CLOptimiseKernel.h
+				CLResampleImageKernel.h
+				DESTINATION include/cl)
 install(FILES resampleKernel.cl affineDeformationKernel.cl blockMatchingKernel.cl DESTINATION include/cl)
 #-----------------------------------------------------------------------------

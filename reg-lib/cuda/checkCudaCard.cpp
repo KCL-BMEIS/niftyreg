@@ -6,7 +6,8 @@
 int main() {
 
 	int deviceCount = 0;
-	int output = 10000; cudaError_t cudaResultCode = cudaGetDeviceCount(&deviceCount);
+	int output = 0;
+	cudaError_t cudaResultCode = cudaGetDeviceCount(&deviceCount);
 
 	// Error when running cudaGetDeviceCount
 	if( cudaResultCode != cudaSuccess || deviceCount == 0 ) // cudaSuccess=0
@@ -14,12 +15,10 @@ int main() {
 
 	//detects device capability and picks the lowest
 	for( unsigned int i = 0; i < deviceCount; ++i ) {
-
 		cudaSetDevice(i);
 		cudaDeviceProp deviceProp;
 		cudaGetDeviceProperties(&deviceProp, i);
-
-        output = std::max(output, deviceProp.major * 10 + deviceProp.minor);
+		output = std::max(output, deviceProp.major * 10 + deviceProp.minor);
 	}
 
 	//	output for device capability
