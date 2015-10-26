@@ -19,7 +19,7 @@ int main() {
 		cudaDeviceProp deviceProp;
 		cudaGetDeviceProperties(&deviceProp, i);
 
-		output = std::min(output, deviceProp.major * 10 + deviceProp.minor);
+        output = std::max(output, deviceProp.major * 10 + deviceProp.minor);
 	}
 
 	//	output for device capability
