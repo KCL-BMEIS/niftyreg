@@ -777,16 +777,28 @@ void optimize(_reg_blockMatchingParam *params,
     {
         float in[2];
         float out[2];
+        std::vector<float> referencePositionVect;
+        std::vector<float> warpedPositionVect;
+        int nbNonNaNBlock = 0;
         for (size_t i = 0; i < static_cast<size_t>(params->activeBlockNumber); ++i) {
             size_t index = 2 * i;
             in[0] = params->warpedPosition[index];
             in[1] = params->warpedPosition[index + 1];
-            reg_mat33_mul(transformation_matrix, in, out);
-            params->warpedPosition[index] = out[0];
-            params->warpedPosition[index + 1] = out[1];
+            //Can have undefined = NaN in the warped image now -
+            //to not loose the correspondance - so check that:
+            if(in[0] == in[0]){
+                reg_mat33_mul(transformation_matrix, in, out);
+
+                referencePositionVect.push_back(params->referencePosition[index]);
+                referencePositionVect.push_back(params->referencePosition[index+1]);
+                warpedPositionVect.push_back(out[0]);
+                warpedPositionVect.push_back(out[1]);
+                nbNonNaNBlock++;
+            }
         }
-        optimize_2D(params->referencePosition, params->warpedPosition,
-            params->activeBlockNumber, params->percent_to_keep,
+
+        optimize_2D(&referencePositionVect[0], &warpedPositionVect[0],
+            nbNonNaNBlock, params->percent_to_keep,
             MAX_ITERATIONS, TOLERANCE,
             transformation_matrix, affine);
     }
@@ -794,18 +806,31 @@ void optimize(_reg_blockMatchingParam *params,
     {
         float in[3];
         float out[3];
+        std::vector<float> referencePositionVect;
+        std::vector<float> warpedPositionVect;
+        int nbNonNaNBlock = 0;
         for (size_t i = 0; i < static_cast<size_t>(params->activeBlockNumber); ++i) {
             size_t index = 3 * i;
             in[0] = params->warpedPosition[index];
             in[1] = params->warpedPosition[index + 1];
             in[2] = params->warpedPosition[index + 2];
-            reg_mat44_mul(transformation_matrix, in, out);
-            params->warpedPosition[index] = out[0];
-            params->warpedPosition[index + 1] = out[1];
-            params->warpedPosition[index + 2] = out[2];
+            //Can have undefined = NaN in the warped image now -
+            //to not loose the correspondance - so check that:
+            if(in[0] == in[0]){
+                reg_mat44_mul(transformation_matrix, in, out);
+
+                referencePositionVect.push_back(params->referencePosition[index]);
+                referencePositionVect.push_back(params->referencePosition[index+1]);
+                referencePositionVect.push_back(params->referencePosition[index+2]);
+                warpedPositionVect.push_back(out[0]);
+                warpedPositionVect.push_back(out[1]);
+                warpedPositionVect.push_back(out[2]);
+                nbNonNaNBlock++;
+            }
         }
-        optimize_3D(params->referencePosition, params->warpedPosition,
-            params->activeBlockNumber, params->percent_to_keep,
+
+        optimize_3D(&referencePositionVect[0], &warpedPositionVect[0],
+            nbNonNaNBlock, params->percent_to_keep,
             MAX_ITERATIONS, TOLERANCE,
             transformation_matrix, affine);
     }

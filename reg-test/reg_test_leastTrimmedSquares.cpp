@@ -118,8 +118,8 @@ int main(int argc, char **argv)
 
         blockMatchingParams->dim = n1;
         blockMatchingParams->blockNumber[2] = 1;
-        blockMatchingParams->referencePosition = new float[num_points * n1];
-        blockMatchingParams->warpedPosition = new float[num_points * n1];
+        blockMatchingParams->referencePosition = (float *)malloc(num_points * n1 * sizeof(float));
+        blockMatchingParams->warpedPosition = (float *)malloc(num_points * n1 * sizeof(float));
 
         unsigned int compteur = 0;
         for (unsigned int j = 0; j < num_points; j++) {
@@ -134,8 +134,8 @@ int main(int argc, char **argv)
 
         blockMatchingParams->dim = n1;
         blockMatchingParams->blockNumber[2] = 2;
-        blockMatchingParams->referencePosition = new float[num_points * n1];
-        blockMatchingParams->warpedPosition = new float[num_points * n1];
+        blockMatchingParams->referencePosition = (float *)malloc(num_points * n1 * sizeof(float));
+        blockMatchingParams->warpedPosition = (float *)malloc(num_points * n1 * sizeof(float));
         unsigned int compteur = 0;
         for (unsigned int j = 0; j < num_points; j++) {
             blockMatchingParams->referencePosition[compteur] = inputMatrix1[j][0];
