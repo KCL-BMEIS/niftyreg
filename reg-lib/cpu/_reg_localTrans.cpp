@@ -4116,7 +4116,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
       else reg_getDisplacementFromDeformation(flowFieldImage);
 
       // Compute the number of scaling value to ensure unfolded transformation
-      int squaringNumber = squaringNumber=static_cast<int>(fabsf(velocityFieldGrid->intent_p2));
+      int squaringNumber = static_cast<int>(fabsf(velocityFieldGrid->intent_p2));
 
       // The displacement field is scaled
       float scalingValue = pow(2.0f,std::abs(squaringNumber));

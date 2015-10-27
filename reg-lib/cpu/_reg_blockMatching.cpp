@@ -161,13 +161,13 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
     for (int i = 0; i < params->activeBlockNumber; i++) {
         params->totalBlock[*indexArrayPtr--] = count++;
     }
-    for (size_t i = params->activeBlockNumber; i < params->totalBlockNumber; ++i) {
+    for (int i=params->activeBlockNumber; i<params->totalBlockNumber; ++i) {
         params->totalBlock[*indexArrayPtr--] = -1;
     }
 
     count = 0;
     if (runningOnGPU) {
-        for (size_t i = 0; i < params->totalBlockNumber; ++i) {
+        for (int i = 0; i < params->totalBlockNumber; ++i) {
             if (params->totalBlock[i] != -1) {
                 params->totalBlock[i] = -1;
                 params->totalBlock[count] = i;
@@ -180,7 +180,13 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
     free(indexArray);
 }
 /* *************************************************************** */
-void initialise_block_matching_method(nifti_image * reference, _reg_blockMatchingParam *params, int percentToKeep_block, int percentToKeep_opt, int stepSize_block, int *mask, bool runningOnGPU) {
+void initialise_block_matching_method(nifti_image * reference,
+                                      _reg_blockMatchingParam *params,
+                                      int percentToKeep_block,
+                                      int percentToKeep_opt,
+                                      int stepSize_block,
+                                      int *mask,
+                                      bool runningOnGPU) {
     if (params->totalBlock != NULL) {
         free(params->totalBlock);
         params->totalBlock = NULL;
@@ -211,7 +217,7 @@ void initialise_block_matching_method(nifti_image * reference, _reg_blockMatchin
     params->stepSize = stepSize_block;
 
     params->percent_to_keep = percentToKeep_opt;
-	
+
     params->totalBlock = (int *)malloc(params->totalBlockNumber * sizeof(int));
 
     switch (reference->datatype) {
@@ -418,14 +424,14 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
 
                     reg_mat44_mul(referenceMatrix_xyz, referencePosition_temp, tempPosition);
                     z = 2 * params->totalBlock[blockIndex];
-                    
+
                     //temp_reference_position[z] = tempPosition[0];
                     //temp_reference_position[z + 1] = tempPosition[1];
                     params->referencePosition[z] = tempPosition[0];
                     params->referencePosition[z + 1] = tempPosition[1];
 
                     reg_mat44_mul(referenceMatrix_xyz, bestDisplacement, tempPosition);
-                    
+
                     //temp_warped_position[z] = tempPosition[0];
                     //temp_warped_position[z + 1] = tempPosition[1];
                     params->warpedPosition[z] = tempPosition[0];
@@ -688,7 +694,7 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
                         params->referencePosition[z+2] = tempPosition[2];
 
                         reg_mat44_mul(referenceMatrix_xyz, bestDisplacement, tempPosition);
-                        
+
                         //temp_warped_position[z] = tempPosition[0];
                         //temp_warped_position[z + 1] = tempPosition[1];
                         //temp_warped_position[z + 2] = tempPosition[2];

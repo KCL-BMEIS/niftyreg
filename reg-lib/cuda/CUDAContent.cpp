@@ -192,8 +192,7 @@ void CudaContent::allocateCuPtrs()
             cudaCommon_allocateArrayToDevice<int>(&totalBlock_d, blockMatchingParams->totalBlockNumber);
             cudaCommon_transferFromDeviceToNiftiSimple1<int>(&totalBlock_d, blockMatchingParams->totalBlock, blockMatchingParams->totalBlockNumber);
         }
-
-        if (this->blockMatchingParams->activeBlockNumber != NULL) {
+        if (this->blockMatchingParams->activeBlockNumber > 0 ) {
             unsigned int m = blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim;
             unsigned int n = 0;
 
