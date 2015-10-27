@@ -22,7 +22,6 @@ int main(int argc, char **argv)
    size_t m = inputMatrixSize.first;
    size_t n = inputMatrixSize.second;
    size_t min_size = std::min(m, n);
-   size_t max_size = std::max(m, n);
 #ifndef NDEBUG
    std::cout << "min_size=" << min_size << std::endl;
 #endif
