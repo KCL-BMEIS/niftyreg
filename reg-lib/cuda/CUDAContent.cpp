@@ -332,6 +332,7 @@ void CudaContent::setBlockMatchingParams(_reg_blockMatchingParam* bmp) {
         cudaCommon_allocateArrayToDevice<int>(&totalBlock_d, this->blockMatchingParams->totalBlockNumber);
         cudaCommon_transferArrayFromCpuToDevice<int>(&totalBlock_d, this->blockMatchingParams->totalBlock, this->blockMatchingParams->totalBlockNumber);
     }
+    /*
     if (this->blockMatchingParams->activeBlockNumber != NULL) {
         unsigned int m = blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim;
         unsigned int n = 0;
@@ -350,6 +351,7 @@ void CudaContent::setBlockMatchingParams(_reg_blockMatchingParam* bmp) {
         cudaCommon_allocateArrayToDevice<float>(&lengths_d, blockMatchingParams->activeBlockNumber);
         cudaCommon_allocateArrayToDevice<float>(&newWarpedPos_d, blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim);
     }
+    */
 }
 /* *************************************************************** */
 template<class DataType>

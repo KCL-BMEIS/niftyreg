@@ -93,7 +93,7 @@ Content::Content(nifti_image *CurrentReferenceIn,
 Content::~Content()
 {
 	ClearWarpedImage();
-	ClearDeformationField();
+    ClearDeformationField();
 	if (this->blockMatchingParams != NULL)
 		delete this->blockMatchingParams;
 }
@@ -116,20 +116,19 @@ void Content::initVars()
     }
 
 	if (this->CurrentReferenceMask == NULL && this->CurrentReference != NULL)
-		this->CurrentReferenceMask = (int *) calloc(this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz, sizeof(int));
-
+        this->CurrentReferenceMask = (int *) calloc(this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz, sizeof(int));
 
 	if (this->CurrentFloating != NULL) {
 		floMatrix_ijk = (CurrentFloating->sform_code > 0) ? (CurrentFloating->sto_ijk) :  (CurrentFloating->qto_ijk);
 	}
     if (blockMatchingParams != NULL) {
         initialise_block_matching_method(CurrentReference,
-            blockMatchingParams,
-            currentPercentageOfBlockToUse,
-            inlierLts,
-            stepSizeBlock,
-            CurrentReferenceMask,
-            false);
+                                         blockMatchingParams,
+                                         currentPercentageOfBlockToUse,
+                                         inlierLts,
+                                         stepSizeBlock,
+                                         CurrentReferenceMask,
+                                         false);
     }
 #ifndef NDEBUG
 	if(this->CurrentReference==NULL) reg_print_msg_debug("CurrentReference image is NULL");

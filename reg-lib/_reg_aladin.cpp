@@ -439,10 +439,13 @@ void reg_aladin<T>::ClearCurrentInputImage()
 {
 	nifti_image_free(this->ReferencePyramid[this->CurrentLevel]);
 	this->ReferencePyramid[this->CurrentLevel] = NULL;
+
 	nifti_image_free(this->FloatingPyramid[this->CurrentLevel]);
 	this->FloatingPyramid[this->CurrentLevel] = NULL;
-	free(this->ReferenceMaskPyramid[this->CurrentLevel]);
-	this->ReferenceMaskPyramid[this->CurrentLevel] = NULL;
+
+    free(this->ReferenceMaskPyramid[this->CurrentLevel]);
+    this->ReferenceMaskPyramid[this->CurrentLevel] = NULL;
+
 	this->CurrentReference = NULL;
 	this->CurrentFloating = NULL;
 	this->CurrentReferenceMask = NULL;
@@ -499,9 +502,9 @@ template<class T>
 void reg_aladin<T>::clearKernels()
 {
 	delete this->affineTransformation3DKernel;
-	delete this->resamplingKernel;
-	if (this->blockMatchingKernel != NULL)
-		delete this->blockMatchingKernel;
+    delete this->resamplingKernel;
+    if (this->blockMatchingKernel != NULL)
+        delete this->blockMatchingKernel;
 	if (this->optimiseKernel != NULL)
 		delete this->optimiseKernel;
 }
@@ -685,19 +688,20 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	}
 
 	this->CurrentReference = this->InputReference;
-	this->CurrentFloating = this->InputFloating;
-	this->CurrentReferenceMask = NULL;
+    this->CurrentFloating = this->InputFloating;
+    this->CurrentReferenceMask = (int *)calloc(this->CurrentReference->nx*this->CurrentReference->ny*this->CurrentReference->nz,sizeof(int));
 
-	reg_aladin<T>::initContent(this->CurrentReference,
-										this->CurrentFloating,
-										this->CurrentReferenceMask,
-										this->TransformationMatrix,
-										sizeof(T));
+    reg_aladin<T>::initContent(this->CurrentReference,
+                               this->CurrentFloating,
+                               this->CurrentReferenceMask,
+                               this->TransformationMatrix,
+                               sizeof(T));
 	reg_aladin<T>::createKernels();
 
 	reg_aladin<T>::GetWarpedImage(3); // cubic spline interpolation
 	this->CurrentWarped = this->con->getCurrentWarped(floatingType);
 
+    free(this->CurrentReferenceMask);
 	nifti_image *resultImage = nifti_copy_nim_info(this->CurrentWarped);
 	resultImage->cal_min = this->InputFloating->cal_min;
 	resultImage->cal_max = this->InputFloating->cal_max;

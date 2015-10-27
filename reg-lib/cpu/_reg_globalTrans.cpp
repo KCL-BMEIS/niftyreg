@@ -56,6 +56,7 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
      {
         index=y*deformationFieldImage->nx;
         voxel[1]=(double)y;
+        voxel[2] = 0;
         for(x=0; x<deformationFieldImage->nx; x++)
         {
            voxel[0]=(double)x;
@@ -63,8 +64,8 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
            {
               if(composition==true)
               {
-                 voxel[0]= (double) deformationFieldPtrX[index];
-                 voxel[1]= (double) deformationFieldPtrY[index];
+                 voxel[0] = (double) deformationFieldPtrX[index];
+                 voxel[1] = (double) deformationFieldPtrY[index];
                  reg_mat44_mul(&transformationMatrix, voxel, position);
               }
               else reg_mat44_mul(&transformationMatrix, voxel, position);
@@ -222,11 +223,8 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
     centroid_resultFloat[0] = static_cast<float>(centroid_result[0]);
     centroid_resultFloat[1] = static_cast<float>(centroid_result[1]);
 
-    float **p1t = reg_matrix2DAllocate<float>(2, num_points);
-    float **u = reg_matrix2DAllocate<float>(2, 2);
     float * w = reg_matrix1DAllocate<float>(2);
     float **v = reg_matrix2DAllocate<float>(2, 2);
-    float **ut = reg_matrix2DAllocate<float>(2, 2);
     float **r = reg_matrix2DAllocate<float>(2, 2);
 
     // Demean the input points
@@ -238,13 +236,13 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
         points2[j][1] = static_cast<float>(static_cast<double>(points2[j][1]) - static_cast<double>(centroid_resultFloat[1]));
     }
 
-    p1t = reg_matrix2DTranspose<float>(points1, num_points, 2);
-    u = reg_matrix2DMultiply<float>(p1t,2, num_points, points2, num_points, 2, false);
+    float **p1t = reg_matrix2DTranspose<float>(points1, num_points, 2);
+    float **u = reg_matrix2DMultiply<float>(p1t,2, num_points, points2, num_points, 2, false);
 
     svd(u, 2, 2, w, v);
 
     // Calculate transpose
-    ut = reg_matrix2DTranspose<float>(u, 2, 2);
+    float **ut = reg_matrix2DTranspose<float>(u, 2, 2);
 
     // Calculate the rotation matrix
     reg_matrix2DMultiply<float>(v, 2, 2, ut, 2, 2, r, false);
@@ -294,7 +292,8 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
     reg_matrix2DDeallocate(2, v);
     reg_matrix2DDeallocate(2, ut);
     reg_matrix2DDeallocate(2, r);
-    reg_matrix2DDeallocate(2, p1t);
+//    reg_matrix2DDeallocate(2, p1t);
+    for(size_t dance=0;dance<2;++dance) free(p1t[dance]); free(p1t);
 }
 /* *************************************************************** */
 void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44 * transformation)
@@ -352,11 +351,8 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
     centroid_resultFloat[1] = static_cast<float>(centroid_result[1]);
     centroid_resultFloat[2] = static_cast<float>(centroid_result[2]);
 
-    float **p1t  = reg_matrix2DAllocate<float>(3, num_points);
-    float **u  = reg_matrix2DAllocate<float>(3, 3);
     float * w = reg_matrix1DAllocate<float>(3);
     float **v  = reg_matrix2DAllocate<float>(3, 3);
-    float **ut = reg_matrix2DAllocate<float>(3, 3);
     float **r  = reg_matrix2DAllocate<float>(3, 3);
 
     // Demean the input points
@@ -371,13 +367,13 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
     }
     //T** reg_matrix2DTranspose(T** mat, size_t arraySizeX, size_t arraySizeY);
     //T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, bool transposeMat2);
-    p1t = reg_matrix2DTranspose<float>(points1, num_points, 3);
-    u = reg_matrix2DMultiply<float>(p1t,3, num_points, points2, num_points, 3, false);
+    float **p1t = reg_matrix2DTranspose<float>(points1, num_points, 3);
+    float **u = reg_matrix2DMultiply<float>(p1t,3, num_points, points2, num_points, 3, false);
 
     svd(u, 3, 3, w, v);
 
     // Calculate transpose
-    ut = reg_matrix2DTranspose<float>(u, 3, 3);
+    float **ut = reg_matrix2DTranspose<float>(u, 3, 3);
 
     // Calculate the rotation matrix
     reg_matrix2DMultiply<float>(v, 3, 3, ut, 3, 3, r, false);
@@ -704,7 +700,7 @@ void optimize_2D(float* referencePosition, float* warpedPosition,
     unsigned long i;
 
     // The initial vector with all the input points
-    for (unsigned j = 0; j < num_points * 2; j += 2)
+    for (unsigned j = 0; j < num_equations; j += 2)
     {
         top_points.push_back(_reg_sorted_point2D(&referencePosition[j], &warpedPosition[j], 0.0));
     }
@@ -787,7 +783,7 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
     unsigned long i;
 
     // The initial vector with all the input points
-    for (unsigned j = 0; j < num_points*3; j+=3) {
+    for (unsigned j = 0; j < num_equations; j+=3) {
        top_points.push_back(_reg_sorted_point3D(&referencePosition[j],
                                                 &warpedPosition[j],
                                                 0.0));

@@ -296,10 +296,10 @@ void reg_aladin_sym<T>::initContent(nifti_image *ref,
 												size_t bytes)
 {
 	reg_aladin<T>::initContent(ref,
-										flo,
-										mask,
-										transMat,
-										bytes);
+                               flo,
+                               mask,
+                               transMat,
+                               bytes);
 
 	if (this->platformCode == NR_PLATFORM_CPU)
 	this->backCon = new Content(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
@@ -324,14 +324,14 @@ void reg_aladin_sym<T>::initContent(nifti_image *ref,
 												unsigned int inlierLts,
 												unsigned int blockStepSize)
 {
-	reg_aladin<T>::initContent(ref,
-										flo,
-										mask,
-										transMat,
-										bytes,
-										blockPercentage,
-										inlierLts,
-										blockStepSize);
+    reg_aladin<T>::initContent(ref,
+                               flo,
+                               mask,
+                               transMat,
+                               bytes,
+                               blockPercentage,
+                               inlierLts,
+                               blockStepSize);
 
 	if (this->platformCode == NR_PLATFORM_CPU)
 	this->backCon = new Content(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);

@@ -61,5 +61,8 @@ void Platform::setClIdx(int clIdxIn)
 #endif
 }
 /* *************************************************************** */
-Platform::~Platform(){}
+Platform::~Platform()
+{
+    delete this->factory;
+}
 /* *************************************************************** */
