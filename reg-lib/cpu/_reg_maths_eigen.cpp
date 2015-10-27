@@ -142,10 +142,10 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
     }
 
 #ifdef _WIN32
-    long sm, sn, sn2, min_dim;
+    long sm, sn, sn2, min_dim, i, j;
     long size__m = (long)size_m, size__n = (long)size_n;
 #else
-    size_t sm, sn, min_dim;
+    size_t sm, sn, min_dim, i, j;
     size_t size__m = size_m, size__n = size_n;
 #endif
     Eigen::MatrixXd m(size__m, size__n);
@@ -166,7 +166,6 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 
     Eigen::JacobiSVD<Eigen::MatrixXd> svd(m, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
-    int i, j;
     min_dim = std::min(size__m, size__n);
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
