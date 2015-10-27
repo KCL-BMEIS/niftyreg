@@ -60,7 +60,6 @@ class reg_aladin
         bool PerformRigid;
         bool PerformAffine;
         bool ils;
-        bool cusvd;
         int captureRangeVox;
 
         int BlockPercentage;
@@ -131,10 +130,6 @@ class reg_aladin
         void setIls(const bool ilsIn)
         {
             ils = ilsIn;
-        }
-        void setCusvd(const bool cusvdIn)
-        {
-            cusvd = cusvdIn;
         }
 
         //No allocating of the images here...

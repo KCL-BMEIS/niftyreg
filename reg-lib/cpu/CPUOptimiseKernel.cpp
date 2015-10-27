@@ -5,6 +5,6 @@ CPUOptimiseKernel::CPUOptimiseKernel(Content *con, std::string name) : OptimiseK
     blockMatchingParams = con->getBlockMatchingParams();
 }
 
-void CPUOptimiseKernel::calculate(bool affine, bool ils, bool svd) {
+void CPUOptimiseKernel::calculate(bool affine, bool ils) {
     optimize(this->blockMatchingParams, this->transformationMatrix, affine);
 }

@@ -11,6 +11,7 @@
 
 void showInfo(void)
 {
+
 //	cl_int errNum;
 //	cl_platform_id * platformIds = sContext->getPlatformIds();
 	CLContextSingletton *sContext = &CLContextSingletton::Instance();

@@ -34,12 +34,12 @@ int check_matrix_difference(mat44 matrix1, mat44 matrix2, char *name, float &max
     return EXIT_SUCCESS;
 }
 
-void test(Content *con, int platformCode, bool isAffine, bool ils, bool svd) {
+void test(Content *con, int platformCode, bool isAffine, bool ils) {
 
     Platform *platform = new Platform(platformCode);
 
     Kernel *optimiseKernel = platform->createKernel(OptimiseKernel::getName(), con);
-    optimiseKernel->castTo<OptimiseKernel>()->calculate(isAffine,ils, svd);
+    optimiseKernel->castTo<OptimiseKernel>()->calculate(isAffine,ils);
 
     delete optimiseKernel;
     delete platform;
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
     unsigned int num_points = m1;
     //I think it is a bit durty... what I am going to do
     _reg_blockMatchingParam* blockMatchingParams = new  _reg_blockMatchingParam();
-    
+
     blockMatchingParams->blockNumber[0] = 1;
     blockMatchingParams->blockNumber[1] = 1;
 
@@ -153,13 +153,22 @@ int main(int argc, char **argv)
     }
 
     con->setBlockMatchingParams(blockMatchingParams);
-    test(con, platformCode, isAffine, 0, 1);
+    test(con, platformCode, isAffine, 0);
 
 #ifndef NDEBUG
-    reg_mat44_disp(con->getTransformationMatrix(), (char *) "test_optimize_2D");
+    if (n1 == 2)
+       reg_mat44_disp(con->getTransformationMatrix(), (char *) "test_optimize_2D");
+    else reg_mat44_disp(con->getTransformationMatrix(), (char *) "test_optimize_3D");
 #endif
 
-    if (check_matrix_difference(*expectedLSMatrix, *con->getTransformationMatrix(), (char *) "LTS matrices 2D affine - rigid", max_difference)) return EXIT_FAILURE;
+    if (n1 == 2){
+       if (check_matrix_difference(*expectedLSMatrix, *con->getTransformationMatrix(), (char *) "LTS matrices 2D affine - rigid", max_difference))
+          return EXIT_FAILURE;
+    }
+    else{
+       if (check_matrix_difference(*expectedLSMatrix, *con->getTransformationMatrix(), (char *) "LTS matrices 3D affine - rigid", max_difference))
+          return EXIT_FAILURE;
+    }
 
     ////////////////////////
     // FREE THE MEMORY: ////

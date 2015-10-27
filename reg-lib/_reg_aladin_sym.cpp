@@ -262,7 +262,7 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type){
 
 	// Update now the backward transformation matrix
 	this->bBlockMatchingKernel->template castTo<BlockMatchingKernel>()->calculate();
-	this->bOptimiseKernel->template castTo<OptimiseKernel>()->calculate(type, this->ils, this->cusvd);
+	this->bOptimiseKernel->template castTo<OptimiseKernel>()->calculate(type, this->ils);
 
 #ifndef NDEBUG
    reg_mat44_disp(this->TransformationMatrix, (char *)"[NiftyReg DEBUG] pre-updated forward transformation matrix");
@@ -295,7 +295,7 @@ void reg_aladin_sym<T>::initContent(nifti_image *ref,
 												mat44 *transMat,
 												size_t bytes)
 {
-	reg_aladin<T>::initContent(ref,
+   reg_aladin<T>::initContent(ref,
                                flo,
                                mask,
                                transMat,
@@ -337,7 +337,7 @@ void reg_aladin_sym<T>::initContent(nifti_image *ref,
 	this->backCon = new Content(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if (this->platformCode == NR_PLATFORM_CUDA)
-	this->backCon = new CudaContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize, this->cusvd);
+	this->backCon = new CudaContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
 	else if (this->platformCode == NR_PLATFORM_CL)

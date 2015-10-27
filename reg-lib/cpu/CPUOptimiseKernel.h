@@ -13,7 +13,7 @@ public:
     _reg_blockMatchingParam *blockMatchingParams;
     mat44 *transformationMatrix;
 
-    void calculate(bool affine, bool ils, bool svd=0);
+    void calculate(bool affine, bool ils);
 
 };
 

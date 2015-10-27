@@ -86,7 +86,6 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->FloatingLowerThreshold = 0.f;
 	this->FloatingUpperThreshold = 0.f;
 	this->clIdx = 0;
-	this->cusvd = false;
 }
 /* *************************************************************** */
 template<class T> reg_aladin<T>::~reg_aladin()
@@ -402,8 +401,8 @@ void reg_aladin<T>::InitialiseRegistration()
 		{
 			const mat44 *floatingMatrix = (this->InputFloating->sform_code > 0) ? &(this->InputFloating->sto_xyz) : &(this->InputFloating->qto_xyz);
 			const mat44 *referenceMatrix = (this->InputReference->sform_code > 0) ? &(this->InputReference->sto_xyz) : &(this->InputReference->qto_xyz);
-            //In pixel coordinates
-            float floatingCenter[3];
+				//In pixel coordinates
+				float floatingCenter[3];
 			floatingCenter[0] = (float) (this->InputFloating->nx) / 2.0f;
 			floatingCenter[1] = (float) (this->InputFloating->ny) / 2.0f;
 			floatingCenter[2] = (float) (this->InputFloating->nz) / 2.0f;
@@ -411,12 +410,12 @@ void reg_aladin<T>::InitialiseRegistration()
 			referenceCenter[0] = (float) (this->InputReference->nx) / 2.0f;
 			referenceCenter[1] = (float) (this->InputReference->ny) / 2.0f;
 			referenceCenter[2] = (float) (this->InputReference->nz) / 2.0f;
-            //From pixel coordinates to real coordinates
+				//From pixel coordinates to real coordinates
 			float floatingRealPosition[3];
 			reg_mat44_mul(floatingMatrix, floatingCenter, floatingRealPosition);
 			float referenceRealPosition[3];
 			reg_mat44_mul(referenceMatrix, referenceCenter, referenceRealPosition);
-            //Set translation to the transformation matrix
+				//Set translation to the transformation matrix
 			this->TransformationMatrix->m[0][3] = floatingRealPosition[0] - referenceRealPosition[0];
 			this->TransformationMatrix->m[1][3] = floatingRealPosition[1] - referenceRealPosition[1];
 			this->TransformationMatrix->m[2][3] = floatingRealPosition[2] - referenceRealPosition[2];
@@ -501,18 +500,18 @@ void reg_aladin<T>::createKernels()
 template<class T>
 void reg_aladin<T>::clearKernels()
 {
-	delete this->affineTransformation3DKernel;
+   delete this->affineTransformation3DKernel;
     delete this->resamplingKernel;
     if (this->blockMatchingKernel != NULL)
         delete this->blockMatchingKernel;
-	if (this->optimiseKernel != NULL)
-		delete this->optimiseKernel;
+   if (this->optimiseKernel != NULL)
+      delete this->optimiseKernel;
 }
 /* *************************************************************** */
 template<class T>
 void reg_aladin<T>::GetDeformationField()
 {
-	this->affineTransformation3DKernel->template castTo<AffineDeformationFieldKernel>()->calculate();
+   this->affineTransformation3DKernel->template castTo<AffineDeformationFieldKernel>()->calculate();
 }
 /* *************************************************************** */
 template<class T>
@@ -526,7 +525,7 @@ template<class T>
 void reg_aladin<T>::UpdateTransformationMatrix(int type)
 {
 	this->blockMatchingKernel->template castTo<BlockMatchingKernel>()->calculate();
-	this->optimiseKernel->template castTo<OptimiseKernel>()->calculate(type, this->ils, this->cusvd);
+	this->optimiseKernel->template castTo<OptimiseKernel>()->calculate(type, this->ils);
 
 #ifndef NDEBUG
 	reg_mat44_disp(this->TransformationMatrix, (char *) "[NiftyReg DEBUG] updated forward matrix");
@@ -547,7 +546,7 @@ void reg_aladin<T>::initContent(nifti_image *ref,
 		this->con = new Content(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-		this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize, cusvd);
+		this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
@@ -687,7 +686,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 		reg_exit(1);
 	}
 
-	this->CurrentReference = this->InputReference;
+   this->CurrentReference = this->InputReference;
     this->CurrentFloating = this->InputFloating;
     this->CurrentReferenceMask = (int *)calloc(this->CurrentReference->nx*this->CurrentReference->ny*this->CurrentReference->nz,sizeof(int));
 
@@ -696,12 +695,12 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
                                this->CurrentReferenceMask,
                                this->TransformationMatrix,
                                sizeof(T));
-	reg_aladin<T>::createKernels();
+   reg_aladin<T>::createKernels();
 
 	reg_aladin<T>::GetWarpedImage(3); // cubic spline interpolation
 	this->CurrentWarped = this->con->getCurrentWarped(floatingType);
 
-    free(this->CurrentReferenceMask);
+	 free(this->CurrentReferenceMask);
 	nifti_image *resultImage = nifti_copy_nim_info(this->CurrentWarped);
 	resultImage->cal_min = this->InputFloating->cal_min;
 	resultImage->cal_max = this->InputFloating->cal_max;

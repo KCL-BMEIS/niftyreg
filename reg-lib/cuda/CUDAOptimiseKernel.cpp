@@ -5,29 +5,29 @@
 
 /* *************************************************************** */
 CudaOptimiseKernel::CudaOptimiseKernel(Content *conIn, std::string name) :
-    OptimiseKernel(name)
+   OptimiseKernel(name)
 {
-    //get CudaContent ptr
-    con = static_cast<CudaContent*>(conIn);
+   //get CudaContent ptr
+   con = static_cast<CudaContent*>(conIn);
 
-    //get cpu ptrs
-    transformationMatrix = con->Content::getTransformationMatrix();
-    blockMatchingParams = con->Content::getBlockMatchingParams();
+   //get cpu ptrs
+   transformationMatrix = con->Content::getTransformationMatrix();
+   blockMatchingParams = con->Content::getBlockMatchingParams();
 
-    transformationMatrix_d = con->getTransformationMatrix_d();
-    AR_d = con->getAR_d();
-    U_d = con->getU_d();
-    Sigma_d = con->getSigma_d();
-    VT_d = con->getVT_d();
-    lengths_d = con->getLengths_d();
-    referencePos_d = con->getReferencePosition_d();
-    warpedPos_d = con->getWarpedPosition_d();
-    newWarpedPos_d = con->getNewWarpedPos_d();
+//   transformationMatrix_d = con->getTransformationMatrix_d();
+//   AR_d = con->getAR_d(); // Removed until CUDA SVD is added back
+//   U_d = con->getU_d(); // Removed until CUDA SVD is added back
+//   Sigma_d = con->getSigma_d(); // Removed until CUDA SVD is added back
+//   VT_d = con->getVT_d(); // Removed until CUDA SVD is added back
+//   lengths_d = con->getLengths_d(); // Removed until CUDA SVD is added back
+//   referencePos_d = con->getReferencePosition_d();
+//   warpedPos_d = con->getWarpedPosition_d();
+//   newWarpedPos_d = con->getNewWarpedPos_d(); // Removed until CUDA SVD is added back
 
 }
 /* *************************************************************** */
-void CudaOptimiseKernel::calculate(bool affine, bool ils, bool cusvd) {
-/*
+void CudaOptimiseKernel::calculate(bool affine, bool ils) {
+   /* // Removed until CUDA SVD is added back
 #if _WIN64 || __x86_64__ || __ppc64__
 
     //for now. Soon we will have a GPU version of it

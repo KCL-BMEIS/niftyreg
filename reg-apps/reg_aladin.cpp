@@ -172,7 +172,6 @@ int main(int argc, char **argv)
    bool ils = false;
    int captureRangeVox = 3;
    int clIdx = -1;
-   bool cusvd =false;
 
 #if defined (_OPENMP)
    // Set the default number of thread
@@ -368,9 +367,6 @@ int main(int argc, char **argv)
       {
           clIdx = atoi(argv[++i]);
       }
-      else if(strcmp(argv[i], "-cusvd")==0 || strcmp(argv[i], "--cusvd")==0) {
-         cusvd = true;
-      }
       else if(strcmp(argv[i], "-crv")==0 || strcmp(argv[i], "--crv")==0)
       {
           captureRangeVox=atoi(argv[++i]);
@@ -548,7 +544,6 @@ int main(int argc, char **argv)
    REG->setIls(ils);
    REG->setCaptureRangeVox(captureRangeVox);
    REG->setClIdx(clIdx);
-   REG->setCusvd(cusvd);
 
    if (referenceLowerThr != referenceUpperThr)
    {

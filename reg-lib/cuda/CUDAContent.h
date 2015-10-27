@@ -12,8 +12,7 @@ public:
 					size_t byte,
 					const unsigned int blockPercentage,
 					const unsigned int inlierLts,
-					int blockStep,
-					bool cusvd=false);
+					int blockStep);
 	CudaContent(nifti_image *CurrentReferenceIn,
 					nifti_image *CurrentFloatingIn,
 					int *CurrentReferenceMaskIn,
@@ -25,8 +24,7 @@ public:
 					size_t byte,
 					const unsigned int blockPercentage,
 					const unsigned int inlierLts,
-					int blockStep,
-					bool cusvd=false);
+					int blockStep);
 	CudaContent(nifti_image *CurrentReferenceIn,
 					nifti_image *CurrentFloatingIn,
 					int *CurrentReferenceMaskIn,
@@ -39,18 +37,18 @@ public:
 	float* getFloatingImageArray_d();
 	float* getWarpedImageArray_d();
 	float* getTransformationMatrix_d();
-    float* getReferencePosition_d();
-    float* getWarpedPosition_d();
+	float* getReferencePosition_d();
+	float* getWarpedPosition_d();
 	float* getDeformationFieldArray_d();
 	float* getReferenceMat_d();
 	float* getFloIJKMat_d();
 
-	float* getAR_d();
-	float* getU_d();
-	float* getVT_d();
-	float* getSigma_d();
-	float* getLengths_d();
-    float* getNewWarpedPos_d();
+//	float* getAR_d(); // Removed until CUDA SVD is added back
+//	float* getU_d(); // Removed until CUDA SVD is added back
+//	float* getVT_d(); // Removed until CUDA SVD is added back
+//	float* getSigma_d(); // Removed until CUDA SVD is added back
+//	float* getLengths_d(); // Removed until CUDA SVD is added back
+//	float* getNewWarpedPos_d(); // Removed until CUDA SVD is added back
 
 	int *getTotalBlock_d();
 	int *getMask_d();
@@ -67,7 +65,7 @@ public:
 	void setCurrentWarped(nifti_image *warpedImageIn);
 	void setCurrentDeformationField(nifti_image *CurrentDeformationFieldIn);
 	void setCurrentReferenceMask(int *maskIn, size_t size);
-    void setBlockMatchingParams(_reg_blockMatchingParam* bmp);
+	void setBlockMatchingParams(_reg_blockMatchingParam* bmp);
 
 private:
 	void initVars();
@@ -89,12 +87,12 @@ private:
 	float* floIJKMat_d;
 
 	//svd
-	float* AR_d;//A and then pseudoinverse
-	float* U_d;
-	float* VT_d;
-	float* Sigma_d;
-	float* lengths_d;
-    float* newWarpedPos_d;
+//	float* AR_d;//A and then pseudoinverse  // Removed until CUDA SVD is added back
+//	float* U_d; // Removed until CUDA SVD is added back
+//	float* VT_d; // Removed until CUDA SVD is added back
+//	float* Sigma_d; // Removed until CUDA SVD is added back
+//	float* lengths_d; // Removed until CUDA SVD is added back
+//	float* newWarpedPos_d; // Removed until CUDA SVD is added back
 
 	int referenceDims[4];
 	int floatingDims[4];
@@ -107,5 +105,4 @@ private:
 	FloatingTYPE fillWarpedImageData(float intensity, int datatype);
 
 	unsigned long nVoxels;
-    bool cudaSVD;
 };
