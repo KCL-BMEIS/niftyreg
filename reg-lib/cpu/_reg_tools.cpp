@@ -13,6 +13,7 @@
 #ifndef _REG_TOOLS_CPP
 #define _REG_TOOLS_CPP
 
+#include <cmath>
 #include "_reg_tools.h"
 
 /* *************************************************************** */
@@ -2883,11 +2884,11 @@ int reg_getDeformationFromDisplacement(nifti_image *field)
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-float reg_test_compare_arrays(DTYPE *ptrA,
+double reg_test_compare_arrays(DTYPE *ptrA,
                               DTYPE *ptrB,
                               size_t nvox)
 {
-   float maxDifference=0.f;
+   double maxDifference=0.0;
 
    for(size_t i=0; i<nvox; ++i)
    {
@@ -2906,29 +2907,29 @@ float reg_test_compare_arrays(DTYPE *ptrA,
       {
          if(valA!=0 && valB!=0)
          {
-            float diffRatio=valA/valB;
+            double diffRatio=valA/valB;
             if(diffRatio<0)
             {
-               diffRatio=fabsf(valA-valB);
+               diffRatio=std::abs(valA-valB);
                maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
             }
-            diffRatio-=1.f;
+            diffRatio-=1.0;
             maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
          }
          else
          {
-            float diffRatio=fabsf(valA-valB);
+            double diffRatio=std::abs(valA-valB);
             maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
          }
       }
    }
    return maxDifference;
 }
-template float reg_test_compare_arrays<float>(float *ptrA, float *ptrB, size_t nvox);
-template float reg_test_compare_arrays<double>(double *ptrA, double *ptrB, size_t nvox);
+template double reg_test_compare_arrays<float>(float *ptrA, float *ptrB, size_t nvox);
+template double reg_test_compare_arrays<double>(double *ptrA, double *ptrB, size_t nvox);
 /* *************************************************************** */
 template <class DTYPE>
-float reg_test_compare_images1(nifti_image *imgA,
+double reg_test_compare_images1(nifti_image *imgA,
                                nifti_image *imgB)
 {
    DTYPE *imgAPtr = static_cast<DTYPE *>(imgA->data);
@@ -2936,7 +2937,7 @@ float reg_test_compare_images1(nifti_image *imgA,
    return reg_test_compare_arrays<DTYPE>(imgAPtr,imgBPtr,imgA->nvox);
 }
 /* *************************************************************** */
-float reg_test_compare_images(nifti_image *imgA,
+double reg_test_compare_images(nifti_image *imgA,
                               nifti_image *imgB)
 {
    if(imgA->datatype!=imgB->datatype)

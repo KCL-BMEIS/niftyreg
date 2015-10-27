@@ -382,7 +382,7 @@ int reg_getDeformationFromDisplacement(nifti_image *image);
  * If A or B are zeros then the (A-B) value is returned.
  */
 extern "C++" template<class DTYPE>
-float reg_test_compare_arrays(DTYPE *ptrA,
+double reg_test_compare_arrays(DTYPE *ptrA,
                               DTYPE *ptrB,
                               size_t nvox);
 /* *************************************************************** */
@@ -391,7 +391,7 @@ float reg_test_compare_arrays(DTYPE *ptrA,
  * If A or B are zeros then the (A-B) value is returned.
  */
 extern "C++"
-float reg_test_compare_images(nifti_image *imgA,
+double reg_test_compare_images(nifti_image *imgA,
                               nifti_image *imgB);
 /* *************************************************************** */
 /** @brief The absolute operator is applied to the input image
