@@ -1,6 +1,7 @@
 #ifndef CUDACONTEXTSINGLETTON_H
 #define CUDACONTEXTSINGLETTON_H
 
+#include "_reg_maths.h"
 #include "cuda.h"
 
 class CUDAContextSingletton

@@ -25,11 +25,11 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CLContextSingletton.cpp
 	CLContent.cpp
 	CLKernelFactory.cpp
-        CLAffineDeformationFieldKernel.cpp
-        CLBlockMatchingKernel.cpp
-        CLConvolutionKernel.cpp
-        CLOptimiseKernel.cpp
-        CLResampleImageKernel.cpp
+	CLAffineDeformationFieldKernel.cpp
+	CLBlockMatchingKernel.cpp
+	CLConvolutionKernel.cpp
+	CLOptimiseKernel.cpp
+	CLResampleImageKernel.cpp
 	../Content.cpp
 	../Platform.cpp
 )

@@ -41,23 +41,15 @@ set(MODULE_LIST
 		reg_f3d
 		)
 #-----------------------------------------------------------------------------
-if(USE_OPENCL OR USE_CUDA)
-                set(source_code "")
-                if(USE_OPENCL)
-                    list(APPEND source_code "../reg-lib/cl/CLContextSingletton.cpp")
-                    include_directories(${OPENCL_INCLUDE_DIRS})
-                endif(USE_OPENCL)
-                add_executable(reg_gpuinfo reg_gpuinfo.cpp ${source_code})
-
-                if(USE_OPENCL)
-                    target_link_libraries(reg_gpuinfo ${OPENCL_LIBRARIES})
-                endif(USE_OPENCL)
-
-                if(USE_CUDA)
-                    target_link_libraries(reg_gpuinfo _reg_common_cuda)
-                endif(USE_CUDA)
-                set(MODULE_LIST ${MODULE_LIST} reg_gpuinfo)
-endif(USE_OPENCL OR USE_CUDA)
+if(USE_CUDA OR USE_OPENCL)
+	if(USE_CUDA)
+		cuda_add_executable(reg_gpuinfo reg_gpuinfo.cpp)
+	else(USE_CUDA)
+		add_executable(reg_gpuinfo reg_gpuinfo.cpp)
+	endif(USE_CUDA)
+	target_link_libraries(reg_gpuinfo _reg_gpuinfo)
+	set(MODULE_LIST ${MODULE_LIST} reg_gpuinfo)
+endif(USE_CUDA OR USE_OPENCL)
 #-----------------------------------------------------------------------------
 foreach(MODULE_NAME ${MODULE_LIST})
 		install(TARGETS ${MODULE_NAME}

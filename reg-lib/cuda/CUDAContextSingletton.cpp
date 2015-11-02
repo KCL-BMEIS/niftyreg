@@ -1,8 +1,5 @@
 #include "CUDAContextSingletton.h"
-#include "cuda.h"
-#include "cuda_runtime.h"
 
-#include "_reg_maths.h"
 #include "_reg_common_cuda.h"
 
 /* *************************************************************** */
