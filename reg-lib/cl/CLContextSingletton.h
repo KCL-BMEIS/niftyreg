@@ -8,7 +8,13 @@
 #include <CL/cl.h>
 #endif
 
+#include "_reg_maths.h"
+
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
 
 // Declaration
 class CLContextSingletton
@@ -28,7 +34,7 @@ public:
 	void CreateCommandQueue();
 	void init();
 	cl_kernel dummyKernel(cl_device_id deviceIdIn);
-    void setClIdx(int clIdxIn);
+	 void setClIdx(int clIdxIn);
 
 	cl_program CreateProgram( const char* fileName);
 
@@ -61,7 +67,7 @@ private:
 	CLContextSingletton(CLContextSingletton const&);// Don't Implement
 	void operator=(CLContextSingletton const&); // Don't implement
 
-    void pickCard(cl_uint deviceId);
+	 void pickCard(cl_uint deviceId);
 
 	cl_context context;
 	cl_device_id deviceId;

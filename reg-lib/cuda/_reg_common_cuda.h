@@ -165,23 +165,11 @@ template <class DTYPE>
 int cudaCommon_transferArrayFromCpuToDevice(DTYPE **array_d, DTYPE *array_cpu, const unsigned int nElements);
 /* ******************************** */
 /* ******************************** */
-/* ******************************** */
-/* ******************************** */
 extern "C++"
 template <class DTYPE>
 int cudaCommon_transferArrayFromDeviceToCpu(DTYPE *array_cpu, DTYPE **array_d, const unsigned int nElements);
 /* ******************************** */
 /* ******************************** */
-/* ******************************** */
-/* ******************************** */
-/*extern "C++"
-template<typename T>
-void cudaCommon_transfer2DMatrixFromCpuToDevice(T* M_d, T** M_h, unsigned int m, unsigned int n);
-
-extern "C++"
-template<typename T>
-void cudaCommon_transferFromDeviceTo2DMatrixCpu(T* M_d, T** M_h, unsigned int m, unsigned int n);
-*/
 void showCUDACardInfo(void);
 /* ******************************** */
 #endif

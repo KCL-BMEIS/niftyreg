@@ -1,23 +1,7 @@
-#include <iostream>
-#ifdef _USE_CUDA
-    #include "_reg_common_cuda.h"
-#endif
-#ifdef _USE_OPENCL
-    #include "CLContextSingletton.h"
-    #include "InfoDevice.h"
-#endif
+#include "_reg_openclinfo.h"
 
-#ifdef _USE_CUDA
-void showCUDAInfo(void)
-{
-    showCUDACardInfo();
-}
-#endif
-
-#ifdef _USE_OPENCL
 void showCLInfo(void)
 {
-
     //	cl_int errNum;
     //	cl_platform_id * platformIds = sContext->getPlatformIds();
     CLContextSingletton *sContext = &CLContextSingletton::Instance();
@@ -62,4 +46,3 @@ void showCLInfo(void)
         }
     }
 }
-#endif

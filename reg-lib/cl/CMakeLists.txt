@@ -49,3 +49,13 @@ install(FILES CLContextSingletton.h CLContent.h CLKernelFactory.h
 				DESTINATION include/cl)
 install(FILES resampleKernel.cl affineDeformationKernel.cl blockMatchingKernel.cl DESTINATION include/cl)
 #-----------------------------------------------------------------------------
+set(NAME _reg_openclinfo)
+add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cpp ${NAME}.h InfoDevice.h CLContextSingletton.cpp)
+target_link_libraries(${NAME} ${OPENCL_LIBRARIES})
+install(TARGETS ${NAME}
+	RUNTIME DESTINATION lib
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib
+)
+install(FILES ${NAME}.h DESTINATION include/cl)
+#-----------------------------------------------------------------------------

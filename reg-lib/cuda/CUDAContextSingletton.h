@@ -22,7 +22,7 @@ class CUDAContextSingletton
         static CUDAContextSingletton* _instance;
 
         CUDAContextSingletton();
-        ~CUDAContextSingletton() {}
+        ~CUDAContextSingletton();
 
         CUDAContextSingletton(CUDAContextSingletton const&);// Don't Implement
         void operator=(CUDAContextSingletton const&); // Don't implement

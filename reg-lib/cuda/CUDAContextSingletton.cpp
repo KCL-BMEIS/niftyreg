@@ -1,5 +1,4 @@
 #include "CUDAContextSingletton.h"
-
 #include "_reg_common_cuda.h"
 
 /* *************************************************************** */
@@ -100,3 +99,7 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = -1)
 
 }
 /* *************************************************************** */
+CUDAContextSingletton::~CUDAContextSingletton()
+{
+   cuCtxDestroy(this->cudaContext);
+}

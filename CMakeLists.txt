@@ -136,6 +136,7 @@ endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
 	include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
+	include_directories(${CUDA_INCLUDE_DIRS})
 	add_definitions(-D_USE_CUDA)
 	option(CUDA_FAST_MATH "To use the fast math flag" OFF)
 endif(USE_CUDA)

@@ -1,7 +1,6 @@
 #-----------------------------------------------------------------------------
 # Check if the CUDA drivers are available
 find_package(CUDA)
-
 mark_as_advanced(CUDA_SDK_ROOT_DIR)
 #-----------------------------------------------------------------------------
 if(NOT CUDA_FOUND)
@@ -9,6 +8,7 @@ if(NOT CUDA_FOUND)
 	message(ERROR "CUDA not found. The USE_CUDA flag is turned OFF")
 endif(NOT CUDA_FOUND)
 #-----------------------------------------------------------------------------
+SET(CUDA_INCLUDE_DIRS  "${CUDA_INCLUDE_DIRS}" CACHE INTERNAL "CUDA_INCLUDE_DIRS")
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
 #-----------------------------------------------------------------------------
 #SET(CUDA_SEPARABLE_COMPILATION ON)
@@ -83,3 +83,14 @@ install(TARGETS ${NAME}
 install(FILES blockMatchingKernel.h CUDAContextSingletton.h CUDAContent.h DESTINATION include/cuda)
 install(FILES CUDAKernelFactory.h affineDeformationKernel.h resampleKernel.h optimizeKernel.h CUDAAffineDeformationFieldKernel.h CUDABlockMatchingKernel.h CUDAConvolutionKernel.h CUDAOptimiseKernel.h CUDAResampleImageKernel.h DESTINATION include/cuda)
 #-----------------------------------------------------------------------------
+set(NAME _reg_cudainfo)
+cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cpp ${NAME}.h)
+target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
+install(TARGETS ${NAME}
+	RUNTIME DESTINATION lib
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib
+)
+install(FILES ${NAME}.h DESTINATION include/cuda)
+#-----------------------------------------------------------------------------
+

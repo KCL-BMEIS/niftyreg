@@ -1,17 +1,16 @@
 #-----------------------------------------------------------------------------
-if(USE_OPENCL)
-	add_subdirectory(cl)
-	set(NR_OPENCL_LIBRARIES _reg_opencl_kernels)
-endif(USE_OPENCL)
-#-----------------------------------------------------------------------------
 if(USE_CUDA)
 	add_subdirectory(cuda)
-	include_directories(${CUDA_INCLUDE_DIRS})
 	set(NR_CUDA_LIBRARIES
 		_reg_common_cuda
 		_reg_cuda_kernels
 	)
 endif(USE_CUDA)
+#-----------------------------------------------------------------------------
+if(USE_OPENCL)
+	add_subdirectory(cl)
+	set(NR_OPENCL_LIBRARIES _reg_opencl_kernels)
+endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
 ##BUILD THE CPU LIBRARIES
 #-----------------------------------------------------------------------------
@@ -189,20 +188,6 @@ install(FILES ${NAME}.cpp  DESTINATION include)
 install(FILES ${NAME}2.cpp  DESTINATION include)
 install(FILES ${NAME}_sym.cpp  DESTINATION include)
 install(FILES cpu/_reg_optimiser.cpp  DESTINATION include)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-## BUILD THE GPUINFO LIBRARY
-if(USE_CUDA OR USE_OPENCL)
-	set(NAME _reg_gpuinfo)
-	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cpp ${NAME}.h)
-	target_link_libraries(${NAME} ${NR_OPENCL_LIBRARIES} ${NR_CUDA_LIBRARIES})
-	install(TARGETS ${NAME}
-		RUNTIME DESTINATION bin
-		LIBRARY DESTINATION lib
-		ARCHIVE DESTINATION lib
-		)
-	install(FILES ${NAME}.h  DESTINATION include)
-endif(USE_CUDA OR USE_OPENCL)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY

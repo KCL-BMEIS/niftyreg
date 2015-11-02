@@ -8,7 +8,6 @@
 
 #include "CLContextSingletton.h"
 
-
 template<typename T>
 class DeviceLog {
 public:

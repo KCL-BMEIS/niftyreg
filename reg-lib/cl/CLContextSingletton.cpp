@@ -1,11 +1,4 @@
 #include "CLContextSingletton.h"
-#include "../reg-lib/cl/InfoDevice.h"
-
-#include "_reg_maths.h"
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
 
 /* *************************************************************** */
 CLContextSingletton::CLContextSingletton()
@@ -32,7 +25,7 @@ void CLContextSingletton::init()
 	this->devices = new cl_device_id[this->numDevices];
 	errNum = clGetDeviceIDs(this->platformIds[0], CL_DEVICE_TYPE_ALL, this->numDevices, this->devices, NULL);
 
-    pickCard(clIdx);
+	 pickCard(clIdx);
 
 	cl_context_properties contextProperties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) this->platformIds[0], 0 };
 	this->context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_GPU, NULL, NULL, &errNum);
@@ -122,7 +115,7 @@ cl_program CLContextSingletton::CreateProgram(const char* fileName)
 	program = clCreateProgramWithSource(this->context, 1, (const char**) &srcStr, NULL, &errNum);
 	checkErrNum(errNum, "Failed to create CL program");
 
-	errNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+   errNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     if (errNum != CL_SUCCESS) {
         checDebugKernelInfo(program,this->deviceId, (char *)"Errors in kernel: ");
         //create log
@@ -133,7 +126,7 @@ cl_program CLContextSingletton::CreateProgram(const char* fileName)
         exit(1);
     }
 
-	return program;
+   return program;
 }
 /* *************************************************************** */
 void CLContextSingletton::shutDown()
