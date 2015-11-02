@@ -7,9 +7,9 @@
 /*
  * kernel functions for image resampling with three interpolation variations
  * */
-class CudaResampleImageKernel: public ResampleImageKernel {
+class CUDAResampleImageKernel: public ResampleImageKernel {
 public:
-    CudaResampleImageKernel(Content *conIn, std::string name);
+    CUDAResampleImageKernel(Content *conIn, std::string name);
     void calculate(int interp,
                         float paddingValue,
                         bool *dti_timepoint = NULL,
@@ -25,6 +25,7 @@ private:
     float* deformationFieldImageArray_d;
     int *mask_d;
 
+    //CUDAContextSingletton *cudaSContext;
     CudaContent *con;
 };
 

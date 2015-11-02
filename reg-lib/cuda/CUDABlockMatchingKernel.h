@@ -5,14 +5,17 @@
 #include "CUDAContent.h"
 
 //Kernel functions for block matching
-class CudaBlockMatchingKernel : public BlockMatchingKernel {
+class CUDABlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-    CudaBlockMatchingKernel(Content *conIn, std::string name);
+    CUDABlockMatchingKernel(Content *conIn, std::string name);
     void calculate();
 private:
     nifti_image *reference;
     _reg_blockMatchingParam* params;
+
+    //CUDAContextSingletton *cudaSContext;
+    //CUContext *cudaContext;
 
     CudaContent *con;
 

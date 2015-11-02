@@ -2,7 +2,7 @@
 #include "affineDeformationKernel.h"
 
 /* *************************************************************** */
-CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Content *conIn, std::string nameIn) :
+CUDAAffineDeformationFieldKernel::CUDAAffineDeformationFieldKernel(Content *conIn, std::string nameIn) :
    AffineDeformationFieldKernel(nameIn)
 {
    con = static_cast<CudaContent*>(conIn);
@@ -15,9 +15,12 @@ CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Content *conI
    mask_d = con->getMask_d();
    deformationFieldArray_d = con->getDeformationFieldArray_d();
    transformationMatrix_d = con->getTransformationMatrix_d();
+
+   //cudaSContext = &CUDAContextSingletton::Instance();
+   //cudaContext = cudaSContext->getContext();
 }
 /* *************************************************************** */
-void CudaAffineDeformationFieldKernel::calculate(bool compose)
+void CUDAAffineDeformationFieldKernel::calculate(bool compose)
 {
    launchAffine(this->affineTransformation,
                 this->deformationFieldImage,

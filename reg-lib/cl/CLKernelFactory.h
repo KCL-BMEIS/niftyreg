@@ -2,8 +2,8 @@
 #define CLPKERNELFACTORY_H
 
 #include "KernelFactory.h"
+#include "Content.h"
 
-class Content;
 class CLKernelFactory : public KernelFactory
 {
 public:

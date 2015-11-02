@@ -2,7 +2,11 @@
 #include "_reg_tools.h"
 
 /* *************************************************************** */
-void CudaConvolutionKernel::calculate(nifti_image *image,
+CUDAConvolutionKernel::CUDAConvolutionKernel(std::string name) : ConvolutionKernel(name) {
+    //cudaSContext = &CUDAContextSingletton::Instance();
+}
+/* *************************************************************** */
+void CUDAConvolutionKernel::calculate(nifti_image *image,
                                                   float *sigma,
                                                   int kernelType,
                                                   int *mask,

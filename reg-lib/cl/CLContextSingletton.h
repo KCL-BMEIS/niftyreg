@@ -28,11 +28,8 @@ public:
 	void CreateCommandQueue();
 	void init();
 	cl_kernel dummyKernel(cl_device_id deviceIdIn);
-	void setClIdx( int clIdxIn)
-	{
-		clIdx=clIdxIn;
-		init();
-	}
+    void setClIdx(int clIdxIn);
+
 	cl_program CreateProgram( const char* fileName);
 
 
@@ -64,7 +61,7 @@ private:
 	CLContextSingletton(CLContextSingletton const&);// Don't Implement
 	void operator=(CLContextSingletton const&); // Don't implement
 
-	void pickCard();
+    void pickCard(cl_uint deviceId);
 
 	cl_context context;
 	cl_device_id deviceId;

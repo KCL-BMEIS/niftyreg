@@ -20,13 +20,14 @@ public:
 
 	Kernel *createKernel(const std::string& name, Content *con) const;
 	std::string getName();
-	void setClIdx(int clIdxIn);
+    void setGpuIdx(int gpuIdxIn);
 
 
 private:
 
 	KernelFactory* factory;
 	std::string platformName;
+    int platformCode;
 
 };
 

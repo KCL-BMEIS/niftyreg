@@ -2,9 +2,7 @@
 #include "KernelFactory.h"
 #include "Content.h"
 
-class Platform;
-class Kernel;
-class CudaKernelFactory : public KernelFactory
+class CUDAKernelFactory : public KernelFactory
 {
 public:
 	Kernel *produceKernel(std::string name, Content *con) const;

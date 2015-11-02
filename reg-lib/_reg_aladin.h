@@ -79,7 +79,7 @@ class reg_aladin
         float ReferenceLowerThreshold;
         float FloatingUpperThreshold;
         float FloatingLowerThreshold;
-        int clIdx;
+        int gpuIdx;
 
         Platform *platform;
 
@@ -245,8 +245,8 @@ class reg_aladin
             this->captureRangeVox = captureRangeIn;
         }
 
-        void setClIdx(int clIdxIn) {
-            this->clIdx = clIdxIn;
+        void setGpuIdx(int gpuIdxIn) {
+            this->gpuIdx = gpuIdxIn;
         }
         virtual int Check();
         virtual int Print();

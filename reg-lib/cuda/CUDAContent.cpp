@@ -120,6 +120,9 @@ void CudaContent::initVars()
          reg_tools_changeDatatype<float>(this->CurrentWarped);
    }
 
+   this->cudaSContext = &CUDAContextSingletton::Instance();
+   this->cudaContext = this->cudaSContext->getContext();
+
    this->referenceVoxels = (this->CurrentReference != NULL) ? this->CurrentReference->nvox : 0;
    this->floatingVoxels = (this->CurrentFloating != NULL) ? this->CurrentFloating->nvox : 0;
    //this->numBlocks = (this->blockMatchingParams->activeBlock != NULL) ? blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2] : 0;

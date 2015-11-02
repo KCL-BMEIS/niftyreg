@@ -1,5 +1,8 @@
 #pragma once
+
 #include "Content.h"
+#include "CUDAContextSingletton.h"
+
 #include "_reg_tools.h"
 
 class CudaContent: public Content {
@@ -73,6 +76,9 @@ private:
 	//void uploadContent();
 	void allocateCuPtrs();
 	void freeCuPtrs();
+
+    CUDAContextSingletton* cudaSContext;
+    CUcontext cudaContext;
 
 	float *referenceImageArray_d;
 	float *floatingImageArray_d;

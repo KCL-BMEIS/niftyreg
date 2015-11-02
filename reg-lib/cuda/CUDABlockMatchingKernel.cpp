@@ -2,7 +2,7 @@
 #include "blockMatchingKernel.h"
 
 /* *************************************************************** */
-CudaBlockMatchingKernel::CudaBlockMatchingKernel(Content *conIn, std::string name) :
+CUDABlockMatchingKernel::CUDABlockMatchingKernel(Content *conIn, std::string name) :
    BlockMatchingKernel(name)
 {
    //get CudaContent ptr
@@ -22,7 +22,7 @@ CudaBlockMatchingKernel::CudaBlockMatchingKernel(Content *conIn, std::string nam
    referenceMat_d = con->getReferenceMat_d();
 }
 /* *************************************************************** */
-void CudaBlockMatchingKernel::calculate()
+void CUDABlockMatchingKernel::calculate()
 {
    block_matching_method_gpu(reference,
                              params,

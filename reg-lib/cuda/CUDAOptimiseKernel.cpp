@@ -4,11 +4,13 @@
 #include "optimizeKernel.h"
 
 /* *************************************************************** */
-CudaOptimiseKernel::CudaOptimiseKernel(Content *conIn, std::string name) :
+CUDAOptimiseKernel::CUDAOptimiseKernel(Content *conIn, std::string name) :
    OptimiseKernel(name)
 {
    //get CudaContent ptr
    con = static_cast<CudaContent*>(conIn);
+
+   //cudaSContext = &CUDAContextSingletton::Instance();
 
    //get cpu ptrs
    transformationMatrix = con->Content::getTransformationMatrix();
@@ -26,7 +28,7 @@ CudaOptimiseKernel::CudaOptimiseKernel(Content *conIn, std::string name) :
 
 }
 /* *************************************************************** */
-void CudaOptimiseKernel::calculate(bool affine, bool ils) {
+void CUDAOptimiseKernel::calculate(bool affine, bool ils) {
    /* // Removed until CUDA SVD is added back
 #if _WIN64 || __x86_64__ || __ppc64__
 

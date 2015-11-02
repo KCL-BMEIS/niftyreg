@@ -13,7 +13,7 @@ int main() {
 	if( cudaResultCode != cudaSuccess || deviceCount == 0 ) // cudaSuccess=0
 		return EXIT_FAILURE;
 
-	//detects device capability and picks the lowest
+    //detects device capability and picks the best
 	for( unsigned int i = 0; i < deviceCount; ++i ) {
 		cudaSetDevice(i);
 		cudaDeviceProp deviceProp;
