@@ -15,7 +15,7 @@ add_executable(reg_ppcnr reg_ppcnr.cpp)
 target_link_libraries(reg_ppcnr _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 add_executable(reg_transform reg_transform.cpp)
-target_link_libraries(reg_transform _reg_thinPlateSpline _reg_resampling _reg_localTrans _reg_tools _reg_globalTrans _reg_maths _reg_ReadWriteImage)
+target_link_libraries(reg_transform _reg_resampling _reg_localTrans _reg_tools _reg_globalTrans _reg_maths _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 add_executable(reg_jacobian reg_jacobian.cpp)
 target_link_libraries(reg_jacobian _reg_resampling _reg_localTrans _reg_tools _reg_globalTrans _reg_ReadWriteImage)
@@ -55,40 +55,6 @@ if(USE_OPENCL OR USE_CUDA)
 		target_link_libraries(reg_gpuinfo ${OPENCL_LIBRARIES})
 		set(MODULE_LIST ${MODULE_LIST} reg_gpuinfo)
 endif(USE_OPENCL OR USE_CUDA)
-#-----------------------------------------------------------------------------
-if(BUILD_NR_SLICER_EXT)
-		set(EXTENSION_NAME "NiftyRegExtension")
-		set(EXTENSION_HOMEPAGE "https://sourceforge.net/projects/niftyreg")
-		set(EXTENSION_CATEGORY "Registration")
-		set(EXTENSION_CONTRIBUTORS "Marc Modat, Pankaj Daga, David Cash, Sebastien Ourselin (UCL)")
-		set(EXTENSION_DESCRIPTION "NiftyReg meets slicer, integration of a NiftyReg module within 3DSlicer")
-		set(EXTENSION_ICONURL "https://dl.dropbox.com/u/2962833/nifty_reg_logo_128.png")
-		set(EXTENSION_SCREENSHOTURLS "http://www.na-mic.org/Wiki/images/4/4c/Nifty_reg_logo.png")
-		set(EXTENSION_ACKNOWLEDGEMENTS "This work is partially funded through CBRC grant 168 (UK)")
-		set(EXTENSION_MAJOR_VERSION ${NiftyReg_VERSION_MAJOR})
-		set(EXTENSION_MINOR_VERSION ${NiftyReg_VERSION_MINOR})
-		set(EXTENSION_PATCH_VERSION ${NiftyReg_VERSION_PATCH})
-
-		find_package(Slicer REQUIRED)
-		include(${Slicer_USE_FILE})
-
-		foreach(MODULE_NAME ${MODULE_LIST})
-				install(TARGETS ${MODULE_NAME}
-						RUNTIME DESTINATION ${Slicer_INSTALL_CLIMODULES_BIN_DIR} COMPONENT Runtime
-						LIBRARY DESTINATION ${Slicer_INSTALL_CLIMODULES_LIB_DIR} COMPONENT Runtime
-						ARCHIVE DESTINATION ${Slicer_INSTALL_CLIMODULES_LIB_DIR} COMPONENT Runtime
-						)
-		endforeach(MODULE_NAME)
-		include(${Slicer_EXTENSION_CPACK})
-else(BUILD_NR_SLICER_EXT)
-		set(MODULE_LIST
-				${MODULE_LIST}
-				reg_average
-				reg_tools
-				reg_transform
-				reg_measure
-				)
-endif(BUILD_NR_SLICER_EXT)
 #-----------------------------------------------------------------------------
 foreach(MODULE_NAME ${MODULE_LIST})
 		install(TARGETS ${MODULE_NAME}

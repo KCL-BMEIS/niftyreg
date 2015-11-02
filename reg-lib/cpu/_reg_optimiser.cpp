@@ -572,4 +572,7 @@ void reg_lbfgs<T>::Optimise(T maxLength,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+//template class reg_optimiser<float>;
+//template class reg_conjugateGradient<float>;
+//template class reg_lbfgs<float>;
 #endif // _REG_OPTIMISER_CPP

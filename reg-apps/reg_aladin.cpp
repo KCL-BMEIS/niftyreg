@@ -344,21 +344,23 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
       {
-         const int value=atoi(argv[++i]);
+         int value=atoi(argv[++i]);
          if(value<0 || value>2){
             reg_print_msg_error("The platform argument is expected to be 0, 1 or 2 | 0=CPU, 1=CUDA 2=OPENCL");
             return EXIT_FAILURE;
          }
 #ifndef _USE_CUDA
             if(value==1){
-               reg_print_msg_error("The current install of NiftyReg has not been compiled with CUDA");
-               return EXIT_FAILURE;
+               reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
+               reg_print_msg_warn("The CPU platform is used");
+               value=0;
             }
 #endif
 #ifndef _USE_OPENCL
             if(value==2){
                reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
-               return EXIT_FAILURE;
+               reg_print_msg_warn("The CPU platform is used");
+               value=0;
             }
 #endif
          platformFlag=value;

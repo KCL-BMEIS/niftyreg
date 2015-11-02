@@ -20,8 +20,6 @@
 #   include <time.h>
 #endif
 
-#define PrecisionTYPE float
-
 void PetitUsage(char *exec)
 {
    char text[255];
@@ -255,22 +253,22 @@ int main(int argc, char **argv)
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check the type of registration object to create
-   reg_f3d<PrecisionTYPE> *REG=NULL;
+   reg_f3d<float> *REG=NULL;
    for(int i=1; i<argc; i++)
    {
       if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0)
       {
-         REG=new reg_f3d2<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+         REG=new reg_f3d2<float>(referenceImage->nt,floatingImage->nt);
          break;
       }
       if(strcmp(argv[i], "-sym")==0 || strcmp(argv[i], "--sym")==0)
       {
-         REG=new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+         REG=new reg_f3d_sym<float>(referenceImage->nt,floatingImage->nt);
          break;
       }
    }
    if(REG==NULL)
-      REG=new reg_f3d<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+      REG=new reg_f3d<float>(referenceImage->nt,floatingImage->nt);
    REG->SetReferenceImage(referenceImage);
    REG->SetFloatingImage(floatingImage);
 
