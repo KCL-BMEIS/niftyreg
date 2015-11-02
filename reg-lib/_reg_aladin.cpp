@@ -85,7 +85,7 @@ template<class T> reg_aladin<T>::reg_aladin()
 	//check those
 	this->FloatingLowerThreshold = 0.f;
 	this->FloatingUpperThreshold = 0.f;
-	this->clIdx = 0;
+    this->gpuIdx = -1;
 }
 /* *************************************************************** */
 template<class T> reg_aladin<T>::~reg_aladin()
@@ -310,7 +310,7 @@ void reg_aladin<T>::InitialiseRegistration()
 #endif
 
 	this->platform = new Platform(this->platformCode);
-	if (this->platformCode == NR_PLATFORM_CL) this->platform->setClIdx(this->clIdx);
+    this->platform->setGpuIdx(this->gpuIdx);
 
 	Kernel *convolutionKernel = this->platform->createKernel(ConvolutionKernel::getName(), NULL);
 

@@ -5,14 +5,15 @@
 #include "CUDAContent.h"
 
 //kernel functions for numerical optimisation
-class CudaOptimiseKernel: public OptimiseKernel
+class CUDAOptimiseKernel: public OptimiseKernel
 {
 public:
-    CudaOptimiseKernel(Content *conIn, std::string name);
+    CUDAOptimiseKernel(Content *conIn, std::string name);
     void calculate(bool affine, bool ils);
 private:
     _reg_blockMatchingParam *blockMatchingParams;
     mat44 *transformationMatrix;
+    //CUDAContextSingletton *cudaSContext;
     CudaContent *con;
 
     float* transformationMatrix_d;

@@ -88,7 +88,7 @@ void Usage(char *exec)
 #endif
 #endif
 #ifdef _USE_OPENCL
-   reg_print_info(exec, "\t-clid\t\t\tChoose a custom opencl platform id.");
+   reg_print_info(exec, "\t-gpuid\t\t\tChoose a custom gpu.");
    reg_print_info(exec, "\t\t\t\tPlease run reg_clinfo first to get platform information and their corresponding ids");
 #endif
    reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
    unsigned int platformFlag = 0;
    bool ils = false;
    int captureRangeVox = 3;
-   int clIdx = -1;
+   int gpuIdx = -1;
 
 #if defined (_OPENMP)
    // Set the default number of thread
@@ -363,9 +363,9 @@ int main(int argc, char **argv)
 #endif
          platformFlag=value;
       }
-      else if(strcmp(argv[i], "-clid")==0 || strcmp(argv[i], "--clid")==0)
+      else if(strcmp(argv[i], "-gpuid")==0 || strcmp(argv[i], "--gpuid")==0)
       {
-          clIdx = atoi(argv[++i]);
+          gpuIdx = atoi(argv[++i]);
       }
       else if(strcmp(argv[i], "-crv")==0 || strcmp(argv[i], "--crv")==0)
       {
@@ -543,7 +543,7 @@ int main(int argc, char **argv)
    REG->setPlatformCode(platformFlag);
    REG->setIls(ils);
    REG->setCaptureRangeVox(captureRangeVox);
-   REG->setClIdx(clIdx);
+   REG->setGpuIdx(gpuIdx);
 
    if (referenceLowerThr != referenceUpperThr)
    {

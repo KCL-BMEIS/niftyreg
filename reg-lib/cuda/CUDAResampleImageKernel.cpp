@@ -2,7 +2,7 @@
 #include "resampleKernel.h"
 
 /* *************************************************************** */
-CudaResampleImageKernel::CudaResampleImageKernel(Content *conIn, std::string name) :
+CUDAResampleImageKernel::CUDAResampleImageKernel(Content *conIn, std::string name) :
         ResampleImageKernel(name)
 {
     con = static_cast<CudaContent*>(conIn);
@@ -30,7 +30,7 @@ CudaResampleImageKernel::CudaResampleImageKernel(Content *conIn, std::string nam
     }
 }
 /* *************************************************************** */
-void CudaResampleImageKernel::calculate(int interp,
+void CUDAResampleImageKernel::calculate(int interp,
                                                      float paddingValue,
                                                      bool *dti_timepoint,
                                                      mat33 * jacMat)

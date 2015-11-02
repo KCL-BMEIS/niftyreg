@@ -182,4 +182,6 @@ extern "C++"
 template<typename T>
 void cudaCommon_transferFromDeviceTo2DMatrixCpu(T* M_d, T** M_h, unsigned int m, unsigned int n);
 */
+void showCUDACardInfo(void);
+/* ******************************** */
 #endif

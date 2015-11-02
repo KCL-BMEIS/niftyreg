@@ -32,8 +32,7 @@ void CLContextSingletton::init()
 	this->devices = new cl_device_id[this->numDevices];
 	errNum = clGetDeviceIDs(this->platformIds[0], CL_DEVICE_TYPE_ALL, this->numDevices, this->devices, NULL);
 
-	if(clIdx<0)
-		pickCard();
+    pickCard(clIdx);
 
 	cl_context_properties contextProperties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) this->platformIds[0], 0 };
 	this->context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_GPU, NULL, NULL, &errNum);
@@ -56,6 +55,12 @@ void CLContextSingletton::init()
 	queryGridDims();
 }
 /* *************************************************************** */
+void CLContextSingletton::setClIdx(int clIdxIn)
+{
+    clIdx=clIdxIn;
+    init();
+}
+/* *************************************************************** */
 void CLContextSingletton::queryGridDims()
 {
 	std::size_t paramValueSize;
@@ -69,17 +74,24 @@ void CLContextSingletton::queryGridDims()
 	this->maxBlocks = 65535;
 }
 /* *************************************************************** */
-void CLContextSingletton::pickCard()
+void CLContextSingletton::pickCard(cl_uint deviceId = -1)
 {
-   if(getenv("NIFTYREG_OPENCL_CARD")!=NULL){
-       this->clIdx=atoi(getenv("NIFTYREG_OPENCL_CARD"));
+   cl_int errNum;
+   std::size_t paramValueSize;
+
+   if(deviceId >=0 && deviceId < this->numDevices){
+       this->clIdx=deviceId;
+       errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);
+       checkErrNum(errNum, "Failed to find OpenCL device info ");
+       cl_uint * info = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSize);
+       errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, NULL);
+       checkErrNum(errNum, "Failed to find OpenCL device info ");
       return;
    }
 
 	cl_uint maxProcs = 0;
 	this->clIdx = 0;
-	cl_int errNum;
-	std::size_t paramValueSize;
+
 	for(cl_uint i = 0; i < this->numDevices; ++i)
 	{
 		errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);

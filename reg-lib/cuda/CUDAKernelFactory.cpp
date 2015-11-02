@@ -6,11 +6,11 @@
 #include "CUDAOptimiseKernel.h"
 #include "Content.h"
 
-Kernel *CudaKernelFactory::produceKernel(std::string name,  Content *con) const {
-	if( name == AffineDeformationFieldKernel::getName() ) return new CudaAffineDeformationFieldKernel(con, name);
-	else if( name == ConvolutionKernel::getName() ) return new CudaConvolutionKernel(name);
-	else if( name == BlockMatchingKernel::getName() ) return new CudaBlockMatchingKernel( con, name);
-	else if( name == ResampleImageKernel::getName() ) return new CudaResampleImageKernel(con, name);
-	else if( name == OptimiseKernel::getName() ) return new CudaOptimiseKernel(con, name);
+Kernel *CUDAKernelFactory::produceKernel(std::string name,  Content *con) const {
+    if( name == AffineDeformationFieldKernel::getName() ) return new CUDAAffineDeformationFieldKernel(con, name);
+    else if( name == ConvolutionKernel::getName() ) return new CUDAConvolutionKernel(name);
+    else if( name == BlockMatchingKernel::getName() ) return new CUDABlockMatchingKernel( con, name);
+    else if( name == ResampleImageKernel::getName() ) return new CUDAResampleImageKernel(con, name);
+    else if( name == OptimiseKernel::getName() ) return new CUDAOptimiseKernel(con, name);
 	else return NULL;
 }
