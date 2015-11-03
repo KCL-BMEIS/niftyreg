@@ -69,11 +69,11 @@ CLBlockMatchingKernel::CLBlockMatchingKernel(Content *conIn, std::string name) :
 /* *************************************************************** */
 void CLBlockMatchingKernel::calculate() {
     // Copy some required parameters over to the device
-    unsigned int *definedBlock = (unsigned int*)malloc(sizeof(unsigned int));
+    int *definedBlock = (int*)malloc(sizeof(int));
     *definedBlock = 0;
     cl_int errNum;
-    cl_mem cldefinedBlock = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(unsigned int), definedBlock, &errNum);
-    this->sContext->checkErrNum(errNum, "CLBlockMatchingKernel::calculate failed to allocate memory (cldefinedBlock): ");
+    cl_mem cldefinedBlock = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int), definedBlock, &errNum);
+    this->sContext->checkErrNum(errNum, "CLBlockMatchingKernel::calculate failed to allocate memory (cldefinedBlock) ");
 
     const unsigned int blockRange = params->voxelCaptureRange%4?params->voxelCaptureRange/4+1:params->voxelCaptureRange/4;
     const unsigned int stepSize = params->stepSize;
@@ -118,8 +118,7 @@ void CLBlockMatchingKernel::calculate() {
         sContext->checkErrNum(errNum, "Error setting step size.");
 
         errNum = clEnqueueNDRangeKernel(commandQueue, kernel, params->dim, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-        sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution: ");
-        clFinish(commandQueue);
+        sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution ");
     }
     else {
         const size_t globalWorkSize[2] = { (size_t)params->blockNumber[0] * 4,
@@ -153,13 +152,22 @@ void CLBlockMatchingKernel::calculate() {
         sContext->checkErrNum(errNum, "Error setting step size.");
 
         errNum = clEnqueueNDRangeKernel(commandQueue, kernel, params->dim, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-        sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution: ");
-        clFinish(commandQueue);
+        sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution ");
     }
 
-    errNum = clEnqueueReadBuffer(this->commandQueue, cldefinedBlock, CL_TRUE, 0, sizeof(unsigned int), definedBlock, 0, NULL, NULL);
-    sContext->checkErrNum(errNum, "Error reading  var after for execution: ");
+    errNum = clEnqueueReadBuffer(commandQueue, cldefinedBlock, CL_TRUE, 0, sizeof(int), definedBlock, 0, NULL, NULL);
+    sContext->checkErrNum(errNum, "Error reading  var after CLBlockMatchingKernel execution ");
     params->definedActiveBlockNumber = *definedBlock;
+
+    //PATCH TO CHECK IF EVERYTHING GOES WELL - DID NOT FIND ANOTHER WAY BECAUSE errNum = 0
+    //I do not know why
+    if(params->definedActiveBlockNumber == 0) {
+        reg_print_msg_error("error in the CLBlockMatchingKernel execution (should be a memory problem)");
+        reg_exit(1);
+    }
+
+    errNum = clFinish(commandQueue);
+    sContext->checkErrNum(errNum, "Error after clFinish CLBlockMatchingKernel");
 
     free(definedBlock);
     clReleaseMemObject(cldefinedBlock);
