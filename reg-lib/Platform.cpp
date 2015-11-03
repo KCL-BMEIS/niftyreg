@@ -49,12 +49,13 @@ void Platform::setGpuIdx(int gpuIdxIn)
 {
     if(this->platformCode == NR_PLATFORM_CPU)
     {
-        this->setGpuIdx(-1);
+        this->gpuIdx = -1;
     }
 #ifdef _USE_CUDA
     else if(this->platformCode == NR_PLATFORM_CUDA) {
             CUDAContextSingletton *cudaContext = &CUDAContextSingletton::Instance();
             if(gpuIdxIn != -1) {
+                this->gpuIdx = gpuIdxIn;
                 cudaContext->setCudaIdx(gpuIdxIn);
             }
         }
@@ -63,6 +64,7 @@ void Platform::setGpuIdx(int gpuIdxIn)
     else if(this->platformCode == NR_PLATFORM_CL) {
             CLContextSingletton *sContext = &CLContextSingletton::Instance();
             if(gpuIdxIn != -1) {
+                this->gpuIdx = gpuIdxIn;
                 sContext->setClIdx(gpuIdxIn);
             }
             /*

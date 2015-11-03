@@ -716,7 +716,7 @@ void showCUDACardInfo(void)
                  deviceProp.sharedMemPerBlock);
           printf("[NiftyReg CUDA] CUDA version %i\n",
                  CUDART_VERSION);
-          printf("[NiftyReg CUDA] Card clock rate: %i MHz\n",
+          printf("[NiftyReg CUDA] Card clock rate (Mhz): %i\n",
                  deviceProp.clockRate/1000);
           printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n",
                  deviceProp.multiProcessorCount);

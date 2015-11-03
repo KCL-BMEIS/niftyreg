@@ -28,7 +28,7 @@ private:
 	KernelFactory* factory;
 	std::string platformName;
     int platformCode;
-
+    int gpuIdx;
 };
 
 

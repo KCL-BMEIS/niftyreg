@@ -26,7 +26,7 @@ void showCLInfo(void)
          DeviceLog<size_t>::showKernelInfo(devices[j], CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, "CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
 //         DeviceLog<size_t> ::show(devices[j], CL_DEVICE_MAX_WORK_ITEM_SIZES, "CL_DEVICE_MAX_WORK_ITEM_SIZES");
 //         DeviceLog<size_t>::show(devices[j], CL_DEVICE_MAX_WORK_GROUP_SIZE, "CL_DEVICE_MAX_WORK_GROUP_SIZE");
-         DeviceLog<cl_uint>::show(devices[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, "Clock rate");
+         DeviceLog<cl_uint>::show(devices[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, "Clock rate (Mhz)");
          DeviceLog<cl_ulong>::show(devices[j], CL_DEVICE_GLOBAL_MEM_SIZE, "Global memory size");
 //         DeviceLog<cl_ulong>::show(devices[j], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, "CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE");
 //         DeviceLog<cl_uint>::show(devices[j], CL_DEVICE_MAX_CONSTANT_ARGS, "CL_DEVICE_MAX_CONSTANT_ARGS");
