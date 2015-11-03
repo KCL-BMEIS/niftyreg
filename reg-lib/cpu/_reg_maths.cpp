@@ -958,12 +958,15 @@ void reg_mat33_disp(mat33 *mat, char * title){
 //is it square distance or just distance?
 // Helper function: Get the square of the Euclidean distance
 double get_square_distance3D(float * first_point3D, float * second_point3D) {
-    return sqrt((first_point3D[0] - second_point3D[0]) * (first_point3D[0] - second_point3D[0]) + (first_point3D[1] - second_point3D[1]) * (first_point3D[1] - second_point3D[1]) + (first_point3D[2] - second_point3D[2]) * (first_point3D[2] - second_point3D[2]));
+    return sqrt(reg_pow2(first_point3D[0] - second_point3D[0]) +
+          reg_pow2(first_point3D[1] - second_point3D[1]) +
+          reg_pow2(first_point3D[2] - second_point3D[2]));
 }
 /* *************************************************************** */
 //is it square distance or just distance?
 double get_square_distance2D(float * first_point2D, float * second_point2D) {
-    return sqrt((first_point2D[0] - second_point2D[0]) * (first_point2D[0] - second_point2D[0]) + (first_point2D[1] - second_point2D[1]) * (first_point2D[1] - second_point2D[1]));
+    return sqrt(reg_pow2(first_point2D[0] - second_point2D[0]) +
+          reg_pow2(first_point2D[1] - second_point2D[1]));
 }
 /* *************************************************************** */
 // Calculate pythagorean distance

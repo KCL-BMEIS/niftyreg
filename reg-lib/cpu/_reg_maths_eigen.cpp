@@ -169,7 +169,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
     min_dim = std::min(size__m, size__n);
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(in, svd, U, S, V, size__n, size__m, min_dim) \
+   shared(svd, min_dim, S) \
    private(i, j)
 #endif
     //Convert to C matrix
@@ -185,6 +185,11 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
     }
 
     if (size__m > size__n) {
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   shared(svd, min_dim, V) \
+   private(i, j)
+#endif
         //Convert to C matrix
         for (i = 0; i < min_dim; i++) {
             for (j = 0; j < min_dim; j++) {
@@ -192,6 +197,11 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 
             }
         }
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   shared(svd, size__m, size__n, U) \
+   private(i, j)
+#endif
         for (i = 0; i < size__m; i++) {
             for (j = 0; j < size__n; j++) {
                 (*U)[i][j] = static_cast<T>(svd.matrixU()(i, j));
@@ -199,6 +209,11 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
         }
     }
     else {
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   shared(svd, min_dim, U) \
+   private(i, j)
+#endif
         //Convert to C matrix
         for (i = 0; i < min_dim; i++) {
             for (j = 0; j < min_dim; j++) {
@@ -206,6 +221,11 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 
             }
         }
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   shared(svd, size__m, size__n, V) \
+   private(i, j)
+#endif
         for (i = 0; i < size__n; i++) {
             for (j = 0; j < size__m; j++) {
                 (*V)[i][j] = static_cast<T>(svd.matrixV()(i, j));
