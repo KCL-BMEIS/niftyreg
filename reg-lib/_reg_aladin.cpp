@@ -85,7 +85,7 @@ template<class T> reg_aladin<T>::reg_aladin()
 	//check those
 	this->FloatingLowerThreshold = 0.f;
 	this->FloatingUpperThreshold = 0.f;
-    this->gpuIdx = -1;
+	 this->gpuIdx = -1;
 }
 /* *************************************************************** */
 template<class T> reg_aladin<T>::~reg_aladin()
@@ -202,71 +202,6 @@ int reg_aladin<T>::Print()
 	{
 #endif
 		char text[255];
-#ifdef _USE_OPENCL
-		if(this->platformCode == NR_PLATFORM_CL)
-		{
-			CLContextSingletton *sContext = &CLContextSingletton::Instance();
-			std::size_t paramValueSize;
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_NAME,
-															  0,
-															  NULL,
-															  &paramValueSize),
-										 "Failed to find OpenCL device info ");
-			char *cl_deviceName = (char *) alloca(sizeof(char) * paramValueSize);
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_NAME,
-															  paramValueSize,
-															  cl_deviceName,
-															  NULL),
-										 "Failed to find OpenCL device info ");
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_VENDOR,
-															  0,
-															  NULL,
-															  &paramValueSize),
-										 "Failed to find OpenCL device info ");
-			char *cl_deviceVendor = (char *) alloca(sizeof(char) * paramValueSize);
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_VENDOR,
-															  paramValueSize,
-															  cl_deviceVendor,
-															  NULL),
-										 "Failed to find OpenCL device info ");
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_VERSION,
-															  0,
-															  NULL,
-															  &paramValueSize),
-										 "Failed to find OpenCL device info ");
-			char *cl_deviceVersion = (char *) alloca(sizeof(char) * paramValueSize);
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_VERSION,
-															  paramValueSize,
-															  cl_deviceVersion,
-															  NULL),
-										 "Failed to find OpenCL device info ");
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DRIVER_VERSION,
-															  0,
-															  NULL,
-															  &paramValueSize),
-										 "Failed to find OpenCL device info ");
-			char *cl_driverVersion = (char *) alloca(sizeof(char) * paramValueSize);
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DRIVER_VERSION,
-															  paramValueSize,
-															  cl_driverVersion,
-															  NULL),
-										 "Failed to find OpenCL device info ");
-			sprintf(text, "OpenCL device name: %s (%s)", cl_deviceName, cl_deviceVendor);
-			reg_print_info(this->executableName, text);
-			sprintf(text, "OpenCL device version: %s", cl_deviceVersion);
-			reg_print_info(this->executableName, text);
-			sprintf(text, "OpenCL driver version: %s", cl_driverVersion);
-			reg_print_info(this->executableName, text);
-		}
-#endif
 		reg_print_info(this->executableName, "Parameters");
 		sprintf(text, "Platform: %s", this->platform->getName().c_str());
 		reg_print_info(this->executableName, text);
@@ -309,12 +244,12 @@ void reg_aladin<T>::InitialiseRegistration()
 	reg_print_fct_debug("reg_aladin::InitialiseRegistration()");
 #endif
 
-	this->platform = new Platform(this->platformCode);
+   this->platform = new Platform(this->platformCode);
     this->platform->setGpuIdx(this->gpuIdx);
 
-	Kernel *convolutionKernel = this->platform->createKernel(ConvolutionKernel::getName(), NULL);
+   Kernel *convolutionKernel = this->platform->createKernel(ConvolutionKernel::getName(), NULL);
 
-	this->Print();
+   this->Print();
 
 	// CREATE THE PYRAMID IMAGES
 	this->ReferencePyramid = (nifti_image **) malloc(this->LevelsToPerform * sizeof(nifti_image *));

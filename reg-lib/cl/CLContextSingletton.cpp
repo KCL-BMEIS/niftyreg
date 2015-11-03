@@ -5,7 +5,7 @@ CLContextSingletton::CLContextSingletton()
 {
 	this->commandQueue = NULL;
 	this->context = NULL;
-	this->clIdx = -1;
+	this->clIdx = 4294967295;
 	init();
 }
 /* *************************************************************** */
@@ -25,7 +25,7 @@ void CLContextSingletton::init()
 	this->devices = new cl_device_id[this->numDevices];
 	errNum = clGetDeviceIDs(this->platformIds[0], CL_DEVICE_TYPE_ALL, this->numDevices, this->devices, NULL);
 
-	 pickCard(clIdx);
+	pickCard(this->clIdx);
 
 	cl_context_properties contextProperties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) this->platformIds[0], 0 };
 	this->context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_GPU, NULL, NULL, &errNum);
@@ -33,10 +33,10 @@ void CLContextSingletton::init()
 	if (errNum != CL_SUCCESS) {
 		std::cout << "Could not create GPU context, trying CPU..." << std::endl;
 		context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_CPU,
-				NULL, NULL, &errNum);
+													 NULL, NULL, &errNum);
 		if (errNum != CL_SUCCESS) {
 			std::cerr << "Failed to create an OpenCL GPU or CPU context."
-					<< std::endl;
+						 << std::endl;
 			return;
 		}
 	}
@@ -50,8 +50,8 @@ void CLContextSingletton::init()
 /* *************************************************************** */
 void CLContextSingletton::setClIdx(int clIdxIn)
 {
-    clIdx=clIdxIn;
-    init();
+   clIdx=clIdxIn;
+   init();
 }
 /* *************************************************************** */
 void CLContextSingletton::queryGridDims()
@@ -67,36 +67,41 @@ void CLContextSingletton::queryGridDims()
 	this->maxBlocks = 65535;
 }
 /* *************************************************************** */
-void CLContextSingletton::pickCard(cl_uint deviceId = -1)
+void CLContextSingletton::pickCard(cl_uint deviceId)
 {
    cl_int errNum;
    std::size_t paramValueSize;
 
    if(deviceId >=0 && deviceId < this->numDevices){
-       this->clIdx=deviceId;
-       errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);
-       checkErrNum(errNum, "Failed to find OpenCL device info ");
-       cl_uint * info = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSize);
-       errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, NULL);
-       checkErrNum(errNum, "Failed to find OpenCL device info ");
+      this->clIdx=deviceId;
+      errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);
+      checkErrNum(errNum, "Failed to find OpenCL device info ");
+      cl_uint * info = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSize);
+      errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, NULL);
+      checkErrNum(errNum, "Failed to find OpenCL device info ");
       return;
    }
+   else if(deviceId!=4294967295){
+      reg_print_msg_error("The specified opencl card id is not defined");
+      reg_print_msg_error("Run reg_gpuinfo to get the proper id");
+      reg_exit(1);
+   }
 
-	cl_uint maxProcs = 0;
-	this->clIdx = 0;
+   cl_uint maxProcs = 0;
+   this->clIdx = 0;
 
-	for(cl_uint i = 0; i < this->numDevices; ++i)
-	{
-		errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);
-		checkErrNum(errNum, "Failed to find OpenCL device info ");
-		cl_uint * info = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSize);
-		errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, NULL);
-		checkErrNum(errNum, "Failed to find OpenCL device info ");
-		cl_uint numProcs = *info;
-		const bool found = numProcs > maxProcs;
-		this->clIdx = found ? i : this->clIdx;
-		maxProcs = found ? numProcs : maxProcs;
-	}
+   for(cl_uint i = 0; i < this->numDevices; ++i)
+   {
+      errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);
+      checkErrNum(errNum, "Failed to find OpenCL device info ");
+      cl_uint * info = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSize);
+      errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, NULL);
+      checkErrNum(errNum, "Failed to find OpenCL device info ");
+      cl_uint numProcs = *info;
+      const bool found = numProcs > maxProcs;
+      this->clIdx = found ? i : this->clIdx;
+      maxProcs = found ? numProcs : maxProcs;
+   }
 }
 /* *************************************************************** */
 cl_program CLContextSingletton::CreateProgram(const char* fileName)
@@ -115,18 +120,18 @@ cl_program CLContextSingletton::CreateProgram(const char* fileName)
 	program = clCreateProgramWithSource(this->context, 1, (const char**) &srcStr, NULL, &errNum);
 	checkErrNum(errNum, "Failed to create CL program");
 
-   errNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
-    if (errNum != CL_SUCCESS) {
-        checDebugKernelInfo(program,this->deviceId, (char *)"Errors in kernel: ");
-        //create log
-        size_t length;
-        char buffer[2048];
-        clGetProgramBuildInfo(program, this->devices[this->clIdx], CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &length);
-        std::cout<<"--- Build log ---\n "<<buffer<<std::endl;
-        exit(1);
-    }
+	errNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+	if (errNum != CL_SUCCESS) {
+		checDebugKernelInfo(program,this->deviceId, (char *)"Errors in kernel: ");
+		//create log
+		size_t length;
+		char buffer[2048];
+		clGetProgramBuildInfo(program, this->devices[this->clIdx], CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &length);
+		std::cout<<"--- Build log ---\n "<<buffer<<std::endl;
+		exit(1);
+	}
 
-   return program;
+	return program;
 }
 /* *************************************************************** */
 void CLContextSingletton::shutDown()

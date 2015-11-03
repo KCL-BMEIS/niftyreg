@@ -89,7 +89,7 @@ void Usage(char *exec)
 #endif
 #ifdef _USE_OPENCL
    reg_print_info(exec, "\t-gpuid\t\t\tChoose a custom gpu.");
-   reg_print_info(exec, "\t\t\t\tPlease run reg_clinfo first to get platform information and their corresponding ids");
+   reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
 #endif
    reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
 #if defined (_OPENMP)
@@ -606,10 +606,6 @@ int main(int argc, char **argv)
    if(outputAffineFlag)
       reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), outputAffineName);
    else reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), (char *)"outputAffine.txt");
-
-//   // Tell the CLI that we finished
-//   closeProgress("reg_aladin", "Normal exit");
-
 
    nifti_image_free(referenceHeader);
    nifti_image_free(floatingHeader);
