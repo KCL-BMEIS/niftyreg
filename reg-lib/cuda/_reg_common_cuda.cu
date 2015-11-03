@@ -685,7 +685,9 @@ void showCUDACardInfo(void)
 
    int device_count=0;
    cudaGetDeviceCount(&device_count);
-   printf("[NiftyReg CUDA] %i card(s) detected\n", device_count);
+   printf("-----------------------------------\n");
+   printf("[NiftyReg CUDA] %i device(s) detected\n", device_count);
+   printf("-----------------------------------\n");
 
    CUcontext cucontext;
 
@@ -699,9 +701,8 @@ void showCUDACardInfo(void)
           NR_CUDA_SAFE_CALL(cudaSetDevice(current_device));
           NR_CUDA_SAFE_CALL(cuCtxCreate(&cucontext, CU_CTX_SCHED_SPIN, current_device));
 
-          printf("[NiftyReg CUDA] Device id [%i]: %s\n",
-                 current_device,
-                 deviceProp.name);
+          printf("[NiftyReg CUDA] Device id [%i]\n", current_device);
+          printf("[NiftyReg CUDA] Device name: %s\n", deviceProp.name);
           size_t free=0;
           size_t total=0;
           cuMemGetInfo(&free, &total);
@@ -722,6 +723,7 @@ void showCUDACardInfo(void)
        }
        cuCtxDestroy(cucontext);
        ++current_device;
+       printf("-----------------------------------\n");
    }
 }
 #endif
