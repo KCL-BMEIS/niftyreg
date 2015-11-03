@@ -67,7 +67,7 @@ void Platform::setGpuIdx(int gpuIdxIn)
                 this->gpuIdx = gpuIdxIn;
                 sContext->setClIdx(gpuIdxIn);
             }
-            /*
+
             std::size_t paramValueSize;
             sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(), CL_DEVICE_TYPE, 0, NULL, &paramValueSize), "Failed to find OpenCL device info ");
             cl_device_type *field = (cl_device_type *) alloca(sizeof(cl_device_type) * paramValueSize);
@@ -77,7 +77,6 @@ void Platform::setGpuIdx(int gpuIdxIn)
                 reg_print_msg_error("The OpenCL kernels only support GPU devices for now. Exit");
                 reg_exit(1);
             }
-            */
         }
 #endif
 }
