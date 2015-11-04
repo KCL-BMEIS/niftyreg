@@ -152,8 +152,8 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
     }
     free(referenceValues);
 
-    //params->activeBlockNumber = params->activeBlockNumber < ((int)params->totalBlockNumber - unusableBlock) ? params->activeBlockNumber : (params->totalBlockNumber - unusableBlock);
-    params->activeBlockNumber = params->totalBlockNumber - unusableBlock;
+    params->activeBlockNumber = params->activeBlockNumber < ((int)params->totalBlockNumber - unusableBlock) ? params->activeBlockNumber : (params->totalBlockNumber - unusableBlock);
+    //params->activeBlockNumber = params->totalBlockNumber - unusableBlock;
 
     reg_heapSort(varianceArray, indexArray, params->totalBlockNumber);
     int *indexArrayPtr = &indexArray[params->totalBlockNumber - 1];
@@ -218,6 +218,8 @@ void initialise_block_matching_method(nifti_image * reference,
 
     params->percent_to_keep = percentToKeep_opt;
 
+    //number of block that the user wants to keep after _reg_set_active_blocks it will be: the min between params->totalBlockNumber * percentToKeep_block and params->totalBlockNumber - unsuable blocks
+    params->activeBlockNumber = (int)((double) params->totalBlockNumber * ((double) percentToKeep_block / (double) 100));
     params->totalBlock = (int *)malloc(params->totalBlockNumber * sizeof(int));
 
     switch (reference->datatype) {
@@ -292,13 +294,13 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
     DTYPE warpedValues[BLOCK_2D_SIZE];
     bool warpedOverlap[BLOCK_2D_SIZE];
 
-    float *temp_reference_position = (float *)malloc(2 * params->totalBlockNumber * sizeof(float));
-    float *temp_warped_position = (float *)malloc(2 * params->totalBlockNumber * sizeof(float));
+    //float *temp_reference_position = (float *)malloc(2 * params->totalBlockNumber * sizeof(float));
+    //float *temp_warped_position = (float *)malloc(2 * params->totalBlockNumber * sizeof(float));
     params->definedActiveBlockNumber = 0;
 
-    for (i = 0; i < 2 * (unsigned int)params->totalBlockNumber; i += 2) {
-        temp_reference_position[i] = std::numeric_limits<float>::quiet_NaN();
-    }
+    //for (i = 0; i < 2 * (unsigned int)params->totalBlockNumber; i += 2) {
+    //    temp_reference_position[i] = std::numeric_limits<float>::quiet_NaN();
+    //}
 
     for (j = 0; j < params->blockNumber[1]; j++) {
         referenceIndex_start_y = j * BLOCK_WIDTH;
@@ -460,9 +462,8 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
     //        j += 2;
     //    }
     //}
-
-    free(temp_reference_position);
-    free(temp_warped_position);
+    //free(temp_reference_position);
+    //free(temp_warped_position);
 }
 /* *************************************************************** */
 template<typename DTYPE>
@@ -513,18 +514,17 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
     bool warpedOverlap[1][BLOCK_3D_SIZE];
 #endif
 
-    float *temp_reference_position = (float *)malloc(3 * params->totalBlockNumber * sizeof(float));
-    float *temp_warped_position = (float *)malloc(3 * params->totalBlockNumber * sizeof(float));
+    //float *temp_reference_position = (float *)malloc(3 * params->totalBlockNumber * sizeof(float));
+    //float *temp_warped_position = (float *)malloc(3 * params->totalBlockNumber * sizeof(float));
     params->definedActiveBlockNumber = 0;
 
-    for (i = 0; i < 3 * (unsigned int)params->totalBlockNumber; i += 3)
-        temp_reference_position[i] = std::numeric_limits<float>::quiet_NaN();
+    //for (i = 0; i < 3 * (unsigned int)params->totalBlockNumber; i += 3)
+    //    temp_reference_position[i] = std::numeric_limits<float>::quiet_NaN();
 
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(params, reference, warped, referencePtr, warpedPtr, mask, referenceMatrix_xyz, \
-          referenceOverlap, warpedOverlap, referenceValues, warpedValues, \
-          temp_reference_position, temp_warped_position) \
+          referenceOverlap, warpedOverlap, referenceValues, warpedValues) \
    private(i, j, k, l, m, n, x, y, z, blockIndex, referenceIndex, \
            index, tid, referencePtr_Z, referencePtr_XYZ, warpedPtr_Z, warpedPtr_XYZ, \
            maskPtr_Z, maskPtr_XYZ, value, bestCC, bestDisplacement, \
@@ -722,8 +722,8 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
     //        j += 3;
     //    }
     //}
-    free(temp_reference_position);
-    free(temp_warped_position);
+    //free(temp_reference_position);
+    //free(temp_warped_position);
 
 #if defined (_OPENMP)
     omp_set_num_threads(threadNumber);

@@ -8,13 +8,9 @@
 class CUDAOptimiseKernel: public OptimiseKernel
 {
 public:
-<<<<<<< HEAD
-    CUDAOptimiseKernel(Content *conIn, std::string name);
-    void calculate(bool affine);
-=======
     CUDAOptimiseKernel(AladinContent *conIn, std::string name);
-    void calculate(bool affine, bool ils);
->>>>>>> b89935956f735608dba600e399dd60bcc342c742
+    void calculate(bool affine);
+
 private:
     _reg_blockMatchingParam *blockMatchingParams;
     mat44 *transformationMatrix;
