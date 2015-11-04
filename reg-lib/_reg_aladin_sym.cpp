@@ -259,10 +259,9 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type){
 
 	reg_aladin<T>::UpdateTransformationMatrix(type);
 
-
 	// Update now the backward transformation matrix
 	this->bBlockMatchingKernel->template castTo<BlockMatchingKernel>()->calculate();
-	this->bOptimiseKernel->template castTo<OptimiseKernel>()->calculate(type, this->ils);
+	this->bOptimiseKernel->template castTo<OptimiseKernel>()->calculate(type);
 
 #ifndef NDEBUG
    reg_mat44_disp(this->TransformationMatrix, (char *)"[NiftyReg DEBUG] pre-updated forward transformation matrix");

@@ -59,7 +59,6 @@ class reg_aladin
 
         bool PerformRigid;
         bool PerformAffine;
-        bool ils;
         int captureRangeVox;
 
         int BlockPercentage;
@@ -126,10 +125,6 @@ class reg_aladin
         void setPlatformCode(const int platformCodeIn)
         {
             platformCode = platformCodeIn;
-        }
-        void setIls(const bool ilsIn)
-        {
-            ils = ilsIn;
         }
 
         //No allocating of the images here...

@@ -79,7 +79,6 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->paramsProgressCallback = NULL;
 
 	this->platformCode = NR_PLATFORM_CPU;
-	this->ils = false;
 	this->CurrentLevel = 0;
 
 	//check those
@@ -241,7 +240,7 @@ template<class T>
 void reg_aladin<T>::InitialiseRegistration()
 {
 #ifndef NDEBUG
-	reg_print_fct_debug("reg_aladin::InitialiseRegistration()");
+   reg_print_fct_debug("reg_aladin::InitialiseRegistration()");
 #endif
 
    this->platform = new Platform(this->platformCode);
@@ -460,7 +459,7 @@ template<class T>
 void reg_aladin<T>::UpdateTransformationMatrix(int type)
 {
 	this->blockMatchingKernel->template castTo<BlockMatchingKernel>()->calculate();
-	this->optimiseKernel->template castTo<OptimiseKernel>()->calculate(type, this->ils);
+	this->optimiseKernel->template castTo<OptimiseKernel>()->calculate(type);
 
 #ifndef NDEBUG
 	reg_mat44_disp(this->TransformationMatrix, (char *) "[NiftyReg DEBUG] updated forward matrix");

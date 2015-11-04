@@ -5,7 +5,7 @@ CLContextSingletton::CLContextSingletton()
 {
 	this->commandQueue = NULL;
 	this->context = NULL;
-    this->clIdx = -1;
+	this->clIdx = 999;
 	init();
 }
 /* *************************************************************** */
@@ -67,12 +67,12 @@ void CLContextSingletton::queryGridDims()
 	this->maxBlocks = 65535;
 }
 /* *************************************************************** */
-void CLContextSingletton::pickCard(cl_int deviceId)
+void CLContextSingletton::pickCard(cl_uint deviceId)
 {
    cl_int errNum;
    std::size_t paramValueSize;
 
-   if(deviceId >=0 && deviceId < this->numDevices){
+   if(deviceId < this->numDevices){
       this->clIdx=deviceId;
       errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);
       checkErrNum(errNum, "Failed to find OpenCL device info ");
@@ -81,7 +81,7 @@ void CLContextSingletton::pickCard(cl_int deviceId)
       checkErrNum(errNum, "Failed to find OpenCL device info ");
       return;
    }
-   else if(deviceId != -1){
+   else if(deviceId != 999){
       reg_print_msg_error("The specified opencl card id is not defined");
       reg_print_msg_error("Run reg_gpuinfo to get the proper id");
       reg_exit(1);

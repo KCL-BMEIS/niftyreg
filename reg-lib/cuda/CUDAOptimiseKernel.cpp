@@ -28,7 +28,7 @@ CUDAOptimiseKernel::CUDAOptimiseKernel(Content *conIn, std::string name) :
 
 }
 /* *************************************************************** */
-void CUDAOptimiseKernel::calculate(bool affine, bool ils) {
+void CUDAOptimiseKernel::calculate(bool affine) {
    /* // Removed until CUDA SVD is added back
 #if _WIN64 || __x86_64__ || __ppc64__
 

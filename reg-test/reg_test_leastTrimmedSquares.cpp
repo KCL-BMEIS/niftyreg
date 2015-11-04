@@ -34,12 +34,12 @@ int check_matrix_difference(mat44 matrix1, mat44 matrix2, char *name, float &max
     return EXIT_SUCCESS;
 }
 
-void test(Content *con, int platformCode, bool isAffine, bool ils) {
+void test(Content *con, int platformCode, bool isAffine) {
 
     Platform *platform = new Platform(platformCode);
 
     Kernel *optimiseKernel = platform->createKernel(OptimiseKernel::getName(), con);
-    optimiseKernel->castTo<OptimiseKernel>()->calculate(isAffine,ils);
+    optimiseKernel->castTo<OptimiseKernel>()->calculate(isAffine);
 
     delete optimiseKernel;
     delete platform;
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
     }
 
     con->setBlockMatchingParams(blockMatchingParams);
-    test(con, platformCode, isAffine, 0);
+    test(con, platformCode, isAffine);
 
 #ifndef NDEBUG
     if (n1 == 2)

@@ -127,40 +127,54 @@ void ClContent::allocateClPtrs()
 
 		float *sourceIJKMatrix_h = (float*) malloc(16 * sizeof(float));
 		mat44ToCptr(this->floMatrix_ijk, sourceIJKMatrix_h);
-		this->floMatClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 16 * sizeof(float), sourceIJKMatrix_h, &this->errNum);
+		this->floMatClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                           16 * sizeof(float),
+                                           sourceIJKMatrix_h, &this->errNum);
 		this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (floMatClmem): ");
 		free(sourceIJKMatrix_h);
 	}
 	if (this->CurrentReference != NULL)
 	{
-		this->referenceImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * this->CurrentReference->nvox, this->CurrentReference->data, &this->errNum);
+		this->referenceImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                                   sizeof(float) * this->CurrentReference->nvox,
+                                                   this->CurrentReference->data, &this->errNum);
 		this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (referenceImageClmem): ");
 
 		float* targetMat = (float *) malloc(16 * sizeof(float)); //freed
 		mat44ToCptr(this->refMatrix_xyz, targetMat);
-		this->refMatClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 16 * sizeof(float), targetMat, &this->errNum);
+		this->refMatClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                           16 * sizeof(float),
+                                           targetMat, &this->errNum);
 		this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (refMatClmem): ");
 		free(targetMat);
 	}
 	if (this->blockMatchingParams != NULL) {
         if (this->blockMatchingParams->referencePosition != NULL) {
             //targetPositionClmem
-            this->referencePositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float), this->blockMatchingParams->referencePosition, &this->errNum);
+            this->referencePositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                                          this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float),
+                                                          this->blockMatchingParams->referencePosition, &this->errNum);
             this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (referencePositionClmem): ");
         }
         if (this->blockMatchingParams->warpedPosition != NULL) {
             //resultPositionClmem
-            this->warpedPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float), this->blockMatchingParams->warpedPosition, &this->errNum);
+            this->warpedPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                                       this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float),
+                                                       this->blockMatchingParams->warpedPosition, &this->errNum);
             this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (warpedPositionClmem): ");
         }
         if (this->blockMatchingParams->totalBlock != NULL) {
             //totalBlockClmem
-            this->totalBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->totalBlockNumber * sizeof(int), this->blockMatchingParams->totalBlock, &this->errNum);
+            this->totalBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                                   this->blockMatchingParams->totalBlockNumber * sizeof(int),
+                                                   this->blockMatchingParams->totalBlock, &this->errNum);
             this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (activeBlockClmem): ");
         }
 	}
-	if (this->CurrentReferenceMask != NULL) {
-		this->maskClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz * sizeof(int), this->CurrentReferenceMask, &this->errNum);
+	if (this->CurrentReferenceMask != NULL && this->CurrentReference != NULL) {
+		this->maskClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                         this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz * sizeof(int),
+                                         this->CurrentReferenceMask, &this->errNum);
 		this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (clCreateBuffer): ");
 	}
 }

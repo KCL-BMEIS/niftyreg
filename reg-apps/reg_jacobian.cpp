@@ -221,7 +221,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+         fprintf(stderr,"Err:\tParameter %s unknown.\n", argv[i]);
          PetitUsage(argv[0]);
          return EXIT_FAILURE;
       }

@@ -713,7 +713,6 @@ void optimize_2D(float* referencePosition, float* warpedPosition,
    }
 
    const unsigned long num_to_keep = (unsigned long)(num_points * (percent_to_keep / 100.0f));
-   num_equations = num_to_keep * 2;
    float * newWarpedPosition = new float[num_points * 2];
 
    mat44 lastTransformation;
@@ -795,7 +794,6 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
       estimate_rigid_transformation3D(top_points, final);
    }
    unsigned long num_to_keep = (unsigned long)(num_points * (percent_to_keep/100.0f));
-   num_equations = num_to_keep*3;
    float* newWarpedPosition = new float[num_points*3];
 
    mat44 lastTransformation;

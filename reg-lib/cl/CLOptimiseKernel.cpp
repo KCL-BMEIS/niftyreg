@@ -15,7 +15,7 @@ CLOptimiseKernel::CLOptimiseKernel(Content *conIn, std::string name) : OptimiseK
     blockMatchingParams = con->Content::getBlockMatchingParams();
 }
 /* *************************************************************** */
-void CLOptimiseKernel::calculate(bool affine, bool ils) {
+void CLOptimiseKernel::calculate(bool affine) {
     //cpu atm
     this->blockMatchingParams = con->getBlockMatchingParams();
     optimize(this->blockMatchingParams, this->transformationMatrix, affine);

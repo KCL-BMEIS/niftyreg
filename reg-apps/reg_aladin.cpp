@@ -14,6 +14,7 @@
 #include "_reg_aladin_sym.h"
 #include "_reg_tools.h"
 #include "reg_aladin.h"
+#include <libgen.h>
 
 #ifdef _WIN32
 #   include <time.h>
@@ -78,7 +79,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-pi <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]");
    reg_print_info(exec, "\t-speeeeed\t\tGo faster");
 #if defined(_USE_CUDA) && defined(_USE_OPENCL)
-   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
+   reg_print_info(exec, "\t-platf <uint>\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
 #else
 #ifdef _USE_CUDA
    reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 [0]");
@@ -88,10 +89,10 @@ void Usage(char *exec)
 #endif
 #endif
 #ifdef _USE_OPENCL
-   reg_print_info(exec, "\t-gpuid\t\t\tChoose a custom gpu.");
+   reg_print_info(exec, "\t-gpuid <uint>\t\tChoose a custom gpu.");
    reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
 #endif
-   reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
+//   reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
 #if defined (_OPENMP)
    int defaultOpenMPValue=1;
    if(getenv("OMP_NUM_THREADS")!=NULL)
@@ -115,7 +116,7 @@ int main(int argc, char **argv)
 {
    if(argc==1)
    {
-      PetitUsage(argv[0]);
+      PetitUsage(basename(argv[0]));
       return EXIT_FAILURE;
    }
 
@@ -169,9 +170,8 @@ int main(int argc, char **argv)
    bool iso=false;
    bool verbose=true;
    unsigned int platformFlag = 0;
-   bool ils = false;
    int captureRangeVox = 3;
-   int gpuIdx = -1;
+   unsigned gpuIdx = 999;
 
 #if defined (_OPENMP)
    // Set the default number of thread
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
             strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
-         Usage(argv[0]);
+         Usage(basename(argv[0]));
          return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "--xml")==0)
@@ -310,10 +310,6 @@ int main(int argc, char **argv)
       {
          blockStepSize=2;
       }
-      else if(strcmp(argv[i], "-ils")==0 || strcmp(argv[i], "--ils")==0)
-      {
-         ils=true;
-      }
       else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0)
       {
          interpolation=atoi(argv[++i]);
@@ -367,7 +363,7 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-gpuid")==0 || strcmp(argv[i], "--gpuid")==0)
       {
-          gpuIdx = atoi(argv[++i]);
+          gpuIdx = unsigned(atoi(argv[++i]));
       }
       else if(strcmp(argv[i], "-crv")==0 || strcmp(argv[i], "--crv")==0)
       {
@@ -387,7 +383,7 @@ int main(int argc, char **argv)
 
          sprintf(text,"Err:\tParameter %s unknown.",argv[i]);
          reg_print_msg_error(text);
-         PetitUsage(argv[0]);
+         PetitUsage(basename(argv[0]));
          return EXIT_FAILURE;
       }
    }
@@ -396,7 +392,7 @@ int main(int argc, char **argv)
    {
       sprintf(text ,"Err:\tThe reference and the floating image have to be defined.");
       reg_print_msg_error(text);
-      PetitUsage(argv[0]);
+      PetitUsage(basename(argv[0]));
       return EXIT_FAILURE;
    }
 
@@ -405,13 +401,13 @@ int main(int argc, char **argv)
    if(verbose)
    {
 #endif
-      reg_print_info(argv[0], "");
-      reg_print_info(argv[0], "Command line:");
+      reg_print_info(basename(argv[0]), "");
+      reg_print_info(basename(argv[0]), "Command line:");
       sprintf(text, "\t");
       for(int i=0; i<argc; i++)
          sprintf(text, "%s %s", text, argv[i]);
-      reg_print_info(argv[0], text);
-      reg_print_info(argv[0], "");
+      reg_print_info(basename(argv[0]), text);
+      reg_print_info(basename(argv[0]), "");
 #ifdef NDEBUG
    }
 #endif
@@ -543,7 +539,6 @@ int main(int argc, char **argv)
    REG->SetInlierLts(inlierLts);
    REG->SetInterpolation(interpolation);
    REG->setPlatformCode(platformFlag);
-   REG->setIls(ils);
    REG->setCaptureRangeVox(captureRangeVox);
    REG->setGpuIdx(gpuIdx);
 
@@ -584,7 +579,7 @@ int main(int argc, char **argv)
    {
       int maxThreadNumber = omp_get_max_threads();
       sprintf(text, "OpenMP is used with %i thread(s)", maxThreadNumber);
-      reg_print_info(argv[0], text);
+      reg_print_info(basename(argv[0]), text);
    }
 #endif // _OPENMP
 
@@ -632,8 +627,8 @@ int main(int argc, char **argv)
       int minutes=(int)floorf((end-start)/60.0f);
       int seconds=(int)(end-start - 60*minutes);
       sprintf(text, "Registration performed in %i min %i sec", minutes, seconds);
-      reg_print_info(argv[0], text);
-      reg_print_info(argv[0], "Have a good day !");
+      reg_print_info(basename(argv[0]), text);
+      reg_print_info(basename(argv[0]), "Have a good day !");
 #ifdef NDEBUG
    }
 #endif

@@ -12,8 +12,8 @@
 /* *************************************************************** */
 template<class T>
 void reg_LUdecomposition(T *mat,
-    size_t dim,
-    size_t *index)
+                         size_t dim,
+                         size_t *index)
 {
     T *vv = (T *)malloc(dim * sizeof(T));
     size_t i, j, k, imax = 0;
@@ -79,9 +79,9 @@ void reg_LUdecomposition(T *mat,
 /* *************************************************************** */
 template<class T>
 void reg_matrixInvertMultiply(T *mat,
-    size_t dim,
-    size_t *index,
-    T *vec)
+                              size_t dim,
+                              size_t *index,
+                              T *vec)
 {
     // Perform the LU decomposition if necessary
     if (index == NULL)

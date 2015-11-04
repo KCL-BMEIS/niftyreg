@@ -25,7 +25,6 @@ public:
 		std::size_t paramValueSize;
 		std::string clInfo;
 		CLContextSingletton *sContext = &CLContextSingletton::Instance();
-		const unsigned int outputWidth = 45;
 
 		sContext->checkErrNum(clGetDeviceInfo(id, name, 0, NULL, &paramValueSize), "Failed to find OpenCL device info ");
 
@@ -105,7 +104,6 @@ public:
 		cl_int errNum;
 		size_t local;
 		CLContextSingletton *sContext = &CLContextSingletton::Instance();
-		const unsigned int outputWidth = 45;
 
 		errNum = clGetKernelWorkGroupInfo(sContext->dummyKernel(id), id, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(local), &local, NULL);
 

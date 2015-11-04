@@ -15,11 +15,11 @@ CUDAContextSingletton::CUDAContextSingletton()
 #endif
    this->cudaContext = NULL;
    this->numDevices = device_count;
-   this->cudaIdx = -1;
+   this->cudaIdx = 999;
    pickCard(this->cudaIdx);
 }
 /* *************************************************************** */
-void CUDAContextSingletton::setCudaIdx(int cudaIdxIn)
+void CUDAContextSingletton::setCudaIdx(unsigned int cudaIdxIn)
 {
    if (cudaIdxIn>=this->numDevices){
       reg_print_msg_error("The specified cuda card id is not defined");
@@ -36,10 +36,10 @@ CUcontext CUDAContextSingletton::getContext()
    return this->cudaContext;
 }
 /* *************************************************************** */
-void CUDAContextSingletton::pickCard(unsigned deviceId = -1)
+void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
 {
 
-   if(deviceId >=0 && deviceId < this->numDevices){
+   if(deviceId < this->numDevices){
       this->cudaIdx=deviceId;
       //
       NR_CUDA_SAFE_CALL(cudaSetDevice(this->cudaIdx));
@@ -52,7 +52,7 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = -1)
    // following code is from cutGetMaxGflopsDeviceId()
    int max_gflops_device = 0;
    int max_gflops = 0;
-   int current_device = 0;
+   unsigned int current_device = 0;
    while(current_device<this->numDevices ){
       cudaGetDeviceProperties( &deviceProp, current_device );
       int gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;

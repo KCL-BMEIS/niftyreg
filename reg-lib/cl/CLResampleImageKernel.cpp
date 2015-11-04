@@ -96,15 +96,15 @@ void CLResampleImageKernel::calculate(int interp,
     const size_t globalWorkSize[dims] = { blocks * maxThreads };
     const size_t localWorkSize[dims] = { maxThreads };
 
-    int numMats = 0; //needs to be a parameter
-    float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
+//    int numMats = 0; //needs to be a parameter
+//    float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
 
-    cl_long2 voxelNumber = { (cl_long)warpedImage->nx * warpedImage->ny * warpedImage->nz, (cl_long) this->floatingImage->nx * floatingImage->ny * this->floatingImage->nz };
-    cl_uint3 fi_xyz = { (cl_uint)floatingImage->nx, (cl_uint)floatingImage->ny, (cl_uint)floatingImage->nz };
-    cl_uint2 wi_tu = { (cl_uint)warpedImage->nt, (cl_uint)warpedImage->nu };
+    cl_long2 voxelNumber = { {(cl_long)warpedImage->nx * warpedImage->ny * warpedImage->nz, (cl_long) this->floatingImage->nx * floatingImage->ny * this->floatingImage->nz} };
+    cl_uint3 fi_xyz = { {(cl_uint)floatingImage->nx, (cl_uint)floatingImage->ny, (cl_uint)floatingImage->nz} };
+    cl_uint2 wi_tu = { {(cl_uint)warpedImage->nt, (cl_uint)warpedImage->nu} };
 
-    if (numMats)
-        mat33ToCptr(jacMat, jacMat_h, numMats);
+//    if (numMats)
+//        mat33ToCptr(jacMat, jacMat_h, numMats);
 
     int datatype = this->floatingImage->datatype;
 

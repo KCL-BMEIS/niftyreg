@@ -9,7 +9,7 @@ class CUDAOptimiseKernel: public OptimiseKernel
 {
 public:
     CUDAOptimiseKernel(Content *conIn, std::string name);
-    void calculate(bool affine, bool ils);
+    void calculate(bool affine);
 private:
     _reg_blockMatchingParam *blockMatchingParams;
     mat44 *transformationMatrix;

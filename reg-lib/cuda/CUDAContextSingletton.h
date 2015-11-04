@@ -12,7 +12,7 @@ class CUDAContextSingletton
             // Instantiated on first use.
             return instance;
         }
-        void setCudaIdx(int cudaIdxIn);
+        void setCudaIdx(unsigned int cudaIdxIn);
         void pickCard(unsigned deviceId);
 
         CUcontext getContext();
@@ -29,7 +29,7 @@ class CUDAContextSingletton
 
         CUcontext cudaContext;
         unsigned numDevices;
-        int cudaIdx;
+        unsigned cudaIdx;
 };
 
 #endif // CUDACONTEXTSINGLETTON_H

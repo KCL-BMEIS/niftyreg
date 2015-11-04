@@ -97,7 +97,6 @@ void interpLinearKernel(double relative, double *basis)
 void interpLinearKernel(double relative, double *basis, double *derivative)
 {
    interpLinearKernel(relative,basis);
-   if(relative<0.0) relative=0.0; //reg_rounding error
    derivative[1]=1.0;
    derivative[0]=0.0;
 }
