@@ -2,15 +2,15 @@
 #include "blockMatchingKernel.h"
 
 /* *************************************************************** */
-CUDABlockMatchingKernel::CUDABlockMatchingKernel(Content *conIn, std::string name) :
+CUDABlockMatchingKernel::CUDABlockMatchingKernel(AladinContent *conIn, std::string name) :
    BlockMatchingKernel(name)
 {
-   //get CudaContent ptr
-   con = static_cast<CudaContent*>(conIn);
+   //get CudaAladinContent ptr
+   con = static_cast<CudaAladinContent*>(conIn);
 
    //get cpu ptrs
-   reference = con->Content::getCurrentReference();
-   params = con->Content::getBlockMatchingParams();
+   reference = con->AladinContent::getCurrentReference();
+   params = con->AladinContent::getBlockMatchingParams();
 
    //get cuda ptrs
    referenceImageArray_d = con->getReferenceImageArray_d();

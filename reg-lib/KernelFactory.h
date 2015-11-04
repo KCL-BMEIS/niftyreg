@@ -1,12 +1,12 @@
 #ifndef KERNELFACTORY_H_
 #define KERNELFACTORY_H_
 
-#include "Content.h"
+#include "AladinContent.h"
 
 class  KernelFactory {
 public:
 
-    virtual Kernel* produceKernel(std::string name, Content* con) const = 0;
+    virtual Kernel* produceKernel(std::string name, AladinContent* con) const = 0;
     virtual ~KernelFactory() {
     }
 };

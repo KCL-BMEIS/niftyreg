@@ -1,9 +1,9 @@
-#include "Content.h"
+#include "AladinContent.h"
 
 using namespace std;
 
 /* *************************************************************** */
-Content::Content()
+AladinContent::AladinContent()
 {
 	//int dim[8] = { 2, 20, 20, 1, 1, 1, 1, 1 };
 	//this->CurrentFloating = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
@@ -20,7 +20,7 @@ Content::Content()
     initVars();
 }
 /* *************************************************************** */
-Content::Content(nifti_image *CurrentReferenceIn,
+AladinContent::AladinContent(nifti_image *CurrentReferenceIn,
 					  nifti_image *CurrentFloatingIn,
 					  int *CurrentReferenceMaskIn,
 					  mat44 *transMat,
@@ -41,7 +41,7 @@ Content::Content(nifti_image *CurrentReferenceIn,
 	initVars();
 }
 /* *************************************************************** */
-Content::Content(nifti_image *CurrentReferenceIn,
+AladinContent::AladinContent(nifti_image *CurrentReferenceIn,
 					  nifti_image *CurrentFloatingIn,
 					  int *CurrentReferenceMaskIn,
 					  mat44 *transMat,
@@ -56,7 +56,7 @@ Content::Content(nifti_image *CurrentReferenceIn,
 	initVars();
 }
 /* *************************************************************** */
-Content::Content(nifti_image *CurrentReferenceIn,
+AladinContent::AladinContent(nifti_image *CurrentReferenceIn,
 					  nifti_image *CurrentFloatingIn,
 					  int *CurrentReferenceMaskIn,
 					  size_t bytesIn,
@@ -76,7 +76,7 @@ Content::Content(nifti_image *CurrentReferenceIn,
 	initVars();
 }
 /* *************************************************************** */
-Content::Content(nifti_image *CurrentReferenceIn,
+AladinContent::AladinContent(nifti_image *CurrentReferenceIn,
 					  nifti_image *CurrentFloatingIn,
 					  int *CurrentReferenceMaskIn,
 					  size_t bytesIn) :
@@ -90,7 +90,7 @@ Content::Content(nifti_image *CurrentReferenceIn,
 	initVars();
 }
 /* *************************************************************** */
-Content::~Content()
+AladinContent::~AladinContent()
 {
 	ClearWarpedImage();
     ClearDeformationField();
@@ -98,7 +98,7 @@ Content::~Content()
 		delete this->blockMatchingParams;
 }
 /* *************************************************************** */
-void Content::initVars()
+void AladinContent::initVars()
 {
     if (this->CurrentFloating != NULL && this->CurrentReference != NULL) {
         this->AllocateWarpedImage();
@@ -140,10 +140,10 @@ void Content::initVars()
 #endif
 }
 /* *************************************************************** */
-void Content::AllocateWarpedImage()
+void AladinContent::AllocateWarpedImage()
 {
 	if (this->CurrentReference == NULL || this->CurrentFloating == NULL) {
-		reg_print_fct_error( "Content::AllocateWarpedImage()");
+		reg_print_fct_error( "AladinContent::AllocateWarpedImage()");
 		reg_print_msg_error(" Reference and floating images are not defined. Exit.");
 		reg_exit(1);
 	}
@@ -159,10 +159,10 @@ void Content::AllocateWarpedImage()
 	//this->floatingDatatype = this->CurrentFloating->datatype;
 }
 /* *************************************************************** */
-void Content::AllocateDeformationField(size_t bytes)
+void AladinContent::AllocateDeformationField(size_t bytes)
 {
 	if (this->CurrentReference == NULL) {
-		reg_print_fct_error( "Content::AllocateDeformationField()");
+		reg_print_fct_error( "AladinContent::AllocateDeformationField()");
 		reg_print_msg_error("Reference image is not defined. Exit.");
 		reg_exit(1);
 	}
@@ -190,7 +190,7 @@ void Content::AllocateDeformationField(size_t bytes)
 	else if (bytes == 8)
 		this->CurrentDeformationField->datatype = NIFTI_TYPE_FLOAT64;
 	else {
-		reg_print_fct_error( "Content::AllocateDeformationField()");
+		reg_print_fct_error( "AladinContent::AllocateDeformationField()");
 		reg_print_msg_error( "Only float or double are expected for the deformation field. Exit.");
 		reg_exit(1);
 	}
@@ -199,19 +199,19 @@ void Content::AllocateDeformationField(size_t bytes)
 	this->CurrentDeformationField->data = (void *) calloc(this->CurrentDeformationField->nvox, this->CurrentDeformationField->nbyper);
 }
 /* *************************************************************** */
-void Content::setCaptureRange(const int voxelCaptureRangeIn)
+void AladinContent::setCaptureRange(const int voxelCaptureRangeIn)
 {
 	this->blockMatchingParams->voxelCaptureRange = voxelCaptureRangeIn;
 }
 /* *************************************************************** */
-void Content::ClearDeformationField()
+void AladinContent::ClearDeformationField()
 {
 	if (this->CurrentDeformationField != NULL)
 		nifti_image_free(this->CurrentDeformationField);
 	this->CurrentDeformationField = NULL;
 }
 /* *************************************************************** */
-void Content::ClearWarpedImage()
+void AladinContent::ClearWarpedImage()
 {
 	if (this->CurrentWarped != NULL)
 		nifti_image_free(this->CurrentWarped);

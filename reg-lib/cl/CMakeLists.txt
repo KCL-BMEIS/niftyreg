@@ -23,14 +23,14 @@ include_directories(${OPENCL_INCLUDE_DIRS})
 set(NAME _reg_opencl_kernels)
 add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CLContextSingletton.cpp
-	CLContent.cpp
+	CLAladinContent.cpp
 	CLKernelFactory.cpp
 	CLAffineDeformationFieldKernel.cpp
 	CLBlockMatchingKernel.cpp
 	CLConvolutionKernel.cpp
 	CLOptimiseKernel.cpp
 	CLResampleImageKernel.cpp
-	../Content.cpp
+	../AladinContent.cpp
 	../Platform.cpp
 )
 target_link_libraries(${NAME} ${OPENCL_LIBRARIES})
@@ -40,7 +40,7 @@ install(TARGETS ${NAME}
 	ARCHIVE DESTINATION lib
 )
 #-----------------------------------------------------------------------------
-install(FILES CLContextSingletton.h CLContent.h CLKernelFactory.h
+install(FILES CLContextSingletton.h CLAladinContent.h CLKernelFactory.h
 				CLAffineDeformationFieldKernel.h
 				CLBlockMatchingKernel.h
 				CLConvolutionKernel.h

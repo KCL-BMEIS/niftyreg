@@ -2,19 +2,19 @@
 #define CUDAOPTIMISEKERNEL_H
 
 #include "OptimiseKernel.h"
-#include "CUDAContent.h"
+#include "CUDAAladinContent.h"
 
 //kernel functions for numerical optimisation
 class CUDAOptimiseKernel: public OptimiseKernel
 {
 public:
-    CUDAOptimiseKernel(Content *conIn, std::string name);
+    CUDAOptimiseKernel(AladinContent *conIn, std::string name);
     void calculate(bool affine, bool ils);
 private:
     _reg_blockMatchingParam *blockMatchingParams;
     mat44 *transformationMatrix;
     //CUDAContextSingletton *cudaSContext;
-    CudaContent *con;
+    CudaAladinContent *con;
 
     float* transformationMatrix_d;
 //    float* AR_d; // Removed until CUDA SVD is added back

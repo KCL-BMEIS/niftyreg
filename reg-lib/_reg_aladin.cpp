@@ -9,13 +9,13 @@
 #include "BlockMatchingKernel.h"
 #include "OptimiseKernel.h"
 #include "ConvolutionKernel.h"
-#include "Content.h"
+#include "AladinContent.h"
 
 #ifdef _USE_CUDA
-#include "CUDAContent.h"
+#include "CUDAAladinContent.h"
 #endif
 #ifdef _USE_OPENCL
-#include "CLContent.h"
+#include "CLAladinContent.h"
 #include "InfoDevice.h"
 #endif
 
@@ -468,7 +468,7 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::initContent(nifti_image *ref,
+void reg_aladin<T>::initAladinContent(nifti_image *ref,
 										  nifti_image *flo,
 										  int *mask,
 										  mat44 *transMat,
@@ -478,40 +478,40 @@ void reg_aladin<T>::initContent(nifti_image *ref,
 										  unsigned int blockStepSize)
 {
 	if (this->platformCode == NR_PLATFORM_CPU)
-		this->con = new Content(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+		this->con = new AladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-		this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+		this->con = new CudaAladinContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
-		this->con = new ClContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+		this->con = new ClAladinContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
-	this->blockMatchingParams = this->con->Content::getBlockMatchingParams();
+	this->blockMatchingParams = this->con->AladinContent::getBlockMatchingParams();
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::initContent(nifti_image *ref,
+void reg_aladin<T>::initAladinContent(nifti_image *ref,
 										  nifti_image *flo,
 										  int *mask,
 										  mat44 *transMat,
 										  size_t bytes)
 {
 	if (this->platformCode == NR_PLATFORM_CPU)
-		this->con = new Content(ref, flo, mask, transMat, bytes);
+		this->con = new AladinContent(ref, flo, mask, transMat, bytes);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-		this->con = new CudaContent(ref, flo, mask,transMat, bytes);
+		this->con = new CudaAladinContent(ref, flo, mask,transMat, bytes);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
-		this->con = new ClContent(ref, flo, mask,transMat, bytes);
+		this->con = new ClAladinContent(ref, flo, mask,transMat, bytes);
 #endif
-	this->blockMatchingParams = this->con->Content::getBlockMatchingParams();
+	this->blockMatchingParams = this->con->AladinContent::getBlockMatchingParams();
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::clearContent()
+void reg_aladin<T>::clearAladinContent()
 {
 	delete this->con;
 }
@@ -542,7 +542,7 @@ void reg_aladin<T>::Run()
 
 	//Main loop over the levels:
 	for (this->CurrentLevel = 0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++) {
-		this->initContent(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
+		this->initAladinContent(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
 								this->ReferenceMaskPyramid[CurrentLevel], this->TransformationMatrix, sizeof(T), this->BlockPercentage,
 								this->InlierLts, this->BlockStepSize);
 		this->createKernels();
@@ -589,7 +589,7 @@ void reg_aladin<T>::Run()
 
 		// SOME CLEANING IS PERFORMED
 		this->clearKernels();
-		this->clearContent();
+		this->clearAladinContent();
 		this->ClearCurrentInputImage();
 
 #ifdef NDEBUG
@@ -625,7 +625,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
     this->CurrentFloating = this->InputFloating;
     this->CurrentReferenceMask = (int *)calloc(this->CurrentReference->nx*this->CurrentReference->ny*this->CurrentReference->nz,sizeof(int));
 
-    reg_aladin<T>::initContent(this->CurrentReference,
+    reg_aladin<T>::initAladinContent(this->CurrentReference,
                                this->CurrentFloating,
                                this->CurrentReferenceMask,
                                this->TransformationMatrix,
@@ -645,7 +645,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	memcpy(resultImage->data, this->CurrentWarped->data, resultImage->nvox * resultImage->nbyper);
 
 	reg_aladin<T>::clearKernels();
-	reg_aladin<T>::clearContent();
+	reg_aladin<T>::clearAladinContent();
 	return resultImage;
 }
 /* *************************************************************** */

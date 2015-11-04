@@ -2,13 +2,13 @@
 #include "resampleKernel.h"
 
 /* *************************************************************** */
-CUDAResampleImageKernel::CUDAResampleImageKernel(Content *conIn, std::string name) :
+CUDAResampleImageKernel::CUDAResampleImageKernel(AladinContent *conIn, std::string name) :
         ResampleImageKernel(name)
 {
-    con = static_cast<CudaContent*>(conIn);
+    con = static_cast<CudaAladinContent*>(conIn);
 
-    floatingImage = con->Content::getCurrentFloating();
-    warpedImage = con->Content::getCurrentWarped();
+    floatingImage = con->AladinContent::getCurrentFloating();
+    warpedImage = con->AladinContent::getCurrentWarped();
 
     //cuda ptrs
     floatingImageArray_d = con->getFloatingImageArray_d();

@@ -7,13 +7,13 @@
 #include "AffineDeformationFieldKernel.h"
 #include "Platform.h"
 
-#include "Content.h"
+#include "AladinContent.h"
 #ifdef _USE_CUDA
-#include "CUDAContent.h"
+#include "CUDAAladinContent.h"
 #endif
 
 #ifdef _USE_OPENCL
-#include "CLContent.h"
+#include "CLAladinContent.h"
 #if defined(cl_khr_fp64)  // Khronos extension available?
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #define DOUBLE_SUPPORT_AVAILABLE
@@ -37,7 +37,7 @@
 
 #define EPS 0.000001
 
-void test(Content *con, int platformCode) {
+void test(AladinContent *con, int platformCode) {
 
     Platform *platform = new Platform(platformCode);
 
@@ -90,18 +90,18 @@ int main(int argc, char **argv)
     test_field->data = (void *) malloc(test_field->nvox*test_field->nbyper);
 
     // Compute the affine deformation field
-    Content *con = NULL;
+    AladinContent *con = NULL;
     if (platformCode == NR_PLATFORM_CPU) {
-        con = new Content(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+        con = new AladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
     }
 #ifdef _USE_CUDA
     else if (platformCode == NR_PLATFORM_CUDA) {
-        con = new CudaContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+        con = new CudaAladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
     }
 #endif
 #ifdef _USE_OPENCL
     else if (platformCode == NR_PLATFORM_CL) {
-        con = new ClContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+        con = new ClAladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
     }
 #endif
     else {

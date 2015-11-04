@@ -1,6 +1,6 @@
 #include "CPUOptimiseKernel.h"
 
-CPUOptimiseKernel::CPUOptimiseKernel(Content *con, std::string name) : OptimiseKernel(name) {
+CPUOptimiseKernel::CPUOptimiseKernel(AladinContent *con, std::string name) : OptimiseKernel(name) {
     transformationMatrix = con->getTransformationMatrix();
     blockMatchingParams = con->getBlockMatchingParams();
 }

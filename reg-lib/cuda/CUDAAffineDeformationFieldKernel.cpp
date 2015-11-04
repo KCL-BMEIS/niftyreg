@@ -2,14 +2,14 @@
 #include "affineDeformationKernel.h"
 
 /* *************************************************************** */
-CUDAAffineDeformationFieldKernel::CUDAAffineDeformationFieldKernel(Content *conIn, std::string nameIn) :
+CUDAAffineDeformationFieldKernel::CUDAAffineDeformationFieldKernel(AladinContent *conIn, std::string nameIn) :
    AffineDeformationFieldKernel(nameIn)
 {
-   con = static_cast<CudaContent*>(conIn);
+   con = static_cast<CudaAladinContent*>(conIn);
 
    //get necessary cpu ptrs
-   this->deformationFieldImage = con->Content::getCurrentDeformationField();
-   this->affineTransformation = con->Content::getTransformationMatrix();
+   this->deformationFieldImage = con->AladinContent::getCurrentDeformationField();
+   this->affineTransformation = con->AladinContent::getTransformationMatrix();
 
    //get necessary cuda ptrs
    mask_d = con->getMask_d();

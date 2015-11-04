@@ -8,12 +8,12 @@
 #include "OptimiseKernel.h"
 #include "Platform.h"
 
-#include "Content.h"
+#include "AladinContent.h"
 #ifdef _USE_CUDA
-#include "CUDAContent.h"
+#include "CUDAAladinContent.h"
 #endif
 #ifdef _USE_OPENCL
-#include "CLContent.h"
+#include "CLAladinContent.h"
 #endif
 
 #define EPS 0.000001
@@ -34,7 +34,7 @@ int check_matrix_difference(mat44 matrix1, mat44 matrix2, char *name, float &max
     return EXIT_SUCCESS;
 }
 
-void test(Content *con, int platformCode, bool isAffine, bool ils) {
+void test(AladinContent *con, int platformCode, bool isAffine, bool ils) {
 
     Platform *platform = new Platform(platformCode);
 
@@ -77,18 +77,18 @@ int main(int argc, char **argv)
     mat44 *expectedLSMatrix = reg_tool_ReadMat44File(expectedLTSMatrixFilename);
     ////////////////////////
     // Platforms
-    Content *con = NULL;
+    AladinContent *con = NULL;
     if (platformCode == NR_PLATFORM_CPU) {
-        con = new Content();
+        con = new AladinContent();
     }
 #ifdef _USE_CUDA
     else if (platformCode == NR_PLATFORM_CUDA) {
-        con = new CudaContent();
+        con = new CudaAladinContent();
     }
 #endif
 #ifdef _USE_OPENCL
     else if (platformCode == NR_PLATFORM_CL) {
-        con = new ClContent();
+        con = new ClAladinContent();
     }
 #endif
     else {

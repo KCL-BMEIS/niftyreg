@@ -4,11 +4,11 @@
 #include "OptimiseKernel.h"
 #include "_reg_blockMatching.h"
 #include "nifti1_io.h"
-#include "Content.h"
+#include "AladinContent.h"
 
 class CPUOptimiseKernel : public OptimiseKernel {
 public:
-    CPUOptimiseKernel(Content *con, std::string name);
+    CPUOptimiseKernel(AladinContent *con, std::string name);
 
     _reg_blockMatchingParam *blockMatchingParams;
     mat44 *transformationMatrix;

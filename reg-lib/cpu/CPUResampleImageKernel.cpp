@@ -1,7 +1,7 @@
 #include "CPUResampleImageKernel.h"
 #include "_reg_resampling.h"
 
-CPUResampleImageKernel::CPUResampleImageKernel(Content *con, std::string name) : ResampleImageKernel( name) {
+CPUResampleImageKernel::CPUResampleImageKernel(AladinContent *con, std::string name) : ResampleImageKernel( name) {
     floatingImage = con->getCurrentFloating();
     warpedImage = con->getCurrentWarped();
     deformationField = con->getCurrentDeformationField();

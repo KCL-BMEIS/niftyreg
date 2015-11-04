@@ -3,12 +3,12 @@
 
 #include "KernelFactory.h"
 
-class Content;
+class AladinContent;
 
 class CPUKernelFactory : public KernelFactory
 {
 public:
-   Kernel *produceKernel(std::string name,  Content *con) const;
+   Kernel *produceKernel(std::string name,  AladinContent *con) const;
 };
 
 #endif

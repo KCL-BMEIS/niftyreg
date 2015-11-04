@@ -3,10 +3,10 @@
 
 #include "_reg_tools.h"
 
-CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content *conIn, std::string nameIn) :
+CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(AladinContent *conIn, std::string nameIn) :
     AffineDeformationFieldKernel(nameIn) {
-    //populate the CLContent object ptr
-    con = static_cast<ClContent*>(conIn);
+    //populate the CLAladinContent object ptr
+    con = static_cast<ClAladinContent*>(conIn);
 
     //path to kernel files
     const char* niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");
@@ -46,8 +46,8 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content *conIn, s
     program = sContext->CreateProgram(clKernelPath.c_str());
 
     //get cpu ptrs
-    this->deformationFieldImage = con->Content::getCurrentDeformationField();
-    this->affineTransformation = con->Content::getTransformationMatrix();
+    this->deformationFieldImage = con->AladinContent::getCurrentDeformationField();
+    this->affineTransformation = con->AladinContent::getTransformationMatrix();
     this->ReferenceMatrix = (this->deformationFieldImage->sform_code > 0) ? &(this->deformationFieldImage->sto_xyz) : &(this->deformationFieldImage->qto_xyz);
 
     cl_int errNum;

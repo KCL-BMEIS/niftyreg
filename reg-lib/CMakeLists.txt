@@ -96,8 +96,8 @@ set(_reg_aladin_files
 	${NAME}.cpp
 	${NAME}_sym.h
 	${NAME}_sym.cpp
-	Content.cpp
-	Content.h
+	AladinContent.cpp
+	AladinContent.h
 	Platform.cpp
 	Platform.h
 	Kernel.h
@@ -135,7 +135,7 @@ install(TARGETS ${NAME}
 	)
 install(FILES ${NAME}.h ${NAME}_sym.h cpu/_reg_macros.h DESTINATION include)
 install(FILES ${NAME}.cpp ${NAME}_sym.cpp DESTINATION include)
-install(FILES Content.h Platform.h  DESTINATION include)
+install(FILES AladinContent.h Platform.h  DESTINATION include)
 install(FILES
 				Kernel.h
 				AffineDeformationFieldKernel.h

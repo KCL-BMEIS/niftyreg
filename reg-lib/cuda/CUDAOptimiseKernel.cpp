@@ -4,17 +4,17 @@
 #include "optimizeKernel.h"
 
 /* *************************************************************** */
-CUDAOptimiseKernel::CUDAOptimiseKernel(Content *conIn, std::string name) :
+CUDAOptimiseKernel::CUDAOptimiseKernel(AladinContent *conIn, std::string name) :
    OptimiseKernel(name)
 {
-   //get CudaContent ptr
-   con = static_cast<CudaContent*>(conIn);
+   //get CudaAladinContent ptr
+   con = static_cast<CudaAladinContent*>(conIn);
 
    //cudaSContext = &CUDAContextSingletton::Instance();
 
    //get cpu ptrs
-   transformationMatrix = con->Content::getTransformationMatrix();
-   blockMatchingParams = con->Content::getBlockMatchingParams();
+   transformationMatrix = con->AladinContent::getTransformationMatrix();
+   blockMatchingParams = con->AladinContent::getBlockMatchingParams();
 
 //   transformationMatrix_d = con->getTransformationMatrix_d();
 //   AR_d = con->getAR_d(); // Removed until CUDA SVD is added back

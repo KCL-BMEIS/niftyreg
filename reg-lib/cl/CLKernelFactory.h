@@ -2,12 +2,12 @@
 #define CLPKERNELFACTORY_H
 
 #include "KernelFactory.h"
-#include "Content.h"
+#include "AladinContent.h"
 
 class CLKernelFactory : public KernelFactory
 {
 public:
-   Kernel *produceKernel(std::string name, Content *con) const;
+   Kernel *produceKernel(std::string name, AladinContent *con) const;
 };
 
 #endif

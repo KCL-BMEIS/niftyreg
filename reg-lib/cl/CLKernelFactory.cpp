@@ -4,9 +4,9 @@
 #include "CLBlockMatchingKernel.h"
 #include "CLResampleImageKernel.h"
 #include "CLOptimiseKernel.h"
-#include "Content.h"
+#include "AladinContent.h"
 
-Kernel *CLKernelFactory::produceKernel(std::string name, Content *con) const {
+Kernel *CLKernelFactory::produceKernel(std::string name, AladinContent *con) const {
 
 	if( name == AffineDeformationFieldKernel::getName() ) return new CLAffineDeformationFieldKernel(con, name);
 	else if( name == ConvolutionKernel::getName() ) return new CLConvolutionKernel(name);

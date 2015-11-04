@@ -4,9 +4,9 @@
 #include "CUDABlockMatchingKernel.h"
 #include "CUDAResampleImageKernel.h"
 #include "CUDAOptimiseKernel.h"
-#include "Content.h"
+#include "AladinContent.h"
 
-Kernel *CUDAKernelFactory::produceKernel(std::string name,  Content *con) const {
+Kernel *CUDAKernelFactory::produceKernel(std::string name,  AladinContent *con) const {
     if( name == AffineDeformationFieldKernel::getName() ) return new CUDAAffineDeformationFieldKernel(con, name);
     else if( name == ConvolutionKernel::getName() ) return new CUDAConvolutionKernel(name);
     else if( name == BlockMatchingKernel::getName() ) return new CUDABlockMatchingKernel( con, name);

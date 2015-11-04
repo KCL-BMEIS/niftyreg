@@ -1,9 +1,9 @@
 #include "CLOptimiseKernel.h"
 
 /* *************************************************************** */
-CLOptimiseKernel::CLOptimiseKernel(Content *conIn, std::string name) : OptimiseKernel(name) {
-    //populate the CLContent object ptr
-    con = static_cast<ClContent*>(conIn);
+CLOptimiseKernel::CLOptimiseKernel(AladinContent *conIn, std::string name) : OptimiseKernel(name) {
+    //populate the CLAladinContent object ptr
+    con = static_cast<ClAladinContent*>(conIn);
 
     //get opencl context params
     sContext = &CLContextSingletton::Instance();
@@ -11,8 +11,8 @@ CLOptimiseKernel::CLOptimiseKernel(Content *conIn, std::string name) : OptimiseK
     /*commandQueue = sContext->getCommandQueue();*/
 
     //get necessary cpu ptrs
-    transformationMatrix = con->Content::getTransformationMatrix();
-    blockMatchingParams = con->Content::getBlockMatchingParams();
+    transformationMatrix = con->AladinContent::getTransformationMatrix();
+    blockMatchingParams = con->AladinContent::getBlockMatchingParams();
 }
 /* *************************************************************** */
 void CLOptimiseKernel::calculate(bool affine, bool ils) {

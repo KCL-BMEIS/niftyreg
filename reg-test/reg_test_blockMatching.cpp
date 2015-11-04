@@ -7,12 +7,12 @@
 #include "BlockMatchingKernel.h"
 #include "Platform.h"
 
-#include "Content.h"
+#include "AladinContent.h"
 #ifdef _USE_CUDA
-#include "CUDAContent.h"
+#include "CUDAAladinContent.h"
 #endif
 #ifdef _USE_OPENCL
-#include "CLContent.h"
+#include "CLAladinContent.h"
 #endif
 
 #include <algorithm>
@@ -79,7 +79,7 @@ void check_matching_difference(int dim,
    }
 }
 
-void test(Content *con, int platformCode) {
+void test(AladinContent *con, int platformCode) {
 
    Platform *platform = new Platform(platformCode);
 
@@ -136,18 +136,18 @@ int main(int argc, char **argv)
    _reg_blockMatchingParam* blockMatchingParams;
 
    // Platforms
-   Content *con = NULL;
+   AladinContent *con = NULL;
    if (platformCode == NR_PLATFORM_CPU) {
-      con = new Content(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+      con = new AladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
    }
 #ifdef _USE_CUDA
    else if (platformCode == NR_PLATFORM_CUDA) {
-      con = new CudaContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+      con = new CudaAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
    }
 #endif
 #ifdef _USE_OPENCL
    else if (platformCode == NR_PLATFORM_CL) {
-      con = new ClContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+      con = new ClAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
    }
 #endif
    else {

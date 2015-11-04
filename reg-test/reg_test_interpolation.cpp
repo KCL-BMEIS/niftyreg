@@ -4,12 +4,12 @@
 
 #include "ResampleImageKernel.h"
 #include "Platform.h"
-#include "Content.h"
+#include "AladinContent.h"
 #ifdef _USE_CUDA
-#include "CUDAContent.h"
+#include "CUDAAladinContent.h"
 #endif
 #ifdef _USE_OPENCL
-#include "CLContent.h"
+#include "CLAladinContent.h"
 #if defined(cl_khr_fp64)  // Khronos extension available?
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #define DOUBLE_SUPPORT_AVAILABLE
@@ -33,7 +33,7 @@
 
 #define EPS 0.000001
 
-void test(Content *con, const unsigned int interp, int platformCode) {
+void test(AladinContent *con, const unsigned int interp, int platformCode) {
 
     Platform *platform = new Platform(platformCode);
 
@@ -111,18 +111,18 @@ int main(int argc, char **argv)
     //CPU - GPU code
     int *tempMask = (int *)calloc(test_warped->nvox, sizeof(int));
 
-    Content *con = NULL;
+    AladinContent *con = NULL;
     if (platformCode == NR_PLATFORM_CPU) {
-        con = new Content(NULL, floatingImage, NULL, sizeof(float));
+        con = new AladinContent(NULL, floatingImage, NULL, sizeof(float));
     }
 #ifdef _USE_CUDA
     else if (platformCode == NR_PLATFORM_CUDA) {
-        con = new CudaContent(NULL, floatingImage, NULL, sizeof(float));
+        con = new CudaAladinContent(NULL, floatingImage, NULL, sizeof(float));
     }
 #endif
 #ifdef _USE_OPENCL
     else if (platformCode == NR_PLATFORM_CL) {
-        con = new ClContent(NULL, floatingImage, NULL, sizeof(float));
+        con = new ClAladinContent(NULL, floatingImage, NULL, sizeof(float));
     }
 #endif
     else {
