@@ -2,17 +2,17 @@
 #define CLBLOCKMATCHINGKERNEL_H
 
 #include "BlockMatchingKernel.h"
-#include "CLContent.h"
+#include "CLAladinContent.h"
 
 class CLBlockMatchingKernel : public BlockMatchingKernel {
     public:
-       CLBlockMatchingKernel(Content * conIn, std::string name);
+       CLBlockMatchingKernel(AladinContent * conIn, std::string name);
        ~CLBlockMatchingKernel();
        void calculate();
 
     private:
        CLContextSingletton *sContext;
-       ClContent *con;
+       ClAladinContent *con;
        nifti_image *reference;
        _reg_blockMatchingParam *params;
        cl_kernel kernel;

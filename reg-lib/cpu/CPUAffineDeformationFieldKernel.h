@@ -2,13 +2,13 @@
 #define CPUAFFINEDEFORMATIONFIELDKERNEL_H
 
 #include "AffineDeformationFieldKernel.h"
-#include "Content.h"
+#include "AladinContent.h"
 #include <string>
 
 
 class CPUAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
-        CPUAffineDeformationFieldKernel(Content *con, std::string nameIn);
+        CPUAffineDeformationFieldKernel(AladinContent *con, std::string nameIn);
 
         void calculate(bool compose = false);
 

@@ -1,6 +1,6 @@
 #include "CPUBlockMatchingKernel.h"
 
-CPUBlockMatchingKernel::CPUBlockMatchingKernel(Content *con, std::string name) : BlockMatchingKernel(name) {
+CPUBlockMatchingKernel::CPUBlockMatchingKernel(AladinContent *con, std::string name) : BlockMatchingKernel(name) {
     reference = con->getCurrentReference();
     warped = con->getCurrentWarped();
     params = con->getBlockMatchingParams();

@@ -2,20 +2,20 @@
 #define CLOPTIMISEKERNEL_H
 
 #include "OptimiseKernel.h"
-#include "CLContent.h"
+#include "CLAladinContent.h"
 
 class CLOptimiseKernel : public OptimiseKernel
 {
     public:
 
-       CLOptimiseKernel(Content * con, std::string name);
+       CLOptimiseKernel(AladinContent * con, std::string name);
        ~CLOptimiseKernel();
        void calculate(bool affine);
     private:
        _reg_blockMatchingParam * blockMatchingParams;
        mat44 *transformationMatrix;
        CLContextSingletton *sContext;
-       ClContent  *con;
+       ClAladinContent  *con;
 };
 
 #endif // CLOPTIMISEKERNEL_H

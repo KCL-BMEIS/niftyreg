@@ -24,7 +24,7 @@
 #include "float.h"
 #include <limits>
 
-class Content;
+class AladinContent;
 class Platform;
 class Kernel;
 
@@ -98,7 +98,7 @@ class reg_aladin
         void *paramsProgressCallback;
 
         //platform factory methods
-        virtual void initContent(nifti_image *ref,
+        virtual void initAladinContent(nifti_image *ref,
                                  nifti_image *flo,
                                  int *mask,
                                  mat44 *transMat,
@@ -106,12 +106,12 @@ class reg_aladin
                                  unsigned int blockPercentage,
                                  unsigned int inlierLts,
                                  unsigned int blockStepSize);
-        virtual void initContent(nifti_image *ref,
+        virtual void initAladinContent(nifti_image *ref,
                                  nifti_image *flo,
                                  int *mask,
                                  mat44 *transMat,
                                  size_t bytes);
-        virtual void clearContent();
+        virtual void clearAladinContent();
         virtual void createKernels();
         virtual void clearKernels();
 
@@ -258,7 +258,7 @@ class reg_aladin
             funcProgressCallback = funcProgCallback;
             paramsProgressCallback = paramsProgCallback;
         }
-        Content *con;
+        AladinContent *con;
 
     private:
         Kernel *affineTransformation3DKernel,*blockMatchingKernel;

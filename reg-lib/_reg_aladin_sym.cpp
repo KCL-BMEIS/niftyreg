@@ -288,33 +288,33 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type){
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::initContent(nifti_image *ref,
+void reg_aladin_sym<T>::initAladinContent(nifti_image *ref,
 												nifti_image *flo,
 												int *mask,
 												mat44 *transMat,
 												size_t bytes)
 {
-   reg_aladin<T>::initContent(ref,
+   reg_aladin<T>::initAladinContent(ref,
                                flo,
                                mask,
                                transMat,
                                bytes);
 
 	if (this->platformCode == NR_PLATFORM_CPU)
-	this->backCon = new Content(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
+	this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
 #ifdef _USE_CUDA
 	else if (this->platformCode == NR_PLATFORM_CUDA)
-	this->backCon = new CudaContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
+	this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
 #endif
 #ifdef _USE_OPENCL
 	else if (this->platformCode == NR_PLATFORM_CL)
-	this->backCon = new ClContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
+	this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
 #endif
-	this->BackwardBlockMatchingParams = backCon->Content::getBlockMatchingParams();
+	this->BackwardBlockMatchingParams = backCon->AladinContent::getBlockMatchingParams();
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::initContent(nifti_image *ref,
+void reg_aladin_sym<T>::initAladinContent(nifti_image *ref,
 												nifti_image *flo,
 												int *mask,
 												mat44 *transMat,
@@ -323,7 +323,7 @@ void reg_aladin_sym<T>::initContent(nifti_image *ref,
 												unsigned int inlierLts,
 												unsigned int blockStepSize)
 {
-    reg_aladin<T>::initContent(ref,
+    reg_aladin<T>::initAladinContent(ref,
                                flo,
                                mask,
                                transMat,
@@ -333,16 +333,16 @@ void reg_aladin_sym<T>::initContent(nifti_image *ref,
                                blockStepSize);
 
 	if (this->platformCode == NR_PLATFORM_CPU)
-	this->backCon = new Content(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+	this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if (this->platformCode == NR_PLATFORM_CUDA)
-	this->backCon = new CudaContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+	this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
 	else if (this->platformCode == NR_PLATFORM_CL)
-	this->backCon = new ClContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+	this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
-	this->BackwardBlockMatchingParams = backCon->Content::getBlockMatchingParams();
+	this->BackwardBlockMatchingParams = backCon->AladinContent::getBlockMatchingParams();
 }
 /* *************************************************************** */
 template <class T>
@@ -369,9 +369,9 @@ void reg_aladin_sym<T>::createKernels()
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::clearContent()
+void reg_aladin_sym<T>::clearAladinContent()
 {
-	reg_aladin<T>::clearContent();
+	reg_aladin<T>::clearAladinContent();
 	delete this->backCon;
 }
 /* *************************************************************** */

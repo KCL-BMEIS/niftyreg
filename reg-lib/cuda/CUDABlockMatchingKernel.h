@@ -2,13 +2,13 @@
 #define CUDABLOCKMATCHINGKERNEL_H
 
 #include "../BlockMatchingKernel.h"
-#include "CUDAContent.h"
+#include "CUDAAladinContent.h"
 
 //Kernel functions for block matching
 class CUDABlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-    CUDABlockMatchingKernel(Content *conIn, std::string name);
+    CUDABlockMatchingKernel(AladinContent *conIn, std::string name);
     void calculate();
 private:
     nifti_image *reference;
@@ -17,7 +17,7 @@ private:
     //CUDAContextSingletton *cudaSContext;
     //CUContext *cudaContext;
 
-    CudaContent *con;
+    CudaAladinContent *con;
 
     float *referenceImageArray_d, *warpedImageArray_d, *referencePosition_d;
     float *warpedPosition_d, *referenceMat_d;

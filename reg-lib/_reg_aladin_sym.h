@@ -19,15 +19,15 @@ template <class T>
 class reg_aladin_sym : public reg_aladin<T>
 {
 private:
-	Content *backCon;
+	AladinContent *backCon;
 	Kernel *bAffineTransformation3DKernel, *bConvolutionKernel, *bBlockMatchingKernel, *bOptimiseKernel, *bResamplingKernel;
 
-	virtual void initContent(nifti_image *ref,
+	virtual void initAladinContent(nifti_image *ref,
 									 nifti_image *flo,
 									 int *mask,
 									 mat44 *transMat,
 									 size_t bytes);
-	virtual void initContent(nifti_image *ref,
+	virtual void initAladinContent(nifti_image *ref,
 									 nifti_image *flo,
 									 int *mask,
 									 mat44 *transMat,
@@ -35,7 +35,7 @@ private:
 									 unsigned int blockPercentage,
 									 unsigned int inlierLts,
 									 unsigned int blockStepSize);
-	virtual void clearContent();
+	virtual void clearAladinContent();
 	virtual void createKernels();
 	virtual void clearKernels();
 

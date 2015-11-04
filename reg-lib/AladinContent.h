@@ -9,22 +9,22 @@
 #include "Kernel.h"
 #include "_reg_blockMatching.h"
 
-class Content {
+class AladinContent {
 public:
 
-	Content();
-	Content(nifti_image *CurrentReferenceIn,
+	AladinContent();
+	AladinContent(nifti_image *CurrentReferenceIn,
 			  nifti_image *CurrentFloatingIn,
 			  int *CurrentReferenceMaskIn,
 			  size_t byte,
 			  const unsigned int percentageOfBlocks,
 			  const unsigned int InlierLts,
 			  int BlockStepSize);
-	Content(nifti_image *CurrentReferenceIn,
+	AladinContent(nifti_image *CurrentReferenceIn,
 			  nifti_image *CurrentFloatingIn,
 			  int *CurrentReferenceMaskIn,
 			  size_t byte);
-	Content(nifti_image *CurrentReferenceIn,
+	AladinContent(nifti_image *CurrentReferenceIn,
 			  nifti_image *CurrentFloatingIn,
 			  int *CurrentReferenceMaskIn,
 			  mat44 *transMat,
@@ -32,13 +32,13 @@ public:
 			  const unsigned int percentageOfBlocks,
 			  const unsigned int InlierLts,
 			  int BlockStepSize);
-	Content(nifti_image *CurrentReferenceIn,
+	AladinContent(nifti_image *CurrentReferenceIn,
 			  nifti_image *CurrentFloatingIn,
 			  int *CurrentReferenceMaskIn,
 			  mat44 *transMat,
 			  size_t byte);
 
-	virtual ~Content();
+	virtual ~AladinContent();
 
 	/* *************************************************************** */
 	void AllocateWarpedImage();

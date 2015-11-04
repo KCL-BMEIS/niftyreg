@@ -1,26 +1,26 @@
 #pragma once
 
-#include "Content.h"
+#include "AladinContent.h"
 #include "CUDAContextSingletton.h"
 
 #include "_reg_tools.h"
 
-class CudaContent: public Content {
+class CudaAladinContent: public AladinContent {
 
 public:
-	CudaContent();
-	CudaContent(nifti_image *CurrentReferenceIn,
+	CudaAladinContent();
+	CudaAladinContent(nifti_image *CurrentReferenceIn,
 					nifti_image *CurrentFloatingIn,
 					int *CurrentReferenceMaskIn,
 					size_t byte,
 					const unsigned int blockPercentage,
 					const unsigned int inlierLts,
 					int blockStep);
-	CudaContent(nifti_image *CurrentReferenceIn,
+	CudaAladinContent(nifti_image *CurrentReferenceIn,
 					nifti_image *CurrentFloatingIn,
 					int *CurrentReferenceMaskIn,
 					size_t byte);
-	CudaContent(nifti_image *CurrentReferenceIn,
+	CudaAladinContent(nifti_image *CurrentReferenceIn,
 					nifti_image *CurrentFloatingIn,
 					int *CurrentReferenceMaskIn,
 					mat44 *transMat,
@@ -28,12 +28,12 @@ public:
 					const unsigned int blockPercentage,
 					const unsigned int inlierLts,
 					int blockStep);
-	CudaContent(nifti_image *CurrentReferenceIn,
+	CudaAladinContent(nifti_image *CurrentReferenceIn,
 					nifti_image *CurrentFloatingIn,
 					int *CurrentReferenceMaskIn,
 					mat44 *transMat,
 					size_t byte);
-	~CudaContent();
+	~CudaAladinContent();
 
 	//device getters
 	float* getReferenceImageArray_d();
@@ -73,7 +73,7 @@ public:
 private:
 	void initVars();
 
-	//void uploadContent();
+	//void uploadAladinContent();
 	void allocateCuPtrs();
 	void freeCuPtrs();
 

@@ -1,7 +1,7 @@
 #ifndef CLCONTENT_H_
 #define CLCONTENT_H_
 
-#include "Content.h"
+#include "AladinContent.h"
 #include "CLContextSingletton.h"
 
 #ifdef __APPLE__
@@ -10,24 +10,24 @@
 #include <CL/cl.h>
 #endif
 
-class ClContent: public Content {
+class ClAladinContent: public AladinContent {
 
 public:
 
 	//constructors
-	ClContent();
-	ClContent(nifti_image *CurrentReferenceIn,
+	ClAladinContent();
+	ClAladinContent(nifti_image *CurrentReferenceIn,
 				 nifti_image *CurrentFloatingIn,
 				 int *CurrentReferenceMaskIn,
 				 size_t byte,
 				 const unsigned int blockPercentage,
 				 const unsigned int inlierLts,
 				 int blockStep);
-	ClContent(nifti_image *CurrentReferenceIn,
+	ClAladinContent(nifti_image *CurrentReferenceIn,
 				 nifti_image *CurrentFloatingIn,
 				 int *CurrentReferenceMaskIn,
 				 size_t byte);
-	ClContent(nifti_image *CurrentReferenceIn,
+	ClAladinContent(nifti_image *CurrentReferenceIn,
 				 nifti_image *CurrentFloatingIn,
 				 int *CurrentReferenceMaskIn,
 				 mat44 *transMat,
@@ -35,12 +35,12 @@ public:
 				 const unsigned int blockPercentage,
 				 const unsigned int inlierLts,
 				 int blockStep);
-	ClContent(nifti_image *CurrentReferenceIn,
+	ClAladinContent(nifti_image *CurrentReferenceIn,
 				 nifti_image *CurrentFloatingIn,
 				 int *CurrentReferenceMaskIn,
 				 mat44 *transMat,
 				 size_t byte);
-	~ClContent();
+	~ClAladinContent();
 
 	//opencl getters
 	cl_mem getReferenceImageArrayClmem();

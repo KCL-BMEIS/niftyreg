@@ -5,9 +5,9 @@
 #include "CPUResampleImageKernel.h"
 #include "CPUOptimiseKernel.h"
 //
-#include "Content.h"
+#include "AladinContent.h"
 
-Kernel *CPUKernelFactory::produceKernel(std::string name,  Content *con) const
+Kernel *CPUKernelFactory::produceKernel(std::string name,  AladinContent *con) const
 {
 	if (name == AffineDeformationFieldKernel::getName()) return new CPUAffineDeformationFieldKernel(con, name);
 	else if (name == ConvolutionKernel::getName()) return new CPUConvolutionKernel(name);

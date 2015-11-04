@@ -1,5 +1,5 @@
 #include "Platform.h"
-#include "Content.h"
+#include "AladinContent.h"
 #include "KernelFactory.h"
 #include "CPUKernelFactory.h"
 #ifdef _USE_CUDA
@@ -35,7 +35,7 @@ Platform::Platform(int platformCode)
 #endif
 }
 /* *************************************************************** */
-Kernel *Platform::createKernel(const string& name, Content *con) const
+Kernel *Platform::createKernel(const string& name, AladinContent *con) const
 {
     return this->factory->produceKernel(name, con);
 }

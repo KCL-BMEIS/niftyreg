@@ -2,13 +2,13 @@
 #define CUDAAFFINEDEFORMATIONFIELDKERNEL_H
 
 #include "AffineDeformationFieldKernel.h"
-#include "CUDAContent.h"
+#include "CUDAAladinContent.h"
 
 //Kernel functions for affine deformation field
 class CUDAAffineDeformationFieldKernel: public AffineDeformationFieldKernel
 {
 public:
-    CUDAAffineDeformationFieldKernel(Content *conIn, std::string nameIn);
+    CUDAAffineDeformationFieldKernel(AladinContent *conIn, std::string nameIn);
     void calculate(bool compose = false);
 private:
     mat44 *affineTransformation;
@@ -17,7 +17,7 @@ private:
     float *deformationFieldArray_d, *transformationMatrix_d;
     int *mask_d;
 
-    CudaContent *con;
+    CudaAladinContent *con;
 
     //CUDAContextSingletton *cudaSContext;
     //CUContext cudaContext;
