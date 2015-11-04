@@ -67,7 +67,7 @@ private:
 	CLContextSingletton(CLContextSingletton const&);// Don't Implement
 	void operator=(CLContextSingletton const&); // Don't implement
 
-	  void pickCard(cl_uint deviceId);
+      void pickCard(cl_uint deviceId);
 
 	cl_context context;
 	cl_device_id deviceId;
@@ -79,6 +79,6 @@ private:
 	size_t maxThreads;
 
 	unsigned int maxBlocks;
-	int clIdx;
+    unsigned clIdx;
 };
 #endif

@@ -45,16 +45,16 @@ std::string Platform::getName()
     return this->platformName;
 }
 /* *************************************************************** */
-void Platform::setGpuIdx(int gpuIdxIn)
+void Platform::setGpuIdx(unsigned gpuIdxIn)
 {
     if(this->platformCode == NR_PLATFORM_CPU)
     {
-        this->gpuIdx = -1;
+        this->gpuIdx = 999;
     }
 #ifdef _USE_CUDA
     else if(this->platformCode == NR_PLATFORM_CUDA) {
             CUDAContextSingletton *cudaContext = &CUDAContextSingletton::Instance();
-            if(gpuIdxIn != -1) {
+            if(gpuIdxIn != 999) {
                 this->gpuIdx = gpuIdxIn;
                 cudaContext->setCudaIdx(gpuIdxIn);
             }
@@ -63,7 +63,7 @@ void Platform::setGpuIdx(int gpuIdxIn)
 #ifdef _USE_OPENCL
     else if(this->platformCode == NR_PLATFORM_CL) {
             CLContextSingletton *sContext = &CLContextSingletton::Instance();
-            if(gpuIdxIn != -1) {
+            if(gpuIdxIn != 999) {
                 this->gpuIdx = gpuIdxIn;
                 sContext->setClIdx(gpuIdxIn);
             }

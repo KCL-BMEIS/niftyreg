@@ -44,8 +44,8 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
       //
       NR_CUDA_SAFE_CALL(cudaSetDevice(this->cudaIdx));
       NR_CUDA_SAFE_CALL(cuCtxCreate(&this->cudaContext, CU_CTX_SCHED_SPIN, this->cudaIdx))
-            //
-            return;
+      //
+      return;
    }
 
    struct cudaDeviceProp deviceProp;
@@ -64,7 +64,7 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
    }
    NR_CUDA_SAFE_CALL(cudaSetDevice(max_gflops_device));
    NR_CUDA_SAFE_CALL(cuCtxCreate(&this->cudaContext, CU_CTX_SCHED_SPIN, max_gflops_device))
-         NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device));
+   NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device));
 
    if(deviceProp.major<1){
       reg_print_msg_error("[NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");

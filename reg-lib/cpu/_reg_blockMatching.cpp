@@ -490,8 +490,8 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
     int warpedIndex_end_y;
     int warpedIndex_end_z;
 
-    unsigned index, i, j, k;
-    int l, m, n, x, y, z;
+    int index, l, m, n, x, y, z;
+    unsigned int i, j, k;
     int *maskPtr_Z, *maskPtr_XYZ;
     DTYPE *referencePtr_Z, *referencePtr_XYZ, *warpedPtr_Z, *warpedPtr_XYZ;
     DTYPE value, bestCC, referenceMean, warpedMean, referenceVar, warpedVar;

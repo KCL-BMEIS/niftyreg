@@ -20,7 +20,7 @@ public:
 
 	Kernel *createKernel(const std::string& name, AladinContent *con) const;
 	std::string getName();
-    void setGpuIdx(int gpuIdxIn);
+    void setGpuIdx(unsigned gpuIdxIn);
 
 
 private:
