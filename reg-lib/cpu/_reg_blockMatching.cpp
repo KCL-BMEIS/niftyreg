@@ -267,10 +267,10 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
     else
         referenceMatrix_xyz = &(reference->qto_xyz);
 
-    int referenceIndex_start_x;
-    int referenceIndex_start_y;
-    int referenceIndex_end_x;
-    int referenceIndex_end_y;
+    unsigned int referenceIndex_start_x;
+    unsigned int referenceIndex_start_y;
+    unsigned int referenceIndex_end_x;
+    unsigned int referenceIndex_end_y;
     int warpedIndex_start_x;
     int warpedIndex_start_y;
     int warpedIndex_end_x;
@@ -294,13 +294,7 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
     DTYPE warpedValues[BLOCK_2D_SIZE];
     bool warpedOverlap[BLOCK_2D_SIZE];
 
-    //float *temp_reference_position = (float *)malloc(2 * params->totalBlockNumber * sizeof(float));
-    //float *temp_warped_position = (float *)malloc(2 * params->totalBlockNumber * sizeof(float));
     params->definedActiveBlockNumber = 0;
-
-    //for (i = 0; i < 2 * (unsigned int)params->totalBlockNumber; i += 2) {
-    //    temp_reference_position[i] = std::numeric_limits<float>::quiet_NaN();
-    //}
 
     for (j = 0; j < params->blockNumber[1]; j++) {
         referenceIndex_start_y = j * BLOCK_WIDTH;
@@ -315,21 +309,20 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                 referenceIndex = 0;
                 memset(referenceOverlap, 0, BLOCK_2D_SIZE * sizeof(bool));
 
-                for (y = referenceIndex_start_y; y < referenceIndex_end_y; y++) {
-                    if (-1 < y && y < reference->ny) {
+                for (y = (int) referenceIndex_start_y; y < (int) referenceIndex_end_y; y++) {
+                    if (y < reference->ny) {
                         index = y * reference->nx + referenceIndex_start_x;
-                        referencePtr_XY = &referencePtr[index];
-                        maskPtr_XY = &mask[index];
-                        for (x = referenceIndex_start_x; x < referenceIndex_end_x; x++) {
-                            if (-1 < x && x < reference->nx) {
+                        for (x = (int) referenceIndex_start_x; x < (int) referenceIndex_end_x; x++) {
+                            if (x < reference->nx) {
+                                referencePtr_XY = &referencePtr[index];
+                                maskPtr_XY = &mask[index];
                                 value = *referencePtr_XY;
                                 if (value == value && *maskPtr_XY > -1) {
                                     referenceValues[referenceIndex] = value;
                                     referenceOverlap[referenceIndex] = 1;
                                 }
                             }
-                            referencePtr_XY++;
-                            maskPtr_XY++;
+                            index++;
                             referenceIndex++;
                         }
                     }
@@ -355,17 +348,16 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                         for (y = warpedIndex_start_y; y < warpedIndex_end_y; y++) {
                             if (-1 < y && y < warped->ny) {
                                 index = y * warped->nx + warpedIndex_start_x;
-                                warpedPtr_XY = &warpedPtr[index];
-
                                 for (x = warpedIndex_start_x; x < warpedIndex_end_x; x++) {
                                     if (-1 < x && x < warped->nx) {
+                                        warpedPtr_XY = &warpedPtr[index];
                                         value = *warpedPtr_XY;
                                         if (value == value && *maskPtr_XY > -1) {
                                             warpedValues[warpedIndex] = value;
                                             warpedOverlap[warpedIndex] = 1;
                                         }
                                     }
-                                    warpedPtr_XY++;
+                                    index++;
                                     warpedIndex++;
                                 }
                             }
@@ -428,15 +420,11 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                     reg_mat44_mul(referenceMatrix_xyz, referencePosition_temp, tempPosition);
                     z = 2 * params->totalBlock[blockIndex];
 
-                    //temp_reference_position[z] = tempPosition[0];
-                    //temp_reference_position[z + 1] = tempPosition[1];
                     params->referencePosition[z] = tempPosition[0];
                     params->referencePosition[z + 1] = tempPosition[1];
 
                     reg_mat44_mul(referenceMatrix_xyz, bestDisplacement, tempPosition);
 
-                    //temp_warped_position[z] = tempPosition[0];
-                    //temp_warped_position[z + 1] = tempPosition[1];
                     params->warpedPosition[z] = tempPosition[0];
                     params->warpedPosition[z + 1] = tempPosition[1];
                     if (bestDisplacement[0] == bestDisplacement[0]) {
@@ -448,22 +436,6 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
         }
     }
 
-    // Removing the NaNs and defining the number of active block
-    //params->definedActiveBlockNumber = 0;
-    //j = 0;
-    //for (i = 0; i < 2 * params->activeBlockNumber; i += 2) {
-    //        params->referencePosition[j] = temp_reference_position[i];
-    //        params->referencePosition[j + 1] = temp_reference_position[i + 1];
-    //        params->warpedPosition[j] = temp_warped_position[i];
-    //        params->warpedPosition[j + 1] = temp_warped_position[i + 1];
-    //        //To not loose the correspondance
-    //        if (temp_reference_position[i] == temp_reference_position[i]) {
-    //        params->definedActiveBlockNumber++;
-    //        j += 2;
-    //    }
-    //}
-    //free(temp_reference_position);
-    //free(temp_warped_position);
 }
 /* *************************************************************** */
 template<typename DTYPE>
@@ -514,12 +486,7 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
     bool warpedOverlap[1][BLOCK_3D_SIZE];
 #endif
 
-    //float *temp_reference_position = (float *)malloc(3 * params->totalBlockNumber * sizeof(float));
-    //float *temp_warped_position = (float *)malloc(3 * params->totalBlockNumber * sizeof(float));
     params->definedActiveBlockNumber = 0;
-
-    //for (i = 0; i < 3 * (unsigned int)params->totalBlockNumber; i += 3)
-    //    temp_reference_position[i] = std::numeric_limits<float>::quiet_NaN();
 
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
@@ -562,18 +529,17 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
                             for (y = (int)referenceIndex_start_y; y < (int)referenceIndex_end_y; y++) {
                                 if (y < reference->ny) {
                                     index = y * reference->nx + referenceIndex_start_x;
-                                    referencePtr_XYZ = &referencePtr_Z[index];
-                                    maskPtr_XYZ = &maskPtr_Z[index];
                                     for (x = (int)referenceIndex_start_x; x < (int)referenceIndex_end_x; x++) {
                                         if (x < reference->nx) {
+                                            referencePtr_XYZ = &referencePtr_Z[index];
+                                            maskPtr_XYZ = &maskPtr_Z[index];
                                             value = *referencePtr_XYZ;
                                             if (value == value && *maskPtr_XYZ > -1) {
                                                 referenceValues[tid][referenceIndex] = value;
                                                 referenceOverlap[tid][referenceIndex] = 1;
                                             }
-                                            referencePtr_XYZ++;
-                                            maskPtr_XYZ++;
                                         }
+                                        index++;
                                         referenceIndex++;
                                     }
                                 }
@@ -606,22 +572,21 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
                                     if (-1 < z && z < warped->nz) {
                                         index = z * warped->nx * warped->ny;
                                         warpedPtr_Z = &warpedPtr[index];
-                                        int *maskPtr_Z = &mask[index];
+                                        maskPtr_Z = &mask[index];
                                         for (y = warpedIndex_start_y; y < warpedIndex_end_y; y++) {
                                             if (-1 < y && y < warped->ny) {
                                                 index = y * warped->nx + warpedIndex_start_x;
-                                                warpedPtr_XYZ = &warpedPtr_Z[index];
-                                                int *maskPtr_XYZ = &maskPtr_Z[index];
                                                 for (x = warpedIndex_start_x; x < warpedIndex_end_x; x++) {
                                                     if (-1 < x && x < warped->nx) {
+                                                        warpedPtr_XYZ = &warpedPtr_Z[index];
+                                                        maskPtr_XYZ = &maskPtr_Z[index];
                                                         value = *warpedPtr_XYZ;
                                                         if (value == value && *maskPtr_XYZ > -1) {
                                                             warpedValues[tid][warpedIndex] = value;
                                                             warpedOverlap[tid][warpedIndex] = 1;
                                                         }
-                                                        maskPtr_XYZ++;
-                                                        warpedPtr_XYZ++;
                                                     }
+                                                    index++;
                                                     warpedIndex++;
                                                 }
                                             }
@@ -705,25 +670,6 @@ void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg
             }
         }
     }
-
-    // Removing the NaNs and defining the number of active block
-    //params->definedActiveBlockNumber = 0;
-    //j = 0;
-    //for (i = 0; i < 3 * params->activeBlockNumber; i += 3) {
-    //        params->referencePosition[j] = temp_reference_position[i];
-    //        params->referencePosition[j + 1] = temp_reference_position[i + 1];
-    //        params->referencePosition[j + 2] = temp_reference_position[i + 2];
-    //        params->warpedPosition[j] = temp_warped_position[i];
-    //        params->warpedPosition[j + 1] = temp_warped_position[i + 1];
-    //        params->warpedPosition[j + 2] = temp_warped_position[i + 2];
-    //        //To not loose the correspondance
-    //        if (temp_reference_position[i] == temp_reference_position[i]) {
-    //        params->definedActiveBlockNumber++;
-    //        j += 3;
-    //    }
-    //}
-    //free(temp_reference_position);
-    //free(temp_warped_position);
 
 #if defined (_OPENMP)
     omp_set_num_threads(threadNumber);
