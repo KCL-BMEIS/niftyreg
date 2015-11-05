@@ -11,8 +11,8 @@ target_link_libraries(reg_resample _reg_resampling _reg_localTrans _reg_tools _r
 add_executable(reg_measure reg_measure.cpp)
 target_link_libraries(reg_measure _reg_resampling _reg_tools _reg_nmi _reg_ssd _reg_KLdivergence _reg_lncc _reg_dti _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
-add_executable(reg_ppcnr reg_ppcnr.cpp)
-target_link_libraries(reg_ppcnr _reg_ReadWriteImage)
+#add_executable(reg_ppcnr reg_ppcnr.cpp)
+#target_link_libraries(reg_ppcnr _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 add_executable(reg_transform reg_transform.cpp)
 target_link_libraries(reg_transform _reg_resampling _reg_localTrans _reg_tools _reg_globalTrans _reg_maths _reg_ReadWriteImage)
@@ -35,11 +35,15 @@ endif(USE_CUDA)
 target_link_libraries(reg_aladin _reg_aladin)
 #-----------------------------------------------------------------------------
 set(MODULE_LIST
-		reg_resample
-		reg_jacobian
-		reg_aladin
-		reg_f3d
-		)
+	reg_average
+	reg_tools
+	reg_resample
+	reg_measure
+	reg_transform
+	reg_jacobian
+	reg_aladin
+	reg_f3d
+	)
 #-----------------------------------------------------------------------------
 if(USE_CUDA OR USE_OPENCL)
 	set(gpuinfo_libraries "")
