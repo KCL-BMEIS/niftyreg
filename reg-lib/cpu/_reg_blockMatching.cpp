@@ -725,7 +725,7 @@ void optimize(_reg_blockMatchingParam *params,
         //First let's check if we have enough correpondance points to estimate a transfomation
         if(affine) {
             //3 = minimum number of corespondances needed
-            if(params->definedActiveBlockNumber < 3)
+            if(params->definedActiveBlockNumber < 6)
             {
                 char text[255];
                 sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
@@ -734,7 +734,7 @@ void optimize(_reg_blockMatchingParam *params,
                 reg_exit(1);
             }
         } else {
-            if(params->definedActiveBlockNumber < 2)
+            if(params->definedActiveBlockNumber < 4)
             {
                 char text[255];
                 sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
@@ -776,7 +776,7 @@ void optimize(_reg_blockMatchingParam *params,
         //First let's check if we have enough correpondance points to estimate a transfomation
         if(affine) {
             //4 = minimum number of corespondances needed
-            if(params->definedActiveBlockNumber < 4)
+            if(params->definedActiveBlockNumber < 8)
             {
                 char text[255];
                 sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
@@ -785,7 +785,7 @@ void optimize(_reg_blockMatchingParam *params,
                 reg_exit(1);
             }
         } else {
-            if(params->definedActiveBlockNumber < 2)
+            if(params->definedActiveBlockNumber < 4)
             {
                 char text[255];
                 sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
