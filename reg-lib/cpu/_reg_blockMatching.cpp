@@ -722,6 +722,28 @@ void optimize(_reg_blockMatchingParam *params,
     //    mat44 inverseMatrix = nifti_mat44_inverse(*transformation_matrix);
     if (params->blockNumber[2] == 1)  // 2D images
     {
+        //First let's check if we have enough correpondance points to estimate a transfomation
+        if(affine) {
+            //3 = minimum number of corespondances needed
+            if(params->definedActiveBlockNumber < 3)
+            {
+                char text[255];
+                sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
+                reg_print_msg_error(text);
+                reg_print_msg_error("Not enough correspondances were found - it is impossible to estimate an affine tranfomation");
+                reg_exit(1);
+            }
+        } else {
+            if(params->definedActiveBlockNumber < 2)
+            {
+                char text[255];
+                sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
+                reg_print_msg_error(text);
+                reg_print_msg_error("Not enough correspondances were found - it is impossible to estimate a rigid tranfomation");
+                reg_exit(1);
+            }
+        }
+
         float in[2];
         float out[2];
         std::vector<float> referencePositionVect;
@@ -751,6 +773,28 @@ void optimize(_reg_blockMatchingParam *params,
     }
     else  // 3D images
     {
+        //First let's check if we have enough correpondance points to estimate a transfomation
+        if(affine) {
+            //4 = minimum number of corespondances needed
+            if(params->definedActiveBlockNumber < 4)
+            {
+                char text[255];
+                sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
+                reg_print_msg_error(text);
+                reg_print_msg_error("Not enough correspondances were found - it is impossible to estimate an affine tranfomation");
+                reg_exit(1);
+            }
+        } else {
+            if(params->definedActiveBlockNumber < 2)
+            {
+                char text[255];
+                sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
+                reg_print_msg_error(text);
+                reg_print_msg_error("Not enough correspondances were found - it is impossible to estimate a rigid tranfomation");
+                reg_exit(1);
+            }
+        }
+
         float in[3];
         float out[3];
         std::vector<float> referencePositionVect;
