@@ -17,29 +17,29 @@ public:
 	//constructors
 	ClAladinContent();
 	ClAladinContent(nifti_image *CurrentReferenceIn,
-				 nifti_image *CurrentFloatingIn,
-				 int *CurrentReferenceMaskIn,
-				 size_t byte,
-				 const unsigned int blockPercentage,
-				 const unsigned int inlierLts,
-				 int blockStep);
+						 nifti_image *CurrentFloatingIn,
+						 int *CurrentReferenceMaskIn,
+						 size_t byte,
+						 const unsigned int blockPercentage,
+						 const unsigned int inlierLts,
+						 int blockStep);
 	ClAladinContent(nifti_image *CurrentReferenceIn,
-				 nifti_image *CurrentFloatingIn,
-				 int *CurrentReferenceMaskIn,
-				 size_t byte);
+						 nifti_image *CurrentFloatingIn,
+						 int *CurrentReferenceMaskIn,
+						 size_t byte);
 	ClAladinContent(nifti_image *CurrentReferenceIn,
-				 nifti_image *CurrentFloatingIn,
-				 int *CurrentReferenceMaskIn,
-				 mat44 *transMat,
-				 size_t byte,
-				 const unsigned int blockPercentage,
-				 const unsigned int inlierLts,
-				 int blockStep);
+						 nifti_image *CurrentFloatingIn,
+						 int *CurrentReferenceMaskIn,
+						 mat44 *transMat,
+						 size_t byte,
+						 const unsigned int blockPercentage,
+						 const unsigned int inlierLts,
+						 int blockStep);
 	ClAladinContent(nifti_image *CurrentReferenceIn,
-				 nifti_image *CurrentFloatingIn,
-				 int *CurrentReferenceMaskIn,
-				 mat44 *transMat,
-				 size_t byte);
+						 nifti_image *CurrentFloatingIn,
+						 int *CurrentReferenceMaskIn,
+						 mat44 *transMat,
+						 size_t byte);
 	~ClAladinContent();
 
 	//opencl getters
@@ -49,7 +49,7 @@ public:
 	cl_mem getReferencePositionClmem();
 	cl_mem getWarpedPositionClmem();
 	cl_mem getDeformationFieldArrayClmem();
-    cl_mem getTotalBlockClmem();
+	cl_mem getTotalBlockClmem();
 	cl_mem getMaskClmem();
 	cl_mem getRefMatClmem();
 	cl_mem getFloMatClmem();
@@ -66,7 +66,7 @@ public:
 	void setCurrentWarped(nifti_image *warpedImageIn);
 	void setCurrentDeformationField(nifti_image *CurrentDeformationFieldIn);
 	void setCurrentReferenceMask(int *maskIn, size_t size);
-    void setBlockMatchingParams(_reg_blockMatchingParam* bmp);
+	void setBlockMatchingParams(_reg_blockMatchingParam* bmp);
 
 
 private:

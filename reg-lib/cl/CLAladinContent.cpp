@@ -9,67 +9,67 @@ ClAladinContent::ClAladinContent()
 }
 /* *************************************************************** */
 ClAladinContent::ClAladinContent(nifti_image *CurrentReferenceIn,
-							nifti_image *CurrentFloatingIn,
-							int *CurrentReferenceMaskIn,
-							size_t byte,
-							const unsigned int blockPercentage,
-							const unsigned int inlierLts,
-							int blockStep ) :
-		AladinContent(CurrentReferenceIn,
-				  CurrentFloatingIn,
-				  CurrentReferenceMaskIn,
-				  byte, blockPercentage,
-				  inlierLts,
-				  blockStep)
+											nifti_image *CurrentFloatingIn,
+											int *CurrentReferenceMaskIn,
+											size_t byte,
+											const unsigned int blockPercentage,
+											const unsigned int inlierLts,
+											int blockStep ) :
+	AladinContent(CurrentReferenceIn,
+					  CurrentFloatingIn,
+					  CurrentReferenceMaskIn,
+					  byte, blockPercentage,
+					  inlierLts,
+					  blockStep)
 {
 	initVars();
 	allocateClPtrs();
 }
 /* *************************************************************** */
 ClAladinContent::ClAladinContent(nifti_image *CurrentReferenceIn,
-							nifti_image *CurrentFloatingIn,
-							int *CurrentReferenceMaskIn,
-							size_t byte) :
-		AladinContent(CurrentReferenceIn,
-				  CurrentFloatingIn,
-				  CurrentReferenceMaskIn,
-				  byte)
+											nifti_image *CurrentFloatingIn,
+											int *CurrentReferenceMaskIn,
+											size_t byte) :
+	AladinContent(CurrentReferenceIn,
+					  CurrentFloatingIn,
+					  CurrentReferenceMaskIn,
+					  byte)
 {
 	initVars();
 	allocateClPtrs();
 }
 /* *************************************************************** */
 ClAladinContent::ClAladinContent(nifti_image *CurrentReferenceIn,
-							nifti_image *CurrentFloatingIn,
-							int *CurrentReferenceMaskIn,
-							mat44 *transMat,
-							size_t byte,
-							const unsigned int blockPercentage,
-							const unsigned int inlierLts,
-							int blockStep) :
-		AladinContent(CurrentReferenceIn,
-				  CurrentFloatingIn,
-				  CurrentReferenceMaskIn,
-				  transMat,
-				  byte,
-				  blockPercentage,
-				  inlierLts,
-				  blockStep)
+											nifti_image *CurrentFloatingIn,
+											int *CurrentReferenceMaskIn,
+											mat44 *transMat,
+											size_t byte,
+											const unsigned int blockPercentage,
+											const unsigned int inlierLts,
+											int blockStep) :
+	AladinContent(CurrentReferenceIn,
+					  CurrentFloatingIn,
+					  CurrentReferenceMaskIn,
+					  transMat,
+					  byte,
+					  blockPercentage,
+					  inlierLts,
+					  blockStep)
 {
 	initVars();
 	allocateClPtrs();
 }
 /* *************************************************************** */
 ClAladinContent::ClAladinContent(nifti_image *CurrentReferenceIn,
-							nifti_image *CurrentFloatingIn,
-							int *CurrentReferenceMaskIn,
-							mat44 *transMat,
-							size_t byte) :
-		AladinContent(CurrentReferenceIn,
-				  CurrentFloatingIn,
-				  CurrentReferenceMaskIn,
-				  transMat,
-				  byte)
+											nifti_image *CurrentFloatingIn,
+											int *CurrentReferenceMaskIn,
+											mat44 *transMat,
+											size_t byte) :
+	AladinContent(CurrentReferenceIn,
+					  CurrentFloatingIn,
+					  CurrentReferenceMaskIn,
+					  transMat,
+					  byte)
 {
 	initVars();
 	allocateClPtrs();
@@ -104,7 +104,7 @@ void ClAladinContent::initVars()
 	this->commandQueue = this->sContext->getCommandQueue();
 	this->referenceVoxels = (this->CurrentReference != NULL) ? this->CurrentReference->nvox : 0;
 	this->floatingVoxels = (this->CurrentFloating != NULL) ? this->CurrentFloating->nvox : 0;
-	 //this->numBlocks = (this->blockMatchingParams != NULL) ? this->blockMatchingParams->blockNumber[0] * this->blockMatchingParams->blockNumber[1] * this->blockMatchingParams->blockNumber[2] : 0;
+	//this->numBlocks = (this->blockMatchingParams != NULL) ? this->blockMatchingParams->blockNumber[0] * this->blockMatchingParams->blockNumber[1] * this->blockMatchingParams->blockNumber[2] : 0;
 }
 /* *************************************************************** */
 void ClAladinContent::allocateClPtrs()
@@ -128,53 +128,53 @@ void ClAladinContent::allocateClPtrs()
 		float *sourceIJKMatrix_h = (float*) malloc(16 * sizeof(float));
 		mat44ToCptr(this->floMatrix_ijk, sourceIJKMatrix_h);
 		this->floMatClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-														 16 * sizeof(float),
-														 sourceIJKMatrix_h, &this->errNum);
+													  16 * sizeof(float),
+													  sourceIJKMatrix_h, &this->errNum);
 		this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (floMatClmem): ");
 		free(sourceIJKMatrix_h);
 	}
 	if (this->CurrentReference != NULL)
 	{
 		this->referenceImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-																	sizeof(float) * this->CurrentReference->nvox,
-																	this->CurrentReference->data, &this->errNum);
+																 sizeof(float) * this->CurrentReference->nvox,
+																 this->CurrentReference->data, &this->errNum);
 		this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (referenceImageClmem): ");
 
 		float* targetMat = (float *) malloc(16 * sizeof(float)); //freed
 		mat44ToCptr(this->refMatrix_xyz, targetMat);
 		this->refMatClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-														 16 * sizeof(float),
-														 targetMat, &this->errNum);
+													  16 * sizeof(float),
+													  targetMat, &this->errNum);
 		this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (refMatClmem): ");
 		free(targetMat);
 	}
 	if (this->blockMatchingParams != NULL) {
-		  if (this->blockMatchingParams->referencePosition != NULL) {
-				//targetPositionClmem
-				this->referencePositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-																			 this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float),
-																			 this->blockMatchingParams->referencePosition, &this->errNum);
-				this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (referencePositionClmem): ");
-		  }
-		  if (this->blockMatchingParams->warpedPosition != NULL) {
-				//resultPositionClmem
-				this->warpedPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+		if (this->blockMatchingParams->referencePosition != NULL) {
+			//targetPositionClmem
+			this->referencePositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
 																		 this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float),
-																		 this->blockMatchingParams->warpedPosition, &this->errNum);
-				this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (warpedPositionClmem): ");
-		  }
-		  if (this->blockMatchingParams->totalBlock != NULL) {
-				//totalBlockClmem
-				this->totalBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-																	this->blockMatchingParams->totalBlockNumber * sizeof(int),
-																	this->blockMatchingParams->totalBlock, &this->errNum);
-				this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (activeBlockClmem): ");
-		  }
+																		 this->blockMatchingParams->referencePosition, &this->errNum);
+			this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (referencePositionClmem): ");
+		}
+		if (this->blockMatchingParams->warpedPosition != NULL) {
+			//resultPositionClmem
+			this->warpedPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+																	 this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float),
+																	 this->blockMatchingParams->warpedPosition, &this->errNum);
+			this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (warpedPositionClmem): ");
+		}
+		if (this->blockMatchingParams->totalBlock != NULL) {
+			//totalBlockClmem
+			this->totalBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+																this->blockMatchingParams->totalBlockNumber * sizeof(int),
+																this->blockMatchingParams->totalBlock, &this->errNum);
+			this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (activeBlockClmem): ");
+		}
 	}
 	if (this->CurrentReferenceMask != NULL && this->CurrentReference != NULL) {
 		this->maskClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-													  this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz * sizeof(int),
-													  this->CurrentReferenceMask, &this->errNum);
+													this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz * sizeof(int),
+													this->CurrentReferenceMask, &this->errNum);
 		this->sContext->checkErrNum(this->errNum, "ClContent::allocateClPtrs failed to allocate memory (clCreateBuffer): ");
 	}
 }
@@ -194,11 +194,11 @@ nifti_image *ClAladinContent::getCurrentDeformationField()
 /* *************************************************************** */
 _reg_blockMatchingParam* ClAladinContent::getBlockMatchingParams()
 {
-    this->errNum = clEnqueueReadBuffer(this->commandQueue, this->warpedPositionClmem, CL_TRUE, 0, sizeof(float) * this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim, this->blockMatchingParams->warpedPosition, 0, NULL, NULL); //CLCONTEXT
-    this->sContext->checkErrNum(this->errNum, "CLContext: failed result position: ");
-    this->errNum = clEnqueueReadBuffer(this->commandQueue, this->referencePositionClmem, CL_TRUE, 0, sizeof(float) * this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim, this->blockMatchingParams->referencePosition, 0, NULL, NULL); //CLCONTEXT
-    this->sContext->checkErrNum(this->errNum, "CLContext: failed target position: ");
-    return this->blockMatchingParams;
+   this->errNum = clEnqueueReadBuffer(this->commandQueue, this->warpedPositionClmem, CL_TRUE, 0, sizeof(float) * this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim, this->blockMatchingParams->warpedPosition, 0, NULL, NULL); //CLCONTEXT
+   this->sContext->checkErrNum(this->errNum, "CLContext: failed result position: ");
+   this->errNum = clEnqueueReadBuffer(this->commandQueue, this->referencePositionClmem, CL_TRUE, 0, sizeof(float) * this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim, this->blockMatchingParams->referencePosition, 0, NULL, NULL); //CLCONTEXT
+   this->sContext->checkErrNum(this->errNum, "CLContext: failed target position: ");
+   return this->blockMatchingParams;
 }
 /* *************************************************************** */
 void ClAladinContent::setTransformationMatrix(mat44 *transformationMatrixIn)
@@ -230,9 +230,9 @@ void ClAladinContent::setCurrentWarped(nifti_image *currentWarped)
 	if (this->CurrentWarped != NULL) {
 		clReleaseMemObject(this->warpedImageClmem);
 	}
-	 if (currentWarped->nbyper != NIFTI_TYPE_FLOAT32) {
-		  reg_tools_changeDatatype<float>(currentWarped);
-	 }
+	if (currentWarped->nbyper != NIFTI_TYPE_FLOAT32) {
+		reg_tools_changeDatatype<float>(currentWarped);
+	}
 	AladinContent::setCurrentWarped(currentWarped);
 	this->warpedImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, this->CurrentWarped->nvox * sizeof(float), this->CurrentWarped->data, &this->errNum);
 	this->sContext->checkErrNum(this->errNum, "ClAladinContent::setCurrentWarped failed to allocate memory (warpedImageClmem): ");
@@ -240,25 +240,25 @@ void ClAladinContent::setCurrentWarped(nifti_image *currentWarped)
 /* *************************************************************** */
 void ClAladinContent::setBlockMatchingParams(_reg_blockMatchingParam* bmp) {
 
-    AladinContent::setBlockMatchingParams(bmp);
-    if (this->blockMatchingParams->referencePosition != NULL) {
-        clReleaseMemObject(this->referencePositionClmem);
-        //referencePositionClmem
-        this->referencePositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float), this->blockMatchingParams->referencePosition, &this->errNum);
-        this->sContext->checkErrNum(this->errNum, "ClAladinContent::setBlockMatchingParams failed to allocate memory (referencePositionClmem): ");
-        }
-    if (this->blockMatchingParams->warpedPosition != NULL) {
-        clReleaseMemObject(this->warpedPositionClmem);
-        //warpedPositionClmem
-        this->warpedPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float), this->blockMatchingParams->warpedPosition, &this->errNum);
-        this->sContext->checkErrNum(this->errNum, "ClAladinContent::setBlockMatchingParams failed to allocate memory (warpedPositionClmem): ");
-    }
-    if (this->blockMatchingParams->totalBlock != NULL) {
-        clReleaseMemObject(this->totalBlockClmem);
-        //totalBlockClmem
-        this->totalBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->totalBlockNumber * sizeof(int), this->blockMatchingParams->totalBlock, &this->errNum);
-        this->sContext->checkErrNum(this->errNum, "ClAladinContent::setBlockMatchingParams failed to allocate memory (activeBlockClmem): ");
-    }
+   AladinContent::setBlockMatchingParams(bmp);
+   if (this->blockMatchingParams->referencePosition != NULL) {
+      clReleaseMemObject(this->referencePositionClmem);
+      //referencePositionClmem
+      this->referencePositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float), this->blockMatchingParams->referencePosition, &this->errNum);
+      this->sContext->checkErrNum(this->errNum, "ClAladinContent::setBlockMatchingParams failed to allocate memory (referencePositionClmem): ");
+   }
+   if (this->blockMatchingParams->warpedPosition != NULL) {
+      clReleaseMemObject(this->warpedPositionClmem);
+      //warpedPositionClmem
+      this->warpedPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * this->blockMatchingParams->dim * sizeof(float), this->blockMatchingParams->warpedPosition, &this->errNum);
+      this->sContext->checkErrNum(this->errNum, "ClAladinContent::setBlockMatchingParams failed to allocate memory (warpedPositionClmem): ");
+   }
+   if (this->blockMatchingParams->totalBlock != NULL) {
+      clReleaseMemObject(this->totalBlockClmem);
+      //totalBlockClmem
+      this->totalBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->totalBlockNumber * sizeof(int), this->blockMatchingParams->totalBlock, &this->errNum);
+      this->sContext->checkErrNum(this->errNum, "ClAladinContent::setBlockMatchingParams failed to allocate memory (activeBlockClmem): ");
+   }
 }
 /* *************************************************************** */
 cl_mem ClAladinContent::getReferenceImageArrayClmem()
@@ -358,8 +358,8 @@ DataType ClAladinContent::fillWarpedImageData(float intensity, int datatype)
 /* *************************************************************** */
 template<class T>
 void ClAladinContent::fillImageData(nifti_image *image,
-										cl_mem memoryObject,
-										int type)
+												cl_mem memoryObject,
+												int type)
 {
 	size_t size = image->nvox;
 	float* buffer = NULL;
@@ -383,8 +383,8 @@ void ClAladinContent::fillImageData(nifti_image *image,
 }
 /* *************************************************************** */
 void ClAladinContent::downloadImage(nifti_image *image,
-										cl_mem memoryObject,
-										int datatype)
+												cl_mem memoryObject,
+												int datatype)
 {
 	switch (datatype) {
 	case NIFTI_TYPE_FLOAT32:

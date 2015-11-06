@@ -439,7 +439,10 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
 }
 /* *************************************************************** */
 template<typename DTYPE>
-void block_matching_method3D(nifti_image * reference, nifti_image * warped, _reg_blockMatchingParam *params, int *mask) {
+void block_matching_method3D(nifti_image * reference,
+                             nifti_image * warped,
+                             _reg_blockMatchingParam *params,
+                             int *mask) {
     DTYPE *referencePtr = static_cast<DTYPE *>(reference->data);
     DTYPE *warpedPtr = static_cast<DTYPE *>(warped->data);
 
