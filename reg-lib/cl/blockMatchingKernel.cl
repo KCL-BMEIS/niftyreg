@@ -84,9 +84,10 @@ __inline__ real_t reduce2DCustom(__local float* sData2,
 		sData2[tid] = data;
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		for (int i = 8; i > 0; i >>= 1){
-				if (tid < i) sData2[tid] += sData2[tid + i];
-				barrier(CLK_LOCAL_MEM_FENCE);
+                for (unsigned int i = 8; i > 0; i >>= 1){
+                    if (tid < i) sData2[tid] += sData2[tid + i];
+
+                    barrier(CLK_LOCAL_MEM_FENCE);
 		}
 
                 const real_t temp = sData2[0];
@@ -103,9 +104,10 @@ __inline__ real_t reduceCustom(__local float* sData2,
 		sData2[tid] = data;
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		for (int i = 32; i > 0; i >>= 1){
-				if (tid < i) sData2[tid] += sData2[tid + i];
-				barrier(CLK_LOCAL_MEM_FENCE);
+                for (unsigned int i = 32; i > 0; i >>= 1){
+                    if (tid < i) sData2[tid] += sData2[tid + i];
+
+                    barrier(CLK_LOCAL_MEM_FENCE);
 		}
 
                 const real_t temp = sData2[0];
@@ -115,7 +117,7 @@ __inline__ real_t reduceCustom(__local float* sData2,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-__kernel void blockMatchingKernel2D(__local  float* sResultValues,
+__kernel void blockMatchingKernel2D(__local  float* sWarpedValues,
                                     __global float* warpedImageArray,
                                     __global float* referenceImageArray,
                                     __global float *warpedPosition,
@@ -129,7 +131,7 @@ __kernel void blockMatchingKernel2D(__local  float* sResultValues,
                                     const unsigned int stepSize)
 {
 
-                const uint numBlocks = blocksRange * 2 + 1;
+                const unsigned int numBlocks = blocksRange * 2 + 1;
 
                 __local float sData[16];
                 for(int i=0; i<16; ++i) sData[i] = 0;
@@ -253,20 +255,20 @@ __kernel void blockMatchingKernel2D(__local  float* sResultValues,
 /* *************************************************************** */
 /* *************************************************************** */
 __kernel void blockMatchingKernel3D(__local float *sResultValues,
-																						__global float* resultImageArray,
-																						__global float* targetImageArray,
-																						__global float *warpedPosition,
-																						__global float *referencePosition,
-																						__global int *totalBlock,
-																						__global int* mask,
-																						__global float* referenceMatrix_xyz,
-																						__global int* definedBlock,
-																						uint3 c_ImageSize,
-																						const int blocksRange,
-																						const unsigned int stepSize)
+                                        __global float* resultImageArray,
+                                        __global float* targetImageArray,
+                                        __global float *warpedPosition,
+                                        __global float *referencePosition,
+                                        __global int *totalBlock,
+                                        __global int* mask,
+                                        __global float* referenceMatrix_xyz,
+                                        __global int* definedBlock,
+                                        uint3 c_ImageSize,
+                                        const int blocksRange,
+                                        const unsigned int stepSize)
 {
 
-		const uint numBlocks = blocksRange * 2 + 1;
+                const unsigned int numBlocks = blocksRange * 2 + 1;
 
 		__local float sData[64];
                 for(int i=0; i<64; ++i) sData[i] = 0;
