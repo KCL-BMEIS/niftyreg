@@ -15,7 +15,7 @@
 #include "reg_f3d.h"
 #include <float.h>
 #include <limits>
-#include <libgen.h>
+//#include <libgen.h> //DO NOT WORK ON WINDOWS !
 
 #ifdef _WIN32
 #   include <time.h>
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
 {
    if(argc==1)
    {
-      PetitUsage(basename(argv[0]));
+      PetitUsage((argv[0]));
       return EXIT_FAILURE;
    }
    time_t start;
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
             strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
-         Usage(basename(argv[0]));
+         Usage((argv[0]));
          return EXIT_SUCCESS;
       }
       if(strcmp(argv[i], "--xml")==0)
@@ -200,13 +200,13 @@ int main(int argc, char **argv)
    if(verbose)
    {
 #endif
-      reg_print_info(basename(argv[0]), "");
-      reg_print_info(basename(argv[0]), "Command line:");
+      reg_print_info((argv[0]), "");
+      reg_print_info((argv[0]), "Command line:");
       sprintf(text, "\t");
       for(int i=0; i<argc; i++)
          sprintf(text, "%s %s", text, argv[i]);
-      reg_print_info(basename(argv[0]), text);
-      reg_print_info(basename(argv[0]), "");
+      reg_print_info((argv[0]), text);
+      reg_print_info((argv[0]), "");
 #ifdef NDEBUG
    }
 #endif
@@ -242,14 +242,14 @@ int main(int argc, char **argv)
    if(referenceImage==NULL)
    {
       reg_print_msg_error("Error. No reference image has been defined");
-      PetitUsage(basename(argv[0]));
+      PetitUsage((argv[0]));
       return EXIT_FAILURE;
    }
    // Read the floating image
    if(floatingImage==NULL)
    {
       reg_print_msg_error("Error. No floating image has been defined");
-      PetitUsage(basename(argv[0]));
+      PetitUsage((argv[0]));
       return EXIT_FAILURE;
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -653,7 +653,7 @@ int main(int argc, char **argv)
       {
          reg_print_msg_error("\tParameter unknown:");
          reg_print_msg_error(argv[i]);
-         PetitUsage(basename(argv[0]));
+         PetitUsage((argv[0]));
          return EXIT_FAILURE;
       }
    }
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
    {
       int maxThreadNumber = omp_get_max_threads();
       sprintf(text, "OpenMP is used with %i thread(s)", maxThreadNumber);
-      reg_print_info(basename(argv[0]), text);
+      reg_print_info((argv[0]), text);
    }
 #endif // _OPENMP
 
@@ -793,8 +793,8 @@ int main(int argc, char **argv)
       int minutes=(int)floorf((end-start)/60.0f);
       int seconds=(int)(end-start - 60*minutes);
       sprintf(text, "Registration performed in %i min %i sec", minutes, seconds);
-      reg_print_info(basename(argv[0]), text);
-      reg_print_info(basename(argv[0]), "Have a good day !");
+      reg_print_info((argv[0]), text);
+      reg_print_info((argv[0]), "Have a good day !");
 #ifdef NDEBUG
    }
 #endif

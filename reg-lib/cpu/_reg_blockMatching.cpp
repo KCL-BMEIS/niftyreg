@@ -466,7 +466,7 @@ void block_matching_method3D(nifti_image * reference,
     int warpedIndex_end_z;
 
     int index, l, m, n, x, y, z;
-    unsigned int i, j, k;
+    int i, j, k; //Need to be int for VC++ compiler and OpenMP
     int *maskPtr_Z, *maskPtr_XYZ;
     DTYPE *referencePtr_Z, *referencePtr_XYZ, *warpedPtr_Z, *warpedPtr_XYZ;
     DTYPE value, bestCC, referenceMean, warpedMean, referenceVar, warpedVar;
