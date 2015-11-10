@@ -76,7 +76,6 @@ void CLBlockMatchingKernel::calculate() {
    this->sContext->checkErrNum(errNum, "CLBlockMatchingKernel::calculate failed to allocate memory (cldefinedBlock) ");
 
    const unsigned int blockRange = params->voxelCaptureRange%4?params->voxelCaptureRange/4+1:params->voxelCaptureRange/4;
-   printf("RANGE=%u\n", blockRange);
    const unsigned int stepSize = params->stepSize;
 
    const unsigned int numBlocks = blockRange * 2 + 1;
