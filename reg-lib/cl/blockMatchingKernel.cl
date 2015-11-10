@@ -1,3 +1,39 @@
+//To enable double precision
+#if defined(cl_khr_fp64)  // Khronos extension available?
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#define DOUBLE_SUPPORT_AVAILABLE
+#elif defined(cl_amd_fp64)  // AMD extension available?
+#pragma OPENCL EXTENSION cl_amd_fp64 : enable
+#define DOUBLE_SUPPORT_AVAILABLE
+#else
+#warning "double precision floating point not supported by OpenCL implementation.";
+#endif
+
+#if defined(DOUBLE_SUPPORT_AVAILABLE)
+
+// double
+typedef double real_t;
+typedef double2 real2_t;
+typedef double3 real3_t;
+typedef double4 real4_t;
+typedef double8 real8_t;
+typedef double16 real16_t;
+#define PI 3.14159265358979323846
+
+#else
+
+// float
+typedef float real_t;
+typedef float2 real2_t;
+typedef float3 real3_t;
+typedef float4 real4_t;
+typedef float8 real8_t;
+typedef float16 real16_t;
+#define PI 3.14159265359f
+
+#endif
+
+
 #define REDUCE reduceCustom
 #define REDUCE2D reduce2DCustom
 #define BLOCK_WIDTH 4
@@ -10,8 +46,10 @@ void reg2D_mat44_mul_cl(__global float* mat,
 								float const* in,
 								__global float *out)
 {
-	out[0] = mat[0] * in[0] + mat[1] * in[1] + mat[3];
-	out[1] = mat[4] * in[0] + mat[5] * in[1] + mat[7];
+	out[0] = (float)((real_t)mat[0] * (real_t)in[0] +
+			(real_t)mat[1] * (real_t)in[1] + (real_t)mat[3]);
+	out[1] = (float)((real_t)mat[4] * (real_t)in[0] +
+			(real_t)mat[5] * (real_t)in[1] + (real_t)mat[7]);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -20,12 +58,12 @@ void reg_mat44_mul_cl(__global float* mat,
 							 float const* in,
 							 __global float *out)
 {
-	out[0] = mat[0] * in[0] + mat[1] * in[1] +
-			mat[2] * in[2] + mat[3];
-	out[1] = mat[4] * in[0] + mat[5] * in[1] +
-			mat[6] * in[2] + mat[7];
-	out[2] = mat[8] * in[0] + mat[9] * in[1] +
-			mat[10] * in[2] + mat[11];
+	out[0] = (float)((real_t)mat[0] * in[0] + (real_t)mat[1] * in[1] +
+			(real_t)mat[2] * in[2] + (real_t)mat[3]);
+	out[1] = (float)((real_t)mat[4] * in[0] + (real_t)mat[5] * in[1] +
+			(real_t)mat[6] * in[2] + (real_t)mat[7]);
+	out[2] = (float)((real_t)mat[8] * in[0] + (real_t)mat[9] * in[1] +
+			(real_t)mat[10] * in[2] + (real_t)mat[11]);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -40,7 +78,6 @@ __inline__ float reduce2DCustom(__local float* sData2,
 		if (tid < i) sData2[tid] += sData2[tid + i];
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
-
 	const float temp = sData2[0];
 	barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -202,7 +239,6 @@ __kernel void blockMatchingKernel2D(__local float *sResultValues,
 			}
 		}
 	}
-}
 /* *************************************************************** */
 /* *************************************************************** */
 __kernel void blockMatchingKernel3D(__local float *sResultValues,
@@ -289,7 +325,6 @@ __kernel void blockMatchingKernel3D(__local float *sResultValues,
 							(yImageIn >= 0 && yImageIn < c_ImageSize.y) && (zImageIn >= 0 && zImageIn < c_ImageSize.z);
 					// Copy the value from the global to the local shared memory
 					sResultValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? resultImageArray[indexXYZIn] : NAN;
-
 				}
 			}
 		}
