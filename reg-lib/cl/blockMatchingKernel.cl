@@ -43,8 +43,8 @@ typedef float16 real16_t;
 /* *************************************************************** */
 __inline__
 void reg2D_mat44_mul_cl(__global float* mat,
-                            float const* in,
-                            __global float *out)
+                        float const* in,
+                        __global float *out)
 {
         out[0] = (float)((real_t)mat[0] * (real_t)in[0] + (real_t)mat[1] * (real_t)in[1] + (real_t)mat[3]);
         out[1] = (float)((real_t)mat[4] * (real_t)in[0] + (real_t)mat[5] * (real_t)in[1] + (real_t)mat[7]);
@@ -136,10 +136,7 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 	const unsigned long pixIdx = xImage + yImage *(c_ImageSize.x);
 	const bool referenceInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y;
 
-	const int currentBlockIndex = totalBlock[bid];
-
-	__global float* start_warpedPosition = &warpedPosition[0];
-	__global float* start_referencePosition = &referencePosition[0];
+        const int currentBlockIndex = totalBlock[bid];
 
 	if (currentBlockIndex > -1){
 
@@ -222,17 +219,14 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 		if (tid == 0 /*&& isfinite(bestDisplacement[0])*/) {
 			const unsigned int posIdx = 2 * currentBlockIndex;
 
-			referencePosition = start_referencePosition + posIdx;
-			warpedPosition = start_warpedPosition + posIdx;
-
 			const float referencePosition_temp[3] = { (float)xBaseImage, (float)yBaseImage, 0 };
 
 			bestDisplacement[0] += referencePosition_temp[0];
 			bestDisplacement[1] += referencePosition_temp[1];
 			bestDisplacement[2] += 0;
 
-			reg2D_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, referencePosition);
-			reg2D_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, warpedPosition);
+                        reg2D_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, referencePosition[posIdx]);
+                        reg2D_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, warpedPosition[posIdx]);
 			if (isfinite(bestDisplacement[0])) {
 				atomic_add(definedBlock, 1);
 			}
@@ -288,10 +282,6 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 
 	// Check the actual index in term of active voxel
 	const int currentBlockIndex = totalBlock[bid];
-
-	// Useless variables
-	__global float* start_warpedPosition = &warpedPosition[0];
-	__global float* start_referencePosition = &referencePosition[0];
 
 	// Check if the current block is active
 	if (currentBlockIndex > -1){
@@ -399,17 +389,14 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 		if (tid == 0 /*&& isfinite(bestDisplacement[0])*/) {
 			const unsigned int posIdx = 3 * currentBlockIndex;
 
-			referencePosition = start_referencePosition + posIdx;
-			warpedPosition = start_warpedPosition + posIdx;
-
 			const float referencePosition_temp[3] = { (float)xBaseImage, (float)yBaseImage, (float)zBaseImage };
 
 			bestDisplacement[0] += referencePosition_temp[0];
 			bestDisplacement[1] += referencePosition_temp[1];
 			bestDisplacement[2] += referencePosition_temp[2];
 
-			reg_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, referencePosition);
-			reg_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, warpedPosition);
+                        reg_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, referencePosition[posIdx]);
+                        reg_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, warpedPosition[posIdx]);
 			if (isfinite(bestDisplacement[0])) {
 				atomic_add(definedBlock, 1);
 			}

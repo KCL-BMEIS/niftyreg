@@ -162,9 +162,6 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 
    const int currentBlockIndex = tex1Dfetch(totalBlock_texture, blockIndex);
 
-   float* start_warpedPosition = &warpedPosition[0];
-   float* start_referencePosition = &referencePosition[0];
-
    if (currentBlockIndex > -1) {
 
       float bestDisplacement[3] = { nanf("sNaN"), 0.0f, 0.0f };
@@ -247,17 +244,14 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
       if (tid == 0 /*&& isfinite(bestDisplacement[0])*/) {
          const unsigned int posIdx = 2 * currentBlockIndex;
 
-         referencePosition = start_referencePosition + posIdx;
-         warpedPosition = start_warpedPosition + posIdx;
-
          const float referencePosition_temp[3] = { (float)xBaseImage, (float)yBaseImage, (float)0 };
 
          bestDisplacement[0] += referencePosition_temp[0];
          bestDisplacement[1] += referencePosition_temp[1];
          bestDisplacement[2] += 0;
 
-         reg2D_mat44_mul_cuda<float>(targetMatrix_xyz, referencePosition_temp, referencePosition);
-         reg2D_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, warpedPosition);
+         reg2D_mat44_mul_cuda<float>(targetMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
+         reg2D_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
          if (isfinite(bestDisplacement[0])) {
             atomicAdd(definedBlock, 1);
          }
@@ -299,9 +293,6 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
    const bool targetInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y && zImage < c_ImageSize.z;
 
    const int currentBlockIndex = tex1Dfetch(totalBlock_texture, blockIndex);
-
-   float* start_warpedPosition = &warpedPosition[0];
-   float* start_referencePosition = &referencePosition[0];
 
    if (currentBlockIndex > -1) {
 
@@ -391,17 +382,14 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
       if (tid == 0 /*&& isfinite(bestDisplacement[0])*/) {
          const unsigned int posIdx = 3 * currentBlockIndex;
 
-         referencePosition = start_referencePosition + posIdx;
-         warpedPosition = start_warpedPosition + posIdx;
-
          const float referencePosition_temp[3] = { (float)xBaseImage, (float)yBaseImage, (float)zBaseImage };
 
          bestDisplacement[0] += referencePosition_temp[0];
          bestDisplacement[1] += referencePosition_temp[1];
          bestDisplacement[2] += referencePosition_temp[2];
 
-         reg_mat44_mul_cuda<float>(targetMatrix_xyz, referencePosition_temp, referencePosition);
-         reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, warpedPosition);
+         reg_mat44_mul_cuda<float>(targetMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
+         reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
          if (isfinite(bestDisplacement[0])){
             atomicAdd(definedBlock, 1);
          }
