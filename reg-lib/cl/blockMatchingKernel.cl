@@ -74,7 +74,7 @@ __inline__ float reduce2DCustom(__local float* sData2,
 	sData2[tid] = data;
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	for (int i = 8; i > 0; i >>= 1){
+	for (unsigned int i = 8; i > 0; i >>= 1){
 		if (tid < i) sData2[tid] += sData2[tid + i];
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
@@ -92,7 +92,7 @@ __inline__ float reduceCustom(__local float* sData2,
 	sData2[tid] = data;
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	for (int i = 32; i > 0; i >>= 1){
+	for (unsigned int i = 32; i > 0; i >>= 1){
 		if (tid < i) sData2[tid] += sData2[tid + i];
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
@@ -104,8 +104,8 @@ __inline__ float reduceCustom(__local float* sData2,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-__kernel void blockMatchingKernel2D(__local float *sResultValues,
-												__global float* resultImageArray,
+__kernel void blockMatchingKernel2D(__local float *sWarpedValues,
+												__global float* warpedImageArray,
 												__global float* referenceImageArray,
 												__global float *warpedPosition,
 												__global float *referencePosition,
@@ -136,7 +136,7 @@ __kernel void blockMatchingKernel2D(__local float *sResultValues,
 	const unsigned int yImage = yBaseImage + idy;
 
 	const unsigned long pixIdx = xImage + yImage *(c_ImageSize.x);
-	const bool targetInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y;
+	const bool referenceInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y;
 
 	const int currentBlockIndex = totalBlock[bid];
 
@@ -148,7 +148,7 @@ __kernel void blockMatchingKernel2D(__local float *sResultValues,
 		float bestDisplacement[3] = { NAN, 0.0f, 0.0f };
 		float bestCC = blocksRange > 1 ? 0.9f : 0.0f;
 
-		//populate shared memory with resultImageArray's values
+		//populate shared memory with warped ImageArray's values
 		for (int m = -1 * blocksRange; m <= blocksRange; m += 1) {
 			for (int l = -1 * blocksRange; l <= blocksRange; l += 1) {
 				const int x = l * 4 + idx;
@@ -161,13 +161,14 @@ __kernel void blockMatchingKernel2D(__local float *sResultValues,
 
 				const int indexXYZIn = xImageIn + yImageIn *(c_ImageSize.x);
 
-				const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) && (yImageIn >= 0 && yImageIn < c_ImageSize.y);
-				sResultValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? resultImageArray[indexXYZIn] : NAN;
+				const bool valid = (xImageIn >= 0 && xImageIn < (int)c_ImageSize.x) &&
+						(yImageIn >= 0 && yImageIn < (int)c_ImageSize.y);
+				sWarpedValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? warpedImageArray[indexXYZIn] : NAN;
 
 			}
 		}
 
-		float rReferenceValue = (targetInBounds && mask[pixIdx] > -1) ? referenceImageArray[pixIdx] : NAN;
+		float rReferenceValue = (referenceInBounds && mask[pixIdx] > -1) ? referenceImageArray[pixIdx] : NAN;
 		const bool finiteReference = isfinite(rReferenceValue);
 		rReferenceValue = finiteReference ? rReferenceValue : 0.0f;
 
@@ -179,14 +180,14 @@ __kernel void blockMatchingKernel2D(__local float *sResultValues,
 			const float referenceTemp = finiteReference ? rReferenceValue - referenceMean : 0.0f;
 			const float referenceVar = REDUCE2D(sData, referenceTemp*referenceTemp, tid);
 
-			// iteration over the result blocks (block matching part)
-			for (unsigned int m = 1; m < blocksRange * 8 /*2*4*/; m += stepSize) {
-				for (unsigned int l = 1; l < blocksRange * 8 /*2*4*/; l += stepSize) {
+			// iteration over the warped blocks (block matching part)
+			for(int m = 1; m < blocksRange * 8 /*2*4*/; m += stepSize) {
+				for(int l = 1; l < blocksRange * 8 /*2*4*/; l += stepSize) {
 
 					const unsigned int sIdxIn = (idy + m) * numBlocks * 4 + idx + l;
 
-					const float rResultValue = sResultValues[sIdxIn];
-					const bool overlap = isfinite(rResultValue) && finiteReference;
+					const float rWarpedValue = sWarpedValues[sIdxIn];
+					const bool overlap = isfinite(rWarpedValue) && finiteReference;
 					const unsigned int bSize = REDUCE2D(sData, overlap ? 1.0f : 0.0f, tid);
 
 					if (bSize > 8){
@@ -201,13 +202,13 @@ __kernel void blockMatchingKernel2D(__local float *sResultValues,
 							newreferenceVar = REDUCE2D(sData, newreferenceTemp*newreferenceTemp, tid);
 						}
 
-						const float rChecked = overlap ? rResultValue : 0.0f;
-						const float resultMean = REDUCE2D(sData, rChecked, tid) / bSize;
-						const float resultTemp = overlap ? rResultValue - resultMean : 0.0f;
-						const float resultVar = REDUCE2D(sData, resultTemp*resultTemp, tid);
+						const float rChecked = overlap ? rWarpedValue : 0.0f;
+						const float warpedMean = REDUCE2D(sData, rChecked, tid) / bSize;
+						const float warpedTemp = overlap ? rWarpedValue - warpedMean : 0.0f;
+						const float warpedVar = REDUCE2D(sData, warpedTemp*warpedTemp, tid);
 
-						const float sumTargetResult = REDUCE2D(sData, (newreferenceTemp)*(resultTemp), tid);
-						const float localCC = fabs((sumTargetResult) / sqrt(newreferenceVar*resultVar));
+						const float sumReferenceWarped = REDUCE2D(sData, (newreferenceTemp)*(warpedTemp), tid);
+						const float localCC = fabs((sumReferenceWarped) / sqrt(newreferenceVar*warpedVar));
 
 						if (tid == 0 && localCC > bestCC) {
 							bestCC = localCC;
@@ -239,10 +240,11 @@ __kernel void blockMatchingKernel2D(__local float *sResultValues,
 			}
 		}
 	}
+}
 /* *************************************************************** */
 /* *************************************************************** */
-__kernel void blockMatchingKernel3D(__local float *sResultValues,
-												__global float* resultImageArray,
+__kernel void blockMatchingKernel3D(__local float *sWarpedValues,
+												__global float* warpedImageArray,
 												__global float* referenceImageArray,
 												__global float *warpedPosition,
 												__global float *referencePosition,
@@ -284,7 +286,7 @@ __kernel void blockMatchingKernel3D(__local float *sResultValues,
 	const unsigned long voxIdx = xImage + yImage *(c_ImageSize.x) + zImage * (c_ImageSize.x * c_ImageSize.y);
 
 	// Define a boolean to check if the current voxel is in the input image space
-	const bool targetInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y && zImage < c_ImageSize.z;
+	const bool referenceInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y && zImage < c_ImageSize.z;
 
 	// Check the actual index in term of active voxel
 	const int currentBlockIndex = totalBlock[bid];
@@ -300,7 +302,7 @@ __kernel void blockMatchingKernel3D(__local float *sResultValues,
 		float bestDisplacement[3] = { NAN, 0.0f, 0.0f };
 		float bestCC = blocksRange > 1 ? 0.9f : 0.0f;
 
-		// Populate shared memory with resultImageArray's values
+		// Populate shared memory with warpedImageArray's values
 		for (int n=-blocksRange; n<=blocksRange; ++n) {
 			const int z = n * 4 + idz;
 			for (int m=-blocksRange; m<=blocksRange; ++m) {
@@ -309,7 +311,7 @@ __kernel void blockMatchingKernel3D(__local float *sResultValues,
 					const int x = l * 4 + idx;
 
 					// Compute the index in the local shared memory
-					const int sIdx = 4 * blocksRange + x + 4 * numBlocks (4 * blocksRange + y) +
+					const int sIdx = 4 * blocksRange + x + 4 * numBlocks * (4 * blocksRange + y) +
 							16 * numBlocks * numBlocks * (4 * blocksRange + z);
 
 					// Compute the coordinate of the voxel under consideration
@@ -318,19 +320,20 @@ __kernel void blockMatchingKernel3D(__local float *sResultValues,
 					const int zImageIn = zBaseImage + z;
 
 					// Compute the index of the voxel under consideration
-					const int indexXYZIn = xImageIn + c_ImageSize.x (yImageIn + zImageIn * c_ImageSize.y);
+					const int indexXYZIn = xImageIn + c_ImageSize.x * (yImageIn + zImageIn * c_ImageSize.y);
 
 					// Check if the current voxel belongs to the image
-					const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) &&
-							(yImageIn >= 0 && yImageIn < c_ImageSize.y) && (zImageIn >= 0 && zImageIn < c_ImageSize.z);
+					const bool valid = (xImageIn >= 0 && xImageIn < (int)c_ImageSize.x) &&
+							(yImageIn >= 0 && yImageIn < (int)c_ImageSize.y) &&
+							(zImageIn >= 0 && zImageIn < (int)c_ImageSize.z);
 					// Copy the value from the global to the local shared memory
-					sResultValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? resultImageArray[indexXYZIn] : NAN;
+					sWarpedValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? warpedImageArray[indexXYZIn] : NAN;
 				}
 			}
 		}
 
 		// Get the value at the current voxel in the reference image
-		float rReferenceValue = (targetInBounds && mask[voxIdx] > -1) ? referenceImageArray[voxIdx] : NAN;
+		float rReferenceValue = (referenceInBounds && mask[voxIdx] > -1) ? referenceImageArray[voxIdx] : NAN;
 		// Check if the reference value is finite
 		const bool finiteReference = isfinite(rReferenceValue);
 		// The reference value is replace by 0 if non finitite so that it has no influence on mean and variance
@@ -351,17 +354,16 @@ __kernel void blockMatchingKernel3D(__local float *sResultValues,
 			const float referenceVar = REDUCE(sData, referenceTemp*referenceTemp, tid);
 
 			// Iteration over all the blocks
-			for (unsigned int n = 1; n < blocksRange*8; n += stepSize) {
-				for (unsigned int m = 1; m < blocksRange*8; m += stepSize) {
-					for (unsigned int l = 1; l < blocksRange*8; l += stepSize) {
+			for (int n=1; n < blocksRange*8; n+=stepSize) {
+				for (int m=1; m < blocksRange*8; m+=stepSize) {
+					for (int l=1; l < blocksRange*8; l+=stepSize) {
 
-//						const unsigned int sIdxIn = (idz + n) * numBlocks * 4 * numBlocks * 4 + (idy + m) * numBlocks * 4 + idx + l;
-						// Compute the index int he bloc
-						const unsigned int sIdxIn = idx + l + 4 numBlocks * (idy + m + 4 * (idz + n) * numBlocks);
+						// Compute the index in the bloc
+						const unsigned int sIdxIn = idx + l + 4 * numBlocks * (idy + m + 4 * (idz + n) * numBlocks);
 
 						// Get the
-						const float rResultValue = sResultValues[sIdxIn];
-						const bool overlap = isfinite(rResultValue) && finiteReference;
+						const float rWarpedValue = sWarpedValues[sIdxIn];
+						const bool overlap = isfinite(rWarpedValue) && finiteReference;
 						const unsigned int bSize = REDUCE(sData, overlap ? 1.0f : 0.0f, tid);
 
 						if (bSize > 32){
@@ -376,13 +378,13 @@ __kernel void blockMatchingKernel3D(__local float *sResultValues,
 								newreferenceVar = REDUCE(sData, newreferenceTemp*newreferenceTemp, tid);
 							}
 
-							const float rChecked = overlap ? rResultValue : 0.0f;
-							const float resultMean = REDUCE(sData, rChecked, tid) / bSize;
-							const float resultTemp = overlap ? rResultValue - resultMean : 0.0f;
-							const float resultVar = REDUCE(sData, resultTemp*resultTemp, tid);
+							const float rChecked = overlap ? rWarpedValue : 0.0f;
+							const float warpedMean = REDUCE(sData, rChecked, tid) / bSize;
+							const float warpedTemp = overlap ? rWarpedValue - warpedMean : 0.0f;
+							const float warpedVar = REDUCE(sData, warpedTemp*warpedTemp, tid);
 
-							const float sumTargetResult = REDUCE(sData, (newreferenceTemp)*(resultTemp), tid);
-							const float localCC = fabs((sumTargetResult) / sqrt(newreferenceVar*resultVar));
+							const float sumReferenceWarped = REDUCE(sData, (newreferenceTemp)*(warpedTemp), tid);
+							const float localCC = fabs((sumReferenceWarped) / sqrt(newreferenceVar*warpedVar));
 
 							if (tid == 0 && localCC > bestCC) {
 								bestCC = localCC;
