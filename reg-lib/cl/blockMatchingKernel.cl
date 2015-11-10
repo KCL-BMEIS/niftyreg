@@ -43,20 +43,18 @@ typedef float16 real16_t;
 /* *************************************************************** */
 __inline__
 void reg2D_mat44_mul_cl(__global float* mat,
-								float const* in,
-								__global float *out)
+                            float const* in,
+                            __global float *out)
 {
-	out[0] = (float)((real_t)mat[0] * (real_t)in[0] +
-			(real_t)mat[1] * (real_t)in[1] + (real_t)mat[3]);
-	out[1] = (float)((real_t)mat[4] * (real_t)in[0] +
-			(real_t)mat[5] * (real_t)in[1] + (real_t)mat[7]);
+        out[0] = (float)((real_t)mat[0] * (real_t)in[0] + (real_t)mat[1] * (real_t)in[1] + (real_t)mat[3]);
+        out[1] = (float)((real_t)mat[4] * (real_t)in[0] + (real_t)mat[5] * (real_t)in[1] + (real_t)mat[7]);
 }
 /* *************************************************************** */
 /* *************************************************************** */
 __inline__
 void reg_mat44_mul_cl(__global float* mat,
-							 float const* in,
-							 __global float *out)
+                        float const* in,
+                      __global float *out)
 {
 	out[0] = (float)((real_t)mat[0] * in[0] + (real_t)mat[1] * in[1] +
 			(real_t)mat[2] * in[2] + (real_t)mat[3]);
@@ -68,8 +66,8 @@ void reg_mat44_mul_cl(__global float* mat,
 /* *************************************************************** */
 /* *************************************************************** */
 __inline__ float reduce2DCustom(__local float* sData2,
-										  float data,
-										  const unsigned int tid)
+                                        float data,
+                                  const unsigned int tid)
 {
 	sData2[tid] = data;
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -86,8 +84,8 @@ __inline__ float reduce2DCustom(__local float* sData2,
 /* *************************************************************** */
 /* *************************************************************** */
 __inline__ float reduceCustom(__local float* sData2,
-										float data,
-										const unsigned int tid)
+                                      float data,
+                                const unsigned int tid)
 {
 	sData2[tid] = data;
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -105,17 +103,17 @@ __inline__ float reduceCustom(__local float* sData2,
 /* *************************************************************** */
 /* *************************************************************** */
 __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
-												__global float* warpedImageArray,
-												__global float* referenceImageArray,
-												__global float *warpedPosition,
-												__global float *referencePosition,
-												__global int *totalBlock,
-												__global int* mask,
-												__global float* referenceMatrix_xyz,
-												__global int* definedBlock,
-												uint3 c_ImageSize,
-												const int blocksRange,
-												const unsigned int stepSize)
+                                    __global float* warpedImageArray,
+                                    __global float* referenceImageArray,
+                                    __global float *warpedPosition,
+                                    __global float *referencePosition,
+                                    __global int *totalBlock,
+                                    __global int* mask,
+                                    __global float* referenceMatrix_xyz,
+                                    __global int* definedBlock,
+                                    uint3 c_ImageSize,
+                                    const int blocksRange,
+                                    const unsigned int stepSize)
 {
 
 	const uint numBlocks = blocksRange * 2 + 1;
@@ -145,12 +143,13 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 
 	if (currentBlockIndex > -1){
 
-		float bestDisplacement[3] = { NAN, 0.0f, 0.0f };
+                float bestDisplacement[3] = { NAN, 0.0f, 0.0f };
 		float bestCC = blocksRange > 1 ? 0.9f : 0.0f;
 
 		//populate shared memory with warped ImageArray's values
 		for (int m = -1 * blocksRange; m <= blocksRange; m += 1) {
 			for (int l = -1 * blocksRange; l <= blocksRange; l += 1) {
+
 				const int x = l * 4 + idx;
 				const int y = m * 4 + idy;
 
@@ -161,14 +160,13 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 
 				const int indexXYZIn = xImageIn + yImageIn *(c_ImageSize.x);
 
-				const bool valid = (xImageIn >= 0 && xImageIn < (int)c_ImageSize.x) &&
-						(yImageIn >= 0 && yImageIn < (int)c_ImageSize.y);
-				sWarpedValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? warpedImageArray[indexXYZIn] : NAN;
+                                const bool valid = (xImageIn >= 0 && xImageIn < (int)c_ImageSize.x) && (yImageIn >= 0 && yImageIn < (int)c_ImageSize.y);
+                                sWarpedValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? warpedImageArray[indexXYZIn] : NAN;
 
 			}
 		}
 
-		float rReferenceValue = (referenceInBounds && mask[pixIdx] > -1) ? referenceImageArray[pixIdx] : NAN;
+                float rReferenceValue = (referenceInBounds && mask[pixIdx] > -1) ? referenceImageArray[pixIdx] : NAN;
 		const bool finiteReference = isfinite(rReferenceValue);
 		rReferenceValue = finiteReference ? rReferenceValue : 0.0f;
 
@@ -244,17 +242,17 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 /* *************************************************************** */
 /* *************************************************************** */
 __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
-												__global float* warpedImageArray,
-												__global float* referenceImageArray,
-												__global float *warpedPosition,
-												__global float *referencePosition,
-												__global int *totalBlock,
-												__global int* mask,
-												__global float* referenceMatrix_xyz,
-												__global int* definedBlock,
-												uint3 c_ImageSize,
-												const int blocksRange,
-												const unsigned int stepSize)
+                                    __global float* warpedImageArray,
+                                    __global float* referenceImageArray,
+                                    __global float *warpedPosition,
+                                    __global float *referencePosition,
+                                    __global int *totalBlock,
+                                    __global int* mask,
+                                    __global float* referenceMatrix_xyz,
+                                    __global int* definedBlock,
+                                    uint3 c_ImageSize,
+                                    const int blocksRange,
+                                    const unsigned int stepSize)
 {
 
 	const uint numBlocks = blocksRange * 2 + 1;
@@ -299,7 +297,7 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 	if (currentBlockIndex > -1){
 
 		// Define temp variables to store the displacements and measure of similarity
-		float bestDisplacement[3] = { NAN, 0.0f, 0.0f };
+                float bestDisplacement[3] = { NAN, 0.0f, 0.0f };
 		float bestCC = blocksRange > 1 ? 0.9f : 0.0f;
 
 		// Populate shared memory with warpedImageArray's values
@@ -323,17 +321,17 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 					const int indexXYZIn = xImageIn + c_ImageSize.x * (yImageIn + zImageIn * c_ImageSize.y);
 
 					// Check if the current voxel belongs to the image
-					const bool valid = (xImageIn >= 0 && xImageIn < (int)c_ImageSize.x) &&
-							(yImageIn >= 0 && yImageIn < (int)c_ImageSize.y) &&
-							(zImageIn >= 0 && zImageIn < (int)c_ImageSize.z);
+                                        const bool valid = (xImageIn >= 0 && xImageIn < (int)c_ImageSize.x) &&
+                                                           (yImageIn >= 0 && yImageIn < (int)c_ImageSize.y) &&
+                                                           (zImageIn >= 0 && zImageIn < (int)c_ImageSize.z);
 					// Copy the value from the global to the local shared memory
-					sWarpedValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? warpedImageArray[indexXYZIn] : NAN;
+                                        sWarpedValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? warpedImageArray[indexXYZIn] : NAN;
 				}
 			}
 		}
 
 		// Get the value at the current voxel in the reference image
-		float rReferenceValue = (referenceInBounds && mask[voxIdx] > -1) ? referenceImageArray[voxIdx] : NAN;
+                float rReferenceValue = (referenceInBounds && mask[voxIdx] > -1) ? referenceImageArray[voxIdx] : NAN;
 		// Check if the reference value is finite
 		const bool finiteReference = isfinite(rReferenceValue);
 		// The reference value is replace by 0 if non finitite so that it has no influence on mean and variance
