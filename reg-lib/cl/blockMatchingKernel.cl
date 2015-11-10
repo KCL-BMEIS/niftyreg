@@ -225,8 +225,8 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 			bestDisplacement[1] += referencePosition_temp[1];
 			bestDisplacement[2] += 0;
 
-                        reg2D_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, referencePosition[posIdx]);
-                        reg2D_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, warpedPosition[posIdx]);
+                        reg2D_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
+                        reg2D_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
 			if (isfinite(bestDisplacement[0])) {
 				atomic_add(definedBlock, 1);
 			}
@@ -395,8 +395,8 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 			bestDisplacement[1] += referencePosition_temp[1];
 			bestDisplacement[2] += referencePosition_temp[2];
 
-                        reg_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, referencePosition[posIdx]);
-                        reg_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, warpedPosition[posIdx]);
+                        reg_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
+                        reg_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
 			if (isfinite(bestDisplacement[0])) {
 				atomic_add(definedBlock, 1);
 			}
