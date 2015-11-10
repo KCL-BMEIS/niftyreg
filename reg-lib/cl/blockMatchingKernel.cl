@@ -192,14 +192,14 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 
 					if (bSize > 8){
 
-						float newreferenceTemp = referenceTemp;
-						float newreferenceVar = referenceVar;
+						float newReferenceTemp = referenceTemp;
+						float newReferenceVar = referenceVar;
 						if (bSize != referenceSize){
 
 							const float newTargetValue = overlap ? rReferenceValue : 0.0f;
-							const float newargetMean = REDUCE2D(sData, newTargetValue, tid) / bSize;
-							newreferenceTemp = overlap ? newTargetValue - newargetMean : 0.0f;
-							newreferenceVar = REDUCE2D(sData, newreferenceTemp*newreferenceTemp, tid);
+							const float newReferenceMean = REDUCE2D(sData, newTargetValue, tid) / bSize;
+							newReferenceTemp = overlap ? newTargetValue - newReferenceMean : 0.0f;
+							newReferenceVar = REDUCE2D(sData, newReferenceTemp*newReferenceTemp, tid);
 						}
 
 						const float rChecked = overlap ? rWarpedValue : 0.0f;
@@ -207,8 +207,8 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 						const float warpedTemp = overlap ? rWarpedValue - warpedMean : 0.0f;
 						const float warpedVar = REDUCE2D(sData, warpedTemp*warpedTemp, tid);
 
-						const float sumReferenceWarped = REDUCE2D(sData, (newreferenceTemp)*(warpedTemp), tid);
-						const float localCC = fabs((sumReferenceWarped) / sqrt(newreferenceVar*warpedVar));
+						const float sumReferenceWarped = REDUCE2D(sData, (newReferenceTemp)*(warpedTemp), tid);
+						const float localCC = fabs((sumReferenceWarped) / sqrt(newReferenceVar*warpedVar));
 
 						if (tid == 0 && localCC > bestCC) {
 							bestCC = localCC;
@@ -291,10 +291,6 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 	// Check the actual index in term of active voxel
 	const int currentBlockIndex = totalBlock[bid];
 
-	// Useless variables
-	__global float* start_warpedPosition = &warpedPosition[0];
-	__global float* start_referencePosition = &referencePosition[0];
-
 	// Check if the current block is active
 	if (currentBlockIndex > -1){
 
@@ -353,29 +349,33 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 			// MARC: Why don't we normalise by the number of defined values?
 			const float referenceVar = REDUCE(sData, referenceTemp*referenceTemp, tid);
 
-			// Iteration over all the blocks
+			// Iteration of the 7 x 7 x 7 blocks in the neighborhood (3*2+1)^3
 			for (int n=1; n < blocksRange*8; n+=stepSize) {
 				for (int m=1; m < blocksRange*8; m+=stepSize) {
 					for (int l=1; l < blocksRange*8; l+=stepSize) {
 
-						// Compute the index in the bloc
+						// Compute the index in the current block
 						const unsigned int sIdxIn = idx + l + 4 * numBlocks * (idy + m + 4 * (idz + n) * numBlocks);
 
-						// Get the
+						// Get the warped value
 						const float rWarpedValue = sWarpedValues[sIdxIn];
+						// Check if the warped and reference are defined
 						const bool overlap = isfinite(rWarpedValue) && finiteReference;
+						// Compute the number of defined value in the block
 						const unsigned int bSize = REDUCE(sData, overlap ? 1.0f : 0.0f, tid);
 
+						// Subsequent computation is performed if the more than half the voxel are defined
 						if (bSize > 32){
 
-							float newreferenceTemp = referenceTemp;
-							float newreferenceVar = referenceVar;
+							// Store the reference variance and reference difference to the mean
+							float newReferenceTemp = referenceTemp;
+							float newReferenceVar = referenceVar;
+							// If the defined voxels are different the reference mean and variance are recomputed
 							if (bSize != referenceSize){
-
 								const float newTargetValue = overlap ? rReferenceValue : 0.0f;
-								const float newargetMean = REDUCE(sData, newTargetValue, tid) / bSize;
-								newreferenceTemp = overlap ? newTargetValue - newargetMean : 0.0f;
-								newreferenceVar = REDUCE(sData, newreferenceTemp*newreferenceTemp, tid);
+								const float newReferenceMean = REDUCE(sData, newTargetValue, tid) / bSize;
+								newReferenceTemp = overlap ? newTargetValue - newReferenceMean : 0.0f;
+								newReferenceVar = REDUCE(sData, newReferenceTemp*newReferenceTemp, tid);
 							}
 
 							const float rChecked = overlap ? rWarpedValue : 0.0f;
@@ -383,9 +383,10 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 							const float warpedTemp = overlap ? rWarpedValue - warpedMean : 0.0f;
 							const float warpedVar = REDUCE(sData, warpedTemp*warpedTemp, tid);
 
-							const float sumReferenceWarped = REDUCE(sData, (newreferenceTemp)*(warpedTemp), tid);
-							const float localCC = fabs((sumReferenceWarped) / sqrt(newreferenceVar*warpedVar));
+							const float sumReferenceWarped = REDUCE(sData, (newReferenceTemp)*(warpedTemp), tid);
+							const float localCC = fabs((sumReferenceWarped) / sqrt(newReferenceVar*warpedVar));
 
+							// Only the first thread of the block can update the final value
 							if (tid == 0 && localCC > bestCC) {
 								bestCC = localCC;
 								bestDisplacement[0] = l - 4.0f;
@@ -398,23 +399,21 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 			}
 		}
 
-		if (tid == 0 /*&& isfinite(bestDisplacement[0])*/) {
-			const unsigned int posIdx = 3 * currentBlockIndex;
-
-			referencePosition = start_referencePosition + posIdx;
-			warpedPosition = start_warpedPosition + posIdx;
-
-			const float referencePosition_temp[3] = { (float)xBaseImage, (float)yBaseImage, (float)zBaseImage };
+		const unsigned int posIdx = 3 * currentBlockIndex;
+		warpedPosition[posIdx] = NAN;
+		// Only the first thread can update the global array with the new result
+		if (tid == 0 && isfinite(bestDisplacement[0])) {
+			const float referencePosition_temp[3] = { (float)xBaseImage,
+																	(float)yBaseImage,
+																	(float)zBaseImage };
 
 			bestDisplacement[0] += referencePosition_temp[0];
 			bestDisplacement[1] += referencePosition_temp[1];
 			bestDisplacement[2] += referencePosition_temp[2];
 
-			reg_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, referencePosition);
-			reg_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, warpedPosition);
-			if (isfinite(bestDisplacement[0])) {
-				atomic_add(definedBlock, 1);
-			}
+			reg_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
+			reg_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
+			atomic_add(definedBlock, 1);
 		}
 	}
 }
