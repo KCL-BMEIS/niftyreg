@@ -34,18 +34,18 @@ void check_matching_difference(int dim,
 #ifndef NDEBUG
          fprintf(stderr, "reg_test_blockMatching reference position failed %g>%g\n", difference, EPS);
          if(dim==2){
-            fprintf(stderr, "Reference. NR [%g %g] Tested [%g %g]\n",
+            fprintf(stderr, "Reference. NR [%g %g] Expected [%g %g]\n",
                     referencePosition[0], referencePosition[1],
                   expectedReferencePositions[0], expectedReferencePositions[1]);
-            fprintf(stderr, "Warped. NR [%g %g] Tested [%g %g]\n",
+            fprintf(stderr, "Warped. NR [%g %g] Expected [%g %g]\n",
                     warpedPosition[0], warpedPosition[1],
                   expectedWarpedPosition[0], expectedWarpedPosition[1]);
          }
          else{
-            fprintf(stderr, "Reference. NR [%g %g %g] Tested [%g %g %g]\n",
+            fprintf(stderr, "Reference. NR [%g %g %g] Expected [%g %g %g]\n",
                     referencePosition[0], referencePosition[1], referencePosition[2],
                   expectedReferencePositions[0], expectedReferencePositions[1], expectedReferencePositions[2]);
-            fprintf(stderr, "Warped. NR [%g %g %g] Tested [%g %g %g]\n",
+            fprintf(stderr, "Warped. NR [%g %g %g] Expected [%g %g %g]\n",
                     warpedPosition[0], warpedPosition[1], warpedPosition[2],
                   expectedWarpedPosition[0], expectedWarpedPosition[1], expectedWarpedPosition[2]);
          }
@@ -58,18 +58,18 @@ void check_matching_difference(int dim,
 #ifndef NDEBUG
          fprintf(stderr, "reg_test_blockMatching warped position failed %g>%g\n", difference, EPS);
          if(dim==2){
-            fprintf(stderr, "Reference. NR [%g %g] Tested [%g %g]\n",
+            fprintf(stderr, "Reference. NR [%g %g] Expected [%g %g]\n",
                     referencePosition[0], referencePosition[1],
                   expectedReferencePositions[0], expectedReferencePositions[1]);
-            fprintf(stderr, "Warped. NR [%g %g] Tested [%g %g]\n",
+            fprintf(stderr, "Warped. NR [%g %g] Expected [%g %g]\n",
                     warpedPosition[0], warpedPosition[1],
                   expectedWarpedPosition[0], expectedWarpedPosition[1]);
          }
          else{
-            fprintf(stderr, "Reference. NR [%g %g %g] Tested [%g %g %g]\n",
+            fprintf(stderr, "Reference. NR [%g %g %g] Expected [%g %g %g]\n",
                     referencePosition[0], referencePosition[1], referencePosition[2],
                   expectedReferencePositions[0], expectedReferencePositions[1], expectedReferencePositions[2]);
-            fprintf(stderr, "Warped. NR [%g %g %g] Tested [%g %g %g]\n",
+            fprintf(stderr, "Warped. NR [%g %g %g] Expected [%g %g %g]\n",
                     warpedPosition[0], warpedPosition[1], warpedPosition[2],
                   expectedWarpedPosition[0], expectedWarpedPosition[1], expectedWarpedPosition[2]);
          }

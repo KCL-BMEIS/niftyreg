@@ -67,106 +67,71 @@ CLBlockMatchingKernel::CLBlockMatchingKernel(AladinContent *conIn, std::string n
 
 }
 /* *************************************************************** */
-void CLBlockMatchingKernel::calculate() {
-   // Copy some required parameters over to the device
-   int *definedBlock = (int *)malloc(sizeof(int));
-   *definedBlock = 0;
+void CLBlockMatchingKernel::calculate()
+{
+   if (this->params->stepSize!=1 || this->params->voxelCaptureRange!=3){
+      reg_print_msg_error("The block Mathching OpenCL kernel supports only a stepsize of 1");
+      reg_exit(1);
+   }
    cl_int errNum;
-   cl_mem cldefinedBlock = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int), definedBlock, &errNum);
+   this->params->definedActiveBlockNumber = 0;
+   cl_mem cldefinedBlock = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                          sizeof(int), &(this->params->definedActiveBlockNumber), &errNum);
    this->sContext->checkErrNum(errNum, "CLBlockMatchingKernel::calculate failed to allocate memory (cldefinedBlock) ");
 
-   const unsigned int blockRange = params->voxelCaptureRange%4?params->voxelCaptureRange/4+1:params->voxelCaptureRange/4;
-   const unsigned int stepSize = params->stepSize;
-
-   const unsigned int numBlocks = blockRange * 2 + 1;
-
-   cl_uint3 imageSize = {{(cl_uint)this->reference->nx,
+   cl_uint4 imageSize = {{(cl_uint)this->reference->nx,
                           (cl_uint)this->reference->ny,
                           (cl_uint)this->reference->nz,
                           (cl_uint)0 }};
 
-   if (imageSize.z > 1) {
-      const size_t globalWorkSize[3] = { (size_t)params->blockNumber[0] * 4,
-                                         (size_t)params->blockNumber[1] * 4,
-                                         (size_t)params->blockNumber[2] * 4 };
-      const size_t localWorkSize[3] = { 4, 4, 4 };
-      const unsigned int sMemSize = numBlocks*numBlocks*numBlocks * 64;
-
-      errNum = clSetKernelArg(kernel, 0, sMemSize * sizeof(cl_float), NULL);
-      this->sContext->checkErrNum(errNum, "Error setting shared memory.");
-      errNum = clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clWarpedImageArray);
-      this->sContext->checkErrNum(errNum, "Error setting resultImageArray.");
-      errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clReferenceImageArray);
-      this->sContext->checkErrNum(errNum, "Error setting targetImageArray.");
-      errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->clWarpedPosition);
-      this->sContext->checkErrNum(errNum, "Error setting resultPosition.");
-      errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &this->clReferencePosition);
-      this->sContext->checkErrNum(errNum, "Error setting targetPosition.");
-      errNum |= clSetKernelArg(kernel, 5, sizeof(cl_mem), &this->clTotalBlock);
-      this->sContext->checkErrNum(errNum, "Error setting mask.");
-      errNum |= clSetKernelArg(kernel, 6, sizeof(cl_mem), &this->clMask);
-      this->sContext->checkErrNum(errNum, "Error setting mask.");
-      errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &this->clReferenceMat);
-      this->sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
-      errNum |= clSetKernelArg(kernel, 8, sizeof(cl_mem), &cldefinedBlock);
-      this->sContext->checkErrNum(errNum, "Error setting cldefinedBlock.");
-      errNum |= clSetKernelArg(kernel, 9, sizeof(cl_uint3), &imageSize);
-      this->sContext->checkErrNum(errNum, "Error setting image size.");
-      errNum |= clSetKernelArg(kernel, 10, sizeof(cl_uint), &blockRange);
-      this->sContext->checkErrNum(errNum, "Error setting blockRange.");
-      errNum |= clSetKernelArg(kernel, 11, sizeof(cl_uint), &stepSize);
-      this->sContext->checkErrNum(errNum, "Error setting step size.");
-
-      errNum = clEnqueueNDRangeKernel(this->commandQueue, kernel, params->dim, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-      this->sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution ");
+   size_t globalWorkSize[3] = { (size_t)params->blockNumber[0] * 4,
+                                (size_t)params->blockNumber[1] * 4,
+                                (size_t)params->blockNumber[2] * 4};
+   size_t localWorkSize[3] = {4, 4, 4};
+   unsigned int sMemSize = 1728; // (3*4)^3
+   if(this->reference->nz==1){
+      globalWorkSize[2] = 1;
+      localWorkSize[2] = 1;
+      sMemSize = 144; // (3*4)^2
    }
-   else {
-      const size_t globalWorkSize[2] = { (size_t)params->blockNumber[0] * 4,
-                                         (size_t)params->blockNumber[1] * 4};
-      const size_t localWorkSize[2] = { 4, 4};
-      const unsigned int sMemSize = numBlocks*numBlocks * 16;
 
-      errNum = clSetKernelArg(kernel, 0, sMemSize * sizeof(cl_float), NULL);
-      this->sContext->checkErrNum(errNum, "Error setting shared memory.");
-      errNum = clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clWarpedImageArray);
-      this->sContext->checkErrNum(errNum, "Error setting resultImageArray.");
-      errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clReferenceImageArray);
-      this->sContext->checkErrNum(errNum, "Error setting targetImageArray.");
-      errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->clWarpedPosition);
-      this->sContext->checkErrNum(errNum, "Error setting resultPosition.");
-      errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &this->clReferencePosition);
-      this->sContext->checkErrNum(errNum, "Error setting targetPosition.");
-      errNum |= clSetKernelArg(kernel, 5, sizeof(cl_mem), &this->clTotalBlock);
-      this->sContext->checkErrNum(errNum, "Error setting mask.");
-      errNum |= clSetKernelArg(kernel, 6, sizeof(cl_mem), &this->clMask);
-      this->sContext->checkErrNum(errNum, "Error setting mask.");
-      errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &this->clReferenceMat);
-      this->sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
-      errNum |= clSetKernelArg(kernel, 8, sizeof(cl_mem), &cldefinedBlock);
-      this->sContext->checkErrNum(errNum, "Error setting cldefinedBlock.");
-      errNum |= clSetKernelArg(kernel, 9, sizeof(cl_uint3), &imageSize);
-      this->sContext->checkErrNum(errNum, "Error setting image size.");
-      errNum |= clSetKernelArg(kernel, 10, sizeof(cl_uint), &blockRange);
-      this->sContext->checkErrNum(errNum, "Error setting blockRange.");
-      errNum |= clSetKernelArg(kernel, 11, sizeof(cl_uint), &stepSize);
-      this->sContext->checkErrNum(errNum, "Error setting step size.");
+   errNum = clSetKernelArg(kernel, 0, sMemSize * sizeof(cl_float), NULL);
+   this->sContext->checkErrNum(errNum, "Error setting shared memory.");
+   errNum = clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clWarpedImageArray);
+   this->sContext->checkErrNum(errNum, "Error setting resultImageArray.");
+   errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clReferenceImageArray);
+   this->sContext->checkErrNum(errNum, "Error setting targetImageArray.");
+   errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->clWarpedPosition);
+   this->sContext->checkErrNum(errNum, "Error setting resultPosition.");
+   errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &this->clReferencePosition);
+   this->sContext->checkErrNum(errNum, "Error setting targetPosition.");
+   errNum |= clSetKernelArg(kernel, 5, sizeof(cl_mem), &this->clTotalBlock);
+   this->sContext->checkErrNum(errNum, "Error setting mask.");
+   errNum |= clSetKernelArg(kernel, 6, sizeof(cl_mem), &this->clMask);
+   this->sContext->checkErrNum(errNum, "Error setting mask.");
+   errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &this->clReferenceMat);
+   this->sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
+   errNum |= clSetKernelArg(kernel, 8, sizeof(cl_mem), &cldefinedBlock);
+   this->sContext->checkErrNum(errNum, "Error setting cldefinedBlock.");
+   errNum |= clSetKernelArg(kernel, 9, sizeof(cl_uint4), &imageSize);
+   this->sContext->checkErrNum(errNum, "Error setting image size.");
 
-      errNum = clEnqueueNDRangeKernel(this->commandQueue, kernel, params->dim, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-      this->sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution ");
-   }
+   errNum = clEnqueueNDRangeKernel(this->commandQueue, kernel, params->dim, NULL,
+                                   globalWorkSize, localWorkSize, 0, NULL, NULL);
+   this->sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution ");
+
    errNum = clFinish(this->commandQueue);
    this->sContext->checkErrNum(errNum, "Error after clFinish CLBlockMatchingKernel");
 
-   errNum = clEnqueueReadBuffer(this->commandQueue, cldefinedBlock, CL_TRUE, 0, sizeof(int), definedBlock, 0, NULL, NULL);
+   errNum = clEnqueueReadBuffer(this->commandQueue, cldefinedBlock, CL_TRUE, 0, sizeof(int),
+                                &(this->params->definedActiveBlockNumber), 0, NULL, NULL);
    sContext->checkErrNum(errNum, "Error reading  var after CLBlockMatchingKernel execution ");
-   params->definedActiveBlockNumber = *definedBlock;
 
    //TOFIX
-   if(params->definedActiveBlockNumber == 0) {
+   if(this->params->definedActiveBlockNumber == 0) {
       reg_print_msg_error("Unexpected error in the CLBlockMatchingKernel execution");
       reg_exit(1);
    }
-   free(definedBlock);
    clReleaseMemObject(cldefinedBlock);
 }
 /* *************************************************************** */
