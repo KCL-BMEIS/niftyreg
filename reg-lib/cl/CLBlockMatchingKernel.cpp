@@ -127,7 +127,6 @@ void CLBlockMatchingKernel::calculate()
                                 &(this->params->definedActiveBlockNumber), 0, NULL, NULL);
    sContext->checkErrNum(errNum, "Error reading  var after CLBlockMatchingKernel execution ");
 
-   //TOFIX
    if(this->params->definedActiveBlockNumber == 0) {
       reg_print_msg_error("Unexpected error in the CLBlockMatchingKernel execution");
       reg_exit(1);

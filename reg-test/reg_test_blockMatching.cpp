@@ -188,12 +188,12 @@ int main(int argc, char **argv)
             positionIndex = imgDim * blockMatchingParams->totalBlock[blockIndex];
 
             if (positionIndex > -1) {
-                check_matching_difference(imgDim,
+               check_matching_difference(imgDim,
                                          &blockMatchingParams->referencePosition[positionIndex],
                                          &blockMatchingParams->warpedPosition[positionIndex],
                                          &expectedBlockMatchingMatrix[matrixIndex][0],
-                                         &expectedBlockMatchingMatrix[matrixIndex][3],
-                                         max_difference);
+                     &expectedBlockMatchingMatrix[matrixIndex][3],
+                     max_difference);
                matrixIndex++;
             }
          }
