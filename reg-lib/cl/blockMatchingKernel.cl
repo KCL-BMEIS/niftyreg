@@ -157,13 +157,13 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 
 				const int indexXYZIn = xImageIn + yImageIn *(c_ImageSize.x);
 
-                                const bool valid = (xImageIn >= 0 && xImageIn < (int)c_ImageSize.x) && (yImageIn >= 0 && yImageIn < (int)c_ImageSize.y);
-                                sWarpedValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? warpedImageArray[indexXYZIn] : NAN;
+                const bool valid = (xImageIn >= 0 && xImageIn < (int)c_ImageSize.x) && (yImageIn >= 0 && yImageIn < (int)c_ImageSize.y);
+                sWarpedValues[sIdx] = (valid && mask[indexXYZIn] > -1) ? warpedImageArray[indexXYZIn] : NAN;
 
 			}
 		}
 
-                float rReferenceValue = (referenceInBounds && mask[pixIdx] > -1) ? referenceImageArray[pixIdx] : NAN;
+        float rReferenceValue = (referenceInBounds && mask[pixIdx] > -1) ? referenceImageArray[pixIdx] : NAN;
 		const bool finiteReference = isfinite(rReferenceValue);
 		rReferenceValue = finiteReference ? rReferenceValue : 0.0f;
 
