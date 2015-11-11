@@ -191,19 +191,24 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 						float newreferenceVar = referenceVar;
 						if (bSize != referenceSize){
 
-							const float newTargetValue = overlap ? rReferenceValue : 0.0f;
-							const float newargetMean = REDUCE2D(sData, newTargetValue, tid) / bSize;
-							newreferenceTemp = overlap ? newTargetValue - newargetMean : 0.0f;
+                                                        const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
+                                                        const float newReferenceMean = REDUCE2D(sData, newReferenceValue, tid) / bSize;
+                                                        newreferenceTemp = overlap ? newReferenceValue - newReferenceMean : 0.0f;
 							newreferenceVar = REDUCE2D(sData, newreferenceTemp*newreferenceTemp, tid);
 						}
 
 						const float rChecked = overlap ? rWarpedValue : 0.0f;
 						const float warpedMean = REDUCE2D(sData, rChecked, tid) / bSize;
 						const float warpedTemp = overlap ? rWarpedValue - warpedMean : 0.0f;
-						const float warpedVar = REDUCE2D(sData, warpedTemp*warpedTemp, tid);
+                                                float warpedVar = REDUCE2D(sData, warpedTemp*warpedTemp, tid);
 
 						const float sumReferenceWarped = REDUCE2D(sData, (newreferenceTemp)*(warpedTemp), tid);
-						const float localCC = fabs((sumReferenceWarped) / sqrt(newreferenceVar*warpedVar));
+
+                                                //To be consistent with the variables name
+                                                newreferenceVar = newreferenceVar / bSize;
+                                                warpedVar = warpedVar / bSize;
+
+                                                const float localCC = sumReferenceWarped > 0.0 ? fabs((sumReferenceWarped/ bSize) / sqrt(newreferenceVar*warpedVar)) : 0;
 
 						if (tid == 0 && localCC > bestCC) {
 							bestCC = localCC;
@@ -360,19 +365,23 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 							float newreferenceVar = referenceVar;
 							if (bSize != referenceSize){
 
-								const float newTargetValue = overlap ? rReferenceValue : 0.0f;
-								const float newargetMean = REDUCE(sData, newTargetValue, tid) / bSize;
-								newreferenceTemp = overlap ? newTargetValue - newargetMean : 0.0f;
+                                                                const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
+                                                                const float newReferenceMean = REDUCE(sData, newReferenceValue, tid) / bSize;
+                                                                newreferenceTemp = overlap ? newReferenceValue - newReferenceMean : 0.0f;
 								newreferenceVar = REDUCE(sData, newreferenceTemp*newreferenceTemp, tid);
 							}
 
 							const float rChecked = overlap ? rWarpedValue : 0.0f;
 							const float warpedMean = REDUCE(sData, rChecked, tid) / bSize;
 							const float warpedTemp = overlap ? rWarpedValue - warpedMean : 0.0f;
-							const float warpedVar = REDUCE(sData, warpedTemp*warpedTemp, tid);
-
+                                                        float warpedVar = REDUCE(sData, warpedTemp*warpedTemp, tid);
 							const float sumReferenceWarped = REDUCE(sData, (newreferenceTemp)*(warpedTemp), tid);
-							const float localCC = fabs((sumReferenceWarped) / sqrt(newreferenceVar*warpedVar));
+
+                                                        //To be consistent with the variables name
+                                                        newreferenceVar = newreferenceVar / bSize;
+                                                        warpedVar = warpedVar / bSize;
+
+                                                        const float localCC = sumReferenceWarped > 0.0 ? fabs((sumReferenceWarped/ bSize) / sqrt(newreferenceVar*warpedVar)) : 0;
 
 							if (tid == 0 && localCC > bestCC) {
 								bestCC = localCC;

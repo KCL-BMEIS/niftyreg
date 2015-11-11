@@ -190,46 +190,52 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
       //for most cases we need this out of th loop
       //value if the block is 4x4x4 NaN otherwise
       float rTargetValue = (targetInBounds && mask[imgIdx] > -1) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
-      const bool finiteTargetIntensity = isfinite(rTargetValue);
-      rTargetValue = finiteTargetIntensity ? rTargetValue : 0.f;
+      const bool finiteReferenceIntensity = isfinite(rTargetValue);
+      rTargetValue = finiteReferenceIntensity ? rTargetValue : 0.f;
 
-      const unsigned int targetBlockSize = __syncthreads_count(finiteTargetIntensity);
+      const unsigned int targetBlockSize = __syncthreads_count(finiteReferenceIntensity);
 
       if (targetBlockSize > 8) {
          //the target values must remain constant throughout the block matching process
-         const float targetMean = __fdividef(blockReduce2DSum(rTargetValue, tid), targetBlockSize);
-         const float targetTemp = finiteTargetIntensity ? rTargetValue - targetMean : 0.f;
-         const float targetVar = blockReduce2DSum(targetTemp * targetTemp, tid);
+         const float referenceMean = __fdividef(blockReduce2DSum(rTargetValue, tid), targetBlockSize);
+         const float referenceTemp = finiteReferenceIntensity ? rTargetValue - referenceMean : 0.f;
+         const float referenceVar = blockReduce2DSum(referenceTemp * referenceTemp, tid);
 
          // iteration over the result blocks (block matching part)
          for (unsigned int m = 1; m < blocksRange * 8 /*2*4*/; m += stepSize) {
             for (unsigned int l = 1; l < blocksRange * 8 /*2*4*/; l += stepSize) {
 
                const unsigned int sIdxIn = (idy + m) * numBlocks * 4 + idx + l;
-               const float rResultValue = sResultValues[sIdxIn];
-               const bool overlap = isfinite(rResultValue) && finiteTargetIntensity;
+
+               const float rWarpedValue = sResultValues[sIdxIn];
+               const bool overlap = isfinite(rWarpedValue) && finiteReferenceIntensity;
                const unsigned int blockSize = __syncthreads_count(overlap);
 
                if (blockSize > 8) {
 
                   //the target values must remain intact at each loop, so please do not touch this!
-                  float newTargetTemp = targetTemp;
-                  float newTargetVar = targetVar;
+                  float newReferenceTemp = referenceTemp;
+                  float newReferenceVar = referenceVar;
                   if (blockSize != targetBlockSize) {
 
-                     const float newTargetValue = overlap ? rTargetValue : 0.0f;
-                     const float newTargetMean = __fdividef(blockReduce2DSum(newTargetValue, tid), blockSize);
-                     newTargetTemp = overlap ? newTargetValue - newTargetMean : 0.0f;
-                     newTargetVar = blockReduce2DSum(newTargetTemp * newTargetTemp, tid);
+                     const float newReferenceValue = overlap ? rTargetValue : 0.0f;
+                     const float newReferenceMean = __fdividef(blockReduce2DSum(newReferenceValue, tid), blockSize);
+                     newReferenceTemp = overlap ? newReferenceValue - newReferenceMean : 0.0f;
+                     newReferenceVar = blockReduce2DSum(newReferenceTemp * newReferenceTemp, tid);
                   }
 
-                  const float rChecked = overlap ? rResultValue : 0.0f;
-                  const float resultMean = __fdividef(blockReduce2DSum(rChecked, tid), blockSize);
-                  const float resultTemp = overlap ? rChecked - resultMean : 0.0f;
-                  const float resultVar = blockReduce2DSum(resultTemp * resultTemp, tid);
+                  const float rChecked = overlap ? rWarpedValue : 0.0f;
+                  const float warpedMean = __fdividef(blockReduce2DSum(rChecked, tid), blockSize);
+                  const float warpedTemp = overlap ? rChecked - warpedMean : 0.0f;
+                  float warpedVar = blockReduce2DSum(warpedTemp * warpedTemp, tid);
 
-                  const float sumTargetResult = blockReduce2DSum((newTargetTemp)* (resultTemp), tid);
-                  const float localCC = fabs((sumTargetResult)* rsqrtf(newTargetVar * resultVar));
+                  const float sumReferenceResult = blockReduce2DSum((newReferenceTemp)* (warpedTemp), tid);
+
+                  //To be consistent with the variables name
+                  newReferenceVar = newReferenceVar / blockSize;
+                  warpedVar = warpedVar / blockSize;
+
+                  const float localCC = sumReferenceResult > 0.0 ? fabs((sumReferenceResult / blockSize) * rsqrtf(newReferenceVar * warpedVar)) : 0;
 
                   if (tid == 0 && localCC > bestCC) {
                      bestCC = localCC;
@@ -363,10 +369,15 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                      const float rChecked = overlap ? rResultValue : 0.0f;
                      const float resultMean = __fdividef(blockReduceSum(rChecked, tid), blockSize);
                      const float resultTemp = overlap ? rChecked - resultMean : 0.0f;
-                     const float resultVar = blockReduceSum(resultTemp * resultTemp, tid);
+                     float resultVar = blockReduceSum(resultTemp * resultTemp, tid);
 
                      const float sumTargetResult = blockReduceSum((newTargetTemp)* (resultTemp), tid);
-                     const float localCC = fabs((sumTargetResult)* rsqrtf(newTargetVar * resultVar));
+
+                     //To be consistent with the variables name
+                     newTargetVar = newTargetVar / blockSize;
+                     resultVar = resultVar / blockSize;
+
+                     const float localCC = sumTargetResult > 0.0 ? fabs((sumTargetResult / blockSize) * rsqrtf(newTargetVar * resultVar)) : 0;
 
                      if (tid == 0 && localCC > bestCC) {
                         bestCC = localCC;
