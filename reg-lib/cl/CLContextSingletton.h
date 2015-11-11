@@ -59,9 +59,8 @@ private:
 	static CLContextSingletton* _instance;
 
 	CLContextSingletton();
-	~CLContextSingletton()
-	{
-		shutDown();
+    ~CLContextSingletton() {
+        shutDown();
 	}
 
 	CLContextSingletton(CLContextSingletton const&);// Don't Implement

@@ -140,7 +140,7 @@ void CLContextSingletton::shutDown()
 	if (this->context != 0) clReleaseContext(this->context);
 	if (this->commandQueue != 0) clReleaseCommandQueue(this->commandQueue);
 
-	delete this->devices;
+    delete[] this->devices;
 }
 /* *************************************************************** */
 void CLContextSingletton::checDebugKernelInfo(cl_program program, cl_device_id devIdIn, char* message)
