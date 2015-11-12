@@ -36,7 +36,11 @@ void showCLInfo(void)
 //         DeviceLog<cl_bool>::show(devices[j], CL_DEVICE_COMPILER_AVAILABLE, "CL_DEVICE_COMPILER_AVAILABLE");
 //         DeviceLog<cl_device_exec_capabilities>::show(devices[j], CL_DEVICE_EXECUTION_CAPABILITIES, "CL_DEVICE_EXECUTION_CAPABILITIES");
 //         DeviceLog<cl_command_queue_properties>::show(devices[j], CL_DEVICE_QUEUE_PROPERTIES, "CL_DEVICE_QUEUE_PROPERTIES");
+#ifdef CL_DEVICE_DOUBLE_FP_CONFIG
          DeviceLog<cl_int>::show(devices[j], CL_DEVICE_DOUBLE_FP_CONFIG, "Device double config");
+#else
+         DeviceLog<cl_int>::show(devices[j], CL_DEVICE_SINGLE_FP_CONFIG, "Device single config only");
+#endif
          printf("-----------------------------------\n");
       }
    }
