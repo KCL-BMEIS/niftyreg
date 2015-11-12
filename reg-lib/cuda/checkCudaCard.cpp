@@ -22,7 +22,7 @@ int main() {
 	}
 
 	//	output for device capability
-	printf("%1.1f", output / 10.0);
+    printf("%i", output);
 
 	return EXIT_SUCCESS;
 }

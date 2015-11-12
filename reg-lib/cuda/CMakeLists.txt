@@ -31,10 +31,10 @@ else(NOT COMPILE_RESULT_VAR)
 	message(STATUS "Found CUDA (v${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}) and a CUDA-enabled card (capability ${RUN_OUTPUT_VAR})")
 	set(CUDA_NVCC_FLAGS "")
 	#check cuda version and adjust compile flags
-	if(NOT "${RUN_OUTPUT_VAR}" MATCHES "^3\\.0$")
+        if("${RUN_OUTPUT_VAR}" LESS "30")
 		set(USE_CUDA OFF CACHE BOOL "To use the CUDA platform" FORCE)
 		message(ERROR "CUDA card with capability 1.x or 2.x are not supported. The USE_CUDA flag is turned OFF")
-	endif(NOT "${RUN_OUTPUT_VAR}" MATCHES "^3\\.0$")
+        endif("${RUN_OUTPUT_VAR}" LESS "30")
 	string(REPLACE "." "" CAPABILITY_CODE ${RUN_OUTPUT_VAR})
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_${CAPABILITY_CODE},code=sm_${CAPABILITY_CODE}")
 	#adjust for debug and release versions
