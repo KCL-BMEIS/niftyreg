@@ -36,6 +36,8 @@ void showCLInfo(void)
 //         DeviceLog<cl_bool>::show(devices[j], CL_DEVICE_COMPILER_AVAILABLE, "CL_DEVICE_COMPILER_AVAILABLE");
 //         DeviceLog<cl_device_exec_capabilities>::show(devices[j], CL_DEVICE_EXECUTION_CAPABILITIES, "CL_DEVICE_EXECUTION_CAPABILITIES");
 //         DeviceLog<cl_command_queue_properties>::show(devices[j], CL_DEVICE_QUEUE_PROPERTIES, "CL_DEVICE_QUEUE_PROPERTIES");
+           DeviceLog<cl_int>::show(devices[j], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, "Device double config");
+           DeviceLog<cl_int>::show(devices[j], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, "Device double config");
 #ifdef CL_DEVICE_DOUBLE_FP_CONFIG
          DeviceLog<cl_int>::show(devices[j], CL_DEVICE_DOUBLE_FP_CONFIG, "Device double config");
 #else

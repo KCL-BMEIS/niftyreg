@@ -148,12 +148,12 @@ int main(int argc, char **argv)
 
     //Check if platform == CL
     double proper_eps = 0;
-    if (platformCode == NR_PLATFORM_CL) {
-        proper_eps = EPS_CL;
-    }
-    else {
-        proper_eps = EPS;
-    }
+    //if (platformCode == NR_PLATFORM_CL) {
+    //    proper_eps = EPS_CL;
+    //}
+    //else {
+    proper_eps = EPS;
+    //}
 
 #ifndef NDEBUG
     if (max_difference > proper_eps) {

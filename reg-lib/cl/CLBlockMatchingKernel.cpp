@@ -79,10 +79,10 @@ void CLBlockMatchingKernel::calculate()
                                           sizeof(int), &(this->params->definedActiveBlockNumber), &errNum);
    this->sContext->checkErrNum(errNum, "CLBlockMatchingKernel::calculate failed to allocate memory (cldefinedBlock) ");
 
-   const cl_uint4 imageSize = {(uint)this->reference->nx,
-                               (uint)this->reference->ny,
-                               (uint)this->reference->nz,
-                               (uint)0};
+   const cl_uint4 imageSize = {(cl_uint)this->reference->nx,
+                               (cl_uint)this->reference->ny,
+                               (cl_uint)this->reference->nz,
+                               (cl_uint)0};
 
    size_t globalWorkSize[3] = { (size_t)params->blockNumber[0] * 4,
                                 (size_t)params->blockNumber[1] * 4,
