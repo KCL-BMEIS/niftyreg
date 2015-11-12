@@ -14,28 +14,10 @@
 
 #ifdef _USE_OPENCL
 #include "CLAladinContent.h"
-#if defined(cl_khr_fp64)  // Khronos extension available?
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#define DOUBLE_SUPPORT_AVAILABLE
-#elif defined(cl_amd_fp64)  // AMD extension available?
-#pragma OPENCL EXTENSION cl_amd_fp64 : enable
-#define DOUBLE_SUPPORT_AVAILABLE
-#else
-#if _MSC_VER
-#pragma message("double precision floating point not supported by OpenCL implementation.")
-#else
-#warning "double precision floating point not supported by OpenCL implementation."
-#endif
-#endif
-#endif
-
-#if defined(DOUBLE_SUPPORT_AVAILABLE)
-#define EPS_CL 0.000001
-#else
-#define EPS_CL 0.0001
 #endif
 
 #define EPS 0.000001
+#define EPS_SINGLE 0.0001
 
 void test(AladinContent *con, int platformCode) {
 
@@ -108,6 +90,12 @@ int main(int argc, char **argv)
         reg_print_msg_error("The platform code is not suppoted");
         return EXIT_FAILURE;
     }
+    //Check if the platform used is double capable
+    bool isDouble = con->isCurrentComputationDoubleCapable();
+    double proper_eps = EPS;
+    if(isDouble == 0) {
+        proper_eps = EPS_SINGLE;
+    }
 
     //CPU or GPU code
     reg_tools_changeDatatype<float>(referenceImage);
@@ -126,16 +114,6 @@ int main(int argc, char **argv)
 
     delete con;
     free(inputMatrix);
-
-    //Check if platform == CL
-    double proper_eps = 0;
-    if (platformCode == NR_PLATFORM_CL) {
-        proper_eps = EPS_CL;
-    }
-    else {
-        proper_eps = EPS;
-    }
-
 
     if (max_difference > proper_eps){
         fprintf(stderr, "reg_test_affine_deformation_field error too large: %g (>%g)\n",

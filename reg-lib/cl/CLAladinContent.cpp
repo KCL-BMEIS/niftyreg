@@ -445,3 +445,7 @@ void ClAladinContent::freeClPtrs()
 	}
 }
 /* *************************************************************** */
+bool ClAladinContent::isCurrentComputationDoubleCapable() {
+    return this->sContext->getIsCardDoubleCapable();
+}
+/* *************************************************************** */

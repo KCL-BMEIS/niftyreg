@@ -556,3 +556,7 @@ void CudaAladinContent::freeCuPtrs()
    }
 }
 /* *************************************************************** */
+bool CudaAladinContent::isCurrentComputationDoubleCapable() {
+    return this->cudaSContext->getIsCardDoubleCapable();
+}
+/* *************************************************************** */

@@ -218,4 +218,7 @@ void AladinContent::ClearWarpedImage()
 	this->CurrentWarped = NULL;
 }
 /* *************************************************************** */
-
+bool AladinContent::isCurrentComputationDoubleCapable()
+{
+    return true;
+}

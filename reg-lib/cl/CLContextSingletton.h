@@ -53,6 +53,8 @@ public:
 	size_t getMaxThreads();
 
 	unsigned int getMaxBlocks();
+    bool getIsCardDoubleCapable();
+
 	size_t getwarpGroupLength(cl_kernel kernel);
 
 private:
@@ -77,6 +79,7 @@ private:
 	cl_uint  numDevices;
 	size_t maxThreads;
 
+    bool isCardDoubleCapable;
 	unsigned int maxBlocks;
 	unsigned clIdx;
 };

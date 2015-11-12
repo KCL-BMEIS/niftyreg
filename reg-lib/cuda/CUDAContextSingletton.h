@@ -17,6 +17,8 @@ class CUDAContextSingletton
 
         CUcontext getContext();
 
+        bool getIsCardDoubleCapable();
+
      private:
 
         static CUDAContextSingletton* _instance;
@@ -27,6 +29,7 @@ class CUDAContextSingletton
         CUDAContextSingletton(CUDAContextSingletton const&);// Don't Implement
         void operator=(CUDAContextSingletton const&); // Don't implement
 
+        bool isCardDoubleCapable;
         CUcontext cudaContext;
         unsigned numDevices;
         unsigned cudaIdx;

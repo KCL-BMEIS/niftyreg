@@ -42,6 +42,8 @@ public:
 						 size_t byte);
 	~ClAladinContent();
 
+    bool isCurrentComputationDoubleCapable();
+
 	//opencl getters
 	cl_mem getReferenceImageArrayClmem();
 	cl_mem getFloatingImageArrayClmem();

@@ -77,8 +77,8 @@ private:
 	void allocateCuPtrs();
 	void freeCuPtrs();
 
-    CUDAContextSingletton* cudaSContext;
-    CUcontext cudaContext;
+        CUDAContextSingletton* cudaSContext;
+        CUcontext cudaContext;
 
 	float *referenceImageArray_d;
 	float *floatingImageArray_d;

@@ -102,6 +102,8 @@ public:
         blockMatchingParams = bmp;
     }
 
+    virtual bool isCurrentComputationDoubleCapable();
+
 protected:
 	nifti_image *CurrentDeformationField;
 	nifti_image *CurrentWarped;

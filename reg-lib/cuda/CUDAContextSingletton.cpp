@@ -104,6 +104,11 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
 
 }
 /* *************************************************************** */
+bool CUDAContextSingletton::getIsCardDoubleCapable()
+{
+    return this->isCardDoubleCapable;
+}
+/* *************************************************************** */
 CUDAContextSingletton::~CUDAContextSingletton()
 {
    cuCtxDestroy(this->cudaContext);
