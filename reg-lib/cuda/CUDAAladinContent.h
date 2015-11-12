@@ -35,6 +35,8 @@ public:
 					size_t byte);
 	~CudaAladinContent();
 
+    bool isCurrentComputationDoubleCapable();
+
 	//device getters
 	float* getReferenceImageArray_d();
 	float* getFloatingImageArray_d();

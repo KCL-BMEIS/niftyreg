@@ -38,17 +38,24 @@ CUcontext CUDAContextSingletton::getContext()
 /* *************************************************************** */
 void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
 {
-
-   if(deviceId < this->numDevices){
+    struct cudaDeviceProp deviceProp;
+    if(deviceId < this->numDevices) {
       this->cudaIdx=deviceId;
       //
       NR_CUDA_SAFE_CALL(cudaSetDevice(this->cudaIdx));
-      NR_CUDA_SAFE_CALL(cuCtxCreate(&this->cudaContext, CU_CTX_SCHED_SPIN, this->cudaIdx))
+      NR_CUDA_SAFE_CALL(cuCtxCreate(&this->cudaContext, CU_CTX_SCHED_SPIN, this->cudaIdx));
+      //
+      cudaGetDeviceProperties(&deviceProp, this->cudaIdx);
+      if(deviceProp.major > 0 && deviceProp.minor > 2) {
+          this->isCardDoubleCapable = true;
+      }
+      else {
+          this->isCardDoubleCapable = false;
+      }
       //
       return;
-   }
+    }
 
-   struct cudaDeviceProp deviceProp;
    // following code is from cutGetMaxGflopsDeviceId()
    int max_gflops_device = 0;
    int max_gflops = 0;
@@ -100,6 +107,15 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
              deviceProp.multiProcessorCount);
 #endif
       this->cudaIdx = max_gflops_device;
+      //
+      cudaGetDeviceProperties(&deviceProp, this->cudaIdx);
+      if(deviceProp.major > 0 && deviceProp.minor > 2) {
+          this->isCardDoubleCapable = true;
+      }
+      else {
+          this->isCardDoubleCapable = false;
+      }
+      //
    }
 
 }
