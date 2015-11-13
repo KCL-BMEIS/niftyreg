@@ -16,19 +16,19 @@
 /* *************************************************************** */
 __device__ __inline__ void getPosition(float* position, float* matrix, float* voxel, const unsigned int idx)
 {
-   position[idx] = matrix[idx * 4 + 0] * voxel[0] +
-         matrix[idx * 4 + 1] * voxel[1] +
-         matrix[idx * 4 + 2] * voxel[2] +
-         matrix[idx * 4 + 3];
+   position[idx] = (float) ((double) matrix[idx * 4 + 0] * voxel[0] +
+         (double) matrix[idx * 4 + 1] * voxel[1] +
+         (double) matrix[idx * 4 + 2] * voxel[2] +
+         (double) matrix[idx * 4 + 3]);
 }
 /* *************************************************************** */
 __device__ __inline__ double getPosition(float* matrix, double* voxel, const unsigned int idx)
 {
    unsigned long index = idx * 4;
    return (double)matrix[index++] * voxel[0] +
-         (double)matrix[index++] * voxel[1] +
-         (double)matrix[index++] * voxel[2] +
-         (double)matrix[index];
+          (double)matrix[index++] * voxel[1] +
+          (double)matrix[index++] * voxel[2] +
+          (double)matrix[index];
 }
 /* *************************************************************** */
 __global__ void affineKernel(float* transformationMatrix,

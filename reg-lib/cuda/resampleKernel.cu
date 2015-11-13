@@ -47,7 +47,7 @@ __device__ __inline__ void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE
    return;
 }
 /* *************************************************************** */
-__device__ __inline__ int cuda_reg_floor(float a)
+__device__ __inline__ int cuda_reg_floor(double a)
 {
    return (int) (floor(a));
 }
@@ -55,9 +55,9 @@ __device__ __inline__ int cuda_reg_floor(float a)
 template<class FieldTYPE>
 __device__ __inline__ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
 {
-	if (ratio < 0.0f)
-		ratio = 0.0f; //reg_rounding error
-	FieldTYPE FF = ratio * ratio;
+    if (ratio < 0.0)
+        ratio = 0.0; //reg_rounding error
+    double FF = (double) ratio * ratio;
     basis[0] = (FieldTYPE) ((ratio * (((double)2.0 - ratio) * ratio - (double)1.0)) / (double)2.0);
     basis[1] = (FieldTYPE) ((FF * ((double)3.0 * ratio - 5.0) + 2.0) / (double)2.0);
     basis[2] = (FieldTYPE) ((ratio * (((double)4.0 - (double)3.0 * ratio) * ratio + (double)1.0)) / (double)2.0);
@@ -159,13 +159,13 @@ __inline__ __device__ double interpLoop2D(float* floatingIntensity,
 }
 /* *************************************************************** */
 __inline__ __device__ double interpLoop3D(float* floatingIntensity,
-													 double* xBasis,
-													 double* yBasis,
-													 double* zBasis,
-													 int *previous,
-													 uint3 fi_xyz,
-													 float paddingValue,
-													 unsigned int kernel_size)
+                                          double* xBasis,
+                                          double* yBasis,
+                                          double* zBasis,
+                                          int *previous,
+                                          uint3 fi_xyz,
+                                          float paddingValue,
+                                          unsigned int kernel_size)
 {
 	double intensity = (double)(0.0);
 	for (int c = 0; c < kernel_size; c++) {
@@ -439,7 +439,7 @@ void launchResample(nifti_image *floatingImage,
 	 }
 #ifndef NDEBUG
 	NR_CUDA_CHECK_KERNEL(mygrid, myblocks)
-		#else
+#else
 	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 #endif
 }

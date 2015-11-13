@@ -34,9 +34,8 @@ typedef float16 real16_t;
 #endif
 /* *************************************************************** */
 /* *************************************************************** */
-__inline__ real_t getPosition(__global float* matrix,
-										real_t* voxel,
-										const unsigned int idx)
+__inline__ real_t getPosition(__global float* matrix, real_t* voxel,
+                                                const unsigned int idx)
 {
    size_t index = idx*4;
    return (real_t)matrix[index++] * voxel[0] +
