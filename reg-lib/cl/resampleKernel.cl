@@ -73,7 +73,7 @@ __inline void interpCubicSplineKernel(real_t relative, real_t *basis)
     }
     real_t FF = relative * relative;
     basis[0] = (relative * (((real_t) 2.0 - relative) * relative - (real_t) 1.0)) / (real_t) 2.0;
-    basis[1] = (FF * ((real_t) 3.0 * relative - 5.0) + 2.0) / 2.0;
+    basis[1] = (FF * ((real_t) 3.0 * relative - 5.0) + 2.0) / (real_t) 2.0;
     basis[2] = (relative * (((real_t) 4.0 - (real_t) 3.0 * relative) * relative + (real_t) 1.0)) / (real_t) 2.0;
     basis[3] = (relative - (real_t) 1.0) * FF / (real_t) 2.0;
 

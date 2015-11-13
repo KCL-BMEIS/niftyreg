@@ -58,10 +58,10 @@ __device__ __inline__ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *ba
 	if (ratio < 0.0f)
 		ratio = 0.0f; //reg_rounding error
 	FieldTYPE FF = ratio * ratio;
-	basis[0] = (FieldTYPE) ((ratio * ((2.0f - ratio) * ratio - 1.0f)) / 2.0f);
-	basis[1] = (FieldTYPE) ((FF * (3.0f * ratio - 5.0) + 2.0f) / 2.0f);
-	basis[2] = (FieldTYPE) ((ratio * ((4.0f - 3.0f * ratio) * ratio + 1.0f)) / 2.0f);
-	basis[3] = (FieldTYPE) ((ratio - 1.0f) * FF / 2.0f);
+    basis[0] = (FieldTYPE) ((ratio * (((double)2.0 - ratio) * ratio - (double)1.0)) / (double)2.0);
+    basis[1] = (FieldTYPE) ((FF * ((double)3.0 * ratio - 5.0) + 2.0) / (double)2.0);
+    basis[2] = (FieldTYPE) ((ratio * (((double)4.0 - (double)3.0 * ratio) * ratio + (double)1.0)) / (double)2.0);
+    basis[3] = (FieldTYPE) ((ratio - (double)1.0) * FF / (double)2.0);
 }
 /* *************************************************************** */
 __device__ __inline__
