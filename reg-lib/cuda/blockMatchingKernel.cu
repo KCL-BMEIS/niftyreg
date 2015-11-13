@@ -161,34 +161,29 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 
 				const int indexXYIn = xImageIn + c_ImageSize.x * yImageIn;
 
-				const bool valid =
-						(xImageIn > -1 && xImageIn < (int)c_ImageSize.x) &&
-						(yImageIn > -1 && yImageIn < (int)c_ImageSize.y);
-				sWarpedValues[sharedIndex] = (valid && mask[indexXYIn] > -1) ?
-							tex1Dfetch(warpedImageArray_texture, indexXYIn) : nanf("sNaN");     //for some reason the mask here creates probs
+                const bool valid = (xImageIn > -1 && xImageIn < (int)c_ImageSize.x) && (yImageIn > -1 && yImageIn < (int)c_ImageSize.y);
+                sWarpedValues[sharedIndex] = (valid && mask[indexXYIn] > -1) ? tex1Dfetch(warpedImageArray_texture, indexXYIn) : nanf("sNaN");     //for some reason the mask here creates probs
 			}
 		}
 
 		//for most cases we need this out of th loop
 		//value if the block is 4x4 NaN otherwise
 		const unsigned long voxIndex = yImage * c_ImageSize.x + xImage;
-		const bool referenceInBounds =
-				xImage < c_ImageSize.x &&
-				yImage < c_ImageSize.y;
+        const bool referenceInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y;
 		float rReferenceValue = (referenceInBounds && mask[voxIndex] > -1) ?
 					tex1Dfetch(referenceImageArray_texture, voxIndex) : nanf("sNaN");
 		const bool finiteReference = isfinite(rReferenceValue);
 		rReferenceValue = finiteReference ? rReferenceValue : 0.f;
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
 
-		float bestDisplacement[2] = { nanf("sNaN"), 0.0f};
+        float bestDisplacement[2] = {nanf("sNaN"), 0.0f};
 		float bestCC = 0.0f;
 
 		if (referenceSize > 8) {
 			//the target values must remain constant throughout the block matching process
-			const float referenceMean = __fdividef(blockReduceSum(rReferenceValue, tid), referenceSize);
+            const float referenceMean = __fdividef(blockReduce2DSum(rReferenceValue, tid), referenceSize);
 			const float referenceTemp = finiteReference ? rReferenceValue - referenceMean : 0.f;
-			const float referenceVar = blockReduceSum(referenceTemp * referenceTemp, tid);
+            const float referenceVar = blockReduce2DSum(referenceTemp * referenceTemp, tid);
 
 			// iteration over the result blocks (block matching part)
 			for (unsigned int m=1; m<8; ++m) {
@@ -206,23 +201,23 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 						float newreferenceVar = referenceVar;
 						if (currentWarpedSize != referenceSize){
 							const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
-							const float newReferenceMean = __fdividef(blockReduceSum(newReferenceValue, tid), currentWarpedSize);
+                            const float newReferenceMean = __fdividef(blockReduce2DSum(newReferenceValue, tid), currentWarpedSize);
 							newreferenceTemp = overlap ? newReferenceValue - newReferenceMean : 0.0f;
-							newreferenceVar = blockReduceSum(newreferenceTemp * newreferenceTemp, tid);
+                            newreferenceVar = blockReduce2DSum(newreferenceTemp * newreferenceTemp, tid);
 						}
 
 						const float rChecked = overlap ? rWarpedValue : 0.0f;
-						const float warpedMean = __fdividef(blockReduceSum(rChecked, tid), currentWarpedSize);
+                        const float warpedMean = __fdividef(blockReduce2DSum(rChecked, tid), currentWarpedSize);
 						const float warpedTemp = overlap ? rChecked - warpedMean : 0.0f;
-						const float warpedVar = blockReduceSum(warpedTemp * warpedTemp, tid);
+                        const float warpedVar = blockReduce2DSum(warpedTemp * warpedTemp, tid);
 
-						const float sumTargetResult = blockReduceSum((newreferenceTemp)* (warpedTemp), tid);
+                        const float sumTargetResult = blockReduce2DSum((newreferenceTemp)* (warpedTemp), tid);
 						const float localCC = fabs((sumTargetResult)* rsqrtf(newreferenceVar * warpedVar));
 
 						if (tid == 0 && localCC > bestCC) {
 							bestCC = localCC;
 							bestDisplacement[0] = l - 4.f;
-							bestDisplacement[1] = m - 4.f;
+                            bestDisplacement[1] = m - 4.f;
 						}
 					}
 				}
@@ -231,7 +226,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 
         if (tid==0){
             const unsigned int posIdx = 2 * currentBlockIndex;
-            const float referencePosition_temp[2] = { (float)xImage, (float)yImage};
+            const float referencePosition_temp[2] = {(float)xImage, (float)yImage};
 
             bestDisplacement[0] += referencePosition_temp[0];
             bestDisplacement[1] += referencePosition_temp[1];
@@ -584,11 +579,11 @@ void block_matching_method_gpu(nifti_image *targetImage,
 {
 	// Copy some required parameters over to the device
 	uint3 imageSize = make_uint3(targetImage->nx,
-										  targetImage->ny,
-										  targetImage->nz);
-	uint3 blockSize = make_uint3(params->blockNumber[0],
-			params->blockNumber[1],
-			params->blockNumber[2]);
+                                         targetImage->ny,
+                                         targetImage->nz);
+    uint3 blockSize = make_uint3(params->blockNumber[0],
+                                    params->blockNumber[1],
+                                    params->blockNumber[2]);
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize,&imageSize,sizeof(uint3)));
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_BlockDim,&blockSize,sizeof(uint3)));
 
