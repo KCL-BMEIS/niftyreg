@@ -64,6 +64,7 @@ typedef struct
    bool nosclFlag;
    bool removeNanInf;
    bool changeResFlag;
+   bool rgbFlag;
 } FLAG;
 
 
@@ -295,6 +296,10 @@ int main(int argc, char **argv)
          param->pixdimX=atof(argv[++i]);
          param->pixdimY=atof(argv[++i]);
          param->pixdimZ=atof(argv[++i]);
+      }
+      else if(strcmp(argv[i], "-rgb") == 0)
+      {
+         flag->rgbFlag=1;
       }
       else
       {
@@ -784,6 +789,34 @@ int main(int argc, char **argv)
          reg_io_WriteImageFile(newImg,param->outputImageName);
       else reg_io_WriteImageFile(newImg,"output.nii");
       nifti_image_free(newImg);
+   }
+   //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+   if(flag->rgbFlag)
+   {
+      if(image->datatype!=NIFTI_TYPE_RGB24){
+         reg_exit(1);
+      }
+      nifti_image *outputImage = nifti_copy_nim_info(image);
+      outputImage->data = (void *)malloc(outputImage->nbyper*outputImage->nvox);
+      unsigned char *inPtr = static_cast<unsigned char *>(image->data);
+      unsigned char *outPtr = static_cast<unsigned char *>(outputImage->data);
+      for(int t=0; t<3; ++t){
+         for(int z=0; z<image->nz; ++z){
+            for(int y=0; y<image->ny; ++y){
+               for(int x=0; x<image->nx; ++x){
+                  size_t outIndex = ((z*image->ny+y)*image->nx+x)*3+t;
+                  outPtr[outIndex] = *inPtr;
+                  ++inPtr;
+               }
+            }
+         }
+      }
+
+      if(flag->outputImageFlag)
+         reg_io_WriteImageFile(outputImage,param->outputImageName);
+      else reg_io_WriteImageFile(outputImage,"output.nii");
+      nifti_image_free(outputImage);
+      outputImage=NULL;
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 

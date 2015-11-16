@@ -81,56 +81,33 @@ __device__ inline void apply_affine(const float4 &pt, float * result)
 }
 /* *************************************************************** */
 __inline__ __device__
-float warpAllReduceSum(float val)
-{
-   for (int mask = 16; mask > 0; mask /= 2)
-      val += __shfl_xor(val, mask);
-   return val;
-}
-/* *************************************************************** */
-__inline__ __device__
-float warpReduceSum(float val)
-{
-   for (int offset = 16; offset > 0; offset /= 2)
-      val += __shfl_down(val, offset);
-   return val;
-}
-/* *************************************************************** */
-__inline__ __device__
 float blockReduce2DSum(float val, int tid)
 {
-   static __shared__ float shared[2];
-   int laneId = tid % 8;
-   int warpId = tid / 8;
-
-   val = warpReduceSum(val);     // Each warp performs partial reduction
-
-   if (laneId == 0)
-      shared[warpId] = val;
-   //if (blockIdx.x == 8 && blockIdx.y == 0 && blockIdx.z == 0) printf("idx: %d | lane: %d \n", tid, lane);
+   static __shared__ float shared[16];
+   shared[tid] = val;
    __syncthreads();
 
-   return shared[0] + shared[1];
+	for (unsigned int i = 8; i > 0; i >>= 1){
+		if (tid < i) shared[tid] += shared[tid + i];
+		__syncthreads();
+	}
+	return shared[0];
 }
 /* *************************************************************** */
 __inline__ __device__
 float blockReduceSum(float val, int tid)
 {
-   static __shared__ float shared[2];
-   int laneId = tid % 32;
-   int warpId = tid / 32;
-
-   val = warpReduceSum(val);     // Each warp performs partial reduction
-
-   if (laneId == 0)
-      shared[warpId] = val;
-   //if (blockIdx.x == 8 && blockIdx.y == 0 && blockIdx.z == 0) printf("idx: %d | lane: %d \n", tid, lane);
+   static __shared__ float shared[64];
+   shared[tid] = val;
    __syncthreads();
 
-   return shared[0] + shared[1];
+	for (unsigned int i = 32; i > 0; i >>= 1){
+		if (tid < i) shared[tid] += shared[tid + i];
+		__syncthreads();
+	}
+	return shared[0];
 }
 /* *************************************************************** */
-//recently switched to this kernel as it can accomodate greater capture range
 __global__ void blockMatchingKernel2D(float *warpedPosition,
                                       float *referencePosition,
                                       int *mask,
@@ -144,52 +121,57 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 	const int currentBlockIndex = tex1Dfetch(totalBlock_texture, bid);
 	if (currentBlockIndex > -1) {
 
-		const unsigned int tid = threadIdx.x;
-		const unsigned int idy = tid / 4;
-		const unsigned int idx = tid - 4 * idy;
+		const unsigned int idy = threadIdx.x;
+		const unsigned int idx = threadIdx.y;
+		const unsigned int tid = idy * 4 + idx;
 
 		const unsigned int xImage = blockIdx.x * 4 + idx;
 		const unsigned int yImage = blockIdx.y * 4 + idy;
 
 		//populate shared memory with resultImageArray's values
-		for (int m=-1; m<2; ++m) {
-			const int yImageIn = yImage + m * 4;
-			for (int l=-1; l<2; ++l) {
-				const int xImageIn = xImage + l * 4;
+		for (int y=-1; y<2; ++y) {
+			const int yImageIn = yImage + y * 4;
+			for (int x=-1; x<2; ++x) {
+				const int xImageIn = xImage + x * 4;
 
-				const int sharedIndex = ((m+1)*4+idy)*12+(l+1)*4+idx;
+				const int sharedIndex = ((y+1)*4+idy)*12+(x+1)*4+idx;
 
-				const int indexXYIn = xImageIn + c_ImageSize.x * yImageIn;
+				const int indexXYIn = yImageIn * c_ImageSize.x + xImageIn;
 
-                const bool valid = (xImageIn > -1 && xImageIn < (int)c_ImageSize.x) && (yImageIn > -1 && yImageIn < (int)c_ImageSize.y);
-                sWarpedValues[sharedIndex] = (valid && mask[indexXYIn] > -1) ? tex1Dfetch(warpedImageArray_texture, indexXYIn) : nanf("sNaN");     //for some reason the mask here creates probs
+				const bool valid =
+						(xImageIn > -1 && xImageIn < (int)c_ImageSize.x) &&
+						(yImageIn > -1 && yImageIn < (int)c_ImageSize.y);
+				sWarpedValues[sharedIndex] = (valid && mask[indexXYIn] > -1) ?
+							tex1Dfetch(warpedImageArray_texture, indexXYIn) : nanf("sNaN");
 			}
 		}
 
 		//for most cases we need this out of th loop
 		//value if the block is 4x4 NaN otherwise
 		const unsigned long voxIndex = yImage * c_ImageSize.x + xImage;
-        const bool referenceInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y;
+		const bool referenceInBounds =
+				xImage < c_ImageSize.x &&
+				yImage < c_ImageSize.y;
 		float rReferenceValue = (referenceInBounds && mask[voxIndex] > -1) ?
 					tex1Dfetch(referenceImageArray_texture, voxIndex) : nanf("sNaN");
 		const bool finiteReference = isfinite(rReferenceValue);
 		rReferenceValue = finiteReference ? rReferenceValue : 0.f;
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
 
-        float bestDisplacement[2] = {nanf("sNaN"), 0.0f};
+		float bestDisplacement[2] = {nanf("sNaN"), 0.0f};
 		float bestCC = 0.0f;
 
 		if (referenceSize > 8) {
 			//the target values must remain constant throughout the block matching process
-            const float referenceMean = __fdividef(blockReduce2DSum(rReferenceValue, tid), referenceSize);
+			const float referenceMean = __fdividef(blockReduce2DSum(rReferenceValue, tid), referenceSize);
 			const float referenceTemp = finiteReference ? rReferenceValue - referenceMean : 0.f;
-            const float referenceVar = blockReduce2DSum(referenceTemp * referenceTemp, tid);
+			const float referenceVar = blockReduce2DSum(referenceTemp * referenceTemp, tid);
 
 			// iteration over the result blocks (block matching part)
-			for (unsigned int m=1; m<8; ++m) {
-				for (unsigned int l=1; l<8; ++l) {
+			for (unsigned int y=1; y<8; ++y) {
+				for (unsigned int x=1; x<8; ++x) {
 
-					const unsigned int sharedIndex = ( m + idy ) * 12 + l + idx;
+					const unsigned int sharedIndex = ( y + idy ) * 12 + x + idx;
 					const float rWarpedValue = sWarpedValues[sharedIndex];
 					const bool overlap = isfinite(rWarpedValue) && finiteReference;
 					const unsigned int currentWarpedSize = __syncthreads_count(overlap);
@@ -201,51 +183,51 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 						float newreferenceVar = referenceVar;
 						if (currentWarpedSize != referenceSize){
 							const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
-                            const float newReferenceMean = __fdividef(blockReduce2DSum(newReferenceValue, tid), currentWarpedSize);
+							const float newReferenceMean = __fdividef(blockReduce2DSum(newReferenceValue, tid), currentWarpedSize);
 							newreferenceTemp = overlap ? newReferenceValue - newReferenceMean : 0.0f;
-                            newreferenceVar = blockReduce2DSum(newreferenceTemp * newreferenceTemp, tid);
+							newreferenceVar = blockReduce2DSum(newreferenceTemp * newreferenceTemp, tid);
 						}
 
 						const float rChecked = overlap ? rWarpedValue : 0.0f;
-                        const float warpedMean = __fdividef(blockReduce2DSum(rChecked, tid), currentWarpedSize);
+						const float warpedMean = __fdividef(blockReduce2DSum(rChecked, tid), currentWarpedSize);
 						const float warpedTemp = overlap ? rChecked - warpedMean : 0.0f;
-                        const float warpedVar = blockReduce2DSum(warpedTemp * warpedTemp, tid);
+						const float warpedVar = blockReduce2DSum(warpedTemp * warpedTemp, tid);
 
-                        const float sumTargetResult = blockReduce2DSum((newreferenceTemp)* (warpedTemp), tid);
+						const float sumTargetResult = blockReduce2DSum((newreferenceTemp)* (warpedTemp), tid);
 						const float localCC = fabs((sumTargetResult)* rsqrtf(newreferenceVar * warpedVar));
 
 						if (tid == 0 && localCC > bestCC) {
 							bestCC = localCC;
-							bestDisplacement[0] = l - 4.f;
-                            bestDisplacement[1] = m - 4.f;
+							bestDisplacement[0] = x - 4.f;
+							bestDisplacement[1] = y - 4.f;
 						}
 					}
 				}
 			}
 		}
 
-        if (tid==0){
-            const unsigned int posIdx = 2 * currentBlockIndex;
-            const float referencePosition_temp[2] = {(float)xImage, (float)yImage};
+		if (tid==0){
+			const unsigned int posIdx = 2 * currentBlockIndex;
+			const float referencePosition_temp[2] = {(float)xImage, (float)yImage};
 
-            bestDisplacement[0] += referencePosition_temp[0];
-            bestDisplacement[1] += referencePosition_temp[1];
+			bestDisplacement[0] += referencePosition_temp[0];
+			bestDisplacement[1] += referencePosition_temp[1];
 
-            reg2D_mat44_mul_cuda<float>(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
-            reg2D_mat44_mul_cuda<float>(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
+			reg2D_mat44_mul_cuda<float>(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
+			reg2D_mat44_mul_cuda<float>(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
 
-            if (isfinite(bestDisplacement[0])) {
-                atomicAdd(definedBlock, 1);
-            }
-        }
-    }
+			if (isfinite(bestDisplacement[0])) {
+				atomicAdd(definedBlock, 1);
+			}
+		}
+	}
 }
 /* *************************************************************** */
 #ifdef USE_TEST_KERNEL
 __inline__ __device__
 float2 REDUCE_TEST(float* sData,
-                  float data,
-                  unsigned int tid)
+                   float data,
+                   unsigned int tid)
 {
 	sData[tid] = data;
 	__syncthreads();
@@ -271,173 +253,173 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
    extern __shared__ float sWarpedValues[];
    float *sData = &sWarpedValues[12*12*16];
 
-	// Compute the current block index
-	const unsigned int bid0 = (2*blockIdx.z * gridDim.y + blockIdx.y) *
-			gridDim.x + blockIdx.x;
-	const unsigned int bid1 = bid0 + gridDim.x * gridDim.y;
-	int currentBlockIndex[2] = {tex1Dfetch(totalBlock_texture, bid0),
-										 tex1Dfetch(totalBlock_texture, bid1)};
-	currentBlockIndex[1] = (2*blockIdx.z+1)<c_BlockDim.z ? currentBlockIndex[1] : -1;
-	if (currentBlockIndex[0] > -1 || currentBlockIndex[1] > -1) {
-		const unsigned int idx = threadIdx.x;
-		const unsigned int idy = threadIdx.y;
-		const unsigned int idz = threadIdx.z;
-		const unsigned int tid = (idz*4+idy)*4+idx;
-		const unsigned int xImage = blockIdx.x * 4 + idx;
-		const unsigned int yImage = blockIdx.y * 4 + idy;
-		const unsigned int zImage = blockIdx.z * 8 + idz;
+   // Compute the current block index
+   const unsigned int bid0 = (2*blockIdx.z * gridDim.y + blockIdx.y) *
+         gridDim.x + blockIdx.x;
+   const unsigned int bid1 = bid0 + gridDim.x * gridDim.y;
+   int currentBlockIndex[2] = {tex1Dfetch(totalBlock_texture, bid0),
+                               tex1Dfetch(totalBlock_texture, bid1)};
+   currentBlockIndex[1] = (2*blockIdx.z+1)<c_BlockDim.z ? currentBlockIndex[1] : -1;
+   if (currentBlockIndex[0] > -1 || currentBlockIndex[1] > -1) {
+      const unsigned int idx = threadIdx.x;
+      const unsigned int idy = threadIdx.y;
+      const unsigned int idz = threadIdx.z;
+      const unsigned int tid = (idz*4+idy)*4+idx;
+      const unsigned int xImage = blockIdx.x * 4 + idx;
+      const unsigned int yImage = blockIdx.y * 4 + idy;
+      const unsigned int zImage = blockIdx.z * 8 + idz;
 
-		//populate shared memory with resultImageArray's values
-		for (int z=-1 ; z<2; z+=2) {
-			const int zImageIn = zImage + z * 4;
-			for (int y=-1; y<2; ++y) {
-				const int yImageIn = yImage + y * 4;
-				for (int x=-1; x<2; ++x) {
-					const int xImageIn = xImage + x * 4;
+      //populate shared memory with resultImageArray's values
+      for (int z=-1 ; z<2; z+=2) {
+         const int zImageIn = zImage + z * 4;
+         for (int y=-1; y<2; ++y) {
+            const int yImageIn = yImage + y * 4;
+            for (int x=-1; x<2; ++x) {
+               const int xImageIn = xImage + x * 4;
 
-					const int sharedIndex = (((z+1)*4+idz)*12+(y+1)*4+idy)*12+(x+1)*4+idx;
+               const int sharedIndex = (((z+1)*4+idz)*12+(y+1)*4+idy)*12+(x+1)*4+idx;
 
-					const unsigned int indexXYZIn = xImageIn + c_ImageSize.x *
-							(yImageIn + zImageIn * c_ImageSize.y);
+               const unsigned int indexXYZIn = xImageIn + c_ImageSize.x *
+                     (yImageIn + zImageIn * c_ImageSize.y);
 
-					const bool valid =
-							(xImageIn > -1 && xImageIn < (int)c_ImageSize.x) &&
-							(yImageIn > -1 && yImageIn < (int)c_ImageSize.y) &&
-							(zImageIn > -1 && zImageIn < (int)c_ImageSize.z);
-					sWarpedValues[sharedIndex] = (valid && mask[indexXYZIn] > -1) ?
-								tex1Dfetch(warpedImageArray_texture, indexXYZIn) : nanf("sNaN");
-				}
-			}
-		}
+               const bool valid =
+                     (xImageIn > -1 && xImageIn < (int)c_ImageSize.x) &&
+                     (yImageIn > -1 && yImageIn < (int)c_ImageSize.y) &&
+                     (zImageIn > -1 && zImageIn < (int)c_ImageSize.z);
+               sWarpedValues[sharedIndex] = (valid && mask[indexXYZIn] > -1) ?
+                        tex1Dfetch(warpedImageArray_texture, indexXYZIn) : nanf("sNaN");
+            }
+         }
+      }
 
-		const unsigned int voxIndex = ( zImage * c_ImageSize.y + yImage ) *
-				c_ImageSize.x + xImage;
-		const bool referenceInBounds =
-				xImage < c_ImageSize.x &&
-				yImage < c_ImageSize.y &&
-				zImage < c_ImageSize.z;
-		float rReferenceValue = (referenceInBounds && mask[voxIndex] > -1) ?
-					tex1Dfetch(referenceImageArray_texture, voxIndex) : nanf("sNaN");
-		const bool finiteReference = isfinite(rReferenceValue);
-		rReferenceValue = finiteReference ? rReferenceValue : 0.f;
-		float2 tempVal = REDUCE_TEST(sData, finiteReference ? 1.0f : 0.0f, tid);
-		const uint2 referenceSize = make_uint2((uint)tempVal.x, (uint)tempVal.y);
+      const unsigned int voxIndex = ( zImage * c_ImageSize.y + yImage ) *
+            c_ImageSize.x + xImage;
+      const bool referenceInBounds =
+            xImage < c_ImageSize.x &&
+            yImage < c_ImageSize.y &&
+            zImage < c_ImageSize.z;
+      float rReferenceValue = (referenceInBounds && mask[voxIndex] > -1) ?
+               tex1Dfetch(referenceImageArray_texture, voxIndex) : nanf("sNaN");
+      const bool finiteReference = isfinite(rReferenceValue);
+      rReferenceValue = finiteReference ? rReferenceValue : 0.f;
+      float2 tempVal = REDUCE_TEST(sData, finiteReference ? 1.0f : 0.0f, tid);
+      const uint2 referenceSize = make_uint2((uint)tempVal.x, (uint)tempVal.y);
 
-		float2 bestValue = make_float2(0.f, 0.f);
-		float bestDisp[2][3];
-		bestDisp[0][0] = bestDisp[1][0] = nanf("sNaN");
-		if (referenceSize.x > 32 || referenceSize.y > 32) {
-			float2 referenceMean=REDUCE_TEST(sData, rReferenceValue, tid);
-			referenceMean.x /= (float)referenceSize.x;
-			referenceMean.y /= (float)referenceSize.y;
-			float referenceTemp;
-			if(tid>63)
-				referenceTemp = finiteReference ? rReferenceValue - referenceMean.y : 0.f;
-			else referenceTemp = finiteReference ? rReferenceValue - referenceMean.x : 0.f;
-			float2 referenceVar = REDUCE_TEST(sData, referenceTemp*referenceTemp, tid);
+      float2 bestValue = make_float2(0.f, 0.f);
+      float bestDisp[2][3];
+      bestDisp[0][0] = bestDisp[1][0] = nanf("sNaN");
+      if (referenceSize.x > 32 || referenceSize.y > 32) {
+         float2 referenceMean=REDUCE_TEST(sData, rReferenceValue, tid);
+         referenceMean.x /= (float)referenceSize.x;
+         referenceMean.y /= (float)referenceSize.y;
+         float referenceTemp;
+         if(tid>63)
+            referenceTemp = finiteReference ? rReferenceValue - referenceMean.y : 0.f;
+         else referenceTemp = finiteReference ? rReferenceValue - referenceMean.x : 0.f;
+         float2 referenceVar = REDUCE_TEST(sData, referenceTemp*referenceTemp, tid);
 
-			// iteration over the result blocks (block matching part)
-			for (unsigned int z=1; z<8; ++z) {
-				for (unsigned int y=1; y<8; ++y) {
-					for (unsigned int x=1; x<8; ++x) {
+         // iteration over the result blocks (block matching part)
+         for (unsigned int z=1; z<8; ++z) {
+            for (unsigned int y=1; y<8; ++y) {
+               for (unsigned int x=1; x<8; ++x) {
 
-						const unsigned int sharedIndex = ( (z+idz) * 12 + y + idy ) * 12 + x + idx;
-						const float rWarpedValue = sWarpedValues[sharedIndex];
-						const bool overlap = isfinite(rWarpedValue) && finiteReference;
-						tempVal = REDUCE_TEST(sData, overlap ? 1.0f : 0.0f, tid);
-						const uint2 currentWarpedSize = make_uint2((uint)tempVal.x, (uint)tempVal.y);
+                  const unsigned int sharedIndex = ( (z+idz) * 12 + y + idy ) * 12 + x + idx;
+                  const float rWarpedValue = sWarpedValues[sharedIndex];
+                  const bool overlap = isfinite(rWarpedValue) && finiteReference;
+                  tempVal = REDUCE_TEST(sData, overlap ? 1.0f : 0.0f, tid);
+                  const uint2 currentWarpedSize = make_uint2((uint)tempVal.x, (uint)tempVal.y);
 
-						if (currentWarpedSize.x > 32 || currentWarpedSize.y > 32) {
+                  if (currentWarpedSize.x > 32 || currentWarpedSize.y > 32) {
 
-							float newreferenceTemp = referenceTemp;
-							float2 newreferenceVar = referenceVar;
-							if (currentWarpedSize.x!=referenceSize.x || currentWarpedSize.y!=referenceSize.y){
-								const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
-								float2 newReferenceMean = REDUCE_TEST(sData, newReferenceValue, tid);
-								newReferenceMean.x /= (float)currentWarpedSize.x;
-								newReferenceMean.y /= (float)currentWarpedSize.y;
-								if(tid>63)
-									referenceTemp = overlap ? newReferenceValue - newReferenceMean.y : 0.f;
-								else referenceTemp = overlap ? newReferenceValue - newReferenceMean.x : 0.f;
-								newreferenceVar = REDUCE_TEST(sData, newreferenceTemp * newreferenceTemp, tid);
-							}
-							const float rChecked = overlap ? rWarpedValue : 0.0f;
-							float2 warpedMean = REDUCE_TEST(sData, rChecked, tid);
-							warpedMean.x /= (float)currentWarpedSize.x;
-							warpedMean.y /= (float)currentWarpedSize.y;
-							float warpedTemp;
-							if(tid>63)
-								warpedTemp = overlap ? rChecked - warpedMean.y : 0.f;
-							else warpedTemp = overlap ? rChecked - warpedMean.x : 0.f;
-							const float2 warpedVar = REDUCE_TEST(sData, warpedTemp*warpedTemp, tid);
-							const float2 sumTargetResult = REDUCE_TEST(sData, newreferenceTemp*warpedTemp, tid);
+                     float newreferenceTemp = referenceTemp;
+                     float2 newreferenceVar = referenceVar;
+                     if (currentWarpedSize.x!=referenceSize.x || currentWarpedSize.y!=referenceSize.y){
+                        const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
+                        float2 newReferenceMean = REDUCE_TEST(sData, newReferenceValue, tid);
+                        newReferenceMean.x /= (float)currentWarpedSize.x;
+                        newReferenceMean.y /= (float)currentWarpedSize.y;
+                        if(tid>63)
+                           referenceTemp = overlap ? newReferenceValue - newReferenceMean.y : 0.f;
+                        else referenceTemp = overlap ? newReferenceValue - newReferenceMean.x : 0.f;
+                        newreferenceVar = REDUCE_TEST(sData, newreferenceTemp * newreferenceTemp, tid);
+                     }
+                     const float rChecked = overlap ? rWarpedValue : 0.0f;
+                     float2 warpedMean = REDUCE_TEST(sData, rChecked, tid);
+                     warpedMean.x /= (float)currentWarpedSize.x;
+                     warpedMean.y /= (float)currentWarpedSize.y;
+                     float warpedTemp;
+                     if(tid>63)
+                        warpedTemp = overlap ? rChecked - warpedMean.y : 0.f;
+                     else warpedTemp = overlap ? rChecked - warpedMean.x : 0.f;
+                     const float2 warpedVar = REDUCE_TEST(sData, warpedTemp*warpedTemp, tid);
+                     const float2 sumTargetResult = REDUCE_TEST(sData, newreferenceTemp*warpedTemp, tid);
 
-							if (tid==0 && currentWarpedSize.x > 32 ){
-								const float localCC = fabs(sumTargetResult.x *
-																	rsqrtf(newreferenceVar.x * warpedVar.x));
-								if(localCC > bestValue.x) {
-									bestValue.x = localCC;
-									bestDisp[0][0] = x - 4.f;
-									bestDisp[0][1] = y - 4.f;
-									bestDisp[0][2] = z - 4.f;
-								}
-							}
-							if (tid==64 && currentWarpedSize.y > 32 ){
-								const float localCC = fabs(sumTargetResult.y *
-																	rsqrtf(newreferenceVar.y * warpedVar.y));
-								if(localCC > bestValue.y) {
-									bestValue.y = localCC;
-									bestDisp[1][0] = x - 4.f;
-									bestDisp[1][1] = y - 4.f;
-									bestDisp[1][2] = z - 4.f;
-								}
-							}
-							__syncthreads();
-						}
-					}
-				}
-			}
-		}
+                     if (tid==0 && currentWarpedSize.x > 32 ){
+                        const float localCC = fabs(sumTargetResult.x *
+                                                   rsqrtf(newreferenceVar.x * warpedVar.x));
+                        if(localCC > bestValue.x) {
+                           bestValue.x = localCC;
+                           bestDisp[0][0] = x - 4.f;
+                           bestDisp[0][1] = y - 4.f;
+                           bestDisp[0][2] = z - 4.f;
+                        }
+                     }
+                     if (tid==64 && currentWarpedSize.y > 32 ){
+                        const float localCC = fabs(sumTargetResult.y *
+                                                   rsqrtf(newreferenceVar.y * warpedVar.y));
+                        if(localCC > bestValue.y) {
+                           bestValue.y = localCC;
+                           bestDisp[1][0] = x - 4.f;
+                           bestDisp[1][1] = y - 4.f;
+                           bestDisp[1][2] = z - 4.f;
+                        }
+                     }
+                     __syncthreads();
+                  }
+               }
+            }
+         }
+      }
 
-		if(tid==0 && currentBlockIndex[0]>-1){
-			const unsigned int posIdx = 3 * currentBlockIndex[0];
-			warpedPosition[posIdx] = NAN;
-			if (isfinite(bestDisp[0][0])){
-				const float referencePosition_temp[3] = { (float)xImage,
-																		(float)yImage,
-																		(float)zImage};
-				bestDisp[0][0] += referencePosition_temp[0];
-				bestDisp[0][1] += referencePosition_temp[1];
-				bestDisp[0][2] += referencePosition_temp[2];
-				reg_mat44_mul_cuda<float>(referenceMatrix_xyz,
-												  referencePosition_temp,
-												  &referencePosition[posIdx]);
-				reg_mat44_mul_cuda<float>(referenceMatrix_xyz,
-												  bestDisp[0],
-						&warpedPosition[posIdx]);
-				atomicAdd(definedBlock, 1);
-			}
-		}
-		if(tid==64 && currentBlockIndex[1]>-1){
-			const unsigned int posIdx = 3 * currentBlockIndex[1];
-			warpedPosition[posIdx] = NAN;
-			if (isfinite(bestDisp[1][0])){
-				const float referencePosition_temp[3] = {(float)xImage,
-																	  (float)yImage,
-																	  (float)zImage};
-				bestDisp[1][0] += referencePosition_temp[0];
-				bestDisp[1][1] += referencePosition_temp[1];
-				bestDisp[1][2] += referencePosition_temp[2];
-				reg_mat44_mul_cuda<float>(referenceMatrix_xyz,
-												  referencePosition_temp,
-												  &referencePosition[posIdx]);
-				reg_mat44_mul_cuda<float>(referenceMatrix_xyz,
-												  bestDisp[1],
-												  &warpedPosition[posIdx]);
-				atomicAdd(definedBlock, 1);
-			}
-		}
-	}
+      if(tid==0 && currentBlockIndex[0]>-1){
+         const unsigned int posIdx = 3 * currentBlockIndex[0];
+         warpedPosition[posIdx] = NAN;
+         if (isfinite(bestDisp[0][0])){
+            const float referencePosition_temp[3] = { (float)xImage,
+                                                      (float)yImage,
+                                                      (float)zImage};
+            bestDisp[0][0] += referencePosition_temp[0];
+            bestDisp[0][1] += referencePosition_temp[1];
+            bestDisp[0][2] += referencePosition_temp[2];
+            reg_mat44_mul_cuda<float>(referenceMatrix_xyz,
+                                      referencePosition_temp,
+                                      &referencePosition[posIdx]);
+            reg_mat44_mul_cuda<float>(referenceMatrix_xyz,
+                                      bestDisp[0],
+                  &warpedPosition[posIdx]);
+            atomicAdd(definedBlock, 1);
+         }
+      }
+      if(tid==64 && currentBlockIndex[1]>-1){
+         const unsigned int posIdx = 3 * currentBlockIndex[1];
+         warpedPosition[posIdx] = NAN;
+         if (isfinite(bestDisp[1][0])){
+            const float referencePosition_temp[3] = {(float)xImage,
+                                                     (float)yImage,
+                                                     (float)zImage};
+            bestDisp[1][0] += referencePosition_temp[0];
+            bestDisp[1][1] += referencePosition_temp[1];
+            bestDisp[1][2] += referencePosition_temp[2];
+            reg_mat44_mul_cuda<float>(referenceMatrix_xyz,
+                                      referencePosition_temp,
+                                      &referencePosition[posIdx]);
+            reg_mat44_mul_cuda<float>(referenceMatrix_xyz,
+                                      bestDisp[1],
+                  &warpedPosition[posIdx]);
+            atomicAdd(definedBlock, 1);
+         }
+      }
+   }
 }
 #else
 
@@ -450,7 +432,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 {
 	extern __shared__ float sWarpedValues[];
 	// Compute the current block index
-    const unsigned int bid = (blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x ;
+	const unsigned int bid = (blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x ;
 
 	const int currentBlockIndex = tex1Dfetch(totalBlock_texture, bid);
 	if (currentBlockIndex > -1) {
@@ -463,14 +445,14 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 		const unsigned int zImage = blockIdx.z * 4 + idz;
 
 		//populate shared memory with resultImageArray's values
-		for (int n=-1 ; n<2; ++n) {
-			const int zImageIn = zImage + n * 4;
-			for (int m=-1; m<2; ++m) {
-				const int yImageIn = yImage + m * 4;
-				for (int l=-1; l<2; ++l) {
-					const int xImageIn = xImage + l * 4;
+		for (int z=-1 ; z<2; ++z) {
+			const int zImageIn = zImage + z * 4;
+			for (int y=-1; y<2; ++y) {
+				const int yImageIn = yImage + y * 4;
+				for (int x=-1; x<2; ++x) {
+					const int xImageIn = xImage + x * 4;
 
-					const int sharedIndex = (((n+1)*4+idz)*12+(m+1)*4+idy)*12+(l+1)*4+idx;
+					const int sharedIndex = (((z+1)*4+idz)*12+(y+1)*4+idy)*12+(x+1)*4+idx;
 
 					const unsigned int indexXYZIn = xImageIn + c_ImageSize.x *
 							(yImageIn + zImageIn * c_ImageSize.y);
@@ -508,11 +490,11 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 			const float referenceVar = blockReduceSum(referenceTemp * referenceTemp, tid);
 
 			// iteration over the result blocks (block matching part)
-			for (unsigned int n=1; n<8; ++n) {
-				for (unsigned int m=1; m<8; ++m) {
-					for (unsigned int l=1; l<8; ++l) {
+			for (unsigned int z=1; z<8; ++z) {
+				for (unsigned int y=1; y<8; ++y) {
+					for (unsigned int x=1; x<8; ++x) {
 
-						const unsigned int sharedIndex = ( (n+idz) * 12 + m + idy ) * 12 + l + idx;
+						const unsigned int sharedIndex = ( (z+idz) * 12 + y + idy ) * 12 + x + idx;
 						const float rWarpedValue = sWarpedValues[sharedIndex];
 						const bool overlap = isfinite(rWarpedValue) && finiteReference;
 						const unsigned int currentWarpedSize = __syncthreads_count(overlap);
@@ -539,9 +521,9 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 
 							if (tid == 0 && localCC > bestCC) {
 								bestCC = localCC;
-								bestDisplacement[0] = l - 4.f;
-								bestDisplacement[1] = m - 4.f;
-								bestDisplacement[2] = n - 4.f;
+								bestDisplacement[0] = x - 4.f;
+								bestDisplacement[1] = y - 4.f;
+								bestDisplacement[2] = z - 4.f;
 							}
 						}
 					}
@@ -549,21 +531,21 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 			}
 		}
 
-        if (tid==0) {
-            const unsigned int posIdx = 3 * currentBlockIndex;
-            const float referencePosition_temp[3] = { (float)xImage, (float)yImage, (float)zImage };
+		if (tid==0) {
+			const unsigned int posIdx = 3 * currentBlockIndex;
+			const float referencePosition_temp[3] = { (float)xImage, (float)yImage, (float)zImage };
 
-            bestDisplacement[0] += referencePosition_temp[0];
-            bestDisplacement[1] += referencePosition_temp[1];
-            bestDisplacement[2] += referencePosition_temp[2];
+			bestDisplacement[0] += referencePosition_temp[0];
+			bestDisplacement[1] += referencePosition_temp[1];
+			bestDisplacement[2] += referencePosition_temp[2];
 
-            reg_mat44_mul_cuda<float>(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
-            reg_mat44_mul_cuda<float>(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
-            if (isfinite(bestDisplacement[0])) {
-                atomicAdd(definedBlock, 1);
-            }
-        }
-    }
+			reg_mat44_mul_cuda<float>(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
+			reg_mat44_mul_cuda<float>(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
+			if (isfinite(bestDisplacement[0])) {
+				atomicAdd(definedBlock, 1);
+			}
+		}
+	}
 }
 #endif
 /* *************************************************************** */
@@ -579,11 +561,11 @@ void block_matching_method_gpu(nifti_image *targetImage,
 {
 	// Copy some required parameters over to the device
 	uint3 imageSize = make_uint3(targetImage->nx,
-                                         targetImage->ny,
-                                         targetImage->nz);
-    uint3 blockSize = make_uint3(params->blockNumber[0],
-                                    params->blockNumber[1],
-                                    params->blockNumber[2]);
+										  targetImage->ny,
+										  targetImage->nz);
+	uint3 blockSize = make_uint3(params->blockNumber[0],
+			params->blockNumber[1],
+			params->blockNumber[2]);
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize,&imageSize,sizeof(uint3)));
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_BlockDim,&blockSize,sizeof(uint3)));
 
@@ -608,25 +590,23 @@ void block_matching_method_gpu(nifti_image *targetImage,
 #ifdef USE_TEST_KERNEL
 	dim3 BlockDims1D(4,4,8);
 	dim3 BlocksGrid3D(
-			params->blockNumber[0],
+				params->blockNumber[0],
 			params->blockNumber[1],
 			(unsigned int)reg_ceil((float)params->blockNumber[2]/2.f));
 	unsigned int sMem = (128 + 4*3 * 4*3 * 4*4) * sizeof(float);
 #else
 	dim3 BlockDims1D(4,4,4);
 	dim3 BlocksGrid3D(
-			params->blockNumber[0],
+				params->blockNumber[0],
 			params->blockNumber[1],
 			params->blockNumber[2]);
-	unsigned int sMem = (4*3 * 4*3 * 4*3) * sizeof(float); // (3*4)^3
+	unsigned int sMem = (64 + 4*3 * 4*3 * 4*3) * sizeof(float); // (3*4)^3
 #endif
 
 	if (targetImage->nz == 1){
-		BlockDims1D.x=16;
-		BlockDims1D.y=1;
 		BlockDims1D.z=1;
 		BlocksGrid3D.z=1;
-		sMem = 144 * sizeof(float); // // (3*4)^2
+		sMem = (16 + 144) * sizeof(float); // // (3*4)^2
 		blockMatchingKernel2D << <BlocksGrid3D, BlockDims1D, sMem >> >(*warpedPosition_d,
 																							*referencePosition_d,
 																							*mask_d,
