@@ -10,7 +10,6 @@
 #endif
 
 #if defined(DOUBLE_SUPPORT_AVAILABLE)
-
 // double
 typedef double real_t;
 typedef double2 real2_t;
@@ -34,14 +33,15 @@ typedef float16 real16_t;
 #endif
 /* *************************************************************** */
 /* *************************************************************** */
-__inline__ real_t getPosition(__global float* matrix, real_t* voxel,
-                                                const unsigned int idx)
+__inline__ real_t getPosition(__global float* matrix,
+                              real_t* voxel,
+                              const unsigned int idx)
 {
    size_t index = idx*4;
    return (real_t)matrix[index++] * voxel[0] +
-         (real_t)matrix[index++] * voxel[1] +
-         (real_t)matrix[index++] * voxel[2] +
-         (real_t)matrix[index];
+          (real_t)matrix[index++] * voxel[1] +
+          (real_t)matrix[index++] * voxel[2] +
+          (real_t)matrix[index];
 }
 /* *************************************************************** */
 /* *************************************************************** */

@@ -370,7 +370,8 @@ void ClAladinContent::fillImageData(nifti_image *image,
 		reg_exit(1);
 	}
 
-	this->errNum = clEnqueueReadBuffer(this->commandQueue, memoryObject, CL_TRUE, 0, size * sizeof(float), buffer, 0, NULL, NULL);
+	this->errNum = clEnqueueReadBuffer(this->commandQueue, memoryObject, CL_TRUE, 0,
+												  size * sizeof(float), buffer, 0, NULL, NULL);
 	this->sContext->checkErrNum(this->errNum, "Error reading warped buffer.");
 
 	T* dataT = static_cast<T*>(image->data);
@@ -446,6 +447,6 @@ void ClAladinContent::freeClPtrs()
 }
 /* *************************************************************** */
 bool ClAladinContent::isCurrentComputationDoubleCapable() {
-    return this->sContext->getIsCardDoubleCapable();
+	 return this->sContext->getIsCardDoubleCapable();
 }
 /* *************************************************************** */

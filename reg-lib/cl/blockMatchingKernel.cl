@@ -128,8 +128,6 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 		// Assign the current coordonate of the voxel in the block
 		const unsigned int idx = get_local_id(0);
 		const unsigned int idy = get_local_id(1);
-
-		// Compute the current voxel index in the block
 		const unsigned int tid = idy * 4 + idx;
 
 		// Compute the coordinate of the current voxel in the whole image
@@ -137,23 +135,24 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 		const unsigned int yImage = get_group_id(1) * 4 + idy;
 
 		// Populate shared memory with the warped image values
-		for (int m=-1; m<2; ++m) {
-			const int yImageIn = yImage + m * 4;
-			for (int l=-1; l<2; ++l) {
-				const int xImageIn = xImage + l * 4;
+		for (int y=-1; y<2; ++y) {
+			const int yImageIn = yImage + y * 4;
+			for (int x=-1; x<2; ++x) {
+				const int xImageIn = xImage + x * 4;
 
 				// Compute the index in the local shared memory
-				const int sharedIndex = ((m+1)*4+idy)*12+(l+1)*4+idx;
+				const int sharedIndex = ((y+1)*4+idy)*12+(x+1)*4+idx;
 
 				// Compute the index of the voxel under consideration
-				const int indexXYIn = xImageIn + c_ImageSize.x * yImageIn;
+				const int indexXYIn = yImageIn * c_ImageSize.x + xImageIn;
 
 				// Check if the current voxel belongs to the image
 				const bool valid =
-						(xImageIn >= 0 && xImageIn < (int)c_ImageSize.x) &&
-						(yImageIn >= 0 && yImageIn < (int)c_ImageSize.y);
+						(xImageIn > -1 && xImageIn < (int)c_ImageSize.x) &&
+						(yImageIn > -1 && yImageIn < (int)c_ImageSize.y);
 				// Copy the value from the global to the local shared memory
-				sWarpedValues[sharedIndex] = (valid && mask[indexXYIn] > -1) ? warpedImageArray[indexXYIn] : NAN;
+				sWarpedValues[sharedIndex] = (valid && mask[indexXYIn] > -1) ?
+							warpedImageArray[indexXYIn] : NAN;
 			}
 		}
 
@@ -164,7 +163,8 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 				xImage < c_ImageSize.x &&
 				yImage < c_ImageSize.y;
 		// Get the value at the current voxel in the reference image
-		float rReferenceValue = (referenceInBounds && mask[voxIndex] > -1) ? referenceImageArray[voxIndex] : NAN;
+		float rReferenceValue = (referenceInBounds && mask[voxIndex] > -1) ?
+					referenceImageArray[voxIndex] : NAN;
 		// Check if the reference value is finite
 		const bool finiteReference = isfinite(rReferenceValue);
 		// The reference value is replace by 0 if non finite so that it has no influence on mean and variance
@@ -189,12 +189,11 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 
 			// Iteration of the 7 x 7 blocks in the neighborhood (3*2+1)^2
 			// Starts at 1 since we stored to many voxels in the shared
-			for (int m=1; m<8; ++m){
-				for (int l=1; l<8; ++l){
+			for (unsigned int y=1; y<8; ++y){
+				for (unsigned int x=1; x<8; ++x){
 
 					// Compute the coordinate of the voxel in the shared memory
-					const unsigned int sharedIndex = ( m + idy ) * 12 + l + idx;
-
+					const unsigned int sharedIndex = ( y + idy ) * 12 + x + idx;
 					// Get the warped value
 					const float rWarpedValue = sWarpedValues[sharedIndex];
 					// Check if the warped and reference are defined
@@ -211,7 +210,7 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 						// If the defined voxels are different the reference mean and variance are recomputed
 						if (currentWarpedSize != referenceSize){
 							const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
-							const float newReferenceMean = REDUCE2D(sData, newReferenceValue, tid) / currentWarpedSize;
+							const float newReferenceMean = REDUCE2D(sData, newReferenceValue, tid) / (float)currentWarpedSize;
 							newReferenceTemp = overlap ? newReferenceValue - newReferenceMean : 0.0f;
 							newReferenceVar = REDUCE2D(sData, newReferenceTemp*newReferenceTemp, tid);
 						}
@@ -227,8 +226,8 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 						// Only the first thread of the block can update the final value
 						if (tid == 0 && localCC > bestCC) {
 							bestCC = localCC;
-							bestDisplacement[0] = l - 4.0f;
-							bestDisplacement[1] = m - 4.0f;
+							bestDisplacement[0] = x - 4.f;
+							bestDisplacement[1] = y - 4.f;
 						}
 					}
 				}
@@ -238,18 +237,18 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 		// Only the first thread can update the global array with the new result
 		if(tid==0){
 			const unsigned int posIdx = 2 * currentBlockIndex;
-                        const float referencePosition_temp[2] = { (float)(xImage), (float)(yImage)};
+			const float referencePosition_temp[2] = { (float)(xImage), (float)(yImage)};
 
-                        bestDisplacement[0] += referencePosition_temp[0];
-                        bestDisplacement[1] += referencePosition_temp[1];
+			bestDisplacement[0] += referencePosition_temp[0];
+			bestDisplacement[1] += referencePosition_temp[1];
 
-                        reg2D_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
-                        reg2D_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
+			reg2D_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
+			reg2D_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
 
-                        if (isfinite(bestDisplacement[0])) {
-                            atomic_add(definedBlock, 1);
-                        }
-                }
+			if (isfinite(bestDisplacement[0])) {
+				atomic_add(definedBlock, 1);
+			}
+		}
 	}
 }
 /* *************************************************************** */
@@ -301,14 +300,14 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 					const int sharedIndex = (((n+1)*4+idz)*12+(m+1)*4+idy)*12+(l+1)*4+idx;
 
 					// Compute the index of the voxel under consideration
-                                        const unsigned int indexXYZIn = xImageIn + c_ImageSize.x *
-                                                        (yImageIn + zImageIn * c_ImageSize.y);
+					const unsigned int indexXYZIn = xImageIn + c_ImageSize.x *
+							(yImageIn + zImageIn * c_ImageSize.y);
 
 					// Check if the current voxel belongs to the image
 					const bool valid =
-                                                        (xImageIn > -1 && xImageIn < (int)c_ImageSize.x) &&
-                                                        (yImageIn > -1 && yImageIn < (int)c_ImageSize.y) &&
-                                                        (zImageIn > -1 && zImageIn < (int)c_ImageSize.z);
+							(xImageIn > -1 && xImageIn < (int)c_ImageSize.x) &&
+							(yImageIn > -1 && yImageIn < (int)c_ImageSize.y) &&
+							(zImageIn > -1 && zImageIn < (int)c_ImageSize.z);
 					// Copy the value from the global to the local shared memory
 					sWarpedValues[sharedIndex] = (valid && mask[indexXYZIn] > -1) ?
 								warpedImageArray[indexXYZIn] : NAN;
@@ -317,13 +316,13 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 		}
 
 		// Compute the index of the current voxel in the whole image
-                const unsigned int voxIndex = ( zImage * c_ImageSize.y + yImage ) *
-                                c_ImageSize.x + xImage;
+		const unsigned int voxIndex = ( zImage * c_ImageSize.y + yImage ) *
+				c_ImageSize.x + xImage;
 		// Define a boolean to check if the current voxel is in the input image space
 		const bool referenceInBounds =
-                                xImage < c_ImageSize.x &&
-                                yImage < c_ImageSize.y &&
-                                zImage < c_ImageSize.z;
+				xImage < c_ImageSize.x &&
+				yImage < c_ImageSize.y &&
+				zImage < c_ImageSize.z;
 		// Get the value at the current voxel in the reference image
 		float rReferenceValue = (referenceInBounds && mask[voxIndex] > -1) ?
 					referenceImageArray[voxIndex] : NAN;
@@ -401,18 +400,18 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 		}
 
 		// Only the first thread can update the global array with the new result
-                if (tid==0){
+		if (tid==0){
 			const unsigned int posIdx = 3 * currentBlockIndex;
-                        const float referencePosition_temp[3] = { (float)xImage, (float)yImage, (float)zImage};
+			const float referencePosition_temp[3] = { (float)xImage, (float)yImage, (float)zImage};
 
-                        bestDisplacement[0] += referencePosition_temp[0];
-                        bestDisplacement[1] += referencePosition_temp[1];
-                        bestDisplacement[2] += referencePosition_temp[2];
+			bestDisplacement[0] += referencePosition_temp[0];
+			bestDisplacement[1] += referencePosition_temp[1];
+			bestDisplacement[2] += referencePosition_temp[2];
 
-                        reg_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
-                        reg_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
-                        if (isfinite(bestDisplacement[0])) {
-                        atomic_add(definedBlock, 1);
+			reg_mat44_mul_cl(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
+			reg_mat44_mul_cl(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
+			if (isfinite(bestDisplacement[0])) {
+				atomic_add(definedBlock, 1);
 			}
 		}
 	}
