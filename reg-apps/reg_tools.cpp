@@ -98,6 +98,7 @@ void Usage(char *exec)
    printf("\t-chgres <float> <float> <float>\n\t\t\t\tResample the input image to the specified resolution (in mm)\n");
    printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
    printf("\t-rmNanInf <float>\tRemove the nan and inf from the input image and replace them by the specified value\n");
+   printf("\t-4d2rgb\t\tConvert a 4D (or 5D) to rgb nifti file\n");
 #if defined (_OPENMP)
    int defaultOpenMPValue=1;
    if(getenv("OMP_NUM_THREADS")!=NULL)
@@ -297,7 +298,7 @@ int main(int argc, char **argv)
          param->pixdimY=atof(argv[++i]);
          param->pixdimZ=atof(argv[++i]);
       }
-      else if(strcmp(argv[i], "-rgb") == 0)
+      else if(strcmp(argv[i], "-4d2rgb") == 0)
       {
          flag->rgbFlag=1;
       }
@@ -793,25 +794,44 @@ int main(int argc, char **argv)
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
    if(flag->rgbFlag)
    {
-      if(image->datatype!=NIFTI_TYPE_RGB24){
-         reg_exit(1);
-      }
+      // Convert the input image to float if needed
+      if(image->datatype!=NIFTI_TYPE_FLOAT32)
+         reg_tools_changeDatatype<float>(image);
+      // Create a temporary scaled image
+      nifti_image *scaledImage = nifti_copy_nim_info(image);
+      scaledImage->data = (void *)malloc(scaledImage->nvox * scaledImage->nbyper);
+      // Rescale the input image
+      float min_value = reg_tools_getMinValue(image);
+      float max_value = reg_tools_getMaxValue(image);
+      reg_tools_substractValueToImage(image, scaledImage, min_value);
+      reg_tools_multiplyValueToImage(scaledImage, scaledImage, 255.f/(max_value-min_value));
+      // Create the rgb image
       nifti_image *outputImage = nifti_copy_nim_info(image);
+      outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
+      outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
+      outputImage->nvox=(size_t)outputImage->nx*
+            outputImage->ny*outputImage->nz;
+      outputImage->datatype = NIFTI_TYPE_RGB24;
+      outputImage->nbyper = 3 * sizeof(unsigned char);
       outputImage->data = (void *)malloc(outputImage->nbyper*outputImage->nvox);
-      unsigned char *inPtr = static_cast<unsigned char *>(image->data);
+      // Convert the image
+      float *inPtr = static_cast<float *>(scaledImage->data);
       unsigned char *outPtr = static_cast<unsigned char *>(outputImage->data);
-      for(int t=0; t<3; ++t){
+      for(int t=0; t<image->nt*image->nu; ++t){
          for(int z=0; z<image->nz; ++z){
             for(int y=0; y<image->ny; ++y){
                for(int x=0; x<image->nx; ++x){
-                  size_t outIndex = ((z*image->ny+y)*image->nx+x)*3+t;
-                  outPtr[outIndex] = *inPtr;
+                  size_t outIndex = ((z*image->ny+y)*image->nx+x)*image->nt*image->nu+t;
+                  outPtr[outIndex] = reg_round(*inPtr);
                   ++inPtr;
                }
             }
          }
       }
-
+      // Free the scaled image
+      nifti_image_free(scaledImage);
+      scaledImage=NULL;
+      // Save the rgb image
       if(flag->outputImageFlag)
          reg_io_WriteImageFile(outputImage,param->outputImageName);
       else reg_io_WriteImageFile(outputImage,"output.nii");
