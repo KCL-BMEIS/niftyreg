@@ -46,10 +46,12 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
       NR_CUDA_SAFE_CALL(cuCtxCreate(&this->cudaContext, CU_CTX_SCHED_SPIN, this->cudaIdx));
       //
       cudaGetDeviceProperties(&deviceProp, this->cudaIdx);
-      if(deviceProp.major > 0 && deviceProp.minor > 2) {
+      if(deviceProp.major > 1) {
           this->isCardDoubleCapable = true;
       }
-      else {
+      else if(deviceProp.major == 1 && deviceProp.minor > 2) {
+          this->isCardDoubleCapable = true;
+      } else {
           this->isCardDoubleCapable = false;
       }
       //
@@ -119,7 +121,6 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
       }
       //
    }
-
 }
 /* *************************************************************** */
 bool CUDAContextSingletton::getIsCardDoubleCapable()
