@@ -172,7 +172,7 @@ int main(int argc, char **argv)
    }
 #endif
 #ifdef _USE_OPENCL
-   else if (platformCode == NR_PLATFORM_CL) {
+   if (platformCode == NR_PLATFORM_CL) {
       con_gpu = new ClAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
    }
 #endif

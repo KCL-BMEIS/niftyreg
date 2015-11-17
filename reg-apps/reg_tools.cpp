@@ -17,6 +17,11 @@
 #include "_reg_localTrans.h"
 #include "_reg_tools.h"
 
+#include "_reg_blockMatching.h"
+#include "BlockMatchingKernel.h"
+#include "Platform.h"
+#include "AladinContent.h"
+
 #include "reg_tools.h"
 
 int isNumeric (const char *s)
@@ -65,6 +70,7 @@ typedef struct
    bool removeNanInf;
    bool changeResFlag;
    bool rgbFlag;
+   bool testActiveBlocks;
 } FLAG;
 
 
@@ -99,6 +105,7 @@ void Usage(char *exec)
    printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
    printf("\t-rmNanInf <float>\tRemove the nan and inf from the input image and replace them by the specified value\n");
    printf("\t-4d2rgb\t\t\tConvert a 4D (or 5D) to rgb nifti file\n");
+   printf("\t-testActiveBlocks\tGenerate an image highlighting the active blocks for reg_aladin\n");
 #if defined (_OPENMP)
    int defaultOpenMPValue=1;
    if(getenv("OMP_NUM_THREADS")!=NULL)
@@ -300,6 +307,9 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-4d2rgb") == 0)
       {
          flag->rgbFlag=1;
+      }
+      else if (strcmp(argv[i], "-testActiveBlocks") == 0){
+         flag->testActiveBlocks=1;
       }
       else
       {
@@ -831,6 +841,71 @@ int main(int argc, char **argv)
       nifti_image_free(scaledImage);
       scaledImage=NULL;
       // Save the rgb image
+      if(flag->outputImageFlag)
+         reg_io_WriteImageFile(outputImage,param->outputImageName);
+      else reg_io_WriteImageFile(outputImage,"output.nii");
+      nifti_image_free(outputImage);
+      outputImage=NULL;
+   }
+   //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+   if(flag->testActiveBlocks){
+      // Convert the input image to float if needed
+      if(image->datatype!=NIFTI_TYPE_FLOAT32)
+         reg_tools_changeDatatype<float>(image);
+      // Create a temporary mask
+      int *temp_mask = (int *)malloc(image->nx*image->ny*image->nz*sizeof(int));
+      for(size_t i=0; i<image->nx*image->ny*image->nz; ++i)
+         temp_mask[i]=i;
+      // Create a context that embeds the blockmatching
+      AladinContent *temp_con = new AladinContent(image, NULL,
+                                                  temp_mask,
+                                                  sizeof(float), 100, 100, 1);
+      _reg_blockMatchingParam* bm = temp_con->getBlockMatchingParams();
+      // Generate an image to store the active blocks
+      nifti_image *outputImage = nifti_copy_nim_info(image);
+      outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
+      outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
+      outputImage->nvox=(size_t)outputImage->nx*
+            outputImage->ny*outputImage->nz;
+      outputImage->datatype = NIFTI_TYPE_UINT8;
+      outputImage->nbyper = sizeof(unsigned char);
+      outputImage->cal_min=0;
+      outputImage->cal_max=1;
+      outputImage->data = (void *)calloc(outputImage->nbyper, outputImage->nvox);
+      unsigned char *outPtr = static_cast<unsigned char *>(outputImage->data);
+      // Iterate through the blocks
+      size_t blockIndex=0;
+      for(size_t bz=0;bz<bm->blockNumber[2];++bz){
+         size_t vz=4*bz;
+         for(size_t by=0;by<bm->blockNumber[1];++by){
+            size_t vy=4*by;
+            for(size_t bx=0;bx<bm->blockNumber[0];++bx){
+               size_t vx=4*bx;
+               if(bm->totalBlock[blockIndex++]>-1){
+                  for(size_t z=vz;z<vz+4;++z){
+                     if(z>=0 && z<outputImage->nz){
+                        for(size_t y=vy;y<vy+4;++y){
+                           if(y>=0 && y<outputImage->ny){
+                              size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
+                              for(size_t x=vx;x<vx+4;++x){
+                                 if(x>=0 && x<outputImage->nx){
+                                    outPtr[voxelIndex] = 1;
+                                 }
+                                 voxelIndex++;
+                              } // x
+                           }
+                        } // y
+                     }
+                  } // z
+               } // active block
+            }
+         }
+      }
+
+      delete temp_con;
+      free(temp_mask);
+
+      // Save the output image
       if(flag->outputImageFlag)
          reg_io_WriteImageFile(outputImage,param->outputImageName);
       else reg_io_WriteImageFile(outputImage,"output.nii");
