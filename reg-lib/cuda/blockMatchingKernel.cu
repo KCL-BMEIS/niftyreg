@@ -194,10 +194,10 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 						const float warpedVar = blockReduce2DSum(warpedTemp * warpedTemp, tid);
 
 						const float sumTargetResult = blockReduce2DSum((newreferenceTemp)* (warpedTemp), tid);
-						const float localCC = fabs((sumTargetResult)* rsqrtf(newreferenceVar * warpedVar));
+						const float localCC = fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar));
 
 						if (tid == 0 && localCC > bestCC) {
-							bestCC = localCC;
+							bestCC = localCC + 1.0e-7f;
 							bestDisplacement[0] = x - 4.f;
 							bestDisplacement[1] = y - 4.f;
 						}
@@ -517,10 +517,10 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 							const float warpedVar = blockReduceSum(warpedTemp * warpedTemp, tid);
 
 							const float sumTargetResult = blockReduceSum((newreferenceTemp)* (warpedTemp), tid);
-							const float localCC = fabs((sumTargetResult)* rsqrtf(newreferenceVar * warpedVar));
+							const float localCC = fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar));
 
 							if (tid == 0 && localCC > bestCC) {
-								bestCC = localCC;
+								bestCC = localCC + 1.0e-7f;
 								bestDisplacement[0] = x - 4.f;
 								bestDisplacement[1] = y - 4.f;
 								bestDisplacement[2] = z - 4.f;

@@ -140,12 +140,12 @@ endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
   set(EXEC reg_test_matrix_operation)
   add_executable(${EXEC} ${EXEC}.cpp)
-  target_link_libraries(${EXEC} _reg_aladin)
+  target_link_libraries(${EXEC} _reg_maths _reg_ReadWriteImage)
   add_test(${EXEC} ${EXEC} ${DFOLDER}/inputMatrix1.txt ${DFOLDER}/inputMatrix2.txt ${DFOLDER}/expectedMulMatrix.txt ${DFOLDER}/expectedAddMatrix.txt ${DFOLDER}/expectedSubMatrix.txt ${DFOLDER}/expectedExpMatrix.txt ${DFOLDER}/expectedLogMatrix.txt ${DFOLDER}/expectedInvMatrix.txt)
 #-----------------------------------------------------------------------------
 set(EXEC reg_test_svd)
 add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
+target_link_libraries(${EXEC} _reg_maths _reg_ReadWriteImage)
 add_test(${EXEC}_0 ${EXEC} ${DFOLDER}/inputSVDMatrix.txt ${DFOLDER}/expectedUMatrix.txt ${DFOLDER}/expectedSMatrix.txt ${DFOLDER}/expectedVMatrix.txt)
 #-----------------------------------------------------------------------------
 if(USE_CUDA OR USE_OPENCL)

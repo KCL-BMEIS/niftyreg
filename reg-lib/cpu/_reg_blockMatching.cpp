@@ -395,7 +395,7 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                      localCC = (referenceVar * warpedVar) > 0.0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
 
                      if (localCC > bestCC) {
-                        bestCC = localCC;
+                        bestCC = localCC + 1.0e-7f;
                         bestDisplacement[0] = (float)l;
                         bestDisplacement[1] = (float)m;
                      }
@@ -625,7 +625,7 @@ void block_matching_method3D(nifti_image * reference,
                                     fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
 
                            if (localCC > bestCC) {
-                              bestCC = localCC;
+                              bestCC = localCC + 1.0e-7f;
                               bestDisplacement[0] = (float)l;
                               bestDisplacement[1] = (float)m;
                               bestDisplacement[2] = (float)n;
