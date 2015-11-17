@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 #endif
 
    if(platformCode!=NR_PLATFORM_CUDA && platformCode!=NR_PLATFORM_CL){
-      reg_print_msg_error("The CPU platform is considered as the reference implementation - it cannot be test again itself");
+      reg_print_msg_error("Unexpected platform code");
       return EXIT_FAILURE;
    }
 
