@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 #endif
 
    if(platformCode!=NR_PLATFORM_CUDA && platformCode!=NR_PLATFORM_CL){
-      reg_print_msg_error("Pas bien !!!");
+      reg_print_msg_error("The CPU platform is considered as the reference implementation - it cannot be test again itself");
       return EXIT_FAILURE;
    }
 
@@ -186,8 +186,8 @@ int main(int argc, char **argv)
 
    float max_difference = 0;
 
-   if(blockMatchingParams_cpu->activeBlockNumber != blockMatchingParams_gpu->activeBlockNumber){
-      reg_print_msg_error("The number of active blocks vary accros platforms");
+   if(blockMatchingParams_cpu->definedActiveBlockNumber != blockMatchingParams_gpu->definedActiveBlockNumber){
+      reg_print_msg_error("The number of defined active blockNumber blocks vary accros platforms");
       return EXIT_FAILURE;
    }
 
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
    }
 
    delete con_gpu;
-//   delete con_cpu;
+   //delete con_cpu;
    free(mask);
    nifti_image_free(referenceImage);
 
