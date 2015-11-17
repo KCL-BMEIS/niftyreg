@@ -276,7 +276,7 @@ __global__ void ResampleImage2D(float* floatingImage,
                     intensity = interpLoop2D(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 4);
                 }
             }
-            resultIntensity[index] = intensity;
+            resultIntensity[index] = (float)intensity;
         }
         index += blockDim.x * gridDim.x;
     }
@@ -372,7 +372,7 @@ __global__ void ResampleImage3D(float* floatingImage,
 					intensity = interpLoop3D(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 4);
 				}
 			}
-			resultIntensity[index] = intensity;
+            resultIntensity[index] = (float)intensity;
 		}
 		  index += blockDim.x * gridDim.x;
 	}

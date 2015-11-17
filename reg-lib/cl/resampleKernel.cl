@@ -275,9 +275,9 @@ __kernel void ResampleImage2D(__global float* floatingImage,
                 }
                 else{
 
-                    previous[0] --;
-                    previous[1] --;
-                    previous[2] --;
+                    previous[0]--;
+                    previous[1]--;
+                    previous[2]--;
                     real_t xBasisIn[4], yBasisIn[4], zBasisIn[4];
                     interpCubicSplineKernel(relative[0], xBasisIn);
                     interpCubicSplineKernel(relative[1], yBasisIn);
