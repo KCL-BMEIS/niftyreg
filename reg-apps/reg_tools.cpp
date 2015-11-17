@@ -105,7 +105,7 @@ void Usage(char *exec)
    printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
    printf("\t-rmNanInf <float>\tRemove the nan and inf from the input image and replace them by the specified value\n");
    printf("\t-4d2rgb\t\t\tConvert a 4D (or 5D) to rgb nifti file\n");
-   printf("\t-testActiveBlocks\tGenerate an image highlighting the active blocks for reg_aladin\n");
+   printf("\t-testActiveBlocks\tGenerate an image highlighting the active blocks for reg_aladin (block variance is shown)\n");
 #if defined (_OPENMP)
    int defaultOpenMPValue=1;
    if(getenv("OMP_NUM_THREADS")!=NULL)
@@ -167,8 +167,8 @@ int main(int argc, char **argv)
       }
 #ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
-            strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
-            strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
+              strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
+              strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
       {
          printf("%s\n",_GIT_HASH);
          return EXIT_SUCCESS;
@@ -707,9 +707,9 @@ int main(int argc, char **argv)
                                              newImg->qoffset_y,
                                              newImg->qoffset_z,
                                              newImg->pixdim[1],
-                                             newImg->pixdim[2],
-                                             newImg->pixdim[3],
-                                             newImg->qfac);
+            newImg->pixdim[2],
+            newImg->pixdim[3],
+            newImg->qfac);
       newImg->qto_ijk=nifti_mat44_inverse(newImg->qto_xyz);
       if(newImg->sform_code>0)
       {
@@ -770,8 +770,8 @@ int main(int argc, char **argv)
          reg_mat33_eye(&jacobian[i]);
       // resample the original image into the space of the new image
       if(newImg->pixdim[1]>image->pixdim[1] ||
-         newImg->pixdim[2]>image->pixdim[2] ||
-         newImg->pixdim[3]>image->pixdim[3] ){
+            newImg->pixdim[2]>image->pixdim[2] ||
+            newImg->pixdim[3]>image->pixdim[3] ){
          reg_resampleImage_PSF(image,
                                newImg,
                                def,
@@ -867,12 +867,11 @@ int main(int argc, char **argv)
       outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
       outputImage->nvox=(size_t)outputImage->nx*
             outputImage->ny*outputImage->nz;
-      outputImage->datatype = NIFTI_TYPE_UINT8;
-      outputImage->nbyper = sizeof(unsigned char);
       outputImage->cal_min=0;
-      outputImage->cal_max=1;
       outputImage->data = (void *)calloc(outputImage->nbyper, outputImage->nvox);
-      unsigned char *outPtr = static_cast<unsigned char *>(outputImage->data);
+      float *inPtr = static_cast<float *>(image->data);
+      float *outPtr = static_cast<float *>(outputImage->data);
+      int minVoxelNumber = outputImage->ndim==2?BLOCK_2D_SIZE/2:BLOCK_3D_SIZE/2;
       // Iterate through the blocks
       size_t blockIndex=0;
       for(size_t bz=0;bz<bm->blockNumber[2];++bz){
@@ -882,6 +881,8 @@ int main(int argc, char **argv)
             for(size_t bx=0;bx<bm->blockNumber[0];++bx){
                size_t vx=4*bx;
                if(bm->totalBlock[blockIndex++]>-1){
+                  float meanValue=0;
+                  float activeVoxel=0;
                   for(size_t z=vz;z<vz+4;++z){
                      if(z>=0 && z<outputImage->nz){
                         for(size_t y=vy;y<vy+4;++y){
@@ -889,7 +890,41 @@ int main(int argc, char **argv)
                               size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
                               for(size_t x=vx;x<vx+4;++x){
                                  if(x>=0 && x<outputImage->nx){
-                                    outPtr[voxelIndex] = 1;
+                                    meanValue += inPtr[voxelIndex];
+                                    activeVoxel++;
+                                 }
+                                 voxelIndex++;
+                              } // x
+                           }
+                        } // y
+                     }
+                  } // z
+                  meanValue /= activeVoxel;
+                  float variance=0;
+                  for(size_t z=vz;z<vz+4;++z){
+                     if(z>=0 && z<outputImage->nz){
+                        for(size_t y=vy;y<vy+4;++y){
+                           if(y>=0 && y<outputImage->ny){
+                              size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
+                              for(size_t x=vx;x<vx+4;++x){
+                                 if(x>=0 && x<outputImage->nx){
+                                    variance += reg_pow2(meanValue - inPtr[voxelIndex]);
+                                 }
+                                 voxelIndex++;
+                              } // x
+                           }
+                        } // y
+                     }
+                  } // z
+                  variance /= activeVoxel;
+                  for(size_t z=vz;z<vz+4;++z){
+                     if(z>=0 && z<outputImage->nz){
+                        for(size_t y=vy;y<vy+4;++y){
+                           if(y>=0 && y<outputImage->ny){
+                              size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
+                              for(size_t x=vx;x<vx+4;++x){
+                                 if(x>=0 && x<outputImage->nx){
+                                    outPtr[voxelIndex] = variance;
                                  }
                                  voxelIndex++;
                               } // x
@@ -898,9 +933,10 @@ int main(int argc, char **argv)
                      }
                   } // z
                } // active block
-            }
-         }
-      }
+            } // bx
+         } // by
+      } // bz
+      outputImage->cal_max=reg_tools_getMaxValue(outputImage);
 
       delete temp_con;
       free(temp_mask);
