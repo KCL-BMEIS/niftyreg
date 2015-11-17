@@ -109,10 +109,12 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
       this->cudaIdx = max_gflops_device;
       //
       cudaGetDeviceProperties(&deviceProp, this->cudaIdx);
-      if(deviceProp.major > 0 && deviceProp.minor > 2) {
+      if(deviceProp.major > 1) {
           this->isCardDoubleCapable = true;
       }
-      else {
+      else if(deviceProp.major == 1 && deviceProp.minor > 2) {
+          this->isCardDoubleCapable = true;
+      } else {
           this->isCardDoubleCapable = false;
       }
       //
