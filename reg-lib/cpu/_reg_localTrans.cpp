@@ -3974,7 +3974,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
    else squaringNumber=static_cast<int>(fabsf(flowFieldImage->intent_p2));
 
    // The displacement field is scaled
-   float scalingValue = pow(2.0f,std::abs(squaringNumber));
+   float scalingValue = pow(2.0f,std::abs((float)squaringNumber));
    if(flowFieldImage->intent_p2<0)
       // backward deformation field is scaled down
       reg_tools_divideValueToImage(flowFieldImage,
@@ -4119,7 +4119,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
       int squaringNumber = static_cast<int>(fabsf(velocityFieldGrid->intent_p2));
 
       // The displacement field is scaled
-      float scalingValue = pow(2.0f,std::abs(squaringNumber));
+      float scalingValue = pow(2.0f,std::abs((float)squaringNumber));
       if(velocityFieldGrid->intent_p2<0)
          // backward deformation field is scaled down
          reg_tools_divideValueToImage(flowFieldImage,

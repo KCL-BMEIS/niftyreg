@@ -98,15 +98,14 @@ void Usage(char *exec)
    printf("\t-chgres <float> <float> <float>\n\t\t\t\tResample the input image to the specified resolution (in mm)\n");
    printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
    printf("\t-rmNanInf <float>\tRemove the nan and inf from the input image and replace them by the specified value\n");
-   printf("\t-4d2rgb\t\tConvert a 4D (or 5D) to rgb nifti file\n");
+   printf("\t-4d2rgb\t\t\tConvert a 4D (or 5D) to rgb nifti file\n");
 #if defined (_OPENMP)
    int defaultOpenMPValue=1;
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    char text[255];
-   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
           defaultOpenMPValue, omp_get_num_procs());
-   reg_print_info(exec, text);
 #endif
 #ifdef _GIT_HASH
    printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
