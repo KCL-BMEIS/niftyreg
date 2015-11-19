@@ -393,13 +393,14 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                            localCC += (referenceTemp)* (warpedTemp);
                         }
                      }
-                     localCC = (referenceVar * warpedVar) > 0.0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
+                     //localCC = (referenceVar * warpedVar) > 0.0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
+                     localCC = fabs(localCC / sqrt(referenceVar * warpedVar));
 
                      if(bestCC!=bestCC) {
                          bestCC = localCC;
                          bestDisplacement[0] = (float)l;
                          bestDisplacement[1] = (float)m;
-                     } else if(fabs(localCC-bestCC) < 0.000001) {
+                     } else if(fabs(localCC-bestCC) < 1.0e-7f) {
                          if(localCC > bestCC) {
                              bestCC = localCC;
                          }
@@ -639,15 +640,16 @@ void block_matching_method3D(nifti_image * reference,
                                  localCC += (referenceTemp)* (warpedTemp);
                               }
                            }
-                           localCC = (referenceVar * warpedVar) > 0.0 ?
-                                    fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
+                           //localCC = (referenceVar * warpedVar) > 0.0 ?
+                           //         fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
+                           localCC = fabs(localCC / sqrt(referenceVar * warpedVar));
 
                            if(bestCC!=bestCC) {
                                bestCC = localCC;
                                bestDisplacement[0] = (float)l;
                                bestDisplacement[1] = (float)m;
                                bestDisplacement[2] = (float)n;
-                           } else if(fabs(localCC-bestCC) < 0.000001) {
+                           } else if(fabs(localCC-bestCC) < 1.0e-7f) {
                                if(localCC > bestCC) {
                                    bestCC = localCC;
                                }

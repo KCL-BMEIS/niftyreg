@@ -174,8 +174,9 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 		const unsigned int referenceSize = REDUCE2D(sData, finiteReference ? 1.0f : 0.0f, tid);
 
 		// Define temp variables to store the displacements and measure of similarity
-		float bestDisplacement[2] = { NAN, 0.0f};
-		float bestCC = 0.0f;
+                float bestDisplacement[2] = {NAN, 0.0f};
+                //float bestCC = 0.0f;
+                float bestCC = NAN;
 
 		// Following computation is perform if there are at last half of the voxel are defined
 		if (referenceSize > 8){
@@ -224,11 +225,26 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 						const float localCC = fabs(sumReferenceWarped / sqrt(newReferenceVar*warpedVar));
 
                   // Only the first thread of the block can update the final value
-                  if (tid == 0 && localCC > bestCC) {
-                     bestCC = localCC + 1.0e-7f;
-                     bestDisplacement[0] = x - 4.f;
-                     bestDisplacement[1] = y - 4.f;
+                  if(tid == 0 && isfinite(bestCC)==0) {
+                      bestCC = localCC;
+                      bestDisplacement[0] = x - 4.f;
+                      bestDisplacement[1] = y - 4.f;
+                  } else if(tid == 0 && fabs(localCC-bestCC) < 1.0e-7f) {
+                      if(localCC > bestCC) {
+                          bestCC = localCC;
+                      }
+                      bestDisplacement[0] = NAN;
+                      bestDisplacement[1] = 0.f;
+                  } else if (tid == 0 && localCC > bestCC) {
+                      bestCC = localCC;
+                      bestDisplacement[0] = x - 4.f;
+                      bestDisplacement[1] = y - 4.f;
                   }
+                  //if (tid == 0 && localCC > bestCC) {
+                  //   bestCC = localCC + 1.0e-7f;
+                  //   bestDisplacement[0] = x - 4.f;
+                  //   bestDisplacement[1] = y - 4.f;
+                  //}
                }
             }
          }
@@ -335,8 +351,9 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 		const unsigned int referenceSize = REDUCE(sData, finiteReference ? 1.0f : 0.0f, tid);
 
 		// Define temp variables to store the displacements and measure of similarity
-		float bestDisplacement[3] = { NAN, 0.0f, 0.0f };
-		float bestCC = 0.0f;
+                float bestDisplacement[3] = {NAN, 0.0f, 0.0f };
+                //float bestCC = 0.0f;
+                float bestCC = NAN;
 
 		// Following computation is perform if there are at last half of the voxel are defined
 		if (referenceSize > 32){
@@ -387,12 +404,30 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 							const float localCC = fabs((sumReferenceWarped) / sqrt(newReferenceVar*warpedVar));
 
 							// Only the first thread of the block can update the final value
-							if (tid == 0 && localCC > bestCC) {
-								bestCC = localCC + 1.0e-7f;
-								bestDisplacement[0] = l - 4.f;
-								bestDisplacement[1] = m - 4.f;
-								bestDisplacement[2] = n - 4.f;
-							}
+                                                        if(tid == 0 && isfinite(bestCC)==0) {
+                                                            bestCC = localCC;
+                                                            bestDisplacement[0] = l - 4.f;
+                                                            bestDisplacement[1] = m - 4.f;
+                                                            bestDisplacement[2] = n - 4.f;
+                                                        } else if(tid == 0 && fabs(localCC-bestCC) < 1.0e-7f) {
+                                                            if(localCC > bestCC) {
+                                                                bestCC = localCC;
+                                                            }
+                                                            bestDisplacement[0] = NAN;
+                                                            bestDisplacement[1] = 0.f;
+                                                            bestDisplacement[2] = 0.f;
+                                                        } else if (tid == 0 && localCC > bestCC) {
+                                                            bestCC = localCC;
+                                                            bestDisplacement[0] = l - 4.f;
+                                                            bestDisplacement[1] = m - 4.f;
+                                                            bestDisplacement[2] = n - 4.f;
+                                                        }
+                                                        //if (tid == 0 && localCC > bestCC) {
+                                                        //	bestCC = localCC + 1.0e-7f;
+                                                        //	bestDisplacement[0] = l - 4.f;
+                                                        //	bestDisplacement[1] = m - 4.f;
+                                                        //	bestDisplacement[2] = n - 4.f;
+                                                        //}
 						}
 					}
 				}

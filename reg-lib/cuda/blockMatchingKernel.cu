@@ -159,7 +159,8 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
 
 		float bestDisplacement[2] = {nanf("sNaN"), 0.0f};
-		float bestCC = 0.0f;
+        //float bestCC = 0.0f;
+        float bestCC = nanf("sNaN");
 
 		if (referenceSize > 8) {
 			//the target values must remain constant throughout the block matching process
@@ -196,11 +197,27 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 						const float sumTargetResult = blockReduce2DSum((newreferenceTemp)* (warpedTemp), tid);
 						const float localCC = fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar));
 
-						if (tid == 0 && localCC > bestCC) {
-							bestCC = localCC + 1.0e-7f;
-							bestDisplacement[0] = x - 4.f;
-							bestDisplacement[1] = y - 4.f;
-						}
+                        if(tid == 0 && isfinite(bestCC)==0) {
+                            bestCC = localCC;
+                            bestDisplacement[0] = x - 4.f;
+                            bestDisplacement[1] = y - 4.f;
+                        } else if(tid == 0 && fabs(localCC-bestCC) < 1.0e-7f) {
+                            if(localCC > bestCC) {
+                                bestCC = localCC;
+                            }
+                            bestDisplacement[0] = nanf("sNaN");
+                            bestDisplacement[1] = 0.f;
+                        } else if (tid == 0 && localCC > bestCC) {
+                            bestCC = localCC;
+                            bestDisplacement[0] = x - 4.f;
+                            bestDisplacement[1] = y - 4.f;
+                        }
+
+                        //if (tid == 0 && localCC > bestCC) {
+                        //	bestCC = localCC + 1.0e-7f;
+                        //	bestDisplacement[0] = x - 4.f;
+                        //	bestDisplacement[1] = y - 4.f;
+                        //}
 					}
 				}
 			}
@@ -481,8 +498,9 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 		rReferenceValue = finiteReference ? rReferenceValue : 0.f;
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
 
-		float bestDisplacement[3] = { nanf("sNaN"), 0.0f, 0.0f };
-		float bestCC = 0.0f;
+        float bestDisplacement[3] = {nanf("sNaN"), 0.0f, 0.0f };
+        //float bestCC = 0.0f;
+        float bestCC = nanf("sNaN");
 		if (referenceSize > 32) {
 			//the target values must remain constant throughout the block matching process
 			const float referenceMean = __fdividef(blockReduceSum(rReferenceValue, tid), referenceSize);
@@ -519,12 +537,32 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 							const float sumTargetResult = blockReduceSum((newreferenceTemp)* (warpedTemp), tid);
 							const float localCC = fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar));
 
-							if (tid == 0 && localCC > bestCC) {
-								bestCC = localCC + 1.0e-7f;
-								bestDisplacement[0] = x - 4.f;
-								bestDisplacement[1] = y - 4.f;
-								bestDisplacement[2] = z - 4.f;
-							}
+
+                            if(tid == 0 && isfinite(bestCC)==0) {
+                                bestCC = localCC;
+                                bestDisplacement[0] = x - 4.f;
+                                bestDisplacement[1] = y - 4.f;
+                                bestDisplacement[2] = z - 4.f;
+                            } else if(tid == 0 && fabs(localCC-bestCC) < 1.0e-7f) {
+                                if(localCC > bestCC) {
+                                    bestCC = localCC;
+                                }
+                                bestDisplacement[0] = nanf("sNaN");
+                                bestDisplacement[1] = 0.f;
+                                bestDisplacement[2] = 0.f;
+                            } else if (tid == 0 && localCC > bestCC) {
+                                bestCC = localCC;
+                                bestDisplacement[0] = x - 4.f;
+                                bestDisplacement[1] = y - 4.f;
+                                bestDisplacement[2] = z - 4.f;
+                            }
+
+                            //if (tid == 0 && localCC > bestCC) {
+                            //    bestCC = localCC + 1.0e-7f;
+                            //    bestDisplacement[0] = x - 4.f;
+                            //    bestDisplacement[1] = y - 4.f;
+                            //    bestDisplacement[2] = z - 4.f;
+                            //}
 						}
 					}
 				}

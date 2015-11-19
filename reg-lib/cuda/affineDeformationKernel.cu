@@ -14,7 +14,7 @@
 #include "affineDeformationKernel.h"
 //CUDA affine kernel
 /* *************************************************************** */
-__device__ __inline__ void getPosition(float* position, float* matrix, float* voxel, const unsigned int idx)
+__device__ __inline__ void getPosition(float* position, float* matrix, double* voxel, const unsigned int idx)
 {
    position[idx] = (float) ((double) matrix[idx * 4 + 0] * voxel[0] +
          (double) matrix[idx * 4 + 1] * voxel[1] +
@@ -33,7 +33,7 @@ __device__ __inline__ double getPosition(float* matrix, double* voxel, const uns
 /* *************************************************************** */
 __global__ void affineKernel(float* transformationMatrix,
                              float* defField,
-                             int *mask,
+                             int* mask,
                              const uint3 dims,
                              const unsigned long voxelNumber,
                              const bool composition)
