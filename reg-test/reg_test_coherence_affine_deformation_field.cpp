@@ -83,13 +83,13 @@ int main(int argc, char **argv)
     }
 #endif
 #ifdef _USE_OPENCL
-    else if (platformCode == NR_PLATFORM_CL) {
+    if (platformCode == NR_PLATFORM_CL) {
         con_gpu = new ClAladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
     }
 #endif
-    else {
-        reg_print_msg_error("The platform code is not suppoted");
-        return EXIT_FAILURE;
+    if(platformCode!=NR_PLATFORM_CUDA && platformCode!=NR_PLATFORM_CL){
+       reg_print_msg_error("Unexpected platform code");
+       return EXIT_FAILURE;
     }
     //Check if the platform used is double capable
     bool isDouble = con_gpu->isCurrentComputationDoubleCapable();
