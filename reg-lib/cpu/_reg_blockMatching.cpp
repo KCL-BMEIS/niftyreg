@@ -329,7 +329,8 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                else
                   referenceIndex += BLOCK_WIDTH;
             }
-            bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0.0;
+            //bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0.0;
+            bestCC = std::numeric_limits<float>::quiet_NaN();
             bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
             bestDisplacement[1] = 0.f;
             bestDisplacement[2] = 0.f;
@@ -394,11 +395,27 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                      }
                      localCC = (referenceVar * warpedVar) > 0.0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
 
-                     if (localCC > bestCC) {
-                        bestCC = localCC + 1.0e-7f;
-                        bestDisplacement[0] = (float)l;
-                        bestDisplacement[1] = (float)m;
+                     if(bestCC!=bestCC) {
+                         bestCC = localCC;
+                         bestDisplacement[0] = (float)l;
+                         bestDisplacement[1] = (float)m;
+                     } else if(fabs(localCC-bestCC) < 0.000001) {
+                         if(localCC > bestCC) {
+                             bestCC = localCC;
+                         }
+                         bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
+                         bestDisplacement[1] = 0.f;
+                     } else if (localCC > bestCC) {
+                         bestCC = localCC;
+                         bestDisplacement[0] = (float)l;
+                         bestDisplacement[1] = (float)m;
                      }
+
+                     //if (localCC > bestCC) {
+                     //   bestCC = localCC + 1.0e-7f;
+                     //   bestDisplacement[0] = (float)l;
+                     //   bestDisplacement[1] = (float)m;
+                     //}
                   }
                }
             }
@@ -546,7 +563,8 @@ void block_matching_method3D(nifti_image * reference,
                   else
                      referenceIndex += BLOCK_WIDTH * BLOCK_WIDTH;
                }
-               bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0.0; //only when misaligned images are registered
+               //bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0.0; //only when misaligned images are registered
+               bestCC = std::numeric_limits<float>::quiet_NaN();
                bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
                bestDisplacement[1] = 0.f;
                bestDisplacement[2] = 0.f;
@@ -624,12 +642,31 @@ void block_matching_method3D(nifti_image * reference,
                            localCC = (referenceVar * warpedVar) > 0.0 ?
                                     fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
 
-                           if (localCC > bestCC) {
-                              bestCC = localCC + 1.0e-7f;
-                              bestDisplacement[0] = (float)l;
-                              bestDisplacement[1] = (float)m;
-                              bestDisplacement[2] = (float)n;
+                           if(bestCC!=bestCC) {
+                               bestCC = localCC;
+                               bestDisplacement[0] = (float)l;
+                               bestDisplacement[1] = (float)m;
+                               bestDisplacement[2] = (float)n;
+                           } else if(fabs(localCC-bestCC) < 0.000001) {
+                               if(localCC > bestCC) {
+                                   bestCC = localCC;
+                               }
+                               bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
+                               bestDisplacement[1] = 0.f;
+                               bestDisplacement[2] = 0.f;
+                           } else if (localCC > bestCC) {
+                               bestCC = localCC;
+                               bestDisplacement[0] = (float)l;
+                               bestDisplacement[1] = (float)m;
+                               bestDisplacement[2] = (float)n;
                            }
+
+                           //if (localCC > bestCC) {
+                           //   bestCC = localCC + 1.0e-7f;
+                           //   bestDisplacement[0] = (float)l;
+                           //   bestDisplacement[1] = (float)m;
+                           //   bestDisplacement[2] = (float)n;
+                           //}
                         }
                      }
                   }
