@@ -374,13 +374,14 @@ void ClAladinContent::fillImageData(nifti_image *image,
 												  size * sizeof(float), buffer, 0, NULL, NULL);
 	this->sContext->checkErrNum(this->errNum, "Error reading warped buffer.");
 
-	T* dataT = static_cast<T*>(image->data);
-	for (size_t i = 0; i < size; ++i) {
-		dataT[i] = fillWarpedImageData<T>(buffer[i], type);
-	}
-	image->datatype = type;
-	image->nbyper = sizeof(T);
-	free(buffer);
+    free(image->data);
+    image->datatype = type;
+    image->nbyper = sizeof(T);
+    image->data = (void *)malloc(image->nvox*image->nbyper);
+    T* dataT = static_cast<T*>(image->data);
+    for (size_t i = 0; i < size; ++i)
+        dataT[i] = fillWarpedImageData<T>(buffer[i], type);
+    free(buffer);
 }
 /* *************************************************************** */
 void ClAladinContent::downloadImage(nifti_image *image,

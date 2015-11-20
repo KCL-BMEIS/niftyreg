@@ -159,15 +159,18 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
 
 		float bestDisplacement[2] = {nanf("sNaN"), 0.0f};
-        //float bestCC = 0.0f;
-        float bestCC = nanf("sNaN");
+        float bestCC = 0.0f;
+        //float bestCC = nanf("sNaN");
 
 		if (referenceSize > 8) {
+            printf("referenceSize=%i\n",referenceSize);
 			//the target values must remain constant throughout the block matching process
 			const float referenceMean = __fdividef(blockReduce2DSum(rReferenceValue, tid), referenceSize);
 			const float referenceTemp = finiteReference ? rReferenceValue - referenceMean : 0.f;
 			const float referenceVar = blockReduce2DSum(referenceTemp * referenceTemp, tid);
-
+            printf("referenceMean=%f\n",referenceMean);
+            printf("referenceTemp=%f\n",referenceTemp);
+            printf("referenceVar=%f\n",referenceVar);
 			// iteration over the result blocks (block matching part)
 			for (unsigned int y=1; y<8; ++y) {
 				for (unsigned int x=1; x<8; ++x) {
@@ -176,9 +179,10 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 					const float rWarpedValue = sWarpedValues[sharedIndex];
 					const bool overlap = isfinite(rWarpedValue) && finiteReference;
 					const unsigned int currentWarpedSize = __syncthreads_count(overlap);
+                    printf("currentWarpedSize=%i\n",currentWarpedSize);
 
 					if (currentWarpedSize > 8) {
-
+                        printf("currentWarpedSize2=%i\n",currentWarpedSize);
 						//the target values must remain intact at each loop, so please do not touch this!
 						float newreferenceTemp = referenceTemp;
 						float newreferenceVar = referenceVar;
@@ -196,8 +200,9 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 
 						const float sumTargetResult = blockReduce2DSum((newreferenceTemp)* (warpedTemp), tid);
 						const float localCC = fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar));
+                        printf("localCC=%f\n",localCC);
 
-                        if(tid == 0 && isfinite(bestCC)==0) {
+                        /*if(tid == 0 && isfinite(bestCC)==0) {
                             bestCC = localCC;
                             bestDisplacement[0] = x - 4.f;
                             bestDisplacement[1] = y - 4.f;
@@ -211,13 +216,13 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
                             bestCC = localCC;
                             bestDisplacement[0] = x - 4.f;
                             bestDisplacement[1] = y - 4.f;
+                        }*/
+                        if (tid == 0 && localCC > bestCC) {
+                            printf("localCC=%f\n",localCC);
+                            bestCC = localCC + 1.0e-7f;
+                            bestDisplacement[0] = x - 4.f;
+                            bestDisplacement[1] = y - 4.f;
                         }
-
-                        //if (tid == 0 && localCC > bestCC) {
-                        //	bestCC = localCC + 1.0e-7f;
-                        //	bestDisplacement[0] = x - 4.f;
-                        //	bestDisplacement[1] = y - 4.f;
-                        //}
 					}
 				}
 			}
@@ -538,7 +543,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 							const float localCC = fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar));
 
 
-                            if(tid == 0 && isfinite(bestCC)==0) {
+                            /*if(tid == 0 && isfinite(bestCC)==0) {
                                 bestCC = localCC;
                                 bestDisplacement[0] = x - 4.f;
                                 bestDisplacement[1] = y - 4.f;
@@ -555,14 +560,14 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                                 bestDisplacement[0] = x - 4.f;
                                 bestDisplacement[1] = y - 4.f;
                                 bestDisplacement[2] = z - 4.f;
-                            }
+                            }*/
 
-                            //if (tid == 0 && localCC > bestCC) {
-                            //    bestCC = localCC + 1.0e-7f;
-                            //    bestDisplacement[0] = x - 4.f;
-                            //    bestDisplacement[1] = y - 4.f;
-                            //    bestDisplacement[2] = z - 4.f;
-                            //}
+                            if (tid == 0 && localCC > bestCC) {
+                                bestCC = localCC + 1.0e-7f;
+                                bestDisplacement[0] = x - 4.f;
+                                bestDisplacement[1] = y - 4.f;
+                                bestDisplacement[2] = z - 4.f;
+                            }
 						}
 					}
 				}
@@ -659,9 +664,9 @@ void block_matching_method_gpu(nifti_image *targetImage,
 																						definedBlock_d);
 	}
 #ifndef NDEBUG
-	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)
-		#else
-	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+    NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D);
+        #else
+    NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 #endif
 
 	NR_CUDA_SAFE_CALL(cudaMemcpy((void * )definedBlock_h, (void * )definedBlock_d, sizeof(unsigned int), cudaMemcpyDeviceToHost));

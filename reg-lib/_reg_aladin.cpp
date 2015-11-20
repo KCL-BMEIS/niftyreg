@@ -32,9 +32,7 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->CurrentReferenceMask = NULL;
 	this->ReferencePyramid = NULL;
 	this->FloatingPyramid = NULL;
-	this->ReferenceMaskPyramid = NULL;
-	this->CurrentWarped = NULL;
-	this->deformationFieldImage = NULL;
+    this->ReferenceMaskPyramid = NULL;
 	this->activeVoxelNumber = NULL;
 
 	this->deformationFieldImage = NULL;
@@ -84,7 +82,7 @@ template<class T> reg_aladin<T>::reg_aladin()
 	//check those
 	this->FloatingLowerThreshold = 0.f;
 	this->FloatingUpperThreshold = 0.f;
-	 this->gpuIdx = -1;
+    this->gpuIdx = 999;
 }
 /* *************************************************************** */
 template<class T> reg_aladin<T>::~reg_aladin()
@@ -612,7 +610,7 @@ void reg_aladin<T>::Run()
 template<class T>
 nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 {
-	int floatingType = this->InputFloating->datatype; //t_dev ask before touching this!
+    int floatingType = this->InputFloating->datatype; //t_dev ask before touching this!
 	// The initial images are used
 	if (this->InputReference == NULL || this->InputFloating == NULL || this->TransformationMatrix == NULL) {
 		reg_print_fct_error("reg_aladin::GetFinalWarpedImage()");
@@ -620,7 +618,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 		reg_exit(1);
 	}
 
-   this->CurrentReference = this->InputReference;
+    this->CurrentReference = this->InputReference;
     this->CurrentFloating = this->InputFloating;
     this->CurrentReferenceMask = (int *)calloc(this->CurrentReference->nx*this->CurrentReference->ny*this->CurrentReference->nz,sizeof(int));
 
@@ -634,7 +632,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	reg_aladin<T>::GetWarpedImage(3); // cubic spline interpolation
 	this->CurrentWarped = this->con->getCurrentWarped(floatingType);
 
-	 free(this->CurrentReferenceMask);
+    free(this->CurrentReferenceMask);
 	nifti_image *resultImage = nifti_copy_nim_info(this->CurrentWarped);
 	resultImage->cal_min = this->InputFloating->cal_min;
 	resultImage->cal_max = this->InputFloating->cal_max;

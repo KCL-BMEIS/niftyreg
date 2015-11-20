@@ -366,12 +366,13 @@ void CudaAladinContent::fillImageData(nifti_image *image,
 
    cudaCommon_transferFromDeviceToCpu<float>(buffer, &memoryObject, size);
 
-   for (size_t i = 0; i < size; ++i) {
-      array[i] = fillWarpedImageData<T>(buffer[i], type);
-   }
+   free(image->data);
    image->datatype = type;
    image->nbyper = sizeof(T);
-
+   image->data = (void *)malloc(image->nvox*image->nbyper);
+   T* dataT = static_cast<T*>(image->data);
+   for (size_t i = 0; i < size; ++i)
+       dataT[i] = fillWarpedImageData<T>(buffer[i], type);
    free(buffer);
 }
 /* *************************************************************** */
