@@ -175,8 +175,7 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 
 		// Define temp variables to store the displacements and measure of similarity
                 float bestDisplacement[2] = {NAN, 0.0f};
-                float bestCC = -2.0f;
-                //float bestCC = NAN;
+                float bestCC = 0.0f;
 
 		// Following computation is perform if there are at last half of the voxel are defined
 		if (referenceSize > 8){
@@ -337,8 +336,7 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 
 		// Define temp variables to store the displacements and measure of similarity
                 float bestDisplacement[3] = {NAN, 0.0f, 0.0f };
-                float bestCC = -2.0f;
-                //float bestCC = NAN;
+                float bestCC = 0.0f;
 
 		// Following computation is perform if there are at last half of the voxel are defined
 		if (referenceSize > 32){

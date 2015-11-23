@@ -329,8 +329,7 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                else
                   referenceIndex += BLOCK_WIDTH;
             }
-            bestCC = params->voxelCaptureRange > 3 ? 0.9 : -2.0;
-            //bestCC = std::numeric_limits<float>::quiet_NaN();
+            bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0.0;
             bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
             bestDisplacement[1] = 0.f;
             bestDisplacement[2] = 0.f;
@@ -549,8 +548,7 @@ void block_matching_method3D(nifti_image * reference,
                   else
                      referenceIndex += BLOCK_WIDTH * BLOCK_WIDTH;
                }
-               bestCC = params->voxelCaptureRange > 3 ? 0.9 : -2.0; //only when misaligned images are registered
-               //bestCC = std::numeric_limits<float>::quiet_NaN();
+               bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0.0; //only when misaligned images are registered
                bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
                bestDisplacement[1] = 0.f;
                bestDisplacement[2] = 0.f;

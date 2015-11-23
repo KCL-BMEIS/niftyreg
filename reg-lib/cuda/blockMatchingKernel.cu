@@ -88,7 +88,9 @@ float blockReduce2DSum(float val, int tid)
    __syncthreads();
 
 	for (unsigned int i = 8; i > 0; i >>= 1){
-		if (tid < i) shared[tid] += shared[tid + i];
+        if (tid < i) {
+            shared[tid] += shared[tid + i];
+        }
 		__syncthreads();
 	}
 	return shared[0];
@@ -102,7 +104,9 @@ float blockReduceSum(float val, int tid)
    __syncthreads();
 
 	for (unsigned int i = 32; i > 0; i >>= 1){
-		if (tid < i) shared[tid] += shared[tid + i];
+        if (tid < i) {
+            shared[tid] += shared[tid + i];
+        }
 		__syncthreads();
 	}
 	return shared[0];
@@ -116,7 +120,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 {
 	extern __shared__ float sWarpedValues[];
 	// Compute the current block index
-	const unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x ;
+    const unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
 
 	const int currentBlockIndex = tex1Dfetch(totalBlock_texture, bid);
 	if (currentBlockIndex > -1) {
@@ -159,7 +163,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
 
         float bestDisplacement[2] = {nanf("sNaN"), 0.0f};
-        float bestCC = -2.0f;
+        float bestCC = 0.0;
 
 		if (referenceSize > 8) {
 			//the target values must remain constant throughout the block matching process
@@ -176,7 +180,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 					const unsigned int currentWarpedSize = __syncthreads_count(overlap);
 
                     if (currentWarpedSize > 8) {
-						//the target values must remain intact at each loop, so please do not touch this!
+                        //the reference values must remain intact at each loop, so please do not touch this!
 						float newreferenceTemp = referenceTemp;
 						float newreferenceVar = referenceVar;
 						if (currentWarpedSize != referenceSize){
@@ -480,7 +484,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
 
         float bestDisplacement[3] = {nanf("sNaN"), 0.0f, 0.0f };
-        float bestCC = -2.0f;
+        float bestCC = 0.0f;
 
 		if (referenceSize > 32) {
 			//the target values must remain constant throughout the block matching process
