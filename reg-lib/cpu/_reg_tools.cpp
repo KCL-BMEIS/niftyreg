@@ -28,6 +28,12 @@ void reg_checkAndCorrectDimension(nifti_image *image)
    if(image->nu<1 || image->dim[5]<1) image->dim[5]=image->nu=1;
    if(image->nv<1 || image->dim[6]<1) image->dim[6]=image->nv=1;
    if(image->nw<1 || image->dim[7]<1) image->dim[7]=image->nw=1;
+   //Correcting the dim of the images
+   for(int i=1;i<8;++i) {
+       if(image->dim[i]>1) {
+            image->dim[0]=image->ndim=i;
+       }
+   }
    // Set the slope to 1 if undefined
    if(image->scl_slope==0) image->scl_slope=1.f;
    // Ensure that no spacing is set to zero

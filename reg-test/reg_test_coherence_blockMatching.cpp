@@ -199,6 +199,12 @@ int main(int argc, char **argv)
                                 &blockMatchingParams_gpu->warpedPosition[i],
                                 max_difference);
    }
+   size_t test_cpu=0, test_gpu=0;
+   for(size_t i=0; i<blockMatchingParams_cpu->activeBlockNumber*imgDim; i+=imgDim){
+       test_cpu = blockMatchingParams_cpu->warpedPosition[i]==blockMatchingParams_cpu->warpedPosition[i]?++test_cpu:test_cpu;
+       test_gpu = blockMatchingParams_gpu->warpedPosition[i]==blockMatchingParams_gpu->warpedPosition[i]?++test_gpu:test_gpu;
+   }
+   printf("CPU: %lu - GPU: %lu\n", test_cpu, test_gpu);
 
    delete con_gpu;
    //delete con_cpu;

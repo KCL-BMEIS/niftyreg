@@ -158,19 +158,14 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 		rReferenceValue = finiteReference ? rReferenceValue : 0.f;
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
 
-		float bestDisplacement[2] = {nanf("sNaN"), 0.0f};
-        float bestCC = 0.0f;
-        //float bestCC = nanf("sNaN");
+        float bestDisplacement[2] = {nanf("sNaN"), 0.0f};
+        float bestCC = -2.0f;
 
 		if (referenceSize > 8) {
-            printf("referenceSize=%i\n",referenceSize);
 			//the target values must remain constant throughout the block matching process
 			const float referenceMean = __fdividef(blockReduce2DSum(rReferenceValue, tid), referenceSize);
 			const float referenceTemp = finiteReference ? rReferenceValue - referenceMean : 0.f;
 			const float referenceVar = blockReduce2DSum(referenceTemp * referenceTemp, tid);
-            printf("referenceMean=%f\n",referenceMean);
-            printf("referenceTemp=%f\n",referenceTemp);
-            printf("referenceVar=%f\n",referenceVar);
 			// iteration over the result blocks (block matching part)
 			for (unsigned int y=1; y<8; ++y) {
 				for (unsigned int x=1; x<8; ++x) {
@@ -179,10 +174,8 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 					const float rWarpedValue = sWarpedValues[sharedIndex];
 					const bool overlap = isfinite(rWarpedValue) && finiteReference;
 					const unsigned int currentWarpedSize = __syncthreads_count(overlap);
-                    printf("currentWarpedSize=%i\n",currentWarpedSize);
 
-					if (currentWarpedSize > 8) {
-                        printf("currentWarpedSize2=%i\n",currentWarpedSize);
+                    if (currentWarpedSize > 8) {
 						//the target values must remain intact at each loop, so please do not touch this!
 						float newreferenceTemp = referenceTemp;
 						float newreferenceVar = referenceVar;
@@ -199,26 +192,9 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 						const float warpedVar = blockReduce2DSum(warpedTemp * warpedTemp, tid);
 
 						const float sumTargetResult = blockReduce2DSum((newreferenceTemp)* (warpedTemp), tid);
-						const float localCC = fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar));
-                        printf("localCC=%f\n",localCC);
+                        const float localCC = (newreferenceVar * warpedVar) > 0.0 ? fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar)) : 0.0;
 
-                        /*if(tid == 0 && isfinite(bestCC)==0) {
-                            bestCC = localCC;
-                            bestDisplacement[0] = x - 4.f;
-                            bestDisplacement[1] = y - 4.f;
-                        } else if(tid == 0 && fabs(localCC-bestCC) < 1.0e-7f) {
-                            if(localCC > bestCC) {
-                                bestCC = localCC;
-                            }
-                            bestDisplacement[0] = nanf("sNaN");
-                            bestDisplacement[1] = 0.f;
-                        } else if (tid == 0 && localCC > bestCC) {
-                            bestCC = localCC;
-                            bestDisplacement[0] = x - 4.f;
-                            bestDisplacement[1] = y - 4.f;
-                        }*/
                         if (tid == 0 && localCC > bestCC) {
-                            printf("localCC=%f\n",localCC);
                             bestCC = localCC + 1.0e-7f;
                             bestDisplacement[0] = x - 4.f;
                             bestDisplacement[1] = y - 4.f;
@@ -228,7 +204,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 			}
 		}
 
-		if (tid==0){
+        if (tid==0){
 			const unsigned int posIdx = 2 * currentBlockIndex;
 			const float referencePosition_temp[2] = {(float)xImage, (float)yImage};
 
@@ -236,7 +212,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 			bestDisplacement[1] += referencePosition_temp[1];
 
 			reg2D_mat44_mul_cuda<float>(referenceMatrix_xyz, referencePosition_temp, &referencePosition[posIdx]);
-			reg2D_mat44_mul_cuda<float>(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
+            reg2D_mat44_mul_cuda<float>(referenceMatrix_xyz, bestDisplacement, &warpedPosition[posIdx]);
 
 			if (isfinite(bestDisplacement[0])) {
 				atomicAdd(definedBlock, 1);
@@ -504,8 +480,8 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
 
         float bestDisplacement[3] = {nanf("sNaN"), 0.0f, 0.0f };
-        //float bestCC = 0.0f;
-        float bestCC = nanf("sNaN");
+        float bestCC = -2.0f;
+
 		if (referenceSize > 32) {
 			//the target values must remain constant throughout the block matching process
 			const float referenceMean = __fdividef(blockReduceSum(rReferenceValue, tid), referenceSize);
@@ -540,27 +516,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 							const float warpedVar = blockReduceSum(warpedTemp * warpedTemp, tid);
 
 							const float sumTargetResult = blockReduceSum((newreferenceTemp)* (warpedTemp), tid);
-							const float localCC = fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar));
-
-
-                            /*if(tid == 0 && isfinite(bestCC)==0) {
-                                bestCC = localCC;
-                                bestDisplacement[0] = x - 4.f;
-                                bestDisplacement[1] = y - 4.f;
-                                bestDisplacement[2] = z - 4.f;
-                            } else if(tid == 0 && fabs(localCC-bestCC) < 1.0e-7f) {
-                                if(localCC > bestCC) {
-                                    bestCC = localCC;
-                                }
-                                bestDisplacement[0] = nanf("sNaN");
-                                bestDisplacement[1] = 0.f;
-                                bestDisplacement[2] = 0.f;
-                            } else if (tid == 0 && localCC > bestCC) {
-                                bestCC = localCC;
-                                bestDisplacement[0] = x - 4.f;
-                                bestDisplacement[1] = y - 4.f;
-                                bestDisplacement[2] = z - 4.f;
-                            }*/
+                            const float localCC = (newreferenceVar * warpedVar) > 0.0 ? fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar)) : 0.0;
 
                             if (tid == 0 && localCC > bestCC) {
                                 bestCC = localCC + 1.0e-7f;
@@ -603,9 +559,9 @@ void block_matching_method_gpu(nifti_image *targetImage,
 										 float** referenceMat_d)
 {
 	// Copy some required parameters over to the device
-	uint3 imageSize = make_uint3(targetImage->nx,
-										  targetImage->ny,
-										  targetImage->nz);
+    uint3 imageSize = make_uint3(targetImage->nx,
+                                 targetImage->ny,
+                                 targetImage->nz);
 	uint3 blockSize = make_uint3(params->blockNumber[0],
 			params->blockNumber[1],
 			params->blockNumber[2]);
@@ -626,7 +582,7 @@ void block_matching_method_gpu(nifti_image *targetImage,
 
 
 	if (params->stepSize!=1 || params->voxelCaptureRange!=3){
-		reg_print_msg_error("The block Mathching OpenCL kernel supports only a stepsize of 1");
+        reg_print_msg_error("The block Mathching CUDA kernel supports only a stepsize of 1");
 		reg_exit(1);
 	}
 
@@ -638,12 +594,12 @@ void block_matching_method_gpu(nifti_image *targetImage,
 			(unsigned int)reg_ceil((float)params->blockNumber[2]/2.f));
 	unsigned int sMem = (128 + 4*3 * 4*3 * 4*4) * sizeof(float);
 #else
-	dim3 BlockDims1D(4,4,4);
-	dim3 BlocksGrid3D(
-				params->blockNumber[0],
-			params->blockNumber[1],
-			params->blockNumber[2]);
-	unsigned int sMem = (64 + 4*3 * 4*3 * 4*3) * sizeof(float); // (3*4)^3
+    dim3 BlockDims1D(4,4,4);
+    dim3 BlocksGrid3D(
+                params->blockNumber[0],
+            params->blockNumber[1],
+            params->blockNumber[2]);
+    unsigned int sMem = (64 + 4*3 * 4*3 * 4*3) * sizeof(float); // (3*4)^3
 #endif
 
 	if (targetImage->nz == 1){
