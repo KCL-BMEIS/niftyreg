@@ -2551,12 +2551,12 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
    DTYPE first[2]= {-1.0,1.0};
    DTYPE firstX, firstY, defX, defY;
 
-   int currentIndex, x, y, a, b, currentZ, index;
+   int currentIndex, x, y, a, b, index;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(deformationField, jacobianDeterminant, jacobianMatrices, reorientation, \
    basis, first, jacDetPtr, deformationPtrX, deformationPtrY, spacing) \
-   private(currentIndex, x, y, a, b, currentZ, index, \
+   private(currentIndex, x, y, a, b, index, \
    jacobianMatrix, defX, defY, firstX, firstY)
 #endif
    for(y=0; y<deformationField->ny-1; ++y)

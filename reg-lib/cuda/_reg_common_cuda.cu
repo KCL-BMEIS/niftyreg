@@ -12,12 +12,10 @@
 #define _REG_COMMON_GPU_CU
 
 #include "_reg_common_cuda.h"
-#include "_reg_maths.h"
-
+#include "_reg_tools.h"
 /* ******************************** */
 /* ******************************** */
-
-template < class NIFTI_TYPE>
+template <class NIFTI_TYPE>
 int cudaCommon_transferNiftiToNiftiOnDevice1(nifti_image **image_d, nifti_image *img) {
 
 	const unsigned int memSize = img->dim[1] * img->dim[2] * img->dim[3] * sizeof(NIFTI_TYPE);
@@ -649,5 +647,85 @@ template int cudaCommon_transferFromDeviceToNiftiSimple1<float>(float **array_d,
 template int cudaCommon_transferFromDeviceToNiftiSimple1<double>(double **array_d, double *img, const unsigned);
 /* ******************************** */
 /* ******************************** */
+/* ******************************** */
+/* ******************************** */
+template <class DTYPE>
+int cudaCommon_transferArrayFromCpuToDevice(DTYPE **array_d, DTYPE *array_cpu, const unsigned int nElements) {
 
+    const unsigned int memSize = nElements * sizeof(DTYPE);
+    //copyData
+    NR_CUDA_SAFE_CALL(cudaMemcpy(*array_d, array_cpu, memSize, cudaMemcpyHostToDevice));
+    //
+    return EXIT_SUCCESS;
+}
+template int cudaCommon_transferArrayFromCpuToDevice<int>(int **array_d, int *array_cpu, const unsigned int nElements);
+template int cudaCommon_transferArrayFromCpuToDevice<float>(float **array_d, float *array_cpu, const unsigned int nElements);
+template int cudaCommon_transferArrayFromCpuToDevice<double>(double **array_d, double *array_cpu, const unsigned int nElements);
+/* ******************************** */
+/* ******************************** */
+/* ******************************** */
+/* ******************************** */
+template <class DTYPE>
+int cudaCommon_transferArrayFromDeviceToCpu(DTYPE *array_cpu, DTYPE **array_d, const unsigned int nElements) {
+
+    const unsigned int memSize = nElements * sizeof(DTYPE);
+    //copyData
+    NR_CUDA_SAFE_CALL(cudaMemcpy(array_cpu, *array_d, memSize, cudaMemcpyDeviceToHost));
+    //
+    return EXIT_SUCCESS;
+}
+template int cudaCommon_transferArrayFromDeviceToCpu<int>(int *array_cpu, int **array_d, const unsigned int nElements);
+template int cudaCommon_transferArrayFromDeviceToCpu<float>(float *array_cpu, float **array_d, const unsigned int nElements);
+template int cudaCommon_transferArrayFromDeviceToCpu<double>(double *array_cpu, double **array_d, const unsigned int nElements);
+/* ******************************** */
+void showCUDACardInfo(void)
+{
+   // The CUDA card is setup
+   cuInit(0);
+
+   int device_count=0;
+   cudaGetDeviceCount(&device_count);
+   printf("-----------------------------------\n");
+   printf("[NiftyReg CUDA] %i device(s) detected\n", device_count);
+   printf("-----------------------------------\n");
+
+   CUcontext cucontext;
+
+   struct cudaDeviceProp deviceProp;
+   // following code is from cutGetMaxGflopsDeviceId()
+   int current_device = 0;
+   while(current_device<device_count){
+       cudaGetDeviceProperties(&deviceProp, current_device);
+       if(deviceProp.major>0){
+
+          NR_CUDA_SAFE_CALL(cudaSetDevice(current_device));
+          NR_CUDA_SAFE_CALL(cuCtxCreate(&cucontext, CU_CTX_SCHED_SPIN, current_device));
+
+          printf("[NiftyReg CUDA] Device id [%i]\n", current_device);
+          printf("[NiftyReg CUDA] Device name: %s\n", deviceProp.name);
+          size_t free=0;
+          size_t total=0;
+          cuMemGetInfo(&free, &total);
+          printf("[NiftyReg CUDA] It has %lu Mb free out of %lu Mb\n",
+                 (unsigned long int)(free/(1024*1024)),
+                 (unsigned long int)(total/(1024*1024)));
+          printf("[NiftyReg CUDA] Card compute capability: %i.%i\n",
+                 deviceProp.major,
+                 deviceProp.minor);
+          printf("[NiftyReg CUDA] Shared memory size in bytes: %lu\n",
+                 deviceProp.sharedMemPerBlock);
+          printf("[NiftyReg CUDA] CUDA version %i\n",
+                 CUDART_VERSION);
+          printf("[NiftyReg CUDA] Card clock rate (Mhz): %i\n",
+                 deviceProp.clockRate/1000);
+          printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n",
+                 deviceProp.multiProcessorCount);
+       }
+       cuCtxDestroy(cucontext);
+       ++current_device;
+       printf("-----------------------------------\n");
+   }
+}
 #endif
+/* ******************************** */
+/* ******************************** */

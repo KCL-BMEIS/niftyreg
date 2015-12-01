@@ -17,11 +17,11 @@ subdirs(nrrd)
 set(LIBRARIES ${LIBRARIES} reg_nrrd)
 
 # Create the reg_io library
-add_library(_reg_ReadWriteImage _reg_ReadWriteImage.h _reg_ReadWriteImage.cpp)
+add_library(_reg_ReadWriteImage _reg_ReadWriteImage.h _reg_ReadWriteImage.cpp _reg_ReadWriteMatrix.h _reg_ReadWriteMatrix.cpp)
 target_link_libraries(_reg_ReadWriteImage ${LIBRARIES})
 install(TARGETS _reg_ReadWriteImage
         RUNTIME DESTINATION bin COMPONENT Development
         LIBRARY DESTINATION lib COMPONENT Development
         ARCHIVE DESTINATION lib COMPONENT Development
 )
-install(FILES _reg_ReadWriteImage.h DESTINATION include COMPONENT Development)
+install(FILES _reg_ReadWriteImage.h _reg_ReadWriteMatrix.h DESTINATION include COMPONENT Development)

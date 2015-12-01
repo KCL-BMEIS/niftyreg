@@ -11,7 +11,7 @@ public:
     OptimiseKernel(std::string name) : Kernel(name) {
     }
     virtual ~OptimiseKernel(){}
-    virtual void calculate(bool affine, bool ils, bool cusvd) = 0;
+    virtual void calculate(bool affine) = 0;
 };
 
 #endif // OPTIMISEKERNEL_H

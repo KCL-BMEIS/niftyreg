@@ -4,17 +4,12 @@
 #include "BlockMatchingKernel.h"
 #include "_reg_blockMatching.h"
 #include "nifti1_io.h"
-#include "Content.h"
+#include "AladinContent.h"
 
 class CPUBlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-    CPUBlockMatchingKernel(Content *con, std::string name) : BlockMatchingKernel(name) {
-        reference = con->getCurrentReference();
-        warped = con->getCurrentWarped();
-        params = con->getBlockMatchingParams();
-        mask = con->getCurrentReferenceMask();
-    }
+    CPUBlockMatchingKernel(AladinContent *con, std::string name);
 
     void calculate();
 

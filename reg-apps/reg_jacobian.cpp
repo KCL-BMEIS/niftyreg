@@ -16,6 +16,7 @@
 #define _MM_JACOBIAN_CPP
 
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_globalTrans.h"
 #include "_reg_localTrans.h"
 #include "_reg_tools.h"
@@ -119,8 +120,13 @@ void Usage(char *exec)
    printf("\t-jacL <filename>\n");
    printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
 #if defined (_OPENMP)
-   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]\n",
-          omp_get_num_procs());
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   char text[255];
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
+   reg_print_info(exec, text);
 #endif
 #ifdef _GIT_HASH
    printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
@@ -140,8 +146,11 @@ int main(int argc, char **argv)
    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
 
 #if defined (_OPENMP)
-   // Set the default number of thread to one
-   omp_set_num_threads(1);
+   // Set the default number of thread
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
 #endif
 
    // read the input parameters
@@ -159,12 +168,15 @@ int main(int argc, char **argv)
          printf("%s",xml_jacobian);
          return EXIT_SUCCESS;
       }
-#if defined (_OPENMP)
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
+#if defined (_OPENMP)
          omp_set_num_threads(atoi(argv[++i]));
-      }
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
 #endif
+      }
 #ifdef _GIT_HASH
       else if( strcmp(argv[i], "-version")==0 ||
           strcmp(argv[i], "-Version")==0 ||
@@ -209,7 +221,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+         fprintf(stderr,"Err:\tParameter %s unknown.\n", argv[i]);
          PetitUsage(argv[0]);
          return EXIT_FAILURE;
       }
@@ -225,7 +237,7 @@ int main(int argc, char **argv)
       if(!reg_isAnImageFileName(param->inputTransName)){
          mat44 *affineTransformation=(mat44 *)malloc(sizeof(mat44));
          reg_tool_ReadAffineFile(affineTransformation,param->inputTransName);
-         printf("%g\n", reg_mat44_det(affineTransformation));
+         printf("%g\n", reg_mat44_det<double>(affineTransformation));
          return EXIT_SUCCESS;
       }
 

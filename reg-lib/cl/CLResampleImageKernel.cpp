@@ -4,13 +4,24 @@
 #include <algorithm>
 
 /* *************************************************************** */
-CLResampleImageKernel::CLResampleImageKernel(Content *conIn, std::string name) : ResampleImageKernel(name) {
+CLResampleImageKernel::CLResampleImageKernel(AladinContent *conIn, std::string name) : ResampleImageKernel(name) {
     //populate the CLContext object ptr
-    con = static_cast<ClContent*>(conIn);
+    con = static_cast<ClAladinContent*>(conIn);
 
     //path to kernel file
     const char* niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");
-    std::string clInstallPath;
+	const char* niftyreg_src_dir = getenv("NIFTYREG_SRC_DIR");
+	
+	std::string clInstallPath;
+    std::string clSrcPath;
+    //src dir
+    if (niftyreg_src_dir != NULL){
+        char opencl_kernel_path[255];
+        sprintf(opencl_kernel_path, "%s/reg-lib/cl/", niftyreg_src_dir);
+        clSrcPath = opencl_kernel_path;
+    }
+    else clSrcPath = CL_KERNELS_SRC_PATH;
+    //install dir
     if(niftyreg_install_dir!=NULL){
         char opencl_kernel_path[255];
         sprintf(opencl_kernel_path, "%s/include/cl/", niftyreg_install_dir);
@@ -18,17 +29,24 @@ CLResampleImageKernel::CLResampleImageKernel(Content *conIn, std::string name) :
     }
     else clInstallPath = CL_KERNELS_PATH;
     std::string clKernel("resampleKernel.cl");
+	//Let's check if we did an install
+    std::string clKernelPath = (clInstallPath + clKernel);
+    std::ifstream kernelFile(clKernelPath.c_str(), std::ios::in);
+    if (kernelFile.is_open() == 0) {
+        //"clKernel.cl propbably not installed - let's use the src location"
+        clKernelPath = (clSrcPath + clKernel);
+    }
 
     //get opencl context params
     sContext = &CLContextSingletton::Instance();
     clContext = sContext->getContext();
     commandQueue = sContext->getCommandQueue();
-    program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
+    program = sContext->CreateProgram(clKernelPath.c_str());
 
     //get cpu ptrs
-    floatingImage = con->Content::getCurrentFloating();
-    warpedImage = con->Content::getCurrentWarped();
-    mask = con->Content::getCurrentReferenceMask();
+    floatingImage = con->AladinContent::getCurrentFloating();
+    warpedImage = con->AladinContent::getCurrentWarped();
+    mask = con->AladinContent::getCurrentReferenceMask();
 
     //get cl ptrs
     clCurrentFloating = con->getFloatingImageArrayClmem();
@@ -53,35 +71,42 @@ void CLResampleImageKernel::calculate(int interp,
         reg_exit(1);
     }
 
-    kernel = clCreateKernel(program, "ResampleImage3D", &errNum);
-    sContext->checkErrNum(errNum, "Error setting kernel ResampleImage3D.");
+    if (this->floatingImage->nz > 1) {
+        this->kernel = clCreateKernel(program, "ResampleImage3D", &errNum);
+    }
+    else if (this->floatingImage->nz == 1) {
+        //2D case
+        this->kernel = clCreateKernel(program, "ResampleImage2D", &errNum);
+    }
+    else {
+		reg_print_fct_error("CLResampleImageKernel::calculate");
+        reg_print_msg_error("The image dimension is not supported. Exit.");
+        reg_exit(1);
+    }
+    sContext->checkErrNum(errNum, "Error setting kernel ResampleImage.");
 
-    long targetVoxelNumber = (long) warpedImage->nx * warpedImage->ny * warpedImage->nz;
+    long targetVoxelNumber = (long) this->warpedImage->nx * this->warpedImage->ny * this->warpedImage->nz;
     const unsigned int maxThreads = sContext->getMaxThreads();
     const unsigned int maxBlocks = sContext->getMaxBlocks();
 
     unsigned int blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
-    //blocks = min_cl(blocks, maxBlocks);
     blocks = std::min(blocks, maxBlocks);
 
     const cl_uint dims = 1;
     const size_t globalWorkSize[dims] = { blocks * maxThreads };
     const size_t localWorkSize[dims] = { maxThreads };
 
-    int numMats = 0; //needs to be a parameter
-    float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
+//    int numMats = 0; //needs to be a parameter
+//    float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
 
-    cl_long2 voxelNumber = {{ (cl_long)warpedImage->nx * warpedImage->ny * warpedImage->nz,
-                                      (cl_long)floatingImage->nx * floatingImage->ny * floatingImage->nz }};
-    cl_uint3 fi_xyz = {{ (cl_uint)floatingImage->nx,
-                                (cl_uint)floatingImage->ny,
-                                (cl_uint)floatingImage->nz }};
-    cl_uint2 wi_tu = {{ (cl_uint)warpedImage->nt,
-                              (cl_uint)warpedImage->nu }};
+    cl_long2 voxelNumber = { {(cl_long)warpedImage->nx * warpedImage->ny * warpedImage->nz, (cl_long) this->floatingImage->nx * floatingImage->ny * this->floatingImage->nz} };
+    cl_uint3 fi_xyz = { {(cl_uint)floatingImage->nx, (cl_uint)floatingImage->ny, (cl_uint)floatingImage->nz} };
+    cl_uint2 wi_tu = { {(cl_uint)warpedImage->nt, (cl_uint)warpedImage->nu} };
 
-    if (numMats)
-        mat33ToCptr(jacMat, jacMat_h, numMats);
-    int datatype = con->getFloatingDatatype();
+//    if (numMats)
+//        mat33ToCptr(jacMat, jacMat_h, numMats);
+
+    int datatype = this->floatingImage->datatype;
 
     errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->clCurrentFloating);
     sContext->checkErrNum(errNum, "Error setting interp kernel arguments 0.");

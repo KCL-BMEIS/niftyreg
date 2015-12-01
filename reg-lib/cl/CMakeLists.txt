@@ -12,7 +12,7 @@ endif(NOT OPENCL_FOUND)
 #-----------------------------------------------------------------------------
 set(SOURCE_PATH ${CMAKE_BINARY_DIR})
 #-----------------------------------------------------------------------------
-configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h CONFIGURE IMMEDIATE)
+configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h IMMEDIATE)
 mark_as_advanced(_OPENCL_CPP_INCLUDE_DIRS)
 #-----------------------------------------------------------------------------
 include_directories(${CMAKE_BINARY_DIR})
@@ -23,30 +23,39 @@ include_directories(${OPENCL_INCLUDE_DIRS})
 set(NAME _reg_opencl_kernels)
 add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CLContextSingletton.cpp
-	CLContent.cpp
+	CLAladinContent.cpp
 	CLKernelFactory.cpp
-        #CLKernels.cpp
-        CLAffineDeformationFieldKernel.cpp
-        CLBlockMatchingKernel.cpp
-        CLConvolutionKernel.cpp
-        CLOptimiseKernel.cpp
-        CLResampleImageKernel.cpp
-	../Content.cpp
+	CLAffineDeformationFieldKernel.cpp
+	CLBlockMatchingKernel.cpp
+	CLConvolutionKernel.cpp
+	CLOptimiseKernel.cpp
+	CLResampleImageKernel.cpp
+	../AladinContent.cpp
 	../Platform.cpp
 )
-target_link_libraries(${NAME} ${OPENCL_LIBRARIES} )
+target_link_libraries(${NAME} ${OPENCL_LIBRARIES})
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION lib
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
 #-----------------------------------------------------------------------------
-install(FILES CLContextSingletton.h CLContent.h CLKernelFactory.h #CLKernels.h
-        CLAffineDeformationFieldKernel.h
-        CLBlockMatchingKernel.h
-        CLConvolutionKernel.h
-        CLOptimiseKernel.h
-        CLResampleImageKernel.h
-        DESTINATION include)
+install(FILES CLContextSingletton.h CLAladinContent.h CLKernelFactory.h
+				CLAffineDeformationFieldKernel.h
+				CLBlockMatchingKernel.h
+				CLConvolutionKernel.h
+				CLOptimiseKernel.h
+				CLResampleImageKernel.h
+				DESTINATION include/cl)
 install(FILES resampleKernel.cl affineDeformationKernel.cl blockMatchingKernel.cl DESTINATION include/cl)
+#-----------------------------------------------------------------------------
+set(NAME _reg_openclinfo)
+add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cpp ${NAME}.h InfoDevice.h CLContextSingletton.cpp)
+target_link_libraries(${NAME} ${OPENCL_LIBRARIES})
+install(TARGETS ${NAME}
+	RUNTIME DESTINATION lib
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib
+)
+install(FILES ${NAME}.h DESTINATION include/cl)
 #-----------------------------------------------------------------------------

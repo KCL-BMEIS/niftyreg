@@ -1,126 +1,219 @@
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_blockMatching.h"
 #include "_reg_tools.h"
+#include "_reg_globalTrans.h"
+
+#include "BlockMatchingKernel.h"
+#include "Platform.h"
+
+#include "AladinContent.h"
+#ifdef _USE_CUDA
+#include "CUDAAladinContent.h"
+#endif
+#ifdef _USE_OPENCL
+#include "CLAladinContent.h"
+#endif
+
+#include <algorithm>
 
 #define EPS 0.000001
+
+void check_matching_difference(int dim,
+                               float* referencePosition,
+                               float* warpedPosition,
+                               float* expectedReferencePositions,
+                               float* expectedWarpedPosition,
+                               float &max_difference)
+{
+   float difference;
+   for (int i = 0; i < dim; ++i) {
+      difference = fabsf(referencePosition[i] - expectedReferencePositions[i]);
+      max_difference = std::max(difference, max_difference);
+      if (difference > EPS){
+#ifndef NDEBUG
+         fprintf(stderr, "reg_test_blockMatching reference position failed %g>%g\n", difference, EPS);
+         if(dim==2){
+            fprintf(stderr, "Reference. NR [%g %g] Expected [%g %g]\n",
+                    referencePosition[0], referencePosition[1],
+                  expectedReferencePositions[0], expectedReferencePositions[1]);
+            fprintf(stderr, "Warped. NR [%g %g] Expected [%g %g]\n",
+                    warpedPosition[0], warpedPosition[1],
+                  expectedWarpedPosition[0], expectedWarpedPosition[1]);
+         }
+         else{
+            fprintf(stderr, "Reference. NR [%g %g %g] Expected [%g %g %g]\n",
+                    referencePosition[0], referencePosition[1], referencePosition[2],
+                  expectedReferencePositions[0], expectedReferencePositions[1], expectedReferencePositions[2]);
+            fprintf(stderr, "Warped. NR [%g %g %g] Expected [%g %g %g]\n",
+                    warpedPosition[0], warpedPosition[1], warpedPosition[2],
+                  expectedWarpedPosition[0], expectedWarpedPosition[1], expectedWarpedPosition[2]);
+         }
+         reg_exit(1);
+#endif
+      }
+      difference = fabsf(warpedPosition[i] - expectedWarpedPosition[i]);
+      max_difference = std::max(difference, max_difference);
+      if (difference > EPS){
+#ifndef NDEBUG
+         fprintf(stderr, "reg_test_blockMatching warped position failed %g>%g\n", difference, EPS);
+         if(dim==2){
+            fprintf(stderr, "Reference. NR [%g %g] Expected [%g %g]\n",
+                    referencePosition[0], referencePosition[1],
+                  expectedReferencePositions[0], expectedReferencePositions[1]);
+            fprintf(stderr, "Warped. NR [%g %g] Expected [%g %g]\n",
+                    warpedPosition[0], warpedPosition[1],
+                  expectedWarpedPosition[0], expectedWarpedPosition[1]);
+         }
+         else{
+            fprintf(stderr, "Reference. NR [%g %g %g] Expected [%g %g %g]\n",
+                    referencePosition[0], referencePosition[1], referencePosition[2],
+                  expectedReferencePositions[0], expectedReferencePositions[1], expectedReferencePositions[2]);
+            fprintf(stderr, "Warped. NR [%g %g %g] Expected [%g %g %g]\n",
+                    warpedPosition[0], warpedPosition[1], warpedPosition[2],
+                  expectedWarpedPosition[0], expectedWarpedPosition[1], expectedWarpedPosition[2]);
+         }
+         reg_exit(1);
+#endif
+      }
+   }
+}
+
+void test(AladinContent *con, int platformCode) {
+
+   Platform *platform = new Platform(platformCode);
+
+   Kernel *blockMatchingKernel = platform->createKernel(BlockMatchingKernel::getName(), con);
+   blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
+
+   delete blockMatchingKernel;
+   delete platform;
+}
 
 int main(int argc, char **argv)
 {
 
-   if(argc!=4)
-   {
-      fprintf(stderr, "Usage: %s <refImage> <warImage> <transType>\n", argv[0]);
+   if (argc != 5) {
+      fprintf(stderr, "Usage: %s <refImage> <warpedImage> <expectedBlockMatchingMatrix> <platformCode>\n", argv[0]);
       return EXIT_FAILURE;
    }
 
-   char *inputRefImageName=argv[1];
-   char *inputWarImageName=argv[2];
-   int transType=atoi(argv[3]);
+   char *inputRefImageName = argv[1];
+   char *inputWarpedImageName = argv[2];
+   char* expectedBlockMatchingMatrixName = argv[3];
+   int   platformCode = atoi(argv[4]);
 
    // Read the input reference image
    nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
-   if(referenceImage==NULL){
+   if (referenceImage == NULL){
       reg_print_msg_error("The input reference image could not be read");
       return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(referenceImage);
+   //dim
+   int imgDim = referenceImage->dim[0];
+
    // Read the input floating image
-   nifti_image *warpedImage = reg_io_ReadImageFile(inputWarImageName);
-   if(warpedImage==NULL){
-      reg_print_msg_error("The input floating image could not be read");
+   nifti_image *warpedImage = reg_io_ReadImageFile(inputWarpedImageName);
+   if (warpedImage == NULL){
+      reg_print_msg_error("The input warped image could not be read");
       return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(warpedImage);
 
+   // Read the expected block matching matrix
+   std::pair<size_t, size_t> inputMatrixSize = reg_tool_sizeInputMatrixFile(expectedBlockMatchingMatrixName);
+   size_t m = inputMatrixSize.first;
+   size_t n = inputMatrixSize.second;
+   float **expectedBlockMatchingMatrix = reg_tool_ReadMatrixFile<float>(expectedBlockMatchingMatrixName, m, n);
+
    // Create a mask
-   int *mask=(int *)malloc(referenceImage->nvox*sizeof(int));
-   for(size_t i=0;i<referenceImage->nvox;++i)
-      mask[i]=i;
-
-   _reg_blockMatchingParam blockMatchingParams;
-   initialise_block_matching_method(referenceImage,
-                                    &blockMatchingParams,
-                                    50,
-                                    50,
-                                    1,
-                                    mask,
-                                    false // GPU is not used here
-                                   );
-   block_matching_method(referenceImage,
-                         warpedImage,
-                         &blockMatchingParams,
-                         mask);
-   mat44 recoveredTransformation;
-   reg_mat44_eye(&recoveredTransformation);
-   recoveredTransformation.m[0][0]=1.02f;
-   recoveredTransformation.m[1][1]=0.98f;
-   recoveredTransformation.m[2][2]=0.98f;
-   recoveredTransformation.m[0][3]=4.f;
-   recoveredTransformation.m[1][3]=4.f;
-   recoveredTransformation.m[2][3]=4.f;
-   optimize(&blockMatchingParams,
-            &recoveredTransformation,
-            transType);
-
-   nifti_image_free(warpedImage);
-   free(mask);
-
-   mat44 rigid2D;
-   rigid2D.m[0][0]=1.027961f;rigid2D.m[0][1]=-0.004180538f;rigid2D.m[0][2]=0.f;rigid2D.m[0][3]=3.601387f;
-   rigid2D.m[1][0]=0.01252018f;rigid2D.m[1][1]=0.9764945f;rigid2D.m[1][2]=0.f;rigid2D.m[1][3]=3.17229f;
-   rigid2D.m[2][0]=0.f;rigid2D.m[2][1]=0.f;rigid2D.m[2][2]=1.f;rigid2D.m[2][3]=0.f;
-   rigid2D.m[3][0]=0.f;rigid2D.m[3][1]=0.f;rigid2D.m[3][2]=0.f;rigid2D.m[3][3]=1.f;
-
-   mat44 rigid3D;
-   rigid3D.m[0][0]=1.028082f;rigid3D.m[0][1]=-0.004869822f;rigid3D.m[0][2]=0.007795987f;rigid3D.m[0][3]=4.177487f;
-   rigid3D.m[1][0]=0.01129405f;rigid3D.m[1][1]=0.9697745f;rigid3D.m[1][2]=0.005026158f;rigid3D.m[1][3]=3.874551f;
-   rigid3D.m[2][0]=0.004100456f;rigid3D.m[2][1]=0.01087017f;rigid3D.m[2][2]=1.005741f;rigid3D.m[2][3]=4.011357;
-   rigid3D.m[3][0]=0.f;rigid3D.m[3][1]=0.f;rigid3D.m[3][2]=0.f;rigid3D.m[3][3]=1.f;
-
-   mat44 affine2D;
-   affine2D.m[0][0]= 0.9999999f;affine2D.m[0][1]=0.0003671125f;affine2D.m[0][2]=0.f;affine2D.m[0][3]=3.652262f;
-   affine2D.m[1][0]=-0.0003671125f;affine2D.m[1][1]=0.9999999f;affine2D.m[1][2]=0.f;affine2D.m[1][3]=3.319299f;
-   affine2D.m[2][0]=0.f;affine2D.m[2][1]=0.f;affine2D.m[2][2]=1.f;affine2D.m[2][3]=0.f;
-   affine2D.m[3][0]=0.f;affine2D.m[3][1]=0.f;affine2D.m[3][2]=0.f;affine2D.m[3][3]=1.f;
-
-   mat44 affine3D;
-   affine3D.m[0][0]=0.9999814f;affine3D.m[0][1]=-0.004359253f;affine3D.m[0][2]=0.004272044f;affine3D.m[0][3]=4.355269f;
-   affine3D.m[1][0]=0.004345424f;affine3D.m[1][1]=0.9999853f;affine3D.m[1][2]=0.003243448f;affine3D.m[1][3]=4.134418f;
-   affine3D.m[2][0]=-0.004286081f;affine3D.m[2][1]=-0.00322482f;affine3D.m[2][2]=0.9999856f;affine3D.m[2][3]=3.725645f;
-   affine3D.m[3][0]=0.f;affine3D.m[3][1]=0.f;affine3D.m[3][2]=0.f;affine3D.m[3][3]=1.f;
-
-   mat44 *testMatrix=NULL;
-   if(referenceImage->nz>1)
-   {
-      if(transType==0)
-         testMatrix=&affine3D;
-      else testMatrix=&rigid3D;
-   }
-   else
-   {
-      if(transType==0)
-         testMatrix=&affine2D;
-      else testMatrix=&rigid2D;
-
+   int *mask = (int *)malloc(referenceImage->nvox*sizeof(int));
+   for (size_t i = 0; i < referenceImage->nvox; ++i) {
+      mask[i] = i;
    }
 
-   nifti_image_free(referenceImage);
+   _reg_blockMatchingParam* blockMatchingParams;
+
+   // Platforms
+   AladinContent *con = NULL;
+   if (platformCode == NR_PLATFORM_CPU) {
+      con = new AladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+   }
+#ifdef _USE_CUDA
+   else if (platformCode == NR_PLATFORM_CUDA) {
+      con = new CudaAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+   }
+#endif
+#ifdef _USE_OPENCL
+   else if (platformCode == NR_PLATFORM_CL) {
+      con = new ClAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+   }
+#endif
+   else {
+      reg_print_msg_error("The platform code is not suppoted");
+      return EXIT_FAILURE;
+   }
+   con->setCurrentWarped(warpedImage);
+   //con->setCurrentWarped(referenceImage);
+   test(con, platformCode);
+   blockMatchingParams = con->getBlockMatchingParams();
+
+#ifndef NDEBUG
+   std::cout << "blockMatchingParams->definedActiveBlock = " << blockMatchingParams->definedActiveBlockNumber << std::endl;
+#endif
+
+   float max_difference = 0;
+
+   int blockIndex = 0;
+   int positionIndex = 0;
+   int matrixIndex = 0;
+
+   unsigned int zMax = 2;
+   if (imgDim == 3)
+      zMax = blockMatchingParams->blockNumber[2] - 1;
 
 
-   reg_mat44_disp(testMatrix,(char *)"expected");
-   reg_mat44_disp(&recoveredTransformation,(char *)"recovered");
+   for (unsigned int z = 1; z < zMax; z += 3) {
+      for (unsigned int y = 1; y < blockMatchingParams->blockNumber[1] - 1; y += 3) {
+         for (unsigned int x = 1; x < blockMatchingParams->blockNumber[0] - 1; x += 3) {
 
-   mat44 differenceMatrix = *testMatrix - recoveredTransformation;
-   for(int i=0;i<4;++i){
-      for(int j=0;j<4;++j){
-         if(fabsf(differenceMatrix.m[i][j])>EPS){
-            fprintf(stderr, "reg_test_fullAffine error too large: %g (>%g) [%i,%i]\n",
-                    fabs(differenceMatrix.m[i][j]), EPS, i, j);
-            return EXIT_FAILURE;
+            if (imgDim == 3) {
+               blockIndex = (z * blockMatchingParams->blockNumber[1] + y) * blockMatchingParams->blockNumber[0] + x;
+            }
+            else {
+               blockIndex = y * blockMatchingParams->blockNumber[0] + x;
+            }
+
+            positionIndex = imgDim * blockMatchingParams->totalBlock[blockIndex];
+
+            if (positionIndex > -1) {
+               check_matching_difference(imgDim,
+                                         &blockMatchingParams->referencePosition[positionIndex],
+                                         &blockMatchingParams->warpedPosition[positionIndex],
+                                         &expectedBlockMatchingMatrix[matrixIndex][0],
+                     &expectedBlockMatchingMatrix[matrixIndex][3],
+                     max_difference);
+               matrixIndex++;
+            }
          }
       }
    }
 
+   delete con;
+   free(mask);
+   reg_matrix2DDeallocate(m, expectedBlockMatchingMatrix);
+   nifti_image_free(referenceImage);
+
+   if(max_difference>EPS){
+#ifndef NDEBUG
+      fprintf(stdout, "reg_test_blockMatching failed: %g (>%g)\n", max_difference, EPS);
+#endif
+      return EXIT_FAILURE;
+   }
+#ifndef NDEBUG
+   printf("All good (%g<%g)\n", max_difference, EPS);
+#endif
    return EXIT_SUCCESS;
 }
 

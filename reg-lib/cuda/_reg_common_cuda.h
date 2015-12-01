@@ -45,7 +45,8 @@ struct __attribute__((aligned(4))) float4
 			reg_exit(EXIT_FAILURE); \
 		} \
 		else{\
-		printf("[NiftyReg CUDA DEBUG] kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n", cudaGetErrorString(cudaGetLastError()), grid.x, grid.y, grid.z, block.x, block.y, block.z);\
+			printf("[NiftyReg CUDA DEBUG] kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n", \
+			  cudaGetErrorString(cudaGetLastError()), grid.x, grid.y, grid.z, block.x, block.y, block.z);\
 		}\
 	}
 #else //CUDART_VERSION >= 3200
@@ -157,5 +158,18 @@ template <class DTYPE>
 int cudaCommon_transferFromDeviceToCpu(DTYPE *cpuPtr, DTYPE **cuPtr, const unsigned int nElements);
 /* ******************************** */
 /* ******************************** */
-
+/* ******************************** */
+/* ******************************** */
+extern "C++"
+template <class DTYPE>
+int cudaCommon_transferArrayFromCpuToDevice(DTYPE **array_d, DTYPE *array_cpu, const unsigned int nElements);
+/* ******************************** */
+/* ******************************** */
+extern "C++"
+template <class DTYPE>
+int cudaCommon_transferArrayFromDeviceToCpu(DTYPE *array_cpu, DTYPE **array_d, const unsigned int nElements);
+/* ******************************** */
+/* ******************************** */
+void showCUDACardInfo(void);
+/* ******************************** */
 #endif

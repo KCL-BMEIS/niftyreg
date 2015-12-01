@@ -1,14 +1,13 @@
 #include "CPUKernelFactory.h"
-//#include "CPUKernels.h"
 #include "CPUAffineDeformationFieldKernel.h"
 #include "CPUConvolutionKernel.h"
 #include "CPUBlockMatchingKernel.h"
 #include "CPUResampleImageKernel.h"
 #include "CPUOptimiseKernel.h"
 //
-#include "Content.h"
+#include "AladinContent.h"
 
-Kernel *CPUKernelFactory::produceKernel(std::string name,  Content *con) const
+Kernel *CPUKernelFactory::produceKernel(std::string name,  AladinContent *con) const
 {
 	if (name == AffineDeformationFieldKernel::getName()) return new CPUAffineDeformationFieldKernel(con, name);
 	else if (name == ConvolutionKernel::getName()) return new CPUConvolutionKernel(name);
@@ -17,4 +16,3 @@ Kernel *CPUKernelFactory::produceKernel(std::string name,  Content *con) const
 	else if (name == OptimiseKernel::getName()) return new CPUOptimiseKernel(con, name);
 	else return NULL;
 }
-

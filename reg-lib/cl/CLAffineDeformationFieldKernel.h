@@ -2,18 +2,18 @@
 #define CLAFFINEDEFORMATIONFIELDKERNEL_H
 
 #include "AffineDeformationFieldKernel.h"
-#include "CLContent.h"
+#include "CLAladinContent.h"
 
 class CLAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
     public:
-       CLAffineDeformationFieldKernel(Content * conIn, std::string nameIn);
+       CLAffineDeformationFieldKernel(AladinContent * conIn, std::string nameIn);
        ~CLAffineDeformationFieldKernel();
 
        void calculate(bool compose = false);
     private:
        mat44 *affineTransformation, *ReferenceMatrix;
        nifti_image *deformationFieldImage;
-       ClContent *con;
+       ClAladinContent *con;
        cl_command_queue commandQueue;
        cl_kernel kernel;
        cl_context clContext;

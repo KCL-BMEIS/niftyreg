@@ -10,16 +10,16 @@
  */
 
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_f3d2.h"
 #include "reg_f3d.h"
 #include <float.h>
 #include <limits>
+//#include <libgen.h> //DO NOT WORK ON WINDOWS !
 
 #ifdef _WIN32
 #   include <time.h>
 #endif
-
-#define PrecisionTYPE float
 
 void PetitUsage(char *exec)
 {
@@ -96,7 +96,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
    reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
-   reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98 \%ile.");
+   reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98\% ile.");
 //   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Optimisation options:");
@@ -114,8 +114,11 @@ void Usage(char *exec)
 #if defined (_OPENMP)
    reg_print_info(exec, "");
    reg_print_info(exec, "*** OpenMP-related options:");
-   sprintf(text, "\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]",
-          omp_get_num_procs());
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
    reg_print_info(exec, "");
@@ -137,7 +140,7 @@ int main(int argc, char **argv)
 {
    if(argc==1)
    {
-      PetitUsage(argv[0]);
+      PetitUsage((argv[0]));
       return EXIT_FAILURE;
    }
    time_t start;
@@ -145,8 +148,11 @@ int main(int argc, char **argv)
    int verbose=true;
 
 #if defined (_OPENMP)
-   // Set the default number of thread to one
-   omp_set_num_threads(1);
+   // Set the default number of thread
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
 #endif
 
    char text[1024];
@@ -158,7 +164,7 @@ int main(int argc, char **argv)
             strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
-         Usage(argv[0]);
+         Usage((argv[0]));
          return EXIT_SUCCESS;
       }
       if(strcmp(argv[i], "--xml")==0)
@@ -194,13 +200,13 @@ int main(int argc, char **argv)
    if(verbose)
    {
 #endif
-      reg_print_info(argv[0], "");
-      reg_print_info(argv[0], "Command line:");
+      reg_print_info((argv[0]), "");
+      reg_print_info((argv[0]), "Command line:");
       sprintf(text, "\t");
       for(int i=0; i<argc; i++)
          sprintf(text, "%s %s", text, argv[i]);
-      reg_print_info(argv[0], text);
-      reg_print_info(argv[0], "");
+      reg_print_info((argv[0]), text);
+      reg_print_info((argv[0]), "");
 #ifdef NDEBUG
    }
 #endif
@@ -236,34 +242,34 @@ int main(int argc, char **argv)
    if(referenceImage==NULL)
    {
       reg_print_msg_error("Error. No reference image has been defined");
-      PetitUsage(argv[0]);
+      PetitUsage((argv[0]));
       return EXIT_FAILURE;
    }
    // Read the floating image
    if(floatingImage==NULL)
    {
       reg_print_msg_error("Error. No floating image has been defined");
-      PetitUsage(argv[0]);
+      PetitUsage((argv[0]));
       return EXIT_FAILURE;
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check the type of registration object to create
-   reg_f3d<PrecisionTYPE> *REG=NULL;
+   reg_f3d<float> *REG=NULL;
    for(int i=1; i<argc; i++)
    {
       if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0)
       {
-         REG=new reg_f3d2<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+         REG=new reg_f3d2<float>(referenceImage->nt,floatingImage->nt);
          break;
       }
       if(strcmp(argv[i], "-sym")==0 || strcmp(argv[i], "--sym")==0)
       {
-         REG=new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+         REG=new reg_f3d_sym<float>(referenceImage->nt,floatingImage->nt);
          break;
       }
    }
    if(REG==NULL)
-      REG=new reg_f3d<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+      REG=new reg_f3d<float>(referenceImage->nt,floatingImage->nt);
    REG->SetReferenceImage(referenceImage);
    REG->SetFloatingImage(floatingImage);
 
@@ -626,12 +632,15 @@ int main(int argc, char **argv)
 //      else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
 //         iso=true;
 //      }
-#if defined (_OPENMP)
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
+#if defined (_OPENMP)
          omp_set_num_threads(atoi(argv[++i]));
-      }
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
 #endif
+      }
       /* All the following arguments should have already been parsed */
       else if(strcmp(argv[i], "-help")!=0 && strcmp(argv[i], "-Help")!=0 &&
       strcmp(argv[i], "-HELP")!=0 && strcmp(argv[i], "-h")!=0 &&
@@ -644,7 +653,7 @@ int main(int argc, char **argv)
       {
          reg_print_msg_error("\tParameter unknown:");
          reg_print_msg_error(argv[i]);
-         PetitUsage(argv[0]);
+         PetitUsage((argv[0]));
          return EXIT_FAILURE;
       }
    }
@@ -666,7 +675,7 @@ int main(int argc, char **argv)
    {
       int maxThreadNumber = omp_get_max_threads();
       sprintf(text, "OpenMP is used with %i thread(s)", maxThreadNumber);
-      reg_print_info(argv[0], text);
+      reg_print_info((argv[0]), text);
    }
 #endif // _OPENMP
 
@@ -784,8 +793,8 @@ int main(int argc, char **argv)
       int minutes=(int)floorf((end-start)/60.0f);
       int seconds=(int)(end-start - 60*minutes);
       sprintf(text, "Registration performed in %i min %i sec", minutes, seconds);
-      reg_print_info(argv[0], text);
-      reg_print_info(argv[0], "Have a good day !");
+      reg_print_info((argv[0]), text);
+      reg_print_info((argv[0]), "Have a good day !");
 #ifdef NDEBUG
    }
 #endif

@@ -17,6 +17,11 @@
 #include "_reg_localTrans.h"
 #include "_reg_tools.h"
 
+#include "_reg_blockMatching.h"
+#include "BlockMatchingKernel.h"
+#include "Platform.h"
+#include "AladinContent.h"
+
 #include "reg_tools.h"
 
 int isNumeric (const char *s)
@@ -64,6 +69,8 @@ typedef struct
    bool nosclFlag;
    bool removeNanInf;
    bool changeResFlag;
+   bool rgbFlag;
+   bool testActiveBlocks;
 } FLAG;
 
 
@@ -97,9 +104,15 @@ void Usage(char *exec)
    printf("\t-chgres <float> <float> <float>\n\t\t\t\tResample the input image to the specified resolution (in mm)\n");
    printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
    printf("\t-rmNanInf <float>\tRemove the nan and inf from the input image and replace them by the specified value\n");
+   printf("\t-4d2rgb\t\t\tConvert a 4D (or 5D) to rgb nifti file\n");
+   printf("\t-testActiveBlocks\tGenerate an image highlighting the active blocks for reg_aladin (block variance is shown)\n");
 #if defined (_OPENMP)
-   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]",
-          omp_get_num_procs());
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   char text[255];
+   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
 #endif
 #ifdef _GIT_HASH
    printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
@@ -121,8 +134,11 @@ int main(int argc, char **argv)
    }
 
 #if defined (_OPENMP)
-   // Set the default number of thread to one
-   omp_set_num_threads(1);
+   // Set the default number of thread
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
 #endif
 
    /* read the input parameter */
@@ -140,16 +156,19 @@ int main(int argc, char **argv)
          printf("%s",xml_tools);
          return EXIT_SUCCESS;
       }
-#if defined (_OPENMP)
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
+#if defined (_OPENMP)
          omp_set_num_threads(atoi(argv[++i]));
-      }
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
 #endif
+      }
 #ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
-            strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
-            strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
+              strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
+              strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
       {
          printf("%s\n",_GIT_HASH);
          return EXIT_SUCCESS;
@@ -285,9 +304,16 @@ int main(int argc, char **argv)
          param->pixdimY=atof(argv[++i]);
          param->pixdimZ=atof(argv[++i]);
       }
+      else if(strcmp(argv[i], "-4d2rgb") == 0)
+      {
+         flag->rgbFlag=1;
+      }
+      else if (strcmp(argv[i], "-testActiveBlocks") == 0){
+         flag->testActiveBlocks=1;
+      }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+         fprintf(stderr, "Err:\tParameter %s unknown.\n", argv[i]);
          PetitUsage(argv[0]);
          return EXIT_FAILURE;
       }
@@ -677,9 +703,9 @@ int main(int argc, char **argv)
                                              newImg->qoffset_y,
                                              newImg->qoffset_z,
                                              newImg->pixdim[1],
-                                             newImg->pixdim[2],
-                                             newImg->pixdim[3],
-                                             newImg->qfac);
+            newImg->pixdim[2],
+            newImg->pixdim[3],
+            newImg->qfac);
       newImg->qto_ijk=nifti_mat44_inverse(newImg->qto_xyz);
       if(newImg->sform_code>0)
       {
@@ -740,8 +766,8 @@ int main(int argc, char **argv)
          reg_mat33_eye(&jacobian[i]);
       // resample the original image into the space of the new image
       if(newImg->pixdim[1]>image->pixdim[1] ||
-         newImg->pixdim[2]>image->pixdim[2] ||
-         newImg->pixdim[3]>image->pixdim[3] ){
+            newImg->pixdim[2]>image->pixdim[2] ||
+            newImg->pixdim[3]>image->pixdim[3] ){
          reg_resampleImage_PSF(image,
                                newImg,
                                def,
@@ -769,6 +795,154 @@ int main(int argc, char **argv)
          reg_io_WriteImageFile(newImg,param->outputImageName);
       else reg_io_WriteImageFile(newImg,"output.nii");
       nifti_image_free(newImg);
+   }
+   //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+   if(flag->rgbFlag)
+   {
+      // Convert the input image to float if needed
+      if(image->datatype!=NIFTI_TYPE_FLOAT32)
+         reg_tools_changeDatatype<float>(image);
+      // Create a temporary scaled image
+      nifti_image *scaledImage = nifti_copy_nim_info(image);
+      scaledImage->data = (void *)malloc(scaledImage->nvox * scaledImage->nbyper);
+      // Rescale the input image
+      float min_value = reg_tools_getMinValue(image);
+      float max_value = reg_tools_getMaxValue(image);
+      reg_tools_substractValueToImage(image, scaledImage, min_value);
+      reg_tools_multiplyValueToImage(scaledImage, scaledImage, 255.f/(max_value-min_value));
+      // Create the rgb image
+      nifti_image *outputImage = nifti_copy_nim_info(image);
+      outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
+      outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
+      outputImage->nvox=(size_t)outputImage->nx*
+            outputImage->ny*outputImage->nz;
+      outputImage->datatype = NIFTI_TYPE_RGB24;
+      outputImage->nbyper = 3 * sizeof(unsigned char);
+      outputImage->data = (void *)malloc(outputImage->nbyper*outputImage->nvox);
+      // Convert the image
+      float *inPtr = static_cast<float *>(scaledImage->data);
+      unsigned char *outPtr = static_cast<unsigned char *>(outputImage->data);
+      for(int t=0; t<image->nt*image->nu; ++t){
+         for(int z=0; z<image->nz; ++z){
+            for(int y=0; y<image->ny; ++y){
+               for(int x=0; x<image->nx; ++x){
+                  size_t outIndex = ((z*image->ny+y)*image->nx+x)*image->nt*image->nu+t;
+                  outPtr[outIndex] = reg_round(*inPtr);
+                  ++inPtr;
+               }
+            }
+         }
+      }
+      // Free the scaled image
+      nifti_image_free(scaledImage);
+      scaledImage=NULL;
+      // Save the rgb image
+      if(flag->outputImageFlag)
+         reg_io_WriteImageFile(outputImage,param->outputImageName);
+      else reg_io_WriteImageFile(outputImage,"output.nii");
+      nifti_image_free(outputImage);
+      outputImage=NULL;
+   }
+   //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+   if(flag->testActiveBlocks){
+      // Convert the input image to float if needed
+      if(image->datatype!=NIFTI_TYPE_FLOAT32)
+         reg_tools_changeDatatype<float>(image);
+      // Create a temporary mask
+      int *temp_mask = (int *)malloc(image->nx*image->ny*image->nz*sizeof(int));
+      for(size_t i=0; i<image->nx*image->ny*image->nz; ++i)
+         temp_mask[i]=i;
+      // Create a context that embeds the blockmatching
+      AladinContent *temp_con = new AladinContent(image, NULL,
+                                                  temp_mask,
+                                                  sizeof(float), 100, 100, 1);
+      _reg_blockMatchingParam* bm = temp_con->getBlockMatchingParams();
+      // Generate an image to store the active blocks
+      nifti_image *outputImage = nifti_copy_nim_info(image);
+      outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
+      outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
+      outputImage->nvox=(size_t)outputImage->nx*
+            outputImage->ny*outputImage->nz;
+      outputImage->cal_min=0;
+      outputImage->data = (void *)calloc(outputImage->nbyper, outputImage->nvox);
+      float *inPtr = static_cast<float *>(image->data);
+      float *outPtr = static_cast<float *>(outputImage->data);
+      int minVoxelNumber = outputImage->ndim==2?BLOCK_2D_SIZE/2:BLOCK_3D_SIZE/2;
+      // Iterate through the blocks
+      size_t blockIndex=0;
+      for(size_t bz=0;bz<bm->blockNumber[2];++bz){
+         size_t vz=4*bz;
+         for(size_t by=0;by<bm->blockNumber[1];++by){
+            size_t vy=4*by;
+            for(size_t bx=0;bx<bm->blockNumber[0];++bx){
+               size_t vx=4*bx;
+               if(bm->totalBlock[blockIndex++]>-1){
+                  float meanValue=0;
+                  float activeVoxel=0;
+                  for(size_t z=vz;z<vz+4;++z){
+                     if(z>=0 && z<outputImage->nz){
+                        for(size_t y=vy;y<vy+4;++y){
+                           if(y>=0 && y<outputImage->ny){
+                              size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
+                              for(size_t x=vx;x<vx+4;++x){
+                                 if(x>=0 && x<outputImage->nx){
+                                    meanValue += inPtr[voxelIndex];
+                                    activeVoxel++;
+                                 }
+                                 voxelIndex++;
+                              } // x
+                           }
+                        } // y
+                     }
+                  } // z
+                  meanValue /= activeVoxel;
+                  float variance=0;
+                  for(size_t z=vz;z<vz+4;++z){
+                     if(z>=0 && z<outputImage->nz){
+                        for(size_t y=vy;y<vy+4;++y){
+                           if(y>=0 && y<outputImage->ny){
+                              size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
+                              for(size_t x=vx;x<vx+4;++x){
+                                 if(x>=0 && x<outputImage->nx){
+                                    variance += reg_pow2(meanValue - inPtr[voxelIndex]);
+                                 }
+                                 voxelIndex++;
+                              } // x
+                           }
+                        } // y
+                     }
+                  } // z
+                  variance /= activeVoxel;
+                  for(size_t z=vz;z<vz+4;++z){
+                     if(z>=0 && z<outputImage->nz){
+                        for(size_t y=vy;y<vy+4;++y){
+                           if(y>=0 && y<outputImage->ny){
+                              size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
+                              for(size_t x=vx;x<vx+4;++x){
+                                 if(x>=0 && x<outputImage->nx){
+                                    outPtr[voxelIndex] = variance;
+                                 }
+                                 voxelIndex++;
+                              } // x
+                           }
+                        } // y
+                     }
+                  } // z
+               } // active block
+            } // bx
+         } // by
+      } // bz
+      outputImage->cal_max=reg_tools_getMaxValue(outputImage);
+
+      delete temp_con;
+      free(temp_mask);
+
+      // Save the output image
+      if(flag->outputImageFlag)
+         reg_io_WriteImageFile(outputImage,param->outputImageName);
+      else reg_io_WriteImageFile(outputImage,"output.nii");
+      nifti_image_free(outputImage);
+      outputImage=NULL;
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 

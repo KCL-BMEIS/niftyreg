@@ -9,13 +9,12 @@
  *
  */
 
-#ifndef _MM_ALADIN_CPP
-#define _MM_ALADIN_CPP
-
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_aladin_sym.h"
 #include "_reg_tools.h"
 #include "reg_aladin.h"
+//#include <libgen.h> //DO NOT WORK ON WINDOWS !
 
 #ifdef _WIN32
 #   include <time.h>
@@ -80,7 +79,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-pi <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]");
    reg_print_info(exec, "\t-speeeeed\t\tGo faster");
 #if defined(_USE_CUDA) && defined(_USE_OPENCL)
-   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
+   reg_print_info(exec, "\t-platf <uint>\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
 #else
 #ifdef _USE_CUDA
    reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 [0]");
@@ -90,13 +89,16 @@ void Usage(char *exec)
 #endif
 #endif
 #ifdef _USE_OPENCL
-   reg_print_info(exec, "\t-clid\t\t\tChoose a custom opencl platform id.");
-   reg_print_info(exec, "\t\t\t\tPlease run reg_clinfo first to get platform information and their corresponding ids");
+   reg_print_info(exec, "\t-gpuid <uint>\t\tChoose a custom gpu.");
+   reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
 #endif
-   reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
+//   reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
 #if defined (_OPENMP)
-   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]",
-          omp_get_num_procs());
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
    reg_print_info(exec, "\t-voff\t\t\tTurns verbose off [on]");
@@ -114,6 +116,7 @@ int main(int argc, char **argv)
 {
    if(argc==1)
    {
+      //PetitUsage(basename(argv[0])); //DO NOT WORK ON WINDOWS !
       PetitUsage(argv[0]);
       return EXIT_FAILURE;
    }
@@ -168,14 +171,15 @@ int main(int argc, char **argv)
    bool iso=false;
    bool verbose=true;
    unsigned int platformFlag = 0;
-   bool ils = false;
    int captureRangeVox = 3;
-   int clIdx = -1;
-   bool cusvd =false;
+   unsigned gpuIdx = 999;
 
 #if defined (_OPENMP)
-   // Set the default number of thread to one
-   omp_set_num_threads(1);
+   // Set the default number of thread
+   int defaultOpenMPValue=1;
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
 #endif
 
    /* read the input parameter */
@@ -307,10 +311,6 @@ int main(int argc, char **argv)
       {
          blockStepSize=2;
       }
-      else if(strcmp(argv[i], "-ils")==0 || strcmp(argv[i], "--ils")==0)
-      {
-         ils=true;
-      }
       else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0)
       {
          interpolation=atoi(argv[++i]);
@@ -341,42 +341,44 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
       {
-         const int value=atoi(argv[++i]);
+         int value=atoi(argv[++i]);
          if(value<0 || value>2){
             reg_print_msg_error("The platform argument is expected to be 0, 1 or 2 | 0=CPU, 1=CUDA 2=OPENCL");
             return EXIT_FAILURE;
          }
 #ifndef _USE_CUDA
             if(value==1){
-               reg_print_msg_error("The current install of NiftyReg has not been compiled with CUDA");
-               return EXIT_FAILURE;
+               reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
+               reg_print_msg_warn("The CPU platform is used");
+               value=0;
             }
 #endif
 #ifndef _USE_OPENCL
             if(value==2){
                reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
-               return EXIT_FAILURE;
+               reg_print_msg_warn("The CPU platform is used");
+               value=0;
             }
 #endif
          platformFlag=value;
       }
-      else if(strcmp(argv[i], "-clid")==0 || strcmp(argv[i], "--clid")==0)
+      else if(strcmp(argv[i], "-gpuid")==0 || strcmp(argv[i], "--gpuid")==0)
       {
-          clIdx = atoi(argv[++i]);
-      }
-      else if(strcmp(argv[i], "-cusvd")==0 || strcmp(argv[i], "--cusvd")==0) {
-         cusvd = true;
+          gpuIdx = unsigned(atoi(argv[++i]));
       }
       else if(strcmp(argv[i], "-crv")==0 || strcmp(argv[i], "--crv")==0)
       {
           captureRangeVox=atoi(argv[++i]);
       }
-#if defined (_OPENMP)
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
+#if defined (_OPENMP)
          omp_set_num_threads(atoi(argv[++i]));
-      }
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
 #endif
+      }
       else
       {
 
@@ -400,13 +402,13 @@ int main(int argc, char **argv)
    if(verbose)
    {
 #endif
-      reg_print_info(argv[0], "");
-      reg_print_info(argv[0], "Command line:");
+      reg_print_info((argv[0]), "");
+      reg_print_info((argv[0]), "Command line:");
       sprintf(text, "\t");
       for(int i=0; i<argc; i++)
          sprintf(text, "%s %s", text, argv[i]);
-      reg_print_info(argv[0], text);
-      reg_print_info(argv[0], "");
+      reg_print_info((argv[0]), text);
+      reg_print_info((argv[0]), "");
 #ifdef NDEBUG
    }
 #endif
@@ -538,10 +540,8 @@ int main(int argc, char **argv)
    REG->SetInlierLts(inlierLts);
    REG->SetInterpolation(interpolation);
    REG->setPlatformCode(platformFlag);
-   REG->setIls(ils);
    REG->setCaptureRangeVox(captureRangeVox);
-   REG->setClIdx(clIdx);
-   REG->setCusvd(cusvd);
+   REG->setGpuIdx(gpuIdx);
 
    if (referenceLowerThr != referenceUpperThr)
    {
@@ -580,7 +580,7 @@ int main(int argc, char **argv)
    {
       int maxThreadNumber = omp_get_max_threads();
       sprintf(text, "OpenMP is used with %i thread(s)", maxThreadNumber);
-      reg_print_info(argv[0], text);
+      reg_print_info((argv[0]), text);
    }
 #endif // _OPENMP
 
@@ -602,10 +602,6 @@ int main(int argc, char **argv)
    if(outputAffineFlag)
       reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), outputAffineName);
    else reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), (char *)"outputAffine.txt");
-
-//   // Tell the CLI that we finished
-//   closeProgress("reg_aladin", "Normal exit");
-
 
    nifti_image_free(referenceHeader);
    nifti_image_free(floatingHeader);
@@ -632,12 +628,10 @@ int main(int argc, char **argv)
       int minutes=(int)floorf((end-start)/60.0f);
       int seconds=(int)(end-start - 60*minutes);
       sprintf(text, "Registration performed in %i min %i sec", minutes, seconds);
-      reg_print_info(argv[0], text);
-      reg_print_info(argv[0], "Have a good day !");
+      reg_print_info((argv[0]), text);
+      reg_print_info((argv[0]), "Have a good day !");
 #ifdef NDEBUG
    }
 #endif
    return EXIT_SUCCESS;
 }
-
-#endif

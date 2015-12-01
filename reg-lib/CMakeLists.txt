@@ -1,9 +1,4 @@
 #-----------------------------------------------------------------------------
-if(USE_OPENCL)
-	add_subdirectory(cl)
-	set(NR_OPENCL_LIBRARIES _reg_opencl_kernels)
-endif(USE_OPENCL)
-#-----------------------------------------------------------------------------
 if(USE_CUDA)
 	add_subdirectory(cuda)
 	set(NR_CUDA_LIBRARIES
@@ -12,11 +7,18 @@ if(USE_CUDA)
 	)
 endif(USE_CUDA)
 #-----------------------------------------------------------------------------
+if(USE_OPENCL)
+	add_subdirectory(cl)
+	set(NR_OPENCL_LIBRARIES _reg_opencl_kernels)
+endif(USE_OPENCL)
+#-----------------------------------------------------------------------------
 ##BUILD THE CPU LIBRARIES
 #-----------------------------------------------------------------------------
 add_library(_reg_maths ${NIFTYREG_LIBRARY_TYPE}
 	cpu/_reg_maths.h
 	cpu/_reg_maths.cpp
+	cpu/_reg_maths_eigen.h
+	cpu/_reg_maths_eigen.cpp
 )
 target_link_libraries(_reg_maths
 )
@@ -25,7 +27,7 @@ install(TARGETS _reg_maths
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_maths.h DESTINATION include)
+install(FILES cpu/_reg_maths.h cpu/_reg_maths_eigen.h DESTINATION include)
 #-----------------------------------------------------------------------------
 add_library(_reg_tools ${NIFTYREG_LIBRARY_TYPE}
 	cpu/_reg_tools.h
@@ -87,38 +89,6 @@ endforeach(NAME)
 install(FILES cpu/_reg_measure.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
-## use, i.e. don't skip the full RPATH for the build tree
-#set(CMAKE_SKIP_BUILD_RPATH  FALSE)
-## when building, don't use the install RPATH already
-## (but later on when installing)
-#set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-#set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-## add the automatically determined parts of the RPATH
-## which point to directories outside the build tree to the install RPATH
-#set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-## the RPATH to be used when installing, but only if it's not a system directory
-#list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
-#if("${isSystemDir}" STREQUAL "-1")
-#	set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-#endif("${isSystemDir}" STREQUAL "-1")
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(NAME _reg_optimiser)
-if(APPLE)
-add_library(${NAME} SHARED cpu/${NAME}.h cpu/${NAME}.cpp)
-else(APPLE)
-	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/${NAME}.h cpu/${NAME}.cpp)
-endif(APPLE)
-target_link_libraries(${NAME})
-install(TARGETS ${NAME}
-	RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
-	)
-install(FILES cpu/${NAME}.h  DESTINATION include)
-install(FILES cpu/${NAME}.cpp  DESTINATION include)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
 set(NAME _reg_aladin)
 set(_reg_aladin_files
@@ -126,23 +96,21 @@ set(_reg_aladin_files
 	${NAME}.cpp
 	${NAME}_sym.h
 	${NAME}_sym.cpp
-	Content.cpp
-	Content.h
+	AladinContent.cpp
+	AladinContent.h
 	Platform.cpp
 	Platform.h
 	Kernel.h
-        #cpu/CPUKernels.cpp
-        #cpu/CPUKernels.h
-        cpu/CPUAffineDeformationFieldKernel.h
-        cpu/CPUAffineDeformationFieldKernel.cpp
-        cpu/CPUBlockMatchingKernel.h
-        cpu/CPUBlockMatchingKernel.cpp
-        cpu/CPUConvolutionKernel.h
-        cpu/CPUConvolutionKernel.cpp
-        cpu/CPUOptimiseKernel.h
-        cpu/CPUOptimiseKernel.cpp
-        cpu/CPUResampleImageKernel.h
-        cpu/CPUResampleImageKernel.cpp
+	cpu/CPUAffineDeformationFieldKernel.h
+	cpu/CPUAffineDeformationFieldKernel.cpp
+	cpu/CPUBlockMatchingKernel.h
+	cpu/CPUBlockMatchingKernel.cpp
+	cpu/CPUConvolutionKernel.h
+	cpu/CPUConvolutionKernel.cpp
+	cpu/CPUOptimiseKernel.h
+	cpu/CPUOptimiseKernel.cpp
+	cpu/CPUResampleImageKernel.h
+	cpu/CPUResampleImageKernel.cpp
 	cpu/CPUKernelFactory.cpp
 	cpu/CPUKernelFactory.h
 )
@@ -158,11 +126,7 @@ set(_reg_aladin_libraries
 	${NR_OPENCL_LIBRARIES}
 	${NR_CUDA_LIBRARIES}
 )
-if(APPLE)
-	add_library(${NAME} SHARED ${_reg_aladin_files})
-else(APPLE)
-	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_aladin_files})
-endif(APPLE)
+add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_aladin_files})
 target_link_libraries(${NAME} ${_reg_aladin_libraries})
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION lib
@@ -171,20 +135,20 @@ install(TARGETS ${NAME}
 	)
 install(FILES ${NAME}.h ${NAME}_sym.h cpu/_reg_macros.h DESTINATION include)
 install(FILES ${NAME}.cpp ${NAME}_sym.cpp DESTINATION include)
-install(FILES Content.h Platform.h  DESTINATION include)
+install(FILES AladinContent.h Platform.h  DESTINATION include)
 install(FILES
-        Kernel.h #Kernels.h cpu/CPUKernels.h
-        AffineDeformationFieldKernel.h
-        BlockMatchingKernel.h
-        ConvolutionKernel.h
-        OptimiseKernel.h
-        ResampleImageKernel.h
-        cpu/CPUAffineDeformationFieldKernel.h
-        cpu/CPUBlockMatchingKernel.h
-        cpu/CPUConvolutionKernel.h
-        cpu/CPUOptimiseKernel.h
-        cpu/CPUResampleImageKernel.h
-        KernelFactory.h cpu/CPUKernelFactory.h DESTINATION include)
+				Kernel.h
+				AffineDeformationFieldKernel.h
+				BlockMatchingKernel.h
+				ConvolutionKernel.h
+				OptimiseKernel.h
+				ResampleImageKernel.h
+				cpu/CPUAffineDeformationFieldKernel.h
+				cpu/CPUBlockMatchingKernel.h
+				cpu/CPUConvolutionKernel.h
+				cpu/CPUOptimiseKernel.h
+				cpu/CPUResampleImageKernel.h
+				KernelFactory.h cpu/CPUKernelFactory.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE F3D LIBRARY
@@ -198,6 +162,8 @@ set(_reg_f3d_files
 		${NAME}2.cpp
 		${NAME}_sym.h
 		${NAME}_sym.cpp
+		cpu/_reg_optimiser.h
+		cpu/_reg_optimiser.cpp
 )
 set(_reg_f3d_libraries
 	_reg_localTrans
@@ -207,54 +173,29 @@ set(_reg_f3d_libraries
 	_reg_dti
 	_reg_KLdivergence
 	_reg_ssd _reg_nmi
-	_reg_optimiser
 	_reg_tools
 	_reg_ReadWriteImage
 )
-if(APPLE)
-	add_library(${NAME} SHARED ${_reg_f3d_files})
-else(APPLE)
-	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_f3d_files})
-endif(APPLE)
+add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_f3d_files})
 target_link_libraries(${NAME} ${_reg_f3d_libraries})
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	)
-install(FILES _reg_base.h  DESTINATION include)
-install(FILES ${NAME}.h  DESTINATION include)
-install(FILES ${NAME}2.h  DESTINATION include)
-install(FILES ${NAME}_sym.h  DESTINATION include)
-
 install(FILES _reg_base.cpp  DESTINATION include)
 install(FILES ${NAME}.cpp  DESTINATION include)
 install(FILES ${NAME}2.cpp  DESTINATION include)
 install(FILES ${NAME}_sym.cpp  DESTINATION include)
+install(FILES cpu/_reg_optimiser.cpp  DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY
-set(NAME _reg_thinPlateSpline)
-if(APPLE)
-	add_library(${NAME} SHARED cpu/${NAME}.h cpu/${NAME}.cpp)
-else(APPLE)
-	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/${NAME}.h cpu/${NAME}.cpp)
-endif(APPLE)
-target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
-install(TARGETS ${NAME}
-	RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
-	)
-install(FILES cpu/${NAME}.h  DESTINATION include)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-## BUILD THE POLYAFFINE LIBRARY
-#set(NAME _reg_polyAffine)
+#set(NAME _reg_thinPlateSpline)
 #if(APPLE)
-#	add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
+#	add_library(${NAME} SHARED cpu/${NAME}.h cpu/${NAME}.cpp)
 #else(APPLE)
-#	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
+#	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/${NAME}.h cpu/${NAME}.cpp)
 #endif(APPLE)
 #target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
 #install(TARGETS ${NAME}
@@ -262,7 +203,10 @@ install(FILES cpu/${NAME}.h  DESTINATION include)
 #	LIBRARY DESTINATION lib
 #	ARCHIVE DESTINATION lib
 #	)
-#install(FILES ${NAME}.h  DESTINATION include)
+#install(FILES cpu/${NAME}.h  DESTINATION include)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+## BUILD THE POLYAFFINE LIBRARY
 #set(NAME _reg_polyAffine)
 #if(APPLE)
 #	add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)

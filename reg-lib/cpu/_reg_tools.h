@@ -382,7 +382,7 @@ int reg_getDeformationFromDisplacement(nifti_image *image);
  * If A or B are zeros then the (A-B) value is returned.
  */
 extern "C++" template<class DTYPE>
-float reg_test_compare_arrays(DTYPE *ptrA,
+double reg_test_compare_arrays(DTYPE *ptrA,
                               DTYPE *ptrB,
                               size_t nvox);
 /* *************************************************************** */
@@ -391,7 +391,7 @@ float reg_test_compare_arrays(DTYPE *ptrA,
  * If A or B are zeros then the (A-B) value is returned.
  */
 extern "C++"
-float reg_test_compare_images(nifti_image *imgA,
+double reg_test_compare_images(nifti_image *imgA,
                               nifti_image *imgB);
 /* *************************************************************** */
 /** @brief The absolute operator is applied to the input image
@@ -399,11 +399,22 @@ float reg_test_compare_images(nifti_image *imgA,
 extern "C++"
 void reg_tools_abs_image(nifti_image *img);
 /* *************************************************************** */
-//t_dev
 extern "C++"
 void mat44ToCptr(mat44 mat, float* cMat);
+/* *************************************************************** */
 extern "C++"
 void cPtrToMat44(mat44 *mat, float* cMat);
+/* *************************************************************** */
 extern "C++"
 void mat33ToCptr(mat33* mat, float* cMat, const unsigned int numMats);
+/* *************************************************************** */
+extern "C++"
+void cPtrToMat33(mat33 *mat, float* cMat);
+/* *************************************************************** */
+extern "C++" template<typename T>
+void matmnToCptr(T** mat, T* cMat, unsigned int m, unsigned int n);
+/* *************************************************************** */
+extern "C++" template<typename T>
+void cPtrToMatmn(T** mat, T* cMat, unsigned int m, unsigned int n);
+/* *************************************************************** */
 #endif

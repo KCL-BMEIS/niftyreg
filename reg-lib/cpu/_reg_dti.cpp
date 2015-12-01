@@ -270,9 +270,7 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
    // Create an array to store the computed gradient per time point
    DTYPE *dtiMeasureGradPtrX=static_cast<DTYPE *>(dtiMeasureGradientImage->data);
    DTYPE *dtiMeasureGradPtrY = &dtiMeasureGradPtrX[voxelNumber];
-   DTYPE *dtiMeasureGradPtrZ = NULL;
-   if(referenceImage->nz>1)
-      dtiMeasureGradPtrZ = &dtiMeasureGradPtrY[voxelNumber];
+   DTYPE *dtiMeasureGradPtrZ = &dtiMeasureGradPtrY[voxelNumber];
 
    const double twoThirds = 2.0/3.0;
    const double fourThirds = 4.0/3.0;

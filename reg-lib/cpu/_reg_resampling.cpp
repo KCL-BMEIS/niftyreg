@@ -14,6 +14,8 @@
 
 #include "_reg_resampling.h"
 #include "_reg_maths.h"
+#include "_reg_maths_eigen.h"
+#include "_reg_tools.h"
 
 #define SINC_KERNEL_RADIUS 3
 #define SINC_KERNEL_SIZE SINC_KERNEL_RADIUS*2
@@ -95,7 +97,6 @@ void interpLinearKernel(double relative, double *basis)
 void interpLinearKernel(double relative, double *basis, double *derivative)
 {
    interpLinearKernel(relative,basis);
-   if(relative<0.0) relative=0.0; //reg_rounding error
    derivative[1]=1.0;
    derivative[0]=0.0;
 }
@@ -412,11 +413,12 @@ void ResampleImage3D(nifti_image *floatingImage,
       FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
       FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
-      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative[3];
       int a, b, c, Y, Z, previous[3];
 
       FloatingTYPE *zPointer, *xyzPointer;
-      double xTempNewValue, yTempNewValue, intensity, world[3], position[3];
+      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative[3];
+      double xTempNewValue, yTempNewValue, intensity;
+      float world[3], position[3];
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
@@ -432,9 +434,9 @@ void ResampleImage3D(nifti_image *floatingImage,
 
          if((maskPtr[index])>-1)
          {
-            world[0]=static_cast<double>(deformationFieldPtrX[index]);
-            world[1]=static_cast<double>(deformationFieldPtrY[index]);
-            world[2]=static_cast<double>(deformationFieldPtrZ[index]);
+            world[0]=static_cast<float>(deformationFieldPtrX[index]);
+            world[1]=static_cast<float>(deformationFieldPtrY[index]);
+            world[2]=static_cast<float>(deformationFieldPtrZ[index]);
 
             // real -> voxel; floating space
             reg_mat44_mul(floatingIJKMatrix, world, position);
@@ -443,9 +445,9 @@ void ResampleImage3D(nifti_image *floatingImage,
             previous[1] = static_cast<int>(reg_floor(position[1]));
             previous[2] = static_cast<int>(reg_floor(position[2]));
 
-            relative[0]=position[0]-static_cast<double>(previous[0]);
-            relative[1]=position[1]-static_cast<double>(previous[1]);
-            relative[2]=position[2]-static_cast<double>(previous[2]);
+            relative[0]=static_cast<double>(position[0])-static_cast<double>(previous[0]);
+            relative[1]=static_cast<double>(position[1])-static_cast<double>(previous[1]);
+            relative[2]=static_cast<double>(position[2])-static_cast<double>(previous[2]);
 
             (*kernelCompFctPtr)(relative[0], xBasis);
             (*kernelCompFctPtr)(relative[1], yBasis);
@@ -476,7 +478,7 @@ void ResampleImage3D(nifti_image *floatingImage,
                      else
                      {
                         // paddingValue
-                        xTempNewValue +=  paddingValue * xBasis[a];
+                        xTempNewValue +=  static_cast<double>(paddingValue) * xBasis[a];
                      }
                      xyzPointer++;
                   }
@@ -551,6 +553,32 @@ void ResampleImage2D(nifti_image *floatingImage,
       floatingIJKMatrix=&(floatingImage->sto_ijk);
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
+   int kernel_size;
+   int kernel_offset=0;
+   void (*kernelCompFctPtr)(double,double *);
+   switch(kernel){
+   case 0:
+      kernel_size=2;
+      kernelCompFctPtr=&interpNearestNeighKernel;
+      kernel_offset=0;
+      break; // nereast-neighboor interpolation
+   case 1:
+      kernel_size=2;
+      kernelCompFctPtr=&interpLinearKernel;
+      kernel_offset=0;
+      break; // linear interpolation
+   case 4:
+      kernel_size=SINC_KERNEL_SIZE;
+      kernelCompFctPtr=&interpWindowedSincKernel;
+      kernel_offset=SINC_KERNEL_RADIUS;
+      break; // sinc interpolation
+   default:
+      kernel_size=4;
+      kernelCompFctPtr=&interpCubicSplineKernel;
+      kernel_offset=1;
+      break; // cubic spline interpolation
+   }
+
    // Iteration over the different volume along the 4th axis
    for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
    {
@@ -562,36 +590,13 @@ void ResampleImage2D(nifti_image *floatingImage,
       FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
       FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
-      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], relative[2];
       int a, b, Y, previous[2];
-      int kernel_size;
-      int kernel_offset=0;
-      void (*kernelCompFctPtr)(double,double *);
-      switch(kernel){
-      case 0:
-         kernel_size=2;
-         kernelCompFctPtr=&interpNearestNeighKernel;
-         kernel_offset=0;
-         break; // nereast-neighboor interpolation
-      case 1:
-         kernel_size=2;
-         kernelCompFctPtr=&interpLinearKernel;
-         kernel_offset=0;
-         break; // linear interpolation
-      case 4:
-         kernel_size=SINC_KERNEL_SIZE;
-         kernelCompFctPtr=&interpWindowedSincKernel;
-         kernel_offset=SINC_KERNEL_RADIUS;
-         break; // sinc interpolation
-      default:
-         kernel_size=4;
-         kernelCompFctPtr=&interpCubicSplineKernel;
-         kernel_offset=1;
-         break; // cubic spline interpolation
-      }
 
       FloatingTYPE *xyzPointer;
-      FieldTYPE xTempNewValue, intensity, world[3], position[3];
+      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], relative[2];
+      double xTempNewValue, intensity;
+      float world[3] = {0.0, 0.0, 0.0};
+      float position[3] = {0.0, 0.0, 0.0};
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
@@ -604,12 +609,11 @@ void ResampleImage2D(nifti_image *floatingImage,
       {
 
          intensity=paddingValue;
-
          if((maskPtr[index])>-1)
          {
-            world[0]=static_cast<FieldTYPE>(deformationFieldPtrX[index]);
-            world[1]=static_cast<FieldTYPE>(deformationFieldPtrY[index]);
-            world[2]=0;
+            world[0] = static_cast<float>(deformationFieldPtrX[index]);
+            world[1] = static_cast<float>(deformationFieldPtrY[index]);
+            world[2] = 0;
 
             // real -> voxel; floating space
             reg_mat44_mul(floatingIJKMatrix, world, position);
@@ -617,15 +621,15 @@ void ResampleImage2D(nifti_image *floatingImage,
             previous[0] = static_cast<int>(reg_floor(position[0]));
             previous[1] = static_cast<int>(reg_floor(position[1]));
 
-            relative[0]=position[0]-static_cast<FieldTYPE>(previous[0]);
-            relative[1]=position[1]-static_cast<FieldTYPE>(previous[1]);
+            relative[0] = static_cast<double>(position[0])-static_cast<double>(previous[0]);
+            relative[1] = static_cast<double>(position[1])-static_cast<double>(previous[1]);
 
             (*kernelCompFctPtr)(relative[0], xBasis);
             (*kernelCompFctPtr)(relative[1], yBasis);
             previous[0]-=kernel_offset;
             previous[1]-=kernel_offset;
 
-            intensity=static_cast<FieldTYPE>(0);
+            intensity=0.0;
             for(b=0; b<kernel_size; b++)
             {
                Y= previous[1]+b;
@@ -636,12 +640,12 @@ void ResampleImage2D(nifti_image *floatingImage,
                   if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
                         -1<Y && Y<floatingImage->ny)
                   {
-                     xTempNewValue +=  (FieldTYPE)*xyzPointer * xBasis[a];
+                     xTempNewValue +=  static_cast<double>(*xyzPointer) * xBasis[a];
                   }
                   else
                   {
                      // paddingValue
-                     xTempNewValue +=  paddingValue * xBasis[a];
+                     xTempNewValue +=  static_cast<double>(paddingValue) * xBasis[a];
                   }
                   xyzPointer++;
                }
@@ -1063,10 +1067,8 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
         FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
         double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative[3];
-        double xBasisSamp[SINC_KERNEL_SIZE], yBasisSamp[SINC_KERNEL_SIZE], zBasisSamp[SINC_KERNEL_SIZE], relativeSamp[3];
+        double xBasisSamp[SINC_KERNEL_SIZE], yBasisSamp[SINC_KERNEL_SIZE], zBasisSamp[SINC_KERNEL_SIZE];
         int a, b, c, Y, Z, previous[3];
-
-        float psf_xyz[3];
 
         interpWindowedSincKernel(0.00001, xBasisSamp);
         interpWindowedSincKernel(0.00001, yBasisSamp);
@@ -1379,7 +1381,9 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
     for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
     {
 #ifndef NDEBUG
-        printf("[NiftyReg DEBUG] 3D resampling of volume number %lu\n",t);
+       char text[255];
+       sprintf(text,"PSF 3D resampling of volume number %lu\n",t);
+       reg_print_msg_debug(text);
 #endif
 
         FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
@@ -1391,7 +1395,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
         float psf_xyz[3];
 
         mat33 P, invP, ASAt, A,TmS,TmS_EigVec,TmS_EigVec_trans,TmS_EigVal,TmS_EigVal_inv;
-        float currentDeterminant, maxDiag, psfKernelShift[3], psfSampleSpacing, psfWeightSum,curLambda;
+        float currentDeterminant, psfKernelShift[3], psfSampleSpacing, psfWeightSum,curLambda;
         float psfNumbSamples;
 
         FloatingTYPE *zPointer, *xyzPointer;

@@ -1,21 +1,21 @@
 #ifndef _REG_ALADIN_CPP
 #define _REG_ALADIN_CPP
 
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_aladin.h"
 #include "Platform.h"
-//#include "Kernels.h"
 #include "AffineDeformationFieldKernel.h"
 #include "ResampleImageKernel.h"
 #include "BlockMatchingKernel.h"
 #include "OptimiseKernel.h"
 #include "ConvolutionKernel.h"
-#include "Content.h"
+#include "AladinContent.h"
 
 #ifdef _USE_CUDA
-#include "CudaContent.h"
+#include "CUDAAladinContent.h"
 #endif
 #ifdef _USE_OPENCL
-#include "CLContent.h"
+#include "CLAladinContent.h"
 #include "InfoDevice.h"
 #endif
 
@@ -32,9 +32,7 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->CurrentReferenceMask = NULL;
 	this->ReferencePyramid = NULL;
 	this->FloatingPyramid = NULL;
-	this->ReferenceMaskPyramid = NULL;
-	this->CurrentWarped = NULL;
-	this->deformationFieldImage = NULL;
+    this->ReferenceMaskPyramid = NULL;
 	this->activeVoxelNumber = NULL;
 
 	this->deformationFieldImage = NULL;
@@ -79,14 +77,12 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->paramsProgressCallback = NULL;
 
 	this->platformCode = NR_PLATFORM_CPU;
-	this->ils = false;
 	this->CurrentLevel = 0;
 
 	//check those
 	this->FloatingLowerThreshold = 0.f;
 	this->FloatingUpperThreshold = 0.f;
-	this->clIdx = 0;
-	this->cusvd = false;
+    this->gpuIdx = 999;
 }
 /* *************************************************************** */
 template<class T> reg_aladin<T>::~reg_aladin()
@@ -201,71 +197,6 @@ int reg_aladin<T>::Print()
 	{
 #endif
 		char text[255];
-#ifdef _USE_OPENCL
-		if(this->platformCode == NR_PLATFORM_CL)
-		{
-			CLContextSingletton *sContext = &CLContextSingletton::Instance();
-			std::size_t paramValueSize;
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_NAME,
-															  0,
-															  NULL,
-															  &paramValueSize),
-										 "Failed to find OpenCL device info ");
-			char *cl_deviceName = (char *) alloca(sizeof(char) * paramValueSize);
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_NAME,
-															  paramValueSize,
-															  cl_deviceName,
-															  NULL),
-										 "Failed to find OpenCL device info ");
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_VENDOR,
-															  0,
-															  NULL,
-															  &paramValueSize),
-										 "Failed to find OpenCL device info ");
-			char *cl_deviceVendor = (char *) alloca(sizeof(char) * paramValueSize);
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_VENDOR,
-															  paramValueSize,
-															  cl_deviceVendor,
-															  NULL),
-										 "Failed to find OpenCL device info ");
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_VERSION,
-															  0,
-															  NULL,
-															  &paramValueSize),
-										 "Failed to find OpenCL device info ");
-			char *cl_deviceVersion = (char *) alloca(sizeof(char) * paramValueSize);
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DEVICE_VERSION,
-															  paramValueSize,
-															  cl_deviceVersion,
-															  NULL),
-										 "Failed to find OpenCL device info ");
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DRIVER_VERSION,
-															  0,
-															  NULL,
-															  &paramValueSize),
-										 "Failed to find OpenCL device info ");
-			char *cl_driverVersion = (char *) alloca(sizeof(char) * paramValueSize);
-			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
-															  CL_DRIVER_VERSION,
-															  paramValueSize,
-															  cl_driverVersion,
-															  NULL),
-										 "Failed to find OpenCL device info ");
-			sprintf(text, "OpenCL device name: %s (%s)", cl_deviceName, cl_deviceVendor);
-			reg_print_info(this->executableName, text);
-			sprintf(text, "OpenCL device version: %s", cl_deviceVersion);
-			reg_print_info(this->executableName, text);
-			sprintf(text, "OpenCL driver version: %s", cl_driverVersion);
-			reg_print_info(this->executableName, text);
-		}
-#endif
 		reg_print_info(this->executableName, "Parameters");
 		sprintf(text, "Platform: %s", this->platform->getName().c_str());
 		reg_print_info(this->executableName, text);
@@ -305,15 +236,15 @@ template<class T>
 void reg_aladin<T>::InitialiseRegistration()
 {
 #ifndef NDEBUG
-	reg_print_fct_debug("reg_aladin::InitialiseRegistration()");
+   reg_print_fct_debug("reg_aladin::InitialiseRegistration()");
 #endif
 
-	this->platform = new Platform(this->platformCode);
-	if (this->platformCode == NR_PLATFORM_CL) this->platform->setClIdx(this->clIdx);
+   this->platform = new Platform(this->platformCode);
+    this->platform->setGpuIdx(this->gpuIdx);
 
-	Kernel *convolutionKernel = this->platform->createKernel(ConvolutionKernel::getName(), NULL);
+   Kernel *convolutionKernel = this->platform->createKernel(ConvolutionKernel::getName(), NULL);
 
-	this->Print();
+   this->Print();
 
 	// CREATE THE PYRAMID IMAGES
 	this->ReferencePyramid = (nifti_image **) malloc(this->LevelsToPerform * sizeof(nifti_image *));
@@ -437,10 +368,13 @@ void reg_aladin<T>::ClearCurrentInputImage()
 {
 	nifti_image_free(this->ReferencePyramid[this->CurrentLevel]);
 	this->ReferencePyramid[this->CurrentLevel] = NULL;
+
 	nifti_image_free(this->FloatingPyramid[this->CurrentLevel]);
 	this->FloatingPyramid[this->CurrentLevel] = NULL;
-	free(this->ReferenceMaskPyramid[this->CurrentLevel]);
-	this->ReferenceMaskPyramid[this->CurrentLevel] = NULL;
+
+    free(this->ReferenceMaskPyramid[this->CurrentLevel]);
+    this->ReferenceMaskPyramid[this->CurrentLevel] = NULL;
+
 	this->CurrentReference = NULL;
 	this->CurrentFloating = NULL;
 	this->CurrentReferenceMask = NULL;
@@ -496,18 +430,18 @@ void reg_aladin<T>::createKernels()
 template<class T>
 void reg_aladin<T>::clearKernels()
 {
-	delete this->affineTransformation3DKernel;
-	delete this->resamplingKernel;
-	if (this->blockMatchingKernel != NULL)
-		delete this->blockMatchingKernel;
-	if (this->optimiseKernel != NULL)
-		delete this->optimiseKernel;
+   delete this->affineTransformation3DKernel;
+    delete this->resamplingKernel;
+    if (this->blockMatchingKernel != NULL)
+        delete this->blockMatchingKernel;
+   if (this->optimiseKernel != NULL)
+      delete this->optimiseKernel;
 }
 /* *************************************************************** */
 template<class T>
 void reg_aladin<T>::GetDeformationField()
 {
-	this->affineTransformation3DKernel->template castTo<AffineDeformationFieldKernel>()->calculate();
+   this->affineTransformation3DKernel->template castTo<AffineDeformationFieldKernel>()->calculate();
 }
 /* *************************************************************** */
 template<class T>
@@ -521,7 +455,7 @@ template<class T>
 void reg_aladin<T>::UpdateTransformationMatrix(int type)
 {
 	this->blockMatchingKernel->template castTo<BlockMatchingKernel>()->calculate();
-	this->optimiseKernel->template castTo<OptimiseKernel>()->calculate(type, this->ils, this->cusvd);
+	this->optimiseKernel->template castTo<OptimiseKernel>()->calculate(type);
 
 #ifndef NDEBUG
 	reg_mat44_disp(this->TransformationMatrix, (char *) "[NiftyReg DEBUG] updated forward matrix");
@@ -529,7 +463,7 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::initContent(nifti_image *ref,
+void reg_aladin<T>::initAladinContent(nifti_image *ref,
 										  nifti_image *flo,
 										  int *mask,
 										  mat44 *transMat,
@@ -539,40 +473,40 @@ void reg_aladin<T>::initContent(nifti_image *ref,
 										  unsigned int blockStepSize)
 {
 	if (this->platformCode == NR_PLATFORM_CPU)
-		this->con = new Content(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+		this->con = new AladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-		this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize, cusvd);
+		this->con = new CudaAladinContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
-		this->con = new ClContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+		this->con = new ClAladinContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
-	this->blockMatchingParams = this->con->Content::getBlockMatchingParams();
+	this->blockMatchingParams = this->con->AladinContent::getBlockMatchingParams();
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::initContent(nifti_image *ref,
+void reg_aladin<T>::initAladinContent(nifti_image *ref,
 										  nifti_image *flo,
 										  int *mask,
 										  mat44 *transMat,
 										  size_t bytes)
 {
 	if (this->platformCode == NR_PLATFORM_CPU)
-		this->con = new Content(ref, flo, mask, transMat, bytes);
+		this->con = new AladinContent(ref, flo, mask, transMat, bytes);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-		this->con = new CudaContent(ref, flo, mask,transMat, bytes);
+		this->con = new CudaAladinContent(ref, flo, mask,transMat, bytes);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
-		this->con = new ClContent(ref, flo, mask,transMat, bytes);
+		this->con = new ClAladinContent(ref, flo, mask,transMat, bytes);
 #endif
-	this->blockMatchingParams = this->con->Content::getBlockMatchingParams();
+	this->blockMatchingParams = this->con->AladinContent::getBlockMatchingParams();
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::clearContent()
+void reg_aladin<T>::clearAladinContent()
 {
 	delete this->con;
 }
@@ -603,7 +537,7 @@ void reg_aladin<T>::Run()
 
 	//Main loop over the levels:
 	for (this->CurrentLevel = 0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++) {
-		this->initContent(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
+		this->initAladinContent(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
 								this->ReferenceMaskPyramid[CurrentLevel], this->TransformationMatrix, sizeof(T), this->BlockPercentage,
 								this->InlierLts, this->BlockStepSize);
 		this->createKernels();
@@ -650,7 +584,7 @@ void reg_aladin<T>::Run()
 
 		// SOME CLEANING IS PERFORMED
 		this->clearKernels();
-		this->clearContent();
+		this->clearAladinContent();
 		this->ClearCurrentInputImage();
 
 #ifdef NDEBUG
@@ -674,7 +608,7 @@ void reg_aladin<T>::Run()
 template<class T>
 nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 {
-	int floatingType = this->InputFloating->datatype; //t_dev ask before touching this!
+    int floatingType = this->InputFloating->datatype; //t_dev ask before touching this!
 	// The initial images are used
 	if (this->InputReference == NULL || this->InputFloating == NULL || this->TransformationMatrix == NULL) {
 		reg_print_fct_error("reg_aladin::GetFinalWarpedImage()");
@@ -682,20 +616,21 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 		reg_exit(1);
 	}
 
-	this->CurrentReference = this->InputReference;
-	this->CurrentFloating = this->InputFloating;
-	this->CurrentReferenceMask = NULL;
+    this->CurrentReference = this->InputReference;
+    this->CurrentFloating = this->InputFloating;
+    this->CurrentReferenceMask = (int *)calloc(this->CurrentReference->nx*this->CurrentReference->ny*this->CurrentReference->nz,sizeof(int));
 
-	reg_aladin<T>::initContent(this->CurrentReference,
-										this->CurrentFloating,
-										this->CurrentReferenceMask,
-										this->TransformationMatrix,
-										sizeof(T));
-	reg_aladin<T>::createKernels();
+    reg_aladin<T>::initAladinContent(this->CurrentReference,
+                               this->CurrentFloating,
+                               this->CurrentReferenceMask,
+                               this->TransformationMatrix,
+                               sizeof(T));
+   reg_aladin<T>::createKernels();
 
 	reg_aladin<T>::GetWarpedImage(3); // cubic spline interpolation
 	this->CurrentWarped = this->con->getCurrentWarped(floatingType);
 
+    free(this->CurrentReferenceMask);
 	nifti_image *resultImage = nifti_copy_nim_info(this->CurrentWarped);
 	resultImage->cal_min = this->InputFloating->cal_min;
 	resultImage->cal_max = this->InputFloating->cal_max;
@@ -705,7 +640,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	memcpy(resultImage->data, this->CurrentWarped->data, resultImage->nvox * resultImage->nbyper);
 
 	reg_aladin<T>::clearKernels();
-	reg_aladin<T>::clearContent();
+	reg_aladin<T>::clearAladinContent();
 	return resultImage;
 }
 /* *************************************************************** */

@@ -170,5 +170,66 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename)
    return;
 }
 /* *************************************************************** */
+template <class DTYPE>
+void reg_io_diplayImageData1(nifti_image *image)
+{
+    reg_print_msg_debug("image values:");
+    size_t voxelNumber = (size_t)image->nx * image->ny * image->nz;
+    DTYPE *data = static_cast<DTYPE *>(image->data);
+    char text[255];
 
+    size_t voxelIndex=0;
+    for(int z=0; z<image->nz; z++)
+    {
+       for(int y=0; y<image->ny; y++)
+       {
+          for(int x=0; x<image->nx; x++)
+          {
+             sprintf(text, "[%d - %d - %d] = [", x, y, z);
+             for(int tu=0;tu<image->nt*image->nu; ++tu){
+                sprintf(text,"%s%g ", text, static_cast<double>(data[voxelIndex + tu*voxelNumber]));
+             }
+             sprintf(text,"%s]", text);
+             reg_print_msg_debug(text);
+          }
+       }
+    }
+}
+//
+void reg_io_diplayImageData(nifti_image *image)
+{
+    switch(image->datatype)
+    {
+    case NIFTI_TYPE_UINT8:
+       reg_io_diplayImageData1<unsigned char>(image);
+       break;
+    case NIFTI_TYPE_INT8:
+       reg_io_diplayImageData1<char>(image);
+       break;
+    case NIFTI_TYPE_UINT16:
+       reg_io_diplayImageData1<unsigned short>(image);
+       break;
+    case NIFTI_TYPE_INT16:
+       reg_io_diplayImageData1<short>(image);
+       break;
+    case NIFTI_TYPE_UINT32:
+       reg_io_diplayImageData1<unsigned int>(image);
+       break;
+    case NIFTI_TYPE_INT32:
+       reg_io_diplayImageData1<int>(image);
+       break;
+    case NIFTI_TYPE_FLOAT32:
+       reg_io_diplayImageData1<float>(image);
+       break;
+    case NIFTI_TYPE_FLOAT64:
+       reg_io_diplayImageData1<double>(image);
+       break;
+    default:
+       reg_print_fct_error("reg_io_diplayImageData");
+       reg_print_msg_error("Unsupported datatype");
+       reg_exit(1);
+    }
+   return;
+}
+/* *************************************************************** */
 #endif

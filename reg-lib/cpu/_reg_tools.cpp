@@ -13,6 +13,7 @@
 #ifndef _REG_TOOLS_CPP
 #define _REG_TOOLS_CPP
 
+#include <cmath>
 #include "_reg_tools.h"
 
 /* *************************************************************** */
@@ -27,6 +28,12 @@ void reg_checkAndCorrectDimension(nifti_image *image)
    if(image->nu<1 || image->dim[5]<1) image->dim[5]=image->nu=1;
    if(image->nv<1 || image->dim[6]<1) image->dim[6]=image->nv=1;
    if(image->nw<1 || image->dim[7]<1) image->dim[7]=image->nw=1;
+   //Correcting the dim of the images
+   for(int i=1;i<8;++i) {
+       if(image->dim[i]>1) {
+            image->dim[0]=image->ndim=i;
+       }
+   }
    // Set the slope to 1 if undefined
    if(image->scl_slope==0) image->scl_slope=1.f;
    // Ensure that no spacing is set to zero
@@ -466,11 +473,25 @@ void reg_tools_changeDatatype1(nifti_image *image,int type)
       image->datatype=type;
    }
    else{
-      if(sizeof(NewTYPE)==sizeof(unsigned char)) image->datatype = NIFTI_TYPE_UINT8;
-      else if(sizeof(NewTYPE)==sizeof(float)) image->datatype = NIFTI_TYPE_FLOAT32;
-      else if(sizeof(NewTYPE)==sizeof(double)) image->datatype = NIFTI_TYPE_FLOAT64;
-      else
-      {
+      if(sizeof(NewTYPE)==sizeof(unsigned char)) {
+          image->datatype = NIFTI_TYPE_UINT8;
+#ifndef NDEBUG
+    reg_print_msg_debug("new datatype is NIFTI_TYPE_UINT8");
+#endif
+      }
+      else if(sizeof(NewTYPE)==sizeof(float)) {
+          image->datatype = NIFTI_TYPE_FLOAT32;
+#ifndef NDEBUG
+    reg_print_msg_debug("new datatype is NIFTI_TYPE_FLOAT32");
+#endif
+      }
+      else if(sizeof(NewTYPE)==sizeof(double)) {
+          image->datatype = NIFTI_TYPE_FLOAT64;
+#ifndef NDEBUG
+    reg_print_msg_debug("new datatype is NIFTI_TYPE_FLOAT64");
+#endif
+      }
+      else {
          reg_print_fct_error("reg_tools_changeDatatype1");
          reg_print_msg_error("Only change to unsigned char, float or double are supported");
          reg_exit(1);
@@ -478,10 +499,16 @@ void reg_tools_changeDatatype1(nifti_image *image,int type)
    }
    free(image->data);
    image->nbyper = sizeof(NewTYPE);
+#ifndef NDEBUG
+   char text[255];
+   sprintf(text,"corresponding new bytes per voxel is: %d",image->nbyper);
+    reg_print_msg_debug(text);
+#endif
    image->data = (void *)calloc(image->nvox,sizeof(NewTYPE));
    NewTYPE *dataPtr = static_cast<NewTYPE *>(image->data);
-   for(size_t i=0; i<image->nvox; i++)
-      dataPtr[i] = (NewTYPE)(initialValue[i]);
+   for (size_t i = 0; i < image->nvox; i++) {
+       dataPtr[i] = (NewTYPE)(initialValue[i]);
+   }
 
    free(initialValue);
    return;
@@ -544,12 +571,12 @@ void reg_tools_operationImageToImage(nifti_image *img1,
    TYPE1 *img2Ptr = static_cast<TYPE1 *>(img2->data);
 
 
-   if(img1->scl_slope==0)
-   {
+   if(img1->scl_slope==0) {
       img1->scl_slope=1.f;
    }
-   if(img2->scl_slope==0)
-      img2->scl_slope=1.f;
+   if(img2->scl_slope==0) {
+       img2->scl_slope=1.f;
+   }
 
    res->scl_slope=img1->scl_slope;
    res->scl_inter=img1->scl_inter;
@@ -582,10 +609,11 @@ void reg_tools_operationImageToImage(nifti_image *img1,
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
-      for(i=0; i<voxelNumber; i++)
-         resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
-                              ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
-                              (double)img1->scl_inter)/(double)img1->scl_slope);
+       for (i = 0; i < voxelNumber; i++) {
+               resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
+                   					((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
+                   				     (double)img1->scl_inter) / (double)img1->scl_slope);
+       }
       break;
    case 2:
 #if defined (_OPENMP)
@@ -593,10 +621,11 @@ void reg_tools_operationImageToImage(nifti_image *img1,
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
-      for(i=0; i<voxelNumber; i++)
-         resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
-                              ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
-                              (double)img1->scl_inter)/(double)img1->scl_slope);
+       for (i = 0; i < voxelNumber; i++) {
+           resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
+               ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
+               (double)img1->scl_inter) / (double)img1->scl_slope);
+       }
       break;
    case 3:
 #if defined (_OPENMP)
@@ -2420,22 +2449,21 @@ float reg_tools_getMinValue(nifti_image *image)
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-float reg_tools_getMaxValue1(nifti_image *image)
+DTYPE reg_tools_getMaxValue1(nifti_image *image)
 {
    // Create a pointer to the image data
    DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
    // Set a variable to store the maximal value
-   float maxValue=-std::numeric_limits<DTYPE>::max();
+   double maxValue=-std::numeric_limits<DTYPE>::max();
    if(image->scl_slope==0) image->scl_slope=1.f;
    // Loop over all voxel to find the lowest value
    for(size_t i=0; i<image->nvox; ++i)
    {
-      DTYPE currentVal = static_cast<DTYPE>(imgPtr[i] * image->scl_slope + image->scl_inter);
-      float fVal = static_cast<float>(currentVal);
-      maxValue=fVal>maxValue?fVal:maxValue;
+      double currentVal = (static_cast<double>(imgPtr[i]) * image->scl_slope + image->scl_inter);
+      maxValue=currentVal>maxValue?currentVal:maxValue;
    }
    // The lowest value is returned
-   return maxValue;
+   return (DTYPE) maxValue;
 }
 /* *************************************************************** */
 float reg_tools_getMaxValue(nifti_image *image)
@@ -2882,11 +2910,11 @@ int reg_getDeformationFromDisplacement(nifti_image *field)
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-float reg_test_compare_arrays(DTYPE *ptrA,
+double reg_test_compare_arrays(DTYPE *ptrA,
                               DTYPE *ptrB,
                               size_t nvox)
 {
-   float maxDifference=0.f;
+   double maxDifference=0.0;
 
    for(size_t i=0; i<nvox; ++i)
    {
@@ -2905,29 +2933,29 @@ float reg_test_compare_arrays(DTYPE *ptrA,
       {
          if(valA!=0 && valB!=0)
          {
-            float diffRatio=valA/valB;
+            double diffRatio=valA/valB;
             if(diffRatio<0)
             {
-               diffRatio=fabsf(valA-valB);
+               diffRatio=std::abs(valA-valB);
                maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
             }
-            diffRatio-=1.f;
+            diffRatio-=1.0;
             maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
          }
          else
          {
-            float diffRatio=fabsf(valA-valB);
+            double diffRatio=std::abs(valA-valB);
             maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
          }
       }
    }
    return maxDifference;
 }
-template float reg_test_compare_arrays<float>(float *ptrA, float *ptrB, size_t nvox);
-template float reg_test_compare_arrays<double>(double *ptrA, double *ptrB, size_t nvox);
+template double reg_test_compare_arrays<float>(float *ptrA, float *ptrB, size_t nvox);
+template double reg_test_compare_arrays<double>(double *ptrA, double *ptrB, size_t nvox);
 /* *************************************************************** */
 template <class DTYPE>
-float reg_test_compare_images1(nifti_image *imgA,
+double reg_test_compare_images1(nifti_image *imgA,
                                nifti_image *imgB)
 {
    DTYPE *imgAPtr = static_cast<DTYPE *>(imgA->data);
@@ -2935,7 +2963,7 @@ float reg_test_compare_images1(nifti_image *imgA,
    return reg_test_compare_arrays<DTYPE>(imgAPtr,imgBPtr,imgA->nvox);
 }
 /* *************************************************************** */
-float reg_test_compare_images(nifti_image *imgA,
+double reg_test_compare_images(nifti_image *imgA,
                               nifti_image *imgB)
 {
    if(imgA->datatype!=imgB->datatype)
@@ -3055,5 +3083,42 @@ void mat33ToCptr(mat33 *mat, float* cMat, const unsigned int numMats)
 		}
 	}
 }
+/* *************************************************************** */
+void cPtrToMat33(mat33 *mat, float* cMat)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+             mat->m[i][j]=cMat[i * 3 + j];
+        }
+    }
+}
+/* *************************************************************** */
+template<typename T>
+void matmnToCptr(T** mat, T* cMat, unsigned int m, unsigned int n) {
+    for (unsigned int i = 0; i < m; i++)
+    {
+        for (unsigned int j = 0; j < n; j++)
+        {
+            cMat[i * n + j] = mat[i][j];
+        }
+    }
+}
+template void matmnToCptr<float>(float** mat, float* cMat, unsigned int m, unsigned int n);
+template void matmnToCptr<double>(double** mat, double* cMat, unsigned int m, unsigned int n);
+/* *************************************************************** */
+template<typename T>
+void cPtrToMatmn(T** mat, T* cMat, unsigned int m, unsigned int n) {
+    for (unsigned int i = 0; i < m; i++)
+    {
+        for (unsigned int j = 0; j < n; j++)
+        {
+             mat[i][j]=cMat[i * n + j];
+        }
+    }
+}
+template void cPtrToMatmn<float>(float** mat, float* cMat, unsigned int m, unsigned int n);
+template void cPtrToMatmn<double>(double** mat, double* cMat, unsigned int m, unsigned int n);
 /* *************************************************************** */
 #endif
