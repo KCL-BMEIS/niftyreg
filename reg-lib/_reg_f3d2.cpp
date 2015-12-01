@@ -200,9 +200,10 @@ void reg_f3d2<T>::ExponentiateGradient()
    tempGrad->data=(void *)malloc(tempGrad->nvox*tempGrad->nbyper);
    for(int i=0; i<(int)fabsf(this->backwardControlPointGrid->intent_p2); ++i)
    {
-      reg_tools_substractImageToImage(tempDef[i],
-                                      affine_disp,
-                                      tempDef[i]);
+      if(affine_disp!=NULL)
+         reg_tools_substractImageToImage(tempDef[i],
+                                         affine_disp,
+                                         tempDef[i]);
       reg_resampleGradient(this->voxelBasedMeasureGradientImage, // floating
                            tempGrad, // warped - out
                            tempDef[i], // deformation field
@@ -263,9 +264,10 @@ void reg_f3d2<T>::ExponentiateGradient()
 
    for(int i=0; i<(int)fabsf(this->controlPointGrid->intent_p2); ++i)
    {
-      reg_tools_substractImageToImage(tempDef[i],
-                                      affine_disp,
-                                      tempDef[i]);
+      if(affine_disp!=NULL)
+         reg_tools_substractImageToImage(tempDef[i],
+                                         affine_disp,
+                                         tempDef[i]);
       reg_resampleGradient(this->backwardVoxelBasedMeasureGradientImage, // floating
                            tempGrad, // warped - out
                            tempDef[i], // deformation field
