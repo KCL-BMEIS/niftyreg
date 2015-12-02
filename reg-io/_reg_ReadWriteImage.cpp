@@ -50,10 +50,12 @@ int reg_io_checkFileFormat(const char *filename)
       return NR_NII_FORMAT;
    else if(b.find( ".png") != std::string::npos)
       return NR_PNG_FORMAT;
+#ifdef _USE_NRRD
    else if(b.find( ".nrrd") != std::string::npos)
       return NR_NRRD_FORMAT;
    else if(b.find( ".nhdr") != std::string::npos)
       return NR_NRRD_FORMAT;
+#endif
    else
    {
       reg_print_fct_warn("reg_io_checkFileFormat");
@@ -82,12 +84,14 @@ nifti_image *reg_io_ReadImageFile(const char *filename)
       image=reg_io_readPNGfile(filename,true);
       reg_hack_filename(image,filename);
       break;
+#ifdef _USE_NRRD
    case NR_NRRD_FORMAT:
       Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
       image = reg_io_nrdd2nifti(nrrdImage);
       nrrdNuke(nrrdImage);
       reg_hack_filename(image,filename);
       break;
+#endif
    }
    reg_checkAndCorrectDimension(image);
 
@@ -113,12 +117,14 @@ nifti_image *reg_io_ReadImageHeader(const char *filename)
       image=reg_io_readPNGfile(filename,false);
       reg_hack_filename(image,filename);
       break;
+#ifdef _USE_NRRD
    case NR_NRRD_FORMAT:
       Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
       image = reg_io_nrdd2nifti(nrrdImage);
       nrrdNuke(nrrdImage);
       reg_hack_filename(image,filename);
       break;
+#endif
    }
    reg_checkAndCorrectDimension(image);
 
@@ -133,11 +139,11 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename)
 
    // Check if the images can be saved as a png file
    if( (image->nz>1 ||
-         image->nt>1 ||
-         image->nu>1 ||
-         image->nv>1 ||
-         image->nw>1 ) &&
-         fileFormat==NR_PNG_FORMAT)
+        image->nt>1 ||
+        image->nu>1 ||
+        image->nv>1 ||
+        image->nw>1 ) &&
+       fileFormat==NR_PNG_FORMAT)
    {
       // If the image has more than two dimension,
       // the filename is converted to nifti
@@ -160,10 +166,13 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename)
    case NR_PNG_FORMAT:
       reg_io_writePNGfile(image,filename);
       break;
+#ifdef _USE_NRRD
    case NR_NRRD_FORMAT:
       Nrrd *nrrdImage = reg_io_nifti2nrrd(image);
       reg_io_writeNRRDfile(nrrdImage,filename);
       nrrdNuke(nrrdImage);
+      break;
+#endif
    }
 
    // Return
@@ -195,7 +204,7 @@ void reg_io_diplayImageData1(nifti_image *image)
        }
     }
 }
-//
+/* *************************************************************** */
 void reg_io_diplayImageData(nifti_image *image)
 {
     switch(image->datatype)

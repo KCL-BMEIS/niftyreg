@@ -18,15 +18,18 @@
 #include <string>
 
 #include "reg_png.h"
+#ifdef _USE_NRRD
 #include "reg_nrrd.h"
-
+#endif
 /** @defgroup NIFTYREG_FILEFORMAT_TYPE
  *  @brief Codes to define the image file format
  *  @{
  */
 #define NR_NII_FORMAT 0
 #define NR_PNG_FORMAT 1
+#ifdef _USE_NRRD
 #define NR_NRRD_FORMAT 2
+#endif
 /* @} */
 
 /* *************************************************************** */
