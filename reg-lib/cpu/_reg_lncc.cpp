@@ -96,7 +96,7 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *refImage,
    size_t voxel;
    size_t voxelNumber = (size_t)refImage->nx*refImage->ny*refImage->nz;
 #endif
-   memcpy(refMask, forwardMask, voxelNumber*sizeof(int));
+   memcpy(forwardMask, refMask, voxelNumber*sizeof(int));
    reg_tools_removeNanFromMask(refImage, combinedMask);
    reg_tools_removeNanFromMask(warImage, combinedMask);
 
