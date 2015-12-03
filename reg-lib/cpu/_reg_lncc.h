@@ -56,19 +56,25 @@ protected:
    nifti_image *referenceSdevImage;
    nifti_image *warpedFloatingMeanImage;
    nifti_image *warpedFloatingSdevImage;
+   int *forwardMask;
 
    nifti_image *backwardCorrelationImage;
    nifti_image *floatingMeanImage;
    nifti_image *floatingSdevImage;
    nifti_image *warpedReferenceMeanImage;
    nifti_image *warpedReferenceSdevImage;
+   int *backwardMask;
 
    int kernelType;
 
    template <class DTYPE>
-   void UpdateLocalStatImages(nifti_image *imag,
-                              nifti_image *mean,
-                              nifti_image *sdev,
+   void UpdateLocalStatImages(nifti_image *refImage,
+                              nifti_image *warImage,
+                              nifti_image *meanRefImage,
+                              nifti_image *meanWarImage,
+                              nifti_image *stdDevRefImage,
+                              nifti_image *stdDevWarImage,
+                              int *refMask,
                               int *mask);
 };
 /* *************************************************************** */
@@ -86,10 +92,10 @@ extern "C++" template<class DTYPE>
 double reg_getLNCCValue(nifti_image *referenceImage,
                         nifti_image *referenceMeanImage,
                         nifti_image *referenceStdDevImage,
-                        int *mask,
                         nifti_image *warpedImage,
                         nifti_image *warpedMeanImage,
                         nifti_image *warpedStdDevImage,
+                        int *combinedMask,
                         float *kernelStdDev,
                         bool *activeTimePoint,
                         nifti_image *correlationImage,
@@ -111,10 +117,10 @@ extern "C++" template <class DTYPE>
 void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    nifti_image *referenceMeanImage,
                                    nifti_image *referenceStdDevImage,
-                                   int *refMask,
                                    nifti_image *warpedImage,
                                    nifti_image *warpedMeanImage,
                                    nifti_image *warpedStdDevImage,
+                                   int *combinedMask,
                                    float *kernelStdDev,
                                    bool *activeTimePoint,
                                    nifti_image *correlationImage,

@@ -611,8 +611,8 @@ void reg_tools_operationImageToImage(nifti_image *img1,
 #endif // _OPENMP
        for (i = 0; i < voxelNumber; i++) {
                resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
-                   					((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
-                   				     (double)img1->scl_inter) / (double)img1->scl_slope);
+                                 ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
+                                   (double)img1->scl_inter) / (double)img1->scl_slope);
        }
       break;
    case 2:
@@ -2399,6 +2399,41 @@ int reg_tools_nanMask_image(nifti_image *image, nifti_image *maskImage, nifti_im
       reg_exit(1);
    }
 }
+/* *************************************************************** */
+/* *************************************************************** */
+template <class TYPE>
+int reg_tools_removeNanFromMask_core(nifti_image *image, int *mask)
+{
+   size_t voxelNumber = (size_t)image->nx*image->ny*image->nz;
+   TYPE *imagePtr = static_cast<TYPE *>(image->data);
+   for(int t=0; t<image->nt; ++t){
+      for(size_t i=0; i<voxelNumber; ++i){
+         TYPE value=*imagePtr++;
+         if(value!=value)
+            mask[i]=-1;
+      }
+   }
+   return EXIT_SUCCESS;
+}
+/* *************************************************************** */
+int reg_tools_removeNanFromMask(nifti_image *image,
+                                int *mask)
+{
+   switch(image->datatype)
+   {
+   case NIFTI_TYPE_FLOAT32:
+      return reg_tools_removeNanFromMask_core<float>
+            (image, mask);
+   case NIFTI_TYPE_FLOAT64:
+      return reg_tools_removeNanFromMask_core<double>
+            (image, mask);
+   default:
+      reg_print_fct_error("reg_tools_removeNanFromMask");
+      reg_print_msg_error("The image data type is not supported");
+      reg_exit(1);
+   }
+}
+
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>

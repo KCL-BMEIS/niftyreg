@@ -283,6 +283,15 @@ int reg_tools_nanMask_image(nifti_image *img,
                             nifti_image *mask,
                             nifti_image *res);
 /* *************************************************************** */
+/** @brief Set all the voxel with NaN value in the input image to
+ * background in the input mask
+ * @param img Input image
+ * @param mask Input mask which is updated in place
+ */
+extern "C++"
+int reg_tools_removeNanFromMask(nifti_image *image,
+                                int *mask);
+/* *************************************************************** */
 /** @brief Get the minimal value of an image
  * @param img Input image
  * @return min value
