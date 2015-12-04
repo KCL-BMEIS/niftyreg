@@ -27,11 +27,17 @@
 #include "_reg_optimiser.h"
 #include "float.h"
 #include <limits>
+#include "Platform.h"
 
 template <class T>
 class reg_base : public InterfaceOptimiser
 {
 protected:
+   // Platform !!!
+   Platform *platform;
+   int platformCode;
+   unsigned gpuIdx;
+
    // Optimiser related variables
    reg_optimiser<T> *optimiser;
    size_t maxiterationNumber;
@@ -188,6 +194,12 @@ protected:
 public:
    reg_base(int refTimePoint,int floTimePoint);
    virtual ~reg_base();
+
+   //PLATFORM
+   void setPlaform(Platform* inputPlatform);
+   Platform* getPlaform();
+   void setPlatformCode(int inputPlatformCode);
+   void setGpuIdx(unsigned inputGPUIdx);
 
    // Optimisation related functions
    void SetMaximalIterationNumber(unsigned int);

@@ -19,6 +19,11 @@
 template <class T>
 reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
 {
+   //Platform
+   this->platform = NULL;
+   this->platformCode = NR_PLATFORM_CPU;
+   this->gpuIdx = 999;
+
    this->optimiser=NULL;
    this->maxiterationNumber=150;
    this->optimiseX=true;
@@ -219,9 +224,35 @@ reg_base<T>::~reg_base()
       delete this->measure_dti;
    if(this->measure_lncc!=NULL)
       delete this->measure_lncc;
+
+   //Platform
+   delete this->platform;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::~reg_base");
 #endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::setPlaform(Platform* inputPlatform)
+{
+    this->platform = inputPlatform;
+}
+/* *************************************************************** */
+template<class T>
+Platform* reg_base<T>::getPlaform()
+{
+    return this->platform;
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::setPlatformCode(int inputPlatformCode) {
+    this->platformCode = inputPlatformCode;
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::setGpuIdx(unsigned inputGPUIdx) {
+    this->gpuIdx = inputGPUIdx;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -787,6 +818,10 @@ void reg_base<T>::Initialise()
    if(this->initialised) return;
 
    this->CheckParameters();
+
+   //PLATFORM
+   this->platform = new Platform(this->platformCode);
+   this->platform->setGpuIdx(this->gpuIdx);
 
    // CREATE THE PYRAMIDE IMAGES
    if(this->usePyramid)

@@ -224,6 +224,12 @@ endif(USE_CUDA OR USE_OPENCL)
 #	add_test(${EXEC}_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/floImg2D.nii.gz ${DFOLDER}/affine_mat2D.txt ${DFOLDER}/nonlin_vel2D.nii.gz)
 #	add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/floImg3D.nii.gz ${DFOLDER}/affine_mat3D.txt ${DFOLDER}/nonlin_vel3D.nii.gz)
 #-----------------------------------------------------------------------------
+set(EXEC reg_test_mindDescriptor)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_f3d _reg_mind)
+add_test(${EXEC}_MINDDescriptor_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/expectedMINDDescriptor2D.nii.gz)
+add_test(${EXEC}_MINDDescriptor_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/expectedMINDDescriptor3D.nii.gz)
+#-----------------------------------------------------------------------------
 #	set(EXEC reg_test_measure)
 #	add_executable(${EXEC} ${EXEC}.cpp)
 #	target_link_libraries(${EXEC} _reg_f3d)

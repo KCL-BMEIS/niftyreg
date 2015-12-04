@@ -46,7 +46,7 @@ protected:
 };
 /* *************************************************************** */
 
-/** @brief Copmutes and returns the SSD between two input image
+/** @brief Copmutes and returns the SSD between two input images
  * @param targetImage First input image to use to compute the metric
  * @param resultImage Second input image to use to compute the metric
  * @param activeTimePoint Specified which time point volumes have to be considered

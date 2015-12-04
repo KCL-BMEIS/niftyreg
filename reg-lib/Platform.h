@@ -13,20 +13,22 @@ class Kernel;
 class KernelFactory;
 class AladinContent;
 
-class  Platform {
+class Platform {
 public:
 	Platform(int platformCode);
 	virtual ~Platform();
 
-	Kernel *createKernel(const std::string& name, AladinContent *con) const;
-	std::string getName();
-    void setGpuIdx(unsigned gpuIdxIn);
+    Kernel *createKernel(const std::string& name, AladinContent *con) const;
+    std::string getName();
 
+    int getPlatformCode();
+    //void setPlatformCode(const int platformCodeIn);
+    void setGpuIdx(unsigned gpuIdxIn);
+    unsigned getGpuIdx();
 
 private:
-
-	KernelFactory* factory;
-	std::string platformName;
+    KernelFactory* factory;
+    std::string platformName;
     int platformCode;
     unsigned gpuIdx;
 };

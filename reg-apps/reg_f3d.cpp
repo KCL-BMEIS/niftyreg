@@ -111,6 +111,24 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-vel \t\t\tUse a velocity field integration to generate the deformation");
    reg_print_info(exec, "\t-nogce \t\t\tDo not use the gradient accumulation through exponentiation");
    reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space");
+   reg_print_info(exec, "");
+
+   reg_print_info(exec, "*** Platform options:");
+#if defined(_USE_CUDA) && defined(_USE_OPENCL)
+   reg_print_info(exec, "\t-platf <uint>\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
+#else
+#ifdef _USE_CUDA
+   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 [0]");
+#endif
+#ifdef _USE_OPENCL
+   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | OpenCL=2 [0]");
+#endif
+#endif
+#if defined(_USE_CUDA) || defined(_USE_OPENCL)
+   reg_print_info(exec, "\t-gpuid <uint>\t\tChoose a custom gpu.");
+   reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
+#endif
+
 #if defined (_OPENMP)
    reg_print_info(exec, "");
    reg_print_info(exec, "*** OpenMP-related options:");
@@ -283,6 +301,9 @@ int main(int argc, char **argv)
    bool useMeanLNCC=false;
    int refBinNumber=0;
    int floBinNumber=0;
+   //
+   unsigned int platformFlag = NR_PLATFORM_CPU;
+   unsigned gpuIdx = 999;
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -628,6 +649,35 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-bch")==0 || strcmp(argv[i], "--bch")==0)
       {
          REG->UseBCHUpdate(atoi(argv[++i]));
+      }
+////////////////////////
+      else if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
+      {
+         int value=atoi(argv[++i]);
+         if(value<NR_PLATFORM_CPU || value>NR_PLATFORM_CL){
+            reg_print_msg_error("The platform argument is expected to be 0, 1 or 2 | 0=CPU, 1=CUDA 2=OPENCL");
+            return EXIT_FAILURE;
+         }
+#ifndef _USE_CUDA
+            if(value==NR_PLATFORM_CUDA){
+               reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
+               reg_print_msg_warn("The CPU platform is used");
+               value=0;
+            }
+#endif
+#ifndef _USE_OPENCL
+            if(value==NR_PLATFORM_CL){
+               reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
+               reg_print_msg_warn("The CPU platform is used");
+               value=0;
+            }
+#endif
+         platformFlag=value;
+      }
+////////////////////////
+      else if(strcmp(argv[i], "-gpuid")==0 || strcmp(argv[i], "--gpuid")==0)
+      {
+          gpuIdx = unsigned(atoi(argv[++i]));
       }
 //      else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
 //         iso=true;

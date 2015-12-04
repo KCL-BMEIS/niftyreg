@@ -46,7 +46,10 @@ template<class T> reg_aladin<T>::reg_aladin()
 
 	this->con = NULL;
 	this->blockMatchingParams = NULL;
+
 	this->platform = NULL;
+    this->platformCode = NR_PLATFORM_CPU;
+    this->gpuIdx = 999;
 
 	this->Verbose = true;
 
@@ -76,13 +79,11 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->funcProgressCallback = NULL;
 	this->paramsProgressCallback = NULL;
 
-	this->platformCode = NR_PLATFORM_CPU;
 	this->CurrentLevel = 0;
 
 	//check those
 	this->FloatingLowerThreshold = 0.f;
 	this->FloatingUpperThreshold = 0.f;
-    this->gpuIdx = 999;
 }
 /* *************************************************************** */
 template<class T> reg_aladin<T>::~reg_aladin()
@@ -240,7 +241,7 @@ void reg_aladin<T>::InitialiseRegistration()
 #endif
 
    this->platform = new Platform(this->platformCode);
-    this->platform->setGpuIdx(this->gpuIdx);
+   this->platform->setGpuIdx(this->gpuIdx);
 
    Kernel *convolutionKernel = this->platform->createKernel(ConvolutionKernel::getName(), NULL);
 
@@ -463,6 +464,28 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
 }
 /* *************************************************************** */
 template<class T>
+void reg_aladin<T>::setPlaform(Platform* inputPlatform)
+{
+    this->platform = inputPlatform;
+}
+/* *************************************************************** */
+template<class T>
+Platform* reg_aladin<T>::getPlaform()
+{
+    return this->platform;
+}
+/* *************************************************************** */
+template<class T>
+void reg_aladin<T>::setPlatformCode(int inputPlatformCode) {
+    this->platformCode = inputPlatformCode;
+}
+/* *************************************************************** */
+template<class T>
+void reg_aladin<T>::setGpuIdx(unsigned inputGPUIdx) {
+    this->gpuIdx = inputGPUIdx;
+}
+/* *************************************************************** */
+template<class T>
 void reg_aladin<T>::initAladinContent(nifti_image *ref,
 										  nifti_image *flo,
 										  int *mask,
@@ -472,14 +495,14 @@ void reg_aladin<T>::initAladinContent(nifti_image *ref,
 										  unsigned int inlierLts,
 										  unsigned int blockStepSize)
 {
-	if (this->platformCode == NR_PLATFORM_CPU)
+    if (this->platform->getPlatformCode() == NR_PLATFORM_CPU)
 		this->con = new AladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
-	else if(platformCode == NR_PLATFORM_CUDA)
+    else if(this->platform->getPlatformCode() == NR_PLATFORM_CUDA)
 		this->con = new CudaAladinContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
-	else if(platformCode == NR_PLATFORM_CL)
+    else if(this->platform->getPlatformCode() == NR_PLATFORM_CL)
 		this->con = new ClAladinContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 	this->blockMatchingParams = this->con->AladinContent::getBlockMatchingParams();
@@ -492,14 +515,14 @@ void reg_aladin<T>::initAladinContent(nifti_image *ref,
 										  mat44 *transMat,
 										  size_t bytes)
 {
-	if (this->platformCode == NR_PLATFORM_CPU)
+    if (this->platform->getPlatformCode() == NR_PLATFORM_CPU)
 		this->con = new AladinContent(ref, flo, mask, transMat, bytes);
 #ifdef _USE_CUDA
-	else if(platformCode == NR_PLATFORM_CUDA)
+    else if(this->platform->getPlatformCode() == NR_PLATFORM_CUDA)
 		this->con = new CudaAladinContent(ref, flo, mask,transMat, bytes);
 #endif
 #ifdef _USE_OPENCL
-	else if(platformCode == NR_PLATFORM_CL)
+    else if(this->platform->getPlatformCode() == NR_PLATFORM_CL)
 		this->con = new ClAladinContent(ref, flo, mask,transMat, bytes);
 #endif
 	this->blockMatchingParams = this->con->AladinContent::getBlockMatchingParams();

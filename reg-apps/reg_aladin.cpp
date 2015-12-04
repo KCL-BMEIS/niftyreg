@@ -88,7 +88,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | OpenCL=2 [0]");
 #endif
 #endif
-#ifdef _USE_OPENCL
+#if defined(_USE_CUDA) || defined(_USE_OPENCL)
    reg_print_info(exec, "\t-gpuid <uint>\t\tChoose a custom gpu.");
    reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
 #endif
@@ -170,8 +170,8 @@ int main(int argc, char **argv)
 
    bool iso=false;
    bool verbose=true;
-   unsigned int platformFlag = 0;
    int captureRangeVox = 3;
+   unsigned int platformFlag = NR_PLATFORM_CPU;
    unsigned gpuIdx = 999;
 
 #if defined (_OPENMP)
@@ -342,19 +342,19 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
       {
          int value=atoi(argv[++i]);
-         if(value<0 || value>2){
+         if(value<NR_PLATFORM_CPU || value>NR_PLATFORM_CL){
             reg_print_msg_error("The platform argument is expected to be 0, 1 or 2 | 0=CPU, 1=CUDA 2=OPENCL");
             return EXIT_FAILURE;
          }
 #ifndef _USE_CUDA
-            if(value==1){
+            if(value==NR_PLATFORM_CUDA){
                reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
                reg_print_msg_warn("The CPU platform is used");
                value=0;
             }
 #endif
 #ifndef _USE_OPENCL
-            if(value==2){
+            if(value==NR_PLATFORM_CL){
                reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
                reg_print_msg_warn("The CPU platform is used");
                value=0;
@@ -539,8 +539,8 @@ int main(int argc, char **argv)
    REG->SetBlockPercentage(blockPercentage);
    REG->SetInlierLts(inlierLts);
    REG->SetInterpolation(interpolation);
-   REG->setPlatformCode(platformFlag);
    REG->setCaptureRangeVox(captureRangeVox);
+   REG->setPlatformCode(platformFlag);
    REG->setGpuIdx(gpuIdx);
 
    if (referenceLowerThr != referenceUpperThr)

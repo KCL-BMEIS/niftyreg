@@ -12,16 +12,22 @@
 #define _REG_MIND_H
 
 #include "_reg_ssd.h"
+//#include "ConvolutionKernel.h"
+//#include "Platform.h"
+#include <math.h>
+#include "_reg_globalTrans.h"
+#include "_reg_resampling.h"
+#include "_reg_ReadWriteImage.h"
 
 /* *************************************************************** */
 /* *************************************************************** */
-/// @brief SSD measure of similarity classe
+/// @brief MIND measure of similarity class
 class reg_mind : public reg_ssd
 {
 public:
-   /// @brief reg_ssd class constructor
+   /// @brief reg_mind class constructor
    reg_mind();
-   /// @brief Initialise the reg_ssd object
+   /// @brief Initialise the reg_mind object
    void InitialiseMeasure(nifti_image *refImgPtr,
                           nifti_image *floImgPtr,
                           int *maskRefPtr,
@@ -32,18 +38,23 @@ public:
                           nifti_image *warRefImgPtr = NULL,
                           nifti_image *warRefGraPtr = NULL,
                           nifti_image *bckVoxBasedGraPtr = NULL);
-   /// @brief Returns the ssd value
+   /// @brief Returns the mind value
    virtual double GetSimilarityMeasureValue();
-   /// @brief Compute the voxel based ssd gradient
+   /// @brief Compute the voxel based mind gradient
    virtual void GetVoxelBasedSimilarityMeasureGradient();
    /// @brief Measure class desstructor
    ~reg_mind();
+   //
+   void GetMINDImageDesciptor(nifti_image* inputImgPtr, nifti_image* MINDImgPtr);
+   //
 protected:
    nifti_image *referenceImageDescriptor;
    nifti_image *warpedImageDescriptor;
-   /// @brief Compute the MIND descriptor of the reference image
-   void GetReferenceImageDesciptor();
-   /// @brief Compute the MIND descriptor of the warped image
-   void GetWarpedImageDesciptor();
+
+private:
+   //Platform* platform;
+   //Kernel *convolutionKernel;
+   template <class InputTYPE>
+   void GetMINDImageDesciptor1(nifti_image* inputImgPtr, nifti_image* MINDImgPtr);
 };
 #endif
