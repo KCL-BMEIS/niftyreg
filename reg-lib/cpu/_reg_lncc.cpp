@@ -24,12 +24,14 @@ reg_lncc::reg_lncc()
    this->referenceSdevImage=NULL;
    this->warpedFloatingMeanImage=NULL;
    this->warpedFloatingSdevImage=NULL;
+   this->forwardMask = NULL;
 
    this->backwardCorrelationImage=NULL;
    this->floatingMeanImage=NULL;
    this->floatingSdevImage=NULL;
    this->warpedReferenceMeanImage=NULL;
    this->warpedReferenceSdevImage=NULL;
+   this->backwardMask = NULL;
 
    // Gaussian kernel is used by default
    this->kernelType=0;
@@ -96,7 +98,7 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *refImage,
    size_t voxel;
    size_t voxelNumber = (size_t)refImage->nx*refImage->ny*refImage->nz;
 #endif
-   memcpy(forwardMask, refMask, voxelNumber*sizeof(int));
+   memcpy(combinedMask, refMask, voxelNumber*sizeof(int));
    reg_tools_removeNanFromMask(refImage, combinedMask);
    reg_tools_removeNanFromMask(warImage, combinedMask);
 

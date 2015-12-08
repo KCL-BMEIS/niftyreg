@@ -1222,7 +1222,7 @@ void reg_base<T>::Run()
 
       this->DisplayCurrentLevelParameters();
 
-      // Allocate iamge that are required to compute the gradient
+      // Allocate image that are required to compute the gradient
       this->AllocateVoxelBasedMeasureGradient();
       this->AllocateTransformationGradient();
 

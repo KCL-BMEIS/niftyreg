@@ -70,6 +70,7 @@ typedef struct
    bool removeNanInf;
    bool changeResFlag;
    bool rgbFlag;
+   bool bsi2rgbFlag;
    bool testActiveBlocks;
 } FLAG;
 
@@ -307,6 +308,10 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-4d2rgb") == 0)
       {
          flag->rgbFlag=1;
+      }
+      else if(strcmp(argv[i], "-bsi2rgb") == 0)
+      {
+         flag->bsi2rgbFlag=1;
       }
       else if (strcmp(argv[i], "-testActiveBlocks") == 0){
          flag->testActiveBlocks=1;
@@ -765,26 +770,26 @@ int main(int argc, char **argv)
       for(size_t i=0;i<(size_t)def->nx*def->ny*def->nz;++i)
          reg_mat33_eye(&jacobian[i]);
       // resample the original image into the space of the new image
-      if(newImg->pixdim[1]>image->pixdim[1] ||
-            newImg->pixdim[2]>image->pixdim[2] ||
-            newImg->pixdim[3]>image->pixdim[3] ){
-         reg_resampleImage_PSF(image,
-                               newImg,
-                               def,
-                               NULL,
-                               3,
-                               0.f,
-                               jacobian,
-                               0);
-      }
-      else{
+//      if(newImg->pixdim[1]>image->pixdim[1] ||
+//            newImg->pixdim[2]>image->pixdim[2] ||
+//            newImg->pixdim[3]>image->pixdim[3] ){
+//         reg_resampleImage_PSF(image,
+//                               newImg,
+//                               def,
+//                               NULL,
+//                               3,
+//                               0.f,
+//                               jacobian,
+//                               0);
+//      }
+//      else{
          reg_resampleImage(image,
                            newImg,
                            def,
                            NULL,
                            3,
                            0.f);
-      }
+//      }
 #ifndef NDEBUG
       reg_print_msg_debug("PSF resampling completed\n");
 #endif
@@ -836,6 +841,48 @@ int main(int argc, char **argv)
       // Free the scaled image
       nifti_image_free(scaledImage);
       scaledImage=NULL;
+      // Save the rgb image
+      if(flag->outputImageFlag)
+         reg_io_WriteImageFile(outputImage,param->outputImageName);
+      else reg_io_WriteImageFile(outputImage,"output.nii");
+      nifti_image_free(outputImage);
+      outputImage=NULL;
+   }
+   //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+   if(flag->bsi2rgbFlag)
+   {
+      // Convert the input image to float if needed
+      if(image->datatype!=NIFTI_TYPE_FLOAT32)
+         reg_tools_changeDatatype<float>(image);
+      // Create the rgb image
+      nifti_image *outputImage = nifti_copy_nim_info(image);
+      outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
+      outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
+      outputImage->nvox=(size_t)outputImage->nx*
+            outputImage->ny*outputImage->nz;
+      outputImage->datatype = NIFTI_TYPE_RGB24;
+      outputImage->nbyper = 3 * sizeof(unsigned char);
+      outputImage->scl_slope = 1.f;
+      outputImage->scl_inter = 0.f;
+      outputImage->cal_min = 0.f;
+      outputImage->cal_max = 255.f;
+      outputImage->data = (void *)malloc(outputImage->nbyper*outputImage->nvox);
+      // Convert the image
+      float *inPtr = static_cast<float *>(image->data);
+      unsigned char *outPtr = static_cast<unsigned char *>(outputImage->data);
+      for(int z=0; z<image->nz; ++z){
+         for(int y=0; y<image->ny; ++y){
+            for(int x=0; x<image->nx; ++x){
+               float value = *inPtr * 255.f;
+               size_t outIndex = ((z*image->ny+y)*image->nx+x)*3;
+               if (value >0)
+                  outPtr[outIndex] = static_cast<unsigned char>(reg_round(value>255?255:value));
+               else outPtr[outIndex+1] = static_cast<unsigned char>(reg_round(-value<-255?-255:-value));
+               outPtr[outIndex+2] = 0;
+               ++inPtr;
+            }
+         }
+      }
       // Save the rgb image
       if(flag->outputImageFlag)
          reg_io_WriteImageFile(outputImage,param->outputImageName);
@@ -944,90 +991,6 @@ int main(int argc, char **argv)
       nifti_image_free(outputImage);
       outputImage=NULL;
    }
-   //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
-
-   //    reg_tools_changeDatatype<float>(image);
-   //    nifti_image *temp=nifti_copy_nim_info(image);
-   //    temp->scl_inter=0.f;
-   //    temp->scl_slope=1.f;
-   //    temp->data=(void *)calloc(temp->nbyper,temp->nvox);
-   //    float *imgPtr = static_cast<float *>(image->data);
-   //    float *tmpPtr = static_cast<float *>(temp->data);
-
-   //    size_t blockNumber=(image->nx/4)*(image->ny/4)*(image->nz/4);
-
-   //    float *block_values=new float[blockNumber];
-
-   //    size_t blockIndex=0;
-   //    int znum=0;
-   //    for(size_t z=0; z<image->nz; z+=4){
-   //        int blockZ[2]={z,z+4};
-
-
-   //        if(blockZ[1]<=image->nz){
-   //            znum++;
-
-   //            for(size_t y=0; y<image->ny; y+=4){
-   //                int blockY[2]={y,y+4};
-
-   //                if(blockY[1]<=image->ny){
-
-   //                    for(size_t x=0; x<image->nx; x+=4){
-   //                        int blockX[2]={x,x+4};
-
-   //                        if(blockX[1]<=image->nx){
-
-   //                            float mean=0;
-   //                            for(int zz=blockZ[0];zz<blockZ[1];++zz){
-   //                                for(int yy=blockY[0];yy<blockY[1];++yy){
-   //                                    for(int xx=blockX[0];xx<blockX[1];++xx){
-   //                                        mean+=imgPtr[(zz*image->ny+yy)*image->nx+xx];
-   //                                    }
-   //                                }
-   //                            }
-   //                            mean/=64.f;
-   //                            float stddev=0;
-   //                            for(int zz=blockZ[0];zz<blockZ[1];++zz){
-   //                                for(int yy=blockY[0];yy<blockY[1];++yy){
-   //                                    for(int xx=blockX[0];xx<blockX[1];++xx){
-   //                                        stddev+=(mean-imgPtr[(zz*image->ny+yy)*image->nx+xx])*(mean-imgPtr[(zz*image->ny+yy)*image->nx+xx]);
-   //                                    }
-   //                                }
-   //                            }
-   //                            stddev/=64.f;
-   //                            block_values[blockIndex]=stddev;
-   //                            blockIndex++;
-   //                        } //ifx
-   //                    } //x
-   //                } //ify
-   //            } //y
-   //        } //ifz
-   //    } //z
-   //    int *block_index=new int[blockNumber];
-   //    for(int i=0;i<blockNumber;++i){
-   //        block_index[i]=i;
-   //    }
-
-   //    reg_heapSort(block_values,block_index,blockNumber);
-
-   //    for(int i=blockNumber-1;i>blockNumber/2;--i){
-
-   //        int z=block_index[i]/((int)floor(image->nx/4)*(int)floor(image->ny/4));
-   //        int temporary=block_index[i]-z*(int)floor(image->nx/4)*(int)floor(image->ny/4);
-   //        int y=temporary/(int)floor(image->nx/4);
-   //        int x=temporary-y*(int)floor(image->nx/4);
-   //        for(int zz=z*4;zz<z*4+4;++zz){
-   //            for(int yy=y*4;yy<y*4+4;++yy){
-   //                for(int xx=x*4;xx<x*4+4;++xx){
-   //                    tmpPtr[(zz*image->ny+yy)*image->nx+xx]=1.f;
-   //                }
-   //            }
-   //        }
-   //    }
-   //    delete []block_index;
-   //    delete []block_values;
-   //    reg_io_WriteImageFile(temp,param->outputImageName);
-   //    nifti_image_free(temp);
 
    nifti_image_free(image);
    return EXIT_SUCCESS;
