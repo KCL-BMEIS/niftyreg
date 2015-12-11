@@ -93,6 +93,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint");
    reg_print_info(exec, "\t--ssd\t\t\tSSD. Used for all time points");
    reg_print_info(exec, "\t-ssd <tp>\t\tSSD. Used for the specified timepoint");
+   reg_print_info(exec, "\t--mind\t\t\tMIND. Used for all time points");
    reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
    reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
@@ -519,6 +520,21 @@ int main(int argc, char **argv)
       {
          for(int t=0; t<floatingImage->nt; ++t)
             REG->UseSSD(t);
+      }
+      else if(strcmp(argv[i], "--mind")==0)
+      {
+          int dim = (referenceImage->nz > 1) ? 3 : 2;
+          int MINDDescriptorSize = 0;
+          if(dim == 2) {
+              MINDDescriptorSize = 4;
+          } else if (dim == 3) {
+              MINDDescriptorSize = 6;
+          } else {
+              reg_print_msg_error("image dimension not supported");
+              reg_exit(EXIT_FAILURE);
+          }
+          for(int t=0; t<MINDDescriptorSize; t++)
+             REG->UseMIND(t);
       }
       else if(strcmp(argv[i], "-kld")==0)
       {

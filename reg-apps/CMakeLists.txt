@@ -25,7 +25,7 @@ if(USE_CUDA)
 else(USE_CUDA)
   add_executable(reg_f3d reg_f3d.cpp)
 endif(USE_CUDA)
-target_link_libraries(reg_f3d _reg_f3d)
+target_link_libraries(reg_f3d _reg_f3d _reg_mind)
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
   cuda_add_executable(reg_aladin reg_aladin.cpp)

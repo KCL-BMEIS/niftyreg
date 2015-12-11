@@ -36,13 +36,18 @@ public:
       this->warpedFloatingImagePointer=warFloImgPtr;
       this->warpedFloatingGradientImagePointer=warFloGraPtr;
       this->forwardVoxelBasedGradientImagePointer=forVoxBasedGraPtr;
-      if(warRefImgPtr!=NULL && warRefGraPtr!=NULL && bckVoxBasedGraPtr!=NULL)
-      {
+      if(maskFloPtr != NULL && warRefImgPtr!=NULL && warRefGraPtr!=NULL && bckVoxBasedGraPtr!=NULL) {
          this->isSymmetric=true;
          this->floatingMaskPointer=maskFloPtr;
          this->warpedReferenceImagePointer=warRefImgPtr;
          this->warpedReferenceGradientImagePointer=warRefGraPtr;
          this->backwardVoxelBasedGradientImagePointer=bckVoxBasedGraPtr;
+      }
+      else {
+          this->floatingMaskPointer=NULL;
+          this->warpedReferenceImagePointer=NULL;
+          this->warpedReferenceGradientImagePointer=NULL;
+          this->backwardVoxelBasedGradientImagePointer=NULL;
       }
 #ifndef NDEBUG
       printf("[NiftyReg DEBUG] reg_measure::InitialiseMeasure()\n");

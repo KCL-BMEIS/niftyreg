@@ -20,6 +20,7 @@
 #include "_reg_nmi.h"
 #include "_reg_dti.h"
 #include "_reg_ssd.h"
+#include "_reg_mind.h"
 #include "_reg_KLdivergence.h"
 #include "_reg_lncc.h"
 #include "_reg_tools.h"
@@ -56,6 +57,7 @@ protected:
    reg_lncc *measure_lncc;
    reg_nmi *measure_nmi;
    reg_multichannel_nmi *measure_multichannel_nmi;
+   reg_mind *measure_mind;
 
    char *executableName;
    int referenceTimePoint;
@@ -230,6 +232,7 @@ public:
    virtual void UseNMISetFloatingBinNumber(int,int);
    virtual void UseMultiChannelNMI(int timepointNumber);
    virtual void UseSSD(int timepoint);
+   virtual void UseMIND(int timepoint);
    virtual void UseKLDivergence(int timepoint);
    virtual void UseDTI(bool *timepoint);
    virtual void UseLNCC(int timepoint, float stdDevKernel);

@@ -779,6 +779,15 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->voxelBasedMeasureGradientImage
                                           );
 
+   if(this->measure_mind!=NULL)
+      this->measure_mind->InitialiseMeasure(this->currentReference,
+                                           this->currentFloating,
+                                           this->currentMask,
+                                           this->warped,
+                                           this->warpedGradientImage,
+                                           this->voxelBasedMeasureGradientImage
+                                          );
+
    if(this->measure_kld!=NULL)
       this->measure_kld->InitialiseMeasure(this->currentReference,
                                            this->currentFloating,
@@ -1111,6 +1120,17 @@ void reg_base<T>::UseSSD(int timepoint)
    this->measure_ssd->SetActiveTimepoint(timepoint);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseSSD");
+#endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::UseMIND(int timepoint)
+{
+   if(this->measure_mind==NULL)
+      this->measure_mind=new reg_mind;
+   this->measure_mind->SetActiveTimepoint(timepoint);
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::UseMIND");
 #endif
 }
 /* *************************************************************** */

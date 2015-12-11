@@ -51,8 +51,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     //
-    reg_mind* mind = new reg_mind();
-    mind->GetMINDImageDesciptor(inputImage,MIND_img);
+    GetMINDImageDesciptor(inputImage,MIND_img);
     //
     //Compute the difference between the computed and expected image
     //

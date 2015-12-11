@@ -45,16 +45,23 @@ public:
    /// @brief Measure class desstructor
    ~reg_mind();
    //
-   void GetMINDImageDesciptor(nifti_image* inputImgPtr, nifti_image* MINDImgPtr);
-   //
 protected:
    nifti_image *referenceImageDescriptor;
-   nifti_image *warpedImageDescriptor;
+   nifti_image *floatingImageDescriptor;
+   nifti_image *warpedReferenceImageDescriptor;
+   nifti_image *warpedFloatingImageDescriptor;
+   bool activeTimePointDescriptor[255];
 
 private:
    //Platform* platform;
    //Kernel *convolutionKernel;
-   template <class InputTYPE>
-   void GetMINDImageDesciptor1(nifti_image* inputImgPtr, nifti_image* MINDImgPtr);
 };
+//
+extern "C++"
+void GetMINDImageDesciptor(nifti_image* inputImgPtr, nifti_image* MINDImgPtr);
+extern "C++" template <class InputTYPE>
+void GetMINDImageDesciptor1(nifti_image* inputImgPtr, nifti_image* MINDImgPtr);
+extern "C++" template <class InputTYPE>
+void ShiftImage(nifti_image* inputImgPtr, nifti_image* shiftedImgPtr, int tx, int ty, int tz);
+//
 #endif
