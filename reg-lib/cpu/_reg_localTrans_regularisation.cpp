@@ -906,17 +906,31 @@ double reg_spline_approxLinearEnergyValue3D(nifti_image *splineControlPoint)
    int a, b, c, x, y, z, i, index;
 
    double constraintValue = 0.;
+   double currentValue;
 
    // Create a new image to store the spline coefficients as displacements
-   nifti_image *splineDispImg = nifti_copy_nim_info(splineControlPoint);
-   splineDispImg->data = (void *)malloc(splineDispImg->nvox*splineDispImg->nbyper);
-   memcpy(splineDispImg->data, splineControlPoint->data, splineDispImg->nvox*splineDispImg->nbyper);
-   reg_getDisplacementFromDeformation(splineDispImg);
+   nifti_image *splineScaledImg = nifti_copy_nim_info(splineControlPoint);
+   splineScaledImg->data = (void *)malloc(splineScaledImg->nvox*splineScaledImg->nbyper);
+   memcpy(splineScaledImg->data, splineControlPoint->data,
+          splineScaledImg->nvox*splineScaledImg->nbyper);
 
    // Create pointers to the spline coefficients
-   DTYPE *splinePtrX = static_cast<DTYPE *>(splineDispImg->data);
+   DTYPE *splinePtrX = static_cast<DTYPE *>(splineScaledImg->data);
    DTYPE *splinePtrY = &splinePtrX[nodeNumber];
    DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
+
+   // Scaled down the coefficients
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+   shared(splineScaledImg, nodeNumber, \
+   splinePtrX, splinePtrY, splinePtrZ) \
+   private(index)
+#endif
+   for(index=0; index<(int)nodeNumber; ++index){
+      splinePtrX[index] /= splineScaledImg->dx;
+      splinePtrY[index] /= splineScaledImg->dy;
+      splinePtrZ[index] /= splineScaledImg->dz;
+   }
 
    // Store the basis values since they are constant as the value is approximated
    // at the control point positions only
@@ -927,19 +941,19 @@ double reg_spline_approxLinearEnergyValue3D(nifti_image *splineControlPoint)
    DTYPE splineCoeffY;
    DTYPE splineCoeffZ;
 
-   mat33 matrix;
+   mat33 matrix, R;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(splinePtrX, splinePtrY, splinePtrZ, splineDispImg, \
+   shared(splinePtrX, splinePtrY, splinePtrZ, splineScaledImg, \
    basisX, basisY, basisZ) \
-   private(x, y, z, a, b, c, i, index, matrix, \
-   splineCoeffX, splineCoeffY, splineCoeffZ) \
+   private(x, y, z, a, b, c, i, index, matrix, R, \
+   splineCoeffX, splineCoeffY, splineCoeffZ, currentValue) \
    reduction(+:constraintValue)
 #endif
-   for(z=1; z<splineDispImg->nz-1; ++z){
-      for(y=1; y<splineDispImg->ny-1; ++y){
-         for(x=1; x<splineDispImg->nx-1; ++x){
+   for(z=1; z<splineScaledImg->nz-1; ++z){
+      for(y=1; y<splineScaledImg->ny-1; ++y){
+         for(x=1; x<splineScaledImg->nx-1; ++x){
 
             memset(&matrix, 0, sizeof(mat33));
 
@@ -947,7 +961,7 @@ double reg_spline_approxLinearEnergyValue3D(nifti_image *splineControlPoint)
             for(c=-1; c<2; c++){
                for(b=-1; b<2; b++){
                   for(a=-1; a<2; a++){
-                     index = ((z+c)*splineDispImg->ny+y+b)*splineDispImg->nx+x+a;
+                     index = ((z+c)*splineScaledImg->ny+y+b)*splineScaledImg->nx+x+a;
                      splineCoeffX = splinePtrX[index];
                      splineCoeffY = splinePtrY[index];
                      splineCoeffZ = splinePtrZ[index];
@@ -967,17 +981,24 @@ double reg_spline_approxLinearEnergyValue3D(nifti_image *splineControlPoint)
                   }
                }
             }
+            // Removing the rotation component
+            R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+            matrix = nifti_mat33_mul(R, matrix);
+            --matrix.m[0][0];
+            --matrix.m[1][1];
+            --matrix.m[2][2];
+
+            currentValue = 0.;
             for(b=0; b<3; b++){
                for(a=0; a<3; a++){
-                  constraintValue += 0.5 *
-                        (reg_pow2(matrix.m[a][b]+matrix.m[b][a]) +
-                         reg_pow2(matrix.m[a][b]-matrix.m[b][a]));
+                  currentValue += reg_pow2(0.5*(matrix.m[a][b]+matrix.m[b][a])); // symmetric part
                }
             }
+            constraintValue += sqrt(currentValue);
          }
       }
    }
-   nifti_image_free(splineDispImg);
+   nifti_image_free(splineScaledImg);
    return constraintValue / static_cast<double>(splineControlPoint->nvox);
 }
 /* *************************************************************** */
@@ -1142,19 +1163,33 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
                                              float weight
                                              )
 {
-   size_t nodeNumber = (size_t)splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz;
-   int x, y, z, X, Y, Z, a, b, c, i, index;
+   size_t nodeNumber = (size_t)splineControlPoint->nx*
+         splineControlPoint->ny*splineControlPoint->nz;
+   int x, y, z, X, Y, Z, a, b, c, i, index, rotIndex;
 
    // Create a new image to store the spline coefficients as displacements
-   nifti_image *splineDispImg = nifti_copy_nim_info(splineControlPoint);
-   splineDispImg->data = (void *)malloc(splineDispImg->nvox*splineDispImg->nbyper);
-   memcpy(splineDispImg->data, splineControlPoint->data, splineDispImg->nvox*splineDispImg->nbyper);
-   reg_getDisplacementFromDeformation(splineDispImg);
+   nifti_image *splineScaledImg = nifti_copy_nim_info(splineControlPoint);
+   splineScaledImg->data = (void *)malloc(splineScaledImg->nvox*splineScaledImg->nbyper);
+   memcpy(splineScaledImg->data, splineControlPoint->data,
+          splineScaledImg->nvox*splineScaledImg->nbyper);
 
    // Create pointers to the spline coefficients
-   DTYPE * splinePtrX = static_cast<DTYPE *>(splineDispImg->data);
+   DTYPE * splinePtrX = static_cast<DTYPE *>(splineScaledImg->data);
    DTYPE * splinePtrY = &splinePtrX[nodeNumber];
    DTYPE * splinePtrZ = &splinePtrY[nodeNumber];
+
+   // Scaled down the coefficients
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+   shared(splineScaledImg, nodeNumber, \
+   splinePtrX, splinePtrY, splinePtrZ) \
+   private(index)
+#endif
+   for(index=0; index<(int)nodeNumber; ++index){
+      splinePtrX[index] /= splineScaledImg->dx;
+      splinePtrY[index] /= splineScaledImg->dy;
+      splinePtrZ[index] /= splineScaledImg->dz;
+   }
 
    // Store the basis values since they are constant as the value is approximated
    // at the control point positions only
@@ -1165,26 +1200,28 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
 
    DTYPE *derivativeValues = (DTYPE *)calloc(9*nodeNumber, sizeof(DTYPE));
    DTYPE *derivativeValuesPtr;
+   mat33 *rotMatrices = (mat33 *)malloc(nodeNumber*sizeof(mat33));
 
    DTYPE splineCoeffX;
    DTYPE splineCoeffY;
    DTYPE splineCoeffZ;
 
-   mat33 matrix;
+   mat33 matrix, R;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(splineDispImg, splinePtrX, splinePtrY, splinePtrZ, derivativeValues, \
-   basisX, basisY, basisZ) \
-   private(x, y, z, a, b, c, i, index, derivativeValuesPtr, \
-   splineCoeffX, splineCoeffY, splineCoeffZ, matrix)
+   shared(splineScaledImg, splinePtrX, splinePtrY, splinePtrZ, \
+   derivativeValues, rotMatrices, basisX, basisY, basisZ) \
+   private(x, y, z, a, b, c, i, index, rotIndex, derivativeValuesPtr, \
+   splineCoeffX, splineCoeffY, splineCoeffZ, matrix, R)
 #endif
-   for(z=1; z<splineDispImg->nz-1; z++)
+   for(z=1; z<splineScaledImg->nz-1; z++)
    {
-      for(y=1; y<splineDispImg->ny-1; y++)
+      for(y=1; y<splineScaledImg->ny-1; y++)
       {
-         derivativeValuesPtr = &derivativeValues[9*((z*splineDispImg->ny+y)*splineDispImg->nx+1)];
-         for(x=1; x<splineDispImg->nx-1; x++)
+         rotIndex = (z*splineScaledImg->ny+y)*splineScaledImg->nx+1;
+         derivativeValuesPtr = &derivativeValues[9*rotIndex];
+         for(x=1; x<splineScaledImg->nx-1; x++)
          {
             memset(&matrix, 0, sizeof(mat33));
 
@@ -1192,7 +1229,7 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
             for(c=-1; c<2; c++){
                for(b=-1; b<2; b++){
                   for(a=-1; a<2; a++){
-                     index = ((z+c)*splineDispImg->ny+y+b)*splineDispImg->nx+x+a;
+                     index = ((z+c)*splineScaledImg->ny+y+b)*splineScaledImg->nx+x+a;
                      splineCoeffX = splinePtrX[index];
                      splineCoeffY = splinePtrY[index];
                      splineCoeffZ = splinePtrZ[index];
@@ -1212,6 +1249,14 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
                   }
                }
             }
+            // Removing the rotation component
+            R = nifti_mat33_polar(matrix);
+            rotMatrices[rotIndex] = R;
+            R = nifti_mat33_inverse(R);
+            matrix = nifti_mat33_mul(R, matrix);
+            --matrix.m[0][0];
+            --matrix.m[1][1];
+            --matrix.m[2][2];
             *derivativeValuesPtr++ = matrix.m[0][0];
             *derivativeValuesPtr++ = matrix.m[0][1];
             *derivativeValuesPtr++ = matrix.m[0][2];
@@ -1222,9 +1267,10 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
             *derivativeValuesPtr++ = matrix.m[2][1];
             *derivativeValuesPtr++ = matrix.m[2][2];
          } // x
+         ++rotIndex;
       } // y
    } // z
-   nifti_image_free(splineDispImg);
+   nifti_image_free(splineScaledImg);
 
    DTYPE *gradientXPtr = static_cast<DTYPE *>(gradientImage->data);
    DTYPE *gradientYPtr = &gradientXPtr[nodeNumber];
@@ -1236,9 +1282,11 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(splineControlPoint, derivativeValues, gradientXPtr, gradientYPtr, gradientZPtr, \
+   shared(splineControlPoint, derivativeValues, rotMatrices, \
+   gradientXPtr, gradientYPtr, gradientZPtr, \
    basisX, basisY, basisZ, approxRatio) \
-   private(index, i, X, Y, Z, x, y, z, a, derivativeValuesPtr, gradientValue, matrix)
+   private(index, i, X, Y, Z, x, y, z, a, \
+   derivativeValuesPtr, gradientValue, matrix)
 #endif
    for(z=0; z<splineControlPoint->nz; z++)
    {
@@ -1255,9 +1303,14 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
                {
                   for(X=x-1; X<x+2; X++)
                   {
-                     if(-1<X && -1<Y && -1<Z && X<splineControlPoint->nx && Y<splineControlPoint->ny && Z<splineControlPoint->nz)
+                     if(-1<X && -1<Y && -1<Z &&
+                           X<splineControlPoint->nx &&
+                           Y<splineControlPoint->ny &&
+                           Z<splineControlPoint->nz)
                      {
-                        derivativeValuesPtr = &derivativeValues[9 * ((Z*splineControlPoint->ny + Y)*splineControlPoint->nx + X)];
+                        derivativeValuesPtr = &derivativeValues[
+                              9 * ((Z*splineControlPoint->ny + Y)*splineControlPoint->nx + X)
+                              ];
 
                         matrix.m[0][0] = (*derivativeValuesPtr++);
                         matrix.m[0][1] = (*derivativeValuesPtr++);
@@ -1274,33 +1327,46 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
                         gradientValue[0] -= 2.0*matrix.m[0][0]*basisX[i];
                         gradientValue[0] -= (matrix.m[0][1]+matrix.m[1][0])*basisY[i];
                         gradientValue[0] -= (matrix.m[0][2]+matrix.m[2][0])*basisZ[i];
-                        gradientValue[0] += (matrix.m[0][1]-matrix.m[1][0])*basisY[i];
-                        gradientValue[0] += (matrix.m[0][2]-matrix.m[2][0])*basisZ[i];
+//                        gradientValue[0] += (matrix.m[0][1]-matrix.m[1][0])*basisY[i];
+//                        gradientValue[0] += (matrix.m[0][2]-matrix.m[2][0])*basisZ[i];
 
                         gradientValue[1] -= 2.0*matrix.m[1][1]*basisY[i];
                         gradientValue[1] -= (matrix.m[1][0]+matrix.m[0][1])*basisX[i];
                         gradientValue[1] -= (matrix.m[1][2]+matrix.m[2][1])*basisZ[i];
-                        gradientValue[1] += (matrix.m[1][0]-matrix.m[0][1])*basisX[i];
-                        gradientValue[1] += (matrix.m[1][2]-matrix.m[2][1])*basisZ[i];
+//                        gradientValue[1] += (matrix.m[1][0]-matrix.m[0][1])*basisX[i];
+//                        gradientValue[1] += (matrix.m[1][2]-matrix.m[2][1])*basisZ[i];
 
                         gradientValue[2] -= 2.0*matrix.m[2][2]*basisZ[i];
                         gradientValue[2] -= (matrix.m[2][0]+matrix.m[0][2])*basisX[i];
                         gradientValue[2] -= (matrix.m[2][1]+matrix.m[1][2])*basisY[i];
-                        gradientValue[2] += (matrix.m[2][0]-matrix.m[0][2])*basisX[i];
-                        gradientValue[2] += (matrix.m[2][1]-matrix.m[1][2])*basisY[i];
+//                        gradientValue[2] += (matrix.m[2][0]-matrix.m[0][2])*basisX[i];
+//                        gradientValue[2] += (matrix.m[2][1]-matrix.m[1][2])*basisY[i];
 
                      }
                      ++i;
-                  }
-               }
-            }
-            gradientXPtr[index] += approxRatio*gradientValue[0];
-            gradientYPtr[index] += approxRatio*gradientValue[1];
-            gradientZPtr[index] += approxRatio*gradientValue[2];
+                  } // x
+               } // y
+            } // z
+            gradientXPtr[index] += approxRatio * (
+                     gradientValue[0] * rotMatrices[index].m[0][0]+
+                  gradientValue[1] * rotMatrices[index].m[0][1]+
+                  gradientValue[2] * rotMatrices[index].m[0][2]
+                  );
+            gradientYPtr[index] += approxRatio * (
+                  gradientValue[0] * rotMatrices[index].m[1][0]+
+                  gradientValue[1] * rotMatrices[index].m[1][1]+
+                  gradientValue[2] * rotMatrices[index].m[1][2]
+                  );
+            gradientZPtr[index] += approxRatio * (
+                  gradientValue[0] * rotMatrices[index].m[2][0]+
+                  gradientValue[1] * rotMatrices[index].m[2][1]+
+                  gradientValue[2] * rotMatrices[index].m[2][2]
+                  );
             index++;
          }
       }
    }
+   free(rotMatrices);
    free(derivativeValues);
 }
 /* *************************************************************** */

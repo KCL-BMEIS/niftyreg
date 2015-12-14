@@ -770,26 +770,26 @@ int main(int argc, char **argv)
       for(size_t i=0;i<(size_t)def->nx*def->ny*def->nz;++i)
          reg_mat33_eye(&jacobian[i]);
       // resample the original image into the space of the new image
-//      if(newImg->pixdim[1]>image->pixdim[1] ||
-//            newImg->pixdim[2]>image->pixdim[2] ||
-//            newImg->pixdim[3]>image->pixdim[3] ){
-//         reg_resampleImage_PSF(image,
-//                               newImg,
-//                               def,
-//                               NULL,
-//                               3,
-//                               0.f,
-//                               jacobian,
-//                               0);
-//      }
-//      else{
+      if(newImg->pixdim[1]>image->pixdim[1] ||
+            newImg->pixdim[2]>image->pixdim[2] ||
+            newImg->pixdim[3]>image->pixdim[3] ){
+         reg_resampleImage_PSF(image,
+                               newImg,
+                               def,
+                               NULL,
+                               3,
+                               0.f,
+                               jacobian,
+                               0);
+      }
+      else{
          reg_resampleImage(image,
                            newImg,
                            def,
                            NULL,
                            3,
                            0.f);
-//      }
+      }
 #ifndef NDEBUG
       reg_print_msg_debug("PSF resampling completed\n");
 #endif
@@ -875,7 +875,7 @@ int main(int argc, char **argv)
             for(int x=0; x<image->nx; ++x){
                float value = *inPtr * 255.f;
                size_t outIndex = ((z*image->ny+y)*image->nx+x)*3;
-               if (value >0)
+               if (value > 0)
                   outPtr[outIndex] = static_cast<unsigned char>(reg_round(value>255?255:value));
                else outPtr[outIndex+1] = static_cast<unsigned char>(reg_round(-value<-255?-255:-value));
                outPtr[outIndex+2] = 0;
@@ -914,7 +914,6 @@ int main(int argc, char **argv)
       outputImage->data = (void *)calloc(outputImage->nbyper, outputImage->nvox);
       float *inPtr = static_cast<float *>(image->data);
       float *outPtr = static_cast<float *>(outputImage->data);
-      int minVoxelNumber = outputImage->ndim==2?BLOCK_2D_SIZE/2:BLOCK_3D_SIZE/2;
       // Iterate through the blocks
       size_t blockIndex=0;
       for(size_t bz=0;bz<bm->blockNumber[2];++bz){

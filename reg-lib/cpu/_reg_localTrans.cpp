@@ -4590,7 +4590,6 @@ void reg_spline_GetDeconvolvedCoefficents1(nifti_image *img)
 /* *************************************************************** */
 void reg_spline_GetDeconvolvedCoefficents(nifti_image *img)
 {
-
    switch(img->datatype)
    {
    case NIFTI_TYPE_FLOAT32:
