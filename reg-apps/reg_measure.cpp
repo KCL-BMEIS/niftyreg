@@ -19,7 +19,7 @@
 #include "_reg_tools.h"
 #include "_reg_nmi.h"
 #include "_reg_dti.h"
-#include "_reg_ssd.h"
+#include "_reg_mind.h"
 #include "_reg_KLdivergence.h"
 #include "_reg_lncc.h"
 
@@ -43,6 +43,7 @@ typedef struct
    bool returnSSDFlag;
    bool returnLNCCFlag;
    bool returnNCCFlag;
+   bool returnMINDFlag;
    bool outFileFlag;
 } FLAG;
 
@@ -189,6 +190,11 @@ int main(int argc, char **argv)
               (strcmp(argv[i],"--sdd")==0))
       {
          flag->returnSSDFlag=true;
+      }
+      else if(strcmp(argv[i], "-mind") == 0 ||
+              (strcmp(argv[i],"--mind")==0))
+      {
+         flag->returnMINDFlag=true;
       }
       else if(strcmp(argv[i], "-out") == 0 ||
               (strcmp(argv[i],"--out")==0))
@@ -380,6 +386,23 @@ int main(int argc, char **argv)
          fprintf(outFile, "%g\n", measure);
       else printf("SSD: %g\n", measure);
       delete ssd_object;
+   }
+   /* Compute the MIND SSD if required */
+   if(flag->returnMINDFlag){
+      reg_mind *mind_object=new reg_mind();
+      for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
+         mind_object->SetActiveTimepoint(i);
+      mind_object->InitialiseMeasure(refImage,
+                                    warpedFloImage,
+                                    refMask,
+                                    warpedFloImage,
+                                    NULL,
+                                    NULL);
+      double measure=mind_object->GetSimilarityMeasureValue();
+      if(outFile!=NULL)
+         fprintf(outFile, "%g\n", measure);
+      else printf("MIND: %g\n", measure);
+      delete mind_object;
    }
 
    // Close the output file if required

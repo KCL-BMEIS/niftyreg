@@ -368,12 +368,15 @@ void reg_f3d<T>::Initialise()
       if(this->measure_lncc!=NULL)
          reg_print_info(this->executableName, "The LNCC is used as a similarity measure.");
       if(this->measure_dti!=NULL)
-         reg_print_info(this->executableName, "A DTI based measure is used as a similarity measure.");
-      if(this->measure_multichannel_nmi!=NULL)
+          reg_print_info(this->executableName, "A DTI based measure is used as a similarity measure.");
+       if(this->measure_mind!=NULL)
+           reg_print_info(this->executableName, "The MIND measure is used as a similarity measure.");
+        if(this->measure_multichannel_nmi!=NULL)
          reg_print_info(this->executableName, "The multichannel NMI is used as a similarity measure.");
       if(this->measure_nmi!=NULL || (this->measure_dti==NULL && this->measure_kld==NULL &&
                                      this->measure_lncc==NULL && this->measure_multichannel_nmi==NULL &&
-                                     this->measure_nmi==NULL && this->measure_ssd==NULL) )
+                                     this->measure_nmi==NULL && this->measure_ssd==NULL &&
+                                     this->measure_mind==NULL) )
          reg_print_info(this->executableName, "The NMI is used as a similarity measure.");
       sprintf(text, "Similarity measure term weight: %g", this->similarityWeight);
       reg_print_info(this->executableName, text);

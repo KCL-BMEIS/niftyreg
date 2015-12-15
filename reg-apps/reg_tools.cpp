@@ -17,6 +17,13 @@
 #include "_reg_globalTrans.h"
 #include "_reg_localTrans.h"
 #include "_reg_tools.h"
+#include "_reg_mind.h"
+
+#include "_reg_blockMatching.h"
+#include "BlockMatchingKernel.h"
+#include "Platform.h"
+#include "AladinContent.h"
+
 #include "reg_tools.h"
 
 int isNumeric (const char *s)
@@ -67,6 +74,7 @@ typedef struct
    bool rgbFlag;
    bool bsi2rgbFlag;
    bool testActiveBlocksFlag;
+   bool mindFlag;
 } FLAG;
 
 
@@ -102,6 +110,7 @@ void Usage(char *exec)
    printf("\t-rmNanInf <float>\tRemove the nan and inf from the input image and replace them by the specified value\n");
    printf("\t-4d2rgb\t\t\tConvert a 4D (or 5D) to rgb nifti file\n");
    printf("\t-testActiveBlocks\tGenerate an image highlighting the active blocks for reg_aladin (block variance is shown)\n");
+   printf("\t-mind\t\t\tCreate a MIND descriptor image\n");
 #if defined (_OPENMP)
    int defaultOpenMPValue=1;
    if(getenv("OMP_NUM_THREADS")!=NULL)
@@ -309,6 +318,10 @@ int main(int argc, char **argv)
       }
       else if (strcmp(argv[i], "-testActiveBlocks") == 0){
          flag->testActiveBlocksFlag=1;
+      }
+      else if(strcmp(argv[i], "-mind") == 0)
+      {
+         flag->mindFlag=1;
       }
       else
       {
@@ -878,6 +891,24 @@ int main(int argc, char **argv)
          }
       }
       // Save the rgb image
+   if(flag->mindFlag)
+   {
+       if(image->ndim>3){
+           reg_print_msg_error("MIND only support 2D or 3D image for now");
+           reg_exit(1);
+       }
+      // Convert the input image to float if needed
+      if(image->datatype!=NIFTI_TYPE_FLOAT32)
+         reg_tools_changeDatatype<float>(image);
+      // Create a output image
+      nifti_image *outputImage = nifti_copy_nim_info(image);
+      outputImage->dim[0]=outputImage->ndim=4;
+      outputImage->dim[4]=outputImage->nt=image->nz>1?6:4;
+      outputImage->nvox=(size_t)image->nvox*outputImage->nt;
+      outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
+      // Compute the MIND descriptor
+      GetMINDImageDesciptor(image, outputImage);
+      // Save the MIND descriptor image
       if(flag->outputImageFlag)
          reg_io_WriteImageFile(outputImage,param->outputImageName);
       else reg_io_WriteImageFile(outputImage,"output.nii");

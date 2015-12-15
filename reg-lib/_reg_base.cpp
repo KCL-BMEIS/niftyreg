@@ -39,6 +39,7 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->measure_lncc=NULL;
    this->measure_nmi=NULL;
    this->measure_multichannel_nmi=NULL;
+   this->measure_mind=NULL;
 
    this->similarityWeight=0.; // is automatically set depending of the penalty term weights
 
@@ -224,6 +225,8 @@ reg_base<T>::~reg_base()
       delete this->measure_dti;
    if(this->measure_lncc!=NULL)
       delete this->measure_lncc;
+   if(this->measure_mind!=NULL)
+      delete this->measure_mind;
 
    //Platform
    delete this->platform;
@@ -746,7 +749,8 @@ void reg_base<T>::InitialiseSimilarity()
          this->measure_ssd==NULL &&
          this->measure_dti==NULL &&
          this->measure_lncc==NULL &&
-         this->measure_lncc==NULL)
+         this->measure_lncc==NULL &&
+         this->measure_mind==NULL)
    {
       this->measure_nmi=new reg_nmi;
       for(int i=0; i<this->inputReference->nt; ++i)
@@ -779,15 +783,6 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->voxelBasedMeasureGradientImage
                                           );
 
-   if(this->measure_mind!=NULL)
-      this->measure_mind->InitialiseMeasure(this->currentReference,
-                                           this->currentFloating,
-                                           this->currentMask,
-                                           this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage
-                                          );
-
    if(this->measure_kld!=NULL)
       this->measure_kld->InitialiseMeasure(this->currentReference,
                                            this->currentFloating,
@@ -808,6 +803,15 @@ void reg_base<T>::InitialiseSimilarity()
 
    if(this->measure_dti!=NULL)
       this->measure_dti->InitialiseMeasure(this->currentReference,
+                                           this->currentFloating,
+                                           this->currentMask,
+                                           this->warped,
+                                           this->warpedGradientImage,
+                                           this->voxelBasedMeasureGradientImage
+                                          );
+
+   if(this->measure_mind!=NULL)
+      this->measure_mind->InitialiseMeasure(this->currentReference,
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
@@ -993,6 +997,9 @@ double reg_base<T>::ComputeSimilarityMeasure()
    if(this->measure_dti!=NULL)
       measure += this->measure_dti->GetSimilarityMeasureValue();
 
+   if(this->measure_mind!=NULL)
+      measure += this->measure_mind->GetSimilarityMeasureValue();
+
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::ComputeSimilarityMeasure");
 #endif
@@ -1046,6 +1053,9 @@ void reg_base<T>::GetVoxelBasedGradient()
 
    if(this->measure_dti!=NULL)
       this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
+
+   if(this->measure_mind!=NULL)
+      this->measure_mind->GetVoxelBasedSimilarityMeasureGradient();
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::GetVoxelBasedGradient");

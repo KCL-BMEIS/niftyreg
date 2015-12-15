@@ -17,7 +17,6 @@
 #include <math.h>
 #include "_reg_globalTrans.h"
 #include "_reg_resampling.h"
-#include "_reg_ReadWriteImage.h"
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -52,16 +51,22 @@ protected:
    nifti_image *warpedFloatingImageDescriptor;
    bool activeTimePointDescriptor[255];
 
+   // gradient
+   nifti_image *warpedFloatingGradientImageDescriptor;
+   nifti_image *warpedReferenceGradientImageDescriptor;
+
 private:
    //Platform* platform;
    //Kernel *convolutionKernel;
 };
 //
+
 extern "C++"
-void GetMINDImageDesciptor(nifti_image* inputImgPtr, nifti_image* MINDImgPtr);
-extern "C++" template <class InputTYPE>
-void GetMINDImageDesciptor1(nifti_image* inputImgPtr, nifti_image* MINDImgPtr);
+void GetMINDImageDesciptor(nifti_image* inputImgPtr,
+                           nifti_image* MINDImgPtr,
+                           int *mask);
+
 extern "C++" template <class InputTYPE>
 void ShiftImage(nifti_image* inputImgPtr, nifti_image* shiftedImgPtr, int tx, int ty, int tz);
-//
+
 #endif

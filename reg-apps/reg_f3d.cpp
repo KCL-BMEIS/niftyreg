@@ -523,18 +523,11 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "--mind")==0)
       {
-          int dim = (referenceImage->nz > 1) ? 3 : 2;
-          int MINDDescriptorSize = 0;
-          if(dim == 2) {
-              MINDDescriptorSize = 4;
-          } else if (dim == 3) {
-              MINDDescriptorSize = 6;
-          } else {
-              reg_print_msg_error("image dimension not supported");
-              reg_exit(EXIT_FAILURE);
+          if(referenceImage->nt>1 || floatingImage->nt>1){
+              reg_print_msg_error("reg_mind does not support multiple time point image");
+              reg_exit(1);
           }
-          for(int t=0; t<MINDDescriptorSize; t++)
-             REG->UseMIND(t);
+          REG->UseMIND(0);
       }
       else if(strcmp(argv[i], "-kld")==0)
       {
