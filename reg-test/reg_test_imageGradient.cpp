@@ -9,8 +9,8 @@
 //
 int main(int argc, char **argv)
 {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <image to process> <expected gradient image>\n", argv[0]);
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s <image to process> <expected gradient image> <m>\n", argv[0]);
         return EXIT_FAILURE;
     }
     char *inputImageName = argv[1];
@@ -31,6 +31,13 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    int usedMethod = atoi(argv[3]);
+    // Read the expected image
+    if(usedMethod != 0 && usedMethod != 1) {
+        reg_print_msg_error("The current method is not supported - should be 0 or 1");
+        return EXIT_FAILURE;
+    }
+
     int dim = (inputImage->nz > 1) ? 3 : 2;
     // COMPUTE THE GRADIENT OF THE IMAGE
     nifti_image *gradImg = nifti_copy_nim_info(inputImage);
@@ -43,25 +50,6 @@ int main(int argc, char **argv)
                             gradImg->nu;
     gradImg->data=(void *)malloc(gradImg->nvox*gradImg->nbyper);
 
-    // Create an identity transformation
-    nifti_image *identityDefField = nifti_copy_nim_info(inputImage);
-    identityDefField->dim[0]=identityDefField->ndim=5;
-    identityDefField->dim[4]=identityDefField->nt=1;
-    identityDefField->dim[5]=identityDefField->nu=dim;
-    identityDefField->nvox = (size_t)identityDefField->nx *
-                             identityDefField->ny *
-                             identityDefField->nz *
-                             identityDefField->nu;
-    identityDefField->datatype=NIFTI_TYPE_FLOAT32;
-    identityDefField->nbyper=sizeof(float);
-    identityDefField->data = (void *)calloc(identityDefField->nvox,
-                                            identityDefField->nbyper);
-    identityDefField->intent_code=NIFTI_INTENT_VECTOR;
-    memset(identityDefField->intent_name, 0, 16);
-    strcpy(identityDefField->intent_name,"NREG_TRANS");
-    identityDefField->intent_p1==DISP_FIELD;
-    reg_getDeformationFromDisplacement(identityDefField);
-
     // Create a mask
     //int *mask = (int *)malloc(inputImage->nvox*sizeof(int));
     //for (size_t i = 0; i < inputImage->nvox; ++i) {
@@ -69,23 +57,46 @@ int main(int argc, char **argv)
     //}
 
     // Compute the gradient of the warped floating descriptor image
-    reg_getImageGradient(inputImage,
-                         gradImg,
-                         identityDefField,
-                         NULL,
-                         1,
-                         std::numeric_limits<float>::quiet_NaN());
-    nifti_image_free(identityDefField);identityDefField=NULL;
+    if(usedMethod == 0) {
+
+        // Create an identity transformation
+        nifti_image *identityDefField = nifti_copy_nim_info(inputImage);
+        identityDefField->dim[0]=identityDefField->ndim=5;
+        identityDefField->dim[4]=identityDefField->nt=1;
+        identityDefField->dim[5]=identityDefField->nu=dim;
+        identityDefField->nvox = (size_t)identityDefField->nx *
+                                 identityDefField->ny *
+                                 identityDefField->nz *
+                                 identityDefField->nu;
+        identityDefField->datatype=NIFTI_TYPE_FLOAT32;
+        identityDefField->nbyper=sizeof(float);
+        identityDefField->data = (void *)calloc(identityDefField->nvox,
+                                                identityDefField->nbyper);
+        identityDefField->intent_code=NIFTI_INTENT_VECTOR;
+        memset(identityDefField->intent_name, 0, 16);
+        strcpy(identityDefField->intent_name,"NREG_TRANS");
+        identityDefField->intent_p1==DISP_FIELD;
+        reg_getDeformationFromDisplacement(identityDefField);
+
+        reg_getImageGradient(inputImage,
+                             gradImg,
+                             identityDefField,
+                             NULL,
+                             1,
+                             std::numeric_limits<float>::quiet_NaN());
+        //
+        nifti_image_free(identityDefField);identityDefField=NULL;
+        //
+    } else {
+        int *mask = (int *)calloc(inputImage->nvox,sizeof(int));
+        spatialGradient<float>(inputImage,gradImg,mask);
+        free(mask);
+    }
     //
     //Compute the difference between the computed and expected image
     //
     reg_tools_substractImageToImage(gradImg, expectedImage, expectedImage);
-    //DEBUG
-    reg_io_WriteImageFile(inputImage,"inputRegGradImg.nii");
-    //DEBUG
-    //DEBUG
-    reg_io_WriteImageFile(gradImg,"niftyRegGradImg.nii");
-    //DEBUG
+
     reg_tools_abs_image(expectedImage);
     double max_difference = reg_tools_getMaxValue(expectedImage);
 

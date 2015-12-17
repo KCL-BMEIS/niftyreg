@@ -1208,11 +1208,13 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                      }
                   }
                   // No need for kernel normalisation as this is handle by the density function
+/*
 #ifndef NDEBUG
                   char text[255];
                   sprintf(text, "Convolution type[%i] dim[%i] tp[%i] radius[%i] kernelSum[%g]", kernelType, n, t, radius, kernelSum);
                   reg_print_msg_debug(text);
 #endif
+*/
                   int planeNumber, planeIndex, lineOffset;
                   int lineIndex, shiftPre, shiftPst, k;
                   switch(n)

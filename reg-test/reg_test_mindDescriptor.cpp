@@ -30,28 +30,22 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     int dim = (inputImage->nz > 1) ? 3 : 2;
-    // COMPUTE THE MIND DESCRIPTOR
-    //MIND image
-    nifti_image *MIND_img = nifti_copy_nim_info(inputImage);
-    if(dim == 2) {
-        MIND_img->data=(void *)calloc(inputImage->nvox * 4,inputImage->nbyper);
-        MIND_img->dim[0] = 4;
-        MIND_img->dim[4] = 4;
-        MIND_img->nt = MIND_img->dim[4];
-        MIND_img->nvox = MIND_img->nvox*MIND_img->dim[4];
-    }
-    else if (dim == 3) {
-        MIND_img->data=(void *)calloc(inputImage->nvox * 6,inputImage->nbyper);
-        MIND_img->dim[0] = 4;
-        MIND_img->dim[4] = 6;
-        MIND_img->nt = MIND_img->dim[4];
-        MIND_img->nvox = MIND_img->nvox*MIND_img->dim[4];
-    } else {
+    if(dim<2 || dim>3){
         reg_print_msg_error("dimension not supported");
         return EXIT_FAILURE;
     }
-    //
-    GetMINDImageDesciptor(inputImage,MIND_img);
+    // COMPUTE THE MIND DESCRIPTOR
+    //MIND image
+    nifti_image *MIND_img = nifti_copy_nim_info(inputImage);
+    MIND_img->dim[0] = 4;
+    MIND_img->nt = MIND_img->dim[4] = 2*dim;
+    MIND_img->nvox = inputImage->nvox*2*dim;
+    MIND_img->data=(void *)calloc(MIND_img->nvox,inputImage->nbyper);
+
+    // Compute the MIND descriptor
+    int *mask = (int *)calloc(inputImage->nvox, sizeof(int));
+    GetMINDImageDesciptor(inputImage,MIND_img, mask);
+    free(mask);
     //
     //Compute the difference between the computed and expected image
     //

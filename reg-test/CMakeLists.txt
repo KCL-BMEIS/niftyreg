@@ -247,6 +247,8 @@ add_test(${EXEC}_MINDSSD_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/warped
 set(EXEC reg_test_imageGradient)
 add_executable(${EXEC} ${EXEC}.cpp)
 target_link_libraries(${EXEC} _reg_f3d _reg_mind)
-add_test(${EXEC}_imageGradient_2D ${EXEC} ${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz ${DFOLDER}/expectedImageGradient2D.nii.gz)
-add_test(${EXEC}_imageGradient_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3D_1.nii.gz ${DFOLDER}/expectedImageGradient3D.nii.gz)
+add_test(${EXEC}_imageGradientDF_2D ${EXEC} ${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz ${DFOLDER}/expectedImageGradient2D.nii.gz 0)
+add_test(${EXEC}_imageGradientDF_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3D_1.nii.gz ${DFOLDER}/expectedImageGradient3D.nii.gz 0)
+add_test(${EXEC}_imageGradientSP_2D ${EXEC} ${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz ${DFOLDER}/expectedImageGradient2D.nii.gz 1)
+add_test(${EXEC}_imageGradientSP_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3D_1.nii.gz ${DFOLDER}/expectedImageGradient3D.nii.gz 1)
 #-----------------------------------------------------------------------------
