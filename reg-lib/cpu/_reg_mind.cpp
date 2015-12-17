@@ -190,13 +190,11 @@ void spatialGradient(nifti_image *img,
     int u = 0;
     for(int t=0; t<img->nt; ++t){
         DTYPE *currentImgPtr = &imgPtr[t*voxelNumber];
-        //DTYPE *gradPtrX = &gradPtr[t*voxelNumber*gradImg->nu];
         DTYPE *gradPtrX = &gradPtr[t*voxelNumber];
-        //DTYPE *gradPtrY = &gradPtrX[voxelNumber];
-        DTYPE *gradPtrY = &gradPtr[voxelNumber*img->nt+t*voxelNumber];
+        DTYPE *gradPtrY = &gradPtrX[voxelNumber*img->nt];
         DTYPE *gradPtrZ = NULL;
         if(dimImg==3)
-            gradPtrZ = &gradPtr[2*voxelNumber*img->nt+t*voxelNumber];
+            gradPtrZ = &gradPtrY[voxelNumber*img->nt];
         size_t voxIndex = 0;
         for(int z=0; z<img->nz; ++z){
             for(int y=0; y<img->ny; ++y){
