@@ -29,7 +29,7 @@ void reg_LUdecomposition(T *mat,
         {
             reg_print_fct_error("reg_LUdecomposition");
             reg_print_msg_error("Singular matrix");
-            reg_exit(1);
+            reg_exit();
         }
         vv[i] = 1.0 / big;
     }
@@ -128,7 +128,7 @@ void reg_matrixMultiply(T *mat1,
             dim1[0], dim1[1], dim2[0], dim2[1]);
         reg_print_fct_error("reg_matrixMultiply");
         reg_print_msg_error(text);
-        reg_exit(1);
+        reg_exit();
     }
     size_t resDim[2] = {dim1[0], dim2[1]};
     // Allocate the result matrix
@@ -241,7 +241,7 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
                 mat1X, mat1Y, mat2X, mat2Y);
             reg_print_fct_error("reg_matrix2DMultiply");
             reg_print_msg_error(text);
-            reg_exit(1);
+            reg_exit();
         }
 
         size_t nbElement = mat1Y;
@@ -267,7 +267,7 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
                 mat1X, mat1Y, mat2Y, mat2X);
             reg_print_fct_error("reg_matrix2DMultiply");
             reg_print_msg_error(text);
-            reg_exit(1);
+            reg_exit();
         }
         size_t nbElement = mat1Y;
         double resTemp = 0;
@@ -298,7 +298,7 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
                 mat1X, mat1Y, mat2X, mat2Y);
             reg_print_fct_error("reg_matrix2DMultiply");
             reg_print_msg_error(text);
-            reg_exit(1);
+            reg_exit();
         }
         size_t nbElement = mat1Y;
         double resTemp;
@@ -320,7 +320,7 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
                 mat1X, mat1Y, mat2Y, mat2X);
             reg_print_fct_error("reg_matrix2DMultiply");
             reg_print_msg_error(text);
-            reg_exit(1);
+            reg_exit();
         }
         size_t nbElement = mat1Y;
         double resTemp;

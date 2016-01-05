@@ -49,7 +49,7 @@ void check_matching_difference(int dim,
                     warpedPosition[0], warpedPosition[1], warpedPosition[2],
                   expectedWarpedPosition[0], expectedWarpedPosition[1], expectedWarpedPosition[2]);
          }
-         reg_exit(1);
+         reg_exit();
 #endif
       }
       difference = fabsf(warpedPosition[i] - expectedWarpedPosition[i]);
@@ -73,7 +73,7 @@ void check_matching_difference(int dim,
                     warpedPosition[0], warpedPosition[1], warpedPosition[2],
                   expectedWarpedPosition[0], expectedWarpedPosition[1], expectedWarpedPosition[2]);
          }
-         reg_exit(1);
+         reg_exit();
 #endif
       }
    }

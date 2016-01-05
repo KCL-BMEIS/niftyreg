@@ -488,7 +488,7 @@ void reg_base<T>::AllocateWarped()
    {
       reg_print_fct_error("reg_base::AllocateWarped()");
       reg_print_msg_error("The reference image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    reg_base<T>::ClearWarped();
    this->warped = nifti_copy_nim_info(this->currentReference);
@@ -529,7 +529,7 @@ void reg_base<T>::AllocateDeformationField()
    {
       reg_print_fct_error("reg_base::AllocateDeformationField()");
       reg_print_msg_error("The reference image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    reg_base<T>::ClearDeformationField();
    this->deformationFieldImage = nifti_copy_nim_info(this->currentReference);
@@ -600,7 +600,7 @@ void reg_base<T>::AllocateWarpedGradient()
    {
       reg_print_fct_error("reg_base::AllocateWarpedGradient()");
       reg_print_msg_error("The deformation field image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    reg_base<T>::ClearWarpedGradient();
    this->warpedGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
@@ -639,7 +639,7 @@ void reg_base<T>::AllocateVoxelBasedMeasureGradient()
    {
       reg_print_fct_error("reg_base::AllocateVoxelBasedMeasureGradient()");
       reg_print_msg_error("The deformation field image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    reg_base<T>::ClearVoxelBasedMeasureGradient();
    this->voxelBasedMeasureGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
@@ -671,13 +671,13 @@ void reg_base<T>::CheckParameters()
    {
       reg_print_fct_error("reg_base::CheckParameters()");
       reg_print_msg_error("The reference image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    if(this->inputFloating==NULL)
    {
       reg_print_fct_error("reg_base::CheckParameters()");
       reg_print_msg_error("The floating image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
 
    // CHECK THE MASK DIMENSION IF IT IS DEFINED
@@ -689,7 +689,7 @@ void reg_base<T>::CheckParameters()
       {
          reg_print_fct_error("reg_base::CheckParameters()");
          reg_print_msg_error("The reference and mask images have different dimension");
-         reg_exit(1);
+         reg_exit();
       }
    }
 
@@ -1109,7 +1109,7 @@ void reg_base<T>::SetLNCCKernelType(int type)
    {
       reg_print_fct_error("reg_base<T>::SetLNCCKernelType");
       reg_print_msg_error("The LNCC object has to be created first");
-      reg_exit(1);
+      reg_exit();
    }
    this->measure_lncc->SetKernelType(type);
 #ifndef NDEBUG

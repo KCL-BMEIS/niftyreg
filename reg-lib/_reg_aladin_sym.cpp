@@ -169,7 +169,7 @@ void reg_aladin_sym<T>::InitialiseRegistration()
    {
       if(!this->InputReferenceMask && !this->InputFloatingMask){
          reg_print_msg_error("The masks' centre of gravity can only be used when two masks are specified");
-         reg_exit(1);
+         reg_exit();
       }
       float referenceCentre[3]={0,0,0};
       float referenceCount=0;

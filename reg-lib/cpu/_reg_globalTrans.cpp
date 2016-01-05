@@ -173,7 +173,7 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
       default:
          reg_print_fct_error("reg_affine_getDeformationField");
          reg_print_msg_error("The deformation field data type is not supported");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else
@@ -189,7 +189,7 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
       default:
          reg_print_fct_error("reg_affine_getDeformationField");
          reg_print_msg_error("The deformation field data type is not supported");
-         reg_exit(1);
+         reg_exit();
       }
    }
    if(mask==NULL)

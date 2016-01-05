@@ -153,7 +153,7 @@ void reg_tps<T>::InitialiseTPS()
       reg_print_fct_error("reg_tps<T>::InitialiseTPS()");
       reg_print_msg_error("Calloc failed, the TPS distance matrix is too large");
       reg_print_msg_error(text);
-      reg_exit(1);
+      reg_exit();
    }
 
    // Distance matrix is computed

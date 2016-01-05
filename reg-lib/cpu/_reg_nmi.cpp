@@ -453,7 +453,7 @@ double reg_nmi::GetSimilarityMeasureValue()
    {
       reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
       reg_print_msg_error("Both input images are exepected to have the same type");
-      reg_exit(1);
+      reg_exit();
    }
    switch(this->referenceImagePointer->datatype)
    {
@@ -488,7 +488,7 @@ double reg_nmi::GetSimilarityMeasureValue()
    default:
       reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
       reg_print_msg_error("Unsupported datatype");
-      reg_exit(1);
+      reg_exit();
    }
 
    if(this->isSymmetric)
@@ -498,7 +498,7 @@ double reg_nmi::GetSimilarityMeasureValue()
       {
          reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
          reg_print_msg_error("Both input images are exepected to have the same type");
-         reg_exit(1);
+         reg_exit();
       }
       switch(this->floatingImagePointer->datatype)
       {
@@ -533,7 +533,7 @@ double reg_nmi::GetSimilarityMeasureValue()
       default:
          reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
          reg_print_msg_error("Unsupported datatype");
-         reg_exit(1);
+         reg_exit();
       }
    }
 
@@ -789,7 +789,7 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
    {
       reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
       reg_print_msg_error("Input images are exepected to be of the same type");
-      reg_exit(1);
+      reg_exit();
    }
 
    //call compute similarity measure to calculate joint histogram
@@ -827,7 +827,7 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
       default:
          reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
          reg_print_msg_error("Unsupported datatype");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else  // 2D input images
@@ -861,7 +861,7 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
       default:
          reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
          reg_print_msg_error("Unsupported datatype");
-         reg_exit(1);
+         reg_exit();
       }
    }
 
@@ -875,7 +875,7 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
       {
          reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
          reg_print_msg_error("Input images are exepected to be of the same type");
-         reg_exit(1);
+         reg_exit();
       }
       // Compute the gradient of the nmi for the backward transformation
       if(this->floatingImagePointer->nz>1)  // 3D input images
@@ -909,7 +909,7 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
          default:
             reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
             reg_print_msg_error("Unsupported datatype");
-            reg_exit(1);
+            reg_exit();
          }
       }
       else  // 2D input images
@@ -943,7 +943,7 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
          default:
             reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
             reg_print_msg_error("Unsupported datatype");
-            reg_exit(1);
+            reg_exit();
          }
       }
    }

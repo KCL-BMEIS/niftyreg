@@ -75,7 +75,7 @@ void Platform::setGpuIdx(unsigned gpuIdxIn)
             if(CL_DEVICE_TYPE_CPU==*field){
                 reg_print_fct_error("Platform::setClIdx");
                 reg_print_msg_error("The OpenCL kernels only support GPU devices for now. Exit");
-                reg_exit(1);
+                reg_exit();
             }
         }
 #endif

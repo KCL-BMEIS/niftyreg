@@ -538,7 +538,7 @@ void reg_lbfgs<T>::Initialise(size_t nvox,
       {
          reg_print_fct_error("reg_lbfgs<T>::Initialise");
          reg_print_msg_error("Out of memory");
-         reg_exit(1);
+         reg_exit();
       }
    }
    this->oldDOF=(T *)malloc(this->dofNumber*sizeof(T));
@@ -547,7 +547,7 @@ void reg_lbfgs<T>::Initialise(size_t nvox,
    {
       reg_print_fct_error("reg_lbfgs<T>::Initialise");
       reg_print_msg_error("Out of memory");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */

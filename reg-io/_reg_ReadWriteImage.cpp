@@ -236,7 +236,7 @@ void reg_io_diplayImageData(nifti_image *image)
     default:
        reg_print_fct_error("reg_io_diplayImageData");
        reg_print_msg_error("Unsupported datatype");
-       reg_exit(1);
+       reg_exit();
     }
    return;
 }

@@ -13,15 +13,10 @@
 
 #include "_reg_ReadWriteImage.h"
 #include "_reg_resampling.h"
+#include "_reg_blockMatching.h"
 #include "_reg_globalTrans.h"
 #include "_reg_localTrans.h"
 #include "_reg_tools.h"
-
-#include "_reg_blockMatching.h"
-#include "BlockMatchingKernel.h"
-#include "Platform.h"
-#include "AladinContent.h"
-
 #include "reg_tools.h"
 
 int isNumeric (const char *s)
@@ -71,7 +66,7 @@ typedef struct
    bool changeResFlag;
    bool rgbFlag;
    bool bsi2rgbFlag;
-   bool testActiveBlocks;
+   bool testActiveBlocksFlag;
 } FLAG;
 
 
@@ -111,7 +106,6 @@ void Usage(char *exec)
    int defaultOpenMPValue=1;
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   char text[255];
    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
           defaultOpenMPValue, omp_get_num_procs());
 #endif
@@ -314,7 +308,7 @@ int main(int argc, char **argv)
          flag->bsi2rgbFlag=1;
       }
       else if (strcmp(argv[i], "-testActiveBlocks") == 0){
-         flag->testActiveBlocks=1;
+         flag->testActiveBlocksFlag=1;
       }
       else
       {
@@ -491,7 +485,7 @@ int main(int argc, char **argv)
             break;
          default:
             reg_print_msg_error("Unsurported data type.");
-            reg_exit(1);
+            reg_exit();
          }
       }
 
@@ -891,19 +885,24 @@ int main(int argc, char **argv)
       outputImage=NULL;
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
-   if(flag->testActiveBlocks){
+   if(flag->testActiveBlocksFlag){
       // Convert the input image to float if needed
       if(image->datatype!=NIFTI_TYPE_FLOAT32)
          reg_tools_changeDatatype<float>(image);
       // Create a temporary mask
       int *temp_mask = (int *)malloc(image->nx*image->ny*image->nz*sizeof(int));
-      for(size_t i=0; i<image->nx*image->ny*image->nz; ++i)
+      for(size_t i=0; i<(size_t)image->nx*image->ny*image->nz; ++i)
          temp_mask[i]=i;
-      // Create a context that embeds the blockmatching
-      AladinContent *temp_con = new AladinContent(image, NULL,
-                                                  temp_mask,
-                                                  sizeof(float), 100, 100, 1);
-      _reg_blockMatchingParam* bm = temp_con->getBlockMatchingParams();
+      // Initialise the block matching
+      _reg_blockMatchingParam bm_param;
+      initialise_block_matching_method(image,
+                                       &bm_param,
+                                       100,
+                                       100,
+                                       1,
+                                       temp_mask);
+
+
       // Generate an image to store the active blocks
       nifti_image *outputImage = nifti_copy_nim_info(image);
       outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
@@ -916,22 +915,22 @@ int main(int argc, char **argv)
       float *outPtr = static_cast<float *>(outputImage->data);
       // Iterate through the blocks
       size_t blockIndex=0;
-      for(size_t bz=0;bz<bm->blockNumber[2];++bz){
+      for(size_t bz=0;bz<bm_param.blockNumber[2];++bz){
          size_t vz=4*bz;
-         for(size_t by=0;by<bm->blockNumber[1];++by){
+         for(size_t by=0;by<bm_param.blockNumber[1];++by){
             size_t vy=4*by;
-            for(size_t bx=0;bx<bm->blockNumber[0];++bx){
+            for(size_t bx=0;bx<bm_param.blockNumber[0];++bx){
                size_t vx=4*bx;
-               if(bm->totalBlock[blockIndex++]>-1){
+               if(bm_param.totalBlock[blockIndex++]>-1){
                   float meanValue=0;
                   float activeVoxel=0;
                   for(size_t z=vz;z<vz+4;++z){
-                     if(z>=0 && z<outputImage->nz){
+                     if(z<(size_t)outputImage->nz){
                         for(size_t y=vy;y<vy+4;++y){
-                           if(y>=0 && y<outputImage->ny){
+                           if(y<(size_t)outputImage->ny){
                               size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
                               for(size_t x=vx;x<vx+4;++x){
-                                 if(x>=0 && x<outputImage->nx){
+                                 if(x<(size_t)outputImage->nx){
                                     meanValue += inPtr[voxelIndex];
                                     activeVoxel++;
                                  }
@@ -944,12 +943,12 @@ int main(int argc, char **argv)
                   meanValue /= activeVoxel;
                   float variance=0;
                   for(size_t z=vz;z<vz+4;++z){
-                     if(z>=0 && z<outputImage->nz){
+                     if(z<(size_t)outputImage->nz){
                         for(size_t y=vy;y<vy+4;++y){
-                           if(y>=0 && y<outputImage->ny){
+                           if(y<(size_t)outputImage->ny){
                               size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
                               for(size_t x=vx;x<vx+4;++x){
-                                 if(x>=0 && x<outputImage->nx){
+                                 if(x<(size_t)outputImage->nx){
                                     variance += reg_pow2(meanValue - inPtr[voxelIndex]);
                                  }
                                  voxelIndex++;
@@ -960,12 +959,12 @@ int main(int argc, char **argv)
                   } // z
                   variance /= activeVoxel;
                   for(size_t z=vz;z<vz+4;++z){
-                     if(z>=0 && z<outputImage->nz){
+                     if(z<(size_t)outputImage->nz){
                         for(size_t y=vy;y<vy+4;++y){
-                           if(y>=0 && y<outputImage->ny){
+                           if(y<(size_t)outputImage->ny){
                               size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
                               for(size_t x=vx;x<vx+4;++x){
-                                 if(x>=0 && x<outputImage->nx){
+                                 if(x<(size_t)outputImage->nx){
                                     outPtr[voxelIndex] = variance;
                                  }
                                  voxelIndex++;
@@ -980,7 +979,6 @@ int main(int argc, char **argv)
       } // bz
       outputImage->cal_max=reg_tools_getMaxValue(outputImage);
 
-      delete temp_con;
       free(temp_mask);
 
       // Save the output image

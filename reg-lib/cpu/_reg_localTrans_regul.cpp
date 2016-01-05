@@ -1,5 +1,5 @@
 /*
- *  _reg_localTransformation_be.cpp
+ *  _reg_localTrans_regul.cpp
  *
  *
  *  Created by Marc Modat on 10/05/2011.
@@ -9,308 +9,8 @@
  *
  */
 
-/* *************************************************************** */
-/* *************************************************************** */
-template <class DTYPE>
-void set_first_order_basis_values(DTYPE *basisX, DTYPE *basisY)
-{
-   double BASIS[4], FIRST[4];get_BSplineBasisValues<double>(0, BASIS, FIRST);
-   int index=0;
-   for(int y=0;y<3;++y){
-      for(int x=0;x<3;++x){
-         basisX[index] = FIRST[x] * BASIS[y];
-         basisY[index] = BASIS[x] * FIRST[y];
-         printf("basisX[%i]=static_cast<DTYPE>(%g);\n", index, basisX[index]);
-         printf("basisY[%i]=static_cast<DTYPE>(%g);\n", index, basisY[index]);
-         index++;
-      }
-   }
-}
-/* *************************************************************** */
-template <class DTYPE>
-void set_first_order_basis_values(DTYPE *basisX, DTYPE *basisY, DTYPE *basisZ)
-{
-      basisX[0]=static_cast<DTYPE>(-0.0138889);
-      basisY[0]=static_cast<DTYPE>(-0.0138889);
-      basisZ[0]=static_cast<DTYPE>(-0.0138889);
-      basisX[1]=static_cast<DTYPE>(0);
-      basisY[1]=static_cast<DTYPE>(-0.0555556);
-      basisZ[1]=static_cast<DTYPE>(-0.0555556);
-      basisX[2]=static_cast<DTYPE>(0.0138889);
-      basisY[2]=static_cast<DTYPE>(-0.0138889);
-      basisZ[2]=static_cast<DTYPE>(-0.0138889);
-      basisX[3]=static_cast<DTYPE>(-0.0555556);
-      basisY[3]=static_cast<DTYPE>(0);
-      basisZ[3]=static_cast<DTYPE>(-0.0555556);
-      basisX[4]=static_cast<DTYPE>(0);
-      basisY[4]=static_cast<DTYPE>(0);
-      basisZ[4]=static_cast<DTYPE>(-0.222222);
-      basisX[5]=static_cast<DTYPE>(0.0555556);
-      basisY[5]=static_cast<DTYPE>(0);
-      basisZ[5]=static_cast<DTYPE>(-0.0555556);
-      basisX[6]=static_cast<DTYPE>(-0.0138889);
-      basisY[6]=static_cast<DTYPE>(0.0138889);
-      basisZ[6]=static_cast<DTYPE>(-0.0138889);
-      basisX[7]=static_cast<DTYPE>(0);
-      basisY[7]=static_cast<DTYPE>(0.0555556);
-      basisZ[7]=static_cast<DTYPE>(-0.0555556);
-      basisX[8]=static_cast<DTYPE>(0.0138889);
-      basisY[8]=static_cast<DTYPE>(0.0138889);
-      basisZ[8]=static_cast<DTYPE>(-0.0138889);
-      basisX[9]=static_cast<DTYPE>(-0.0555556);
-      basisY[9]=static_cast<DTYPE>(-0.0555556);
-      basisZ[9]=static_cast<DTYPE>(0);
-      basisX[10]=static_cast<DTYPE>(0);
-      basisY[10]=static_cast<DTYPE>(-0.222222);
-      basisZ[10]=static_cast<DTYPE>(0);
-      basisX[11]=static_cast<DTYPE>(0.0555556);
-      basisY[11]=static_cast<DTYPE>(-0.0555556);
-      basisZ[11]=static_cast<DTYPE>(0);
-      basisX[12]=static_cast<DTYPE>(-0.222222);
-      basisY[12]=static_cast<DTYPE>(0);
-      basisZ[12]=static_cast<DTYPE>(0);
-      basisX[13]=static_cast<DTYPE>(0);
-      basisY[13]=static_cast<DTYPE>(0);
-      basisZ[13]=static_cast<DTYPE>(0);
-      basisX[14]=static_cast<DTYPE>(0.222222);
-      basisY[14]=static_cast<DTYPE>(0);
-      basisZ[14]=static_cast<DTYPE>(0);
-      basisX[15]=static_cast<DTYPE>(-0.0555556);
-      basisY[15]=static_cast<DTYPE>(0.0555556);
-      basisZ[15]=static_cast<DTYPE>(0);
-      basisX[16]=static_cast<DTYPE>(0);
-      basisY[16]=static_cast<DTYPE>(0.222222);
-      basisZ[16]=static_cast<DTYPE>(0);
-      basisX[17]=static_cast<DTYPE>(0.0555556);
-      basisY[17]=static_cast<DTYPE>(0.0555556);
-      basisZ[17]=static_cast<DTYPE>(0);
-      basisX[18]=static_cast<DTYPE>(-0.0138889);
-      basisY[18]=static_cast<DTYPE>(-0.0138889);
-      basisZ[18]=static_cast<DTYPE>(0.0138889);
-      basisX[19]=static_cast<DTYPE>(0);
-      basisY[19]=static_cast<DTYPE>(-0.0555556);
-      basisZ[19]=static_cast<DTYPE>(0.0555556);
-      basisX[20]=static_cast<DTYPE>(0.0138889);
-      basisY[20]=static_cast<DTYPE>(-0.0138889);
-      basisZ[20]=static_cast<DTYPE>(0.0138889);
-      basisX[21]=static_cast<DTYPE>(-0.0555556);
-      basisY[21]=static_cast<DTYPE>(0);
-      basisZ[21]=static_cast<DTYPE>(0.0555556);
-      basisX[22]=static_cast<DTYPE>(0);
-      basisY[22]=static_cast<DTYPE>(0);
-      basisZ[22]=static_cast<DTYPE>(0.222222);
-      basisX[23]=static_cast<DTYPE>(0.0555556);
-      basisY[23]=static_cast<DTYPE>(0);
-      basisZ[23]=static_cast<DTYPE>(0.0555556);
-      basisX[24]=static_cast<DTYPE>(-0.0138889);
-      basisY[24]=static_cast<DTYPE>(0.0138889);
-      basisZ[24]=static_cast<DTYPE>(0.0138889);
-      basisX[25]=static_cast<DTYPE>(0);
-      basisY[25]=static_cast<DTYPE>(0.0555556);
-      basisZ[25]=static_cast<DTYPE>(0.0555556);
-      basisX[26]=static_cast<DTYPE>(0.0138889);
-      basisY[26]=static_cast<DTYPE>(0.0138889);
-      basisZ[26]=static_cast<DTYPE>(0.0138889);
-}
-/* *************************************************************** */
-template <class DTYPE>
-void set_second_order_basis_values(DTYPE *basisXX, DTYPE *basisYY, DTYPE *basisXY)
-{
-   basisXX[0]=0.166667f;
-   basisYY[0]=0.166667f;
-   basisXY[0]=0.25f;
-   basisXX[1]=-0.333333f;
-   basisYY[1]=0.666667f;
-   basisXY[1]=-0.f;
-   basisXX[2]=0.166667f;
-   basisYY[2]=0.166667f;
-   basisXY[2]=-0.25f;
-   basisXX[3]=0.666667f;
-   basisYY[3]=-0.333333f;
-   basisXY[3]=-0.f;
-   basisXX[4]=-1.33333f;
-   basisYY[4]=-1.33333f;
-   basisXY[4]=0.f;
-   basisXX[5]=0.666667f;
-   basisYY[5]=-0.333333f;
-   basisXY[5]=0.f;
-   basisXX[6]=0.166667f;
-   basisYY[6]=0.166667f;
-   basisXY[6]=-0.25f;
-   basisXX[7]=-0.333333f;
-   basisYY[7]=0.666667f;
-   basisXY[7]=0.f;
-   basisXX[8]=0.166667f;
-   basisYY[8]=0.166667f;
-   basisXY[8]=0.25f;
-}
-/* *************************************************************** */
-template <class DTYPE>
-void set_second_order_basis_values(DTYPE *basisXX, DTYPE *basisYY, DTYPE *basisZZ, DTYPE *basisXY, DTYPE *basisYZ, DTYPE *basisXZ)
-{
-   basisXX[0]=0.027778f;
-   basisYY[0]=0.027778f;
-   basisZZ[0]=0.027778f;
-   basisXY[0]=0.041667f;
-   basisYZ[0]=0.041667f;
-   basisXZ[0]=0.041667f;
-   basisXX[1]=-0.055556f;
-   basisYY[1]=0.111111f;
-   basisZZ[1]=0.111111f;
-   basisXY[1]=-0.000000f;
-   basisYZ[1]=0.166667f;
-   basisXZ[1]=-0.000000f;
-   basisXX[2]=0.027778f;
-   basisYY[2]=0.027778f;
-   basisZZ[2]=0.027778f;
-   basisXY[2]=-0.041667f;
-   basisYZ[2]=0.041667f;
-   basisXZ[2]=-0.041667f;
-   basisXX[3]=0.111111f;
-   basisYY[3]=-0.055556f;
-   basisZZ[3]=0.111111f;
-   basisXY[3]=-0.000000f;
-   basisYZ[3]=-0.000000f;
-   basisXZ[3]=0.166667f;
-   basisXX[4]=-0.222222f;
-   basisYY[4]=-0.222222f;
-   basisZZ[4]=0.444444f;
-   basisXY[4]=0.000000f;
-   basisYZ[4]=-0.000000f;
-   basisXZ[4]=-0.000000f;
-   basisXX[5]=0.111111f;
-   basisYY[5]=-0.055556f;
-   basisZZ[5]=0.111111f;
-   basisXY[5]=0.000000f;
-   basisYZ[5]=-0.000000f;
-   basisXZ[5]=-0.166667f;
-   basisXX[6]=0.027778f;
-   basisYY[6]=0.027778f;
-   basisZZ[6]=0.027778f;
-   basisXY[6]=-0.041667f;
-   basisYZ[6]=-0.041667f;
-   basisXZ[6]=0.041667f;
-   basisXX[7]=-0.055556f;
-   basisYY[7]=0.111111f;
-   basisZZ[7]=0.111111f;
-   basisXY[7]=0.000000f;
-   basisYZ[7]=-0.166667f;
-   basisXZ[7]=-0.000000f;
-   basisXX[8]=0.027778f;
-   basisYY[8]=0.027778f;
-   basisZZ[8]=0.027778f;
-   basisXY[8]=0.041667f;
-   basisYZ[8]=-0.041667f;
-   basisXZ[8]=-0.041667f;
-   basisXX[9]=0.111111f;
-   basisYY[9]=0.111111f;
-   basisZZ[9]=-0.055556f;
-   basisXY[9]=0.166667f;
-   basisYZ[9]=-0.000000f;
-   basisXZ[9]=-0.000000f;
-   basisXX[10]=-0.222222f;
-   basisYY[10]=0.444444f;
-   basisZZ[10]=-0.222222f;
-   basisXY[10]=-0.000000f;
-   basisYZ[10]=-0.000000f;
-   basisXZ[10]=0.000000f;
-   basisXX[11]=0.111111f;
-   basisYY[11]=0.111111f;
-   basisZZ[11]=-0.055556f;
-   basisXY[11]=-0.166667f;
-   basisYZ[11]=-0.000000f;
-   basisXZ[11]=0.000000f;
-   basisXX[12]=0.444444f;
-   basisYY[12]=-0.222222f;
-   basisZZ[12]=-0.222222f;
-   basisXY[12]=-0.000000f;
-   basisYZ[12]=0.000000f;
-   basisXZ[12]=-0.000000f;
-   basisXX[13]=-0.888889f;
-   basisYY[13]=-0.888889f;
-   basisZZ[13]=-0.888889f;
-   basisXY[13]=0.000000f;
-   basisYZ[13]=0.000000f;
-   basisXZ[13]=0.000000f;
-   basisXX[14]=0.444444f;
-   basisYY[14]=-0.222222f;
-   basisZZ[14]=-0.222222f;
-   basisXY[14]=0.000000f;
-   basisYZ[14]=0.000000f;
-   basisXZ[14]=0.000000f;
-   basisXX[15]=0.111111f;
-   basisYY[15]=0.111111f;
-   basisZZ[15]=-0.055556f;
-   basisXY[15]=-0.166667f;
-   basisYZ[15]=0.000000f;
-   basisXZ[15]=-0.000000f;
-   basisXX[16]=-0.222222f;
-   basisYY[16]=0.444444f;
-   basisZZ[16]=-0.222222f;
-   basisXY[16]=0.000000f;
-   basisYZ[16]=0.000000f;
-   basisXZ[16]=0.000000f;
-   basisXX[17]=0.111111f;
-   basisYY[17]=0.111111f;
-   basisZZ[17]=-0.055556f;
-   basisXY[17]=0.166667f;
-   basisYZ[17]=0.000000f;
-   basisXZ[17]=0.000000f;
-   basisXX[18]=0.027778f;
-   basisYY[18]=0.027778f;
-   basisZZ[18]=0.027778f;
-   basisXY[18]=0.041667f;
-   basisYZ[18]=-0.041667f;
-   basisXZ[18]=-0.041667f;
-   basisXX[19]=-0.055556f;
-   basisYY[19]=0.111111f;
-   basisZZ[19]=0.111111f;
-   basisXY[19]=-0.000000f;
-   basisYZ[19]=-0.166667f;
-   basisXZ[19]=0.000000f;
-   basisXX[20]=0.027778f;
-   basisYY[20]=0.027778f;
-   basisZZ[20]=0.027778f;
-   basisXY[20]=-0.041667f;
-   basisYZ[20]=-0.041667f;
-   basisXZ[20]=0.041667f;
-   basisXX[21]=0.111111f;
-   basisYY[21]=-0.055556f;
-   basisZZ[21]=0.111111f;
-   basisXY[21]=-0.000000f;
-   basisYZ[21]=0.000000f;
-   basisXZ[21]=-0.166667f;
-   basisXX[22]=-0.222222f;
-   basisYY[22]=-0.222222f;
-   basisZZ[22]=0.444444f;
-   basisXY[22]=0.000000f;
-   basisYZ[22]=0.000000f;
-   basisXZ[22]=0.000000f;
-   basisXX[23]=0.111111f;
-   basisYY[23]=-0.055556f;
-   basisZZ[23]=0.111111f;
-   basisXY[23]=0.000000f;
-   basisYZ[23]=0.000000f;
-   basisXZ[23]=0.166667f;
-   basisXX[24]=0.027778f;
-   basisYY[24]=0.027778f;
-   basisZZ[24]=0.027778f;
-   basisXY[24]=-0.041667f;
-   basisYZ[24]=0.041667f;
-   basisXZ[24]=-0.041667f;
-   basisXX[25]=-0.055556f;
-   basisYY[25]=0.111111f;
-   basisZZ[25]=0.111111f;
-   basisXY[25]=0.000000f;
-   basisYZ[25]=0.166667f;
-   basisXZ[25]=0.000000f;
-   basisXX[26]=0.027778f;
-   basisYY[26]=0.027778f;
-   basisZZ[26]=0.027778f;
-   basisXY[26]=0.041667f;
-   basisYZ[26]=0.041667f;
-   basisXZ[26]=0.041667f;
-}
+#include "_reg_localTrans_regul.h"
+
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
@@ -342,35 +42,35 @@ double reg_spline_approxBendingEnergyValue2D(nifti_image *splineControlPoint)
    splineCoeffX, splineCoeffY) \
    reduction(+:constraintValue)
 #endif
-      for(y=1; y<splineControlPoint->ny-1; ++y)
+   for(y=1; y<splineControlPoint->ny-1; ++y)
+   {
+      for(x=1; x<splineControlPoint->nx-1; ++x)
       {
-         for(x=1; x<splineControlPoint->nx-1; ++x)
-         {
-            XX_x=0.0, YY_x=0.0, XY_x=0.0;
-            XX_y=0.0, YY_y=0.0, XY_y=0.0;
+         XX_x=0.0, YY_x=0.0, XY_x=0.0;
+         XX_y=0.0, YY_y=0.0, XY_y=0.0;
 
-            i=0;
-               for(b=-1; b<2; b++){
-                  for(a=-1; a<2; a++){
-                     index = (y+b)*splineControlPoint->nx+x+a;
-                     splineCoeffX = splinePtrX[index];
-                     splineCoeffY = splinePtrY[index];
-                     XX_x += basisXX[i]*splineCoeffX;
-                     YY_x += basisYY[i]*splineCoeffX;
-                     XY_x += basisXY[i]*splineCoeffX;
+         i=0;
+         for(b=-1; b<2; b++){
+            for(a=-1; a<2; a++){
+               index = (y+b)*splineControlPoint->nx+x+a;
+               splineCoeffX = splinePtrX[index];
+               splineCoeffY = splinePtrY[index];
+               XX_x += basisXX[i]*splineCoeffX;
+               YY_x += basisYY[i]*splineCoeffX;
+               XY_x += basisXY[i]*splineCoeffX;
 
-                     XX_y += basisXX[i]*splineCoeffY;
-                     YY_y += basisYY[i]*splineCoeffY;
-                     XY_y += basisXY[i]*splineCoeffY;
-                     ++i;
-                  }
-               }
-
-            constraintValue += double(
-                     XX_x*XX_x + YY_x*YY_x + 2.0*XY_x*XY_x +
-                     XX_y*XX_y + YY_y*YY_y + 2.0*XY_y*XY_y );
+               XX_y += basisXX[i]*splineCoeffY;
+               YY_y += basisYY[i]*splineCoeffY;
+               XY_y += basisXY[i]*splineCoeffY;
+               ++i;
+            }
          }
+
+         constraintValue += double(
+                  XX_x*XX_x + YY_x*YY_x + 2.0*XY_x*XY_x +
+                  XX_y*XX_y + YY_y*YY_y + 2.0*XY_y*XY_y );
       }
+   }
    return constraintValue / (double)splineControlPoint->nvox;
 }
 /* *************************************************************** */
@@ -476,7 +176,7 @@ double reg_spline_approxBendingEnergy(nifti_image *splineControlPoint)
       default:
          reg_print_fct_error("reg_spline_approxBendingEnergy");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else
@@ -490,7 +190,7 @@ double reg_spline_approxBendingEnergy(nifti_image *splineControlPoint)
       default:
          reg_print_fct_error("reg_spline_approxBendingEnergy");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
 }
@@ -787,7 +487,7 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
    {
       reg_print_fct_error("reg_spline_approxBendingEnergyGradient");
       reg_print_msg_error("The input images are expected to have the same type");
-      reg_exit(1);
+      reg_exit();
    }
    if(splineControlPoint->nz==1)
    {
@@ -804,7 +504,7 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_approxBendingEnergyGradient");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else
@@ -822,7 +522,7 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_approxBendingEnergyGradient");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
 }
@@ -831,20 +531,15 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
 template <class DTYPE>
 double reg_spline_approxLinearEnergyValue2D(nifti_image *splineControlPoint)
 {
-   size_t nodeNumber = (size_t)splineControlPoint->nx *
+   size_t nodeNumber = (size_t)splineControlPoint->nx*
          splineControlPoint->ny;
    int a, b, x, y, i, index;
 
    double constraintValue = 0.;
-
-   // Create a new image to store the spline coefficients as displacements
-   nifti_image *splineDispImg = nifti_copy_nim_info(splineControlPoint);
-   splineDispImg->data = (void *)malloc(splineDispImg->nvox*splineDispImg->nbyper);
-   memcpy(splineDispImg->data, splineControlPoint->data, splineDispImg->nvox*splineDispImg->nbyper);
-   reg_getDisplacementFromDeformation(splineDispImg);
+   double currentValue;
 
    // Create pointers to the spline coefficients
-   DTYPE *splinePtrX = static_cast<DTYPE *>(splineDispImg->data);
+   DTYPE *splinePtrX = static_cast<DTYPE *>(splineControlPoint->data);
    DTYPE *splinePtrY = &splinePtrX[nodeNumber];
 
    // Store the basis values since they are constant as the value is approximated
@@ -855,46 +550,59 @@ double reg_spline_approxLinearEnergyValue2D(nifti_image *splineControlPoint)
    DTYPE splineCoeffX;
    DTYPE splineCoeffY;
 
-   mat33 matrix;
+   mat33 matrix, R;
+
+   // Matrix to use to convert the gradient from mm to voxel
+   mat33 reorientation;
+   if(splineControlPoint->sform_code>0)
+      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
+   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(splinePtrX, splinePtrY, splineDispImg, \
-   basisX, basisY) \
-   private(x, y, a, b, i, index, matrix, \
-   splineCoeffX, splineCoeffY) \
+   shared(splinePtrX, splinePtrY, splineControlPoint, \
+   basisX, basisY, reorientation) \
+   private(x, y, a, b, i, index, matrix, R, \
+   splineCoeffX, splineCoeffY, currentValue) \
    reduction(+:constraintValue)
 #endif
-   for(y=1; y<splineDispImg->ny-1; ++y){
-      for(x=1; x<splineDispImg->nx-1; ++x){
+   for(y=1; y<splineControlPoint->ny-1; ++y){
+      for(x=1; x<splineControlPoint->nx-1; ++x){
 
          memset(&matrix, 0, sizeof(mat33));
+         matrix.m[2][2] = 1.f;
 
          i=0;
          for(b=-1; b<2; b++){
             for(a=-1; a<2; a++){
-               index = (y+b)*splineDispImg->nx+x+a;
+               index = (y+b)*splineControlPoint->nx+x+a;
                splineCoeffX = splinePtrX[index];
                splineCoeffY = splinePtrY[index];
-
                matrix.m[0][0] += basisX[i]*splineCoeffX;
                matrix.m[1][0] += basisY[i]*splineCoeffX;
-
                matrix.m[0][1] += basisX[i]*splineCoeffY;
                matrix.m[1][1] += basisY[i]*splineCoeffY;
                ++i;
             }
          }
+         // Convert from mm to voxel
+         matrix = nifti_mat33_mul(reorientation, matrix);
+         // Removing the rotation component
+         R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+         matrix = nifti_mat33_mul(R, matrix);
+         // Convert to displacement
+         --matrix.m[0][0];
+         --matrix.m[1][1];
+
+         currentValue = 0.;
          for(b=0; b<2; b++){
             for(a=0; a<2; a++){
-               constraintValue += 0.5 *
-                     (reg_pow2(matrix.m[a][b]+matrix.m[b][a]) +
-                      reg_pow2(matrix.m[a][b]-matrix.m[b][a]));
+               currentValue += reg_pow2(0.5*(matrix.m[a][b]+matrix.m[b][a])); // symmetric part
             }
          }
+         constraintValue += currentValue;
       }
    }
-   nifti_image_free(splineDispImg);
    return constraintValue / static_cast<double>(splineControlPoint->nvox);
 }
 /* *************************************************************** */
@@ -908,29 +616,10 @@ double reg_spline_approxLinearEnergyValue3D(nifti_image *splineControlPoint)
    double constraintValue = 0.;
    double currentValue;
 
-   // Create a new image to store the spline coefficients as displacements
-   nifti_image *splineScaledImg = nifti_copy_nim_info(splineControlPoint);
-   splineScaledImg->data = (void *)malloc(splineScaledImg->nvox*splineScaledImg->nbyper);
-   memcpy(splineScaledImg->data, splineControlPoint->data,
-          splineScaledImg->nvox*splineScaledImg->nbyper);
-
    // Create pointers to the spline coefficients
-   DTYPE *splinePtrX = static_cast<DTYPE *>(splineScaledImg->data);
+   DTYPE *splinePtrX = static_cast<DTYPE *>(splineControlPoint->data);
    DTYPE *splinePtrY = &splinePtrX[nodeNumber];
    DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
-
-   // Scaled down the coefficients
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(splineScaledImg, nodeNumber, \
-   splinePtrX, splinePtrY, splinePtrZ) \
-   private(index)
-#endif
-   for(index=0; index<(int)nodeNumber; ++index){
-      splinePtrX[index] /= splineScaledImg->dx;
-      splinePtrY[index] /= splineScaledImg->dy;
-      splinePtrZ[index] /= splineScaledImg->dz;
-   }
 
    // Store the basis values since they are constant as the value is approximated
    // at the control point positions only
@@ -943,17 +632,23 @@ double reg_spline_approxLinearEnergyValue3D(nifti_image *splineControlPoint)
 
    mat33 matrix, R;
 
+   // Matrix to use to convert the gradient from mm to voxel
+   mat33 reorientation;
+   if(splineControlPoint->sform_code>0)
+      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
+   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
+
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(splinePtrX, splinePtrY, splinePtrZ, splineScaledImg, \
-   basisX, basisY, basisZ) \
+   shared(splinePtrX, splinePtrY, splinePtrZ, splineControlPoint, \
+   basisX, basisY, basisZ, reorientation) \
    private(x, y, z, a, b, c, i, index, matrix, R, \
    splineCoeffX, splineCoeffY, splineCoeffZ, currentValue) \
    reduction(+:constraintValue)
 #endif
-   for(z=1; z<splineScaledImg->nz-1; ++z){
-      for(y=1; y<splineScaledImg->ny-1; ++y){
-         for(x=1; x<splineScaledImg->nx-1; ++x){
+   for(z=1; z<splineControlPoint->nz-1; ++z){
+      for(y=1; y<splineControlPoint->ny-1; ++y){
+         for(x=1; x<splineControlPoint->nx-1; ++x){
 
             memset(&matrix, 0, sizeof(mat33));
 
@@ -961,7 +656,7 @@ double reg_spline_approxLinearEnergyValue3D(nifti_image *splineControlPoint)
             for(c=-1; c<2; c++){
                for(b=-1; b<2; b++){
                   for(a=-1; a<2; a++){
-                     index = ((z+c)*splineScaledImg->ny+y+b)*splineScaledImg->nx+x+a;
+                     index = ((z+c)*splineControlPoint->ny+y+b)*splineControlPoint->nx+x+a;
                      splineCoeffX = splinePtrX[index];
                      splineCoeffY = splinePtrY[index];
                      splineCoeffZ = splinePtrZ[index];
@@ -981,9 +676,12 @@ double reg_spline_approxLinearEnergyValue3D(nifti_image *splineControlPoint)
                   }
                }
             }
+            // Convert from mm to voxel
+            matrix = nifti_mat33_mul(reorientation, matrix);
             // Removing the rotation component
             R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
             matrix = nifti_mat33_mul(R, matrix);
+            // Convert to displacement
             --matrix.m[0][0];
             --matrix.m[1][1];
             --matrix.m[2][2];
@@ -994,11 +692,10 @@ double reg_spline_approxLinearEnergyValue3D(nifti_image *splineControlPoint)
                   currentValue += reg_pow2(0.5*(matrix.m[a][b]+matrix.m[b][a])); // symmetric part
                }
             }
-            constraintValue += sqrt(currentValue);
+            constraintValue += currentValue;
          }
       }
    }
-   nifti_image_free(splineScaledImg);
    return constraintValue / static_cast<double>(splineControlPoint->nvox);
 }
 /* *************************************************************** */
@@ -1014,7 +711,7 @@ double reg_spline_approxLinearEnergy(nifti_image *splineControlPoint)
       default:
          reg_print_fct_error("reg_spline_approxLinearEnergyValue3D");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else{
@@ -1027,7 +724,7 @@ double reg_spline_approxLinearEnergy(nifti_image *splineControlPoint)
       default:
          reg_print_fct_error("reg_spline_approxLinearEnergyValue2D");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
 }
@@ -1039,17 +736,12 @@ void reg_spline_approxLinearEnergyGradient2D(nifti_image *splineControlPoint,
                                              float weight
                                              )
 {
-   size_t nodeNumber = (size_t)splineControlPoint->nx*splineControlPoint->ny;
+   size_t nodeNumber = (size_t)splineControlPoint->nx*
+         splineControlPoint->ny;
    int x, y, X, Y, a, b, i, index;
 
-   // Create a new image to store the spline coefficients as displacements
-   nifti_image *splineDispImg = nifti_copy_nim_info(splineControlPoint);
-   splineDispImg->data = (void *)malloc(splineDispImg->nvox*splineDispImg->nbyper);
-   memcpy(splineDispImg->data, splineControlPoint->data, splineDispImg->nvox*splineDispImg->nbyper);
-   reg_getDisplacementFromDeformation(splineDispImg);
-
    // Create pointers to the spline coefficients
-   DTYPE * splinePtrX = static_cast<DTYPE *>(splineDispImg->data);
+   DTYPE * splinePtrX = static_cast<DTYPE *>(splineControlPoint->data);
    DTYPE * splinePtrY = &splinePtrX[nodeNumber];
 
    // Store the basis values since they are constant as the value is approximated
@@ -1061,29 +753,38 @@ void reg_spline_approxLinearEnergyGradient2D(nifti_image *splineControlPoint,
    DTYPE *derivativeValues = (DTYPE *)calloc(4*nodeNumber, sizeof(DTYPE));
    DTYPE *derivativeValuesPtr;
 
+   // Matrix to use to convert the gradient from mm to voxel
+   mat33 reorientation;
+   if(splineControlPoint->sform_code>0)
+      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
+   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
+
    DTYPE splineCoeffX;
    DTYPE splineCoeffY;
 
-   mat33 matrix;
+   mat33 matrix, R;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(splineDispImg, splinePtrX, splinePtrY, derivativeValues, \
-   basisX, basisY) \
-   private(x, y, a, b,i, index, derivativeValuesPtr, \
-   splineCoeffX, splineCoeffY, matrix)
+   shared(splineControlPoint, splinePtrX, splinePtrY, \
+   derivativeValues, basisX, basisY, reorientation) \
+   private(x, y, a, b, i, index, derivativeValuesPtr, \
+   splineCoeffX, splineCoeffY, matrix, R)
 #endif
-   for(y=1; y<splineDispImg->ny-1; y++)
+   for(y=1; y<splineControlPoint->ny-1; y++)
    {
-      derivativeValuesPtr = &derivativeValues[4*(y*splineDispImg->nx+1)];
-      for(x=1; x<splineDispImg->nx-1; x++)
+      derivativeValuesPtr = &derivativeValues[
+            4*(y*splineControlPoint->nx+1)
+            ];
+      for(x=1; x<splineControlPoint->nx-1; x++)
       {
          memset(&matrix, 0, sizeof(mat33));
+         matrix.m[2][2]=1.f;
 
          i=0;
          for(b=-1; b<2; b++){
             for(a=-1; a<2; a++){
-               index = (y+b)*splineDispImg->nx+x+a;
+               index = (y+b)*splineControlPoint->nx+x+a;
                splineCoeffX = splinePtrX[index];
                splineCoeffY = splinePtrY[index];
 
@@ -1095,41 +796,57 @@ void reg_spline_approxLinearEnergyGradient2D(nifti_image *splineControlPoint,
                ++i;
             }
          }
+         // Convert from mm to voxel
+         matrix = nifti_mat33_mul(reorientation, matrix);
+         // Removing the rotation component
+         R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+         matrix = nifti_mat33_mul(R, matrix);
+         // Convert to displacement
+         --matrix.m[0][0];
+         --matrix.m[1][1];
          *derivativeValuesPtr++ = matrix.m[0][0];
          *derivativeValuesPtr++ = matrix.m[0][1];
          *derivativeValuesPtr++ = matrix.m[1][0];
          *derivativeValuesPtr++ = matrix.m[1][1];
       } // x
    } // y
-   nifti_image_free(splineDispImg);
 
    DTYPE *gradientXPtr = static_cast<DTYPE *>(gradientImage->data);
    DTYPE *gradientYPtr = &gradientXPtr[nodeNumber];
 
    DTYPE approxRatio = (DTYPE)weight / (DTYPE)(nodeNumber);
 
-   double gradientValue[2];
+   // Matrices to be used to convert the gradient from voxel to mm
+   reorientation = nifti_mat33_inverse(reorientation);
+
+   double gradValues[2];
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(splineControlPoint, derivativeValues, gradientXPtr, gradientYPtr, \
-   basisX, basisY, approxRatio) \
-   private(index, i, X, Y, x, y, a, derivativeValuesPtr, gradientValue, matrix)
+   shared(splineControlPoint, derivativeValues, \
+   gradientXPtr, gradientYPtr, \
+   basisX, basisY, approxRatio, reorientation) \
+   private(index, i, X, Y, x, y, a, \
+   derivativeValuesPtr, gradValues, matrix)
 #endif
    for(y=0; y<splineControlPoint->ny; y++)
    {
       index=y*splineControlPoint->nx;
       for(x=0; x<splineControlPoint->nx; x++)
       {
-         gradientValue[0]=gradientValue[1]=0.0;
+         gradValues[0]=gradValues[1]=0.0;
          i=0;
          for(Y=y-1; Y<y+2; Y++)
          {
             for(X=x-1; X<x+2; X++)
             {
-               if(-1<X && -1<Y && X<splineControlPoint->nx && Y<splineControlPoint->ny)
+               if(-1<X && -1<Y &&
+                     X<splineControlPoint->nx &&
+                     Y<splineControlPoint->ny)
                {
-                  derivativeValuesPtr = &derivativeValues[4 * (Y*splineControlPoint->nx + X)];
+                  derivativeValuesPtr = &derivativeValues[
+                        4 * (Y*splineControlPoint->nx + X)
+                        ];
 
                   matrix.m[0][0] = (*derivativeValuesPtr++);
                   matrix.m[0][1] = (*derivativeValuesPtr++);
@@ -1137,20 +854,19 @@ void reg_spline_approxLinearEnergyGradient2D(nifti_image *splineControlPoint,
                   matrix.m[1][0] = (*derivativeValuesPtr++);
                   matrix.m[1][1] = (*derivativeValuesPtr++);
 
-                  gradientValue[0] -= 2.0*matrix.m[0][0]*basisX[i];
-                  gradientValue[0] -= (matrix.m[0][1]+matrix.m[1][0])*basisY[i];
-                  gradientValue[0] += (matrix.m[0][1]-matrix.m[1][0])*basisY[i];
-
-                  gradientValue[1] -= 2.0*matrix.m[1][1]*basisY[i];
-                  gradientValue[1] -= (matrix.m[1][0]+matrix.m[0][1])*basisX[i];
-                  gradientValue[1] += (matrix.m[1][0]-matrix.m[0][1])*basisX[i];
-
+                  gradValues[0] -= 2.0*matrix.m[0][0]*basisX[i];
+                  gradValues[1] -= 2.0*matrix.m[1][1]*basisY[i];
                }
                ++i;
-            }
-         }
-         gradientXPtr[index] += approxRatio*gradientValue[0];
-         gradientYPtr[index] += approxRatio*gradientValue[1];
+            } // X
+         } // Y
+         matrix = reorientation;
+         gradientXPtr[index] += approxRatio *
+               ( matrix.m[0][0]*gradValues[0]
+               + matrix.m[0][1]*gradValues[1]);
+         gradientYPtr[index] += approxRatio *
+               ( matrix.m[1][0]*gradValues[0]
+               + matrix.m[1][1]*gradValues[1]);
          index++;
       }
    }
@@ -1165,31 +881,12 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
 {
    size_t nodeNumber = (size_t)splineControlPoint->nx*
          splineControlPoint->ny*splineControlPoint->nz;
-   int x, y, z, X, Y, Z, a, b, c, i, index, rotIndex;
-
-   // Create a new image to store the spline coefficients as displacements
-   nifti_image *splineScaledImg = nifti_copy_nim_info(splineControlPoint);
-   splineScaledImg->data = (void *)malloc(splineScaledImg->nvox*splineScaledImg->nbyper);
-   memcpy(splineScaledImg->data, splineControlPoint->data,
-          splineScaledImg->nvox*splineScaledImg->nbyper);
+   int x, y, z, X, Y, Z, a, b, c, i, index;
 
    // Create pointers to the spline coefficients
-   DTYPE * splinePtrX = static_cast<DTYPE *>(splineScaledImg->data);
+   DTYPE * splinePtrX = static_cast<DTYPE *>(splineControlPoint->data);
    DTYPE * splinePtrY = &splinePtrX[nodeNumber];
    DTYPE * splinePtrZ = &splinePtrY[nodeNumber];
-
-   // Scaled down the coefficients
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(splineScaledImg, nodeNumber, \
-   splinePtrX, splinePtrY, splinePtrZ) \
-   private(index)
-#endif
-   for(index=0; index<(int)nodeNumber; ++index){
-      splinePtrX[index] /= splineScaledImg->dx;
-      splinePtrY[index] /= splineScaledImg->dy;
-      splinePtrZ[index] /= splineScaledImg->dz;
-   }
 
    // Store the basis values since they are constant as the value is approximated
    // at the control point positions only
@@ -1200,7 +897,12 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
 
    DTYPE *derivativeValues = (DTYPE *)calloc(9*nodeNumber, sizeof(DTYPE));
    DTYPE *derivativeValuesPtr;
-   mat33 *rotMatrices = (mat33 *)malloc(nodeNumber*sizeof(mat33));
+
+   // Matrix to use to convert the gradient from mm to voxel
+   mat33 reorientation;
+   if(splineControlPoint->sform_code>0)
+      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
+   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
 
    DTYPE splineCoeffX;
    DTYPE splineCoeffY;
@@ -1210,18 +912,19 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(splineScaledImg, splinePtrX, splinePtrY, splinePtrZ, \
-   derivativeValues, rotMatrices, basisX, basisY, basisZ) \
-   private(x, y, z, a, b, c, i, index, rotIndex, derivativeValuesPtr, \
+   shared(splineControlPoint, splinePtrX, splinePtrY, splinePtrZ, \
+   derivativeValues, basisX, basisY, basisZ, reorientation) \
+   private(x, y, z, a, b, c, i, index, derivativeValuesPtr, \
    splineCoeffX, splineCoeffY, splineCoeffZ, matrix, R)
 #endif
-   for(z=1; z<splineScaledImg->nz-1; z++)
+   for(z=1; z<splineControlPoint->nz-1; z++)
    {
-      for(y=1; y<splineScaledImg->ny-1; y++)
+      for(y=1; y<splineControlPoint->ny-1; y++)
       {
-         rotIndex = (z*splineScaledImg->ny+y)*splineScaledImg->nx+1;
-         derivativeValuesPtr = &derivativeValues[9*rotIndex];
-         for(x=1; x<splineScaledImg->nx-1; x++)
+         derivativeValuesPtr = &derivativeValues[
+               9*((z*splineControlPoint->ny+y)*splineControlPoint->nx+1)
+               ];
+         for(x=1; x<splineControlPoint->nx-1; x++)
          {
             memset(&matrix, 0, sizeof(mat33));
 
@@ -1229,7 +932,7 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
             for(c=-1; c<2; c++){
                for(b=-1; b<2; b++){
                   for(a=-1; a<2; a++){
-                     index = ((z+c)*splineScaledImg->ny+y+b)*splineScaledImg->nx+x+a;
+                     index = ((z+c)*splineControlPoint->ny+y+b)*splineControlPoint->nx+x+a;
                      splineCoeffX = splinePtrX[index];
                      splineCoeffY = splinePtrY[index];
                      splineCoeffZ = splinePtrZ[index];
@@ -1249,11 +952,12 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
                   }
                }
             }
+            // Convert from mm to voxel
+            matrix = nifti_mat33_mul(reorientation, matrix);
             // Removing the rotation component
-            R = nifti_mat33_polar(matrix);
-            rotMatrices[rotIndex] = R;
-            R = nifti_mat33_inverse(R);
+            R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
             matrix = nifti_mat33_mul(R, matrix);
+            // Convert to displacement
             --matrix.m[0][0];
             --matrix.m[1][1];
             --matrix.m[2][2];
@@ -1267,10 +971,8 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
             *derivativeValuesPtr++ = matrix.m[2][1];
             *derivativeValuesPtr++ = matrix.m[2][2];
          } // x
-         ++rotIndex;
       } // y
    } // z
-   nifti_image_free(splineScaledImg);
 
    DTYPE *gradientXPtr = static_cast<DTYPE *>(gradientImage->data);
    DTYPE *gradientYPtr = &gradientXPtr[nodeNumber];
@@ -1278,15 +980,18 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
 
    DTYPE approxRatio = (DTYPE)weight / (DTYPE)(nodeNumber);
 
-   double gradientValue[3];
+   // Matrices to be used to convert the gradient from voxel to mm
+   reorientation = nifti_mat33_inverse(reorientation);
+
+   double gradValues[3];
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(splineControlPoint, derivativeValues, rotMatrices, \
+   shared(splineControlPoint, derivativeValues, \
    gradientXPtr, gradientYPtr, gradientZPtr, \
-   basisX, basisY, basisZ, approxRatio) \
+   basisX, basisY, basisZ, approxRatio, reorientation) \
    private(index, i, X, Y, Z, x, y, z, a, \
-   derivativeValuesPtr, gradientValue, matrix)
+   derivativeValuesPtr, gradValues, matrix)
 #endif
    for(z=0; z<splineControlPoint->nz; z++)
    {
@@ -1295,7 +1000,7 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
       {
          for(x=0; x<splineControlPoint->nx; x++)
          {
-            gradientValue[0]=gradientValue[1]=gradientValue[2]=0.0;
+            gradValues[0]=gradValues[1]=gradValues[2]=0.0;
             i=0;
             for(Z=z-1; Z<z+2; Z++)
             {
@@ -1324,49 +1029,39 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
                         matrix.m[2][1] = (*derivativeValuesPtr++);
                         matrix.m[2][2] = (*derivativeValuesPtr++);
 
-                        gradientValue[0] -= 2.0*matrix.m[0][0]*basisX[i];
-                        gradientValue[0] -= (matrix.m[0][1]+matrix.m[1][0])*basisY[i];
-                        gradientValue[0] -= (matrix.m[0][2]+matrix.m[2][0])*basisZ[i];
-//                        gradientValue[0] += (matrix.m[0][1]-matrix.m[1][0])*basisY[i];
-//                        gradientValue[0] += (matrix.m[0][2]-matrix.m[2][0])*basisZ[i];
+                        gradValues[0] -= 2.0*matrix.m[0][0]*basisX[i];
+//                        gradValues[0] -= (matrix.m[0][1]+matrix.m[1][0])*basisY[i];
+//                        gradValues[0] -= (matrix.m[0][2]+matrix.m[2][0])*basisZ[i];
 
-                        gradientValue[1] -= 2.0*matrix.m[1][1]*basisY[i];
-                        gradientValue[1] -= (matrix.m[1][0]+matrix.m[0][1])*basisX[i];
-                        gradientValue[1] -= (matrix.m[1][2]+matrix.m[2][1])*basisZ[i];
-//                        gradientValue[1] += (matrix.m[1][0]-matrix.m[0][1])*basisX[i];
-//                        gradientValue[1] += (matrix.m[1][2]-matrix.m[2][1])*basisZ[i];
+                        gradValues[1] -= 2.0*matrix.m[1][1]*basisY[i];
+//                        gradValues[1] -= (matrix.m[1][0]+matrix.m[0][1])*basisX[i];
+//                        gradValues[1] -= (matrix.m[1][2]+matrix.m[2][1])*basisZ[i];
 
-                        gradientValue[2] -= 2.0*matrix.m[2][2]*basisZ[i];
-                        gradientValue[2] -= (matrix.m[2][0]+matrix.m[0][2])*basisX[i];
-                        gradientValue[2] -= (matrix.m[2][1]+matrix.m[1][2])*basisY[i];
-//                        gradientValue[2] += (matrix.m[2][0]-matrix.m[0][2])*basisX[i];
-//                        gradientValue[2] += (matrix.m[2][1]-matrix.m[1][2])*basisY[i];
-
+                        gradValues[2] -= 2.0*matrix.m[2][2]*basisZ[i];
+//                        gradValues[2] -= (matrix.m[2][0]+matrix.m[0][2])*basisX[i];
+//                        gradValues[2] -= (matrix.m[2][1]+matrix.m[1][2])*basisY[i];
                      }
                      ++i;
-                  } // x
-               } // y
-            } // z
-            gradientXPtr[index] += approxRatio * (
-                     gradientValue[0] * rotMatrices[index].m[0][0]+
-                  gradientValue[1] * rotMatrices[index].m[0][1]+
-                  gradientValue[2] * rotMatrices[index].m[0][2]
-                  );
-            gradientYPtr[index] += approxRatio * (
-                  gradientValue[0] * rotMatrices[index].m[1][0]+
-                  gradientValue[1] * rotMatrices[index].m[1][1]+
-                  gradientValue[2] * rotMatrices[index].m[1][2]
-                  );
-            gradientZPtr[index] += approxRatio * (
-                  gradientValue[0] * rotMatrices[index].m[2][0]+
-                  gradientValue[1] * rotMatrices[index].m[2][1]+
-                  gradientValue[2] * rotMatrices[index].m[2][2]
-                  );
+                  } // X
+               } // Y
+            } // Z
+            matrix = reorientation;
+            gradientXPtr[index] += approxRatio *
+                  ( matrix.m[0][0]*gradValues[0]
+                  + matrix.m[0][1]*gradValues[1]
+                  + matrix.m[0][2]*gradValues[2]);
+            gradientYPtr[index] += approxRatio *
+                  ( matrix.m[1][0]*gradValues[0]
+                  + matrix.m[1][1]*gradValues[1]
+                  + matrix.m[1][2]*gradValues[2]);
+            gradientZPtr[index] += approxRatio *
+                  ( matrix.m[2][0]*gradValues[0]
+                  + matrix.m[2][1]*gradValues[1]
+                  + matrix.m[2][2]*gradValues[2]);
             index++;
          }
       }
    }
-   free(rotMatrices);
    free(derivativeValues);
 }
 /* *************************************************************** */
@@ -1379,7 +1074,7 @@ void reg_spline_approxLinearEnergyGradient(nifti_image *splineControlPoint,
    {
       reg_print_fct_error("reg_spline_linearEnergyGradient");
       reg_print_msg_error("Input images are expected to have the same datatype");
-      reg_exit(1);
+      reg_exit();
    }
    if(splineControlPoint->nz>1){
       switch(splineControlPoint->datatype)
@@ -1395,7 +1090,7 @@ void reg_spline_approxLinearEnergyGradient(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_linearEnergyGradient");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else{
@@ -1412,7 +1107,7 @@ void reg_spline_approxLinearEnergyGradient(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_linearEnergyGradient");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
 }

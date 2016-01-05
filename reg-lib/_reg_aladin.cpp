@@ -315,7 +315,7 @@ void reg_aladin<T>::InitialiseRegistration()
 			sprintf(text, "The specified input affine file (%s) can not be read", this->InputTransformName);
 			reg_print_fct_error("reg_aladin<T>::InitialiseRegistration()");
 			reg_print_msg_error(text);
-			reg_exit(1);
+			reg_exit();
 		}
 		reg_tool_ReadAffineFile(this->TransformationMatrix, this->InputTransformName);
 	}
@@ -388,7 +388,7 @@ void reg_aladin<T>::AllocateWarpedImage()
 	{
 		reg_print_fct_error("reg_aladin<T>::AllocateWarpedImage()");
 		reg_print_msg_error("Reference and FLoating images are not defined. Exit");
-		reg_exit(1);
+		reg_exit();
 	}
 	reg_aladin<T>::ClearWarpedImage();
 	this->CurrentWarped = nifti_copy_nim_info(this->CurrentReference);
@@ -613,7 +613,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	if (this->InputReference == NULL || this->InputFloating == NULL || this->TransformationMatrix == NULL) {
 		reg_print_fct_error("reg_aladin::GetFinalWarpedImage()");
 		reg_print_msg_error("The reference, floating images and the transformation have to be defined");
-		reg_exit(1);
+		reg_exit();
 	}
 
     this->CurrentReference = this->InputReference;

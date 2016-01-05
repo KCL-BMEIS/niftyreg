@@ -160,7 +160,7 @@ void reg_f3d<T>::AllocateTransformationGradient()
    {
       reg_print_fct_error("reg_f3d<T>::AllocateTransformationGradient()");
       reg_print_msg_error("The control point image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    reg_f3d<T>::ClearTransformationGradient();
    this->transformationGradient = nifti_copy_nim_info(this->controlPointGrid);
@@ -745,6 +745,11 @@ T reg_f3d<T>::NormaliseGradient()
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::NormaliseGradient");
 #endif
+
+//   reg_io_WriteImageFile(transformationGradient,
+//                         "gradient.nii");
+//   reg_exit();
+
    return maxGradValue;
 }
 /* *************************************************************** */
@@ -826,10 +831,6 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
    {
       this->WarpFloatingImage(this->interpolation);
       this->currentWMeasure = this->ComputeSimilarityMeasure();
-   }
-   else
-   {
-      reg_print_msg_warn("No measure of similarity is part of the cost function");
    }
 #ifndef NDEBUG
    char text[255];
@@ -975,7 +976,7 @@ nifti_image **reg_f3d<T>::GetWarpedImage()
    {
       reg_print_fct_error("reg_f3d<T>::GetWarpedImage()");
       reg_print_msg_error("The reference, floating and control point grid images have to be defined");
-      reg_exit(1);
+      reg_exit();
    }
 
    this->currentReference = this->inputReference;

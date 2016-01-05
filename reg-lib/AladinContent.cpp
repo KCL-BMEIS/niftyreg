@@ -145,7 +145,7 @@ void AladinContent::AllocateWarpedImage()
 	if (this->CurrentReference == NULL || this->CurrentFloating == NULL) {
 		reg_print_fct_error( "AladinContent::AllocateWarpedImage()");
 		reg_print_msg_error(" Reference and floating images are not defined. Exit.");
-		reg_exit(1);
+		reg_exit();
 	}
 
 	this->CurrentWarped = nifti_copy_nim_info(this->CurrentReference);
@@ -164,7 +164,7 @@ void AladinContent::AllocateDeformationField(size_t bytes)
 	if (this->CurrentReference == NULL) {
 		reg_print_fct_error( "AladinContent::AllocateDeformationField()");
 		reg_print_msg_error("Reference image is not defined. Exit.");
-		reg_exit(1);
+		reg_exit();
 	}
 	//ClearDeformationField();
 
@@ -192,7 +192,7 @@ void AladinContent::AllocateDeformationField(size_t bytes)
 	else {
 		reg_print_fct_error( "AladinContent::AllocateDeformationField()");
 		reg_print_msg_error( "Only float or double are expected for the deformation field. Exit.");
-		reg_exit(1);
+		reg_exit();
 	}
 	this->CurrentDeformationField->scl_slope = 1.f;
 	this->CurrentDeformationField->scl_inter = 0.f;

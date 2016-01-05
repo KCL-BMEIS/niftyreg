@@ -18,7 +18,7 @@
 #include "_reg_ReadWriteImage.h"
 #include "_reg_ReadWriteMatrix.h"
 #include "_reg_globalTrans.h"
-#include "_reg_localTrans.h"
+#include "_reg_localTrans_jac.h"
 #include "_reg_tools.h"
 #include "_reg_resampling.h"
 #include "reg_jacobian.h"
@@ -263,14 +263,14 @@ int main(int argc, char **argv)
          inputTransformation->intent_p1==SPLINE_VEL_GRID){
       if(!flag->refImageFlag){
          reg_print_msg_error("A reference image has to be specified with a spline parametrisation.");
-         reg_exit(1);
+         reg_exit();
       }
       // Read the reference image
       referenceImage = reg_io_ReadImageHeader(param->refImageName);
       if(referenceImage == NULL)
       {
          reg_print_msg_error("Error when reading the reference image.");
-         reg_exit(1);
+         reg_exit();
       }
    }
 

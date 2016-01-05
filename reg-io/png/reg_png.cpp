@@ -27,21 +27,21 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
       sprintf(text, "Can not open the png file %s", pngFileName);
       reg_print_fct_error("reg_io_readPNGfile");
       reg_print_msg_error(text);
-      reg_exit(1);
+      reg_exit();
    }
 
    uch sig[8];
    if(!fread(sig, 1, 8, fopen (pngFileName, "r")))
-      reg_exit(1);
+      reg_exit();
    if(!png_check_sig(sig, 8))
-      reg_exit(1);
+      reg_exit();
 
    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
    if (!png_ptr)
    {
       reg_print_fct_error("reg_io_readPNGfile");
       reg_print_msg_error("Error when reading the png file - out of memory");
-      reg_exit(1);
+      reg_exit();
    }
 
    png_infop info_ptr = png_create_info_struct(png_ptr);
@@ -50,7 +50,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
       png_destroy_read_struct(&png_ptr, NULL, NULL);
       reg_print_fct_error("reg_io_readPNGfile");
       reg_print_msg_error("Error when reading the png file - out of memory");
-      reg_exit(1);
+      reg_exit();
    }
 
    png_init_io(png_ptr, pngFile);
@@ -165,7 +165,7 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
    {
       reg_print_fct_error("reg_io_writePNGfile");
       reg_print_msg_error("Image with dimension larger than 2 can be saved as png");
-      reg_exit(1);
+      reg_exit();
    }
 
    // Check the min and max values of the nifti image
@@ -203,7 +203,7 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
       sprintf(text,"The png file can not be written: %s", filename);
       reg_print_fct_error("reg_io_writePNGfile");
       reg_print_msg_error(text);
-      reg_exit(1);
+      reg_exit();
    }
    // The png file structures are created
    png_structp png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
@@ -211,14 +211,14 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
    {
       reg_print_fct_error("reg_io_writePNGfile");
       reg_print_msg_error("The png pointer could not be created");
-      reg_exit(1);
+      reg_exit();
    }
    png_infop info_ptr = png_create_info_struct (png_ptr);
    if(info_ptr==NULL)
    {
       reg_print_fct_error("reg_io_writePNGfile");
       reg_print_msg_error("The png structure could not be created");
-      reg_exit(1);
+      reg_exit();
    }
    // Set the png header information
    png_set_IHDR (png_ptr,

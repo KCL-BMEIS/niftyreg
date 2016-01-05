@@ -226,7 +226,7 @@ void reg_intensityRescale(nifti_image *image,
    default:
       reg_print_fct_error("reg_intensityRescale");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -276,7 +276,7 @@ void reg_tools_removeSCLInfo(nifti_image *image)
    default:
       reg_print_fct_error("reg_tools_removeSCLInfo");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
    return;
 }
@@ -382,7 +382,7 @@ void reg_thresholdImage(nifti_image *image,
    default:
       reg_print_fct_error("reg_thresholdImage");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 template void reg_thresholdImage<float>(nifti_image *, float, float);
@@ -494,7 +494,7 @@ void reg_tools_changeDatatype1(nifti_image *image,int type)
       else {
          reg_print_fct_error("reg_tools_changeDatatype1");
          reg_print_msg_error("Only change to unsigned char, float or double are supported");
-         reg_exit(1);
+         reg_exit();
       }
    }
    free(image->data);
@@ -546,7 +546,7 @@ void reg_tools_changeDatatype(nifti_image *image, int type)
    default:
       reg_print_fct_error("reg_tools_changeDatatype");
       reg_print_msg_error("Unsupported datatype");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -649,13 +649,13 @@ void reg_tools_addImageToImage(nifti_image *img1,
    {
       reg_print_fct_error("reg_tools_addImageToImage");
       reg_print_msg_error("Input images are expected to be of the same type");
-      reg_exit(1);
+      reg_exit();
    }
    if(img1->nvox != res->nvox || img2->nvox != res->nvox)
    {
       reg_print_fct_error("reg_tools_addImageToImage");
       reg_print_msg_error("Input images are expected to have the same size");
-      reg_exit(1);
+      reg_exit();
    }
    switch(img1->datatype)
    {
@@ -686,7 +686,7 @@ void reg_tools_addImageToImage(nifti_image *img1,
    default:
       reg_print_fct_error("reg_tools_addImageToImage");
       reg_print_msg_error("Unsupported datatype");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -698,13 +698,13 @@ void reg_tools_substractImageToImage(nifti_image *img1,
    {
       reg_print_fct_error("reg_tools_substractImageToImage");
       reg_print_msg_error("Input images are expected to be of the same type");
-      reg_exit(1);
+      reg_exit();
    }
    if(img1->nvox != res->nvox || img2->nvox != res->nvox)
    {
       reg_print_fct_error("reg_tools_substractImageToImage");
       reg_print_msg_error("Input images are expected to have the same size");
-      reg_exit(1);
+      reg_exit();
    }
    switch(img1->datatype)
    {
@@ -735,7 +735,7 @@ void reg_tools_substractImageToImage(nifti_image *img1,
    default:
       reg_print_fct_error("reg_tools_substractImageToImage");
       reg_print_msg_error("Unsupported datatype");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -747,13 +747,13 @@ void reg_tools_multiplyImageToImage(nifti_image *img1,
    {
       reg_print_fct_error("reg_tools_multiplyImageToImage");
       reg_print_msg_error("Input images are expected to have the same size");
-      reg_exit(1);
+      reg_exit();
    }
    if(img1->nvox != res->nvox || img2->nvox != res->nvox)
    {
       reg_print_fct_error("reg_tools_multiplyImageToImage");
       reg_print_msg_error("Input images are expected to have the same size");
-      reg_exit(1);
+      reg_exit();
    }
    switch(img1->datatype)
    {
@@ -784,7 +784,7 @@ void reg_tools_multiplyImageToImage(nifti_image *img1,
    default:
       reg_print_fct_error("reg_tools_multiplyImageToImage");
       reg_print_msg_error("Unsupported datatype");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -796,13 +796,13 @@ void reg_tools_divideImageToImage(nifti_image *img1,
    {
       reg_print_fct_error("reg_tools_divideImageToImage");
       reg_print_msg_error("Input images are expected to have the same size");
-      reg_exit(1);
+      reg_exit();
    }
    if(img1->nvox != res->nvox || img2->nvox != res->nvox)
    {
       reg_print_fct_error("reg_tools_divideImageToImage");
       reg_print_msg_error("Input images are expected to have the same size");
-      reg_exit(1);
+      reg_exit();
    }
    switch(img1->datatype)
    {
@@ -833,7 +833,7 @@ void reg_tools_divideImageToImage(nifti_image *img1,
    default:
       reg_print_fct_error("reg_tools_divideImageToImage");
       reg_print_msg_error("Unsupported datatype");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -916,13 +916,13 @@ void reg_tools_addValueToImage(nifti_image *img1,
    {
       reg_print_fct_error("reg_tools_addValueToImage");
       reg_print_msg_error("Input and result image do not have the same data type");
-      reg_exit(1);
+      reg_exit();
    }
    if(img1->nvox != res->nvox)
    {
       reg_print_fct_error("reg_tools_addValueToImage");
       reg_print_msg_error("Input images are expected to have the same size");
-      reg_exit(1);
+      reg_exit();
    }
    switch(img1->datatype)
    {
@@ -953,7 +953,7 @@ void reg_tools_addValueToImage(nifti_image *img1,
    default:
       reg_print_fct_error("reg_tools_addValueToImage");
       reg_print_msg_error("Image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -965,13 +965,13 @@ void reg_tools_substractValueToImage(nifti_image *img1,
    {
       reg_print_fct_error("reg_tools_substractValueToImage");
       reg_print_msg_error("Input and result image do not have the same data type");
-      reg_exit(1);
+      reg_exit();
    }
    if(img1->nvox != res->nvox)
    {
       reg_print_fct_error("reg_tools_substractValueToImage");
       reg_print_msg_error("Input images are expected to have the same size");
-      reg_exit(1);
+      reg_exit();
    }
    switch(img1->datatype)
    {
@@ -1002,7 +1002,7 @@ void reg_tools_substractValueToImage(nifti_image *img1,
    default:
       reg_print_fct_error("reg_tools_substractValueToImage");
       reg_print_msg_error("Image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -1014,13 +1014,13 @@ void reg_tools_multiplyValueToImage(nifti_image *img1,
    {
       reg_print_fct_error("reg_tools_multiplyValueToImage");
       reg_print_msg_error("Input and result image do not have the same data type");
-      reg_exit(1);
+      reg_exit();
    }
    if(img1->nvox != res->nvox)
    {
       reg_print_fct_error("reg_tools_multiplyValueToImage");
       reg_print_msg_error("Input images are expected to have the same size");
-      reg_exit(1);
+      reg_exit();
    }
    switch(img1->datatype)
    {
@@ -1051,7 +1051,7 @@ void reg_tools_multiplyValueToImage(nifti_image *img1,
    default:
       reg_print_fct_error("reg_tools_multiplyValueToImage");
       reg_print_msg_error("Image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -1063,13 +1063,13 @@ void reg_tools_divideValueToImage(nifti_image *img1,
    {
       reg_print_fct_error("reg_tools_divideValueToImage");
       reg_print_msg_error("Input and result image do not have the same data type");
-      reg_exit(1);
+      reg_exit();
    }
    if(img1->nvox != res->nvox)
    {
       reg_print_fct_error("reg_tools_divideValueToImage");
       reg_print_msg_error("Input images are expected to have the same size");
-      reg_exit(1);
+      reg_exit();
    }
    switch(img1->datatype)
    {
@@ -1100,7 +1100,7 @@ void reg_tools_divideValueToImage(nifti_image *img1,
    default:
       reg_print_fct_error("reg_tools_divideValueToImage");
       reg_print_msg_error("Image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -1116,7 +1116,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
    if(image->nx>2048 || image->ny>2048 || image->nz>2048){
       reg_print_fct_error("reg_tools_kernelConvolution_core");
       reg_print_msg_error("This function does not support images with dimension > 2048");
-      reg_exit(1);
+      reg_exit();
    }
 #ifdef WIN32
    long index;
@@ -1388,7 +1388,7 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
    if(image->nx>2048 || image->ny>2048 || image->nz>2048){
       reg_print_fct_error("reg_tools_labelKernelConvolution_core");
       reg_print_msg_error("This function does not support images with dimension > 2048");
-      reg_exit(1);
+      reg_exit();
    }
 #ifdef WIN32
    long index;
@@ -1601,7 +1601,7 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
    default:
       reg_print_fct_error("reg_tools_labelKernelConvolution");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
    return;
 }
@@ -1671,7 +1671,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
    default:
       reg_print_fct_error("reg_tools_kernelConvolution");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 
    if(mask==NULL) free(currentMask);
@@ -1931,7 +1931,7 @@ void reg_downsampleImage(nifti_image *image, int type, bool *downsampleAxis)
    default:
       reg_print_fct_error("reg_downsampleImage");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 template void reg_downsampleImage<float>(nifti_image *, int, bool *);
@@ -1982,7 +1982,7 @@ void reg_tools_binarise_image(nifti_image *image)
    default:
       reg_print_fct_error("reg_tools_binarise_image");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -2029,7 +2029,7 @@ void reg_tools_binarise_image(nifti_image *image, float threshold)
    default:
       reg_print_fct_error("reg_tools_binarise_image");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -2085,7 +2085,7 @@ void reg_tools_binaryImage2int(nifti_image *image, int *array, int &activeVoxelN
    default:
       reg_print_fct_error("reg_tools_binaryImage2int");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -2156,7 +2156,7 @@ double reg_tools_getMeanRMS1(nifti_image *imageA, nifti_image *imageB)
    default:
       reg_print_fct_error("reg_tools_getMeanRMS1");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -2183,7 +2183,7 @@ double reg_tools_getMeanRMS(nifti_image *imageA, nifti_image *imageB)
    default:
       reg_print_fct_error("reg_tools_getMeanRMS");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -2347,7 +2347,7 @@ int reg_tools_nanMask_image1(nifti_image *image, nifti_image *maskImage, nifti_i
    default:
       reg_print_fct_error("reg_tools_nanMask_image1");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -2358,14 +2358,14 @@ int reg_tools_nanMask_image(nifti_image *image, nifti_image *maskImage, nifti_im
    {
       reg_print_fct_error("reg_tools_nanMask_image");
       reg_print_msg_error("Input images have different size");
-      reg_exit(1);
+      reg_exit();
    }
    // Check output data type
    if(image->datatype != resultImage->datatype)
    {
       reg_print_fct_error("reg_tools_nanMask_image");
       reg_print_msg_error("tInput and result images have different data type");
-      reg_exit(1);
+      reg_exit();
    }
    switch(image->datatype)
    {
@@ -2396,7 +2396,7 @@ int reg_tools_nanMask_image(nifti_image *image, nifti_image *maskImage, nifti_im
    default:
       reg_print_fct_error("reg_tools_nanMask_image");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -2430,7 +2430,7 @@ int reg_tools_removeNanFromMask(nifti_image *image,
    default:
       reg_print_fct_error("reg_tools_removeNanFromMask");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 
@@ -2478,7 +2478,7 @@ float reg_tools_getMinValue(nifti_image *image)
    default:
       reg_print_fct_error("reg_tools_getMinValue");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -2525,7 +2525,7 @@ float reg_tools_getMaxValue(nifti_image *image)
    default:
       reg_print_fct_error("reg_tools_getMaxValue");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -2649,7 +2649,7 @@ void reg_flippAxis(nifti_image *image,
    default:
       reg_print_fct_error("reg_flippAxis");
       reg_print_msg_error("The image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
    return;
 }
@@ -2761,7 +2761,7 @@ int reg_getDisplacementFromDeformation(nifti_image *field)
       default:
          reg_print_fct_error("reg_getDisplacementFromDeformation");
          reg_print_msg_error("Only implemented for 5D image with 2 or 3 components in the fifth dimension");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else if(field->datatype==NIFTI_TYPE_FLOAT64)
@@ -2777,14 +2777,14 @@ int reg_getDisplacementFromDeformation(nifti_image *field)
       default:
          reg_print_fct_error("reg_getDisplacementFromDeformation");
          reg_print_msg_error("Only implemented for 5D image with 2 or 3 components in the fifth dimension");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else
    {
       reg_print_fct_error("reg_getDisplacementFromDeformation");
       reg_print_msg_error("Only single or double floating precision have been implemented");
-      reg_exit(1);
+      reg_exit();
    }
    field->intent_code=NIFTI_INTENT_VECTOR;
    memset(field->intent_name, 0, 16);
@@ -2907,7 +2907,7 @@ int reg_getDeformationFromDisplacement(nifti_image *field)
       default:
          reg_print_fct_error("reg_getDeformationFromDisplacement");
          reg_print_msg_error("Only implemented for 2 or 3D deformation fields");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else if(field->datatype==NIFTI_TYPE_FLOAT64)
@@ -2923,14 +2923,14 @@ int reg_getDeformationFromDisplacement(nifti_image *field)
       default:
          reg_print_fct_error("reg_getDeformationFromDisplacement");
          reg_print_msg_error("Only implemented for 2 or 3D deformation fields");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else
    {
       reg_print_fct_error("reg_getDeformationFromDisplacement");
       reg_print_msg_error("Only single or double floating precision have been implemented");
-      reg_exit(1);
+      reg_exit();
    }
 
    field->intent_code=NIFTI_INTENT_VECTOR;
@@ -3005,13 +3005,13 @@ double reg_test_compare_images(nifti_image *imgA,
    {
       reg_print_fct_error("reg_test_compare_images");
       reg_print_msg_error("Input images have different datatype");
-      reg_exit(1);
+      reg_exit();
    }
    if(imgA->nvox!=imgB->nvox)
    {
       reg_print_fct_error("reg_test_compare_images");
       reg_print_msg_error("Input images have different size");
-      reg_exit(1);
+      reg_exit();
    }
    switch(imgA->datatype)
    {
@@ -3034,7 +3034,7 @@ double reg_test_compare_images(nifti_image *imgA,
    default:
       reg_print_fct_error("reg_test_compare_images");
       reg_print_msg_error("Unsupported data type");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -3078,7 +3078,7 @@ void reg_tools_abs_image(nifti_image *img)
    default:
       reg_print_fct_error("reg_tools_abs_image");
       reg_print_msg_error("Unsupported data type");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */

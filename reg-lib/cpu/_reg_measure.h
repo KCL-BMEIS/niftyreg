@@ -96,7 +96,7 @@ public:
    reg_kld()
    {
       fprintf(stderr,"[ERROR] KLD OBJECT - TODO\n");
-      reg_exit(1);
+      reg_exit();
    }
    /// @brief Returns the kld value
    double GetSimilarityMeasureValue()

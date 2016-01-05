@@ -257,7 +257,7 @@ int main(int argc, char **argv)
             {
                reg_print_msg_error("The specified input affine file can not be read");
                reg_print_msg_error(argv[m+3]);
-               reg_exit(1);
+               reg_exit();
             }
             // Read the current matrix file
             std::ifstream affineFile;
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
                {
                    reg_print_msg_error("The specified input affine file can not be read");
                    reg_print_msg_error(argv[m+3]);
-                   reg_exit(1);
+                   reg_exit();
                }
                // Read the current matrix file
                std::ifstream affineFile;
@@ -653,7 +653,7 @@ int main(int argc, char **argv)
                   char name[255];
                   sprintf(name,"Field: %s", argv[i]);
                   reg_print_msg_error(name);
-                  reg_exit(1);
+                  reg_exit();
                }
                deformationField=inputTransformationImage;
                if(deformationField->intent_p1==DISP_FIELD)

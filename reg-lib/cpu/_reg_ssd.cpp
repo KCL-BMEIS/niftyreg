@@ -52,7 +52,7 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
    {
       reg_print_fct_error("reg_ssd::InitialiseMeasure");
       reg_print_msg_error("This number of time point should be the same for both input images");
-      reg_exit(1);
+      reg_exit();
    }
    // Input images are normalised between 0 and 1
    for(int i=0; i<this->referenceImagePointer->nt; ++i)
@@ -173,7 +173,7 @@ double reg_ssd::GetSimilarityMeasureValue()
    {
       reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
       reg_print_msg_error("Both input images are exepected to have the same type");
-      reg_exit(1);
+      reg_exit();
    }
    double SSDValue;
    switch(this->referenceImagePointer->datatype)
@@ -201,7 +201,7 @@ double reg_ssd::GetSimilarityMeasureValue()
    default:
       reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
       reg_print_msg_error("Warped pixel type unsupported");
-      reg_exit(1);
+      reg_exit();
    }
 
    // Backward computation
@@ -212,7 +212,7 @@ double reg_ssd::GetSimilarityMeasureValue()
       {
          reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
          reg_print_msg_error("Both input images are exepected to have the same type");
-         reg_exit(1);
+         reg_exit();
       }
       switch(this->floatingImagePointer->datatype)
       {
@@ -239,7 +239,7 @@ double reg_ssd::GetSimilarityMeasureValue()
       default:
          reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
          reg_print_msg_error("Warped pixel type unsupported");
-         reg_exit(1);
+         reg_exit();
       }
    }
    return SSDValue;
@@ -353,7 +353,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
    {
       reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
       reg_print_msg_error("Input images are exepected to be of the same type");
-      reg_exit(1);
+      reg_exit();
    }
    // Compute the gradient of the ssd for the forward transformation
    switch(dtype)
@@ -383,7 +383,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
    default:
       reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
       reg_print_msg_error("Unsupported datatype");
-      reg_exit(1);
+      reg_exit();
    }
    // Compute the gradient of the ssd for the backward transformation
    if(this->isSymmetric)
@@ -396,7 +396,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
       {
          reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
          reg_print_msg_error("Input images are exepected to be of the same type");
-         reg_exit(1);
+         reg_exit();
       }
       // Compute the gradient of the nmi for the backward transformation
       switch(dtype)
@@ -426,7 +426,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
       default:
          reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
          reg_print_msg_error("Unsupported datatype");
-         reg_exit(1);
+         reg_exit();
       }
    }
 }

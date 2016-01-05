@@ -77,7 +77,7 @@ void svd(T **in, size_t size_m, size_t size_n, T * w, T **v) {
     if (size_m == 0 || size_n == 0) {
         reg_print_fct_error("svd");
         reg_print_msg_error("The specified matrix is empty");
-        reg_exit(1);
+        reg_exit();
     }
 
 #ifdef _WIN32
@@ -138,7 +138,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
     if (in == NULL) {
         reg_print_fct_error("svd");
         reg_print_msg_error("The specified matrix is empty");
-        reg_exit(1);
+        reg_exit();
     }
 
 #ifdef _WIN32
@@ -244,7 +244,7 @@ T reg_matrix2DDet(T** mat, size_t m, size_t n) {
             m, n);
         reg_print_fct_error("reg_matrix2DDeterminant");
         reg_print_msg_error(text);
-        reg_exit(1);
+        reg_exit();
     }
     double res;
     if (m == 2) {

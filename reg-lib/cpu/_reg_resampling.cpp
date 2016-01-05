@@ -759,14 +759,14 @@ void reg_resampleImage(nifti_image *floatingImage,
    {
       reg_print_fct_error("reg_resampleImage");
       reg_print_msg_error("The floating and warped image should have the same data type");
-      reg_exit(1);
+      reg_exit();
    }
 
    if(floatingImage->nt != warpedImage->nt)
    {
       reg_print_fct_error("reg_resampleImage");
       reg_print_msg_error("The floating and warped images have different dimension along the time axis");
-      reg_exit(1);
+      reg_exit();
    }
 
    // Define the DTI indices if required
@@ -778,7 +778,7 @@ void reg_resampleImage(nifti_image *floatingImage,
       {
          reg_print_fct_error("reg_resampleImage");
          reg_print_msg_error("DTI resampling: No Jacobian matrix array has been provided");
-         reg_exit(1);
+         reg_exit();
       }
       int j=0;
       for(int i=0; i<floatingImage->nt; ++i)
@@ -790,7 +790,7 @@ void reg_resampleImage(nifti_image *floatingImage,
       {
          reg_print_fct_error("reg_resampleImage");
          reg_print_msg_error("DTI resampling: Unexpected number of DTI components");
-         reg_exit(1);
+         reg_exit();
       }
    }
 
@@ -1034,7 +1034,7 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
     case 0:
         reg_print_fct_error("ResampleImage3D_PSF");
         reg_print_msg_error("Not implemented for NN interpolation yet");
-        reg_exit(1);
+        reg_exit();
         kernel_size=2;
         kernelCompFctPtr=&interpNearestNeighKernel;
         kernel_offset=0;
@@ -1355,7 +1355,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
     case 0:
         reg_print_fct_error("ResampleImage3D_PSF");
         reg_print_msg_error("Not implemented for NN interpolation yet");
-        reg_exit(1);
+        reg_exit();
         kernel_size=2;
         kernelCompFctPtr=&interpNearestNeighKernel;
         kernel_offset=0;
@@ -1784,7 +1784,7 @@ void reg_resampleImage2_PSF(nifti_image *floatingImage,
     {
         reg_print_fct_error("reg_resampleImage2_PSF");
         reg_print_msg_error("Not implemented for 2D images yet");
-        reg_exit(1);
+        reg_exit();
     }
 
 }
@@ -1802,14 +1802,14 @@ void reg_resampleImage_PSF(nifti_image *floatingImage,
     {
         reg_print_fct_error("reg_resampleImage");
         reg_print_msg_error("The floating and warped image should have the same data type");
-        reg_exit(1);
+        reg_exit();
     }
 
     if(floatingImage->nt != warpedImage->nt)
     {
         reg_print_fct_error("reg_resampleImage");
         reg_print_msg_error("The floating and warped images have different dimension along the time axis");
-        reg_exit(1);
+        reg_exit();
     }
 
     // a mask array is created if no mask is specified
@@ -2445,7 +2445,7 @@ void reg_resampleGradient(nifti_image *floatingImage,
    {
       reg_print_fct_error("reg_resampleGradient");
       reg_print_msg_error("Only linear interpolation is supported");
-      reg_exit(1);
+      reg_exit();
 
    }
    if(floatingImage->datatype!=warpedImage->datatype ||
@@ -2453,7 +2453,7 @@ void reg_resampleGradient(nifti_image *floatingImage,
    {
       reg_print_fct_error("reg_resampleGradient");
       reg_print_msg_error("Input images are expected to have the same type");
-      reg_exit(1);
+      reg_exit();
    }
    switch(floatingImage->datatype)
    {
@@ -2492,7 +2492,7 @@ void reg_resampleGradient(nifti_image *floatingImage,
    default:
       reg_print_fct_error("reg_resampleGradient");
       reg_print_msg_error("Only single and double floating precision are supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -3213,7 +3213,7 @@ void reg_getImageGradient2(nifti_image *floatingImage,
    default:
       reg_print_fct_error("reg_getImageGradient2");
       reg_print_msg_error("The warped image data type is not supported");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -3266,7 +3266,7 @@ void reg_getImageGradient1(nifti_image *floatingImage,
    default:
       reg_print_fct_error("reg_getImageGradient1");
       reg_print_msg_error("Unsupported floating image datatype");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -3295,7 +3295,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
    {
       reg_print_fct_error("reg_getImageGradient");
       reg_print_msg_error("The floating and warped images have different dimension along the time axis");
-      reg_exit(1);
+      reg_exit();
    }
 
    // Define the DTI indices if required
@@ -3308,7 +3308,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
       {
          reg_print_fct_error("reg_getImageGradient");
          reg_print_msg_error("DTI resampling: No Jacobian matrix array has been provided");
-         reg_exit(1);
+         reg_exit();
       }
       int j=0;
       for(int i=0; i<floatingImage->nt; ++i)
@@ -3320,7 +3320,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
       {
          reg_print_fct_error("reg_getImageGradient");
          reg_print_msg_error("DTI resampling: Unexpected number of DTI components");
-         reg_exit(1);
+         reg_exit();
       }
    }
 
@@ -3337,7 +3337,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
    default:
       reg_print_fct_error("reg_getImageGradient");
       reg_print_msg_error("Unsupported deformation field image datatype");
-      reg_exit(1);
+      reg_exit();
       break;
    }
    if(MrPropreRule==true) free(mask);

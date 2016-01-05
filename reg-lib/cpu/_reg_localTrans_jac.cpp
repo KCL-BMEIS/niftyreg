@@ -1,5 +1,5 @@
 /*
- *  _reg_localTransformation_jac.cpp
+ *  _reg_localTrans_jac.cpp
  *
  *
  *  Created by Marc Modat on 10/05/2011.
@@ -9,82 +9,9 @@
  *
  */
 
-#define _USE_SQUARE_LOG_JAC
+#include "_reg_localTrans_jac.h"
 
-/* *************************************************************** */
-/* *************************************************************** */
-template<class DTYPE>
-void get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value)
-{
-   switch(index)
-   {
-   case 0:
-      value = (DTYPE)((1.0-basis)*(1.0-basis)*(1.0-basis)/6.0);
-      break;
-   case 1:
-      value = (DTYPE)((3.0*basis*basis*basis - 6.0*basis*basis + 4.0)/6.0);
-      break;
-   case 2:
-      value = (DTYPE)((3.0*basis*basis - 3.0*basis*basis*basis + 3.0*basis + 1.0)/6.0);
-      break;
-   case 3:
-      value = (DTYPE)(basis*basis*basis/6.0);
-      break;
-   default:
-      value = (DTYPE)0;
-      break;
-   }
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template<class DTYPE>
-void get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value, DTYPE &first)
-{
-   get_BSplineBasisValue<DTYPE>(basis, index, value);
-   switch(index)
-   {
-   case 0:
-      first = (DTYPE)((2.0*basis - basis*basis - 1.0)/2.0);
-      break;
-   case 1:
-      first = (DTYPE)((3.0*basis*basis - 4.0*basis)/2.0);
-      break;
-   case 2:
-      first = (DTYPE)((2.0*basis - 3.0*basis*basis + 1.0)/2.0);
-      break;
-   case 3:
-      first = (DTYPE)(basis*basis/2.0);
-      break;
-   default:
-      first = (DTYPE)0;
-      break;
-   }
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template<class DTYPE>
-void get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value, DTYPE &first, DTYPE &second)
-{
-   get_BSplineBasisValue<DTYPE>(basis, index, value, first);
-   switch(index)
-   {
-   case 0:
-      second = (DTYPE)(1.0 - basis);
-      break;
-   case 1:
-      second = (DTYPE)(3.0*basis -2.0);
-      break;
-   case 2:
-      second = (DTYPE)(1.0 - 3.0*basis);
-      break;
-   case 3:
-      second = (DTYPE)(basis);
-      break;
-   default:
-      second = (DTYPE)0;
-      break;
-   }
-}
+#define _USE_SQUARE_LOG_JAC
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -137,13 +64,13 @@ void reg_spline_jacobian2D(nifti_image *splineControlPoint,
       reg_print_fct_error("reg_spline_jacobian2D");
       reg_print_msg_error("Both output pointers are NULL");
       reg_print_msg_error("Nothing to be done");
-      reg_exit(1);
+      reg_exit();
    }
    if(referenceImage==NULL && approximation==false)
    {
       reg_print_fct_error("reg_spline_jacobian2D");
       reg_print_msg_error("The reference image is required to compute the Jacobian at voxel position");
-      reg_exit(1);
+      reg_exit();
 
    }
    // Create some pointers towards to control point grid image data
@@ -421,13 +348,13 @@ void reg_spline_jacobian3D(nifti_image *splineControlPoint,
       reg_print_fct_error("reg_spline_jacobian3D");
       reg_print_msg_error("Both output pointers are NULL");
       reg_print_msg_error("Nothing to be done");
-      reg_exit(1);
+      reg_exit();
    }
    if(referenceImage==NULL && approximation==false)
    {
       reg_print_fct_error("reg_spline_jacobian3D");
       reg_print_msg_error("The reference image is required to compute the Jacobian at voxel position");
-      reg_exit(1);
+      reg_exit();
 
    }
    // Create some pointers towards to control point grid image data
@@ -1357,7 +1284,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
       if(useHeaderInformation)
       {
          // The header information is considered
-         reg_exit(1);
+         reg_exit();
 
       } // end if use header information
       else
@@ -1620,7 +1547,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
       if(useHeaderInformation)
       {
          // The header information is considered
-         reg_exit(1);
+         reg_exit();
 
       } // end if use header information
       else
@@ -1754,7 +1681,7 @@ void reg_spline_getJacobianPenaltyTermGradient(nifti_image *splineControlPoint,
    {
       reg_print_fct_error("reg_spline_getJacobianPenaltyTermGradient");
       reg_print_msg_error("The input images are expected to be of the same type");
-      reg_exit(1);
+      reg_exit();
    }
 
 
@@ -1781,7 +1708,7 @@ void reg_spline_getJacobianPenaltyTermGradient(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_getJacobianPenaltyTermGradient");
          reg_print_msg_error("Function only usable with single or double floating precision");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else
@@ -1807,7 +1734,7 @@ void reg_spline_getJacobianPenaltyTermGradient(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_getJacobianPenaltyTermGradient");
          reg_print_msg_error("Function only usable with single or double floating precision");
-         reg_exit(1);
+         reg_exit();
       }
    }
 }
@@ -1970,7 +1897,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
       if(useHeaderInformation)
       {
          // The grid and reference image are not aligned
-         reg_exit(1);
+         reg_exit();
       }
       else
       {
@@ -2241,7 +2168,7 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
       if(useHeaderInformation)
       {
          // The grid and reference image are not aligned
-         reg_exit(1);
+         reg_exit();
       }
       else
       {
@@ -2377,7 +2304,7 @@ double reg_spline_correctFolding(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_correctFolding");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else
@@ -2395,7 +2322,7 @@ double reg_spline_correctFolding(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_correctFolding");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
 }
@@ -2427,7 +2354,7 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_GetJacobianMap");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else
@@ -2453,7 +2380,7 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_GetJacobianMap");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
 }
@@ -2486,7 +2413,7 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
       default:
          reg_print_fct_error("reg_spline_GetJacobianMatrix");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
    else
@@ -2512,7 +2439,7 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
       default:
          reg_print_fct_error("reg_spline_GetJacobianMatrix");
          reg_print_msg_error("Only implemented for single or double precision images");
-         reg_exit(1);
+         reg_exit();
       }
    }
 }
@@ -2770,7 +2697,7 @@ void reg_defField_getJacobianMap(nifti_image *deformationField,
    {
       reg_print_fct_error("reg_defField_getJacobianMap");
       reg_print_msg_error("Both input images have different datatype");
-      reg_exit(1);
+      reg_exit();
    }
    switch(deformationField->datatype)
    {
@@ -2787,7 +2714,7 @@ void reg_defField_getJacobianMap(nifti_image *deformationField,
    default:
       reg_print_fct_error("reg_defField_getJacobianMap");
       reg_print_msg_error("Only implemented for single or double precision images");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -2810,7 +2737,7 @@ void reg_defField_getJacobianMatrix(nifti_image *deformationField,
    default:
       reg_print_fct_error("reg_defField_getJacobianMatrix");
       reg_print_msg_error("Only implemented for single or double precision images");
-      reg_exit(1);
+      reg_exit();
    }
 }
 /* *************************************************************** */
@@ -2868,7 +2795,7 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
       {
          affineMatrix = reg_mat44_to_mat33(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata));
       }
-      else reg_exit(1);
+      else reg_exit();
    }
    size_t voxelNumber = (size_t)flowFieldImage->nx *
          flowFieldImage->ny * flowFieldImage->nz ;
@@ -2909,7 +2836,7 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
       {
          affineMatrix = reg_mat44_to_mat33(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[1].edata));
       }
-      else reg_exit(1);
+      else reg_exit();
       for(size_t i=0; i<voxelNumber; ++i)
          jacobianMatrices[i]=nifti_mat33_mul(affineMatrix,jacobianMatrices[i]);
    }
@@ -2945,7 +2872,7 @@ int reg_defField_GetJacobianMatFromFlowField(mat33* jacobianMatrices,
    default:
       reg_print_fct_error("reg_defField_GetJacobianMatFromFlowField");
       reg_print_msg_error("Unsupported data type");
-      reg_exit(1);
+      reg_exit();
       break;
    }
    return 0;

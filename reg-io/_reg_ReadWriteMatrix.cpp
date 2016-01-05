@@ -32,7 +32,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
         char text[255];sprintf(text, "The affine file can not be read: %s", fileName);
         reg_print_fct_error("reg_tool_ReadAffineFile");
         reg_print_msg_error(text);
-        reg_exit(1);
+        reg_exit();
     }
     affineFile.close();
 
@@ -142,7 +142,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
         char text[255];sprintf(text, "The affine file can not be read: %s", fileName);
         reg_print_fct_error("reg_tool_ReadAffineFile");
         reg_print_msg_error(text);
-        reg_exit(1);
+        reg_exit();
     }
     affineFile.close();
 
@@ -197,7 +197,7 @@ std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename)
         sprintf(text, "The file can not be read: %s", filename);
         reg_print_fct_error("reg_tool_ReadMatrixFile");
         reg_print_msg_error(text);
-        reg_exit(1);
+        reg_exit();
     }
     std::pair <size_t, size_t> result(nbLine, nbColumn);
     return result;
@@ -242,7 +242,7 @@ T** reg_tool_ReadMatrixFile(char *filename, size_t nbLine, size_t nbColumn)
         sprintf(text, "The matrix file can not be read: %s", filename);
         reg_print_fct_error("reg_tool_ReadMatrixFile");
         reg_print_msg_error(text);
-        reg_exit(1);
+        reg_exit();
     }
     //
     return mat;
@@ -274,7 +274,7 @@ mat44* reg_tool_ReadMat44File(char *fileName)
         char text[255]; sprintf(text, "The mat44 file can not be read: %s", fileName);
         reg_print_fct_error("reg_tool_ReadMat44File");
         reg_print_msg_error(text);
-        reg_exit(1);
+        reg_exit();
     }
     matrixFile.close();
 

@@ -133,7 +133,7 @@ void reg_f3d2<T>::GetInverseConsistencyErrorField(bool forceAll)
       reg_print_fct_error("reg_f3d2<T>::GetInverseConsistencyErrorField()");
       reg_print_msg_error("Option not supported in F3D2");
    }
-   reg_exit(1);
+   reg_exit();
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -144,7 +144,7 @@ void reg_f3d2<T>::GetInverseConsistencyGradient()
 
    reg_print_fct_error("reg_f3d2<T>::GetInverseConsistencyGradient()");
    reg_print_msg_error("Option not supported in F3D2");
-   reg_exit(1);
+   reg_exit();
 
    return;
 }
@@ -435,7 +435,7 @@ nifti_image **reg_f3d2<T>::GetWarpedImage()
    {
       reg_print_fct_error("reg_f3d2<T>::GetWarpedImage()");
       reg_print_msg_error("The reference, floating and control point grid images have to be defined");
-      reg_exit(1);
+      reg_exit();
    }
 
    // Set the input images

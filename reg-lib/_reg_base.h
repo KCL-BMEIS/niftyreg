@@ -15,6 +15,8 @@
 #include "_reg_resampling.h"
 #include "_reg_globalTrans.h"
 #include "_reg_localTrans.h"
+#include "_reg_localTrans_jac.h"
+#include "_reg_localTrans_regul.h"
 #include "_reg_nmi.h"
 #include "_reg_dti.h"
 #include "_reg_ssd.h"

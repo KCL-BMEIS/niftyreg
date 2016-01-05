@@ -94,7 +94,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
    {
       reg_print_fct_error("reg_getKLDivergence()");
       reg_print_msg_error("Both input images are expected to have the same type");
-      reg_exit(1);
+      reg_exit();
    }
    // If the Jacobian determinant image if define, it checks it has the type of the referenceImage image
    if(jacobianDetImg!=NULL)
@@ -103,7 +103,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
       {
          reg_print_fct_error("reg_getKLDivergence()");
          reg_print_msg_error("Input images are expected to have the same type");
-         reg_exit(1);
+         reg_exit();
       }
    }
    // Check that both input images have the same size
@@ -113,7 +113,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
       {
          reg_print_fct_error("reg_getKLDivergence()");
          reg_print_msg_error("Input images are expected to have the same dimension");
-         reg_exit(1);
+         reg_exit();
       }
    }
    switch(referenceImage->datatype)
@@ -127,7 +127,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
    default:
       reg_print_fct_error("reg_getKLDivergence()");
       reg_print_msg_error("Unsupported datatype");
-      reg_exit(1);
+      reg_exit();
    }
    return 0.;
 }
@@ -258,7 +258,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
    {
       reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
       reg_print_msg_error("Input images are expected to have the same type");
-      reg_exit(1);
+      reg_exit();
    }
    if(jacobianDetImg!=NULL)
    {
@@ -266,20 +266,20 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
       {
          reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
          reg_print_msg_error("Input images are expected to have the same type");
-         reg_exit(1);
+         reg_exit();
       }
    }
    if(referenceImage->nvox!=warpedImage->nvox)
    {
       reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
       reg_print_msg_error("Both input images have different size");
-      reg_exit(1);
+      reg_exit();
    }
    if(referenceImage->nz>1 && warpedImageGradient->nu!=3 && KLdivGradient->nu!=3)
    {
       reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
       reg_print_msg_error("Check code");
-      reg_exit(1);
+      reg_exit();
    }
    switch(referenceImage->datatype)
    {
@@ -294,7 +294,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
    default:
       reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
       reg_print_msg_error("Unsupported datatype");
-      reg_exit(1);
+      reg_exit();
       break;
    }
    return;

@@ -232,13 +232,13 @@ void initialise_block_matching_method(nifti_image * reference,
    default:
       reg_print_fct_error("initialise_block_matching_method()");
       reg_print_msg_error("The reference image data type is not supported");
-      reg_exit(1);
+      reg_exit();
       ;
    }
    if (params->activeBlockNumber < 2) {
       reg_print_fct_error("initialise_block_matching_method()");
       reg_print_msg_error("There are no active blocks");
-      reg_exit(1);
+      reg_exit();
    }
 #ifndef NDEBUG
    char text[255];
@@ -500,7 +500,7 @@ void block_matching_method3D(nifti_image * reference,
    warpedIndex, referencePosition_temp, tempPosition, referenceTemp, warpedTemp, \
    referenceMean, referenceVar, warpedMean, warpedVar, voxelNumber,localCC)
 #endif
-   for (k = 0; k < params->blockNumber[2]; k++) {
+   for (k = 0; k < (int)params->blockNumber[2]; k++) {
 #if defined (_OPENMP)
       tid = omp_get_thread_num();
 #endif
@@ -508,11 +508,11 @@ void block_matching_method3D(nifti_image * reference,
       referenceIndex_start_z = k * BLOCK_WIDTH;
       referenceIndex_end_z = referenceIndex_start_z + BLOCK_WIDTH;
 
-      for (j = 0; j < params->blockNumber[1]; j++) {
+      for (j = 0; j < (int)params->blockNumber[1]; j++) {
          referenceIndex_start_y = j * BLOCK_WIDTH;
          referenceIndex_end_y = referenceIndex_start_y + BLOCK_WIDTH;
 
-         for (i = 0; i < params->blockNumber[0]; i++) {
+         for (i = 0; i < (int)params->blockNumber[0]; i++) {
             referenceIndex_start_x = i * BLOCK_WIDTH;
             referenceIndex_end_x = referenceIndex_start_x + BLOCK_WIDTH;
 
@@ -685,7 +685,7 @@ void block_matching_method(nifti_image * reference, nifti_image * warped, _reg_b
       default:
          reg_print_fct_error("block_matching_method");
          reg_print_msg_error("The reference image data type is not supported");
-         reg_exit(1);
+         reg_exit();
       }
    } else {
       switch (reference->datatype) {
@@ -698,7 +698,7 @@ void block_matching_method(nifti_image * reference, nifti_image * warped, _reg_b
       default:
          reg_print_fct_error("block_matching_method");
          reg_print_msg_error("The reference image data type is not supported");
-         reg_exit(1);
+         reg_exit();
       }
    }
 }
@@ -723,7 +723,7 @@ void optimize(_reg_blockMatchingParam *params,
             sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
             reg_print_msg_error(text);
             reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate an affine transfomation");
-            reg_exit(1);
+            reg_exit();
          }
       } else {
          if(params->definedActiveBlockNumber < 4)
@@ -732,7 +732,7 @@ void optimize(_reg_blockMatchingParam *params,
             sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
             reg_print_msg_error(text);
             reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate a rigid transfomation");
-            reg_exit(1);
+            reg_exit();
          }
       }
 
@@ -773,7 +773,7 @@ void optimize(_reg_blockMatchingParam *params,
             sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
             reg_print_msg_error(text);
             reg_print_msg_error("Not enough correspondances were found - it is impossible to estimate an affine tranfomation");
-            reg_exit(1);
+            reg_exit();
          }
       } else {
          if(params->definedActiveBlockNumber < 4)
@@ -782,7 +782,7 @@ void optimize(_reg_blockMatchingParam *params,
             sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
             reg_print_msg_error(text);
             reg_print_msg_error("Not enough correspondances were found - it is impossible to estimate a rigid tranfomation");
-            reg_exit(1);
+            reg_exit();
          }
       }
 

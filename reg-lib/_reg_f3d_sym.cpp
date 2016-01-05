@@ -183,7 +183,7 @@ void reg_f3d_sym<T>::AllocateWarped()
    {
       reg_print_fct_error("reg_f3d_sym<T>::AllocateWarped()");
       reg_print_msg_error("The floating image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    this->backwardWarped = nifti_copy_nim_info(this->currentFloating);
    this->backwardWarped->dim[0]=this->backwardWarped->ndim=this->currentReference->ndim;
@@ -229,13 +229,13 @@ void reg_f3d_sym<T>::AllocateDeformationField()
    {
       reg_print_fct_error("reg_f3d_sym<T>::AllocateDeformationField()");
       reg_print_msg_error("The floating image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    if(this->backwardControlPointGrid==NULL)
    {
       reg_print_fct_error("reg_f3d_sym<T>::AllocateDeformationField()");
       reg_print_msg_error("The backward control point image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    this->backwardDeformationFieldImage = nifti_copy_nim_info(this->currentFloating);
    this->backwardDeformationFieldImage->dim[0]=this->backwardDeformationFieldImage->ndim=5;
@@ -313,7 +313,7 @@ void reg_f3d_sym<T>::AllocateWarpedGradient()
    {
       reg_print_fct_error("reg_f3d_sym<T>::AllocateWarpedGradient()");
       reg_print_msg_error("The backward control point image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    this->backwardWarpedGradientImage = nifti_copy_nim_info(this->backwardDeformationFieldImage);
    this->backwardWarpedGradientImage->dim[0]=this->backwardWarpedGradientImage->ndim=5;
@@ -358,7 +358,7 @@ void reg_f3d_sym<T>::AllocateVoxelBasedMeasureGradient()
    {
       reg_print_fct_error("reg_f3d_sym<T>::AllocateVoxelBasedMeasureGradient()");
       reg_print_msg_error("The backward control point image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    this->backwardVoxelBasedMeasureGradientImage = nifti_copy_nim_info(this->backwardDeformationFieldImage);
    this->backwardVoxelBasedMeasureGradientImage->data =
@@ -396,7 +396,7 @@ void reg_f3d_sym<T>::AllocateTransformationGradient()
    {
       reg_print_fct_error("reg_f3d_sym<T>::AllocateTransformationGradient()");
       reg_print_msg_error("The backward control point image is not defined");
-      reg_exit(1);
+      reg_exit();
    }
    this->backwardTransformationGradient = nifti_copy_nim_info(this->backwardControlPointGrid);
    this->backwardTransformationGradient->data =
@@ -437,7 +437,7 @@ void reg_f3d_sym<T>::CheckParameters()
       {
          reg_print_fct_error("reg_f3d_sym<T>::CheckParameters()");
          reg_print_msg_error("The floating image and its mask have different dimension");
-         reg_exit(1);
+         reg_exit();
       }
    }
 
@@ -1694,7 +1694,7 @@ nifti_image **reg_f3d_sym<T>::GetWarpedImage()
    {
       reg_print_fct_error("reg_f3d_sym<T>::GetWarpedImage()");
       reg_print_msg_error("The reference, floating and both control point grid images have to be defined");
-      reg_exit(1);
+      reg_exit();
    }
 
    this->warpedPaddingValue=0.;
