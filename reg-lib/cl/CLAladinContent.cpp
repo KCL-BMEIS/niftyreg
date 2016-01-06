@@ -367,7 +367,7 @@ void ClAladinContent::fillImageData(nifti_image *image,
 	if (buffer == NULL) {
 		reg_print_fct_error("ClAladinContent::fillImageData");
 		reg_print_msg_error("Memory allocation did not complete successfully. Exit.");
-		reg_exit(1);
+        reg_exit();
 	}
 
 	this->errNum = clEnqueueReadBuffer(this->commandQueue, memoryObject, CL_TRUE, 0,
@@ -416,7 +416,7 @@ void ClAladinContent::downloadImage(nifti_image *image,
 	default:
 		reg_print_fct_error("ClAladinContent::downloadImage");
 		reg_print_msg_error("Unsupported type");
-		reg_exit(1);
+        reg_exit();
 		break;
 	}
 }

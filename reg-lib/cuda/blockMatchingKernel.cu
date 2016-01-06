@@ -587,7 +587,7 @@ void block_matching_method_gpu(nifti_image *targetImage,
 
 	if (params->stepSize!=1 || params->voxelCaptureRange!=3){
         reg_print_msg_error("The block Mathching CUDA kernel supports only a stepsize of 1");
-		reg_exit(1);
+        reg_exit();
 	}
 
 #ifdef USE_TEST_KERNEL

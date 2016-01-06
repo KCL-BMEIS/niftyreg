@@ -112,7 +112,7 @@ void CLContextSingletton::pickCard(cl_uint deviceId)
    else if(deviceId != 999){
       reg_print_msg_error("The specified opencl card id is not defined");
       reg_print_msg_error("Run reg_gpuinfo to get the proper id");
-      reg_exit(1);
+      reg_exit();
    }
 
    for(cl_uint i = 0; i < this->numDevices; ++i) {
@@ -263,7 +263,7 @@ void CLContextSingletton::checkErrNum(cl_int errNum, std::string message)
 		case -68: reg_print_msg_error("CL_INVALID_DEVICE_PARTITION_COUNT");break;
 		default : reg_print_msg_error("Unknown error type");break;
 		}
-		reg_exit(1);
+        reg_exit();
 	}
 }
 /* *************************************************************** */

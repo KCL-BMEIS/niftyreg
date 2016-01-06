@@ -394,7 +394,7 @@ void launchResample(nifti_image *floatingImage,
 	if(dti_timepoint!=NULL || jacMat!=NULL){
 		reg_print_fct_error("launchResample");
 		reg_print_msg_error("The DTI resampling has not yet been implemented with the CUDA platform. Exit.");
-		reg_exit(1);
+        reg_exit();
 	}
 
 	long targetVoxelNumber = (long) warpedImage->nx * warpedImage->ny * warpedImage->nz;
