@@ -525,7 +525,7 @@ int main(int argc, char **argv)
       {
           if(referenceImage->nt>1 || floatingImage->nt>1){
               reg_print_msg_error("reg_mind does not support multiple time point image");
-              reg_exit(1);
+              reg_exit();
           }
           REG->UseMIND(0);
       }

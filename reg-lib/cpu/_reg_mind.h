@@ -66,7 +66,9 @@ void GetMINDImageDesciptor(nifti_image* inputImgPtr,
                            nifti_image* MINDImgPtr,
                            int *mask);
 
-extern "C++" template <class InputTYPE>
-void ShiftImage(nifti_image* inputImgPtr, nifti_image* shiftedImgPtr, int tx, int ty, int tz);
+extern "C++" template <class DTYPE>
+void ShiftImage(nifti_image* inputImgPtr, nifti_image* shiftedImgPtr, int* maskPtr, int tx, int ty, int tz);
 
+extern "C++" template <class DTYPE>
+void spatialGradient(nifti_image* inputImg, nifti_image* gradImg, int *mask);
 #endif

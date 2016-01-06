@@ -31,6 +31,32 @@ reg_mind::reg_mind()
 #endif
 }
 /* *************************************************************** */
+reg_mind::~reg_mind() {
+    if(this->referenceImageDescriptor != NULL)
+        nifti_image_free(this->referenceImageDescriptor);
+    this->referenceImageDescriptor = NULL;
+
+    if(this->warpedFloatingImageDescriptor != NULL)
+        nifti_image_free(this->warpedFloatingImageDescriptor);
+    this->warpedFloatingImageDescriptor = NULL;
+
+    if(this->warpedFloatingGradientImageDescriptor != NULL)
+        nifti_image_free(this->warpedFloatingGradientImageDescriptor);
+    this->warpedFloatingGradientImageDescriptor = NULL;
+
+    if(this->floatingImageDescriptor != NULL)
+        nifti_image_free(this->floatingImageDescriptor);
+    this->floatingImageDescriptor = NULL;
+
+    if(this->warpedReferenceImageDescriptor != NULL)
+        nifti_image_free(this->warpedReferenceImageDescriptor);
+    this->warpedReferenceImageDescriptor = NULL;
+
+    if(this->warpedReferenceGradientImageDescriptor != NULL)
+        nifti_image_free(this->warpedReferenceGradientImageDescriptor);
+    this->warpedReferenceGradientImageDescriptor = NULL;
+}
+/* *************************************************************** */
 void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
                                  nifti_image *floImgPtr,
                                  int *maskRefPtr,
@@ -56,7 +82,7 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
 
     if(this->referenceImagePointer->nt>1 || this->warpedFloatingImagePointer->nt>1){
         reg_print_msg_error("reg_mind does not support multiple time point image");
-        reg_exit(1);
+        reg_exit();
     }
 
     // Initialise the reference descriptor
@@ -96,7 +122,7 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
     if(this->isSymmetric) {
         if(this->floatingImagePointer->nt>1 || this->warpedReferenceImagePointer->nt>1){
             reg_print_msg_error("reg_mind does not support multiple time point image");
-            reg_exit(1);
+            reg_exit();
         }
         // Initialise the floating descriptor
         int dim=this->floatingImagePointer->nz>1?3:2;
@@ -146,33 +172,243 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
             sprintf(text, "%s %i", text, i);
     reg_print_msg_debug(text);
 #endif
-
 }
 /* *************************************************************** */
-reg_mind::~reg_mind() {
-    if(this->referenceImageDescriptor != NULL)
-        nifti_image_free(this->referenceImageDescriptor);
-    this->referenceImageDescriptor = NULL;
+template <class DTYPE>
+void ShiftImage(nifti_image* inputImgPtr,
+                nifti_image* shiftedImgPtr,
+                int *maskPtr,
+                int tx,
+                int ty,
+                int tz)
+{
+    DTYPE* inputData = static_cast<DTYPE*> (inputImgPtr->data);
+    DTYPE* shiftImageData = static_cast<DTYPE*> (shiftedImgPtr->data);
 
-    if(this->warpedFloatingImageDescriptor != NULL)
-        nifti_image_free(this->warpedFloatingImageDescriptor);
-    this->warpedFloatingImageDescriptor = NULL;
+    int currentIndex = 0;
+    int shiftedIndex;
+    for (int z=0;z<shiftedImgPtr->nz;z++) {
+        int old_z = z-tz;
+        for (int y=0;y<shiftedImgPtr->ny;y++) {
+            int old_y = y-ty;
+            for (int x=0;x<shiftedImgPtr->nx;x++) {
+                int old_x = x-tx;
+                if(old_x>-1 && old_x<inputImgPtr->nx && old_y>-1 && old_y<inputImgPtr->ny && old_z>-1 && old_z<inputImgPtr->nz){
+                    shiftedIndex = (old_z*inputImgPtr->ny+old_y)*inputImgPtr->nx+old_x;
+                    if(maskPtr[shiftedIndex]>-1)
+                        shiftImageData[currentIndex]=inputData[shiftedIndex];
+                    else shiftImageData[currentIndex]=std::numeric_limits<DTYPE>::quiet_NaN();
+                }
+                else shiftImageData[currentIndex]=std::numeric_limits<DTYPE>::quiet_NaN();
+                currentIndex++;
+            }
+        }
+    }
+}
+/* *************************************************************** */
+template <class DTYPE>
+void GetMINDImageDesciptor_core(nifti_image* inputImgPtr,
+                                nifti_image* MINDImgPtr,
+                                int *maskPtr)
+{
+    const size_t voxNumber = (size_t)inputImgPtr->nx *
+                             inputImgPtr->ny * inputImgPtr->nz;
+    size_t voxIndex;
 
-    if(this->warpedFloatingGradientImageDescriptor != NULL)
-        nifti_image_free(this->warpedFloatingGradientImageDescriptor);
-    this->warpedFloatingGradientImageDescriptor = NULL;
+    // Create a pointer to the descriptor image
+    DTYPE* MINDImgDataPtr = static_cast<DTYPE *>(MINDImgPtr->data);
 
-    if(this->floatingImageDescriptor != NULL)
-        nifti_image_free(this->floatingImageDescriptor);
-    this->floatingImageDescriptor = NULL;
+    // Allocate an image to store the mean image
+    nifti_image *mean_img = nifti_copy_nim_info(inputImgPtr);
+    mean_img->data=(void *)calloc(inputImgPtr->nvox,inputImgPtr->nbyper);
+    DTYPE* meanImgDataPtr = static_cast<DTYPE *>(mean_img->data);
 
-    if(this->warpedReferenceImageDescriptor != NULL)
-        nifti_image_free(this->warpedReferenceImageDescriptor);
-    this->warpedReferenceImageDescriptor = NULL;
+    // Allocate an image to store the warped image
+    nifti_image *warpedImage = nifti_copy_nim_info(inputImgPtr);
+    warpedImage->data = (void *)malloc(warpedImage->nvox*warpedImage->nbyper);
 
-    if(this->warpedReferenceGradientImageDescriptor != NULL)
-        nifti_image_free(this->warpedReferenceGradientImageDescriptor);
-    this->warpedReferenceGradientImageDescriptor = NULL;
+    // Allocation of the difference image
+    nifti_image *diff_image = nifti_copy_nim_info(inputImgPtr);
+    diff_image->data = (void *) malloc(diff_image->nvox*diff_image->nbyper);
+
+    // Define the sigma for the convolution
+    float sigma = -0.5;// negative value denotes voxel width
+
+    //2D version
+    int samplingNbr = (inputImgPtr->nz > 1) ? 6 : 4;
+    int RSampling3D_x[6] = {-1, 1,  0, 0,  0, 0};
+    int RSampling3D_y[6] = {0,  0, -1, 1,  0, 0};
+    int RSampling3D_z[6] = {0,  0,  0, 0, -1, 1};
+
+    for(int i=0;i<samplingNbr;i++) {
+        ShiftImage<DTYPE>(inputImgPtr, warpedImage, maskPtr,
+                          RSampling3D_x[i], RSampling3D_y[i], RSampling3D_z[i]);
+        reg_tools_substractImageToImage(inputImgPtr, warpedImage, diff_image);
+        reg_tools_multiplyImageToImage(diff_image, diff_image, diff_image);
+        reg_tools_kernelConvolution(diff_image, &sigma, 0, maskPtr);
+        reg_tools_addImageToImage(mean_img, diff_image, mean_img);
+
+        // Store the current descriptor
+        unsigned int index = i * diff_image->nvox;
+        memcpy(&MINDImgDataPtr[index], diff_image->data,
+               diff_image->nbyper * diff_image->nvox);
+    }
+    // Compute the mean over the number of sample
+    reg_tools_divideValueToImage(mean_img, mean_img, samplingNbr);
+
+    // Compute the MIND desccriptor
+    int mindIndex;
+    for(voxIndex=0;voxIndex<voxNumber;voxIndex++) {
+
+        if(maskPtr[voxIndex]>-1){
+            // Get the mean value for the current voxel
+            DTYPE meanValue = meanImgDataPtr[voxIndex];
+            if(meanValue == 0) {
+                meanValue = std::numeric_limits<DTYPE>::epsilon();
+            }
+            DTYPE max_desc = 0;
+            mindIndex=voxIndex;
+            for(int t=0;t<samplingNbr;t++) {
+                DTYPE descValue = (DTYPE)exp(-MINDImgDataPtr[mindIndex]/meanValue);
+                MINDImgDataPtr[mindIndex] = descValue;
+                max_desc = std::max(max_desc, descValue);
+                mindIndex+=voxNumber;
+            }
+
+            mindIndex=voxIndex;
+            for(int t=0;t<samplingNbr;t++) {
+                DTYPE descValue = MINDImgDataPtr[mindIndex];
+                MINDImgDataPtr[mindIndex] = descValue/max_desc;
+                mindIndex+=voxNumber;
+            }
+        } // mask
+    } // voxIndex
+    // Mr Propre
+    nifti_image_free(diff_image);
+    nifti_image_free(warpedImage);
+    nifti_image_free(mean_img);
+}
+/* *************************************************************** */
+void GetMINDImageDesciptor(nifti_image* inputImgPtr,
+                           nifti_image* MINDImgPtr,
+                           int *maskPtr) {
+#ifndef NDEBUG
+    reg_print_fct_debug("GetMINDImageDesciptor()");
+#endif
+    if(inputImgPtr->datatype != MINDImgPtr->datatype) {
+        reg_print_fct_error("reg_mind -- GetMINDImageDesciptor");
+        reg_print_msg_error("The input image and the MIND image must have the same datatype !");
+        reg_exit();
+    }
+
+    switch (inputImgPtr->datatype)
+    {
+    case NIFTI_TYPE_FLOAT32:
+        GetMINDImageDesciptor_core<float>(inputImgPtr, MINDImgPtr, maskPtr);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        GetMINDImageDesciptor_core<double>(inputImgPtr, MINDImgPtr, maskPtr);
+        break;
+    default:
+        reg_print_fct_error("GetMINDImageDesciptor");
+        reg_print_msg_error("Input image datatype not supported");
+        reg_exit();
+        break;
+    }
+}
+/* *************************************************************** */
+double reg_mind::GetSimilarityMeasureValue()
+{
+    size_t voxelNumber = (size_t)referenceImagePointer->nx *
+                         referenceImagePointer->ny * referenceImagePointer->nz;
+    int *combinedMask = (int *)malloc(voxelNumber*sizeof(int));
+    memcpy(combinedMask, this->referenceMaskPointer, voxelNumber*sizeof(int));
+    reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
+    reg_tools_removeNanFromMask(this->warpedFloatingImagePointer, combinedMask);
+
+    GetMINDImageDesciptor(this->referenceImagePointer,
+                          this->referenceImageDescriptor,
+                          combinedMask);
+    GetMINDImageDesciptor(this->warpedFloatingImagePointer,
+                          this->warpedFloatingImageDescriptor,
+                          combinedMask);
+
+    double MINDValue;
+    switch(this->referenceImageDescriptor->datatype)
+    {
+    case NIFTI_TYPE_FLOAT32:
+        MINDValue = reg_getSSDValue<float>
+                   (this->referenceImageDescriptor,
+                    this->warpedFloatingImageDescriptor,
+                    this->activeTimePointDescriptor,
+                    NULL, // HERE TODO this->forwardJacDetImagePointer,
+                    combinedMask,
+                    this->currentValue
+                    );
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        MINDValue = reg_getSSDValue<double>
+                   (this->referenceImageDescriptor,
+                    this->warpedFloatingImageDescriptor,
+                    this->activeTimePointDescriptor,
+                    NULL, // HERE TODO this->forwardJacDetImagePointer,
+                    combinedMask,
+                    this->currentValue
+                    );
+        break;
+    default:
+        reg_print_fct_error("reg_mind::GetSimilarityMeasureValue");
+        reg_print_msg_error("Warped pixel type unsupported");
+        reg_exit();
+    }
+    free(combinedMask);
+
+    // Backward computation
+    if(this->isSymmetric)
+    {
+        voxelNumber = (size_t)floatingImagePointer->nx *
+                      floatingImagePointer->ny * floatingImagePointer->nz;
+        combinedMask = (int *)malloc(voxelNumber*sizeof(int));
+        memcpy(combinedMask, this->referenceMaskPointer, voxelNumber*sizeof(int));
+        reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
+        reg_tools_removeNanFromMask(this->warpedFloatingImagePointer, combinedMask);
+        GetMINDImageDesciptor(this->floatingImagePointer,
+                              this->floatingImageDescriptor,
+                              combinedMask);
+        GetMINDImageDesciptor(this->warpedReferenceImagePointer,
+                              this->warpedReferenceImageDescriptor,
+                              combinedMask);
+
+        switch(this->floatingImageDescriptor->datatype)
+        {
+        case NIFTI_TYPE_FLOAT32:
+            MINDValue += reg_getSSDValue<float>
+                        (this->floatingImageDescriptor,
+                         this->warpedReferenceImageDescriptor,
+                         this->activeTimePointDescriptor,
+                         NULL, // HERE TODO this->backwardJacDetImagePointer,
+                         combinedMask,
+                         this->currentValue
+                         );
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            MINDValue += reg_getSSDValue<double>
+                        (this->floatingImageDescriptor,
+                         this->warpedReferenceImageDescriptor,
+                         this->activeTimePointDescriptor,
+                         NULL, // HERE TODO this->backwardJacDetImagePointer,
+                         combinedMask,
+                         this->currentValue
+                         );
+            break;
+        default:
+            reg_print_fct_error("reg_mind::GetSimilarityMeasureValue");
+            reg_print_msg_error("Warped pixel type unsupported");
+            reg_exit();
+        }
+        free(combinedMask);
+    }
+    return MINDValue;// /(double) this->referenceImageDescriptor->nt;
 }
 /* *************************************************************** */
 template<class DTYPE>
@@ -221,12 +457,15 @@ void spatialGradient(nifti_image *img,
         } // z
     } // t
 }
+template void spatialGradient<float>(nifti_image *img, nifti_image *gradImg, int *mask);
+template void spatialGradient<double>(nifti_image *img, nifti_image *gradImg, int *mask);
 /* *************************************************************** */
 void reg_mind::GetVoxelBasedSimilarityMeasureGradient()
 {
     // Compute the floating warped image descriptors
-    size_t voxelNumber = (size_t)referenceImagePointer->nx *
-                         referenceImagePointer->ny * referenceImagePointer->nz;
+    size_t voxelNumber = (size_t)this->referenceImagePointer->nx *
+                         this->referenceImagePointer->ny *
+                         this->referenceImagePointer->nz;
     int *combinedMask = (int *)malloc(voxelNumber*sizeof(int));
     memcpy(combinedMask, this->referenceMaskPointer, voxelNumber*sizeof(int));
     reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
@@ -299,7 +538,7 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient()
     default:
         reg_print_fct_error("reg_mind::GetVoxelBasedSimilarityMeasureGradient");
         reg_print_msg_error("Unsupported datatype");
-        reg_exit(1);
+        reg_exit();
     }
     free(combinedMask);
     // Compute the gradient of the ssd for the backward transformation
@@ -373,244 +612,9 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient()
         default:
             reg_print_fct_error("reg_mind::GetVoxelBasedSimilarityMeasureGradient");
             reg_print_msg_error("Unsupported datatype");
-            reg_exit(1);
+            reg_exit();
         }
-    }
-    free(combinedMask);
-}
-/* *************************************************************** */
-double reg_mind::GetSimilarityMeasureValue()
-{
-    size_t voxelNumber = (size_t)referenceImagePointer->nx *
-                         referenceImagePointer->ny * referenceImagePointer->nz;
-    int *combinedMask = (int *)malloc(voxelNumber*sizeof(int));
-    memcpy(combinedMask, this->referenceMaskPointer, voxelNumber*sizeof(int));
-    reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
-    reg_tools_removeNanFromMask(this->warpedFloatingImagePointer, combinedMask);
-
-    GetMINDImageDesciptor(this->referenceImagePointer,
-                          this->referenceImageDescriptor,
-                          combinedMask);
-    GetMINDImageDesciptor(this->warpedFloatingImagePointer,
-                          this->warpedFloatingImageDescriptor,
-                          combinedMask);
-
-    double MINDValue;
-    switch(this->referenceImageDescriptor->datatype)
-    {
-    case NIFTI_TYPE_FLOAT32:
-        MINDValue = reg_getSSDValue<float>
-                   (this->referenceImageDescriptor,
-                    this->warpedFloatingImageDescriptor,
-                    this->activeTimePointDescriptor,
-                    NULL, // HERE TODO this->forwardJacDetImagePointer,
-                    combinedMask,
-                    this->currentValue
-                    );
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        MINDValue = reg_getSSDValue<double>
-                   (this->referenceImageDescriptor,
-                    this->warpedFloatingImageDescriptor,
-                    this->activeTimePointDescriptor,
-                    NULL, // HERE TODO this->forwardJacDetImagePointer,
-                    combinedMask,
-                    this->currentValue
-                    );
-        break;
-    default:
-        reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
-        reg_print_msg_error("Warped pixel type unsupported");
-        reg_exit(1);
-    }
-    free(combinedMask);
-
-    // Backward computation
-    if(this->isSymmetric)
-    {
-        voxelNumber = (size_t)floatingImagePointer->nx *
-                      floatingImagePointer->ny * floatingImagePointer->nz;
-        combinedMask = (int *)malloc(voxelNumber*sizeof(int));
-        memcpy(combinedMask, this->referenceMaskPointer, voxelNumber*sizeof(int));
-        reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
-        reg_tools_removeNanFromMask(this->warpedFloatingImagePointer, combinedMask);
-        GetMINDImageDesciptor(this->floatingImagePointer,
-                              this->floatingImageDescriptor,
-                              combinedMask);
-        GetMINDImageDesciptor(this->warpedReferenceImagePointer,
-                              this->warpedReferenceImageDescriptor,
-                              combinedMask);
-
-        switch(this->floatingImageDescriptor->datatype)
-        {
-        case NIFTI_TYPE_FLOAT32:
-            MINDValue += reg_getSSDValue<float>
-                        (this->floatingImageDescriptor,
-                         this->warpedReferenceImageDescriptor,
-                         this->activeTimePointDescriptor,
-                         NULL, // HERE TODO this->backwardJacDetImagePointer,
-                         combinedMask,
-                         this->currentValue
-                         );
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            MINDValue += reg_getSSDValue<double>
-                        (this->floatingImageDescriptor,
-                         this->warpedReferenceImageDescriptor,
-                         this->activeTimePointDescriptor,
-                         NULL, // HERE TODO this->backwardJacDetImagePointer,
-                         combinedMask,
-                         this->currentValue
-                         );
-            break;
-        default:
-            reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
-            reg_print_msg_error("Warped pixel type unsupported");
-            reg_exit(1);
-        }
-    }
-    free(combinedMask);
-    return MINDValue;///(double) this->referenceImageDescriptor->nt;
-}
-/* *************************************************************** */
-template <class DTYPE>
-void ShiftImage(nifti_image* inputImgPtr,
-                nifti_image* shiftedImgPtr,
-                int tx,
-                int ty,
-                int tz)
-{
-    DTYPE* inputData = static_cast<DTYPE*> (inputImgPtr->data);
-    DTYPE* shiftImageData = static_cast<DTYPE*> (shiftedImgPtr->data);
-
-    int currentIndex = 0;
-    int shiftedIndex;
-    for (int z=0;z<shiftedImgPtr->nz;z++) {
-        int new_z = z-tz;
-        for (int y=0;y<shiftedImgPtr->ny;y++) {
-            int new_y = y-ty;
-            for (int x=0;x<shiftedImgPtr->nx;x++) {
-                int new_x = x-tx;
-                if(new_x>-1 && new_x<inputImgPtr->nx && new_y>-1 && new_y<inputImgPtr->ny && new_z>-1 && new_z<inputImgPtr->nz){
-                    shiftedIndex = (new_z*inputImgPtr->ny+new_y)*inputImgPtr->nx+new_x;
-                    shiftImageData[currentIndex]=inputData[shiftedIndex];
-                }
-                else {
-                    shiftImageData[currentIndex]=std::numeric_limits<DTYPE>::quiet_NaN();
-                }
-                currentIndex++;
-            }
-        }
+        free(combinedMask);
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
-void GetMINDImageDesciptor_core(nifti_image* inputImgPtr,
-                                nifti_image* MINDImgPtr,
-                                int *maskPtr)
-{
-    const size_t voxNumber = (size_t)inputImgPtr->nx *
-                             inputImgPtr->ny * inputImgPtr->nz;
-    size_t voxIndex;
-
-    // Create a pointer to the descriptor image
-    DTYPE* MINDImgDataPtr = static_cast<DTYPE *>(MINDImgPtr->data);
-
-    // Allocate an image to store the mean image
-    nifti_image *mean_img = nifti_copy_nim_info(inputImgPtr);
-    mean_img->data=(void *)calloc(inputImgPtr->nvox,inputImgPtr->nbyper);
-    DTYPE* meanImgDataPtr = static_cast<DTYPE *>(mean_img->data);
-
-    // Allocate an image to store the warped image
-    nifti_image *warpedImage = nifti_copy_nim_info(inputImgPtr);
-    warpedImage->data = (void *)malloc(warpedImage->nvox*warpedImage->nbyper);
-
-    // Allocation of the difference image
-    nifti_image *diff_image = nifti_copy_nim_info(inputImgPtr);
-    diff_image->data = (void *) malloc(diff_image->nvox*diff_image->nbyper);
-
-    // Define the sigma for the convolution
-    float sigma = -0.5;// negative value denotes voxel width
-
-    //2D version
-    int samplingNbr = (inputImgPtr->nz > 1) ? 6 : 4;
-    int RSampling3D_x[6] = {-1, 1,  0, 0,  0, 0};
-    int RSampling3D_y[6] = {0,  0, -1, 1,  0, 0};
-    int RSampling3D_z[6] = {0,  0,  0, 0, -1, 1};
-
-    for(int i=0;i<samplingNbr;i++) {
-        ShiftImage<DTYPE>(inputImgPtr, warpedImage,
-                          RSampling3D_x[i], RSampling3D_y[i], RSampling3D_z[i]);
-        reg_tools_substractImageToImage(inputImgPtr, warpedImage, diff_image);
-        reg_tools_multiplyImageToImage(diff_image, diff_image, diff_image);
-        reg_tools_kernelConvolution(diff_image, &sigma, 0, maskPtr, NULL, NULL);
-        reg_tools_addImageToImage(mean_img, diff_image, mean_img);
-
-        // Store the current descriptor
-        unsigned int index = i * diff_image->nvox;
-        memcpy(&MINDImgDataPtr[index], diff_image->data,
-               diff_image->nbyper * diff_image->nvox);
-    }
-    // Compute the mean over the number of sample
-    reg_tools_divideValueToImage(mean_img, mean_img, samplingNbr);
-
-    // Compute the MIND desccriptor
-    int mindIndex;
-    for(voxIndex=0;voxIndex<voxNumber;voxIndex++) {
-
-        if(maskPtr[voxIndex]!=0){
-            // Get the mean value for the current voxel
-            DTYPE meanValue = meanImgDataPtr[voxIndex];
-            if(meanValue == 0) {
-                meanValue = std::numeric_limits<DTYPE>::epsilon();
-            }
-            DTYPE max_desc = 0;
-            mindIndex=voxIndex;
-            for(int t=0;t<samplingNbr;t++) {
-                DTYPE descValue = (DTYPE)exp(-MINDImgDataPtr[mindIndex]/meanValue);
-                MINDImgDataPtr[mindIndex] = descValue;
-                max_desc = std::max(max_desc, descValue);
-                mindIndex+=voxNumber;
-            }
-
-            mindIndex=voxIndex;
-            for(int t=0;t<samplingNbr;t++) {
-                DTYPE descValue = MINDImgDataPtr[mindIndex];
-                MINDImgDataPtr[mindIndex] = descValue/max_desc;
-                mindIndex+=voxNumber;
-            }
-        } // mask
-    } // voxIndex
-    //FREE MEMORY
-    nifti_image_free(diff_image);
-    nifti_image_free(warpedImage);
-    nifti_image_free(mean_img);
-}
-/* *************************************************************** */
-void GetMINDImageDesciptor(nifti_image* inputImgPtr,
-                           nifti_image* MINDImgPtr,
-                           int *maskPtr) {
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_mind -- GetMINDImageDesciptor()");
-#endif
-    if(inputImgPtr->datatype != MINDImgPtr->datatype) {
-        reg_print_fct_error("reg_mind -- GetMINDImageDesciptor");
-        reg_print_msg_error("The input image and the MIND image must have the same datatype !");
-        reg_exit(EXIT_FAILURE);
-    }
-
-    switch (inputImgPtr->datatype)
-    {
-    case NIFTI_TYPE_FLOAT32:
-        GetMINDImageDesciptor_core<float>(inputImgPtr, MINDImgPtr, maskPtr);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        GetMINDImageDesciptor_core<double>(inputImgPtr, MINDImgPtr, maskPtr);
-        break;
-    default:
-        reg_print_fct_error("reg_mind -- GetMINDImageDesciptor");
-        reg_print_msg_error("Input image datatype not supported");
-        reg_exit(EXIT_FAILURE);
-        break;
-    }
-}
