@@ -134,12 +134,12 @@ double reg_getKLDivergence(nifti_image *referenceImage,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_getKLDivergenceVoxelBasedGradient1(nifti_image *referenceImage,
-      nifti_image *warpedImage,
-      nifti_image *warpedImageGradient,
-      nifti_image *KLdivGradient,
-      nifti_image *jacobianDetImg,
-      int *mask)
+void reg_getKLDivergenceVoxelBasedGradient_core(nifti_image *referenceImage,
+                                                nifti_image *warpedImage,
+                                                nifti_image *warImgGradient,
+                                                nifti_image *KLdivGradient,
+                                                nifti_image *jacobianDetImg,
+                                                int *mask)
 {
 #ifdef _WIN32
    long voxel;
@@ -166,13 +166,12 @@ void reg_getKLDivergenceVoxelBasedGradient1(nifti_image *referenceImage,
    double tempValue, tempGradX, tempGradY, tempGradZ;
 
    // Create pointers to the spatial derivative of the warped image
-   DTYPE *warGradPtr = static_cast<DTYPE *>(warpedImageGradient->data);
+   DTYPE *warGradPtr = static_cast<DTYPE *>(warImgGradient->data);
 
-   // Create pointers to the voxel based gradient image - results
+   // Create pointers to the voxel based gradient image
    DTYPE *kldGradPtrX = static_cast<DTYPE *>(KLdivGradient->data);
    DTYPE *kldGradPtrY = &kldGradPtrX[voxelNumber];
    DTYPE *kldGradPtrZ = NULL;
-
    if(referenceImage->nz>1)
       kldGradPtrZ = &kldGradPtrY[voxelNumber];
 
@@ -188,11 +187,12 @@ void reg_getKLDivergenceVoxelBasedGradient1(nifti_image *referenceImage,
       DTYPE *currentRefPtr=&refPtr[time*voxelNumber];
       DTYPE *currentWarPtr=&warPtr[time*voxelNumber];
       // Create some pointers to the spatial gradient of the current warped volume
-      DTYPE *currentGradPtrX=&warGradPtr[time*voxelNumber];
-      DTYPE *currentGradPtrY=&currentGradPtrX[referenceImage->nt*voxelNumber];
-      DTYPE *currentGradPtrZ=NULL;
+      DTYPE *currentGradPtrX = &warGradPtr[time*voxelNumber];
+      DTYPE *currentGradPtrY = &warGradPtr[(referenceImage->nt+time)*voxelNumber];
+      DTYPE *currentGradPtrZ = NULL;
       if(referenceImage->nz>1)
-         currentGradPtrZ=&currentGradPtrY[referenceImage->nt*voxelNumber];
+         currentGradPtrZ=&warGradPtr[(2*referenceImage->nt+time)*voxelNumber];
+
 #if defined (_OPENMP)
       #pragma omp parallel for default(none) \
       shared(voxelNumber,currentRefPtr, currentWarPtr, \
@@ -248,13 +248,13 @@ void reg_getKLDivergenceVoxelBasedGradient1(nifti_image *referenceImage,
 /* *************************************************************** */
 void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
       nifti_image *warpedImage,
-      nifti_image *warpedImageGradient,
+      nifti_image *warImgGradient,
       nifti_image *KLdivGradient,
       nifti_image *jacobianDetImg,
       int *mask)
 {
    if(referenceImage->datatype!=warpedImage->datatype ||
-         referenceImage->datatype!=warpedImageGradient->datatype)
+         referenceImage->datatype!=warImgGradient->datatype)
    {
       reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
       reg_print_msg_error("Input images are expected to have the same type");
@@ -275,7 +275,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
       reg_print_msg_error("Both input images have different size");
       reg_exit();
    }
-   if(referenceImage->nz>1 && warpedImageGradient->nu!=3 && KLdivGradient->nu!=3)
+   if(referenceImage->nz>1 && warImgGradient->nu!=3 && KLdivGradient->nu!=3)
    {
       reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
       reg_print_msg_error("Check code");
@@ -284,12 +284,12 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
    switch(referenceImage->datatype)
    {
    case NIFTI_TYPE_FLOAT32:
-      reg_getKLDivergenceVoxelBasedGradient1<float>
-      (referenceImage,warpedImage,warpedImageGradient,KLdivGradient,jacobianDetImg,mask);
+      reg_getKLDivergenceVoxelBasedGradient_core<float>
+      (referenceImage,warpedImage,warImgGradient,KLdivGradient,jacobianDetImg,mask);
       break;
    case NIFTI_TYPE_FLOAT64:
-      reg_getKLDivergenceVoxelBasedGradient1<double>
-      (referenceImage,warpedImage,warpedImageGradient,KLdivGradient,jacobianDetImg,mask);
+      reg_getKLDivergenceVoxelBasedGradient_core<double>
+      (referenceImage,warpedImage,warImgGradient,KLdivGradient,jacobianDetImg,mask);
       break;
    default:
       reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");

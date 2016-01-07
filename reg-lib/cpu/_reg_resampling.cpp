@@ -1330,7 +1330,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
         floatingMatrix = &(floatingImage->sto_xyz);
 
     float fwhmToStd=2.355f;
-    // T is the target PSF and S is the source PSF
+    // T is the reference PSF and S is the floating PSF
     mat33 T, S;
     for(int j=0; j<3; j++){
         for(int i=0; i<3; i++){
@@ -2500,21 +2500,21 @@ void reg_resampleGradient(nifti_image *floatingImage,
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
 void TrilinearImageGradient(nifti_image *floatingImage,
                             nifti_image *deformationField,
-                            nifti_image *warpedGradientImage,
+                            nifti_image *warImgGradient,
                             int *mask,
                             float paddingValue)
 {
 #ifdef _WIN32
    long index;
-   long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
+   long referenceVoxelNumber = (long)warImgGradient->nx*warImgGradient->ny*warImgGradient->nz;
    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 #else
    size_t index;
-   size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
+   size_t referenceVoxelNumber = (size_t)warImgGradient->nx*warImgGradient->ny*warImgGradient->nz;
    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 #endif
    FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   GradientTYPE *warpedGradientImagePtr = static_cast<GradientTYPE *>(warpedGradientImage->data);
+   GradientTYPE *warImgGradientPtr = static_cast<GradientTYPE *>(warImgGradient->data);
    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[referenceVoxelNumber];
@@ -2527,16 +2527,17 @@ void TrilinearImageGradient(nifti_image *floatingImage,
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
    // Iteration over the different volume along the 4th axis
-   for(int t=0; t<warpedGradientImage->nt; t++)
+   for(int t=0; t<warImgGradient->nt; t++)
    {
 #ifndef NDEBUG
       char text[255];
       sprintf(text, "3D linear gradient computation of volume number %i",t);
       reg_print_msg_debug(text);
 #endif
-      GradientTYPE *warpedGradientPtrX = &warpedGradientImagePtr[t*3*referenceVoxelNumber];
-      GradientTYPE *warpedGradientPtrY = &warpedGradientPtrX[referenceVoxelNumber];
-      GradientTYPE *warpedGradientPtrZ = &warpedGradientPtrY[referenceVoxelNumber];
+
+      GradientTYPE *warpedGradientPtrX = &warImgGradientPtr[t*referenceVoxelNumber];
+      GradientTYPE *warpedGradientPtrY = &warImgGradientPtr[(warImgGradient->nt+t)*referenceVoxelNumber];
+      GradientTYPE *warpedGradientPtrZ = &warImgGradientPtr[(2*warImgGradient->nt+t)*referenceVoxelNumber];
 
       FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
@@ -2694,22 +2695,22 @@ void TrilinearImageGradient(nifti_image *floatingImage,
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
 void BilinearImageGradient(nifti_image *floatingImage,
                            nifti_image *deformationField,
-                           nifti_image *warpedGradientImage,
+                           nifti_image *warImgGradient,
                            int *mask,
                            float paddingValue)
 {
 #ifdef _WIN32
    long index;
-   long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny;
+   long referenceVoxelNumber = (long)warImgGradient->nx*warImgGradient->ny;
    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
 #else
    size_t index;
-   size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny;
+   size_t referenceVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
 #endif
 
    FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   GradientTYPE *warpedGradientImagePtr = static_cast<GradientTYPE *>(warpedGradientImage->data);
+   GradientTYPE *warImgGradientPtr = static_cast<GradientTYPE *>(warImgGradient->data);
    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
 
@@ -2721,15 +2722,15 @@ void BilinearImageGradient(nifti_image *floatingImage,
    else floatingIJKMatrix=floatingImage->qto_ijk;
 
    // Iteration over the different volume along the 4th axis
-   for(int t=0; t<warpedGradientImage->nt; t++)
+   for(int t=0; t<floatingImage->nt; t++)
    {
 #ifndef NDEBUG
       char text[255];
       sprintf(text, "2D linear gradient computation of volume number %i",t);
       reg_print_msg_debug(text);
 #endif
-      GradientTYPE *warpedGradientPtrX = &warpedGradientImagePtr[2*t*referenceVoxelNumber];
-      GradientTYPE *warpedGradientPtrY = &warpedGradientPtrX[referenceVoxelNumber];
+      GradientTYPE *warpedGradientPtrX = &warImgGradientPtr[t*referenceVoxelNumber];
+      GradientTYPE *warpedGradientPtrY = &warImgGradientPtr[(floatingImage->nt+t)*referenceVoxelNumber];
 
       FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
@@ -2826,22 +2827,22 @@ void BilinearImageGradient(nifti_image *floatingImage,
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
 void CubicSplineImageGradient3D(nifti_image *floatingImage,
                                 nifti_image *deformationField,
-                                nifti_image *warpedGradientImage,
+                                nifti_image *warImgGradient,
                                 int *mask,
                                 float paddingValue)
 {
 #ifdef _WIN32
    long index;
-   long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
+   long referenceVoxelNumber = (long)warImgGradient->nx*warImgGradient->ny*warImgGradient->nz;
    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 #else
    size_t index;
-   size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
+   size_t referenceVoxelNumber = (size_t)warImgGradient->nx*warImgGradient->ny*warImgGradient->nz;
    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 #endif
 
    FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   GradientTYPE *warpedGradientImagePtr = static_cast<GradientTYPE *>(warpedGradientImage->data);
+   GradientTYPE *warImgGradientPtr = static_cast<GradientTYPE *>(warImgGradient->data);
    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[referenceVoxelNumber];
@@ -2854,7 +2855,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
    // Iteration over the different volume along the 4th axis
-   for(int t=0; t<warpedGradientImage->nt; t++)
+   for(int t=0; t<warImgGradient->nt; t++)
    {
 #ifndef NDEBUG
       char text[255];
@@ -2862,9 +2863,9 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
       reg_print_msg_debug(text);
 #endif
 
-      GradientTYPE *warpedGradientPtrX = &warpedGradientImagePtr[3*t*referenceVoxelNumber];
-      GradientTYPE *warpedGradientPtrY = &warpedGradientPtrX[referenceVoxelNumber];
-      GradientTYPE *warpedGradientPtrZ = &warpedGradientPtrY[referenceVoxelNumber];
+      GradientTYPE *warpedGradientPtrX = &warImgGradientPtr[t*referenceVoxelNumber];
+      GradientTYPE *warpedGradientPtrY = &warImgGradientPtr[(warImgGradient->nt+t)*referenceVoxelNumber];
+      GradientTYPE *warpedGradientPtrZ = &warImgGradientPtr[(2*warImgGradient->nt+t)*referenceVoxelNumber];
 
       FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
@@ -2990,21 +2991,21 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
 void CubicSplineImageGradient2D(nifti_image *floatingImage,
                                 nifti_image *deformationField,
-                                nifti_image *warpedGradientImage,
+                                nifti_image *warImgGradient,
                                 int *mask)
 {
 #ifdef _WIN32
    long index;
-   long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny;
+   long referenceVoxelNumber = (long)warImgGradient->nx*warImgGradient->ny;
    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
 #else
    size_t index;
-   size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny;
+   size_t referenceVoxelNumber = (size_t)warImgGradient->nx*warImgGradient->ny;
    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
 #endif
 
    FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   GradientTYPE *warpedGradientImagePtr = static_cast<GradientTYPE *>(warpedGradientImage->data);
+   GradientTYPE *warImgGradientPtr = static_cast<GradientTYPE *>(warImgGradient->data);
    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
 
@@ -3016,7 +3017,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
    // Iteration over the different volume along the 4th axis
-   for(int t=0; t<warpedGradientImage->nt; t++)
+   for(int t=0; t<warImgGradient->nt; t++)
    {
 #ifndef NDEBUG
       char text[255];
@@ -3024,8 +3025,8 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
       reg_print_msg_debug(text);
 #endif
 
-      GradientTYPE *warpedGradientPtrX = &warpedGradientImagePtr[t*2*referenceVoxelNumber];
-      GradientTYPE *warpedGradientPtrY = &warpedGradientPtrX[referenceVoxelNumber];
+      GradientTYPE *warpedGradientPtrX = &warImgGradientPtr[t*referenceVoxelNumber];
+      GradientTYPE *warpedGradientPtrY = &warImgGradientPtr[(warImgGradient->nt+t)*referenceVoxelNumber];
       FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
       int previous[2], b, Y, a;
@@ -3114,7 +3115,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
 /* *************************************************************** */
 template <class FieldTYPE, class FloatingTYPE, class GradientTYPE>
 void reg_getImageGradient3(nifti_image *floatingImage,
-                           nifti_image *warpedGradientImage,
+                           nifti_image *warImgGradient,
                            nifti_image *deformationField,
                            int *mask,
                            int interp,
@@ -3138,7 +3139,7 @@ void reg_getImageGradient3(nifti_image *floatingImage,
          CubicSplineImageGradient3D
                <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
                                                      deformationField,
-                                                     warpedGradientImage,
+                                                     warImgGradient,
                                                      mask,
                                                      paddingValue);
       }
@@ -3147,7 +3148,7 @@ void reg_getImageGradient3(nifti_image *floatingImage,
          CubicSplineImageGradient2D
                <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
                                                      deformationField,
-                                                     warpedGradientImage,
+                                                     warImgGradient,
                                                      mask);
       }
    }
@@ -3158,7 +3159,7 @@ void reg_getImageGradient3(nifti_image *floatingImage,
          TrilinearImageGradient
                <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
                                                      deformationField,
-                                                     warpedGradientImage,
+                                                     warImgGradient,
                                                      mask,
                                                      paddingValue);
       }
@@ -3167,7 +3168,7 @@ void reg_getImageGradient3(nifti_image *floatingImage,
          BilinearImageGradient
                <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
                                                      deformationField,
-                                                     warpedGradientImage,
+                                                     warImgGradient,
                                                      mask,
                                                      paddingValue);
       }
@@ -3180,7 +3181,7 @@ void reg_getImageGradient3(nifti_image *floatingImage,
       originalFloatingData=NULL;
    }
    // The interpolated tensors are reoriented and exponentiated
-   reg_dti_resampling_postprocessing<FloatingTYPE>(warpedGradientImage,
+   reg_dti_resampling_postprocessing<FloatingTYPE>(warImgGradient,
                                                    mask,
                                                    jacMat,
                                                    dtIndicies,
@@ -3190,7 +3191,7 @@ void reg_getImageGradient3(nifti_image *floatingImage,
 /* *************************************************************** */
 template <class FieldTYPE, class FloatingTYPE>
 void reg_getImageGradient2(nifti_image *floatingImage,
-                           nifti_image *warpedGradientImage,
+                           nifti_image *warImgGradient,
                            nifti_image *deformationField,
                            int *mask,
                            int interp,
@@ -3200,15 +3201,15 @@ void reg_getImageGradient2(nifti_image *floatingImage,
                            nifti_image *warpedImage
                            )
 {
-   switch(warpedGradientImage->datatype)
+   switch(warImgGradient->datatype)
    {
    case NIFTI_TYPE_FLOAT32:
       reg_getImageGradient3<FieldTYPE,FloatingTYPE,float>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_getImageGradient3<FieldTYPE,FloatingTYPE,double>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    default:
       reg_print_fct_error("reg_getImageGradient2");
@@ -3219,7 +3220,7 @@ void reg_getImageGradient2(nifti_image *floatingImage,
 /* *************************************************************** */
 template <class FieldTYPE>
 void reg_getImageGradient1(nifti_image *floatingImage,
-                           nifti_image *warpedGradientImage,
+                           nifti_image *warImgGradient,
                            nifti_image *deformationField,
                            int *mask,
                            int interp,
@@ -3233,35 +3234,35 @@ void reg_getImageGradient1(nifti_image *floatingImage,
    {
    case NIFTI_TYPE_UINT8:
       reg_getImageGradient2<FieldTYPE,unsigned char>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_INT8:
       reg_getImageGradient2<FieldTYPE,char>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_UINT16:
       reg_getImageGradient2<FieldTYPE,unsigned short>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_INT16:
       reg_getImageGradient2<FieldTYPE,short>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_UINT32:
       reg_getImageGradient2<FieldTYPE,unsigned int>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_INT32:
       reg_getImageGradient2<FieldTYPE,int>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_FLOAT32:
       reg_getImageGradient2<FieldTYPE,float>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_getImageGradient2<FieldTYPE,double>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    default:
       reg_print_fct_error("reg_getImageGradient1");
@@ -3271,7 +3272,7 @@ void reg_getImageGradient1(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 void reg_getImageGradient(nifti_image *floatingImage,
-                          nifti_image *warpedGradientImage,
+                          nifti_image *warImgGradient,
                           nifti_image *deformationField,
                           int *mask,
                           int interp,
@@ -3291,7 +3292,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
    }
 
    // Check if the dimension are correct
-   if(floatingImage->nt != warpedGradientImage->nt)
+   if(floatingImage->nt != warImgGradient->nt)
    {
       reg_print_fct_error("reg_getImageGradient");
       reg_print_msg_error("The floating and warped images have different dimension along the time axis");
@@ -3328,11 +3329,11 @@ void reg_getImageGradient(nifti_image *floatingImage,
    {
    case NIFTI_TYPE_FLOAT32:
       reg_getImageGradient1<float>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_getImageGradient1<double>
-            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    default:
       reg_print_fct_error("reg_getImageGradient");

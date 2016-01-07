@@ -108,7 +108,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
 
 
    double SSD_global=0.0, n=0.0;
-   double targetValue, resultValue, diff;
+   double refValue, warValue, diff;
 
    // Loop over the different time points
    for(int time=0; time<referenceImage->nt; ++time)
@@ -125,7 +125,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
          #pragma omp parallel for default(none) \
          shared(referenceImage, currentRefPtr, currentWarPtr, mask, \
                 jacobianDetImage, jacDetPtr, voxelNumber) \
-         private(voxel, targetValue, resultValue, diff) \
+         private(voxel, refValue, warValue, diff) \
 reduction(+:SSD_local) \
 reduction(+:n)
 #endif
@@ -135,13 +135,13 @@ reduction(+:n)
             if(mask[voxel]>-1)
             {
                // Ensure that both ref and warped values are defined
-               targetValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
+               refValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
                                       referenceImage->scl_inter);
-               resultValue = (double)(currentWarPtr[voxel] * referenceImage->scl_slope +
+               warValue = (double)(currentWarPtr[voxel] * referenceImage->scl_slope +
                                       referenceImage->scl_inter);
-               if(targetValue==targetValue && resultValue==resultValue)
+               if(refValue==refValue && warValue==warValue)
                {
-                  diff = reg_pow2(targetValue-resultValue);
+                  diff = reg_pow2(refValue-warValue);
 //						if(diff>0) diff=log(diff);
                   // Jacobian determinant modulation of the ssd if required
                   if(jacDetPtr!=NULL)
@@ -250,7 +250,7 @@ template <class DTYPE>
 void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *warpedImage,
                                   bool *activeTimePoint,
-                                  nifti_image *warpedImageGradient,
+                                  nifti_image *warImgGradient,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDetImage,
                                   int *mask)
@@ -268,7 +268,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
    DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
 
    // Pointer to the warped image gradient
-   DTYPE *spatialGradPtr=static_cast<DTYPE *>(warpedImageGradient->data);
+   DTYPE *spatialGradPtr=static_cast<DTYPE *>(warImgGradient->data);
 
    // Create a pointer to the Jacobian determinant values if defined
    DTYPE *jacDetPtr=NULL;
@@ -282,7 +282,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
    if(referenceImage->nz>1)
       ssdGradPtrZ = &ssdGradPtrY[voxelNumber];
 
-   double targetValue, resultValue, common;
+   double refValue, warValue, common;
    // Loop over the different time points
    for(int time=0; time<referenceImage->nt; ++time)
    {
@@ -293,30 +293,31 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
          DTYPE *currentWarPtr=&warPtr[time*voxelNumber];
 
          // Create some pointers to the spatial gradient of the current warped volume
-         DTYPE *spatialGradPtrX=&spatialGradPtr[time*warpedImageGradient->nu*voxelNumber];
-         DTYPE *spatialGradPtrY=&spatialGradPtrX[voxelNumber];
-         DTYPE *spatialGradPtrZ=NULL;
+         DTYPE *spatialGradPtrX = &spatialGradPtr[time*voxelNumber];
+         DTYPE *spatialGradPtrY = &spatialGradPtr[(referenceImage->nt+time)*voxelNumber];
+         DTYPE *spatialGradPtrZ = NULL;
          if(referenceImage->nz>1)
-            spatialGradPtrZ=&spatialGradPtrY[voxelNumber];
+            spatialGradPtrZ=&spatialGradPtr[(2*referenceImage->nt+time)*voxelNumber];
+
 
 #if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, time, \
                 mask, jacDetPtr, spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, \
                 ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ, voxelNumber) \
-         private(voxel, targetValue, resultValue, common)
+         private(voxel, refValue, warValue, common)
 #endif
          for(voxel=0; voxel<voxelNumber; voxel++)
          {
             if(mask[voxel]>-1)
             {
-               targetValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
+               refValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
                                       referenceImage->scl_inter);
-               resultValue = (double)(currentWarPtr[voxel] * warpedImage->scl_slope +
+               warValue = (double)(currentWarPtr[voxel] * warpedImage->scl_slope +
                                       warpedImage->scl_inter);
-               if(targetValue==targetValue && resultValue==resultValue)
+               if(refValue==refValue && warValue==warValue)
                {
-                  common = -2.0 * (targetValue - resultValue);
+                  common = -2.0 * (refValue - warValue);
                   if(jacDetPtr!=NULL)
                      common *= jacDetPtr[voxel];
 

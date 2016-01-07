@@ -50,23 +50,23 @@ protected:
 /* *************************************************************** */
 
 /** @brief Copmutes and returns the SSD between two input image
- * @param targetImage First input image to use to compute the metric
- * @param resultImage Second input image to use to compute the metric
+ * @param referenceImage First input image to use to compute the metric
+ * @param warpedImage Second input image to use to compute the metric
  * @param mask Array that contains a mask to specify which voxel
  * should be considered. If set to NULL, all voxels are considered
  * @return Returns an L2 measure of the distance between the anisotropic components of the diffusion tensors
  */
 extern "C++" template <class DTYPE>
-double reg_getDTIMeasureValue(nifti_image *targetImage,
-                              nifti_image *resultImage,
+double reg_getDTIMeasureValue(nifti_image *referenceImage,
+                              nifti_image *warpedImage,
                               int *mask,
                               unsigned int * dtIndicies
                              );
 
 /** @brief Compute a voxel based gradient of the sum squared difference.
- * @param targetImage First input image to use to compute the metric
- * @param resultImage Second input image to use to compute the metric
- * @param resultImageGradient Spatial gradient of the input result image
+ * @param referenceImage First input image to use to compute the metric
+ * @param warpedImage Second input image to use to compute the metric
+ * @param warpedImageGradient Spatial gradient of the input warped image
  * @param dtiGradientImage Output image that will be updated with the
  * value of the dti measure gradient
  * @param maxSD Input scalar that contain the difference value between
@@ -77,7 +77,7 @@ double reg_getDTIMeasureValue(nifti_image *targetImage,
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
       nifti_image *warpedImage,
-      nifti_image *warpedImageGradient,
+      nifti_image *warImgGradient,
       nifti_image *dtiMeasureGradientImage,
       int *mask,
       unsigned int * dtIndicies);

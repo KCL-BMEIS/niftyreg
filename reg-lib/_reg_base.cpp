@@ -87,8 +87,8 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->currentMask=NULL;
    this->warped=NULL;
    this->deformationFieldImage=NULL;
-   this->warpedGradientImage=NULL;
-   this->voxelBasedMeasureGradientImage=NULL;
+   this->warImgGradient=NULL;
+   this->voxelBasedMeasureGradient=NULL;
 
    this->interpolation=1;
 
@@ -637,17 +637,17 @@ void reg_base<T>::AllocateWarpedGradient()
       reg_exit();
    }
    reg_base<T>::ClearWarpedGradient();
-   this->warpedGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
-   this->warpedGradientImage->dim[0]=this->warpedGradientImage->ndim=5;
-   this->warpedGradientImage->nt = this->warpedGradientImage->dim[4] = this->currentFloating->nt;
-   this->warpedGradientImage->nvox =
-      (size_t)this->warpedGradientImage->nx *
-      (size_t)this->warpedGradientImage->ny *
-      (size_t)this->warpedGradientImage->nz *
-      (size_t)this->warpedGradientImage->nt *
-      (size_t)this->warpedGradientImage->nu;
-   this->warpedGradientImage->data = (void *)calloc(this->warpedGradientImage->nvox,
-                                     this->warpedGradientImage->nbyper);
+   this->warImgGradient = nifti_copy_nim_info(this->deformationFieldImage);
+   this->warImgGradient->dim[0]=this->warImgGradient->ndim=5;
+   this->warImgGradient->nt = this->warImgGradient->dim[4] = this->currentFloating->nt;
+   this->warImgGradient->nvox =
+      (size_t)this->warImgGradient->nx *
+      (size_t)this->warImgGradient->ny *
+      (size_t)this->warImgGradient->nz *
+      (size_t)this->warImgGradient->nt *
+      (size_t)this->warImgGradient->nu;
+   this->warImgGradient->data = (void *)calloc(this->warImgGradient->nvox,
+                                     this->warImgGradient->nbyper);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::AllocateWarpedGradient");
 #endif
@@ -656,10 +656,10 @@ void reg_base<T>::AllocateWarpedGradient()
 template <class T>
 void reg_base<T>::ClearWarpedGradient()
 {
-   if(this->warpedGradientImage!=NULL)
+   if(this->warImgGradient!=NULL)
    {
-      nifti_image_free(this->warpedGradientImage);
-      this->warpedGradientImage=NULL;
+      nifti_image_free(this->warImgGradient);
+      this->warImgGradient=NULL;
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::ClearWarpedGradient");
@@ -676,9 +676,9 @@ void reg_base<T>::AllocateVoxelBasedMeasureGradient()
       reg_exit();
    }
    reg_base<T>::ClearVoxelBasedMeasureGradient();
-   this->voxelBasedMeasureGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
-   this->voxelBasedMeasureGradientImage->data = (void *)calloc(this->voxelBasedMeasureGradientImage->nvox,
-         this->voxelBasedMeasureGradientImage->nbyper);
+   this->voxelBasedMeasureGradient = nifti_copy_nim_info(this->deformationFieldImage);
+   this->voxelBasedMeasureGradient->data = (void *)calloc(this->voxelBasedMeasureGradient->nvox,
+         this->voxelBasedMeasureGradient->nbyper);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::AllocateVoxelBasedMeasureGradient");
 #endif
@@ -687,10 +687,10 @@ void reg_base<T>::AllocateVoxelBasedMeasureGradient()
 template <class T>
 void reg_base<T>::ClearVoxelBasedMeasureGradient()
 {
-   if(this->voxelBasedMeasureGradientImage!=NULL)
+   if(this->voxelBasedMeasureGradient!=NULL)
    {
-      nifti_image_free(this->voxelBasedMeasureGradientImage);
-      this->voxelBasedMeasureGradientImage=NULL;
+      nifti_image_free(this->voxelBasedMeasureGradient);
+      this->voxelBasedMeasureGradient=NULL;
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::ClearVoxelBasedMeasureGradient");
@@ -761,8 +761,8 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient
                                           );
 
    if(this->measure_multichannel_nmi!=NULL)
@@ -770,8 +770,8 @@ void reg_base<T>::InitialiseSimilarity()
             this->currentFloating,
             this->currentMask,
             this->warped,
-            this->warpedGradientImage,
-            this->voxelBasedMeasureGradientImage
+            this->warImgGradient,
+            this->voxelBasedMeasureGradient
                                                        );
 
    if(this->measure_ssd!=NULL)
@@ -779,8 +779,8 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient
                                           );
 
    if(this->measure_kld!=NULL)
@@ -788,8 +788,8 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient
                                           );
 
    if(this->measure_lncc!=NULL)
@@ -797,8 +797,8 @@ void reg_base<T>::InitialiseSimilarity()
                                             this->currentFloating,
                                             this->currentMask,
                                             this->warped,
-                                            this->warpedGradientImage,
-                                            this->voxelBasedMeasureGradientImage
+                                            this->warImgGradient,
+                                            this->voxelBasedMeasureGradient
                                            );
 
    if(this->measure_dti!=NULL)
@@ -806,8 +806,8 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient
                                           );
 
    if(this->measure_mind!=NULL)
@@ -815,8 +815,8 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient
                                           );
 
 #ifndef NDEBUG
@@ -1013,7 +1013,7 @@ void reg_base<T>::GetVoxelBasedGradient()
    // The intensity gradient is first computed
 //    if(this->measure_dti!=NULL){
 //        reg_getImageGradient(this->currentFloating,
-//                             this->warpedGradientImage,
+//                             this->warImgGradient,
 //                             this->deformationFieldImage,
 //                             this->currentMask,
 //                             this->interpolation,
@@ -1024,7 +1024,7 @@ void reg_base<T>::GetVoxelBasedGradient()
 //    }
 //    else{
    reg_getImageGradient(this->currentFloating,
-                        this->warpedGradientImage,
+                        this->warImgGradient,
                         this->deformationFieldImage,
                         this->currentMask,
                         this->interpolation,
@@ -1032,8 +1032,8 @@ void reg_base<T>::GetVoxelBasedGradient()
 //    }
 
    // The voxel based gradient image is filled with zeros
-   reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradientImage,
-                                  this->voxelBasedMeasureGradientImage,
+   reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradient,
+                                  this->voxelBasedMeasureGradient,
                                   0.f);
    // The gradient of the various measures of similarity are computed
    if(this->measure_nmi!=NULL)

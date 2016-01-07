@@ -258,18 +258,25 @@ void GetMINDImageDesciptor_core(nifti_image* inputImgPtr,
 
     // Compute the MIND desccriptor
     int mindIndex;
+    DTYPE meanValue, max_desc, descValue;
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   shared(samplingNbr, maskPtr, meanImgDataPtr, \
+   MINDImgDataPtr) \
+   private(voxIndex, meanValue, max_desc, descValue, mindIndex)
+#endif
     for(voxIndex=0;voxIndex<voxNumber;voxIndex++) {
 
         if(maskPtr[voxIndex]>-1){
             // Get the mean value for the current voxel
-            DTYPE meanValue = meanImgDataPtr[voxIndex];
+            meanValue = meanImgDataPtr[voxIndex];
             if(meanValue == 0) {
                 meanValue = std::numeric_limits<DTYPE>::epsilon();
             }
-            DTYPE max_desc = 0;
+            max_desc = 0;
             mindIndex=voxIndex;
             for(int t=0;t<samplingNbr;t++) {
-                DTYPE descValue = (DTYPE)exp(-MINDImgDataPtr[mindIndex]/meanValue);
+                descValue = (DTYPE)exp(-MINDImgDataPtr[mindIndex]/meanValue);
                 MINDImgDataPtr[mindIndex] = descValue;
                 max_desc = std::max(max_desc, descValue);
                 mindIndex+=voxNumber;
@@ -277,7 +284,7 @@ void GetMINDImageDesciptor_core(nifti_image* inputImgPtr,
 
             mindIndex=voxIndex;
             for(int t=0;t<samplingNbr;t++) {
-                DTYPE descValue = MINDImgDataPtr[mindIndex];
+                descValue = MINDImgDataPtr[mindIndex];
                 MINDImgDataPtr[mindIndex] = descValue/max_desc;
                 mindIndex+=voxNumber;
             }
@@ -416,25 +423,32 @@ void spatialGradient(nifti_image *img,
                      nifti_image *gradImg,
                      int *mask)
 {
-    size_t voxelNumber = (size_t)img->nx *
+    size_t voxIndex, voxelNumber = (size_t)img->nx *
                          img->ny * img->nz;
 
     int dimImg = img->nz > 1 ? 3 : 2;
+    int x, y, z;
 
     DTYPE *imgPtr = static_cast<DTYPE *>(img->data);
     DTYPE *gradPtr = static_cast<DTYPE *>(gradImg->data);
-    int u = 0;
     for(int t=0; t<img->nt; ++t){
         DTYPE *currentImgPtr = &imgPtr[t*voxelNumber];
         DTYPE *gradPtrX = &gradPtr[t*voxelNumber];
-        DTYPE *gradPtrY = &gradPtrX[voxelNumber*img->nt];
+        DTYPE *gradPtrY = &gradPtr[(img->nt+t)*voxelNumber];
         DTYPE *gradPtrZ = NULL;
         if(dimImg==3)
-            gradPtrZ = &gradPtrY[voxelNumber*img->nt];
-        size_t voxIndex = 0;
-        for(int z=0; z<img->nz; ++z){
-            for(int y=0; y<img->ny; ++y){
-                for(int x=0; x<img->nx; ++x){
+            gradPtrZ = &gradPtr[(2*img->nt+t)*voxelNumber];
+
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   shared(img, currentImgPtr, mask, \
+   gradPtrX, gradPtrY, gradPtrZ) \
+   private(x, y, z, voxIndex)
+#endif
+        for(z=0; z<img->nz; ++z){
+           voxIndex=z*img->nx*img->ny;
+            for(y=0; y<img->ny; ++y){
+                for(x=0; x<img->nx; ++x){
                     if(mask[voxIndex]>-1){
                         if(x<img->nx-1)
                             gradPtrX[voxIndex] = currentImgPtr[voxIndex+1] - currentImgPtr[voxIndex];
@@ -477,34 +491,6 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient()
     GetMINDImageDesciptor(this->warpedFloatingImagePointer,
                           this->warpedFloatingImageDescriptor,
                           combinedMask);
-
-    // Create an identity transformation
-    //nifti_image *identityDefField = nifti_copy_nim_info(this->referenceImagePointer);
-    //identityDefField->dim[0]=identityDefField->ndim=5;
-    //identityDefField->dim[4]=identityDefField->nt=1;
-    //identityDefField->dim[5]=identityDefField->nu=this->referenceImagePointer->nz>1?3:2;
-    //identityDefField->nvox = (size_t)identityDefField->nx *
-    //                         identityDefField->ny *
-    //                         identityDefField->nz *
-    //                         identityDefField->nu;
-    //identityDefField->datatype=NIFTI_TYPE_FLOAT32;
-    //identityDefField->nbyper=sizeof(float);
-    //identityDefField->data = (void *)calloc(identityDefField->nvox,
-    //                                        identityDefField->nbyper);
-    //identityDefField->intent_code=NIFTI_INTENT_VECTOR;
-    //memset(identityDefField->intent_name, 0, 16);
-    //strcpy(identityDefField->intent_name,"NREG_TRANS");
-    //identityDefField->intent_p1==DISP_FIELD;
-    //reg_getDeformationFromDisplacement(identityDefField);
-
-    // Compute the gradient of the warped floating descriptor image
-    //reg_getImageGradient(this->warpedFloatingImageDescriptor,
-    //                     this->warpedFloatingGradientImageDescriptor,
-    //                     identityDefField,
-    //                     combinedMask,
-    //                     1,
-    //                     std::numeric_limits<float>::quiet_NaN());
-    //nifti_image_free(identityDefField);identityDefField=NULL;
 
     spatialGradient<float>(this->warpedFloatingImageDescriptor,
                            this->warpedFloatingGradientImageDescriptor,
@@ -556,29 +542,6 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient()
         GetMINDImageDesciptor(this->warpedReferenceImagePointer,
                               this->warpedReferenceImageDescriptor,
                               combinedMask);
-
-        //identityDefField = nifti_copy_nim_info(this->floatingImagePointer);
-        //identityDefField->dim[4]=identityDefField->nt=1;
-        //identityDefField->dim[5]=identityDefField->nu=this->floatingImagePointer->nz>1?3:2;
-        //identityDefField->dim[0]=identityDefField->ndim=5;
-        //identityDefField->nvox = (size_t)identityDefField->nx * identityDefField->ny *
-        //                               identityDefField->nz * identityDefField->nu;
-        //identityDefField->datatype=NIFTI_TYPE_FLOAT32;
-        //identityDefField->nbyper=sizeof(float);
-        //identityDefField->intent_code=NIFTI_INTENT_VECTOR;
-        //memset(identityDefField->intent_name, 0, 16);
-        //strcpy(identityDefField->intent_name,"NREG_TRANS");
-        //if(identityDefField->intent_p1==DISP_FIELD)
-        //identityDefField->data = (void *)calloc(identityDefField->nvox,
-        //                                              identityDefField->nbyper);
-        //reg_getDeformationFromDisplacement(identityDefField);
-        //reg_getImageGradient(this->warpedReferenceImageDescriptor,
-        //                     this->warpedReferenceGradientImageDescriptor,
-        //                     identityDefField,
-        //                     combinedMask,
-        //                     1,
-        //                     std::numeric_limits<float>::quiet_NaN());
-        //nifti_image_free(identityDefField);identityDefField=NULL;
 
         spatialGradient<float>(this->warpedReferenceImageDescriptor,
                                     this->warpedReferenceGradientImageDescriptor,

@@ -32,7 +32,7 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->CurrentReferenceMask = NULL;
 	this->ReferencePyramid = NULL;
 	this->FloatingPyramid = NULL;
-    this->ReferenceMaskPyramid = NULL;
+	 this->ReferenceMaskPyramid = NULL;
 	this->activeVoxelNumber = NULL;
 
 	this->deformationFieldImage = NULL;
@@ -47,13 +47,13 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->con = NULL;
 	this->blockMatchingParams = NULL;
 
-	this->platform = NULL;
+   this->platform = NULL;
     this->platformCode = NR_PLATFORM_CPU;
     this->gpuIdx = 999;
 
-	this->Verbose = true;
+   this->Verbose = true;
 
-	this->MaxIterations = 5;
+   this->MaxIterations = 5;
 
 	this->NumberOfLevels = 3;
 	this->LevelsToPerform = 3;
@@ -495,14 +495,14 @@ void reg_aladin<T>::initAladinContent(nifti_image *ref,
 										  unsigned int inlierLts,
 										  unsigned int blockStepSize)
 {
-    if (this->platform->getPlatformCode() == NR_PLATFORM_CPU)
+	 if (this->platform->getPlatformCode() == NR_PLATFORM_CPU)
 		this->con = new AladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
-    else if(this->platform->getPlatformCode() == NR_PLATFORM_CUDA)
+	 else if(this->platform->getPlatformCode() == NR_PLATFORM_CUDA)
 		this->con = new CudaAladinContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
-    else if(this->platform->getPlatformCode() == NR_PLATFORM_CL)
+	 else if(this->platform->getPlatformCode() == NR_PLATFORM_CL)
 		this->con = new ClAladinContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 	this->blockMatchingParams = this->con->AladinContent::getBlockMatchingParams();
@@ -515,14 +515,14 @@ void reg_aladin<T>::initAladinContent(nifti_image *ref,
 										  mat44 *transMat,
 										  size_t bytes)
 {
-    if (this->platform->getPlatformCode() == NR_PLATFORM_CPU)
+	 if (this->platform->getPlatformCode() == NR_PLATFORM_CPU)
 		this->con = new AladinContent(ref, flo, mask, transMat, bytes);
 #ifdef _USE_CUDA
-    else if(this->platform->getPlatformCode() == NR_PLATFORM_CUDA)
+	 else if(this->platform->getPlatformCode() == NR_PLATFORM_CUDA)
 		this->con = new CudaAladinContent(ref, flo, mask,transMat, bytes);
 #endif
 #ifdef _USE_OPENCL
-    else if(this->platform->getPlatformCode() == NR_PLATFORM_CL)
+	 else if(this->platform->getPlatformCode() == NR_PLATFORM_CL)
 		this->con = new ClAladinContent(ref, flo, mask,transMat, bytes);
 #endif
 	this->blockMatchingParams = this->con->AladinContent::getBlockMatchingParams();
@@ -631,7 +631,7 @@ void reg_aladin<T>::Run()
 template<class T>
 nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 {
-    int floatingType = this->InputFloating->datatype; //t_dev ask before touching this!
+	 int floatingType = this->InputFloating->datatype; //t_dev ask before touching this!
 	// The initial images are used
 	if (this->InputReference == NULL || this->InputFloating == NULL || this->TransformationMatrix == NULL) {
 		reg_print_fct_error("reg_aladin::GetFinalWarpedImage()");
@@ -653,18 +653,18 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	reg_aladin<T>::GetWarpedImage(3); // cubic spline interpolation
 	this->CurrentWarped = this->con->getCurrentWarped(floatingType);
 
-    free(this->CurrentReferenceMask);
-	nifti_image *resultImage = nifti_copy_nim_info(this->CurrentWarped);
-	resultImage->cal_min = this->InputFloating->cal_min;
-	resultImage->cal_max = this->InputFloating->cal_max;
-	resultImage->scl_slope = this->InputFloating->scl_slope;
-	resultImage->scl_inter = this->InputFloating->scl_inter;
-	resultImage->data = (void *) malloc(resultImage->nvox * resultImage->nbyper);
-	memcpy(resultImage->data, this->CurrentWarped->data, resultImage->nvox * resultImage->nbyper);
+	 free(this->CurrentReferenceMask);
+	nifti_image *warpedImage = nifti_copy_nim_info(this->CurrentWarped);
+	warpedImage->cal_min = this->InputFloating->cal_min;
+	warpedImage->cal_max = this->InputFloating->cal_max;
+	warpedImage->scl_slope = this->InputFloating->scl_slope;
+	warpedImage->scl_inter = this->InputFloating->scl_inter;
+	warpedImage->data = (void *) malloc(warpedImage->nvox * warpedImage->nbyper);
+	memcpy(warpedImage->data, this->CurrentWarped->data, warpedImage->nvox * warpedImage->nbyper);
 
 	reg_aladin<T>::clearKernels();
 	reg_aladin<T>::clearAladinContent();
-	return resultImage;
+	return warpedImage;
 }
 /* *************************************************************** */
 template<class T>

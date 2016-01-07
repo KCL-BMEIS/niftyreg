@@ -47,8 +47,8 @@ protected:
 /* *************************************************************** */
 
 /** @brief Copmutes and returns the SSD between two input images
- * @param targetImage First input image to use to compute the metric
- * @param resultImage Second input image to use to compute the metric
+ * @param referenceImage First input image to use to compute the metric
+ * @param warpedImage Second input image to use to compute the metric
  * @param activeTimePoint Specified which time point volumes have to be considered
  * @param jacobianDeterminantImage Image that contains the Jacobian
  * determinant of a transformation at every voxel position. This
@@ -59,8 +59,8 @@ protected:
  * @return Returns the computed sum squared difference
  */
 extern "C++" template <class DTYPE>
-double reg_getSSDValue(nifti_image *targetImage,
-                       nifti_image *resultImage,
+double reg_getSSDValue(nifti_image *referenceImage,
+                       nifti_image *warpedImage,
                        bool *activeTimePoint,
                        nifti_image *jacobianDeterminantImage,
                        int *mask,
@@ -68,10 +68,10 @@ double reg_getSSDValue(nifti_image *targetImage,
                       );
 
 /** @brief Compute a voxel based gradient of the sum squared difference.
- * @param targetImage First input image to use to compute the metric
- * @param resultImage Second input image to use to compute the metric
+ * @param referenceImage First input image to use to compute the metric
+ * @param warpedImage Second input image to use to compute the metric
  * @param activeTimePoint Specified which time point volumes have to be considered
- * @param resultImageGradient Spatial gradient of the input result image
+ * @param warpedImageGradient Spatial gradient of the input warped image
  * @param ssdGradientImage Output image htat will be updated with the
  * value of the SSD gradient
  * @param jacobianDeterminantImage Image that contains the Jacobian
@@ -84,10 +84,10 @@ double reg_getSSDValue(nifti_image *targetImage,
  * should be considered. If set to NULL, all voxels are considered
  */
 extern "C++" template <class DTYPE>
-void reg_getVoxelBasedSSDGradient(nifti_image *targetImage,
-                                  nifti_image *resultImage,
+void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
+                                  nifti_image *warpedImage,
                                   bool *activeTimePoint,
-                                  nifti_image *resultImageGradient,
+                                  nifti_image *warpedImageGradient,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDeterminantImage,
                                   int *mask

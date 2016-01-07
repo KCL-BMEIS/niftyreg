@@ -493,7 +493,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    float *kernelStandardDeviation,
                                    bool *activeTimePoint,
                                    nifti_image *correlationImage,
-                                   nifti_image *warpedGradientImage,
+                                   nifti_image *warImgGradient,
                                    nifti_image *lnccGradientImage,
                                    int kernelType)
 {
@@ -522,16 +522,11 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
 
    // Create some pointers to the gradient images
    DTYPE *lnccGradPtrX = static_cast<DTYPE *>(lnccGradientImage->data);
-   DTYPE *warpGradPtrX = static_cast<DTYPE *>(warpedGradientImage->data);
    DTYPE *lnccGradPtrY = &lnccGradPtrX[voxelNumber];
-   DTYPE *warpGradPtrY = &warpGradPtrX[voxelNumber];
    DTYPE *lnccGradPtrZ = NULL;
-   DTYPE *warpGradPtrZ = NULL;
    if(referenceImage->nz>1)
-   {
       lnccGradPtrZ = &lnccGradPtrY[voxelNumber];
-      warpGradPtrZ = &warpGradPtrY[voxelNumber];
-   }
+   DTYPE *spatialGradPtr = static_cast<DTYPE *>(warImgGradient->data);
 
    // Iteration over all time points to compute new values
    for(int t=0; t<referenceImage->nt; ++t)
@@ -544,6 +539,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
       double refMeanValue, warMeanValue, refSdevValue,
              warSdevValue, correlaValue;
       double temp1, temp2, temp3;
+
       // Iteration over all voxels
 #if defined (_OPENMP)
       #pragma omp parallel for default(none) \
@@ -605,6 +601,11 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
       DTYPE *temp3Ptr = &correlaPtr[t*voxelNumber];
       DTYPE *refImagePtr0 = &refImagePtr[t*voxelNumber];
       DTYPE *warImagePtr0 = &warImagePtr[t*voxelNumber];
+      DTYPE *warpGradPtrX = &spatialGradPtr[t*voxelNumber];
+      DTYPE *warpGradPtrY = &spatialGradPtr[(referenceImage->nt+t)*voxelNumber];
+      DTYPE *warpGradPtrZ = NULL;
+      if(referenceImage->nz>1)
+         warpGradPtrZ=&spatialGradPtr[(2*referenceImage->nt+t)*voxelNumber];
       double common;
       // Iteration over all voxels
 #if defined (_OPENMP)
@@ -625,9 +626,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
             lnccGradPtrX[voxel] -= warpGradPtrX[voxel] * common;
             lnccGradPtrY[voxel] -= warpGradPtrY[voxel] * common;
             if(warpGradPtrZ!=NULL)
-            {
                lnccGradPtrZ[voxel] -= warpGradPtrZ[voxel] * common;
-            }
          }
       }
    }

@@ -532,7 +532,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    float currentNodeSpacing[3];
    currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dx;
    bool activeAxis[3]= {1,0,0};
-   reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
+   reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
                                currentNodeSpacing,
                                1, // cubic spline kernel
                                NULL, // mask
@@ -543,7 +543,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dy;
    activeAxis[0]=0;
    activeAxis[1]=1;
-   reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
+   reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
                                currentNodeSpacing,
                                1, // cubic spline kernel
                                NULL, // mask
@@ -551,12 +551,12 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
                                activeAxis
                               );
    // Convolution along the z axis if required
-   if(this->voxelBasedMeasureGradientImage->nz>1)
+   if(this->voxelBasedMeasureGradient->nz>1)
    {
       currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dz;
       activeAxis[1]=0;
       activeAxis[2]=1;
-      reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
+      reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
                                   currentNodeSpacing,
                                   1, // cubic spline kernel
                                   NULL, // mask
@@ -571,7 +571,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
       reorientation = this->currentFloating->sto_ijk;
    else reorientation = this->currentFloating->qto_ijk;
    reg_voxelCentric2NodeCentric(this->transformationGradient,
-                                this->voxelBasedMeasureGradientImage,
+                                this->voxelBasedMeasureGradient,
                                 this->similarityWeight,
                                 false, // no update
                                 &reorientation
@@ -993,22 +993,22 @@ nifti_image **reg_f3d<T>::GetWarpedImage()
    reg_base<T>::WarpFloatingImage(3); // cubic spline interpolation
    reg_base<T>::ClearDeformationField();
 
-   nifti_image **resultImage= (nifti_image **)malloc(2*sizeof(nifti_image *));
-   resultImage[0]=nifti_copy_nim_info(this->warped);
-   resultImage[0]->cal_min=this->inputFloating->cal_min;
-   resultImage[0]->cal_max=this->inputFloating->cal_max;
-   resultImage[0]->scl_slope=this->inputFloating->scl_slope;
-   resultImage[0]->scl_inter=this->inputFloating->scl_inter;
-   resultImage[0]->data=(void *)malloc(resultImage[0]->nvox*resultImage[0]->nbyper);
-   memcpy(resultImage[0]->data, this->warped->data, resultImage[0]->nvox*resultImage[0]->nbyper);
+   nifti_image **warpedImage= (nifti_image **)malloc(2*sizeof(nifti_image *));
+   warpedImage[0]=nifti_copy_nim_info(this->warped);
+   warpedImage[0]->cal_min=this->inputFloating->cal_min;
+   warpedImage[0]->cal_max=this->inputFloating->cal_max;
+   warpedImage[0]->scl_slope=this->inputFloating->scl_slope;
+   warpedImage[0]->scl_inter=this->inputFloating->scl_inter;
+   warpedImage[0]->data=(void *)malloc(warpedImage[0]->nvox*warpedImage[0]->nbyper);
+   memcpy(warpedImage[0]->data, this->warped->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
 
-   resultImage[1]=NULL;
+   warpedImage[1]=NULL;
 
    reg_f3d<T>::ClearWarped();
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetWarpedImage");
 #endif
-   return resultImage;
+   return warpedImage;
 }
 /* *************************************************************** */
 /* *************************************************************** */

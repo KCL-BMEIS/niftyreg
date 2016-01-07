@@ -75,7 +75,7 @@ int main(int argc, char **argv)
         identityDefField->intent_code=NIFTI_INTENT_VECTOR;
         memset(identityDefField->intent_name, 0, 16);
         strcpy(identityDefField->intent_name,"NREG_TRANS");
-        identityDefField->intent_p1==DISP_FIELD;
+        identityDefField->intent_p1=DISP_FIELD;
         reg_getDeformationFromDisplacement(identityDefField);
 
         reg_getImageGradient(inputImage,

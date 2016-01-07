@@ -915,7 +915,7 @@ void reg_tools_addValueToImage(nifti_image *img1,
    if(img1->datatype != res->datatype)
    {
       reg_print_fct_error("reg_tools_addValueToImage");
-      reg_print_msg_error("Input and result image do not have the same data type");
+      reg_print_msg_error("Input and output image do not have the same data type");
       reg_exit();
    }
    if(img1->nvox != res->nvox)
@@ -964,7 +964,7 @@ void reg_tools_substractValueToImage(nifti_image *img1,
    if(img1->datatype != res->datatype)
    {
       reg_print_fct_error("reg_tools_substractValueToImage");
-      reg_print_msg_error("Input and result image do not have the same data type");
+      reg_print_msg_error("Input and output image do not have the same data type");
       reg_exit();
    }
    if(img1->nvox != res->nvox)
@@ -1013,7 +1013,7 @@ void reg_tools_multiplyValueToImage(nifti_image *img1,
    if(img1->datatype != res->datatype)
    {
       reg_print_fct_error("reg_tools_multiplyValueToImage");
-      reg_print_msg_error("Input and result image do not have the same data type");
+      reg_print_msg_error("Input and output image do not have the same data type");
       reg_exit();
    }
    if(img1->nvox != res->nvox)
@@ -1062,7 +1062,7 @@ void reg_tools_divideValueToImage(nifti_image *img1,
    if(img1->datatype != res->datatype)
    {
       reg_print_fct_error("reg_tools_divideValueToImage");
-      reg_print_msg_error("Input and result image do not have the same data type");
+      reg_print_msg_error("Input and output image do not have the same data type");
       reg_exit();
    }
    if(img1->nvox != res->nvox)
@@ -2300,11 +2300,11 @@ template int reg_createMaskPyramid<double>(nifti_image *, int **, unsigned int ,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class TYPE1, class TYPE2>
-int reg_tools_nanMask_image2(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
+int reg_tools_nanMask_image2(nifti_image *image, nifti_image *maskImage, nifti_image *outputImage)
 {
    TYPE1 *imagePtr = static_cast<TYPE1 *>(image->data);
    TYPE2 *maskPtr = static_cast<TYPE2 *>(maskImage->data);
-   TYPE1 *resPtr = static_cast<TYPE1 *>(resultImage->data);
+   TYPE1 *resPtr = static_cast<TYPE1 *>(outputImage->data);
    for(size_t i=0; i<image->nvox; ++i)
    {
       if(*maskPtr == 0)
@@ -2318,34 +2318,34 @@ int reg_tools_nanMask_image2(nifti_image *image, nifti_image *maskImage, nifti_i
 }
 /* *************************************************************** */
 template <class TYPE1>
-int reg_tools_nanMask_image1(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
+int reg_tools_nanMask_image1(nifti_image *image, nifti_image *maskImage, nifti_image *outputImage)
 {
    switch(maskImage->datatype)
    {
    case NIFTI_TYPE_UINT8:
       return reg_tools_nanMask_image2<TYPE1,unsigned char>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_INT8:
       return reg_tools_nanMask_image2<TYPE1,char>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_UINT16:
       return reg_tools_nanMask_image2<TYPE1,unsigned short>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_INT16:
       return reg_tools_nanMask_image2<TYPE1,short>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_UINT32:
       return reg_tools_nanMask_image2<TYPE1,unsigned int>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_INT32:
       return reg_tools_nanMask_image2<TYPE1,int>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_FLOAT32:
       return reg_tools_nanMask_image2<TYPE1,float>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_FLOAT64:
       return reg_tools_nanMask_image2<TYPE1,double>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    default:
       reg_print_fct_error("reg_tools_nanMask_image1");
       reg_print_msg_error("The image data type is not supported");
@@ -2353,48 +2353,48 @@ int reg_tools_nanMask_image1(nifti_image *image, nifti_image *maskImage, nifti_i
    }
 }
 /* *************************************************************** */
-int reg_tools_nanMask_image(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
+int reg_tools_nanMask_image(nifti_image *image, nifti_image *maskImage, nifti_image *outputImage)
 {
    // Check dimension
-   if(image->nvox != maskImage->nvox || image->nvox != resultImage->nvox)
+   if(image->nvox != maskImage->nvox || image->nvox != outputImage->nvox)
    {
       reg_print_fct_error("reg_tools_nanMask_image");
       reg_print_msg_error("Input images have different size");
       reg_exit();
    }
    // Check output data type
-   if(image->datatype != resultImage->datatype)
+   if(image->datatype != outputImage->datatype)
    {
       reg_print_fct_error("reg_tools_nanMask_image");
-      reg_print_msg_error("tInput and result images have different data type");
+      reg_print_msg_error("Input and output images have different data type");
       reg_exit();
    }
    switch(image->datatype)
    {
    case NIFTI_TYPE_UINT8:
       return reg_tools_nanMask_image1<unsigned char>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_INT8:
       return reg_tools_nanMask_image1<char>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_UINT16:
       return reg_tools_nanMask_image1<unsigned short>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_INT16:
       return reg_tools_nanMask_image1<short>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_UINT32:
       return reg_tools_nanMask_image1<unsigned int>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_INT32:
       return reg_tools_nanMask_image1<int>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_FLOAT32:
       return reg_tools_nanMask_image1<float>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    case NIFTI_TYPE_FLOAT64:
       return reg_tools_nanMask_image1<double>
-            (image, maskImage, resultImage);
+            (image, maskImage, outputImage);
    default:
       reg_print_fct_error("reg_tools_nanMask_image");
       reg_print_msg_error("The image data type is not supported");

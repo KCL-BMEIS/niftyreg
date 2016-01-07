@@ -96,8 +96,8 @@ protected:
    int *currentMask;
    nifti_image *warped;
    nifti_image *deformationFieldImage;
-   nifti_image *warpedGradientImage;
-   nifti_image *voxelBasedMeasureGradientImage;
+   nifti_image *warImgGradient;
+   nifti_image *voxelBasedMeasureGradient;
    unsigned int currentLevel;
 
    mat33 *forwardJacobianMatrix;

@@ -80,7 +80,7 @@ typedef struct
 
 void PetitUsage(char *exec)
 {
-    fprintf(stderr,"Usage:\t%s -in  <targetImageName> [OPTIONS].\n",exec);
+    fprintf(stderr,"Usage:\t%s -in  <filename> [OPTIONS].\n",exec);
     fprintf(stderr,"\tSee the help for more details (-h).\n");
     return;
 }
@@ -337,7 +337,7 @@ int main(int argc, char **argv)
     nifti_image *image = reg_io_ReadImageFile(param->inputImageName);
     if(image == NULL)
     {
-        fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->inputImageName);
+        fprintf(stderr,"** ERROR Error when reading the input image: %s\n",param->inputImageName);
         return EXIT_FAILURE;
     }
 
@@ -502,24 +502,24 @@ int main(int argc, char **argv)
             }
         }
 
-        nifti_image *resultImage = nifti_copy_nim_info(image);
-        resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
+        nifti_image *outputImage = nifti_copy_nim_info(image);
+        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
 
         if(image2!=NULL)
         {
             switch(flag->operationTypeFlag)
             {
             case 0:
-                reg_tools_addImageToImage(image, image2, resultImage);
+                reg_tools_addImageToImage(image, image2, outputImage);
                 break;
             case 1:
-                reg_tools_substractImageToImage(image, image2, resultImage);
+                reg_tools_substractImageToImage(image, image2, outputImage);
                 break;
             case 2:
-                reg_tools_multiplyImageToImage(image, image2, resultImage);
+                reg_tools_multiplyImageToImage(image, image2, outputImage);
                 break;
             case 3:
-                reg_tools_divideImageToImage(image, image2, resultImage);
+                reg_tools_divideImageToImage(image, image2, outputImage);
                 break;
             }
         }
@@ -528,24 +528,24 @@ int main(int argc, char **argv)
             switch(flag->operationTypeFlag)
             {
             case 0:
-                reg_tools_addValueToImage(image, resultImage, param->operationValue);
+                reg_tools_addValueToImage(image, outputImage, param->operationValue);
                 break;
             case 1:
-                reg_tools_substractValueToImage(image, resultImage, param->operationValue);
+                reg_tools_substractValueToImage(image, outputImage, param->operationValue);
                 break;
             case 2:
-                reg_tools_multiplyValueToImage(image, resultImage, param->operationValue);
+                reg_tools_multiplyValueToImage(image, outputImage, param->operationValue);
                 break;
             case 3:
-                reg_tools_divideValueToImage(image, resultImage, param->operationValue);
+                reg_tools_divideValueToImage(image, outputImage, param->operationValue);
                 break;
             }
         }
         if(flag->outputImageFlag)
-            reg_io_WriteImageFile(resultImage,param->outputImageName);
-        else reg_io_WriteImageFile(resultImage,"output.nii");
+            reg_io_WriteImageFile(outputImage,param->outputImageName);
+        else reg_io_WriteImageFile(outputImage,"output.nii");
 
-        nifti_image_free(resultImage);
+        nifti_image_free(outputImage);
         if(image2!=NULL) nifti_image_free(image2);
     }
 
@@ -605,26 +605,26 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        nifti_image *resultImage = nifti_copy_nim_info(image);
-        resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
+        nifti_image *outputImage = nifti_copy_nim_info(image);
+        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
 
-        reg_tools_nanMask_image(image,maskImage,resultImage);
+        reg_tools_nanMask_image(image,maskImage,outputImage);
 
         if(flag->outputImageFlag)
-            reg_io_WriteImageFile(resultImage,param->outputImageName);
-        else reg_io_WriteImageFile(resultImage,"output.nii");
+            reg_io_WriteImageFile(outputImage,param->outputImageName);
+        else reg_io_WriteImageFile(outputImage,"output.nii");
 
-        nifti_image_free(resultImage);
+        nifti_image_free(outputImage);
         nifti_image_free(maskImage);
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->iso)
     {
-        nifti_image *resultImage = reg_makeIsotropic(image,3);
+        nifti_image *outputImage = reg_makeIsotropic(image,3);
         if(flag->outputImageFlag)
-            reg_io_WriteImageFile(resultImage,param->outputImageName);
-        else reg_io_WriteImageFile(resultImage,"output.nii");
-        nifti_image_free(resultImage);
+            reg_io_WriteImageFile(outputImage,param->outputImageName);
+        else reg_io_WriteImageFile(outputImage,"output.nii");
+        nifti_image_free(outputImage);
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->nosclFlag)

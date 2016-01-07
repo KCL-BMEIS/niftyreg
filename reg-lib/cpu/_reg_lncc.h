@@ -80,8 +80,8 @@ protected:
 /* *************************************************************** */
 /* *************************************************************** */
 /** @brief Copmutes and returns the LNCC between two input image
- * @param targetImage First input image to use to compute the metric
- * @param resultImage Second input image to use to compute the metric
+ * @param referenceImage First input image to use to compute the metric
+ * @param warpedImage Second input image to use to compute the metric
  * @param gaussianStandardDeviation Standard deviation of the Gaussian kernel
  * to use.
  * @param mask Array that contains a mask to specify which voxel
@@ -103,9 +103,9 @@ double reg_getLNCCValue(nifti_image *referenceImage,
 
 /* *************************************************************** */
 /** @brief Compute a voxel based gradient of the LNCC.
- *  @param targetImage First input image to use to compute the metric
- *  @param resultImage Second input image to use to compute the metric
- *  @param resultImageGradient Spatial gradient of the input result image
+ *  @param referenceImage First input image to use to compute the metric
+ *  @param warpedImage Second input image to use to compute the metric
+ *  @param warpedImageGradient Spatial gradient of the input warped image
  *  @param lnccGradientImage Output image that will be updated with the
  *  value of the LNCC gradient
  *  @param gaussianStandardDeviation Standard deviation of the Gaussian kernel
@@ -124,7 +124,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    float *kernelStdDev,
                                    bool *activeTimePoint,
                                    nifti_image *correlationImage,
-                                   nifti_image *warpedGradientImage,
+                                   nifti_image *warImgGradient,
                                    nifti_image *lnccGradientImage,
                                    int kernelType);
 #endif

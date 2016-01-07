@@ -26,7 +26,7 @@ void PetitUsage(char *exec)
    char text[255];
    reg_print_msg_error("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
    reg_print_msg_error("Fast Free-Form Deformation algorithm for non-rigid registration");
-   sprintf(text,"Usage:\t%s -ref <targetImageName> -flo <sourceImageName> [OPTIONS]",exec);
+   sprintf(text,"Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS]",exec);
    reg_print_msg_error(text);
    reg_print_msg_error("\tSee the help for more details (-h)");
    reg_print_msg_error("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
@@ -741,7 +741,7 @@ int main(int argc, char **argv)
    // Run the registration
       REG->Run();
 
-      // Save the control point result
+      // Save the control point image
       nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
       if(outputCPPImageName==NULL) outputCPPImageName=(char *)"outputCPP.nii";
       memset(outputControlPointGridImage->descrip, 0, 80);
@@ -752,7 +752,7 @@ int main(int argc, char **argv)
       nifti_image_free(outputControlPointGridImage);
       outputControlPointGridImage=NULL;
 
-      // Save the backward control point result
+      // Save the backward control point image
       if(REG->GetSymmetricStatus())
       {
          // _backward is added to the forward control point grid image name
@@ -782,7 +782,7 @@ int main(int argc, char **argv)
          outputBackwardControlPointGridImage=NULL;
       }
 
-      // Save the warped image result(s)
+      // Save the warped image(s)
       nifti_image **outputWarpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
       outputWarpedImage[0]=NULL;
       outputWarpedImage[1]=NULL;
