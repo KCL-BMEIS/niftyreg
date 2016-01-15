@@ -111,7 +111,10 @@ void _reg_mrf2::ComputeSimilarityCost()
                                                               NULL);
 
                             double measure=dataCostmeasure->GetSimilarityMeasureValue();
-
+                            //REVERT THE MOVE
+                            deformationFieldImageData[dfx]=0;
+                            deformationFieldImageData[dfy]=0;
+                            deformationFieldImageData[dfz]=0;
                             //Third - store in a nifty image
 
                         }
