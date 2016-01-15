@@ -235,6 +235,10 @@ set(_reg_f3d_files
     ${NAME}_sym.cpp
     cpu/_reg_optimiser.h
     cpu/_reg_optimiser.cpp
+    cpu/_reg_mrf.h
+    cpu/_reg_mrf.cpp
+    cpu/_reg_mrf2.h
+    cpu/_reg_mrf2.cpp
 )
 set(_reg_f3d_libraries
   _reg_localTrans

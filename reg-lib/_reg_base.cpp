@@ -1294,6 +1294,22 @@ void reg_base<T>::Run()
       // Initialise the measures of similarity
       this->InitialiseSimilarity();
 
+      //MRF: if discrete optimization - I think we don't really need the following for the moment
+      //FIRST discrete optimisation and THEN continous optimization.
+      //We calculate the data term
+      /*
+      //this->controlPointGrid->nx
+      //calculate the similarity (MIND-SAD) for every control point and every displacement
+      similarityCostSAD(dataCost,mind_fixed,mind_moving,m,n,o,grid_step,label_hw,label_quant,alpha,mind_length);
+
+      ////MRF-regularisation over pair-wise penalty (semi-global optimiser)
+      //uses squared difference penalty
+      regularisationMST(regularisedCost,optimalDisplacement,dataCost,fixed,m,n,o,grid_step,label_hw);
+      ---> 1. CREATE THE PAIR-WISE GRAPH
+      ---> 2. PRIMS-MST for the tree
+      ---> 3. 2 PASSES OPTIMIZATIONS...
+      */
+
       // initialise the optimiser
       this->SetOptimiser();
 

@@ -280,6 +280,21 @@ void reg_f3d<T>::Initialise()
       if(this->controlPointGrid->nz>1)
          this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->levelToPerform-1));
    }
+   //MRF: if discrete optimization is on
+   //Initialise the MRF parameters - CREATE A MRF class maybe...
+   /*
+     //SETTINGS FOR CONTROL POINT SPACING AND LABEL SPACE
+     int label_quant=3; //step-size/quantisation of discrete displacements
+     int label_hw=6; //half-width of search space
+     //L={±0,±label_quant,..,±label_quant*label_hw}^3 voxels
+     int grid_step=8; //spacing between control points in voxels
+     //HERE and elsewhere THE B-SPLINE GRID DEFINITION NEEDS TO BE ADAPTED TO NIFTY-REG
+     //e.g. having control points outside the image domain, etc.
+
+     int label_num=(label_hw*2+1)*(label_hw*2+1)*(label_hw*2+1); //|L| number of displacements
+     int m1=m/grid_step; int n1=n/grid_step; int o1=o/grid_step; //dimensions of grid
+     int sz1=m1*n1*o1; //number of control points
+   */
 #ifdef NDEBUG
    if(this->verbose)
    {

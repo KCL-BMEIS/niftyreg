@@ -529,6 +529,7 @@ int main(int argc, char **argv)
           }
           REG->UseMIND(0);
       }
+      //MRF -- add option for discrete optimization
       else if(strcmp(argv[i], "-kld")==0)
       {
          REG->UseKLDivergence(atoi(argv[++i]));
