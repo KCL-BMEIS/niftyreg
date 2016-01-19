@@ -1,31 +1,28 @@
 #include "_reg_mrf.h"
 /*********************************/
-_reg_mrf::_reg_mrf(nifti_image* fixedImage,
-                   nifti_image* movingImage,
+reg_mrf::reg_mrf(nifti_image* referenceImage,
+                   nifti_image* floatingImage,
                    nifti_image* controlPointImage,
-                   nifti_image* warpedImage,
                    int label_quant,
                    int label_hw,
-                   std::string costMeasureName,
                    float alphaValue)
 {
-    if(this->fixedImage->nz > 1) {
+    this->referenceImage = referenceImage;
+    this->floatingImage = floatingImage;
+    if(this->referenceImage->nz > 1) {
         dimImage = 3;
     } else {
         dimImage = 2;
     }
-    this->fixedImage = fixedImage;
-    this->movingImage = movingImage;
     this->controlPointImage = controlPointImage;
     this->label_quant = label_quant;
     this->label_hw = label_hw;
-    this->costMeasure = costMeasureName;//not used for the moment
     this->alpha = alphaValue;
     //private variables
-    this->grid_step[0] = ceil(controlPointImage->dx / fixedImage->dx);
-    this->grid_step[1] = ceil(controlPointImage->dy / fixedImage->dy);
+    this->grid_step[0] = ceil(controlPointImage->dx / referenceImage->dx);
+    this->grid_step[1] = ceil(controlPointImage->dy / referenceImage->dy);
     if(dimImage == 3) {
-        this->grid_step[2] = ceil(controlPointImage->dz / fixedImage->dz);
+        this->grid_step[2] = ceil(controlPointImage->dz / referenceImage->dz);
     } else {
         this->grid_step[2] = 1; //HAVE TO CHECK IF IT WORKS IN 2D...
     }
@@ -37,23 +34,30 @@ _reg_mrf::_reg_mrf(nifti_image* fixedImage,
     optimalDisplacement=new int[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
 
     fieldLR=new float[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz*dimImage]; //displacement field (on grid level)
-    fieldHR=new float[fixedImage->nx*fixedImage->ny*fixedImage->nz*dimImage]; //(and dense voxels) three components for 3D displacement
+    fieldLR=static_cast<float *>(controlPointImage->data); //displacement field (on grid level)
+    fieldHR=new float[referenceImage->nx*referenceImage->ny*referenceImage->nz*dimImage]; //(and dense voxels) three components for 3D displacement
 
-     this->warpedImage = warpedImage;
+     this->warpedImage = nifti_copy_nim_info(this->referenceImage);
+    warpedImage->data = (void *)calloc(referenceImage->nvox,warpedImage->nbyper);
 
 }
 /*********************************/
-_reg_mrf::~_reg_mrf()
+reg_mrf::~reg_mrf()
 {}
 /*********************************/
-int _reg_mrf::GetLabel_quant()
+int reg_mrf::GetLabel_quant()
 {
     return label_quant;
 }
 /*********************************/
-int _reg_mrf::GetLabel_hw()
+int reg_mrf::GetLabel_hw()
 {
     return label_hw;
+}
+/*********************************/
+float* reg_mrf::GetDataCost()
+{
+    return this->dataCost;
 }
 /*********************************/
 //int _reg_mrf::GetGrid_step()
@@ -61,12 +65,12 @@ int _reg_mrf::GetLabel_hw()
 //    return grid_step;
 //}
 /*********************************/
-void _reg_mrf::SetLabel_quant(int label_quant)
+void reg_mrf::SetLabel_quant(int label_quant)
 {
     this->label_quant = label_quant;
 }
 /*********************************/
-void _reg_mrf::SetLabel_hw(int label_hw)
+void reg_mrf::SetLabel_hw(int label_hw)
 {
     this->label_hw = label_hw;
 }
@@ -76,32 +80,31 @@ void _reg_mrf::SetLabel_hw(int label_hw)
 //    this->grid_step = grid_step;
 //}
 /*********************************/
-template <class DTYPE>
-void _reg_mrf::ComputeSimilarityCost()
+void reg_mrf::ComputeSimilarityCost()
 {
-    int m=fixedImage->nx;
-    int n=fixedImage->ny;
-    int o=fixedImage->nz; //image dimension
+    int m=referenceImage->nx;
+    int n=referenceImage->ny;
+    int o=referenceImage->nz; //image dimension
     //
     int m1=controlPointImage->nx;
     int n1=controlPointImage->ny;
     int o1=controlPointImage->nz; //dimensions of grid
 
-    DTYPE* fixedImageData = static_cast<DTYPE> (fixedImage->data);
+    float* referenceImageData = static_cast<float*> (referenceImage->data);
     //padding of moving image
-    DTYPE* movingImageData = static_cast<DTYPE> (movingImage->data);
+    float* floatingImageData = static_cast<float*> (floatingImage->data);
 
     int pad1=label_quant*label_hw; //default = 18
     int pad2=pad1*2; //default 18*2=36
-    int mp=fixedImage->nx+pad2;
-    int np=fixedImage->ny+pad2;
+    int mp=referenceImage->nx+pad2;
+    int np=referenceImage->ny+pad2;
     int op = 1;
     if(dimImage == 3) {
-        op=fixedImage->nz+pad2;
+        op=referenceImage->nz+pad2;
     }
     int szp=mp*np*op;
-    DTYPE* movingpad=new float[szp*movingImage->nt];
-    for(int i=0;i<szp*fixedImage->nt;i++){
+    float* movingpad=new float[szp*floatingImage->nt];
+    for(int i=0;i<szp*referenceImage->nt;i++){
         movingpad[i]=0.0f;
     }
 
@@ -111,8 +114,8 @@ void _reg_mrf::ComputeSimilarityCost()
                 for(int i=0;i<mp;i++){
                     //zero-padding
                     if(i-pad1>=0&&i-pad1<m&&j-pad1>=0&&j-pad1<n&&k-pad1>=0&&k-pad1<o){
-                        for(int l1=0;l1<movingImage->nt;l1++){
-                            movingpad[l1+(i+j*mp+k*mp*np)*movingImage->nt]=movingImageData[l1+(i-pad1+(j-pad1)*m+(k-pad1)*m*n)*movingImage->nt];
+                        for(int l1=0;l1<floatingImage->nt;l1++){
+                            movingpad[l1+(i+j*mp+k*mp*np)*floatingImage->nt]=floatingImageData[l1+(i-pad1+(j-pad1)*m+(k-pad1)*m*n)*floatingImage->nt];
                         }
                     }
                 }
@@ -123,8 +126,8 @@ void _reg_mrf::ComputeSimilarityCost()
             for(int i=0;i<mp;i++){
                 //zero-padding
                 if(i-pad1>=0&&i-pad1<m&&j-pad1>=0&&j-pad1<n){
-                    for(int l1=0;l1<movingImage->nt;l1++){
-                        movingpad[l1+(i+j*mp)*movingImage->nt]=movingImageData[l1+(i-pad1+(j-pad1)*m)*movingImage->nt];
+                    for(int l1=0;l1<floatingImage->nt;l1++){
+                        movingpad[l1+(i+j*mp)*floatingImage->nt]=floatingImageData[l1+(i-pad1+(j-pad1)*m)*floatingImage->nt];
                     }
                 }
             }
@@ -147,6 +150,7 @@ void _reg_mrf::ComputeSimilarityCost()
     */
 
     //number of sampling points and adapt alpha to it
+    /*
     float maxsamp=0;
     if (dimImage == 3) {
         maxsamp=ceil((float)grid_step[0]/(float)skipx)*ceil((float)grid_step[1]/(float)skipy)*ceil((float)grid_step[2]/(float)skipz);
@@ -157,8 +161,8 @@ void _reg_mrf::ComputeSimilarityCost()
     float alpha1=0.5*alphai/(float)(maxsamp);
 
     __m128* movingpad128=(__m128*)movingpad;
-    __m128* fixed128=(__m128*)fixedImageData;
-
+    __m128* fixed128=(__m128*)referenceImageData;
+    */
     if (dimImage == 3) {
 
 #pragma omp parallel for
@@ -166,9 +170,9 @@ void _reg_mrf::ComputeSimilarityCost()
         for(int y=0;y<n1;y++){
             for(int x=0;x<m1;x++){
                 //voxel coordinates in fixed image
-                int x1=x*grid_step[0];
-                int y1=y*grid_step[1];
-                int z1=z*grid_step[2];
+                int x1=(x-1)*grid_step[0];
+                int y1=(y-1)*grid_step[1];
+                int z1=(z-1)*grid_step[2];
 
                 for(int l=0;l<label_num;l++){ //iterate over all displacements
                     float out1=0;
@@ -183,21 +187,24 @@ void _reg_mrf::ComputeSimilarityCost()
                     int x2=dx+x1; int y2=dy+y1; int z2=dz+z1;
                     //accumulate data cost over voxels within influence region of control point
                     for(int k=0;k<grid_step[2];k+=skipz){
+                        if((k+z1)>-1 && (k+z1)<this->referenceImage->nz && (k+z2)>-1 && (k+z2)<this->floatingImage->nz ){
                         for(int j=0;j<grid_step[1];j+=skipy){
+                            if((j+y1)>-1 && (j+y1)<this->referenceImage->ny && (j+y2)>-1 && (j+y2)<this->floatingImage->ny ){
                             for(int i=0;i<grid_step[0];i+=skipx){
-                                //for(int l1=0;l1<fixedImage->nt/4;l1++){
-                                for(int l1=0;l1<fixedImage->nt;l1++){
+                                if((i+x1)>-1 && (i+x1)<this->referenceImage->nx && (i+x2)>-1 && (i+x2)<this->floatingImage->nx ){
+                                //for(int l1=0;l1<referenceImage->nt/4;l1++){
+                                for(int l1=0;l1<referenceImage->nt;l1++){
                                     //coordinates in image space
-                                    float t1=fixedImageData[l1+(i+x1+(j+y1)*m+(k+z1)*m*n)*fixedImage->nt];
-                                    float t2=movingpad[l1+(i+x2+(j+y2)*mp+(k+z2)*mp*np)*movingImage->nt];
+                                    float t1=referenceImageData[l1+(i+x1+(j+y1)*m+(k+z1)*m*n)*referenceImage->nt];
+                                    float t2=movingpad[l1+(i+x2+(j+y2)*mp+(k+z2)*mp*np)*floatingImage->nt];
                                     out1+=fabs(t1-t2); //SAD
-                                    //__m128 t1=fixed128[l1+(i+x1+(j+y1)*m+(k+z1)*m*n)*fixedImage->nt/4];
-                                    //__m128 t2=movingpad128[l1+(i+x2+(j+y2)*mp+(k+z2)*mp*np)*movingImage->nt/4];
+                                    //__m128 t1=fixed128[l1+(i+x1+(j+y1)*m+(k+z1)*m*n)*referenceImage->nt/4];
+                                    //__m128 t2=movingpad128[l1+(i+x2+(j+y2)*mp+(k+z2)*mp*np)*floatingImage->nt/4];
                                     //__m128 diff=t1-t2; //SSE speeds-up these distances twofold
                                     //dist128+=_mm_max_ps(-diff,diff);
                                 }
                             }
-                        }
+                        }}}}
                     }
                     //horizontal sum of SSE array
                     //float out4[]={0,0,0,0};
@@ -205,7 +212,8 @@ void _reg_mrf::ComputeSimilarityCost()
                     //out1=out4[0]+out4[1]+out4[2]+out4[3];
 
                     //output matrix (first dimension displacement label, second dim. control point)
-                    dataCost[(x+y*m1+z*m1*n1)*label_num+l]=out1*alpha1; //control point coordinates
+                    //dataCost[(x+y*m1+z*m1*n1)*label_num+l]=out1*alpha1; //control point coordinates
+                    dataCost[(x+y*m1+z*m1*n1)*label_num+l]=out1; //control point coordinates
                 }
             }
         }
@@ -233,13 +241,13 @@ void _reg_mrf::ComputeSimilarityCost()
                     //accumulate data cost over voxels within influence region of control point
                         for(int j=0;j<grid_step[1];j+=skipy){
                             for(int i=0;i<grid_step[0];i+=skipx){
-                                for(int l1=0;l1<fixedImage->nt;l1++){
+                                for(int l1=0;l1<referenceImage->nt;l1++){
                                     //coordinates in image space
-                                    float t1=fixedImageData[l1+(i+x1+(j+y1)*m)*fixedImage->nt];
-                                    float t2=movingpad[l1+(i+x2+(j+y2)*mp)*movingImage->nt];
+                                    float t1=referenceImageData[l1+(i+x1+(j+y1)*m)*referenceImage->nt];
+                                    float t2=movingpad[l1+(i+x2+(j+y2)*mp)*floatingImage->nt];
                                     out1+=fabs(t1-t2); //SAD
-                                    //__m128 t1=fixed128[l1+(i+x1+(j+y1)*m+(k+z1)*m*n)*fixedImage->nt/4];
-                                    //__m128 t2=movingpad128[l1+(i+x2+(j+y2)*mp+(k+z2)*mp*np)*movingImage->nt/4];
+                                    //__m128 t1=fixed128[l1+(i+x1+(j+y1)*m+(k+z1)*m*n)*referenceImage->nt/4];
+                                    //__m128 t2=movingpad128[l1+(i+x2+(j+y2)*mp+(k+z2)*mp*np)*floatingImage->nt/4];
                                     //__m128 diff=t1-t2; //SSE speeds-up these distances twofold
                                     //dist128+=_mm_max_ps(-diff,diff);
                                 }
@@ -251,7 +259,8 @@ void _reg_mrf::ComputeSimilarityCost()
                     //out1=out4[0]+out4[1]+out4[2]+out4[3];
 
                     //output matrix (first dimension displacement label, second dim. control point)
-                    dataCost[(x+y*m1)*label_num+l]=out1*alpha1; //control point coordinates
+                    //dataCost[(x+y*m1)*label_num+l]=out1*alpha1; //control point coordinates
+                    dataCost[(x+y*m1)*label_num+l]=out1; //control point coordinates
                 }
             }
         }
@@ -260,8 +269,7 @@ void _reg_mrf::ComputeSimilarityCost()
     return;
 }
 /*****************************************************************************************************/
-template <class DTYPE>
-void _reg_mrf::regularisationMST()
+void reg_mrf::regularisationMST()
 {
     //
     int m1=controlPointImage->nx;
@@ -276,8 +284,8 @@ void _reg_mrf::regularisationMST()
     int* index_neighbours=new int[sz1*dimImage*2];
     float* edgeWeight=new float[sz1];
 
-    DTYPE* fixedImageData = static_cast<DTYPE> (fixedImage->data);
-    edgeGraph(edgeWeightMatrix,index_neighbours,fixedImageData,fixedImage->nx,fixedImage->ny,fixedImage->nz,grid_step);
+    float* referenceImageData = static_cast<float*> (referenceImage->data);
+    edgeGraph(edgeWeightMatrix,index_neighbours,referenceImageData,referenceImage->nx,referenceImage->ny,referenceImage->nz,grid_step);
 
     primsMST(orderedList,parentsList,edgeWeight,edgeWeightMatrix,index_neighbours,m1,n1,o1);
     delete index_neighbours; delete edgeWeightMatrix;
@@ -301,15 +309,15 @@ void _reg_mrf::regularisationMST()
 }
 /********************************************************************************************************/
 //input lowres field (defined for control point), output non-parametric vectors
-void _reg_mrf::upsampleDisplacements()
+void reg_mrf::upsampleDisplacements()
 {
     int m1=controlPointImage->nx;
     int n1=controlPointImage->ny;
     int o1=controlPointImage->nz; //dimensions of grid
     int sz1=m1*n1*o1; //number LR control points
-    int m=fixedImage->nx;
-    int n=fixedImage->ny;
-    int o=fixedImage->nz;
+    int m=referenceImage->nx;
+    int n=referenceImage->ny;
+    int o=referenceImage->nz;
     int sz=m*n*o; //number HR voxels
     //scaling parameters for coordinates
     float scale_m=(float)m/(float)m1;
@@ -339,18 +347,35 @@ void _reg_mrf::upsampleDisplacements()
 
 }
 /********************************************************************************************************/
-template <class DTYPE>
-void _reg_mrf::warpMovingImage()
+void reg_mrf::warpFloatingImage()
 {
-    DTYPE* movingImageData = static_cast<DTYPE> (movingImage->data);
-    DTYPE* warpedImageData = static_cast<DTYPE> (warpedImage->data);
+    float* floatingImageData = static_cast<float*> (floatingImage->data);
+    float* warpedImageData = static_cast<float*> (this->warpedImage->data);
 
-    int m=fixedImage->nx;
-    int n=fixedImage->ny;
-    int o=fixedImage->nz; //image dimension
+    int m=referenceImage->nx;
+    int n=referenceImage->ny;
+    int o=referenceImage->nz; //image dimension
     int sz=m*n*o; //number of voxels
 
-    interp3(warpedImageData,movingImageData,fieldHR,fieldHR+sz,fieldHR+2*sz,m,n,o,m,n,o,true); //true->plus identity
+    nifti_image *tempDef = nifti_copy_nim_info(this->referenceImage);
+    tempDef->ndim=tempDef->dim[0]=5;
+    tempDef->nu=tempDef->dim[4]=this->referenceImage->nz>1?3:2;
+    tempDef->nvox=this->referenceImage->nvox * tempDef->nu;
+    tempDef->data = static_cast<void *>(this->fieldHR);
+
+     reg_resampleImage(floatingImage,
+                       warpedImage,
+                       tempDef,
+                       NULL, // mask
+                       3, // interpolation
+                       0); // padding
+     tempDef->data=NULL;
+     nifti_image_free(tempDef);
+
+//    interp3(warpedImageData,floatingImageData,fieldHR,fieldHR+sz,fieldHR+2*sz,m,n,o,m,n,o,true); //true->plus identity
+
+    nifti_set_filenames(this->warpedImage, "warpedMattias.nii", 0, 0);
+    nifti_image_write(this->warpedImage);
 }
 /********************************************************************************************************/
 /*
@@ -359,7 +384,7 @@ void _reg_mrf::Run()
     this->ComputeSimilarityCost();
     this->regularisationMST();
     this->upsampleDisplacements();
-    this->warpMovingImage();
+    this->warpFloatingImage();
 }
 */
 /********************************************************************************************************/
@@ -464,7 +489,14 @@ void edgeGraph(float* edgeWeightMatrix,int* index_neighbours,float* fixed,int m,
 /********************************************************************************************************/
 //extract minimum-spanning-tree from edge-weights
 //edges with large intensity difference are more likely to be cut
-void primsMST(int* orderedList,int* parentsList,float* edgeWeight,float* edgeWeightMatrix,int* index_neighbours,int m, int n, int o){
+void primsMST(int* orderedList,
+              int* parentsList,
+              float* edgeWeight,
+              float* edgeWeightMatrix,
+              int* index_neighbours,
+              int m,
+              int n,
+              int o){
 
     int num_vertices = m*n*o;
     int currentNode=0; //arbritary root node
@@ -511,7 +543,6 @@ void primsMST(int* orderedList,int* parentsList,float* edgeWeight,float* edgeWei
                 addedToMST[bestEdge.endIndex]=true;
                 parentsList[bestEdge.endIndex]=bestEdge.startIndex;
                 treeLevel[bestEdge.endIndex]={treeLevel[bestEdge.startIndex].first+1,bestEdge.endIndex};
-
             }
 
         }

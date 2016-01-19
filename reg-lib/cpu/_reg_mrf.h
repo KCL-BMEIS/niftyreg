@@ -3,6 +3,7 @@
 
 #include "nifti1_io.h"
 #include "_reg_measure.h"
+#include "_reg_resampling.h"
 
 //FOR THE MOMENT -- HAS TO PUT IF USE SSE
 #include <emmintrin.h>
@@ -13,21 +14,19 @@
 #include <algorithm>
 #include <math.h>
 
-class _reg_mrf
+class reg_mrf
 {
     public:
         //Constructor
-        _reg_mrf(nifti_image* fixedImage,
+        reg_mrf(nifti_image* referenceImage,
                  nifti_image* movingImage,
                  nifti_image* controlPointImage,
-                 nifti_image* warpedImage,
                  int label_quant,
                  int label_hw,
-                 std::string costMeasureName,
                  float alphaValue);
 
         //Destructor
-        ~_reg_mrf();
+        ~reg_mrf();
 
         //Getters and Setters
         int GetLabel_quant();
@@ -36,37 +35,35 @@ class _reg_mrf
         int GetLabel_hw();
         void SetLabel_hw(int label_hw);
 
+        float* GetDataCost();
+
         //int GetGrid_step();
         //void SetGrid_step(int grid_step);
 
         //Calculate the similarity (MIND-SAD) for every control point and every displacement
-        template <class DTYPE>
         void ComputeSimilarityCost();
 
         //uses squared difference penalty
-        template <class DTYPE>
         void regularisationMST();
 
         //upsampleDisplacements
         void upsampleDisplacements();
 
         //upsampleDisplacements
-        template <class DTYPE>
-        void warpMovingImage();
+        void warpFloatingImage();
 
         //Run function
         //void Run();
 
     protected:
-        nifti_image* fixedImage;
-        nifti_image* movingImage;
+        nifti_image* referenceImage;
+        nifti_image* floatingImage;
         nifti_image* controlPointImage;
         //SETTINGS FOR CONTROL POINT SPACING AND LABEL SPACE
         int label_quant; //step-size/quantisation of discrete displacements - default = 3
         int label_hw; //half-width of search space // default = 6
         //L={±0,±label_quant,..,±label_quant*label_hw}^3 voxels
 
-        std::string costMeasure;
         float alpha; //smoothness of displacement field, higher value smoother field
 
         nifti_image* warpedImage;
