@@ -210,23 +210,6 @@ install(FILES
 ## BUILD THE F3D LIBRARY
 set(NAME _reg_f3d)
 set(_reg_f3d_files
-    AladinContent.cpp
-    AladinContent.h
-    Platform.cpp
-    Platform.h
-    Kernel.h
-    cpu/CPUAffineDeformationFieldKernel.h
-    cpu/CPUAffineDeformationFieldKernel.cpp
-    cpu/CPUBlockMatchingKernel.h
-    cpu/CPUBlockMatchingKernel.cpp
-    cpu/CPUConvolutionKernel.h
-    cpu/CPUConvolutionKernel.cpp
-    cpu/CPUOptimiseKernel.h
-    cpu/CPUOptimiseKernel.cpp
-    cpu/CPUResampleImageKernel.h
-    cpu/CPUResampleImageKernel.cpp
-    cpu/CPUKernelFactory.cpp
-    cpu/CPUKernelFactory.h
     _reg_base.h
     _reg_base.cpp
     ${NAME}.h
@@ -239,8 +222,6 @@ set(_reg_f3d_files
     cpu/_reg_optimiser.cpp
     cpu/_reg_mrf.h
     cpu/_reg_mrf.cpp
-    cpu/_reg_mrf2.h
-    cpu/_reg_mrf2.cpp
 )
 set(_reg_f3d_libraries
   _reg_localTrans

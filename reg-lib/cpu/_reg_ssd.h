@@ -39,6 +39,11 @@ public:
    virtual double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based ssd gradient
    virtual void GetVoxelBasedSimilarityMeasureGradient();
+   /// @brief Here
+   virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
+                                    float *discretisedValue,
+                                    int discretise_radius,
+                                    int discretise_step);
    /// @brief Measure class desstructor
    ~reg_ssd() {}
 protected:

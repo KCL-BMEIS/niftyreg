@@ -2,7 +2,6 @@
 #include <iostream>
 #include <stdlib.h>
 #include "_reg_mrf.h"
-#include "_reg_mrf2.h"
 #include "_reg_ReadWriteImage.h"
 #include "_reg_localTrans.h"
 #include "_reg_sad.h"
@@ -48,21 +47,21 @@ int main(int argc, char **argv)
     reg_createControlPointGrid<float>(&controlPointImage,
                                referenceImage,
                                spacing);
-    //
-    int label_quant = 3;
-    int label_hw = 6;
-    float alphaValue = 0.5;
-    //
-    reg_mrf* reg_mrfObject = new reg_mrf(referenceImage,floatingImage,controlPointImage,label_quant,label_hw,alphaValue);
-    std::cout << "object creation done" << std::endl;
-    reg_mrfObject->ComputeSimilarityCost();
-    std::cout << "Computing cost done" << std::endl;
-    reg_mrfObject->regularisationMST();
-    std::cout << "MST done" << std::endl;
-    reg_mrfObject->upsampleDisplacements();
-    std::cout << "upsample displacement done" << std::endl;
-    reg_mrfObject->warpFloatingImage();
-    std::cout << "warping done done" << std::endl;
+//    //
+//    int label_quant = 3;
+//    int label_hw = 6;
+//    float alphaValue = 0.5;
+//    //
+//    reg_mrf* reg_mrfObject = new reg_mrf(referenceImage,floatingImage,controlPointImage,label_quant,label_hw,alphaValue);
+//    std::cout << "object creation done" << std::endl;
+//    reg_mrfObject->ComputeSimilarityCost();
+//    std::cout << "Computing cost done" << std::endl;
+//    reg_mrfObject->regularisationMST();
+//    std::cout << "MST done" << std::endl;
+//    reg_mrfObject->upsampleDisplacements();
+//    std::cout << "upsample displacement done" << std::endl;
+//    reg_mrfObject->warpFloatingImage();
+//    std::cout << "warping done done" << std::endl;
     /*
     //reg_sad* sadMeasure = new reg_sad();
     reg_mrf2* reg_mrf2Object = new reg_mrf2(referenceImage,floatingImage,controlPointImage,label_quant,label_hw,alphaValue,sadMeasure);
@@ -85,4 +84,9 @@ int main(int argc, char **argv)
     //FOR THE MOMENT - print sumDiff
     std::cout<<"sumDiff="<<sumDiff<<std::endl;
     */
+    nifti_image_free(referenceImage);
+    nifti_image_free(floatingImage);
+    nifti_image_free(controlPointImage);
+
+    return EXIT_SUCCESS;
 }
