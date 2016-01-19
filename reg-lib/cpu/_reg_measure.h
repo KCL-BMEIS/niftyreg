@@ -67,6 +67,16 @@ public:
    {
       return this->activeTimePoint;
    }
+/************************************************************************/
+   nifti_image* GetReferenceImage(void)
+   {
+      return this->referenceImagePointer;
+   }
+   int* GetReferenceMask(void)
+   {
+      return this->referenceMaskPointer;
+   }
+/************************************************************************/
 protected:
    nifti_image *referenceImagePointer;
    int *referenceMaskPointer;

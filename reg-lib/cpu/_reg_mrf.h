@@ -2,6 +2,7 @@
 #define _REG_MRF_H
 
 #include "_reg_measure.h"
+#include <cmath>
 
 struct Edge{
     float weight;
@@ -30,13 +31,33 @@ private:
    int discrete_increment;
    float regularisation_weight;
    float *discretised_measure;
+   //weights and indices of potential edges (six per vertex in 3D)
    float *edgeWeightMatrix;
    float *index_neighbours;
+   float* edgeWeight;
    bool initialised;
 
    void Initialise();
+   void GetGraph(nifti_image* controlPointGridImage,
+                 float* edgeWeightMatrix,
+                 float* index_neighbours);
    void GetDiscretisedMeasure();
    void Optimise();
 };
-
+/********************************************************************************************************/
+extern "C++"
+template <class DTYPE>
+void GetGraph_core3D(nifti_image* controlPointGridImage,
+                     float* edgeWeightMatrix,
+                     float* index_neighbours,
+                     nifti_image *refImage,
+                     int *mask);
+extern "C++"
+template <class DTYPE>
+void GetGraph_core2D(nifti_image* controlPointGridImage,
+                     float* edgeWeightMatrix,
+                     float* index_neighbours,
+                     nifti_image *refImage,
+                     int *mask);
+/********************************************************************************************************/
 #endif // _REG_MRF_H
