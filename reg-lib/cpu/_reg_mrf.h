@@ -3,6 +3,9 @@
 
 #include "_reg_measure.h"
 #include <cmath>
+#include <queue>
+#include <algorithm>
+#include "_reg_mrf_fastdt2.h"
 
 struct Edge{
     float weight;
@@ -26,23 +29,32 @@ public:
 
 private:
    reg_measure *measure;
+   int dim;
    nifti_image* controlPointImage;
    int discrete_radius;
    int discrete_increment;
    float regularisation_weight;
    float *discretised_measure;
-   //weights and indices of potential edges (six per vertex in 3D)
+   //weights and indices of potential edges (6 per vertex in 3D - 4 in 2D)
    float *edgeWeightMatrix;
    float *index_neighbours;
+   //
+   int* orderedList;
+   int* parentsList;
    float* edgeWeight;
+   //
+   float* regularisedCost;
+   int* optimalDisplacement;
+   //
    bool initialised;
 
    void Initialise();
-   void GetGraph(nifti_image* controlPointGridImage,
-                 float* edgeWeightMatrix,
-                 float* index_neighbours);
    void GetDiscretisedMeasure();
    void Optimise();
+   //
+   void GetGraph();
+   void GetPrimsMST();
+   void GetRegularisation();
 };
 /********************************************************************************************************/
 extern "C++"

@@ -443,7 +443,7 @@ void GetDiscretisedValue_core3D(nifti_image *controlPointGridImage,
                                 int *mask)
 {
     int cpx, cpy, cpz, t, x, y, z, a, b, c, blockIndex, voxIndex, discretisedIndex;
-    int discretisedValueNumber = pow((discretise_radius / discretise_step) * 2 + 1, controlPointGridImage->nu);
+    int discretisedValueNumber = pow((discretise_radius / discretise_step) * 2 + 1, 3);
     float gridVox[3], imageVox[3];
     float currentValue;
     // Define the transformation matrices
@@ -553,7 +553,7 @@ void GetDiscretisedValue_core2D(nifti_image *controlPointGridImage,
                                 int *mask)
 {
     int cpx, cpy, t, x, y, a, b, blockIndex, voxIndex, discretisedIndex;
-    int discretisedValueNumber = pow((discretise_radius / discretise_step) * 2 + 1, controlPointGridImage->nu);
+    int discretisedValueNumber = pow((discretise_radius / discretise_step) * 2 + 1, 2);
     float gridVox[3], imageVox[3];
     float currentValue;
     // Define the transformation matrices
