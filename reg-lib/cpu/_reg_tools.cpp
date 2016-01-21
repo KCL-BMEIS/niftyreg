@@ -1178,7 +1178,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                if(radius>0)
                {
                   // Allocate the kernel
-                  float kernel[8192];//2048 before
+                  float kernel[8192];//2048 before - next step = make a dynamic array according to the radius value
                   double kernelSum=0;
                   // Fill the kernel
                   if(kernelType==1)
