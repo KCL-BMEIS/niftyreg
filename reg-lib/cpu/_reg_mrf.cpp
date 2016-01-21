@@ -502,7 +502,7 @@ void reg_mrf::GetRegularisation()
 
         int ochild=this->orderedList[i];
         int oparent=this->parentsList[ochild];
-        float edgew=this->edgeWeight[this->orderedList[i]];
+        float edgew=this->edgeWeight[ochild];
         float edgew1=1.0f/edgew;
 
         for(int l=0;l<label_num;l++){

@@ -611,16 +611,16 @@ void GetDiscretisedValue_core2D(nifti_image *controlPointGridImage,
                     } // x
                 } // y
                 // Loop over the discretised value
+                int start_b=imageVox[1]-discretise_radius;
+                int end_b=imageVox[1]+discretise_radius;
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(imageVox, discretise_radius, discretise_step, currentGridBlock, \
-    refImage, currentWarPtr, refBlockValue, mask, start_c, end_c, \
+    refImage, currentWarPtr, refBlockValue, mask, start_b, end_b, \
     blockSize) \
-    private(a, b, x, y, z, blockIndex, discretisedIndex, voxIndex, \
+    private(a, b, x, y, blockIndex, discretisedIndex, voxIndex, \
     currentValue)
 #endif
-                int start_b=imageVox[1]-discretise_radius;
-                int end_b=imageVox[1]+discretise_radius;
                 for(b=start_b; b<=end_b; b+=discretise_step){
                     discretisedIndex = (start_b-b) * reg_pow2((discretise_radius / discretise_step) * 2 + 1);
                     for(a=imageVox[0]-discretise_radius; a<=imageVox[0]+discretise_radius; a+=discretise_step){
