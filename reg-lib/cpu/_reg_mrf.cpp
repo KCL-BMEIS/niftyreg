@@ -414,7 +414,7 @@ void reg_mrf::GetPrimsMST()
     }
     addedToMST[currentNode]=true;
     std::pair<short,int>* treeLevel=new std::pair<short,int>[num_vertices];
-    treeLevel[currentNode]={0,currentNode};
+    treeLevel[currentNode]=std::pair<short,int>(0,currentNode);
 
     int num_neighbours=this->controlPointImage->nz > 1 ? 6 : 4;
 
@@ -431,7 +431,8 @@ void reg_mrf::GetPrimsMST()
             float weight=this->edgeWeightMatrix[currentNode+j*num_vertices];
             //index_neighbours is initialized at -1
             if(index_j>=0){
-                priority.push({weight,currentNode,index_j});//weight - start index - end index
+               Edge current_edge = {weight,currentNode,index_j};
+               priority.push(current_edge);//weight - start index - end index
             }
 
         }
@@ -449,7 +450,7 @@ void reg_mrf::GetPrimsMST()
                 currentNode=bestEdge.endIndex;
                 addedToMST[bestEdge.endIndex]=true;
                 this->parentsList[bestEdge.endIndex]=bestEdge.startIndex;
-                treeLevel[bestEdge.endIndex]={treeLevel[bestEdge.startIndex].first+1,bestEdge.endIndex};
+                treeLevel[bestEdge.endIndex]=std::pair<short,int>(treeLevel[bestEdge.startIndex].first+1,bestEdge.endIndex);
 
             }
 
