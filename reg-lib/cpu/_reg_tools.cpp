@@ -1178,7 +1178,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                if(radius>0)
                {
                   // Allocate the kernel
-                  float kernel[2048];
+                  float kernel[8192];//2048 before
                   double kernelSum=0;
                   // Fill the kernel
                   if(kernelType==1)
@@ -1236,7 +1236,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                   double densitySum, intensitySum;
                   DTYPE *currentIntensityPtr=NULL;
                   float *currentDensityPtr = NULL;
-                  DTYPE bufferIntensity[2048];;
+                  DTYPE bufferIntensity[2048];
                   float bufferDensity[2048];
                   DTYPE bufferIntensitycur=0;
                   float bufferDensitycur=0;
@@ -2217,6 +2217,7 @@ int reg_createImagePyramid(nifti_image *inputImage, nifti_image **pyramid, int u
       pyramid[l]=nifti_copy_nim_info(pyramid[l+1]);
       pyramid[l]->data = (void *)calloc(pyramid[l]->nvox,
                                         pyramid[l]->nbyper);
+
       memcpy(pyramid[l]->data, pyramid[l+1]->data,
             pyramid[l]->nvox* pyramid[l]->nbyper);
 
