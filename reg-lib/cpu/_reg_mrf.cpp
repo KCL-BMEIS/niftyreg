@@ -451,7 +451,10 @@ void reg_mrf::GetPrimsMST()
                 addedToMST[bestEdge.endIndex]=true;
                 this->parentsList[bestEdge.endIndex]=bestEdge.startIndex;
                 treeLevel[bestEdge.endIndex]=std::pair<short,int>(treeLevel[bestEdge.startIndex].first+1,bestEdge.endIndex);
-
+                //DEBUG
+                //std::cout<<"first="<<treeLevel[bestEdge.startIndex].first+1<<std::endl;
+                //std::cout<<"second="<<bestEdge.endIndex<<std::endl;
+                //DEBUG
             }
 
         }
@@ -462,10 +465,13 @@ void reg_mrf::GetPrimsMST()
     //printf("max tree depth: %d, mincost: %f\n",treeLevel[num_vertices-1].first,mincost);
     for(int i=0;i<num_vertices;i++){
         orderedList[i]=treeLevel[i].second;
+        //DEBUG
+        //std::cout<<"orderedList[i]="<<orderedList[i]<<std::endl;
+        //DEBUG
     }
     //Free memory
-    free(treeLevel);
-    free(addedToMST);
+    delete treeLevel;
+    delete addedToMST;
 }
 /*****************************************************/
 void reg_mrf::GetRegularisation()
@@ -524,7 +530,7 @@ void reg_mrf::GetRegularisation()
     for(int i=1;i<controlPointNumber;i++){ //other direction
         int ochild=this->orderedList[i];
         int oparent=this->parentsList[ochild];
-        float edgew=this->edgeWeight[this->orderedList[i]];
+        float edgew=this->edgeWeight[ochild];
         float edgew1=1.0f/edgew;
 
         for(int l=0;l<label_num;l++){
@@ -539,7 +545,7 @@ void reg_mrf::GetRegularisation()
     }
 
     for(int i=0;i<controlPointNumber*label_num;i++){
-        this->orderedList[i]+=message[i];
+        this->regularisedCost[i]+=message[i];
     }
 
     //select displacements
