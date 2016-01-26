@@ -232,6 +232,14 @@ add_test(${EXEC}_MINDDescriptor_3D1 ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER
 add_test(${EXEC}_MINDDescriptor_2D2 ${EXEC} ${DFOLDER}/warped_linear2D.nii.gz ${DFOLDER}/expectedMINDDescriptor2D_2.nii.gz)
 add_test(${EXEC}_MINDDescriptor_3D2 ${EXEC} ${DFOLDER}/warped_linear3D.nii.gz ${DFOLDER}/expectedMINDDescriptor3D_2.nii.gz)
 #-----------------------------------------------------------------------------
+set(EXEC reg_test_mindsscDescriptor)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_f3d _reg_mind)
+add_test(${EXEC}_MINDSSCDescriptor_2D1 ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/expectedMINDSSCDescriptor2D_1.nii.gz)
+add_test(${EXEC}_MINDSSCDescriptor_3D1 ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/expectedMINDSSCDescriptor3D_1.nii.gz)
+add_test(${EXEC}_MINDSSCDescriptor_2D2 ${EXEC} ${DFOLDER}/warped_linear2D.nii.gz ${DFOLDER}/expectedMINDSSCDescriptor2D_2.nii.gz)
+add_test(${EXEC}_MINDSSCDescriptor_3D2 ${EXEC} ${DFOLDER}/warped_linear3D.nii.gz ${DFOLDER}/expectedMINDSSCDescriptor3D_2.nii.gz)
+#-----------------------------------------------------------------------------
 set(EXEC reg_test_measure)
 add_executable(${EXEC} ${EXEC}.cpp)
 target_link_libraries(${EXEC} _reg_f3d _reg_mind)

@@ -2,14 +2,14 @@
 #include "_reg_ReadWriteImage.h"
 #include "_reg_globalTrans.h"
 #include "_reg_tools.h"
-#include "_reg_mind.h"
+#include "_reg_mindssc.h"
 //
 #define EPS 0.000001
 //
 int main(int argc, char **argv)
 {
     if (argc != 3) {
-        fprintf(stderr, "Usage: %s <image to process> <expected MIND image>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <image to process> <expected MIND-SSC image>\n", argv[0]);
         return EXIT_FAILURE;
     }
     char *inputImageName = argv[1];
@@ -35,36 +35,39 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     // COMPUTE THE MIND DESCRIPTOR
-    //MIND image
-    nifti_image *MIND_img = nifti_copy_nim_info(inputImage);
-    MIND_img->ndim = MIND_img->dim[0] = 4;
-    MIND_img->nt = MIND_img->dim[4] = 2*dim;
-    MIND_img->nvox = MIND_img->nvox*2*dim;
-    MIND_img->data=(void *)calloc(MIND_img->nvox,MIND_img->nbyper);
+    int lengthDescritor = 12;
+    if(dim == 2) {
+        lengthDescritor = 4;
+    }
+    //MINDSSC image
+    nifti_image *MINDSSC_img = nifti_copy_nim_info(inputImage);
+    MINDSSC_img->ndim = MINDSSC_img->dim[0] = 4;
+    MINDSSC_img->nt = MINDSSC_img->dim[4] = lengthDescritor;
+    MINDSSC_img->nvox = MINDSSC_img->nvox*lengthDescritor;
+    MINDSSC_img->data=(void *)calloc(MINDSSC_img->nvox,MINDSSC_img->nbyper);
 
     // Compute the MIND descriptor
     int *mask = (int *)calloc(inputImage->nvox, sizeof(int));
-    GetMINDImageDesciptor(inputImage,MIND_img, mask);
+    GetMINDSSCImageDesciptor(inputImage,MINDSSC_img, mask);
     free(mask);
     //
     //Compute the difference between the computed and expected image
     //
-    reg_tools_substractImageToImage(MIND_img, expectedImage, expectedImage);
+    reg_tools_substractImageToImage(MINDSSC_img, expectedImage, expectedImage);
     reg_tools_abs_image(expectedImage);
     double max_difference = reg_tools_getMaxValue(expectedImage);
 
     nifti_image_free(inputImage);
     nifti_image_free(expectedImage);
-    nifti_image_free(MIND_img);
+    nifti_image_free(MINDSSC_img);
 
     if (max_difference > EPS){
-        fprintf(stderr, "reg_test_MINDDescriptor error too large: %g (>%g)\n",
+        fprintf(stderr, "reg_test_MINDSSCDescriptor error too large: %g (>%g)\n",
             max_difference, EPS);
         return EXIT_FAILURE;
     }
 #ifndef NDEBUG
-    fprintf(stdout, "reg_test_MINDDescriptor ok: %g (<%g)\n", max_difference, EPS);
+    fprintf(stdout, "reg_test_MINDSSCDescriptor ok: %g (<%g)\n", max_difference, EPS);
 #endif
     return EXIT_SUCCESS;
 }
-
