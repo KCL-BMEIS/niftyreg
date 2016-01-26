@@ -5,19 +5,19 @@
 #include "_reg_ReadWriteImage.h"
 #include "_reg_localTrans.h"
 #include "_reg_sad.h"
+#include <numeric>
+#include "mattias.h"
+#include "_reg_mindssc.h"
 
 int main(int argc, char **argv)
 {
-    if(argc!=3)
-    {
-        fprintf(stderr, "Usage: %s <refImage> <floImage>\n", argv[0]);
+    if(argc!=3) {
+        fprintf(stderr, "Usage: %s <refImage> <warpedFloatingImage>\n", argv[0]);
         return EXIT_FAILURE;
     }
-    //
-    std::cout<<"---- ComputeSimilarityCost coherence test ----"<<std::endl;
     //IO
     char *inputRefImageName=argv[1];
-    char *inputFloImageName=argv[2];
+    char *inputWarpedFlotingImageName=argv[2];
     //char *inputControlPointImage=argv[3];
     // Read the input images
     nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
@@ -25,13 +25,93 @@ int main(int argc, char **argv)
         reg_print_msg_error("The input reference image could not be read");
         return EXIT_FAILURE;
     }
+    //this coherence test only works for 3-D images:
+    int dim = referenceImage->nz > 1 ? 3 : 2;
+    if (dim != 3) {
+        reg_print_msg_error("This coherence test only works for 3-D images");
+        reg_exit();
+    }
     reg_tools_changeDatatype<float>(referenceImage);
-    nifti_image *floatingImage = reg_io_ReadImageFile(inputFloImageName);
-    if(floatingImage==NULL){
-        reg_print_msg_error("The input floating image could not be read");
+    float* referenceImageDataPtr = static_cast<float*>(referenceImage->data);
+
+    nifti_image *warpedFloatingImage = reg_io_ReadImageFile(inputWarpedFlotingImageName);
+    if(warpedFloatingImage==NULL){
+        reg_print_msg_error("The warped input floating image could not be read");
         return EXIT_FAILURE;
     }
-    reg_tools_changeDatatype<float>(floatingImage);
+    if (referenceImage->nx != warpedFloatingImage->nx &&
+        referenceImage->ny != warpedFloatingImage->ny &&
+        referenceImage->nz != warpedFloatingImage->nz) {
+        reg_print_msg_error("This coherence test only works for 3-D images");
+        reg_exit();
+    }
+    reg_tools_changeDatatype<float>(warpedFloatingImage);
+    float* warpedFloatingImageDataPtr = static_cast<float*>(warpedFloatingImage->data);
+    /********************************************************************************/
+    int m,n,o,p; //dimensions (should be equal, ignore more than 3D)
+    m=referenceImage->nx;
+    n=referenceImage->ny;
+    o=referenceImage->nz;
+    int sz=m*n*o; //number of voxels
+
+    //SETTINGS FOR CONTROL POINT SPACING AND LABEL SPACE
+    int label_quant=3; //step-size/quantisation of discrete displacements
+    int label_hw=6; //half-width of search space
+    //L={±0,±label_quant,..,±label_quant*label_hw}^3 voxels
+    int grid_step=8; //spacing between control points in voxels
+    //HERE and elsewhere THE B-SPLINE GRID DEFINITION NEEDS TO BE ADAPTED TO NIFTY-REG
+    //e.g. having control points outside the image domain, etc.
+
+    int mind_hw=1; //patch-radius for SSD in MIND descriptors //2 before
+    const int mind_length=12; //length of each descriptors (don't change)
+
+
+    int label_num=(label_hw*2+1)*(label_hw*2+1)*(label_hw*2+1); //|L| number of displacements
+    int m1=m/grid_step; int n1=n/grid_step; int o1=o/grid_step; //dimensions of grid
+    int sz1=m1*n1*o1; //number of control points
+
+    //convert images into their MIND representations (12 x m x n x o, dimensions)
+    float* mind_fixed=new float[mind_length*sz];
+    float* mind_moving=new float[mind_length*sz];
+
+    //input each image (with dimensions m x n x o) and half_width of filter
+    //Mattias version
+    descriptor(mind_fixed,referenceImageDataPtr,m,n,o,mind_hw);
+    descriptor(mind_moving,warpedFloatingImageDataPtr,m,n,o,mind_hw);
+    //My version
+    //MINDSSC image
+    nifti_image *MINDSSC_refimg = nifti_copy_nim_info(referenceImage);
+    MINDSSC_refimg->ndim = MINDSSC_refimg->dim[0] = 4;
+    MINDSSC_refimg->nt = MINDSSC_refimg->dim[4] = mind_length;
+    MINDSSC_refimg->nvox = MINDSSC_refimg->nvox*mind_length;
+    MINDSSC_refimg->data=(void *)calloc(MINDSSC_refimg->nvox,MINDSSC_refimg->nbyper);
+
+    // Compute the MIND descriptor
+    int *mask_ref = (int *)calloc(referenceImage->nvox, sizeof(int));
+    GetMINDSSCImageDesciptor(referenceImage,MINDSSC_refimg, mask_ref);
+    free(mask_ref);
+    //
+    //MINDSSC image
+    nifti_image *MINDSSC_warimg = nifti_copy_nim_info(warpedFloatingImage);
+    MINDSSC_warimg->ndim = MINDSSC_warimg->dim[0] = 4;
+    MINDSSC_warimg->nt = MINDSSC_warimg->dim[4] = mind_length;
+    MINDSSC_warimg->nvox = MINDSSC_warimg->nvox*mind_length;
+    MINDSSC_warimg->data=(void *)calloc(MINDSSC_warimg->nvox,MINDSSC_warimg->nbyper);
+
+    // Compute the MIND descriptor
+    int *mask_warped = (int *)calloc(referenceImage->nvox, sizeof(int));
+    GetMINDSSCImageDesciptor(referenceImage,MINDSSC_warimg, mask_warped);
+    free(mask_warped);
+
+    //Let's compare the 2 MINDSSC:
+
+
+    //
+    reg_print_msg_debug("---- MIND SSC coherence test ----");
+    //Mattias version:
+
+    //
+    std::cout<<"---- computeSimilarityCost coherence test ----"<<std::endl;
 
     /*
     nifti_image *controlPointImage = reg_io_ReadImageFile(inputControlPointImage);
@@ -85,7 +165,7 @@ int main(int argc, char **argv)
     std::cout<<"sumDiff="<<sumDiff<<std::endl;
     */
     nifti_image_free(referenceImage);
-    nifti_image_free(floatingImage);
+    nifti_image_free(warpedFloatingImage);
     nifti_image_free(controlPointImage);
 
     return EXIT_SUCCESS;
