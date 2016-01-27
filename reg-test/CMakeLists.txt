@@ -226,7 +226,7 @@ endif(USE_CUDA OR USE_OPENCL)
 #-----------------------------------------------------------------------------
 set(EXEC reg_test_mindDescriptor)
 add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_f3d _reg_mind)
+target_link_libraries(${EXEC} _reg_f3d)
 add_test(${EXEC}_MINDDescriptor_2D1 ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz)
 add_test(${EXEC}_MINDDescriptor_3D1 ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/expectedMINDDescriptor3D_1.nii.gz)
 add_test(${EXEC}_MINDDescriptor_2D2 ${EXEC} ${DFOLDER}/warped_linear2D.nii.gz ${DFOLDER}/expectedMINDDescriptor2D_2.nii.gz)
@@ -234,7 +234,7 @@ add_test(${EXEC}_MINDDescriptor_3D2 ${EXEC} ${DFOLDER}/warped_linear3D.nii.gz ${
 #-----------------------------------------------------------------------------
 set(EXEC reg_test_mindsscDescriptor)
 add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_f3d _reg_mind)
+target_link_libraries(${EXEC} _reg_f3d)
 add_test(${EXEC}_MINDSSCDescriptor_2D1 ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/expectedMINDSSCDescriptor2D_1.nii.gz)
 add_test(${EXEC}_MINDSSCDescriptor_3D1 ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/expectedMINDSSCDescriptor3D_1.nii.gz)
 add_test(${EXEC}_MINDSSCDescriptor_2D2 ${EXEC} ${DFOLDER}/warped_linear2D.nii.gz ${DFOLDER}/expectedMINDSSCDescriptor2D_2.nii.gz)
@@ -242,7 +242,7 @@ add_test(${EXEC}_MINDSSCDescriptor_3D2 ${EXEC} ${DFOLDER}/warped_linear3D.nii.gz
 #-----------------------------------------------------------------------------
 set(EXEC reg_test_measure)
 add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_f3d _reg_mind)
+target_link_libraries(${EXEC} _reg_f3d)
 #   add_test(${EXEC}_LNCC_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/warped_sin2D.nii.gz LNCC)
 #   add_test(${EXEC}_NMI_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/warped_sin2D.nii.gz NMI)
 add_test(${EXEC}_SSD_2D ${EXEC} ${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz ${DFOLDER}/expectedMINDDescriptor2D_2.nii.gz SSD ${DFOLDER}/expectedSSDValue2D.txt)
@@ -254,7 +254,7 @@ add_test(${EXEC}_MINDSSD_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/warped
 #-----------------------------------------------------------------------------
 set(EXEC reg_test_imageGradient)
 add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_f3d _reg_mind)
+target_link_libraries(${EXEC} _reg_f3d)
 add_test(${EXEC}_imageGradientDF_2D ${EXEC} ${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz ${DFOLDER}/expectedImageGradient2D.nii.gz 0)
 add_test(${EXEC}_imageGradientDF_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3D_1.nii.gz ${DFOLDER}/expectedImageGradient3D.nii.gz 0)
 add_test(${EXEC}_imageGradientSP_2D ${EXEC} ${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz ${DFOLDER}/expectedImageGradient2D.nii.gz 1)
@@ -262,7 +262,7 @@ add_test(${EXEC}_imageGradientSP_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3D_
 #-----------------------------------------------------------------------------
 set(EXEC reg_test_coherence_mrf)
 add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_f3d _reg_mind)
+target_link_libraries(${EXEC} _reg_f3d)
 add_test(${EXEC}_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/floImg2D.nii.gz)
 add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/floImg3D.nii.gz)
 #-----------------------------------------------------------------------------

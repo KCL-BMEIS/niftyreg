@@ -5,7 +5,6 @@
 #include <cmath>
 #include <queue>
 #include <algorithm>
-#include "_reg_mrf_fastdt2.h"
 
 struct Edge{
     float weight;
@@ -26,6 +25,17 @@ public:
            float _reg_weight);
    ~reg_mrf();
    void Run();
+   //For the unit tests - let's put these functions publics
+   //but only Run() should be called.
+   void Initialise();
+   void GetDiscretisedMeasure();
+   void Optimise();
+   //
+   void GetGraph();
+   void GetPrimsMST();
+   void GetRegularisation();
+   //
+   float* GetDiscretisedMeasurePtr();
 
 private:
    reg_measure *measure;
@@ -47,14 +57,6 @@ private:
    int* optimalDisplacement;
    //
    bool initialised;
-
-   void Initialise();
-   void GetDiscretisedMeasure();
-   void Optimise();
-   //
-   void GetGraph();
-   void GetPrimsMST();
-   void GetRegularisation();
 };
 /********************************************************************************************************/
 extern "C++"
@@ -71,5 +73,10 @@ void GetGraph_core2D(nifti_image* controlPointGridImage,
                      float* index_neighbours,
                      nifti_image *refImage,
                      int *mask);
+
+extern "C++"
+void dt1sq(float *val,int* ind,int len,float offset,int k,int* v,float* z,float* f,int* ind1);
+extern "C++"
+void dt3x(float* r,int* indr,int rl,float dx,float dy,float dz);
 /********************************************************************************************************/
 #endif // _REG_MRF_H

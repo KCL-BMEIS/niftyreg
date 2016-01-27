@@ -1,5 +1,7 @@
 #ifndef MATTIAS_H
 #define MATTIAS_H
+//
+#include <algorithm>
 /********************************************************************************/
 /********************************************************************************/
 //Mattias implemention
@@ -185,6 +187,108 @@ void descriptor(float* mind,float* fixed,int m,int n,int o,int filter_hw){
     delete w1;
     delete sum1;
     delete noise1;
+}
+/********************************************************************************/
+/********************************************************************************/
+//simply similarity term computation using SAD
+void similarityCostSAD(float* dataCost,float* fixed,float* moving,int m,int n,int o,int grid_step,int label_hw,int label_quant,float alpha,int mind_length){
+
+    int label_len=(label_hw*2+1); //length and total size of displacement space
+    int label_num=(label_hw*2+1)*(label_hw*2+1)*(label_hw*2+1);
+    int m1=m/grid_step; int n1=n/grid_step; int o1=o/grid_step; //dimensions of grid
+    int sz1=m1*n1*o1; //number of control points
+
+    //padding of moving image
+    int pad1=label_quant*label_hw; int pad2=pad1*2;
+    int mp=m+pad2; int np=n+pad2; int op=o+pad2;
+    int szp=mp*np*op;
+    float* movingpad=new float[szp*mind_length];
+    for(int i=0;i<szp*mind_length;i++){
+        movingpad[i]=0.0f;
+    }
+    for(int k=0;k<op;k++){
+        for(int j=0;j<np;j++){
+            for(int i=0;i<mp;i++){
+                //zero-padding
+                if(i-pad1>=0&&i-pad1<m&&j-pad1>=0&&j-pad1<n&&k-pad1>=0&&k-pad1<o){
+                    for(int l1=0;l1<mind_length;l1++){
+                        movingpad[l1+(i+j*mp+k*mp*np)*mind_length]=moving[l1+(i-pad1+(j-pad1)*m+(k-pad1)*m*n)*mind_length];
+                    }
+                }
+            }
+        }
+    }
+
+    //skip every other voxel within region of each control point for speed (depending on grid spacing)
+    int skipz=1; int skipy=1; const int skipx=1;//2;
+    /*
+    if(grid_step>4){
+        skipy=2; skipz=3; //skipx=2;
+    }
+    if(grid_step>7){
+        skipz=3; skipy=3; //skipx=3;
+    }
+    if(grid_step==4){
+        skipz=2; skipz=2;
+    }
+    */
+    //number of sampling points and adapt alpha to it
+    //float maxsamp=ceil((float)grid_step/(float)skipx)*ceil((float)grid_step/(float)skipz)*ceil((float)grid_step/(float)skipy);
+    //float alphai=(float)grid_step/(alpha*(float)label_quant);
+    //float alpha1=0.5*alphai/(float)(maxsamp);
+    float alpha1 = 1;
+
+    __m128* movingpad128=(__m128*)movingpad;
+    __m128* fixed128=(__m128*)fixed;
+
+#pragma omp parallel for
+    for(int z=0;z<o1;z++){ //iterate over all control points
+        for(int y=0;y<n1;y++){
+            for(int x=0;x<m1;x++){
+                //voxel coordinates in fixed image
+                int x1=x*grid_step; int y1=y*grid_step; int z1=z*grid_step;
+
+                for(int l=0;l<label_num;l++){ //iterate over all displacements
+                    float out1=0;
+                    __m128 dist128={0,0,0,0};
+
+                    //voxel displacements in x,y,z for current l
+                    int dz=l/(label_len*label_len);
+                    int dy=(l-dz*label_len*label_len)/label_len;
+                    int dx=l-dz*label_len*label_len-dy*label_len;
+                    dx*=label_quant; dy*=label_quant; dz*=label_quant;
+                    //coordinates in moving image
+                    int x2=dx+x1; int y2=dy+y1; int z2=dz+z1;
+                    //accumulate data cost over voxels within influence region of control point
+                    for(int k=0;k<grid_step;k+=skipz){
+                        for(int j=0;j<grid_step;j+=skipy){
+                            for(int i=0;i<grid_step;i+=skipx){
+                                for(int l1=0;l1<mind_length/4;l1++){
+                                    //coordinates in image space
+                                    //float t1=fixed[l1+(i+x1+(j+y1)*m+(k+z1)*m*n)*mind_length];
+                                    //float t2=movingpad[l1+(i+x2+(j+y2)*mp+(k+z2)*mp*np)*mind_length];
+                                    //out1+=fabs(t1-t2); //SAD
+                                    __m128 t1=fixed128[l1+(i+x1+(j+y1)*m+(k+z1)*m*n)*mind_length/4];
+                                    __m128 t2=movingpad128[l1+(i+x2+(j+y2)*mp+(k+z2)*mp*np)*mind_length/4];
+                                    __m128 diff=t1-t2; //SSE speeds-up these distances twofold
+                                    dist128+=_mm_max_ps(-diff,diff);
+                                }
+                            }
+                        }
+                    }
+                    //horizontal sum of SSE array
+                    float out4[]={0,0,0,0};
+                    _mm_store_ps(out4,dist128);
+                    out1=out4[0]+out4[1]+out4[2]+out4[3];
+
+                    //output matrix (first dimension displacement label, second dim. control point)
+                    dataCost[(x+y*m1+z*m1*n1)*label_num+l]=out1*alpha1; //control point coordinates
+                }
+            }
+        }
+    }
+    delete movingpad;
+    return;
 }
 /********************************************************************************/
 /********************************************************************************/
