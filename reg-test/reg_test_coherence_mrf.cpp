@@ -72,11 +72,29 @@ int main(int argc, char **argv)
 
     //convert images into their MIND representations (12 x m x n x o, dimensions)
     float* mind_fixed=new float[mind_length*sz];
+    nifti_image *mind_fixedNifty = nifti_copy_nim_info(referenceImage);
+    mind_fixedNifty->ndim = mind_fixedNifty->dim[0] = 4;
+    mind_fixedNifty->nt = mind_fixedNifty->dim[4] = mind_length;
+    mind_fixedNifty->nvox = mind_fixedNifty->nvox*mind_length;
+    mind_fixedNifty->data=(void *)calloc(mind_fixedNifty->nvox,mind_fixedNifty->nbyper);
+    float* mind_fixedNiftyDataPtr = static_cast<float*>(mind_fixedNifty->data);
     float* mind_moving=new float[mind_length*sz];
 
     //input each image (with dimensions m x n x o) and half_width of filter
     //Mattias version
     descriptor(mind_fixed,referenceImageDataPtr,m,n,o,mind_hw);
+    for(int z=0;z<o;z++) {
+        for (int y=0;y<n;y++) {
+            for (int x=0;x<m;x++) {
+                for (int l=0;l<mind_length;l++) {
+                    mind_fixedNiftyDataPtr[(x+y*m+z*m*n+l*m*n*o)]=mind_fixed[l+(x+y*m+z*m*n)*mind_length];
+                }
+            }
+        }
+    }
+    //DEBUG
+    reg_io_WriteImageFile(mind_fixedNifty,"mind_fixedNifty.nii");
+    //DEBUG
     descriptor(mind_moving,warpedFloatingImageDataPtr,m,n,o,mind_hw);
     //My version
     //MINDSSC image
@@ -85,6 +103,7 @@ int main(int argc, char **argv)
     MINDSSC_refimg->nt = MINDSSC_refimg->dim[4] = mind_length;
     MINDSSC_refimg->nvox = MINDSSC_refimg->nvox*mind_length;
     MINDSSC_refimg->data=(void *)calloc(MINDSSC_refimg->nvox,MINDSSC_refimg->nbyper);
+    float* MINDSSC_refimgDataPtr = static_cast<float*>(MINDSSC_refimg->data);
 
     // Compute the MIND descriptor
     int *mask_ref = (int *)calloc(referenceImage->nvox, sizeof(int));
@@ -97,14 +116,33 @@ int main(int argc, char **argv)
     MINDSSC_warimg->nt = MINDSSC_warimg->dim[4] = mind_length;
     MINDSSC_warimg->nvox = MINDSSC_warimg->nvox*mind_length;
     MINDSSC_warimg->data=(void *)calloc(MINDSSC_warimg->nvox,MINDSSC_warimg->nbyper);
+    float* MINDSSC_warimgDataPtr = static_cast<float*>(MINDSSC_warimg->data);
 
     // Compute the MIND descriptor
-    int *mask_warped = (int *)calloc(referenceImage->nvox, sizeof(int));
-    GetMINDSSCImageDesciptor(referenceImage,MINDSSC_warimg, mask_warped);
+    int *mask_warped = (int *)calloc(warpedFloatingImage->nvox, sizeof(int));
+    GetMINDSSCImageDesciptor(warpedFloatingImage,MINDSSC_warimg, mask_warped);
     free(mask_warped);
-
+    //DEBUG
+    reg_io_WriteImageFile(MINDSSC_refimg,"MINDSSC_refimg.nii");
+    //DEBUG
     //Let's compare the 2 MINDSSC:
-
+    for(int z=0;z<o;z++) {
+        for (int y=0;y<n;y++) {
+            for (int x=0;x<m;x++) {
+                for (int l=0;l<mind_length;l++) {
+                    std::cout<<"MIND VALUE 1="<<MINDSSC_refimgDataPtr[(x+y*m+z*m*n+l*m*n*o)]<<std::endl;
+                    std::cout<<"MIND VALUE 2="<<mind_fixed[l+(x+y*m+z*m*n)*mind_length]<<std::endl;
+                    bool areTheSame =
+                            (MINDSSC_refimgDataPtr[(x+y*m+z*m*n+l*m*n*o)]==mind_fixed[l+(x+y*m+z*m*n)*mind_length]);
+                    if(areTheSame == 1) {
+                        reg_print_msg_debug("OKOKOK");
+                    } else {
+                        reg_print_msg_debug("NOTNOTNOT");
+                    }
+                }
+            }
+        }
+    }
 
     //
     reg_print_msg_debug("---- MIND SSC coherence test ----");
