@@ -233,179 +233,54 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImgPtr,
     float sigma = -0.5;// negative value denotes voxel width
 
     //2D version
-    int samplingNbr = (inputImgPtr->nz > 1) ? 6 : 4;
+    int samplingNbr = (inputImgPtr->nz > 1) ? 6 : 2;
     int lengthDescriptor = (inputImgPtr->nz > 1) ? 12 : 4;
 
     // Allocation of the difference image
-    std::vector<nifti_image *> vectNiftiImage;
-    for(int i=0;i<samplingNbr;i++) {
-        nifti_image *diff_image = nifti_copy_nim_info(inputImgPtr);
-        diff_image->data = (void *) malloc(diff_image->nvox*diff_image->nbyper);
-        vectNiftiImage.push_back(diff_image);
-    }
-    nifti_image *sub_image = nifti_copy_nim_info(inputImgPtr);
-    sub_image->data = (void *) malloc(sub_image->nvox*sub_image->nbyper);
+    //std::vector<nifti_image *> vectNiftiImage;
+    //for(int i=0;i<samplingNbr;i++) {
+    nifti_image *diff_image = nifti_copy_nim_info(inputImgPtr);
+    diff_image->data = (void *) malloc(diff_image->nvox*diff_image->nbyper);
+    int *mask_diff_image = (int *)calloc(diff_image->nvox, sizeof(int));
+    //
+    nifti_image *diff_imageShifted = nifti_copy_nim_info(inputImgPtr);
+    diff_imageShifted->data = (void *) malloc(diff_imageShifted->nvox*diff_imageShifted->nbyper);
 
-    int RSampling3D_x[6] = {-1, 1,  0, 0,  0, 0};
-    int RSampling3D_y[6] = {0,  0, -1, 1,  0, 0};
-    int RSampling3D_z[6] = {0,  0,  0, 0, -1, 1};
+    //    vectNiftiImage.push_back(diff_image);
+    //}
+
+    //[+1,+1,-1,+0,+1,+0];
+    //[+1,-1,+0,-1,+0,+1];
+    //[+0,+0,+1,+1,+1,+1];
+    int RSampling3D_x[6] = {+1,+1,-1,+0,+1,+0};
+    int RSampling3D_y[6] = {+1,-1,+0,-1,+0,+1};
+    int RSampling3D_z[6] = {+0,+0,+1,+1,+1,+1};
+
+    int tx[12]={-1,+0,-1,+0,+0,+1,+0,+0,+0,-1,+0,+0};
+    int ty[12]={+0,-1,+0,+1,+0,+0,+0,+1,+0,+0,+0,-1};
+    int tz[12]={+0,+0,+0,+0,-1,+0,-1,+0,-1,+0,-1,+0};
+    int compteurId = 0;
 
     for(int i=0;i<samplingNbr;i++) {
         ShiftImage<DTYPE>(inputImgPtr, warpedImage, maskPtr,
                           RSampling3D_x[i], RSampling3D_y[i], RSampling3D_z[i]);
-        reg_tools_substractImageToImage(inputImgPtr, warpedImage, vectNiftiImage[i]);
-    }
-    //
-    if(inputImgPtr->nz > 1) {
-        //1st descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[0],vectNiftiImage[2],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        unsigned int index = 0 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //2nd descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[0],vectNiftiImage[3],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 1 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //3rd descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[0],vectNiftiImage[4],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 2 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //4rth descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[0],vectNiftiImage[5],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 3 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
+        reg_tools_substractImageToImage(inputImgPtr, warpedImage, diff_image);
+        reg_tools_multiplyImageToImage(diff_image, diff_image, diff_image);
+        reg_tools_kernelConvolution(diff_image, &sigma, 0, maskPtr);
 
-        //5st descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[1],vectNiftiImage[2],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 4 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //6 descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[1],vectNiftiImage[3],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 5 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //7 descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[1],vectNiftiImage[4],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 6 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //8 descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[1],vectNiftiImage[5],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 7 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
+        for(int j=0;j<2;j++){
 
-        //9 descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[2],vectNiftiImage[4],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 8 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //10 descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[2],vectNiftiImage[5],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 9 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //11 descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[3],vectNiftiImage[4],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 10 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //12 descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[3],vectNiftiImage[5],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 11 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-    } else {
-        //1st descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[0],vectNiftiImage[2],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        unsigned int index = 0 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //2nd descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[0],vectNiftiImage[3],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 1 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //3rd descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[1],vectNiftiImage[2],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 2 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
-        //4rth descriptor
-        reg_tools_substractImageToImage(vectNiftiImage[1],vectNiftiImage[3],sub_image);
-        reg_tools_multiplyImageToImage(sub_image, sub_image, sub_image);
-        reg_tools_kernelConvolution(sub_image, &sigma, 0, maskPtr);
-        // Store the current descriptor
-        index = 3 * sub_image->nvox;
-        memcpy(&MINDSSCImgDataPtr[index], sub_image->data,
-               sub_image->nbyper * sub_image->nvox);
-        reg_tools_addImageToImage(mean_img, sub_image, mean_img);
+            ShiftImage<DTYPE>(diff_image, diff_imageShifted, mask_diff_image,
+                              tx[compteurId], ty[compteurId], tz[compteurId]);
+
+            reg_tools_addImageToImage(mean_img, diff_imageShifted, mean_img);
+            // Store the current descriptor
+            unsigned int index = compteurId * diff_imageShifted->nvox;
+            memcpy(&MINDSSCImgDataPtr[index], diff_imageShifted->data,
+                   diff_imageShifted->nbyper * diff_imageShifted->nvox);
+            compteurId++;
+        }
     }
-    //
     // Compute the mean over the number of sample
     reg_tools_divideValueToImage(mean_img, mean_img, lengthDescriptor);
 
@@ -444,10 +319,9 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImgPtr,
         } // mask
     } // voxIndex
     // Mr Propre
-    for(int i=0;i<samplingNbr;i++) {
-        nifti_image_free(vectNiftiImage[i]);
-    }
-    nifti_image_free(sub_image);
+    nifti_image_free(diff_imageShifted);
+    free(mask_diff_image);
+    nifti_image_free(diff_image);
     nifti_image_free(warpedImage);
     nifti_image_free(mean_img);
 }
