@@ -478,9 +478,9 @@ void reg_f3d_sym<T>::Initialise()
          gridSpacing[1] *= -(this->inputReference->dy+this->inputFloating->dy)/2.f;
       if(this->spacing[2]<0)
          gridSpacing[2] *= -(this->inputReference->dz+this->inputFloating->dz)/2.f;
-      gridSpacing[0] *= powf(2.0f, (float)(this->levelToPerform-1));
-      gridSpacing[1] *= powf(2.0f, (float)(this->levelToPerform-1));
-      gridSpacing[2] *= powf(2.0f, (float)(this->levelToPerform-1));
+      gridSpacing[0] *= powf(2.0f, (float)(this->levelNumber-1));
+      gridSpacing[1] *= powf(2.0f, (float)(this->levelNumber-1));
+      gridSpacing[2] *= powf(2.0f, (float)(this->levelNumber-1));
 
       // Create the forward and backward control point grids
       reg_createSymmetricControlPointGrids<T>(&this->controlPointGrid,

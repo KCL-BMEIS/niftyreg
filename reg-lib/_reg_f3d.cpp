@@ -245,11 +245,11 @@ void reg_f3d<T>::Initialise()
 
       // Define the spacing for the first level
       float gridSpacing[3];
-      gridSpacing[0] = spacingInMillimeter[0] * powf(2.0f, (float)(this->levelToPerform-1));
-      gridSpacing[1] = spacingInMillimeter[1] * powf(2.0f, (float)(this->levelToPerform-1));
+      gridSpacing[0] = spacingInMillimeter[0] * powf(2.0f, (float)(this->levelNumber-1));
+      gridSpacing[1] = spacingInMillimeter[1] * powf(2.0f, (float)(this->levelNumber-1));
       gridSpacing[2] = 1.0f;
       if(this->referencePyramid[0]->nz>1)
-         gridSpacing[2] = spacingInMillimeter[2] * powf(2.0f, (float)(this->levelToPerform-1));
+         gridSpacing[2] = spacingInMillimeter[2] * powf(2.0f, (float)(this->levelNumber-1));
 
       // Create and allocate the control point image
       reg_createControlPointGrid<T>(&this->controlPointGrid,
