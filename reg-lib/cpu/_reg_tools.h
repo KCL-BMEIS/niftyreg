@@ -306,6 +306,20 @@ float reg_tools_getMinValue(nifti_image *img);
 extern "C++"
 float reg_tools_getMaxValue(nifti_image *img);
 /* *************************************************************** */
+/** @brief Get the mean value of an image
+ * @param img Input image
+ * @return mean value
+ */
+extern "C++"
+float reg_tools_getMeanValue(nifti_image *img);
+/* *************************************************************** */
+/** @brief Get the std value of an image
+ * @param img Input image
+ * @return std value
+ */
+extern "C++"
+float reg_tools_getSTDValue(nifti_image *img);
+/* *************************************************************** */
 /** @brief Generate a pyramid from an input image.
  * @param input Input image to be downsampled to create the pyramid
  * @param pyramid Output array of images that will contains the

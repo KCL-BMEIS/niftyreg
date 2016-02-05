@@ -2531,6 +2531,101 @@ float reg_tools_getMaxValue(nifti_image *image)
    }
 }
 /* *************************************************************** */
+template <class DTYPE>
+float reg_tools_getMeanValue_core(nifti_image *image)
+{
+   // Create a pointer to the image data
+   DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
+   // Set a variable to store the minimal value
+   float meanValue=0;
+   if(image->scl_slope==0) image->scl_slope=1.f;
+   // Loop over all voxel to find the lowest value
+   for(size_t i=0; i<image->nvox; ++i)
+   {
+      DTYPE currentVal = (DTYPE)((float)imgPtr[i] * image->scl_slope + image->scl_inter);
+      meanValue+=currentVal;
+   }
+   meanValue=(float)(meanValue/(double) image->nvox);
+   // The lowest value is returned
+   return meanValue;
+}
+/* *************************************************************** */
+float reg_tools_getMeanValue(nifti_image *image)
+{
+   // Check the image data type
+   switch(image->datatype)
+   {
+   case NIFTI_TYPE_UINT8:
+      return reg_tools_getMeanValue_core<unsigned char>(image);
+   case NIFTI_TYPE_INT8:
+      return reg_tools_getMeanValue_core<char>(image);
+   case NIFTI_TYPE_UINT16:
+      return reg_tools_getMeanValue_core<unsigned short>(image);
+   case NIFTI_TYPE_INT16:
+      return reg_tools_getMeanValue_core<short>(image);
+   case NIFTI_TYPE_UINT32:
+      return reg_tools_getMeanValue_core<unsigned int>(image);
+   case NIFTI_TYPE_INT32:
+      return reg_tools_getMeanValue_core<int>(image);
+   case NIFTI_TYPE_FLOAT32:
+      return reg_tools_getMeanValue_core<float>(image);
+   case NIFTI_TYPE_FLOAT64:
+      return reg_tools_getMeanValue_core<double>(image);
+   default:
+      reg_print_fct_error("reg_tools_getMeanValue");
+      reg_print_msg_error("The image data type is not supported");
+      reg_exit();
+   }
+}
+/* *************************************************************** */
+template <class DTYPE>
+float reg_tools_getSTDValue_core(nifti_image *image)
+{
+   // Create a pointer to the image data
+   DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
+   // Set a variable to store the minimal value
+   float meanValue = reg_tools_getMeanValue(image);
+   float stdValue=0;
+   if(image->scl_slope==0) image->scl_slope=1.f;
+   // Loop over all voxel to find the lowest value
+   for(size_t i=0; i<image->nvox; ++i)
+   {
+      DTYPE currentVal = (DTYPE)((float)imgPtr[i] * image->scl_slope + image->scl_inter);
+      stdValue+=(currentVal-meanValue)*(currentVal-meanValue);
+   }
+   stdValue = (float) std::sqrt(stdValue/(double) image->nvox);
+   // The lowest value is returned
+   return stdValue;
+}
+/* *************************************************************** */
+float reg_tools_getSTDValue(nifti_image *image)
+{
+   // Check the image data type
+   switch(image->datatype)
+   {
+   case NIFTI_TYPE_UINT8:
+      return reg_tools_getSTDValue_core<unsigned char>(image);
+   case NIFTI_TYPE_INT8:
+      return reg_tools_getSTDValue_core<char>(image);
+   case NIFTI_TYPE_UINT16:
+      return reg_tools_getSTDValue_core<unsigned short>(image);
+   case NIFTI_TYPE_INT16:
+      return reg_tools_getSTDValue_core<short>(image);
+   case NIFTI_TYPE_UINT32:
+      return reg_tools_getSTDValue_core<unsigned int>(image);
+   case NIFTI_TYPE_INT32:
+      return reg_tools_getSTDValue_core<int>(image);
+   case NIFTI_TYPE_FLOAT32:
+      return reg_tools_getSTDValue_core<float>(image);
+   case NIFTI_TYPE_FLOAT64:
+      return reg_tools_getSTDValue_core<double>(image);
+   default:
+      reg_print_fct_error("reg_tools_getSTDValue");
+      reg_print_msg_error("The image data type is not supported");
+      reg_exit();
+   }
+}
+/* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
 void reg_flippAxis_type(int nx,
