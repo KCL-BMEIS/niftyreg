@@ -34,6 +34,9 @@ else(USE_CUDA)
 endif(USE_CUDA)
 target_link_libraries(reg_aladin _reg_aladin)
 #-----------------------------------------------------------------------------
+add_executable(reg_mrf reg_mrf.cpp)
+target_link_libraries(reg_mrf _reg_f3d _reg_mind)
+#-----------------------------------------------------------------------------
 set(MODULE_LIST
   reg_average
   reg_tools
@@ -43,6 +46,7 @@ set(MODULE_LIST
   reg_jacobian
   reg_aladin
   reg_f3d
+  reg_mrf
   )
 #-----------------------------------------------------------------------------
 if(USE_CUDA OR USE_OPENCL)

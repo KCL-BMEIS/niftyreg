@@ -58,7 +58,7 @@ public:
    /// @brief Compute the voxel based measure of similarity gradient
    virtual void GetVoxelBasedSimilarityMeasureGradient() = 0;
    /// @brief Here
-   virtual void GetDiscretisedValue(nifti_image *, float *, int , int ) {}
+   virtual void GetDiscretisedValue(nifti_image *, float *, int , int, float ) {}
    void SetActiveTimepoint(int timepoint)
    {
       this->activeTimePoint[timepoint]=true;

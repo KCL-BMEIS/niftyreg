@@ -199,9 +199,9 @@ void ShiftImage(nifti_image* inputImgPtr,
                     shiftedIndex = (old_z*inputImgPtr->ny+old_y)*inputImgPtr->nx+old_x;
                     if(maskPtr[shiftedIndex]>-1)
                         shiftImageData[currentIndex]=inputData[shiftedIndex];
-                    else shiftImageData[currentIndex]=std::numeric_limits<DTYPE>::quiet_NaN();
+                    else shiftImageData[currentIndex]=0;//std::numeric_limits<DTYPE>::quiet_NaN();
                 }
-                else shiftImageData[currentIndex]=std::numeric_limits<DTYPE>::quiet_NaN();
+                else shiftImageData[currentIndex]=0;//std::numeric_limits<DTYPE>::quiet_NaN();
                 currentIndex++;
             }
         }

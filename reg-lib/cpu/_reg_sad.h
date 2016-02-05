@@ -31,7 +31,8 @@ public:
    virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
                                     float *discretisedValue,
                                     int discretise_radius,
-                                    int discretise_step);
+                                    int discretise_step,
+                                    float costWeight);
    /// @brief Measure class desstructor
    ~reg_sad() {}
 protected:

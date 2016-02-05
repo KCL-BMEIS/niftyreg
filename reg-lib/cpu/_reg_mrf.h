@@ -18,14 +18,17 @@ struct Edge{
 class reg_mrf
 {
 public:
+
    reg_mrf(reg_measure *_measure,
+           nifti_image *_referenceImage,
            nifti_image *_controlPointImage,
            int discrete_radius,
            int _discrete_increment,
            float _reg_weight);
+
    ~reg_mrf();
    void Run();
-   //For the unit tests - let's put these functions publics
+   //For the unit tests - let's put these functions "public"
    //but only Run() should be called.
    void Initialise();
    void GetDiscretisedMeasure();
@@ -40,11 +43,14 @@ public:
 private:
    reg_measure *measure;
    int dim;
+   nifti_image* referenceImage;
    nifti_image* controlPointImage;
    int discrete_radius;
    int discrete_increment;
-   float regularisation_weight;
+   int *discrete_valueArray;//int because voxel displacements
+   //
    float *discretised_measure;
+   float regularisation_weight;
    //weights and indices of potential edges (6 per vertex in 3D - 4 in 2D)
    float *edgeWeightMatrix;
    float *index_neighbours;
@@ -54,7 +60,7 @@ private:
    float* edgeWeight;
    //
    float* regularisedCost;
-   int* optimalDisplacement;
+   int* optimalDisplacement;//int because voxel displacements
    //
    bool initialised;
 };
