@@ -75,6 +75,7 @@ typedef struct
         bool bsi2rgbFlag;
         bool testActiveBlocksFlag;
         bool mindFlag;
+        bool mindSSCFlag;
 } FLAG;
 
 
@@ -111,6 +112,7 @@ void Usage(char *exec)
     printf("\t-4d2rgb\t\t\tConvert a 4D (or 5D) to rgb nifti file\n");
     printf("\t-testActiveBlocks\tGenerate an image highlighting the active blocks for reg_aladin (block variance is shown)\n");
     printf("\t-mind\t\t\tCreate a MIND descriptor image\n");
+    printf("\t-mindssc\t\t\tCreate a MIND-SSC descriptor image\n");
 #if defined (_OPENMP)
     int defaultOpenMPValue=1;
     if(getenv("OMP_NUM_THREADS")!=NULL)
@@ -322,6 +324,10 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-mind") == 0)
         {
             flag->mindFlag=1;
+        }
+        else if(strcmp(argv[i], "-mindssc") == 0)
+        {
+            flag->mindSSCFlag=1;
         }
         else
         {
