@@ -21,6 +21,7 @@
 #include "_reg_dti.h"
 #include "_reg_ssd.h"
 #include "_reg_mind.h"
+#include "_reg_mindssc.h"
 #include "_reg_KLdivergence.h"
 #include "_reg_lncc.h"
 #include "_reg_tools.h"
@@ -58,6 +59,7 @@ protected:
    reg_nmi *measure_nmi;
    reg_multichannel_nmi *measure_multichannel_nmi;
    reg_mind *measure_mind;
+   reg_mindssc *measure_mindssc;
 
    char *executableName;
    int referenceTimePoint;
@@ -233,6 +235,7 @@ public:
    virtual void UseMultiChannelNMI(int timepointNumber);
    virtual void UseSSD(int timepoint);
    virtual void UseMIND(int timepoint);
+   virtual void UseMINDSSC(int timepoint);
    virtual void UseKLDivergence(int timepoint);
    virtual void UseDTI(bool *timepoint);
    virtual void UseLNCC(int timepoint, float stdDevKernel);

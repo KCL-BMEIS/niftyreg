@@ -40,6 +40,7 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->measure_nmi=NULL;
    this->measure_multichannel_nmi=NULL;
    this->measure_mind=NULL;
+   this->measure_mindssc=NULL;
 
    this->similarityWeight=0.; // is automatically set depending of the penalty term weights
 
@@ -227,6 +228,8 @@ reg_base<T>::~reg_base()
       delete this->measure_lncc;
    if(this->measure_mind!=NULL)
       delete this->measure_mind;
+   if(this->measure_mindssc!=NULL)
+      delete this->measure_mindssc;
 
    //Platform
    delete this->platform;
@@ -750,7 +753,8 @@ void reg_base<T>::InitialiseSimilarity()
          this->measure_dti==NULL &&
          this->measure_lncc==NULL &&
          this->measure_lncc==NULL &&
-         this->measure_mind==NULL)
+         this->measure_mind==NULL &&
+         this->measure_mindssc==NULL)
    {
       this->measure_nmi=new reg_nmi;
       for(int i=0; i<this->inputReference->nt; ++i)
@@ -812,6 +816,15 @@ void reg_base<T>::InitialiseSimilarity()
 
    if(this->measure_mind!=NULL)
       this->measure_mind->InitialiseMeasure(this->currentReference,
+                                           this->currentFloating,
+                                           this->currentMask,
+                                           this->warped,
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient
+                                          );
+
+   if(this->measure_mindssc!=NULL)
+      this->measure_mindssc->InitialiseMeasure(this->currentReference,
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
@@ -1000,6 +1013,9 @@ double reg_base<T>::ComputeSimilarityMeasure()
    if(this->measure_mind!=NULL)
       measure += this->measure_mind->GetSimilarityMeasureValue();
 
+   if(this->measure_mindssc!=NULL)
+      measure += this->measure_mindssc->GetSimilarityMeasureValue();
+
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::ComputeSimilarityMeasure");
 #endif
@@ -1056,6 +1072,9 @@ void reg_base<T>::GetVoxelBasedGradient()
 
    if(this->measure_mind!=NULL)
       this->measure_mind->GetVoxelBasedSimilarityMeasureGradient();
+
+   if(this->measure_mindssc!=NULL)
+      this->measure_mindssc->GetVoxelBasedSimilarityMeasureGradient();
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::GetVoxelBasedGradient");
@@ -1141,6 +1160,17 @@ void reg_base<T>::UseMIND(int timepoint)
    this->measure_mind->SetActiveTimepoint(timepoint);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseMIND");
+#endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::UseMINDSSC(int timepoint)
+{
+   if(this->measure_mindssc==NULL)
+      this->measure_mindssc=new reg_mindssc;
+   this->measure_mindssc->SetActiveTimepoint(timepoint);
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::UseMINDSSC");
 #endif
 }
 /* *************************************************************** */

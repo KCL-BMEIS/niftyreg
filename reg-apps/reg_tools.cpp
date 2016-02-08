@@ -18,6 +18,7 @@
 #include "_reg_localTrans.h"
 #include "_reg_tools.h"
 #include "_reg_mind.h"
+#include "_reg_mindssc.h"
 
 #include "_reg_blockMatching.h"
 #include "BlockMatchingKernel.h"
@@ -897,139 +898,172 @@ int main(int argc, char **argv)
             }
         }
         // Save the rgb image
-        if(flag->mindFlag)
-        {
-            if(image->ndim>3){
-                reg_print_msg_error("MIND only support 2D or 3D image for now");
-                reg_exit();
-            }
-            // Convert the input image to float if needed
-            if(image->datatype!=NIFTI_TYPE_FLOAT32)
-                reg_tools_changeDatatype<float>(image);
-            // Create a output image
-            nifti_image *outputImage = nifti_copy_nim_info(image);
-            outputImage->dim[0]=outputImage->ndim=4;
-            outputImage->dim[4]=outputImage->nt=image->nz>1?6:4;
-            outputImage->nvox=(size_t)image->nvox*outputImage->nt;
-            outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
-            // Compute the MIND descriptor
-            int *mask = (int *)calloc(image->nvox, sizeof(int));
-            GetMINDImageDesciptor(image, outputImage, mask);
-            free(mask);      // Save the MIND descriptor image
-            // Save the MIND descriptor image
-            if(flag->outputImageFlag)
-                reg_io_WriteImageFile(outputImage,param->outputImageName);
-            else reg_io_WriteImageFile(outputImage,"output.nii");
-            nifti_image_free(outputImage);
-            outputImage=NULL;
-        }
-        //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
-        if(flag->testActiveBlocksFlag){
-            // Convert the input image to float if needed
-            if(image->datatype!=NIFTI_TYPE_FLOAT32)
-                reg_tools_changeDatatype<float>(image);
-            // Create a temporary mask
-            int *temp_mask = (int *)malloc(image->nx*image->ny*image->nz*sizeof(int));
-            for(size_t i=0; i<(size_t)image->nx*image->ny*image->nz; ++i)
-                temp_mask[i]=i;
-            // Initialise the block matching
-            _reg_blockMatchingParam bm_param;
-            initialise_block_matching_method(image,
-                                             &bm_param,
-                                             100,
-                                             100,
-                                             1,
-                                             temp_mask);
-
-
-            // Generate an image to store the active blocks
-            nifti_image *outputImage = nifti_copy_nim_info(image);
-            outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
-            outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
-            outputImage->nvox=(size_t)outputImage->nx*
-                              outputImage->ny*outputImage->nz;
-            outputImage->cal_min=0;
-            outputImage->data = (void *)calloc(outputImage->nbyper, outputImage->nvox);
-            float *inPtr = static_cast<float *>(image->data);
-            float *outPtr = static_cast<float *>(outputImage->data);
-            // Iterate through the blocks
-            size_t blockIndex=0;
-            for(size_t bz=0;bz<bm_param.blockNumber[2];++bz){
-                size_t vz=4*bz;
-                for(size_t by=0;by<bm_param.blockNumber[1];++by){
-                    size_t vy=4*by;
-                    for(size_t bx=0;bx<bm_param.blockNumber[0];++bx){
-                        size_t vx=4*bx;
-                        if(bm_param.totalBlock[blockIndex++]>-1){
-                            float meanValue=0;
-                            float activeVoxel=0;
-                            for(size_t z=vz;z<vz+4;++z){
-                                if(z<(size_t)outputImage->nz){
-                                    for(size_t y=vy;y<vy+4;++y){
-                                        if(y<(size_t)outputImage->ny){
-                                            size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
-                                            for(size_t x=vx;x<vx+4;++x){
-                                                if(x<(size_t)outputImage->nx){
-                                                    meanValue += inPtr[voxelIndex];
-                                                    activeVoxel++;
-                                                }
-                                                voxelIndex++;
-                                            } // x
-                                        }
-                                    } // y
-                                }
-                            } // z
-                            meanValue /= activeVoxel;
-                            float variance=0;
-                            for(size_t z=vz;z<vz+4;++z){
-                                if(z<(size_t)outputImage->nz){
-                                    for(size_t y=vy;y<vy+4;++y){
-                                        if(y<(size_t)outputImage->ny){
-                                            size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
-                                            for(size_t x=vx;x<vx+4;++x){
-                                                if(x<(size_t)outputImage->nx){
-                                                    variance += reg_pow2(meanValue - inPtr[voxelIndex]);
-                                                }
-                                                voxelIndex++;
-                                            } // x
-                                        }
-                                    } // y
-                                }
-                            } // z
-                            variance /= activeVoxel;
-                            for(size_t z=vz;z<vz+4;++z){
-                                if(z<(size_t)outputImage->nz){
-                                    for(size_t y=vy;y<vy+4;++y){
-                                        if(y<(size_t)outputImage->ny){
-                                            size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
-                                            for(size_t x=vx;x<vx+4;++x){
-                                                if(x<(size_t)outputImage->nx){
-                                                    outPtr[voxelIndex] = variance;
-                                                }
-                                                voxelIndex++;
-                                            } // x
-                                        }
-                                    } // y
-                                }
-                            } // z
-                        } // active block
-                    } // bx
-                } // by
-            } // bz
-            outputImage->cal_max=reg_tools_getMaxValue(outputImage);
-
-            free(temp_mask);
-
-            // Save the output image
-            if(flag->outputImageFlag)
-                reg_io_WriteImageFile(outputImage,param->outputImageName);
-            else reg_io_WriteImageFile(outputImage,"output.nii");
-            nifti_image_free(outputImage);
-            outputImage=NULL;
-        }
-
-        nifti_image_free(image);
-        return EXIT_SUCCESS;
+        if(flag->outputImageFlag)
+            reg_io_WriteImageFile(outputImage,param->outputImageName);
+        else reg_io_WriteImageFile(outputImage,"output.nii");
+        nifti_image_free(outputImage);
+        outputImage=NULL;
     }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+    if(flag->mindFlag)
+    {
+        if(image->ndim>3){
+            reg_print_msg_error("MIND only support 2D or 3D image for now");
+            reg_exit();
+        }
+        // Convert the input image to float if needed
+        if(image->datatype!=NIFTI_TYPE_FLOAT32)
+            reg_tools_changeDatatype<float>(image);
+        // Create a output image
+        nifti_image *outputImage = nifti_copy_nim_info(image);
+        outputImage->dim[0]=outputImage->ndim=4;
+        outputImage->dim[4]=outputImage->nt=image->nz>1?6:4;
+        outputImage->nvox=(size_t)image->nvox*outputImage->nt;
+        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
+        // Compute the MIND descriptor
+        int *mask = (int *)calloc(image->nvox, sizeof(int));
+        GetMINDImageDesciptor(image, outputImage, mask);
+        free(mask);      // Save the MIND descriptor image
+        // Save the MIND descriptor image
+        if(flag->outputImageFlag)
+            reg_io_WriteImageFile(outputImage,param->outputImageName);
+        else reg_io_WriteImageFile(outputImage,"output.nii");
+        nifti_image_free(outputImage);
+        outputImage=NULL;
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+    if(flag->mindSSCFlag)
+    {
+        if(image->ndim>3){
+            reg_print_msg_error("MIND-SSC only support 2D or 3D image for now");
+            reg_exit();
+        }
+        // Convert the input image to float if needed
+        if(image->datatype!=NIFTI_TYPE_FLOAT32)
+            reg_tools_changeDatatype<float>(image);
+        // Create a output image
+        nifti_image *outputImage = nifti_copy_nim_info(image);
+        outputImage->dim[0]=outputImage->ndim=4;
+        outputImage->dim[4]=outputImage->nt=image->nz>1?12:4;
+        outputImage->nvox=(size_t)image->nvox*outputImage->nt;
+        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
+        // Compute the MIND-SSC descriptor
+        int *mask = (int *)calloc(image->nvox, sizeof(int));
+        GetMINDSSCImageDesciptor(image, outputImage, mask);
+        free(mask);
+        // Save the MIND descriptor image
+        if(flag->outputImageFlag)
+            reg_io_WriteImageFile(outputImage,param->outputImageName);
+        else reg_io_WriteImageFile(outputImage,"output.nii");
+        nifti_image_free(outputImage);
+        outputImage=NULL;
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+    if(flag->testActiveBlocksFlag){
+        // Convert the input image to float if needed
+        if(image->datatype!=NIFTI_TYPE_FLOAT32)
+            reg_tools_changeDatatype<float>(image);
+        // Create a temporary mask
+        int *temp_mask = (int *)malloc(image->nx*image->ny*image->nz*sizeof(int));
+        for(size_t i=0; i<(size_t)image->nx*image->ny*image->nz; ++i)
+            temp_mask[i]=i;
+        // Initialise the block matching
+        _reg_blockMatchingParam bm_param;
+        initialise_block_matching_method(image,
+                                         &bm_param,
+                                         100,
+                                         100,
+                                         1,
+                                         temp_mask);
+
+
+        // Generate an image to store the active blocks
+        nifti_image *outputImage = nifti_copy_nim_info(image);
+        outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
+        outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
+        outputImage->nvox=(size_t)outputImage->nx*
+                          outputImage->ny*outputImage->nz;
+        outputImage->cal_min=0;
+        outputImage->data = (void *)calloc(outputImage->nbyper, outputImage->nvox);
+        float *inPtr = static_cast<float *>(image->data);
+        float *outPtr = static_cast<float *>(outputImage->data);
+        // Iterate through the blocks
+        size_t blockIndex=0;
+        for(size_t bz=0;bz<bm_param.blockNumber[2];++bz){
+            size_t vz=4*bz;
+            for(size_t by=0;by<bm_param.blockNumber[1];++by){
+                size_t vy=4*by;
+                for(size_t bx=0;bx<bm_param.blockNumber[0];++bx){
+                    size_t vx=4*bx;
+                    if(bm_param.totalBlock[blockIndex++]>-1){
+                        float meanValue=0;
+                        float activeVoxel=0;
+                        for(size_t z=vz;z<vz+4;++z){
+                            if(z<(size_t)outputImage->nz){
+                                for(size_t y=vy;y<vy+4;++y){
+                                    if(y<(size_t)outputImage->ny){
+                                        size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
+                                        for(size_t x=vx;x<vx+4;++x){
+                                            if(x<(size_t)outputImage->nx){
+                                                meanValue += inPtr[voxelIndex];
+                                                activeVoxel++;
+                                            }
+                                            voxelIndex++;
+                                        } // x
+                                    }
+                                } // y
+                            }
+                        } // z
+                        meanValue /= activeVoxel;
+                        float variance=0;
+                        for(size_t z=vz;z<vz+4;++z){
+                            if(z<(size_t)outputImage->nz){
+                                for(size_t y=vy;y<vy+4;++y){
+                                    if(y<(size_t)outputImage->ny){
+                                        size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
+                                        for(size_t x=vx;x<vx+4;++x){
+                                            if(x<(size_t)outputImage->nx){
+                                                variance += reg_pow2(meanValue - inPtr[voxelIndex]);
+                                            }
+                                            voxelIndex++;
+                                        } // x
+                                    }
+                                } // y
+                            }
+                        } // z
+                        variance /= activeVoxel;
+                        for(size_t z=vz;z<vz+4;++z){
+                            if(z<(size_t)outputImage->nz){
+                                for(size_t y=vy;y<vy+4;++y){
+                                    if(y<(size_t)outputImage->ny){
+                                        size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
+                                        for(size_t x=vx;x<vx+4;++x){
+                                            if(x<(size_t)outputImage->nx){
+                                                outPtr[voxelIndex] = variance;
+                                            }
+                                            voxelIndex++;
+                                        } // x
+                                    }
+                                } // y
+                            }
+                        } // z
+                    } // active block
+                } // bx
+            } // by
+        } // bz
+        outputImage->cal_max=reg_tools_getMaxValue(outputImage);
+
+        free(temp_mask);
+
+        // Save the output image
+        if(flag->outputImageFlag)
+            reg_io_WriteImageFile(outputImage,param->outputImageName);
+        else reg_io_WriteImageFile(outputImage,"output.nii");
+        nifti_image_free(outputImage);
+        outputImage=NULL;
+    }
+
+    nifti_image_free(image);
+    return EXIT_SUCCESS;
 }
 #endif

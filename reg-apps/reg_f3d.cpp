@@ -529,6 +529,14 @@ int main(int argc, char **argv)
           }
           REG->UseMIND(0);
       }
+      else if(strcmp(argv[i], "--mindssc")==0)
+      {
+          if(referenceImage->nt>1 || floatingImage->nt>1){
+              reg_print_msg_error("reg_mindssc does not support multiple time point image");
+              reg_exit();
+          }
+          REG->UseMIND(0);
+      }
       //MRF -- add option for discrete optimization
       else if(strcmp(argv[i], "-kld")==0)
       {
