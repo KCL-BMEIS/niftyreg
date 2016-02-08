@@ -93,7 +93,8 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint");
    reg_print_info(exec, "\t--ssd\t\t\tSSD. Used for all time points");
    reg_print_info(exec, "\t-ssd <tp>\t\tSSD. Used for the specified timepoint");
-   reg_print_info(exec, "\t--mind\t\t\tMIND. Used for all time points");
+   reg_print_info(exec, "\t--mind\t\t\tMIND");
+   reg_print_info(exec, "\t--mindssc\t\tMIND-SCC");
    reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
    reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
