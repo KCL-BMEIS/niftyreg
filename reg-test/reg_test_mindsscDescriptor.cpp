@@ -2,7 +2,7 @@
 #include "_reg_ReadWriteImage.h"
 #include "_reg_globalTrans.h"
 #include "_reg_tools.h"
-#include "_reg_mindssc.h"
+#include "_reg_mind.h"
 //
 #define EPS 0.000001
 //

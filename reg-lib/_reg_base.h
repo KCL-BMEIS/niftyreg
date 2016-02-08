@@ -21,7 +21,6 @@
 #include "_reg_dti.h"
 #include "_reg_ssd.h"
 #include "_reg_mind.h"
-#include "_reg_mindssc.h"
 #include "_reg_KLdivergence.h"
 #include "_reg_lncc.h"
 #include "_reg_tools.h"

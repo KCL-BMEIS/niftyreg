@@ -55,9 +55,30 @@ protected:
    nifti_image *warpedFloatingGradientImageDescriptor;
    nifti_image *warpedReferenceGradientImageDescriptor;
 
-private:
+//private:
    //Platform* platform;
    //Kernel *convolutionKernel;
+};
+/* *************************************************************** */
+/// @brief MIND measure of similarity class
+class reg_mindssc : public reg_mind
+{
+public:
+   /// @brief reg_mind class constructor
+   reg_mindssc();
+   /// @brief Initialise the reg_mind object
+   void InitialiseMeasure(nifti_image *refImgPtr,
+                          nifti_image *floImgPtr,
+                          int *maskRefPtr,
+                          nifti_image *warFloImgPtr,
+                          nifti_image *warFloGraPtr,
+                          nifti_image *forVoxBasedGraPtr,
+                          int *maskFloPtr = NULL,
+                          nifti_image *warRefImgPtr = NULL,
+                          nifti_image *warRefGraPtr = NULL,
+                          nifti_image *bckVoxBasedGraPtr = NULL);
+   /// @brief Measure class desstructor
+   ~reg_mindssc();
 };
 //
 
@@ -65,10 +86,13 @@ extern "C++"
 void GetMINDImageDesciptor(nifti_image* inputImgPtr,
                            nifti_image* MINDImgPtr,
                            int *mask);
+extern "C++"
+void GetMINDSSCImageDesciptor(nifti_image* inputImgPtr,
+                           nifti_image* MINDSSCImgPtr,
+                           int *mask);
 
 extern "C++" template <class DTYPE>
-void ShiftImage(nifti_image* inputImgPtr, nifti_image* shiftedImgPtr, int* maskPtr, int tx, int ty, int tz);
-
-extern "C++" template <class DTYPE>
-void spatialGradient(nifti_image* inputImg, nifti_image* gradImg, int *mask);
+void spatialGradient(nifti_image* inputImg,
+                     nifti_image* gradImg,
+                     int *mask);
 #endif

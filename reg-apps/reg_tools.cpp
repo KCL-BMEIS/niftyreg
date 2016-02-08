@@ -18,7 +18,6 @@
 #include "_reg_localTrans.h"
 #include "_reg_tools.h"
 #include "_reg_mind.h"
-#include "_reg_mindssc.h"
 
 #include "_reg_blockMatching.h"
 #include "BlockMatchingKernel.h"

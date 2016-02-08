@@ -92,8 +92,6 @@ add_library(_reg_measure
   cpu/_reg_dti.cpp
   cpu/_reg_mind.h
   cpu/_reg_mind.cpp
-  cpu/_reg_mindssc.h
-  cpu/_reg_mindssc.cpp
 )
 target_link_libraries(_reg_measure
   _reg_tools
