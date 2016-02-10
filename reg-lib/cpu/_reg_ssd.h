@@ -39,7 +39,7 @@ public:
    virtual double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based ssd gradient
    virtual void GetVoxelBasedSimilarityMeasureGradient();
-   /// @brief Measure class desstructor
+   /// @brief reg_ssd class desstructor
    ~reg_ssd() {}
 protected:
    float currentValue[255];
@@ -78,8 +78,6 @@ double reg_getSSDValue(nifti_image *targetImage,
  * determinant of a transformation at every voxel position. This
  * image is used to modulate the SSD. The argument is ignored if the
  * pointer is set to NULL
- * @param maxSD Input scalar that contain the difference value between
- * the highest and the lowest intensity.
  * @param mask Array that contains a mask to specify which voxel
  * should be considered. If set to NULL, all voxels are considered
  */

@@ -86,8 +86,8 @@ add_library(_reg_measure
   cpu/_reg_nmi.cpp
   cpu/_reg_ssd.h
   cpu/_reg_ssd.cpp
-  cpu/_reg_KLdivergence.h
-  cpu/_reg_KLdivergence.cpp
+  cpu/_reg_kld.h
+  cpu/_reg_kld.cpp
   cpu/_reg_lncc.h
   cpu/_reg_lncc.cpp
   cpu/_reg_dti.h
@@ -101,7 +101,7 @@ install(TARGETS _reg_measure
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_nmi.h cpu/_reg_measure.h cpu/_reg_ssd.h cpu/_reg_KLdivergence.h cpu/_reg_lncc.h cpu/_reg_dti.h DESTINATION include)
+install(FILES cpu/_reg_nmi.h cpu/_reg_measure.h cpu/_reg_ssd.h cpu/_reg_kld.h cpu/_reg_lncc.h cpu/_reg_dti.h DESTINATION include)
 #-----------------------------------------------------------------------------
 set(LIB_LIST
   _reg_resampling

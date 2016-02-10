@@ -89,29 +89,4 @@ protected:
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-class reg_kld : public reg_measure
-{
-public:
-   /// @brief reg_kld class constructor
-   reg_kld()
-   {
-      fprintf(stderr,"[ERROR] KLD OBJECT - TODO\n");
-      reg_exit();
-   }
-   /// @brief Returns the kld value
-   double GetSimilarityMeasureValue()
-   {
-      return 0.;
-   }
-   /// @brief Compute the voxel based kld gradient
-   void GetVoxelBasedSimilarityMeasureGradient()
-   {
-      ;
-   }
-   /// @brief reg_kld class destructor
-   ~reg_kld() {}
-};
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
 #endif // _REG_MEASURE_H

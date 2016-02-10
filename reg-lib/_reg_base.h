@@ -20,7 +20,7 @@
 #include "_reg_nmi.h"
 #include "_reg_dti.h"
 #include "_reg_ssd.h"
-#include "_reg_KLdivergence.h"
+#include "_reg_kld.h"
 #include "_reg_lncc.h"
 #include "_reg_tools.h"
 #include "_reg_ReadWriteImage.h"
