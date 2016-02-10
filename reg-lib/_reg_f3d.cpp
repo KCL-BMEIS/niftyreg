@@ -318,12 +318,12 @@ void reg_f3d<T>::Initialise()
       for(int i=0; i<this->inputReference->nt; i++)
       {
          sprintf(text, "\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
-                i+1, this->inputReference->nt, this->referenceThresholdLow[i],this->referenceThresholdUp[i]);
+                i, this->inputReference->nt-1, this->referenceThresholdLow[i],this->referenceThresholdUp[i]);
          reg_print_info(this->executableName, text);
          if(this->measure_nmi!=NULL){
             if(this->measure_nmi->GetActiveTimepoints()[i]){
                sprintf(text, "\t* binnining size for timepoint %i/%i: %i",
-                      i+1, this->inputFloating->nt, this->measure_nmi->GetReferenceBinNumber()[i]-4);
+                      i, this->inputFloating->nt-1, this->measure_nmi->GetReferenceBinNumber()[i]-4);
                reg_print_info(this->executableName, text);
             }
          }
