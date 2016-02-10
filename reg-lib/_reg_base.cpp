@@ -1027,25 +1027,30 @@ template <class T>
 void reg_base<T>::GetVoxelBasedGradient()
 {
    // The intensity gradient is first computed
-//    if(this->measure_dti!=NULL){
-//        reg_getImageGradient(this->currentFloating,
-//                             this->warImgGradient,
-//                             this->deformationFieldImage,
-//                             this->currentMask,
-//                             this->interpolation,
-//                             this->warpedPaddingValue,
-//                             this->measure_dti->GetActiveTimepoints(),
-//		 					   this->forwardJacobianMatrix,
-//							   this->warped);
-//    }
-//    else{
-   reg_getImageGradient(this->currentFloating,
-                        this->warImgGradient,
-                        this->deformationFieldImage,
-                        this->currentMask,
-                        this->interpolation,
-                        this->warpedPaddingValue);
-//    }
+   if(this->measure_nmi!=NULL || this->measure_multichannel_nmi!=NULL ||
+         this->measure_ssd!=NULL || this->measure_kld!=NULL ||
+         this->measure_lncc!=NULL || this->measure_dti!=NULL)
+   {
+      //    if(this->measure_dti!=NULL){
+      //        reg_getImageGradient(this->currentFloating,
+      //                             this->warImgGradient,
+      //                             this->deformationFieldImage,
+      //                             this->currentMask,
+      //                             this->interpolation,
+      //                             this->warpedPaddingValue,
+      //                             this->measure_dti->GetActiveTimepoints(),
+      //		 					   this->forwardJacobianMatrix,
+      //							   this->warped);
+      //    }
+      //    else{
+      reg_getImageGradient(this->currentFloating,
+                           this->warImgGradient,
+                           this->deformationFieldImage,
+                           this->currentMask,
+                           this->interpolation,
+                           this->warpedPaddingValue);
+      //    }
+   }
 
    // The voxel based gradient image is filled with zeros
    reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradient,

@@ -922,7 +922,7 @@ int main(int argc, char **argv)
         // Compute the MIND descriptor
         int *mask = (int *)calloc(image->nvox, sizeof(int));
         GetMINDImageDesciptor(image, outputImage, mask);
-        free(mask);      // Save the MIND descriptor image
+        free(mask);
         // Save the MIND descriptor image
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(outputImage,param->outputImageName);

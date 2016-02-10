@@ -43,7 +43,7 @@ public:
    virtual void GetVoxelBasedSimilarityMeasureGradient();
    /// @brief Measure class desstructor
    ~reg_mind();
-   //
+
 protected:
    nifti_image *referenceImageDescriptor;
    nifti_image *floatingImageDescriptor;
@@ -52,12 +52,8 @@ protected:
    bool activeTimePointDescriptor[255];
 
    // gradient
-   nifti_image *warpedFloatingGradientImageDescriptor;
-   nifti_image *warpedReferenceGradientImageDescriptor;
-
-//private:
-   //Platform* platform;
-   //Kernel *convolutionKernel;
+   nifti_image *warpedFloatingImageDescriptorGradient;
+   nifti_image *warpedReferenceImageDescriptorGradient;
 };
 /* *************************************************************** */
 /// @brief MIND measure of similarity class
@@ -80,7 +76,7 @@ public:
    /// @brief Measure class desstructor
    ~reg_mindssc();
 };
-//
+/* *************************************************************** */
 
 extern "C++"
 void GetMINDImageDesciptor(nifti_image* inputImgPtr,

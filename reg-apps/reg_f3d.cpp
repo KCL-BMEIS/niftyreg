@@ -99,7 +99,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
    reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
    reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98\% ile.");
-//   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
+   //   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Optimisation options:");
    reg_print_info(exec, "\t-maxit <int>\t\tMaximal number of iteration at the final level [150]");
@@ -138,7 +138,7 @@ void Usage(char *exec)
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
-          defaultOpenMPValue, omp_get_num_procs());
+           defaultOpenMPValue, omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
    reg_print_info(exec, "");
@@ -203,11 +203,11 @@ int main(int argc, char **argv)
       }
 #ifdef _GIT_HASH
       if( strcmp(argv[i], "-version")==0 ||
-            strcmp(argv[i], "-Version")==0 ||
-            strcmp(argv[i], "-V")==0 ||
-            strcmp(argv[i], "-v")==0 ||
-            strcmp(argv[i], "--v")==0 ||
-            strcmp(argv[i], "--version")==0)
+          strcmp(argv[i], "-Version")==0 ||
+          strcmp(argv[i], "-V")==0 ||
+          strcmp(argv[i], "-v")==0 ||
+          strcmp(argv[i], "--v")==0 ||
+          strcmp(argv[i], "--version")==0)
       {
          printf("%s\n",_GIT_HASH);
          return EXIT_SUCCESS;
@@ -524,19 +524,19 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "--mind")==0)
       {
-          if(referenceImage->nt>1 || floatingImage->nt>1){
-              reg_print_msg_error("reg_mind does not support multiple time point image");
-              reg_exit();
-          }
-          REG->UseMIND(0);
+         if(referenceImage->nt>1 || floatingImage->nt>1){
+            reg_print_msg_error("reg_mind does not support multiple time point image");
+            reg_exit();
+         }
+         REG->UseMIND(0);
       }
       else if(strcmp(argv[i], "--mindssc")==0)
       {
-          if(referenceImage->nt>1 || floatingImage->nt>1){
-              reg_print_msg_error("reg_mindssc does not support multiple time point image");
-              reg_exit();
-          }
-          REG->UseMIND(0);
+         if(referenceImage->nt>1 || floatingImage->nt>1){
+            reg_print_msg_error("reg_mindssc does not support multiple time point image");
+            reg_exit();
+         }
+         REG->UseMINDSSC(0);
       }
       //MRF -- add option for discrete optimization
       else if(strcmp(argv[i], "-kld")==0)
@@ -548,12 +548,12 @@ int main(int argc, char **argv)
          for(int t=0; t<floatingImage->nt; ++t)
             REG->UseKLDivergence(t);
       }
-//        else if(strcmp(argv[i], "-amc")==0){ // HERE TODO
-//            REG->UseMultiChannelNMI();
-//        }
+      //        else if(strcmp(argv[i], "-amc")==0){ // HERE TODO
+      //            REG->UseMultiChannelNMI();
+      //        }
       else if(strcmp(argv[i], "-rr")==0)
       {
-            REG->UseRobustRange();
+         REG->UseRobustRange();
       }
       else if(strcmp(argv[i], "-lncc")==0)
       {
@@ -622,9 +622,9 @@ int main(int argc, char **argv)
             break;
          }
       }
-//        else if(strcmp(argv[i], "-noAppPW")==0){ // HERE TODO
-//            parzenWindowApproximation=false;
-//        }
+      //        else if(strcmp(argv[i], "-noAppPW")==0){ // HERE TODO
+      //            parzenWindowApproximation=false;
+      //        }
       else if((strcmp(argv[i],"-fmask")==0) || (strcmp(argv[i],"-smask")==0) ||
               (strcmp(argv[i],"--fmask")==0) || (strcmp(argv[i],"--smask")==0))
       {
@@ -669,7 +669,7 @@ int main(int argc, char **argv)
       {
          REG->UseBCHUpdate(atoi(argv[++i]));
       }
-////////////////////////
+      ////////////////////////
       else if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
       {
          int value=atoi(argv[++i]);
@@ -678,29 +678,29 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
          }
 #ifndef _USE_CUDA
-            if(value==NR_PLATFORM_CUDA){
-               reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
-               reg_print_msg_warn("The CPU platform is used");
-               value=0;
-            }
+         if(value==NR_PLATFORM_CUDA){
+            reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
+            reg_print_msg_warn("The CPU platform is used");
+            value=0;
+         }
 #endif
 #ifndef _USE_OPENCL
-            if(value==NR_PLATFORM_CL){
-               reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
-               reg_print_msg_warn("The CPU platform is used");
-               value=0;
-            }
+         if(value==NR_PLATFORM_CL){
+            reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
+            reg_print_msg_warn("The CPU platform is used");
+            value=0;
+         }
 #endif
          platformFlag=value;
       }
-////////////////////////
+      ////////////////////////
       else if(strcmp(argv[i], "-gpuid")==0 || strcmp(argv[i], "--gpuid")==0)
       {
-          gpuIdx = unsigned(atoi(argv[++i]));
+         gpuIdx = unsigned(atoi(argv[++i]));
       }
-//      else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
-//         iso=true;
-//      }
+      //      else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
+      //         iso=true;
+      //      }
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
 #if defined (_OPENMP)
@@ -712,13 +712,13 @@ int main(int argc, char **argv)
       }
       /* All the following arguments should have already been parsed */
       else if(strcmp(argv[i], "-help")!=0 && strcmp(argv[i], "-Help")!=0 &&
-      strcmp(argv[i], "-HELP")!=0 && strcmp(argv[i], "-h")!=0 &&
-      strcmp(argv[i], "--h")!=0 && strcmp(argv[i], "--help")!=0 &&
-      strcmp(argv[i], "--xml")!=0 && strcmp(argv[i], "-version")!=0 &&
-      strcmp(argv[i], "-Version")!=0 && strcmp(argv[i], "-V")!=0 &&
-      strcmp(argv[i], "-v")!=0 && strcmp(argv[i], "--v")!=0 &&
-      strcmp(argv[i], "-gpu")!=0 && strcmp(argv[i], "--gpu")!=0 &&
-      strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0)
+              strcmp(argv[i], "-HELP")!=0 && strcmp(argv[i], "-h")!=0 &&
+              strcmp(argv[i], "--h")!=0 && strcmp(argv[i], "--help")!=0 &&
+              strcmp(argv[i], "--xml")!=0 && strcmp(argv[i], "-version")!=0 &&
+              strcmp(argv[i], "-Version")!=0 && strcmp(argv[i], "-V")!=0 &&
+              strcmp(argv[i], "-v")!=0 && strcmp(argv[i], "--v")!=0 &&
+              strcmp(argv[i], "-gpu")!=0 && strcmp(argv[i], "--gpu")!=0 &&
+              strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0)
       {
          reg_print_msg_error("\tParameter unknown:");
          reg_print_msg_error(argv[i]);
@@ -749,24 +749,73 @@ int main(int argc, char **argv)
 #endif // _OPENMP
 
    // Run the registration
-      REG->Run();
+   REG->Run();
 
-      // Save the control point image
-      nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
-      if(outputCPPImageName==NULL) outputCPPImageName=(char *)"outputCPP.nii";
-      memset(outputControlPointGridImage->descrip, 0, 80);
-      strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
+   // Save the control point image
+   nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
+   if(outputCPPImageName==NULL) outputCPPImageName=(char *)"outputCPP.nii";
+   memset(outputControlPointGridImage->descrip, 0, 80);
+   strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
+   if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
+      strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
+   reg_io_WriteImageFile(outputControlPointGridImage,outputCPPImageName);
+   nifti_image_free(outputControlPointGridImage);
+   outputControlPointGridImage=NULL;
+
+   // Save the backward control point image
+   if(REG->GetSymmetricStatus())
+   {
+      // _backward is added to the forward control point grid image name
+      std::string b(outputCPPImageName);
+      if(b.find( ".nii.gz") != std::string::npos)
+         b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
+      else if(b.find( ".nii") != std::string::npos)
+         b.replace(b.find( ".nii"),4,"_backward.nii");
+      else if(b.find( ".hdr") != std::string::npos)
+         b.replace(b.find( ".hdr"),4,"_backward.hdr");
+      else if(b.find( ".img.gz") != std::string::npos)
+         b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
+      else if(b.find( ".img") != std::string::npos)
+         b.replace(b.find( ".img"),4,"_backward.img");
+      else if(b.find( ".png") != std::string::npos)
+         b.replace(b.find( ".png"),4,"_backward.png");
+      else if(b.find( ".nrrd") != std::string::npos)
+         b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
+      else b.append("_backward.nii");
+      nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
+      memset(outputBackwardControlPointGridImage->descrip, 0, 80);
+      strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
       if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
-         strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
-      reg_io_WriteImageFile(outputControlPointGridImage,outputCPPImageName);
-      nifti_image_free(outputControlPointGridImage);
-      outputControlPointGridImage=NULL;
+         strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
+      reg_io_WriteImageFile(outputBackwardControlPointGridImage,b.c_str());
+      nifti_image_free(outputBackwardControlPointGridImage);
+      outputBackwardControlPointGridImage=NULL;
+   }
 
-      // Save the backward control point image
-      if(REG->GetSymmetricStatus())
+   // Save the warped image(s)
+   nifti_image **outputWarpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
+   outputWarpedImage[0]=NULL;
+   outputWarpedImage[1]=NULL;
+   outputWarpedImage = REG->GetWarpedImage();
+   if(outputWarpedImageName==NULL)
+      outputWarpedImageName=(char *)"outputResult.nii";
+   memset(outputWarpedImage[0]->descrip, 0, 80);
+   strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d)");
+   //      if(strcmp("NiftyReg F3D SYM", REG->GetExecutableName())==0)
+   //      {
+   //         strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
+   //         strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
+   //      }
+   if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
+   {
+      strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d2)");
+      strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
+   }
+   if(REG->GetSymmetricStatus())
+   {
+      if(outputWarpedImage[1]!=NULL)
       {
-         // _backward is added to the forward control point grid image name
-         std::string b(outputCPPImageName);
+         std::string b(outputWarpedImageName);
          if(b.find( ".nii.gz") != std::string::npos)
             b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
          else if(b.find( ".nii") != std::string::npos)
@@ -782,67 +831,18 @@ int main(int argc, char **argv)
          else if(b.find( ".nrrd") != std::string::npos)
             b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
          else b.append("_backward.nii");
-         nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
-         memset(outputBackwardControlPointGridImage->descrip, 0, 80);
-         strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
-         if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
-            strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
-         reg_io_WriteImageFile(outputBackwardControlPointGridImage,b.c_str());
-         nifti_image_free(outputBackwardControlPointGridImage);
-         outputBackwardControlPointGridImage=NULL;
+         reg_io_WriteImageFile(outputWarpedImage[1],b.c_str());
       }
-
-      // Save the warped image(s)
-      nifti_image **outputWarpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
-      outputWarpedImage[0]=NULL;
-      outputWarpedImage[1]=NULL;
-      outputWarpedImage = REG->GetWarpedImage();
-      if(outputWarpedImageName==NULL)
-         outputWarpedImageName=(char *)"outputResult.nii";
-      memset(outputWarpedImage[0]->descrip, 0, 80);
-      strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d)");
-//      if(strcmp("NiftyReg F3D SYM", REG->GetExecutableName())==0)
-//      {
-//         strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
-//         strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
-//      }
-      if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
-      {
-         strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d2)");
-         strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
-      }
-      if(REG->GetSymmetricStatus())
-      {
-         if(outputWarpedImage[1]!=NULL)
-         {
-            std::string b(outputWarpedImageName);
-            if(b.find( ".nii.gz") != std::string::npos)
-               b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
-            else if(b.find( ".nii") != std::string::npos)
-               b.replace(b.find( ".nii"),4,"_backward.nii");
-            else if(b.find( ".hdr") != std::string::npos)
-               b.replace(b.find( ".hdr"),4,"_backward.hdr");
-            else if(b.find( ".img.gz") != std::string::npos)
-               b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
-            else if(b.find( ".img") != std::string::npos)
-               b.replace(b.find( ".img"),4,"_backward.img");
-            else if(b.find( ".png") != std::string::npos)
-               b.replace(b.find( ".png"),4,"_backward.png");
-            else if(b.find( ".nrrd") != std::string::npos)
-               b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
-            else b.append("_backward.nii");
-            reg_io_WriteImageFile(outputWarpedImage[1],b.c_str());
-         }
-      }
-      reg_io_WriteImageFile(outputWarpedImage[0],outputWarpedImageName);
-      if(outputWarpedImage[0]!=NULL)
-         nifti_image_free(outputWarpedImage[0]);
-      outputWarpedImage[0]=NULL;
-      if(outputWarpedImage[1]!=NULL)
-         nifti_image_free(outputWarpedImage[1]);
-      outputWarpedImage[1]=NULL;
-      free(outputWarpedImage);
-      outputWarpedImage=NULL;
+   }
+   reg_io_WriteImageFile(outputWarpedImage[0],outputWarpedImageName);
+   if(outputWarpedImage[0]!=NULL)
+      nifti_image_free(outputWarpedImage[0]);
+   outputWarpedImage[0]=NULL;
+   if(outputWarpedImage[1]!=NULL)
+      nifti_image_free(outputWarpedImage[1]);
+   outputWarpedImage[1]=NULL;
+   free(outputWarpedImage);
+   outputWarpedImage=NULL;
    // Erase the registration object
    delete REG;
 
