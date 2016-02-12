@@ -336,6 +336,9 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
                      for(int sadIndex=0;sadIndex<voxelBlockNumber;sadIndex++) {
                         SADNeighbourValue += std::abs(neighbourBlockValue[sadIndex]-refBlockValue[sadIndex]);
                      }
+                     if(SADNeighbourValue == 0) {
+                         SADNeighbourValue = std::numeric_limits<float>::epsilon();
+                     }
                      //store results:
                      index_neighbours[cpx+cpy*controlPointGridImage->nx+
                            cpz*controlPointGridImage->nx*controlPointGridImage->ny+
@@ -601,8 +604,8 @@ void reg_mrf::GetRegularisation()
    }
 
    //weight of the regularisation - constant weight
-   float edgew=this->regularisation_weight;
-   float edgew1=1.0f/edgew;
+   //float edgew=this->regularisation_weight;
+   //float edgew1=1.0f/edgew;
 
    //calculate mst-cost
    for(int i=(controlPointNumber-1);i>0;i--){ //do for each control point
@@ -611,8 +614,8 @@ void reg_mrf::GetRegularisation()
       //retreive the parent node of the child
       int oparent=this->parentsList[ochild];
       //retreive the weight of the edge between oparent and ochild
-      //float edgew=this->edgeWeight[ochild];
-      //float edgew1=1.0f/edgew;
+      float edgew=this->edgeWeight[ochild];
+      float edgew1=1.0f/edgew;
 
       for(int l=0;l<label_num;l++){
          //matrix = discretisedValue (first dimension displacement label, second dim. control point)
@@ -635,8 +638,9 @@ void reg_mrf::GetRegularisation()
    for(int i=1;i<controlPointNumber;i++){ //other direction
       int ochild=this->orderedList[i];
       int oparent=this->parentsList[ochild];
-      //float edgew=this->edgeWeight[ochild];
-      //float edgew1=1.0f/edgew;
+      //retreive the weight of the edge between oparent and ochild
+      float edgew=this->edgeWeight[ochild];
+      float edgew1=1.0f/edgew;
 
       for(int l=0;l<label_num;l++){
          cost1[l]=(this->regularisedCost[oparent*label_num+l]-message[ochild*label_num+l]+message[oparent*label_num+l])*edgew;

@@ -14,13 +14,15 @@ int main(int argc, char **argv)
    time_t start;
    time(&start);
 
-   if(argc!=3) {
-      fprintf(stderr, "Usage: %s <refImage> <floatingImage>\n", argv[0]);
+   if(argc!=5) {
+      fprintf(stderr, "Usage: %s <refImage> <floatingImage> <regularisationWeight> <outputImageName>\n", argv[0]);
       return EXIT_FAILURE;
    }
    //IO
    char *inputRefImageName=argv[1];
    char *inputFloImageName=argv[2];
+   float regularisationWeight=atof(argv[3]);
+   char *outputImageName=argv[4];
 
    // Read reference image
    nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
@@ -123,13 +125,14 @@ int main(int argc, char **argv)
    // Compute the MIND descriptor
    GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask);
 
-   reg_ssd* sadMeasure = new reg_ssd();
+   reg_sad* sadMeasure = new reg_sad();
    /* Read and create the mask array */
    for(int i=0;i<MINDSSC_refimg->nt;++i) {
       sadMeasure->SetActiveTimepoint(i);
    }
    sadMeasure->InitialiseMeasure(MINDSSC_refimg,MINDSSC_warimg,mask,MINDSSC_warimg,NULL,NULL);
-   reg_mrf* reg_mrfObject = new reg_mrf(sadMeasure,referenceImage,controlPointImage,18,3,0.5);//18,3 = default parameters
+   reg_mrf* reg_mrfObject =
+           new reg_mrf(sadMeasure,referenceImage,controlPointImage,18,3,regularisationWeight);//18,3 = default parameters
 
    reg_mrfObject->Run();
 
@@ -146,13 +149,16 @@ int main(int argc, char **argv)
                      1,
                      0.f);
 
-   reg_io_WriteImageFile(warpedImage, "result.nii.gz");
+
+   reg_io_WriteImageFile(warpedImage, outputImageName);
 
    reg_getDisplacementFromDeformation(deformationField);
    deformationField->dim[4] = deformationField->nt = deformationField->nu;
    deformationField->dim[5] = deformationField->nu = 1;
    deformationField->dim[0] = deformationField->ndim = 4;
+   //DEBUG
    reg_io_WriteImageFile(deformationField, "displacement.nii.gz");
+   //DEBUG
 
 
    delete reg_mrfObject;
