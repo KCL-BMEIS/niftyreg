@@ -504,7 +504,7 @@ void GetDiscretisedValue_core3D(nifti_image *controlPointGridImage,
                             }
                             } else {
                                 for(t=0; t<refImage->nt; ++t){
-                                    refBlockValue[blockIndex] = 0.f;
+                                    refBlockValue[blockIndex] = std::numeric_limits<float>::quiet_NaN();
                                     blockIndex++;
                                 }
                             }
@@ -533,7 +533,7 @@ void GetDiscretisedValue_core3D(nifti_image *controlPointGridImage,
                                             }
                                         } else {
                                             for(t=0; t<warImage->nt; ++t){
-                                                warBlockValue[blockIndex]=0.f;
+                                                warBlockValue[blockIndex]=std::numeric_limits<float>::quiet_NaN();
                                                 blockIndex++;
                                             }
                                         } // if defined
@@ -542,10 +542,14 @@ void GetDiscretisedValue_core3D(nifti_image *controlPointGridImage,
                             } // z
                             currentValue = 0;
                             blockIndex = 0;
+                            int activeBlockNumber=0;
                             for(blockIndex = 0;blockIndex<voxelBlockNumber;blockIndex++) {
-                                currentValue += (warBlockValue[blockIndex]-refBlockValue[blockIndex])*
-                                                (warBlockValue[blockIndex]-refBlockValue[blockIndex]);
+                               if(refBlockValue[blockIndex]==refBlockValue[blockIndex] && warBlockValue[blockIndex]==warBlockValue[blockIndex]){
+                                  currentValue += reg_pow2(warBlockValue[blockIndex]-refBlockValue[blockIndex]);
+                                  ++activeBlockNumber;
+                               }
                             }
+                            currentValue /= static_cast<float>(activeBlockNumber);
                             discretisedValue[discretisedIndex+
                                     cpx*nD_discrete_valueNumber+
                                     cpy*nD_discrete_valueNumber*controlPointGridImage->nx+

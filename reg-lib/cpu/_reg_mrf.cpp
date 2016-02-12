@@ -597,13 +597,16 @@ void reg_mrf::GetRegularisation()
       cost1[i]=0;
    }
 
+   float edgew=0.5;
+   float edgew1=1.0f/edgew;
+
    //calculate mst-cost
    for(int i=(controlPointNumber-1);i>0;i--){ //do for each control point
 
       int ochild=this->orderedList[i];
       int oparent=this->parentsList[ochild];
-      float edgew=this->edgeWeight[ochild];
-      float edgew1=1.0f/edgew;
+      //float edgew=this->edgeWeight[ochild];
+      //float edgew1=1.0f/edgew;
 
       for(int l=0;l<label_num;l++){
          cost1[l]=this->regularisedCost[ochild*label_num+l]*edgew;
@@ -623,8 +626,8 @@ void reg_mrf::GetRegularisation()
    for(int i=1;i<controlPointNumber;i++){ //other direction
       int ochild=this->orderedList[i];
       int oparent=this->parentsList[ochild];
-      float edgew=this->edgeWeight[ochild];
-      float edgew1=1.0f/edgew;
+      //float edgew=this->edgeWeight[ochild];
+      //float edgew1=1.0f/edgew;
 
       for(int l=0;l<label_num;l++){
          cost1[l]=(this->regularisedCost[oparent*label_num+l]-message[ochild*label_num+l]+message[oparent*label_num+l])*edgew;
