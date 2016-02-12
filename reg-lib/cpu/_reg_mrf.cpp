@@ -114,8 +114,10 @@ void reg_mrf::GetDiscretisedMeasure()
 void reg_mrf::Optimise()
 {
    // Compute the discretised value
+   // compute the data term
    this->GetDiscretisedMeasure();
    // Run the optimisation
+   //compute the regularisation term
    this->GetRegularisation();
 
    //Update the control point position
@@ -587,8 +589,9 @@ void reg_mrf::GetRegularisation()
    //controlPointNumber = m1*n1*o1;
    //DEBUG
    float* message=new float[controlPointNumber*label_num];
-
+   //initialize the energy term with the data cost value
    for(int i=0;i<controlPointNumber*label_num;i++){
+      //matrix = discretisedValue (first dimension displacement label, second dim. control point)
       this->regularisedCost[i]=this->discretised_measure[i];
       message[i]=0.0;
    }
@@ -597,22 +600,28 @@ void reg_mrf::GetRegularisation()
       cost1[i]=0;
    }
 
-   float edgew=0.5;
+   //weight of the regularisation - constant weight
+   float edgew=this->regularisation_weight;
    float edgew1=1.0f/edgew;
 
    //calculate mst-cost
    for(int i=(controlPointNumber-1);i>0;i--){ //do for each control point
-
-      int ochild=this->orderedList[i];
+      //retreive the child of the current node - start with the leave
+      int ochild=this->orderedList[i];//ordered list of all the nodes from root to leaves
+      //retreive the parent node of the child
       int oparent=this->parentsList[ochild];
+      //retreive the weight of the edge between oparent and ochild
       //float edgew=this->edgeWeight[ochild];
       //float edgew1=1.0f/edgew;
 
       for(int l=0;l<label_num;l++){
+         //matrix = discretisedValue (first dimension displacement label, second dim. control point)
+         //weighted by the  edge weight
          cost1[l]=this->regularisedCost[ochild*label_num+l]*edgew;
       }
 
       //fast distance transform
+      //It is were the regularisation is calculated
       dt3x(cost1,inds,label_len,0,0,0);
 
       //add mincost to parent node
@@ -700,28 +709,31 @@ void dt3x(float* r,int* indr,int rl,float dx,float dy,float dz){
    for(int i=0;i<rl*rl*rl;i++){
       indr[i]=i;
    }
+   //r contains D*(fp) = D(fp)+ Sum(Cc(fp))
    int* v=new int[rl]; //slightly faster if not intitialised in each loop
    float* z=new float[rl+1];
    float* f=new float[rl];
    int* i1=new int[rl];
 
+   //we calculate here the ||up-uq||^2 / ||xp - xq|| ->1st dim => up
    for(int k=0;k<rl;k++){
       for(int i=0;i<rl;i++){
          dt1sq(r+i+k*rl*rl,indr+i+k*rl*rl,rl,-dx,rl,v,z,f,i1);
       }
    }
-
+   //we calculate here the ||up-uq||^2 / ||xp - xq|| ->2nd dim => vp
    for(int k=0;k<rl;k++){
       for(int j=0;j<rl;j++){
          dt1sq(r+j*rl+k*rl*rl,indr+j*rl+k*rl*rl,rl,-dy,1,v,z,f,i1);//);
       }
    }
-
+   //we calculate here the ||up-uq||^2 / ||xp - xq|| ->3rd dim => wp
    for(int j=0;j<rl;j++){
       for(int i=0;i<rl;i++){
          dt1sq(r+i+j*rl,indr+i+j*rl,rl,-dz,rl*rl,v,z,f,i1);//);
       }
    }
+   //calculate the min -- of r = Cp(fq) = D(fp)+ Sum(Cc(fp)) + \alpha R(fp,fq)
    float min1=*std::min_element(r,r+rl*rl*rl);
    for(int i=0;i<rl*rl*rl;i++){
       r[i]-=min1;
