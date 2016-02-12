@@ -499,11 +499,6 @@ void reg_tools_changeDatatype1(nifti_image *image,int type)
    }
    free(image->data);
    image->nbyper = sizeof(NewTYPE);
-#ifndef NDEBUG
-   char text[255];
-   sprintf(text,"corresponding new bytes per voxel is: %d",image->nbyper);
-    reg_print_msg_debug(text);
-#endif
    image->data = (void *)calloc(image->nvox,sizeof(NewTYPE));
    NewTYPE *dataPtr = static_cast<NewTYPE *>(image->data);
    for (size_t i = 0; i < image->nvox; i++) {

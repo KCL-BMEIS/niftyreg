@@ -13,11 +13,8 @@ reg_aladin_sym<T>::reg_aladin_sym ()
 
    this->InputFloatingMask=NULL;
    this->FloatingMaskPyramid=NULL;
-   this->CurrentFloatingMask=NULL;
    this->BackwardActiveVoxelNumber=NULL;
 
-   this->BackwardDeformationFieldImage=NULL;
-   this->CurrentBackwardWarped=NULL;
    this->BackwardTransformationMatrix=new mat44;
 
    this->bAffineTransformation3DKernel = NULL;
@@ -41,9 +38,6 @@ reg_aladin_sym<T>::reg_aladin_sym ()
 template <class T>
 reg_aladin_sym<T>::~reg_aladin_sym()
 {
-   this->ClearBackwardWarpedImage();
-   this->ClearBackwardDeformationField();
-
    if(this->BackwardTransformationMatrix!=NULL)
       delete this->BackwardTransformationMatrix;
    this->BackwardTransformationMatrix=NULL;
@@ -71,23 +65,6 @@ void reg_aladin_sym<T>::SetInputFloatingMask(nifti_image *m)
 {
    this->InputFloatingMask = m;
    return;
-}
-/* *************************************************************** */
-template <class T>
-void reg_aladin_sym<T>::ClearBackwardWarpedImage()
-{
-   if(this->CurrentBackwardWarped!=NULL)
-      nifti_image_free(this->CurrentBackwardWarped);
-   this->CurrentBackwardWarped=NULL;
-
-}
-/* *************************************************************** */
-template <class T>
-void reg_aladin_sym<T>::ClearBackwardDeformationField()
-{
-   if(this->BackwardDeformationFieldImage!=NULL)
-      nifti_image_free(this->BackwardDeformationFieldImage);
-   this->BackwardDeformationFieldImage=NULL;
 }
 /* *************************************************************** */
 template <class T>
@@ -230,17 +207,8 @@ void reg_aladin_sym<T>::InitialiseRegistration()
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::SetCurrentImages()
-{
-   reg_aladin<T>::SetCurrentImages();
-   this->CurrentFloatingMask=this->FloatingMaskPyramid[this->CurrentLevel];
-}
-/* *************************************************************** */
-template <class T>
 void reg_aladin_sym<T>::GetBackwardDeformationField()
 {
-   /*reg_affine_getDeformationField(this->BackwardTransformationMatrix,
-                                  this->BackwardDeformationFieldImage);*/
    this->bAffineTransformation3DKernel->template castTo<AffineDeformationFieldKernel>()->calculate();
 }
 /* *************************************************************** */
@@ -249,7 +217,6 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
 {
    reg_aladin<T>::GetWarpedImage(interp);
    this->GetBackwardDeformationField();
-   //TODO: This needs correction, otherwise we are transforming an image that has already been warped
    this->bResamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, std::numeric_limits<T>::quiet_NaN());
 
 }
@@ -257,11 +224,11 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
 template <class T>
 void reg_aladin_sym<T>::UpdateTransformationMatrix(int type){
 
-	reg_aladin<T>::UpdateTransformationMatrix(type);
+  reg_aladin<T>::UpdateTransformationMatrix(type);
 
-	// Update now the backward transformation matrix
-	this->bBlockMatchingKernel->template castTo<BlockMatchingKernel>()->calculate();
-	this->bOptimiseKernel->template castTo<OptimiseKernel>()->calculate(type);
+  // Update now the backward transformation matrix
+  this->bBlockMatchingKernel->template castTo<BlockMatchingKernel>()->calculate();
+  this->bOptimiseKernel->template castTo<OptimiseKernel>()->calculate(type);
 
 #ifndef NDEBUG
    reg_mat44_disp(this->TransformationMatrix, (char *)"[NiftyReg DEBUG] pre-updated forward transformation matrix");
@@ -289,10 +256,10 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type){
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::initAladinContent(nifti_image *ref,
-												nifti_image *flo,
-												int *mask,
-												mat44 *transMat,
-												size_t bytes)
+                        nifti_image *flo,
+                        int *mask,
+                        mat44 *transMat,
+                        size_t bytes)
 {
    reg_aladin<T>::initAladinContent(ref,
                                flo,
@@ -300,28 +267,28 @@ void reg_aladin_sym<T>::initAladinContent(nifti_image *ref,
                                transMat,
                                bytes);
 
-	if (this->platformCode == NR_PLATFORM_CPU)
-	this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
+  if (this->platformCode == NR_PLATFORM_CPU)
+  this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
 #ifdef _USE_CUDA
-	else if (this->platformCode == NR_PLATFORM_CUDA)
-	this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
+  else if (this->platformCode == NR_PLATFORM_CUDA)
+  this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
 #endif
 #ifdef _USE_OPENCL
-	else if (this->platformCode == NR_PLATFORM_CL)
-	this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
+  else if (this->platformCode == NR_PLATFORM_CL)
+  this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
 #endif
-	this->BackwardBlockMatchingParams = backCon->AladinContent::getBlockMatchingParams();
+  this->BackwardBlockMatchingParams = backCon->AladinContent::getBlockMatchingParams();
 }
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::initAladinContent(nifti_image *ref,
-												nifti_image *flo,
-												int *mask,
-												mat44 *transMat,
-												size_t bytes,
-												unsigned int blockPercentage,
-												unsigned int inlierLts,
-												unsigned int blockStepSize)
+                        nifti_image *flo,
+                        int *mask,
+                        mat44 *transMat,
+                        size_t bytes,
+                        unsigned int blockPercentage,
+                        unsigned int inlierLts,
+                        unsigned int blockStepSize)
 {
     reg_aladin<T>::initAladinContent(ref,
                                flo,
@@ -332,17 +299,17 @@ void reg_aladin_sym<T>::initAladinContent(nifti_image *ref,
                                inlierLts,
                                blockStepSize);
 
-	if (this->platformCode == NR_PLATFORM_CPU)
-	this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+  if (this->platformCode == NR_PLATFORM_CPU)
+  this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
-	else if (this->platformCode == NR_PLATFORM_CUDA)
-	this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+  else if (this->platformCode == NR_PLATFORM_CUDA)
+  this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
-	else if (this->platformCode == NR_PLATFORM_CL)
-	this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+  else if (this->platformCode == NR_PLATFORM_CL)
+  this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
-	this->BackwardBlockMatchingParams = backCon->AladinContent::getBlockMatchingParams();
+  this->BackwardBlockMatchingParams = backCon->AladinContent::getBlockMatchingParams();
 }
 /* *************************************************************** */
 template <class T>
@@ -352,37 +319,33 @@ void reg_aladin_sym<T>::ClearCurrentInputImage()
    if(this->FloatingMaskPyramid[this->CurrentLevel]!=NULL)
       free(this->FloatingMaskPyramid[this->CurrentLevel]);
    this->FloatingMaskPyramid[this->CurrentLevel]=NULL;
-   this->CurrentFloatingMask=NULL;
-
-   this->ClearBackwardWarpedImage();
-   this->ClearBackwardDeformationField();
 }
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::createKernels()
 {
-	reg_aladin<T>::createKernels();
-	this->bAffineTransformation3DKernel = this->platform->createKernel (AffineDeformationFieldKernel::getName(), this->backCon);
-	this->bBlockMatchingKernel = this->platform->createKernel(BlockMatchingKernel::getName(), this->backCon);
-	this->bResamplingKernel = this->platform->createKernel(ResampleImageKernel::getName(), this->backCon);
-	this->bOptimiseKernel = this->platform->createKernel(OptimiseKernel::getName(), this->backCon);
+  reg_aladin<T>::createKernels();
+  this->bAffineTransformation3DKernel = this->platform->createKernel (AffineDeformationFieldKernel::getName(), this->backCon);
+  this->bBlockMatchingKernel = this->platform->createKernel(BlockMatchingKernel::getName(), this->backCon);
+  this->bResamplingKernel = this->platform->createKernel(ResampleImageKernel::getName(), this->backCon);
+  this->bOptimiseKernel = this->platform->createKernel(OptimiseKernel::getName(), this->backCon);
 }
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::clearAladinContent()
 {
-	reg_aladin<T>::clearAladinContent();
-	delete this->backCon;
+  reg_aladin<T>::clearAladinContent();
+  delete this->backCon;
 }
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::clearKernels()
 {
-	reg_aladin<T>::clearKernels();
-	delete this->bResamplingKernel;
-	delete this->bAffineTransformation3DKernel;
-	delete this->bBlockMatchingKernel;
-	delete this->bOptimiseKernel;
+  reg_aladin<T>::clearKernels();
+  delete this->bResamplingKernel;
+  delete this->bAffineTransformation3DKernel;
+  delete this->bBlockMatchingKernel;
+  delete this->bOptimiseKernel;
 }
 /* *************************************************************** */
 template <class T>
@@ -390,16 +353,24 @@ void reg_aladin_sym<T>::DebugPrintLevelInfoStart()
 {
    char text[255];
    sprintf(text, "Current level %i / %i", this->CurrentLevel+1, this->NumberOfLevels);
-   reg_print_info(this->executableName, text);
+   reg_print_info(this->executableName,text);
    sprintf(text, "reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-          this->CurrentReference->nx, this->CurrentReference->ny, this->CurrentReference->nz,
-          this->CurrentReference->dx, this->CurrentReference->dy, this->CurrentReference->dz);
-   reg_print_info(this->executableName, text);
+           this->con->getCurrentReference()->nx,
+           this->con->getCurrentReference()->ny,
+           this->con->getCurrentReference()->nz,
+           this->con->getCurrentReference()->dx,
+           this->con->getCurrentReference()->dy,
+           this->con->getCurrentReference()->dz);
+   reg_print_info(this->executableName,text);
    sprintf(text, "floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-          this->CurrentFloating->nx, this->CurrentFloating->ny, this->CurrentFloating->nz,
-          this->CurrentFloating->dx, this->CurrentFloating->dy, this->CurrentFloating->dz);
-   reg_print_info(this->executableName, text);
-   if(this->CurrentReference->nz==1){
+           this->con->getCurrentFloating()->nx,
+           this->con->getCurrentFloating()->ny,
+           this->con->getCurrentFloating()->nz,
+           this->con->getCurrentFloating()->dx,
+           this->con->getCurrentFloating()->dy,
+           this->con->getCurrentFloating()->dz);
+   reg_print_info(this->executableName,text);
+   if(this->con->getCurrentReference()->nz==1){
       reg_print_info(this->executableName, "Block size = [4 4 1]");
    }
    else reg_print_info(this->executableName, "Block size = [4 4 4]");

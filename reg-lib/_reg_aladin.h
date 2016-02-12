@@ -39,12 +39,7 @@ class reg_aladin
         nifti_image **ReferencePyramid;
         nifti_image **FloatingPyramid;
         int **ReferenceMaskPyramid;
-        nifti_image *CurrentReference;
-        nifti_image *CurrentFloating;
-        nifti_image *CurrentWarped;
-        nifti_image *deformationFieldImage;
-        int *CurrentReferenceMask;
-        int *activeVoxelNumber;
+        int *activeVoxelNumber; ///TODO Needs to be removed
 
         char *InputTransformName;
         mat44 *TransformationMatrix;
@@ -85,10 +80,7 @@ class reg_aladin
         bool TestMatrixConvergence(mat44 *mat);
 
         virtual void InitialiseRegistration();
-        virtual void SetCurrentImages();
         virtual void ClearCurrentInputImage();
-        virtual void AllocateWarpedImage();
-        virtual void ClearWarpedImage();
 
         virtual void GetDeformationField();
         virtual void GetWarpedImage(int);

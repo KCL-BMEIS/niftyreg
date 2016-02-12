@@ -31,7 +31,7 @@ struct __attribute__((aligned(4))) float4
 		if( cudaSuccess != err) { \
 			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
 			__FILE__, __LINE__, cudaGetErrorString(err)); \
-			reg_exit(EXIT_FAILURE); \
+			reg_exit(); \
 		} \
 	}
 #   define NR_CUDA_CHECK_KERNEL(grid,block) { \
@@ -42,7 +42,7 @@ struct __attribute__((aligned(4))) float4
 			__FILE__, __LINE__, cudaGetErrorString(err)); \
 			fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", \
 			grid.x,grid.y,grid.z,block.x,block.y,block.z); \
-			reg_exit(EXIT_FAILURE); \
+			reg_exit(); \
 		} \
 		else{\
 			printf("[NiftyReg CUDA DEBUG] kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n", \
@@ -56,7 +56,7 @@ struct __attribute__((aligned(4))) float4
 		if( cudaSuccess != err) { \
 			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
 			__FILE__, __LINE__, cudaGetErrorString(err)); \
-			reg_exit(EXIT_FAILURE); \
+			reg_exit(); \
 		} \
 	}
 #   define NR_CUDA_CHECK_KERNEL(grid,block) { \
@@ -66,7 +66,7 @@ struct __attribute__((aligned(4))) float4
 			__FILE__, __LINE__, cudaGetErrorString(err)); \
 			fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", \
 			grid.x,grid.y,grid.z,block.x,block.y,block.z); \
-			reg_exit(EXIT_FAILURE); \
+			reg_exit(); \
 		} \
 	}
 #endif //CUDART_VERSION >= 3200

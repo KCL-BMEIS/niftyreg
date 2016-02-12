@@ -59,7 +59,7 @@ void check_matching_difference(int dim,
                     cpuWarPos[0], cpuWarPos[1], cpuWarPos[2],
                   gpuWarPos[0], gpuWarPos[1], gpuWarPos[2]);
          }
-         reg_exit(1);
+         reg_exit();
 #endif
       }
       difference = fabsf(cpuWarPos[i] - gpuWarPos[i]);
@@ -83,7 +83,7 @@ void check_matching_difference(int dim,
                     cpuWarPos[0], cpuWarPos[1], cpuWarPos[2],
                   gpuWarPos[0], gpuWarPos[1], gpuWarPos[2]);
          }
-         reg_exit(1);
+         reg_exit();
 #endif
       }
    }

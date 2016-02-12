@@ -68,7 +68,7 @@ void CLResampleImageKernel::calculate(int interp,
     if(dti_timepoint!=NULL || jacMat!=NULL){
         reg_print_fct_error("CLResampleImageKernel::calculate");
         reg_print_msg_error("The DTI resampling has not yet been implemented with the OpenCL platform. Exit.");
-        reg_exit(1);
+        reg_exit();
     }
 
     if (this->floatingImage->nz > 1) {
@@ -81,7 +81,7 @@ void CLResampleImageKernel::calculate(int interp,
     else {
 		reg_print_fct_error("CLResampleImageKernel::calculate");
         reg_print_msg_error("The image dimension is not supported. Exit.");
-        reg_exit(1);
+        reg_exit();
     }
     sContext->checkErrNum(errNum, "Error setting kernel ResampleImage.");
 

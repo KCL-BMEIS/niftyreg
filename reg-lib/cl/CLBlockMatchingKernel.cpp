@@ -71,7 +71,7 @@ void CLBlockMatchingKernel::calculate()
 {
    if (this->params->stepSize!=1 || this->params->voxelCaptureRange!=3){
       reg_print_msg_error("The block Mathching OpenCL kernel supports only a stepsize of 1");
-      reg_exit(1);
+      reg_exit();
    }
    cl_int errNum;
    this->params->definedActiveBlockNumber = 0;
@@ -129,7 +129,7 @@ void CLBlockMatchingKernel::calculate()
 
    if(this->params->definedActiveBlockNumber == 0) {
       reg_print_msg_error("Unexpected error in the CLBlockMatchingKernel execution");
-      reg_exit(1);
+      reg_exit();
    }
    clReleaseMemObject(cldefinedBlock);
 }

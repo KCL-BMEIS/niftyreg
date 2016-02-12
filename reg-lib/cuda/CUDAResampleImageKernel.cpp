@@ -20,13 +20,13 @@ CUDAResampleImageKernel::CUDAResampleImageKernel(AladinContent *conIn, std::stri
     if (floatingImage->datatype != warpedImage->datatype) {
         reg_print_fct_error("CudaResampleImageKernel::CudaResampleImageKernel");
         reg_print_msg_error("Floating and warped images should have the same data type. Exit.");
-        reg_exit(1);
+        reg_exit();
     }
 
     if (floatingImage->nt != warpedImage->nt) {
         reg_print_fct_error("CudaResampleImageKernel::CudaResampleImageKernel");
         reg_print_msg_error("Floating and warped images have different dimension along the time axis. Exit.");
-        reg_exit(1);
+        reg_exit();
     }
 }
 /* *************************************************************** */

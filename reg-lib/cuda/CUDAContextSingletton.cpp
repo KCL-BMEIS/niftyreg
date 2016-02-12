@@ -24,7 +24,7 @@ void CUDAContextSingletton::setCudaIdx(unsigned int cudaIdxIn)
    if (cudaIdxIn>=this->numDevices){
       reg_print_msg_error("The specified cuda card id is not defined");
       reg_print_msg_error("Run reg_gpuinfo to get the proper id");
-      reg_exit(1);
+      reg_exit();
    }
    this->cudaIdx=cudaIdxIn;
    NR_CUDA_SAFE_CALL(cudaSetDevice(this->cudaIdx));
@@ -77,7 +77,7 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
 
    if(deviceProp.major<1){
       reg_print_msg_error("[NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
-      reg_exit(1);
+      reg_exit();
    }
    else{
       size_t free=0;
@@ -88,7 +88,7 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
                  deviceProp.name);
          fprintf(stderr,"[NiftyReg CUDA ERROR] Expected total memory: %lu Mb - Recovered total memory: %lu Mb\n",
                  deviceProp.totalGlobalMem/(1024*1024), total/(1024*1024));
-         reg_exit(1);
+         reg_exit();
       }
 #ifndef NDEBUG
       printf("[NiftyReg CUDA] The following device is used: %s\n",

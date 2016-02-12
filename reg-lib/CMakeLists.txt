@@ -101,7 +101,7 @@ install(TARGETS _reg_measure
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_nmi.h cpu/_reg_measure.h cpu/_reg_ssd.h cpu/_reg_kld.h cpu/_reg_lncc.h cpu/_reg_dti.h DESTINATION include)
+install(FILES cpu/_reg_measure.h cpu/_reg_nmi.h cpu/_reg_ssd.h cpu/_reg_kld.h cpu/_reg_lncc.h cpu/_reg_dti.h DESTINATION include)
 #-----------------------------------------------------------------------------
 set(LIB_LIST
   _reg_resampling
@@ -127,10 +127,6 @@ endforeach(NAME)
 ## BUILD THE ALADIN LIBRARY
 set(NAME _reg_aladin)
 set(_reg_aladin_files
-  ${NAME}.h
-  ${NAME}.cpp
-  ${NAME}_sym.h
-  ${NAME}_sym.cpp
   AladinContent.cpp
   AladinContent.h
   Platform.cpp
@@ -195,8 +191,6 @@ set(_reg_f3d_files
     ${NAME}2.cpp
     ${NAME}_sym.h
     ${NAME}_sym.cpp
-    cpu/_reg_optimiser.h
-    cpu/_reg_optimiser.cpp
 )
 set(_reg_f3d_libraries
   _reg_localTrans
@@ -213,11 +207,11 @@ install(TARGETS ${NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(FILES _reg_base.cpp  DESTINATION include)
-install(FILES ${NAME}.cpp  DESTINATION include)
-install(FILES ${NAME}2.cpp  DESTINATION include)
-install(FILES ${NAME}_sym.cpp  DESTINATION include)
-install(FILES cpu/_reg_optimiser.cpp  DESTINATION include)
+install(FILES _reg_base.cpp _reg_base.h DESTINATION include)
+install(FILES ${NAME}.cpp ${NAME}.h DESTINATION include)
+install(FILES ${NAME}_sym.cpp ${NAME}_sym.h DESTINATION include)
+install(FILES ${NAME}2.cpp ${NAME}2.h DESTINATION include)
+install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY
