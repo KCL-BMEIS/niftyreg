@@ -109,13 +109,13 @@ void reg_mrf::GetDiscretisedMeasure()
                                 this->discrete_increment,
                                 (1.f-this->regularisation_weight));
    //DEBUG
-   int discrete_valueNumber = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
-   int nD_discrete_valueNumber = std::pow(discrete_valueNumber,dim);
-   int controlPointNumber = this->controlPointImage->nx *
-         this->controlPointImage->ny * this->controlPointImage->nz;
-   for(int i=0;i<controlPointNumber*nD_discrete_valueNumber;i++) {
-       std::cout<<"dm="<<this->discretised_measure[i]<<std::endl;
-   }
+   //int discrete_valueNumber = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
+   //int nD_discrete_valueNumber = std::pow(discrete_valueNumber,dim);
+   //int controlPointNumber = this->controlPointImage->nx *
+   //      this->controlPointImage->ny * this->controlPointImage->nz;
+   //for(int i=0;i<controlPointNumber*nD_discrete_valueNumber;i++) {
+   //    std::cout<<"dm="<<this->discretised_measure[i]<<std::endl;
+   //}
    //DEBUG
    reg_print_msg_debug("GetDiscretisedMeasure done");
 }

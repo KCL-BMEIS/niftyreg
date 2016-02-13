@@ -564,6 +564,9 @@ void GetDiscretisedValue_core3D(nifti_image *controlPointGridImage,
                                 }
                             }
                             currentValue=currentValue/(float)voxelBlockNumber;
+                            //DEBUG
+                            std::cout<<"currentValue="<<currentValue<<std::endl;
+                            //DEBUG
                             discretisedValue[discretisedIndex+
                                     cpx*nD_discrete_valueNumber+
                                     cpy*nD_discrete_valueNumber*controlPointGridImage->nx+

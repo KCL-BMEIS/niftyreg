@@ -550,7 +550,9 @@ void GetDiscretisedValue_core3D(nifti_image *controlPointGridImage,
                                   ++activeBlockNumber;
                                }
                             }
-                            currentValue /= static_cast<float>(activeBlockNumber);
+                            if(activeBlockNumber > 0) {
+                                currentValue /= static_cast<float>(activeBlockNumber);
+                            }
                             discretisedValue[discretisedIndex+
                                     cpx*nD_discrete_valueNumber+
                                     cpy*nD_discrete_valueNumber*controlPointGridImage->nx+
