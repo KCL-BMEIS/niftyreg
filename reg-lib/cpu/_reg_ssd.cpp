@@ -544,7 +544,8 @@ void GetDiscretisedValue_core3D(nifti_image *controlPointGridImage,
                             blockIndex = 0;
                             int activeBlockNumber=0;
                             for(blockIndex = 0;blockIndex<voxelBlockNumber;blockIndex++) {
-                               if(refBlockValue[blockIndex]==refBlockValue[blockIndex] && warBlockValue[blockIndex]==warBlockValue[blockIndex]){
+                               if(refBlockValue[blockIndex]==refBlockValue[blockIndex] &&
+                                  warBlockValue[blockIndex]==warBlockValue[blockIndex]) {
                                   currentValue += reg_pow2(warBlockValue[blockIndex]-refBlockValue[blockIndex]);
                                   ++activeBlockNumber;
                                }

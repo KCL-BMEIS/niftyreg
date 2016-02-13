@@ -108,6 +108,15 @@ void reg_mrf::GetDiscretisedMeasure()
                                 this->discrete_radius,
                                 this->discrete_increment,
                                 (1.f-this->regularisation_weight));
+   //DEBUG
+   int discrete_valueNumber = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
+   int nD_discrete_valueNumber = std::pow(discrete_valueNumber,dim);
+   int controlPointNumber = this->controlPointImage->nx *
+         this->controlPointImage->ny * this->controlPointImage->nz;
+   for(int i=0;i<controlPointNumber*nD_discrete_valueNumber;i++) {
+       std::cout<<"dm="<<this->discretised_measure[i]<<std::endl;
+   }
+   //DEBUG
    reg_print_msg_debug("GetDiscretisedMeasure done");
 }
 /*****************************************************/
@@ -138,17 +147,17 @@ void reg_mrf::Optimise()
       for(int y=0; y<controlPointImage->ny; y++) {
          for(int x=0; x<controlPointImage->nx; x++) {
             int optimal_id = this->optimalDisplacement[voxel];
-            //std::cout<<"optimal_id="<<optimal_id<<std::endl;
+            std::cout<<"optimal_id="<<optimal_id<<std::endl;
             disp_vox[2] = (int)(optimal_id / (discrete_valueNumber * discrete_valueNumber));
             int residual = optimal_id -  disp_vox[2] *discrete_valueNumber * discrete_valueNumber;
             disp_vox[1] = (int)(residual / discrete_valueNumber);
             disp_vox[0] = residual - disp_vox[1] * discrete_valueNumber;
-            //std::cout<<"disp_vox="<<std::endl;
-            //std::cout << disp_vox[0] << " " << disp_vox[1] << " " << disp_vox[2] << std::endl;
+            std::cout<<"disp_vox="<<std::endl;
+            std::cout << disp_vox[0] << " " << disp_vox[1] << " " << disp_vox[2] << std::endl;
             disp_vox[0] = this->discrete_valueArray[(int)disp_vox[0]];
             disp_vox[1] = this->discrete_valueArray[(int)disp_vox[1]];
             disp_vox[2] = this->discrete_valueArray[(int)disp_vox[2]];
-            //std::cout << disp_vox[0] << " " << disp_vox[1] << " " << disp_vox[2] << std::endl;
+            std::cout << disp_vox[0] << " " << disp_vox[1] << " " << disp_vox[2] << std::endl;
 
             cpPtrX[voxel] += disp_vox[0] * vox2mm.m[0][0] +
                   disp_vox[1] * vox2mm.m[0][1] +
@@ -604,8 +613,8 @@ void reg_mrf::GetRegularisation()
    }
 
    //weight of the regularisation - constant weight
-   //float edgew=this->regularisation_weight;
-   //float edgew1=1.0f/edgew;
+   float edgew=this->regularisation_weight;
+   float edgew1=1.0f/edgew;
 
    //calculate mst-cost
    for(int i=(controlPointNumber-1);i>0;i--){ //do for each control point
@@ -614,8 +623,8 @@ void reg_mrf::GetRegularisation()
       //retreive the parent node of the child
       int oparent=this->parentsList[ochild];
       //retreive the weight of the edge between oparent and ochild
-      float edgew=this->edgeWeight[ochild];
-      float edgew1=1.0f/edgew;
+      //float edgew=this->edgeWeight[ochild];
+      //float edgew1=1.0f/edgew;
 
       for(int l=0;l<label_num;l++){
          //matrix = discretisedValue (first dimension displacement label, second dim. control point)
@@ -639,8 +648,8 @@ void reg_mrf::GetRegularisation()
       int ochild=this->orderedList[i];
       int oparent=this->parentsList[ochild];
       //retreive the weight of the edge between oparent and ochild
-      float edgew=this->edgeWeight[ochild];
-      float edgew1=1.0f/edgew;
+      //float edgew=this->edgeWeight[ochild];
+      //float edgew1=1.0f/edgew;
 
       for(int l=0;l<label_num;l++){
          cost1[l]=(this->regularisedCost[oparent*label_num+l]-message[ochild*label_num+l]+message[oparent*label_num+l])*edgew;

@@ -558,9 +558,12 @@ void GetDiscretisedValue_core3D(nifti_image *controlPointGridImage,
                             currentValue = 0;
                             blockIndex = 0;
                             for(blockIndex = 0;blockIndex<voxelBlockNumber;blockIndex++) {
-                                currentValue += std::abs(warBlockValue[blockIndex]-refBlockValue[blockIndex]);
+                                if((warBlockValue[blockIndex] == warBlockValue[blockIndex]) &&
+                                   (refBlockValue[blockIndex] == refBlockValue[blockIndex])) {
+                                        currentValue += std::abs(warBlockValue[blockIndex]-refBlockValue[blockIndex]);
+                                }
                             }
-                            currentValue=currentValue/voxelBlockNumber;
+                            currentValue=currentValue/(float)voxelBlockNumber;
                             discretisedValue[discretisedIndex+
                                     cpx*nD_discrete_valueNumber+
                                     cpy*nD_discrete_valueNumber*controlPointGridImage->nx+
