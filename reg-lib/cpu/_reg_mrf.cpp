@@ -147,17 +147,17 @@ void reg_mrf::Optimise()
       for(int y=0; y<controlPointImage->ny; y++) {
          for(int x=0; x<controlPointImage->nx; x++) {
             int optimal_id = this->optimalDisplacement[voxel];
-            std::cout<<"optimal_id="<<optimal_id<<std::endl;
+            //std::cout<<"optimal_id="<<optimal_id<<std::endl;
             disp_vox[2] = (int)(optimal_id / (discrete_valueNumber * discrete_valueNumber));
             int residual = optimal_id -  disp_vox[2] *discrete_valueNumber * discrete_valueNumber;
             disp_vox[1] = (int)(residual / discrete_valueNumber);
             disp_vox[0] = residual - disp_vox[1] * discrete_valueNumber;
-            std::cout<<"disp_vox="<<std::endl;
-            std::cout << disp_vox[0] << " " << disp_vox[1] << " " << disp_vox[2] << std::endl;
+            //std::cout<<"disp_vox="<<std::endl;
+            //std::cout << disp_vox[0] << " " << disp_vox[1] << " " << disp_vox[2] << std::endl;
             disp_vox[0] = this->discrete_valueArray[(int)disp_vox[0]];
             disp_vox[1] = this->discrete_valueArray[(int)disp_vox[1]];
             disp_vox[2] = this->discrete_valueArray[(int)disp_vox[2]];
-            std::cout << disp_vox[0] << " " << disp_vox[1] << " " << disp_vox[2] << std::endl;
+            //std::cout << disp_vox[0] << " " << disp_vox[1] << " " << disp_vox[2] << std::endl;
 
             cpPtrX[voxel] += disp_vox[0] * vox2mm.m[0][0] +
                   disp_vox[1] * vox2mm.m[0][1] +

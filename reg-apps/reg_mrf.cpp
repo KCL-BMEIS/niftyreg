@@ -157,7 +157,7 @@ int main(int argc, char **argv)
    deformationField->dim[5] = deformationField->nu = 1;
    deformationField->dim[0] = deformationField->ndim = 4;
    //DEBUG
-   reg_io_WriteImageFile(deformationField, "displacement.nii.gz");
+   //reg_io_WriteImageFile(deformationField, "displacement.nii.gz");
    //DEBUG
 
 

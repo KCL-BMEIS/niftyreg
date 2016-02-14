@@ -434,7 +434,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void GetDiscretisedValue_core3D(nifti_image *controlPointGridImage,
+void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                                 float *discretisedValue,
                                 int discretise_radius,
                                 int discretise_step,
@@ -567,7 +567,7 @@ void GetDiscretisedValue_core3D(nifti_image *controlPointGridImage,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void GetDiscretisedValue_core2D(nifti_image *controlPointGridImage,
+void GetDiscretisedValueSSD_core2D(nifti_image *controlPointGridImage,
                                 float *discretisedValue,
                                 int discretise_radius,
                                 int discretise_step,
@@ -591,7 +591,7 @@ void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
         switch(this->referenceImagePointer->datatype)
         {
         case NIFTI_TYPE_FLOAT32:
-            GetDiscretisedValue_core3D<float>
+            GetDiscretisedValueSSD_core3D<float>
                     (controlPointGridImage,
                      discretisedValue,
                      discretise_radius,
@@ -603,7 +603,7 @@ void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
                      );
             break;
         case NIFTI_TYPE_FLOAT64:
-            GetDiscretisedValue_core3D<double>
+            GetDiscretisedValueSSD_core3D<double>
                     (controlPointGridImage,
                      discretisedValue,
                      discretise_radius,
@@ -623,7 +623,7 @@ void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
         switch(this->referenceImagePointer->datatype)
         {
         case NIFTI_TYPE_FLOAT32:
-            GetDiscretisedValue_core2D<float>
+            GetDiscretisedValueSSD_core2D<float>
                     (controlPointGridImage,
                      discretisedValue,
                      discretise_radius,
@@ -635,7 +635,7 @@ void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
                      );
             break;
         case NIFTI_TYPE_FLOAT64:
-            GetDiscretisedValue_core2D<double>
+            GetDiscretisedValueSSD_core2D<double>
                     (controlPointGridImage,
                      discretisedValue,
                      discretise_radius,
