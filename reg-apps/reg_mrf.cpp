@@ -136,7 +136,7 @@ int main(int argc, char **argv)
    }
    ssdMeasure->InitialiseMeasure(referenceImage,warpedImage,mask,warpedImage,NULL,NULL);
    reg_mrf* reg_mrfObject =
-           new reg_mrf(ssdMeasure,referenceImage,controlPointImage,18,1,regularisationWeight);//18,3 = default parameters
+           new reg_mrf(ssdMeasure,referenceImage,controlPointImage,18,3,regularisationWeight);//18,3 = default parameters
 
    reg_mrfObject->Run();
 
