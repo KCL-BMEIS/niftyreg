@@ -69,6 +69,9 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
                                  1.f);
         }
     }
+#ifdef TEMP_USE_SAD
+    reg_print_msg_warn("SAD is used instead of SSD");
+#endif
 #ifndef NDEBUG
     char text[255];
     reg_print_msg_debug("reg_ssd::InitialiseMeasure().");
@@ -141,8 +144,11 @@ double reg_getSSDValue(nifti_image *referenceImage,
                                         referenceImage->scl_inter);
                     if(refValue==refValue && warValue==warValue)
                     {
+#ifdef TEMP_USE_SAD
+                       diff = fabs(refValue-warValue);
+#else
                         diff = reg_pow2(refValue-warValue);
-                        //						if(diff>0) diff=log(diff);
+#endif
                         // Jacobian determinant modulation of the ssd if required
                         if(jacDetPtr!=NULL)
                         {
@@ -317,7 +323,12 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                         warpedImage->scl_inter);
                     if(refValue==refValue && warValue==warValue)
                     {
-                        common = -2.0 * (refValue - warValue);
+#ifdef TEMP_USE_SAD
+                       common = refValue>warValue?1.f:-1.f;
+                       common *= (refValue - warValue) / float(referenceImage->nt);
+#else
+                       common = -2.0 * (refValue - warValue) / float(referenceImage->nt);
+#endif
                         if(jacDetPtr!=NULL)
                             common *= jacDetPtr[voxel];
 
@@ -435,135 +446,136 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
 /* *************************************************************** */
 template <class DTYPE>
 void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
-                                float *discretisedValue,
-                                int discretise_radius,
-                                int discretise_step,
-                                nifti_image *refImage,
-                                nifti_image *warImage,
-                                int *mask,
-                                float costWeight)
+                                   float *discretisedValue,
+                                   int discretise_radius,
+                                   int discretise_step,
+                                   nifti_image *refImage,
+                                   nifti_image *warImage,
+                                   int *mask,
+                                   float costWeight)
 {
-    int cpx, cpy, cpz, t, x, y, z, a, b, c, blockIndex, voxIndex, voxIndex_t, discretisedIndex;
-    int nD_discrete_valueNumber = pow((discretise_radius / discretise_step) * 2 + 1, 3);
-    //output matrix = discretisedValue (first dimension displacement label, second dim. control point)
-    float gridVox[3], imageVox[3];
-    float currentValue;
-    // Define the transformation matrices
-    mat44 *grid_vox2mm = &controlPointGridImage->qto_xyz;
-    if(controlPointGridImage->sform_code>0)
-        grid_vox2mm = &controlPointGridImage->sto_xyz;
-    mat44 *image_mm2vox = &refImage->qto_ijk;
-    if(refImage->sform_code>0)
-        image_mm2vox = &refImage->sto_ijk;
-    mat44 grid2img_vox = reg_mat44_mul(image_mm2vox, grid_vox2mm);
+   int cpx, cpy, cpz, t, x, y, z, a, b, c, blockIndex, voxIndex, voxIndex_t, discretisedIndex;
+   int nD_discrete_valueNumber = pow((discretise_radius / discretise_step) * 2 + 1, 3);
+   //output matrix = discretisedValue (first dimension displacement label, second dim. control point)
+   float gridVox[3], imageVox[3];
+   float currentValue;
+   // Define the transformation matrices
+   mat44 *grid_vox2mm = &controlPointGridImage->qto_xyz;
+   if(controlPointGridImage->sform_code>0)
+      grid_vox2mm = &controlPointGridImage->sto_xyz;
+   mat44 *image_mm2vox = &refImage->qto_ijk;
+   if(refImage->sform_code>0)
+      image_mm2vox = &refImage->sto_ijk;
+   mat44 grid2img_vox = reg_mat44_mul(image_mm2vox, grid_vox2mm);
 
-    // Compute the block size
-    int blockSize[3]={
-        (int)reg_ceil(controlPointGridImage->dx / refImage->dx),
-        (int)reg_ceil(controlPointGridImage->dy / refImage->dy),
-        (int)reg_ceil(controlPointGridImage->dz / refImage->dz),
-    };
-    int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
-    // Allocate some static memory
-    float refBlockValue[voxelBlockNumber];
-    float warBlockValue[voxelBlockNumber];
+   // Compute the block size
+   int blockSize[3]={
+      (int)reg_ceil(controlPointGridImage->dx / refImage->dx),
+      (int)reg_ceil(controlPointGridImage->dy / refImage->dy),
+      (int)reg_ceil(controlPointGridImage->dz / refImage->dz),
+   };
+   int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
+   int currentControlPoint = 0;
 
-    // Pointers to the input image
-    size_t voxelNumber = (size_t)refImage->nx *
-                         refImage->ny * refImage->nz;
-    DTYPE *refImgPtr = static_cast<DTYPE *>(refImage->data);
-    DTYPE *warImgPtr = static_cast<DTYPE *>(warImage->data);
-    DTYPE *currentRefPtr = NULL;
-    DTYPE *currentWarPtr = NULL;
+   // Allocate some static memory
+   float refBlockValue[voxelBlockNumber];
 
-    // Loop over all control points
-    for(cpz=0; cpz<controlPointGridImage->nz; ++cpz){
-        gridVox[2] = cpz;
-        for(cpy=0; cpy<controlPointGridImage->ny; ++cpy){
-            gridVox[1] = cpy;
-            for(cpx=0; cpx<controlPointGridImage->nx; ++cpx){
-                gridVox[0] = cpx;
-                // Compute the corresponding image voxel position
-                reg_mat44_mul(&grid2img_vox, gridVox, imageVox);
-                imageVox[0]=reg_round(imageVox[0]);
-                imageVox[1]=reg_round(imageVox[1]);
-                imageVox[2]=reg_round(imageVox[2]);
-                // Extract the block in the reference image
-                blockIndex = 0;
-                for(z=imageVox[2]-blockSize[2]/2; z<imageVox[2]+blockSize[2]/2; ++z){
-                    for(y=imageVox[1]-blockSize[1]/2; y<imageVox[1]+blockSize[1]/2; ++y){
-                        for(x=imageVox[0]-blockSize[0]/2; x<imageVox[0]+blockSize[0]/2; ++x){
-                            if(x>-1 && x<refImage->nx && y>-1 && y<refImage->ny && z>-1 && z<refImage->nz) {
-                            voxIndex = x+y*refImage->nx+z*refImage->nx*refImage->ny;
-                            if(mask[voxIndex]>-1){
-                                for(t=0; t<refImage->nt; ++t){
-                                    voxIndex_t = voxIndex+t*refImage->nx*refImage->ny*refImage->nz;
-                                    refBlockValue[blockIndex] = refImgPtr[voxIndex_t];
+   // Pointers to the input image
+   size_t voxelNumber = (size_t)refImage->nx*
+         refImage->ny*refImage->nz;
+   DTYPE *refImgPtr = static_cast<DTYPE *>(refImage->data);
+   DTYPE *warImgPtr = static_cast<DTYPE *>(warImage->data);
+
+   // Loop over all control points
+   for(cpz=0; cpz<controlPointGridImage->nz; ++cpz){
+      currentControlPoint=cpz*controlPointGridImage->nx*controlPointGridImage->ny;
+      gridVox[2] = cpz;
+      for(cpy=0; cpy<controlPointGridImage->ny; ++cpy){
+         gridVox[1] = cpy;
+         for(cpx=0; cpx<controlPointGridImage->nx; ++cpx){
+            gridVox[0] = cpx;
+            // Compute the corresponding image voxel position
+            reg_mat44_mul(&grid2img_vox, gridVox, imageVox);
+            imageVox[0]=reg_round(imageVox[0]);
+            imageVox[1]=reg_round(imageVox[1]);
+            imageVox[2]=reg_round(imageVox[2]);
+
+            // Extract the block in the reference image
+            blockIndex = 0;
+            for(z=imageVox[2]-blockSize[2]/2; z<imageVox[2]+blockSize[2]/2; ++z){
+               for(y=imageVox[1]-blockSize[1]/2; y<imageVox[1]+blockSize[1]/2; ++y){
+                  for(x=imageVox[0]-blockSize[0]/2; x<imageVox[0]+blockSize[0]/2; ++x){
+                     if(x>-1 && x<refImage->nx && y>-1 && y<refImage->ny && z>-1 && z<refImage->nz) {
+                        voxIndex = (z*refImage->ny+y)*refImage->nx+x;
+                        if(mask[voxIndex]>-1){
+                           for(t=0; t<refImage->nt; ++t){
+                              voxIndex_t = t*voxelNumber + voxIndex;
+                              refBlockValue[blockIndex] = refImgPtr[voxIndex_t];
+                              if(refBlockValue[blockIndex]!=refBlockValue[blockIndex]) refBlockValue[blockIndex]=0.f;
+                              blockIndex++;
+                           } //t
+                        }
+                     }
+                     else {
+                        for(t=0; t<refImage->nt; ++t){
+                           refBlockValue[blockIndex] = 0.f;
+                           blockIndex++;
+                        } // t
+                     } // mask
+                  } // x
+               } // y
+            } // z
+            // Loop over the discretised value
+            int start_c=imageVox[2]-discretise_radius;
+            int end_c=imageVox[2]+discretise_radius;
+
+            discretisedIndex=0;
+            for(c=start_c; c<=end_c; c+=discretise_step){
+               for(b=imageVox[1]-discretise_radius; b<=imageVox[1]+discretise_radius; b+=discretise_step){
+                  for(a=imageVox[0]-discretise_radius; a<=imageVox[0]+discretise_radius; a+=discretise_step){
+                     blockIndex = 0;
+                     currentValue = 0;
+                     for(z=c-blockSize[2]/2; z<c+blockSize[2]/2; ++z){
+                        for(y=b-blockSize[1]/2; y<b+blockSize[1]/2; ++y){
+                           for(x=a-blockSize[0]/2; x<a+blockSize[0]/2; ++x){
+                              if(x>-1 && x<warImage->nx && y>-1 && y<warImage->ny && z>-1 && z<warImage->nz){
+                                 voxIndex = (z*warImage->ny+y)*warImage->nx+x;
+                                 for(t=0; t<warImage->nt; ++t){
+                                    voxIndex_t = t*voxelNumber + voxIndex;
+                                    DTYPE warpedValue = warImgPtr[voxIndex_t];
+                                    if(warpedValue==warpedValue)
+#ifdef TEMP_USE_SAD
+                                       currentValue += fabs(warpedValue-refBlockValue[blockIndex]);
+                                    else currentValue += fabs(0.f-refBlockValue[blockIndex]);
+#else
+                                       currentValue += reg_pow2(warpedValue-refBlockValue[blockIndex]);
+                                    else currentValue += reg_pow2(0.f-refBlockValue[blockIndex]);
+#endif
                                     blockIndex++;
-                                } //t
-                            }
-                            } else {
-                                for(t=0; t<refImage->nt; ++t){
-                                    refBlockValue[blockIndex] = std::numeric_limits<float>::quiet_NaN();
-                                    blockIndex++;
-                                }
-                            }
-                        } // x
-                    } // y
-                } // z
-
-                // Loop over the discretised value
-                int start_c=imageVox[2]-discretise_radius;
-                int end_c=imageVox[2]+discretise_radius;
-
-                discretisedIndex=0;
-                for(c=start_c; c<=end_c; c+=discretise_step){
-                    for(b=imageVox[1]-discretise_radius; b<=imageVox[1]+discretise_radius; b+=discretise_step){
-                        for(a=imageVox[0]-discretise_radius; a<=imageVox[0]+discretise_radius; a+=discretise_step){
-                            blockIndex = 0;
-                            for(z=c-blockSize[2]/2; z<c+blockSize[2]/2; ++z){
-                                for(y=b-blockSize[1]/2; y<b+blockSize[1]/2; ++y){
-                                    for(x=a-blockSize[0]/2; x<a+blockSize[0]/2; ++x){
-                                        if(x>-1 && x<warImage->nx && y>-1 && y<warImage->ny && z>-1 && z<warImage->nz){
-                                            voxIndex = x+y*warImage->nx+z*warImage->nx*warImage->ny;
-                                            for(t=0; t<warImage->nt; ++t){
-                                                voxIndex_t = voxIndex+t*warImage->nx*warImage->ny*warImage->nz;
-                                                warBlockValue[blockIndex]=warImgPtr[voxIndex_t];
-                                                blockIndex++;
-                                            }
-                                        } else {
-                                            for(t=0; t<warImage->nt; ++t){
-                                                warBlockValue[blockIndex]=std::numeric_limits<float>::quiet_NaN();
-                                                blockIndex++;
-                                            }
-                                        } // if defined
-                                    } // x
-                                } // y
-                            } // z
-                            currentValue = 0;
-                            blockIndex = 0;
-                            int activeBlockNumber=0;
-                            for(blockIndex = 0;blockIndex<voxelBlockNumber;blockIndex++) {
-                               if(refBlockValue[blockIndex]==refBlockValue[blockIndex] &&
-                                  warBlockValue[blockIndex]==warBlockValue[blockIndex]) {
-                                  currentValue += reg_pow2(warBlockValue[blockIndex]-refBlockValue[blockIndex]);
-                                  ++activeBlockNumber;
-                               }
-                            }
-                            if(activeBlockNumber > 0) {
-                                currentValue /= static_cast<float>(activeBlockNumber);
-                            }
-                            discretisedValue[discretisedIndex+
-                                    cpx*nD_discrete_valueNumber+
-                                    cpy*nD_discrete_valueNumber*controlPointGridImage->nx+
-                                    cpz*nD_discrete_valueNumber*controlPointGridImage->nx*controlPointGridImage->ny]=currentValue*costWeight;
-                            ++discretisedIndex;
-                        } // a
-                    } // b
-                } // c
-            } // cpx
-        } // cpy
-    } // cpz
+                                 }
+                              }
+                              else{
+                                 for(t=0; t<warImage->nt; ++t)
+#ifdef TEMP_USE_SAD
+                                    currentValue += fabs(0.f-refBlockValue[blockIndex]);
+#else
+                                    currentValue += reg_pow2(0.f-refBlockValue[blockIndex]);
+#endif
+                                 blockIndex++;
+                              }
+                           } // x
+                        } // y
+                     } // z
+                     currentValue /= static_cast<float>(voxelBlockNumber);
+                     discretisedValue[discretisedIndex + currentControlPoint * nD_discrete_valueNumber]=currentValue*costWeight;
+                     ++discretisedIndex;
+                  } // a
+               } // b
+            } // c
+            ++currentControlPoint;
+         } // cpx
+      } // cpy
+   } // cpz
 }
 /* *************************************************************** */
 template <class DTYPE>

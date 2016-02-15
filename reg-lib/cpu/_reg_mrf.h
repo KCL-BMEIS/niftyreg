@@ -59,6 +59,8 @@ private:
    int* parentsList;
    float* edgeWeight;
    //
+   int label_num;
+   //
    float* regularisedCost;
    int* optimalDisplacement;//int because voxel displacements
    //

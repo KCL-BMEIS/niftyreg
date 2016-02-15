@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "_reg_ReadWriteImage.h"
 #include "_reg_localTrans.h"
-#include "_reg_sad.h"
+#include "_reg_ssd.h"
 #include <numeric>
 
 #include "_reg_mind.h"
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
                                   deformationField,
                                   mask,
                                   false, //composition
-                                  true // bspline
+                                  false // bspline
                                   );
 
    // create a warped image
@@ -125,14 +125,18 @@ int main(int argc, char **argv)
    // Compute the MIND descriptor
    GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask);
 
-   reg_sad* sadMeasure = new reg_sad();
+   reg_ssd* ssdMeasure = new reg_ssd();
    /* Read and create the mask array */
-   for(int i=0;i<MINDSSC_refimg->nt;++i) {
-      sadMeasure->SetActiveTimepoint(i);
+//   for(int i=0;i<MINDSSC_refimg->nt;++i) {
+//      ssdMeasure->SetActiveTimepoint(i);
+//   }
+//   ssdMeasure->InitialiseMeasure(MINDSSC_refimg,MINDSSC_warimg,mask,MINDSSC_warimg,NULL,NULL);
+   for(int i=0;i<1;++i) {
+      ssdMeasure->SetActiveTimepoint(i);
    }
-   sadMeasure->InitialiseMeasure(MINDSSC_refimg,MINDSSC_warimg,mask,MINDSSC_warimg,NULL,NULL);
+   ssdMeasure->InitialiseMeasure(referenceImage,warpedImage,mask,warpedImage,NULL,NULL);
    reg_mrf* reg_mrfObject =
-           new reg_mrf(sadMeasure,referenceImage,controlPointImage,18,3,regularisationWeight);//18,3 = default parameters
+           new reg_mrf(ssdMeasure,referenceImage,controlPointImage,18,1,regularisationWeight);//18,3 = default parameters
 
    reg_mrfObject->Run();
 
@@ -140,7 +144,7 @@ int main(int argc, char **argv)
                                   deformationField,
                                   mask,
                                   false, //composition
-                                  true // bspline
+                                  false // bspline
                                   );
    reg_resampleImage(floatingImage,
                      warpedImage,

@@ -82,8 +82,6 @@ add_library(_reg_measure
   cpu/_reg_nmi.cpp
   cpu/_reg_ssd.h
   cpu/_reg_ssd.cpp
-  cpu/_reg_sad.h
-  cpu/_reg_sad.cpp
   cpu/_reg_KLdivergence.h
   cpu/_reg_KLdivergence.cpp
   cpu/_reg_lncc.h

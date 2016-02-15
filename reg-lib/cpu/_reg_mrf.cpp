@@ -24,12 +24,12 @@ reg_mrf::reg_mrf(reg_measure *_measure,
       this->discrete_valueArray[i]=currentValue;
       currentValue+=this->discrete_increment;
    }
-   int nD_discrete_valueNumber = std::pow(discrete_valueNumber,dim);
+   this->label_num = std::pow(discrete_valueNumber,dim);
 
    int controlPointNumber = this->controlPointImage->nx *
          this->controlPointImage->ny * this->controlPointImage->nz;
    //To store the cost data term - originaly SAD between images.
-   this->discretised_measure = (float *)malloc(controlPointNumber*nD_discrete_valueNumber*sizeof(float));
+   this->discretised_measure = (float *)malloc(controlPointNumber*this->label_num*sizeof(float));
 
    // Allocate the arrays to store the graph
    this->edgeWeightMatrix = (float *)calloc(controlPointNumber*dim*2,sizeof(float));
@@ -42,7 +42,7 @@ reg_mrf::reg_mrf(reg_measure *_measure,
    this->edgeWeight = (float *) malloc(controlPointNumber*sizeof(float));
 
    //regulatization - optimization
-   this->regularisedCost= (float *)malloc(controlPointNumber*nD_discrete_valueNumber*sizeof(float));  //probabilistic output of regularisationSGM (not yet used)
+   this->regularisedCost= (float *)malloc(controlPointNumber*this->label_num*sizeof(float));  //probabilistic output of regularisationSGM (not yet used)
    this->optimalDisplacement=(int *)malloc(controlPointNumber*sizeof(int)); //index of optimal displacement for every control point (output2)
 
    this->initialised = false;
@@ -108,16 +108,10 @@ void reg_mrf::GetDiscretisedMeasure()
                                 this->discrete_radius,
                                 this->discrete_increment,
                                 (1.f-this->regularisation_weight));
-   //DEBUG
-   //int discrete_valueNumber = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
-   //int nD_discrete_valueNumber = std::pow(discrete_valueNumber,dim);
-   //int controlPointNumber = this->controlPointImage->nx *
-   //      this->controlPointImage->ny * this->controlPointImage->nz;
-   //for(int i=0;i<controlPointNumber*nD_discrete_valueNumber;i++) {
-   //    std::cout<<"dm="<<this->discretised_measure[i]<<std::endl;
-   //}
-   //DEBUG
+
+ #ifndef NDEBUG
    reg_print_msg_debug("GetDiscretisedMeasure done");
+#endif
 }
 /*****************************************************/
 void reg_mrf::Optimise()
@@ -147,17 +141,23 @@ void reg_mrf::Optimise()
       for(int y=0; y<controlPointImage->ny; y++) {
          for(int x=0; x<controlPointImage->nx; x++) {
             int optimal_id = this->optimalDisplacement[voxel];
-            //std::cout<<"optimal_id="<<optimal_id<<std::endl;
+//            int optimal_id = 0;
+//            float best_value = 10000.f;
+//            int discTotal=pow(discrete_valueNumber,3);
+//            for(int j=0; j<discTotal; ++j){
+//               float currentValue = this->discretised_measure[j+((z*this->controlPointImage->ny+y)*this->controlPointImage->nx+x)*discTotal];
+//               if(currentValue<best_value){
+//                  best_value = currentValue;
+//                  optimal_id = j;
+//               }
+//            }
             disp_vox[2] = (int)(optimal_id / (discrete_valueNumber * discrete_valueNumber));
             int residual = optimal_id -  disp_vox[2] *discrete_valueNumber * discrete_valueNumber;
             disp_vox[1] = (int)(residual / discrete_valueNumber);
             disp_vox[0] = residual - disp_vox[1] * discrete_valueNumber;
-            //std::cout<<"disp_vox="<<std::endl;
-            //std::cout << disp_vox[0] << " " << disp_vox[1] << " " << disp_vox[2] << std::endl;
             disp_vox[0] = this->discrete_valueArray[(int)disp_vox[0]];
             disp_vox[1] = this->discrete_valueArray[(int)disp_vox[1]];
             disp_vox[2] = this->discrete_valueArray[(int)disp_vox[2]];
-            //std::cout << disp_vox[0] << " " << disp_vox[1] << " " << disp_vox[2] << std::endl;
 
             cpPtrX[voxel] += disp_vox[0] * vox2mm.m[0][0] +
                   disp_vox[1] * vox2mm.m[0][1] +
@@ -574,12 +574,11 @@ void reg_mrf::GetRegularisation()
     */
    //dense displacement space
    int label_len=(this->discrete_radius / this->discrete_increment ) * 2 + 1; //length and total size of displacement space
-   int label_num=std::pow(label_len,this->dim);
 
    //buffer variable
-   float *cost1=new float[label_num];
-   float *vals=new float[label_num];
-   int *inds=new int[label_num];
+   float *cost1=new float[this->label_num];
+   float *vals=new float[this->label_num];
+   int *inds=new int[this->label_num];
 
    //array of messages
    int controlPointNumber = this->controlPointImage->nx *
@@ -600,20 +599,20 @@ void reg_mrf::GetRegularisation()
    //int o1=o/grid_step;
    //controlPointNumber = m1*n1*o1;
    //DEBUG
-   float* message=new float[controlPointNumber*label_num];
+   float* message=new float[controlPointNumber*this->label_num];
    //initialize the energy term with the data cost value
-   for(int i=0;i<controlPointNumber*label_num;i++){
+   for(int i=0;i<controlPointNumber*this->label_num;i++){
       //matrix = discretisedValue (first dimension displacement label, second dim. control point)
       this->regularisedCost[i]=this->discretised_measure[i];
       message[i]=0.0;
    }
 
-   for(int i=0;i<label_num;i++){
+   for(int i=0;i<this->label_num;i++){
       cost1[i]=0;
    }
 
    //weight of the regularisation - constant weight
-   float edgew=this->regularisation_weight;
+   float edgew=this->regularisation_weight + std::numeric_limits<float>::epsilon();
    float edgew1=1.0f/edgew;
 
    //calculate mst-cost
@@ -626,10 +625,10 @@ void reg_mrf::GetRegularisation()
       //float edgew=this->edgeWeight[ochild];
       //float edgew1=1.0f/edgew;
 
-      for(int l=0;l<label_num;l++){
+      for(int l=0;l<this->label_num;l++){
          //matrix = discretisedValue (first dimension displacement label, second dim. control point)
          //weighted by the  edge weight
-         cost1[l]=this->regularisedCost[ochild*label_num+l]*edgew;
+         cost1[l]=this->regularisedCost[ochild*this->label_num+l]*edgew;
       }
 
       //fast distance transform
@@ -637,9 +636,9 @@ void reg_mrf::GetRegularisation()
       dt3x(cost1,inds,label_len,0,0,0);
 
       //add mincost to parent node
-      for(int l=0;l<label_num;l++){
-         message[ochild*label_num+l]=cost1[l]*edgew1;
-         this->regularisedCost[oparent*label_num+l]+=cost1[l]*edgew1;
+      for(int l=0;l<this->label_num;l++){
+         message[ochild*this->label_num+l]=cost1[l]*edgew1;
+         this->regularisedCost[oparent*this->label_num+l]+=cost1[l]*edgew1;
       }
    }
 
@@ -651,26 +650,25 @@ void reg_mrf::GetRegularisation()
       //float edgew=this->edgeWeight[ochild];
       //float edgew1=1.0f/edgew;
 
-      for(int l=0;l<label_num;l++){
-         cost1[l]=(this->regularisedCost[oparent*label_num+l]-message[ochild*label_num+l]+message[oparent*label_num+l])*edgew;
+      for(int l=0;l<this->label_num;l++){
+         cost1[l]=(this->regularisedCost[oparent*this->label_num+l]-message[ochild*this->label_num+l]+message[oparent*this->label_num+l])*edgew;
       }
 
       dt3x(cost1,inds,label_len,0,0,0);
-      for(int l=0;l<label_num;l++){
-         message[ochild*label_num+l]=cost1[l]*edgew1;
+      for(int l=0;l<this->label_num;l++){
+         message[ochild*this->label_num+l]=cost1[l]*edgew1;
       }
 
    }
 
-   for(int i=0;i<controlPointNumber*label_num;i++){
+   for(int i=0;i<controlPointNumber*this->label_num;i++){
       this->regularisedCost[i]+=message[i];
    }
 
    //select displacements
    for(int i=0;i<controlPointNumber;i++){
-      this->optimalDisplacement[i]=std::min_element(this->regularisedCost+i*label_num,this->regularisedCost+(i+1)*label_num)-(this->regularisedCost+i*label_num);
+      this->optimalDisplacement[i]=std::min_element(this->regularisedCost+i*this->label_num,this->regularisedCost+(i+1)*this->label_num)-(this->regularisedCost+i*this->label_num);
    }
-
 
    delete message;
    delete cost1;
