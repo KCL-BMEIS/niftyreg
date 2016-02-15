@@ -3869,150 +3869,150 @@ void compute_lie_bracket(nifti_image *img1,
                          bool use_jac
                          )
 {
-   reg_exit(); // to update
-// #ifdef _WIN32
-//   long voxNumber=(long)img1->nx*img1->ny*img1->nz;
-// #else
-//   size_t voxNumber=(size_t)img1->nx*img1->ny*img1->nz;
-// #endif
-//   // Lie bracket using Jacobian for testing
-//   if(use_jac)
-//   {
-//      mat33 *jacImg1=(mat33 *)malloc(voxNumber*sizeof(mat33));
-//      mat33 *jacImg2=(mat33 *)malloc(voxNumber*sizeof(mat33));
+   reg_print_msg_error("The compute_lie_bracket function needs updating");
+   reg_exit();
+ #ifdef _WIN32
+   long voxNumber=(long)img1->nx*img1->ny*img1->nz;
+ #else
+   size_t voxNumber=(size_t)img1->nx*img1->ny*img1->nz;
+ #endif
+   // Lie bracket using Jacobian for testing
+   if(use_jac)
+   {
+      mat33 *jacImg1=(mat33 *)malloc(voxNumber*sizeof(mat33));
+      mat33 *jacImg2=(mat33 *)malloc(voxNumber*sizeof(mat33));
 
-//      reg_getDeformationFromDisplacement(img1);
-//      reg_getDeformationFromDisplacement(img2);
-//      // HERE TO DO
-//      reg_exit();
-//      //        reg_spline_GetJacobianMatrixFull(img1,img1,jacImg1);
-//      //        reg_spline_GetJacobianMatrixFull(img2,img2,jacImg2);
-//      reg_getDisplacementFromDeformation(img1);
-//      reg_getDisplacementFromDeformation(img2);
+      reg_getDeformationFromDisplacement(img1);
+      reg_getDeformationFromDisplacement(img2);
+      // HERE TO DO
+      reg_exit();
+      //        reg_spline_GetJacobianMatrixFull(img1,img1,jacImg1);
+      //        reg_spline_GetJacobianMatrixFull(img2,img2,jacImg2);
+      reg_getDisplacementFromDeformation(img1);
+      reg_getDisplacementFromDeformation(img2);
 
-//      DTYPE *resPtrX=static_cast<DTYPE *>(res->data);
-//      DTYPE *resPtrY=&resPtrX[voxNumber];
-//      DTYPE *img1DispPtrX=static_cast<DTYPE *>(img1->data);
-//      DTYPE *img1DispPtrY=&img1DispPtrX[voxNumber];
-//      DTYPE *img2DispPtrX=static_cast<DTYPE *>(img2->data);
-//      DTYPE *img2DispPtrY=&img1DispPtrX[voxNumber];
-//      if(img1->nz>1)
-//      {
-//         DTYPE *resPtrZ=&resPtrY[voxNumber];
-//         DTYPE *img1DispPtrZ=&img1DispPtrY[voxNumber];
-//         DTYPE *img2DispPtrZ=&img1DispPtrY[voxNumber];
+      DTYPE *resPtrX=static_cast<DTYPE *>(res->data);
+      DTYPE *resPtrY=&resPtrX[voxNumber];
+      DTYPE *img1DispPtrX=static_cast<DTYPE *>(img1->data);
+      DTYPE *img1DispPtrY=&img1DispPtrX[voxNumber];
+      DTYPE *img2DispPtrX=static_cast<DTYPE *>(img2->data);
+      DTYPE *img2DispPtrY=&img1DispPtrX[voxNumber];
+      if(img1->nz>1)
+      {
+         DTYPE *resPtrZ=&resPtrY[voxNumber];
+         DTYPE *img1DispPtrZ=&img1DispPtrY[voxNumber];
+         DTYPE *img2DispPtrZ=&img1DispPtrY[voxNumber];
 
-//         for(size_t i=0; i<voxNumber; ++i)
-//         {
-//            resPtrX[i]=
-//                  (jacImg2[i].m[0][0]*img1DispPtrX[i] +
-//                  jacImg2[i].m[0][1]*img1DispPtrY[i] +
-//                  jacImg2[i].m[0][2]*img1DispPtrZ[i] )
-//                  -
-//                  (jacImg1[i].m[0][0]*img2DispPtrX[i] +
-//                  jacImg1[i].m[0][1]*img2DispPtrY[i] +
-//                  jacImg1[i].m[0][2]*img2DispPtrZ[i] );
-//            resPtrY[i]=
-//                  (jacImg2[i].m[1][0]*img1DispPtrX[i] +
-//                  jacImg2[i].m[1][1]*img1DispPtrY[i] +
-//                  jacImg2[i].m[1][2]*img1DispPtrZ[i] )
-//                  -
-//                  (jacImg1[i].m[1][0]*img2DispPtrX[i] +
-//                  jacImg1[i].m[1][1]*img2DispPtrY[i] +
-//                  jacImg1[i].m[1][2]*img2DispPtrZ[i] );
-//            resPtrZ[i]=
-//                  (jacImg2[i].m[2][0]*img1DispPtrX[i] +
-//                  jacImg2[i].m[2][1]*img1DispPtrY[i] +
-//                  jacImg2[i].m[2][2]*img1DispPtrZ[i] )
-//                  -
-//                  (jacImg1[i].m[2][0]*img2DispPtrX[i] +
-//                  jacImg1[i].m[2][1]*img2DispPtrY[i] +
-//                  jacImg1[i].m[2][2]*img2DispPtrZ[i] );
-//         }
-//      }
-//      else
-//      {
-//         for(size_t i=0; i<voxNumber; ++i)
-//         {
-//            resPtrX[i]=
-//                  (jacImg2[i].m[0][0]*img1DispPtrX[i] +
-//                  jacImg2[i].m[0][1]*img1DispPtrY[i] )
-//                  -
-//                  (jacImg1[i].m[0][0]*img2DispPtrX[i] +
-//                  jacImg1[i].m[0][1]*img2DispPtrY[i] );
-//            resPtrY[i]=
-//                  (jacImg2[i].m[1][0]*img1DispPtrX[i] +
-//                  jacImg2[i].m[1][1]*img1DispPtrY[i] )
-//                  -
-//                  (jacImg1[i].m[1][0]*img2DispPtrX[i] +
-//                  jacImg1[i].m[1][1]*img2DispPtrY[i] );
-//         }
-//      }
-//      free(jacImg1);
-//      free(jacImg2);
-//      return;
-//   }
+         for(size_t i=0; i<voxNumber; ++i)
+         {
+            resPtrX[i]=
+                  (jacImg2[i].m[0][0]*img1DispPtrX[i] +
+                  jacImg2[i].m[0][1]*img1DispPtrY[i] +
+                  jacImg2[i].m[0][2]*img1DispPtrZ[i] )
+                  -
+                  (jacImg1[i].m[0][0]*img2DispPtrX[i] +
+                  jacImg1[i].m[0][1]*img2DispPtrY[i] +
+                  jacImg1[i].m[0][2]*img2DispPtrZ[i] );
+            resPtrY[i]=
+                  (jacImg2[i].m[1][0]*img1DispPtrX[i] +
+                  jacImg2[i].m[1][1]*img1DispPtrY[i] +
+                  jacImg2[i].m[1][2]*img1DispPtrZ[i] )
+                  -
+                  (jacImg1[i].m[1][0]*img2DispPtrX[i] +
+                  jacImg1[i].m[1][1]*img2DispPtrY[i] +
+                  jacImg1[i].m[1][2]*img2DispPtrZ[i] );
+            resPtrZ[i]=
+                  (jacImg2[i].m[2][0]*img1DispPtrX[i] +
+                  jacImg2[i].m[2][1]*img1DispPtrY[i] +
+                  jacImg2[i].m[2][2]*img1DispPtrZ[i] )
+                  -
+                  (jacImg1[i].m[2][0]*img2DispPtrX[i] +
+                  jacImg1[i].m[2][1]*img2DispPtrY[i] +
+                  jacImg1[i].m[2][2]*img2DispPtrZ[i] );
+         }
+      }
+      else
+      {
+         for(size_t i=0; i<voxNumber; ++i)
+         {
+            resPtrX[i]=
+                  (jacImg2[i].m[0][0]*img1DispPtrX[i] +
+                  jacImg2[i].m[0][1]*img1DispPtrY[i] )
+                  -
+                  (jacImg1[i].m[0][0]*img2DispPtrX[i] +
+                  jacImg1[i].m[0][1]*img2DispPtrY[i] );
+            resPtrY[i]=
+                  (jacImg2[i].m[1][0]*img1DispPtrX[i] +
+                  jacImg2[i].m[1][1]*img1DispPtrY[i] )
+                  -
+                  (jacImg1[i].m[1][0]*img2DispPtrX[i] +
+                  jacImg1[i].m[1][1]*img2DispPtrY[i] );
+         }
+      }
+      free(jacImg1);
+      free(jacImg2);
+      return;
+   }
 
 
-//   // Allocate two temporary nifti images
-//   nifti_image *one_two = nifti_copy_nim_info(img2);
-//   nifti_image *two_one = nifti_copy_nim_info(img1);
-//   // Set the temporary images to zero displacement
-//   one_two->data=(void *)calloc(one_two->nvox, one_two->nbyper);
-//   two_one->data=(void *)calloc(two_one->nvox, two_one->nbyper);
-//   // Compute the displacement from img1
-//   reg_spline_cppComposition(img1,
-//                             two_one,
-//                             true, // displacement1?
-//                             true, // displacement2?
-//                             true // bspline?
-//                             );
-//   // Compute the displacement from img2
-//   reg_spline_cppComposition(img2,
-//                             one_two,
-//                             true, // displacement1?
-//                             true, // displacement2?
-//                             true // bspline?
-//                             );
-//   // Compose both transformations
-//   reg_spline_cppComposition(img1,
-//                             one_two,
-//                             true, // displacement1?
-//                             true, // displacement2?
-//                             true // bspline?
-//                             );
-//   // Compose both transformations
-//   reg_spline_cppComposition(img2,
-//                             two_one,
-//                             true, // displacement1?
-//                             true, // displacement2?
-//                             true // bspline?
-//                             );
-//   // Create the data pointers
-//   DTYPE *resPtr=static_cast<DTYPE *>(res->data);
-//   DTYPE *one_twoPtr=static_cast<DTYPE *>(one_two->data);
-//   DTYPE *two_onePtr=static_cast<DTYPE *>(two_one->data);
-//   // Compute the lie bracket value using difference of composition
+   // Allocate two temporary nifti images
+   nifti_image *one_two = nifti_copy_nim_info(img2);
+   nifti_image *two_one = nifti_copy_nim_info(img1);
+   // Set the temporary images to zero displacement
+   one_two->data=(void *)calloc(one_two->nvox, one_two->nbyper);
+   two_one->data=(void *)calloc(two_one->nvox, two_one->nbyper);
+   // Compute the displacement from img1
+   reg_spline_cppComposition(img1,
+                             two_one,
+                             true, // displacement1?
+                             true, // displacement2?
+                             true // bspline?
+                             );
+   // Compute the displacement from img2
+   reg_spline_cppComposition(img2,
+                             one_two,
+                             true, // displacement1?
+                             true, // displacement2?
+                             true // bspline?
+                             );
+   // Compose both transformations
+   reg_spline_cppComposition(img1,
+                             one_two,
+                             true, // displacement1?
+                             true, // displacement2?
+                             true // bspline?
+                             );
+   // Compose both transformations
+   reg_spline_cppComposition(img2,
+                             two_one,
+                             true, // displacement1?
+                             true, // displacement2?
+                             true // bspline?
+                             );
+   // Create the data pointers
+   DTYPE *resPtr=static_cast<DTYPE *>(res->data);
+   DTYPE *one_twoPtr=static_cast<DTYPE *>(one_two->data);
+   DTYPE *two_onePtr=static_cast<DTYPE *>(two_one->data);
+   // Compute the lie bracket value using difference of composition
 
-// #ifdef _WIN32
-//   long i;
-//   voxNumber=(long)res->nvox;
-// #else
-//   size_t i;
-//   voxNumber=res->nvox;
-// #endif
+ #ifdef _WIN32
+   long i;
+   voxNumber=(long)res->nvox;
+ #else
+   size_t i;
+   voxNumber=res->nvox;
+ #endif
 
-// #if defined (_OPENMP)
-// #pragma omp parallel for default(none) \
-//   shared(voxNumber, resPtr, one_twoPtr, two_onePtr) \
-//   private(i)
-// #endif
-//   for(i=0; i<voxNumber; ++i)
-//      resPtr[i]=two_onePtr[i]-one_twoPtr[i];
-//   // Free the temporary nifti images
-//   nifti_image_free(one_two);
-//   nifti_image_free(two_one);
-//   //    reg_spline_GetDeconvolvedCoefficents(res);
+ #if defined (_OPENMP)
+ #pragma omp parallel for default(none) \
+   shared(voxNumber, resPtr, one_twoPtr, two_onePtr) \
+   private(i)
+ #endif
+   for(i=0; i<voxNumber; ++i)
+      resPtr[i]=two_onePtr[i]-one_twoPtr[i];
+   // Free the temporary nifti images
+   nifti_image_free(one_two);
+   nifti_image_free(two_one);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -4022,129 +4022,130 @@ void compute_BCH_update1(nifti_image *img1, // current field
                          int type)
 {
    // To update
+   reg_print_msg_error("The compute_BCH_update function needs updating");
    reg_exit();
-//   DTYPE *res=(DTYPE *)malloc(img1->nvox*sizeof(DTYPE));
+   DTYPE *res=(DTYPE *)malloc(img1->nvox*sizeof(DTYPE));
 
-// #ifdef _WIN32
-//   long i;
-//   long voxelNumber=(long)img1->nvox;
-// #else
-//   size_t i;
-//   size_t voxelNumber=img1->nvox;
-// #endif
+ #ifdef _WIN32
+   long i;
+   long voxelNumber=(long)img1->nvox;
+ #else
+   size_t i;
+   size_t voxelNumber=img1->nvox;
+ #endif
 
-//   bool use_jac=false;
+   bool use_jac=false;
 
-//   // r <- 2 + 1
-//   DTYPE *img1Ptr=static_cast<DTYPE *>(img1->data);
-//   DTYPE *img2Ptr=static_cast<DTYPE *>(img2->data);
-// #if defined (_OPENMP)
-// #pragma omp parallel for default(none) \
-//   shared(voxelNumber,img1Ptr,img2Ptr, res) \
-//   private(i)
-// #endif
-//   for(i=0; i<voxelNumber; ++i)
-//      res[i] = img1Ptr[i] + img2Ptr[i];
+   // r <- 2 + 1
+   DTYPE *img1Ptr=static_cast<DTYPE *>(img1->data);
+   DTYPE *img2Ptr=static_cast<DTYPE *>(img2->data);
+ #if defined (_OPENMP)
+ #pragma omp parallel for default(none) \
+   shared(voxelNumber,img1Ptr,img2Ptr, res) \
+   private(i)
+ #endif
+   for(i=0; i<voxelNumber; ++i)
+      res[i] = img1Ptr[i] + img2Ptr[i];
 
-//   if(type>0)
-//   {
-//      // Convert the deformation field into a displacement field
-//      reg_getDisplacementFromDeformation(img1);
+   if(type>0)
+   {
+      // Convert the deformation field into a displacement field
+      reg_getDisplacementFromDeformation(img1);
 
-//      // r <- 2 + 1 + 0.5[2,1]
-//      nifti_image *lie_bracket_img2_img1=nifti_copy_nim_info(img1);
-//      lie_bracket_img2_img1->data=(void *)malloc(lie_bracket_img2_img1->nvox*lie_bracket_img2_img1->nbyper);
-//      compute_lie_bracket<DTYPE>(img2, img1, lie_bracket_img2_img1, use_jac);
-//      DTYPE *lie_bracket_img2_img1Ptr=static_cast<DTYPE *>(lie_bracket_img2_img1->data);
-// #if defined (_OPENMP)
-// #pragma omp parallel for default(none) \
-//   shared(voxelNumber, res, lie_bracket_img2_img1Ptr) \
-//   private(i)
-// #endif
-//      for(i=0; i<voxelNumber; ++i)
-//         res[i] += 0.5 * lie_bracket_img2_img1Ptr[i];
+      // r <- 2 + 1 + 0.5[2,1]
+      nifti_image *lie_bracket_img2_img1=nifti_copy_nim_info(img1);
+      lie_bracket_img2_img1->data=(void *)malloc(lie_bracket_img2_img1->nvox*lie_bracket_img2_img1->nbyper);
+      compute_lie_bracket<DTYPE>(img2, img1, lie_bracket_img2_img1, use_jac);
+      DTYPE *lie_bracket_img2_img1Ptr=static_cast<DTYPE *>(lie_bracket_img2_img1->data);
+ #if defined (_OPENMP)
+ #pragma omp parallel for default(none) \
+   shared(voxelNumber, res, lie_bracket_img2_img1Ptr) \
+   private(i)
+ #endif
+      for(i=0; i<voxelNumber; ++i)
+         res[i] += 0.5 * lie_bracket_img2_img1Ptr[i];
 
-//      if(type>1)
-//      {
-//         // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12
-//         nifti_image *lie_bracket_img2_lie1=nifti_copy_nim_info(lie_bracket_img2_img1);
-//         lie_bracket_img2_lie1->data=(void *)malloc(lie_bracket_img2_lie1->nvox*lie_bracket_img2_lie1->nbyper);
-//         compute_lie_bracket<DTYPE>(img2, lie_bracket_img2_img1, lie_bracket_img2_lie1, use_jac);
-//         DTYPE *lie_bracket_img2_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img2_lie1->data);
-// #if defined (_OPENMP)
-// #pragma omp parallel for default(none) \
-//   shared(voxelNumber, res, lie_bracket_img2_lie1Ptr) \
-//   private(i)
-// #endif
-//         for(i=0; i<voxelNumber; ++i)
-//            res[i] += lie_bracket_img2_lie1Ptr[i]/12.0;
+      if(type>1)
+      {
+         // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12
+         nifti_image *lie_bracket_img2_lie1=nifti_copy_nim_info(lie_bracket_img2_img1);
+         lie_bracket_img2_lie1->data=(void *)malloc(lie_bracket_img2_lie1->nvox*lie_bracket_img2_lie1->nbyper);
+         compute_lie_bracket<DTYPE>(img2, lie_bracket_img2_img1, lie_bracket_img2_lie1, use_jac);
+         DTYPE *lie_bracket_img2_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img2_lie1->data);
+ #if defined (_OPENMP)
+ #pragma omp parallel for default(none) \
+   shared(voxelNumber, res, lie_bracket_img2_lie1Ptr) \
+   private(i)
+ #endif
+         for(i=0; i<voxelNumber; ++i)
+            res[i] += lie_bracket_img2_lie1Ptr[i]/12.0;
 
-//         if(type>2)
-//         {
-//            // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12 - [1,[2,1]]/12
-//            nifti_image *lie_bracket_img1_lie1=nifti_copy_nim_info(lie_bracket_img2_img1);
-//            lie_bracket_img1_lie1->data=(void *)malloc(lie_bracket_img1_lie1->nvox*lie_bracket_img1_lie1->nbyper);
-//            compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_img1, lie_bracket_img1_lie1, use_jac);
-//            DTYPE *lie_bracket_img1_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie1->data);
-// #if defined (_OPENMP)
-// #pragma omp parallel for default(none) \
-//   shared(voxelNumber, res, lie_bracket_img1_lie1Ptr) \
-//   private(i)
-// #endif
-//            for(i=0; i<voxelNumber; ++i)
-//               res[i] -= lie_bracket_img1_lie1Ptr[i]/12.0;
-//            nifti_image_free(lie_bracket_img1_lie1);
+         if(type>2)
+         {
+            // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12 - [1,[2,1]]/12
+            nifti_image *lie_bracket_img1_lie1=nifti_copy_nim_info(lie_bracket_img2_img1);
+            lie_bracket_img1_lie1->data=(void *)malloc(lie_bracket_img1_lie1->nvox*lie_bracket_img1_lie1->nbyper);
+            compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_img1, lie_bracket_img1_lie1, use_jac);
+            DTYPE *lie_bracket_img1_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie1->data);
+ #if defined (_OPENMP)
+ #pragma omp parallel for default(none) \
+   shared(voxelNumber, res, lie_bracket_img1_lie1Ptr) \
+   private(i)
+ #endif
+            for(i=0; i<voxelNumber; ++i)
+               res[i] -= lie_bracket_img1_lie1Ptr[i]/12.0;
+            nifti_image_free(lie_bracket_img1_lie1);
 
-//            if(type>3)
-//            {
-//               // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12 - [1,[2,1]]/12 - [1,[2,[2,1]]]/24
-//               nifti_image *lie_bracket_img1_lie2=nifti_copy_nim_info(lie_bracket_img2_lie1);
-//               lie_bracket_img1_lie2->data=(void *)malloc(lie_bracket_img1_lie2->nvox*lie_bracket_img1_lie2->nbyper);
-//               compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_lie1, lie_bracket_img1_lie2, use_jac);
-//               DTYPE *lie_bracket_img1_lie2Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie2->data);
-// #if defined (_OPENMP)
-// #pragma omp parallel for default(none) \
-//   shared(voxelNumber, res, lie_bracket_img1_lie2Ptr) \
-//   private(i)
-// #endif
-//               for(i=0; i<voxelNumber; ++i)
-//                  res[i] -= lie_bracket_img1_lie2Ptr[i]/24.0;
-//               nifti_image_free(lie_bracket_img1_lie2);
-//            }// >3
-//         }// >2
-//         nifti_image_free(lie_bracket_img2_lie1);
-//      }// >1
-//      nifti_image_free(lie_bracket_img2_img1);
-//   }// >0
+            if(type>3)
+            {
+               // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12 - [1,[2,1]]/12 - [1,[2,[2,1]]]/24
+               nifti_image *lie_bracket_img1_lie2=nifti_copy_nim_info(lie_bracket_img2_lie1);
+               lie_bracket_img1_lie2->data=(void *)malloc(lie_bracket_img1_lie2->nvox*lie_bracket_img1_lie2->nbyper);
+               compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_lie1, lie_bracket_img1_lie2, use_jac);
+               DTYPE *lie_bracket_img1_lie2Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie2->data);
+ #if defined (_OPENMP)
+ #pragma omp parallel for default(none) \
+   shared(voxelNumber, res, lie_bracket_img1_lie2Ptr) \
+   private(i)
+ #endif
+               for(i=0; i<voxelNumber; ++i)
+                  res[i] -= lie_bracket_img1_lie2Ptr[i]/24.0;
+               nifti_image_free(lie_bracket_img1_lie2);
+            }// >3
+         }// >2
+         nifti_image_free(lie_bracket_img2_lie1);
+      }// >1
+      nifti_image_free(lie_bracket_img2_img1);
+   }// >0
 
-//   // update the deformation field
-//   memcpy(img1->data, res, img1->nvox*img1->nbyper);
-//   free(res);
+   // update the deformation field
+   memcpy(img1->data, res, img1->nvox*img1->nbyper);
+   free(res);
 }
 /* *************************************************************** */
 void compute_BCH_update(nifti_image *img1, // current field
                         nifti_image *img2, // gradient
                         int type)
 {
-//   if(img1->datatype!=img2->datatype)
-//   {
-//      reg_print_fct_error("compute_BCH_update");
-//      reg_print_msg_error("Both input images are expected to be of similar type");
-//      reg_exit();
-//   }
-//   switch(img1->datatype)
-//   {
-//   case NIFTI_TYPE_FLOAT32:
-//      compute_BCH_update1<float>(img1, img2, type);
-//      break;
-//   case NIFTI_TYPE_FLOAT64:
-//      compute_BCH_update1<double>(img1, img2, type);
-//      break;
-//   default:
-//      reg_print_fct_error("compute_BCH_update");
-//      reg_print_msg_error("Only implemented for single or double precision images");
-//      reg_exit();
-//   }
+   if(img1->datatype!=img2->datatype)
+   {
+      reg_print_fct_error("compute_BCH_update");
+      reg_print_msg_error("Both input images are expected to be of similar type");
+      reg_exit();
+   }
+   switch(img1->datatype)
+   {
+   case NIFTI_TYPE_FLOAT32:
+      compute_BCH_update1<float>(img1, img2, type);
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      compute_BCH_update1<double>(img1, img2, type);
+      break;
+   default:
+      reg_print_fct_error("compute_BCH_update");
+      reg_print_msg_error("Only implemented for single or double precision images");
+      reg_exit();
+   }
 }
 /* *************************************************************** */
 /* *************************************************************** */

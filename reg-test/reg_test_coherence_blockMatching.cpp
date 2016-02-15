@@ -191,7 +191,7 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
 
-   for(size_t i=0; i<blockMatchingParams_cpu->activeBlockNumber*imgDim; i+=imgDim){
+   for(int i=0; i<blockMatchingParams_cpu->activeBlockNumber*imgDim; i+=imgDim){
       check_matching_difference(imgDim,
                                 &blockMatchingParams_cpu->referencePosition[i],
                                 &blockMatchingParams_cpu->warpedPosition[i],
@@ -200,7 +200,7 @@ int main(int argc, char **argv)
                                 max_difference);
    }
    size_t test_cpu=0, test_gpu=0;
-   for(size_t i=0; i<blockMatchingParams_cpu->activeBlockNumber*imgDim; i+=imgDim){
+   for(int i=0; i<blockMatchingParams_cpu->activeBlockNumber*imgDim; i+=imgDim){
        test_cpu = blockMatchingParams_cpu->warpedPosition[i]==blockMatchingParams_cpu->warpedPosition[i]?++test_cpu:test_cpu;
        test_gpu = blockMatchingParams_gpu->warpedPosition[i]==blockMatchingParams_gpu->warpedPosition[i]?++test_gpu:test_gpu;
    }

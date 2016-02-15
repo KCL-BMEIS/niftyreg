@@ -10,32 +10,32 @@ class CudaAladinContent: public AladinContent {
 public:
 	CudaAladinContent();
 	CudaAladinContent(nifti_image *CurrentReferenceIn,
-					nifti_image *CurrentFloatingIn,
-					int *CurrentReferenceMaskIn,
-					size_t byte,
-					const unsigned int blockPercentage,
-					const unsigned int inlierLts,
-					int blockStep);
+							nifti_image *CurrentFloatingIn,
+							int *CurrentReferenceMaskIn,
+							size_t byte,
+							const unsigned int blockPercentage,
+							const unsigned int inlierLts,
+							int blockStep);
 	CudaAladinContent(nifti_image *CurrentReferenceIn,
-					nifti_image *CurrentFloatingIn,
-					int *CurrentReferenceMaskIn,
-					size_t byte);
+							nifti_image *CurrentFloatingIn,
+							int *CurrentReferenceMaskIn,
+							size_t byte);
 	CudaAladinContent(nifti_image *CurrentReferenceIn,
-					nifti_image *CurrentFloatingIn,
-					int *CurrentReferenceMaskIn,
-					mat44 *transMat,
-					size_t byte,
-					const unsigned int blockPercentage,
-					const unsigned int inlierLts,
-					int blockStep);
+							nifti_image *CurrentFloatingIn,
+							int *CurrentReferenceMaskIn,
+							mat44 *transMat,
+							size_t byte,
+							const unsigned int blockPercentage,
+							const unsigned int inlierLts,
+							int blockStep);
 	CudaAladinContent(nifti_image *CurrentReferenceIn,
-					nifti_image *CurrentFloatingIn,
-					int *CurrentReferenceMaskIn,
-					mat44 *transMat,
-					size_t byte);
+							nifti_image *CurrentFloatingIn,
+							int *CurrentReferenceMaskIn,
+							mat44 *transMat,
+							size_t byte);
 	~CudaAladinContent();
 
-    bool isCurrentComputationDoubleCapable();
+	bool isCurrentComputationDoubleCapable();
 
 	//device getters
 	float* getReferenceImageArray_d();
@@ -48,12 +48,12 @@ public:
 	float* getReferenceMat_d();
 	float* getFloIJKMat_d();
 
-//	float* getAR_d(); // Removed until CUDA SVD is added back
-//	float* getU_d(); // Removed until CUDA SVD is added back
-//	float* getVT_d(); // Removed until CUDA SVD is added back
-//	float* getSigma_d(); // Removed until CUDA SVD is added back
-//	float* getLengths_d(); // Removed until CUDA SVD is added back
-//	float* getNewWarpedPos_d(); // Removed until CUDA SVD is added back
+	//	float* getAR_d(); // Removed until CUDA SVD is added back
+	//	float* getU_d(); // Removed until CUDA SVD is added back
+	//	float* getVT_d(); // Removed until CUDA SVD is added back
+	//	float* getSigma_d(); // Removed until CUDA SVD is added back
+	//	float* getLengths_d(); // Removed until CUDA SVD is added back
+	//	float* getNewWarpedPos_d(); // Removed until CUDA SVD is added back
 
 	int *getTotalBlock_d();
 	int *getMask_d();
@@ -79,8 +79,8 @@ private:
 	void allocateCuPtrs();
 	void freeCuPtrs();
 
-        CUDAContextSingletton* cudaSContext;
-        CUcontext cudaContext;
+	CUDAContextSingletton* cudaSContext;
+	CUcontext cudaContext;
 
 	float *referenceImageArray_d;
 	float *floatingImageArray_d;
@@ -95,12 +95,12 @@ private:
 	float* floIJKMat_d;
 
 	//svd
-//	float* AR_d;//A and then pseudoinverse  // Removed until CUDA SVD is added back
-//	float* U_d; // Removed until CUDA SVD is added back
-//	float* VT_d; // Removed until CUDA SVD is added back
-//	float* Sigma_d; // Removed until CUDA SVD is added back
-//	float* lengths_d; // Removed until CUDA SVD is added back
-//	float* newWarpedPos_d; // Removed until CUDA SVD is added back
+	//	float* AR_d;//A and then pseudoinverse  // Removed until CUDA SVD is added back
+	//	float* U_d; // Removed until CUDA SVD is added back
+	//	float* VT_d; // Removed until CUDA SVD is added back
+	//	float* Sigma_d; // Removed until CUDA SVD is added back
+	//	float* lengths_d; // Removed until CUDA SVD is added back
+	//	float* newWarpedPos_d; // Removed until CUDA SVD is added back
 
 	int referenceDims[4];
 	int floatingDims[4];
@@ -111,6 +111,4 @@ private:
 
 	template<class FloatingTYPE>
 	FloatingTYPE fillWarpedImageData(float intensity, int datatype);
-
-	unsigned long nVoxels;
 };

@@ -355,8 +355,6 @@ void CudaAladinContent::fillImageData(nifti_image *image,
 {
 
    size_t size = image->nvox;
-   T* array = static_cast<T*>(image->data);
-
    float* buffer = NULL;
    buffer = (float*) malloc(size * sizeof(float));
 
