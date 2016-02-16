@@ -197,6 +197,166 @@ double reg_spline_approxBendingEnergy(nifti_image *splineControlPoint)
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
+double reg_spline_singlePointBendingEnergy2D(nifti_image *splineControlPoint,
+                                             int *coord)
+{
+   size_t nodeNumber = (size_t)splineControlPoint->nx *
+         splineControlPoint->ny;
+   int a, b, index, i;
+
+   // Create pointers to the spline coefficients
+   DTYPE *splinePtrX = static_cast<DTYPE *>(splineControlPoint->data);
+   DTYPE *splinePtrY = &splinePtrX[nodeNumber];
+
+   // get the constant basis values
+   DTYPE basisXX[9], basisYY[9], basisXY[9];
+   set_second_order_basis_values(basisXX, basisYY, basisXY);
+
+   double constraintValue=0.0;
+
+   DTYPE splineCoeffX, splineCoeffY;
+   DTYPE XX_x, YY_x, XY_x;
+   DTYPE XX_y, YY_y, XY_y;
+
+   int x=coord[0];
+   int y=coord[1];
+
+   XX_x=0.0, YY_x=0.0, XY_x=0.0;
+   XX_y=0.0, YY_y=0.0, XY_y=0.0;
+
+   i=0;
+   for(b=-1; b<2; b++){
+      for(a=-1; a<2; a++){
+         index = (y+b)*splineControlPoint->nx+x+a;
+         splineCoeffX = splinePtrX[index];
+         splineCoeffY = splinePtrY[index];
+         XX_x += basisXX[i]*splineCoeffX;
+         YY_x += basisYY[i]*splineCoeffX;
+         XY_x += basisXY[i]*splineCoeffX;
+
+         XX_y += basisXX[i]*splineCoeffY;
+         YY_y += basisYY[i]*splineCoeffY;
+         XY_y += basisXY[i]*splineCoeffY;
+         ++i;
+      }
+   }
+
+   constraintValue += double(
+            XX_x*XX_x + YY_x*YY_x + 2.0*XY_x*XY_x +
+            XX_y*XX_y + YY_y*YY_y + 2.0*XY_y*XY_y );
+   return constraintValue / (double)splineControlPoint->nvox;
+}
+/* *************************************************************** */
+template<class DTYPE>
+double reg_spline_singlePointBendingEnergy3D(nifti_image *splineControlPoint,
+                                             int *coord)
+{
+   size_t nodeNumber = (size_t)splineControlPoint->nx *
+         splineControlPoint->ny * splineControlPoint->nz;
+   int a, b, c, index, i;
+
+   // Create pointers to the spline coefficients
+   DTYPE *splinePtrX = static_cast<DTYPE *>(splineControlPoint->data);
+   DTYPE *splinePtrY = &splinePtrX[nodeNumber];
+   DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
+
+   // get the constant basis values
+   DTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
+   set_second_order_basis_values(basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ);
+
+   double constraintValue=0.0;
+
+   DTYPE splineCoeffX, splineCoeffY, splineCoeffZ;
+   DTYPE XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x;
+   DTYPE XX_y, YY_y, ZZ_y, XY_y, YZ_y, XZ_y;
+   DTYPE XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z;
+
+   int x=coord[0];x=x==0?1:x;x=x==splineControlPoint->nx-2?splineControlPoint->nx-1:x;
+   int y=coord[1];y=y==0?1:y;y=y==splineControlPoint->ny-2?splineControlPoint->ny-1:y;
+   int z=coord[2];z=z==0?1:z;z=z==splineControlPoint->nz-2?splineControlPoint->nz-1:z;
+
+   XX_x=0.0, YY_x=0.0, ZZ_x=0.0;
+   XY_x=0.0, YZ_x=0.0, XZ_x=0.0;
+   XX_y=0.0, YY_y=0.0, ZZ_y=0.0;
+   XY_y=0.0, YZ_y=0.0, XZ_y=0.0;
+   XX_z=0.0, YY_z=0.0, ZZ_z=0.0;
+   XY_z=0.0, YZ_z=0.0, XZ_z=0.0;
+
+   i=0;
+   for(c=-1; c<2; c++){
+      for(b=-1; b<2; b++){
+         for(a=-1; a<2; a++){
+            index = ((z+c)*splineControlPoint->ny+y+b)*splineControlPoint->nx+x+a;
+            splineCoeffX = splinePtrX[index];
+            splineCoeffY = splinePtrY[index];
+            splineCoeffZ = splinePtrZ[index];
+            XX_x += basisXX[i]*splineCoeffX;
+            YY_x += basisYY[i]*splineCoeffX;
+            ZZ_x += basisZZ[i]*splineCoeffX;
+            XY_x += basisXY[i]*splineCoeffX;
+            YZ_x += basisYZ[i]*splineCoeffX;
+            XZ_x += basisXZ[i]*splineCoeffX;
+
+            XX_y += basisXX[i]*splineCoeffY;
+            YY_y += basisYY[i]*splineCoeffY;
+            ZZ_y += basisZZ[i]*splineCoeffY;
+            XY_y += basisXY[i]*splineCoeffY;
+            YZ_y += basisYZ[i]*splineCoeffY;
+            XZ_y += basisXZ[i]*splineCoeffY;
+
+            XX_z += basisXX[i]*splineCoeffZ;
+            YY_z += basisYY[i]*splineCoeffZ;
+            ZZ_z += basisZZ[i]*splineCoeffZ;
+            XY_z += basisXY[i]*splineCoeffZ;
+            YZ_z += basisYZ[i]*splineCoeffZ;
+            XZ_z += basisXZ[i]*splineCoeffZ;
+            ++i;
+         }
+      }
+   }
+
+   constraintValue += double(
+            XX_x*XX_x + YY_x*YY_x + ZZ_x*ZZ_x + 2.0*(XY_x*XY_x + YZ_x*YZ_x + XZ_x*XZ_x) +
+            XX_y*XX_y + YY_y*YY_y + ZZ_y*ZZ_y + 2.0*(XY_y*XY_y + YZ_y*YZ_y + XZ_y*XZ_y) +
+            XX_z*XX_z + YY_z*YY_z + ZZ_z*ZZ_z + 2.0*(XY_z*XY_z + YZ_z*YZ_z + XZ_z*XZ_z) );
+   return constraintValue / (double)splineControlPoint->nvox;
+}
+/* *************************************************************** */
+double reg_spline_singlePointBendingEnergy(nifti_image *splineControlPoint,
+                                           int *coord)
+{
+   if(splineControlPoint->nz==1)
+   {
+      switch(splineControlPoint->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         return reg_spline_singlePointBendingEnergy2D<float>(splineControlPoint, coord);
+      case NIFTI_TYPE_FLOAT64:
+         return reg_spline_singlePointBendingEnergy2D<double>(splineControlPoint, coord);
+      default:
+         reg_print_fct_error("reg_spline_singlePointBendingEnergy");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit();
+      }
+   }
+   else
+   {
+      switch(splineControlPoint->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         return reg_spline_singlePointBendingEnergy3D<float>(splineControlPoint, coord);
+      case NIFTI_TYPE_FLOAT64:
+         return reg_spline_singlePointBendingEnergy3D<double>(splineControlPoint, coord);
+      default:
+         reg_print_fct_error("reg_spline_singlePointBendingEnergy");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit();
+      }
+   }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class DTYPE>
 void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
                                               nifti_image *gradientImage,
                                               float weight)

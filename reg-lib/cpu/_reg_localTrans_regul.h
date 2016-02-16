@@ -27,6 +27,17 @@
 extern "C++"
 double reg_spline_approxBendingEnergy(nifti_image *controlPointGridImage);
 /* *************************************************************** */
+/** @brief Compute and return the bending energy computed using cubic b-spline
+ * at a single control point.
+ * @param controlPointGridImage Control point grid that contains the deformation
+ * parametrisation
+ * @param index Index of the control point under consideration
+ * @return The bending energy
+ */
+extern "C++"
+double reg_spline_singlePointBendingEnergy(nifti_image *splineControlPoint,
+                                           int *coord);
+/* *************************************************************** */
 /** @brief Compute and return the approximated (at the control point position)
  * bending energy gradient for each control point
  * @param controlPointGridImage Image that contains the control point

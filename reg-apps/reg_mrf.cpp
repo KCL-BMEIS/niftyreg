@@ -126,17 +126,29 @@ int main(int argc, char **argv)
    GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask);
 
    reg_ssd* ssdMeasure = new reg_ssd();
-   /* Read and create the mask array */
-//   for(int i=0;i<MINDSSC_refimg->nt;++i) {
+
+//   for(int i=0;i<MINDSSC_refimg->nt;++i)
 //      ssdMeasure->SetActiveTimepoint(i);
-//   }
-//   ssdMeasure->InitialiseMeasure(MINDSSC_refimg,MINDSSC_warimg,mask,MINDSSC_warimg,NULL,NULL);
-   for(int i=0;i<1;++i) {
+//   ssdMeasure->InitialiseMeasure(MINDSSC_refimg,
+//                                 MINDSSC_warimg,
+//                                 mask,
+//                                 MINDSSC_warimg,
+//                                 NULL,
+//                                 NULL);
+
+   for(int i=0;i<1;++i)
       ssdMeasure->SetActiveTimepoint(i);
-   }
-   ssdMeasure->InitialiseMeasure(referenceImage,warpedImage,mask,warpedImage,NULL,NULL);
-   reg_mrf* reg_mrfObject =
-           new reg_mrf(ssdMeasure,referenceImage,controlPointImage,18,3,regularisationWeight);//18,3 = default parameters
+   ssdMeasure->InitialiseMeasure(referenceImage,
+                                 warpedImage,
+                                 mask,
+                                 warpedImage,
+                                 NULL,NULL);
+   reg_mrf* reg_mrfObject = new reg_mrf(ssdMeasure,
+                                        referenceImage,
+                                        controlPointImage,
+                                        15,
+                                        5,
+                                        regularisationWeight);
 
    reg_mrfObject->Run();
 
