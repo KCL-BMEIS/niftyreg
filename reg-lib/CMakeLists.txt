@@ -80,16 +80,16 @@ add_library(_reg_measure
   cpu/_reg_measure.h
   cpu/_reg_nmi.h
   cpu/_reg_nmi.cpp
-  cpu/_reg_ssd.h
-  cpu/_reg_ssd.cpp
-  cpu/_reg_KLdivergence.h
-  cpu/_reg_KLdivergence.cpp
   cpu/_reg_lncc.h
   cpu/_reg_lncc.cpp
   cpu/_reg_dti.h
   cpu/_reg_dti.cpp
   cpu/_reg_mind.h
   cpu/_reg_mind.cpp
+  cpu/_reg_KLdivergence.h
+  cpu/_reg_KLdivergence.cpp
+  cpu/_reg_ssd.h
+  cpu/_reg_ssd.cpp
 )
 target_link_libraries(_reg_measure
   _reg_tools
@@ -99,7 +99,7 @@ install(TARGETS _reg_measure
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_nmi.h cpu/_reg_measure.h cpu/_reg_ssd.h cpu/_reg_KLdivergence.h cpu/_reg_lncc.h cpu/_reg_dti.h DESTINATION include)
+install(FILES cpu/_reg_nmi.h cpu/_reg_measure.h cpu/_reg_ssd.h cpu/_reg_KLdivergence.h cpu/_reg_lncc.h cpu/_reg_dti.h cpu/_reg_mind.h DESTINATION include)
 #-----------------------------------------------------------------------------
 set(LIB_LIST
   _reg_resampling
@@ -119,31 +119,6 @@ foreach(NAME ${LIB_LIST})
   )
   install(FILES cpu/${NAME}.h DESTINATION include)
 endforeach(NAME)
-#-----------------------------------------------------------------------------
-add_library(_reg_mind ${NIFTYREG_LIBRARY_TYPE}
-            AladinContent.cpp
-            AladinContent.h
-            Platform.cpp
-            Platform.h
-            Kernel.h
-            cpu/CPUAffineDeformationFieldKernel.h
-            cpu/CPUAffineDeformationFieldKernel.cpp
-            cpu/CPUBlockMatchingKernel.h
-            cpu/CPUBlockMatchingKernel.cpp
-            cpu/CPUConvolutionKernel.h
-            cpu/CPUConvolutionKernel.cpp
-            cpu/CPUOptimiseKernel.h
-            cpu/CPUOptimiseKernel.cpp
-            cpu/CPUResampleImageKernel.h
-            cpu/CPUResampleImageKernel.cpp
-            cpu/CPUKernelFactory.cpp
-            cpu/CPUKernelFactory.h
-            cpu/_reg_mind.cpp
-)
-target_link_libraries(_reg_mind
-                      _reg_globalTrans
-)
-install(FILES cpu/_reg_mind.h DESTINATION include)
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
 set(NAME _reg_aladin)
@@ -220,6 +195,8 @@ set(_reg_f3d_files
     cpu/_reg_optimiser.cpp
     cpu/_reg_mrf.h
     cpu/_reg_mrf.cpp
+    cpu/_reg_discrete_continuous.h
+    cpu/_reg_discrete_continuous.cpp
 )
 set(_reg_f3d_libraries
   _reg_localTrans

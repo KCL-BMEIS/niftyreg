@@ -25,7 +25,7 @@ if(USE_CUDA)
 else(USE_CUDA)
   add_executable(reg_f3d reg_f3d.cpp)
 endif(USE_CUDA)
-target_link_libraries(reg_f3d _reg_f3d _reg_mind)
+target_link_libraries(reg_f3d _reg_f3d)
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
   cuda_add_executable(reg_aladin reg_aladin.cpp)
@@ -35,7 +35,7 @@ endif(USE_CUDA)
 target_link_libraries(reg_aladin _reg_aladin)
 #-----------------------------------------------------------------------------
 add_executable(reg_mrf reg_mrf.cpp)
-target_link_libraries(reg_mrf _reg_f3d _reg_mind)
+target_link_libraries(reg_mrf _reg_f3d)
 #-----------------------------------------------------------------------------
 set(MODULE_LIST
   reg_average
