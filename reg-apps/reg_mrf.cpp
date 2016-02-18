@@ -8,6 +8,7 @@
 
 #include "_reg_mind.h"
 #include "_reg_mrf.h"
+#include "_reg_discrete_continuous.h"
 
 int main(int argc, char **argv)
 {
@@ -93,7 +94,7 @@ int main(int argc, char **argv)
                                   deformationField,
                                   mask,
                                   false, //composition
-                                  false // bspline
+                                  true // bspline
                                   );
 
    // create a warped image
@@ -143,20 +144,29 @@ int main(int argc, char **argv)
                                  mask,
                                  warpedImage,
                                  NULL,NULL);
-   reg_mrf* reg_mrfObject = new reg_mrf(ssdMeasure,
-                                        referenceImage,
-                                        controlPointImage,
-                                        15,
-                                        5,
-                                        regularisationWeight);
+//   reg_mrf* reg_mrfObject = new reg_mrf(ssdMeasure,
+//                                        referenceImage,
+//                                        controlPointImage,
+//                                        15,
+//                                        5,
+//                                        regularisationWeight);
+
+   reg_discrete_continuous* reg_mrfObject = new reg_discrete_continuous(ssdMeasure,
+                                                                        referenceImage,
+                                                                        controlPointImage,
+                                                                        15,
+                                                                        5,
+                                                                        regularisationWeight);
 
    reg_mrfObject->Run();
+
+   reg_io_WriteImageFile(controlPointImage, "out_cpp.nii.gz");
 
    reg_spline_getDeformationField(controlPointImage,
                                   deformationField,
                                   mask,
                                   false, //composition
-                                  false // bspline
+                                  true // bspline
                                   );
    reg_resampleImage(floatingImage,
                      warpedImage,

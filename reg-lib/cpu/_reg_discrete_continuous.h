@@ -38,7 +38,7 @@ public:
 private:
    void GetDiscretisedMeasure();
    void getOptimalLabel();
-   void UpdateNodePositions();
+   void StoreOptimalMeasureTransformation();
    void ContinuousRegularisation();
    /// @brief Returns the registration current objective function value
    double GetObjectiveFunctionValue();
@@ -46,7 +46,7 @@ private:
    void GetObjectiveFunctionGradient();
    /// @brief The transformation parameters are optimised
    void UpdateParameters(float);
-   /// @brief The best objective function values are stored
+   /// @brief Ben TODO
    void UpdateBestObjFunctionValue();
 
    reg_measure *measure; ///< Measure of similarity object to use for the data term
@@ -66,6 +66,10 @@ private:
 
    float *discretised_measures; ///< All discretised measures of similarity
    int* optimal_label_index; ///< Optimimal label index for each node
+
+   reg_conjugateGradient<float> *optimiser;
+   nifti_image *optimal_measure_transformation; ///< Transformation grid that contains the optimal transformation based on the measure discrete optimisation
+   nifti_image *regularisation_gradient; ///< blablabla
 
 };
 /********************************************************************************************************/

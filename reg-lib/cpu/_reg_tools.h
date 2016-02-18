@@ -265,7 +265,7 @@ void reg_tools_binaryImage2int(nifti_image *img,
  * two vector images
  * @param imgA Input vector image
  * @param imgB Input vector image
- * @return Mean rsoot mean squared error valueis returned
+ * @return Mean rsoot mean squared error values returned
  */
 extern "C++"
 double reg_tools_getMeanRMS(nifti_image *imgA,
