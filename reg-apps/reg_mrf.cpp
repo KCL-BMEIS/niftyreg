@@ -144,19 +144,13 @@ int main(int argc, char **argv)
                                  mask,
                                  warpedImage,
                                  NULL,NULL);
-//   reg_mrf* reg_mrfObject = new reg_mrf(ssdMeasure,
-//                                        referenceImage,
-//                                        controlPointImage,
-//                                        15,
-//                                        5,
-//                                        regularisationWeight);
 
-   reg_discrete_continuous* reg_mrfObject = new reg_discrete_continuous(ssdMeasure,
-                                                                        referenceImage,
-                                                                        controlPointImage,
-                                                                        15,
-                                                                        5,
-                                                                        regularisationWeight);
+   reg_mrf* reg_mrfObject = new reg_mrf(ssdMeasure,
+                                        referenceImage,
+                                        controlPointImage,
+                                        18,
+                                        3,
+                                        regularisationWeight);
 
    reg_mrfObject->Run();
 
@@ -176,6 +170,8 @@ int main(int argc, char **argv)
                      0.f);
 
 
+   warpedImage->cal_min = floatingImage->cal_min;
+   warpedImage->cal_max = floatingImage->cal_max;
    reg_io_WriteImageFile(warpedImage, outputImageName);
 
    reg_getDisplacementFromDeformation(deformationField);

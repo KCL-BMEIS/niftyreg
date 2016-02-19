@@ -1,50 +1,46 @@
+#include <stdio.h>
+#include <iostream>
+#include <stdlib.h>
 #include "_reg_ReadWriteImage.h"
-#include "_reg_ReadWriteBinary.h"
-#include "_reg_mrf.h"
 #include "_reg_localTrans.h"
-#include "_reg_resampling.h"
+#include "_reg_ssd.h"
+#include <numeric>
+
 #include "_reg_mind.h"
+#include "_reg_mrf.h"
+#include "_reg_discrete_continuous.h"
 
 int main(int argc, char **argv)
 {
    time_t start;
    time(&start);
 
-   if(argc!=4) {
-      fprintf(stderr, "Usage: %s <refImage> <floatingImage> <expectedDataCost>\n", argv[0]);
+   if(argc!=5) {
+      fprintf(stderr, "Usage: %s <refImage> <floatingImage> <regularisationWeight> <outputImageName>\n", argv[0]);
       return EXIT_FAILURE;
    }
    //IO
    char *inputRefImageName=argv[1];
    char *inputFloImageName=argv[2];
-   char *expectedDataCostName=argv[3];
+   float regularisationWeight=atof(argv[3]);
+   char *outputImageName=argv[4];
 
    // Read reference image
    nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
    if(referenceImage==NULL){
-       reg_print_msg_error("The input reference image could not be read");
-       return EXIT_FAILURE;
+      reg_print_msg_error("The input reference image could not be read");
+      return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(referenceImage);
 
    // Read floating image
    nifti_image *floatingImage = reg_io_ReadImageFile(inputFloImageName);
    if(floatingImage==NULL){
-       reg_print_msg_error("The warped input floating image could not be read");
-       return EXIT_FAILURE;
+      reg_print_msg_error("The warped input floating image could not be read");
+      return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(floatingImage);
 
-   // Read data cost
-   //DURTY - TO CHANGE
-   float* expectedDataCost = new float[32388174];
-   readFloatBinaryArray(expectedDataCostName, 32388174, expectedDataCost);
-   //DEBUG
-   //for (int i = 0;i<32388174;i++) {
-   //    std::cout<<expectedDataCost[i]<<std::endl;
-   //}
-   //DEBUG
-   //
    // Create control point grid image
    int spacing_voxel = 8;
    float grid_step_mm[3]={spacing_voxel*referenceImage->dx,
@@ -131,12 +127,73 @@ int main(int argc, char **argv)
    GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask);
 
    reg_ssd* ssdMeasure = new reg_ssd();
-   /* Read and create the mask array */
-   for(int i=0;i<MINDSSC_refimg->nt;++i) {
+
+   for(int i=0;i<MINDSSC_refimg->nt;++i)
       ssdMeasure->SetActiveTimepoint(i);
-   }
-   ssdMeasure->InitialiseMeasure(MINDSSC_refimg,MINDSSC_warimg,mask,MINDSSC_warimg,NULL,NULL);
-   reg_mrf* reg_mrfObject =
-           new reg_mrf(ssdMeasure,referenceImage,controlPointImage,18,3,0);//18,3 = default parameters
-   reg_mrfObject->GetDiscretisedMeasure();
+   ssdMeasure->InitialiseMeasure(MINDSSC_refimg,
+                                 MINDSSC_warimg,
+                                 mask,
+                                 MINDSSC_warimg,
+                                 NULL,
+                                 NULL);
+
+   reg_discrete_continuous* reg_dcObject = new reg_discrete_continuous(ssdMeasure,
+                                                                        referenceImage,
+                                                                        controlPointImage,
+                                                                        18,
+                                                                        3,
+                                                                        regularisationWeight);
+
+   reg_dcObject->Run();
+
+   reg_io_WriteImageFile(controlPointImage, "out_cpp.nii.gz");
+
+   reg_spline_getDeformationField(controlPointImage,
+                                  deformationField,
+                                  mask,
+                                  false, //composition
+                                  true // bspline
+                                  );
+   reg_resampleImage(floatingImage,
+                     warpedImage,
+                     deformationField,
+                     mask,
+                     1,
+                     0.f);
+
+
+   warpedImage->cal_min = floatingImage->cal_min;
+   warpedImage->cal_max = floatingImage->cal_max;
+   reg_io_WriteImageFile(warpedImage, outputImageName);
+
+   reg_getDisplacementFromDeformation(deformationField);
+   deformationField->dim[4] = deformationField->nt = deformationField->nu;
+   deformationField->dim[5] = deformationField->nu = 1;
+   deformationField->dim[0] = deformationField->ndim = 4;
+   //DEBUG
+   //reg_io_WriteImageFile(deformationField, "displacement.nii.gz");
+   //DEBUG
+
+
+   delete reg_dcObject;
+   free(mask);
+   nifti_image_free(MINDSSC_refimg);
+   nifti_image_free(MINDSSC_warimg);
+   nifti_image_free(referenceImage);
+   nifti_image_free(floatingImage);
+   nifti_image_free(warpedImage);
+   nifti_image_free(controlPointImage);
+   nifti_image_free(deformationField);
+
+   time_t end;
+   time(&end);
+   int minutes=(int)floorf((end-start)/60.0f);
+   int seconds=(int)(end-start - 60*minutes);
+   char text[255];
+   sprintf(text, "Registration performed in %i min %i sec", minutes, seconds);
+   reg_print_info((argv[0]), text);
+   reg_print_info((argv[0]), "Have a good day !");
+
+   return EXIT_SUCCESS;
 }
+

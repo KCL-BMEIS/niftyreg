@@ -150,9 +150,9 @@ void reg_discrete_continuous::StoreOptimalMeasureTransformation()
    float *optimalPtrZ = &optimalPtrY[this->node_number];
 
    size_t voxel=0;
-   for(int z=0; z<controlPointImage->nz; z++) {
-      for(int y=0; y<controlPointImage->ny; y++) {
-         for(int x=0; x<controlPointImage->nx; x++) {
+   for(int z=0; z<this->controlPointImage->nz; z++) {
+      for(int y=0; y<this->controlPointImage->ny; y++) {
+         for(int x=0; x<this->controlPointImage->nx; x++) {
             int optimal_id = this->optimal_label_index[voxel];
             cpPtrX[voxel] += this->discrete_values_mm[0][optimal_id];
             cpPtrY[voxel] += this->discrete_values_mm[1][optimal_id];
