@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "_reg_ReadWriteImage.h"
 #include "_reg_localTrans.h"
+#include "_reg_localTrans_jac.h"
 #include "_reg_ssd.h"
 #include <numeric>
 
@@ -94,7 +95,7 @@ int main(int argc, char **argv)
                                   deformationField,
                                   mask,
                                   false, //composition
-                                  true // bspline
+                                  false // bspline
                                   );
 
    // create a warped image
@@ -146,13 +147,11 @@ int main(int argc, char **argv)
 
    reg_dcObject->Run();
 
-   reg_io_WriteImageFile(controlPointImage, "out_cpp.nii.gz");
-
    reg_spline_getDeformationField(controlPointImage,
                                   deformationField,
                                   mask,
                                   false, //composition
-                                  true // bspline
+                                  false // bspline
                                   );
    reg_resampleImage(floatingImage,
                      warpedImage,
@@ -160,11 +159,16 @@ int main(int argc, char **argv)
                      mask,
                      1,
                      0.f);
+   GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask);
 
 
    warpedImage->cal_min = floatingImage->cal_min;
    warpedImage->cal_max = floatingImage->cal_max;
    reg_io_WriteImageFile(warpedImage, outputImageName);
+
+   nifti_image *jac_image = nifti_copy_nim_info(referenceImage);
+   jac_image->data=(void *)calloc(jac_image->nvox,jac_image->nbyper);
+   reg_spline_GetJacobianMap(controlPointImage, jac_image);
 
    reg_getDisplacementFromDeformation(deformationField);
    deformationField->dim[4] = deformationField->nt = deformationField->nu;
@@ -184,6 +188,7 @@ int main(int argc, char **argv)
    nifti_image_free(warpedImage);
    nifti_image_free(controlPointImage);
    nifti_image_free(deformationField);
+   nifti_image_free(jac_image);
 
    time_t end;
    time(&end);

@@ -66,10 +66,10 @@ reg_discrete_continuous::reg_discrete_continuous(reg_measure *_measure,
    //To store the cost data term - originaly SAD between images.
    this->discretised_measures = (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
 
-   //regulatization - optimization
+   //regularization - optimization
    this->optimal_label_index=(int *)malloc(this->node_number*sizeof(int));
 
-   ///TODO Ben to complete the comment here
+   //Optimal transformation based on the data term
    this->optimal_measure_transformation = nifti_copy_nim_info(this->controlPointImage);
    this->optimal_measure_transformation->data = (void *)malloc(this->optimal_measure_transformation->nvox*
                                                                this->optimal_measure_transformation->nbyper);

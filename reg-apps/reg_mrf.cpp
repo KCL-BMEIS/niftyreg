@@ -146,14 +146,13 @@ int main(int argc, char **argv)
 //                                 warpedImage,
 //                                 NULL,NULL);
 
-   reg_discrete_continuous* reg_mrfObject = new reg_discrete_continuous(ssdMeasure,
-                                                                        referenceImage,
-                                                                        controlPointImage,
-                                                                        15,
-                                                                        5,
-                                                                        regularisationWeight);
+   reg_mrf* reg_mrfObject = new reg_mrf(ssdMeasure,
+                                        referenceImage,
+                                        controlPointImage,
+                                        18,
+                                        3,
+                                        regularisationWeight);
 
-//   for(int i=0;i<5;++i){
       reg_mrfObject->Run();
       reg_spline_getDeformationField(controlPointImage,
                                      deformationField,
@@ -167,26 +166,16 @@ int main(int argc, char **argv)
                         mask,
                         1,
                         0.f);
-      GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask);
-//   }
-
-   nifti_image *jac_image = nifti_copy_nim_info(referenceImage);
-   jac_image->data=(void *)calloc(jac_image->nvox,jac_image->nbyper);
-   reg_spline_GetJacobianMap(controlPointImage, jac_image);
 
    reg_getDisplacementFromDeformation(deformationField);
    deformationField->dim[4] = deformationField->nt = deformationField->nu;
    deformationField->dim[5] = deformationField->nu = 1;
    deformationField->dim[0] = deformationField->ndim = 4;
 
-   reg_io_WriteImageFile(deformationField, "disp.nii.gz");
-   reg_io_WriteImageFile(controlPointImage, "cpp.nii.gz");
-   reg_io_WriteImageFile(jac_image, "jac.nii.gz");
    warpedImage->cal_min = floatingImage->cal_min;
    warpedImage->cal_max = floatingImage->cal_max;
    reg_io_WriteImageFile(warpedImage, outputImageName);
-   reg_io_WriteImageFile(MINDSSC_refimg, "mind_ref.nii.gz");
-   reg_io_WriteImageFile(MINDSSC_warimg, "mind_war.nii.gz");
+
 
    delete reg_mrfObject;
    free(mask);
@@ -197,7 +186,6 @@ int main(int argc, char **argv)
    nifti_image_free(warpedImage);
    nifti_image_free(controlPointImage);
    nifti_image_free(deformationField);
-   nifti_image_free(jac_image);
 
    time_t end;
    time(&end);

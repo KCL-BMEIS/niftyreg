@@ -192,8 +192,8 @@ void reg_mrf::Run()
    this->GetDiscretisedMeasure();
    // Compute the regularisation term
    //for(int i=0;i<100; ++i){
-       this->GetRegularisation();
-       // this->GetRegularisation_l2();
+       //this->GetRegularisation();
+       this->GetRegularisation_l2();
        // Extract the best label
        //memcpy(this->regularised_cost, this->discretised_measures, this->node_number*this->label_nD_num*sizeof(float));
        this->getOptimalLabel();
