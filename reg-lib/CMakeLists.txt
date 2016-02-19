@@ -195,8 +195,8 @@ set(_reg_f3d_files
     cpu/_reg_optimiser.cpp
     cpu/_reg_mrf.h
     cpu/_reg_mrf.cpp
-    cpu/_reg_discrete_continuous.h
-    cpu/_reg_discrete_continuous.cpp
+    cpu/_reg_discrete_init.h
+    cpu/_reg_discrete_init.cpp
 )
 set(_reg_f3d_libraries
   _reg_localTrans
@@ -216,11 +216,12 @@ install(TARGETS ${NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(FILES _reg_base.cpp  DESTINATION include)
-install(FILES ${NAME}.cpp  DESTINATION include)
-install(FILES ${NAME}2.cpp  DESTINATION include)
-install(FILES ${NAME}_sym.cpp  DESTINATION include)
-install(FILES cpu/_reg_optimiser.cpp  DESTINATION include)
+install(FILES _reg_base.cpp _reg_base.h DESTINATION include)
+install(FILES ${NAME}.cpp ${NAME}.h DESTINATION include)
+install(FILES ${NAME}2.cpp ${NAME}2.h DESTINATION include)
+install(FILES ${NAME}_sym.cpp ${NAME}_sym.h DESTINATION include)
+install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
+install(FILES cpu/_reg_discrete_init.cpp cpu/_reg_discrete_init.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY

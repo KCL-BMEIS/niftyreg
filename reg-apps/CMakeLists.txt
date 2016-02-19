@@ -11,9 +11,6 @@ target_link_libraries(reg_resample _reg_resampling _reg_localTrans _reg_tools _r
 add_executable(reg_measure reg_measure.cpp)
 target_link_libraries(reg_measure _reg_resampling _reg_tools _reg_measure _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
-#add_executable(reg_ppcnr reg_ppcnr.cpp)
-#target_link_libraries(reg_ppcnr _reg_ReadWriteImage)
-#-----------------------------------------------------------------------------
 add_executable(reg_transform reg_transform.cpp)
 target_link_libraries(reg_transform _reg_resampling _reg_localTrans _reg_tools _reg_globalTrans _reg_maths _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
@@ -34,12 +31,6 @@ else(USE_CUDA)
 endif(USE_CUDA)
 target_link_libraries(reg_aladin _reg_aladin)
 #-----------------------------------------------------------------------------
-add_executable(reg_mrf reg_mrf.cpp)
-target_link_libraries(reg_mrf _reg_f3d)
-#-----------------------------------------------------------------------------
-add_executable(reg_discrete_continuous reg_discrete_continuous.cpp)
-target_link_libraries(reg_discrete_continuous _reg_f3d)
-#-----------------------------------------------------------------------------
 set(MODULE_LIST
   reg_average
   reg_tools
@@ -49,7 +40,6 @@ set(MODULE_LIST
   reg_jacobian
   reg_aladin
   reg_f3d
-  reg_mrf
   )
 #-----------------------------------------------------------------------------
 if(USE_CUDA OR USE_OPENCL)
@@ -75,4 +65,7 @@ endforeach(MODULE_NAME)
 #-----------------------------------------------------------------------------
 install(PROGRAMS groupwise_niftyreg_params.sh DESTINATION bin COMPONENT Runtime)
 install(PROGRAMS groupwise_niftyreg_run.sh DESTINATION bin COMPONENT Runtime)
+#-----------------------------------------------------------------------------
+#add_executable(reg_ppcnr reg_ppcnr.cpp)
+#target_link_libraries(reg_ppcnr _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------

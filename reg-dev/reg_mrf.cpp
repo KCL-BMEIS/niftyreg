@@ -9,7 +9,6 @@
 
 #include "_reg_mind.h"
 #include "_reg_mrf.h"
-#include "_reg_discrete_continuous.h"
 
 int main(int argc, char **argv)
 {
@@ -138,48 +137,46 @@ int main(int argc, char **argv)
                                  NULL,
                                  NULL);
 
-   reg_discrete_continuous* reg_dcObject = new reg_discrete_continuous(ssdMeasure,
-                                                                        referenceImage,
-                                                                        controlPointImage,
-                                                                        18,
-                                                                        3,
-                                                                        regularisationWeight);
+//   for(int i=0;i<1;++i)
+//      ssdMeasure->SetActiveTimepoint(i);
+//   ssdMeasure->InitialiseMeasure(referenceImage,
+//                                 warpedImage,
+//                                 mask,
+//                                 warpedImage,
+//                                 NULL,NULL);
 
-   reg_dcObject->Run();
+   reg_mrf* reg_mrfObject = new reg_mrf(ssdMeasure,
+                                        referenceImage,
+                                        controlPointImage,
+                                        18,
+                                        3,
+                                        regularisationWeight);
 
-   reg_spline_getDeformationField(controlPointImage,
-                                  deformationField,
-                                  mask,
-                                  false, //composition
-                                  false // bspline
-                                  );
-   reg_resampleImage(floatingImage,
-                     warpedImage,
-                     deformationField,
-                     mask,
-                     1,
-                     0.f);
-   GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask);
-
-
-   warpedImage->cal_min = floatingImage->cal_min;
-   warpedImage->cal_max = floatingImage->cal_max;
-   reg_io_WriteImageFile(warpedImage, outputImageName);
-
-   nifti_image *jac_image = nifti_copy_nim_info(referenceImage);
-   jac_image->data=(void *)calloc(jac_image->nvox,jac_image->nbyper);
-   reg_spline_GetJacobianMap(controlPointImage, jac_image);
+      reg_mrfObject->Run();
+      reg_spline_getDeformationField(controlPointImage,
+                                     deformationField,
+                                     mask,
+                                     false, //composition
+                                     false // bspline
+                                     );
+      reg_resampleImage(floatingImage,
+                        warpedImage,
+                        deformationField,
+                        mask,
+                        1,
+                        0.f);
 
    reg_getDisplacementFromDeformation(deformationField);
    deformationField->dim[4] = deformationField->nt = deformationField->nu;
    deformationField->dim[5] = deformationField->nu = 1;
    deformationField->dim[0] = deformationField->ndim = 4;
-   //DEBUG
-   //reg_io_WriteImageFile(deformationField, "displacement.nii.gz");
-   //DEBUG
+
+   warpedImage->cal_min = floatingImage->cal_min;
+   warpedImage->cal_max = floatingImage->cal_max;
+   reg_io_WriteImageFile(warpedImage, outputImageName);
 
 
-   delete reg_dcObject;
+   delete reg_mrfObject;
    free(mask);
    nifti_image_free(MINDSSC_refimg);
    nifti_image_free(MINDSSC_warimg);
@@ -188,7 +185,6 @@ int main(int argc, char **argv)
    nifti_image_free(warpedImage);
    nifti_image_free(controlPointImage);
    nifti_image_free(deformationField);
-   nifti_image_free(jac_image);
 
    time_t end;
    time(&end);
@@ -201,4 +197,3 @@ int main(int argc, char **argv)
 
    return EXIT_SUCCESS;
 }
-

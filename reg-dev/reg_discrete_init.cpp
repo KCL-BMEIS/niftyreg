@@ -9,7 +9,7 @@
 
 #include "_reg_mind.h"
 #include "_reg_mrf.h"
-#include "_reg_discrete_continuous.h"
+#include "_reg_discrete_init.h"
 
 int main(int argc, char **argv)
 {
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
                                   deformationField,
                                   mask,
                                   false, //composition
-                                  false // bspline
+                                  true // bspline
                                   );
 
    // create a warped image
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
                      1,
                      0.f);
 
-   int mind_length = 12;
+   int mind_length = 6;
    //MINDSSC image
    nifti_image *MINDSSC_refimg = nifti_copy_nim_info(referenceImage);
    MINDSSC_refimg->ndim = MINDSSC_refimg->dim[0] = 4;
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
    MINDSSC_refimg->nvox = MINDSSC_refimg->nvox*mind_length;
    MINDSSC_refimg->data=(void *)calloc(MINDSSC_refimg->nvox,MINDSSC_refimg->nbyper);
    // Compute the MIND descriptor
-   GetMINDSSCImageDesciptor(referenceImage,MINDSSC_refimg, mask);
+   GetMINDImageDesciptor(referenceImage,MINDSSC_refimg, mask);
 
    //MINDSSC image
    nifti_image *MINDSSC_warimg = nifti_copy_nim_info(warpedImage);
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
    MINDSSC_warimg->nvox = MINDSSC_warimg->nvox*mind_length;
    MINDSSC_warimg->data=(void *)calloc(MINDSSC_warimg->nvox,MINDSSC_warimg->nbyper);
    // Compute the MIND descriptor
-   GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask);
+   GetMINDImageDesciptor(warpedImage,MINDSSC_warimg, mask);
 
    reg_ssd* ssdMeasure = new reg_ssd();
 
@@ -138,46 +138,51 @@ int main(int argc, char **argv)
                                  NULL,
                                  NULL);
 
-//   for(int i=0;i<1;++i)
-//      ssdMeasure->SetActiveTimepoint(i);
-//   ssdMeasure->InitialiseMeasure(referenceImage,
-//                                 warpedImage,
-//                                 mask,
-//                                 warpedImage,
-//                                 NULL,NULL);
+   std::cout << "INIT VALUE = " << ssdMeasure->GetSimilarityMeasureValue() << std::endl;
 
-   reg_mrf* reg_mrfObject = new reg_mrf(ssdMeasure,
-                                        referenceImage,
-                                        controlPointImage,
-                                        18,
-                                        3,
-                                        regularisationWeight);
+   reg_discrete_init* reg_dcObject = new reg_discrete_init(ssdMeasure,
+                                                           referenceImage,
+                                                           controlPointImage,
+                                                           18,
+                                                           3,
+                                                           regularisationWeight);
 
-      reg_mrfObject->Run();
-      reg_spline_getDeformationField(controlPointImage,
-                                     deformationField,
-                                     mask,
-                                     false, //composition
-                                     false // bspline
-                                     );
-      reg_resampleImage(floatingImage,
-                        warpedImage,
-                        deformationField,
-                        mask,
-                        1,
-                        0.f);
+   reg_dcObject->Run();
 
-   reg_getDisplacementFromDeformation(deformationField);
-   deformationField->dim[4] = deformationField->nt = deformationField->nu;
-   deformationField->dim[5] = deformationField->nu = 1;
-   deformationField->dim[0] = deformationField->ndim = 4;
+   reg_spline_getDeformationField(controlPointImage,
+                                  deformationField,
+                                  mask,
+                                  false, //composition
+                                  true // bspline
+                                  );
+   reg_resampleImage(floatingImage,
+                     warpedImage,
+                     deformationField,
+                     mask,
+                     1,
+                     0.f);
+   GetMINDImageDesciptor(warpedImage,MINDSSC_warimg, mask);
+
+
+   std::cout << "FINAL VALUE = " << ssdMeasure->GetSimilarityMeasureValue() << std::endl;
+
 
    warpedImage->cal_min = floatingImage->cal_min;
    warpedImage->cal_max = floatingImage->cal_max;
    reg_io_WriteImageFile(warpedImage, outputImageName);
 
+   nifti_image *jac_image = nifti_copy_nim_info(referenceImage);
+   jac_image->data=(void *)calloc(jac_image->nvox,jac_image->nbyper);
+   reg_spline_GetJacobianMap(controlPointImage, jac_image);
 
-   delete reg_mrfObject;
+   reg_getDisplacementFromDeformation(deformationField);
+   deformationField->dim[4] = deformationField->nt = deformationField->nu;
+   deformationField->dim[5] = deformationField->nu = 1;
+   deformationField->dim[0] = deformationField->ndim = 4;
+   reg_io_WriteImageFile(deformationField, "displacement.nii.gz");
+
+
+   delete reg_dcObject;
    free(mask);
    nifti_image_free(MINDSSC_refimg);
    nifti_image_free(MINDSSC_warimg);
@@ -186,6 +191,7 @@ int main(int argc, char **argv)
    nifti_image_free(warpedImage);
    nifti_image_free(controlPointImage);
    nifti_image_free(deformationField);
+   nifti_image_free(jac_image);
 
    time_t end;
    time(&end);
@@ -198,3 +204,4 @@ int main(int argc, char **argv)
 
    return EXIT_SUCCESS;
 }
+

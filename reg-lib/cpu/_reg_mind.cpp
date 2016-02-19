@@ -384,6 +384,7 @@ reg_mind::reg_mind()
     this->warpedReferenceImageDescriptor=NULL;
     this->warpedFloatingImageDescriptorGradient=NULL;
     this->warpedReferenceImageDescriptorGradient=NULL;
+    this->mind_type=MIND_TYPE;
 #ifndef NDEBUG
     reg_print_msg_debug("reg_mind constructor called");
 #endif
@@ -443,11 +444,18 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
         reg_exit();
     }
 
+    int discriptor_number = 0;
+    if(this->mind_type==MIND_TYPE){
+       discriptor_number=this->referenceImagePointer->nz>1?6:4;
+    }
+    else if(this->mind_type==MINDSSC_TYPE){
+       discriptor_number=this->referenceImagePointer->nz>1?12:4;
+
+    }
     // Initialise the reference descriptor
-    int dim=this->referenceImagePointer->nz>1?3:2;
     this->referenceImageDescriptor = nifti_copy_nim_info(this->referenceImagePointer);
     this->referenceImageDescriptor->dim[0]=this->referenceImageDescriptor->ndim=4;
-    this->referenceImageDescriptor->dim[4]=this->referenceImageDescriptor->nt=dim*2;
+    this->referenceImageDescriptor->dim[4]=this->referenceImageDescriptor->nt=discriptor_number;
     this->referenceImageDescriptor->nvox = (size_t)this->referenceImageDescriptor->nx*
                                            this->referenceImageDescriptor->ny*
                                            this->referenceImageDescriptor->nz*
@@ -457,7 +465,7 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
     // Initialise the warped floating descriptor
     this->warpedFloatingImageDescriptor = nifti_copy_nim_info(this->referenceImagePointer);
     this->warpedFloatingImageDescriptor->dim[0]=this->warpedFloatingImageDescriptor->ndim=4;
-    this->warpedFloatingImageDescriptor->dim[4]=this->warpedFloatingImageDescriptor->nt=dim*2;
+    this->warpedFloatingImageDescriptor->dim[4]=this->warpedFloatingImageDescriptor->nt=discriptor_number;
     this->warpedFloatingImageDescriptor->nvox = (size_t)this->warpedFloatingImageDescriptor->nx*
                                                 this->warpedFloatingImageDescriptor->ny*
                                                 this->warpedFloatingImageDescriptor->nz*
@@ -467,8 +475,8 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
     // Initialise the warped gradient descriptor
     this->warpedFloatingImageDescriptorGradient = nifti_copy_nim_info(this->referenceImagePointer);
     this->warpedFloatingImageDescriptorGradient->dim[0]=this->warpedFloatingImageDescriptorGradient->ndim=5;
-    this->warpedFloatingImageDescriptorGradient->dim[4]=this->warpedFloatingImageDescriptorGradient->nt=dim*2;
-    this->warpedFloatingImageDescriptorGradient->dim[5]=this->warpedFloatingImageDescriptorGradient->nu=dim;
+    this->warpedFloatingImageDescriptorGradient->dim[4]=this->warpedFloatingImageDescriptorGradient->nt=discriptor_number;
+    this->warpedFloatingImageDescriptorGradient->dim[5]=this->warpedFloatingImageDescriptorGradient->nu=this->referenceImagePointer->nz>1?3:2;
     this->warpedFloatingImageDescriptorGradient->nvox = (size_t)this->warpedFloatingImageDescriptorGradient->nx*
                                                         this->warpedFloatingImageDescriptorGradient->ny*
                                                         this->warpedFloatingImageDescriptorGradient->nz*
@@ -483,10 +491,9 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
             reg_exit();
         }
         // Initialise the floating descriptor
-        int dim=this->floatingImagePointer->nz>1?3:2;
         this->floatingImageDescriptor = nifti_copy_nim_info(this->floatingImagePointer);
         this->floatingImageDescriptor->dim[0]=this->floatingImageDescriptor->ndim=4;
-        this->floatingImageDescriptor->dim[4]=this->floatingImageDescriptor->nt=dim*2;
+        this->floatingImageDescriptor->dim[4]=this->floatingImageDescriptor->nt=discriptor_number;
         this->floatingImageDescriptor->nvox = (size_t)this->floatingImageDescriptor->nx*
                                               this->floatingImageDescriptor->ny*
                                               this->floatingImageDescriptor->nz*
@@ -496,7 +503,7 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
         // Initialise the warped floating descriptor
         this->warpedReferenceImageDescriptor = nifti_copy_nim_info(this->floatingImagePointer);
         this->warpedReferenceImageDescriptor->dim[0]=this->warpedReferenceImageDescriptor->ndim=4;
-        this->warpedReferenceImageDescriptor->dim[4]=this->warpedReferenceImageDescriptor->nt=dim*2;
+        this->warpedReferenceImageDescriptor->dim[4]=this->warpedReferenceImageDescriptor->nt=discriptor_number;
         this->warpedReferenceImageDescriptor->nvox = (size_t)this->warpedReferenceImageDescriptor->nx*
                                                      this->warpedReferenceImageDescriptor->ny*
                                                      this->warpedReferenceImageDescriptor->nz*
@@ -506,8 +513,8 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
         // Initialise the warped gradient descriptor
         this->warpedReferenceImageDescriptorGradient = nifti_copy_nim_info(this->floatingImagePointer);
         this->warpedReferenceImageDescriptorGradient->dim[0]=this->warpedReferenceImageDescriptorGradient->ndim=5;
-        this->warpedReferenceImageDescriptorGradient->dim[4]=this->warpedReferenceImageDescriptorGradient->nt=dim*2;
-        this->warpedReferenceImageDescriptorGradient->dim[5]=this->warpedReferenceImageDescriptorGradient->nu=dim;
+        this->warpedReferenceImageDescriptorGradient->dim[4]=this->warpedReferenceImageDescriptorGradient->nt=discriptor_number;
+        this->warpedReferenceImageDescriptorGradient->dim[5]=this->warpedReferenceImageDescriptorGradient->nu=this->referenceImagePointer->nz>1?3:2;
         this->warpedReferenceImageDescriptorGradient->nvox = (size_t)this->warpedReferenceImageDescriptorGradient->nx*
                                                              this->warpedReferenceImageDescriptorGradient->ny*
                                                              this->warpedReferenceImageDescriptorGradient->nz*
@@ -541,12 +548,22 @@ double reg_mind::GetSimilarityMeasureValue()
     reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
     reg_tools_removeNanFromMask(this->warpedFloatingImagePointer, combinedMask);
 
-    GetMINDImageDesciptor(this->referenceImagePointer,
-                          this->referenceImageDescriptor,
-                          combinedMask);
-    GetMINDImageDesciptor(this->warpedFloatingImagePointer,
-                          this->warpedFloatingImageDescriptor,
-                          combinedMask);
+    if(this->mind_type==MIND_TYPE){
+       GetMINDImageDesciptor(this->referenceImagePointer,
+                             this->referenceImageDescriptor,
+                             combinedMask);
+       GetMINDImageDesciptor(this->warpedFloatingImagePointer,
+                             this->warpedFloatingImageDescriptor,
+                             combinedMask);
+    }
+    else if(this->mind_type==MINDSSC_TYPE){
+       GetMINDSSCImageDesciptor(this->referenceImagePointer,
+                                this->referenceImageDescriptor,
+                                combinedMask);
+       GetMINDSSCImageDesciptor(this->warpedFloatingImagePointer,
+                                this->warpedFloatingImageDescriptor,
+                                combinedMask);
+    }
 
     double MINDValue;
     switch(this->referenceImageDescriptor->datatype)
@@ -587,12 +604,23 @@ double reg_mind::GetSimilarityMeasureValue()
         memcpy(combinedMask, this->referenceMaskPointer, voxelNumber*sizeof(int));
         reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
         reg_tools_removeNanFromMask(this->warpedFloatingImagePointer, combinedMask);
-        GetMINDImageDesciptor(this->floatingImagePointer,
-                              this->floatingImageDescriptor,
-                              combinedMask);
-        GetMINDImageDesciptor(this->warpedReferenceImagePointer,
-                              this->warpedReferenceImageDescriptor,
-                              combinedMask);
+
+        if(this->mind_type==MIND_TYPE){
+           GetMINDImageDesciptor(this->floatingImagePointer,
+                                 this->floatingImageDescriptor,
+                                 combinedMask);
+           GetMINDImageDesciptor(this->warpedReferenceImagePointer,
+                                 this->warpedReferenceImageDescriptor,
+                                 combinedMask);
+        }
+        else if(this->mind_type==MINDSSC_TYPE){
+           GetMINDSSCImageDesciptor(this->floatingImagePointer,
+                                    this->floatingImageDescriptor,
+                                    combinedMask);
+           GetMINDSSCImageDesciptor(this->warpedReferenceImagePointer,
+                                    this->warpedReferenceImageDescriptor,
+                                    combinedMask);
+        }
 
         switch(this->floatingImageDescriptor->datatype)
         {
@@ -637,14 +665,26 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient()
     reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
     reg_tools_removeNanFromMask(this->warpedFloatingImagePointer, combinedMask);
 
-    // Compute the reference image descriptors
-    GetMINDImageDesciptor(this->referenceImagePointer,
-                          this->referenceImageDescriptor,
-                          combinedMask);
-    // Compute the warped floating image descriptors
-    GetMINDImageDesciptor(this->warpedFloatingImagePointer,
-                          this->warpedFloatingImageDescriptor,
-                          combinedMask);
+    if(this->mind_type==MIND_TYPE){
+       // Compute the reference image descriptors
+       GetMINDImageDesciptor(this->referenceImagePointer,
+                             this->referenceImageDescriptor,
+                             combinedMask);
+       // Compute the warped floating image descriptors
+       GetMINDImageDesciptor(this->warpedFloatingImagePointer,
+                             this->warpedFloatingImageDescriptor,
+                             combinedMask);
+    }
+    else if(this->mind_type==MINDSSC_TYPE){
+       // Compute the reference image descriptors
+       GetMINDSSCImageDesciptor(this->referenceImagePointer,
+                                this->referenceImageDescriptor,
+                                combinedMask);
+       // Compute the warped floating image descriptors
+       GetMINDSSCImageDesciptor(this->warpedFloatingImagePointer,
+                                this->warpedFloatingImageDescriptor,
+                                combinedMask);
+    }
 
     // Compute the warped image descriptors gradient
     spatialGradient<float>(this->warpedFloatingImageDescriptor,
@@ -691,15 +731,26 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient()
         memcpy(combinedMask, this->referenceMaskPointer, voxelNumber*sizeof(int));
         reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
         reg_tools_removeNanFromMask(this->warpedFloatingImagePointer, combinedMask);
-        GetMINDImageDesciptor(this->floatingImagePointer,
-                              this->floatingImageDescriptor,
-                              combinedMask);
-        GetMINDImageDesciptor(this->warpedReferenceImagePointer,
-                              this->warpedReferenceImageDescriptor,
-                              combinedMask);
+
+        if(this->mind_type==MIND_TYPE){
+           GetMINDImageDesciptor(this->floatingImagePointer,
+                                 this->floatingImageDescriptor,
+                                 combinedMask);
+           GetMINDImageDesciptor(this->warpedReferenceImagePointer,
+                                 this->warpedReferenceImageDescriptor,
+                                 combinedMask);
+        }
+        else if(this->mind_type==MINDSSC_TYPE){
+           GetMINDSSCImageDesciptor(this->floatingImagePointer,
+                                    this->floatingImageDescriptor,
+                                    combinedMask);
+           GetMINDSSCImageDesciptor(this->warpedReferenceImagePointer,
+                                    this->warpedReferenceImageDescriptor,
+                                    combinedMask);
+        }
 
         spatialGradient<float>(this->warpedReferenceImageDescriptor,
-                                    this->warpedReferenceImageDescriptorGradient,
+                               this->warpedReferenceImageDescriptorGradient,
                                     combinedMask);
 
         // Compute the gradient of the nmi for the backward transformation
@@ -740,6 +791,7 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient()
 reg_mindssc::reg_mindssc()
     : reg_mind()
 {
+   this->mind_type=MINDSSC_TYPE;
 #ifndef NDEBUG
     reg_print_msg_debug("reg_mindssc constructor called");
 #endif
@@ -749,125 +801,6 @@ reg_mindssc::~reg_mindssc()
 {
 #ifndef NDEBUG
     reg_print_msg_debug("reg_mindssc desctructor called");
-#endif
-}
-/* *************************************************************** */
-void reg_mindssc::InitialiseMeasure(nifti_image *refImgPtr,
-                                 nifti_image *floImgPtr,
-                                 int *maskRefPtr,
-                                 nifti_image *warFloImgPtr,
-                                 nifti_image *warFloGraPtr,
-                                 nifti_image *forVoxBasedGraPtr,
-                                 int *maskFloPtr,
-                                 nifti_image *warRefImgPtr,
-                                 nifti_image *warRefGraPtr,
-                                 nifti_image *bckVoxBasedGraPtr)
-{
-    // Set the pointers using the parent class function
-    reg_ssd::InitialiseMeasure(refImgPtr,
-                               floImgPtr,
-                               maskRefPtr,
-                               warFloImgPtr,
-                               warFloGraPtr,
-                               forVoxBasedGraPtr,
-                               maskFloPtr,
-                               warRefImgPtr,
-                               warRefGraPtr,
-                               bckVoxBasedGraPtr);
-
-    if(this->referenceImagePointer->nt>1 || this->warpedFloatingImagePointer->nt>1){
-        reg_print_msg_error("reg_mindssc does not support multiple time point image");
-        reg_exit();
-    }
-
-    // Initialise the reference descriptor
-    int dim=this->referenceImagePointer->nz>1?3:2;
-    int dimt=this->referenceImagePointer->nz>1?12:4;
-    this->referenceImageDescriptor = nifti_copy_nim_info(this->referenceImagePointer);
-    this->referenceImageDescriptor->dim[0]=this->referenceImageDescriptor->ndim=4;
-    this->referenceImageDescriptor->dim[4]=this->referenceImageDescriptor->nt=dimt;
-    this->referenceImageDescriptor->nvox = (size_t)this->referenceImageDescriptor->nx*
-                                           this->referenceImageDescriptor->ny*
-                                           this->referenceImageDescriptor->nz*
-                                           this->referenceImageDescriptor->nt;
-    this->referenceImageDescriptor->data=(void *)malloc(this->referenceImageDescriptor->nvox*
-                                                        this->referenceImageDescriptor->nbyper);
-    // Initialise the warped floating descriptor
-    this->warpedFloatingImageDescriptor = nifti_copy_nim_info(this->referenceImagePointer);
-    this->warpedFloatingImageDescriptor->dim[0]=this->warpedFloatingImageDescriptor->ndim=4;
-    this->warpedFloatingImageDescriptor->dim[4]=this->warpedFloatingImageDescriptor->nt=dimt;
-    this->warpedFloatingImageDescriptor->nvox = (size_t)this->warpedFloatingImageDescriptor->nx*
-                                                this->warpedFloatingImageDescriptor->ny*
-                                                this->warpedFloatingImageDescriptor->nz*
-                                                this->warpedFloatingImageDescriptor->nt;
-    this->warpedFloatingImageDescriptor->data=(void *)malloc(this->warpedFloatingImageDescriptor->nvox*
-                                                             this->warpedFloatingImageDescriptor->nbyper);
-    // Initialise the warped gradient descriptor
-    this->warpedFloatingImageDescriptorGradient = nifti_copy_nim_info(this->referenceImagePointer);
-    this->warpedFloatingImageDescriptorGradient->dim[0]=this->warpedFloatingImageDescriptorGradient->ndim=5;
-    this->warpedFloatingImageDescriptorGradient->dim[4]=this->warpedFloatingImageDescriptorGradient->nt=dimt;
-    this->warpedFloatingImageDescriptorGradient->dim[5]=this->warpedFloatingImageDescriptorGradient->nu=dim;
-    this->warpedFloatingImageDescriptorGradient->nvox = (size_t)this->warpedFloatingImageDescriptorGradient->nx*
-                                                        this->warpedFloatingImageDescriptorGradient->ny*
-                                                        this->warpedFloatingImageDescriptorGradient->nz*
-                                                        this->warpedFloatingImageDescriptorGradient->nt*
-                                                        this->warpedFloatingImageDescriptorGradient->nu;
-    this->warpedFloatingImageDescriptorGradient->data=(void *)malloc(this->warpedFloatingImageDescriptorGradient->nvox*
-                                                                     this->warpedFloatingImageDescriptorGradient->nbyper);
-
-    if(this->isSymmetric) {
-        if(this->floatingImagePointer->nt>1 || this->warpedReferenceImagePointer->nt>1){
-            reg_print_msg_error("reg_mindssc does not support multiple time point image");
-            reg_exit();
-        }
-        // Initialise the floating descriptor
-        int dim=this->floatingImagePointer->nz>1?3:2;
-        int dimt=this->referenceImagePointer->nz>1?12:4;
-        this->floatingImageDescriptor = nifti_copy_nim_info(this->floatingImagePointer);
-        this->floatingImageDescriptor->dim[0]=this->floatingImageDescriptor->ndim=4;
-        this->floatingImageDescriptor->dim[4]=this->floatingImageDescriptor->nt=dimt;
-        this->floatingImageDescriptor->nvox = (size_t)this->floatingImageDescriptor->nx*
-                                              this->floatingImageDescriptor->ny*
-                                              this->floatingImageDescriptor->nz*
-                                              this->floatingImageDescriptor->nt;
-        this->floatingImageDescriptor->data=(void *)malloc(this->floatingImageDescriptor->nvox*
-                                                           this->floatingImageDescriptor->nbyper);
-        // Initialise the warped floating descriptor
-        this->warpedReferenceImageDescriptor = nifti_copy_nim_info(this->floatingImagePointer);
-        this->warpedReferenceImageDescriptor->dim[0]=this->warpedReferenceImageDescriptor->ndim=4;
-        this->warpedReferenceImageDescriptor->dim[4]=this->warpedReferenceImageDescriptor->nt=dimt;
-        this->warpedReferenceImageDescriptor->nvox = (size_t)this->warpedReferenceImageDescriptor->nx*
-                                                     this->warpedReferenceImageDescriptor->ny*
-                                                     this->warpedReferenceImageDescriptor->nz*
-                                                     this->warpedReferenceImageDescriptor->nt;
-        this->warpedReferenceImageDescriptor->data=(void *)malloc(this->warpedReferenceImageDescriptor->nvox*
-                                                                  this->warpedReferenceImageDescriptor->nbyper);
-        // Initialise the warped gradient descriptor
-        this->warpedReferenceImageDescriptorGradient = nifti_copy_nim_info(this->floatingImagePointer);
-        this->warpedReferenceImageDescriptorGradient->dim[0]=this->warpedReferenceImageDescriptorGradient->ndim=5;
-        this->warpedReferenceImageDescriptorGradient->dim[4]=this->warpedReferenceImageDescriptorGradient->nt=dimt;
-        this->warpedReferenceImageDescriptorGradient->dim[5]=this->warpedReferenceImageDescriptorGradient->nu=dim;
-        this->warpedReferenceImageDescriptorGradient->nvox = (size_t)this->warpedReferenceImageDescriptorGradient->nx*
-                                                             this->warpedReferenceImageDescriptorGradient->ny*
-                                                             this->warpedReferenceImageDescriptorGradient->nz*
-                                                             this->warpedReferenceImageDescriptorGradient->nt*
-                                                             this->warpedReferenceImageDescriptorGradient->nu;
-        this->warpedReferenceImageDescriptorGradient->data=(void *)malloc(this->warpedReferenceImageDescriptorGradient->nvox*
-                                                                         this->warpedReferenceImageDescriptorGradient->nbyper);
-    }
-
-    for(int i=0;i<referenceImageDescriptor->nt;++i) {
-        this->activeTimePointDescriptor[i]=true;
-    }
-
-#ifndef NDEBUG
-    char text[255];
-    reg_print_msg_debug("reg_mindssc::InitialiseMeasure().");
-    sprintf(text, "Active time point:");
-    for(int i=0; i<this->referenceImageDescriptor->nt; ++i)
-        if(this->activeTimePointDescriptor[i])
-            sprintf(text, "%s %i", text, i);
-    reg_print_msg_debug(text);
 #endif
 }
 /* *************************************************************** */

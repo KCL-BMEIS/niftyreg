@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef _REG_DISCRETE_CONTINUOUS_H
-#define _REG_DISCRETE_CONTINUOUS_H
+#ifndef _reg_discrete_init_H
+#define _reg_discrete_init_H
 
 #include "_reg_measure.h"
 #include "_reg_optimiser.h"
@@ -21,33 +21,25 @@
 #include <queue>
 #include <algorithm>
 
-class reg_discrete_continuous : public InterfaceOptimiser
+class reg_discrete_init
 {
 public:
    /// @brief Constructor
-   reg_discrete_continuous(reg_measure *_measure,
+   reg_discrete_init(reg_measure *_measure,
                            nifti_image *_referenceImage,
                            nifti_image *_controlPointImage,
                            int discrete_radius,
                            int _discrete_increment,
                            float _reg_weight);
    /// @brief Destructor
-   ~reg_discrete_continuous();
+   ~reg_discrete_init();
    void Run();
 
 private:
    void GetDiscretisedMeasure();
+   void GetRegularisedMeasure();
    void getOptimalLabel();
-   void StoreOptimalMeasureTransformation();
-   void ContinuousRegularisation();
-   /// @brief Returns the registration current objective function value
-   double GetObjectiveFunctionValue();
-   /// @bried Compute the cost function gradient
-   void GetObjectiveFunctionGradient();
-   /// @brief The transformation parameters are optimised
-   void UpdateParameters(float);
-   /// @brief Ben TODO
-   void UpdateBestObjFunctionValue();
+   void UpdateTransformation();
 
    reg_measure *measure; ///< Measure of similarity object to use for the data term
    nifti_image* referenceImage; ///< Reference image in which the transformation is parametrised
@@ -64,13 +56,10 @@ private:
    int label_1D_num; ///< Number of discretised values per axis
    int label_nD_num; ///< Total number of discretised values
 
+   float *input_transformation;
    float *discretised_measures; ///< All discretised measures of similarity
+   float *regularised_measures; ///< All combined measures
    int* optimal_label_index; ///< Optimimal label index for each node
-
-   reg_conjugateGradient<float> *optimiser;
-   nifti_image *optimal_measure_transformation; ///< Transformation grid that contains the optimal transformation based on the measure discrete optimisation
-   nifti_image *regularisation_gradient; ///< blablabla
-
 };
 /********************************************************************************************************/
-#endif // _REG_DISCRETE_CONTINUOUS_H
+#endif // _reg_discrete_init_H

@@ -18,6 +18,9 @@
 #include "_reg_globalTrans.h"
 #include "_reg_resampling.h"
 
+#define MIND_TYPE 0
+#define MINDSSC_TYPE 1
+
 /* *************************************************************** */
 /* *************************************************************** */
 /// @brief MIND measure of similarity class
@@ -54,6 +57,8 @@ protected:
    // gradient
    nifti_image *warpedFloatingImageDescriptorGradient;
    nifti_image *warpedReferenceImageDescriptorGradient;
+
+   int mind_type;
 };
 /* *************************************************************** */
 /// @brief MIND measure of similarity class
@@ -62,17 +67,6 @@ class reg_mindssc : public reg_mind
 public:
    /// @brief reg_mind class constructor
    reg_mindssc();
-   /// @brief Initialise the reg_mind object
-   void InitialiseMeasure(nifti_image *refImgPtr,
-                          nifti_image *floImgPtr,
-                          int *maskRefPtr,
-                          nifti_image *warFloImgPtr,
-                          nifti_image *warFloGraPtr,
-                          nifti_image *forVoxBasedGraPtr,
-                          int *maskFloPtr = NULL,
-                          nifti_image *warRefImgPtr = NULL,
-                          nifti_image *warRefGraPtr = NULL,
-                          nifti_image *bckVoxBasedGraPtr = NULL);
    /// @brief Measure class desstructor
    ~reg_mindssc();
 };
