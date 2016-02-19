@@ -37,6 +37,9 @@ target_link_libraries(reg_aladin _reg_aladin)
 add_executable(reg_mrf reg_mrf.cpp)
 target_link_libraries(reg_mrf _reg_f3d)
 #-----------------------------------------------------------------------------
+add_executable(reg_discrete_continuous reg_discrete_continuous.cpp)
+target_link_libraries(reg_discrete_continuous _reg_f3d)
+#-----------------------------------------------------------------------------
 set(MODULE_LIST
   reg_average
   reg_tools

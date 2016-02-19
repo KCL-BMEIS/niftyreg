@@ -153,10 +153,11 @@ void reg_mrf::GetDiscretisedMeasure()
 /*****************************************************/
 void reg_mrf::getOptimalLabel()
 {
-   for(int node=0; node<this->node_number; ++node)
+   for(int node=0; node<this->node_number; ++node) {
       this->optimal_label_index[node]=
          std::min_element(this->regularised_cost+node*this->label_nD_num,this->regularised_cost+(node+1)*this->label_nD_num) -
          (this->regularised_cost+node*this->label_nD_num);
+   }
 }
 /*****************************************************/
 void reg_mrf::UpdateNodePositions()
@@ -167,9 +168,9 @@ void reg_mrf::UpdateNodePositions()
    float *cpPtrZ = &cpPtrY[this->node_number];
 
    size_t voxel=0;
-   for(int z=0; z<controlPointImage->nz; z++) {
-      for(int y=0; y<controlPointImage->ny; y++) {
-         for(int x=0; x<controlPointImage->nx; x++) {
+   for(int z=0; z<this->controlPointImage->nz; z++) {
+      for(int y=0; y<this->controlPointImage->ny; y++) {
+         for(int x=0; x<this->controlPointImage->nx; x++) {
             int optimal_id = this->optimal_label_index[voxel];
             cpPtrX[voxel] += this->discrete_values_mm[0][optimal_id];
             cpPtrY[voxel] += this->discrete_values_mm[1][optimal_id];
@@ -190,13 +191,15 @@ void reg_mrf::Run()
    // Compute the discretised data term values
    this->GetDiscretisedMeasure();
    // Compute the regularisation term
-   this->GetRegularisation();
-//   this->GetRegularisation_l2();
-   // Extract the best label
-//   memcpy(this->regularised_cost, this->discretised_measures, this->node_number*this->label_nD_num*sizeof(float));
-   this->getOptimalLabel();
-   // Update the control point positions
-   this->UpdateNodePositions();
+   //for(int i=0;i<100; ++i){
+       this->GetRegularisation();
+       // this->GetRegularisation_l2();
+       // Extract the best label
+       //memcpy(this->regularised_cost, this->discretised_measures, this->node_number*this->label_nD_num*sizeof(float));
+       this->getOptimalLabel();
+       // Update the control point positions
+       this->UpdateNodePositions();
+   //}
 }
 /*****************************************************/
 /*****************************************************/
@@ -614,20 +617,23 @@ void reg_mrf::GetRegularisation()
       int parent=this->parentsList[current];
 
       // Compute the control point grid coordinate
-      int grid_coord_current[3], residual;
+      int grid_coord_current[3];
       grid_coord_current[2] = current / this->controlPointImage->nx*this->controlPointImage->ny;
-      residual = current - grid_coord_current[2] * this->controlPointImage->nx*this->controlPointImage->ny;
+      int residual = current - grid_coord_current[2] * this->controlPointImage->nx*this->controlPointImage->ny;
       grid_coord_current[1] = residual / this->controlPointImage->nx;
       grid_coord_current[0] = residual - grid_coord_current[1] * this->controlPointImage->nx;
 
-      int grid_coord_parent[3];
-      grid_coord_parent[2] = parent / this->controlPointImage->nx*this->controlPointImage->ny;
-      residual = parent - grid_coord_parent[2] * this->controlPointImage->nx*this->controlPointImage->ny;
-      grid_coord_parent[1] = residual / this->controlPointImage->nx;
-      grid_coord_parent[0] = residual - grid_coord_parent[1] * this->controlPointImage->nx;
       // Compute the regularisation for each label pair
-      float init_position_current[3] = {grid_coord_current[0], grid_coord_current[1], grid_coord_current[2]};
-      float init_position_parent[3] = {grid_coord_parent[0], grid_coord_parent[1], grid_coord_parent[2]};
+      float init_position_current[3] = {
+          node_position_x[current],
+          node_position_y[current],
+          node_position_z[current],
+          };
+      float init_position_parent[3] = {
+          node_position_x[parent],
+          node_position_y[parent],
+          node_position_z[parent],
+          };
       for(int lp=0;lp<this->label_nD_num;lp++){
          node_position_x[parent] = init_position_parent[0] + this->discrete_values_mm[0][lp];
          node_position_y[parent] = init_position_parent[1] + this->discrete_values_mm[1][lp];
@@ -648,7 +654,7 @@ void reg_mrf::GetRegularisation()
       node_position_y[current] = init_position_current[1];
       node_position_z[current] = init_position_current[2];
 
-      // Substract the min value to all cost
+      // Substract the min value to all cost = to not have to big numbers !
       float min1 = *std::min_element(cost_parent, cost_parent+this->label_nD_num);
       for(int l=0;l<this->label_nD_num;l++){
          cost_parent[l] -= min1;
@@ -667,21 +673,23 @@ void reg_mrf::GetRegularisation()
       int parent=this->parentsList[current];
 
       // Compute the control point grid coordinate
-      int grid_coord_current[3], residual;
-      grid_coord_current[2] = current / this->controlPointImage->nx*this->controlPointImage->ny;
-      residual = current - grid_coord_current[2] * this->controlPointImage->nx*this->controlPointImage->ny;
-      grid_coord_current[1] = residual / this->controlPointImage->nx;
-      grid_coord_current[0] = residual - grid_coord_current[1] * this->controlPointImage->nx;
-
       int grid_coord_parent[3];
       grid_coord_parent[2] = parent / this->controlPointImage->nx*this->controlPointImage->ny;
-      residual = parent - grid_coord_parent[2] * this->controlPointImage->nx*this->controlPointImage->ny;
+      int residual = parent - grid_coord_parent[2] * this->controlPointImage->nx*this->controlPointImage->ny;
       grid_coord_parent[1] = residual / this->controlPointImage->nx;
       grid_coord_parent[0] = residual - grid_coord_parent[1] * this->controlPointImage->nx;
 
       // Compute the regularisation for each label pair
-      float init_position_current[3] = {grid_coord_current[0], grid_coord_current[1], grid_coord_current[2]};
-      float init_position_parent[3] = {grid_coord_parent[0], grid_coord_parent[1], grid_coord_parent[2]};
+      float init_position_current[3] = {
+          node_position_x[current],
+          node_position_y[current],
+          node_position_z[current],
+          };
+      float init_position_parent[3] = {
+          node_position_x[parent],
+          node_position_y[parent],
+          node_position_z[parent],
+          };
       for(int lc=0;lc<this->label_nD_num;lc++){
          node_position_x[current] = init_position_current[0] + this->discrete_values_mm[0][lc];
          node_position_y[current] = init_position_current[1] + this->discrete_values_mm[1][lc];
@@ -770,8 +778,8 @@ void reg_mrf::GetRegularisation_l2()
    }
 
    //weight of the regularisation - constant weight
-   float edgew=this->regularisation_weight + std::numeric_limits<float>::epsilon();
-   float edgew1=1.0f/edgew;
+   //float edgew=this->regularisation_weight + std::numeric_limits<float>::epsilon();
+   //float edgew1=1.0f/edgew;
 
    //calculate mst-cost
    for(int i=(this->node_number-1);i>0;i--){ //do for each control point
@@ -780,8 +788,8 @@ void reg_mrf::GetRegularisation_l2()
       //retreive the parent node of the child
       int oparent=this->parentsList[ochild];
       //retreive the weight of the edge between oparent and ochild
-      //float edgew=this->edgeWeight[ochild];
-      //float edgew1=1.0f/edgew;
+      float edgew=this->edgeWeight[ochild];
+      float edgew1=1.0f/edgew;
 
       for(int l=0;l<this->label_nD_num;l++){
          //matrix = discretisedValue (first dimension displacement label, second dim. control point)
@@ -805,8 +813,8 @@ void reg_mrf::GetRegularisation_l2()
       int ochild=this->orderedList[i];
       int oparent=this->parentsList[ochild];
       //retreive the weight of the edge between oparent and ochild
-      //float edgew=this->edgeWeight[ochild];
-      //float edgew1=1.0f/edgew;
+      float edgew=this->edgeWeight[ochild];
+      float edgew1=1.0f/edgew;
 
       for(int l=0;l<this->label_nD_num;l++){
          cost1[l]=(this->regularised_cost[oparent*this->label_nD_num+l]-message[ochild*this->label_nD_num+l]+message[oparent*this->label_nD_num+l])*edgew;

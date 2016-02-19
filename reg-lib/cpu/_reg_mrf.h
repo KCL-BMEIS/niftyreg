@@ -19,6 +19,7 @@
 #include <cmath>
 #include <queue>
 #include <algorithm>
+#include "_reg_maths.h"
 
 struct Edge{
    float weight;
@@ -42,10 +43,11 @@ public:
    /// @brief Destructor
    ~reg_mrf();
    void Run();
+   //4 the tests
+   void GetDiscretisedMeasure();
 
 private:
    void Initialise();
-   void GetDiscretisedMeasure();
    void UpdateNodePositions();
    void GetGraph(float *, int *);
    void GetPrimsMST(float *, int *);

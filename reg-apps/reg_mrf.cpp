@@ -182,6 +182,8 @@ int main(int argc, char **argv)
    reg_io_WriteImageFile(deformationField, "disp.nii.gz");
    reg_io_WriteImageFile(controlPointImage, "cpp.nii.gz");
    reg_io_WriteImageFile(jac_image, "jac.nii.gz");
+   warpedImage->cal_min = floatingImage->cal_min;
+   warpedImage->cal_max = floatingImage->cal_max;
    reg_io_WriteImageFile(warpedImage, outputImageName);
    reg_io_WriteImageFile(MINDSSC_refimg, "mind_ref.nii.gz");
    reg_io_WriteImageFile(MINDSSC_warimg, "mind_war.nii.gz");
