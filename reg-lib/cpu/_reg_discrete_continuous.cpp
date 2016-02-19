@@ -63,14 +63,12 @@ reg_discrete_continuous::reg_discrete_continuous(reg_measure *_measure,
    }
    free(discrete_values_vox);
 
-
    //To store the cost data term - originaly SAD between images.
    this->discretised_measures = (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
 
    //regulatization - optimization
    this->optimal_label_index=(int *)malloc(this->node_number*sizeof(int));
 
-   // Allocate stuff
    ///TODO Ben to complete the comment here
    this->optimal_measure_transformation = nifti_copy_nim_info(this->controlPointImage);
    this->optimal_measure_transformation->data = (void *)malloc(this->optimal_measure_transformation->nvox*
@@ -154,9 +152,11 @@ void reg_discrete_continuous::StoreOptimalMeasureTransformation()
       for(int y=0; y<controlPointImage->ny; y++) {
          for(int x=0; x<controlPointImage->nx; x++) {
             int optimal_id = this->optimal_label_index[voxel];
-            cpPtrX[voxel] += this->discrete_values_mm[0][optimal_id];
-            cpPtrY[voxel] += this->discrete_values_mm[1][optimal_id];
-            cpPtrZ[voxel] += this->discrete_values_mm[2][optimal_id];
+            if(x>0 && y>0 && z>0 && x<controlPointImage->nx-1 && y<controlPointImage->ny-1 && z<controlPointImage->nz-1){
+               cpPtrX[voxel] += this->discrete_values_mm[0][optimal_id];
+               cpPtrY[voxel] += this->discrete_values_mm[1][optimal_id];
+               cpPtrZ[voxel] += this->discrete_values_mm[2][optimal_id];
+            }
             optimalPtrX[voxel] = cpPtrX[voxel];
             optimalPtrY[voxel] = cpPtrY[voxel];
             optimalPtrZ[voxel] = cpPtrZ[voxel];
@@ -164,6 +164,10 @@ void reg_discrete_continuous::StoreOptimalMeasureTransformation()
          }
       }
    }
+
+   nifti_set_filenames(this->controlPointImage, "haaaa.nii", 0, 0);
+   nifti_image_write(this->controlPointImage);
+
 #ifndef NDEBUG
    reg_print_msg_debug("reg_discrete_continuous::StoreOptimalMeasureTransformation done");
 #endif
@@ -178,7 +182,6 @@ double reg_discrete_continuous::GetObjectiveFunctionValue()
 //   double linear_elasticity=reg_spline_approxLinearEnergy(this->controlPointImage); ///TODO. needs to account the interpolant spline here
    // Compute the L2 norm between the measure based control point grid and the current transformation
    double l2_norm_between_images=0.f;
-
    float *cpPtrX = static_cast<float *>(this->controlPointImage->data);
    float *cpPtrY = &cpPtrX[this->node_number];
    float *cpPtrZ = &cpPtrY[this->node_number];
@@ -202,17 +205,29 @@ double reg_discrete_continuous::GetObjectiveFunctionValue()
          }
       }
    }
-   printf("%g\n", bending_energy - l2_norm_between_images/this->node_number);
-   return -bending_energy - l2_norm_between_images/this->node_number;
+
+//   printf("L2 %g\n", - l2_norm_between_images/this->node_number);
+//   return - l2_norm_between_images/this->node_number;
+
+//   printf("BE %g\n", - bending_energy );
+//   return - bending_energy ;
+
+//   printf("LE %g\n", - linear_elasticity );
+//   return - linear_elasticity ;
+
+//   printf("BE LE %g\n", - bending_energy - 10.f * linear_elasticity );
+//   return - bending_energy - 10.f * linear_elasticity ;
+
+//   printf("ALL %g\n", - bending_energy - 10.f * linear_elasticity - l2_norm_between_images/this->node_number);
+   return -bending_energy - 0.0001f * l2_norm_between_images/this->node_number;
 }
 /*****************************************************/
 void reg_discrete_continuous::GetObjectiveFunctionGradient()
 {
    // Empty the gradient image
-   memset(this->regularisation_gradient->data,
-          0,
-          this->regularisation_gradient->nvox*
-          this->regularisation_gradient->nbyper);
+   reg_tools_multiplyValueToImage(this->regularisation_gradient,
+                                  this->regularisation_gradient,
+                                  0.f);
    // Compute the bending energy gradient
    reg_spline_approxBendingEnergyGradient(this->controlPointImage,
                                           this->regularisation_gradient,
@@ -220,7 +235,7 @@ void reg_discrete_continuous::GetObjectiveFunctionGradient()
    // Compute the linear elasticity gradient
 //   reg_spline_approxLinearEnergyGradient(this->controlPointImage,
 //                                         this->regularisation_gradient,
-//                                         this->regularisation_weight); ///TODO. needs to account for interpolant spline here
+//                                         10.f * this->regularisation_weight); ///TODO. needs to account for interpolant spline here
    // Compute the gradient of the L2 norm
    float *cpPtrX = static_cast<float *>(this->controlPointImage->data);
    float *cpPtrY = &cpPtrX[this->node_number];
@@ -241,9 +256,9 @@ void reg_discrete_continuous::GetObjectiveFunctionGradient()
             float val_mea_x = optimalPtrX[voxel];
             float val_mea_y = optimalPtrY[voxel];
             float val_mea_z = optimalPtrZ[voxel];
-            gradPtrX[voxel] += this->regularisation_weight * 2.f * (val_cpp_x - val_mea_x);
-            gradPtrY[voxel] += this->regularisation_weight * 2.f * (val_cpp_y - val_mea_y);
-            gradPtrZ[voxel] += this->regularisation_weight * 2.f * (val_cpp_z - val_mea_z);
+            gradPtrX[voxel] += 0.0001 * this->regularisation_weight * 2.f * (val_cpp_x - val_mea_x);
+            gradPtrY[voxel] += 0.0001 * this->regularisation_weight * 2.f * (val_cpp_y - val_mea_y);
+            gradPtrZ[voxel] += 0.0001 * this->regularisation_weight * 2.f * (val_cpp_z - val_mea_z);
             ++voxel;
          }
       }
@@ -273,24 +288,30 @@ void reg_discrete_continuous::UpdateBestObjFunctionValue()
 /*****************************************************/
 void reg_discrete_continuous::ContinuousRegularisation()
 {
-   // Create an optimiser
+   // Reset the optimiser iteration number
    this->optimiser->Initialise(this->node_number*this->image_dim,
                                this->image_dim,
                                true,
                                true,
                                true,
-                               100,
+                               1000,
                                0,
                                this,
                                static_cast<float *>(this->controlPointImage->data),
                                static_cast<float *>(this->regularisation_gradient->data));
+
+
+   printf("Starting value = %g (SSD = %g)\n",
+          this->optimiser->GetBestObjFunctionValue(),
+          this->measure->GetSimilarityMeasureValue());
+
    // Set up variables used during the gradient descent
    // Set the initial step size for the gradient ascent
    float maxStepSize = this->referenceImage->dx>this->referenceImage->dy?this->referenceImage->dx:this->referenceImage->dy;
    if(this->image_dim)
       maxStepSize = (this->referenceImage->dz>maxStepSize)?this->referenceImage->dz:maxStepSize;
    float currentSize = maxStepSize;
-   float smallestSize = currentSize / 1000.f;
+   float smallestSize = currentSize / 100.f;
    // Optimise the current cost function
    while(true)
    {
@@ -349,6 +370,10 @@ void reg_discrete_continuous::ContinuousRegularisation()
             *gradPtrY++ /= maxGradValue;
          }
       }
+      if(maxGradValue==0){
+         reg_print_msg_warn("The gradient is empty");
+         break;
+      }
 
       // Initialise the line search initial step size
       currentSize=currentSize>maxStepSize?maxStepSize:currentSize;
@@ -357,6 +382,10 @@ void reg_discrete_continuous::ContinuousRegularisation()
       optimiser->Optimise(maxStepSize,smallestSize,currentSize);
 
    } // while
+
+   printf("Iteration number = %lu : Value = %g\n",
+          optimiser->GetCurrentIterationNumber(),
+          this->optimiser->GetBestObjFunctionValue());
 
 }
 /*****************************************************/

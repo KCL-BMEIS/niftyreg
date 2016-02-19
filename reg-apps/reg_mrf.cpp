@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "_reg_ReadWriteImage.h"
 #include "_reg_localTrans.h"
+#include "_reg_localTrans_jac.h"
 #include "_reg_ssd.h"
 #include <numeric>
 
@@ -94,7 +95,7 @@ int main(int argc, char **argv)
                                   deformationField,
                                   mask,
                                   false, //composition
-                                  true // bspline
+                                  false // bspline
                                   );
 
    // create a warped image
@@ -128,28 +129,22 @@ int main(int argc, char **argv)
 
    reg_ssd* ssdMeasure = new reg_ssd();
 
-//   for(int i=0;i<MINDSSC_refimg->nt;++i)
-//      ssdMeasure->SetActiveTimepoint(i);
-//   ssdMeasure->InitialiseMeasure(MINDSSC_refimg,
-//                                 MINDSSC_warimg,
-//                                 mask,
-//                                 MINDSSC_warimg,
-//                                 NULL,
-//                                 NULL);
-
-   for(int i=0;i<1;++i)
+   for(int i=0;i<MINDSSC_refimg->nt;++i)
       ssdMeasure->SetActiveTimepoint(i);
-   ssdMeasure->InitialiseMeasure(referenceImage,
-                                 warpedImage,
+   ssdMeasure->InitialiseMeasure(MINDSSC_refimg,
+                                 MINDSSC_warimg,
                                  mask,
-                                 warpedImage,
-                                 NULL,NULL);
-//   reg_mrf* reg_mrfObject = new reg_mrf(ssdMeasure,
-//                                        referenceImage,
-//                                        controlPointImage,
-//                                        15,
-//                                        5,
-//                                        regularisationWeight);
+                                 MINDSSC_warimg,
+                                 NULL,
+                                 NULL);
+
+//   for(int i=0;i<1;++i)
+//      ssdMeasure->SetActiveTimepoint(i);
+//   ssdMeasure->InitialiseMeasure(referenceImage,
+//                                 warpedImage,
+//                                 mask,
+//                                 warpedImage,
+//                                 NULL,NULL);
 
    reg_discrete_continuous* reg_mrfObject = new reg_discrete_continuous(ssdMeasure,
                                                                         referenceImage,
@@ -158,34 +153,38 @@ int main(int argc, char **argv)
                                                                         5,
                                                                         regularisationWeight);
 
-   reg_mrfObject->Run();
+//   for(int i=0;i<5;++i){
+      reg_mrfObject->Run();
+      reg_spline_getDeformationField(controlPointImage,
+                                     deformationField,
+                                     mask,
+                                     false, //composition
+                                     false // bspline
+                                     );
+      reg_resampleImage(floatingImage,
+                        warpedImage,
+                        deformationField,
+                        mask,
+                        1,
+                        0.f);
+      GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask);
+//   }
 
-   reg_io_WriteImageFile(controlPointImage, "out_cpp.nii.gz");
-
-   reg_spline_getDeformationField(controlPointImage,
-                                  deformationField,
-                                  mask,
-                                  false, //composition
-                                  true // bspline
-                                  );
-   reg_resampleImage(floatingImage,
-                     warpedImage,
-                     deformationField,
-                     mask,
-                     1,
-                     0.f);
-
-
-   reg_io_WriteImageFile(warpedImage, outputImageName);
+   nifti_image *jac_image = nifti_copy_nim_info(referenceImage);
+   jac_image->data=(void *)calloc(jac_image->nvox,jac_image->nbyper);
+   reg_spline_GetJacobianMap(controlPointImage, jac_image);
 
    reg_getDisplacementFromDeformation(deformationField);
    deformationField->dim[4] = deformationField->nt = deformationField->nu;
    deformationField->dim[5] = deformationField->nu = 1;
    deformationField->dim[0] = deformationField->ndim = 4;
-   //DEBUG
-   //reg_io_WriteImageFile(deformationField, "displacement.nii.gz");
-   //DEBUG
 
+   reg_io_WriteImageFile(deformationField, "disp.nii.gz");
+   reg_io_WriteImageFile(controlPointImage, "cpp.nii.gz");
+   reg_io_WriteImageFile(jac_image, "jac.nii.gz");
+   reg_io_WriteImageFile(warpedImage, outputImageName);
+   reg_io_WriteImageFile(MINDSSC_refimg, "mind_ref.nii.gz");
+   reg_io_WriteImageFile(MINDSSC_warimg, "mind_war.nii.gz");
 
    delete reg_mrfObject;
    free(mask);
@@ -196,6 +195,7 @@ int main(int argc, char **argv)
    nifti_image_free(warpedImage);
    nifti_image_free(controlPointImage);
    nifti_image_free(deformationField);
+   nifti_image_free(jac_image);
 
    time_t end;
    time(&end);

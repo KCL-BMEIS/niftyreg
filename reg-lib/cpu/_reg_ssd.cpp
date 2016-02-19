@@ -324,7 +324,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                if(refValue==refValue && warValue==warValue)
                {
 #ifdef TEMP_USE_SAD
-                  common = refValue>warValue?1.f:-1.f;
+                  common = refValue>warValue?-1.f:1.f;
                   common *= (refValue - warValue) / float(referenceImage->nt);
 #else
                   common = -2.0 * (refValue - warValue) / float(referenceImage->nt);
@@ -487,12 +487,12 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
    DTYPE *warImgPtr = static_cast<DTYPE *>(warImage->data);
 
    // Loop over all control points
-   for(cpz=0; cpz<controlPointGridImage->nz; ++cpz){
-      currentControlPoint=cpz*controlPointGridImage->nx*controlPointGridImage->ny;
+   for(cpz=1; cpz<controlPointGridImage->nz-1; ++cpz){
       gridVox[2] = cpz;
-      for(cpy=0; cpy<controlPointGridImage->ny; ++cpy){
+      for(cpy=1; cpy<controlPointGridImage->ny-1; ++cpy){
          gridVox[1] = cpy;
-         for(cpx=0; cpx<controlPointGridImage->nx; ++cpx){
+         currentControlPoint=(cpz*controlPointGridImage->ny+cpy)*controlPointGridImage->nx+1;
+         for(cpx=1; cpx<controlPointGridImage->nx-1; ++cpx){
             gridVox[0] = cpx;
             // Compute the corresponding image voxel position
             reg_mat44_mul(&grid2img_vox, gridVox, imageVox);
@@ -511,7 +511,8 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                            for(t=0; t<refImage->nt; ++t){
                               voxIndex_t = t*voxelNumber + voxIndex;
                               refBlockValue[blockIndex] = refImgPtr[voxIndex_t];
-                              if(refBlockValue[blockIndex]!=refBlockValue[blockIndex]) refBlockValue[blockIndex]=0.f;
+                              if(refBlockValue[blockIndex]!=refBlockValue[blockIndex])
+                                 refBlockValue[blockIndex]=0.f;
                               blockIndex++;
                            } //t
                         }
@@ -555,19 +556,19 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                                  }
                               }
                               else{
-                                 for(t=0; t<warImage->nt; ++t)
+                                 for(t=0; t<warImage->nt; ++t){
 #ifdef TEMP_USE_SAD
                                     currentValue += fabs(0.f-refBlockValue[blockIndex]);
 #else
                                     currentValue += reg_pow2(0.f-refBlockValue[blockIndex]);
 #endif
-                                 blockIndex++;
+                                    blockIndex++;
+                                 }
                               }
                            } // x
                         } // y
                      } // z
-                     currentValue /= static_cast<float>(voxelBlockNumber);
-                     discretisedValue[discretisedIndex + currentControlPoint * nD_discrete_valueNumber]=currentValue*costWeight;
+                     discretisedValue[currentControlPoint * nD_discrete_valueNumber + discretisedIndex]=currentValue*costWeight;
                      ++discretisedIndex;
                   } // a
                } // b
