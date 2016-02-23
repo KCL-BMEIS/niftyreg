@@ -2700,128 +2700,128 @@ void BilinearImageGradient(nifti_image *floatingImage,
                            float paddingValue)
 {
 #ifdef _WIN32
-   long index;
-   long referenceVoxelNumber = (long)warImgGradient->nx*warImgGradient->ny;
-   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
+    long index;
+    long referenceVoxelNumber = (long)warImgGradient->nx*warImgGradient->ny;
+    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
 #else
-   size_t index;
-   size_t referenceVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
-   size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
+    size_t index;
+    size_t referenceVoxelNumber = (size_t)warImgGradient->nx*warImgGradient->ny;
+    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
 #endif
 
-   FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   GradientTYPE *warImgGradientPtr = static_cast<GradientTYPE *>(warImgGradient->data);
-   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
+    FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
+    GradientTYPE *warImgGradientPtr = static_cast<GradientTYPE *>(warImgGradient->data);
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
 
-   int *maskPtr = &mask[0];
+    int *maskPtr = &mask[0];
 
-   mat44 floatingIJKMatrix;
-   if(floatingImage->sform_code>0)
-      floatingIJKMatrix=floatingImage->sto_ijk;
-   else floatingIJKMatrix=floatingImage->qto_ijk;
+    mat44 floatingIJKMatrix;
+    if(floatingImage->sform_code>0)
+        floatingIJKMatrix=floatingImage->sto_ijk;
+    else floatingIJKMatrix=floatingImage->qto_ijk;
 
-   // Iteration over the different volume along the 4th axis
-   for(int t=0; t<floatingImage->nt; t++)
-   {
+    // Iteration over the different volume along the 4th axis
+    for(int t=0; t<warImgGradient->nt; t++)
+    {
 #ifndef NDEBUG
-      char text[255];
-      sprintf(text, "2D linear gradient computation of volume number %i",t);
-      reg_print_msg_debug(text);
+        char text[255];
+        sprintf(text, "2D linear gradient computation of volume number %i",t);
+        reg_print_msg_debug(text);
 #endif
-      GradientTYPE *warpedGradientPtrX = &warImgGradientPtr[t*referenceVoxelNumber];
-      GradientTYPE *warpedGradientPtrY = &warImgGradientPtr[(floatingImage->nt+t)*referenceVoxelNumber];
+        GradientTYPE *warpedGradientPtrX = &warImgGradientPtr[t*referenceVoxelNumber];
+        GradientTYPE *warpedGradientPtrY = &warImgGradientPtr[(warImgGradient->nt+t)*referenceVoxelNumber];
 
-      FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
+        FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
-      FieldTYPE position[3], xBasis[2], yBasis[2], relative, world[2], grad[2];
-      FieldTYPE deriv[2];
-      deriv[0]=-1;
-      deriv[1]=1;
-      FieldTYPE coeff, xTempNewValue, yTempNewValue;
+        FieldTYPE position[3], xBasis[2], yBasis[2], relative, world[2], grad[2];
+        FieldTYPE deriv[2];
+        deriv[0]=-1;
+        deriv[1]=1;
+        FieldTYPE coeff, xTempNewValue, yTempNewValue;
 
-      int previous[3], a, b, X, Y;
-      FloatingTYPE *xyPointer;
+        int previous[3], a, b, X, Y;
+        FloatingTYPE *xyPointer;
 
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   private(index, world, position, previous, xBasis, yBasis, relative, grad, coeff, \
-   a, b, X, Y, xyPointer, xTempNewValue, yTempNewValue) \
-   shared(floatingIntensity, referenceVoxelNumber, floatingVoxelNumber, deriv, \
-   deformationFieldPtrX, deformationFieldPtrY, maskPtr, paddingValue, \
-   floatingIJKMatrix, floatingImage, warpedGradientPtrX, warpedGradientPtrY)
+    private(index, world, position, previous, xBasis, yBasis, relative, grad, coeff, \
+    a, b, X, Y, xyPointer, xTempNewValue, yTempNewValue) \
+    shared(floatingIntensity, referenceVoxelNumber, floatingVoxelNumber, deriv, \
+    deformationFieldPtrX, deformationFieldPtrY, maskPtr, paddingValue, \
+    floatingIJKMatrix, floatingImage, warpedGradientPtrX, warpedGradientPtrY)
 #endif // _OPENMP
-      for(index=0; index<referenceVoxelNumber; index++)
-      {
+        for(index=0; index<referenceVoxelNumber; index++)
+        {
 
-         grad[0]=0.0;
-         grad[1]=0.0;
+            grad[0]=0.0;
+            grad[1]=0.0;
 
-         if(maskPtr[index]>-1)
-         {
-            world[0]=(FieldTYPE) deformationFieldPtrX[index];
-            world[1]=(FieldTYPE) deformationFieldPtrY[index];
-
-            /* real -> voxel; floating space */
-            position[0] = world[0]*floatingIJKMatrix.m[0][0] + world[1]*floatingIJKMatrix.m[0][1] +
-                  floatingIJKMatrix.m[0][3];
-            position[1] = world[0]*floatingIJKMatrix.m[1][0] + world[1]*floatingIJKMatrix.m[1][1] +
-                  floatingIJKMatrix.m[1][3];
-
-            previous[0] = static_cast<int>(reg_floor(position[0]));
-            previous[1] = static_cast<int>(reg_floor(position[1]));
-            // basis values along the x axis
-            relative=position[0]-(FieldTYPE)previous[0];
-            relative=relative>0?relative:0;
-            xBasis[0]= (FieldTYPE)(1.0-relative);
-            xBasis[1]= relative;
-            // basis values along the y axis
-            relative=position[1]-(FieldTYPE)previous[1];
-            relative=relative>0?relative:0;
-            yBasis[0]= (FieldTYPE)(1.0-relative);
-            yBasis[1]= relative;
-
-            for(b=0; b<2; b++)
+            if(maskPtr[index]>-1)
             {
-               Y= previous[1]+b;
-               if(Y>-1 && Y<floatingImage->ny)
-               {
-                  xyPointer = &floatingIntensity[Y*floatingImage->nx+previous[0]];
-                  xTempNewValue=0.0;
-                  yTempNewValue=0.0;
-                  for(a=0; a<2; a++)
-                  {
-                     X= previous[0]+a;
-                     if(X>-1 && X<floatingImage->nx)
-                     {
-                        coeff = *xyPointer;
-                        xTempNewValue +=  coeff * deriv[a];
-                        yTempNewValue +=  coeff * xBasis[a];
-                     }
-                     else
-                     {
-                        xTempNewValue +=  paddingValue * deriv[a];
-                        yTempNewValue +=  paddingValue * xBasis[a];
-                     }
-                     xyPointer++;
-                  }
-                  grad[0] += xTempNewValue * yBasis[b];
-                  grad[1] += yTempNewValue * deriv[b];
-               }
-               else
-               {
-                  grad[0] += paddingValue * yBasis[b];
-                  grad[1] += paddingValue * deriv[b];
-               }
-            }
-            if(grad[0]!=grad[0]) grad[0]=0;
-            if(grad[1]!=grad[1]) grad[1]=0;
-         }// mask
+                world[0]=(FieldTYPE) deformationFieldPtrX[index];
+                world[1]=(FieldTYPE) deformationFieldPtrY[index];
 
-         warpedGradientPtrX[index] = (GradientTYPE)grad[0];
-         warpedGradientPtrY[index] = (GradientTYPE)grad[1];
-      }
-   }
+                /* real -> voxel; floating space */
+                position[0] = world[0]*floatingIJKMatrix.m[0][0] + world[1]*floatingIJKMatrix.m[0][1] +
+                        floatingIJKMatrix.m[0][3];
+                position[1] = world[0]*floatingIJKMatrix.m[1][0] + world[1]*floatingIJKMatrix.m[1][1] +
+                        floatingIJKMatrix.m[1][3];
+
+                previous[0] = static_cast<int>(reg_floor(position[0]));
+                previous[1] = static_cast<int>(reg_floor(position[1]));
+                // basis values along the x axis
+                relative=position[0]-(FieldTYPE)previous[0];
+                relative=relative>0?relative:0;
+                xBasis[0]= (FieldTYPE)(1.0-relative);
+                xBasis[1]= relative;
+                // basis values along the y axis
+                relative=position[1]-(FieldTYPE)previous[1];
+                relative=relative>0?relative:0;
+                yBasis[0]= (FieldTYPE)(1.0-relative);
+                yBasis[1]= relative;
+
+                for(b=0; b<2; b++)
+                {
+                    Y= previous[1]+b;
+                    if(Y>-1 && Y<floatingImage->ny)
+                    {
+                        xyPointer = &floatingIntensity[Y*floatingImage->nx+previous[0]];
+                        xTempNewValue=0.0;
+                        yTempNewValue=0.0;
+                        for(a=0; a<2; a++)
+                        {
+                            X= previous[0]+a;
+                            if(X>-1 && X<floatingImage->nx)
+                            {
+                                coeff = *xyPointer;
+                                xTempNewValue +=  coeff * deriv[a];
+                                yTempNewValue +=  coeff * xBasis[a];
+                            }
+                            else
+                            {
+                                xTempNewValue +=  paddingValue * deriv[a];
+                                yTempNewValue +=  paddingValue * xBasis[a];
+                            }
+                            xyPointer++;
+                        }
+                        grad[0] += xTempNewValue * yBasis[b];
+                        grad[1] += yTempNewValue * deriv[b];
+                    }
+                    else
+                    {
+                        grad[0] += paddingValue * yBasis[b];
+                        grad[1] += paddingValue * deriv[b];
+                    }
+                }
+                if(grad[0]!=grad[0]) grad[0]=0;
+                if(grad[1]!=grad[1]) grad[1]=0;
+            }// mask
+
+            warpedGradientPtrX[index] = (GradientTYPE)grad[0];
+            warpedGradientPtrY[index] = (GradientTYPE)grad[1];
+        }
+    }
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
