@@ -3,16 +3,13 @@ add_executable(reg_average reg_average.cpp)
 target_link_libraries(reg_average _reg_resampling _reg_globalTrans _reg_localTrans _reg_maths _reg_tools _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 add_executable(reg_tools reg_tools.cpp)
-target_link_libraries(reg_tools _reg_blockMatching _reg_resampling _reg_maths _reg_tools _reg_ReadWriteImage)
+target_link_libraries(reg_tools _reg_measure _reg_blockMatching _reg_resampling _reg_maths _reg_tools _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 add_executable(reg_resample reg_resample.cpp)
 target_link_libraries(reg_resample _reg_resampling _reg_localTrans _reg_tools _reg_globalTrans _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 add_executable(reg_measure reg_measure.cpp)
 target_link_libraries(reg_measure _reg_resampling _reg_tools _reg_measure _reg_ReadWriteImage)
-#-----------------------------------------------------------------------------
-#add_executable(reg_ppcnr reg_ppcnr.cpp)
-#target_link_libraries(reg_ppcnr _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 add_executable(reg_transform reg_transform.cpp)
 target_link_libraries(reg_transform _reg_resampling _reg_localTrans _reg_tools _reg_globalTrans _reg_maths _reg_ReadWriteImage)
@@ -68,4 +65,7 @@ endforeach(MODULE_NAME)
 #-----------------------------------------------------------------------------
 install(PROGRAMS groupwise_niftyreg_params.sh DESTINATION bin COMPONENT Runtime)
 install(PROGRAMS groupwise_niftyreg_run.sh DESTINATION bin COMPONENT Runtime)
+#-----------------------------------------------------------------------------
+#add_executable(reg_ppcnr reg_ppcnr.cpp)
+#target_link_libraries(reg_ppcnr _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------

@@ -25,7 +25,7 @@ double reg_spline_approxBendingEnergyValue2D(nifti_image *splineControlPoint)
 
    // get the constant basis values
    DTYPE basisXX[9], basisYY[9], basisXY[9];
-   set_second_order_basis_values(basisXX, basisYY, basisXY);
+   set_second_order_bspline_basis_values(basisXX, basisYY, basisXY);
 
    double constraintValue=0.0;
 
@@ -88,7 +88,7 @@ double reg_spline_approxBendingEnergyValue3D(nifti_image *splineControlPoint)
 
    // get the constant basis values
    DTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
-   set_second_order_basis_values(basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ);
+   set_second_order_bspline_basis_values(basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ);
 
    double constraintValue=0.0;
 
@@ -210,7 +210,7 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
 
    // get the constant basis values
    DTYPE basisXX[9], basisYY[9], basisXY[9];
-   set_second_order_basis_values(basisXX, basisYY, basisXY);
+   set_second_order_bspline_basis_values(basisXX, basisYY, basisXY);
 
    DTYPE splineCoeffX;
    DTYPE splineCoeffY;
@@ -220,6 +220,8 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
    DTYPE *derivativeValues = (DTYPE *)calloc(6*nodeNumber, sizeof(DTYPE));
    DTYPE *derivativeValuesPtr;
 
+   reg_getDisplacementFromDeformation(splineControlPoint);
+
    // Compute the bending energy values everywhere but at the boundary
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -228,10 +230,10 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
    private(a, b, i, index, x, y, derivativeValuesPtr, splineCoeffX, splineCoeffY, \
    XX_x, YY_x, XY_x, XX_y, YY_y, XY_y)
 #endif
-   for(y=1; y<splineControlPoint->ny-1; y++)
+   for(y=0; y<splineControlPoint->ny; y++)
    {
-      derivativeValuesPtr = &derivativeValues[6*(y*splineControlPoint->nx+1)];
-      for(x=1; x<splineControlPoint->nx-1; x++)
+      derivativeValuesPtr = &derivativeValues[6*y*splineControlPoint->nx];
+      for(x=0; x<splineControlPoint->nx; x++)
       {
          XX_x=0.0, YY_x=0.0, XY_x=0.0;
          XX_y=0.0, YY_y=0.0, XY_y=0.0;
@@ -239,16 +241,19 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
          i=0;
          for(b=-1; b<2; b++){
             for(a=-1; a<2; a++){
-               index = (y+b)*splineControlPoint->nx+x+a;
-               splineCoeffX = splinePtrX[index];
-               splineCoeffY = splinePtrY[index];
-               XX_x += basisXX[i]*splineCoeffX;
-               YY_x += basisYY[i]*splineCoeffX;
-               XY_x += basisXY[i]*splineCoeffX;
+               if(-1<(x+a) && -1<(y+b) && (x+a)<splineControlPoint->nx && (y+b)<splineControlPoint->ny)
+               {
+                  index = (y+b)*splineControlPoint->nx+x+a;
+                  splineCoeffX = splinePtrX[index];
+                  splineCoeffY = splinePtrY[index];
+                  XX_x += basisXX[i]*splineCoeffX;
+                  YY_x += basisYY[i]*splineCoeffX;
+                  XY_x += basisXY[i]*splineCoeffX;
 
-               XX_y += basisXX[i]*splineCoeffY;
-               YY_y += basisYY[i]*splineCoeffY;
-               XY_y += basisXY[i]*splineCoeffY;
+                  XX_y += basisXX[i]*splineCoeffY;
+                  YY_y += basisYY[i]*splineCoeffY;
+                  XY_y += basisXY[i]*splineCoeffY;
+               }
                ++i;
             }
          }
@@ -303,6 +308,7 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
          index++;
       }
    }
+   reg_getDeformationFromDisplacement(splineControlPoint);
    free(derivativeValues);
 }
 /* *************************************************************** */
@@ -321,7 +327,7 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
 
    // get the constant basis values
    DTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
-   set_second_order_basis_values(basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ);
+   set_second_order_bspline_basis_values(basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ);
 
    DTYPE splineCoeffX;
    DTYPE splineCoeffY;
@@ -333,6 +339,8 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
    DTYPE *derivativeValues = (DTYPE *)calloc(18*nodeNumber, sizeof(DTYPE));
    DTYPE *derivativeValuesPtr;
 
+   reg_getDisplacementFromDeformation(splineControlPoint);
+
    // Compute the bending energy values everywhere but at the boundary
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -342,12 +350,12 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
    splineCoeffZ, XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x, XX_y, YY_y, \
    ZZ_y, XY_y, YZ_y, XZ_y, XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z)
 #endif
-   for(z=1; z<splineControlPoint->nz-1; z++)
+   for(z=0; z<splineControlPoint->nz; z++)
    {
-      for(y=1; y<splineControlPoint->ny-1; y++)
+      derivativeValuesPtr = &derivativeValues[18*z*splineControlPoint->ny*splineControlPoint->nx];
+      for(y=0; y<splineControlPoint->ny; y++)
       {
-         derivativeValuesPtr = &derivativeValues[18*((z*splineControlPoint->ny+y)*splineControlPoint->nx+1)];
-         for(x=1; x<splineControlPoint->nx-1; x++)
+         for(x=0; x<splineControlPoint->nx; x++)
          {
             XX_x=0.0, YY_x=0.0, ZZ_x=0.0;
             XY_x=0.0, YZ_x=0.0, XZ_x=0.0;
@@ -360,30 +368,33 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
             for(c=-1; c<2; c++){
                for(b=-1; b<2; b++){
                   for(a=-1; a<2; a++){
-                     index = ((z+c)*splineControlPoint->ny+y+b)*splineControlPoint->nx+x+a;
-                     splineCoeffX = splinePtrX[index];
-                     splineCoeffY = splinePtrY[index];
-                     splineCoeffZ = splinePtrZ[index];
-                     XX_x += basisXX[i]*splineCoeffX;
-                     YY_x += basisYY[i]*splineCoeffX;
-                     ZZ_x += basisZZ[i]*splineCoeffX;
-                     XY_x += basisXY[i]*splineCoeffX;
-                     YZ_x += basisYZ[i]*splineCoeffX;
-                     XZ_x += basisXZ[i]*splineCoeffX;
+                     if(-1<(x+a) && -1<(y+b) && -1<(z+c) && (x+a)<splineControlPoint->nx && (y+b)<splineControlPoint->ny && (z+c)<splineControlPoint->nz)
+                     {
+                        index = ((z+c)*splineControlPoint->ny+y+b)*splineControlPoint->nx+x+a;
+                        splineCoeffX = splinePtrX[index];
+                        splineCoeffY = splinePtrY[index];
+                        splineCoeffZ = splinePtrZ[index];
+                        XX_x += basisXX[i]*splineCoeffX;
+                        YY_x += basisYY[i]*splineCoeffX;
+                        ZZ_x += basisZZ[i]*splineCoeffX;
+                        XY_x += basisXY[i]*splineCoeffX;
+                        YZ_x += basisYZ[i]*splineCoeffX;
+                        XZ_x += basisXZ[i]*splineCoeffX;
 
-                     XX_y += basisXX[i]*splineCoeffY;
-                     YY_y += basisYY[i]*splineCoeffY;
-                     ZZ_y += basisZZ[i]*splineCoeffY;
-                     XY_y += basisXY[i]*splineCoeffY;
-                     YZ_y += basisYZ[i]*splineCoeffY;
-                     XZ_y += basisXZ[i]*splineCoeffY;
+                        XX_y += basisXX[i]*splineCoeffY;
+                        YY_y += basisYY[i]*splineCoeffY;
+                        ZZ_y += basisZZ[i]*splineCoeffY;
+                        XY_y += basisXY[i]*splineCoeffY;
+                        YZ_y += basisYZ[i]*splineCoeffY;
+                        XZ_y += basisXZ[i]*splineCoeffY;
 
-                     XX_z += basisXX[i]*splineCoeffZ;
-                     YY_z += basisYY[i]*splineCoeffZ;
-                     ZZ_z += basisZZ[i]*splineCoeffZ;
-                     XY_z += basisXY[i]*splineCoeffZ;
-                     YZ_z += basisYZ[i]*splineCoeffZ;
-                     XZ_z += basisXZ[i]*splineCoeffZ;
+                        XX_z += basisXX[i]*splineCoeffZ;
+                        YY_z += basisYY[i]*splineCoeffZ;
+                        ZZ_z += basisZZ[i]*splineCoeffZ;
+                        XY_z += basisXY[i]*splineCoeffZ;
+                        YZ_z += basisYZ[i]*splineCoeffZ;
+                        XZ_z += basisXZ[i]*splineCoeffZ;
+                     }
                      ++i;
                   }
                }
@@ -476,6 +487,7 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
       }
    }
    free(derivativeValues);
+   reg_getDeformationFromDisplacement(splineControlPoint);
 }
 /* *************************************************************** */
 extern "C++"

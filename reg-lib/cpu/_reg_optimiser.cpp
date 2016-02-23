@@ -299,11 +299,15 @@ void reg_conjugateGradient<T>::Initialise(size_t nvox,
                                 gradData_b
                                );
    this->firstcall=true;
+   if(this->array1!=NULL) free(this->array1);
+   if(this->array2!=NULL) free(this->array2);
    this->array1=(T *)malloc(this->dofNumber*sizeof(T));
    this->array2=(T *)malloc(this->dofNumber*sizeof(T));
 
    if(cppData_b!=NULL && gradData_b!=NULL && nvox_b>0)
    {
+      if(this->array1_b!=NULL) free(this->array1_b);
+      if(this->array2_b!=NULL) free(this->array2_b);
       this->array1_b=(T *)malloc(this->dofNumber_b*sizeof(T));
       this->array2_b=(T *)malloc(this->dofNumber_b*sizeof(T));
    }

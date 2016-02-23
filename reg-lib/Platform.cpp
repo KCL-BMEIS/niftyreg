@@ -45,6 +45,11 @@ std::string Platform::getName()
     return this->platformName;
 }
 /* *************************************************************** */
+unsigned Platform::getGpuIdx()
+{
+    return this->gpuIdx;
+}
+/* *************************************************************** */
 void Platform::setGpuIdx(unsigned gpuIdxIn)
 {
     if(this->platformCode == NR_PLATFORM_CPU)
@@ -80,6 +85,14 @@ void Platform::setGpuIdx(unsigned gpuIdxIn)
         }
 #endif
 }
+/* *************************************************************** */
+int Platform::getPlatformCode() {
+    return this->platformCode;
+}
+/* *************************************************************** */
+//void Platform::setPlatformCode(const int platformCodeIn) {
+//    this->platformCode = platformCodeIn;
+//}
 /* *************************************************************** */
 Platform::~Platform()
 {

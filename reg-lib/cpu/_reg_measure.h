@@ -36,13 +36,18 @@ public:
       this->warpedFloatingImagePointer=warFloImgPtr;
       this->warpedFloatingGradientImagePointer=warFloGraPtr;
       this->forwardVoxelBasedGradientImagePointer=forVoxBasedGraPtr;
-      if(warRefImgPtr!=NULL && warRefGraPtr!=NULL && bckVoxBasedGraPtr!=NULL)
-      {
+      if(maskFloPtr != NULL && warRefImgPtr!=NULL && warRefGraPtr!=NULL && bckVoxBasedGraPtr!=NULL) {
          this->isSymmetric=true;
          this->floatingMaskPointer=maskFloPtr;
          this->warpedReferenceImagePointer=warRefImgPtr;
          this->warpedReferenceGradientImagePointer=warRefGraPtr;
          this->backwardVoxelBasedGradientImagePointer=bckVoxBasedGraPtr;
+      }
+      else {
+          this->floatingMaskPointer=NULL;
+          this->warpedReferenceImagePointer=NULL;
+          this->warpedReferenceGradientImagePointer=NULL;
+          this->backwardVoxelBasedGradientImagePointer=NULL;
       }
 #ifndef NDEBUG
       printf("[NiftyReg DEBUG] reg_measure::InitialiseMeasure()\n");
@@ -52,6 +57,8 @@ public:
    virtual double GetSimilarityMeasureValue() = 0;
    /// @brief Compute the voxel based measure of similarity gradient
    virtual void GetVoxelBasedSimilarityMeasureGradient() = 0;
+   /// @brief Here
+   virtual void GetDiscretisedValue(nifti_image *, float *, int , int) {}
    void SetActiveTimepoint(int timepoint)
    {
       this->activeTimePoint[timepoint]=true;
@@ -60,6 +67,16 @@ public:
    {
       return this->activeTimePoint;
    }
+/************************************************************************/
+   nifti_image* GetReferenceImage(void)
+   {
+      return this->referenceImagePointer;
+   }
+   int* GetReferenceMask(void)
+   {
+      return this->referenceMaskPointer;
+   }
+/************************************************************************/
 protected:
    nifti_image *referenceImagePointer;
    int *referenceMaskPointer;

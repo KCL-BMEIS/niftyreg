@@ -265,7 +265,7 @@ void reg_tools_binaryImage2int(nifti_image *img,
  * two vector images
  * @param imgA Input vector image
  * @param imgB Input vector image
- * @return Mean rsoot mean squared error valueis returned
+ * @return Mean rsoot mean squared error values returned
  */
 extern "C++"
 double reg_tools_getMeanRMS(nifti_image *imgA,
@@ -305,6 +305,20 @@ float reg_tools_getMinValue(nifti_image *img);
  */
 extern "C++"
 float reg_tools_getMaxValue(nifti_image *img);
+/* *************************************************************** */
+/** @brief Get the mean value of an image
+ * @param img Input image
+ * @return mean value
+ */
+extern "C++"
+float reg_tools_getMeanValue(nifti_image *img);
+/* *************************************************************** */
+/** @brief Get the std value of an image
+ * @param img Input image
+ * @return std value
+ */
+extern "C++"
+float reg_tools_getSTDValue(nifti_image *img);
 /* *************************************************************** */
 /** @brief Generate a pyramid from an input image.
  * @param input Input image to be downsampled to create the pyramid

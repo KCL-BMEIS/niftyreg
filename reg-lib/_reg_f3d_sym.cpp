@@ -780,7 +780,7 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
    // The intensity gradient is first computed
    //    if(this->measure_dti!=NULL){
    //        reg_getImageGradient(this->currentFloating,
-   //                             this->warpedGradientImage,
+   //                             this->warImgGradient,
    //                             this->deformationFieldImage,
    //                             this->currentMask,
    //                             this->interpolation,
@@ -801,7 +801,7 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
    //    }
    //    else{
    reg_getImageGradient(this->currentFloating,
-                        this->warpedGradientImage,
+                        this->warImgGradient,
                         this->deformationFieldImage,
                         this->currentMask,
                         this->interpolation,
@@ -816,8 +816,8 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
 
    //    }
    // The voxel based gradient image is initialised with zeros
-   reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradientImage,
-                                  this->voxelBasedMeasureGradientImage,
+   reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradient,
+                                  this->voxelBasedMeasureGradient,
                                   0.f);
    reg_tools_multiplyValueToImage(this->backwardVoxelBasedMeasureGradientImage,
                                   this->backwardVoxelBasedMeasureGradientImage,
@@ -878,7 +878,7 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
                                activeAxis
                                );
    // Convolution along the z axis if required
-   if(this->voxelBasedMeasureGradientImage->nz>1)
+   if(this->voxelBasedMeasureGradient->nz>1)
    {
       currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->backwardControlPointGrid->dz;
       activeAxis[1]=0;
@@ -1340,7 +1340,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
                                activeAxis
                                );
    // Convolution along the z axis if required
-   if(this->voxelBasedMeasureGradientImage->nz>1)
+   if(this->voxelBasedMeasureGradient->nz>1)
    {
       currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dz;
       activeAxis[1]=0;
@@ -1383,7 +1383,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
                                activeAxis
                                );
    // Convolution along the z axis if required
-   if(this->voxelBasedMeasureGradientImage->nz>1)
+   if(this->voxelBasedMeasureGradient->nz>1)
    {
       currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->backwardControlPointGrid->dz;
       activeAxis[1]=0;
@@ -1604,8 +1604,8 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage,
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient,
                                            this->currentFloatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
@@ -1617,8 +1617,8 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                                         this->currentFloating,
                                                         this->currentMask,
                                                         this->warped,
-                                                        this->warpedGradientImage,
-                                                        this->voxelBasedMeasureGradientImage,
+                                                        this->warImgGradient,
+                                                        this->voxelBasedMeasureGradient,
                                                         this->currentFloatingMask,
                                                         this->backwardWarped,
                                                         this->backwardWarpedGradientImage,
@@ -1630,8 +1630,8 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage,
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient,
                                            this->currentFloatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
@@ -1643,8 +1643,8 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage,
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient,
                                            this->currentFloatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
@@ -1656,8 +1656,8 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                             this->currentFloating,
                                             this->currentMask,
                                             this->warped,
-                                            this->warpedGradientImage,
-                                            this->voxelBasedMeasureGradientImage,
+                                            this->warImgGradient,
+                                            this->voxelBasedMeasureGradient,
                                             this->currentFloatingMask,
                                             this->backwardWarped,
                                             this->backwardWarpedGradientImage,
@@ -1669,8 +1669,8 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage,
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient,
                                            this->currentFloatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
@@ -1710,28 +1710,28 @@ nifti_image **reg_f3d_sym<T>::GetWarpedImage()
 
    reg_f3d_sym<T>::ClearDeformationField();
 
-   nifti_image **resultImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
-   resultImage[0] = nifti_copy_nim_info(this->warped);
-   resultImage[0]->cal_min=this->inputFloating->cal_min;
-   resultImage[0]->cal_max=this->inputFloating->cal_max;
-   resultImage[0]->scl_slope=this->inputFloating->scl_slope;
-   resultImage[0]->scl_inter=this->inputFloating->scl_inter;
-   resultImage[0]->data=(void *)malloc(resultImage[0]->nvox*resultImage[0]->nbyper);
-   memcpy(resultImage[0]->data, this->warped->data, resultImage[0]->nvox*resultImage[0]->nbyper);
+   nifti_image **warpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
+   warpedImage[0] = nifti_copy_nim_info(this->warped);
+   warpedImage[0]->cal_min=this->inputFloating->cal_min;
+   warpedImage[0]->cal_max=this->inputFloating->cal_max;
+   warpedImage[0]->scl_slope=this->inputFloating->scl_slope;
+   warpedImage[0]->scl_inter=this->inputFloating->scl_inter;
+   warpedImage[0]->data=(void *)malloc(warpedImage[0]->nvox*warpedImage[0]->nbyper);
+   memcpy(warpedImage[0]->data, this->warped->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
 
-   resultImage[1] = nifti_copy_nim_info(this->backwardWarped);
-   resultImage[1]->cal_min=this->inputReference->cal_min;
-   resultImage[1]->cal_max=this->inputReference->cal_max;
-   resultImage[1]->scl_slope=this->inputReference->scl_slope;
-   resultImage[1]->scl_inter=this->inputReference->scl_inter;
-   resultImage[1]->data=(void *)malloc(resultImage[1]->nvox*resultImage[1]->nbyper);
-   memcpy(resultImage[1]->data, this->backwardWarped->data, resultImage[1]->nvox*resultImage[1]->nbyper);
+   warpedImage[1] = nifti_copy_nim_info(this->backwardWarped);
+   warpedImage[1]->cal_min=this->inputReference->cal_min;
+   warpedImage[1]->cal_max=this->inputReference->cal_max;
+   warpedImage[1]->scl_slope=this->inputReference->scl_slope;
+   warpedImage[1]->scl_inter=this->inputReference->scl_inter;
+   warpedImage[1]->data=(void *)malloc(warpedImage[1]->nvox*warpedImage[1]->nbyper);
+   memcpy(warpedImage[1]->data, this->backwardWarped->data, warpedImage[1]->nvox*warpedImage[1]->nbyper);
 
    reg_f3d_sym<T>::ClearWarped();
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::GetWarpedImage");
 #endif
-   return resultImage;
+   return warpedImage;
 }
 /* *************************************************************** */
 /* *************************************************************** */

@@ -131,7 +131,7 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                                     unsigned short *floatingBinNumber,
                                     double **jointHistogramLog,
                                     double **entropyValues,
-                                    nifti_image *warpedGradientImage,
+                                    nifti_image *warImgGradient,
                                     nifti_image *nmiGradientImage,
                                     int *referenceMask
                                    );
@@ -144,7 +144,7 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                                     unsigned short *floatingBinNumber,
                                     double **jointHistogramLog,
                                     double **entropyValues,
-                                    nifti_image *warpedGradientImage,
+                                    nifti_image *warImgGradient,
                                     nifti_image *nmiGradientImage,
                                     int *referenceMask
                                    );
@@ -285,10 +285,10 @@ inline int previous(int current, int num_dims)
 
 /// Multi channel NMI version - Entropy
 extern "C++"
-void reg_getMultiChannelNMIValue(nifti_image *targetImages,
-                                 nifti_image *resultImages,
-                                 unsigned int *target_bins, // should be an array of size num_target_volumes
-                                 unsigned int *result_bins, // should be an array of size num_result_volumes
+void reg_getMultiChannelNMIValue(nifti_image *referenceImages,
+                                 nifti_image *warpedImages,
+                                 unsigned int *reference_bins, // should be an array of size num_reference_volumes
+                                 unsigned int *warped_bins, // should be an array of size num_warped_volumes
                                  double *probaJointHistogram,
                                  double *logJointHistogram,
                                  double *entropies,
@@ -297,11 +297,11 @@ void reg_getMultiChannelNMIValue(nifti_image *targetImages,
 
 /// Multi channel NMI version - Gradient
 extern "C++"
-void reg_getVoxelBasedMultiChannelNMIGradient2D(nifti_image *targetImages,
-      nifti_image *resultImages,
-      nifti_image *resultImageGradient,
-      unsigned int *target_bins,
-      unsigned int *result_bins,
+void reg_getVoxelBasedMultiChannelNMIGradient2D(nifti_image *referenceImages,
+      nifti_image *warpedImages,
+      nifti_image *warpedImageGradient,
+      unsigned int *reference_bins,
+      unsigned int *warped_bins,
       double *logJointHistogram,
       double *entropies,
       nifti_image *nmiGradientImage,
@@ -309,11 +309,11 @@ void reg_getVoxelBasedMultiChannelNMIGradient2D(nifti_image *targetImages,
       bool approx);
 /// Multi channel NMI version - Gradient
 extern "C++"
-void reg_getVoxelBasedMultiChannelNMIGradient3D(nifti_image *targetImages,
-      nifti_image *resultImages,
-      nifti_image *resultImageGradient,
-      unsigned int *target_bins,
-      unsigned int *result_bins,
+void reg_getVoxelBasedMultiChannelNMIGradient3D(nifti_image *referenceImages,
+      nifti_image *warpedImages,
+      nifti_image *warpedImageGradient,
+      unsigned int *reference_bins,
+      unsigned int *warped_bins,
       double *logJointHistogram,
       double *entropies,
       nifti_image *nmiGradientImage,

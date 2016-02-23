@@ -566,7 +566,7 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                                     unsigned short *floatingBinNumber,
                                     double **jointHistogramLog,
                                     double **entropyValues,
-                                    nifti_image *warpedGradientImage,
+                                    nifti_image *warImgGradient,
                                     nifti_image *nmiGradientImage,
                                     int *referenceMask
                                    )
@@ -576,7 +576,7 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
    // Pointers to the image data
    DTYPE *refImagePtr = static_cast<DTYPE *>(referenceImage->data);
    DTYPE *warImagePtr = static_cast<DTYPE *>(warpedImage->data);
-   DTYPE *warGradImagePtr = static_cast<DTYPE *>(warpedGradientImage->data);
+   DTYPE *warGradImagePtr = static_cast<DTYPE *>(warImgGradient->data);
    DTYPE *nmiGradPtrX = static_cast<DTYPE *>(nmiGradientImage->data);
    DTYPE *nmiGradPtrY = &nmiGradPtrX[voxelNumber];
    // Iterative over all the time point as defined in the reference image
@@ -588,8 +588,9 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
          // Create pointers to the current volume
          DTYPE *refPtr = &refImagePtr[t*voxelNumber];
          DTYPE *warPtr = &warImagePtr[t*voxelNumber];
-         DTYPE *warGradPtrX = &warGradImagePtr[t*voxelNumber*2];
-         DTYPE *warGradPtrY = &warGradPtrX[voxelNumber];
+         DTYPE *warGradPtrX = &warGradImagePtr[t*voxelNumber];
+         DTYPE *warGradPtrY = &warGradPtrX[referenceImage->nt*voxelNumber];
+
          // Create pointers to the current joint histogram
          double *logHistoPtr = jointHistogramLog[t];
          double *entropyPtr = entropyValues[t];
@@ -663,7 +664,7 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                                     unsigned short *floatingBinNumber,
                                     double **jointHistogramLog,
                                     double **entropyValues,
-                                    nifti_image *warpedGradientImage,
+                                    nifti_image *warImgGradient,
                                     nifti_image *nmiGradientImage,
                                     int *referenceMask
                                    )
@@ -679,7 +680,7 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
    // Pointers to the image data
    DTYPE *refImagePtr = static_cast<DTYPE *>(referenceImage->data);
    DTYPE *warImagePtr = static_cast<DTYPE *>(warpedImage->data);
-   DTYPE *warGradImagePtr = static_cast<DTYPE *>(warpedGradientImage->data);
+   DTYPE *warGradImagePtr = static_cast<DTYPE *>(warImgGradient->data);
    DTYPE *nmiGradPtrX = static_cast<DTYPE *>(nmiGradientImage->data);
    DTYPE *nmiGradPtrY = &nmiGradPtrX[voxelNumber];
    DTYPE *nmiGradPtrZ = &nmiGradPtrY[voxelNumber];
@@ -692,9 +693,9 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
          // Create pointers to the current volume
          DTYPE *refPtr = &refImagePtr[t*voxelNumber];
          DTYPE *warPtr = &warImagePtr[t*voxelNumber];
-         DTYPE *warGradPtrX = &warGradImagePtr[t*voxelNumber*3];
-         DTYPE *warGradPtrY = &warGradPtrX[voxelNumber];
-         DTYPE *warGradPtrZ = &warGradPtrY[voxelNumber];
+         DTYPE *warGradPtrX = &warGradImagePtr[t*voxelNumber];
+         DTYPE *warGradPtrY = &warGradPtrX[referenceImage->nt*voxelNumber];
+         DTYPE *warGradPtrZ = &warGradPtrY[referenceImage->nt*voxelNumber];
          // Create pointers to the current joint histogram
          double *logHistoPtr = jointHistogramLog[t];
          double *entropyPtr = entropyValues[t];

@@ -69,6 +69,9 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
                               1.f);
       }
    }
+#ifdef TEMP_USE_SAD
+   reg_print_msg_warn("SAD is used instead of SSD");
+#endif
 #ifndef NDEBUG
    char text[255];
    reg_print_msg_debug("reg_ssd::InitialiseMeasure().");
@@ -88,7 +91,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
                        nifti_image *jacobianDetImage,
                        int *mask,
                        float *currentValue
-                      )
+                       )
 {
 
 #ifdef _WIN32
@@ -108,7 +111,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
 
 
    double SSD_global=0.0, n=0.0;
-   double targetValue, resultValue, diff;
+   double refValue, warValue, diff;
 
    // Loop over the different time points
    for(int time=0; time<referenceImage->nt; ++time)
@@ -122,12 +125,12 @@ double reg_getSSDValue(nifti_image *referenceImage,
          double SSD_local=0.;
          n=0.;
 #if defined (_OPENMP)
-         #pragma omp parallel for default(none) \
-         shared(referenceImage, currentRefPtr, currentWarPtr, mask, \
-                jacobianDetImage, jacDetPtr, voxelNumber) \
-         private(voxel, targetValue, resultValue, diff) \
-reduction(+:SSD_local) \
-reduction(+:n)
+#pragma omp parallel for default(none) \
+   shared(referenceImage, currentRefPtr, currentWarPtr, mask, \
+   jacobianDetImage, jacDetPtr, voxelNumber) \
+   private(voxel, refValue, warValue, diff) \
+   reduction(+:SSD_local) \
+   reduction(+:n)
 #endif
          for(voxel=0; voxel<voxelNumber; ++voxel)
          {
@@ -135,14 +138,17 @@ reduction(+:n)
             if(mask[voxel]>-1)
             {
                // Ensure that both ref and warped values are defined
-               targetValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
-                                      referenceImage->scl_inter);
-               resultValue = (double)(currentWarPtr[voxel] * referenceImage->scl_slope +
-                                      referenceImage->scl_inter);
-               if(targetValue==targetValue && resultValue==resultValue)
+               refValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
+                                   referenceImage->scl_inter);
+               warValue = (double)(currentWarPtr[voxel] * referenceImage->scl_slope +
+                                   referenceImage->scl_inter);
+               if(refValue==refValue && warValue==warValue)
                {
-                  diff = reg_pow2(targetValue-resultValue);
-//						if(diff>0) diff=log(diff);
+#ifdef TEMP_USE_SAD
+                  diff = fabs(refValue-warValue);
+#else
+                  diff = reg_pow2(refValue-warValue);
+#endif
                   // Jacobian determinant modulation of the ssd if required
                   if(jacDetPtr!=NULL)
                   {
@@ -180,23 +186,23 @@ double reg_ssd::GetSimilarityMeasureValue()
    {
    case NIFTI_TYPE_FLOAT32:
       SSDValue = reg_getSSDValue<float>
-                 (this->referenceImagePointer,
-                  this->warpedFloatingImagePointer,
-                  this->activeTimePoint,
-                  NULL, // HERE TODO this->forwardJacDetImagePointer,
-                  this->referenceMaskPointer,
-                  this->currentValue
-                 );
+            (this->referenceImagePointer,
+             this->warpedFloatingImagePointer,
+             this->activeTimePoint,
+             NULL, // HERE TODO this->forwardJacDetImagePointer,
+             this->referenceMaskPointer,
+             this->currentValue
+             );
       break;
    case NIFTI_TYPE_FLOAT64:
       SSDValue = reg_getSSDValue<double>
-                 (this->referenceImagePointer,
-                  this->warpedFloatingImagePointer,
-                  this->activeTimePoint,
-                  NULL, // HERE TODO this->forwardJacDetImagePointer,
-                  this->referenceMaskPointer,
-                  this->currentValue
-                 );
+            (this->referenceImagePointer,
+             this->warpedFloatingImagePointer,
+             this->activeTimePoint,
+             NULL, // HERE TODO this->forwardJacDetImagePointer,
+             this->referenceMaskPointer,
+             this->currentValue
+             );
       break;
    default:
       reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
@@ -218,23 +224,23 @@ double reg_ssd::GetSimilarityMeasureValue()
       {
       case NIFTI_TYPE_FLOAT32:
          SSDValue += reg_getSSDValue<float>
-                     (this->floatingImagePointer,
-                      this->warpedReferenceImagePointer,
-                      this->activeTimePoint,
-                      NULL, // HERE TODO this->backwardJacDetImagePointer,
-                      this->floatingMaskPointer,
-                      this->currentValue
-                     );
+               (this->floatingImagePointer,
+                this->warpedReferenceImagePointer,
+                this->activeTimePoint,
+                NULL, // HERE TODO this->backwardJacDetImagePointer,
+                this->floatingMaskPointer,
+                this->currentValue
+                );
          break;
       case NIFTI_TYPE_FLOAT64:
          SSDValue += reg_getSSDValue<double>
-                     (this->floatingImagePointer,
-                      this->warpedReferenceImagePointer,
-                      this->activeTimePoint,
-                      NULL, // HERE TODO this->backwardJacDetImagePointer,
-                      this->floatingMaskPointer,
-                      this->currentValue
-                     );
+               (this->floatingImagePointer,
+                this->warpedReferenceImagePointer,
+                this->activeTimePoint,
+                NULL, // HERE TODO this->backwardJacDetImagePointer,
+                this->floatingMaskPointer,
+                this->currentValue
+                );
          break;
       default:
          reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
@@ -250,7 +256,7 @@ template <class DTYPE>
 void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *warpedImage,
                                   bool *activeTimePoint,
-                                  nifti_image *warpedImageGradient,
+                                  nifti_image *warImgGradient,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDetImage,
                                   int *mask)
@@ -268,7 +274,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
    DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
 
    // Pointer to the warped image gradient
-   DTYPE *spatialGradPtr=static_cast<DTYPE *>(warpedImageGradient->data);
+   DTYPE *spatialGradPtr=static_cast<DTYPE *>(warImgGradient->data);
 
    // Create a pointer to the Jacobian determinant values if defined
    DTYPE *jacDetPtr=NULL;
@@ -282,7 +288,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
    if(referenceImage->nz>1)
       ssdGradPtrZ = &ssdGradPtrY[voxelNumber];
 
-   double targetValue, resultValue, common;
+   double refValue, warValue, common;
    // Loop over the different time points
    for(int time=0; time<referenceImage->nt; ++time)
    {
@@ -293,30 +299,36 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
          DTYPE *currentWarPtr=&warPtr[time*voxelNumber];
 
          // Create some pointers to the spatial gradient of the current warped volume
-         DTYPE *spatialGradPtrX=&spatialGradPtr[time*warpedImageGradient->nu*voxelNumber];
-         DTYPE *spatialGradPtrY=&spatialGradPtrX[voxelNumber];
-         DTYPE *spatialGradPtrZ=NULL;
+         DTYPE *spatialGradPtrX = &spatialGradPtr[time*voxelNumber];
+         DTYPE *spatialGradPtrY = &spatialGradPtrX[referenceImage->nt*voxelNumber];
+         DTYPE *spatialGradPtrZ = NULL;
          if(referenceImage->nz>1)
-            spatialGradPtrZ=&spatialGradPtrY[voxelNumber];
+            spatialGradPtrZ=&spatialGradPtrY[referenceImage->nt*voxelNumber];
+
 
 #if defined (_OPENMP)
-         #pragma omp parallel for default(none) \
-         shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, time, \
-                mask, jacDetPtr, spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, \
-                ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ, voxelNumber) \
-         private(voxel, targetValue, resultValue, common)
+#pragma omp parallel for default(none) \
+   shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, time, \
+   mask, jacDetPtr, spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, \
+   ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ, voxelNumber) \
+   private(voxel, refValue, warValue, common)
 #endif
          for(voxel=0; voxel<voxelNumber; voxel++)
          {
             if(mask[voxel]>-1)
             {
-               targetValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
-                                      referenceImage->scl_inter);
-               resultValue = (double)(currentWarPtr[voxel] * warpedImage->scl_slope +
-                                      warpedImage->scl_inter);
-               if(targetValue==targetValue && resultValue==resultValue)
+               refValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
+                                   referenceImage->scl_inter);
+               warValue = (double)(currentWarPtr[voxel] * warpedImage->scl_slope +
+                                   warpedImage->scl_inter);
+               if(refValue==refValue && warValue==warValue)
                {
-                  common = -2.0 * (targetValue - resultValue);
+#ifdef TEMP_USE_SAD
+                  common = refValue>warValue?-1.f:1.f;
+                  common *= (refValue - warValue) / float(referenceImage->nt);
+#else
+                  common = -2.0 * (refValue - warValue) / float(referenceImage->nt);
+#endif
                   if(jacDetPtr!=NULL)
                      common *= jacDetPtr[voxel];
 
@@ -349,7 +361,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
    if(this->warpedFloatingImagePointer->datatype != dtype ||
          this->warpedFloatingGradientImagePointer->datatype != dtype ||
          this->forwardVoxelBasedGradientImagePointer->datatype != dtype
-     )
+         )
    {
       reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
       reg_print_msg_error("Input images are exepected to be of the same type");
@@ -360,25 +372,25 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
    {
    case NIFTI_TYPE_FLOAT32:
       reg_getVoxelBasedSSDGradient<float>
-      (this->referenceImagePointer,
-       this->warpedFloatingImagePointer,
-       this->activeTimePoint,
-       this->warpedFloatingGradientImagePointer,
-       this->forwardVoxelBasedGradientImagePointer,
-       NULL, // HERE TODO this->forwardJacDetImagePointer,
-       this->referenceMaskPointer
-      );
+            (this->referenceImagePointer,
+             this->warpedFloatingImagePointer,
+             this->activeTimePoint,
+             this->warpedFloatingGradientImagePointer,
+             this->forwardVoxelBasedGradientImagePointer,
+             NULL, // HERE TODO this->forwardJacDetImagePointer,
+             this->referenceMaskPointer
+             );
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_getVoxelBasedSSDGradient<double>
-      (this->referenceImagePointer,
-       this->warpedFloatingImagePointer,
-       this->activeTimePoint,
-       this->warpedFloatingGradientImagePointer,
-       this->forwardVoxelBasedGradientImagePointer,
-       NULL, // HERE TODO this->forwardJacDetImagePointer,
-       this->referenceMaskPointer
-      );
+            (this->referenceImagePointer,
+             this->warpedFloatingImagePointer,
+             this->activeTimePoint,
+             this->warpedFloatingGradientImagePointer,
+             this->forwardVoxelBasedGradientImagePointer,
+             NULL, // HERE TODO this->forwardJacDetImagePointer,
+             this->referenceMaskPointer
+             );
       break;
    default:
       reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
@@ -392,7 +404,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
       if(this->warpedReferenceImagePointer->datatype != dtype ||
             this->warpedReferenceGradientImagePointer->datatype != dtype ||
             this->backwardVoxelBasedGradientImagePointer->datatype != dtype
-        )
+            )
       {
          reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
          reg_print_msg_error("Input images are exepected to be of the same type");
@@ -403,25 +415,25 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
       {
       case NIFTI_TYPE_FLOAT32:
          reg_getVoxelBasedSSDGradient<float>
-         (this->floatingImagePointer,
-          this->warpedReferenceImagePointer,
-          this->activeTimePoint,
-          this->warpedReferenceGradientImagePointer,
-          this->backwardVoxelBasedGradientImagePointer,
-          NULL, // HERE TODO this->backwardJacDetImagePointer,
-          this->floatingMaskPointer
-         );
+               (this->floatingImagePointer,
+                this->warpedReferenceImagePointer,
+                this->activeTimePoint,
+                this->warpedReferenceGradientImagePointer,
+                this->backwardVoxelBasedGradientImagePointer,
+                NULL, // HERE TODO this->backwardJacDetImagePointer,
+                this->floatingMaskPointer
+                );
          break;
       case NIFTI_TYPE_FLOAT64:
          reg_getVoxelBasedSSDGradient<double>
-         (this->floatingImagePointer,
-          this->warpedReferenceImagePointer,
-          this->activeTimePoint,
-          this->warpedReferenceGradientImagePointer,
-          this->backwardVoxelBasedGradientImagePointer,
-          NULL, // HERE TODO this->backwardJacDetImagePointer,
-          this->floatingMaskPointer
-         );
+               (this->floatingImagePointer,
+                this->warpedReferenceImagePointer,
+                this->activeTimePoint,
+                this->warpedReferenceGradientImagePointer,
+                this->backwardVoxelBasedGradientImagePointer,
+                NULL, // HERE TODO this->backwardJacDetImagePointer,
+                this->floatingMaskPointer
+                );
          break;
       default:
          reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
@@ -431,4 +443,256 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
    }
 }
 /* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
+                                   float *discretisedValue,
+                                   int discretise_radius,
+                                   int discretise_step,
+                                   nifti_image *refImage,
+                                   nifti_image *warImage,
+                                   int *mask)
+{
+   int cpx, cpy, cpz, t, x, y, z, a, b, c, blockIndex, voxIndex, voxIndex_t, discretisedIndex;
+   int label_1D_number = (discretise_radius / discretise_step) * 2 + 1;
+   int label_2D_number = label_1D_number*label_1D_number;
+   int label_nD_number = label_2D_number*label_1D_number;
+   //output matrix = discretisedValue (first dimension displacement label, second dim. control point)
+   float gridVox[3], imageVox[3];
+   float currentValue;
+   // Define the transformation matrices
+   mat44 *grid_vox2mm = &controlPointGridImage->qto_xyz;
+   if(controlPointGridImage->sform_code>0)
+      grid_vox2mm = &controlPointGridImage->sto_xyz;
+   mat44 *image_mm2vox = &refImage->qto_ijk;
+   if(refImage->sform_code>0)
+      image_mm2vox = &refImage->sto_ijk;
+   mat44 grid2img_vox = reg_mat44_mul(image_mm2vox, grid_vox2mm);
+
+   // Compute the block size
+   int blockSize[3]={
+      (int)reg_ceil(controlPointGridImage->dx / refImage->dx),
+      (int)reg_ceil(controlPointGridImage->dy / refImage->dy),
+      (int)reg_ceil(controlPointGridImage->dz / refImage->dz),
+   };
+   int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
+   int currentControlPoint = 0;
+
+   // Allocate some static memory
+   float refBlockValue[voxelBlockNumber];
+
+   // Pointers to the input image
+   size_t voxelNumber = (size_t)refImage->nx*
+         refImage->ny*refImage->nz;
+   DTYPE *refImgPtr = static_cast<DTYPE *>(refImage->data);
+   DTYPE *warImgPtr = static_cast<DTYPE *>(warImage->data);
+
+   // Create a padded version of the warped image to avoid doundary condition check
+   int warPaddedOffset [3] = {
+      discretise_radius + blockSize[0],
+      discretise_radius + blockSize[1],
+      discretise_radius + blockSize[2],
+   };
+   int warPaddedDim[4] = {
+      warImage->nx + 2 * warPaddedOffset[0] + blockSize[0],
+      warImage->ny + 2 * warPaddedOffset[1] + blockSize[1],
+      warImage->nz + 2 * warPaddedOffset[2] + blockSize[2],
+      warImage->nt
+   };
+   size_t warPaddedVoxelNumber = (size_t)warPaddedDim[0] *
+         warPaddedDim[1] * warPaddedDim[2];
+   DTYPE *paddedWarImgPtr = (DTYPE *)calloc(warPaddedVoxelNumber*warPaddedDim[3], sizeof(DTYPE));
+   voxIndex=0;
+   voxIndex_t=0;
+   for(t=0; t<warImage->nt; ++t){
+      for(z=warPaddedOffset[2]; z<warPaddedDim[2]-warPaddedOffset[2]-blockSize[2]; ++z){
+         for(y=warPaddedOffset[1]; y<warPaddedDim[1]-warPaddedOffset[1]-blockSize[1]; ++y){
+            voxIndex= t * warPaddedVoxelNumber + (z*warPaddedDim[1]+y)*warPaddedDim[0]+warPaddedOffset[0];
+            for(x=warPaddedOffset[0]; x<warPaddedDim[0]-warPaddedOffset[0]-blockSize[0]; ++x){
+               paddedWarImgPtr[voxIndex]=warImgPtr[voxIndex_t];
+               ++voxIndex;
+               ++voxIndex_t;
+            }
+         }
+      }
+   }
+
+   // Loop over all control points
+   for(cpz=1; cpz<controlPointGridImage->nz-1; ++cpz){
+      gridVox[2] = cpz;
+      for(cpy=1; cpy<controlPointGridImage->ny-1; ++cpy){
+         gridVox[1] = cpy;
+         currentControlPoint=(cpz*controlPointGridImage->ny+cpy)*controlPointGridImage->nx+1;
+         for(cpx=1; cpx<controlPointGridImage->nx-1; ++cpx){
+            gridVox[0] = cpx;
+            // Compute the corresponding image voxel position
+            reg_mat44_mul(&grid2img_vox, gridVox, imageVox);
+            imageVox[0]=reg_round(imageVox[0]);
+            imageVox[1]=reg_round(imageVox[1]);
+            imageVox[2]=reg_round(imageVox[2]);
+
+            // Extract the block in the reference image
+            blockIndex = 0;
+            for(z=imageVox[2]-blockSize[2]/2; z<imageVox[2]+blockSize[2]/2; ++z){
+               for(y=imageVox[1]-blockSize[1]/2; y<imageVox[1]+blockSize[1]/2; ++y){
+                  for(x=imageVox[0]-blockSize[0]/2; x<imageVox[0]+blockSize[0]/2; ++x){
+                     if(x>-1 && x<refImage->nx && y>-1 && y<refImage->ny && z>-1 && z<refImage->nz) {
+                        voxIndex = (z*refImage->ny+y)*refImage->nx+x;
+                        if(mask[voxIndex]>-1){
+                           for(t=0; t<refImage->nt; ++t){
+                              voxIndex_t = t*voxelNumber + voxIndex;
+                              refBlockValue[blockIndex] = refImgPtr[voxIndex_t];
+                              if(refBlockValue[blockIndex]!=refBlockValue[blockIndex])
+                                 refBlockValue[blockIndex]=0.f;
+                              blockIndex++;
+                           } //t
+                        }
+                     }
+                     else {
+                        for(t=0; t<refImage->nt; ++t){
+                           refBlockValue[blockIndex] = 0.f;
+                           blockIndex++;
+                        } // t
+                     } // mask
+                  } // x
+               } // y
+            } // z
+            // Loop over the discretised value
+
+            DTYPE warpedValue;
+            int paddedImageVox[3] = {
+               imageVox[0]+warPaddedOffset[0],
+               imageVox[1]+warPaddedOffset[1],
+               imageVox[2]+warPaddedOffset[2]
+            };
+            int cc;
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   shared(label_1D_number, label_2D_number, label_nD_number, discretise_step, discretise_radius, \
+   paddedImageVox, blockSize, warPaddedDim, paddedWarImgPtr, refBlockValue, warPaddedVoxelNumber, \
+   discretisedValue, currentControlPoint, voxelBlockNumber) \
+   private(a, b, c, cc, x, y, z, t, discretisedIndex, blockIndex, \
+   currentValue, warpedValue, voxIndex, voxIndex_t)
+#endif
+            for(cc=0; cc<label_1D_number; ++cc){
+               discretisedIndex = cc * label_2D_number;
+               c = paddedImageVox[2]-discretise_radius + cc*discretise_step;
+               for(b=paddedImageVox[1]-discretise_radius; b<=paddedImageVox[1]+discretise_radius; b+=discretise_step){
+                  for(a=paddedImageVox[0]-discretise_radius; a<=paddedImageVox[0]+discretise_radius; a+=discretise_step){
+                     blockIndex = 0;
+                     currentValue = 0;
+                     for(z=c-blockSize[2]/2; z<c+blockSize[2]/2; ++z){
+                        for(y=b-blockSize[1]/2; y<b+blockSize[1]/2; ++y){
+                           for(x=a-blockSize[0]/2; x<a+blockSize[0]/2; ++x){
+                              voxIndex = (z*warPaddedDim[1]+y)*warPaddedDim[0]+x;
+                              for(t=0; t<warPaddedDim[3]; ++t){
+                                 voxIndex_t = t*warPaddedVoxelNumber + voxIndex;
+                                 warpedValue = paddedWarImgPtr[voxIndex_t];
+                                 if(warpedValue==warpedValue)
+#ifdef TEMP_USE_SAD
+                                    currentValue += fabs(warpedValue-refBlockValue[blockIndex]);
+                                 else currentValue += fabs(0.f-refBlockValue[blockIndex]);
+#else
+                                    currentValue += reg_pow2(warpedValue-refBlockValue[blockIndex]);
+                                 else currentValue += reg_pow2(0.f-refBlockValue[blockIndex]);
+#endif
+                                 blockIndex++;
+                              }
+                           } // x
+                        } // y
+                     } // z
+                     discretisedValue[currentControlPoint * label_nD_number + discretisedIndex] =
+                           currentValue / static_cast<float>(voxelBlockNumber);
+                     ++discretisedIndex;
+                  } // a
+               } // b
+            } // cc
+            ++currentControlPoint;
+         } // cpx
+      } // cpy
+   } // cpz
+   free(paddedWarImgPtr);
+}
+/* *************************************************************** */
+template <class DTYPE>
+void GetDiscretisedValueSSD_core2D(nifti_image *controlPointGridImage,
+                                   float *discretisedValue,
+                                   int discretise_radius,
+                                   int discretise_step,
+                                   nifti_image *refImage,
+                                   nifti_image *warImage,
+                                   int *mask)
+{
+   reg_print_fct_warn("GetDiscretisedValue_core2D");
+   reg_print_msg_warn("No yet implemented");
+   reg_exit();
+}
+/* *************************************************************** */
+void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
+                                  float *discretisedValue,
+                                  int discretise_radius,
+                                  int discretise_step)
+{
+   if(referenceImagePointer->nz > 1) {
+      switch(this->referenceImagePointer->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         GetDiscretisedValueSSD_core3D<float>
+               (controlPointGridImage,
+                discretisedValue,
+                discretise_radius,
+                discretise_step,
+                this->referenceImagePointer,
+                this->warpedFloatingImagePointer,
+                this->referenceMaskPointer
+                );
+         break;
+      case NIFTI_TYPE_FLOAT64:
+         GetDiscretisedValueSSD_core3D<double>
+               (controlPointGridImage,
+                discretisedValue,
+                discretise_radius,
+                discretise_step,
+                this->referenceImagePointer,
+                this->warpedFloatingImagePointer,
+                this->referenceMaskPointer
+                );
+         break;
+      default:
+         reg_print_fct_error("reg_ssd::GetDiscretisedValue");
+         reg_print_msg_error("Unsupported datatype");
+         reg_exit();
+      }
+   } else {
+      switch(this->referenceImagePointer->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         GetDiscretisedValueSSD_core2D<float>
+               (controlPointGridImage,
+                discretisedValue,
+                discretise_radius,
+                discretise_step,
+                this->referenceImagePointer,
+                this->warpedFloatingImagePointer,
+                this->referenceMaskPointer
+                );
+         break;
+      case NIFTI_TYPE_FLOAT64:
+         GetDiscretisedValueSSD_core2D<double>
+               (controlPointGridImage,
+                discretisedValue,
+                discretise_radius,
+                discretise_step,
+                this->referenceImagePointer,
+                this->warpedFloatingImagePointer,
+                this->referenceMaskPointer
+                );
+         break;
+      default:
+         reg_print_fct_error("reg_ssd::GetDiscretisedValue");
+         reg_print_msg_error("Unsupported datatype");
+         reg_exit();
+      }
+   }
+}
 /* *************************************************************** */

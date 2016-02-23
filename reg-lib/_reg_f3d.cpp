@@ -280,6 +280,21 @@ void reg_f3d<T>::Initialise()
       if(this->controlPointGrid->nz>1)
          this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->levelToPerform-1));
    }
+   //MRF: if discrete optimization is on
+   //Initialise the MRF parameters - CREATE A MRF class maybe...
+   /*
+     //SETTINGS FOR CONTROL POINT SPACING AND LABEL SPACE
+     int label_quant=3; //step-size/quantisation of discrete displacements
+     int label_hw=6; //half-width of search space
+     //L={±0,±label_quant,..,±label_quant*label_hw}^3 voxels
+     int grid_step=8; //spacing between control points in voxels
+     //HERE and elsewhere THE B-SPLINE GRID DEFINITION NEEDS TO BE ADAPTED TO NIFTY-REG
+     //e.g. having control points outside the image domain, etc.
+
+     int label_num=(label_hw*2+1)*(label_hw*2+1)*(label_hw*2+1); //|L| number of displacements
+     int m1=m/grid_step; int n1=n/grid_step; int o1=o/grid_step; //dimensions of grid
+     int sz1=m1*n1*o1; //number of control points
+   */
 #ifdef NDEBUG
    if(this->verbose)
    {
@@ -303,12 +318,12 @@ void reg_f3d<T>::Initialise()
       for(int i=0; i<this->inputReference->nt; i++)
       {
          sprintf(text, "\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
-                i+1, this->inputReference->nt, this->referenceThresholdLow[i],this->referenceThresholdUp[i]);
+                i, this->inputReference->nt-1, this->referenceThresholdLow[i],this->referenceThresholdUp[i]);
          reg_print_info(this->executableName, text);
          if(this->measure_nmi!=NULL){
             if(this->measure_nmi->GetActiveTimepoints()[i]){
                sprintf(text, "\t* binnining size for timepoint %i/%i: %i",
-                      i+1, this->inputFloating->nt, this->measure_nmi->GetReferenceBinNumber()[i]-4);
+                      i, this->inputFloating->nt-1, this->measure_nmi->GetReferenceBinNumber()[i]-4);
                reg_print_info(this->executableName, text);
             }
          }
@@ -368,12 +383,15 @@ void reg_f3d<T>::Initialise()
       if(this->measure_lncc!=NULL)
          reg_print_info(this->executableName, "The LNCC is used as a similarity measure.");
       if(this->measure_dti!=NULL)
-         reg_print_info(this->executableName, "A DTI based measure is used as a similarity measure.");
-      if(this->measure_multichannel_nmi!=NULL)
+          reg_print_info(this->executableName, "A DTI based measure is used as a similarity measure.");
+       if(this->measure_mind!=NULL)
+           reg_print_info(this->executableName, "The MIND measure is used as a similarity measure.");
+        if(this->measure_multichannel_nmi!=NULL)
          reg_print_info(this->executableName, "The multichannel NMI is used as a similarity measure.");
       if(this->measure_nmi!=NULL || (this->measure_dti==NULL && this->measure_kld==NULL &&
                                      this->measure_lncc==NULL && this->measure_multichannel_nmi==NULL &&
-                                     this->measure_nmi==NULL && this->measure_ssd==NULL) )
+                                     this->measure_nmi==NULL && this->measure_ssd==NULL &&
+                                     this->measure_mind==NULL) )
          reg_print_info(this->executableName, "The NMI is used as a similarity measure.");
       sprintf(text, "Similarity measure term weight: %g", this->similarityWeight);
       reg_print_info(this->executableName, text);
@@ -529,7 +547,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    float currentNodeSpacing[3];
    currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dx;
    bool activeAxis[3]= {1,0,0};
-   reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
+   reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
                                currentNodeSpacing,
                                1, // cubic spline kernel
                                NULL, // mask
@@ -540,7 +558,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dy;
    activeAxis[0]=0;
    activeAxis[1]=1;
-   reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
+   reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
                                currentNodeSpacing,
                                1, // cubic spline kernel
                                NULL, // mask
@@ -548,12 +566,12 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
                                activeAxis
                               );
    // Convolution along the z axis if required
-   if(this->voxelBasedMeasureGradientImage->nz>1)
+   if(this->voxelBasedMeasureGradient->nz>1)
    {
       currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dz;
       activeAxis[1]=0;
       activeAxis[2]=1;
-      reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
+      reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
                                   currentNodeSpacing,
                                   1, // cubic spline kernel
                                   NULL, // mask
@@ -568,7 +586,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
       reorientation = this->currentFloating->sto_ijk;
    else reorientation = this->currentFloating->qto_ijk;
    reg_voxelCentric2NodeCentric(this->transformationGradient,
-                                this->voxelBasedMeasureGradientImage,
+                                this->voxelBasedMeasureGradient,
                                 this->similarityWeight,
                                 false, // no update
                                 &reorientation
@@ -990,22 +1008,22 @@ nifti_image **reg_f3d<T>::GetWarpedImage()
    reg_base<T>::WarpFloatingImage(3); // cubic spline interpolation
    reg_base<T>::ClearDeformationField();
 
-   nifti_image **resultImage= (nifti_image **)malloc(2*sizeof(nifti_image *));
-   resultImage[0]=nifti_copy_nim_info(this->warped);
-   resultImage[0]->cal_min=this->inputFloating->cal_min;
-   resultImage[0]->cal_max=this->inputFloating->cal_max;
-   resultImage[0]->scl_slope=this->inputFloating->scl_slope;
-   resultImage[0]->scl_inter=this->inputFloating->scl_inter;
-   resultImage[0]->data=(void *)malloc(resultImage[0]->nvox*resultImage[0]->nbyper);
-   memcpy(resultImage[0]->data, this->warped->data, resultImage[0]->nvox*resultImage[0]->nbyper);
+   nifti_image **warpedImage= (nifti_image **)malloc(2*sizeof(nifti_image *));
+   warpedImage[0]=nifti_copy_nim_info(this->warped);
+   warpedImage[0]->cal_min=this->inputFloating->cal_min;
+   warpedImage[0]->cal_max=this->inputFloating->cal_max;
+   warpedImage[0]->scl_slope=this->inputFloating->scl_slope;
+   warpedImage[0]->scl_inter=this->inputFloating->scl_inter;
+   warpedImage[0]->data=(void *)malloc(warpedImage[0]->nvox*warpedImage[0]->nbyper);
+   memcpy(warpedImage[0]->data, this->warped->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
 
-   resultImage[1]=NULL;
+   warpedImage[1]=NULL;
 
    reg_f3d<T>::ClearWarped();
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetWarpedImage");
 #endif
-   return resultImage;
+   return warpedImage;
 }
 /* *************************************************************** */
 /* *************************************************************** */

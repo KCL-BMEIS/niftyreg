@@ -108,7 +108,7 @@ void Usage(char *exec)
    printf("\t-invNrr <filename1> <filename2> <filename3>\n");
    printf("\t\tInvert a non-rigid transformation and save the result as a deformation field.\n");
    printf("\t\tfilename1 - Input transformation file name\n");
-   printf("\t\tfilename2 - Input floating (source) image where the inverted transformation is defined\n");
+   printf("\t\tfilename2 - Input floating image where the inverted transformation is defined\n");
    printf("\t\tfilename3 - Output inverted transformation file name\n");
    printf("\t\tNote that the cubic b-spline grid parametrisations can not be inverted without approximation,\n");
    printf("\t\tas a result, they are converted into deformation fields before inversion.\n\n");

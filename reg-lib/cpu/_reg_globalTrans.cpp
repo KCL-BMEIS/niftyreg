@@ -28,17 +28,17 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationFieldImage->data);
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
 
-   mat44 *targetMatrix;
+   mat44 *referenceMatrix;
    if(deformationFieldImage->sform_code>0)
    {
-      targetMatrix=&(deformationFieldImage->sto_xyz);
+      referenceMatrix=&(deformationFieldImage->sto_xyz);
    }
-   else targetMatrix=&(deformationFieldImage->qto_xyz);
+   else referenceMatrix=&(deformationFieldImage->qto_xyz);
 
    mat44 transformationMatrix;
    if(composition==true)
       transformationMatrix = *affineTransformation;
-   else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
+   else transformationMatrix = reg_mat44_mul(affineTransformation, referenceMatrix);
 
 #ifndef NDEBUG
    reg_mat44_disp(&transformationMatrix, (char *)"[NiftyReg DEBUG] Global affine transformation");
@@ -91,17 +91,17 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber];
 
-   mat44 *targetMatrix;
+   mat44 *referenceMatrix;
    if(deformationFieldImage->sform_code>0)
    {
-      targetMatrix=&(deformationFieldImage->sto_xyz);
+      referenceMatrix=&(deformationFieldImage->sto_xyz);
    }
-   else targetMatrix=&(deformationFieldImage->qto_xyz);
+   else referenceMatrix=&(deformationFieldImage->qto_xyz);
 
    mat44 transformationMatrix;
    if(composition==true)
       transformationMatrix = *affineTransformation;
-   else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
+   else transformationMatrix = reg_mat44_mul(affineTransformation, referenceMatrix);
 
 #ifndef NDEBUG
    reg_mat44_disp(&transformationMatrix, (char *)"[NiftyReg DEBUG] Global affine transformation");
@@ -199,30 +199,30 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
 void estimate_rigid_transformation2D(float** points1, float** points2, int num_points, mat44 * transformation)
 {
 
-   double centroid_target[2] = { 0.0 };
-   double centroid_result[2] = { 0.0 };
+   double centroid_reference[2] = { 0.0 };
+   double centroid_warped[2] = { 0.0 };
 
-   float centroid_targetFloat[2] = { 0.0 };
-   float centroid_resultFloat[2] = { 0.0 };
+   float centroid_referenceFloat[2] = { 0.0 };
+   float centroid_warpedFloat[2] = { 0.0 };
 
    for (int j = 0; j < num_points; ++j) {
-      centroid_target[0] += (double) points1[j][0];
-      centroid_target[1] += (double) points1[j][1];
-      centroid_result[0] += (double) points2[j][0];
-      centroid_result[1] += (double) points2[j][1];
+      centroid_reference[0] += (double) points1[j][0];
+      centroid_reference[1] += (double) points1[j][1];
+      centroid_warped[0] += (double) points2[j][0];
+      centroid_warped[1] += (double) points2[j][1];
    }
 
-   centroid_target[0] /= static_cast<double>(num_points);
-   centroid_target[1] /= static_cast<double>(num_points);
+   centroid_reference[0] /= static_cast<double>(num_points);
+   centroid_reference[1] /= static_cast<double>(num_points);
 
-   centroid_targetFloat[0] = static_cast<float>(centroid_target[0]);
-   centroid_targetFloat[1] = static_cast<float>(centroid_target[1]);
+   centroid_referenceFloat[0] = static_cast<float>(centroid_reference[0]);
+   centroid_referenceFloat[1] = static_cast<float>(centroid_reference[1]);
 
-   centroid_result[0] /= static_cast<double>(num_points);
-   centroid_result[1] /= static_cast<double>(num_points);
+   centroid_warped[0] /= static_cast<double>(num_points);
+   centroid_warped[1] /= static_cast<double>(num_points);
 
-   centroid_resultFloat[0] = static_cast<float>(centroid_result[0]);
-   centroid_resultFloat[1] = static_cast<float>(centroid_result[1]);
+   centroid_warpedFloat[0] = static_cast<float>(centroid_warped[0]);
+   centroid_warpedFloat[1] = static_cast<float>(centroid_warped[1]);
 
    float * w = reg_matrix1DAllocate<float>(2);
    float **v = reg_matrix2DAllocate<float>(2, 2);
@@ -230,11 +230,11 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
 
    // Demean the input points
    for (int j = 0; j < num_points; ++j) {
-      points1[j][0] = static_cast<float>(static_cast<double>(points1[j][0]) - static_cast<double>(centroid_targetFloat[0]));
-      points1[j][1] = static_cast<float>(static_cast<double>(points1[j][1]) - static_cast<double>(centroid_targetFloat[1]));
+      points1[j][0] = static_cast<float>(static_cast<double>(points1[j][0]) - static_cast<double>(centroid_referenceFloat[0]));
+      points1[j][1] = static_cast<float>(static_cast<double>(points1[j][1]) - static_cast<double>(centroid_referenceFloat[1]));
 
-      points2[j][0] = static_cast<float>(static_cast<double>(points2[j][0]) - static_cast<double>(centroid_resultFloat[0]));
-      points2[j][1] = static_cast<float>(static_cast<double>(points2[j][1]) - static_cast<double>(centroid_resultFloat[1]));
+      points2[j][0] = static_cast<float>(static_cast<double>(points2[j][0]) - static_cast<double>(centroid_warpedFloat[0]));
+      points2[j][1] = static_cast<float>(static_cast<double>(points2[j][1]) - static_cast<double>(centroid_warpedFloat[1]));
    }
 
    float **p1t = reg_matrix2DTranspose<float>(points1, num_points, 2);
@@ -259,11 +259,11 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
 
    // Calculate the translation
    float t[2];
-   t[0] = static_cast<float>(static_cast<double>(centroid_resultFloat[0]) - (static_cast<double>(r[0][0]) * static_cast<double>(centroid_targetFloat[0]) +
-         static_cast<double>(r[0][1]) * static_cast<double>(centroid_targetFloat[1])));
+   t[0] = static_cast<float>(static_cast<double>(centroid_warpedFloat[0]) - (static_cast<double>(r[0][0]) * static_cast<double>(centroid_referenceFloat[0]) +
+         static_cast<double>(r[0][1]) * static_cast<double>(centroid_referenceFloat[1])));
 
-   t[1] = static_cast<float>(static_cast<double>(centroid_resultFloat[1]) - (static_cast<double>(r[1][0]) * static_cast<double>(centroid_targetFloat[0]) +
-         static_cast<double>(r[1][1]) * static_cast<double>(centroid_targetFloat[1])));
+   t[1] = static_cast<float>(static_cast<double>(centroid_warpedFloat[1]) - (static_cast<double>(r[1][0]) * static_cast<double>(centroid_referenceFloat[0]) +
+         static_cast<double>(r[1][1]) * static_cast<double>(centroid_referenceFloat[1])));
 
    transformation->m[0][0] = r[0][0];
    transformation->m[0][1] = r[0][1];
@@ -318,39 +318,39 @@ void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, m
 void estimate_rigid_transformation3D(float** points1, float** points2, int num_points, mat44 * transformation)
 {
 
-   double centroid_target[3] = { 0.0 };
-   double centroid_result[3] = { 0.0 };
+   double centroid_reference[3] = { 0.0 };
+   double centroid_warped[3] = { 0.0 };
 
-   float centroid_targetFloat[3] = { 0.0 };
-   float centroid_resultFloat[3] = { 0.0 };
+   float centroid_referenceFloat[3] = { 0.0 };
+   float centroid_warpedFloat[3] = { 0.0 };
 
 
    for (int j = 0; j < num_points; ++j)
    {
-      centroid_target[0] += (double) points1[j][0];
-      centroid_target[1] += (double) points1[j][1];
-      centroid_target[2] += (double) points1[j][2];
+      centroid_reference[0] += (double) points1[j][0];
+      centroid_reference[1] += (double) points1[j][1];
+      centroid_reference[2] += (double) points1[j][2];
 
-      centroid_result[0] += (double) points2[j][0];
-      centroid_result[1] += (double) points2[j][1];
-      centroid_result[2] += (double) points2[j][2];
+      centroid_warped[0] += (double) points2[j][0];
+      centroid_warped[1] += (double) points2[j][1];
+      centroid_warped[2] += (double) points2[j][2];
    }
 
-   centroid_target[0] /= static_cast<double>(num_points);
-   centroid_target[1] /= static_cast<double>(num_points);
-   centroid_target[2] /= static_cast<double>(num_points);
+   centroid_reference[0] /= static_cast<double>(num_points);
+   centroid_reference[1] /= static_cast<double>(num_points);
+   centroid_reference[2] /= static_cast<double>(num_points);
 
-   centroid_targetFloat[0] = static_cast<float>(centroid_target[0]);
-   centroid_targetFloat[1] = static_cast<float>(centroid_target[1]);
-   centroid_targetFloat[2] = static_cast<float>(centroid_target[2]);
+   centroid_referenceFloat[0] = static_cast<float>(centroid_reference[0]);
+   centroid_referenceFloat[1] = static_cast<float>(centroid_reference[1]);
+   centroid_referenceFloat[2] = static_cast<float>(centroid_reference[2]);
 
-   centroid_result[0] /= static_cast<double>(num_points);
-   centroid_result[1] /= static_cast<double>(num_points);
-   centroid_result[2] /= static_cast<double>(num_points);
+   centroid_warped[0] /= static_cast<double>(num_points);
+   centroid_warped[1] /= static_cast<double>(num_points);
+   centroid_warped[2] /= static_cast<double>(num_points);
 
-   centroid_resultFloat[0] = static_cast<float>(centroid_result[0]);
-   centroid_resultFloat[1] = static_cast<float>(centroid_result[1]);
-   centroid_resultFloat[2] = static_cast<float>(centroid_result[2]);
+   centroid_warpedFloat[0] = static_cast<float>(centroid_warped[0]);
+   centroid_warpedFloat[1] = static_cast<float>(centroid_warped[1]);
+   centroid_warpedFloat[2] = static_cast<float>(centroid_warped[2]);
 
    float * w = reg_matrix1DAllocate<float>(3);
    float **v  = reg_matrix2DAllocate<float>(3, 3);
@@ -358,13 +358,13 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
 
    // Demean the input points
    for (int j = 0; j < num_points; ++j) {
-      points1[j][0] = static_cast<float>(static_cast<double>(points1[j][0]) - static_cast<double>(centroid_targetFloat[0]));
-      points1[j][1] = static_cast<float>(static_cast<double>(points1[j][1]) - static_cast<double>(centroid_targetFloat[1]));
-      points1[j][2] = static_cast<float>(static_cast<double>(points1[j][2]) - static_cast<double>(centroid_targetFloat[2]));
+      points1[j][0] = static_cast<float>(static_cast<double>(points1[j][0]) - static_cast<double>(centroid_referenceFloat[0]));
+      points1[j][1] = static_cast<float>(static_cast<double>(points1[j][1]) - static_cast<double>(centroid_referenceFloat[1]));
+      points1[j][2] = static_cast<float>(static_cast<double>(points1[j][2]) - static_cast<double>(centroid_referenceFloat[2]));
 
-      points2[j][0] = static_cast<float>(static_cast<double>(points2[j][0]) - static_cast<double>(centroid_resultFloat[0]));
-      points2[j][1] = static_cast<float>(static_cast<double>(points2[j][1]) - static_cast<double>(centroid_resultFloat[1]));
-      points2[j][2] = static_cast<float>(static_cast<double>(points2[j][2]) - static_cast<double>(centroid_resultFloat[2]));
+      points2[j][0] = static_cast<float>(static_cast<double>(points2[j][0]) - static_cast<double>(centroid_warpedFloat[0]));
+      points2[j][1] = static_cast<float>(static_cast<double>(points2[j][1]) - static_cast<double>(centroid_warpedFloat[1]));
+      points2[j][2] = static_cast<float>(static_cast<double>(points2[j][2]) - static_cast<double>(centroid_warpedFloat[2]));
    }
    //T** reg_matrix2DTranspose(T** mat, size_t arraySizeX, size_t arraySizeY);
    //T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, bool transposeMat2);
@@ -391,17 +391,17 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
 
    // Calculate the translation
    float t[3];
-   t[0] = static_cast<float>(static_cast<double>(centroid_resultFloat[0]) - (static_cast<double>(r[0][0]) * static_cast<double>(centroid_targetFloat[0]) +
-         static_cast<double>(r[0][1]) * static_cast<double>(centroid_targetFloat[1]) +
-         static_cast<double>(r[0][2]) * static_cast<double>(centroid_targetFloat[2])));
+   t[0] = static_cast<float>(static_cast<double>(centroid_warpedFloat[0]) - (static_cast<double>(r[0][0]) * static_cast<double>(centroid_referenceFloat[0]) +
+         static_cast<double>(r[0][1]) * static_cast<double>(centroid_referenceFloat[1]) +
+         static_cast<double>(r[0][2]) * static_cast<double>(centroid_referenceFloat[2])));
 
-   t[1] = static_cast<float>(static_cast<double>(centroid_resultFloat[1]) - (static_cast<double>(r[1][0]) * static_cast<double>(centroid_targetFloat[0]) +
-         static_cast<double>(r[1][1]) * static_cast<double>(centroid_targetFloat[1]) +
-         static_cast<double>(r[1][2]) * static_cast<double>(centroid_targetFloat[2])));
+   t[1] = static_cast<float>(static_cast<double>(centroid_warpedFloat[1]) - (static_cast<double>(r[1][0]) * static_cast<double>(centroid_referenceFloat[0]) +
+         static_cast<double>(r[1][1]) * static_cast<double>(centroid_referenceFloat[1]) +
+         static_cast<double>(r[1][2]) * static_cast<double>(centroid_referenceFloat[2])));
 
-   t[2] = static_cast<float>(static_cast<double>(centroid_resultFloat[2]) - (static_cast<double>(r[2][0]) * static_cast<double>(centroid_targetFloat[0]) +
-         static_cast<double>(r[2][1]) * static_cast<double>(centroid_targetFloat[1]) +
-         static_cast<double>(r[2][2]) * static_cast<double>(centroid_targetFloat[2])));
+   t[2] = static_cast<float>(static_cast<double>(centroid_warpedFloat[2]) - (static_cast<double>(r[2][0]) * static_cast<double>(centroid_referenceFloat[0]) +
+         static_cast<double>(r[2][1]) * static_cast<double>(centroid_referenceFloat[1]) +
+         static_cast<double>(r[2][2]) * static_cast<double>(centroid_referenceFloat[2])));
 
    transformation->m[0][0] = r[0][0];
    transformation->m[0][1] = r[0][1];
@@ -720,7 +720,7 @@ void optimize_2D(float* referencePosition, float* warpedPosition,
 
    for (int count = 0; count < max_iter; ++count)
    {
-      // Transform the points in the target
+      // Transform the points in the reference
       for (unsigned j = 0; j < num_points * 2; j += 2)
       {
          reg_mat33_mul(final, &referencePosition[j], &newWarpedPosition[j]);
@@ -801,7 +801,7 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
 
    for (int count = 0; count < max_iter; ++count)
    {
-      // Transform the points in the target
+      // Transform the points in the reference
       for (unsigned j = 0; j < num_points * 3; j+=3) {
          reg_mat44_mul(final, &referencePosition[j], &newWarpedPosition[j]);
       }

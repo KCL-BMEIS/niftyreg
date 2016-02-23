@@ -156,7 +156,7 @@ void get_SplineBasisValues(DTYPE basis, DTYPE *values, DTYPE *first)
    DTYPE FF= basis*basis;
    first[0] = static_cast<DTYPE>((4.0*basis - 3.0*FF - 1.0)/2.0);
    first[1] = static_cast<DTYPE>((9.0*basis - 10.0) * basis/2.0);
-   first[2] = static_cast<DTYPE>((8.0*basis - 9.0*FF + 1)/2.0);
+   first[2] = static_cast<DTYPE>((8.0*basis - 9.0*FF + 1.0)/2.0);
    first[3] = static_cast<DTYPE>((3.0*basis - 2.0) * basis/2.0);
 }
 template void get_SplineBasisValues<float>(float, float *, float *);
@@ -283,7 +283,7 @@ template void set_first_order_basis_values<float>(float *, float *, float *);
 template void set_first_order_basis_values<double>(double *, double *, double *);
 /* *************************************************************** */
 template <class DTYPE>
-void set_second_order_basis_values(DTYPE *basisXX, DTYPE *basisYY, DTYPE *basisXY)
+void set_second_order_bspline_basis_values(DTYPE *basisXX, DTYPE *basisYY, DTYPE *basisXY)
 {
    basisXX[0]=0.166667f;
    basisYY[0]=0.166667f;
@@ -313,11 +313,11 @@ void set_second_order_basis_values(DTYPE *basisXX, DTYPE *basisYY, DTYPE *basisX
    basisYY[8]=0.166667f;
    basisXY[8]=0.25f;
 }
-template void set_second_order_basis_values<float>(float *, float *, float *);
-template void set_second_order_basis_values<double>(double *, double *, double *);
+template void set_second_order_bspline_basis_values<float>(float *, float *, float *);
+template void set_second_order_bspline_basis_values<double>(double *, double *, double *);
 /* *************************************************************** */
 template <class DTYPE>
-void set_second_order_basis_values(DTYPE *basisXX, DTYPE *basisYY, DTYPE *basisZZ, DTYPE *basisXY, DTYPE *basisYZ, DTYPE *basisXZ)
+void set_second_order_bspline_basis_values(DTYPE *basisXX, DTYPE *basisYY, DTYPE *basisZZ, DTYPE *basisXY, DTYPE *basisYZ, DTYPE *basisXZ)
 {
    basisXX[0]=0.027778f;
    basisYY[0]=0.027778f;
@@ -482,8 +482,8 @@ void set_second_order_basis_values(DTYPE *basisXX, DTYPE *basisYY, DTYPE *basisZ
    basisYZ[26]=0.041667f;
    basisXZ[26]=0.041667f;
 }
-template void set_second_order_basis_values<float>(float *, float *, float *, float *, float *, float *);
-template void set_second_order_basis_values<double>(double *, double *, double *, double *, double *, double *);
+template void set_second_order_bspline_basis_values<float>(float *, float *, float *, float *, float *, float *);
+template void set_second_order_bspline_basis_values<double>(double *, double *, double *, double *, double *, double *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>

@@ -20,6 +20,7 @@
 #include "_reg_nmi.h"
 #include "_reg_dti.h"
 #include "_reg_ssd.h"
+#include "_reg_mind.h"
 #include "_reg_kld.h"
 #include "_reg_lncc.h"
 #include "_reg_tools.h"
@@ -27,11 +28,17 @@
 #include "_reg_optimiser.h"
 #include "float.h"
 #include <limits>
+//#include "Platform.h"
 
 template <class T>
 class reg_base : public InterfaceOptimiser
 {
 protected:
+   // Platform !!!
+//   Platform *platform;
+//   int platformCode;
+//   unsigned gpuIdx;
+
    // Optimiser related variables
    reg_optimiser<T> *optimiser;
    size_t maxiterationNumber;
@@ -50,6 +57,8 @@ protected:
    reg_lncc *measure_lncc;
    reg_nmi *measure_nmi;
    reg_multichannel_nmi *measure_multichannel_nmi;
+   reg_mind *measure_mind;
+   reg_mindssc *measure_mindssc;
 
    char *executableName;
    int referenceTimePoint;
@@ -88,8 +97,8 @@ protected:
    int *currentMask;
    nifti_image *warped;
    nifti_image *deformationFieldImage;
-   nifti_image *warpedGradientImage;
-   nifti_image *voxelBasedMeasureGradientImage;
+   nifti_image *warImgGradient;
+   nifti_image *voxelBasedMeasureGradient;
    unsigned int currentLevel;
 
    mat33 *forwardJacobianMatrix;
@@ -189,6 +198,12 @@ public:
    reg_base(int refTimePoint,int floTimePoint);
    virtual ~reg_base();
 
+   //PLATFORM
+//   void setPlaform(Platform* inputPlatform);
+//   Platform* getPlaform();
+//   void setPlatformCode(int inputPlatformCode);
+//   void setGpuIdx(unsigned inputGPUIdx);
+
    // Optimisation related functions
    void SetMaximalIterationNumber(unsigned int);
    void NoOptimisationAlongX()
@@ -218,6 +233,8 @@ public:
    virtual void UseNMISetFloatingBinNumber(int,int);
    virtual void UseMultiChannelNMI(int timepointNumber);
    virtual void UseSSD(int timepoint);
+   virtual void UseMIND(int timepoint);
+   virtual void UseMINDSSC(int timepoint);
    virtual void UseKLDivergence(int timepoint);
    virtual void UseDTI(bool *timepoint);
    virtual void UseLNCC(int timepoint, float stdDevKernel);

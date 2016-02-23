@@ -15,9 +15,7 @@ endif(USE_OPENCL)
 ##BUILD THE CPU LIBRARIES
 #-----------------------------------------------------------------------------
 add_library(_reg_maths ${NIFTYREG_LIBRARY_TYPE}
-  cpu/_reg_maths.h
   cpu/_reg_maths.cpp
-  cpu/_reg_maths_eigen.h
   cpu/_reg_maths_eigen.cpp
 )
 install(TARGETS _reg_maths
@@ -28,7 +26,6 @@ install(TARGETS _reg_maths
 install(FILES cpu/_reg_maths.h cpu/_reg_maths_eigen.h DESTINATION include)
 #-----------------------------------------------------------------------------
 add_library(_reg_tools ${NIFTYREG_LIBRARY_TYPE}
-  cpu/_reg_tools.h
   cpu/_reg_tools.cpp
 )
 target_link_libraries(_reg_tools
@@ -44,7 +41,6 @@ install(FILES cpu/_reg_tools.h DESTINATION include)
 #-----------------------------------------------------------------------------
 add_library(_reg_globalTrans
   ${NIFTYREG_LIBRARY_TYPE}
-  cpu/_reg_globalTrans.h
   cpu/_reg_globalTrans.cpp
 )
 target_link_libraries(_reg_globalTrans
@@ -92,6 +88,8 @@ add_library(_reg_measure
   cpu/_reg_lncc.cpp
   cpu/_reg_dti.h
   cpu/_reg_dti.cpp
+  cpu/_reg_mind.h
+  cpu/_reg_mind.cpp
 )
 target_link_libraries(_reg_measure
   _reg_tools
@@ -110,7 +108,6 @@ set(LIB_LIST
 )
 foreach(NAME ${LIB_LIST})
   add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
-  cpu/${NAME}.h
   cpu/${NAME}.cpp)
   target_link_libraries(${NAME}
   _reg_globalTrans
@@ -122,7 +119,6 @@ foreach(NAME ${LIB_LIST})
   )
   install(FILES cpu/${NAME}.h DESTINATION include)
 endforeach(NAME)
-#-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
 set(NAME _reg_aladin)
@@ -209,9 +205,37 @@ install(TARGETS ${NAME}
   )
 install(FILES _reg_base.cpp _reg_base.h DESTINATION include)
 install(FILES ${NAME}.cpp ${NAME}.h DESTINATION include)
-install(FILES ${NAME}_sym.cpp ${NAME}_sym.h DESTINATION include)
 install(FILES ${NAME}2.cpp ${NAME}2.h DESTINATION include)
+install(FILES ${NAME}_sym.cpp ${NAME}_sym.h DESTINATION include)
 install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
+install(FILES cpu/_reg_discrete_init.cpp cpu/_reg_discrete_init.h DESTINATION include)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+## BUILD THE DEV LIBRARY
+set(NAME _reg_dev)
+set(_reg_dev_files
+  cpu/_reg_mrf.h
+  cpu/_reg_mrf.cpp
+  cpu/_reg_discrete_init.h
+  cpu/_reg_discrete_init.cpp
+)
+set(_reg_dev_libraries
+  _reg_localTrans
+  _reg_resampling
+  _reg_globalTrans
+  _reg_measure
+  _reg_tools
+  _reg_ReadWriteImage
+)
+add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_dev_files})
+target_link_libraries(${NAME} ${_reg_dev_libraries})
+install(TARGETS ${NAME}
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  )
+install(FILES cpu/_reg_mrf.cpp cpu/_reg_mrf.h DESTINATION include)
+install(FILES cpu/_reg_discrete_init.cpp cpu/_reg_discrete_init.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY

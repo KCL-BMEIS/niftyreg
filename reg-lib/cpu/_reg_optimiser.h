@@ -128,6 +128,10 @@ public:
    {
       return this->currentIterationNumber;
    }
+   virtual size_t ResetCurrentIterationNumber()
+   {
+      return this->currentIterationNumber=0;
+   }
    virtual double GetBestObjFunctionValue()
    {
       return this->bestObjFunctionValue;

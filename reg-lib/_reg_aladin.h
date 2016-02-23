@@ -73,9 +73,10 @@ class reg_aladin
         float ReferenceLowerThreshold;
         float FloatingUpperThreshold;
         float FloatingLowerThreshold;
-        int gpuIdx;
 
         Platform *platform;
+        int platformCode;
+        unsigned gpuIdx;
 
         bool TestMatrixConvergence(mat44 *mat);
 
@@ -111,13 +112,6 @@ class reg_aladin
         reg_aladin();
         virtual ~reg_aladin();
         GetStringMacro(executableName)
-
-        int platformCode;
-
-        void setPlatformCode(const int platformCodeIn)
-        {
-            platformCode = platformCodeIn;
-        }
 
         //No allocating of the images here...
         void SetInputReference(nifti_image *input)
@@ -157,6 +151,15 @@ class reg_aladin
             return this->TransformationMatrix;
         }
         nifti_image *GetFinalWarpedImage();
+
+        Platform* getPlaform();
+        void setPlatformCode(const int platformCodeIn)
+        {
+            this->platformCode = platformCodeIn;
+        }
+        void setGpuIdx(unsigned gpuIdxIn){
+           this->gpuIdx = gpuIdxIn;
+        }
 
         SetMacro(MaxIterations,unsigned int)
         GetMacro(MaxIterations,unsigned int)
@@ -232,9 +235,6 @@ class reg_aladin
             this->captureRangeVox = captureRangeIn;
         }
 
-        void setGpuIdx(int gpuIdxIn) {
-            this->gpuIdx = gpuIdxIn;
-        }
         virtual int Check();
         virtual int Print();
         virtual void Run();
