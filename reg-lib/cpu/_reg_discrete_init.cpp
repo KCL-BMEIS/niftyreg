@@ -6,6 +6,7 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
                                      nifti_image *_controlPointImage,
                                      int _discrete_radius,
                                      int _discrete_increment,
+                                     int _reg_max_it,
                                      float _reg_weight)
 {
    this->measure = _measure;
@@ -14,6 +15,7 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
    this->discrete_radius = _discrete_radius;
    this->discrete_increment = _discrete_increment;
    this->regularisation_weight = _reg_weight;
+   this->reg_max_it = _reg_max_it;
 
    this->image_dim = this->referenceImage->nz > 1 ? 3 :2;
    this->label_1D_num = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
@@ -21,7 +23,8 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
    this->node_number = (size_t)this->controlPointImage->nx *
          this->controlPointImage->ny * this->controlPointImage->nz;
 
-   this->input_transformation = (float *)malloc(this->node_number*this->image_dim*sizeof(float));
+   this->input_transformation=nifti_copy_nim_info(this->controlPointImage);
+   this->input_transformation->data=(float *)malloc(this->node_number*this->image_dim*sizeof(float));
 
    // Allocate the discretised values in voxel
    int *discrete_values_vox = (int *)malloc(this->label_1D_num*sizeof(int));
@@ -100,7 +103,7 @@ reg_discrete_init::~reg_discrete_init()
    this->discrete_values_mm=NULL;
 
    if(this->input_transformation!=NULL)
-      free(this->input_transformation);
+      nifti_image_free(this->input_transformation);
    this->input_transformation=NULL;
 }
 /*****************************************************/
@@ -110,8 +113,7 @@ void reg_discrete_init::GetDiscretisedMeasure()
    measure->GetDiscretisedValue(this->controlPointImage,
                                 this->discretised_measures,
                                 this->discrete_radius,
-                                this->discrete_increment,
-                                (1.f-this->regularisation_weight));
+                                this->discrete_increment);
 #ifndef NDEBUG
    reg_print_msg_debug("reg_discrete_init::GetDiscretisedMeasure done");
 #endif
@@ -120,11 +122,16 @@ void reg_discrete_init::GetDiscretisedMeasure()
 /*****************************************************/
 void reg_discrete_init::getOptimalLabel()
 {
-   for(int node=0; node<this->node_number; ++node)
+   this->regularisation_convergence=0;
+   for(int node=0; node<this->node_number; ++node){
+      int current_optimal = this->optimal_label_index[node];
       this->optimal_label_index[node] =
-         std::min_element(this->regularised_measures+node*this->label_nD_num,
-                          this->regularised_measures+(node+1)*this->label_nD_num) -
-         (this->regularised_measures+node*this->label_nD_num);
+            std::min_element(this->regularised_measures+node*this->label_nD_num,
+                             this->regularised_measures+(node+1)*this->label_nD_num) -
+            (this->regularised_measures+node*this->label_nD_num);
+      if(current_optimal != this->optimal_label_index[node])
+         ++this->regularisation_convergence;
+   }
 #ifndef NDEBUG
    reg_print_msg_debug("reg_discrete_init::getOptimalLabel done");
 #endif
@@ -138,7 +145,7 @@ void reg_discrete_init::UpdateTransformation()
    float *cpPtrY = &cpPtrX[this->node_number];
    float *cpPtrZ = &cpPtrY[this->node_number];
 
-   float *inputCpPtrX = this->input_transformation;
+   float *inputCpPtrX = static_cast<float *>(this->input_transformation->data);
    float *inputCpPtrY = &inputCpPtrX[this->node_number];
    float *inputCpPtrZ = &inputCpPtrY[this->node_number];
 
@@ -163,43 +170,147 @@ void reg_discrete_init::UpdateTransformation()
 /*****************************************************/
 void reg_discrete_init::GetRegularisedMeasure()
 {
+   reg_getDisplacementFromDeformation(this->controlPointImage);
+   reg_getDisplacementFromDeformation(this->input_transformation);
+
    float *cpPtrX = static_cast<float *>(this->controlPointImage->data);
    float *cpPtrY = &cpPtrX[this->node_number];
    float *cpPtrZ = &cpPtrY[this->node_number];
 
-   float *inputCpPtrX = this->input_transformation;
+   float *inputCpPtrX = static_cast<float *>(this->input_transformation->data);
    float *inputCpPtrY = &inputCpPtrX[this->node_number];
    float *inputCpPtrZ = &inputCpPtrY[this->node_number];
 
-   int node_coord[3];
-   for(int z=1; z<this->controlPointImage->nz-1; z++) {
-      node_coord[2]=z;
-      for(int y=1; y<this->controlPointImage->ny-1; y++) {
-         node_coord[1]=y;
-         size_t node = (z*this->controlPointImage->ny+y)*this->controlPointImage->nx+1;
-         for(int x=1; x<this->controlPointImage->nx-1; x++){
-            node_coord[0]=x;
-            // Store the initial position
-            float position_x = cpPtrX[node];
-            float position_y = cpPtrY[node];
-            float position_z = cpPtrZ[node];
-            for(int label=0; label<this->label_nD_num; ++label){
-               // Update the control point position
-               cpPtrX[node] = inputCpPtrX[node] + this->discrete_values_mm[0][label];
-               cpPtrY[node] = inputCpPtrY[node] + this->discrete_values_mm[1][label];
-               cpPtrZ[node] = inputCpPtrZ[node] + this->discrete_values_mm[2][label];
-               size_t measure_index = node * this->label_nD_num + label;
-               this->regularised_measures[measure_index] = this->discretised_measures[measure_index] +
-                     100000.f*this->regularisation_weight * reg_spline_singlePointBendingEnergy(this->controlPointImage,
-                                                                                       node_coord);
-            }
-            cpPtrX[node] = position_x;
-            cpPtrY[node] = position_y;
-            cpPtrZ[node] = position_z;
-            ++node;
+   float *l2_penalisation = new float[this->label_nD_num];
+   int label_index=0;
+   for(float z=-this->discrete_radius; z<=this->discrete_radius; z+=this->discrete_increment)
+      for(float y=-this->discrete_radius; y<=this->discrete_radius; y+=this->discrete_increment)
+         for(float x=-this->discrete_radius; x<=this->discrete_radius; x+=this->discrete_increment)
+            l2_penalisation[label_index++] = 0.001f * sqrt(x*x+y*y+z*z);
+
+   float basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
+   float _basisXX, _basisYY, _basisZZ, _basisXY, _basisYZ, _basisXZ;
+   float basis[4], first[4], second[4];
+   get_BSplineBasisValues<float>(0.f, basis, first, second);
+   int i=0;
+   for(int c=0; c<3; ++c){
+      for(int b=0; b<3; ++b){
+         for(int a=0; a<3; ++a){
+            basisXX[i]=second[a]*basis[b]*basis[c];
+            basisYY[i]=basis[a]*second[b]*basis[c];
+            basisZZ[i]=basis[a]*basis[b]*second[c];
+            basisXY[i]=first[a]*first[b]*basis[c];
+            basisYZ[i]=basis[a]*first[b]*first[c];
+            basisXZ[i]=first[a]*basis[b]*first[c];
+            ++i;
          }
       }
    }
+   _basisXX = basisXX[13]; _basisYY = basisYY[13]; _basisZZ = basisZZ[13];
+   _basisXY = basisXY[13]; _basisYZ = basisYZ[13]; _basisXZ = basisXZ[13];
+
+   float splineCoeffX[27], splineCoeffY[27], splineCoeffZ[27];
+
+   size_t node = 0;
+   for(int z=0; z<this->controlPointImage->nz; z++) {
+      for(int y=0; y<this->controlPointImage->ny; y++) {
+         for(int x=0; x<this->controlPointImage->nx; x++){
+            // Copy all 27 required control point displacement
+            i=0;
+            for(int c=z-1; c<z+2; c++){
+               for(int b=y-1; b<y+2; b++){
+                  for(int a=x-1; a<x+2; a++){
+                     if(a>-1 && a<this->controlPointImage->nx &&
+                        b>-1 && b<this->controlPointImage->ny &&
+                        c>-1 && c<this->controlPointImage->nz){
+                        int node_index = (c*this->controlPointImage->ny+b)*this->controlPointImage->nx+a;
+                        splineCoeffX[i] = cpPtrX[node_index];
+                        splineCoeffY[i] = cpPtrY[node_index];
+                        splineCoeffZ[i] = cpPtrZ[node_index];
+                     }
+                     else{
+                        splineCoeffX[i] = 0.f;
+                        splineCoeffY[i] = 0.f;
+                        splineCoeffZ[i] = 0.f;
+                     }
+                     ++i;
+                  } // a
+               } // b
+            } // c
+            // Set the central control point to no displacement
+            splineCoeffX[13] = 0.f;
+            splineCoeffY[13] = 0.f;
+            splineCoeffZ[13] = 0.f;
+            // Compute the second derivative without the central control point
+            float XX_x=0.0, YY_x=0.0, ZZ_x=0.0;
+            float XY_x=0.0, YZ_x=0.0, XZ_x=0.0;
+            float XX_y=0.0, YY_y=0.0, ZZ_y=0.0;
+            float XY_y=0.0, YZ_y=0.0, XZ_y=0.0;
+            float XX_z=0.0, YY_z=0.0, ZZ_z=0.0;
+            float XY_z=0.0, YZ_z=0.0, XZ_z=0.0;
+            for(i=0; i<27; i++){
+               XX_x += basisXX[i]*splineCoeffX[i];
+               YY_x += basisYY[i]*splineCoeffX[i];
+               ZZ_x += basisZZ[i]*splineCoeffX[i];
+               XY_x += basisXY[i]*splineCoeffX[i];
+               YZ_x += basisYZ[i]*splineCoeffX[i];
+               XZ_x += basisXZ[i]*splineCoeffX[i];
+
+               XX_y += basisXX[i]*splineCoeffY[i];
+               YY_y += basisYY[i]*splineCoeffY[i];
+               ZZ_y += basisZZ[i]*splineCoeffY[i];
+               XY_y += basisXY[i]*splineCoeffY[i];
+               YZ_y += basisYZ[i]*splineCoeffY[i];
+               XZ_y += basisXZ[i]*splineCoeffY[i];
+
+               XX_z += basisXX[i]*splineCoeffZ[i];
+               YY_z += basisYY[i]*splineCoeffZ[i];
+               ZZ_z += basisZZ[i]*splineCoeffZ[i];
+               XY_z += basisXY[i]*splineCoeffZ[i];
+               YZ_z += basisYZ[i]*splineCoeffZ[i];
+               XZ_z += basisXZ[i]*splineCoeffZ[i];
+            }
+            float *_discrete_values_mm_x = this->discrete_values_mm[0];
+            float *_discrete_values_mm_y = this->discrete_values_mm[1];
+            float *_discrete_values_mm_z = this->discrete_values_mm[2];
+            for(int label=0; label<this->label_nD_num; ++label){
+
+               float valX = inputCpPtrX[node] + *_discrete_values_mm_x++;
+               float valY = inputCpPtrY[node] + *_discrete_values_mm_y++;
+               float valZ = inputCpPtrZ[node] + *_discrete_values_mm_z++;
+
+               size_t measure_index = node * this->label_nD_num + label;
+               this->regularised_measures[measure_index] =
+                     l2_penalisation[label] +
+                     (1.f-this->regularisation_weight) * this->discretised_measures[measure_index] +
+                     this->regularisation_weight * (
+                     reg_pow2(XX_x + valX * _basisXX) +
+                     reg_pow2(XX_y + valY * _basisXX) +
+                     reg_pow2(XX_z + valZ * _basisXX) +
+                     reg_pow2(YY_x + valX * _basisYY) +
+                     reg_pow2(YY_y + valY * _basisYY) +
+                     reg_pow2(YY_z + valZ * _basisYY) +
+                     reg_pow2(ZZ_x + valX * _basisZZ) +
+                     reg_pow2(ZZ_y + valY * _basisZZ) +
+                     reg_pow2(ZZ_z + valZ * _basisZZ) + 2.0 * (
+                     reg_pow2(XY_x + valX * _basisXY) +
+                     reg_pow2(XY_y + valY * _basisXY) +
+                     reg_pow2(XY_z + valZ * _basisXY) +
+                     reg_pow2(XZ_x + valX * _basisXZ) +
+                     reg_pow2(XZ_y + valY * _basisXZ) +
+                     reg_pow2(XZ_z + valZ * _basisXZ) +
+                     reg_pow2(YZ_x + valX * _basisYZ) +
+                     reg_pow2(YZ_y + valY * _basisYZ) +
+                     reg_pow2(YZ_z + valZ * _basisYZ)
+                     ) );
+            } // label
+            ++node;
+         } // x
+      } // y
+   } // z
+   delete []l2_penalisation;
+   reg_getDeformationFromDisplacement(this->controlPointImage);
+   reg_getDeformationFromDisplacement(this->input_transformation);
 #ifndef NDEBUG
    reg_print_msg_debug("reg_discrete_init::GetRegularisedMeasure done");
 #endif
@@ -208,8 +319,13 @@ void reg_discrete_init::GetRegularisedMeasure()
 /*****************************************************/
 void reg_discrete_init::Run()
 {
+   char text[255];
+   sprintf(text, "Control point number = %i", this->node_number);
+   reg_print_info("reg_discrete_init", text);
+   sprintf(text, "Discretised label number = %i", this->label_nD_num);
+   reg_print_info("reg_discrete_init", text);
    // Store the intial transformation parametrisation
-   memcpy(this->input_transformation, this->controlPointImage->data,
+   memcpy(this->input_transformation->data, this->controlPointImage->data,
           this->node_number*this->image_dim*sizeof(float));
    // Compute the discretised data term values
    this->GetDiscretisedMeasure();
@@ -222,10 +338,16 @@ void reg_discrete_init::Run()
    // Update the control point positions
    this->UpdateTransformation();
    // Run the regularisation optimisation
-   for(int i=0; i< 10; ++i){
+   for(int i=0; i< this->reg_max_it; ++i){
       this->GetRegularisedMeasure();
       this->getOptimalLabel();
       this->UpdateTransformation();
+      printf("Regularisation %i/%i done - BE=%g - [%g]\n",
+             i+1, this->reg_max_it,
+             reg_spline_approxBendingEnergy(this->controlPointImage),
+             (float)this->regularisation_convergence/this->node_number);
+      if(this->regularisation_convergence<this->node_number/100)
+         break;
    }
 #ifndef NDEBUG
    reg_print_msg_debug("reg_discrete_init::Run done");

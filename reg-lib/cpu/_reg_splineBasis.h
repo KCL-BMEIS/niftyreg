@@ -45,6 +45,27 @@ void get_BSplineBasisValue(DTYPE basis,
                            DTYPE &first,
                            DTYPE &second);
 
+extern "C++" template <class DTYPE>
+void set_first_order_basis_values(DTYPE *basisX,
+                                  DTYPE *basisY);
+
+extern "C++" template <class DTYPE>
+void set_first_order_basis_values(DTYPE *basisX,
+                                  DTYPE *basisY,
+                                  DTYPE *basisZ);
+
+extern "C++" template <class DTYPE>
+void set_second_order_bspline_basis_values(DTYPE *basisXX,
+                                           DTYPE *basisYY,
+                                           DTYPE *basisXY);
+extern "C++" template <class DTYPE>
+void set_second_order_bspline_basis_values(DTYPE *basisXX,
+                                           DTYPE *basisYY,
+                                           DTYPE *basisZZ,
+                                           DTYPE *basisXY,
+                                           DTYPE *basisYZ,
+                                           DTYPE *basisXZ);
+
 
 extern "C++" template<class DTYPE>
 void get_SplineBasisValues(DTYPE basis,
@@ -58,29 +79,6 @@ void get_SplineBasisValues(DTYPE basis,
                            DTYPE *values,
                            DTYPE *first,
                            DTYPE *second);
-
-
-extern "C++" template <class DTYPE>
-void set_first_order_basis_values(DTYPE *basisX,
-                                  DTYPE *basisY);
-extern "C++" template <class DTYPE>
-void set_first_order_basis_values(DTYPE *basisX,
-                                  DTYPE *basisY,
-                                  DTYPE *basisZ);
-
-
-extern "C++" template <class DTYPE>
-void set_second_order_basis_values(DTYPE *basisXX,
-                                   DTYPE *basisYY,
-                                   DTYPE *basisXY);
-extern "C++" template <class DTYPE>
-void set_second_order_basis_values(DTYPE *basisXX,
-                                   DTYPE *basisYY,
-                                   DTYPE *basisZZ,
-                                   DTYPE *basisXY,
-                                   DTYPE *basisYZ,
-                                   DTYPE *basisXZ);
-
 
 extern "C++" template <class DTYPE>
 void get_SlidedValues(DTYPE &defX,

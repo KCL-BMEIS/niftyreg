@@ -144,8 +144,7 @@ void reg_mrf::GetDiscretisedMeasure()
    measure->GetDiscretisedValue(this->controlPointImage,
                                 this->discretised_measures,
                                 this->discrete_radius,
-                                this->discrete_increment,
-                                (1.f-this->regularisation_weight));
+                                this->discrete_increment);
  #ifndef NDEBUG
    reg_print_msg_debug("reg_mrf::GetDiscretisedMeasure done");
 #endif
@@ -192,8 +191,7 @@ void reg_mrf::Run()
    this->GetDiscretisedMeasure();
    // Compute the regularisation term
    //for(int i=0;i<100; ++i){
-       //this->GetRegularisation();
-       this->GetRegularisation_l2();
+       this->GetRegularisation();
        // Extract the best label
        //memcpy(this->regularised_cost, this->discretised_measures, this->node_number*this->label_nD_num*sizeof(float));
        this->getOptimalLabel();
@@ -591,152 +589,6 @@ void reg_mrf::GetPrimsMST(float *edgeWeightMatrix,
 }
 /*****************************************************/
 void reg_mrf::GetRegularisation()
-{
-   //buffer variables
-   float *cost_current=new float[this->label_nD_num];
-   float *cost_parent = new float[this->label_nD_num];
-   float *vals=new float[this->label_nD_num];
-   int *inds=new int[this->label_nD_num];
-
-   float* message=new float[this->node_number*this->label_nD_num];
-   // Initialize the energy term with the data cost value
-   for(int i=0;i<this->node_number*this->label_nD_num;i++){
-      this->regularised_cost[i]=this->discretised_measures[i];
-      message[i]=0.0;
-   }
-
-   float *node_position_x = static_cast<float *>(this->controlPointImage->data);
-   float *node_position_y = &node_position_x[this->node_number];
-   float *node_position_z = &node_position_y[this->node_number];
-
-   //calculate mst-cost from children to root
-   for(int i=(this->node_number-1);i>0;i--){
-      //retreive the child of the current node - start with the leave
-      int current=this->orderedList[i];//ordered list of all the nodes from root to leaves
-      //retreive the parent node of the child
-      int parent=this->parentsList[current];
-
-      // Compute the control point grid coordinate
-      int grid_coord_current[3];
-      grid_coord_current[2] = current / this->controlPointImage->nx*this->controlPointImage->ny;
-      int residual = current - grid_coord_current[2] * this->controlPointImage->nx*this->controlPointImage->ny;
-      grid_coord_current[1] = residual / this->controlPointImage->nx;
-      grid_coord_current[0] = residual - grid_coord_current[1] * this->controlPointImage->nx;
-
-      // Compute the regularisation for each label pair
-      float init_position_current[3] = {
-          node_position_x[current],
-          node_position_y[current],
-          node_position_z[current],
-          };
-      float init_position_parent[3] = {
-          node_position_x[parent],
-          node_position_y[parent],
-          node_position_z[parent],
-          };
-      for(int lp=0;lp<this->label_nD_num;lp++){
-         node_position_x[parent] = init_position_parent[0] + this->discrete_values_mm[0][lp];
-         node_position_y[parent] = init_position_parent[1] + this->discrete_values_mm[1][lp];
-         node_position_z[parent] = init_position_parent[2] + this->discrete_values_mm[2][lp];
-         for(int lc=0;lc<this->label_nD_num;lc++){
-            node_position_x[current] = init_position_current[0] + this->discrete_values_mm[0][lc];
-            node_position_y[current] = init_position_current[1] + this->discrete_values_mm[1][lc];
-            node_position_z[current] = init_position_current[2] + this->discrete_values_mm[2][lc];
-            cost_current[lc] = this->regularised_cost[current*this->label_nD_num+lc] +
-                  this->regularisation_weight * reg_spline_singlePointBendingEnergy(this->controlPointImage, grid_coord_current);
-         }
-         cost_parent[lp] = *std::min_element(cost_current, cost_current+this->label_nD_num);
-      }
-      node_position_x[parent] = init_position_parent[0];
-      node_position_y[parent] = init_position_parent[1];
-      node_position_z[parent] = init_position_parent[2];
-      node_position_x[current] = init_position_current[0];
-      node_position_y[current] = init_position_current[1];
-      node_position_z[current] = init_position_current[2];
-
-      // Substract the min value to all cost = to not have to big numbers !
-      float min1 = *std::min_element(cost_parent, cost_parent+this->label_nD_num);
-      for(int l=0;l<this->label_nD_num;l++){
-         cost_parent[l] -= min1;
-      }
-
-      //add mincost to parent node
-      for(int l=0;l<this->label_nD_num;l++){
-         message[current*this->label_nD_num+l]=cost_parent[l];
-         this->regularised_cost[parent*this->label_nD_num+l]+=cost_parent[l];
-      }
-   }
-
-   //backwards pass mst-cost
-   for(int i=1;i<this->node_number;i++){
-      int current=this->orderedList[i];
-      int parent=this->parentsList[current];
-
-      // Compute the control point grid coordinate
-      int grid_coord_parent[3];
-      grid_coord_parent[2] = parent / this->controlPointImage->nx*this->controlPointImage->ny;
-      int residual = parent - grid_coord_parent[2] * this->controlPointImage->nx*this->controlPointImage->ny;
-      grid_coord_parent[1] = residual / this->controlPointImage->nx;
-      grid_coord_parent[0] = residual - grid_coord_parent[1] * this->controlPointImage->nx;
-
-      // Compute the regularisation for each label pair
-      float init_position_current[3] = {
-          node_position_x[current],
-          node_position_y[current],
-          node_position_z[current],
-          };
-      float init_position_parent[3] = {
-          node_position_x[parent],
-          node_position_y[parent],
-          node_position_z[parent],
-          };
-      for(int lc=0;lc<this->label_nD_num;lc++){
-         node_position_x[current] = init_position_current[0] + this->discrete_values_mm[0][lc];
-         node_position_y[current] = init_position_current[1] + this->discrete_values_mm[1][lc];
-         node_position_z[current] = init_position_current[2] + this->discrete_values_mm[2][lc];
-         for(int lp=0;lp<this->label_nD_num;lp++){
-            node_position_x[parent] = init_position_parent[0] + this->discrete_values_mm[0][lp];
-            node_position_y[parent] = init_position_parent[1] + this->discrete_values_mm[1][lp];
-            node_position_z[parent] = init_position_parent[2] + this->discrete_values_mm[2][lp];
-            cost_parent[lp] = this->regularised_cost[parent*this->label_nD_num+lp] -
-                  message[current*this->label_nD_num+lp] +
-                  message[parent*this->label_nD_num+lp] +
-                  this->regularisation_weight * reg_spline_singlePointBendingEnergy(this->controlPointImage, grid_coord_parent);
-         }
-         cost_current[lc] = *std::min_element(cost_parent, cost_parent+this->label_nD_num);
-      }
-      node_position_x[current] = init_position_current[0];
-      node_position_y[current] = init_position_current[1];
-      node_position_z[current] = init_position_current[2];
-      node_position_x[parent] = init_position_parent[0];
-      node_position_y[parent] = init_position_parent[1];
-      node_position_z[parent] = init_position_parent[2];
-
-      // Substract the min value to all cost
-      float min1=*std::min_element(cost_current, cost_current+this->label_nD_num);
-      for(int l=0;l<this->label_nD_num;l++){
-         cost_current[l]-=min1;
-      }
-
-      for(int l=0;l<this->label_nD_num;l++){
-         message[current*this->label_nD_num+l]=cost_current[l];
-      }
-
-   }
-
-   for(int i=0;i<this->node_number*this->label_nD_num;i++){
-      this->regularised_cost[i]+=message[i];
-   }
-
-   delete message;
-   delete cost_current;
-   delete cost_parent;
-   delete vals;
-   delete inds;
-   reg_print_msg_debug("GetRegularisation done");
-}
-/*****************************************************/
-void reg_mrf::GetRegularisation_l2()
 {
    /* Incremental diffusion regularisation of parametrised transformation
      using (globally optimal) belief-propagation on minimum spanning tree.

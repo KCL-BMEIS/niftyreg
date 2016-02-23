@@ -43,7 +43,7 @@ int main(int argc, char **argv)
    reg_tools_changeDatatype<float>(floatingImage);
 
    // Create control point grid image
-   int spacing_voxel = 8;
+   int spacing_voxel = 5;
    float grid_step_mm[3]={spacing_voxel*referenceImage->dx,
                           spacing_voxel*referenceImage->dy,
                           spacing_voxel*referenceImage->dz};
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
                                   deformationField,
                                   mask,
                                   false, //composition
-                                  true // bspline
+                                  false // bspline
                                   );
 
    // create a warped image
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
                      warpedImage,
                      deformationField,
                      mask,
-                     1,
+                     3,
                      0.f);
 
    int mind_length = 6;
@@ -145,6 +145,7 @@ int main(int argc, char **argv)
                                                            controlPointImage,
                                                            18,
                                                            3,
+                                                           100,
                                                            regularisationWeight);
 
    reg_dcObject->Run();
@@ -153,19 +154,20 @@ int main(int argc, char **argv)
                                   deformationField,
                                   mask,
                                   false, //composition
-                                  true // bspline
+                                  false // bspline
                                   );
    reg_resampleImage(floatingImage,
                      warpedImage,
                      deformationField,
                      mask,
-                     1,
+                     3,
                      0.f);
    GetMINDImageDesciptor(warpedImage,MINDSSC_warimg, mask);
 
 
    std::cout << "FINAL VALUE = " << ssdMeasure->GetSimilarityMeasureValue() << std::endl;
 
+   reg_io_WriteImageFile(controlPointImage, "cpp.nii.gz");
 
    warpedImage->cal_min = floatingImage->cal_min;
    warpedImage->cal_max = floatingImage->cal_max;
@@ -179,7 +181,7 @@ int main(int argc, char **argv)
    deformationField->dim[4] = deformationField->nt = deformationField->nu;
    deformationField->dim[5] = deformationField->nu = 1;
    deformationField->dim[0] = deformationField->ndim = 4;
-   reg_io_WriteImageFile(deformationField, "displacement.nii.gz");
+   reg_io_WriteImageFile(deformationField, "disp.nii.gz");
 
 
    delete reg_dcObject;

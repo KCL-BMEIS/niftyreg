@@ -82,7 +82,7 @@ void interpCubicSplineKernel(double relative, double *basis, double *derivative)
    double FF= relative*relative;
    derivative[0] = (4.0*relative - 3.0*FF - 1.0)/2.0;
    derivative[1] = (9.0*relative - 10.0) * relative/2.0;
-   derivative[2] = (8.0*relative - 9.0*FF + 1)/2.0;
+   derivative[2] = (8.0*relative - 9.0*FF + 1.0)/2.0;
    derivative[3] = (3.0*relative - 2.0) * relative/2.0;
 }
 /* *************************************************************** */

@@ -451,11 +451,12 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                                    int discretise_step,
                                    nifti_image *refImage,
                                    nifti_image *warImage,
-                                   int *mask,
-                                   float costWeight)
+                                   int *mask)
 {
    int cpx, cpy, cpz, t, x, y, z, a, b, c, blockIndex, voxIndex, voxIndex_t, discretisedIndex;
-   int nD_discrete_valueNumber = pow((discretise_radius / discretise_step) * 2 + 1, 3);
+   int label_1D_number = (discretise_radius / discretise_step) * 2 + 1;
+   int label_2D_number = label_1D_number*label_1D_number;
+   int label_nD_number = label_2D_number*label_1D_number;
    //output matrix = discretisedValue (first dimension displacement label, second dim. control point)
    float gridVox[3], imageVox[3];
    float currentValue;
@@ -485,6 +486,36 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
          refImage->ny*refImage->nz;
    DTYPE *refImgPtr = static_cast<DTYPE *>(refImage->data);
    DTYPE *warImgPtr = static_cast<DTYPE *>(warImage->data);
+
+   // Create a padded version of the warped image to avoid doundary condition check
+   int warPaddedOffset [3] = {
+      discretise_radius + blockSize[0],
+      discretise_radius + blockSize[1],
+      discretise_radius + blockSize[2],
+   };
+   int warPaddedDim[4] = {
+      warImage->nx + 2 * warPaddedOffset[0] + blockSize[0],
+      warImage->ny + 2 * warPaddedOffset[1] + blockSize[1],
+      warImage->nz + 2 * warPaddedOffset[2] + blockSize[2],
+      warImage->nt
+   };
+   size_t warPaddedVoxelNumber = (size_t)warPaddedDim[0] *
+         warPaddedDim[1] * warPaddedDim[2];
+   DTYPE *paddedWarImgPtr = (DTYPE *)calloc(warPaddedVoxelNumber*warPaddedDim[3], sizeof(DTYPE));
+   voxIndex=0;
+   voxIndex_t=0;
+   for(t=0; t<warImage->nt; ++t){
+      for(z=warPaddedOffset[2]; z<warPaddedDim[2]-warPaddedOffset[2]-blockSize[2]; ++z){
+         for(y=warPaddedOffset[1]; y<warPaddedDim[1]-warPaddedOffset[1]-blockSize[1]; ++y){
+            voxIndex= t * warPaddedVoxelNumber + (z*warPaddedDim[1]+y)*warPaddedDim[0]+warPaddedOffset[0];
+            for(x=warPaddedOffset[0]; x<warPaddedDim[0]-warPaddedOffset[0]-blockSize[0]; ++x){
+               paddedWarImgPtr[voxIndex]=warImgPtr[voxIndex_t];
+               ++voxIndex;
+               ++voxIndex_t;
+            }
+         }
+      }
+   }
 
    // Loop over all control points
    for(cpz=1; cpz<controlPointGridImage->nz-1; ++cpz){
@@ -527,56 +558,60 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                } // y
             } // z
             // Loop over the discretised value
-            int start_c=imageVox[2]-discretise_radius;
-            int end_c=imageVox[2]+discretise_radius;
 
-            discretisedIndex=0;
-            for(c=start_c; c<=end_c; c+=discretise_step){
-               for(b=imageVox[1]-discretise_radius; b<=imageVox[1]+discretise_radius; b+=discretise_step){
-                  for(a=imageVox[0]-discretise_radius; a<=imageVox[0]+discretise_radius; a+=discretise_step){
+            DTYPE warpedValue;
+            int paddedImageVox[3] = {
+               imageVox[0]+warPaddedOffset[0],
+               imageVox[1]+warPaddedOffset[1],
+               imageVox[2]+warPaddedOffset[2]
+            };
+            int cc;
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   shared(label_1D_number, label_2D_number, label_nD_number, discretise_step, discretise_radius, \
+   paddedImageVox, blockSize, warPaddedDim, paddedWarImgPtr, refBlockValue, warPaddedVoxelNumber, \
+   discretisedValue, currentControlPoint, voxelBlockNumber) \
+   private(a, b, c, cc, x, y, z, t, discretisedIndex, blockIndex, \
+   currentValue, warpedValue, voxIndex, voxIndex_t)
+#endif
+            for(cc=0; cc<label_1D_number; ++cc){
+               discretisedIndex = cc * label_2D_number;
+               c = paddedImageVox[2]-discretise_radius + cc*discretise_step;
+               for(b=paddedImageVox[1]-discretise_radius; b<=paddedImageVox[1]+discretise_radius; b+=discretise_step){
+                  for(a=paddedImageVox[0]-discretise_radius; a<=paddedImageVox[0]+discretise_radius; a+=discretise_step){
                      blockIndex = 0;
                      currentValue = 0;
                      for(z=c-blockSize[2]/2; z<c+blockSize[2]/2; ++z){
                         for(y=b-blockSize[1]/2; y<b+blockSize[1]/2; ++y){
                            for(x=a-blockSize[0]/2; x<a+blockSize[0]/2; ++x){
-                              if(x>-1 && x<warImage->nx && y>-1 && y<warImage->ny && z>-1 && z<warImage->nz){
-                                 voxIndex = (z*warImage->ny+y)*warImage->nx+x;
-                                 for(t=0; t<warImage->nt; ++t){
-                                    voxIndex_t = t*voxelNumber + voxIndex;
-                                    DTYPE warpedValue = warImgPtr[voxIndex_t];
-                                    if(warpedValue==warpedValue)
+                              voxIndex = (z*warPaddedDim[1]+y)*warPaddedDim[0]+x;
+                              for(t=0; t<warPaddedDim[3]; ++t){
+                                 voxIndex_t = t*warPaddedVoxelNumber + voxIndex;
+                                 warpedValue = paddedWarImgPtr[voxIndex_t];
+                                 if(warpedValue==warpedValue)
 #ifdef TEMP_USE_SAD
-                                       currentValue += fabs(warpedValue-refBlockValue[blockIndex]);
-                                    else currentValue += fabs(0.f-refBlockValue[blockIndex]);
+                                    currentValue += fabs(warpedValue-refBlockValue[blockIndex]);
+                                 else currentValue += fabs(0.f-refBlockValue[blockIndex]);
 #else
-                                       currentValue += reg_pow2(warpedValue-refBlockValue[blockIndex]);
-                                    else currentValue += reg_pow2(0.f-refBlockValue[blockIndex]);
+                                    currentValue += reg_pow2(warpedValue-refBlockValue[blockIndex]);
+                                 else currentValue += reg_pow2(0.f-refBlockValue[blockIndex]);
 #endif
-                                    blockIndex++;
-                                 }
-                              }
-                              else{
-                                 for(t=0; t<warImage->nt; ++t){
-#ifdef TEMP_USE_SAD
-                                    currentValue += fabs(0.f-refBlockValue[blockIndex]);
-#else
-                                    currentValue += reg_pow2(0.f-refBlockValue[blockIndex]);
-#endif
-                                    blockIndex++;
-                                 }
+                                 blockIndex++;
                               }
                            } // x
                         } // y
                      } // z
-                     discretisedValue[currentControlPoint * nD_discrete_valueNumber + discretisedIndex]=currentValue*costWeight;
+                     discretisedValue[currentControlPoint * label_nD_number + discretisedIndex] =
+                           currentValue / static_cast<float>(voxelBlockNumber);
                      ++discretisedIndex;
                   } // a
                } // b
-            } // c
+            } // cc
             ++currentControlPoint;
          } // cpx
       } // cpy
    } // cpz
+   free(paddedWarImgPtr);
 }
 /* *************************************************************** */
 template <class DTYPE>
@@ -586,8 +621,7 @@ void GetDiscretisedValueSSD_core2D(nifti_image *controlPointGridImage,
                                    int discretise_step,
                                    nifti_image *refImage,
                                    nifti_image *warImage,
-                                   int *mask,
-                                   float costWeight)
+                                   int *mask)
 {
    reg_print_fct_warn("GetDiscretisedValue_core2D");
    reg_print_msg_warn("No yet implemented");
@@ -597,8 +631,7 @@ void GetDiscretisedValueSSD_core2D(nifti_image *controlPointGridImage,
 void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
                                   float *discretisedValue,
                                   int discretise_radius,
-                                  int discretise_step,
-                                  float costWeight)
+                                  int discretise_step)
 {
    if(referenceImagePointer->nz > 1) {
       switch(this->referenceImagePointer->datatype)
@@ -611,8 +644,7 @@ void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
                 discretise_step,
                 this->referenceImagePointer,
                 this->warpedFloatingImagePointer,
-                this->referenceMaskPointer,
-                costWeight
+                this->referenceMaskPointer
                 );
          break;
       case NIFTI_TYPE_FLOAT64:
@@ -623,8 +655,7 @@ void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
                 discretise_step,
                 this->referenceImagePointer,
                 this->warpedFloatingImagePointer,
-                this->referenceMaskPointer,
-                costWeight
+                this->referenceMaskPointer
                 );
          break;
       default:
@@ -643,8 +674,7 @@ void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
                 discretise_step,
                 this->referenceImagePointer,
                 this->warpedFloatingImagePointer,
-                this->referenceMaskPointer,
-                costWeight
+                this->referenceMaskPointer
                 );
          break;
       case NIFTI_TYPE_FLOAT64:
@@ -655,8 +685,7 @@ void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
                 discretise_step,
                 this->referenceImagePointer,
                 this->warpedFloatingImagePointer,
-                this->referenceMaskPointer,
-                costWeight
+                this->referenceMaskPointer
                 );
          break;
       default:

@@ -52,7 +52,6 @@ private:
    void GetGraph(float *, int *);
    void GetPrimsMST(float *, int *);
    void GetRegularisation();
-   void GetRegularisation_l2();
    void getOptimalLabel();
    float* GetDiscretisedMeasurePtr();
 

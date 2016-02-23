@@ -26,11 +26,12 @@ class reg_discrete_init
 public:
    /// @brief Constructor
    reg_discrete_init(reg_measure *_measure,
-                           nifti_image *_referenceImage,
-                           nifti_image *_controlPointImage,
-                           int discrete_radius,
-                           int _discrete_increment,
-                           float _reg_weight);
+                     nifti_image *_referenceImage,
+                     nifti_image *_controlPointImage,
+                     int discrete_radius,
+                     int _discrete_increment,
+                     int _reg_max_it,
+                     float _reg_weight);
    /// @brief Destructor
    ~reg_discrete_init();
    void Run();
@@ -56,10 +57,12 @@ private:
    int label_1D_num; ///< Number of discretised values per axis
    int label_nD_num; ///< Total number of discretised values
 
-   float *input_transformation;
+   nifti_image *input_transformation;
    float *discretised_measures; ///< All discretised measures of similarity
    float *regularised_measures; ///< All combined measures
    int* optimal_label_index; ///< Optimimal label index for each node
+   int regularisation_convergence;
+   int reg_max_it; ///< Maximal number of iteration in the regularisation strategy
 };
 /********************************************************************************************************/
 #endif // _reg_discrete_init_H
