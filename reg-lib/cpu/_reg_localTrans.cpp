@@ -2437,7 +2437,7 @@ void reg_defField_compose(nifti_image *deformationField,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-/* Internal data structure to pass user data into optimizer that get passed to cost_function */
+/// @brief Internal data structure to pass user data into optimizer that get passed to cost_function
 struct ddata
 {
    nifti_image *deformationField;

@@ -21,6 +21,10 @@
 #include <queue>
 #include <algorithm>
 
+/** @brief Given two input images a discretisation of the measure of similarity is performed.
+ * The returned transformation is a balanced between the best discretised measure and a regularisation
+ * term (bending energy).
+ */
 class reg_discrete_init
 {
 public:

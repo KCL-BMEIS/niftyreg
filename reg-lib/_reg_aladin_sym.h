@@ -14,7 +14,7 @@
 
 #include "_reg_aladin.h"
 
-
+/// @brief Symmetric Block matching registration class
 template <class T>
 class reg_aladin_sym : public reg_aladin<T>
 {

@@ -211,12 +211,25 @@ endif(BUILD_TESTING)
 # add a target to generate API documentation with Doxygen
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-    add_custom_target(doc
-        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Generating API documentation with Doxygen" VERBATIM
-    )
-    message(STATUS "Found doxygen")
+  set(DOXY_EXCLUDED_PATTERNS "")
+  if(NOT BUILD_TESTING)
+    set(DOXY_EXCLUDED_PATTERNS "${DOXY_EXCLUDED_PATTERNS} */reg-test/*")
+  endif(NOT BUILD_TESTING)
+  if(NOT USE_NRRD)
+    set(DOXY_EXCLUDED_PATTERNS "${DOXY_EXCLUDED_PATTERNS} */reg-io/nrrd/*")
+  endif(NOT USE_NRRD)
+  if(NOT USE_CUDA)
+    set(DOXY_EXCLUDED_PATTERNS "${DOXY_EXCLUDED_PATTERNS} */reg-lib/cuda/*")
+  endif(NOT USE_CUDA)
+  if(NOT USE_OPENCL)
+    set(DOXY_EXCLUDED_PATTERNS "${DOXY_EXCLUDED_PATTERNS} */reg-lib/cl/*")
+  endif(NOT USE_OPENCL)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+  add_custom_target(doc
+    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating API documentation with Doxygen" VERBATIM
+  )
+  message(STATUS "Found doxygen")
 endif(DOXYGEN_FOUND)
 #-----------------------------------------------------------------------------

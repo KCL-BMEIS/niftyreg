@@ -8,8 +8,6 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */
-#ifndef MM_AVERAGE_CPP
-#define MM_AVERAGE_CPP
 
 #include "reg_average.h"
 
@@ -1060,5 +1058,3 @@ int main(int argc, char **argv)
 
    return EXIT_SUCCESS;
 }
-
-#endif

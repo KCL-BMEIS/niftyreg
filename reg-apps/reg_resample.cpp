@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _MM_RESAMPLE_CPP
-#define _MM_RESAMPLE_CPP
-
 #include <limits>
 
 #include "_reg_ReadWriteImage.h"
@@ -625,5 +622,3 @@ int main(int argc, char **argv)
    free(param);
    return EXIT_SUCCESS;
 }
-
-#endif

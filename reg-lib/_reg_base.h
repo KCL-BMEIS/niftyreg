@@ -30,6 +30,7 @@
 #include <limits>
 //#include "Platform.h"
 
+/// @brief Base registration class
 template <class T>
 class reg_base : public InterfaceOptimiser
 {

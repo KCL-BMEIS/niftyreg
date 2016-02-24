@@ -12,9 +12,6 @@
  *
  */
 
-#ifndef _MM_JACOBIAN_CPP
-#define _MM_JACOBIAN_CPP
-
 #include "_reg_ReadWriteImage.h"
 #include "_reg_ReadWriteMatrix.h"
 #include "_reg_globalTrans.h"
@@ -388,5 +385,3 @@ int main(int argc, char **argv)
 
    return EXIT_SUCCESS;
 }
-
-#endif

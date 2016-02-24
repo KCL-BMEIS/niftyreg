@@ -9,9 +9,6 @@
  *
  */
 
-#ifndef _MM_TRANSFORM_CPP
-#define _MM_TRANSFORM_CPP
-
 #include "_reg_ReadWriteImage.h"
 #include "_reg_ReadWriteMatrix.h"
 #include "_reg_resampling.h"
@@ -1232,5 +1229,3 @@ int main(int argc, char **argv)
 
    return EXIT_SUCCESS;
 }
-
-#endif
