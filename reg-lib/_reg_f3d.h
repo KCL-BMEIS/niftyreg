@@ -14,6 +14,7 @@
 
 #include "_reg_base.h"
 
+/// @brief Fast Free Form Deformation registration class
 template <class T>
 class reg_f3d : public reg_base<T>
 {

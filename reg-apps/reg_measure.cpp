@@ -9,8 +9,6 @@
  *
  */
 
-#ifndef _REG_MEASURE_CPP
-#define _REG_MEASURE_CPP
 
 #include <limits>
 
@@ -419,5 +417,3 @@ int main(int argc, char **argv)
    free(param);
    return EXIT_SUCCESS;
 }
-
-#endif

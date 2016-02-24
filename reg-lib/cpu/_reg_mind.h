@@ -40,9 +40,9 @@ public:
                           nifti_image *warRefImgPtr = NULL,
                           nifti_image *warRefGraPtr = NULL,
                           nifti_image *bckVoxBasedGraPtr = NULL);
-   /// @brief Returns the mind value
+   /// @brief Returns the mind based measure of similarity value
    virtual double GetSimilarityMeasureValue();
-   /// @brief Compute the voxel based mind gradient
+   /// @brief Compute the voxel based gradient
    virtual void GetVoxelBasedSimilarityMeasureGradient();
    /// @brief Measure class desstructor
    ~reg_mind();
@@ -61,7 +61,7 @@ protected:
    int mind_type;
 };
 /* *************************************************************** */
-/// @brief MIND measure of similarity class
+/// @brief MIND-SSC measure of similarity class
 class reg_mindssc : public reg_mind
 {
 public:

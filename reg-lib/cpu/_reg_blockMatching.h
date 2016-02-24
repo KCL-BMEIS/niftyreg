@@ -29,36 +29,7 @@
 #define NUM_BLOCKS_TO_COMPARE_2D 49
 #define NUM_BLOCKS_TO_COMPARE_1D 7
 
-/**
- *
- * Main algorithm of Ourselin et al.
- * The essence of the algorithm is as follows:
- * - Subdivide the reference image into a number of blocks and find
- *   the block in the warped image that is most similar.
- * - Get the point pair between the reference and the warped image block
- *   for the most similar block.
- *
- * reference: Pointer to the nifti reference image.
- * warped: Pointer to the nifti warped image.
- *
- *
- * block_size: Size of the block.
- * block_half_width: Half-width of the search neighborhood.
- * delta_1: Spacing between two consecutive blocks
- * delta_2: Sub-sampling value for a block
- *
- * Possible improvement: Take care of anisotropic data. Right now, we specify
- * the block size, neighborhood and the step sizes in voxels and it would be
- * better to specify it in millimeters and take the voxel size into account.
- * However, it would be more efficient to calculate this once (outside this
- * module) and pass these values for each axes. For the time being, we do this
- * simple implementation.
- *
- */
-
-/**
- * @brief Structure which contains the block matching parameters
- */
+/// @brief Structure which contains the block matching parameters
 struct _reg_blockMatchingParam
 {
    int totalBlockNumber;

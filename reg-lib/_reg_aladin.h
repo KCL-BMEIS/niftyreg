@@ -28,6 +28,32 @@ class AladinContent;
 class Platform;
 class Kernel;
 
+/**
+ * @brief Block matching registration class
+ *
+ * Main algorithm of Ourselin et al.
+ * The essence of the algorithm is as follows:
+ * - Subdivide the reference image into a number of blocks and find
+ *   the block in the warped image that is most similar.
+ * - Get the point pair between the reference and the warped image block
+ *   for the most similar block.
+ *
+ * reference: Pointer to the nifti reference image.
+ * warped: Pointer to the nifti warped image.
+ *
+ *
+ * block_size: Size of the block.
+ * block_half_width: Half-width of the search neighborhood.
+ * delta_1: Spacing between two consecutive blocks
+ * delta_2: Sub-sampling value for a block
+ *
+ * Possible improvement: Take care of anisotropic data. Right now, we specify
+ * the block size, neighborhood and the step sizes in voxels and it would be
+ * better to specify it in millimeters and take the voxel size into account.
+ * However, it would be more efficient to calculate this once (outside this
+ * module) and pass these values for each axes. For the time being, we do this
+ * simple implementation.
+ */
 template<class T>
 class reg_aladin
 {

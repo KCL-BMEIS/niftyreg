@@ -18,6 +18,7 @@
 #include <limits>
 #include "_reg_tools.h"
 /* *************************************************************** */
+/// @brief Structure that is used to store the distance between two corresponding voxel
 struct _reg_sorted_point3D
 {
     float reference[3];
@@ -44,6 +45,7 @@ struct _reg_sorted_point3D
 };
 typedef struct _reg_sorted_point3D _reg_sorted_point3D;
 /* *************************************************************** */
+/// @brief Structure that is used to store the distance between two corresponding pixel
 struct _reg_sorted_point2D
 {
     float reference[2];

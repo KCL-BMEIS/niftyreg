@@ -14,6 +14,8 @@
 #ifndef _REG_F3D2_H
 #define _REG_F3D2_H
 
+
+/// @brief Fast Free Form Diffeomorphic Deformation registration class
 template <class T>
 class reg_f3d2 : public reg_f3d_sym<T>
 {

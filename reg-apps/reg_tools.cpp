@@ -8,8 +8,6 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */
-#ifndef MM_TOOLS_CPP
-#define MM_TOOLS_CPP
 
 #include "_reg_ReadWriteImage.h"
 #include "_reg_resampling.h"
@@ -1065,4 +1063,3 @@ int main(int argc, char **argv)
     nifti_image_free(image);
     return EXIT_SUCCESS;
 }
-#endif
