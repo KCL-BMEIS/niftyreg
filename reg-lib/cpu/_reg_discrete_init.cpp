@@ -19,7 +19,7 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
 
    this->image_dim = this->referenceImage->nz > 1 ? 3 :2;
    this->label_1D_num = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
-   this->label_nD_num = std::pow(this->label_1D_num,this->image_dim);
+   this->label_nD_num = static_cast<int>(std::pow((double) this->label_1D_num,this->image_dim));
    this->node_number = (size_t)this->controlPointImage->nx *
          this->controlPointImage->ny * this->controlPointImage->nz;
 
