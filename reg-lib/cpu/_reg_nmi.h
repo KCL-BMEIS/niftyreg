@@ -79,37 +79,6 @@ protected:
 };
 /* *************************************************************** */
 /* *************************************************************** */
-/// @brief NMI measure of similarity classe
-class reg_multichannel_nmi : public reg_measure
-{
-public:
-   /// @brief reg_nmi class constructor
-   reg_multichannel_nmi() {}
-   /// @brief Returns the nmi value
-   double GetSimilarityMeasureValue()
-   {
-      return 0.;
-   }
-   /// @brief Compute the voxel based nmi gradient
-   void GetVoxelBasedSimilarityMeasureGradient()
-   {
-      ;
-   }
-   /// @brief reg_nmi class destructor
-   ~reg_multichannel_nmi() {}
-protected:
-   unsigned short referenceBinNumber[255];
-   unsigned short floatingBinNumber[255];
-   unsigned short totalBinNumber[255];
-   double *forwardJointHistogramProp;
-   double *forwardJointHistogramLog;
-   double *forwardEntropyValues;
-   double *backwardJointHistogramProp;
-   double *backwardJointHistogramLog;
-   double *backwardEntropyValues;
-};
-/* *************************************************************** */
-/* *************************************************************** */
 extern "C++" template <class DTYPE>
 void reg_getNMIValue(nifti_image *referenceImage,
                      nifti_image *warpedImage,
@@ -282,7 +251,38 @@ inline int previous(int current, int num_dims)
 
    return num_dims - 1;
 }
-
+/* *************************************************************** */
+/* *************************************************************** */
+/// @brief NMI measure of similarity classe
+class reg_multichannel_nmi : public reg_measure
+{
+public:
+   /// @brief reg_nmi class constructor
+   reg_multichannel_nmi() {}
+   /// @brief Returns the nmi value
+   double GetSimilarityMeasureValue()
+   {
+      return 0.;
+   }
+   /// @brief Compute the voxel based nmi gradient
+   void GetVoxelBasedSimilarityMeasureGradient()
+   {
+      ;
+   }
+   /// @brief reg_nmi class destructor
+   ~reg_multichannel_nmi() {}
+protected:
+   unsigned short referenceBinNumber[255];
+   unsigned short floatingBinNumber[255];
+   unsigned short totalBinNumber[255];
+   double *forwardJointHistogramProp;
+   double *forwardJointHistogramLog;
+   double *forwardEntropyValues;
+   double *backwardJointHistogramProp;
+   double *backwardJointHistogramLog;
+   double *backwardEntropyValues;
+};
+/* *************************************************************** */
 /// Multi channel NMI version - Entropy
 extern "C++"
 void reg_getMultiChannelNMIValue(nifti_image *referenceImages,

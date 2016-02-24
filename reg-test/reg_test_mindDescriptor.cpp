@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     //
     reg_tools_substractImageToImage(MIND_img, expectedImage, expectedImage);
     reg_tools_abs_image(expectedImage);
-    double max_difference = reg_tools_getMaxValue(expectedImage);
+    double max_difference = reg_tools_getMaxValue(expectedImage, -1);
 
     nifti_image_free(inputImage);
     nifti_image_free(expectedImage);

@@ -54,13 +54,17 @@ void reg_kld::InitialiseMeasure(nifti_image *refImgPtr,
    }
    // Input images are expected to be bounded between 0 and 1 as they
    // are meant to be probabilities
-   float min_ref = reg_tools_getMinValue(this->referenceImagePointer);
-   float max_ref = reg_tools_getMaxValue(this->referenceImagePointer);
-   float min_flo = reg_tools_getMinValue(this->floatingImagePointer);
-   float max_flo = reg_tools_getMaxValue(this->floatingImagePointer);
-   if(min_ref<0.f || min_flo<0.f || max_ref>1.f || max_flo>1.f){
-      reg_print_msg_error("The input images are expected to be probabilities to use the kld measure");
-      reg_exit();
+   for(int t=0; t<this->referenceImagePointer->nt; ++t){
+      if(this->activeTimePoint[t]==true){
+         float min_ref = reg_tools_getMinValue(this->referenceImagePointer, t);
+         float max_ref = reg_tools_getMaxValue(this->referenceImagePointer, t);
+         float min_flo = reg_tools_getMinValue(this->floatingImagePointer, t);
+         float max_flo = reg_tools_getMaxValue(this->floatingImagePointer, t);
+         if(min_ref<0.f || min_flo<0.f || max_ref>1.f || max_flo>1.f){
+            reg_print_msg_error("The input images are expected to be probabilities to use the kld measure");
+            reg_exit();
+         }
+      }
    }
 #ifndef NDEBUG
    char text[255];

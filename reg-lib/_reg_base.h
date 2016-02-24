@@ -57,7 +57,6 @@ protected:
    reg_dti *measure_dti;
    reg_lncc *measure_lncc;
    reg_nmi *measure_nmi;
-   reg_multichannel_nmi *measure_multichannel_nmi;
    reg_mind *measure_mind;
    reg_mindssc *measure_mindssc;
 
@@ -232,7 +231,6 @@ public:
 //    void DoNotApproximateParzenWindow();
    virtual void UseNMISetReferenceBinNumber(int,int);
    virtual void UseNMISetFloatingBinNumber(int,int);
-   virtual void UseMultiChannelNMI(int timepointNumber);
    virtual void UseSSD(int timepoint);
    virtual void UseMIND(int timepoint);
    virtual void UseMINDSSC(int timepoint);

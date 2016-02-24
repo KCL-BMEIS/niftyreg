@@ -133,7 +133,7 @@ int main(int argc, char **argv)
     // Compute the difference between the computed and inputed warped image
     reg_tools_substractImageToImage(cpu_warped, gpu_warped, diff_field);
     reg_tools_abs_image(diff_field);
-    double max_difference = reg_tools_getMaxValue(diff_field);
+    double max_difference = reg_tools_getMaxValue(diff_field, -1);
 
     // free the allocated images
     nifti_image_free(referenceImage);

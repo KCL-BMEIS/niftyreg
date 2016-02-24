@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     // Compute the difference between the computed and inputed deformation field
     reg_tools_substractImageToImage(referenceImage, expectedImage, expectedImage);
     reg_tools_abs_image(expectedImage);
-    double max_difference = reg_tools_getMaxValue(expectedImage);
+    double max_difference = reg_tools_getMaxValue(expectedImage, -1);
 
     nifti_image_free(referenceImage);
     nifti_image_free(expectedImage);

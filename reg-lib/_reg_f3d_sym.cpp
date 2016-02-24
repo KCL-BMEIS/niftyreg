@@ -827,9 +827,6 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
    if(this->measure_nmi!=NULL)
       this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient();
 
-   if(this->measure_multichannel_nmi!=NULL)
-      this->measure_multichannel_nmi->GetVoxelBasedSimilarityMeasureGradient();
-
    if(this->measure_ssd!=NULL)
       this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient();
 
@@ -1593,7 +1590,7 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
          this->measure_ssd==NULL &&
          this->measure_dti==NULL &&
          this->measure_lncc==NULL &&
-         this->measure_lncc==NULL)
+         this->measure_kld==NULL)
    {
       this->measure_nmi=new reg_nmi;
       for(int i=0; i<this->inputReference->nt; ++i)
@@ -1611,19 +1608,6 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                            this->backwardWarpedGradientImage,
                                            this->backwardVoxelBasedMeasureGradientImage
                                            );
-
-   if(this->measure_multichannel_nmi!=NULL)
-      this->measure_multichannel_nmi->InitialiseMeasure(this->currentReference,
-                                                        this->currentFloating,
-                                                        this->currentMask,
-                                                        this->warped,
-                                                        this->warImgGradient,
-                                                        this->voxelBasedMeasureGradient,
-                                                        this->currentFloatingMask,
-                                                        this->backwardWarped,
-                                                        this->backwardWarpedGradientImage,
-                                                        this->backwardVoxelBasedMeasureGradientImage
-                                                        );
 
    if(this->measure_ssd!=NULL)
       this->measure_ssd->InitialiseMeasure(this->currentReference,

@@ -169,8 +169,8 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
    }
 
    // Check the min and max values of the nifti image
-   float minValue = reg_tools_getMinValue(image);
-   float maxValue = reg_tools_getMaxValue(image);
+   float minValue = reg_tools_getMinValue(image, -1);
+   float maxValue = reg_tools_getMaxValue(image, -1);
 
    // Rescale the image intensites if  they are outside of the range
    if(minValue<0 || maxValue>255)

@@ -38,7 +38,6 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->measure_dti=NULL;
    this->measure_lncc=NULL;
    this->measure_nmi=NULL;
-   this->measure_multichannel_nmi=NULL;
    this->measure_mind=NULL;
    this->measure_mindssc=NULL;
 
@@ -216,8 +215,6 @@ reg_base<T>::~reg_base()
 
    if(this->measure_nmi!=NULL)
       delete this->measure_nmi;
-   if(this->measure_multichannel_nmi!=NULL)
-      delete this->measure_multichannel_nmi;
    if(this->measure_ssd!=NULL)
       delete this->measure_ssd;
    if(this->measure_kld!=NULL)
@@ -770,15 +767,6 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->voxelBasedMeasureGradient
                                           );
 
-   if(this->measure_multichannel_nmi!=NULL)
-      this->measure_multichannel_nmi->InitialiseMeasure(this->currentReference,
-            this->currentFloating,
-            this->currentMask,
-            this->warped,
-            this->warImgGradient,
-            this->voxelBasedMeasureGradient
-                                                       );
-
    if(this->measure_ssd!=NULL)
       this->measure_ssd->InitialiseMeasure(this->currentReference,
                                            this->currentFloating,
@@ -996,9 +984,6 @@ double reg_base<T>::ComputeSimilarityMeasure()
    if(this->measure_nmi!=NULL)
       measure += this->measure_nmi->GetSimilarityMeasureValue();
 
-   if(this->measure_multichannel_nmi!=NULL)
-      measure += this->measure_multichannel_nmi->GetSimilarityMeasureValue();
-
    if(this->measure_ssd!=NULL)
       measure += this->measure_ssd->GetSimilarityMeasureValue();
 
@@ -1028,9 +1013,9 @@ template <class T>
 void reg_base<T>::GetVoxelBasedGradient()
 {
    // The intensity gradient is first computed
-   if(this->measure_nmi!=NULL || this->measure_multichannel_nmi!=NULL ||
-         this->measure_ssd!=NULL || this->measure_kld!=NULL ||
-         this->measure_lncc!=NULL || this->measure_dti!=NULL)
+   if(this->measure_nmi!=NULL || this->measure_ssd!=NULL ||
+         this->measure_kld!=NULL || this->measure_lncc!=NULL ||
+         this->measure_dti!=NULL)
    {
       //    if(this->measure_dti!=NULL){
       //        reg_getImageGradient(this->currentFloating,
@@ -1060,9 +1045,6 @@ void reg_base<T>::GetVoxelBasedGradient()
    // The gradient of the various measures of similarity are computed
    if(this->measure_nmi!=NULL)
       this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient();
-
-   if(this->measure_multichannel_nmi!=NULL)
-      this->measure_multichannel_nmi->GetVoxelBasedSimilarityMeasureGradient();
 
    if(this->measure_ssd!=NULL)
       this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient();
@@ -1132,18 +1114,6 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
    this->measure_nmi->SetFloatingBinNumber(floBinNumber+4, timepoint);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseNMISetFloatingBinNumber");
-#endif
-}
-/* *************************************************************** */
-template<class T>
-void reg_base<T>::UseMultiChannelNMI(int timepointNumber)
-{
-   if(this->measure_multichannel_nmi==NULL)
-      this->measure_multichannel_nmi=new reg_multichannel_nmi;
-   for(int i=0; i<timepointNumber; ++i)
-      this->measure_multichannel_nmi->SetActiveTimepoint(i);
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::UseMultiChannelNMI");
 #endif
 }
 /* *************************************************************** */

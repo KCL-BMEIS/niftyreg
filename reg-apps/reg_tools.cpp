@@ -822,8 +822,8 @@ int main(int argc, char **argv)
         nifti_image *scaledImage = nifti_copy_nim_info(image);
         scaledImage->data = (void *)malloc(scaledImage->nvox * scaledImage->nbyper);
         // Rescale the input image
-        float min_value = reg_tools_getMinValue(image);
-        float max_value = reg_tools_getMaxValue(image);
+        float min_value = reg_tools_getMinValue(image, -1);
+        float max_value = reg_tools_getMaxValue(image, -1);
         reg_tools_substractValueToImage(image, scaledImage, min_value);
         reg_tools_multiplyValueToImage(scaledImage, scaledImage, 255.f/(max_value-min_value));
         // Create the rgb image
@@ -1048,7 +1048,7 @@ int main(int argc, char **argv)
                 } // bx
             } // by
         } // bz
-        outputImage->cal_max=reg_tools_getMaxValue(outputImage);
+        outputImage->cal_max=reg_tools_getMaxValue(outputImage, -1);
 
         free(temp_mask);
 

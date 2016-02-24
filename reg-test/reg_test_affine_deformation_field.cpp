@@ -107,7 +107,7 @@ int main(int argc, char **argv)
     diff_field->data = (void *) malloc(diff_field->nvox*diff_field->nbyper);
     reg_tools_substractImageToImage(inputDeformationField, test_field, diff_field);
     reg_tools_abs_image(diff_field);
-    double max_difference = reg_tools_getMaxValue(diff_field);
+    double max_difference = reg_tools_getMaxValue(diff_field, -1);
 
     nifti_image_free(referenceImage);
     nifti_image_free(inputDeformationField);

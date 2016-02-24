@@ -3614,8 +3614,8 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
    if(updateStepNumber || flowFieldImage->intent_p2==0)
    {
       // Check the largest value
-      float extrema = fabsf(reg_tools_getMinValue(flowFieldImage));
-      float temp = reg_tools_getMaxValue(flowFieldImage);
+      float extrema = fabsf(reg_tools_getMinValue(flowFieldImage, -1));
+      float temp = reg_tools_getMaxValue(flowFieldImage, -1);
       extrema=extrema>temp?extrema:temp;
       // Check the values for scaling purpose
       float maxLength;

@@ -2433,44 +2433,55 @@ int reg_tools_removeNanFromMask(nifti_image *image,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-float reg_tools_getMinValue1(nifti_image *image)
+float reg_tools_getMinValue_core(nifti_image *image, int timepoint)
 {
+   if(timepoint<-1 || timepoint>=image->nt)
+      reg_print_msg_error("reg_tools_getMinValue_core. The required time point does not exists");
    // Create a pointer to the image data
    DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
    // Set a variable to store the minimal value
    float minValue=std::numeric_limits<DTYPE>::max();
    if(image->scl_slope==0) image->scl_slope=1.f;
+
+   size_t voxelNumber = (size_t)image->nx*
+         image->ny*image->nz;
    // Loop over all voxel to find the lowest value
-   for(size_t i=0; i<image->nvox; ++i)
-   {
-      DTYPE currentVal = (DTYPE)((float)imgPtr[i] * image->scl_slope + image->scl_inter);
-      minValue=currentVal<minValue?currentVal:minValue;
+   for(size_t time=0; time<image->nt; ++time){
+      if(time==timepoint || timepoint==-1){
+         for(size_t u=0; u<image->nu; ++u){
+            DTYPE *currentVolumePtr = &imgPtr[(u*image->nt+time)*voxelNumber];
+            for(size_t i=0; i<voxelNumber; ++i){
+               DTYPE currentVal = (DTYPE)((float)currentVolumePtr[i] * image->scl_slope + image->scl_inter);
+               minValue=currentVal<minValue?currentVal:minValue;
+            }
+         }
+      }
    }
    // The lowest value is returned
    return minValue;
 }
 /* *************************************************************** */
-float reg_tools_getMinValue(nifti_image *image)
+float reg_tools_getMinValue(nifti_image *image, int timepoint)
 {
    // Check the image data type
    switch(image->datatype)
    {
    case NIFTI_TYPE_UINT8:
-      return reg_tools_getMinValue1<unsigned char>(image);
+      return reg_tools_getMinValue_core<unsigned char>(image, timepoint);
    case NIFTI_TYPE_INT8:
-      return reg_tools_getMinValue1<char>(image);
+      return reg_tools_getMinValue_core<char>(image, timepoint);
    case NIFTI_TYPE_UINT16:
-      return reg_tools_getMinValue1<unsigned short>(image);
+      return reg_tools_getMinValue_core<unsigned short>(image, timepoint);
    case NIFTI_TYPE_INT16:
-      return reg_tools_getMinValue1<short>(image);
+      return reg_tools_getMinValue_core<short>(image, timepoint);
    case NIFTI_TYPE_UINT32:
-      return reg_tools_getMinValue1<unsigned int>(image);
+      return reg_tools_getMinValue_core<unsigned int>(image, timepoint);
    case NIFTI_TYPE_INT32:
-      return reg_tools_getMinValue1<int>(image);
+      return reg_tools_getMinValue_core<int>(image, timepoint);
    case NIFTI_TYPE_FLOAT32:
-      return reg_tools_getMinValue1<float>(image);
+      return reg_tools_getMinValue_core<float>(image, timepoint);
    case NIFTI_TYPE_FLOAT64:
-      return reg_tools_getMinValue1<double>(image);
+      return reg_tools_getMinValue_core<double>(image, timepoint);
    default:
       reg_print_fct_error("reg_tools_getMinValue");
       reg_print_msg_error("The image data type is not supported");
@@ -2480,44 +2491,55 @@ float reg_tools_getMinValue(nifti_image *image)
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-DTYPE reg_tools_getMaxValue1(nifti_image *image)
+DTYPE reg_tools_getMaxValue_core(nifti_image *image, int timepoint)
 {
+   if(timepoint<-1 || timepoint>=image->nt)
+      reg_print_msg_error("reg_tools_getMinValue_core. The required time point does not exists");
    // Create a pointer to the image data
    DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
-   // Set a variable to store the maximal value
+   // Set a variable to store the minimal value
    double maxValue=-std::numeric_limits<DTYPE>::max();
    if(image->scl_slope==0) image->scl_slope=1.f;
+
+   size_t voxelNumber = (size_t)image->nx *
+         image->ny * image->nz;
    // Loop over all voxel to find the lowest value
-   for(size_t i=0; i<image->nvox; ++i)
-   {
-      double currentVal = (static_cast<double>(imgPtr[i]) * image->scl_slope + image->scl_inter);
-      maxValue=currentVal>maxValue?currentVal:maxValue;
-   }
+   for(int time=0; time<image->nt; ++time){
+      if(time==timepoint || timepoint==-1){
+         for(int u=0; u<image->nu; ++u){
+            DTYPE *currentVolumePtr = &imgPtr[(u*image->nt+time)*voxelNumber];
+            for(size_t i=0; i<voxelNumber; ++i){
+               DTYPE currentVal = (DTYPE)((float)currentVolumePtr[i] * image->scl_slope + image->scl_inter);
+               maxValue=currentVal>maxValue?currentVal:maxValue;
+            } // u
+         } // t
+      } // if time
+   } // time
    // The lowest value is returned
-   return (DTYPE) maxValue;
+   return maxValue;
 }
 /* *************************************************************** */
-float reg_tools_getMaxValue(nifti_image *image)
+float reg_tools_getMaxValue(nifti_image *image, int timepoint)
 {
    // Check the image data type
    switch(image->datatype)
    {
    case NIFTI_TYPE_UINT8:
-      return reg_tools_getMaxValue1<unsigned char>(image);
+      return reg_tools_getMaxValue_core<unsigned char>(image, timepoint);
    case NIFTI_TYPE_INT8:
-      return reg_tools_getMaxValue1<char>(image);
+      return reg_tools_getMaxValue_core<char>(image, timepoint);
    case NIFTI_TYPE_UINT16:
-      return reg_tools_getMaxValue1<unsigned short>(image);
+      return reg_tools_getMaxValue_core<unsigned short>(image, timepoint);
    case NIFTI_TYPE_INT16:
-      return reg_tools_getMaxValue1<short>(image);
+      return reg_tools_getMaxValue_core<short>(image, timepoint);
    case NIFTI_TYPE_UINT32:
-      return reg_tools_getMaxValue1<unsigned int>(image);
+      return reg_tools_getMaxValue_core<unsigned int>(image, timepoint);
    case NIFTI_TYPE_INT32:
-      return reg_tools_getMaxValue1<int>(image);
+      return reg_tools_getMaxValue_core<int>(image, timepoint);
    case NIFTI_TYPE_FLOAT32:
-      return reg_tools_getMaxValue1<float>(image);
+      return reg_tools_getMaxValue_core<float>(image, timepoint);
    case NIFTI_TYPE_FLOAT64:
-      return reg_tools_getMaxValue1<double>(image);
+      return reg_tools_getMaxValue_core<double>(image, timepoint);
    default:
       reg_print_fct_error("reg_tools_getMaxValue");
       reg_print_msg_error("The image data type is not supported");
