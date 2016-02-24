@@ -77,10 +77,8 @@ void Usage(char *exec)
    int defaultOpenMPValue=1;
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   char text[255];
-   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
           defaultOpenMPValue, omp_get_num_procs());
-   reg_print_info(exec, text);
 #endif
 #ifdef _GIT_HASH
    printf("\n\t--version\n\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
@@ -412,6 +410,7 @@ int main(int argc, char **argv)
                                      NULL);
    }
 
+
    /* ************************* */
    /* WARP THE FLOATING IMAGE */
    /* ************************* */
@@ -486,6 +485,7 @@ int main(int argc, char **argv)
                                               sizeof(mat33));
             reg_defField_getJacobianMatrix(deformationFieldImage,
                                            jacobian);
+
 
             reg_resampleImage_PSF(floatingImage,
                                   warpedImage,
