@@ -152,6 +152,4 @@ public:
    }
 };
 
-//#include "_reg_f3d.cpp"
-
 #endif

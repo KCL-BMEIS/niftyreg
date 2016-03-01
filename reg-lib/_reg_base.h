@@ -312,6 +312,4 @@ public:
    }
 };
 
-//#include "_reg_base.cpp"
-
 #endif // _REG_BASE_H

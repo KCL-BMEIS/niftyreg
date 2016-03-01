@@ -90,48 +90,36 @@ set(measure_files
   cpu/_reg_mind.h
   cpu/_reg_mind.cpp
 )
-if(BUILD_DEV)
-  set(measure_files
-    ${measure_files}
-    cpu/_reg_discrete_init.h
-    cpu/_reg_discrete_init.cpp
-  )
-endif(BUILD_DEV)
 add_library(_reg_measure ${NIFTYREG_LIBRARY_TYPE} ${measure_files})
-target_link_libraries(_reg_measure
-  _reg_tools
-)
+target_link_libraries(_reg_measure _reg_tools)
 install(TARGETS _reg_measure
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
 install(FILES cpu/_reg_measure.h cpu/_reg_nmi.h cpu/_reg_ssd.h cpu/_reg_kld.h cpu/_reg_lncc.h cpu/_reg_dti.h cpu/_reg_mind.h DESTINATION include)
-if(BUILD_DEV)
-  install(FILES cpu/_reg_discrete_init.h DESTINATION include)
-endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
-set(LIB_LIST
-  _reg_resampling
-  _reg_blockMatching
-  _reg_femTrans
+add_library(_reg_resampling ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_resampling.cpp)
+target_link_libraries(_reg_resampling _reg_globalTrans
 )
-foreach(NAME ${LIB_LIST})
-  add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
-  cpu/${NAME}.cpp)
-  target_link_libraries(${NAME}
-  _reg_globalTrans
-  )
-  install(TARGETS ${NAME}
+install(TARGETS _reg_resampling
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-  install(FILES cpu/${NAME}.h DESTINATION include)
-endforeach(NAME)
+install(FILES cpu/_reg_resampling.h DESTINATION include)
+#-----------------------------------------------------------------------------
+add_library(_reg_blockMatching ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_blockMatching.cpp)
+target_link_libraries(_reg_blockMatching _reg_globalTrans
+)
+install(TARGETS _reg_blockMatching
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  )
+install(FILES cpu/_reg_blockMatching.h DESTINATION include)
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
-set(NAME _reg_aladin)
 set(_reg_aladin_files
   AladinContent.cpp
   AladinContent.h
@@ -161,15 +149,16 @@ set(_reg_aladin_libraries
   ${NR_OPENCL_LIBRARIES}
   ${NR_CUDA_LIBRARIES}
 )
-add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_aladin_files})
-target_link_libraries(${NAME} ${_reg_aladin_libraries})
-install(TARGETS ${NAME}
+add_library(_reg_aladin ${NIFTYREG_LIBRARY_TYPE} ${_reg_aladin_files})
+target_link_libraries(_reg_aladin ${_reg_aladin_libraries})
+install(TARGETS _reg_aladin
   RUNTIME DESTINATION lib
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(FILES ${NAME}.h ${NAME}_sym.h cpu/_reg_macros.h DESTINATION include)
-install(FILES ${NAME}.cpp ${NAME}_sym.cpp DESTINATION include)
+install(FILES cpu/_reg_macros.h DESTINATION include)
+install(FILES _reg_aladin.h _reg_aladin_sym.h DESTINATION include)
+install(FILES _reg_aladin.cpp _reg_aladin_sym.cpp DESTINATION include)
 install(FILES AladinContent.h Platform.h  DESTINATION include)
 install(FILES
         Kernel.h
@@ -187,64 +176,75 @@ install(FILES
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE F3D LIBRARY
-set(NAME _reg_f3d)
 set(_reg_f3d_files
     _reg_base.h
     _reg_base.cpp
-    ${NAME}.h
-    ${NAME}.cpp
-    ${NAME}2.h
-    ${NAME}2.cpp
-    ${NAME}_sym.h
-    ${NAME}_sym.cpp
+    _reg_f3d.h
+    _reg_f3d.cpp
+    _reg_f3d2.h
+    _reg_f3d2.cpp
+    _reg_f3d_sym.h
+    _reg_f3d_sym.cpp
 )
+if(BUILD_DEV)
+  set(_reg_f3d_files
+    ${_reg_f3d_files}
+    cpu/_reg_discrete_init.h
+    cpu/_reg_discrete_init.cpp
+  )
+endif(BUILD_DEV)
 set(_reg_f3d_libraries
   _reg_localTrans
-  _reg_resampling
   _reg_globalTrans
+  _reg_resampling
   _reg_measure
   _reg_tools
   _reg_ReadWriteImage
 )
-add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_f3d_files})
-target_link_libraries(${NAME} ${_reg_f3d_libraries})
-install(TARGETS ${NAME}
+add_library(_reg_f3d ${NIFTYREG_LIBRARY_TYPE} ${_reg_f3d_files})
+target_link_libraries(_reg_f3d ${_reg_f3d_libraries})
+install(TARGETS _reg_f3d
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(FILES _reg_base.cpp _reg_base.h DESTINATION include)
-install(FILES ${NAME}.cpp ${NAME}.h DESTINATION include)
-install(FILES ${NAME}2.cpp ${NAME}2.h DESTINATION include)
-install(FILES ${NAME}_sym.cpp ${NAME}_sym.h DESTINATION include)
+install(FILES _reg_base.h DESTINATION include)
+install(FILES _reg_f3d.h DESTINATION include)
+install(FILES _reg_f3d2.h DESTINATION include)
+install(FILES _reg_f3d_sym.h DESTINATION include)
 install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
+if(BUILD_DEV)
+  install(FILES cpu/_reg_discrete_init.h DESTINATION include)
+endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE DEV LIBRARY
 if(BUILD_DEV)
-  set(NAME _reg_dev)
   set(_reg_dev_files
     cpu/_reg_mrf.h
     cpu/_reg_mrf.cpp
     cpu/_reg_discrete_init.h
     cpu/_reg_discrete_init.cpp
+    cpu/_reg_femTrans.h
+    cpu/_reg_femTrans.cpp
     )
   set(_reg_dev_libraries
     _reg_localTrans
-    _reg_resampling
     _reg_globalTrans
+    _reg_resampling
     _reg_measure
     _reg_tools
     _reg_ReadWriteImage
     )
-  add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_dev_files})
-  target_link_libraries(${NAME} ${_reg_dev_libraries})
-  install(TARGETS ${NAME}
+  add_library(_reg_dev ${NIFTYREG_LIBRARY_TYPE} ${_reg_dev_files})
+  target_link_libraries(_reg_dev ${_reg_dev_libraries})
+  install(TARGETS _reg_dev
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     )
   install(FILES cpu/_reg_mrf.cpp cpu/_reg_mrf.h DESTINATION include)
+  install(FILES cpu/_reg_femTrans.cpp cpu/_reg_femTrans.h DESTINATION include)
 endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

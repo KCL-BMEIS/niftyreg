@@ -105,6 +105,4 @@ public:
    }
 };
 
-//#include "_reg_f3d_sym.cpp"
-
 #endif
