@@ -106,7 +106,7 @@ install(TARGETS _reg_measure
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_measure.h cpu/_reg_nmi.h cpu/_reg_ssd.h cpu/_reg_kld.h cpu/_reg_lncc.h cpu/_reg_dti.h DESTINATION include)
+install(FILES cpu/_reg_measure.h cpu/_reg_nmi.h cpu/_reg_ssd.h cpu/_reg_kld.h cpu/_reg_lncc.h cpu/_reg_dti.h cpu/_reg_mind.h DESTINATION include)
 if(BUILD_DEV)
   install(FILES cpu/_reg_discrete_init.h DESTINATION include)
 endif(BUILD_DEV)
