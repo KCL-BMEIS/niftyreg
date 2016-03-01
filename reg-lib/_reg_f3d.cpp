@@ -1125,6 +1125,11 @@ void reg_f3d<T>::DiscreteInitialisation()
    // Check if the discrete initialisation can be performed
    if(this->measure_mind!=NULL || this->measure_mindssc!=NULL || sizeof(float)!=sizeof(T))
    {
+      if(this->currentReference->nt>1){
+         reg_print_fct_error("reg_f3d<T>::DiscreteInitialisation()");
+         reg_print_msg_error("This function does not support 4D for now");
+         reg_exit();
+      }
       // Warp the floating image using a padding value of 0
 //      T paddingValue = this->warpedPaddingValue;
 //      this->warpedPaddingValue=0;
@@ -1155,27 +1160,40 @@ void reg_f3d<T>::DiscreteInitialisation()
       int *temp_mask = (int *)calloc(this->warped->nx*this->warped->ny*this->warped->nz,
                                      sizeof(int));
 
+     int offset = 1;
+     if(this->measure_mindssc!=NULL)
+        offset = this->measure_mindssc->GetDescriptorOffset();
+     else offset = this->measure_mind->GetDescriptorOffset();
+
       // Compute the descriptors
       if(this->measure_mindssc!=NULL){
          // Compute the MINDSSC descriptor of the reference image
          GetMINDSSCImageDesciptor(this->currentReference,
                                   MIND_refImg,
-                                  this->currentMask);
+                                  this->currentMask,
+                                  offset,
+                                  0);
          // Compute the MINDSSC descriptor of the warped image
          GetMINDSSCImageDesciptor(this->warped,
                                   MIND_warImg,
-                                  temp_mask);
+                                  temp_mask,
+                                  offset,
+                                  0);
 
       }
       else{
          // Compute the MIND descriptor of the reference image
          GetMINDImageDesciptor(this->currentReference,
                                MIND_refImg,
-                               this->currentMask);
+                               this->currentMask,
+                               offset,
+                               0);
          // Compute the MIND descriptor of the warped image
          GetMINDImageDesciptor(this->warped,
                                MIND_warImg,
-                               temp_mask);
+                               temp_mask,
+                               offset,
+                               0);
       }
       free(temp_mask);
 

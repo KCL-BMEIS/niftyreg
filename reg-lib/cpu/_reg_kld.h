@@ -34,7 +34,7 @@ public:
    /// @brief Returns the kld value
    virtual double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based kld gradient
-   virtual void GetVoxelBasedSimilarityMeasureGradient();
+   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
    /// @brief reg_kld class destructor
    ~reg_kld() {}
 };
@@ -77,11 +77,11 @@ double reg_getKLDivergence(nifti_image *reference,
 extern "C++" template <class DTYPE>
 void reg_getKLDivergenceVoxelBasedGradient(nifti_image *reference,
                                            nifti_image *warped,
-                                           bool *activeTimePoint,
                                            nifti_image *warpedGradient,
                                            nifti_image *KLdivGradient,
                                            nifti_image *jacobianDeterminantImage,
-                                           int *mask);
+                                           int *mask,
+                                           int current_timepoint);
 /* *************************************************************** */
 
 #endif

@@ -328,7 +328,7 @@ template void reg_getVoxelBasedDTIMeasureGradient<float>
 template void reg_getVoxelBasedDTIMeasureGradient<double>
 (nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned int *);
 /* *************************************************************** */
-void reg_dti::GetVoxelBasedSimilarityMeasureGradient()
+void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 {
    // Check if all required input images are of the same data type
    int dtype = this->referenceImagePointer->datatype;

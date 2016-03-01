@@ -245,8 +245,8 @@ public:
    virtual void UseNMISetReferenceBinNumber(int,int);
    virtual void UseNMISetFloatingBinNumber(int,int);
    virtual void UseSSD(int timepoint);
-   virtual void UseMIND(int timepoint);
-   virtual void UseMINDSSC(int timepoint);
+   virtual void UseMIND(int timepoint, int offset);
+   virtual void UseMINDSSC(int timepoint, int offset);
    virtual void UseKLDivergence(int timepoint);
    virtual void UseDTI(bool *timepoint);
    virtual void UseLNCC(int timepoint, float stdDevKernel);

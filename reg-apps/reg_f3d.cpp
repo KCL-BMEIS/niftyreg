@@ -93,8 +93,8 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint");
    reg_print_info(exec, "\t--ssd\t\t\tSSD. Used for all time points");
    reg_print_info(exec, "\t-ssd <tp>\t\tSSD. Used for the specified timepoint");
-   reg_print_info(exec, "\t--mind\t\t\tMIND");
-   reg_print_info(exec, "\t--mindssc\t\tMIND-SCC");
+   reg_print_info(exec, "\t--mind <offset>\t\t\tMIND and the offset to use to compute the descriptor");
+   reg_print_info(exec, "\t--mindssc <offset>\t\tMIND-SCC and the offset to use to compute the descriptor");
    reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
    reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
@@ -525,7 +525,7 @@ int main(int argc, char **argv)
             reg_print_msg_error("reg_mind does not support multiple time point image");
             reg_exit();
          }
-         REG->UseMIND(0);
+         REG->UseMIND(0, atoi(argv[++i]));
       }
       else if(strcmp(argv[i], "--mindssc")==0)
       {
@@ -533,7 +533,7 @@ int main(int argc, char **argv)
             reg_print_msg_error("reg_mindssc does not support multiple time point image");
             reg_exit();
          }
-         REG->UseMINDSSC(0);
+         REG->UseMINDSSC(0, atoi(argv[++i]));
       }
       else if(strcmp(argv[i], "-kld")==0)
       {

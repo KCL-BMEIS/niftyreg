@@ -181,7 +181,7 @@ double reg_ssd::GetSimilarityMeasureValue()
       reg_print_msg_error("Both input images are exepected to have the same type");
       reg_exit();
    }
-   double SSDValue;
+   double SSDValue=0;
    switch(this->referenceImagePointer->datatype)
    {
    case NIFTI_TYPE_FLOAT32:
@@ -255,12 +255,17 @@ double reg_ssd::GetSimilarityMeasureValue()
 template <class DTYPE>
 void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *warpedImage,
-                                  bool *activeTimePoint,
                                   nifti_image *warImgGradient,
-                                  nifti_image *ssdGradientImage,
+                                  nifti_image *measureGradientImage,
                                   nifti_image *jacobianDetImage,
-                                  int *mask)
+                                  int *mask,
+                                  int current_timepoint)
 {
+   if(current_timepoint<0 || current_timepoint>=referenceImage->nt){
+      reg_print_fct_error("reg_getVoxelBasedNMIGradient2D");
+      reg_print_msg_error("The specified active timepoint is not defined in the ref/war images");
+      reg_exit();
+   }
    // Create pointers to the reference and warped images
 #ifdef _WIN32
    long voxel;
@@ -269,93 +274,86 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
    size_t voxel;
    size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
 #endif
+   // Pointers to the image data
+   DTYPE *refImagePtr = static_cast<DTYPE *>(referenceImage->data);
+   DTYPE *currentRefPtr=&refImagePtr[current_timepoint*voxelNumber];
+   DTYPE *warImagePtr = static_cast<DTYPE *>(warpedImage->data);
+   DTYPE *currentWarPtr=&warImagePtr[current_timepoint*voxelNumber];
 
-   DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);
-   DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
+   // Pointers to the spatial gradient of the warped image
+   DTYPE *spatialGradPtrX = static_cast<DTYPE *>(warImgGradient->data);
+   DTYPE *spatialGradPtrY = &spatialGradPtrX[voxelNumber];
+   DTYPE *spatialGradPtrZ = NULL;
+   if(referenceImage->nz>1)
+      spatialGradPtrZ=&spatialGradPtrY[voxelNumber];
 
-   // Pointer to the warped image gradient
-   DTYPE *spatialGradPtr=static_cast<DTYPE *>(warImgGradient->data);
+   // Pointers to the measure of similarity gradient
+   DTYPE *measureGradPtrX = static_cast<DTYPE *>(measureGradientImage->data);
+   DTYPE *measureGradPtrY = &measureGradPtrX[voxelNumber];
+   DTYPE *measureGradPtrZ = NULL;
+   if(referenceImage->nz>1)
+      measureGradPtrZ=&measureGradPtrY[voxelNumber];
 
    // Create a pointer to the Jacobian determinant values if defined
    DTYPE *jacDetPtr=NULL;
    if(jacobianDetImage!=NULL)
       jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
-   // Create an array to store the computed gradient per time point
-   DTYPE *ssdGradPtrX=static_cast<DTYPE *>(ssdGradientImage->data);
-   DTYPE *ssdGradPtrY = &ssdGradPtrX[voxelNumber];
-   DTYPE *ssdGradPtrZ = NULL;
-   if(referenceImage->nz>1)
-      ssdGradPtrZ = &ssdGradPtrY[voxelNumber];
-
    double refValue, warValue, common;
-   // Loop over the different time points
-   for(int time=0; time<referenceImage->nt; ++time)
-   {
-      if(activeTimePoint[time])
-      {
-         // Create some pointers to the current time point image to be accessed
-         DTYPE *currentRefPtr=&refPtr[time*voxelNumber];
-         DTYPE *currentWarPtr=&warPtr[time*voxelNumber];
-
-         // Create some pointers to the spatial gradient of the current warped volume
-         DTYPE *spatialGradPtrX = &spatialGradPtr[time*voxelNumber];
-         DTYPE *spatialGradPtrY = &spatialGradPtrX[referenceImage->nt*voxelNumber];
-         DTYPE *spatialGradPtrZ = NULL;
-         if(referenceImage->nz>1)
-            spatialGradPtrZ=&spatialGradPtrY[referenceImage->nt*voxelNumber];
-
 
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, time, \
+   shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, \
    mask, jacDetPtr, spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, \
-   ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ, voxelNumber) \
+   measureGradPtrX, measureGradPtrY, measureGradPtrZ, voxelNumber) \
    private(voxel, refValue, warValue, common)
 #endif
-         for(voxel=0; voxel<voxelNumber; voxel++)
+   for(voxel=0; voxel<voxelNumber; voxel++)
+   {
+      if(mask[voxel]>-1)
+      {
+         refValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
+                             referenceImage->scl_inter);
+         warValue = (double)(currentWarPtr[voxel] * warpedImage->scl_slope +
+                             warpedImage->scl_inter);
+         if(refValue==refValue && warValue==warValue)
          {
-            if(mask[voxel]>-1)
-            {
-               refValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
-                                   referenceImage->scl_inter);
-               warValue = (double)(currentWarPtr[voxel] * warpedImage->scl_slope +
-                                   warpedImage->scl_inter);
-               if(refValue==refValue && warValue==warValue)
-               {
 #ifdef TEMP_USE_SAD
-                  common = refValue>warValue?-1.f:1.f;
-                  common *= (refValue - warValue) / float(referenceImage->nt);
+            common = refValue>warValue?-1.f:1.f;
+            common *= (refValue - warValue);
 #else
-                  common = -2.0 * (refValue - warValue) / float(referenceImage->nt);
+            common = -2.0 * (refValue - warValue) / (float)referenceImage->nt;
 #endif
-                  if(jacDetPtr!=NULL)
-                     common *= jacDetPtr[voxel];
+            if(jacDetPtr!=NULL)
+               common *= jacDetPtr[voxel];
 
-                  if(spatialGradPtrX[voxel]==spatialGradPtrX[voxel])
-                     ssdGradPtrX[voxel] += (DTYPE)(common * spatialGradPtrX[voxel]);
-                  if(spatialGradPtrY[voxel]==spatialGradPtrY[voxel])
-                     ssdGradPtrY[voxel] += (DTYPE)(common * spatialGradPtrY[voxel]);
+            if(spatialGradPtrX[voxel]==spatialGradPtrX[voxel])
+               measureGradPtrX[voxel] += (DTYPE)(common * spatialGradPtrX[voxel]);
+            if(spatialGradPtrY[voxel]==spatialGradPtrY[voxel])
+               measureGradPtrY[voxel] += (DTYPE)(common * spatialGradPtrY[voxel]);
 
-                  if(ssdGradPtrZ!=NULL)
-                  {
-                     if(spatialGradPtrZ[voxel]==spatialGradPtrZ[voxel])
-                        ssdGradPtrZ[voxel] += (DTYPE)(common * spatialGradPtrZ[voxel]);
-                  }
-               }
+            if(measureGradPtrZ!=NULL)
+            {
+               if(spatialGradPtrZ[voxel]==spatialGradPtrZ[voxel])
+                  measureGradPtrZ[voxel] += (DTYPE)(common * spatialGradPtrZ[voxel]);
             }
          }
       }
-   }// loop over time points
+   }
 }
 /* *************************************************************** */
 template void reg_getVoxelBasedSSDGradient<float>
-(nifti_image *,nifti_image *,bool *,nifti_image *,nifti_image *,nifti_image *, int *);
+(nifti_image *,nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, int);
 template void reg_getVoxelBasedSSDGradient<double>
-(nifti_image *,nifti_image *,bool *,nifti_image *,nifti_image *,nifti_image *, int *);
+(nifti_image *,nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, int);
 /* *************************************************************** */
-void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
+void reg_ssd::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 {
+   // Check if the specified time point exists and is active
+   reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
+   if(this->activeTimePoint[current_timepoint]==false)
+      return;
+
    // Check if all required input images are of the same data type
    int dtype = this->referenceImagePointer->datatype;
    if(this->warpedFloatingImagePointer->datatype != dtype ||
@@ -374,22 +372,22 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
       reg_getVoxelBasedSSDGradient<float>
             (this->referenceImagePointer,
              this->warpedFloatingImagePointer,
-             this->activeTimePoint,
              this->warpedFloatingGradientImagePointer,
              this->forwardVoxelBasedGradientImagePointer,
              NULL, // HERE TODO this->forwardJacDetImagePointer,
-             this->referenceMaskPointer
+             this->referenceMaskPointer,
+             current_timepoint
              );
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_getVoxelBasedSSDGradient<double>
             (this->referenceImagePointer,
              this->warpedFloatingImagePointer,
-             this->activeTimePoint,
              this->warpedFloatingGradientImagePointer,
              this->forwardVoxelBasedGradientImagePointer,
              NULL, // HERE TODO this->forwardJacDetImagePointer,
-             this->referenceMaskPointer
+             this->referenceMaskPointer,
+             current_timepoint
              );
       break;
    default:
@@ -417,22 +415,22 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
          reg_getVoxelBasedSSDGradient<float>
                (this->floatingImagePointer,
                 this->warpedReferenceImagePointer,
-                this->activeTimePoint,
                 this->warpedReferenceGradientImagePointer,
                 this->backwardVoxelBasedGradientImagePointer,
                 NULL, // HERE TODO this->backwardJacDetImagePointer,
-                this->floatingMaskPointer
+                this->floatingMaskPointer,
+                current_timepoint
                 );
          break;
       case NIFTI_TYPE_FLOAT64:
          reg_getVoxelBasedSSDGradient<double>
                (this->floatingImagePointer,
                 this->warpedReferenceImagePointer,
-                this->activeTimePoint,
                 this->warpedReferenceGradientImagePointer,
                 this->backwardVoxelBasedGradientImagePointer,
                 NULL, // HERE TODO this->backwardJacDetImagePointer,
-                this->floatingMaskPointer
+                this->floatingMaskPointer,
+                current_timepoint
                 );
          break;
       default:

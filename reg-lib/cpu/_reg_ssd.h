@@ -40,7 +40,7 @@ public:
    /// @brief Returns the ssd value
    virtual double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based ssd gradient
-   virtual void GetVoxelBasedSimilarityMeasureGradient();
+   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
    /// @brief Here
    virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
                                     float *discretisedValue,
@@ -91,10 +91,10 @@ double reg_getSSDValue(nifti_image *referenceImage,
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *warpedImage,
-                                  bool *activeTimePoint,
                                   nifti_image *warpedImageGradient,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDeterminantImage,
-                                  int *mask
+                                  int *mask,
+                                  int current_timepoint
                                  );
 #endif

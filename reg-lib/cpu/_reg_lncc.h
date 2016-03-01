@@ -37,7 +37,7 @@ public:
    /// @brief Returns the lncc value
    double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based lncc gradient
-   void GetVoxelBasedSimilarityMeasureGradient();
+   void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
    /// @brief Stuff
    void SetKernelStandardDeviation(int t, float stddev)
    {
@@ -75,7 +75,8 @@ protected:
                               nifti_image *stdDevRefImage,
                               nifti_image *stdDevWarImage,
                               int *refMask,
-                              int *mask);
+                              int *mask,
+                              int current_timepoint);
 };
 /* *************************************************************** */
 /* *************************************************************** */
@@ -97,7 +98,6 @@ double reg_getLNCCValue(nifti_image *referenceImage,
                         nifti_image *warpedStdDevImage,
                         int *combinedMask,
                         float *kernelStdDev,
-                        bool *activeTimePoint,
                         nifti_image *correlationImage,
                         int kernelType);
 
@@ -122,10 +122,10 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    nifti_image *warpedStdDevImage,
                                    int *combinedMask,
                                    float *kernelStdDev,
-                                   bool *activeTimePoint,
                                    nifti_image *correlationImage,
                                    nifti_image *warImgGradient,
                                    nifti_image *lnccGradientImage,
-                                   int kernelType);
+                                   int kernelType,
+                                   int current_timepoint);
 #endif
 

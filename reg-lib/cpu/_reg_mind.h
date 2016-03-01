@@ -43,7 +43,10 @@ public:
    /// @brief Returns the mind based measure of similarity value
    virtual double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based gradient
-   virtual void GetVoxelBasedSimilarityMeasureGradient();
+   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
+   /// @brief
+   void SetDescriptorOffset(int);
+   int GetDescriptorOffset();
    /// @brief Measure class desstructor
    ~reg_mind();
 
@@ -54,11 +57,9 @@ protected:
    nifti_image *warpedFloatingImageDescriptor;
    bool activeTimePointDescriptor[255];
 
-   // gradient
-   nifti_image *warpedFloatingImageDescriptorGradient;
-   nifti_image *warpedReferenceImageDescriptorGradient;
-
+   int descriptorOffset;
    int mind_type;
+   int discriptor_number;
 };
 /* *************************************************************** */
 /// @brief MIND-SSC measure of similarity class
@@ -75,14 +76,19 @@ public:
 extern "C++"
 void GetMINDImageDesciptor(nifti_image* inputImgPtr,
                            nifti_image* MINDImgPtr,
-                           int *mask);
+                           int *mask,
+                           int descriptorOffset,
+                           int current_timepoint);
 extern "C++"
 void GetMINDSSCImageDesciptor(nifti_image* inputImgPtr,
-                           nifti_image* MINDSSCImgPtr,
-                           int *mask);
+                              nifti_image* MINDSSCImgPtr,
+                              int *mask,
+                              int descriptorOffset,
+                              int current_timepoint);
 
 extern "C++" template <class DTYPE>
 void spatialGradient(nifti_image* inputImg,
                      nifti_image* gradImg,
-                     int *mask);
+                     int *mask,
+                     int desc_index);
 #endif

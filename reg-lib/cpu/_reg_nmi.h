@@ -39,8 +39,10 @@ public:
    /// @brief Returns the nmi value
    double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based nmi gradient
-   void GetVoxelBasedSimilarityMeasureGradient();
-   void SetRefAndFloatBinNumbers(unsigned short refBinNumber, unsigned short floBinNumber, int timepoint)
+   void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
+   void SetRefAndFloatBinNumbers(unsigned short refBinNumber,
+                                 unsigned short floBinNumber,
+                                 int timepoint)
    {
       this->referenceBinNumber[timepoint] = refBinNumber;
       this->floatingBinNumber[timepoint] = floBinNumber;
@@ -95,27 +97,27 @@ void reg_getNMIValue(nifti_image *referenceImage,
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                                     nifti_image *warpedImage,
-                                    bool *activeTimePoint,
                                     unsigned short *referenceBinNumber,
                                     unsigned short *floatingBinNumber,
                                     double **jointHistogramLog,
                                     double **entropyValues,
                                     nifti_image *warImgGradient,
                                     nifti_image *nmiGradientImage,
-                                    int *referenceMask
+                                    int *referenceMask,
+                                    int current_timepoint
                                    );
 /* *************************************************************** */
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                                     nifti_image *warpedImage,
-                                    bool *activeTimePoint,
                                     unsigned short *referenceBinNumber,
                                     unsigned short *floatingBinNumber,
                                     double **jointHistogramLog,
                                     double **entropyValues,
                                     nifti_image *warImgGradient,
                                     nifti_image *nmiGradientImage,
-                                    int *referenceMask
+                                    int *referenceMask,
+                                    int current_timepoint
                                    );
 /* *************************************************************** */
 /* *************************************************************** */

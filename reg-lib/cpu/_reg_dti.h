@@ -39,7 +39,7 @@ public:
 //    /// @brief Returns the value
    virtual double GetSimilarityMeasureValue();
 //    /// @brief Compute the voxel based gradient for DTI images
-   virtual void GetVoxelBasedSimilarityMeasureGradient();
+   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
    /// @brief reg_dti class destructor
    ~reg_dti() {}
 protected:

@@ -4149,3 +4149,140 @@ void compute_BCH_update(nifti_image *img1, // current field
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template <class DTYPE>
+void extractLine(int start, int end, int increment,const DTYPE *image, DTYPE *values)
+{
+   size_t index = 0;
+   for(int i=start; i<end; i+=increment) values[index++] = image[i];
+}
+/* *************************************************************** */
+template <class DTYPE>
+void restoreLine(int start, int end, int increment, DTYPE *image, const DTYPE *values)
+{
+   size_t index = 0;
+   for(int i=start; i<end; i+=increment) image[i] = values[index++];
+}
+/* *************************************************************** */
+template <class DTYPE>
+void intensitiesToSplineCoefficients(DTYPE *values, int number)
+{
+   // Border are set to zero
+   DTYPE pole = sqrt(3.0) - 2.0;
+   DTYPE currentPole = pole;
+   DTYPE currentOpposite = pow(pole,(DTYPE)(2.0*(DTYPE)number-1.0));
+   DTYPE sum=0.0;
+   for(int i=1; i<number; i++)
+   {
+      sum += (currentPole - currentOpposite) * values[i];
+      currentPole *= pole;
+      currentOpposite /= pole;
+   }
+   values[0] = (DTYPE)((values[0] - pole*pole*(values[0] + sum)) / (1.0 - pow(pole,(DTYPE)(2.0*(double)number+2.0))));
+
+   //other values forward
+   for(int i=1; i<number; i++)
+   {
+      values[i] += pole * values[i-1];
+   }
+
+   DTYPE ipp=(DTYPE)(1.0-pole);
+   ipp*=ipp;
+
+   //last value
+   values[number-1] = ipp * values[number-1];
+
+   //other values backward
+   for(int i=number-2; 0<=i; i--)
+   {
+      values[i] = pole * values[i+1] + ipp*values[i];
+   }
+   return;
+}
+/* *************************************************************** */
+template <class DTYPE>
+void reg_spline_GetDeconvolvedCoefficents_core(nifti_image *img)
+{
+   double *coeff=(double *)malloc(img->nvox*sizeof(double));
+   DTYPE *imgPtr=static_cast<DTYPE *>(img->data);
+   for(size_t i=0; i<img->nvox; ++i)
+      coeff[i]=imgPtr[i];
+   for(int u=0; u<img->nu; ++u)
+   {
+      for(int t=0; t<img->nt; ++t)
+      {
+         double *coeffPtr=&coeff[(u*img->nt+t)*img->nx*img->ny*img->nz];
+
+         // Along the X axis
+         int number = img->nx;
+         double *values=new double[number];
+         int increment = 1;
+         for(int i=0; i<img->ny*img->nz; i++)
+         {
+            int start = i*img->nx;
+            int end = start + img->nx;
+            extractLine<double>(start,end,increment,coeffPtr,values);
+            intensitiesToSplineCoefficients<double>(values, number);
+            restoreLine<double>(start,end,increment,coeffPtr,values);
+         }
+         delete[] values;
+         values=NULL;
+
+         // Along the Y axis
+         number = img->ny;
+         values=new double[number];
+         increment = img->nx;
+         for(int i=0; i<img->nx*img->nz; i++)
+         {
+            int start = i + i/img->nx * img->nx * (img->ny - 1);
+            int end = start + img->nx*img->ny;
+            extractLine<double>(start,end,increment,coeffPtr,values);
+            intensitiesToSplineCoefficients<double>(values, number);
+            restoreLine<double>(start,end,increment,coeffPtr,values);
+         }
+         delete[] values;
+         values=NULL;
+
+         // Along the Z axis
+         if(img->nz>1)
+         {
+            number = img->nz;
+            values=new double[number];
+            increment = img->nx*img->ny;
+            for(int i=0; i<img->nx*img->ny; i++)
+            {
+               int start = i;
+               int end = start + img->nx*img->ny*img->nz;
+               extractLine<double>(start,end,increment,coeffPtr,values);
+               intensitiesToSplineCoefficients<double>(values, number);
+               restoreLine<double>(start,end,increment,coeffPtr,values);
+            }
+            delete[] values;
+            values=NULL;
+         }
+      }//t
+   }//u
+
+   for(size_t i=0; i<img->nvox; ++i)
+      imgPtr[i]=coeff[i];
+   free(coeff);
+}
+/* *************************************************************** */
+void reg_spline_GetDeconvolvedCoefficents(nifti_image *img)
+{
+
+   switch(img->datatype)
+   {
+   case NIFTI_TYPE_FLOAT32:
+      reg_spline_GetDeconvolvedCoefficents_core<float>(img);
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      reg_spline_GetDeconvolvedCoefficents_core<double>(img);
+      break;
+   default:
+      reg_print_fct_error("reg_spline_GetDeconvolvedCoefficents");
+      reg_print_msg_error("Only implemented for single or double precision images");
+      reg_exit();
+   }
+}
+/* *************************************************************** */
+/* *************************************************************** */

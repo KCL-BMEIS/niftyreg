@@ -116,7 +116,7 @@ int main(int argc, char **argv)
    MINDSSC_refimg->nvox = MINDSSC_refimg->nvox*mind_length;
    MINDSSC_refimg->data=(void *)calloc(MINDSSC_refimg->nvox,MINDSSC_refimg->nbyper);
    // Compute the MIND descriptor
-   GetMINDImageDesciptor(referenceImage,MINDSSC_refimg, mask);
+   GetMINDImageDesciptor(referenceImage,MINDSSC_refimg, mask, 1, 0);
 
    //MINDSSC image
    nifti_image *MINDSSC_warimg = nifti_copy_nim_info(warpedImage);
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
    MINDSSC_warimg->nvox = MINDSSC_warimg->nvox*mind_length;
    MINDSSC_warimg->data=(void *)calloc(MINDSSC_warimg->nvox,MINDSSC_warimg->nbyper);
    // Compute the MIND descriptor
-   GetMINDImageDesciptor(warpedImage,MINDSSC_warimg, mask);
+   GetMINDImageDesciptor(warpedImage,MINDSSC_warimg, mask, 1, 0);
 
    reg_ssd* ssdMeasure = new reg_ssd();
 
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
                      mask,
                      3,
                      0.f);
-   GetMINDImageDesciptor(warpedImage,MINDSSC_warimg, mask);
+   GetMINDImageDesciptor(warpedImage,MINDSSC_warimg, mask, 1, 0);
 
 
    std::cout << "FINAL VALUE = " << ssdMeasure->GetSimilarityMeasureValue() << std::endl;
