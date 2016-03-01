@@ -71,7 +71,7 @@ void Usage(char *exec)
    printf("\t-psf_alg <0/1>\n\t\tMinimise the matrix metric (0) or the determinant (1) when estimating the PSF [0]\n");
    printf("\t-voff\n\t\tTurns verbose off [on]\n");
 #if defined (_OPENMP)
-   int defaultOpenMPValue=1;
+   int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 
 #if defined (_OPENMP)
    // Set the default number of thread
-   int defaultOpenMPValue=1;
+   int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);

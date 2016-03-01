@@ -230,18 +230,9 @@ void reg_f3d<T>::Initialise()
 
       /* Convert the spacing from voxel to mm if necessary */
       float spacingInMillimeter[3]= {this->spacing[0],this->spacing[1],this->spacing[2]};
-      if(this->usePyramid)
-      {
-         if(spacingInMillimeter[0]<0) spacingInMillimeter[0] *= -1.0f * this->referencePyramid[this->levelToPerform-1]->dx;
-         if(spacingInMillimeter[1]<0) spacingInMillimeter[1] *= -1.0f * this->referencePyramid[this->levelToPerform-1]->dy;
-         if(spacingInMillimeter[2]<0) spacingInMillimeter[2] *= -1.0f * this->referencePyramid[this->levelToPerform-1]->dz;
-      }
-      else
-      {
-         if(spacingInMillimeter[0]<0) spacingInMillimeter[0] *= -1.0f * this->referencePyramid[0]->dx;
-         if(spacingInMillimeter[1]<0) spacingInMillimeter[1] *= -1.0f * this->referencePyramid[0]->dy;
-         if(spacingInMillimeter[2]<0) spacingInMillimeter[2] *= -1.0f * this->referencePyramid[0]->dz;
-      }
+      if(spacingInMillimeter[0]<0) spacingInMillimeter[0] *= -1.0f * this->inputReference->dx;
+      if(spacingInMillimeter[1]<0) spacingInMillimeter[1] *= -1.0f * this->inputReference->dy;
+      if(spacingInMillimeter[2]<0) spacingInMillimeter[2] *= -1.0f * this->inputReference->dz;
 
       // Define the spacing for the first level
       float gridSpacing[3];
@@ -275,26 +266,11 @@ void reg_f3d<T>::Initialise()
       memcpy( this->controlPointGrid->data, this->inputControlPointGrid->data,
               this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
       // The final grid spacing is computed
-      this->spacing[0] = this->controlPointGrid->dx / powf(2.0f, (float)(this->levelToPerform-1));
-      this->spacing[1] = this->controlPointGrid->dy / powf(2.0f, (float)(this->levelToPerform-1));
+      this->spacing[0] = this->controlPointGrid->dx / powf(2.0f, (float)(this->levelNumber-1));
+      this->spacing[1] = this->controlPointGrid->dy / powf(2.0f, (float)(this->levelNumber-1));
       if(this->controlPointGrid->nz>1)
-         this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->levelToPerform-1));
+         this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->levelNumber-1));
    }
-   //MRF: if discrete optimization is on
-   //Initialise the MRF parameters - CREATE A MRF class maybe...
-   /*
-     //SETTINGS FOR CONTROL POINT SPACING AND LABEL SPACE
-     int label_quant=3; //step-size/quantisation of discrete displacements
-     int label_hw=6; //half-width of search space
-     //L={±0,±label_quant,..,±label_quant*label_hw}^3 voxels
-     int grid_step=8; //spacing between control points in voxels
-     //HERE and elsewhere THE B-SPLINE GRID DEFINITION NEEDS TO BE ADAPTED TO NIFTY-REG
-     //e.g. having control points outside the image domain, etc.
-
-     int label_num=(label_hw*2+1)*(label_hw*2+1)*(label_hw*2+1); //|L| number of displacements
-     int m1=m/grid_step; int n1=n/grid_step; int o1=o/grid_step; //dimensions of grid
-     int sz1=m1*n1*o1; //number of control points
-   */
 #ifdef NDEBUG
    if(this->verbose)
    {
@@ -385,10 +361,13 @@ void reg_f3d<T>::Initialise()
       if(this->measure_dti!=NULL)
          reg_print_info(this->executableName, "A DTI based measure is used as a similarity measure.");
       if(this->measure_mind!=NULL)
-         reg_print_info(this->executableName, "The MIND measure is used as a similarity measure.");
+         reg_print_info(this->executableName, "MIND is used as a similarity measure.");
+      if(this->measure_mindssc!=NULL)
+         reg_print_info(this->executableName, "MINDSSC is used as a similarity measure.");
       if(this->measure_nmi!=NULL || (this->measure_dti==NULL && this->measure_kld==NULL &&
                                      this->measure_lncc==NULL &&  this->measure_nmi==NULL &&
-                                     this->measure_ssd==NULL && this->measure_mind==NULL) )
+                                     this->measure_ssd==NULL && this->measure_mind==NULL  &&
+                                     this->measure_mindssc==NULL) )
          reg_print_info(this->executableName, "The NMI is used as a similarity measure.");
       sprintf(text, "Similarity measure term weight: %g", this->similarityWeight);
       reg_print_info(this->executableName, text);
@@ -1139,5 +1118,108 @@ void reg_f3d<T>::CorrectTransformation()
 }
 /* *************************************************************** */
 /* *************************************************************** */
+#ifdef BUILD_DEV
+template<class T>
+void reg_f3d<T>::DiscreteInitialisation()
+{
+   // Check if the discrete initialisation can be performed
+   if(this->measure_mind!=NULL || this->measure_mindssc!=NULL || sizeof(float)!=sizeof(T))
+   {
+      // Warp the floating image using a padding value of 0
+//      T paddingValue = this->warpedPaddingValue;
+//      this->warpedPaddingValue=0;
+      this->WarpFloatingImage(3);
+//      this->warpedPaddingValue = paddingValue;
+
+      // Set the length of the descriptor
+      int mind_length = 6;
+      if(this->measure_mindssc!=NULL)
+         mind_length = 12;
+
+      // Allocate MIND descriptor of the reference image
+      nifti_image *MIND_refImg = nifti_copy_nim_info(this->currentReference);
+      MIND_refImg->ndim = MIND_refImg->dim[0] = 4;
+      MIND_refImg->nt = MIND_refImg->dim[4] = mind_length;
+      MIND_refImg->nvox = MIND_refImg->nvox*mind_length;
+      MIND_refImg->data=(void *)calloc(MIND_refImg->nvox,
+                                       MIND_refImg->nbyper);
+      // Allocate MIND descriptor of the warped image
+      nifti_image *MIND_warImg = nifti_copy_nim_info(this->warped);
+      MIND_warImg->ndim = MIND_warImg->dim[0] = 4;
+      MIND_warImg->nt = MIND_warImg->dim[4] = mind_length;
+      MIND_warImg->nvox = MIND_warImg->nvox*mind_length;
+      MIND_warImg->data=(void *)calloc(MIND_warImg->nvox,
+                                       MIND_warImg->nbyper);
+
+      // Allocate a mask embedding all voxel for the warped image
+      int *temp_mask = (int *)calloc(this->warped->nx*this->warped->ny*this->warped->nz,
+                                     sizeof(int));
+
+      // Compute the descriptors
+      if(this->measure_mindssc!=NULL){
+         // Compute the MINDSSC descriptor of the reference image
+         GetMINDSSCImageDesciptor(this->currentReference,
+                                  MIND_refImg,
+                                  this->currentMask);
+         // Compute the MINDSSC descriptor of the warped image
+         GetMINDSSCImageDesciptor(this->warped,
+                                  MIND_warImg,
+                                  temp_mask);
+
+      }
+      else{
+         // Compute the MIND descriptor of the reference image
+         GetMINDImageDesciptor(this->currentReference,
+                               MIND_refImg,
+                               this->currentMask);
+         // Compute the MIND descriptor of the warped image
+         GetMINDImageDesciptor(this->warped,
+                               MIND_warImg,
+                               temp_mask);
+      }
+      free(temp_mask);
+
+      // Initialise the measure of similarity use to compute the distance between the blocks
+      reg_ssd *ssdMeasure = new reg_ssd();
+      for(int i=0;i<mind_length;++i)
+         ssdMeasure->SetActiveTimepoint(i);
+      ssdMeasure->InitialiseMeasure(MIND_refImg,
+                                    MIND_warImg,
+                                    this->currentMask,
+                                    MIND_warImg,
+                                    NULL,
+                                    NULL);
+
+
+      // Create and initialise the discretisation initialisation object
+      int discrete_increment=3;
+      int discretisation_radius=discrete_increment*reg_ceil(this->controlPointGrid->dx/this->currentReference->dx);
+      reg_discrete_init *discrete_init_object = new reg_discrete_init(ssdMeasure,
+                                                                      this->currentReference,
+                                                                      this->controlPointGrid,
+                                                                      discretisation_radius,
+                                                                      discrete_increment,
+                                                                      50,
+                                                                      this->bendingEnergyWeight+this->linearEnergyWeight);
+
+      // Run the discrete initialisation
+      discrete_init_object->Run();
+
+      // Free all the allocate objects
+      nifti_image_free(MIND_refImg);
+      nifti_image_free(MIND_warImg);
+      delete ssdMeasure;
+      delete discrete_init_object;
+   }
+   else{
+      reg_print_msg_error("The discrete initialisation can only be performed when using MIND or MIND-SSC");
+      reg_print_msg_error("when single precision is used.");
+      reg_print_msg_error("No discrete initialisation has been performed");
+   }
+}
+#endif
+/* *************************************************************** */
+/* *************************************************************** */
+
 template class reg_f3d<float>;
 #endif

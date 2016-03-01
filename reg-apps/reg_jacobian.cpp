@@ -117,7 +117,7 @@ void Usage(char *exec)
    printf("\t-jacL <filename>\n");
    printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
 #if defined (_OPENMP)
-   int defaultOpenMPValue=1;
+   int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    char text[255];
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 
 #if defined (_OPENMP)
    // Set the default number of thread
-   int defaultOpenMPValue=1;
+   int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);

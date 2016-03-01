@@ -75,8 +75,7 @@ install(TARGETS _reg_localTrans
 )
 install(FILES cpu/_reg_localTrans.h cpu/_reg_splineBasis.h cpu/_reg_localTrans_regul.h cpu/_reg_localTrans_jac.h DESTINATION include)
 #-----------------------------------------------------------------------------
-add_library(_reg_measure
-  ${NIFTYREG_LIBRARY_TYPE}
+set(measure_files
   cpu/_reg_measure.h
   cpu/_reg_nmi.h
   cpu/_reg_nmi.cpp
@@ -91,6 +90,14 @@ add_library(_reg_measure
   cpu/_reg_mind.h
   cpu/_reg_mind.cpp
 )
+if(BUILD_DEV)
+  set(measure_files
+    ${measure_files}
+    cpu/_reg_discrete_init.h
+    cpu/_reg_discrete_init.cpp
+  )
+endif(BUILD_DEV)
+add_library(_reg_measure ${NIFTYREG_LIBRARY_TYPE} ${measure_files})
 target_link_libraries(_reg_measure
   _reg_tools
 )
@@ -100,6 +107,9 @@ install(TARGETS _reg_measure
   ARCHIVE DESTINATION lib
 )
 install(FILES cpu/_reg_measure.h cpu/_reg_nmi.h cpu/_reg_ssd.h cpu/_reg_kld.h cpu/_reg_lncc.h cpu/_reg_dti.h DESTINATION include)
+if(BUILD_DEV)
+  install(FILES cpu/_reg_discrete_init.h DESTINATION include)
+endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
 set(LIB_LIST
   _reg_resampling
@@ -208,34 +218,34 @@ install(FILES ${NAME}.cpp ${NAME}.h DESTINATION include)
 install(FILES ${NAME}2.cpp ${NAME}2.h DESTINATION include)
 install(FILES ${NAME}_sym.cpp ${NAME}_sym.h DESTINATION include)
 install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
-install(FILES cpu/_reg_discrete_init.cpp cpu/_reg_discrete_init.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE DEV LIBRARY
-set(NAME _reg_dev)
-set(_reg_dev_files
-  cpu/_reg_mrf.h
-  cpu/_reg_mrf.cpp
-  cpu/_reg_discrete_init.h
-  cpu/_reg_discrete_init.cpp
-)
-set(_reg_dev_libraries
-  _reg_localTrans
-  _reg_resampling
-  _reg_globalTrans
-  _reg_measure
-  _reg_tools
-  _reg_ReadWriteImage
-)
-add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_dev_files})
-target_link_libraries(${NAME} ${_reg_dev_libraries})
-install(TARGETS ${NAME}
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  )
-install(FILES cpu/_reg_mrf.cpp cpu/_reg_mrf.h DESTINATION include)
-install(FILES cpu/_reg_discrete_init.cpp cpu/_reg_discrete_init.h DESTINATION include)
+if(BUILD_DEV)
+  set(NAME _reg_dev)
+  set(_reg_dev_files
+    cpu/_reg_mrf.h
+    cpu/_reg_mrf.cpp
+    cpu/_reg_discrete_init.h
+    cpu/_reg_discrete_init.cpp
+    )
+  set(_reg_dev_libraries
+    _reg_localTrans
+    _reg_resampling
+    _reg_globalTrans
+    _reg_measure
+    _reg_tools
+    _reg_ReadWriteImage
+    )
+  add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_dev_files})
+  target_link_libraries(${NAME} ${_reg_dev_libraries})
+  install(TARGETS ${NAME}
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    )
+  install(FILES cpu/_reg_mrf.cpp cpu/_reg_mrf.h DESTINATION include)
+endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY

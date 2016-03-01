@@ -42,6 +42,7 @@ public:
 
 private:
    void GetDiscretisedMeasure();
+   void AddL2Penalisation(float);
    void GetRegularisedMeasure();
    void getOptimalLabel();
    void UpdateTransformation();

@@ -29,6 +29,9 @@
 #include "float.h"
 #include <limits>
 //#include "Platform.h"
+#ifdef BUILD_DEV
+  #include "_reg_discrete_init.h"
+#endif
 
 /// @brief Base registration class
 template <class T>
@@ -105,6 +108,10 @@ protected:
 
    double bestWMeasure;
    double currentWMeasure;
+
+#ifdef BUILD_DEV
+   bool discrete_init;
+#endif
 
    virtual void AllocateWarped();
    virtual void ClearWarped();
@@ -190,6 +197,12 @@ protected:
    {
       return;  // Need to be filled
    }
+#ifdef BUILD_DEV
+   virtual void DiscreteInitialisation()
+   {
+      return;  // Need to be filled
+   }
+#endif
 
    void (*funcProgressCallback)(float pcntProgress, void *params);
    void *paramsProgressCallback;
@@ -261,6 +274,11 @@ public:
    void UseNeareatNeighborInterpolation();
    void UseLinearInterpolation();
    void UseCubicSplineInterpolation();
+
+#ifdef BUILD_DEV
+   void UseDiscreteInit();
+   void DoNotUseDiscreteInit();
+#endif
 
    virtual void CheckParameters();
    void Run();

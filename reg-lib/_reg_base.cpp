@@ -92,6 +92,10 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
 
    this->interpolation=1;
 
+#ifdef BUILD_DEV
+   this->discrete_init=false;
+#endif
+
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::reg_base");
 #endif
@@ -502,6 +506,22 @@ void reg_base<T>::UseCubicSplineInterpolation()
 #endif
 }
 /* *************************************************************** */
+#ifdef BUILD_DEV
+/* *************************************************************** */
+template <class T>
+void reg_base<T>::UseDiscreteInit()
+{
+   this->discrete_init=true;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
+void reg_base<T>::DoNotUseDiscreteInit()
+{
+   this->discrete_init=false;
+}
+/* *************************************************************** */
+#endif
 /* *************************************************************** */
 template <class T>
 void reg_base<T>::ClearCurrentInputImage()
@@ -805,21 +825,21 @@ void reg_base<T>::InitialiseSimilarity()
 
    if(this->measure_mind!=NULL)
       this->measure_mind->InitialiseMeasure(this->currentReference,
-                                           this->currentFloating,
-                                           this->currentMask,
-                                           this->warped,
-                                           this->warImgGradient,
-                                           this->voxelBasedMeasureGradient
-                                          );
+                                            this->currentFloating,
+                                            this->currentMask,
+                                            this->warped,
+                                            this->warImgGradient,
+                                            this->voxelBasedMeasureGradient
+                                            );
 
    if(this->measure_mindssc!=NULL)
       this->measure_mindssc->InitialiseMeasure(this->currentReference,
-                                           this->currentFloating,
-                                           this->currentMask,
-                                           this->warped,
-                                           this->warImgGradient,
-                                           this->voxelBasedMeasureGradient
-                                          );
+                                               this->currentFloating,
+                                               this->currentMask,
+                                               this->warped,
+                                               this->warImgGradient,
+                                               this->voxelBasedMeasureGradient
+                                               );
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::InitialiseSimilarity");
@@ -1292,6 +1312,12 @@ void reg_base<T>::Run()
       T smallestSize = maxStepSize / (T)100.0;
 
       this->DisplayCurrentLevelParameters();
+
+#ifdef BUILD_DEV
+      // Perform the discrete initialisation if required
+      if(this->discrete_init==true)
+         this->DiscreteInitialisation();
+#endif
 
       // Allocate image that are required to compute the gradient
       this->AllocateVoxelBasedMeasureGradient();

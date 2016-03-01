@@ -17,6 +17,12 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
    this->regularisation_weight = _reg_weight;
    this->reg_max_it = _reg_max_it;
 
+   if(this->discrete_radius/this->discrete_increment !=
+      (float)this->discrete_radius/(float)this->discrete_increment){
+      reg_print_fct_error("reg_discrete_init:reg_discrete_init()");
+      reg_print_msg_error("The discrete_radius is expected to be a multiple of discretise_increment");
+   }
+
    this->image_dim = this->referenceImage->nz > 1 ? 3 :2;
    this->label_1D_num = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
    this->label_nD_num = static_cast<int>(std::pow((double) this->label_1D_num,this->image_dim));
@@ -70,6 +76,10 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
 
    //regularization - optimization
    this->optimal_label_index=(int *)malloc(this->node_number*sizeof(int));
+   currentValue=(int)reg_ceil(0.5f*this->label_1D_num);
+   currentValue = (currentValue*this->label_1D_num+currentValue)*this->label_1D_num+currentValue;
+   for(int n=0; n<this->node_number; ++n)
+      this->optimal_label_index[n]=currentValue;
 
    //To store the cost data term
    this->discretised_measures = (float *)calloc(this->node_number*this->label_nD_num,sizeof(float));
@@ -168,6 +178,39 @@ void reg_discrete_init::UpdateTransformation()
 }
 /*****************************************************/
 /*****************************************************/
+void reg_discrete_init::AddL2Penalisation(float weight)
+{
+   // Compute the l2 for each label
+   float *l2_penalisation = (float *)malloc(this->label_nD_num*sizeof(float));
+   int label_index=0;
+   for(float z=-this->discrete_radius; z<=this->discrete_radius; z+=this->discrete_increment)
+      for(float y=-this->discrete_radius; y<=this->discrete_radius; y+=this->discrete_increment)
+         for(float x=-this->discrete_radius; x<=this->discrete_radius; x+=this->discrete_increment)
+            l2_penalisation[label_index++] = weight * sqrt(x*x+y*y+z*z);
+
+   // Loop over all control points
+   int measure_index;
+   size_t n, _node_number = this->node_number;
+   int _label_nD_num = this->label_nD_num;
+   float *_regularised_measures = &this->regularised_measures[0];
+#if defined (_OPENMP)
+   #pragma omp parallel for default(none) \
+   shared(_node_number, _label_nD_num, _regularised_measures, l2_penalisation) \
+   private(measure_index, n, label_index)
+#endif
+   for(n=0; n<_node_number; ++n){
+      measure_index = n * _label_nD_num;
+      // Loop over all label
+      for(label_index=0; label_index<_label_nD_num; ++label_index){
+         _regularised_measures[measure_index] += l2_penalisation[label_index];
+         ++measure_index;
+      }
+   }
+
+   free(l2_penalisation);
+}
+/*****************************************************/
+/*****************************************************/
 void reg_discrete_init::GetRegularisedMeasure()
 {
    reg_getDisplacementFromDeformation(this->controlPointImage);
@@ -180,13 +223,6 @@ void reg_discrete_init::GetRegularisedMeasure()
    float *inputCpPtrX = static_cast<float *>(this->input_transformation->data);
    float *inputCpPtrY = &inputCpPtrX[this->node_number];
    float *inputCpPtrZ = &inputCpPtrY[this->node_number];
-
-   float *l2_penalisation = new float[this->label_nD_num];
-   int label_index=0;
-   for(float z=-this->discrete_radius; z<=this->discrete_radius; z+=this->discrete_increment)
-      for(float y=-this->discrete_radius; y<=this->discrete_radius; y+=this->discrete_increment)
-         for(float x=-this->discrete_radius; x<=this->discrete_radius; x+=this->discrete_increment)
-            l2_penalisation[label_index++] = 0.001f * sqrt(x*x+y*y+z*z);
 
    float basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
    float _basisXX, _basisYY, _basisZZ, _basisXY, _basisYZ, _basisXZ;
@@ -281,7 +317,6 @@ void reg_discrete_init::GetRegularisedMeasure()
 
                size_t measure_index = node * this->label_nD_num + label;
                this->regularised_measures[measure_index] =
-                     l2_penalisation[label] +
                      (1.f-this->regularisation_weight) * this->discretised_measures[measure_index] +
                      this->regularisation_weight * (
                      reg_pow2(XX_x + valX * _basisXX) +
@@ -308,7 +343,6 @@ void reg_discrete_init::GetRegularisedMeasure()
          } // x
       } // y
    } // z
-   delete []l2_penalisation;
    reg_getDeformationFromDisplacement(this->controlPointImage);
    reg_getDeformationFromDisplacement(this->input_transformation);
 #ifndef NDEBUG
@@ -322,6 +356,10 @@ void reg_discrete_init::Run()
    char text[255];
    sprintf(text, "Control point number = %lu", this->node_number);
    reg_print_info("reg_discrete_init", text);
+   sprintf(text, "Discretised radius (voxel) = %i", this->discrete_radius);
+   reg_print_info("reg_discrete_init", text);
+   sprintf(text, "Discretised step (voxel) = %i", this->discrete_increment);
+   reg_print_info("reg_discrete_init", text);
    sprintf(text, "Discretised label number = %i", this->label_nD_num);
    reg_print_info("reg_discrete_init", text);
    // Store the intial transformation parametrisation
@@ -329,6 +367,8 @@ void reg_discrete_init::Run()
           this->node_number*this->image_dim*sizeof(float));
    // Compute the discretised data term values
    this->GetDiscretisedMeasure();
+   // Add the l2 regularisation
+   this->AddL2Penalisation(0.001f);
    // Initialise the regularise with the measure only
    memcpy(this->regularised_measures,
           this->discretised_measures,
@@ -342,10 +382,11 @@ void reg_discrete_init::Run()
       this->GetRegularisedMeasure();
       this->getOptimalLabel();
       this->UpdateTransformation();
-      printf("Regularisation %i/%i done - BE=%g - [%g]\n",
+      sprintf(text, "Regularisation %i/%i - BE=%.2f - [%2.2f%%]",
              i+1, this->reg_max_it,
              reg_spline_approxBendingEnergy(this->controlPointImage),
-             (float)this->regularisation_convergence/this->node_number);
+             100.f*(float)this->regularisation_convergence/this->node_number);
+      reg_print_info("reg_discrete_init", text);
       if(this->regularisation_convergence<this->node_number/100)
          break;
    }

@@ -71,7 +71,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-fUpTh <timepoint> <float>\tUpper threshold to apply to the floating image intensities [none]*");
    reg_print_info(exec, "\t* The scl_slope and scl_inter from the nifti header are taken into account for the thresholds");
    reg_print_info(exec, "");
-   reg_print_info(exec, "*** Spline options:");
+   reg_print_info(exec, "*** Spline options (All defined at full resolution):");
    reg_print_info(exec, "\t-sx <float>\t\tFinal grid spacing along the x axis in mm (in voxel if negative value) [5 voxels]");
    reg_print_info(exec, "\t-sy <float>\t\tFinal grid spacing along the y axis in mm (in voxel if negative value) [sx value]");
    reg_print_info(exec, "\t-sz <float>\t\tFinal grid spacing along the z axis in mm (in voxel if negative value) [sx value]");
@@ -134,7 +134,7 @@ void Usage(char *exec)
 #if defined (_OPENMP)
    reg_print_info(exec, "");
    reg_print_info(exec, "*** OpenMP-related options:");
-   int defaultOpenMPValue=1;
+   int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 
 #if defined (_OPENMP)
    // Set the default number of thread
-   int defaultOpenMPValue=1;
+   int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
@@ -535,7 +535,6 @@ int main(int argc, char **argv)
          }
          REG->UseMINDSSC(0);
       }
-      //MRF -- add option for discrete optimization
       else if(strcmp(argv[i], "-kld")==0)
       {
          REG->UseKLDivergence(atoi(argv[++i]));
@@ -545,9 +544,6 @@ int main(int argc, char **argv)
          for(int t=0; t<floatingImage->nt; ++t)
             REG->UseKLDivergence(t);
       }
-      //        else if(strcmp(argv[i], "-amc")==0){ // HERE TODO
-      //            REG->UseMultiChannelNMI();
-      //        }
       else if(strcmp(argv[i], "-rr")==0)
       {
          REG->UseRobustRange();
@@ -666,6 +662,13 @@ int main(int argc, char **argv)
       {
          REG->UseBCHUpdate(atoi(argv[++i]));
       }
+#ifdef BUILD_DEV
+      else if(strcmp(argv[i], "-disc_init")==0 || strcmp(argv[i], "--disc_init")==0)
+      {
+         REG->UseDiscreteInit();
+      }
+#endif
+
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
 #if defined (_OPENMP)

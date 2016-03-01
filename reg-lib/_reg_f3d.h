@@ -68,6 +68,10 @@ protected:
 
    virtual void CorrectTransformation();
 
+#ifdef BUILD_DEV
+   virtual void DiscreteInitialisation();
+#endif
+
    void (*funcProgressCallback)(float pcntProgress, void *params);
    void *paramsProgressCallback;
 

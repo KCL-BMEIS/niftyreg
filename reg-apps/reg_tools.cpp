@@ -112,7 +112,7 @@ void Usage(char *exec)
     printf("\t-mind\t\t\tCreate a MIND descriptor image\n");
     printf("\t-mindssc\t\t\tCreate a MIND-SSC descriptor image\n");
 #if defined (_OPENMP)
-    int defaultOpenMPValue=1;
+    int defaultOpenMPValue=omp_get_num_procs();
     if(getenv("OMP_NUM_THREADS")!=NULL)
         defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
     printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
 
 #if defined (_OPENMP)
     // Set the default number of thread
-    int defaultOpenMPValue=1;
+    int defaultOpenMPValue=omp_get_num_procs();
     if(getenv("OMP_NUM_THREADS")!=NULL)
         defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
     omp_set_num_threads(defaultOpenMPValue);

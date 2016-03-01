@@ -94,7 +94,7 @@ void Usage(char *exec)
 #endif
 //   reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
 #if defined (_OPENMP)
-   int defaultOpenMPValue=1;
+   int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 
 #if defined (_OPENMP)
    // Set the default number of thread
-   int defaultOpenMPValue=1;
+   int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);

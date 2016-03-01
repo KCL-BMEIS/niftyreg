@@ -500,10 +500,10 @@ void reg_f3d_sym<T>::Initialise()
       memcpy( this->controlPointGrid->data, this->inputControlPointGrid->data,
               this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
       // The final grid spacing is computed
-      this->spacing[0] = this->controlPointGrid->dx / powf(2.0f, (float)(this->levelToPerform-1));
-      this->spacing[1] = this->controlPointGrid->dy / powf(2.0f, (float)(this->levelToPerform-1));
+      this->spacing[0] = this->controlPointGrid->dx / powf(2.0f, (float)(this->levelNumber-1));
+      this->spacing[1] = this->controlPointGrid->dy / powf(2.0f, (float)(this->levelNumber-1));
       if(this->controlPointGrid->nz>1)
-         this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->levelToPerform-1));
+         this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->levelNumber-1));
       // The backward grid is derived from the forward
       this->backwardControlPointGrid=nifti_copy_nim_info(this->controlPointGrid);
       this->backwardControlPointGrid->data = (void *)malloc(this->backwardControlPointGrid->nvox *
@@ -1735,6 +1735,17 @@ nifti_image * reg_f3d_sym<T>::GetBackwardControlPointPositionImage()
 #endif
    return returnedControlPointGrid;
 }
+/* *************************************************************** */
+/* *************************************************************** */
+#ifdef BUILD_DEV
+template<class T>
+void reg_f3d_sym<T>::DiscreteInitialisation()
+{
+   reg_print_fct_error("reg_f3d_sym<T>::DiscreteInitialisation()");
+   reg_print_msg_error("This function has not been implemented yet");
+   reg_exit();
+}
+#endif
 /* *************************************************************** */
 /* *************************************************************** */
 template class reg_f3d_sym<float>;
