@@ -1437,193 +1437,193 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
 
                reg_mat33_diagonalize(&TmS, &TmS_EigVec, &TmS_EigVal);
 
-               // If eigen values are less than 0, set them to 0.
-               // Also, invert the eigenvalues to estimate the inverse.
-               for(int m=0;m<3;m++){
-                  for(int n=0;n<3;n++){
-                     if(m==n){ // Set diagonals to max(val,0)
-                        TmS_EigVal.m[m][n]=TmS_EigVal.m[m][n]>0.000001f?TmS_EigVal.m[m][n]:0.000001f;
-                        TmS_EigVal_inv.m[m][n]=1.0f/TmS_EigVal.m[m][n];
-                     }else{ // Set off-diagonal residuals to 0
-                        TmS_EigVal.m[m][n]=0;
-                        TmS_EigVal_inv.m[m][n]=0;
-                     }
-                  }
-               }
-
-               TmS_EigVec_trans=reg_mat33_trans(TmS_EigVec);
-               P= TmS_EigVec * TmS_EigVal * TmS_EigVec_trans;
-               invP= TmS_EigVec * TmS_EigVal_inv * TmS_EigVec_trans;
-               currentDeterminant = TmS_EigVal.m[0][0]*TmS_EigVal.m[1][1]*TmS_EigVal.m[2][2];
-               currentDeterminant=currentDeterminant<0.000001f?0.000001f:currentDeterminant;
-            }
-            else{
-
-               A=nifti_mat33_inverse(jacMat[index]);
-
-               ASAt =  A * S * reg_mat33_trans(A);
-
-               mat33 S_EigVec, S_EigVal;
-
-               //                % rotate S
-               //                [ZS, DS] = eig(S);
-               reg_mat33_diagonalize(&ASAt, &S_EigVec, &S_EigVal);
-
-               //                T1 = ZS'*T*ZS;
-               mat33 T1 = reg_mat33_trans(S_EigVec) * T * S_EigVec;
-
-               //                % Volume-preserving scale of S to make it isotropic
-               //                detS = prod(diag(DS));
-               float detASAt = S_EigVal.m[0][0]*S_EigVal.m[1][1]*S_EigVal.m[2][2];
-
-               //                factDetS = detS^(1/4);
-               float factDetS=powf(detASAt,0.25);
-
-               //                LambdaN = factDetS*diag(diag(DS).^(-1/2));
-               //                invLambdaN = diag(1./diag(LambdaN))
-               mat33 LambdaN,invLambdaN;
-               for(int m=0;m<3;m++){
-                  for(int n=0;n<3;n++){
-                     if(m==n){
-                        LambdaN.m[m][n]=factDetS*powf(S_EigVal.m[m][n],-0.5);
-                        invLambdaN.m[m][n]=1.0f/LambdaN.m[m][n];
-                     }else{ // Set off-diagonal to 0
-                        LambdaN.m[m][n]=0;
-                        invLambdaN.m[m][n]=0;
-                     }
-                  }
-               }
-
-               //                T2 = LambdaN*T1*LambdaN';
-               mat33 T2 = LambdaN * T1 * reg_mat33_trans(LambdaN);
-
-               //                % Rotate to make thing axis-aligned
-               //                [ZT2, DT2] = eig(T2);
-               mat33 T2_EigVec, T2_EigVal;
-               reg_mat33_diagonalize(&T2, &T2_EigVec, &T2_EigVal);
-
-               //                % Optimal solution in the transformed axis-aligned space
-               //                DP2 = diag(max(sqrt(detS),diag(DT2)));
-               mat33 DP2;
-               for(int m=0;m<3;m++){
-                  for(int n=0;n<3;n++){
-                     if(m==n){
-                        DP2.m[m][n]= powf(factDetS,0.5)>(T2_EigVal.m[m][n])?powf(factDetS,0.5):(T2_EigVal.m[m][n]);
-                     }else{ // Set off-diagonal to 0
-                        DP2.m[m][n]=0;
-                     }
-                  }
-               }
-
-               //                % Roll back the transforms
-               //                Q = ZS*invLambdaN*ZT2*DQ2*ZT2'*invLambdaN*ZS'
-               mat33 Q = S_EigVec * invLambdaN * T2_EigVec * DP2 * reg_mat33_trans(T2_EigVec) * invLambdaN * reg_mat33_trans(S_EigVec);
-               //                P=Q-S
-               TmS = Q - S;
-               invP=nifti_mat33_inverse(TmS);
-               reg_mat33_diagonalize(&TmS, &TmS_EigVec, &TmS_EigVal);
-
-               currentDeterminant = TmS_EigVal.m[0][0]*TmS_EigVal.m[1][1]*TmS_EigVal.m[2][2];
-               currentDeterminant=currentDeterminant<0.000001f?0.000001f:currentDeterminant;
-            }
-
-            // set sampling rate
-            psfNumbSamples=3; // in standard deviations mm
-            psfSampleSpacing=0.75; // in standard deviations mm
-            psfKernelShift[0]=TmS_EigVal.m[0][0]<0.01f?0.0f:(float)(psfNumbSamples)*psfSampleSpacing;
-            psfKernelShift[1]=TmS_EigVal.m[1][1]<0.01f?0.0f:(float)(psfNumbSamples)*psfSampleSpacing;
-            psfKernelShift[2]=TmS_EigVal.m[2][2]<0.01f?0.0f:(float)(psfNumbSamples)*psfSampleSpacing;
-
-            // Get image coordinates of the centre
-            currentC=reg_floor(index/warpedPlaneNumber);
-            currentB=reg_floor((index-currentC*warpedPlaneNumber)/warpedLineNumber);
-            currentA=(index-currentB*warpedLineNumber-currentC*warpedPlaneNumber);
-
-            //initialise weights
-            psfWeightSum=0.0f;
-            intensity=0.0f;
-
-            // coordinates in eigen space
-            for(psf_eig[0]=-psfKernelShift[0];psf_eig[0]<=(psfKernelShift[0]); psf_eig[0]+=psfSampleSpacing)
-            {
-               for(psf_eig[1]=-psfKernelShift[1];psf_eig[1]<=(psfKernelShift[1]); psf_eig[1]+=psfSampleSpacing)
-               {
-                  for(psf_eig[2]=-psfKernelShift[2];psf_eig[2]<=(psfKernelShift[2]); psf_eig[2]+=psfSampleSpacing)
-                  {
-                     // Distance threshold (only interpolate if distance is below 3 std)
-                     if(sqrtf(psf_eig[0]*psf_eig[0]+psf_eig[1]*psf_eig[1]+psf_eig[2]*psf_eig[2])<=3){
-                        // Use the Eigen coordinates and convert them to XYZ
-                        // The new lambda per coordinate is eige_coordinate*sqrt(eigenVal)
-                        // as the sqrt(eigenVal) is equivalent to the STD
-                        psf_xyz[0]=0;
-                        psf_xyz[1]=0;
-                        psf_xyz[2]=0;
-                        for(int m=0;m<3;m++){
-                           curLambda=(float)(psf_eig[m])*sqrt(TmS_EigVal.m[m][m]);
-                           psf_xyz[0]+=curLambda*TmS_EigVec.m[0][m];
-                           psf_xyz[1]+=curLambda*TmS_EigVec.m[1][m];
-                           psf_xyz[2]+=curLambda*TmS_EigVec.m[2][m];
+                    // If eigen values are less than 0, set them to 0.
+                    // Also, invert the eigenvalues to estimate the inverse.
+                    for(int m=0;m<3;m++){
+                        for(int n=0;n<3;n++){
+                            if(m==n){ // Set diagonals to max(val,0)
+                                TmS_EigVal.m[m][n]=TmS_EigVal.m[m][n]>0.000001f?TmS_EigVal.m[m][n]:0.000001f;
+                                TmS_EigVal_inv.m[m][n]=1.0f/TmS_EigVal.m[m][n];
+                            }else{ // Set off-diagonal residuals to 0
+                                TmS_EigVal.m[m][n]=0;
+                                TmS_EigVal_inv.m[m][n]=0;
+                            }
                         }
+                    }
 
-                        //mahal=0;
-                        mahal=psf_xyz[0]*invP.m[0][0]*psf_xyz[0]+
-                              psf_xyz[0]*invP.m[1][0]*psf_xyz[1]+
-                              psf_xyz[0]*invP.m[2][0]*psf_xyz[2]+
-                              psf_xyz[1]*invP.m[0][1]*psf_xyz[0]+
-                              psf_xyz[1]*invP.m[1][1]*psf_xyz[1]+
-                              psf_xyz[1]*invP.m[2][1]*psf_xyz[2]+
-                              psf_xyz[2]*invP.m[0][2]*psf_xyz[0]+
-                              psf_xyz[2]*invP.m[1][2]*psf_xyz[1]+
-                              psf_xyz[2]*invP.m[2][2]*psf_xyz[2];
+                    TmS_EigVec_trans=reg_mat33_trans(TmS_EigVec);
+                    P= TmS_EigVec * TmS_EigVal * TmS_EigVec_trans;
+                    invP= TmS_EigVec * TmS_EigVal_inv * TmS_EigVec_trans;
+                    currentDeterminant = TmS_EigVal.m[0][0]*TmS_EigVal.m[1][1]*TmS_EigVal.m[2][2];
+                    currentDeterminant=currentDeterminant<0.000001f?0.000001f:currentDeterminant;
+                }
+                else{
 
-                        psfWeight=powf(2.f*M_PI,-3.f/2.f)*
-                              pow(currentDeterminant,-0.5f)*
-                              expf(-0.5f*mahal);
+                    A=nifti_mat33_inverse(jacMat[index]);
 
-                        if(psfWeight!=0.f){ // If the relative weight is above 0
-                           // Interpolate (trilinearly) the deformation field for non-integer positions
-                           currentAPre=(size_t)(reg_floor_size_t(currentA+(size_t)reg_floor_size_t(psf_xyz[0]/(float)warpedImage->pixdim[1])));
-                           currentARel=(float)currentA+(float)(psf_xyz[0]/(float)warpedImage->pixdim[1])-(float)(currentAPre);
+                    ASAt =  A * S * reg_mat33_trans(A);
 
-                           currentBPre=(size_t)(reg_floor_size_t(currentB+(size_t)reg_floor_size_t(psf_xyz[1]/(float)warpedImage->pixdim[2])));
-                           currentBRel=(float)currentB+(float)(psf_xyz[1]/(float)warpedImage->pixdim[2])-(float)(currentBPre);
+                    mat33 S_EigVec, S_EigVal;
 
-                           currentCPre=(size_t)(reg_floor_size_t(currentC+(size_t)reg_floor_size_t(psf_xyz[2]/(float)warpedImage->pixdim[3])));
-                           currentCRel=(float)currentC+(float)(psf_xyz[2]/(float)warpedImage->pixdim[3])-(float)(currentCPre);
+                    //                % rotate S
+                    //                [ZS, DS] = eig(S);
+                    reg_mat33_diagonalize(&ASAt, &S_EigVec, &S_EigVal);
 
-                           // Interpolate the PSF world coordinates
-                           psfWorld[0]=0.0f;
-                           psfWorld[1]=0.0f;
-                           psfWorld[2]=0.0f;
-                           resamplingWeightSum=0.0f;
-                           for (int a=0;a<=1;a++){
-                              for (int b=0;b<=1;b++){
-                                 for (int c=0;c<=1;c++){
+                    //                T1 = ZS'*T*ZS;
+                    mat33 T1 = reg_mat33_trans(S_EigVec) * T * S_EigVec;
 
-                                    if((currentAPre+a)>=0
-                                          && (currentBPre+b)>=0
-                                          && (currentCPre+c)>=0
-                                          && (currentAPre+a)<warpedImage->nx
-                                          && (currentBPre+b)<warpedImage->ny
-                                          && (currentCPre+c)<warpedImage->nz){
+                    //                % Volume-preserving scale of S to make it isotropic
+                    //                detS = prod(diag(DS));
+                    float detASAt = S_EigVal.m[0][0]*S_EigVal.m[1][1]*S_EigVal.m[2][2];
 
-                                       currentIndex=((size_t)currentAPre+(size_t)a)+
-                                             ((size_t)currentBPre+(size_t)b)*warpedLineNumber+
-                                             ((size_t)currentCPre+(size_t)c)*warpedPlaneNumber;
+                    //                factDetS = detS^(1/4);
+                    float factDetS=powf(detASAt,0.25);
 
-                                       resamplingWeight=fabs((float)(1-a)-currentARel)*
-                                             fabs((float)(1-b)-currentBRel)*
-                                             fabs((float)(1-c)-currentCRel);
+                    //                LambdaN = factDetS*diag(diag(DS).^(-1/2));
+                    //                invLambdaN = diag(1./diag(LambdaN))
+                    mat33 LambdaN,invLambdaN;
+                    for(int m=0;m<3;m++){
+                        for(int n=0;n<3;n++){
+                            if(m==n){
+                                LambdaN.m[m][n]=factDetS*powf(S_EigVal.m[m][n],-0.5);
+                                invLambdaN.m[m][n]=1.0f/LambdaN.m[m][n];
+                            }else{ // Set off-diagonal to 0
+                                LambdaN.m[m][n]=0;
+                                invLambdaN.m[m][n]=0;
+                            }
+                        }
+                    }
 
-                                       resamplingWeightSum+=resamplingWeight;
+                    //                T2 = LambdaN*T1*LambdaN';
+                    mat33 T2 = LambdaN * T1 * reg_mat33_trans(LambdaN);
 
-                                       psfWorld[0]+=static_cast<double>(resamplingWeight*deformationFieldPtrX[currentIndex]);
-                                       psfWorld[1]+=static_cast<double>(resamplingWeight*deformationFieldPtrY[currentIndex]);
-                                       psfWorld[2]+=static_cast<double>(resamplingWeight*deformationFieldPtrZ[currentIndex]);
+                    //                % Rotate to make thing axis-aligned
+                    //                [ZT2, DT2] = eig(T2);
+                    mat33 T2_EigVec, T2_EigVal;
+                    reg_mat33_diagonalize(&T2, &T2_EigVec, &T2_EigVal);
+
+                    //                % Optimal solution in the transformed axis-aligned space
+                    //                DP2 = diag(max(sqrt(detS),diag(DT2)));
+                    mat33 DP2;
+                    for(int m=0;m<3;m++){
+                        for(int n=0;n<3;n++){
+                            if(m==n){
+                                DP2.m[m][n]= powf(factDetS,0.5)>(T2_EigVal.m[m][n])?powf(factDetS,0.5):(T2_EigVal.m[m][n]);
+                            }else{ // Set off-diagonal to 0
+                                DP2.m[m][n]=0;
+                            }
+                        }
+                    }
+
+                    //                % Roll back the transforms
+                    //                Q = ZS*invLambdaN*ZT2*DQ2*ZT2'*invLambdaN*ZS'
+                    mat33 Q = S_EigVec * invLambdaN * T2_EigVec * DP2 * reg_mat33_trans(T2_EigVec) * invLambdaN * reg_mat33_trans(S_EigVec);
+                    //                P=Q-S
+                    TmS = Q - S;
+                    invP=nifti_mat33_inverse(TmS);
+                    reg_mat33_diagonalize(&TmS, &TmS_EigVec, &TmS_EigVal);
+
+                    currentDeterminant = TmS_EigVal.m[0][0]*TmS_EigVal.m[1][1]*TmS_EigVal.m[2][2];
+                    currentDeterminant=currentDeterminant<0.000001f?0.000001f:currentDeterminant;
+                }
+
+                // set sampling rate
+                psfNumbSamples=3; // in standard deviations mm
+                psfSampleSpacing=0.75; // in standard deviations mm
+                psfKernelShift[0]=TmS_EigVal.m[0][0]<0.01f?0.0f:(float)(psfNumbSamples)*psfSampleSpacing;
+                psfKernelShift[1]=TmS_EigVal.m[1][1]<0.01f?0.0f:(float)(psfNumbSamples)*psfSampleSpacing;
+                psfKernelShift[2]=TmS_EigVal.m[2][2]<0.01f?0.0f:(float)(psfNumbSamples)*psfSampleSpacing;
+
+                // Get image coordinates of the centre
+                currentC=reg_floor(index/warpedPlaneNumber);
+                currentB=reg_floor((index-currentC*warpedPlaneNumber)/warpedLineNumber);
+                currentA=(index-currentB*warpedLineNumber-currentC*warpedPlaneNumber);
+
+                //initialise weights
+                psfWeightSum=0.0f;
+                intensity=0.0f;
+
+                // coordinates in eigen space
+                for(psf_eig[0]=-psfKernelShift[0];psf_eig[0]<=(psfKernelShift[0]); psf_eig[0]+=psfSampleSpacing)
+                {
+                    for(psf_eig[1]=-psfKernelShift[1];psf_eig[1]<=(psfKernelShift[1]); psf_eig[1]+=psfSampleSpacing)
+                    {
+                        for(psf_eig[2]=-psfKernelShift[2];psf_eig[2]<=(psfKernelShift[2]); psf_eig[2]+=psfSampleSpacing)
+                        {
+                            // Distance threshold (only interpolate if distance is below 3 std)
+                            if(sqrtf(psf_eig[0]*psf_eig[0]+psf_eig[1]*psf_eig[1]+psf_eig[2]*psf_eig[2])<=3){
+                                // Use the Eigen coordinates and convert them to XYZ
+                                // The new lambda per coordinate is eige_coordinate*sqrt(eigenVal)
+                                // as the sqrt(eigenVal) is equivalent to the STD
+                                psf_xyz[0]=0;
+                                psf_xyz[1]=0;
+                                psf_xyz[2]=0;
+                                for(int m=0;m<3;m++){
+                                    curLambda=(float)(psf_eig[m])*sqrt(TmS_EigVal.m[m][m]);
+                                    psf_xyz[0]+=curLambda*TmS_EigVec.m[0][m];
+                                    psf_xyz[1]+=curLambda*TmS_EigVec.m[1][m];
+                                    psf_xyz[2]+=curLambda*TmS_EigVec.m[2][m];
+                                }
+
+                                //mahal=0;
+                                mahal=psf_xyz[0]*invP.m[0][0]*psf_xyz[0]+
+                                        psf_xyz[0]*invP.m[1][0]*psf_xyz[1]+
+                                        psf_xyz[0]*invP.m[2][0]*psf_xyz[2]+
+                                        psf_xyz[1]*invP.m[0][1]*psf_xyz[0]+
+                                        psf_xyz[1]*invP.m[1][1]*psf_xyz[1]+
+                                        psf_xyz[1]*invP.m[2][1]*psf_xyz[2]+
+                                        psf_xyz[2]*invP.m[0][2]*psf_xyz[0]+
+                                        psf_xyz[2]*invP.m[1][2]*psf_xyz[1]+
+                                        psf_xyz[2]*invP.m[2][2]*psf_xyz[2];
+
+                                psfWeight=powf(2.f*M_PI,-3.f/2.f)*
+                                        pow(currentDeterminant,-0.5f)*
+                                        expf(-0.5f*mahal);
+
+                                if(psfWeight!=0.f){ // If the relative weight is above 0
+                                    // Interpolate (trilinearly) the deformation field for non-integer positions
+                                    currentAPre=(size_t)(reg_floor_size_t(currentA+(size_t)reg_floor_size_t(psf_xyz[0]/(float)warpedImage->pixdim[1])));
+                                    currentARel=(float)currentA+(float)(psf_xyz[0]/(float)warpedImage->pixdim[1])-(float)(currentAPre);
+
+                                    currentBPre=(size_t)(reg_floor_size_t(currentB+(size_t)reg_floor_size_t(psf_xyz[1]/(float)warpedImage->pixdim[2])));
+                                    currentBRel=(float)currentB+(float)(psf_xyz[1]/(float)warpedImage->pixdim[2])-(float)(currentBPre);
+
+                                    currentCPre=(size_t)(reg_floor_size_t(currentC+(size_t)reg_floor_size_t(psf_xyz[2]/(float)warpedImage->pixdim[3])));
+                                    currentCRel=(float)currentC+(float)(psf_xyz[2]/(float)warpedImage->pixdim[3])-(float)(currentCPre);
+
+                                    // Interpolate the PSF world coordinates
+                                    psfWorld[0]=0.0f;
+                                    psfWorld[1]=0.0f;
+                                    psfWorld[2]=0.0f;
+                                    resamplingWeightSum=0.0f;
+                                    for (int a=0;a<=1;a++){
+                                        for (int b=0;b<=1;b++){
+                                            for (int c=0;c<=1;c++){
+
+                                                if(((int)currentAPre+a)>=0
+                                                && ((int)currentBPre+b)>=0
+                                                && ((int)currentCPre+c)>=0
+                                                && ((int)currentAPre+a)<warpedImage->nx
+                                                && ((int)currentBPre+b)<warpedImage->ny
+                                                && ((int)currentCPre+c)<warpedImage->nz){
+
+                                                    currentIndex=((size_t)currentAPre+(size_t)a)+
+                                                            ((size_t)currentBPre+(size_t)b)*warpedLineNumber+
+                                                            ((size_t)currentCPre+(size_t)c)*warpedPlaneNumber;
+
+                                                    resamplingWeight=fabs((float)(1-a)-currentARel)*
+                                                            fabs((float)(1-b)-currentBRel)*
+                                                            fabs((float)(1-c)-currentCRel);
+
+                                                    resamplingWeightSum+=resamplingWeight;
+
+                                                    psfWorld[0]+=static_cast<double>(resamplingWeight*deformationFieldPtrX[currentIndex]);
+                                                    psfWorld[1]+=static_cast<double>(resamplingWeight*deformationFieldPtrY[currentIndex]);
+                                                    psfWorld[2]+=static_cast<double>(resamplingWeight*deformationFieldPtrZ[currentIndex]);
+                                                }
+                                            }
+                                        }
                                     }
-                                 }
-                              }
-                           }
 
                            if(resamplingWeightSum>0.0f){
                               psfWorld[0]/=resamplingWeightSum;
@@ -2546,7 +2546,7 @@ void TrilinearImageGradient(nifti_image *floatingImage,
 
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "3D linear gradient computation of volume number %i",t);
+   sprintf(text, "3D linear gradient computation of volume number %i", active_timepoint);
    reg_print_msg_debug(text);
 #endif
 
@@ -2741,7 +2741,7 @@ void BilinearImageGradient(nifti_image *floatingImage,
 
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "2D linear gradient computation of volume number %i",t);
+   sprintf(text, "2D linear gradient computation of volume number %i",active_timepoint);
    reg_print_msg_debug(text);
 #endif
 
@@ -2876,7 +2876,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
 
 #ifndef NDEBUG
       char text[255];
-      sprintf(text, "3D cubic spline gradient computation of volume number %i",t);
+      sprintf(text, "3D cubic spline gradient computation of volume number %i",active_timepoint);
       reg_print_msg_debug(text);
 #endif
 
@@ -3038,7 +3038,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
 
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "2D cubic spline gradient computation of volume number %i",t);
+   sprintf(text, "2D cubic spline gradient computation of volume number %i",active_timepoint);
    reg_print_msg_debug(text);
 #endif
    int previous[2], b, Y, a;

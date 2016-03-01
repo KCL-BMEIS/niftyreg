@@ -83,13 +83,14 @@ int main(int argc, char **argv)
                              identityDefField,
                              NULL,
                              1,
-                             std::numeric_limits<float>::quiet_NaN());
+                             std::numeric_limits<float>::quiet_NaN(),
+                             0);
         //
         nifti_image_free(identityDefField);identityDefField=NULL;
         //
     } else {
         int *mask = (int *)calloc(inputImage->nvox,sizeof(int));
-        spatialGradient<float>(inputImage,gradImg,mask);
+        spatialGradient<float>(inputImage,gradImg,mask,0);
         free(mask);
     }
     //
