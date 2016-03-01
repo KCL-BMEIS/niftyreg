@@ -1600,12 +1600,12 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
                                         for (int b=0;b<=1;b++){
                                             for (int c=0;c<=1;c++){
 
-                                                if((currentAPre+a)>=0
-                                                        && (currentBPre+b)>=0
-                                                        && (currentCPre+c)>=0
-                                                        && (currentAPre+a)<warpedImage->nx
-                                                        && (currentBPre+b)<warpedImage->ny
-                                                        && (currentCPre+c)<warpedImage->nz){
+                                                if(((int)currentAPre+a)>=0
+                                                && ((int)currentBPre+b)>=0
+                                                && ((int)currentCPre+c)>=0
+                                                && ((int)currentAPre+a)<warpedImage->nx
+                                                && ((int)currentBPre+b)<warpedImage->ny
+                                                && ((int)currentCPre+c)<warpedImage->nz){
 
                                                     currentIndex=((size_t)currentAPre+(size_t)a)+
                                                             ((size_t)currentBPre+(size_t)b)*warpedLineNumber+

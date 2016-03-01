@@ -260,9 +260,11 @@ add_test(${EXEC}_imageGradientDF_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3D_
 add_test(${EXEC}_imageGradientSP_2D ${EXEC} ${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz ${DFOLDER}/expectedImageGradient2D.nii.gz 1)
 add_test(${EXEC}_imageGradientSP_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3D_1.nii.gz ${DFOLDER}/expectedImageGradient3D.nii.gz 1)
 #-----------------------------------------------------------------------------
+if(BUILD_DEV)
 set(EXEC reg_test_coherence_mrf)
 add_executable(${EXEC} ${EXEC}.cpp)
 target_link_libraries(${EXEC} _reg_dev)
 #add_test(${EXEC}_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/floImg2D.nii.gz)
 add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/target_im.nii.gz ${DFOLDER}/moving_im.nii.gz similarity2.dat)
+endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
