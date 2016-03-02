@@ -281,10 +281,6 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
    if(referenceImage->nz>1)
       measureGradPtrZ = &measureGradPtrY[voxelNumber];
 
-   // Set all the gradient values to zero
-   for(voxel=0; voxel<measureGradient->nvox; ++voxel)
-      measureGradPtrX[voxel]=0;
-
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(voxelNumber,currentRefPtr, currentWarPtr, \

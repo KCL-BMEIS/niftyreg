@@ -88,7 +88,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t--rbn <int>\t\tNMI. Number of bin to use for the reference image histogram. Identical value for every timepoint.");
    reg_print_info(exec, "\t--fbn <int>\t\tNMI. Number of bin to use for the floating image histogram. Identical value for every timepoint.");
    reg_print_info(exec, "\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the reference image histogram for the specified time point.");
-   reg_print_info(exec, "\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the floating image histogram for the specified time point.");
+   reg_print_info(exec, "\t-fbn <tp> <int>\t\tNMI. Number of bin to use for the floating image histogram for the specified time point.");
    reg_print_info(exec, "\t--lncc <float>\t\tLNCC. Standard deviation of the Gaussian kernel. Identical value for every timepoint");
    reg_print_info(exec, "\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint");
    reg_print_info(exec, "\t--ssd\t\t\tSSD. Used for all time points");

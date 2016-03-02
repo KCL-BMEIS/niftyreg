@@ -377,6 +377,7 @@ double reg_getLNCCValue(nifti_image *referenceImage,
 double reg_lncc::GetSimilarityMeasureValue()
 {
    double lncc_value=0.f;
+   int number_activeTimePoint = 0;
 
    for(int current_timepoint=0; current_timepoint<this->referenceImagePointer->nt; ++current_timepoint)
    {
@@ -498,9 +499,10 @@ double reg_lncc::GetSimilarityMeasureValue()
                break;
             }
          }
+      number_activeTimePoint++;
       }
    }
-   return lncc_value;
+   return lncc_value/static_cast<double>(number_activeTimePoint);
 }
 /* *************************************************************** */
 /* *************************************************************** */

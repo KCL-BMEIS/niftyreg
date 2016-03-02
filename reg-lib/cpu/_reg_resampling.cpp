@@ -3315,14 +3315,6 @@ void reg_getImageGradient(nifti_image *floatingImage,
       MrPropreRule=true;
    }
 
-   // Check if the dimension are correct
-   if(floatingImage->nt != warImgGradient->nt)
-   {
-      reg_print_fct_error("reg_getImageGradient");
-      reg_print_msg_error("The floating and warped images have different dimension along the time axis");
-      reg_exit();
-   }
-
    // Define the DTI indices if required
    int dtIndicies[6];
    for(int i=0; i<6; ++i) dtIndicies[i]=-1;
