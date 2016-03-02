@@ -56,7 +56,13 @@ public:
    /// @brief Returns the registration measure of similarity value
    virtual double GetSimilarityMeasureValue() = 0;
    /// @brief Compute the voxel based measure of similarity gradient
-   virtual void GetVoxelBasedSimilarityMeasureGradient() = 0;
+   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint){
+      if(current_timepoint<0 || current_timepoint>=this->referenceImagePointer->nt){
+         reg_print_fct_error("reg_measure::GetVoxelBasedSimilarityMeasureGradient");
+         reg_print_msg_error("The specified active timepoint is not defined in the ref/war images");
+         reg_exit();
+      }
+   }
    /// @brief Here
    virtual void GetDiscretisedValue(nifti_image *, float *, int , int) {}
    void SetActiveTimepoint(int timepoint)

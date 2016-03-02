@@ -658,14 +658,6 @@ void reg_base<T>::AllocateWarpedGradient()
    }
    reg_base<T>::ClearWarpedGradient();
    this->warImgGradient = nifti_copy_nim_info(this->deformationFieldImage);
-   this->warImgGradient->dim[0]=this->warImgGradient->ndim=5;
-   this->warImgGradient->nt = this->warImgGradient->dim[4] = this->currentFloating->nt;
-   this->warImgGradient->nvox =
-      (size_t)this->warImgGradient->nx *
-      (size_t)this->warImgGradient->ny *
-      (size_t)this->warImgGradient->nz *
-      (size_t)this->warImgGradient->nt *
-      (size_t)this->warImgGradient->nu;
    this->warImgGradient->data = (void *)calloc(this->warImgGradient->nvox,
                                      this->warImgGradient->nbyper);
 #ifndef NDEBUG
@@ -1032,57 +1024,62 @@ double reg_base<T>::ComputeSimilarityMeasure()
 template <class T>
 void reg_base<T>::GetVoxelBasedGradient()
 {
+   // The voxel based gradient image is filled with zeros
+   reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradient,
+                                  this->voxelBasedMeasureGradient,
+                                  0.f);
+
    // The intensity gradient is first computed
-   if(this->measure_nmi!=NULL || this->measure_ssd!=NULL ||
-         this->measure_kld!=NULL || this->measure_lncc!=NULL ||
-         this->measure_dti!=NULL)
-   {
-      //    if(this->measure_dti!=NULL){
-      //        reg_getImageGradient(this->currentFloating,
-      //                             this->warImgGradient,
-      //                             this->deformationFieldImage,
-      //                             this->currentMask,
-      //                             this->interpolation,
-      //                             this->warpedPaddingValue,
-      //                             this->measure_dti->GetActiveTimepoints(),
-      //		 					   this->forwardJacobianMatrix,
-      //							   this->warped);
-      //    }
-      //    else{
+   //   if(this->measure_nmi!=NULL || this->measure_ssd!=NULL ||
+   //         this->measure_kld!=NULL || this->measure_lncc!=NULL ||
+   //         this->measure_dti!=NULL)
+   //   {
+   //    if(this->measure_dti!=NULL){
+   //        reg_getImageGradient(this->currentFloating,
+   //                             this->warImgGradient,
+   //                             this->deformationFieldImage,
+   //                             this->currentMask,
+   //                             this->interpolation,
+   //                             this->warpedPaddingValue,
+   //                             this->measure_dti->GetActiveTimepoints(),
+   //		 					   this->forwardJacobianMatrix,
+   //							   this->warped);
+   //    }
+   //    else{
+   //    }
+   //   }
+
+   //   if(this->measure_dti!=NULL)
+   //      this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
+
+   for(int t=0; t<this->currentReference->nt; ++t){
       reg_getImageGradient(this->currentFloating,
                            this->warImgGradient,
                            this->deformationFieldImage,
                            this->currentMask,
                            this->interpolation,
-                           this->warpedPaddingValue);
-      //    }
+                           this->warpedPaddingValue,
+                           t);
+
+      // The gradient of the various measures of similarity are computed
+      if(this->measure_nmi!=NULL)
+         this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_ssd!=NULL)
+         this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_kld!=NULL)
+         this->measure_kld->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_lncc!=NULL)
+         this->measure_lncc->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_mind!=NULL)
+         this->measure_mind->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_mindssc!=NULL)
+         this->measure_mindssc->GetVoxelBasedSimilarityMeasureGradient(t);
    }
-
-   // The voxel based gradient image is filled with zeros
-   reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradient,
-                                  this->voxelBasedMeasureGradient,
-                                  0.f);
-   // The gradient of the various measures of similarity are computed
-   if(this->measure_nmi!=NULL)
-      this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient();
-
-   if(this->measure_ssd!=NULL)
-      this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient();
-
-   if(this->measure_kld!=NULL)
-      this->measure_kld->GetVoxelBasedSimilarityMeasureGradient();
-
-   if(this->measure_lncc!=NULL)
-      this->measure_lncc->GetVoxelBasedSimilarityMeasureGradient();
-
-   if(this->measure_dti!=NULL)
-      this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
-
-   if(this->measure_mind!=NULL)
-      this->measure_mind->GetVoxelBasedSimilarityMeasureGradient();
-
-   if(this->measure_mindssc!=NULL)
-      this->measure_mindssc->GetVoxelBasedSimilarityMeasureGradient();
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::GetVoxelBasedGradient");
@@ -1149,22 +1146,24 @@ void reg_base<T>::UseSSD(int timepoint)
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::UseMIND(int timepoint)
+void reg_base<T>::UseMIND(int timepoint, int offset)
 {
    if(this->measure_mind==NULL)
       this->measure_mind=new reg_mind;
    this->measure_mind->SetActiveTimepoint(timepoint);
+   this->measure_mind->SetDescriptorOffset(offset);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseMIND");
 #endif
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::UseMINDSSC(int timepoint)
+void reg_base<T>::UseMINDSSC(int timepoint, int offset)
 {
    if(this->measure_mindssc==NULL)
       this->measure_mindssc=new reg_mindssc;
    this->measure_mindssc->SetActiveTimepoint(timepoint);
+   this->measure_mindssc->SetDescriptorOffset(offset);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseMINDSSC");
 #endif
@@ -1211,6 +1210,9 @@ void reg_base<T>::SetLNCCKernelType(int type)
 template<class T>
 void reg_base<T>::UseDTI(bool *timepoint)
 {
+   reg_print_msg_error("The use of DTI has been deactivated as it requires some refactoring");
+   reg_exit();
+
    if(this->measure_dti==NULL)
       this->measure_dti=new reg_dti;
    for(int i=0; i<this->inputReference->nt; ++i)

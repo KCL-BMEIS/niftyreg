@@ -67,6 +67,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
                           int *mask,
                           int interp,
                           float paddingValue,
+                          int active_timepoint,
                           bool *dti_timepoint = NULL,
                           mat33 *jacMat = NULL,
                           nifti_image *warpedImage = NULL);

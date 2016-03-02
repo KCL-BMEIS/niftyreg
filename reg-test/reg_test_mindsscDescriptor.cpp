@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
     // Compute the MIND descriptor
     int *mask = (int *)calloc(inputImage->nvox, sizeof(int));
-    GetMINDSSCImageDesciptor(inputImage,MINDSSC_img, mask);
+    GetMINDSSCImageDesciptor(inputImage,MINDSSC_img, mask, 1, 0);
     free(mask);
     //
     //Compute the difference between the computed and expected image

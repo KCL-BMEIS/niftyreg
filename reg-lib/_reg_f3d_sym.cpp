@@ -316,14 +316,6 @@ void reg_f3d_sym<T>::AllocateWarpedGradient()
       reg_exit();
    }
    this->backwardWarpedGradientImage = nifti_copy_nim_info(this->backwardDeformationFieldImage);
-   this->backwardWarpedGradientImage->dim[0]=this->backwardWarpedGradientImage->ndim=5;
-   this->backwardWarpedGradientImage->nt = this->backwardWarpedGradientImage->dim[4] = this->currentReference->nt;
-   this->backwardWarpedGradientImage->nvox =
-         (size_t)this->backwardWarpedGradientImage->nx *
-         (size_t)this->backwardWarpedGradientImage->ny *
-         (size_t)this->backwardWarpedGradientImage->nz *
-         (size_t)this->backwardWarpedGradientImage->nt *
-         (size_t)this->backwardWarpedGradientImage->nu;
    this->backwardWarpedGradientImage->data = (void *)calloc(this->backwardWarpedGradientImage->nvox,
                                                             this->backwardWarpedGradientImage->nbyper);
 #ifndef NDEBUG
@@ -777,6 +769,13 @@ double reg_f3d_sym<T>::ComputeLinearEnergyPenaltyTerm()
 template <class T>
 void reg_f3d_sym<T>::GetVoxelBasedGradient()
 {
+   // The voxel based gradient image is initialised with zeros
+   reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradient,
+                                  this->voxelBasedMeasureGradient,
+                                  0.f);
+   reg_tools_multiplyValueToImage(this->backwardVoxelBasedMeasureGradientImage,
+                                  this->backwardVoxelBasedMeasureGradientImage,
+                                  0.f);
    // The intensity gradient is first computed
    //    if(this->measure_dti!=NULL){
    //        reg_getImageGradient(this->currentFloating,
@@ -798,46 +797,49 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
    //                             this->measure_dti->GetActiveTimepoints(),
    //                             this->backwardJacobianMatrix,
    //                             this->backwardWarped);
+   //   if(this->measure_dti!=NULL)
+   //      this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
    //    }
    //    else{
-   reg_getImageGradient(this->currentFloating,
-                        this->warImgGradient,
-                        this->deformationFieldImage,
-                        this->currentMask,
-                        this->interpolation,
-                        this->warpedPaddingValue);
-
-   reg_getImageGradient(this->currentReference,
-                        this->backwardWarpedGradientImage,
-                        this->backwardDeformationFieldImage,
-                        this->currentFloatingMask,
-                        this->interpolation,
-                        this->warpedPaddingValue);
-
    //    }
-   // The voxel based gradient image is initialised with zeros
-   reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradient,
-                                  this->voxelBasedMeasureGradient,
-                                  0.f);
-   reg_tools_multiplyValueToImage(this->backwardVoxelBasedMeasureGradientImage,
-                                  this->backwardVoxelBasedMeasureGradientImage,
-                                  0.f);
 
-   // The gradient of the various measures of similarity are computed
-   if(this->measure_nmi!=NULL)
-      this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient();
 
-   if(this->measure_ssd!=NULL)
-      this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient();
+   for(int t=0; t<this->currentReference->nt; ++t){
+      reg_getImageGradient(this->currentFloating,
+                           this->warImgGradient,
+                           this->deformationFieldImage,
+                           this->currentMask,
+                           this->interpolation,
+                           this->warpedPaddingValue,
+                           t);
 
-   if(this->measure_kld!=NULL)
-      this->measure_kld->GetVoxelBasedSimilarityMeasureGradient();
+      reg_getImageGradient(this->currentReference,
+                           this->backwardWarpedGradientImage,
+                           this->backwardDeformationFieldImage,
+                           this->currentFloatingMask,
+                           this->interpolation,
+                           this->warpedPaddingValue,
+                           t);
 
-   if(this->measure_lncc!=NULL)
-      this->measure_lncc->GetVoxelBasedSimilarityMeasureGradient();
+      // The gradient of the various measures of similarity are computed
+      if(this->measure_nmi!=NULL)
+         this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient(t);
 
-   if(this->measure_dti!=NULL)
-      this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
+      if(this->measure_ssd!=NULL)
+         this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_kld!=NULL)
+         this->measure_kld->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_lncc!=NULL)
+         this->measure_lncc->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_mind!=NULL)
+         this->measure_mind->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_mindssc!=NULL)
+         this->measure_mindssc->GetVoxelBasedSimilarityMeasureGradient(t);
+   } // timepoint
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::GetVoxelBasedGradient");
@@ -1590,7 +1592,9 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
          this->measure_ssd==NULL &&
          this->measure_dti==NULL &&
          this->measure_lncc==NULL &&
-         this->measure_kld==NULL)
+         this->measure_kld==NULL &&
+         this->measure_mind==NULL &&
+         this->measure_mindssc==NULL)
    {
       this->measure_nmi=new reg_nmi;
       for(int i=0; i<this->inputReference->nt; ++i)
@@ -1660,6 +1664,32 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                            this->backwardWarpedGradientImage,
                                            this->backwardVoxelBasedMeasureGradientImage
                                            );
+
+   if(this->measure_mind!=NULL)
+      this->measure_mind->InitialiseMeasure(this->currentReference,
+                                            this->currentFloating,
+                                            this->currentMask,
+                                            this->warped,
+                                            this->warImgGradient,
+                                            this->voxelBasedMeasureGradient,
+                                            this->currentFloatingMask,
+                                            this->backwardWarped,
+                                            this->backwardWarpedGradientImage,
+                                            this->backwardVoxelBasedMeasureGradientImage
+                                            );
+
+   if(this->measure_mindssc!=NULL)
+      this->measure_mindssc->InitialiseMeasure(this->currentReference,
+                                               this->currentFloating,
+                                               this->currentMask,
+                                               this->warped,
+                                               this->warImgGradient,
+                                               this->voxelBasedMeasureGradient,
+                                               this->currentFloatingMask,
+                                               this->backwardWarped,
+                                               this->backwardWarpedGradientImage,
+                                               this->backwardVoxelBasedMeasureGradientImage
+                                               );
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::InitialiseSimilarity");
 #endif

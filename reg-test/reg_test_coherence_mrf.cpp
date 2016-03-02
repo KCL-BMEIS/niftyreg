@@ -119,7 +119,7 @@ int main(int argc, char **argv)
    MINDSSC_refimg->nvox = MINDSSC_refimg->nvox*mind_length;
    MINDSSC_refimg->data=(void *)calloc(MINDSSC_refimg->nvox,MINDSSC_refimg->nbyper);
    // Compute the MIND descriptor
-   GetMINDSSCImageDesciptor(referenceImage,MINDSSC_refimg, mask);
+   GetMINDSSCImageDesciptor(referenceImage,MINDSSC_refimg, mask, 1, 0);
 
    //MINDSSC image
    nifti_image *MINDSSC_warimg = nifti_copy_nim_info(warpedImage);
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
    MINDSSC_warimg->nvox = MINDSSC_warimg->nvox*mind_length;
    MINDSSC_warimg->data=(void *)calloc(MINDSSC_warimg->nvox,MINDSSC_warimg->nbyper);
    // Compute the MIND descriptor
-   GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask);
+   GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask, 1, 0);
 
    reg_ssd* ssdMeasure = new reg_ssd();
    /* Read and create the mask array */
