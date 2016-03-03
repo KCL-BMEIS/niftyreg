@@ -1123,91 +1123,105 @@ template<class T>
 void reg_f3d<T>::DiscreteInitialisation()
 {
    // Check if the discrete initialisation can be performed
-   if(this->measure_mind!=NULL || this->measure_mindssc!=NULL || sizeof(float)!=sizeof(T))
+   if(this->measure_mind!=NULL || this->measure_mindssc!=NULL || this->measure_ssd!=NULL || sizeof(float)!=sizeof(T))
    {
       if(this->currentReference->nt>1){
          reg_print_fct_error("reg_f3d<T>::DiscreteInitialisation()");
          reg_print_msg_error("This function does not support 4D for now");
          reg_exit();
       }
-      // Warp the floating image using a padding value of 0
-//      T paddingValue = this->warpedPaddingValue;
-//      this->warpedPaddingValue=0;
+      // Warp the floating image
       this->WarpFloatingImage(3);
-//      this->warpedPaddingValue = paddingValue;
+
+      // Define the descriptor images
+      nifti_image *MIND_refImg = NULL;
+      nifti_image *MIND_warImg = NULL;
 
       // Set the length of the descriptor
-      int mind_length = 6;
-      if(this->measure_mindssc!=NULL)
-         mind_length = 12;
+      int desc_length = 1;
+      if(this->measure_mind!=NULL)
+         desc_length = 6;
+      else if(this->measure_mindssc!=NULL)
+         desc_length = 12;
 
-      // Allocate MIND descriptor of the reference image
-      nifti_image *MIND_refImg = nifti_copy_nim_info(this->currentReference);
-      MIND_refImg->ndim = MIND_refImg->dim[0] = 4;
-      MIND_refImg->nt = MIND_refImg->dim[4] = mind_length;
-      MIND_refImg->nvox = MIND_refImg->nvox*mind_length;
-      MIND_refImg->data=(void *)calloc(MIND_refImg->nvox,
-                                       MIND_refImg->nbyper);
-      // Allocate MIND descriptor of the warped image
-      nifti_image *MIND_warImg = nifti_copy_nim_info(this->warped);
-      MIND_warImg->ndim = MIND_warImg->dim[0] = 4;
-      MIND_warImg->nt = MIND_warImg->dim[4] = mind_length;
-      MIND_warImg->nvox = MIND_warImg->nvox*mind_length;
-      MIND_warImg->data=(void *)calloc(MIND_warImg->nvox,
-                                       MIND_warImg->nbyper);
+      // Initialise the measure of similarity use to compute the distance between the blocks
+      reg_ssd *ssdMeasure = new reg_ssd();
+      for(int i=0;i<desc_length;++i)
+         ssdMeasure->SetActiveTimepoint(i);
 
-      // Allocate a mask embedding all voxel for the warped image
-      int *temp_mask = (int *)calloc(this->warped->nx*this->warped->ny*this->warped->nz,
-                                     sizeof(int));
+      if((this->measure_mind!=NULL || this->measure_mindssc!=NULL) && this->measure_ssd==NULL){
+         // Allocate MIND descriptor of the reference image
+         MIND_refImg = nifti_copy_nim_info(this->currentReference);
+         MIND_refImg->ndim = MIND_refImg->dim[0] = 4;
+         MIND_refImg->nt = MIND_refImg->dim[4] = desc_length;
+         MIND_refImg->nvox = MIND_refImg->nvox*desc_length;
+         MIND_refImg->data=(void *)calloc(MIND_refImg->nvox,
+                                          MIND_refImg->nbyper);
+         // Allocate MIND descriptor of the warped image
+         MIND_warImg = nifti_copy_nim_info(this->warped);
+         MIND_warImg->ndim = MIND_warImg->dim[0] = 4;
+         MIND_warImg->nt = MIND_warImg->dim[4] = desc_length;
+         MIND_warImg->nvox = MIND_warImg->nvox*desc_length;
+         MIND_warImg->data=(void *)calloc(MIND_warImg->nvox,
+                                          MIND_warImg->nbyper);
 
-     int offset = 1;
-     if(this->measure_mindssc!=NULL)
-        offset = this->measure_mindssc->GetDescriptorOffset();
-     else offset = this->measure_mind->GetDescriptorOffset();
+         // Allocate a mask embedding all voxel for the warped image
+         int *temp_mask = (int *)calloc(this->warped->nx*this->warped->ny*this->warped->nz,
+                                        sizeof(int));
 
-      // Compute the descriptors
-      if(this->measure_mindssc!=NULL){
-         // Compute the MINDSSC descriptor of the reference image
-         GetMINDSSCImageDesciptor(this->currentReference,
+         int offset = 1;
+         if(this->measure_mindssc!=NULL)
+            offset = this->measure_mindssc->GetDescriptorOffset();
+         else offset = this->measure_mind->GetDescriptorOffset();
+
+         // Compute the descriptors
+         if(this->measure_mindssc!=NULL){
+            // Compute the MINDSSC descriptor of the reference image
+            GetMINDSSCImageDesciptor(this->currentReference,
+                                     MIND_refImg,
+                                     this->currentMask,
+                                     offset,
+                                     0);
+            // Compute the MINDSSC descriptor of the warped image
+            GetMINDSSCImageDesciptor(this->warped,
+                                     MIND_warImg,
+                                     temp_mask,
+                                     offset,
+                                     0);
+
+         }
+         else{
+            // Compute the MIND descriptor of the reference image
+            GetMINDImageDesciptor(this->currentReference,
                                   MIND_refImg,
                                   this->currentMask,
                                   offset,
                                   0);
-         // Compute the MINDSSC descriptor of the warped image
-         GetMINDSSCImageDesciptor(this->warped,
+            // Compute the MIND descriptor of the warped image
+            GetMINDImageDesciptor(this->warped,
                                   MIND_warImg,
                                   temp_mask,
                                   offset,
                                   0);
-
+         }
+         free(temp_mask);
+         // Initialise the measure with the descriptors
+         ssdMeasure->InitialiseMeasure(MIND_refImg,
+                                       MIND_warImg,
+                                       this->currentMask,
+                                       MIND_warImg,
+                                       NULL,
+                                       NULL);
       }
       else{
-         // Compute the MIND descriptor of the reference image
-         GetMINDImageDesciptor(this->currentReference,
-                               MIND_refImg,
-                               this->currentMask,
-                               offset,
-                               0);
-         // Compute the MIND descriptor of the warped image
-         GetMINDImageDesciptor(this->warped,
-                               MIND_warImg,
-                               temp_mask,
-                               offset,
-                               0);
+         // Initialise the measure with the input images
+         ssdMeasure->InitialiseMeasure(this->currentReference,
+                                       this->warped,
+                                       this->currentMask,
+                                       this->warped,
+                                       NULL,
+                                       NULL);
       }
-      free(temp_mask);
-
-      // Initialise the measure of similarity use to compute the distance between the blocks
-      reg_ssd *ssdMeasure = new reg_ssd();
-      for(int i=0;i<mind_length;++i)
-         ssdMeasure->SetActiveTimepoint(i);
-      ssdMeasure->InitialiseMeasure(MIND_refImg,
-                                    MIND_warImg,
-                                    this->currentMask,
-                                    MIND_warImg,
-                                    NULL,
-                                    NULL);
-
 
       // Create and initialise the discretisation initialisation object
       int discrete_increment=3;
@@ -1224,13 +1238,15 @@ void reg_f3d<T>::DiscreteInitialisation()
       discrete_init_object->Run();
 
       // Free all the allocate objects
-      nifti_image_free(MIND_refImg);
-      nifti_image_free(MIND_warImg);
+      if(MIND_refImg!=NULL)
+         nifti_image_free(MIND_refImg);
+      if(MIND_warImg!=NULL)
+         nifti_image_free(MIND_warImg);
       delete ssdMeasure;
       delete discrete_init_object;
    }
    else{
-      reg_print_msg_error("The discrete initialisation can only be performed when using MIND or MIND-SSC");
+      reg_print_msg_error("The discrete initialisation can only be performed when using SSD, MIND or MIND-SSC");
       reg_print_msg_error("when single precision is used.");
       reg_print_msg_error("No discrete initialisation has been performed");
    }

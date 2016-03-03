@@ -82,10 +82,7 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
       this->optimal_label_index[n]=currentValue;
 
    //To store the cost data term
-   this->discretised_measures = (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
-   for(int i=0;i<this->node_number*this->label_nD_num;i++) {
-       this->discretised_measures[i]=std::numeric_limits<float>::quiet_NaN();
-   }
+   this->discretised_measures = (float *)calloc(this->node_number*this->label_nD_num, sizeof(float));
 
    //Optimal transformation based on the data term
    this->regularised_measures = (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
@@ -136,29 +133,14 @@ void reg_discrete_init::GetDiscretisedMeasure()
 void reg_discrete_init::getOptimalLabel()
 {
    this->regularisation_convergence=0;
-   float min_measure = std::numeric_limits<float>::max();
    size_t opt_label = 0;
-   float current_measure = 0;
-   size_t measure_index = 0;
    for(int node=0; node<this->node_number; ++node){
       int current_optimal = this->optimal_label_index[node];
-      //Does not handle NaN - let's do it by hand
-      //this->optimal_label_index[node] =
-      //      std::min_element(this->regularised_measures+node*this->label_nD_num,
-      //                       this->regularised_measures+(node+1)*this->label_nD_num) -
-      //                      (this->regularised_measures+node*this->label_nD_num);
-      min_measure = std::numeric_limits<float>::max();
-      opt_label = current_optimal;
-      for(int label = 0;label<this->label_nD_num;label++) {
-          measure_index = node * this->label_nD_num + label;
-          current_measure = this->regularised_measures[measure_index];
-          if(current_measure == current_measure && current_measure < min_measure) {
-              min_measure = current_measure;
-              opt_label = label;
-          }
-      }
+      opt_label =
+            std::max_element(this->regularised_measures+node*this->label_nD_num,
+                             this->regularised_measures+(node+1)*this->label_nD_num) -
+                            (this->regularised_measures+node*this->label_nD_num);
       this->optimal_label_index[node] = opt_label;
-
       if(current_optimal != opt_label)
          ++this->regularisation_convergence;
    }
@@ -212,17 +194,17 @@ void reg_discrete_init::AddL2Penalisation(float weight)
    int measure_index;
    size_t n, _node_number = this->node_number;
    int _label_nD_num = this->label_nD_num;
-   float *_regularised_measures = &this->regularised_measures[0];
+   float *_discretised_measures = &this->discretised_measures[0];
 #if defined (_OPENMP)
    #pragma omp parallel for default(none) \
-   shared(_node_number, _label_nD_num, _regularised_measures, l2_penalisation) \
+   shared(_node_number, _label_nD_num, _discretised_measures, l2_penalisation) \
    private(measure_index, n, label_index)
 #endif
    for(n=0; n<_node_number; ++n){
       measure_index = n * _label_nD_num;
       // Loop over all label
       for(label_index=0; label_index<_label_nD_num; ++label_index){
-         _regularised_measures[measure_index] += l2_penalisation[label_index];
+         _discretised_measures[measure_index] -= l2_penalisation[label_index];
          ++measure_index;
       }
    }
@@ -337,7 +319,7 @@ void reg_discrete_init::GetRegularisedMeasure()
 
                size_t measure_index = node * this->label_nD_num + label;
                this->regularised_measures[measure_index] =
-                     (1.f-this->regularisation_weight) * this->discretised_measures[measure_index] +
+                     (1.f-this->regularisation_weight) * this->discretised_measures[measure_index] -
                      this->regularisation_weight * (
                      reg_pow2(XX_x + valX * _basisXX) +
                      reg_pow2(XX_y + valY * _basisXX) +
@@ -388,7 +370,7 @@ void reg_discrete_init::Run()
    // Compute the discretised data term values
    this->GetDiscretisedMeasure();
    // Add the l2 regularisation
-   this->AddL2Penalisation(0.001f);
+   this->AddL2Penalisation(1.e-10f);
    // Initialise the regularise with the measure only
    memcpy(this->regularised_measures,
           this->discretised_measures,

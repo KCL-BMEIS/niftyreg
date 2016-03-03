@@ -497,9 +497,14 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
       warImage->nz + 2 * warPaddedOffset[2] + blockSize[2],
       warImage->nt
    };
+
+   DTYPE padding_value = std::numeric_limits<DTYPE>::quiet_NaN();
+
    size_t warPaddedVoxelNumber = (size_t)warPaddedDim[0] *
          warPaddedDim[1] * warPaddedDim[2];
    DTYPE *paddedWarImgPtr = (DTYPE *)calloc(warPaddedVoxelNumber*warPaddedDim[3], sizeof(DTYPE));
+   for(voxIndex=0; voxIndex<warPaddedVoxelNumber*warPaddedDim[3]; ++voxIndex)
+      paddedWarImgPtr[voxIndex]=padding_value;
    voxIndex=0;
    voxIndex_t=0;
    for(t=0; t<warImage->nt; ++t){
@@ -514,6 +519,8 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
          }
       }
    }
+
+   int definedValueNumber;
 
    // Loop over all control points
    for(cpz=1; cpz<controlPointGridImage->nz-1; ++cpz){
@@ -531,6 +538,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
 
             // Extract the block in the reference image
             blockIndex = 0;
+            definedValueNumber = 0;
             for(z=imageVox[2]-blockSize[2]/2; z<imageVox[2]+blockSize[2]/2; ++z){
                for(y=imageVox[1]-blockSize[1]/2; y<imageVox[1]+blockSize[1]/2; ++y){
                   for(x=imageVox[0]-blockSize[0]/2; x<imageVox[0]+blockSize[0]/2; ++x){
@@ -540,15 +548,21 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                            for(t=0; t<refImage->nt; ++t){
                               voxIndex_t = t*voxelNumber + voxIndex;
                               refBlockValue[blockIndex] = refImgPtr[voxIndex_t];
-                              if(refBlockValue[blockIndex]!=refBlockValue[blockIndex])
-                                 refBlockValue[blockIndex]=0.f;
+                              if(refBlockValue[blockIndex]==refBlockValue[blockIndex])
+                                 ++definedValueNumber;
                               blockIndex++;
                            } //t
                         }
+                        else{
+                           for(t=0; t<refImage->nt; ++t){
+                              refBlockValue[blockIndex] = padding_value;
+                              blockIndex++;
+                           } // t
+                        }
                      }
-                     else {
+                     else{
                         for(t=0; t<refImage->nt; ++t){
-                           refBlockValue[blockIndex] = 0.f;
+                           refBlockValue[blockIndex] = padding_value;
                            blockIndex++;
                         } // t
                      } // mask
@@ -556,60 +570,122 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                } // y
             } // z
             // Loop over the discretised value
+            if(definedValueNumber>0){
 
-            DTYPE warpedValue;
-            int paddedImageVox[3] = {
-               imageVox[0]+warPaddedOffset[0],
-               imageVox[1]+warPaddedOffset[1],
-               imageVox[2]+warPaddedOffset[2]
-            };
-            int cc;
+               DTYPE warpedValue;
+               int paddedImageVox[3] = {
+                  imageVox[0]+warPaddedOffset[0],
+                  imageVox[1]+warPaddedOffset[1],
+                  imageVox[2]+warPaddedOffset[2]
+               };
+               int cc;
+               double currentSum;
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(label_1D_number, label_2D_number, label_nD_number, discretise_step, discretise_radius, \
    paddedImageVox, blockSize, warPaddedDim, paddedWarImgPtr, refBlockValue, warPaddedVoxelNumber, \
    discretisedValue, currentControlPoint, voxelBlockNumber) \
    private(a, b, c, cc, x, y, z, t, discretisedIndex, blockIndex, \
-   currentValue, warpedValue, voxIndex, voxIndex_t)
+   currentValue, warpedValue, voxIndex, voxIndex_t, definedValueNumber, currentSum)
 #endif
-            for(cc=0; cc<label_1D_number; ++cc){
-               discretisedIndex = cc * label_2D_number;
-               c = paddedImageVox[2]-discretise_radius + cc*discretise_step;
-               for(b=paddedImageVox[1]-discretise_radius; b<=paddedImageVox[1]+discretise_radius; b+=discretise_step){
-                  for(a=paddedImageVox[0]-discretise_radius; a<=paddedImageVox[0]+discretise_radius; a+=discretise_step){
-                     blockIndex = 0;
-                     currentValue = 0;
-                     for(z=c-blockSize[2]/2; z<c+blockSize[2]/2; ++z){
-                        for(y=b-blockSize[1]/2; y<b+blockSize[1]/2; ++y){
-                           for(x=a-blockSize[0]/2; x<a+blockSize[0]/2; ++x){
-                              voxIndex = (z*warPaddedDim[1]+y)*warPaddedDim[0]+x;
-                              for(t=0; t<warPaddedDim[3]; ++t){
-                                 voxIndex_t = t*warPaddedVoxelNumber + voxIndex;
-                                 warpedValue = paddedWarImgPtr[voxIndex_t];
-                                 if(warpedValue==warpedValue)
+               for(cc=0; cc<label_1D_number; ++cc){
+                  discretisedIndex = cc * label_2D_number;
+                  c = paddedImageVox[2]-discretise_radius + cc*discretise_step;
+                  for(b=paddedImageVox[1]-discretise_radius; b<=paddedImageVox[1]+discretise_radius; b+=discretise_step){
+                     for(a=paddedImageVox[0]-discretise_radius; a<=paddedImageVox[0]+discretise_radius; a+=discretise_step){
+
+                        blockIndex = 0;
+                        currentSum = 0.;
+                        definedValueNumber = 0;
+
+                        for(z=c-blockSize[2]/2; z<c+blockSize[2]/2; ++z){
+                           for(y=b-blockSize[1]/2; y<b+blockSize[1]/2; ++y){
+                              for(x=a-blockSize[0]/2; x<a+blockSize[0]/2; ++x){
+                                 voxIndex = (z*warPaddedDim[1]+y)*warPaddedDim[0]+x;
+                                 for(t=0; t<warPaddedDim[3]; ++t){
+                                    voxIndex_t = t*warPaddedVoxelNumber + voxIndex;
+                                    warpedValue = paddedWarImgPtr[voxIndex_t];
 #ifdef TEMP_USE_SAD
-                                    currentValue += fabs(warpedValue-refBlockValue[blockIndex]);
-                                 else currentValue += fabs(0.f-refBlockValue[blockIndex]);
+                                    currentValue = fabs(warpedValue-refBlockValue[blockIndex]);
 #else
-                                    currentValue += reg_pow2(warpedValue-refBlockValue[blockIndex]);
-                                 else currentValue += reg_pow2(0.f-refBlockValue[blockIndex]);
+                                    currentValue = reg_pow2(warpedValue-refBlockValue[blockIndex]);
 #endif
-                                 blockIndex++;
-                              }
-                           } // x
-                        } // y
-                     } // z
-                     discretisedValue[currentControlPoint * label_nD_number + discretisedIndex] =
-                           currentValue / static_cast<float>(voxelBlockNumber);
-                     ++discretisedIndex;
-                  } // a
-               } // b
-            } // cc
+                                    if(currentValue==currentValue){
+                                       currentSum -= currentValue;
+                                       ++definedValueNumber;
+                                    }
+                                    blockIndex++;
+                                 }
+                              } // x
+                           } // y
+                        } // z
+                        discretisedValue[currentControlPoint * label_nD_number + discretisedIndex] =
+                              currentSum / static_cast<float>(definedValueNumber);
+                        ++discretisedIndex;
+                     } // a
+                  } // b
+               } // cc
+            } // defined value in the reference block
             ++currentControlPoint;
          } // cpx
       } // cpy
    } // cpz
    free(paddedWarImgPtr);
+
+   // Deal with the labels that contains NaN values
+   for(int node=0; node<controlPointGridImage->nx*controlPointGridImage->ny*controlPointGridImage->nz; ++node){
+      int definedValueNumber=0;
+      float *discretisedValuePtr = &discretisedValue[node * label_nD_number];
+      float meanValue=0;
+      for(int label=0; label<label_nD_number;++label){
+         if(discretisedValuePtr[label]==discretisedValuePtr[label]){
+            ++definedValueNumber;
+            meanValue+=discretisedValuePtr[label];
+         }
+      }
+      if(definedValueNumber==0){
+         for(int label=0; label<label_nD_number;++label){
+            discretisedValuePtr[label]=0;
+         }
+      }
+      else if(definedValueNumber<label_nD_number){
+         // Needs to be altered for efficiency
+         int label=0;
+         // Loop over all labels
+         int label_x, label2_x, label_y, label2_y, label_z, label2_z, label2;
+         float min_distance, current_distance;
+         for(label_z=0; label_z<label_1D_number;++label_z){
+            for(label_y=0; label_y<label_1D_number;++label_y){
+               for(label_x=0; label_x<label_1D_number;++label_x){
+                  // check if the current label is defined
+                  if(discretisedValuePtr[label]!=discretisedValuePtr[label]){
+                     label2=0;
+                     min_distance=std::numeric_limits<float>::max();
+                     // Loop again over all label to detect the defined values
+                     for(label2_z=0; label2_z<label_1D_number;++label2_z){
+                        for(label2_y=0; label2_y<label_1D_number;++label2_y){
+                           for(label2_x=0; label2_x<label_1D_number;++label2_x){
+                              // Check if the value is defined
+                              if(discretisedValuePtr[label2]==discretisedValuePtr[label2]){
+                                 // compute the distance between label and label2
+                                 current_distance = reg_pow2(label_x-label2_x)+reg_pow2(label_y-label2_y)+reg_pow2(label_z-label2_z);
+                                 if(current_distance<min_distance){
+                                    min_distance=current_distance;
+                                    discretisedValuePtr[label] = discretisedValuePtr[label2];
+                                 }
+                              } // Check if label2 is defined
+                              ++label2;
+                           } // x
+                        } // y
+                     } // z
+                  } // check if undefined label
+                  ++label;
+               } //x
+            } // y
+         } // z
+
+      } // node with undefined label
+   } // node
 }
 /* *************************************************************** */
 template <class DTYPE>
