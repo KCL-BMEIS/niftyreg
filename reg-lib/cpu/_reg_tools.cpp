@@ -3269,4 +3269,13 @@ void cPtrToMatmn(T** mat, T* cMat, unsigned int m, unsigned int n) {
 template void cPtrToMatmn<float>(float** mat, float* cMat, unsigned int m, unsigned int n);
 template void cPtrToMatmn<double>(double** mat, double* cMat, unsigned int m, unsigned int n);
 /* *************************************************************** */
+void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int &x, int &y, int &z)
+{
+    x =  index % (maxValue_x+1);
+    index /= (maxValue_x+1);
+    y = index % (maxValue_y+1);
+    index /= (maxValue_y+1);
+    z = index;
+}
+/* *************************************************************** */
 #endif

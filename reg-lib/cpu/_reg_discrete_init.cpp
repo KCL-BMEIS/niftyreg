@@ -76,13 +76,16 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
 
    //regularization - optimization
    this->optimal_label_index=(int *)malloc(this->node_number*sizeof(int));
-   currentValue=(int)reg_ceil(0.5f*this->label_1D_num);
+   currentValue= (this->label_1D_num-1)/2;
    currentValue = (currentValue*this->label_1D_num+currentValue)*this->label_1D_num+currentValue;
    for(int n=0; n<this->node_number; ++n)
       this->optimal_label_index[n]=currentValue;
 
    //To store the cost data term
-   this->discretised_measures = (float *)calloc(this->node_number*this->label_nD_num,sizeof(float));
+   this->discretised_measures = (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
+   for(int i=0;i<this->node_number*this->label_nD_num;i++) {
+       this->discretised_measures[i]=std::numeric_limits<float>::quiet_NaN();
+   }
 
    //Optimal transformation based on the data term
    this->regularised_measures = (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
@@ -133,13 +136,30 @@ void reg_discrete_init::GetDiscretisedMeasure()
 void reg_discrete_init::getOptimalLabel()
 {
    this->regularisation_convergence=0;
+   float min_measure = std::numeric_limits<float>::max();
+   size_t opt_label = 0;
+   float current_measure = 0;
+   size_t measure_index = 0;
    for(int node=0; node<this->node_number; ++node){
       int current_optimal = this->optimal_label_index[node];
-      this->optimal_label_index[node] =
-            std::min_element(this->regularised_measures+node*this->label_nD_num,
-                             this->regularised_measures+(node+1)*this->label_nD_num) -
-            (this->regularised_measures+node*this->label_nD_num);
-      if(current_optimal != this->optimal_label_index[node])
+      //Does not handle NaN - let's do it by hand
+      //this->optimal_label_index[node] =
+      //      std::min_element(this->regularised_measures+node*this->label_nD_num,
+      //                       this->regularised_measures+(node+1)*this->label_nD_num) -
+      //                      (this->regularised_measures+node*this->label_nD_num);
+      min_measure = std::numeric_limits<float>::max();
+      opt_label = current_optimal;
+      for(int label = 0;label<this->label_nD_num;label++) {
+          measure_index = node * this->label_nD_num + label;
+          current_measure = this->regularised_measures[measure_index];
+          if(current_measure == current_measure && current_measure < min_measure) {
+              min_measure = current_measure;
+              opt_label = label;
+          }
+      }
+      this->optimal_label_index[node] = opt_label;
+
+      if(current_optimal != opt_label)
          ++this->regularisation_convergence;
    }
 #ifndef NDEBUG
