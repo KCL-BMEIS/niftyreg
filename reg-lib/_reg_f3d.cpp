@@ -977,8 +977,6 @@ nifti_image **reg_f3d<T>::GetWarpedImage()
    this->currentFloating = this->inputFloating;
    this->currentMask=NULL;
 
-   this->warpedPaddingValue=0.;
-
    reg_base<T>::AllocateWarped();
    reg_base<T>::AllocateDeformationField();
    reg_base<T>::WarpFloatingImage(3); // cubic spline interpolation
