@@ -137,13 +137,11 @@ T reg_f3d<T>::InitialiseCurrentLevel()
    {
       if(this->currentLevel==0){
          this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelNumber-1));
-         this->linearEnergyWeight = this->linearEnergyWeight / static_cast<T>(powf(3.0f, this->levelNumber-1));
       }
       else
       {
          reg_spline_refineControlPointGrid(this->controlPointGrid,this->currentReference);
          this->bendingEnergyWeight = this->bendingEnergyWeight * static_cast<T>(16);
-         this->linearEnergyWeight = this->linearEnergyWeight * static_cast<T>(3);
       }
    }
 
@@ -1232,7 +1230,8 @@ void reg_f3d<T>::DiscreteInitialisation()
                                                                       discretisation_radius,
                                                                       discrete_increment,
                                                                       50,
-                                                                      this->bendingEnergyWeight+this->linearEnergyWeight);
+                                                                      this->bendingEnergyWeight*pow(16.f,(this->levelNumber-this->currentLevel-1)) +
+                                                                      this->linearEnergyWeight);
 
       // Run the discrete initialisation
       discrete_init_object->Run();
