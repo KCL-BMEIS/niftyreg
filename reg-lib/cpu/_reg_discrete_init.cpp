@@ -189,8 +189,8 @@ void reg_discrete_init::AddL2Penalisation(float weight)
             l2_penalisation[label_index++] = weight * sqrt(x*x+y*y+z*z);
 
    // Loop over all control points
-   int measure_index;
-   size_t n, _node_number = this->node_number;
+   int measure_index, n;
+   size_t _node_number = this->node_number;
    int _label_nD_num = this->label_nD_num;
    float *_regularised_measures = &this->regularised_measures[0];
 #if defined (_OPENMP)

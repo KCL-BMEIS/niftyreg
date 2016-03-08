@@ -17,6 +17,8 @@
 #include <math.h>
 #include "_reg_globalTrans.h"
 #include "_reg_resampling.h"
+#include "_reg_ReadWriteImage.h"
+#include <algorithm>
 
 #define MIND_TYPE 0
 #define MINDSSC_TYPE 1

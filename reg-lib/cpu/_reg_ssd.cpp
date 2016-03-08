@@ -477,7 +477,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
    int currentControlPoint = 0;
 
    // Allocate some static memory
-   float refBlockValue[voxelBlockNumber];
+   float* refBlockValue = (float *) malloc(voxelBlockNumber*sizeof(float));
 
    // Pointers to the input image
    size_t voxelNumber = (size_t)refImage->nx*
@@ -610,6 +610,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
       } // cpy
    } // cpz
    free(paddedWarImgPtr);
+   free(refBlockValue);
 }
 /* *************************************************************** */
 template <class DTYPE>

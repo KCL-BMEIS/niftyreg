@@ -230,8 +230,8 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
    };
    int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
    // Allocate some static memory
-   float refBlockValue[voxelBlockNumber];
-   float neighbourBlockValue[voxelBlockNumber];
+   float* refBlockValue = (float*) malloc(voxelBlockNumber*sizeof(float));
+   float* neighbourBlockValue = (float*) malloc(voxelBlockNumber*sizeof(float));
    float SADNeighbourValue = 0;
 
    // Pointers to the input image
@@ -433,6 +433,8 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
    //    edgeWeightMatrix[i]=-exp(-edgeWeightMatrix[i]/(2.0f*stdim));
    //    }
    //DEBUG
+   free(neighbourBlockValue);
+   free(refBlockValue);
 }
 /* *************************************************************** */
 template <class DTYPE>
