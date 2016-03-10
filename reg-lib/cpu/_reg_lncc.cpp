@@ -643,7 +643,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
    // Check for NaN
    DTYPE val;
 #ifdef _WIN32
-   voxelNumber=(long)lnccGradientImage->nvox;
+   voxelNumber = (long)measureGradientImage->nvox;
 #else
    voxelNumber=measureGradientImage->nvox;
 #endif

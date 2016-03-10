@@ -1405,20 +1405,20 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
       float currentARel, currentBRel, currentCRel, resamplingWeightSum, resamplingWeight;
       size_t currentIndex;
 
-#if defined (_OPENMP)
-#pragma omp parallel for default(none) \
-   private(intensity, ASAt,TmS,TmS_EigVec,TmS_EigVal,TmS_EigVal_inv,TmS_EigVec_trans, P, currentDeterminant, \
-   invP, psfNumbSamples, psfSampleSpacing, psfWeightSum, psfWeight, \
-   currentA, currentB, currentC, psfWorld, position,  psf_eig,\
-   psf_xyz, mahal, currentAPre, currentARel, currentBPre, currentBRel, currentCPre, currentCRel,\
-   resamplingWeightSum, resamplingWeight, currentIndex, previous, relative,\
-   xBasis, yBasis, zBasis, Y, Z, psfIntensity, yTempNewValue, xTempNewValue,\
-   xyzPointer, zPointer,A,curLambda,psfKernelShift) \
-   shared(warpedVoxelNumber, maskPtr, jacMat, S, T, paddingValue,\
-   fwhmToStd, warpedPlaneNumber, warpedLineNumber, floatingIntensity,\
-   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, floatingIJKMatrix,\
-   floatingImage, warpedImage, kernelCompFctPtr, kernel_offset, kernel_size, warpedIntensity,stderr,algorithm)
-#endif // _OPENMP
+//#if defined (_OPENMP)
+//#pragma omp parallel for default(none) \
+//   private(intensity, ASAt,TmS,TmS_EigVec,TmS_EigVal,TmS_EigVal_inv,TmS_EigVec_trans, P, currentDeterminant, invP, psfNumbSamples, psfSampleSpacing, psfWeightSum, psfWeight, \
+//   currentA, currentB, currentC, psfWorld, position,  psf_eig,\
+//   psf_xyz, mahal, currentAPre, currentARel, currentBPre, currentBRel, currentCPre, currentCRel,\
+//   resamplingWeightSum, resamplingWeight, currentIndex, previous, relative,\
+//   xBasis, yBasis, zBasis, Y, Z, psfIntensity, yTempNewValue, xTempNewValue,\
+//   xyzPointer, zPointer,A,curLambda,psfKernelShift) \
+//   shared(warpedVoxelNumber, maskPtr, jacMat, S, T, paddingValue,\
+//   fwhmToStd, warpedPlaneNumber, warpedLineNumber, floatingIntensity,\
+//   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, floatingIJKMatrix,\
+//   floatingImage, warpedImage, kernelCompFctPtr, kernel_offset, kernel_size, warpedIntensity,stderr,algorithm)
+//#endif // _OPENMP
+
       for(index=0; index<warpedVoxelNumber; index++)
       {
          intensity=paddingValue;

@@ -3050,499 +3050,501 @@ void reg_defFieldInvert(nifti_image *inputDeformationField,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-//template<class DTYPE>
-//void reg_spline_cppComposition_2D(nifti_image *grid1,
-//                                  nifti_image *grid2,
-//                                  bool displacement1,
-//                                  bool displacement2,
-//                                  bool bspline)
-//{
-//   // REMINDER Grid2(x)=Grid1(Grid2(x))
+//HAVE TO BE CHECKED
+template<class DTYPE>
+void reg_spline_cppComposition_2D(nifti_image *grid1,
+                                  nifti_image *grid2,
+                                  bool displacement1,
+                                  bool displacement2,
+                                  bool bspline)
+{
+   // REMINDER Grid2(x)=Grid1(Grid2(x))
 
-// #if _USE_SSE
-//   union
-//   {
-//      __m128 m;
-//      float f[4];
-//   } val;
-// #endif // _USE_SSE
+ #if _USE_SSE
+   union
+   {
+      __m128 m;
+      float f[4];
+   } val;
+ #endif // _USE_SSE
 
-//   DTYPE *outCPPPtrX = static_cast<DTYPE *>(grid2->data);
-//   DTYPE *outCPPPtrY = &outCPPPtrX[grid2->nx*grid2->ny];
+   DTYPE *outCPPPtrX = static_cast<DTYPE *>(grid2->data);
+   DTYPE *outCPPPtrY = &outCPPPtrX[grid2->nx*grid2->ny];
 
-//   DTYPE *controlPointPtrX = static_cast<DTYPE *>(grid1->data);
-//   DTYPE *controlPointPtrY = &controlPointPtrX[grid1->nx*grid1->ny];
+   DTYPE *controlPointPtrX = static_cast<DTYPE *>(grid1->data);
+   DTYPE *controlPointPtrY = &controlPointPtrX[grid1->nx*grid1->ny];
 
-//   DTYPE basis;
+   DTYPE basis;
 
-// #ifdef _WIN32
-//   __declspec(align(16)) DTYPE xBasis[4];
-//   __declspec(align(16)) DTYPE yBasis[4];
-// #if _USE_SSE
-//   __declspec(align(16)) DTYPE xyBasis[16];
-// #endif  //_USE_SSE
+ #ifdef _WIN32
+   __declspec(align(16)) DTYPE xBasis[4];
+   __declspec(align(16)) DTYPE yBasis[4];
+ #if _USE_SSE
+   __declspec(align(16)) DTYPE xyBasis[16];
+ #endif  //_USE_SSE
 
-//   __declspec(align(16)) DTYPE xControlPointCoordinates[16];
-//   __declspec(align(16)) DTYPE yControlPointCoordinates[16];
-// #else // _WIN32
-//   DTYPE xBasis[4] __attribute__((aligned(16)));
-//   DTYPE yBasis[4] __attribute__((aligned(16)));
-// #if _USE_SSE
-//   DTYPE xyBasis[16] __attribute__((aligned(16)));
-// #endif  //_USE_SSE
+   __declspec(align(16)) DTYPE xControlPointCoordinates[16];
+   __declspec(align(16)) DTYPE yControlPointCoordinates[16];
+ #else // _WIN32
+   DTYPE xBasis[4] __attribute__((aligned(16)));
+   DTYPE yBasis[4] __attribute__((aligned(16)));
+ #if _USE_SSE
+   DTYPE xyBasis[16] __attribute__((aligned(16)));
+ #endif  //_USE_SSE
 
-//   DTYPE xControlPointCoordinates[16] __attribute__((aligned(16)));
-//   DTYPE yControlPointCoordinates[16] __attribute__((aligned(16)));
-// #endif // _WIN32
+   DTYPE xControlPointCoordinates[16] __attribute__((aligned(16)));
+   DTYPE yControlPointCoordinates[16] __attribute__((aligned(16)));
+ #endif // _WIN32
 
-//   size_t coord;
+   size_t coord;
 
-//   // read the xyz/ijk sform or qform, as appropriate
-//   mat44 *matrix_real_to_voxel1=NULL;
-//   mat44 *matrix_voxel_to_real2=NULL;
-//   if(grid1->sform_code>0)
-//      matrix_real_to_voxel1=&(grid1->sto_ijk);
-//   else matrix_real_to_voxel1=&(grid1->qto_ijk);
-//   if(grid2->sform_code>0)
-//      matrix_voxel_to_real2=&(grid2->sto_xyz);
-//   else matrix_voxel_to_real2=&(grid2->qto_xyz);
+   // read the xyz/ijk sform or qform, as appropriate
+   mat44 *matrix_real_to_voxel1=NULL;
+   mat44 *matrix_voxel_to_real2=NULL;
+   if(grid1->sform_code>0)
+      matrix_real_to_voxel1=&(grid1->sto_ijk);
+   else matrix_real_to_voxel1=&(grid1->qto_ijk);
+   if(grid2->sform_code>0)
+      matrix_voxel_to_real2=&(grid2->sto_xyz);
+   else matrix_voxel_to_real2=&(grid2->qto_xyz);
 
-//   for(int y=0; y<grid2->ny; y++)
-//   {
-//      for(int x=0; x<grid2->nx; x++)
-//      {
+   for(int y=0; y<grid2->ny; y++)
+   {
+      for(int x=0; x<grid2->nx; x++)
+      {
 
-//         // Get the control point actual position
-//         DTYPE xReal = *outCPPPtrX;
-//         DTYPE yReal = *outCPPPtrY;
-//         DTYPE initialX=xReal;
-//         DTYPE initialY=yReal;
-//         if(displacement2)
-//         {
-//            xReal +=
-//                  matrix_voxel_to_real2->m[0][0]*x
-//                  + matrix_voxel_to_real2->m[0][1]*y
-//                  + matrix_voxel_to_real2->m[0][3];
-//            yReal +=
-//                  matrix_voxel_to_real2->m[1][0]*x
-//                  + matrix_voxel_to_real2->m[1][1]*y
-//                  + matrix_voxel_to_real2->m[1][3];
-//         }
+         // Get the control point actual position
+         DTYPE xReal = *outCPPPtrX;
+         DTYPE yReal = *outCPPPtrY;
+         DTYPE initialX=xReal;
+         DTYPE initialY=yReal;
+         if(displacement2)
+         {
+            xReal +=
+                  matrix_voxel_to_real2->m[0][0]*x
+                  + matrix_voxel_to_real2->m[0][1]*y
+                  + matrix_voxel_to_real2->m[0][3];
+            yReal +=
+                  matrix_voxel_to_real2->m[1][0]*x
+                  + matrix_voxel_to_real2->m[1][1]*y
+                  + matrix_voxel_to_real2->m[1][3];
+         }
 
-//         // Get the voxel based control point position in grid1
-//         DTYPE xVoxel = matrix_real_to_voxel1->m[0][0]*xReal
-//               + matrix_real_to_voxel1->m[0][1]*yReal
-//               + matrix_real_to_voxel1->m[0][3];
-//         DTYPE yVoxel = matrix_real_to_voxel1->m[1][0]*xReal
-//               + matrix_real_to_voxel1->m[1][1]*yReal
-//               + matrix_real_to_voxel1->m[1][3];
+         // Get the voxel based control point position in grid1
+         DTYPE xVoxel = matrix_real_to_voxel1->m[0][0]*xReal
+               + matrix_real_to_voxel1->m[0][1]*yReal
+               + matrix_real_to_voxel1->m[0][3];
+         DTYPE yVoxel = matrix_real_to_voxel1->m[1][0]*xReal
+               + matrix_real_to_voxel1->m[1][1]*yReal
+               + matrix_real_to_voxel1->m[1][3];
 
-//         // The spline coefficients are computed
-//         int xPre=(int)(reg_floor(xVoxel));
-//         basis=(DTYPE)xVoxel-(DTYPE)xPre;
-//         xPre--;
-//         if(basis<0.0) basis=0.0; //rounding error
-//         if(bspline) get_BSplineBasisValues<DTYPE>(basis, xBasis);
-//         else get_SplineBasisValues<DTYPE>(basis, xBasis);
+         // The spline coefficients are computed
+         int xPre=(int)(reg_floor(xVoxel));
+         basis=(DTYPE)xVoxel-(DTYPE)xPre;
+         xPre--;
+         if(basis<0.0) basis=0.0; //rounding error
+         if(bspline) get_BSplineBasisValues<DTYPE>(basis, xBasis);
+         else get_SplineBasisValues<DTYPE>(basis, xBasis);
 
-//         int yPre=(int)(reg_floor(yVoxel));
-//         basis=(DTYPE)yVoxel-(DTYPE)yPre;
-//         yPre--;
-//         if(basis<0.0) basis=0.0; //rounding error
-//         if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
-//         else get_SplineBasisValues<DTYPE>(basis, yBasis);
+         int yPre=(int)(reg_floor(yVoxel));
+         basis=(DTYPE)yVoxel-(DTYPE)yPre;
+         yPre--;
+         if(basis<0.0) basis=0.0; //rounding error
+         if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
+         else get_SplineBasisValues<DTYPE>(basis, yBasis);
 
-//         // The control points are stored
-//         get_GridValues<DTYPE>(xPre,
-//                               yPre,
-//                               grid1,
-//                               controlPointPtrX,
-//                               controlPointPtrY,
-//                               xControlPointCoordinates,
-//                               yControlPointCoordinates,
-//                               false, // no approximation
-//                               displacement1 // displacement field?
-//                               );
-//         xReal=0.0;
-//         yReal=0.0;
-// #if _USE_SSE
-//         coord=0;
-//         for(unsigned int b=0; b<4; b++)
-//         {
-//            for(unsigned int a=0; a<4; a++)
-//            {
-//               xyBasis[coord++] = xBasis[a] * yBasis[b];
-//            }
-//         }
+         // The control points are stored
+         get_GridValues<DTYPE>(xPre,
+                               yPre,
+                               grid1,
+                               controlPointPtrX,
+                               controlPointPtrY,
+                               xControlPointCoordinates,
+                               yControlPointCoordinates,
+                               false, // no approximation
+                               displacement1 // displacement field?
+                               );
+         xReal=0.0;
+         yReal=0.0;
+ #if _USE_SSE
+         coord=0;
+         for(unsigned int b=0; b<4; b++)
+         {
+            for(unsigned int a=0; a<4; a++)
+            {
+               xyBasis[coord++] = xBasis[a] * yBasis[b];
+            }
+         }
 
-//         __m128 tempX =  _mm_set_ps1(0.0);
-//         __m128 tempY =  _mm_set_ps1(0.0);
-//         __m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
-//         __m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
-//         __m128 *ptrBasis   = (__m128 *) &xyBasis[0];
-//         //addition and multiplication of the 16 basis value and CP position for each axis
-//         for(unsigned int a=0; a<4; a++)
-//         {
-//            tempX = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrX), tempX );
-//            tempY = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrY), tempY );
-//            ptrBasis++;
-//            ptrX++;
-//            ptrY++;
-//         }
-//         //the values stored in SSE variables are transfered to normal float
-//         val.m = tempX;
-//         xReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
-//         val.m = tempY;
-//         yReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
-// #else
-//         coord=0;
-//         for(unsigned int b=0; b<4; b++)
-//         {
-//            for(unsigned int a=0; a<4; a++)
-//            {
-//               DTYPE tempValue = xBasis[a] * yBasis[b];
-//               xReal += xControlPointCoordinates[coord] * tempValue;
-//               yReal += yControlPointCoordinates[coord] * tempValue;
-//               coord++;
-//            }
-//         }
-// #endif
-//         if(displacement1)
-//         {
-//            xReal += initialX;
-//            yReal += initialY;
-//         }
-//         *outCPPPtrX++ = xReal;
-//         *outCPPPtrY++ = yReal;
-//      }
-//   }
-//   return;
-//}
+         __m128 tempX =  _mm_set_ps1(0.0);
+         __m128 tempY =  _mm_set_ps1(0.0);
+         __m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
+         __m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
+         __m128 *ptrBasis   = (__m128 *) &xyBasis[0];
+         //addition and multiplication of the 16 basis value and CP position for each axis
+         for(unsigned int a=0; a<4; a++)
+         {
+            tempX = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrX), tempX );
+            tempY = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrY), tempY );
+            ptrBasis++;
+            ptrX++;
+            ptrY++;
+         }
+         //the values stored in SSE variables are transfered to normal float
+         val.m = tempX;
+         xReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+         val.m = tempY;
+         yReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+ #else
+         coord=0;
+         for(unsigned int b=0; b<4; b++)
+         {
+            for(unsigned int a=0; a<4; a++)
+            {
+               DTYPE tempValue = xBasis[a] * yBasis[b];
+               xReal += xControlPointCoordinates[coord] * tempValue;
+               yReal += yControlPointCoordinates[coord] * tempValue;
+               coord++;
+            }
+         }
+ #endif
+         if(displacement1)
+         {
+            xReal += initialX;
+            yReal += initialY;
+         }
+         *outCPPPtrX++ = xReal;
+         *outCPPPtrY++ = yReal;
+      }
+   }
+   return;
+}
 /* *************************************************************** */
-//template<class DTYPE>
-//void reg_spline_cppComposition_3D(nifti_image *grid1,
-//                                  nifti_image *grid2,
-//                                  bool displacement1,
-//                                  bool displacement2,
-//                                  bool bspline)
-//{
-//   // REMINDER Grid2(x)=Grid1(Grid2(x))
-// #if _USE_SSE
-//   union
-//   {
-//      __m128 m;
-//      float f[4];
-//   } val;
-//   __m128 _xBasis_sse;
-//   __m128 tempX;
-//   __m128 tempY;
-//   __m128 tempZ;
-//   __m128 *ptrX;
-//   __m128 *ptrY;
-//   __m128 *ptrZ;
-//   __m128 _yBasis_sse;
-//   __m128 _zBasis_sse;
-//   __m128 _temp_basis;
-//   __m128 _basis;
-// #else
-//   int a, b, c;
-//   size_t coord;
-//   DTYPE tempValue;
-// #endif
+//HAVE TO BE CHECKED
+template<class DTYPE>
+void reg_spline_cppComposition_3D(nifti_image *grid1,
+                                  nifti_image *grid2,
+                                  bool displacement1,
+                                  bool displacement2,
+                                  bool bspline)
+{
+   // REMINDER Grid2(x)=Grid1(Grid2(x))
+ #if _USE_SSE
+   union
+   {
+      __m128 m;
+      float f[4];
+   } val;
+   __m128 _xBasis_sse;
+   __m128 tempX;
+   __m128 tempY;
+   __m128 tempZ;
+   __m128 *ptrX;
+   __m128 *ptrY;
+   __m128 *ptrZ;
+   __m128 _yBasis_sse;
+   __m128 _zBasis_sse;
+   __m128 _temp_basis;
+   __m128 _basis;
+ #else
+   int a, b, c;
+   size_t coord;
+   DTYPE tempValue;
+ #endif
 
-//   DTYPE *outCPPPtrX = static_cast<DTYPE *>(grid2->data);
-//   DTYPE *outCPPPtrY = &outCPPPtrX[grid2->nx*grid2->ny*grid2->nz];
-//   DTYPE *outCPPPtrZ = &outCPPPtrY[grid2->nx*grid2->ny*grid2->nz];
+   DTYPE *outCPPPtrX = static_cast<DTYPE *>(grid2->data);
+   DTYPE *outCPPPtrY = &outCPPPtrX[grid2->nx*grid2->ny*grid2->nz];
+   DTYPE *outCPPPtrZ = &outCPPPtrY[grid2->nx*grid2->ny*grid2->nz];
 
-//   DTYPE *controlPointPtrX = static_cast<DTYPE *>(grid1->data);
-//   DTYPE *controlPointPtrY = &controlPointPtrX[grid1->nx*grid1->ny*grid1->nz];
-//   DTYPE *controlPointPtrZ = &controlPointPtrY[grid1->nx*grid1->ny*grid1->nz];
+   DTYPE *controlPointPtrX = static_cast<DTYPE *>(grid1->data);
+   DTYPE *controlPointPtrY = &controlPointPtrX[grid1->nx*grid1->ny*grid1->nz];
+   DTYPE *controlPointPtrZ = &controlPointPtrY[grid1->nx*grid1->ny*grid1->nz];
 
-//   DTYPE basis;
+   DTYPE basis;
 
-// #ifdef _WIN32
-//   __declspec(align(16)) DTYPE xBasis[4];
-//   __declspec(align(16)) DTYPE yBasis[4];
-//   __declspec(align(16)) DTYPE zBasis[4];
-//   __declspec(align(16)) DTYPE xControlPointCoordinates[64];
-//   __declspec(align(16)) DTYPE yControlPointCoordinates[64];
-//   __declspec(align(16)) DTYPE zControlPointCoordinates[64];
-// #else
-//   DTYPE xBasis[4] __attribute__((aligned(16)));
-//   DTYPE yBasis[4] __attribute__((aligned(16)));
-//   DTYPE zBasis[4] __attribute__((aligned(16)));
-//   DTYPE xControlPointCoordinates[64] __attribute__((aligned(16)));
-//   DTYPE yControlPointCoordinates[64] __attribute__((aligned(16)));
-//   DTYPE zControlPointCoordinates[64] __attribute__((aligned(16)));
-// #endif
+ #ifdef _WIN32
+   __declspec(align(16)) DTYPE xBasis[4];
+   __declspec(align(16)) DTYPE yBasis[4];
+   __declspec(align(16)) DTYPE zBasis[4];
+   __declspec(align(16)) DTYPE xControlPointCoordinates[64];
+   __declspec(align(16)) DTYPE yControlPointCoordinates[64];
+   __declspec(align(16)) DTYPE zControlPointCoordinates[64];
+ #else
+   DTYPE xBasis[4] __attribute__((aligned(16)));
+   DTYPE yBasis[4] __attribute__((aligned(16)));
+   DTYPE zBasis[4] __attribute__((aligned(16)));
+   DTYPE xControlPointCoordinates[64] __attribute__((aligned(16)));
+   DTYPE yControlPointCoordinates[64] __attribute__((aligned(16)));
+   DTYPE zControlPointCoordinates[64] __attribute__((aligned(16)));
+ #endif
 
-//   int xPre, xPreOld, yPre, yPreOld, zPre, zPreOld;
-//   int x, y, z;
-//   size_t index;
-//   DTYPE xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ;
-//   DTYPE xVoxel, yVoxel, zVoxel;
+   int xPre, xPreOld, yPre, yPreOld, zPre, zPreOld;
+   int x, y, z;
+   size_t index;
+   DTYPE xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ;
+   DTYPE xVoxel, yVoxel, zVoxel;
 
-//   // read the xyz/ijk sform or qform, as appropriate
-//   mat44 *matrix_real_to_voxel1=NULL;
-//   mat44 *matrix_voxel_to_real2=NULL;
-//   if(grid1->sform_code>0)
-//      matrix_real_to_voxel1=&(grid1->sto_ijk);
-//   else matrix_real_to_voxel1=&(grid1->qto_ijk);
-//   if(grid2->sform_code>0)
-//      matrix_voxel_to_real2=&(grid2->sto_xyz);
-//   else matrix_voxel_to_real2=&(grid2->qto_xyz);
+   // read the xyz/ijk sform or qform, as appropriate
+   mat44 *matrix_real_to_voxel1=NULL;
+   mat44 *matrix_voxel_to_real2=NULL;
+   if(grid1->sform_code>0)
+      matrix_real_to_voxel1=&(grid1->sto_ijk);
+   else matrix_real_to_voxel1=&(grid1->qto_ijk);
+   if(grid2->sform_code>0)
+      matrix_voxel_to_real2=&(grid2->sto_xyz);
+   else matrix_voxel_to_real2=&(grid2->qto_xyz);
 
-// #if defined (_OPENMP)
-// #ifdef _USE_SSE
-// #pragma omp parallel for default(none) \
-//   shared(grid1, grid2, displacement1, displacement2, matrix_voxel_to_real2, matrix_real_to_voxel1, \
-//   outCPPPtrX, outCPPPtrY, outCPPPtrZ, controlPointPtrX, controlPointPtrY, controlPointPtrZ, bspline) \
-//   private(xPre, xPreOld, yPre, yPreOld, zPre, zPreOld, val, index, \
-//   x, y, z, xVoxel, yVoxel, zVoxel, basis, xBasis, yBasis, zBasis, \
-//   xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ, \
-//   _xBasis_sse, tempX, tempY, tempZ, ptrX, ptrY, ptrZ, _yBasis_sse, _zBasis_sse, _temp_basis, _basis, \
-//   xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates)
-// #else
-// #pragma omp parallel for default(none) \
-//   shared(grid1, grid2, displacement1, displacement2, matrix_voxel_to_real2, matrix_real_to_voxel1, \
-//   outCPPPtrX, outCPPPtrY, outCPPPtrZ, controlPointPtrX, controlPointPtrY, controlPointPtrZ, bspline) \
-//   private(xPre, xPreOld, yPre, yPreOld, zPre, zPreOld, index, \
-//   x, y, z, xVoxel, yVoxel, zVoxel, a, b, c, coord, basis, tempValue, xBasis, yBasis, zBasis, \
-//   xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ, \
-//   xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates)
-// #endif
-// #endif
-//   for(z=0; z<grid2->nz; z++)
-//   {
-//      xPreOld=99999;
-//      yPreOld=99999;
-//      zPreOld=99999;
-//      index=z*grid2->nx*grid2->ny;
-//      for(y=0; y<grid2->ny; y++)
-//      {
-//         for(x=0; x<grid2->nx; x++)
-//         {
-//            // Get the control point actual position
-//            xReal = outCPPPtrX[index];
-//            yReal = outCPPPtrY[index];
-//            zReal = outCPPPtrZ[index];
-//            initialPositionX=0;
-//            initialPositionY=0;
-//            initialPositionZ=0;
-//            if(displacement2)
-//            {
-//               xReal += initialPositionX =
-//                     matrix_voxel_to_real2->m[0][0]*x
-//                     + matrix_voxel_to_real2->m[0][1]*y
-//                     + matrix_voxel_to_real2->m[0][2]*z
-//                     + matrix_voxel_to_real2->m[0][3];
-//               yReal += initialPositionY =
-//                     matrix_voxel_to_real2->m[1][0]*x
-//                     + matrix_voxel_to_real2->m[1][1]*y
-//                     + matrix_voxel_to_real2->m[1][2]*z
-//                     + matrix_voxel_to_real2->m[1][3];
-//               zReal += initialPositionZ =
-//                     matrix_voxel_to_real2->m[2][0]*x
-//                     + matrix_voxel_to_real2->m[2][1]*y
-//                     + matrix_voxel_to_real2->m[2][2]*z
-//                     + matrix_voxel_to_real2->m[2][3];
-//            }
+ #if defined (_OPENMP)
+ #ifdef _USE_SSE
+ #pragma omp parallel for default(none) \
+   shared(grid1, grid2, displacement1, displacement2, matrix_voxel_to_real2, matrix_real_to_voxel1, \
+   outCPPPtrX, outCPPPtrY, outCPPPtrZ, controlPointPtrX, controlPointPtrY, controlPointPtrZ, bspline) \
+   private(xPre, xPreOld, yPre, yPreOld, zPre, zPreOld, val, index, \
+   x, y, z, xVoxel, yVoxel, zVoxel, basis, xBasis, yBasis, zBasis, \
+   xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ, \
+   _xBasis_sse, tempX, tempY, tempZ, ptrX, ptrY, ptrZ, _yBasis_sse, _zBasis_sse, _temp_basis, _basis, \
+   xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates)
+ #else
+ #pragma omp parallel for default(none) \
+   shared(grid1, grid2, displacement1, displacement2, matrix_voxel_to_real2, matrix_real_to_voxel1, \
+   outCPPPtrX, outCPPPtrY, outCPPPtrZ, controlPointPtrX, controlPointPtrY, controlPointPtrZ, bspline) \
+   private(xPre, xPreOld, yPre, yPreOld, zPre, zPreOld, index, \
+   x, y, z, xVoxel, yVoxel, zVoxel, a, b, c, coord, basis, tempValue, xBasis, yBasis, zBasis, \
+   xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ, \
+   xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates)
+ #endif
+ #endif
+   for(z=0; z<grid2->nz; z++)
+   {
+      xPreOld=99999;
+      yPreOld=99999;
+      zPreOld=99999;
+      index=z*grid2->nx*grid2->ny;
+      for(y=0; y<grid2->ny; y++)
+      {
+         for(x=0; x<grid2->nx; x++)
+         {
+            // Get the control point actual position
+            xReal = outCPPPtrX[index];
+            yReal = outCPPPtrY[index];
+            zReal = outCPPPtrZ[index];
+            initialPositionX=0;
+            initialPositionY=0;
+            initialPositionZ=0;
+            if(displacement2)
+            {
+               xReal += initialPositionX =
+                     matrix_voxel_to_real2->m[0][0]*x
+                     + matrix_voxel_to_real2->m[0][1]*y
+                     + matrix_voxel_to_real2->m[0][2]*z
+                     + matrix_voxel_to_real2->m[0][3];
+               yReal += initialPositionY =
+                     matrix_voxel_to_real2->m[1][0]*x
+                     + matrix_voxel_to_real2->m[1][1]*y
+                     + matrix_voxel_to_real2->m[1][2]*z
+                     + matrix_voxel_to_real2->m[1][3];
+               zReal += initialPositionZ =
+                     matrix_voxel_to_real2->m[2][0]*x
+                     + matrix_voxel_to_real2->m[2][1]*y
+                     + matrix_voxel_to_real2->m[2][2]*z
+                     + matrix_voxel_to_real2->m[2][3];
+            }
 
-//            // Get the voxel based control point position in grid1
-//            xVoxel =
-//                  matrix_real_to_voxel1->m[0][0]*xReal
-//                  + matrix_real_to_voxel1->m[0][1]*yReal
-//                  + matrix_real_to_voxel1->m[0][2]*zReal
-//                  + matrix_real_to_voxel1->m[0][3];
-//            yVoxel =
-//                  matrix_real_to_voxel1->m[1][0]*xReal
-//                  + matrix_real_to_voxel1->m[1][1]*yReal
-//                  + matrix_real_to_voxel1->m[1][2]*zReal
-//                  + matrix_real_to_voxel1->m[1][3];
-//            zVoxel =
-//                  matrix_real_to_voxel1->m[2][0]*xReal
-//                  + matrix_real_to_voxel1->m[2][1]*yReal
-//                  + matrix_real_to_voxel1->m[2][2]*zReal
-//                  + matrix_real_to_voxel1->m[2][3];
+            // Get the voxel based control point position in grid1
+            xVoxel =
+                  matrix_real_to_voxel1->m[0][0]*xReal
+                  + matrix_real_to_voxel1->m[0][1]*yReal
+                  + matrix_real_to_voxel1->m[0][2]*zReal
+                  + matrix_real_to_voxel1->m[0][3];
+            yVoxel =
+                  matrix_real_to_voxel1->m[1][0]*xReal
+                  + matrix_real_to_voxel1->m[1][1]*yReal
+                  + matrix_real_to_voxel1->m[1][2]*zReal
+                  + matrix_real_to_voxel1->m[1][3];
+            zVoxel =
+                  matrix_real_to_voxel1->m[2][0]*xReal
+                  + matrix_real_to_voxel1->m[2][1]*yReal
+                  + matrix_real_to_voxel1->m[2][2]*zReal
+                  + matrix_real_to_voxel1->m[2][3];
 
-//            // The spline coefficients are computed
-//            xPre=(int)(reg_floor(xVoxel));
-//            basis=(DTYPE)xVoxel-(DTYPE)xPre;
-//            if(basis<0.0) basis=0.0; //rounding error
-//            if(bspline) get_BSplineBasisValues<DTYPE>(basis, xBasis);
-//            else get_SplineBasisValues<DTYPE>(basis, xBasis);
+            // The spline coefficients are computed
+            xPre=(int)(reg_floor(xVoxel));
+            basis=(DTYPE)xVoxel-(DTYPE)xPre;
+            if(basis<0.0) basis=0.0; //rounding error
+            if(bspline) get_BSplineBasisValues<DTYPE>(basis, xBasis);
+            else get_SplineBasisValues<DTYPE>(basis, xBasis);
 
-//            yPre=(int)(reg_floor(yVoxel));
-//            basis=(DTYPE)yVoxel-(DTYPE)yPre;
-//            if(basis<0.0) basis=0.0; //rounding error
-//            if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
-//            else get_SplineBasisValues<DTYPE>(basis, yBasis);
+            yPre=(int)(reg_floor(yVoxel));
+            basis=(DTYPE)yVoxel-(DTYPE)yPre;
+            if(basis<0.0) basis=0.0; //rounding error
+            if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
+            else get_SplineBasisValues<DTYPE>(basis, yBasis);
 
-//            zPre=(int)(reg_floor(zVoxel));
-//            basis=(DTYPE)zVoxel-(DTYPE)zPre;
-//            if(basis<0.0) basis=0.0; //rounding error
-//            if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
-//            else get_SplineBasisValues<DTYPE>(basis, zBasis);
+            zPre=(int)(reg_floor(zVoxel));
+            basis=(DTYPE)zVoxel-(DTYPE)zPre;
+            if(basis<0.0) basis=0.0; //rounding error
+            if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
+            else get_SplineBasisValues<DTYPE>(basis, zBasis);
 
-//            --xPre;
-//            --yPre;
-//            --zPre;
+            --xPre;
+            --yPre;
+            --zPre;
 
-//            // The control points are stored
-//            if(xPre!=xPreOld || yPre!=yPreOld || zPre!=zPreOld)
-//            {
-//               get_GridValues(xPre,
-//                              yPre,
-//                              zPre,
-//                              grid1,
-//                              controlPointPtrX,
-//                              controlPointPtrY,
-//                              controlPointPtrZ,
-//                              xControlPointCoordinates,
-//                              yControlPointCoordinates,
-//                              zControlPointCoordinates,
-//                              false, // no approximation
-//                              displacement1 // a displacement field?
-//                              );
-//               xPreOld=xPre;
-//               yPreOld=yPre;
-//               zPreOld=zPre;
-//            }
-//            xReal=0.0;
-//            yReal=0.0;
-//            zReal=0.0;
-// #if _USE_SSE
-//            val.f[0] = xBasis[0];
-//            val.f[1] = xBasis[1];
-//            val.f[2] = xBasis[2];
-//            val.f[3] = xBasis[3];
-//            _xBasis_sse = val.m;
+            // The control points are stored
+            if(xPre!=xPreOld || yPre!=yPreOld || zPre!=zPreOld)
+            {
+               get_GridValues(xPre,
+                              yPre,
+                              zPre,
+                              grid1,
+                              controlPointPtrX,
+                              controlPointPtrY,
+                              controlPointPtrZ,
+                              xControlPointCoordinates,
+                              yControlPointCoordinates,
+                              zControlPointCoordinates,
+                              false, // no approximation
+                              displacement1 // a displacement field?
+                              );
+               xPreOld=xPre;
+               yPreOld=yPre;
+               zPreOld=zPre;
+            }
+            xReal=0.0;
+            yReal=0.0;
+            zReal=0.0;
+ #if _USE_SSE
+            val.f[0] = xBasis[0];
+            val.f[1] = xBasis[1];
+            val.f[2] = xBasis[2];
+            val.f[3] = xBasis[3];
+            _xBasis_sse = val.m;
 
-//            tempX =  _mm_set_ps1(0.0);
-//            tempY =  _mm_set_ps1(0.0);
-//            tempZ =  _mm_set_ps1(0.0);
-//            ptrX = (__m128 *) &xControlPointCoordinates[0];
-//            ptrY = (__m128 *) &yControlPointCoordinates[0];
-//            ptrZ = (__m128 *) &zControlPointCoordinates[0];
+            tempX =  _mm_set_ps1(0.0);
+            tempY =  _mm_set_ps1(0.0);
+            tempZ =  _mm_set_ps1(0.0);
+            ptrX = (__m128 *) &xControlPointCoordinates[0];
+            ptrY = (__m128 *) &yControlPointCoordinates[0];
+            ptrZ = (__m128 *) &zControlPointCoordinates[0];
 
-//            for(unsigned int c=0; c<4; c++)
-//            {
-//               for(unsigned int b=0; b<4; b++)
-//               {
-//                  _yBasis_sse  = _mm_set_ps1(yBasis[b]);
-//                  _zBasis_sse  = _mm_set_ps1(zBasis[c]);
-//                  _temp_basis   = _mm_mul_ps(_yBasis_sse, _zBasis_sse);
-//                  _basis       = _mm_mul_ps(_temp_basis, _xBasis_sse);
-//                  tempX = _mm_add_ps(_mm_mul_ps(_basis, *ptrX), tempX );
-//                  tempY = _mm_add_ps(_mm_mul_ps(_basis, *ptrY), tempY );
-//                  tempZ = _mm_add_ps(_mm_mul_ps(_basis, *ptrZ), tempZ );
-//                  ptrX++;
-//                  ptrY++;
-//                  ptrZ++;
-//               }
-//            }
-//            //the values stored in SSE variables are transfered to normal float
-//            val.m = tempX;
-//            xReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
-//            val.m = tempY;
-//            yReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
-//            val.m = tempZ;
-//            zReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
-// #else
-//            coord=0;
-//            for(c=0; c<4; c++)
-//            {
-//               for(b=0; b<4; b++)
-//               {
-//                  for(a=0; a<4; a++)
-//                  {
-//                     tempValue = xBasis[a] * yBasis[b] * zBasis[c];
-//                     xReal += xControlPointCoordinates[coord] * tempValue;
-//                     yReal += yControlPointCoordinates[coord] * tempValue;
-//                     zReal += zControlPointCoordinates[coord] * tempValue;
-//                     coord++;
-//                  }
-//               }
-//            }
-// #endif
-//            if(displacement2)
-//            {
-//               xReal -= initialPositionX;
-//               yReal -= initialPositionY;
-//               zReal -= initialPositionZ;
-//            }
-//            outCPPPtrX[index] = xReal;
-//            outCPPPtrY[index] = yReal;
-//            outCPPPtrZ[index] = zReal;
-//            index++;
-//         }
-//      }
-//   }
-//   return;
-//}
+            for(unsigned int c=0; c<4; c++)
+            {
+               for(unsigned int b=0; b<4; b++)
+               {
+                  _yBasis_sse  = _mm_set_ps1(yBasis[b]);
+                  _zBasis_sse  = _mm_set_ps1(zBasis[c]);
+                  _temp_basis   = _mm_mul_ps(_yBasis_sse, _zBasis_sse);
+                  _basis       = _mm_mul_ps(_temp_basis, _xBasis_sse);
+                  tempX = _mm_add_ps(_mm_mul_ps(_basis, *ptrX), tempX );
+                  tempY = _mm_add_ps(_mm_mul_ps(_basis, *ptrY), tempY );
+                  tempZ = _mm_add_ps(_mm_mul_ps(_basis, *ptrZ), tempZ );
+                  ptrX++;
+                  ptrY++;
+                  ptrZ++;
+               }
+            }
+            //the values stored in SSE variables are transfered to normal float
+            val.m = tempX;
+            xReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+            val.m = tempY;
+            yReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+            val.m = tempZ;
+            zReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+ #else
+            coord=0;
+            for(c=0; c<4; c++)
+            {
+               for(b=0; b<4; b++)
+               {
+                  for(a=0; a<4; a++)
+                  {
+                     tempValue = xBasis[a] * yBasis[b] * zBasis[c];
+                     xReal += xControlPointCoordinates[coord] * tempValue;
+                     yReal += yControlPointCoordinates[coord] * tempValue;
+                     zReal += zControlPointCoordinates[coord] * tempValue;
+                     coord++;
+                  }
+               }
+            }
+ #endif
+            if(displacement2)
+            {
+               xReal -= initialPositionX;
+               yReal -= initialPositionY;
+               zReal -= initialPositionZ;
+            }
+            outCPPPtrX[index] = xReal;
+            outCPPPtrY[index] = yReal;
+            outCPPPtrZ[index] = zReal;
+            index++;
+         }
+      }
+   }
+   return;
+}
 /* *************************************************************** */
-//int reg_spline_cppComposition(nifti_image *grid1,
-//                              nifti_image *grid2,
-//                              bool displacement1,
-//                              bool displacement2,
-//                              bool bspline)
-//{
-//   // REMINDER Grid2(x)=Grid1(Grid2(x))
+int reg_spline_cppComposition(nifti_image *grid1,
+                              nifti_image *grid2,
+                              bool displacement1,
+                              bool displacement2,
+                              bool bspline)
+{
+   // REMINDER Grid2(x)=Grid1(Grid2(x))
 
-//   if(grid1->datatype != grid2->datatype)
-//   {
-//      reg_print_fct_error("reg_spline_cppComposition");
-//      reg_print_msg_error("Both input images do not have the same type.");
-//      reg_exit();
-//   }
+   if(grid1->datatype != grid2->datatype)
+   {
+      reg_print_fct_error("reg_spline_cppComposition");
+      reg_print_msg_error("Both input images do not have the same type.");
+      reg_exit();
+   }
 
-// #if _USE_SSE
-//   if(grid1->datatype != NIFTI_TYPE_FLOAT32)
-//   {
-//      reg_print_fct_error("reg_spline_cppComposition");
-//      reg_print_msg_error("SSE computation has only been implemented for single precision.");
-//      reg_exit();
-//   }
-// #endif
+ #if _USE_SSE
+   if(grid1->datatype != NIFTI_TYPE_FLOAT32)
+   {
+      reg_print_fct_error("reg_spline_cppComposition");
+      reg_print_msg_error("SSE computation has only been implemented for single precision.");
+      reg_exit();
+   }
+ #endif
 
-//   if(grid1->nz>1)
-//   {
-//      switch(grid1->datatype)
-//      {
-//      case NIFTI_TYPE_FLOAT32:
-//         reg_spline_cppComposition_3D<float>
-//               (grid1, grid2, displacement1, displacement2, bspline);
-//         break;
-//      case NIFTI_TYPE_FLOAT64:
-//         reg_spline_cppComposition_3D<double>
-//               (grid1, grid2, displacement1, displacement2, bspline);
-//         break;
-//      default:
-//         reg_print_fct_error("reg_spline_cppComposition");
-//         reg_print_msg_error("Only implemented for single or double floating images");
-//         reg_exit();
-//      }
-//   }
-//   else
-//   {
-//      switch(grid1->datatype)
-//      {
-//      case NIFTI_TYPE_FLOAT32:
-//         reg_spline_cppComposition_2D<float>
-//               (grid1, grid2, displacement1, displacement2, bspline);
-//         break;
-//      case NIFTI_TYPE_FLOAT64:
-//         reg_spline_cppComposition_2D<double>
-//               (grid1, grid2, displacement1, displacement2, bspline);
-//         break;
-//      default:
-//         reg_print_fct_error("reg_spline_cppComposition");
-//         reg_print_msg_error("Only implemented for single or double floating images");
-//         reg_exit();
-//      }
-//   }
-//   return EXIT_SUCCESS;
-//}
+   if(grid1->nz>1)
+   {
+      switch(grid1->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         reg_spline_cppComposition_3D<float>
+               (grid1, grid2, displacement1, displacement2, bspline);
+         break;
+      case NIFTI_TYPE_FLOAT64:
+         reg_spline_cppComposition_3D<double>
+               (grid1, grid2, displacement1, displacement2, bspline);
+         break;
+      default:
+         reg_print_fct_error("reg_spline_cppComposition");
+         reg_print_msg_error("Only implemented for single or double floating images");
+         reg_exit();
+      }
+   }
+   else
+   {
+      switch(grid1->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         reg_spline_cppComposition_2D<float>
+               (grid1, grid2, displacement1, displacement2, bspline);
+         break;
+      case NIFTI_TYPE_FLOAT64:
+         reg_spline_cppComposition_2D<double>
+               (grid1, grid2, displacement1, displacement2, bspline);
+         break;
+      default:
+         reg_print_fct_error("reg_spline_cppComposition");
+         reg_print_msg_error("Only implemented for single or double floating images");
+         reg_exit();
+      }
+   }
+   return EXIT_SUCCESS;
+}
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,

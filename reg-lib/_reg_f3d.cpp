@@ -320,12 +320,12 @@ void reg_f3d<T>::Initialise()
       for(int i=0; i<this->inputFloating->nt; i++)
       {
          sprintf(text, "\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
-                 i+1, this->inputFloating->nt, this->floatingThresholdLow[i],this->floatingThresholdUp[i]);
+                 i, this->inputFloating->nt-1, this->floatingThresholdLow[i],this->floatingThresholdUp[i]);
          reg_print_info(this->executableName, text);
          if(this->measure_nmi!=NULL){
             if(this->measure_nmi->GetActiveTimepoints()[i]){
                sprintf(text, "\t* binnining size for timepoint %i/%i: %i",
-                       i+1, this->inputFloating->nt, this->measure_nmi->GetFloatingBinNumber()[i]-4);
+                       i, this->inputFloating->nt-1, this->measure_nmi->GetFloatingBinNumber()[i]-4);
                reg_print_info(this->executableName, text);
             }
          }
@@ -1229,7 +1229,7 @@ void reg_f3d<T>::DiscreteInitialisation()
                                                                       this->controlPointGrid,
                                                                       discretisation_radius,
                                                                       discrete_increment,
-                                                                      50,
+                                                                      100,
                                                                       this->bendingEnergyWeight*pow(16.f,(this->levelNumber-this->currentLevel-1)) +
                                                                       this->linearEnergyWeight);
 

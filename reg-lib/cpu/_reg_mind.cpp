@@ -10,7 +10,6 @@
  */
 
 #include "_reg_mind.h"
-#include "_reg_ReadWriteImage.h"
 
 /* *************************************************************** */
 template <class DTYPE>
@@ -127,7 +126,7 @@ void GetMINDImageDesciptor_core(nifti_image* inputImage,
 {
    const size_t voxelNumber = (size_t)inputImage->nx *
          inputImage->ny * inputImage->nz;
-   size_t voxelIndex;
+   int voxelIndex;
 
    // Create a pointer to the descriptor image
    DTYPE* MINDImgDataPtr = static_cast<DTYPE *>(MINDImage->data);
@@ -138,7 +137,7 @@ void GetMINDImageDesciptor_core(nifti_image* inputImage,
    currentInputImage->nt=currentInputImage->dim[4]=1;
    currentInputImage->nvox=voxelNumber;
    DTYPE *inputImagePtr = static_cast<DTYPE *>(inputImage->data);
-   currentInputImage->data = static_cast<void *>(&inputImagePtr[current_timepoint*voxelIndex]);
+   currentInputImage->data = static_cast<void *>(&inputImagePtr[current_timepoint*voxelNumber]);
 
    // Allocate an image to store the mean image
    nifti_image *meanImage = nifti_copy_nim_info(currentInputImage);
@@ -200,7 +199,7 @@ void GetMINDImageDesciptor_core(nifti_image* inputImage,
          for(int t=0;t<samplingNbr;t++) {
             descValue = (DTYPE)exp(-MINDImgDataPtr[mindIndex]/meanValue);
             MINDImgDataPtr[mindIndex] = descValue;
-            max_desc = std::max(max_desc, descValue);
+            max_desc = (std::max)(max_desc, descValue);
             mindIndex+=voxelNumber;
          }
 
@@ -259,7 +258,7 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImage,
 {
    const size_t voxelNumber = (size_t)inputImage->nx *
          inputImage->ny * inputImage->nz;
-   size_t voxelIndex;
+   int voxelIndex;
 
    // Create a pointer to the descriptor image
    DTYPE* MINDSSCImgDataPtr = static_cast<DTYPE *>(MINDSSCImage->data);
@@ -270,7 +269,7 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImage,
    currentInputImage->nt=currentInputImage->dim[4]=1;
    currentInputImage->nvox=voxelNumber;
    DTYPE *inputImagePtr = static_cast<DTYPE *>(inputImage->data);
-   currentInputImage->data = static_cast<void *>(&inputImagePtr[current_timepoint*voxelIndex]);
+   currentInputImage->data = static_cast<void *>(&inputImagePtr[current_timepoint*voxelNumber]);
 
    // Allocate an image to store the mean image
    nifti_image *mean_img = nifti_copy_nim_info(currentInputImage);
