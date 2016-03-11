@@ -17,6 +17,8 @@
 #include "_reg_measure.h"
 #include "_reg_optimiser.h"
 #include "_reg_localTrans_regul.h"
+#include "_reg_localTrans.h"
+#include "_reg_ReadWriteImage.h"
 #include <cmath>
 #include <queue>
 #include <algorithm>
@@ -68,6 +70,9 @@ private:
    int* optimal_label_index; ///< Optimimal label index for each node
    int regularisation_convergence;
    int reg_max_it; ///< Maximal number of iteration in the regularisation strategy
+
+   float l2_weight;
+   float* l2_penalisation;
 };
 /********************************************************************************************************/
 #endif // _reg_discrete_init_H
