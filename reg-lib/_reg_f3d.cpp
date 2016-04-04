@@ -1220,10 +1220,18 @@ void reg_f3d<T>::DiscreteInitialisation()
                                        NULL,
                                        NULL);
       }
-
+      //
       // Create and initialise the discretisation initialisation object
-      int discrete_increment=3;
-      int discretisation_radius=discrete_increment*reg_ceil(this->controlPointGrid->dx/this->currentReference->dx);
+      //
+      //int discrete_increment=3;
+      //int discretisation_radius=discrete_increment*reg_ceil(this->controlPointGrid->dx/this->currentReference->dx);
+      int discrete_increment=1;
+      //DEBUG
+      //std::cout<<"(this->levelNumber-this->currentLevel-1)="<<(this->levelNumber-this->currentLevel-1)<<std::endl;
+      //DEBUG
+      int discretisation_radius=
+              reg_ceil(discrete_increment*(this->controlPointGrid->dx/this->currentReference->dx)/pow(2.0,(this->levelNumber-this->currentLevel-1)));
+      //
       reg_discrete_init *discrete_init_object = new reg_discrete_init(ssdMeasure,
                                                                       this->currentReference,
                                                                       this->controlPointGrid,

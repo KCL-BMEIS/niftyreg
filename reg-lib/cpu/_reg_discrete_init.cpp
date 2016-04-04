@@ -175,8 +175,8 @@ void reg_discrete_init::UpdateTransformation()
    float *inputCpPtrZ = &inputCpPtrY[this->node_number];
 
    memcpy(cpPtrX, inputCpPtrX, this->node_number*3*sizeof(float));
-   float scaleFactor = 0.5;
-   //float scaleFactor = 1;
+   //float scaleFactor = 0.5;
+   float scaleFactor = 1;
 
    for(int z=1; z<this->controlPointImage->nz-1; z++) {
       for(int y=1; y<this->controlPointImage->ny-1; y++) {
