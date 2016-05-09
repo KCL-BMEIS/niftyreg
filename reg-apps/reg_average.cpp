@@ -615,6 +615,7 @@ int main(int argc, char **argv)
                                                  deformationField);
                }
                else switch(static_cast<int>(inputTransformationImage->intent_p1)){
+               case LIN_SPLINE_GRID:
                case CUB_SPLINE_GRID:
                   reg_spline_getDeformationField(inputTransformationImage,
                                                  deformationField,
@@ -864,6 +865,7 @@ int main(int argc, char **argv)
             case DEF_FIELD:
                reg_defField_compose(transformation,deformationField,NULL);
                break;
+            case LIN_SPLINE_GRID:
             case CUB_SPLINE_GRID:
                reg_spline_getDeformationField(transformation,deformationField,NULL,true,true);
                break;
@@ -981,6 +983,7 @@ int main(int argc, char **argv)
             case DEF_FIELD:
                reg_defField_compose(transformation,deformationField,NULL);
                break;
+            case LIN_SPLINE_GRID:
             case CUB_SPLINE_GRID:
                reg_spline_getDeformationField(transformation,deformationField,NULL,true,true);
                break;
