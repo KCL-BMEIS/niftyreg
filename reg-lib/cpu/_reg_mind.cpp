@@ -163,7 +163,7 @@ void GetMINDImageDesciptor_core(nifti_image* inputImage,
                         RSampling3D_x[i], RSampling3D_y[i], RSampling3D_z[i]);
       reg_tools_substractImageToImage(currentInputImage, shiftedImage, diff_image);
       reg_tools_multiplyImageToImage(diff_image, diff_image, diff_image);
-      reg_tools_kernelConvolution(diff_image, &sigma, 0, maskPtr);
+      reg_tools_kernelConvolution(diff_image, &sigma, GAUSSIAN_KERNEL, maskPtr);
       reg_tools_addImageToImage(meanImage, diff_image, meanImage);
 
       // Store the current descriptor
@@ -308,7 +308,7 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImage,
                         RSampling3D_x[i], RSampling3D_y[i], RSampling3D_z[i]);
       reg_tools_substractImageToImage(currentInputImage, shiftedImage, diff_image);
       reg_tools_multiplyImageToImage(diff_image, diff_image, diff_image);
-      reg_tools_kernelConvolution(diff_image, &sigma, 0, maskPtr);
+      reg_tools_kernelConvolution(diff_image, &sigma, GAUSSIAN_KERNEL, maskPtr);
 
       for(int j=0;j<2;j++){
 

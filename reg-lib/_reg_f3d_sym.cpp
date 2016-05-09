@@ -860,7 +860,7 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
    bool activeAxis[3]= {1,0,0};
    reg_tools_kernelConvolution(this->backwardVoxelBasedMeasureGradientImage,
                                currentNodeSpacing,
-                               1, // cubic spline kernel
+                               CUBIC_SPLINE_KERNEL, // cubic spline kernel
                                NULL, // mask
                                NULL, // all volumes are active
                                activeAxis
@@ -871,7 +871,7 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
    activeAxis[1]=1;
    reg_tools_kernelConvolution(this->backwardVoxelBasedMeasureGradientImage,
                                currentNodeSpacing,
-                               1, // cubic spline kernel
+                               CUBIC_SPLINE_KERNEL, // cubic spline kernel
                                NULL, // mask
                                NULL, // all volumes are active
                                activeAxis
@@ -884,7 +884,7 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
       activeAxis[2]=1;
       reg_tools_kernelConvolution(this->backwardVoxelBasedMeasureGradientImage,
                                   currentNodeSpacing,
-                                  1, // cubic spline kernel
+                                  CUBIC_SPLINE_KERNEL, // cubic spline kernel
                                   NULL, // mask
                                   NULL, // all volumes are active
                                   activeAxis
@@ -985,7 +985,7 @@ void reg_f3d_sym<T>::SmoothGradient()
       float kernel = fabs(this->gradientSmoothingSigma);
       reg_tools_kernelConvolution(this->backwardTransformationGradient,
                                   &kernel,
-                                  0);
+                                  GAUSSIAN_KERNEL);
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::SmoothGradient");
@@ -1324,7 +1324,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
    bool activeAxis[3]= {1,0,0};
    reg_tools_kernelConvolution(this->deformationFieldImage,
                                currentNodeSpacing,
-                               1, // cubic spline kernel
+                               CUBIC_SPLINE_KERNEL, // cubic spline kernel
                                NULL, // all volumes are active
                                activeAxis
                                );
@@ -1334,7 +1334,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
    activeAxis[1]=1;
    reg_tools_kernelConvolution(this->deformationFieldImage,
                                currentNodeSpacing,
-                               1, // cubic spline kernel
+                               CUBIC_SPLINE_KERNEL, // cubic spline kernel
                                NULL, // all volumes are active
                                activeAxis
                                );
@@ -1346,7 +1346,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
       activeAxis[2]=1;
       reg_tools_kernelConvolution(this->deformationFieldImage,
                                   currentNodeSpacing,
-                                  1, // cubic spline kernel
+                                  CUBIC_SPLINE_KERNEL, // cubic spline kernel
                                   NULL, // all volumes are active
                                   activeAxis
                                   );
@@ -1367,7 +1367,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
    activeAxis[2]=0;
    reg_tools_kernelConvolution(this->backwardDeformationFieldImage,
                                currentNodeSpacing,
-                               1, // cubic spline kernel
+                               CUBIC_SPLINE_KERNEL, // cubic spline kernel
                                NULL, // all volumes are active
                                activeAxis
                                );
@@ -1377,7 +1377,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
    activeAxis[1]=1;
    reg_tools_kernelConvolution(this->backwardDeformationFieldImage,
                                currentNodeSpacing,
-                               1, // cubic spline kernel
+                               CUBIC_SPLINE_KERNEL, // cubic spline kernel
                                NULL, // all volumes are active
                                activeAxis
                                );
@@ -1389,7 +1389,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
       activeAxis[2]=1;
       reg_tools_kernelConvolution(this->backwardDeformationFieldImage,
                                   currentNodeSpacing,
-                                  1, // cubic spline kernel
+                                  CUBIC_SPLINE_KERNEL, // cubic spline kernel
                                   NULL, // all volumes are active
                                   activeAxis
                                   );

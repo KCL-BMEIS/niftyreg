@@ -256,7 +256,7 @@ int main(int argc, char **argv)
    /* *************************** */
    // Create a deformation field if needed
    nifti_image *referenceImage=NULL;
-   if(inputTransformation->intent_p1==SPLINE_GRID ||
+   if(inputTransformation->intent_p1==CUB_SPLINE_GRID ||
          inputTransformation->intent_p1==SPLINE_VEL_GRID){
       if(!flag->refImageFlag){
          reg_print_msg_error("A reference image has to be specified with a spline parametrisation.");
@@ -304,7 +304,7 @@ int main(int argc, char **argv)
       case DEF_VEL_FIELD:
          reg_defField_GetJacobianDetFromFlowField(jacobianImage,inputTransformation);
          break;
-      case SPLINE_GRID:
+      case CUB_SPLINE_GRID:
          reg_spline_GetJacobianMap(inputTransformation,jacobianImage);
          break;
       case SPLINE_VEL_GRID:
@@ -360,7 +360,7 @@ int main(int argc, char **argv)
       case DEF_VEL_FIELD:
          reg_defField_GetJacobianMatFromFlowField(jacobianMatriceArray,inputTransformation);
          break;
-      case SPLINE_GRID:
+      case CUB_SPLINE_GRID:
          reg_spline_GetJacobianMatrix(jacobianImage,inputTransformation,jacobianMatriceArray);
          break;
       case SPLINE_VEL_GRID:

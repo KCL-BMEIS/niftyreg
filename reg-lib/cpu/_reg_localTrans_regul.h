@@ -67,5 +67,20 @@ void reg_spline_approxLinearEnergyGradient(nifti_image *controlPointGridImage,
                                            float weight
                                            );
 /* *************************************************************** */
-
+#ifdef BUILD_DEV
+/** @brief Compute and return a pairwise energy.
+ * @param controlPointGridImage Image that contains the transformation
+ * parametrisation
+ * @return The normalised pariwise energy. Normalised by the number of voxel
+ */
+extern "C++"
+void reg_spline_approxLinearPairwiseGradient(nifti_image *controlPointGridImage,
+                                             nifti_image *gradientImage,
+                                             float weight
+                                             );
+/* *************************************************************** */
+extern "C++"
+double reg_spline_approxLinearPairwise(nifti_image *controlPointGridImage);
+#endif // BUILD_DEV
+/* *************************************************************** */
 #endif

@@ -136,7 +136,7 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
    (*controlPointGridImage)->intent_code=NIFTI_INTENT_VECTOR;
    memset((*controlPointGridImage)->intent_name, 0, 16);
    strcpy((*controlPointGridImage)->intent_name,"NREG_TRANS");
-   (*controlPointGridImage)->intent_p1=SPLINE_GRID;
+   (*controlPointGridImage)->intent_p1=CUB_SPLINE_GRID;
 }
 template void reg_createControlPointGrid<float>(nifti_image **, nifti_image *, float *);
 template void reg_createControlPointGrid<double>(nifti_image **, nifti_image *, float *);
@@ -366,7 +366,7 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
    memset((*backwardGridImage)->intent_name, 0, 16);
    strcpy((*forwardGridImage)->intent_name,"NREG_TRANS");
    strcpy((*backwardGridImage)->intent_name,"NREG_TRANS");
-   (*forwardGridImage)->intent_p1=(*backwardGridImage)->intent_p1=SPLINE_GRID;
+   (*forwardGridImage)->intent_p1=(*backwardGridImage)->intent_p1=CUB_SPLINE_GRID;
    // Set the affine matrices
    mat44 identity;
    reg_mat44_eye(&identity);
@@ -422,7 +422,180 @@ template void reg_createSymmetricControlPointGrids<double>
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
+void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
+                                             nifti_image *deformationField,
+                                             int *mask,
+                                             bool composition
+                                             )
+{
+   int coord;
+
+   DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
+   DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+   DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+
+   DTYPE *fieldPtrX=static_cast<DTYPE *>(deformationField->data);
+   DTYPE *fieldPtrY=&fieldPtrX[deformationField->nx*deformationField->ny*deformationField->nz];
+   DTYPE *fieldPtrZ=&fieldPtrY[deformationField->nx*deformationField->ny*deformationField->nz];
+
+   int x, y, z, a, b, c, xPre, yPre, zPre, index;
+   DTYPE xBasis[2], yBasis[2], zBasis[2], real[3];
+
+   if(composition)  // Composition of deformation fields
+   {
+      // read the ijk sform or qform, as appropriate
+      mat44 referenceMatrix_real_to_voxel;
+      if(splineControlPoint->sform_code>0)
+         referenceMatrix_real_to_voxel=(splineControlPoint->sto_ijk);
+      else referenceMatrix_real_to_voxel=(splineControlPoint->qto_ijk);
+
+      DTYPE voxel[3];
+
+      for(z=0; z<deformationField->nz; z++)
+      {
+         index=z*deformationField->nx*deformationField->ny;
+         for(y=0; y<deformationField->ny; y++)
+         {
+            for(x=0; x<deformationField->nx; x++)
+            {
+               if(mask[index]>-1)
+               {
+                  // The previous position at the current pixel position is read
+                  real[0] = fieldPtrX[index];
+                  real[1] = fieldPtrY[index];
+                  real[2] = fieldPtrZ[index];
+
+                  // From real to pixel position in the control point space
+                  voxel[0] =
+                        referenceMatrix_real_to_voxel.m[0][0] * real[0] +
+                        referenceMatrix_real_to_voxel.m[0][1] * real[1] +
+                        referenceMatrix_real_to_voxel.m[0][2] * real[2] +
+                        referenceMatrix_real_to_voxel.m[0][3] ;
+                  voxel[1] =
+                        referenceMatrix_real_to_voxel.m[1][0] * real[0] +
+                        referenceMatrix_real_to_voxel.m[1][1] * real[1] +
+                        referenceMatrix_real_to_voxel.m[1][2] * real[2] +
+                        referenceMatrix_real_to_voxel.m[1][3] ;
+                  voxel[2] =
+                        referenceMatrix_real_to_voxel.m[2][0] * real[0] +
+                        referenceMatrix_real_to_voxel.m[2][1] * real[1] +
+                        referenceMatrix_real_to_voxel.m[2][2] * real[2] +
+                        referenceMatrix_real_to_voxel.m[2][3] ;
+
+                  // The spline coefficients are computed
+                  xPre=(int)reg_floor(voxel[0]);
+                  xBasis[1]=voxel[0]-static_cast<DTYPE>(xPre);
+                  if(xBasis[1]<0.0) xBasis[1]=0.0; //rounding error
+                  xBasis[0]=1.-xBasis[1];
+
+                  yPre=(int)reg_floor(voxel[1]);
+                  yBasis[1]=voxel[1]-static_cast<DTYPE>(yPre);
+                  if(yBasis[1]<0.0) yBasis[1]=0.0; //rounding error
+                  yBasis[0]=1.-yBasis[1];
+
+                  zPre=(int)reg_floor(voxel[2]);
+                  zBasis[1]=voxel[2]-static_cast<DTYPE>(zPre);
+                  if(zBasis[1]<0.0) zBasis[1]=0.0; //rounding error
+                  zBasis[0]=1.-zBasis[1];
+
+                  real[0]=0.0;
+                  real[1]=0.0;
+                  real[2]=0.0;
+                  for(c=0; c<2; c++){
+                     for(b=0; b<2; b++){
+                        for(a=0; a<2; a++){
+                           DTYPE tempValue = xBasis[a] * yBasis[b] * zBasis[c];
+                           coord = ((zPre+c)*splineControlPoint->ny+yPre+b)*splineControlPoint->nx+xPre+a;
+                           real[0] += controlPointPtrX[coord] * tempValue;
+                           real[1] += controlPointPtrY[coord] * tempValue;
+                           real[2] += controlPointPtrZ[coord] * tempValue;
+                        }
+                     }
+                  }
+                  fieldPtrX[index] = real[0];
+                  fieldPtrY[index] = real[1];
+                  fieldPtrZ[index] = real[2];
+               } // mask
+               index++;
+            }
+         }
+      }
+   }//Composition of deformation
+   else  // !composition
+   {
+      DTYPE gridVoxelSpacing[3];
+      gridVoxelSpacing[0] = splineControlPoint->dx / deformationField->dx;
+      gridVoxelSpacing[1] = splineControlPoint->dy / deformationField->dy;
+      gridVoxelSpacing[2] = splineControlPoint->dz / deformationField->dz;
+      DTYPE tempValue;
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(x, y, z, a, b, c, xPre, yPre, zPre, xBasis, yBasis, zBasis, real, index, coord, tempValue) \
+   shared(deformationField, gridVoxelSpacing, mask, fieldPtrX, fieldPtrY, fieldPtrZ, \
+   controlPointPtrX, controlPointPtrY, controlPointPtrZ, splineControlPoint)
+#endif // _OPENMP
+      for(z=0; z<deformationField->nz; z++)
+      {
+         index=z*deformationField->nx*deformationField->ny;
+
+         zPre=static_cast<int>(static_cast<DTYPE>(z)/gridVoxelSpacing[2]);
+         zBasis[1]=static_cast<DTYPE>(z)/gridVoxelSpacing[2]-static_cast<DTYPE>(zPre);
+         if(zBasis[1]<0.0) zBasis[1]=0.0; //rounding error
+         zBasis[0]=1.-zBasis[1];
+         zPre++;
+
+         for(y=0; y<deformationField->ny; y++)
+         {
+
+            yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
+            yBasis[1]=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
+            if(yBasis[1]<0.0) yBasis[1]=0.0; //rounding error
+            yBasis[0]=1.-yBasis[1];
+            yPre++;
+
+            for(x=0; x<deformationField->nx; x++)
+            {
+               real[0]=0.0;
+               real[1]=0.0;
+               real[2]=0.0;
+
+               if(mask[index]>-1)
+               {
+                  xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
+                  xBasis[1]=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
+                  if(xBasis[1]<0.0) xBasis[1]=0.0; //rounding error
+                  xBasis[0]=1.-xBasis[1];
+                  xPre++;
+                  real[0]=0.0;
+                  real[1]=0.0;
+                  real[2]=0.0;
+                  for(c=0; c<2; c++){
+                     for(b=0; b<2; b++){
+                        for(a=0; a<2; a++){
+                           tempValue = xBasis[a] * yBasis[b] * zBasis[c];
+                           coord = ((zPre+c)*splineControlPoint->ny+yPre+b)*splineControlPoint->nx+xPre+a;
+                           real[0] += controlPointPtrX[coord] * tempValue;
+                           real[1] += controlPointPtrY[coord] * tempValue;
+                           real[2] += controlPointPtrZ[coord] * tempValue;
+                        }
+                     }
+                  }
+               }// mask
+               fieldPtrX[index] = real[0];
+               fieldPtrY[index] = real[1];
+               fieldPtrZ[index] = real[2];
+               index++;
+            } // x
+         } // y
+      } // z
+   }// from a deformation field
+
+   return;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class DTYPE>
+void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                       nifti_image *deformationField,
                                       int *mask,
                                       bool composition,
@@ -747,12 +920,12 @@ void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 template<class DTYPE>
-void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
-                                      nifti_image *deformationField,
-                                      int *mask,
-                                      bool composition,
-                                      bool bspline
-                                      )
+void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
+                                            nifti_image *deformationField,
+                                            int *mask,
+                                            bool composition,
+                                            bool bspline
+                                            )
 {
 #if _USE_SSE
    union
@@ -1270,36 +1443,62 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
       }
    }
 
-   if(splineControlPoint->nz==1)
-   {
-      switch(deformationField->datatype)
+   if(splineControlPoint->intent_p1==LIN_SPLINE_GRID){
+      if(splineControlPoint->nz==1)
       {
-      case NIFTI_TYPE_FLOAT32:
-         reg_spline_getDeformationField2D<float>(splineControlPoint, deformationField, mask, composition, bspline);
-         break;
-      case NIFTI_TYPE_FLOAT64:
-         reg_spline_getDeformationField2D<double>(splineControlPoint, deformationField, mask, composition, bspline);
-         break;
-      default:
-         reg_print_fct_error("reg_spline_getDeformationField");
-         reg_print_msg_error("Only single or double precision is implemented for deformation field");
+         reg_print_fct_error("reg_linear_spline_getDeformationField");
+         reg_print_msg_error("No 2D implementation yet.");
          reg_exit();
       }
-   }
-   else
-   {
-      switch(deformationField->datatype)
+      else
       {
-      case NIFTI_TYPE_FLOAT32:
-         reg_spline_getDeformationField3D<float>(splineControlPoint, deformationField, mask, composition, bspline);
-         break;
-      case NIFTI_TYPE_FLOAT64:
-         reg_spline_getDeformationField3D<double>(splineControlPoint, deformationField, mask, composition, bspline);
-         break;
-      default:
-         reg_print_fct_error("reg_spline_getDeformationField");
-         reg_print_msg_error("Only single or double precision is implemented for deformation field");
-         reg_exit();
+         switch(deformationField->datatype)
+         {
+         case NIFTI_TYPE_FLOAT32:
+            reg_linear_spline_getDeformationField3D<float>(splineControlPoint, deformationField, mask, composition);
+            break;
+         case NIFTI_TYPE_FLOAT64:
+            reg_linear_spline_getDeformationField3D<double>(splineControlPoint, deformationField, mask, composition);
+            break;
+         default:
+            reg_print_fct_error("reg_linear_spline_getDeformationField");
+            reg_print_msg_error("Only single or double precision is implemented for deformation field");
+            reg_exit();
+         }
+      }
+   }
+   else{
+      if(splineControlPoint->nz==1)
+      {
+         switch(deformationField->datatype)
+         {
+         case NIFTI_TYPE_FLOAT32:
+            reg_cubic_spline_getDeformationField2D<float>(splineControlPoint, deformationField, mask, composition, bspline);
+            break;
+         case NIFTI_TYPE_FLOAT64:
+            reg_cubic_spline_getDeformationField2D<double>(splineControlPoint, deformationField, mask, composition, bspline);
+            break;
+         default:
+            reg_print_fct_error("reg_spline_getDeformationField");
+            reg_print_msg_error("Only single or double precision is implemented for deformation field");
+            reg_exit();
+         }
+      }
+      else
+      {
+         switch(deformationField->datatype)
+         {
+         case NIFTI_TYPE_FLOAT32:
+            reg_cubic_spline_getDeformationField3D<float>(splineControlPoint, deformationField, mask, composition, bspline);
+            break;
+         case NIFTI_TYPE_FLOAT64:
+            reg_cubic_spline_getDeformationField3D<double>(splineControlPoint, deformationField, mask, composition, bspline);
+            break;
+         default:
+            reg_print_fct_error("reg_spline_getDeformationField");
+            reg_print_msg_error("Only single or double precision is implemented for deformation field");
+            reg_exit();
+         }
       }
    }
 
@@ -3711,7 +3910,7 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                             bool updateStepNumber)
 {
    // Check if the velocity field is actually a velocity field
-   if(velocityFieldGrid->intent_p1 == SPLINE_GRID)
+   if(velocityFieldGrid->intent_p1 == CUB_SPLINE_GRID)
    {
       // Use the spline approximation to generate the deformation field
       reg_spline_getDeformationField(velocityFieldGrid,

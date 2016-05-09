@@ -1124,3 +1124,250 @@ void reg_spline_approxLinearEnergyGradient(nifti_image *splineControlPoint,
    }
 }
 /* *************************************************************** */
+/* *************************************************************** */
+#ifdef BUILD_DEV
+template <class DTYPE>
+double reg_spline_approxLinearPairwise3D(nifti_image *splineControlPoint)
+{
+   size_t nodeNumber = (size_t)splineControlPoint->nx*
+         splineControlPoint->ny*splineControlPoint->nz;
+   int x, y, z, index;
+
+   // Create pointers to the spline coefficients
+   reg_getDisplacementFromDeformation(splineControlPoint);
+   DTYPE * splinePtrX = static_cast<DTYPE *>(splineControlPoint->data);
+   DTYPE * splinePtrY = &splinePtrX[nodeNumber];
+   DTYPE * splinePtrZ = &splinePtrY[nodeNumber];
+
+   DTYPE centralCP[3], neigbCP[3];
+
+   double constraintValue=0;
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(index, x, y, z, centralCP, neigbCP) \
+   shared(splineControlPoint, splinePtrX, splinePtrY, splinePtrZ) \
+   reduction(+:constraintValue)
+#endif // _OPENMP
+   for(z=0; z<splineControlPoint->nz;++z){
+      index=z*splineControlPoint->nx*splineControlPoint->ny;
+      for(y=0; y<splineControlPoint->ny;++y){
+         for(x=0; x<splineControlPoint->nx;++x){
+            centralCP[0]=splinePtrX[index];
+            centralCP[1]=splinePtrY[index];
+            centralCP[2]=splinePtrZ[index];
+
+            if(x>0){
+               neigbCP[0]=splinePtrX[index-1];
+               neigbCP[1]=splinePtrY[index-1];
+               neigbCP[2]=splinePtrZ[index-1];
+               constraintValue += (reg_pow2(centralCP[0]-neigbCP[0])+reg_pow2(centralCP[1]-neigbCP[1])+
+                     reg_pow2(centralCP[2]-neigbCP[2]))/splineControlPoint->dx;
+            }
+            if(x<splineControlPoint->nx-1){
+               neigbCP[0]=splinePtrX[index+1];
+               neigbCP[1]=splinePtrY[index+1];
+               neigbCP[2]=splinePtrZ[index+1];
+               constraintValue += (reg_pow2(centralCP[0]-neigbCP[0])+reg_pow2(centralCP[1]-neigbCP[1])+
+                     reg_pow2(centralCP[2]-neigbCP[2]))/splineControlPoint->dx;
+            }
+
+            if(y>0){
+               neigbCP[0]=splinePtrX[index-splineControlPoint->nx];
+               neigbCP[1]=splinePtrY[index-splineControlPoint->nx];
+               neigbCP[2]=splinePtrZ[index-splineControlPoint->nx];
+               constraintValue += (reg_pow2(centralCP[0]-neigbCP[0])+reg_pow2(centralCP[1]-neigbCP[1])+
+                     reg_pow2(centralCP[2]-neigbCP[2]))/splineControlPoint->dy;
+            }
+            if(y<splineControlPoint->ny-1){
+               neigbCP[0]=splinePtrX[index+splineControlPoint->nx];
+               neigbCP[1]=splinePtrY[index+splineControlPoint->nx];
+               neigbCP[2]=splinePtrZ[index+splineControlPoint->nx];
+               constraintValue += (reg_pow2(centralCP[0]-neigbCP[0])+reg_pow2(centralCP[1]-neigbCP[1])+
+                     reg_pow2(centralCP[2]-neigbCP[2]))/splineControlPoint->dy;
+            }
+
+            if(z>0){
+               neigbCP[0]=splinePtrX[index-splineControlPoint->nx*splineControlPoint->ny];
+               neigbCP[1]=splinePtrY[index-splineControlPoint->nx*splineControlPoint->ny];
+               neigbCP[2]=splinePtrZ[index-splineControlPoint->nx*splineControlPoint->ny];
+               constraintValue += (reg_pow2(centralCP[0]-neigbCP[0])+reg_pow2(centralCP[1]-neigbCP[1])+
+                     reg_pow2(centralCP[2]-neigbCP[2]))/splineControlPoint->dz;
+            }
+            if(z<splineControlPoint->nz-1){
+               neigbCP[0]=splinePtrX[index+splineControlPoint->nx*splineControlPoint->ny];
+               neigbCP[1]=splinePtrY[index+splineControlPoint->nx*splineControlPoint->ny];
+               neigbCP[2]=splinePtrZ[index+splineControlPoint->nx*splineControlPoint->ny];
+               constraintValue += (reg_pow2(centralCP[0]-neigbCP[0])+reg_pow2(centralCP[1]-neigbCP[1])+
+                     reg_pow2(centralCP[2]-neigbCP[2]))/splineControlPoint->dz;
+            }
+            index++;
+         } // x
+      } // y
+   } // z
+   reg_getDeformationFromDisplacement(splineControlPoint);
+   return constraintValue/static_cast<double>(nodeNumber);
+}
+/* *************************************************************** */
+double reg_spline_approxLinearPairwise(nifti_image *splineControlPoint)
+{
+   if(splineControlPoint->nz>1){
+      switch(splineControlPoint->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         return reg_spline_approxLinearPairwise3D<float>(splineControlPoint);
+      case NIFTI_TYPE_FLOAT64:
+         return reg_spline_approxLinearPairwise3D<double>(splineControlPoint);
+      default:
+         reg_print_fct_error("reg_spline_approxLinearPairwise");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit();
+      }
+   }
+   else{
+      reg_print_fct_error("reg_spline_approxLinearPairwise");
+      reg_print_msg_error("Not implemented in 2D yet");
+      reg_exit();
+   }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+void reg_spline_approxLinearPairwiseGradient3D(nifti_image *splineControlPoint,
+                                               nifti_image *gradientImage,
+                                               float weight
+                                               )
+{
+   size_t nodeNumber = (size_t)splineControlPoint->nx*
+         splineControlPoint->ny*splineControlPoint->nz;
+   int x, y, z, index;
+
+   // Create pointers to the spline coefficients
+   reg_getDisplacementFromDeformation(splineControlPoint);
+   DTYPE *splinePtrX = static_cast<DTYPE *>(splineControlPoint->data);
+   DTYPE *splinePtrY = &splinePtrX[nodeNumber];
+   DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
+
+   // Pointers to the gradient image
+   DTYPE *gradPtrX = static_cast<DTYPE *>(gradientImage->data);
+   DTYPE *gradPtrY = &gradPtrX[nodeNumber];
+   DTYPE *gradPtrZ = &gradPtrY[nodeNumber];
+
+   DTYPE centralCP[3], neigbCP[3];
+
+   double grad_values[3];
+
+   DTYPE approxRatio = (DTYPE)weight / (DTYPE)(nodeNumber);
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(index, x, y, z, centralCP, neigbCP, grad_values) \
+   shared(splineControlPoint, splinePtrX, splinePtrY, splinePtrZ, approxRatio, \
+   gradPtrX, gradPtrY, gradPtrZ)
+#endif // _OPENMP
+   for(z=0; z<splineControlPoint->nz;++z){
+      index=z*splineControlPoint->nx*splineControlPoint->ny;
+      for(y=0; y<splineControlPoint->ny;++y){
+         for(x=0; x<splineControlPoint->nx;++x){
+            centralCP[0]=splinePtrX[index];
+            centralCP[1]=splinePtrY[index];
+            centralCP[2]=splinePtrZ[index];
+            grad_values[0]=0;
+            grad_values[1]=0;
+            grad_values[2]=0;
+
+            if(x>0){
+               neigbCP[0]=splinePtrX[index-1];
+               neigbCP[1]=splinePtrY[index-1];
+               neigbCP[2]=splinePtrZ[index-1];
+               grad_values[0] += 2. * (centralCP[0]-neigbCP[0])/splineControlPoint->dx;
+               grad_values[1] += 2. * (centralCP[1]-neigbCP[1])/splineControlPoint->dx;
+               grad_values[2] += 2. * (centralCP[2]-neigbCP[2])/splineControlPoint->dx;
+            }
+            if(x<splineControlPoint->nx-1){
+               neigbCP[0]=splinePtrX[index+1];
+               neigbCP[1]=splinePtrY[index+1];
+               neigbCP[2]=splinePtrZ[index+1];
+               grad_values[0] += 2. * (centralCP[0]-neigbCP[0])/splineControlPoint->dx;
+               grad_values[1] += 2. * (centralCP[1]-neigbCP[1])/splineControlPoint->dx;
+               grad_values[2] += 2. * (centralCP[2]-neigbCP[2])/splineControlPoint->dx;
+            }
+
+            if(y>0){
+               neigbCP[0]=splinePtrX[index-splineControlPoint->nx];
+               neigbCP[1]=splinePtrY[index-splineControlPoint->nx];
+               neigbCP[2]=splinePtrZ[index-splineControlPoint->nx];
+               grad_values[0] += 2. * (centralCP[0]-neigbCP[0])/splineControlPoint->dy;
+               grad_values[1] += 2. * (centralCP[1]-neigbCP[1])/splineControlPoint->dy;
+               grad_values[2] += 2. * (centralCP[2]-neigbCP[2])/splineControlPoint->dy;
+            }
+            if(y<splineControlPoint->ny-1){
+               neigbCP[0]=splinePtrX[index+splineControlPoint->nx];
+               neigbCP[1]=splinePtrY[index+splineControlPoint->nx];
+               neigbCP[2]=splinePtrZ[index+splineControlPoint->nx];
+               grad_values[0] += 2. * (centralCP[0]-neigbCP[0])/splineControlPoint->dy;
+               grad_values[1] += 2. * (centralCP[1]-neigbCP[1])/splineControlPoint->dy;
+               grad_values[2] += 2. * (centralCP[2]-neigbCP[2])/splineControlPoint->dy;
+            }
+
+            if(z>0){
+               neigbCP[0]=splinePtrX[index-splineControlPoint->nx*splineControlPoint->ny];
+               neigbCP[1]=splinePtrY[index-splineControlPoint->nx*splineControlPoint->ny];
+               neigbCP[2]=splinePtrZ[index-splineControlPoint->nx*splineControlPoint->ny];
+               grad_values[0] += 2. * (centralCP[0]-neigbCP[0])/splineControlPoint->dz;
+               grad_values[1] += 2. * (centralCP[1]-neigbCP[1])/splineControlPoint->dz;
+               grad_values[2] += 2. * (centralCP[2]-neigbCP[2])/splineControlPoint->dz;
+            }
+            if(z<splineControlPoint->nz-1){
+               neigbCP[0]=splinePtrX[index+splineControlPoint->nx*splineControlPoint->ny];
+               neigbCP[1]=splinePtrY[index+splineControlPoint->nx*splineControlPoint->ny];
+               neigbCP[2]=splinePtrZ[index+splineControlPoint->nx*splineControlPoint->ny];
+               grad_values[0] += 2. * (centralCP[0]-neigbCP[0])/splineControlPoint->dz;
+               grad_values[1] += 2. * (centralCP[1]-neigbCP[1])/splineControlPoint->dz;
+               grad_values[2] += 2. * (centralCP[2]-neigbCP[2])/splineControlPoint->dz;
+            }
+            gradPtrX[index] += approxRatio * static_cast<DTYPE>(grad_values[0]);
+            gradPtrY[index] += approxRatio * static_cast<DTYPE>(grad_values[1]);
+            gradPtrZ[index] += approxRatio * static_cast<DTYPE>(grad_values[2]);
+
+            index++;
+         } // x
+      } // y
+   } // z
+   reg_getDeformationFromDisplacement(splineControlPoint);
+}
+/* *************************************************************** */
+void reg_spline_approxLinearPairwiseGradient(nifti_image *splineControlPoint,
+                                             nifti_image *gradientImage,
+                                             float weight
+                                             )
+{
+   if(splineControlPoint->datatype != gradientImage->datatype)
+   {
+      reg_print_fct_error("reg_spline_approxLinearPairwiseGradient");
+      reg_print_msg_error("Input images are expected to have the same datatype");
+      reg_exit();
+   }
+   if(splineControlPoint->nz>1){
+      switch(splineControlPoint->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         reg_spline_approxLinearPairwiseGradient3D<float>
+               (splineControlPoint, gradientImage, weight);
+         break;
+      case NIFTI_TYPE_FLOAT64:
+         reg_spline_approxLinearPairwiseGradient3D<double>
+               (splineControlPoint, gradientImage, weight);
+         break;
+      default:
+         reg_print_fct_error("reg_spline_linearEnergyGradient");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit();
+      }
+   }
+   else{
+      reg_print_fct_error("reg_spline_approxLinearPairwiseGradient");
+      reg_print_msg_error("Not implemented for 2D images yet");
+      reg_exit();
+   }
+}
+#endif // BUILD_DEV
+/* *************************************************************** */

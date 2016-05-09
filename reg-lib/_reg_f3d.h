@@ -69,6 +69,12 @@ protected:
    virtual void CorrectTransformation();
 
 #ifdef BUILD_DEV
+   T pairwiseEnergyWeight;
+   double bestWPE;
+   double currentWPE;
+   bool linearSpline;
+   virtual double ComputePairwiseEnergyPenaltyTerm();
+   virtual void GetPairwiseEnergyGradient();
    virtual void DiscreteInitialisation();
 #endif
 
@@ -93,6 +99,12 @@ public:
    {
       this->gridRefinement=false;
    }
+
+#ifdef BUILD_DEV
+   void UseLinearSpline();
+   void DoNotLinearSpline();
+   void SetPairwiseEnergyWeight(T);
+#endif
 
    // F3D2 specific options
    virtual void SetCompositionStepNumber(int)

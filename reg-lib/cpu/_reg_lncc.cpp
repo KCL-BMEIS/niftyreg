@@ -34,7 +34,7 @@ reg_lncc::reg_lncc()
    this->backwardMask = NULL;
 
    // Gaussian kernel is used by default
-   this->kernelType=0;
+   this->kernelType=GAUSSIAN_KERNEL;
 
    for(int i=0; i<255; ++i)
       kernelStandardDeviation[i]=-5.f;

@@ -944,7 +944,7 @@ void reg_base<T>::Initialise()
          for(int i=1; i<this->referencePyramid[l]->nt; ++i)
             active[i]=false;
          sigma[0]=this->referenceSmoothingSigma;
-         reg_tools_kernelConvolution(this->referencePyramid[l], sigma, 0, NULL, active);
+         reg_tools_kernelConvolution(this->referencePyramid[l], sigma, GAUSSIAN_KERNEL, NULL, active);
          delete []active;
          delete []sigma;
       }
@@ -957,7 +957,7 @@ void reg_base<T>::Initialise()
          for(int i=1; i<this->floatingPyramid[l]->nt; ++i)
             active[i]=false;
          sigma[0]=this->floatingSmoothingSigma;
-         reg_tools_kernelConvolution(this->floatingPyramid[l], sigma, 0, NULL, active);
+         reg_tools_kernelConvolution(this->floatingPyramid[l], sigma, GAUSSIAN_KERNEL, NULL, active);
          delete []active;
          delete []sigma;
       }

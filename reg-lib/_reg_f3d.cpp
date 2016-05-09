@@ -40,6 +40,11 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
 
    this->gridRefinement=true;
 
+#ifdef BUILD_DEV
+   pairwiseEnergyWeight=0;
+   linearSpline=false;
+#endif
+
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::reg_f3d");
 #endif
@@ -115,6 +120,26 @@ void reg_f3d<T>::DoNotApproximateJacobianLog()
 #endif
 }
 /* *************************************************************** */
+#ifdef BUILD_DEV
+template<class T>
+void reg_f3d<T>::UseLinearSpline()
+{
+   this->linearSpline=true;
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d<T>::DoNotLinearSpline()
+{
+   this->linearSpline=false;
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d<T>::SetPairwiseEnergyWeight(T pw)
+{
+   this->pairwiseEnergyWeight=pw;
+}
+#endif
+/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::SetSpacing(unsigned int i, T s)
 {
@@ -188,14 +213,31 @@ template<class T>
 void reg_f3d<T>::CheckParameters()
 {
    reg_base<T>::CheckParameters();
-
    // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
    if(strcmp(this->executableName,"NiftyReg F3D")==0 ||
          strcmp(this->executableName,"NiftyReg F3D GPU")==0)
    {
+#ifdef BUILD_DEV
+   if(this->linearSpline==true){
+      if(this->bendingEnergyWeight>0){
+         this->bendingEnergyWeight=0;
+         reg_print_msg_warn("The weight of the bending energy term is set to 0 when using linear spline");
+      }
+      if(this->linearEnergyWeight>0){
+         this->linearEnergyWeight=0;
+         reg_print_msg_warn("The weight of the lienar energy term is set to 0 when using linear spline");
+      }
+      if(this->jacobianLogWeight>0){
+         this->jacobianLogWeight=0;
+         reg_print_msg_warn("The weight of the Jacobian based regularisation term is set to 0 when using linear spline");
+      }
+   }
+   T penaltySum=this->pairwiseEnergyWeight;
+#else
       T penaltySum=this->bendingEnergyWeight +
             this->linearEnergyWeight +
             this->jacobianLogWeight;
+#endif
       if(penaltySum>=1.0)
       {
          this->similarityWeight=0;
@@ -203,6 +245,9 @@ void reg_f3d<T>::CheckParameters()
          this->bendingEnergyWeight /= penaltySum;
          this->linearEnergyWeight /= penaltySum;
          this->jacobianLogWeight /= penaltySum;
+#ifdef BUILD_DEV
+         this->pairwiseEnergyWeight /= penaltySum;
+#endif
       }
       else this->similarityWeight=1.0 - penaltySum;
    }
@@ -222,7 +267,6 @@ void reg_f3d<T>::Initialise()
    // DETERMINE THE GRID SPACING AND CREATE THE GRID
    if(this->inputControlPointGrid==NULL)
    {
-
       // Set the spacing along y and z if undefined. Their values are set to match
       // the spacing along the x axis
       if(this->spacing[1]!=this->spacing[1]) this->spacing[1]=this->spacing[0];
@@ -271,6 +315,10 @@ void reg_f3d<T>::Initialise()
       if(this->controlPointGrid->nz>1)
          this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->levelNumber-1));
    }
+#ifdef BUILD_DEV
+   if(this->linearSpline)
+      this->controlPointGrid->intent_p1=LIN_SPLINE_GRID;
+#endif
 #ifdef NDEBUG
    if(this->verbose)
    {
@@ -348,6 +396,19 @@ void reg_f3d<T>::Initialise()
       sprintf(text, "Maximum iteration number during the last level: %i", (int)this->maxiterationNumber);
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "");
+
+#ifdef BUILD_DEV
+      if(this->linearSpline){
+         sprintf(text, "Linear interpolation is used for the parametrisation");
+         reg_print_info(this->executableName, text);
+      }
+      else{
+#endif
+         sprintf(text, "Cubic B-Spline is used for the parametrisation");
+         reg_print_info(this->executableName, text);
+#ifdef BUILD_DEV
+      }
+#endif
       sprintf(text, "Final spacing in mm: %g %g %g",
               this->spacing[0], this->spacing[1], this->spacing[2]);
       reg_print_info(this->executableName, text);
@@ -392,6 +453,14 @@ void reg_f3d<T>::Initialise()
          else reg_print_info(this->executableName, "\t* Jacobian-based penalty term is not approximated");
          reg_print_info(this->executableName, "");
       }
+#ifdef BUILD_DEV
+      if((this->pairwiseEnergyWeight)>0){
+         sprintf(text, "Pairwise energy penalty term weight: %g",
+                 this->pairwiseEnergyWeight);
+         reg_print_info(this->executableName, text);
+         reg_print_info(this->executableName, "");
+      }
+#endif
 #ifdef NDEBUG
    }
 #endif
@@ -513,10 +582,31 @@ double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
 }
 /* *************************************************************** */
 /* *************************************************************** */
+#ifdef BUILD_DEV
+template <class T>
+double reg_f3d<T>::ComputePairwiseEnergyPenaltyTerm()
+{
+   if(this->pairwiseEnergyWeight<=0)
+      return 0.;
+
+   double value = reg_spline_approxLinearPairwise(this->controlPointGrid);
+
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_f3d<T>::ComputePairwiseEnergyPenaltyTerm");
+#endif
+   return this->pairwiseEnergyWeight*value;
+}
+#endif
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_f3d<T>::GetSimilarityMeasureGradient()
 {
    this->GetVoxelBasedGradient();
+
+   int kernel_type=CUBIC_SPLINE_KERNEL;
+   if(this->linearSpline)
+      kernel_type=LINEAR_KERNEL;
 
    // The voxel based NMI gradient is convolved with a spline kernel
    // Convolution along the x axis
@@ -525,7 +615,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    bool activeAxis[3]= {1,0,0};
    reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
                                currentNodeSpacing,
-                               1, // cubic spline kernel
+                               kernel_type,
                                NULL, // mask
                                NULL, // all volumes are considered as active
                                activeAxis
@@ -536,7 +626,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    activeAxis[1]=1;
    reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
                                currentNodeSpacing,
-                               1, // cubic spline kernel
+                               kernel_type,
                                NULL, // mask
                                NULL, // all volumes are considered as active
                                activeAxis
@@ -549,7 +639,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
       activeAxis[2]=1;
       reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
                                   currentNodeSpacing,
-                                  1, // cubic spline kernel
+                                  kernel_type,
                                   NULL, // mask
                                   NULL, // all volumes are considered as active
                                   activeAxis
@@ -616,6 +706,22 @@ void reg_f3d<T>::GetJacobianBasedGradient()
    reg_print_fct_debug("reg_f3d<T>::GetJacobianBasedGradient");
 #endif
 }
+/* *************************************************************** */
+/* *************************************************************** */
+#ifdef BUILD_DEV
+template <class T>
+void reg_f3d<T>::GetPairwiseEnergyGradient()
+{
+   if(this->pairwiseEnergyWeight<=0) return;
+
+   reg_spline_approxLinearPairwiseGradient(this->controlPointGrid,
+                                           this->transformationGradient,
+                                           this->pairwiseEnergyWeight);
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_f3d<T>::GetPairwiseEnergyGradient");
+#endif
+}
+#endif
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
@@ -819,6 +925,10 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
 
    this->currentWLE = this->ComputeLinearEnergyPenaltyTerm();
 
+#ifdef BUILD_DEV
+   this->currentWPE = this->ComputePairwiseEnergyPenaltyTerm();
+#endif
+
    // Compute initial similarity measure
    this->currentWMeasure = 0.0;
    if(this->similarityWeight>0)
@@ -837,7 +947,12 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
    reg_print_fct_debug("reg_f3d<T>::GetObjectiveFunctionValue");
 #endif
    // Store the global objective function value
+
+#ifdef BUILD_DEV
+   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac - this->currentWPE;
+#else
    return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac;
+#endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -929,7 +1044,7 @@ void reg_f3d<T>::SmoothGradient()
       float kernel = fabs(this->gradientSmoothingSigma);
       reg_tools_kernelConvolution(this->transformationGradient,
                                   &kernel,
-                                  0);
+                                  GAUSSIAN_KERNEL);
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::SmoothGradient");
@@ -1022,6 +1137,9 @@ void reg_f3d<T>::UpdateBestObjFunctionValue()
    this->bestWBE=this->currentWBE;
    this->bestWLE=this->currentWLE;
    this->bestWJac=this->currentWJac;
+#ifdef BUILD_DEV
+   this->bestWPE=this->currentWPE;
+#endif
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::UpdateBestObjFunctionValue");
 #endif
@@ -1036,8 +1154,13 @@ void reg_f3d<T>::PrintInitialObjFunctionValue()
    double bestValue=this->optimiser->GetBestObjFunctionValue();
 
    char text[255];
+#ifdef BUILD_DEV
+   sprintf(text, "Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wJAC)%g - (wPW)%g",
+           bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWJac, this->bestWPE);
+#else
    sprintf(text, "Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wJAC)%g",
            bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWJac);
+#endif
    reg_print_info(this->executableName, text);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::PrintInitialObjFunctionValue");
@@ -1061,6 +1184,10 @@ void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize)
       sprintf(text, "%s - (wLE)%.2e", text, this->bestWLE);
    if(this->jacobianLogWeight>0)
       sprintf(text, "%s - (wJAC)%.2e", text, this->bestWJac);
+#ifdef BUILD_DEV
+   if(this->pairwiseEnergyWeight>0)
+      sprintf(text, "%s - (wPW)%.2e", text, this->bestWPE);
+#endif
    sprintf(text, "%s [+ %g mm]", text, currentSize);
    reg_print_info(this->executableName, text);
 #ifndef NDEBUG
@@ -1089,6 +1216,9 @@ void reg_f3d<T>::GetObjectiveFunctionGradient()
       this->GetBendingEnergyGradient();
       this->GetJacobianBasedGradient();
       this->GetLinearEnergyGradient();
+#ifdef BUILD_DEV
+      this->GetPairwiseEnergyGradient();
+#endif
    }
    else
    {

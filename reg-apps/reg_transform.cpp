@@ -321,7 +321,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
          }
          // If the input transformation is a grid, check that the reference image has been specified
-         if(inputTransformationImage->intent_p1==SPLINE_GRID ||
+         if(inputTransformationImage->intent_p1==CUB_SPLINE_GRID ||
                inputTransformationImage->intent_p1==SPLINE_VEL_GRID)
          {
             if(!flag->referenceImageFlag)
@@ -362,7 +362,7 @@ int main(int argc, char **argv)
       }
       // Create a dense field
       if(affineTransformation!=NULL ||
-            inputTransformationImage->intent_p1==SPLINE_GRID ||
+            inputTransformationImage->intent_p1==CUB_SPLINE_GRID ||
             inputTransformationImage->intent_p1==SPLINE_VEL_GRID)
       {
          // Create a field image from the reference image
@@ -397,7 +397,7 @@ int main(int argc, char **argv)
             fprintf(stderr,"[NiftyReg ERROR] A flow field transformation can not be generated from an affine transformation\n");
             return EXIT_FAILURE;
          }
-         if(inputTransformationImage->intent_p1==SPLINE_GRID)
+         if(inputTransformationImage->intent_p1==CUB_SPLINE_GRID)
          {
             fprintf(stderr,"[NiftyReg ERROR] A flow field transformation can not be generated from a cubic spline grid\n");
             return EXIT_FAILURE;
@@ -469,7 +469,7 @@ int main(int argc, char **argv)
                       outputTransformationImage->nvox*outputTransformationImage->nbyper);
                reg_getDeformationFromDisplacement(outputTransformationImage);
                break;
-            case SPLINE_GRID:
+            case CUB_SPLINE_GRID:
                printf("[NiftyReg] The specified transformation is a spline parametrisation:\n[NiftyReg] %s\n",
                       inputTransformationImage->fname);
                // The output field is filled with an identity deformation field
@@ -625,7 +625,7 @@ int main(int argc, char **argv)
                return EXIT_FAILURE;
             }
          }
-         else if(input1TransImage->intent_p1==SPLINE_GRID || input1TransImage->intent_p1==SPLINE_VEL_GRID)
+         else if(input1TransImage->intent_p1==CUB_SPLINE_GRID || input1TransImage->intent_p1==SPLINE_VEL_GRID)
          {
             if(!flag->referenceImageFlag)
             {
@@ -691,7 +691,7 @@ int main(int argc, char **argv)
          }
          else switch(reg_round(input1TransImage->intent_p1))
             {
-            case SPLINE_GRID:
+            case CUB_SPLINE_GRID:
                printf("[NiftyReg] Transformation 1 is a spline parametrisation:\n[NiftyReg] %s\n",
                       input1TransImage->fname);
                reg_tools_multiplyValueToImage(output1TransImage,output1TransImage,0.f);
@@ -765,7 +765,7 @@ int main(int argc, char **argv)
          {
             switch(reg_round(input2TransImage->intent_p1))
             {
-            case SPLINE_GRID:
+            case CUB_SPLINE_GRID:
                printf("[NiftyReg] Transformation 2 is a spline parametrisation:\n[NiftyReg] %s\n",
                       input2TransImage->fname);
                reg_spline_getDeformationField(input2TransImage,
@@ -937,7 +937,7 @@ int main(int argc, char **argv)
          }
          switch(reg_round(inputTransImage->intent_p1))
          {
-         case SPLINE_GRID:
+         case CUB_SPLINE_GRID:
             reg_getDisplacementFromDeformation(inputTransImage);
             reg_tools_multiplyValueToImage(inputTransImage,inputTransImage,0.5f);
             reg_getDeformationFromDisplacement(inputTransImage);
@@ -1020,7 +1020,7 @@ int main(int argc, char **argv)
       outputTransImage->data=(void *)malloc
                              (outputTransImage->nvox*outputTransImage->nbyper);
       // Convert the spline parametrisation into a dense deformation parametrisation
-      if(inputTransImage->intent_p1==SPLINE_GRID || inputTransImage->intent_p1==SPLINE_VEL_GRID)
+      if(inputTransImage->intent_p1==CUB_SPLINE_GRID || inputTransImage->intent_p1==SPLINE_VEL_GRID)
       {
          // Read the reference image
          if(!flag->referenceImageFlag)
@@ -1059,7 +1059,7 @@ int main(int argc, char **argv)
          tempField->scl_inter=0.f;
          tempField->data=(void *)calloc(tempField->nvox,tempField->nbyper);
          // Compute the dense field
-         if(inputTransImage->intent_p1==SPLINE_GRID)
+         if(inputTransImage->intent_p1==CUB_SPLINE_GRID)
             reg_spline_getDeformationField(inputTransImage,
                                            tempField,
                                            NULL,

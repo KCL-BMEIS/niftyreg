@@ -19,6 +19,13 @@
 #include <map>
 #include "_reg_maths.h"
 
+typedef enum
+{
+   MEAN_KERNEL,
+   LINEAR_KERNEL,
+   GAUSSIAN_KERNEL,
+   CUBIC_SPLINE_KERNEL
+} NREG_CONV_KERNEL_TYPE;
 
 /* *************************************************************** */
 /** @brief This function check some header parameters and correct them in

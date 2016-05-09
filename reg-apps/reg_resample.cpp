@@ -357,7 +357,7 @@ int main(int argc, char **argv)
    {
       switch(static_cast<int>(inputTransformationImage->intent_p1))
       {
-      case SPLINE_GRID:
+      case CUB_SPLINE_GRID:
          reg_spline_getDeformationField(inputTransformationImage,
                                         deformationFieldImage,
                                         NULL,

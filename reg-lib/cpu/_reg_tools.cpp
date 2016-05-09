@@ -1153,22 +1153,22 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                double temp;
                if(sigma[t]>0) temp=sigma[t]/image->pixdim[n+1]; // mm to voxel
                else temp=fabs(sigma[t]); // voxel based if negative value
-               int radius;
+               int radius=0;
                // Define the kernel size
-               if(kernelType==2)
+               if(kernelType==MEAN_KERNEL || kernelType==LINEAR_KERNEL)
                {
                   // Mean filtering
                   radius = static_cast<int>(temp);
                }
-               else if(kernelType==1)
-               {
-                  // Cubic Spline kernel
-                  radius = static_cast<int>(temp*2.0f);
-               }
-               else
+               else if(kernelType==GAUSSIAN_KERNEL || kernelType==CUBIC_SPLINE_KERNEL)
                {
                   // Gaussian kernel
                   radius=static_cast<int>(temp*3.0f);
+               }
+               else{
+                  reg_print_fct_error("reg_tools_kernelConvolution_core");
+                  reg_print_msg_error("Unknown kernel type");
+                  reg_exit();
                }
                if(radius>0)
                {
@@ -1176,7 +1176,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                   float kernel[8192];//2048 before - next step = make a dynamic array according to the radius value
                   double kernelSum=0;
                   // Fill the kernel
-                  if(kernelType==1)
+                  if(kernelType==CUBIC_SPLINE_KERNEL)
                   {
                      // Compute the Cubic Spline kernel
                      for(int i=-radius; i<=radius; i++)
@@ -1189,8 +1189,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                         kernelSum += kernel[i+radius];
                      }
                   }
-                  // No kernel is required for the mean filtering
-                  else if(kernelType!=2)
+                  else if(kernelType==GAUSSIAN_KERNEL)
                   {
                      // Compute the Gaussian kernel
                      for(int i=-radius; i<=radius; i++)
@@ -1202,6 +1201,16 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                         kernelSum += kernel[radius+i];
                      }
                   }
+                  else if(kernelType==LINEAR_KERNEL)
+                  {
+                     // Compute the linear kernel
+                     for(int i=-radius; i<=radius; i++)
+                     {
+                        kernel[radius+i]=static_cast<float>(i)/static_cast<float>(radius);
+                        kernelSum += kernel[radius+i];
+                     }
+                  }
+                  // No kernel is required for the mean filtering
                   // No need for kernel normalisation as this is handle by the density function
 #ifndef NDEBUG
                   char text[255];
@@ -1304,7 +1313,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                            densityPtr[realIndex] = static_cast<float>(densitySum);
                            realIndex += lineOffset;
                         } // line convolution
-                     } // kernel type
+                     } // kernel sum
                      else
                      {
                         for(lineIndex=1; lineIndex<imageDim[n]; ++lineIndex)
@@ -1683,7 +1692,7 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
       /* the input image is first smooth */
       float *sigma=new float[image->nt];
       for(int i=0; i<image->nt; ++i) sigma[i]=-0.7355f;
-      reg_tools_kernelConvolution(image,sigma,0);
+      reg_tools_kernelConvolution(image,sigma,GAUSSIAN_KERNEL);
       delete []sigma;
    }
 

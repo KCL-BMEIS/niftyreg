@@ -53,12 +53,12 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
                                           nifti_image *floatingImage,
                                           mat44 *forwardAffineTrans,
                                           float *spacing);
+
 /* *************************************************************** */
 /** @brief Compute a dense deformation field in the space of a reference
  * image from a grid of control point.
  * @param controlPointGridImage Control point grid that contains the deformation
  * parametrisation
- * @param referenceImage Reference image that defined the space of the deformation field
  * @param deformationField Output image that will be populated with the deformation field
  * @param mask Array that contains the a mask. Any voxel with a positive value is included
  * into the mask
