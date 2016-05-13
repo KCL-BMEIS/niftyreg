@@ -27,12 +27,19 @@ struct Edge{
    int endIndex;
    friend bool operator<(Edge a,Edge b){
       return a.weight>b.weight;
+      //return a.weight<b.weight;
    }
 };
 
 class reg_mrf
 {
 public:
+    /// @brief Constructor
+   reg_mrf(int _discrete_radius,
+           int _discrete_increment,
+           float _reg_weight,
+           int _img_dim,
+           size_t _node_number);
    /// @brief Constructor
    reg_mrf(reg_measure *_measure,
            nifti_image *_referenceImage,
@@ -45,15 +52,28 @@ public:
    void Run();
    //4 the tests
    void GetDiscretisedMeasure();
+   float* GetDiscretisedMeasurePtr();
+   void SetDiscretisedMeasure(float* dm);
+   //
+   void GetRegularisation();
+   //
+   void getOptimalLabel();
+   int* GetOptimalLabelPtr();
+   //
+   int* GetOrderedListPtr();
+   int* GetParentsListPtr();
+   float* GetEdgeWeightPtr();
+   //
+   void SetOrderedList(int* ol);
+   void SetParentsList(int* pl);
+   void SetEdgeWeight(float* ew);
+   //
+   void GetPrimsMST(float *, int *, int, int, bool);
 
 private:
    void Initialise();
    void UpdateNodePositions();
    void GetGraph(float *, int *);
-   void GetPrimsMST(float *, int *);
-   void GetRegularisation();
-   void getOptimalLabel();
-   float* GetDiscretisedMeasurePtr();
 
    reg_measure *measure; ///< Measure of similarity object to use for the data term
    nifti_image* referenceImage; ///< Reference image in which the transformation is parametrised
@@ -74,6 +94,7 @@ private:
    int label_1D_num; ///< Number of discretised values per axis
    int label_nD_num; ///< Total number of discretised values
 
+   nifti_image *input_transformation;
    float *discretised_measures; ///< All discretised measures of similarity
    float* regularised_cost; ///< Discretised cost that embeds data term and regularisation cost
    int* optimal_label_index; ///< Optimimal label index for each node

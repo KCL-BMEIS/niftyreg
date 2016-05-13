@@ -15,6 +15,8 @@
 #define _REG_SSD_H
 
 #include "_reg_measure.h"
+#include "_reg_ReadWriteImage.h"
+#include <ctime>
 
 //#define TEMP_USE_SAD
 
