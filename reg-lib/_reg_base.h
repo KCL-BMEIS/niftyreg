@@ -30,7 +30,8 @@
 #include <limits>
 //#include "Platform.h"
 #ifdef BUILD_DEV
-  #include "_reg_discrete_init.h"
+#include "_reg_discrete_init.h"
+#include "_reg_mrf.h"
 #endif
 
 /// @brief Base registration class

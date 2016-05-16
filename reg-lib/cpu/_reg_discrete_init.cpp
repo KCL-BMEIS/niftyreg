@@ -76,16 +76,25 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
 
    //regularization - optimization
    this->optimal_label_index=(int *)malloc(this->node_number*sizeof(int));
-   currentValue=(int)reg_ceil(0.5f*this->label_1D_num);
+   currentValue= (this->label_1D_num-1)/2;
    currentValue = (currentValue*this->label_1D_num+currentValue)*this->label_1D_num+currentValue;
    for(int n=0; n<this->node_number; ++n)
       this->optimal_label_index[n]=currentValue;
 
    //To store the cost data term
-   this->discretised_measures = (float *)calloc(this->node_number*this->label_nD_num,sizeof(float));
+   this->discretised_measures = (float *)calloc(this->node_number*this->label_nD_num, sizeof(float));
 
    //Optimal transformation based on the data term
    this->regularised_measures = (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
+
+   // Compute the l2 for each label
+   l2_weight = 1.e-10f;
+   this->l2_penalisation = (float *)malloc(this->label_nD_num*sizeof(float));
+   int label_index=0;
+   for(float z=-this->discrete_radius; z<=this->discrete_radius; z+=this->discrete_increment)
+      for(float y=-this->discrete_radius; y<=this->discrete_radius; y+=this->discrete_increment)
+         for(float x=-this->discrete_radius; x<=this->discrete_radius; x+=this->discrete_increment)
+            this->l2_penalisation[label_index++] = std::sqrt(x*x+y*y+z*z);
 }
 /*****************************************************/
 /*****************************************************/
@@ -98,6 +107,10 @@ reg_discrete_init::~reg_discrete_init()
    if(this->regularised_measures!=NULL)
       free(this->regularised_measures);
    this->regularised_measures=NULL;
+
+   if(this->l2_penalisation!=NULL)
+      free(this->l2_penalisation);
+   this->l2_penalisation=NULL;
 
    if(this->optimal_label_index!=NULL)
       free(this->optimal_label_index);
@@ -133,13 +146,15 @@ void reg_discrete_init::GetDiscretisedMeasure()
 void reg_discrete_init::getOptimalLabel()
 {
    this->regularisation_convergence=0;
+   size_t opt_label = 0;
    for(int node=0; node<this->node_number; ++node){
       int current_optimal = this->optimal_label_index[node];
-      this->optimal_label_index[node] =
-            std::min_element(this->regularised_measures+node*this->label_nD_num,
+      opt_label =
+            std::max_element(this->regularised_measures+node*this->label_nD_num,
                              this->regularised_measures+(node+1)*this->label_nD_num) -
-            (this->regularised_measures+node*this->label_nD_num);
-      if(current_optimal != this->optimal_label_index[node])
+                            (this->regularised_measures+node*this->label_nD_num);
+      this->optimal_label_index[node] = opt_label;
+      if(current_optimal != opt_label)
          ++this->regularisation_convergence;
    }
 #ifndef NDEBUG
@@ -159,14 +174,18 @@ void reg_discrete_init::UpdateTransformation()
    float *inputCpPtrY = &inputCpPtrX[this->node_number];
    float *inputCpPtrZ = &inputCpPtrY[this->node_number];
 
+   memcpy(cpPtrX, inputCpPtrX, this->node_number*3*sizeof(float));
+   //float scaleFactor = 0.5;
+   float scaleFactor = 1;
+
    for(int z=1; z<this->controlPointImage->nz-1; z++) {
       for(int y=1; y<this->controlPointImage->ny-1; y++) {
          size_t node = (z*this->controlPointImage->ny+y)*this->controlPointImage->nx+1;
          for(int x=1; x<this->controlPointImage->nx-1; x++){
             int optimal_id = this->optimal_label_index[node];
-            cpPtrX[node] = inputCpPtrX[node] + this->discrete_values_mm[0][optimal_id];
-            cpPtrY[node] = inputCpPtrY[node] + this->discrete_values_mm[1][optimal_id];
-            cpPtrZ[node] = inputCpPtrZ[node] + this->discrete_values_mm[2][optimal_id];
+            cpPtrX[node] = inputCpPtrX[node] + scaleFactor*this->discrete_values_mm[0][optimal_id];
+            cpPtrY[node] = inputCpPtrY[node] + scaleFactor*this->discrete_values_mm[1][optimal_id];
+            cpPtrZ[node] = inputCpPtrZ[node] + scaleFactor*this->discrete_values_mm[2][optimal_id];
             ++node;
          }
       }
@@ -192,17 +211,17 @@ void reg_discrete_init::AddL2Penalisation(float weight)
    int measure_index, n;
    size_t _node_number = this->node_number;
    int _label_nD_num = this->label_nD_num;
-   float *_regularised_measures = &this->regularised_measures[0];
+   float *_discretised_measures = &this->discretised_measures[0];
 #if defined (_OPENMP)
    #pragma omp parallel for default(none) \
-   shared(_node_number, _label_nD_num, _regularised_measures, l2_penalisation) \
+   shared(_node_number, _label_nD_num, _discretised_measures, l2_penalisation) \
    private(measure_index, n, label_index)
 #endif
    for(n=0; n<_node_number; ++n){
       measure_index = n * _label_nD_num;
       // Loop over all label
       for(label_index=0; label_index<_label_nD_num; ++label_index){
-         _regularised_measures[measure_index] += l2_penalisation[label_index];
+         _discretised_measures[measure_index] -= l2_penalisation[label_index];
          ++measure_index;
       }
    }
@@ -317,7 +336,7 @@ void reg_discrete_init::GetRegularisedMeasure()
 
                size_t measure_index = node * this->label_nD_num + label;
                this->regularised_measures[measure_index] =
-                     (1.f-this->regularisation_weight) * this->discretised_measures[measure_index] +
+                     (1.f-this->regularisation_weight-this->l2_weight) * this->discretised_measures[measure_index] -
                      this->regularisation_weight * (
                      reg_pow2(XX_x + valX * _basisXX) +
                      reg_pow2(XX_y + valY * _basisXX) +
@@ -337,7 +356,7 @@ void reg_discrete_init::GetRegularisedMeasure()
                      reg_pow2(YZ_x + valX * _basisYZ) +
                      reg_pow2(YZ_y + valY * _basisYZ) +
                      reg_pow2(YZ_z + valZ * _basisYZ)
-                     ) );
+                     ) ) - this->l2_weight * this->l2_penalisation[label];
             } // label
             ++node;
          } // x
@@ -368,7 +387,7 @@ void reg_discrete_init::Run()
    // Compute the discretised data term values
    this->GetDiscretisedMeasure();
    // Add the l2 regularisation
-   this->AddL2Penalisation(0.001f);
+   //this->AddL2Penalisation(1.e-10f);
    // Initialise the regularise with the measure only
    memcpy(this->regularised_measures,
           this->discretised_measures,
@@ -387,8 +406,8 @@ void reg_discrete_init::Run()
              reg_spline_approxBendingEnergy(this->controlPointImage),
              100.f*(float)this->regularisation_convergence/this->node_number);
       reg_print_info("reg_discrete_init", text);
-      if(this->regularisation_convergence<this->node_number/100)
-         break;
+      //if(this->regularisation_convergence<this->node_number/100)
+      //   break;
    }
 #ifndef NDEBUG
    reg_print_msg_debug("reg_discrete_init::Run done");

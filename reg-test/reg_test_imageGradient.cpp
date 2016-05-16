@@ -39,16 +39,29 @@ int main(int argc, char **argv)
     }
 
     int dim = (inputImage->nz > 1) ? 3 : 2;
+    //NB VOXEL
+    //int voxelNumber = inputImage->nx*inputImage->ny*inputImage->nz;
     // COMPUTE THE GRADIENT OF THE IMAGE
     nifti_image *gradImg = nifti_copy_nim_info(inputImage);
     gradImg->dim[0]=gradImg->ndim=5;
     gradImg->dim[5]=gradImg->nu=dim;
     gradImg->nvox = (size_t)gradImg->nx*
-                            gradImg->ny*
-                            gradImg->nz*
-                            gradImg->nt*
-                            gradImg->nu;
+                    gradImg->ny*
+                    gradImg->nz*
+                    gradImg->nt*
+                    gradImg->nu;
     gradImg->data=(void *)malloc(gradImg->nvox*gradImg->nbyper);
+    //GRAD IMAGE "3D"
+    nifti_image *gradImg3D = nifti_copy_nim_info(inputImage);
+    gradImg3D->dim[0]=gradImg3D->ndim=5;
+    gradImg3D->dim[4]=gradImg3D->nt=1;
+    gradImg3D->dim[5]=gradImg3D->nu=dim;
+    gradImg3D->nvox = (size_t)gradImg3D->nx*
+                      gradImg3D->ny*
+                      gradImg3D->nz*
+                      gradImg3D->nt*
+                      gradImg3D->nu;
+    gradImg3D->data=(void *)malloc(gradImg3D->nvox*gradImg3D->nbyper);
 
     // Create a mask
     //int *mask = (int *)malloc(inputImage->nvox*sizeof(int));
@@ -89,8 +102,34 @@ int main(int argc, char **argv)
         nifti_image_free(identityDefField);identityDefField=NULL;
         //
     } else {
+        float *gradPtr = static_cast<float *>(gradImg->data);
+        float *grad3DPtr = static_cast<float *>(gradImg3D->data);
         int *mask = (int *)calloc(inputImage->nvox,sizeof(int));
-        spatialGradient<float>(inputImage,gradImg,mask,0);
+        for(int t=0; t<inputImage->nt; ++t){
+            spatialGradient<float>(inputImage,gradImg3D,mask,t);
+            //It is not very optimised...
+            for(int u=0; u<gradImg3D->nu; ++u){
+                for(int z=0; z<gradImg3D->nz; ++z){
+                    for(int y=0; y<gradImg3D->ny; ++y){
+                        for(int x=0; x<gradImg3D->nx; ++x){
+                            size_t voxIndex_gradImg=
+                                     gradImg->nx*gradImg->ny*gradImg->nz*gradImg->nt*u
+                                    +gradImg->nx*gradImg->ny*gradImg->nz*t
+                                    +gradImg->nx*gradImg->ny*z
+                                    +gradImg->nx*y
+                                    +x;
+                            size_t voxIndex_gradImg3D=
+                                     gradImg3D->nx*gradImg3D->ny*gradImg3D->nz*gradImg3D->nt*u
+                                    +gradImg3D->nx*gradImg3D->ny*gradImg3D->nz*0
+                                    +gradImg3D->nx*gradImg3D->ny*z
+                                    +gradImg3D->nx*y
+                                    +x;
+                            gradPtr[voxIndex_gradImg]=grad3DPtr[voxIndex_gradImg3D];
+                        }
+                    }
+                }
+            }
+        }
         free(mask);
     }
     //
@@ -107,7 +146,7 @@ int main(int argc, char **argv)
 
     if (max_difference > EPS){
         fprintf(stderr, "reg_test_imageGradient error too large: %g (>%g)\n",
-            max_difference, EPS);
+                max_difference, EPS);
         return EXIT_FAILURE;
     }
 #ifndef NDEBUG

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 extern "C++"
-void readFloatBinaryArray(char* fileName, int lengthArray, float* outputArray);
+void readFloatBinaryArray(const char* fileName, int lengthArray, float* outputArray);
+void readIntBinaryArray(const char* fileName, int lengthArray, int* outputArray);
 
 #endif

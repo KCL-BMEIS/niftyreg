@@ -449,4 +449,6 @@ void matmnToCptr(T** mat, T* cMat, unsigned int m, unsigned int n);
 extern "C++" template<typename T>
 void cPtrToMatmn(T** mat, T* cMat, unsigned int m, unsigned int n);
 /* *************************************************************** */
+void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int &x, int &y, int &z);
+/* *************************************************************** */
 #endif

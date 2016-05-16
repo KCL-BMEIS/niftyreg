@@ -1,5 +1,46 @@
 #include "_reg_mrf.h"
 
+//DEBUG
+#include <iostream>
+#include <fstream>
+#include "_reg_ReadWriteBinary.h"
+//DEBUG
+/*****************************************************/
+reg_mrf::reg_mrf(int _discrete_radius,
+                 int _discrete_increment,
+                 float _reg_weight,
+                 int _img_dim,
+                 size_t _node_number)
+{
+    this->measure = NULL;
+    this->referenceImage = NULL;
+    this->controlPointImage = NULL;
+    this->discrete_radius = _discrete_radius;
+    this->discrete_increment = _discrete_increment;
+    this->regularisation_weight = _reg_weight;
+    //
+    this->image_dim = _img_dim;
+    this->label_1D_num = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
+    this->label_nD_num = static_cast<int>(std::pow((double) this->label_1D_num,this->image_dim));
+    this->node_number = _node_number;
+
+    // Allocate the discretised values in millimeter
+    this->discrete_values_mm = (float **)malloc(this->image_dim*sizeof(float *));
+    for(int i=0;i<this->image_dim;++i){
+        this->discrete_values_mm[i] = (float *)malloc(this->label_nD_num*sizeof(float));
+    }
+    //To store the cost data term - originaly SAD between images.
+    this->discretised_measures = (float *)calloc(this->node_number*this->label_nD_num,sizeof(float));
+
+    // Allocate the arrays to store the tree
+    this->orderedList = (int *) malloc(this->node_number*sizeof(int));
+    this->parentsList = (int *) malloc(this->node_number*sizeof(int));
+    this->edgeWeight = (float *) malloc(this->node_number*sizeof(float));
+
+    //regulatization - optimization
+    this->regularised_cost= (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
+    this->optimal_label_index=(int *)malloc(this->node_number*sizeof(int));
+}
 /*****************************************************/
 reg_mrf::reg_mrf(reg_measure *_measure,
                  nifti_image *_referenceImage,
@@ -21,6 +62,8 @@ reg_mrf::reg_mrf(reg_measure *_measure,
    this->node_number = (size_t)this->controlPointImage->nx *
          this->controlPointImage->ny * this->controlPointImage->nz;
 
+   this->input_transformation=nifti_copy_nim_info(this->controlPointImage);
+   this->input_transformation->data=(float *)malloc(this->node_number*this->image_dim*sizeof(float));
    // Allocate the discretised values in voxel
    int *discrete_values_vox = (int *)malloc(this->label_1D_num*sizeof(int));
    int currentValue = -this->discrete_radius;
@@ -65,7 +108,7 @@ reg_mrf::reg_mrf(reg_measure *_measure,
 
 
    //To store the cost data term - originaly SAD between images.
-   this->discretised_measures = (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
+   this->discretised_measures = (float *)calloc(this->node_number*this->label_nD_num,sizeof(float));
 
    // Allocate the arrays to store the tree
    this->orderedList = (int *) malloc(this->node_number*sizeof(int));
@@ -113,6 +156,10 @@ reg_mrf::~reg_mrf()
    if(this->discrete_values_mm!=NULL)
       free(this->discrete_values_mm);
    this->discrete_values_mm=NULL;
+
+   if(this->input_transformation!=NULL)
+      nifti_image_free(this->input_transformation);
+   this->input_transformation=NULL;
 }
 /*****************************************************/
 void reg_mrf::Initialise()
@@ -124,8 +171,12 @@ void reg_mrf::Initialise()
    for(int i =0;i<edge_number;i++) {
       index_neighbours[i]=-1;
    }
+   int num_vertices = this->controlPointImage->nx *
+               this->controlPointImage->ny * this->controlPointImage->nz;
+   int num_neighbours=this->controlPointImage->nz > 1 ? 6 : 4;
+
    this->GetGraph(edgeWeightMatrix, index_neighbours);
-   this->GetPrimsMST(edgeWeightMatrix, index_neighbours);
+   this->GetPrimsMST(edgeWeightMatrix, index_neighbours, num_vertices, num_neighbours, true);
    free(edgeWeightMatrix);
    free(index_neighbours);
    this->initialised = true;
@@ -139,12 +190,93 @@ float* reg_mrf::GetDiscretisedMeasurePtr()
    return this->discretised_measures;
 }
 /*****************************************************/
+void reg_mrf::SetDiscretisedMeasure(float* dm)
+{
+   for(size_t i=0;i<this->node_number*this->label_nD_num;i++) {
+       this->discretised_measures[i]=dm[i];
+   }
+}
+/*****************************************************/
+int* reg_mrf::GetOptimalLabelPtr()
+{
+   return optimal_label_index;
+}
+/*****************************************************/
+int* reg_mrf::GetOrderedListPtr()
+{
+   return this->orderedList;
+}
+/*****************************************************/
+void reg_mrf::SetOrderedList(int* ol)
+{
+   for(size_t i=0;i<this->node_number;i++) {
+       this->orderedList[i]=ol[i];
+   }
+}
+/*****************************************************/
+int* reg_mrf::GetParentsListPtr()
+{
+   return this->parentsList;
+}
+/*****************************************************/
+void reg_mrf::SetParentsList(int* pl)
+{
+   for(size_t i=0;i<this->node_number;i++) {
+       this->parentsList[i]=pl[i];
+   }
+}
+/*****************************************************/
+float* reg_mrf::GetEdgeWeightPtr()
+{
+   return this->edgeWeight;
+}
+/*****************************************************/
+void reg_mrf::SetEdgeWeight(float* ew)
+{
+    for(size_t i=0;i<this->node_number;i++) {
+        this->edgeWeight[i]=ew[i];
+    }
+}
+/*****************************************************/
 void reg_mrf::GetDiscretisedMeasure()
 {
    measure->GetDiscretisedValue(this->controlPointImage,
                                 this->discretised_measures,
                                 this->discrete_radius,
                                 this->discrete_increment);
+   //Let's put the values positive for the mrf
+   for(int i=0;i<(this->node_number*this->label_nD_num);i++) {
+       this->discretised_measures[i]=-this->discretised_measures[i];
+   }
+//DEBUG
+/*
+   std::ifstream myfile;
+   std::string pathDataFile = "/media/windows/Users/bpresles/OneDrive - University College London/NiftyReg/Mattias/dataForDeedsForNifty/similarity2.dat";
+   myfile.open(pathDataFile.c_str(), std::ios::in | std::ios::binary);
+   char buffer[128];
+   //
+   if (myfile.is_open()) {
+       // ok, proceed with output
+       std::cout<<"OK - file opened"<<std::endl;
+       for(int i=0;i<32388174;i++){
+           myfile.read(buffer, sizeof(float));
+           this->discretised_measures[i]=atof(buffer);
+       }
+       myfile.close();
+   }
+/////
+float* expectedDataCost = new float[32388174];
+std::string expectedDataCostName = "/media/windows/Users/bpresles/OneDrive - University College London/NiftyReg/Mattias/dataForDeedsForNifty/similarity2.dat";
+readFloatBinaryArray(expectedDataCostName.c_str(), 32388174, expectedDataCost);
+for(int i=0;i<32388174;i++){
+    this->discretised_measures[i]=expectedDataCost[i];
+}
+/////
+for(int i=0;i<32388174;i++){
+    this->discretised_measures[i]=rand() % 10;
+}
+*/
+//DEBUG
  #ifndef NDEBUG
    reg_print_msg_debug("reg_mrf::GetDiscretisedMeasure done");
 #endif
@@ -166,14 +298,20 @@ void reg_mrf::UpdateNodePositions()
    float *cpPtrY = &cpPtrX[this->node_number];
    float *cpPtrZ = &cpPtrY[this->node_number];
 
+   float *inputCpPtrX = static_cast<float *>(this->input_transformation->data);
+   float *inputCpPtrY = &inputCpPtrX[this->node_number];
+   float *inputCpPtrZ = &inputCpPtrY[this->node_number];
+
+   memcpy(cpPtrX, inputCpPtrX, this->node_number*3*sizeof(float));
+
    size_t voxel=0;
    for(int z=0; z<this->controlPointImage->nz; z++) {
       for(int y=0; y<this->controlPointImage->ny; y++) {
          for(int x=0; x<this->controlPointImage->nx; x++) {
             int optimal_id = this->optimal_label_index[voxel];
-            cpPtrX[voxel] += this->discrete_values_mm[0][optimal_id];
-            cpPtrY[voxel] += this->discrete_values_mm[1][optimal_id];
-            cpPtrZ[voxel] += this->discrete_values_mm[2][optimal_id];
+            cpPtrX[voxel] = inputCpPtrX[voxel] + this->discrete_values_mm[0][optimal_id];
+            cpPtrY[voxel] = inputCpPtrY[voxel] + this->discrete_values_mm[1][optimal_id];
+            cpPtrZ[voxel] = inputCpPtrZ[voxel] + this->discrete_values_mm[2][optimal_id];
             ++voxel;
          }
       }
@@ -187,6 +325,9 @@ void reg_mrf::Run()
 {
    if(this->initialised==false)
       this->Initialise();
+   // Store the intial transformation parametrisation
+   memcpy(this->input_transformation->data, this->controlPointImage->data,
+          this->node_number*this->image_dim*sizeof(float));
    // Compute the discretised data term values
    this->GetDiscretisedMeasure();
    // Compute the regularisation term
@@ -510,10 +651,11 @@ void reg_mrf::GetGraph(float *edgeWeightMatrix, int *index_neighbours)
 //CUT THE EDGES WITH HIGH COST = INTENSITY DIFFERENCES!
 /*****************************************************/
 void reg_mrf::GetPrimsMST(float *edgeWeightMatrix,
-                          int *index_neighbours)
+                          int *index_neighbours, int num_vertices, int num_neighbours,bool norm)
 {
-   int num_vertices = this->controlPointImage->nx *
-         this->controlPointImage->ny * this->controlPointImage->nz;
+   //int num_vertices = this->controlPointImage->nx *
+   //      this->controlPointImage->ny * this->controlPointImage->nz;
+
    //DEBUG
    //int blockSize[3]={
    //    (int)reg_ceil(controlPointImage->dx / referenceImage->dx),
@@ -540,11 +682,11 @@ void reg_mrf::GetPrimsMST(float *edgeWeightMatrix,
    std::pair<short,int>* treeLevel=new std::pair<short,int>[num_vertices];
    treeLevel[currentNode]=std::pair<short,int>(0,currentNode);
 
-   int num_neighbours=this->controlPointImage->nz > 1 ? 6 : 4;
+   //int num_neighbours=this->controlPointImage->nz > 1 ? 6 : 4;
 
    this->parentsList[currentNode]=-1; //root has no parent
    std::priority_queue<Edge> priority; //priority queue - ordered list - high --- low
-   //Edge comparison - a edge is inf if weight is bigger (cf. edge struct) ==> ordered from low to high weights
+   //Edge comparison - a edge is inferior if weight is bigger (cf. edge struct) ==> ordered from low to high weights
 
    float mincost=0.0f;
    //run n-1 times so that all nodes added
@@ -566,11 +708,17 @@ void reg_mrf::GetPrimsMST(float *edgeWeightMatrix,
          priority.pop();
          //test whether endIndex of edge is already in MST
          if(addedToMST[bestEdge.startIndex] && !addedToMST[bestEdge.endIndex]){
-            mincost+=-bestEdge.weight; //if normalization by -exp
-            //mincost+=bestEdge.weight;
-
-            edgeWeight[bestEdge.endIndex]=-bestEdge.weight;//if normalization by -exp
-            //this->edgeWeight[bestEdge.endIndex]=bestEdge.weight;
+            if(norm) {
+                mincost+=-bestEdge.weight; //if normalization by -exp
+            } else {
+                mincost+=bestEdge.weight;
+            }
+            //
+            if(norm) {
+                this->edgeWeight[bestEdge.endIndex]=-bestEdge.weight;//if normalization by -exp
+            } else {
+                this->edgeWeight[bestEdge.endIndex]=bestEdge.weight;
+            }
 
             currentNode=bestEdge.endIndex;
             addedToMST[bestEdge.endIndex]=true;
@@ -689,7 +837,6 @@ void reg_mrf::GetRegularisation()
    delete cost1;
    delete vals;
    delete inds;
-   reg_print_msg_debug("GetRegularisation_l2 done");
 }
 /*****************************************************/
 /*****************************************************/

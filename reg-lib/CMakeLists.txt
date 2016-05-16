@@ -191,6 +191,8 @@ if(BUILD_DEV)
     ${_reg_f3d_files}
     cpu/_reg_discrete_init.h
     cpu/_reg_discrete_init.cpp
+    cpu/_reg_mrf.h
+    cpu/_reg_mrf.cpp
   )
 endif(BUILD_DEV)
 set(_reg_f3d_libraries

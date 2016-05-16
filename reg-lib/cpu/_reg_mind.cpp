@@ -46,13 +46,18 @@ void ShiftImage(nifti_image* inputImgPtr,
                   old_y>-1 && old_y<inputImgPtr->ny &&
                   old_z>-1 && old_z<inputImgPtr->nz){
                shiftedIndex = (old_z*inputImgPtr->ny+old_y)*inputImgPtr->nx+old_x;
-               if(maskPtr[shiftedIndex]>-1)
+               if(maskPtr[shiftedIndex]>-1) {
                   shiftImageData[currentIndex]=inputData[shiftedIndex];
-               //                    else shiftImageData[currentIndex]=std::numeric_limits<DTYPE>::quiet_NaN();
-               else shiftImageData[currentIndex]=0;
+               } // mask is not defined
+               else{
+                  //shiftImageData[currentIndex]=std::numeric_limits<DTYPE>::quiet_NaN();
+                   shiftImageData[currentIndex]=0.0;
+               }
+            } // outside of the image
+            else{
+               //shiftImageData[currentIndex]=std::numeric_limits<DTYPE>::quiet_NaN();
+                shiftImageData[currentIndex]=0.0;
             }
-            //                else shiftImageData[currentIndex]=std::numeric_limits<DTYPE>::quiet_NaN();
-            else shiftImageData[currentIndex]=0;
             currentIndex++;
          }
       }
@@ -279,6 +284,7 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImage,
 
    // Define the sigma for the convolution
    float sigma = -0.5;// negative value denotes voxel width
+   //float sigma = -1.0;// negative value denotes voxel width
 
    //2D version
    int samplingNbr = (currentInputImage->nz > 1) ? 6 : 2;

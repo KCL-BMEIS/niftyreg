@@ -261,10 +261,27 @@ add_test(${EXEC}_imageGradientSP_2D ${EXEC} ${DFOLDER}/expectedMINDDescriptor2D_
 add_test(${EXEC}_imageGradientSP_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3D_1.nii.gz ${DFOLDER}/expectedImageGradient3D.nii.gz 1)
 #-----------------------------------------------------------------------------
 if(BUILD_DEV)
-set(EXEC reg_test_coherence_mrf)
+set(EXEC reg_test_blockMatching_mrf)
 add_executable(${EXEC} ${EXEC}.cpp)
 target_link_libraries(${EXEC} _reg_dev)
 #add_test(${EXEC}_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/floImg2D.nii.gz)
+add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/warped_linear3D.nii.gz ${DFOLDER}/discretisedValues.dat)
+#
+set(EXEC reg_test_mrf)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_dev)
+add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/dataCost.dat ${DFOLDER}/expectedLabeling.dat)
+#
+#
+set(EXEC reg_test_mst)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_dev)
+#add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/indexNeighbours.dat ${DFOLDER}/EWeightMatrix.dat ${DFOLDER}/expectedOrderedList.dat ${DFOLDER}/expectedParentsList.dat ${DFOLDER}/expectedEdgeWeight.dat)
+add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/indexNeighbours.dat ${DFOLDER}/EWeightMatrix.dat ${DFOLDER}/expectedParentsList.dat)
+#
+set(EXEC reg_test_coherence_mrf)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_dev)
 add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/target_im.nii.gz ${DFOLDER}/moving_im.nii.gz similarity2.dat)
 endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
