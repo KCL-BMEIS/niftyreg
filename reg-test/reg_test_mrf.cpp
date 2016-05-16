@@ -31,16 +31,16 @@ int main(int argc, char **argv)
    float* dataCost = new float[nb_CP*nb_disp3D];
    readFloatBinaryArray(dataCostName, nb_CP*nb_disp3D, dataCost);
    //DEBUG
-   for(size_t i=0;i<nb_CP*nb_disp3D;i++) {
-       std::cout<<"dataCost[i]="<<dataCost[i]<<std::endl;
-   }
+   //for(size_t i=0;i<nb_CP*nb_disp3D;i++) {
+   //    std::cout<<"dataCost[i]="<<dataCost[i]<<std::endl;
+   //}
    //DEBUG
    int* expectedLabeling = new int[nb_CP];
    readIntBinaryArray(expectedLabelingName, nb_CP, expectedLabeling);
    //DEBUG
-   for(size_t i=0;i<nb_CP;i++) {
-       std::cout<<"expectedLabeling[i]="<<expectedLabeling[i]<<std::endl;
-   }
+   //for(size_t i=0;i<nb_CP;i++) {
+   //    std::cout<<"expectedLabeling[i]="<<expectedLabeling[i]<<std::endl;
+   //}
    //DEBUG
    int* orderedList=new int[nb_CP];
    for(int i=0;i<nb_CP;i++) {
@@ -74,12 +74,12 @@ int main(int argc, char **argv)
    for(size_t i=0;i<nb_CP;i++) {
        int currentValue = reg_mrfObject->GetOptimalLabelPtr()[i];
        int expectedValue = expectedLabeling[i];
-       std::cout<<"currentValue="<<currentValue<<std::endl;
-       std::cout<<"expectedValue="<<expectedValue<<std::endl;
-       //if((currentValue - expectedValue) != 0) {
-       //    reg_print_msg_error("the 2 labelling are differents");
-       //    return EXIT_FAILURE;
-       //}
+       //std::cout<<"currentValue="<<currentValue<<std::endl;
+       //std::cout<<"expectedValue="<<expectedValue<<std::endl;
+       if((currentValue - expectedValue) != 0) {
+           reg_print_msg_error("the 2 labelling are differents");
+           return EXIT_FAILURE;
+       }
    }
    //
    delete[] dataCost;

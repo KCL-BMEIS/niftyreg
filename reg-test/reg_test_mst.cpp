@@ -13,54 +13,69 @@ int main(int argc, char **argv)
    time_t start;
    time(&start);
 
-   if(argc!=3) {
-      fprintf(stderr, "Usage: %s <indexNeighbours> <edgeWeightMatrix> <expectedOrderedList> <expectedParentsList> <expectedEdgeWeight>\n", argv[0]);
+   if(argc!=4) {
+      fprintf(stderr, "Usage: %s <indexNeighbours> <edgeWeightMatrix> <expectedParentsList>\n", argv[0]);
       return EXIT_FAILURE;
    }
    //IO
    char *indexNeighboursName=argv[1];
    char *edgeWeightMatrixName=argv[2];
+   char *expectedParentsListName=argv[3];
+   //char *expectedOrderedListName=argv[4];
+   //char *expectedEdgeWeightName=argv[5];
 
-   //CP
+   //CP - cf. matlab test
    int nb_CP = 30;
    int nbEdges = nb_CP*6;
 
    int* indexNeighbours = new int[nbEdges];
    readIntBinaryArray(indexNeighboursName, nbEdges, indexNeighbours);
-   //DEBUG
-   for(size_t i=0;i<nbEdges;i++) {
-       std::cout<<"indexNeighbours[i]="<<indexNeighbours[i]<<std::endl;
-   }
-   //DEBUG
-   //
    float* edgeWeightMatrix = new float[nbEdges];
    readFloatBinaryArray(edgeWeightMatrixName, nbEdges, edgeWeightMatrix);
-   //DEBUG
-   for(size_t i=0;i<nbEdges;i++) {
-       std::cout<<"edgeWeightMatrix[i]="<<edgeWeightMatrix[i]<<std::endl;
-   }
-   std::cout<<"DATA READ"<<std::endl;
-   //DEBUG
    //
+   //int* expectedOrderedList = new int[nb_CP];
+   //readIntBinaryArray(expectedOrderedListName, nb_CP, expectedOrderedList);
+   int* expectedParentsList = new int[nb_CP];
+   readIntBinaryArray(expectedParentsListName, nb_CP, expectedParentsList);
+   //float* expectedEdgeWeight = new float[nb_CP];
+   //readFloatBinaryArray(expectedEdgeWeightName, nb_CP, expectedEdgeWeight);
+
    reg_mrf* reg_mrfObject =
            new reg_mrf(2,1,0,3,nb_CP);
-   std::cout<<"OBJECT DONE"<<std::endl;
 
    reg_mrfObject->GetPrimsMST(edgeWeightMatrix,indexNeighbours, nb_CP, 6, false);
-   //PRINT THE RESULTS
+   //COMPARE THE RESULTS
    int* olP = reg_mrfObject->GetOrderedListPtr();
    int* plP = reg_mrfObject->GetParentsListPtr();
    float* ewP = reg_mrfObject->GetEdgeWeightPtr();
    //
    for(size_t i=0;i<nb_CP;i++) {
-       std::cout<<i+1<<std::endl;
-       std::cout<<"olP[i]="<<olP[i]+1<<std::endl;
-       std::cout<<"plP[i]="<<plP[i]+1<<std::endl;
-       std::cout<<"ewP[i]="<<ewP[i]<<std::endl;
+       //DEBUG
+       //std::cout<<"olP[i]="<<olP[i]+1<<std::endl;
+       //std::cout<<"plP[i]+1="<<plP[i]+1<<std::endl;
+       //std::cout<<"expectedParentsList[i]="<<expectedParentsList[i]<<std::endl;
+       //std::cout<<"ewP[i]="<<ewP[i]<<std::endl;
+       //DEBUG
+       //if((olP[i]+1 - expectedOrderedList[i]) != 0) {
+       //    reg_print_msg_error("the 2 MST are differents");
+       //    return EXIT_FAILURE;
+       //}
+       if((plP[i]+1 - expectedParentsList[i]) != 0) {
+           reg_print_msg_error("the 2 MST are differents");
+           return EXIT_FAILURE;
+       }
+       //if(std::abs(ewP[i] - expectedEdgeWeight[i]) > EPS) {
+       //    reg_print_msg_error("the 2 MST are differents");
+       //    return EXIT_FAILURE;
+       //}
    }
    //
    delete[] indexNeighbours;
    delete[] edgeWeightMatrix;
+
+   //delete[] expectedOrderedList;
+   delete[] expectedParentsList;
+   //delete[] expectedEdgeWeight;
    //
 #ifndef NDEBUG
    printf("All good\n");

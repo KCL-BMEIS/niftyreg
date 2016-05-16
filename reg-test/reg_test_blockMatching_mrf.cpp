@@ -59,14 +59,8 @@ int main(int argc, char **argv)
    size_t nb_disp = discrete_radius/discrete_increment*2+1;
    size_t nb_disp3D = nb_disp*nb_disp*nb_disp;
    // Read data cost
-   //DURTY - TO CHANGE
    float* expectedDataCost = new float[nb_CP*nb_disp3D];
    readFloatBinaryArray(expectedDataCostName, nb_CP*nb_disp3D, expectedDataCost);
-   //DEBUG
-   //for (int i = 0;i<32388174;i++) {
-   //    std::cout<<expectedDataCost[i]<<std::endl;
-   //}
-   //DEBUG
 
    // Create an empty mask
    int *mask = (int *)calloc(referenceImage->nvox, sizeof(int));
