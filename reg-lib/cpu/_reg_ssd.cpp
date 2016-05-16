@@ -189,8 +189,6 @@ double reg_getSSDValue(nifti_image *referenceImage,
                             n += 1.0;
                         }
                     }
-                } else {
-                    std::cout<<"outside mask"<<std::endl;
                 }
             }
             currentValue[time]=-SSD_local;
@@ -733,9 +731,9 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
     //
     int cpx, cpy, cpz, t, x, y, z, a, b, c, blockIndex, blockIndex_t, discretisedIndex;
     size_t voxIndex, voxIndex_t;
-    int label_1D_number = (discretise_radius / discretise_step) * 2 + 1;
-    int label_2D_number = label_1D_number*label_1D_number;
-    int label_nD_number = label_2D_number*label_1D_number;
+    const int label_1D_number = (discretise_radius / discretise_step) * 2 + 1;
+    const int label_2D_number = label_1D_number*label_1D_number;
+    const int label_nD_number = label_2D_number*label_1D_number;
     //output matrix = discretisedValue (first dimension displacement label, second dim. control point)
     float gridVox[3], imageVox[3];
     float currentValue;
@@ -750,96 +748,87 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
     mat44 grid2img_vox = reg_mat44_mul(image_mm2vox, grid_vox2mm);
 
     // Compute the block size
-    int blockSize[3]={
+    const int blockSize[3]={
         (int)reg_ceil(controlPointGridImage->dx / refImage->dx),
         (int)reg_ceil(controlPointGridImage->dy / refImage->dy),
         (int)reg_ceil(controlPointGridImage->dz / refImage->dz),
     };
-    int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2];
-    int voxelBlockNumber_t = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
+    const int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2];
+    const int voxelBlockNumber_t = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
     int currentControlPoint = 0;
 
-    // Allocate some static memory
-    float* refBlockValue = (float *) malloc(voxelBlockNumber_t*sizeof(float));
-
     // Pointers to the input image
-    size_t voxelNumber = (size_t)refImage->nx*
+    const size_t voxelNumber = (size_t)refImage->nx*
                          refImage->ny*refImage->nz;
     DTYPE *refImgPtr = static_cast<DTYPE *>(refImage->data);
     DTYPE *warImgPtr = static_cast<DTYPE *>(warImage->data);
 
-    //DTYPE nan_value = std::numeric_limits<DTYPE>::quiet_NaN();
-    DTYPE nan_value = 0.0;
+    DTYPE padding_value = 0.0;
 
-    int definedValueNumber;
+    int definedValueNumber, idBlock, timeV;
+
+    int threadNumber = 1;
+    int tid = 0;
+#if defined (_OPENMP)
+    threadNumber=omp_get_max_threads();
+#endif
+
+    // Allocate some static memory
+    float** refBlockValue = (float **) malloc(threadNumber*sizeof(float *));
+    for(a=0;a<threadNumber;++a)
+       refBlockValue[a] = (float *) malloc(voxelBlockNumber_t*sizeof(float));
+
     // Loop over all control points
-    // #pragma omp parallel for
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   shared(controlPointGridImage, refImage, warImage, grid2img_vox, blockSize, \
+   padding_value, refBlockValue, mask, refImgPtr, warImgPtr, discretise_radius, \
+   discretise_step, discretisedValue) \
+   private(cpx, cpy, cpz, x, y, z, a, b, c, t, currentControlPoint, gridVox, imageVox, \
+   voxIndex, idBlock, blockIndex, definedValueNumber, tid, \
+   timeV, voxIndex_t, blockIndex_t, discretisedIndex, currentSum, currentValue)
+#endif
     for(cpz=0; cpz<controlPointGridImage->nz; ++cpz){
+#if defined (_OPENMP)
+       tid=omp_get_thread_num();
+#endif
         gridVox[2] = cpz;
         for(cpy=0; cpy<controlPointGridImage->ny; ++cpy){
             gridVox[1] = cpy;
             for(cpx=0; cpx<controlPointGridImage->nx; ++cpx){
                 gridVox[0] = cpx;
-                currentControlPoint=controlPointGridImage->ny*controlPointGridImage->nx*cpz+controlPointGridImage->nx*cpy+cpx;
-//                //DEBUG
-//                int sz=refImage->nx * refImage->ny * refImage->nz;
-//                int m=refImage->nx;
-//                int n=refImage->ny;
-//                int o=refImage->nz;
-//                int grid_step = blockSize[0];
-//                int m1=m/grid_step;
-//                int n1=n/grid_step;
-//                int o1=o/grid_step;
-//                int num_vertices = m1*n1*o1;
-//                for(cpz=0; cpz<o1; ++cpz){
-//                        for(cpy=0; cpy<n1; ++cpy){
-//                            for(cpx=0; cpx<m1; ++cpx){
-//                                gridVox[2] = cpz;
-//                                gridVox[1] = cpy;
-//                                gridVox[0] = cpx;
-//                //DEBUG
+                currentControlPoint=controlPointGridImage->ny*controlPointGridImage->nx*cpz +
+                      controlPointGridImage->nx*cpy+cpx;
+
                 // Compute the corresponding image voxel position
                 reg_mat44_mul(&grid2img_vox, gridVox, imageVox);
                 imageVox[0]=reg_round(imageVox[0]);
                 imageVox[1]=reg_round(imageVox[1]);
                 imageVox[2]=reg_round(imageVox[2]);
-//                //DEBUG
-//                imageVox[0]=gridVox[0]*controlPointGridImage->dx / refImage->dx;
-//                imageVox[1]=gridVox[1]*controlPointGridImage->dy / refImage->dy;
-//                imageVox[2]=gridVox[2]*controlPointGridImage->dz / refImage->dz;
-//                //DEBUG
-                ////////
+
                 //INIT
-                for(int idBlock=0;idBlock<voxelBlockNumber_t;idBlock++) {
-                    refBlockValue[idBlock]=nan_value;
+                for(idBlock=0;idBlock<voxelBlockNumber_t;idBlock++) {
+                    refBlockValue[tid][idBlock]=padding_value;
                 }
-                //
+
                 // Extract the block in the reference image
                 blockIndex = 0;
                 definedValueNumber = 0;
                 for(z=imageVox[2]-blockSize[2]/2; z<imageVox[2]+blockSize[2]/2; ++z) {
                     for(y=imageVox[1]-blockSize[1]/2; y<imageVox[1]+blockSize[1]/2; ++y) {
                         for(x=imageVox[0]-blockSize[0]/2; x<imageVox[0]+blockSize[0]/2; ++x) {
-//                //DEBUG
-//                imageVox[0] = 8;
-//                for(z=imageVox[2]; z<imageVox[2]+blockSize[2]; ++z){
-//                    for(y=imageVox[1]; y<imageVox[1]+blockSize[1]; ++y){
-//                        for(x=imageVox[0]; x<imageVox[0]+blockSize[0]; ++x){
-//                //DEBUG
                             if(x>-1 && x<refImage->nx && y>-1 && y<refImage->ny && z>-1 && z<refImage->nz) {
                                 voxIndex = refImage->ny*refImage->nx*z+refImage->nx*y+x;
                                 if(mask[voxIndex]>-1){
-                                    for(int timeV=0; timeV<refImage->nt; ++timeV){
+                                    for(timeV=0; timeV<refImage->nt; ++timeV){
                                         voxIndex_t = timeV*voxelNumber + voxIndex;
                                         blockIndex_t = timeV*voxelBlockNumber + blockIndex;
-                                        refBlockValue[blockIndex_t] = refImgPtr[voxIndex_t];
-                                        if(refBlockValue[blockIndex_t]==refBlockValue[blockIndex_t]) {
+                                        refBlockValue[tid][blockIndex_t] = refImgPtr[voxIndex_t];
+                                        if(refBlockValue[tid][blockIndex_t]==refBlockValue[tid][blockIndex_t]) {
                                             ++definedValueNumber;
-                                        } else {
-                                            std::cout<<"NaN in the refBlock"<<std::endl;
-                                            refBlockValue[blockIndex_t] = 0;
                                         }
-                                    } //t
+                                        else refBlockValue[tid][blockIndex_t] = 0;
+                                    } // timeV
                                 } //inside mask
                             } //inside image
                             blockIndex++;
@@ -848,7 +837,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
                 } // z
                 // Loop over the discretised value
                 if(definedValueNumber>0){
-                    ////////
+
                     discretisedIndex=0;
                     for(c=imageVox[2]-discretise_radius; c<=imageVox[2]+discretise_radius; c+=discretise_step){
                         for(b=imageVox[1]-discretise_radius; b<=imageVox[1]+discretise_radius; b+=discretise_step){
@@ -861,37 +850,29 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
                                 for(z=c-blockSize[2]/2; z<c+blockSize[2]/2; ++z){
                                     for(y=b-blockSize[1]/2; y<b+blockSize[1]/2; ++y){
                                         for(x=a-blockSize[0]/2; x<a+blockSize[0]/2; ++x){
-//                                //DEBUG
-//                                for(z=c; z<c+blockSize[2]; ++z){
-//                                    for(y=b; y<b+blockSize[1]; ++y){
-//                                        for(x=a; x<a+blockSize[0]; ++x){
-//                                //DEBUG
+
                                             if(x>-1 && x<warImage->nx && y>-1 && y<warImage->ny && z>-1 && z<warImage->nz) {
                                                 voxIndex = warImage->ny*warImage->nx*z+warImage->nx*y+x;
                                                 for(t=0; t<warImage->nt; ++t){
                                                     voxIndex_t = t*voxelNumber + voxIndex;
                                                     blockIndex_t = t*voxelBlockNumber + blockIndex;
-                                                    //std::cout<<"warImgPtr[voxIndex_t]="<<warImgPtr[voxIndex_t]<<std::endl;
-                                                    //std::cout<<"refBlockValue[blockIndex_t]="<<refBlockValue[blockIndex_t]<<std::endl;
                                                     if(warImgPtr[voxIndex_t]==warImgPtr[voxIndex_t]) {
 #ifdef MRF_USE_SAD
-                                                    currentValue = fabs(warImgPtr[voxIndex_t]-refBlockValue[blockIndex_t]);
+                                                    currentValue = fabs(warImgPtr[voxIndex_t]-refBlockValue[tid][blockIndex_t]);
 #else
-                                                    currentValue = reg_pow2(warImgPtr[voxIndex_t]-refBlockValue[blockIndex_t]);
+                                                    currentValue = reg_pow2(warImgPtr[voxIndex_t]-refBlockValue[tid][blockIndex_t]);
 #endif
                                                     } else {
 #ifdef MRF_USE_SAD
-                                                    currentValue = fabs(0-refBlockValue[blockIndex_t]);
+                                                    currentValue = fabs(0-refBlockValue[tid][blockIndex_t]);
 #else
-                                                    currentValue = reg_pow2(0-refBlockValue[blockIndex_t]);
+                                                    currentValue = reg_pow2(0-refBlockValue[tid][blockIndex_t]);
 #endif
                                                     }
 
                                                     if(currentValue==currentValue){
                                                         currentSum -= currentValue;
                                                         ++definedValueNumber;
-                                                    } else {
-                                                        std::cout<<"NaN in the warpBlock"<<std::endl;
                                                     }
                                                 }
                                             } //inside image
@@ -899,15 +880,13 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
                                                 for(t=0; t<warImage->nt; ++t){
                                                     blockIndex_t = t*voxelBlockNumber + blockIndex;
 #ifdef MRF_USE_SAD
-                                                    currentValue = fabs(0-refBlockValue[blockIndex_t]);
+                                                    currentValue = fabs(0-refBlockValue[tid][blockIndex_t]);
 #else
-                                                    currentValue = reg_pow2(0-refBlockValue[blockIndex_t]);
+                                                    currentValue = reg_pow2(0-refBlockValue[tid][blockIndex_t]);
 #endif
                                                     if(currentValue==currentValue){
                                                         currentSum -= currentValue;
                                                         ++definedValueNumber;
-                                                    } else {
-                                                        std::cout<<"NaN in the warpBlock - outside image"<<std::endl;
                                                     }
                                                 }
                                             }
@@ -915,11 +894,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
                                         } // x
                                     } // y
                                 } // z
-                                //discretisedValue[currentControlPoint * label_nD_number + discretisedIndex] =
-                                //        currentSum / static_cast<float>(definedValueNumber);
                                 discretisedValue[currentControlPoint * label_nD_number + discretisedIndex] = currentSum;
-                                //discretisedValue[currentControlPoint * label_nD_number + discretisedIndex] =
-                                //          currentSum * 0.0026;
                                 ++discretisedIndex;
                             } // a
                         } // b
@@ -929,7 +904,10 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
             } // cpx
         } // cpy
     } // cpz
+    for(a=0;a<threadNumber;++a)
+       free(refBlockValue[a]);
     free(refBlockValue);
+
     // Deal with the labels that contains NaN values
     for(int node=0; node<controlPointGridImage->nx*controlPointGridImage->ny*controlPointGridImage->nz; ++node){
         int definedValueNumber=0;
