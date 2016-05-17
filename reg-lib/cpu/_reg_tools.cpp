@@ -2442,14 +2442,14 @@ int reg_tools_removeNanFromMask(nifti_image *image,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-float reg_tools_getMinValue_core(nifti_image *image, int timepoint)
+DTYPE reg_tools_getMinValue_core(nifti_image *image, int timepoint)
 {
    if(timepoint<-1 || timepoint>=image->nt)
       reg_print_msg_error("reg_tools_getMinValue_core. The required time point does not exists");
    // Create a pointer to the image data
    DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
    // Set a variable to store the minimal value
-   float minValue=std::numeric_limits<DTYPE>::max();
+   DTYPE minValue=std::numeric_limits<DTYPE>::max();
    if(image->scl_slope==0) image->scl_slope=1.f;
 
    size_t voxelNumber = (size_t)image->nx*
@@ -2507,7 +2507,7 @@ DTYPE reg_tools_getMaxValue_core(nifti_image *image, int timepoint)
    // Create a pointer to the image data
    DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
    // Set a variable to store the minimal value
-   double maxValue=-std::numeric_limits<DTYPE>::max();
+   DTYPE maxValue=std::numeric_limits<DTYPE>::min();
    if(image->scl_slope==0) image->scl_slope=1.f;
 
    size_t voxelNumber = (size_t)image->nx *

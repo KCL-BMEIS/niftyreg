@@ -106,7 +106,7 @@ void interpNearestNeighKernel(double relative, double *basis)
 {
    if(relative<0.0) relative=0.0; //reg_rounding error
    basis[0]=basis[1]=0;
-   if(relative>0.5)
+   if(relative>=0.5)
       basis[1]=1;
    else basis[0]=1;
 }
