@@ -94,7 +94,7 @@ __inline void interpNearestNeighKernel(real_t relative, real_t *basis)
         relative = 0.0; //reg_rounding error
     }
     basis[0] = basis[1] = (real_t) 0.0;
-    if (relative > (real_t) 0.5){
+    if (relative >= (real_t) 0.5){
         basis[1] = (real_t) 1.0;
     }
     else {

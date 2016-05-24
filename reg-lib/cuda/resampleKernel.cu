@@ -123,7 +123,7 @@ __inline__ __device__ void interpNearestNeighKernel(double relative, double *bas
 	if (relative < 0.0)
 		relative = 0.0; //reg_rounding error
 	basis[0] = basis[1] = 0.0;
-	if (relative > 0.5)
+    if (relative >= 0.5)
 		basis[1] = 1;
 	else
 		basis[0] = 1;
