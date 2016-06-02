@@ -17,16 +17,18 @@ int main(int argc, char **argv)
     time_t start;
     time(&start);
 
-    if(argc!=6) {
-        fprintf(stderr, "Usage: %s <refImage> <floatingImage> <regularisationWeight> <outputImageName> <initFile>\n", argv[0]);
+    if(argc!=8) {
+        fprintf(stderr, "Usage: %s <refImage> <floatingImage> <regularisationWeight> <MINDF> <MINDM> <outputImageName> <initFile>\n", argv[0]);
         return EXIT_FAILURE;
     }
     //IO
     char *inputRefImageName=argv[1];
     char *inputFloImageName=argv[2];
     float regularisationWeight=atof(argv[3]);
-    char *outputImageName=argv[4];
-    char *affineTransformationName=argv[5];
+    char* MINDF=argv[4];
+    char* MINDM=argv[5];
+    char *outputImageName=argv[6];
+    char *affineTransformationName=argv[7];
 
     // Read reference image
     nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
@@ -96,7 +98,9 @@ int main(int argc, char **argv)
                       maskImage,
                       1,
                       0.f);
-
+    //DEBUG
+    //reg_io_WriteImageFile(warpedImage,"warpImg_ini.nii");
+    //DEBUG
     free(maskImage);
     nifti_image_free(deformationFieldImage);
     /////////////////////////////////////////////////////////////////////////////////////////
@@ -112,14 +116,14 @@ int main(int argc, char **argv)
     int nbLevel = 1;
     int discrete_radiusArray[] = {18};
     int discrete_incrementArray[] = {3};
-    int grid_stepArray[] = {8};
+    int spacing_voxelArray[] = {8};
 
     for(int currentLevel=0;currentLevel<nbLevel;currentLevel++) {
         // Create control point grid image
-        int grid_step = grid_stepArray[currentLevel];
-        float grid_step_mm[3]={grid_step*referenceImage->dx,
-                               grid_step*referenceImage->dy,
-                               grid_step*referenceImage->dz};
+        int spacing_voxel = spacing_voxelArray[currentLevel];
+        float grid_step_mm[3]={spacing_voxel*referenceImage->dx,
+                               spacing_voxel*referenceImage->dy,
+                               spacing_voxel*referenceImage->dz};
         nifti_image *controlPointImage = NULL;
         reg_createControlPointGrid<float>(&controlPointImage,
                                           referenceImage,
@@ -128,7 +132,6 @@ int main(int argc, char **argv)
         memset(controlPointImage->data,0,controlPointImage->nvox*controlPointImage->nbyper);
         reg_tools_multiplyValueToImage(controlPointImage,controlPointImage,0.f);
         reg_getDeformationFromDisplacement(controlPointImage);
-        controlPointImage->intent_p1=LIN_SPLINE_GRID;
 
         // Create an empty mask
         int *mask = (int *)calloc(referenceImage->nvox, sizeof(int));
@@ -169,7 +172,7 @@ int main(int argc, char **argv)
                                        deformationField,
                                        mask,
                                        false, //composition
-                                       true // bspline
+                                       false // bspline
                                        );
         //
         int mind_length = 12;
@@ -181,6 +184,10 @@ int main(int argc, char **argv)
         MINDSSC_refimg->data=(void *)calloc(MINDSSC_refimg->nvox,MINDSSC_refimg->nbyper);
         // Compute the MIND descriptor
         GetMINDSSCImageDesciptor(referenceImage,MINDSSC_refimg, mask, 2, 0);
+        //DEBUG
+        reg_io_WriteImageFile(MINDSSC_refimg,"MINDSSC_ref.nii.gz");
+        MINDSSC_refimg = reg_io_ReadImageFile(MINDF);
+        //DEBUG
 
         //MINDSSC image
         nifti_image *MINDSSC_warimg = nifti_copy_nim_info(warpedImage);
@@ -190,20 +197,30 @@ int main(int argc, char **argv)
         MINDSSC_warimg->data=(void *)calloc(MINDSSC_warimg->nvox,MINDSSC_warimg->nbyper);
         // Compute the MIND descriptor
         GetMINDSSCImageDesciptor(warpedImage,MINDSSC_warimg, mask, 2, 0);
-        
+        //DEBUG
+        reg_io_WriteImageFile(MINDSSC_warimg,"MINDSSC_warped.nii.gz");
+        MINDSSC_warimg = reg_io_ReadImageFile(MINDM);
+        //DEBUG
 
-        reg_ssd* ssdMeasure = new reg_ssd(true);
+        reg_ssd* ssdMeasure = new reg_ssd();
 
-        for(int i=0;i<MINDSSC_refimg->nt;++i)
-            ssdMeasure->SetActiveTimepoint(i);
-        ssdMeasure->InitialiseMeasure(MINDSSC_refimg,
-                                      MINDSSC_warimg,
-                                      mask,
-                                      MINDSSC_warimg,
-                                      NULL,
-                                      NULL);
-
-
+        //for(int i=0;i<MINDSSC_refimg->nt;++i)
+        //    ssdMeasure->SetActiveTimepoint(i);
+        //ssdMeasure->InitialiseMeasure(MINDSSC_refimg,
+        //                              MINDSSC_warimg,
+        //                              mask,
+        //                              MINDSSC_warimg,
+        //                              NULL,
+        //                              NULL);
+        //DEBUG
+           for(int i=0;i<1;++i)
+              ssdMeasure->SetActiveTimepoint(i);
+           ssdMeasure->InitialiseMeasure(referenceImage,
+                                         warpedImage,
+                                         mask,
+                                         warpedImage,
+                                         NULL,NULL);
+        //DEBUG
         reg_mrf* reg_mrfObject = new reg_mrf(ssdMeasure,
                                              referenceImage,
                                              controlPointImage,
@@ -216,14 +233,18 @@ int main(int argc, char **argv)
                                        deformationField,
                                        mask,
                                        false, //composition
-                                       true // bspline
+                                       false // bspline
                                        );
-        reg_resampleImage(floatingImage,
+        reg_resampleImage(warpedImage,
                           warpedImage,
                           deformationField,
                           mask,
                           1,
                           0.f);
+
+        //DEBUG
+        reg_io_WriteImageFile(warpedImage,"warpImg_end.nii");
+        //DEBUG
 
         reg_getDisplacementFromDeformation(deformationField);
         deformationField->dim[4] = deformationField->nt = deformationField->nu;
@@ -232,9 +253,9 @@ int main(int argc, char **argv)
 
         warpedImage->cal_min = floatingImage->cal_min;
         warpedImage->cal_max = floatingImage->cal_max;
-        //
         reg_io_WriteImageFile(warpedImage, outputImageName);
-        //Mr Propre
+
+
         delete reg_mrfObject;
         free(mask);
         nifti_image_free(MINDSSC_refimg);

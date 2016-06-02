@@ -64,7 +64,7 @@ public:
       }
    }
    /// @brief Here
-   virtual void GetDiscretisedValue(nifti_image *, float *, int , int, float) {}
+   virtual void GetDiscretisedValue(nifti_image *, float *, int , int) {}
    void SetActiveTimepoint(int timepoint)
    {
       this->activeTimePoint[timepoint]=true;

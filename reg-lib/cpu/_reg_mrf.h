@@ -37,14 +37,9 @@ public:
     /// @brief Constructor
    reg_mrf(int _discrete_radius,
            int _discrete_increment,
+           float _reg_weight,
            int _img_dim,
            size_t _node_number);
-   /// @brief Constructor
-   reg_mrf(reg_measure *_measure,
-           nifti_image *_referenceImage,
-           nifti_image *_controlPointImage,
-           int discrete_radius,
-           int _discrete_increment);
    /// @brief Constructor
    reg_mrf(reg_measure *_measure,
            nifti_image *_referenceImage,
@@ -55,7 +50,7 @@ public:
    /// @brief Destructor
    ~reg_mrf();
    void Run();
-   //for the tests
+   //4 the tests
    void GetDiscretisedMeasure();
    float* GetDiscretisedMeasurePtr();
    void SetDiscretisedMeasure(float* dm);

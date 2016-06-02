@@ -15,7 +15,6 @@
 #define _REG_SSD_H
 
 #include "_reg_measure.h"
-#include "_reg_ReadWriteImage.h"
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -25,8 +24,6 @@ class reg_ssd : public reg_measure
 public:
    /// @brief reg_ssd class constructor
    reg_ssd();
-   /// @brief reg_ssd class constructor
-   reg_ssd(bool sad);
    /// @brief Initialise the reg_ssd object
    void InitialiseMeasure(nifti_image *refImgPtr,
                           nifti_image *floImgPtr,
@@ -46,13 +43,11 @@ public:
    virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
                                     float *discretisedValue,
                                     int discretise_radius,
-                                    int discretise_step,
-                                    float reg_weight);
+                                    int discretise_step);
    /// @brief reg_ssd class desstructor
    ~reg_ssd() {}
 protected:
    float currentValue[255];
-   bool useSAD;
 };
 /* *************************************************************** */
 
@@ -74,8 +69,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
                        bool *activeTimePoint,
                        nifti_image *jacobianDeterminantImage,
                        int *mask,
-                       float *currentValue,
-                       bool useSAD
+                       float *currentValue
                       );
 
 /** @brief Compute a voxel based gradient of the sum squared difference.
@@ -99,7 +93,6 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDeterminantImage,
                                   int *mask,
-                                  int current_timepoint,
-                                  bool useSAD
+                                  int current_timepoint
                                  );
 #endif
