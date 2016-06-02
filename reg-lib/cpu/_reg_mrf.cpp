@@ -6,9 +6,9 @@
 #include "_reg_ReadWriteBinary.h"
 //DEBUG
 /*****************************************************/
+//FOR THE UNIT TEST
 reg_mrf::reg_mrf(int _discrete_radius,
                  int _discrete_increment,
-                 float _reg_weight,
                  int _img_dim,
                  size_t _node_number)
 {
@@ -17,12 +17,17 @@ reg_mrf::reg_mrf(int _discrete_radius,
     this->controlPointImage = NULL;
     this->discrete_radius = _discrete_radius;
     this->discrete_increment = _discrete_increment;
-    this->regularisation_weight = _reg_weight;
+    if(this->discrete_radius/this->discrete_increment !=
+      (float)this->discrete_radius/(float)this->discrete_increment){
+      reg_print_msg_error("The discrete_radius is expected to be a multiple of discretise_increment");
+    }
     //
     this->image_dim = _img_dim;
     this->label_1D_num = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
     this->label_nD_num = static_cast<int>(std::pow((double) this->label_1D_num,this->image_dim));
     this->node_number = _node_number;
+
+    this->regularisation_weight = 1;
 
     // Allocate the discretised values in millimeter
     this->discrete_values_mm = (float **)malloc(this->image_dim*sizeof(float *));
@@ -39,7 +44,7 @@ reg_mrf::reg_mrf(int _discrete_radius,
 
     //regulatization - optimization
     this->regularised_cost= (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
-    this->optimal_label_index=(int *)malloc(this->node_number*sizeof(int));
+    this->optimal_label_index=(int *)calloc(this->node_number,sizeof(int));
 }
 /*****************************************************/
 reg_mrf::reg_mrf(reg_measure *_measure,
@@ -54,14 +59,24 @@ reg_mrf::reg_mrf(reg_measure *_measure,
    this->controlPointImage = _controlPointImage;
    this->discrete_radius = _discrete_radius;
    this->discrete_increment = _discrete_increment;
-   this->regularisation_weight = _reg_weight;
+   if(this->discrete_radius/this->discrete_increment !=
+      (float)this->discrete_radius/(float)this->discrete_increment){
+      reg_print_msg_error("The discrete_radius is expected to be a multiple of discretise_increment");
+   }
 
    this->image_dim = this->referenceImage->nz > 1 ? 3 :2;
    this->label_1D_num = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
    this->label_nD_num = static_cast<int>(std::pow((double) this->label_1D_num,this->image_dim));
    this->node_number = (size_t)this->controlPointImage->nx *
          this->controlPointImage->ny * this->controlPointImage->nz;
-
+   //
+   float maxsamp=reg_ceil(this->controlPointImage->dx)*
+                 reg_ceil(this->controlPointImage->dy)*
+                 reg_ceil(this->controlPointImage->dz);
+   float alphai=this->controlPointImage->dx/(_reg_weight*(float)this->discrete_radius);//dx... why not
+   float alpha1=0.5*alphai/(float)(maxsamp);
+   this->regularisation_weight = 1;//alpha1
+   //
    this->input_transformation=nifti_copy_nim_info(this->controlPointImage);
    this->input_transformation->data=(float *)malloc(this->node_number*this->image_dim*sizeof(float));
    // Allocate the discretised values in voxel
@@ -117,7 +132,92 @@ reg_mrf::reg_mrf(reg_measure *_measure,
 
    //regulatization - optimization
    this->regularised_cost= (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
-   this->optimal_label_index=(int *)malloc(this->node_number*sizeof(int));
+   this->optimal_label_index=(int *)calloc(this->node_number,sizeof(int));
+
+   this->initialised = false;
+}
+/*****************************************************/
+//FOR THE UNIT TEST
+reg_mrf::reg_mrf(reg_measure *_measure,
+                 nifti_image *_referenceImage,
+                 nifti_image *_controlPointImage,
+                 int _discrete_radius,
+                 int _discrete_increment)
+{
+   this->measure = _measure;
+   this->referenceImage = _referenceImage;
+   this->controlPointImage = _controlPointImage;
+   this->discrete_radius = _discrete_radius;
+   this->discrete_increment = _discrete_increment;
+   if(this->discrete_radius/this->discrete_increment !=
+      (float)this->discrete_radius/(float)this->discrete_increment){
+      reg_print_msg_error("The discrete_radius is expected to be a multiple of discretise_increment");
+   }
+
+   this->image_dim = this->referenceImage->nz > 1 ? 3 :2;
+   this->label_1D_num = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
+   this->label_nD_num = static_cast<int>(std::pow((double) this->label_1D_num,this->image_dim));
+   this->node_number = (size_t)this->controlPointImage->nx *
+         this->controlPointImage->ny * this->controlPointImage->nz;
+   //
+   this->regularisation_weight = 1;
+   //
+   this->input_transformation=nifti_copy_nim_info(this->controlPointImage);
+   this->input_transformation->data=(float *)malloc(this->node_number*this->image_dim*sizeof(float));
+   // Allocate the discretised values in voxel
+   int *discrete_values_vox = (int *)malloc(this->label_1D_num*sizeof(int));
+   int currentValue = -this->discrete_radius;
+   for(int i = 0;i<this->label_1D_num;i++) {
+      discrete_values_vox[i]=currentValue;
+      currentValue+=this->discrete_increment;
+   }
+
+   // Allocate the discretised values in millimeter
+   this->discrete_values_mm = (float **)malloc(this->image_dim*sizeof(float *));
+   for(int i=0;i<this->image_dim;++i){
+       this->discrete_values_mm[i] = (float *)malloc(this->label_nD_num*sizeof(float));
+   }
+   float disp_vox[3];
+   mat44 vox2mm = this->referenceImage->qto_xyz;
+   if(this->referenceImage->sform_code>0)
+      vox2mm = this->referenceImage->sto_xyz;
+   int i=0;
+   for(int z=0; z<this->label_1D_num; ++z){
+      disp_vox[2]=discrete_values_vox[z];
+      for(int y=0; y<this->label_1D_num; ++y){
+         disp_vox[1]=discrete_values_vox[y];
+         for(int x=0; x<this->label_1D_num; ++x){
+            disp_vox[0]=discrete_values_vox[x];
+            this->discrete_values_mm[0][i] =
+                  disp_vox[0] * vox2mm.m[0][0] +
+                  disp_vox[1] * vox2mm.m[0][1] +
+                  disp_vox[2] * vox2mm.m[0][2];
+            this->discrete_values_mm[1][i] =
+                  disp_vox[0] * vox2mm.m[1][0] +
+                  disp_vox[1] * vox2mm.m[1][1] +
+                  disp_vox[2] * vox2mm.m[1][2];
+            this->discrete_values_mm[2][i] =
+                  disp_vox[0] * vox2mm.m[2][0] +
+                  disp_vox[1] * vox2mm.m[2][1] +
+                  disp_vox[2] * vox2mm.m[2][2];
+            ++i;
+         }
+      }
+   }
+   free(discrete_values_vox);
+
+
+   //To store the cost data term - originaly SAD between images.
+   this->discretised_measures = (float *)calloc(this->node_number*this->label_nD_num,sizeof(float));
+
+   // Allocate the arrays to store the tree
+   this->orderedList = (int *) malloc(this->node_number*sizeof(int));
+   this->parentsList = (int *) malloc(this->node_number*sizeof(int));
+   this->edgeWeight = (float *) malloc(this->node_number*sizeof(float));
+
+   //regulatization - optimization
+   this->regularised_cost= (float *)malloc(this->node_number*this->label_nD_num*sizeof(float));
+   this->optimal_label_index=(int *)calloc(this->node_number,sizeof(int));
 
    this->initialised = false;
 }
@@ -240,43 +340,18 @@ void reg_mrf::SetEdgeWeight(float* ew)
 /*****************************************************/
 void reg_mrf::GetDiscretisedMeasure()
 {
-   measure->GetDiscretisedValue(this->controlPointImage,
+
+    measure->GetDiscretisedValue(this->controlPointImage,
                                 this->discretised_measures,
                                 this->discrete_radius,
-                                this->discrete_increment);
+                                this->discrete_increment,
+                                this->regularisation_weight);
+
    //Let's put the values positive for the mrf
    for(int i=0;i<(this->node_number*this->label_nD_num);i++) {
        this->discretised_measures[i]=-this->discretised_measures[i];
    }
-//DEBUG
-/*
-   std::ifstream myfile;
-   std::string pathDataFile = "/media/windows/Users/bpresles/OneDrive - University College London/NiftyReg/Mattias/dataForDeedsForNifty/similarity2.dat";
-   myfile.open(pathDataFile.c_str(), std::ios::in | std::ios::binary);
-   char buffer[128];
-   //
-   if (myfile.is_open()) {
-       // ok, proceed with output
-       std::cout<<"OK - file opened"<<std::endl;
-       for(int i=0;i<32388174;i++){
-           myfile.read(buffer, sizeof(float));
-           this->discretised_measures[i]=atof(buffer);
-       }
-       myfile.close();
-   }
-/////
-float* expectedDataCost = new float[32388174];
-std::string expectedDataCostName = "/media/windows/Users/bpresles/OneDrive - University College London/NiftyReg/Mattias/dataForDeedsForNifty/similarity2.dat";
-readFloatBinaryArray(expectedDataCostName.c_str(), 32388174, expectedDataCost);
-for(int i=0;i<32388174;i++){
-    this->discretised_measures[i]=expectedDataCost[i];
-}
-/////
-for(int i=0;i<32388174;i++){
-    this->discretised_measures[i]=rand() % 10;
-}
-*/
-//DEBUG
+
  #ifndef NDEBUG
    reg_print_msg_debug("reg_mrf::GetDiscretisedMeasure done");
 #endif
@@ -302,17 +377,17 @@ void reg_mrf::UpdateNodePositions()
    float *inputCpPtrY = &inputCpPtrX[this->node_number];
    float *inputCpPtrZ = &inputCpPtrY[this->node_number];
 
-   memcpy(cpPtrX, inputCpPtrX, this->node_number*3*sizeof(float));
+   memcpy(cpPtrX, inputCpPtrX, this->node_number*this->image_dim*sizeof(float));
 
-   size_t voxel=0;
+   size_t node=0;
    for(int z=0; z<this->controlPointImage->nz; z++) {
       for(int y=0; y<this->controlPointImage->ny; y++) {
          for(int x=0; x<this->controlPointImage->nx; x++) {
-            int optimal_id = this->optimal_label_index[voxel];
-            cpPtrX[voxel] = inputCpPtrX[voxel] + this->discrete_values_mm[0][optimal_id];
-            cpPtrY[voxel] = inputCpPtrY[voxel] + this->discrete_values_mm[1][optimal_id];
-            cpPtrZ[voxel] = inputCpPtrZ[voxel] + this->discrete_values_mm[2][optimal_id];
-            ++voxel;
+            int optimal_id = this->optimal_label_index[node];
+            cpPtrX[node] = inputCpPtrX[node]+ this->discrete_values_mm[0][optimal_id];
+            cpPtrY[node] = inputCpPtrY[node]+ this->discrete_values_mm[1][optimal_id];
+            cpPtrZ[node] = inputCpPtrZ[node]+ this->discrete_values_mm[2][optimal_id];
+            ++node;
          }
       }
    }
@@ -330,14 +405,17 @@ void reg_mrf::Run()
           this->node_number*this->image_dim*sizeof(float));
    // Compute the discretised data term values
    this->GetDiscretisedMeasure();
+   //for(int i=0;i<this->node_number*this->label_nD_num;i++) {
+   //        std::cout<<this->discretised_measures[i]<<std::endl;
+   //}
    // Compute the regularisation term
    //for(int i=0;i<100; ++i){
-       this->GetRegularisation();
-       // Extract the best label
-       //memcpy(this->regularised_cost, this->discretised_measures, this->node_number*this->label_nD_num*sizeof(float));
-       this->getOptimalLabel();
-       // Update the control point positions
-       this->UpdateNodePositions();
+   //this->GetRegularisation();
+   // Extract the best label
+   memcpy(this->regularised_cost, this->discretised_measures, this->node_number*this->label_nD_num*sizeof(float));
+   this->getOptimalLabel();
+   // Update the control point positions
+   this->UpdateNodePositions();
    //}
 }
 /*****************************************************/
@@ -506,9 +584,9 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
                      for(int sadIndex=0;sadIndex<voxelBlockNumber;sadIndex++) {
                         SADNeighbourValue += std::abs(neighbourBlockValue[sadIndex]-refBlockValue[sadIndex]);
                      }
-                     if(SADNeighbourValue == 0) {
-                         SADNeighbourValue = std::numeric_limits<float>::epsilon();
-                     }
+                     //if(SADNeighbourValue == 0) {
+                     //    SADNeighbourValue = std::numeric_limits<float>::epsilon();
+                     //}
                      //store results:
                      index_neighbours[cpx+cpy*controlPointGridImage->nx+
                            cpz*controlPointGridImage->nx*controlPointGridImage->ny+

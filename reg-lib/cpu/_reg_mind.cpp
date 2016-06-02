@@ -589,7 +589,8 @@ double reg_mind::GetSimilarityMeasureValue()
                    this->activeTimePointDescriptor,
                    NULL, // HERE TODO this->forwardJacDetImagePointer,
                    combinedMask,
-                   this->currentValue
+                   this->currentValue,
+                   this->useSAD
                    );
             break;
          case NIFTI_TYPE_FLOAT64:
@@ -599,7 +600,8 @@ double reg_mind::GetSimilarityMeasureValue()
                    this->activeTimePointDescriptor,
                    NULL, // HERE TODO this->forwardJacDetImagePointer,
                    combinedMask,
-                   this->currentValue
+                   this->currentValue,
+                   this->useSAD
                    );
             break;
          default:
@@ -653,7 +655,8 @@ double reg_mind::GetSimilarityMeasureValue()
                       this->activeTimePointDescriptor,
                       NULL, // HERE TODO this->backwardJacDetImagePointer,
                       combinedMask,
-                      this->currentValue
+                      this->currentValue,
+                      this->useSAD
                       );
                break;
             case NIFTI_TYPE_FLOAT64:
@@ -663,7 +666,8 @@ double reg_mind::GetSimilarityMeasureValue()
                       this->activeTimePointDescriptor,
                       NULL, // HERE TODO this->backwardJacDetImagePointer,
                       combinedMask,
-                      this->currentValue
+                      this->currentValue,
+                      this->useSAD
                       );
                break;
             default:
@@ -742,7 +746,8 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 this->forwardVoxelBasedGradientImagePointer,
                 NULL, // no Jacobian required here,
                 combinedMask,
-                desc_index
+                desc_index,
+                this->useSAD
                 );
          break;
       case NIFTI_TYPE_FLOAT64:
@@ -753,7 +758,8 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 this->forwardVoxelBasedGradientImagePointer,
                 NULL, // no Jacobian required here,
                 combinedMask,
-                desc_index
+                desc_index,
+                this->useSAD
                 );
          break;
       default:
@@ -816,7 +822,8 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                    this->backwardVoxelBasedGradientImagePointer,
                    NULL, // no Jacobian required here,
                    combinedMask,
-                   desc_index
+                   desc_index,
+                   this->useSAD
                    );
             break;
          case NIFTI_TYPE_FLOAT64:
@@ -827,7 +834,8 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                    this->backwardVoxelBasedGradientImagePointer,
                    NULL, // no Jacobian required here,
                    combinedMask,
-                   desc_index
+                   desc_index,
+                   this->useSAD
                    );
             break;
          default:
