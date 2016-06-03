@@ -61,6 +61,9 @@ reg_lncc::~reg_lncc()
    if(this->warpedFloatingSdevImage!=NULL)
       nifti_image_free(this->warpedFloatingSdevImage);
    this->warpedFloatingSdevImage=NULL;
+   if(this->forwardMask!=NULL)
+      free(this->forwardMask);
+   this->forwardMask=NULL;
 
    if(this->backwardCorrelationImage!=NULL)
       nifti_image_free(this->backwardCorrelationImage);
@@ -77,6 +80,9 @@ reg_lncc::~reg_lncc()
    if(this->warpedReferenceSdevImage!=NULL)
       nifti_image_free(this->warpedReferenceSdevImage);
    this->warpedReferenceSdevImage=NULL;
+   if(this->backwardMask!=NULL)
+      free(this->backwardMask);
+   this->backwardMask=NULL;
 }
 /* *************************************************************** */
 /* *************************************************************** */
