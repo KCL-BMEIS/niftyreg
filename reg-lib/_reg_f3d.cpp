@@ -603,9 +603,10 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    this->GetVoxelBasedGradient();
 
    int kernel_type=CUBIC_SPLINE_KERNEL;
+#ifdef BUILD_DEV
    if(this->linearSpline)
       kernel_type=LINEAR_KERNEL;
-
+#endif
    // The voxel based NMI gradient is convolved with a spline kernel
    // Convolution along the x axis
    float currentNodeSpacing[3];
