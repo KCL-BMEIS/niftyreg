@@ -138,14 +138,6 @@ int main(int argc, char **argv)
       }
 #endif
    }
-//   reg_print_info(argv[0], "");
-//   reg_print_info(argv[0], "Command line:");
-//   char text[4096];
-//   sprintf(text, "\t");
-//   for(int i=0; i<argc; i++)
-//      sprintf(text, "%s %s", text, argv[i]);
-//   reg_print_info(argv[0], text);
-//   reg_print_info(argv[0], "");
 
    // Set the name of the file to output
    char *outputName = argv[1];

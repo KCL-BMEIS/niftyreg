@@ -1176,18 +1176,18 @@ void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize)
    sprintf(text, "[%i] Current objective function: %g",
            (int)this->optimiser->GetCurrentIterationNumber(),
            this->optimiser->GetBestObjFunctionValue());
-   sprintf(text, "%s = (wSIM)%g", text, this->bestWMeasure);
+   sprintf(text+strlen(text), " = (wSIM)%g", this->bestWMeasure);
    if(this->bendingEnergyWeight>0)
-      sprintf(text, "%s - (wBE)%.2e", text, this->bestWBE);
+      sprintf(text+strlen(text), " - (wBE)%.2e", this->bestWBE);
    if(this->linearEnergyWeight>0)
-      sprintf(text, "%s - (wLE)%.2e", text, this->bestWLE);
+      sprintf(text+strlen(text), " - (wLE)%.2e", this->bestWLE);
    if(this->jacobianLogWeight>0)
-      sprintf(text, "%s - (wJAC)%.2e", text, this->bestWJac);
+      sprintf(text+strlen(text), "- (wJAC)%.2e", this->bestWJac);
 #ifdef BUILD_DEV
    if(this->pairwiseEnergyWeight>0)
-      sprintf(text, "%s - (wPW)%.2e", text, this->bestWPE);
+      sprintf(text+strlen(text), " - (wPW)%.2e", this->bestWPE);
 #endif
-   sprintf(text, "%s [+ %g mm]", text, currentSize);
+   sprintf(text+strlen(text), " [+ %g mm]", currentSize);
    reg_print_info(this->executableName, text);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::PrintCurrentObjFunctionValue");
@@ -1389,7 +1389,7 @@ void reg_f3d<T>::DiscreteInitialisation()
       delete discrete_init_object;
       char text[255];
 
-      sprintf(text, "Discrete initialisation done", this->inputReference->fname);
+      sprintf(text, "Discrete initialisation done");
       reg_print_info(this->executableName, text);
    }
    else{

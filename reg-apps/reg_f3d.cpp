@@ -223,7 +223,7 @@ int main(int argc, char **argv)
       reg_print_info((argv[0]), "Command line:");
       sprintf(text, "\t");
       for(int i=0; i<argc; i++)
-         sprintf(text, "%s %s", text, argv[i]);
+         sprintf(text+strlen(text), " %s", argv[i]);
       reg_print_info((argv[0]), text);
       reg_print_info((argv[0]), "");
 #ifdef NDEBUG
@@ -776,11 +776,6 @@ int main(int argc, char **argv)
       outputWarpedImageName=(char *)"outputResult.nii";
    memset(outputWarpedImage[0]->descrip, 0, 80);
    strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d)");
-   //      if(strcmp("NiftyReg F3D SYM", REG->GetExecutableName())==0)
-   //      {
-   //         strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
-   //         strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
-   //      }
    if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
    {
       strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d2)");

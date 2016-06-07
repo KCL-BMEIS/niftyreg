@@ -406,7 +406,7 @@ int main(int argc, char **argv)
       reg_print_info((argv[0]), "Command line:");
       sprintf(text, "\t");
       for(int i=0; i<argc; i++)
-         sprintf(text, "%s %s", text, argv[i]);
+         sprintf(text+strlen(text), " %s", argv[i]);
       reg_print_info((argv[0]), text);
       reg_print_info((argv[0]), "");
 #ifdef NDEBUG

@@ -2977,8 +2977,7 @@ void reg_getDeformationFromDisplacement_3D(nifti_image *field)
    float xInit, yInit, zInit;
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(field, matrix, \
-   ptrX, ptrY, ptrZ) \
+   shared(field, matrix, ptrX, ptrY, ptrZ) \
    private(x, y, z, index, xInit, yInit, zInit)
 #endif
    for(z=0; z<field->nz; z++)

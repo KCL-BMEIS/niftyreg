@@ -1505,16 +1505,16 @@ void reg_f3d_sym<T>::PrintCurrentObjFunctionValue(T currentSize)
    sprintf(text, "[%i] Current objective function: %g",
           (int)this->optimiser->GetCurrentIterationNumber(),
           this->optimiser->GetBestObjFunctionValue());
-   sprintf(text, "%s = (wSIM)%g", text, this->bestWMeasure);
+   sprintf(text+strlen(text), " = (wSIM)%g", this->bestWMeasure);
    if(this->bendingEnergyWeight>0)
-      sprintf(text, "%s - (wBE)%.2e", text, this->bestWBE);
+      sprintf(text+strlen(text), " - (wBE)%.2e", this->bestWBE);
    if(this->linearEnergyWeight)
-      sprintf(text, "%s - (wLE)%.2e", text, this->bestWLE);
+      sprintf(text+strlen(text), " - (wLE)%.2e", this->bestWLE);
    if(this->jacobianLogWeight>0)
-      sprintf(text, "%s - (wJAC)%.2e", text, this->bestWJac);
+      sprintf(text+strlen(text), " - (wJAC)%.2e", this->bestWJac);
    if(this->inverseConsistencyWeight>0)
-      sprintf(text, "%s - (wIC)%.2e", text, this->bestIC);
-   sprintf(text, "%s [+ %g mm]", text, currentSize);
+      sprintf(text+strlen(text), " - (wIC)%.2e", this->bestIC);
+   sprintf(text+strlen(text), " [+ %g mm]", currentSize);
    reg_print_info(this->executableName, text);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::PrintCurrentObjFunctionValue");
