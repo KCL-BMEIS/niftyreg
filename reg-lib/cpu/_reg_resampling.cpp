@@ -157,42 +157,53 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
       DTYPE *floatingIntensityYZ = &firstVox[floatingVoxelNumber*dtIndicies[4]];
       DTYPE *floatingIntensityZZ = &firstVox[floatingVoxelNumber*dtIndicies[5]];
 
-      mat33 diffTensor;
 
       // Should log the tensor up front
       // We need to take the logarithm of the tensor for each voxel in the floating intensity
       // image, and replace the warped
+      int tid=0;
 #if defined (_OPENMP)
+      mat33 diffTensor[16];
+      int max_thread_number = omp_get_max_threads();
+      if(max_thread_number>16) omp_set_num_threads(16);
 #pragma omp parallel for default(none) \
-   private(floatingIndex,diffTensor) \
+   private(floatingIndex, tid) \
    shared(floatingVoxelNumber,floatingIntensityXX,floatingIntensityYY, \
    floatingIntensityZZ,floatingIntensityXY,floatingIntensityXZ, \
-   floatingIntensityYZ)
+   floatingIntensityYZ, diffTensor)
+#else
+      mat33 diffTensor[1];
 #endif
       for(floatingIndex=0; floatingIndex<floatingVoxelNumber; ++floatingIndex)
       {
+#if defined (_OPENMP)
+         tid=omp_get_thread_num();
+#endif
          // Fill a mat44 with the tensor components
-         diffTensor.m[0][0] = floatingIntensityXX[floatingIndex];
-         diffTensor.m[0][1] = floatingIntensityXY[floatingIndex];
-         diffTensor.m[1][0] = diffTensor.m[0][1];
-         diffTensor.m[1][1] = floatingIntensityYY[floatingIndex];
-         diffTensor.m[0][2] = floatingIntensityXZ[floatingIndex];
-         diffTensor.m[2][0] = diffTensor.m[0][2];
-         diffTensor.m[1][2] = floatingIntensityYZ[floatingIndex];
-         diffTensor.m[2][1] = diffTensor.m[1][2];
-         diffTensor.m[2][2] = floatingIntensityZZ[floatingIndex];
+         diffTensor[tid].m[0][0] = floatingIntensityXX[floatingIndex];
+         diffTensor[tid].m[0][1] = floatingIntensityXY[floatingIndex];
+         diffTensor[tid].m[1][0] = diffTensor[tid].m[0][1];
+         diffTensor[tid].m[1][1] = floatingIntensityYY[floatingIndex];
+         diffTensor[tid].m[0][2] = floatingIntensityXZ[floatingIndex];
+         diffTensor[tid].m[2][0] = diffTensor[tid].m[0][2];
+         diffTensor[tid].m[1][2] = floatingIntensityYZ[floatingIndex];
+         diffTensor[tid].m[2][1] = diffTensor[tid].m[1][2];
+         diffTensor[tid].m[2][2] = floatingIntensityZZ[floatingIndex];
 
          // Compute the log of the diffusion tensor.
-         reg_mat33_logm(&diffTensor);
+         reg_mat33_logm(&diffTensor[tid]);
 
          // Write this out as a new image
-         floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][0]);
-         floatingIntensityXY[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][1]);
-         floatingIntensityYY[floatingIndex] = static_cast<DTYPE>(diffTensor.m[1][1]);
-         floatingIntensityXZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][2]);
-         floatingIntensityYZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[1][2]);
-         floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[2][2]);
+         floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[0][0]);
+         floatingIntensityXY[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[0][1]);
+         floatingIntensityYY[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[1][1]);
+         floatingIntensityXZ[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[0][2]);
+         floatingIntensityYZ[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[1][2]);
+         floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[2][2]);
       }
+#if defined (_OPENMP)
+      omp_set_num_threads(max_thread_number);
+#endif
 #ifndef NDEBUG
       reg_print_msg_debug("Tensors have been logged");
 #endif
@@ -246,80 +257,82 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
 
          // Step through each voxel in the warped image
          double testSum=0;
-         mat33 jacobianMatrix, R;
-         mat33 inputTensor, warpedTensor, RotMat, RotMatT;
          int col, row;
+         int tid=0;
 #if defined (_OPENMP)
+         mat33 inputTensor[16], warpedTensor[16], RotMat[16], RotMatT[16];
+         int max_thread_number = omp_get_max_threads();
+         if(max_thread_number>16) omp_set_num_threads(16);
 #pragma omp parallel for default(none) \
-   private(warpedIndex,inputTensor,jacobianMatrix,R,RotMat,RotMatT, \
-   testSum, warpedTensor, col, row) \
+   private(warpedIndex, testSum, col, row, tid) \
    shared(voxelNumber,inputIntensityXX,inputIntensityYY,inputIntensityZZ, \
    warpedXX, warpedXY, warpedXZ, warpedYY, warpedYZ, warpedZZ, warpedImage, \
-   inputIntensityXY,inputIntensityXZ,inputIntensityYZ, jacMat, mask)
+   inputIntensityXY,inputIntensityXZ,inputIntensityYZ, jacMat, mask, \
+   inputTensor, warpedTensor,RotMat,RotMatT)
+#else
+         mat33 inputTensor[1], warpedTensor[1], RotMat[1], RotMatT[1];
 #endif
          for(warpedIndex=0; warpedIndex<voxelNumber; ++warpedIndex)
          {
+#if defined (_OPENMP)
+            tid=omp_get_thread_num();
+#endif
             if(mask[warpedIndex]>-1)
             {
                // Fill the rest of the mat44 with the tensor components
-               inputTensor.m[0][0] = static_cast<double>(inputIntensityXX[warpedIndex]);
-               inputTensor.m[0][1] = static_cast<double>(inputIntensityXY[warpedIndex]);
-               inputTensor.m[1][0] = inputTensor.m[0][1];
-               inputTensor.m[1][1] = static_cast<double>(inputIntensityYY[warpedIndex]);
-               inputTensor.m[0][2] = static_cast<double>(inputIntensityXZ[warpedIndex]);
-               inputTensor.m[2][0] = inputTensor.m[0][2];
-               inputTensor.m[1][2] = static_cast<double>(inputIntensityYZ[warpedIndex]);
-               inputTensor.m[2][1] = inputTensor.m[1][2];
-               inputTensor.m[2][2] = static_cast<double>(inputIntensityZZ[warpedIndex]);
+               inputTensor[tid].m[0][0] = static_cast<double>(inputIntensityXX[warpedIndex]);
+               inputTensor[tid].m[0][1] = static_cast<double>(inputIntensityXY[warpedIndex]);
+               inputTensor[tid].m[1][0] = inputTensor[tid].m[0][1];
+               inputTensor[tid].m[1][1] = static_cast<double>(inputIntensityYY[warpedIndex]);
+               inputTensor[tid].m[0][2] = static_cast<double>(inputIntensityXZ[warpedIndex]);
+               inputTensor[tid].m[2][0] = inputTensor[tid].m[0][2];
+               inputTensor[tid].m[1][2] = static_cast<double>(inputIntensityYZ[warpedIndex]);
+               inputTensor[tid].m[2][1] = inputTensor[tid].m[1][2];
+               inputTensor[tid].m[2][2] = static_cast<double>(inputIntensityZZ[warpedIndex]);
                // Exponentiate the warped tensor
                if(warpedImage==NULL)
                {
-                  reg_mat33_expm(&inputTensor);
+                  reg_mat33_expm(&inputTensor[tid]);
+                  testSum=0;
                }
                else
                {
-                  reg_mat33_eye(&warpedTensor);
-                  warpedTensor.m[0][0] = static_cast<double>(warpedXX[warpedIndex]);
-                  warpedTensor.m[0][1] = static_cast<double>(warpedXY[warpedIndex]);
-                  warpedTensor.m[1][0] = warpedTensor.m[0][1];
-                  warpedTensor.m[1][1] = static_cast<double>(warpedYY[warpedIndex]);
-                  warpedTensor.m[0][2] = static_cast<double>(warpedXZ[warpedIndex]);
-                  warpedTensor.m[2][0] = warpedTensor.m[0][2];
-                  warpedTensor.m[1][2] = static_cast<double>(warpedYZ[warpedIndex]);
-                  warpedTensor.m[2][1] = warpedTensor.m[1][2];
-                  warpedTensor.m[2][2] = static_cast<double>(warpedZZ[warpedIndex]);
-                  inputTensor = nifti_mat33_mul(warpedTensor,inputTensor);
-                  testSum=static_cast<double>(warpedTensor.m[0][0]+warpedTensor.m[0][1]+warpedTensor.m[0][2]+
-                        warpedTensor.m[1][0]+warpedTensor.m[1][1]+warpedTensor.m[1][2]+
-                        warpedTensor.m[2][0]+warpedTensor.m[2][1]+warpedTensor.m[2][2]);
+                  reg_mat33_eye(&warpedTensor[tid]);
+                  warpedTensor[tid].m[0][0] = static_cast<double>(warpedXX[warpedIndex]);
+                  warpedTensor[tid].m[0][1] = static_cast<double>(warpedXY[warpedIndex]);
+                  warpedTensor[tid].m[1][0] = warpedTensor[tid].m[0][1];
+                  warpedTensor[tid].m[1][1] = static_cast<double>(warpedYY[warpedIndex]);
+                  warpedTensor[tid].m[0][2] = static_cast<double>(warpedXZ[warpedIndex]);
+                  warpedTensor[tid].m[2][0] = warpedTensor[tid].m[0][2];
+                  warpedTensor[tid].m[1][2] = static_cast<double>(warpedYZ[warpedIndex]);
+                  warpedTensor[tid].m[2][1] = warpedTensor[tid].m[1][2];
+                  warpedTensor[tid].m[2][2] = static_cast<double>(warpedZZ[warpedIndex]);
+                  inputTensor[tid] = nifti_mat33_mul(warpedTensor[tid],inputTensor[tid]);
+                  testSum=static_cast<double>(warpedTensor[tid].m[0][0]+warpedTensor[tid].m[0][1]+
+                        warpedTensor[tid].m[0][2]+warpedTensor[tid].m[1][0]+warpedTensor[tid].m[1][1]+
+                        warpedTensor[tid].m[1][2]+warpedTensor[tid].m[2][0]+warpedTensor[tid].m[2][1]+
+                        warpedTensor[tid].m[2][2]);
                }
 
                if(testSum==testSum)
                {
-                  // Find the rotation matrix from the local warp Jacobian
-                  jacobianMatrix = jacMat[warpedIndex];
                   // Calculate the polar decomposition of the local Jacobian matrix, which
                   // tells us how to rotate the local tensor information
-                  R = nifti_mat33_polar(jacobianMatrix);
+                  RotMat[tid] = nifti_mat33_polar(jacMat[warpedIndex]);
                   // We need both the rotation matrix, and it's transpose
                   for(col=0; col<3; col++)
-                  {
                      for(row=0; row<3; row++)
-                     {
-                        RotMat.m[col][row] = static_cast<double>(R.m[col][row]);
-                        RotMatT.m[col][row] = static_cast<double>(R.m[row][col]);
-                     }
-                  }
+                        RotMatT[tid].m[col][row] = static_cast<double>(RotMat[tid].m[row][col]);
                   // As the mat44 multiplication uses pointers, do the multiplications separately
-                  inputTensor = nifti_mat33_mul(nifti_mat33_mul(RotMatT, inputTensor), RotMat);
+                  inputTensor[tid] = nifti_mat33_mul(nifti_mat33_mul(RotMatT[tid], inputTensor[tid]), RotMat[tid]);
 
                   // Finally, read the tensor back out as a warped image
-                  inputIntensityXX[warpedIndex] = static_cast<DTYPE>(inputTensor.m[0][0]);
-                  inputIntensityYY[warpedIndex] = static_cast<DTYPE>(inputTensor.m[1][1]);
-                  inputIntensityZZ[warpedIndex] = static_cast<DTYPE>(inputTensor.m[2][2]);
-                  inputIntensityXY[warpedIndex] = static_cast<DTYPE>(inputTensor.m[0][1]);
-                  inputIntensityXZ[warpedIndex] = static_cast<DTYPE>(inputTensor.m[0][2]);
-                  inputIntensityYZ[warpedIndex] = static_cast<DTYPE>(inputTensor.m[1][2]);
+                  inputIntensityXX[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[0][0]);
+                  inputIntensityYY[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[1][1]);
+                  inputIntensityZZ[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[2][2]);
+                  inputIntensityXY[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[0][1]);
+                  inputIntensityXZ[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[0][2]);
+                  inputIntensityYZ[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[1][2]);
                }
                else
                {
@@ -332,6 +345,9 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                }
             }
          }
+#if defined (_OPENMP)
+      omp_set_num_threads(max_thread_number);
+#endif
       }
 #ifndef NDEBUG
       reg_print_msg_debug("Exponentiated and rotated all voxels");
