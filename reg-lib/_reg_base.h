@@ -27,7 +27,6 @@
 #include "_reg_ReadWriteImage.h"
 #include "_reg_optimiser.h"
 #include "float.h"
-#include <limits>
 //#include "Platform.h"
 #ifdef BUILD_DEV
 #include "_reg_discrete_init.h"

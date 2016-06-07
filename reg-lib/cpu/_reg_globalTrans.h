@@ -15,7 +15,6 @@
 #define _REG_AFFINETRANS_H
 
 #include "nifti1_io.h"
-#include <limits>
 #include "_reg_tools.h"
 /* *************************************************************** */
 /// @brief Structure that is used to store the distance between two corresponding voxel

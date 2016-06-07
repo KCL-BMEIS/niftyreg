@@ -9,9 +9,6 @@
  *
  */
 
-
-#include <limits>
-
 #include "_reg_ReadWriteImage.h"
 #include "_reg_resampling.h"
 #include "_reg_tools.h"

@@ -17,7 +17,6 @@
 
 #include "nifti1_io.h"
 #include <fstream>
-#include <limits>
 #include "_reg_maths.h"
 
 /** @brief Initialise multiples arrays to populate a dense deformation

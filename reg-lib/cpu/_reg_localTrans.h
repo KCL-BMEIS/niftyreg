@@ -17,7 +17,6 @@
 #define _REG_TRANS_H
 
 #include "float.h"
-#include <limits>
 #include "_reg_globalTrans.h"
 #include "_reg_splineBasis.h"
 

@@ -14,8 +14,7 @@
 #include "_reg_f3d2.h"
 #include "reg_f3d.h"
 #include <float.h>
-#include <limits>
-//#include <libgen.h> //DO NOT WORK ON WINDOWS !
+//#include <libgen.h> //DOES NOT WORK ON WINDOWS !
 
 #ifdef _WIN32
 #   include <time.h>

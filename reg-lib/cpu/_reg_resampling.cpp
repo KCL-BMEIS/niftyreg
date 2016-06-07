@@ -157,9 +157,6 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
       DTYPE *floatingIntensityYZ = &firstVox[floatingVoxelNumber*dtIndicies[4]];
       DTYPE *floatingIntensityZZ = &firstVox[floatingVoxelNumber*dtIndicies[5]];
 
-      // We need a mat44 to store the diffusion tensor at each voxel for our calculating.
-      // Although the DT is 3x3 really, it is convenient to store it as a 4x4 to work
-      // with existing code for the matrix logarithm/exponential
       mat33 diffTensor;
 
       // Should log the tensor up front
@@ -185,10 +182,8 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
          diffTensor.m[2][1] = diffTensor.m[1][2];
          diffTensor.m[2][2] = floatingIntensityZZ[floatingIndex];
 
-         // Decompose the mat33 into a rotation and a diagonal matrix of eigen values
-         // Recompose as a log tensor Rt log(E) R, where E is a diagonal matrix
-         // containing the eigen values and R is a rotation matrix.
-         reg_logarithm_tensor(&diffTensor);
+         // Compute the log of the diffusion tensor.
+         reg_mat33_logm(&diffTensor);
 
          // Write this out as a new image
          floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][0]);
@@ -279,7 +274,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                // Exponentiate the warped tensor
                if(warpedImage==NULL)
                {
-                  reg_exponentiate_logged_tensor(&inputTensor);
+                  reg_mat33_expm(&inputTensor);
                }
                else
                {

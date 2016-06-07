@@ -13,6 +13,7 @@
 #ifndef _REG_MATHS_H
 #define _REG_MATHS_H
 
+#include <limits>
 #include <stdio.h>
 #include <math.h>
 #include <iostream>
@@ -75,7 +76,6 @@ typedef enum
 #endif
 /* *************************************************************** */
 #if defined(_WIN32) && !defined(__CYGWIN__)
-#include <limits>
 #include <float.h>
 #include <time.h>
 #ifndef M_PI
@@ -170,7 +170,7 @@ mat33 reg_mat33_mul(mat33 const* A,
 mat33 operator*(mat33 A,
     mat33 B);
 /* *************************************************************** */
-//The mat44 represent a 3x3 matrix
+//The mat33 represent a 3x3 matrix
 void reg_mat33_mul(mat44 const* mat, float const* in, float *out);
 void reg_mat33_mul(mat33 const* mat, float const* in, float *out);
 /* *************************************************************** */
@@ -194,6 +194,10 @@ void reg_mat33_eye(mat33 *mat);
 /** @brief Compute the determinant of a 3-by-3 matrix
 */
 template<class T> T reg_mat33_det(mat33 const* A);
+/* *************************************************************** */
+/** @brief Compute the determinant of a 3-by-3 matrix
+*/
+void reg_mat33_to_nan(mat33 *A);
 /* *************************************************************** */
 /** @brief Transform a mat44 to a mat33 matrix
 */

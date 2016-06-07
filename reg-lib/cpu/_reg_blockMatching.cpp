@@ -13,7 +13,6 @@
 #include "_reg_globalTrans.h"
 #include <map>
 #include <iostream>
-#include <limits>
 #include <cmath>
 /* *************************************************************** */
 template<class DTYPE>

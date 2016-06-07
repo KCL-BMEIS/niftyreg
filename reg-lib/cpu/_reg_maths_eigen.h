@@ -10,12 +10,6 @@
 /* *************************************************************** */
 
 /* *************************************************************** */
-extern "C++"
-void reg_logarithm_tensor(mat33 *in_tensor);
-/* *************************************************************** */
-extern "C++"
-void reg_exponentiate_logged_tensor(mat33 *in_tensor);
-/* *************************************************************** */
 extern "C++" template <class T>
 void svd(T **in, size_t m, size_t n, T * w, T **v);
 /* *************************************************************** */
@@ -33,9 +27,17 @@ mat44 reg_mat44_inv(mat44 const* mat);
 */
 mat44 reg_mat44_sqrt(mat44 const* mat);
 /* *************************************************************** */
+/** @brief Compute the log of a 3-by-3 matrix
+*/
+void reg_mat33_expm(mat33 *in_tensor);
+/* *************************************************************** */
 /** @brief Compute the exp of a 4-by-4 matrix
 */
 mat44 reg_mat44_expm(const mat44 *mat);
+/* *************************************************************** */
+/** @brief Compute the log of a 3-by-3 matrix
+*/
+void reg_mat33_logm(mat33 *in_tensor);
 /* *************************************************************** */
 /** @brief Compute the log of a 4-by-4 matrix
 */

@@ -546,6 +546,14 @@ template float reg_mat33_det<float>(mat33 const* A);
 template double reg_mat33_det<double>(mat33 const* A);
 /* *************************************************************** */
 /* *************************************************************** */
+void reg_mat33_to_nan(mat33 *A)
+{
+   for(int i=0;i<3;++i)
+      for(int j=0;j<3;++j)
+         A->m[i][j] = std::numeric_limits<float>::quiet_NaN();
+}
+/* *************************************************************** */
+/* *************************************************************** */
 mat33 reg_mat44_to_mat33(mat44 const* A)
 {
     mat33 out;

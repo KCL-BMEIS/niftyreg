@@ -15,7 +15,6 @@
 #define _REG_TOOLS_H
 
 #include <fstream>
-#include <limits>
 #include <map>
 #include "_reg_maths.h"
 
