@@ -51,7 +51,7 @@ void CLContextSingletton::init()
 void CLContextSingletton::setClIdx(int clIdxIn)
 {
    clIdx=clIdxIn;
-   init();
+   this->init();
 }
 /* *************************************************************** */
 void CLContextSingletton::queryGridDims()
@@ -116,35 +116,40 @@ void CLContextSingletton::pickCard(cl_uint deviceId)
    }
 
    for(cl_uint i = 0; i < this->numDevices; ++i) {
-      errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);
-      checkErrNum(errNum, "Failed to find OpenCL device info ");
-      cl_uint * info = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSize);
-      errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, NULL);
-      checkErrNum(errNum, "Failed to find OpenCL device info ");
-      cl_uint numProcs = *info;
-      const bool found = numProcs > maxProcs;
-      this->clIdx = found ? i : this->clIdx;
-      maxProcs = found ? numProcs : maxProcs;
-      if(found) {
-          errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, 0, NULL, &paramValueSizeDOUBE1);
-          checkErrNum(errNum, "Failed to find OpenCL device info ");
-          cl_uint * infoD1 = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSizeDOUBE1);
-          errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, paramValueSizeDOUBE1, infoD1, NULL);
-          checkErrNum(errNum, "Failed to find OpenCL device info ");
-          cl_uint numD1 = *infoD1;
+      cl_device_type dev_type;
+      clGetDeviceInfo(this->devices[i], CL_DEVICE_TYPE, sizeof(dev_type), &dev_type, NULL);
+      if (dev_type == CL_DEVICE_TYPE_GPU) {
+         errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);
+         checkErrNum(errNum, "Failed to find OpenCL device info ");
+         cl_uint * info = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSize);
+         errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, NULL);
+         checkErrNum(errNum, "Failed to find OpenCL device info ");
+         cl_uint numProcs = *info;
+         const bool found = numProcs > maxProcs;
+         this->clIdx = found ? i : this->clIdx;
+         maxProcs = found ? numProcs : maxProcs;
 
-          errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, 0, NULL, &paramValueSizeDOUBE2);
-          checkErrNum(errNum, "Failed to find OpenCL device info ");
-          cl_uint * infoD2 = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSizeDOUBE2);
-          errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, paramValueSizeDOUBE2, infoD2, NULL);
-          checkErrNum(errNum, "Failed to find OpenCL device info ");
-          cl_uint numD2 = *infoD2;
+         if(found) {
+            errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, 0, NULL, &paramValueSizeDOUBE1);
+            checkErrNum(errNum, "Failed to find OpenCL device info ");
+            cl_uint * infoD1 = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSizeDOUBE1);
+            errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, paramValueSizeDOUBE1, infoD1, NULL);
+            checkErrNum(errNum, "Failed to find OpenCL device info ");
+            cl_uint numD1 = *infoD1;
 
-          if(numD1 > 0 || numD2 > 0) {
-              this->isCardDoubleCapable = true;
-          } else {
-              this->isCardDoubleCapable = false;
-          }
+            errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, 0, NULL, &paramValueSizeDOUBE2);
+            checkErrNum(errNum, "Failed to find OpenCL device info ");
+            cl_uint * infoD2 = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSizeDOUBE2);
+            errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, paramValueSizeDOUBE2, infoD2, NULL);
+            checkErrNum(errNum, "Failed to find OpenCL device info ");
+            cl_uint numD2 = *infoD2;
+
+            if(numD1 > 0 || numD2 > 0) {
+               this->isCardDoubleCapable = true;
+            } else {
+               this->isCardDoubleCapable = false;
+            }
+         }
       }
    }
 }
@@ -185,7 +190,7 @@ void CLContextSingletton::shutDown()
 	if (this->context != 0) clReleaseContext(this->context);
 	if (this->commandQueue != 0) clReleaseCommandQueue(this->commandQueue);
 
-    delete[] this->devices;
+	 delete[] this->devices;
 }
 /* *************************************************************** */
 void CLContextSingletton::checDebugKernelInfo(cl_program program, cl_device_id devIdIn, char* message)
@@ -309,7 +314,7 @@ size_t CLContextSingletton::getMaxThreads()
 /* *************************************************************** */
 bool CLContextSingletton::getIsCardDoubleCapable()
 {
-    return this->isCardDoubleCapable;
+	 return this->isCardDoubleCapable;
 }
 /* *************************************************************** */
 unsigned int CLContextSingletton::getMaxBlocks()
@@ -329,17 +334,17 @@ size_t CLContextSingletton::getwarpGroupLength(cl_kernel kernel)
 /* *************************************************************** */
 cl_kernel CLContextSingletton::dummyKernel(cl_device_id deviceIdIn) {
 
-	const char *source = "\n"
+   const char *source = "\n"
             "__kernel void dummy(                                                \n"
-			"   __global float* in,                                              \n"
-			"   __global float* out,                                             \n"
+         "   __global float* in,                                              \n"
+         "   __global float* out,                                             \n"
             "   const unsigned int count)                                        \n"
             "{                                                                   \n"
             "   int i = get_global_id(0);                                        \n"
             "   if(i < count)                                                    \n"
             "       out[i] = in[i] * out[i];                                     \n"
             "}                                                                   \n"
-			"\n";
+         "\n";
 
 	cl_int  err ;
 	cl_program program = clCreateProgramWithSource(this->context, 1, (const char **) & source, NULL, &err);
