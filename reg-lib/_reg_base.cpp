@@ -894,9 +894,9 @@ void reg_base<T>::Initialise()
       reg_heapSort(floDataPtr, temp_floating->nvox);
       // Update the floating threshold values if no value has been setup by the user
       if(this->floatingThresholdLow[0]==-std::numeric_limits<T>::max())
-         this->floatingThresholdLow[0] = floDataPtr[(int)reg_round((float)temp_reference->nvox*0.02f)];
+         this->floatingThresholdLow[0] = floDataPtr[(int)reg_round((float)temp_floating->nvox*0.02f)];
       if(this->floatingThresholdUp[0]==std::numeric_limits<T>::max())
-         this->floatingThresholdUp[0] = floDataPtr[(int)reg_round((float)temp_reference->nvox*0.98f)];
+         this->floatingThresholdUp[0] = floDataPtr[(int)reg_round((float)temp_floating->nvox*0.98f)];
       // Free the temporarly allocated image
       nifti_image_free(temp_floating);
    }
