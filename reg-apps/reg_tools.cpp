@@ -48,6 +48,7 @@ typedef struct
         float pixdimX;
         float pixdimY;
         float pixdimZ;
+        int interpOrder;
 } PARAM;
 typedef struct
 {
@@ -74,6 +75,7 @@ typedef struct
         bool testActiveBlocksFlag;
         bool mindFlag;
         bool mindSSCFlag;
+        bool interpFlag;
 } FLAG;
 
 
@@ -110,7 +112,8 @@ void Usage(char *exec)
     printf("\t-4d2rgb\t\t\tConvert a 4D (or 5D) to rgb nifti file\n");
     printf("\t-testActiveBlocks\tGenerate an image highlighting the active blocks for reg_aladin (block variance is shown)\n");
     printf("\t-mind\t\t\tCreate a MIND descriptor image\n");
-    printf("\t-mindssc\t\t\tCreate a MIND-SSC descriptor image\n");
+    printf("\t-mindssc\t\tCreate a MIND-SSC descriptor image\n");
+    printf("\t-interp\t\t\tInterpolation order to use to warp the floating image\n");
 #if defined (_OPENMP)
     int defaultOpenMPValue=omp_get_num_procs();
     if(getenv("OMP_NUM_THREADS")!=NULL)
@@ -326,6 +329,11 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-mindssc") == 0)
         {
             flag->mindSSCFlag=1;
+        }
+        else if(strcmp(argv[i], "-interp") == 0)
+        {
+            flag->interpFlag=1;
+            param->interpOrder=atoi(argv[++i]);
         }
         else
         {
@@ -781,6 +789,10 @@ int main(int argc, char **argv)
         for(size_t i=0;i<(size_t)def->nx*def->ny*def->nz;++i)
             reg_mat33_eye(&jacobian[i]);
         // resample the original image into the space of the new image
+        if(flag->interpFlag == 0){
+            param->interpOrder = 3;
+        }
+        //
         if(newImg->pixdim[1]>image->pixdim[1] ||
                 newImg->pixdim[2]>image->pixdim[2] ||
                 newImg->pixdim[3]>image->pixdim[3] ){
@@ -788,7 +800,7 @@ int main(int argc, char **argv)
                                   newImg,
                                   def,
                                   NULL,
-                                  3,
+                                  param->interpOrder,
                                   0.f,
                                   jacobian,
                                   0);
@@ -798,7 +810,7 @@ int main(int argc, char **argv)
                               newImg,
                               def,
                               NULL,
-                              3,
+                              param->interpOrder,
                               0.f);
         }
 #ifndef NDEBUG
