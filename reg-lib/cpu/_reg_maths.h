@@ -44,7 +44,6 @@ typedef enum
 #define reg_floor_size_t(a) ((a)>0?(long)(a):(long)((a)-1))
 #else
 #define reg_floor(a) ((a)>=0?(int)(a):floor(a))
-#define reg_floor_size_t(a) ((a)>=0?(size_t)(a):floor(a))
 #endif
 #define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 #define FMAX(a,b) (a > b ? a : b)

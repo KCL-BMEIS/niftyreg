@@ -2455,9 +2455,9 @@ DTYPE reg_tools_getMinValue_core(nifti_image *image, int timepoint)
    size_t voxelNumber = (size_t)image->nx*
          image->ny*image->nz;
    // Loop over all voxel to find the lowest value
-   for(size_t time=0; time<image->nt; ++time){
+   for(int time=0; time<image->nt; ++time){
       if(time==timepoint || timepoint==-1){
-         for(size_t u=0; u<image->nu; ++u){
+         for(int u=0; u<image->nu; ++u){
             DTYPE *currentVolumePtr = &imgPtr[(u*image->nt+time)*voxelNumber];
             for(size_t i=0; i<voxelNumber; ++i){
                DTYPE currentVal = (DTYPE)((float)currentVolumePtr[i] * image->scl_slope + image->scl_inter);

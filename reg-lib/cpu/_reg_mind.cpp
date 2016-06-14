@@ -126,9 +126,15 @@ void GetMINDImageDesciptor_core(nifti_image* inputImage,
                                 int descriptorOffset,
                                 int current_timepoint)
 {
+#ifdef WIN32
+   const long voxelNumber = (long)inputImage->nx *
+         inputImage->ny * inputImage->nz;
+   long voxelIndex;
+#else
    const size_t voxelNumber = (size_t)inputImage->nx *
          inputImage->ny * inputImage->nz;
-   int voxelIndex;
+   size_t voxelIndex;
+#endif
 
    // Create a pointer to the descriptor image
    DTYPE* MINDImgDataPtr = static_cast<DTYPE *>(MINDImage->data);
@@ -258,9 +264,16 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImage,
                                    int descriptorOffset,
                                    int current_timepoint)
 {
+
+#ifdef WIN32
+   const long voxelNumber = (long)inputImage->nx *
+         inputImage->ny * inputImage->nz;
+   long voxelIndex;
+#else
    const size_t voxelNumber = (size_t)inputImage->nx *
          inputImage->ny * inputImage->nz;
-   int voxelIndex;
+   size_t voxelIndex;
+#endif
 
    // Create a pointer to the descriptor image
    DTYPE* MINDSSCImgDataPtr = static_cast<DTYPE *>(MINDSSCImage->data);

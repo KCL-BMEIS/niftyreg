@@ -330,6 +330,11 @@ template void reg_getVoxelBasedDTIMeasureGradient<double>
 /* *************************************************************** */
 void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 {
+   // Check if the specified time point exists and is active
+   reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
+   if(this->activeTimePoint[current_timepoint]==false)
+      return;
+
    // Check if all required input images are of the same data type
    int dtype = this->referenceImagePointer->datatype;
    if(this->warpedFloatingImagePointer->datatype != dtype ||

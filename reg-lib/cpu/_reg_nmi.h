@@ -267,9 +267,12 @@ public:
       return 0.;
    }
    /// @brief Compute the voxel based nmi gradient
-   void GetVoxelBasedSimilarityMeasureGradient()
+   void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
    {
-      ;
+      // Check if the specified time point exists and is active
+      reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
+      if(this->activeTimePoint[current_timepoint]==false)
+         return;;
    }
    /// @brief reg_nmi class destructor
    ~reg_multichannel_nmi() {}

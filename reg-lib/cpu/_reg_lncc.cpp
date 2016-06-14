@@ -341,7 +341,7 @@ double reg_getLNCCValue(nifti_image *referenceImage,
    DTYPE *warSdevPtr=static_cast<DTYPE *>(warpedSdevImage->data);
    DTYPE *correlaPtr=static_cast<DTYPE *>(correlationImage->data);
 
-   for(int i=0; i<voxelNumber; ++i)
+   for(size_t i=0; i<voxelNumber; ++i)
       correlaPtr[i] = currentRefPtr[i] * currentWarPtr[i];
 
    reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, kernelType, combinedMask);
@@ -550,7 +550,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
    DTYPE *warSdevPtr=static_cast<DTYPE *>(warpedSdevImage->data);
    DTYPE *correlaPtr=static_cast<DTYPE *>(correlationImage->data);
 
-   for(int i=0; i<voxelNumber; ++i)
+   for(size_t i=0; i<voxelNumber; ++i)
       correlaPtr[i] = currentRefPtr[i] * currentWarPtr[i];
 
    reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, kernelType, combinedMask);

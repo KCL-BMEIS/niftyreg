@@ -43,7 +43,7 @@ int main(int argc, char **argv)
    //}
    //DEBUG
    int* orderedList=new int[nb_CP];
-   for(int i=0;i<nb_CP;i++) {
+   for(size_t i=0;i<nb_CP;i++) {
        orderedList[i]=i;
    }
    int* parentsList=new int[nb_CP];
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
    parentsList[2]=1;
    parentsList[3]=1;
    float* edgeWeight=new float[nb_CP];
-   for(int i=0;i<nb_CP;i++) {
+   for(size_t i=0;i<nb_CP;i++) {
        edgeWeight[i]=1;
    }
    //

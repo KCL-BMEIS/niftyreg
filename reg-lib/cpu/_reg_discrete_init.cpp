@@ -78,7 +78,7 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
    this->optimal_label_index=(int *)malloc(this->node_number*sizeof(int));
    currentValue= (this->label_1D_num-1)/2;
    currentValue = (currentValue*this->label_1D_num+currentValue)*this->label_1D_num+currentValue;
-   for(int n=0; n<this->node_number; ++n)
+   for(size_t n=0; n<this->node_number; ++n)
       this->optimal_label_index[n]=currentValue;
 
    //To store the cost data term
@@ -147,8 +147,8 @@ void reg_discrete_init::getOptimalLabel()
 {
    this->regularisation_convergence=0;
    size_t opt_label = 0;
-   for(int node=0; node<this->node_number; ++node){
-      int current_optimal = this->optimal_label_index[node];
+   for(size_t node=0; node<this->node_number; ++node){
+      size_t current_optimal = this->optimal_label_index[node];
       opt_label =
             std::max_element(this->regularised_measures+node*this->label_nD_num,
                              this->regularised_measures+(node+1)*this->label_nD_num) -
@@ -209,7 +209,7 @@ void reg_discrete_init::AddL2Penalisation(float weight)
 
    // Loop over all control points
    int measure_index, n;
-   size_t _node_number = this->node_number;
+   int _node_number = static_cast<int>(this->node_number);
    int _label_nD_num = this->label_nD_num;
    float *_discretised_measures = &this->discretised_measures[0];
 #if defined (_OPENMP)

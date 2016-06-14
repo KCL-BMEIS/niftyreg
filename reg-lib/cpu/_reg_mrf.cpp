@@ -245,7 +245,7 @@ void reg_mrf::GetDiscretisedMeasure()
                                 this->discrete_radius,
                                 this->discrete_increment);
    //Let's put the values positive for the mrf
-   for(int i=0;i<(this->node_number*this->label_nD_num);i++) {
+   for(size_t i=0;i<this->node_number*this->label_nD_num;i++) {
        this->discretised_measures[i]=-this->discretised_measures[i];
    }
 //DEBUG
@@ -284,7 +284,7 @@ for(int i=0;i<32388174;i++){
 /*****************************************************/
 void reg_mrf::getOptimalLabel()
 {
-   for(int node=0; node<this->node_number; ++node) {
+   for(size_t node=0; node<this->node_number; ++node) {
       this->optimal_label_index[node]=
          std::min_element(this->regularised_cost+node*this->label_nD_num,this->regularised_cost+(node+1)*this->label_nD_num) -
          (this->regularised_cost+node*this->label_nD_num);
@@ -376,29 +376,12 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
    float SADNeighbourValue = 0;
 
    // Pointers to the input image
-   size_t voxelNumber = (size_t)refImage->nx *
-         refImage->ny * refImage->nz;
    DTYPE *refImgPtr = static_cast<DTYPE *>(refImage->data);
-   DTYPE *currentRefPtr = NULL;
 
    // Loop over all control points
    for(cpz=0; cpz<controlPointGridImage->nz; ++cpz){
       for(cpy=0; cpy<controlPointGridImage->ny; ++cpy){
          for(cpx=0; cpx<controlPointGridImage->nx; ++cpx){
-            //DEBUG
-            //int sz=refImage->nx * refImage->ny * refImage->nz;
-            //int m=refImage->nx;
-            //int n=refImage->ny;
-            //int o=refImage->nz;
-            //int grid_step = blockSize[0];
-            //int m1=m/grid_step;
-            //int n1=n/grid_step;
-            //int o1=o/grid_step;
-            //int num_vertices = m1*n1*o1;
-            //for(cpz=0; cpz<o1; ++cpz){
-            //        for(cpy=0; cpy<n1; ++cpy){
-            //            for(cpx=0; cpx<m1; ++cpx){
-            //DEBUG
             //Because I reuse this variable after.
             gridVox[2] = cpz;
             gridVox[1] = cpy;
@@ -560,10 +543,10 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
    //normalise edgeweights by stddev of image ???????
    float stdim=reg_tools_getSTDValue(refImage);
 
-   for(int i=0;i<node_number*6;i++){
+   for(size_t i=0;i<node_number*6;i++){
       edgeWeightMatrix[i]/=voxelBlockNumber;
    }
-   for(int i=0;i<node_number*6;i++){
+   for(size_t i=0;i<node_number*6;i++){
       edgeWeightMatrix[i]=-exp(-edgeWeightMatrix[i]/(2.0f*stdim));
    }
    //DEBUG
@@ -734,8 +717,8 @@ void reg_mrf::GetPrimsMST(float *edgeWeightMatrix,
       orderedList[i]=treeLevel[i].second;
    }
    //Free memory
-   delete treeLevel;
-   delete addedToMST;
+   delete []treeLevel;
+   delete []addedToMST;
 }
 /*****************************************************/
 void reg_mrf::GetRegularisation()
@@ -751,25 +734,10 @@ void reg_mrf::GetRegularisation()
    float *vals=new float[this->label_nD_num];
    int *inds=new int[this->label_nD_num];
 
-   //DEBUG
-   //int blockSize[3]={
-   //    (int)reg_ceil(controlPointImage->dx / referenceImage->dx),
-   //    (int)reg_ceil(controlPointImage->dy / referenceImage->dy),
-   //    (int)reg_ceil(controlPointImage->dz / referenceImage->dz),
-   //};
-   //int sz=referenceImage->nx * referenceImage->ny * referenceImage->nz;
-   //int m=referenceImage->nx;
-   //int n=referenceImage->ny;
-   //int o=referenceImage->nz;
-   //int grid_step = blockSize[0];
-   //int m1=m/grid_step;
-   //int n1=n/grid_step;
-   //int o1=o/grid_step;
-   //controlPointNumber = m1*n1*o1;
-   //DEBUG
+
    float* message=new float[this->node_number*this->label_nD_num];
    //initialize the energy term with the data cost value
-   for(int i=0;i<this->node_number*this->label_nD_num;i++){
+   for(size_t i=0;i<this->node_number*this->label_nD_num;i++){
       //matrix = discretisedValue (first dimension displacement label, second dim. control point)
       this->regularised_cost[i]=this->discretised_measures[i];
       message[i]=0.0;
@@ -811,7 +779,7 @@ void reg_mrf::GetRegularisation()
    }
 
    //backwards pass mst-cost
-   for(int i=1;i<this->node_number;i++){ //other direction
+   for(size_t i=1;i<this->node_number;i++){ //other direction
       int ochild=this->orderedList[i];
       int oparent=this->parentsList[ochild];
       //retreive the weight of the edge between oparent and ochild
@@ -829,14 +797,14 @@ void reg_mrf::GetRegularisation()
 
    }
 
-   for(int i=0;i<this->node_number*this->label_nD_num;i++){
+   for(size_t i=0;i<this->node_number*this->label_nD_num;i++){
       this->regularised_cost[i]+=message[i];
    }
 
-   delete message;
-   delete cost1;
-   delete vals;
-   delete inds;
+   delete []message;
+   delete []cost1;
+   delete []vals;
+   delete []inds;
 }
 /*****************************************************/
 /*****************************************************/

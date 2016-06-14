@@ -45,37 +45,20 @@ int main(int argc, char **argv)
 
    reg_mrfObject->GetPrimsMST(edgeWeightMatrix,indexNeighbours, nb_CP, 6, false);
    //COMPARE THE RESULTS
-   int* olP = reg_mrfObject->GetOrderedListPtr();
    int* plP = reg_mrfObject->GetParentsListPtr();
-   float* ewP = reg_mrfObject->GetEdgeWeightPtr();
    //
-   for(size_t i=0;i<nb_CP;i++) {
-       //DEBUG
-       //std::cout<<"olP[i]="<<olP[i]+1<<std::endl;
-       //std::cout<<"plP[i]+1="<<plP[i]+1<<std::endl;
-       //std::cout<<"expectedParentsList[i]="<<expectedParentsList[i]<<std::endl;
-       //std::cout<<"ewP[i]="<<ewP[i]<<std::endl;
-       //DEBUG
-       //if((olP[i]+1 - expectedOrderedList[i]) != 0) {
-       //    reg_print_msg_error("the 2 MST are differents");
-       //    return EXIT_FAILURE;
-       //}
+   for(int i=0;i<nb_CP;i++) {
+
        if((plP[i]+1 - expectedParentsList[i]) != 0) {
            reg_print_msg_error("the 2 MST are differents");
            return EXIT_FAILURE;
        }
-       //if(std::abs(ewP[i] - expectedEdgeWeight[i]) > EPS) {
-       //    reg_print_msg_error("the 2 MST are differents");
-       //    return EXIT_FAILURE;
-       //}
    }
    //
    delete[] indexNeighbours;
    delete[] edgeWeightMatrix;
 
-   //delete[] expectedOrderedList;
    delete[] expectedParentsList;
-   //delete[] expectedEdgeWeight;
    //
 #ifndef NDEBUG
    printf("All good\n");

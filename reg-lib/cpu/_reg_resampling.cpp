@@ -1117,8 +1117,8 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
             //initialise weights
             psfWeightSum=0.0f;
             intensity=0.0f;
-            currentC=reg_floor(index/warpedPlaneNumber);
-            currentB=reg_floor((index-currentC*warpedPlaneNumber)/warpedLineNumber);
+            currentC=index/warpedPlaneNumber;
+            currentB=(index-currentC*warpedPlaneNumber)/warpedLineNumber;
             currentA=(index-currentB*warpedLineNumber-currentC*warpedPlaneNumber);
 
             // coordinates in eigen space
@@ -1546,8 +1546,8 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
                 psfKernelShift[2]=TmS_EigVal.m[2][2]<0.01f?0.0f:(float)(psfNumbSamples)*psfSampleSpacing;
 
                 // Get image coordinates of the centre
-                currentC=reg_floor(index/warpedPlaneNumber);
-                currentB=reg_floor((index-currentC*warpedPlaneNumber)/warpedLineNumber);
+                currentC=index/warpedPlaneNumber;
+                currentB=(index-currentC*warpedPlaneNumber)/warpedLineNumber;
                 currentA=(index-currentB*warpedLineNumber-currentC*warpedPlaneNumber);
 
                 //initialise weights
@@ -1593,13 +1593,13 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
 
                                 if(psfWeight!=0.f){ // If the relative weight is above 0
                                     // Interpolate (trilinearly) the deformation field for non-integer positions
-                                    currentAPre=(size_t)(reg_floor_size_t(currentA+(size_t)reg_floor_size_t(psf_xyz[0]/(float)warpedImage->pixdim[1])));
+                                    currentAPre=(size_t)(currentA+(size_t)reg_floor(psf_xyz[0]/(float)warpedImage->pixdim[1]));
                                     currentARel=(float)currentA+(float)(psf_xyz[0]/(float)warpedImage->pixdim[1])-(float)(currentAPre);
 
-                                    currentBPre=(size_t)(reg_floor_size_t(currentB+(size_t)reg_floor_size_t(psf_xyz[1]/(float)warpedImage->pixdim[2])));
+                                    currentBPre=(size_t)(currentB+(size_t)reg_floor(psf_xyz[1]/(float)warpedImage->pixdim[2]));
                                     currentBRel=(float)currentB+(float)(psf_xyz[1]/(float)warpedImage->pixdim[2])-(float)(currentBPre);
 
-                                    currentCPre=(size_t)(reg_floor_size_t(currentC+(size_t)reg_floor_size_t(psf_xyz[2]/(float)warpedImage->pixdim[3])));
+                                    currentCPre=(size_t)(currentC+(size_t)reg_floor(psf_xyz[2]/(float)warpedImage->pixdim[3]));
                                     currentCRel=(float)currentC+(float)(psf_xyz[2]/(float)warpedImage->pixdim[3])-(float)(currentCPre);
 
                                     // Interpolate the PSF world coordinates
