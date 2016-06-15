@@ -90,8 +90,8 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-fbn <tp> <int>\t\tNMI. Number of bin to use for the floating image histogram for the specified time point.");
    reg_print_info(exec, "\t--lncc <float>\t\tLNCC. Standard deviation of the Gaussian kernel. Identical value for every timepoint");
    reg_print_info(exec, "\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint");
-   reg_print_info(exec, "\t--ssd\t\t\tSSD. Used for all time points");
-   reg_print_info(exec, "\t-ssd <tp>\t\tSSD. Used for the specified timepoint");
+   reg_print_info(exec, "\t--ssd <normalise>\t\t\tSSD. Used for all time points");
+   reg_print_info(exec, "\t-ssd <tp> <normalise>\t\tSSD. Used for the specified timepoint");
    reg_print_info(exec, "\t--mind <offset>\t\t\tMIND and the offset to use to compute the descriptor");
    reg_print_info(exec, "\t--mindssc <offset>\t\tMIND-SCC and the offset to use to compute the descriptor");
    reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
@@ -511,12 +511,15 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-ssd")==0)
       {
-         REG->UseSSD(atoi(argv[++i]));
+         int timepoint = atoi(argv[++i]);
+         bool normalise = atoi(argv[++i]);
+         REG->UseSSD(timepoint, normalise);
       }
       else if(strcmp(argv[i], "--ssd")==0)
       {
+         bool normalise = atoi(argv[++i]);
          for(int t=0; t<floatingImage->nt; ++t)
-            REG->UseSSD(t);
+            REG->UseSSD(t, normalise);
       }
       else if(strcmp(argv[i], "--mind")==0)
       {

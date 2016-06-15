@@ -1135,11 +1135,12 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::UseSSD(int timepoint)
+void reg_base<T>::UseSSD(int timepoint, bool normalize)
 {
    if(this->measure_ssd==NULL)
-      this->measure_ssd=new reg_ssd;
+      this->measure_ssd=new reg_ssd();
    this->measure_ssd->SetActiveTimepoint(timepoint);
+   this->measure_ssd->SetNormalizeTimepoint(timepoint,normalize);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseSSD");
 #endif

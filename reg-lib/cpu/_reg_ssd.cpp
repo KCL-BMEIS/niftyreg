@@ -19,6 +19,7 @@
 reg_ssd::reg_ssd()
     : reg_measure()
 {
+    memset(this->normalizeTimePoint,0,255*sizeof(bool) );
 #ifndef NDEBUG
     reg_print_msg_debug("reg_ssd constructor called");
 #endif
@@ -58,7 +59,7 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
     // Input images are normalised between 0 and 1
     for(int i=0; i<this->referenceImagePointer->nt; ++i)
     {
-        if(this->activeTimePoint[i])
+        if(this->activeTimePoint[i] && normalizeTimePoint[i])
         {
             reg_intensityRescale(this->referenceImagePointer,
                                  i,
@@ -81,7 +82,18 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
         if(this->activeTimePoint[i])
             sprintf(text, "%s %i", text, i);
     reg_print_msg_debug(text);
+    sprintf(text, "Normalize time point:");
+    for(int i=0; i<this->referenceImagePointer->nt; ++i)
+        if(this->normalizeTimePoint[i])
+            sprintf(text, "%s %i", text, i);
+    reg_print_msg_debug(text);
 #endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_ssd::SetNormalizeTimepoint(int timepoint, bool normalize)
+{
+   this->normalizeTimePoint[timepoint]=normalize;
 }
 /* *************************************************************** */
 /* *************************************************************** */
