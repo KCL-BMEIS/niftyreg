@@ -793,10 +793,9 @@ int main(int argc, char **argv)
             param->interpOrder = 3;
         }
         //
-        /*
-        if(newImg->pixdim[1]>image->pixdim[1] ||
+        if((newImg->pixdim[1]>image->pixdim[1] ||
                 newImg->pixdim[2]>image->pixdim[2] ||
-                newImg->pixdim[3]>image->pixdim[3] ){
+                newImg->pixdim[3]>image->pixdim[3]) && param->interpOrder != 0){
             reg_resampleImage_PSF(image,
                                   newImg,
                                   def,
@@ -805,19 +804,21 @@ int main(int argc, char **argv)
                                   0.f,
                                   jacobian,
                                   0);
+#ifndef NDEBUG
+        reg_print_msg_debug("PSF resampling completed\n");
+#endif
         }
         else{
-        */
             reg_resampleImage(image,
                               newImg,
                               def,
                               NULL,
                               param->interpOrder,
                               0.f);
-        //}
 #ifndef NDEBUG
         reg_print_msg_debug("Resampling completed\n");
 #endif
+        }
         free(jacobian);
         nifti_image_free(def);
         // Save and free the new iamge
