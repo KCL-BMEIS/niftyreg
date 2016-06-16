@@ -83,7 +83,7 @@ void Usage(char *exec)
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Measure of similarity options:");
    reg_print_info(exec, "*** NMI with 64 bins is used expect if specified otherwise");
-   reg_print_info(exec, "\t--nmi\t\t\tNMI. Used NMI even when one or several other measures are specified.");
+   reg_print_info(exec, "\t--nmi\t\t\tNMI. Used NMI even when one or several other measures are specified");
    reg_print_info(exec, "\t--rbn <int>\t\tNMI. Number of bin to use for the reference image histogram. Identical value for every timepoint");
    reg_print_info(exec, "\t--fbn <int>\t\tNMI. Number of bin to use for the floating image histogram. Identical value for every timepoint");
    reg_print_info(exec, "\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the reference image histogram for the specified time point");
@@ -92,14 +92,14 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint");
    reg_print_info(exec, "\t--ssd \t\t\tSSD. Used for all time points - images are normalized between 0 and 1 before computing the measure");
    reg_print_info(exec, "\t-ssd <tp> \t\tSSD. Used for the specified timepoint - images are normalized between 0 and 1 before computing the measure");
-   reg_print_info(exec, "\t--ssdn <normalise>\tSSD. Used for all time points - images can be normalized between 0 and 1 before computing the measure");
-   reg_print_info(exec, "\t-ssdn <tp> <normalise> \tSSD. Used for the specified timepoint - images can be normalized between 0 and 1 before computing the measure");
+   reg_print_info(exec, "\t--ssdn \t\t\tSSD. Used for all time points - images are NOT normalized between 0 and 1 before computing the measure");
+   reg_print_info(exec, "\t-ssdn <tp> \t\tSSD. Used for the specified timepoint - images are NOT normalized between 0 and 1 before computing the measure");
    reg_print_info(exec, "\t--mind <offset>\t\tMIND and the offset to use to compute the descriptor");
    reg_print_info(exec, "\t--mindssc <offset>\tMIND-SCC and the offset to use to compute the descriptor");
    reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
    reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
-   reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98\% ile.");
+   reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98\% ile");
    //   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Optimisation options:");
@@ -526,12 +526,12 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-ssdn")==0)
       {
          int timepoint = atoi(argv[++i]);
-         bool normalise = atoi(argv[++i]);
+         bool normalise = 0;
          REG->UseSSD(timepoint, normalise);
       }
       else if(strcmp(argv[i], "--ssdn")==0)
       {
-         bool normalise = atoi(argv[++i]);
+         bool normalise = 0;
          for(int t=0; t<floatingImage->nt; ++t)
             REG->UseSSD(t, normalise);
       }
