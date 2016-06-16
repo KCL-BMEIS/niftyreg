@@ -28,11 +28,11 @@ typedef enum
 {
    DEF_FIELD,
    DISP_FIELD,
-   LIN_SPLINE_GRID,
    CUB_SPLINE_GRID,
    DEF_VEL_FIELD,
    DISP_VEL_FIELD,
-   SPLINE_VEL_GRID
+   SPLINE_VEL_GRID,
+   LIN_SPLINE_GRID
 } NREG_TRANS_TYPE;
 
 /* *************************************************************** */
