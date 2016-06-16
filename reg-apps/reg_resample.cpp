@@ -430,6 +430,7 @@ int main(int argc, char **argv)
       nifti_image *warpedImage = nifti_copy_nim_info(referenceImage);
       warpedImage->dim[0]=warpedImage->ndim=floatingImage->dim[0];
       warpedImage->dim[4]=warpedImage->nt=floatingImage->dim[4];
+      warpedImage->dim[5]=warpedImage->nu=floatingImage->dim[5];
       warpedImage->cal_min=floatingImage->cal_min;
       warpedImage->cal_max=floatingImage->cal_max;
       warpedImage->scl_slope=floatingImage->scl_slope;
@@ -441,9 +442,14 @@ int main(int argc, char **argv)
          reg_tools_changeDatatype<float>(floatingImage);
       }
       else warpedImage->datatype = floatingImage->datatype;
+      warpedImage->intent_code=floatingImage->intent_code;
+      memset(warpedImage->intent_name, 0, 16);
+      strcpy(warpedImage->intent_name,floatingImage->intent_name);
+      warpedImage->intent_p1=floatingImage->intent_p1;
+      warpedImage->intent_p2=floatingImage->intent_p2;
       warpedImage->nbyper = floatingImage->nbyper;
-      warpedImage->nvox = (size_t)warpedImage->dim[1] * (size_t)warpedImage->dim[2] *
-            (size_t)warpedImage->dim[3] * (size_t)warpedImage->dim[4];
+      warpedImage->nvox = (size_t)warpedImage->dim[1] * warpedImage->dim[2] *
+            warpedImage->dim[3] * warpedImage->dim[4] * warpedImage->dim[5];
       warpedImage->data = (void *)calloc(warpedImage->nvox, warpedImage->nbyper);
 
       if((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor==true)
