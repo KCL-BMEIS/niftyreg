@@ -119,6 +119,16 @@ install(TARGETS _reg_blockMatching
   )
 install(FILES cpu/_reg_blockMatching.h DESTINATION include)
 #-----------------------------------------------------------------------------
+add_library(_reg_femTrans ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_femTrans.cpp)
+target_link_libraries(_reg_femTrans _reg_globalTrans
+)
+install(TARGETS _reg_femTrans
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  )
+install(FILES cpu/_reg_femTrans.h DESTINATION include)
+#-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
 set(_reg_aladin_files
   AladinContent.cpp
@@ -227,10 +237,9 @@ if(BUILD_DEV)
     cpu/_reg_mrf.cpp
     cpu/_reg_discrete_init.h
     cpu/_reg_discrete_init.cpp
-    cpu/_reg_femTrans.h
-    cpu/_reg_femTrans.cpp
     )
   set(_reg_dev_libraries
+    _reg_femTrans
     _reg_localTrans
     _reg_globalTrans
     _reg_resampling
@@ -246,7 +255,6 @@ if(BUILD_DEV)
     ARCHIVE DESTINATION lib
     )
   install(FILES cpu/_reg_mrf.cpp cpu/_reg_mrf.h DESTINATION include)
-  install(FILES cpu/_reg_femTrans.cpp cpu/_reg_femTrans.h DESTINATION include)
 endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
