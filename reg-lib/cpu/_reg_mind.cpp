@@ -628,9 +628,9 @@ double reg_mind::GetSimilarityMeasureValue()
             voxelNumber = (size_t)floatingImagePointer->nx *
                   floatingImagePointer->ny * floatingImagePointer->nz;
             combinedMask = (int *)malloc(voxelNumber*sizeof(int));
-            memcpy(combinedMask, this->referenceMaskPointer, voxelNumber*sizeof(int));
-            reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
-            reg_tools_removeNanFromMask(this->warpedFloatingImagePointer, combinedMask);
+            memcpy(combinedMask, this->floatingMaskPointer, voxelNumber*sizeof(int));
+            reg_tools_removeNanFromMask(this->floatingImagePointer, combinedMask);
+            reg_tools_removeNanFromMask(this->warpedReferenceImagePointer, combinedMask);
 
             if(this->mind_type==MIND_TYPE){
                GetMINDImageDesciptor(this->floatingImagePointer,
@@ -783,9 +783,9 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
       voxelNumber = (size_t)floatingImagePointer->nx *
             floatingImagePointer->ny * floatingImagePointer->nz;
       combinedMask = (int *)malloc(voxelNumber*sizeof(int));
-      memcpy(combinedMask, this->referenceMaskPointer, voxelNumber*sizeof(int));
-      reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
-      reg_tools_removeNanFromMask(this->warpedFloatingImagePointer, combinedMask);
+      memcpy(combinedMask, this->floatingMaskPointer, voxelNumber*sizeof(int));
+      reg_tools_removeNanFromMask(this->floatingImagePointer, combinedMask);
+      reg_tools_removeNanFromMask(this->warpedReferenceImagePointer, combinedMask);
 
       if(this->mind_type==MIND_TYPE){
          GetMINDImageDesciptor(this->floatingImagePointer,
