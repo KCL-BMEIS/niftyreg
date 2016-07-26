@@ -244,7 +244,7 @@ public:
 //    void DoNotApproximateParzenWindow();
    virtual void UseNMISetReferenceBinNumber(int,int);
    virtual void UseNMISetFloatingBinNumber(int,int);
-   virtual void UseSSD(int timepoint);
+   virtual void UseSSD(int timepoint, bool normalize);
    virtual void UseMIND(int timepoint, int offset);
    virtual void UseMINDSSC(int timepoint, int offset);
    virtual void UseKLDivergence(int timepoint);
