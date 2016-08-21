@@ -24,7 +24,6 @@ public:
     virtual void ClearDeformationField();
 
     void InitBlockMatchingParams();
-
     virtual void ClearBlockMatchingParams();
 
     bool isCurrentComputationDoubleCapable();

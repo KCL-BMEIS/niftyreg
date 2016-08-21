@@ -4,8 +4,6 @@
 /* *************************************************************** */
 ClAladinContent::ClAladinContent() : AladinContent(NR_PLATFORM_CL)
 {
-    //InitVars();
-    //allocateClPtrs();
     this->referenceImageClmem = 0;
     this->floatingImageClmem = 0;
     this->warpedImageClmem = 0;
@@ -420,7 +418,7 @@ void ClAladinContent::ClearBlockMatchingParams()
         AladinContent::ClearBlockMatchingParams();
     }
 #ifndef NDEBUG
-   reg_print_fct_debug("ClAladinContent::ClearWarped");
+   reg_print_fct_debug("ClAladinContent::ClearBlockMatchingParams");
 #endif
 }
 /* *************************************************************** */

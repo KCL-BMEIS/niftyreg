@@ -9,31 +9,15 @@ class CudaAladinContent: public AladinContent {
 
 public:
 	CudaAladinContent();
-	CudaAladinContent(nifti_image *CurrentReferenceIn,
-							nifti_image *CurrentFloatingIn,
-							int *CurrentReferenceMaskIn,
-							size_t byte,
-							const unsigned int blockPercentage,
-							const unsigned int inlierLts,
-							int blockStep);
-	CudaAladinContent(nifti_image *CurrentReferenceIn,
-							nifti_image *CurrentFloatingIn,
-							int *CurrentReferenceMaskIn,
-							size_t byte);
-	CudaAladinContent(nifti_image *CurrentReferenceIn,
-							nifti_image *CurrentFloatingIn,
-							int *CurrentReferenceMaskIn,
-							mat44 *transMat,
-							size_t byte,
-							const unsigned int blockPercentage,
-							const unsigned int inlierLts,
-							int blockStep);
-	CudaAladinContent(nifti_image *CurrentReferenceIn,
-							nifti_image *CurrentFloatingIn,
-							int *CurrentReferenceMaskIn,
-							mat44 *transMat,
-							size_t byte);
-	~CudaAladinContent();
+    virtual ~CudaAladinContent();
+
+    virtual void AllocateWarped();
+    virtual void ClearWarped();
+    virtual void AllocateDeformationField();
+    virtual void ClearDeformationField();
+
+    void InitBlockMatchingParams();
+    virtual void ClearBlockMatchingParams();
 
 	bool isCurrentComputationDoubleCapable();
 
@@ -62,21 +46,26 @@ public:
 	int *getFloatingDims();
 
 	//cpu getters and setters
+    nifti_image *getCurrentWarped(int typ);
+    nifti_image *getCurrentDeformationField();
 	_reg_blockMatchingParam* getBlockMatchingParams();
-	nifti_image *getCurrentDeformationField();
-	nifti_image *getCurrentWarped(int typ);
 
-	void setTransformationMatrix(mat44 *transformationMatrixIn);
-	void setCurrentWarped(nifti_image *warpedImageIn);
-	void setCurrentDeformationField(nifti_image *CurrentDeformationFieldIn);
-	void setCurrentReferenceMask(int *maskIn, size_t size);
-	void setBlockMatchingParams(_reg_blockMatchingParam* bmp);
+    //setters
+    virtual void setCurrentReference(nifti_image* currentRefIn);
+    virtual void setCurrentReferenceMask(int *maskIn, size_t size);
+    virtual void setCurrentFloating(nifti_image* currentFloIn);
+    virtual void setCurrentWarped(nifti_image *warpedImageIn);
+    virtual void setCurrentDeformationField(nifti_image *currentDeformationFieldIn);
+
+    virtual void setTransformationMatrix(mat44 *transformationMatrixIn);
+    virtual void setTransformationMatrix(mat44 transformationMatrixIn);
+    virtual void setBlockMatchingParams(_reg_blockMatchingParam* bmp);
 
 private:
 	void initVars();
 
 	//void uploadAladinContent();
-	void allocateCuPtrs();
+    //void allocateCuPtrs();
 	void freeCuPtrs();
 
 	CUDAContextSingletton* cudaSContext;

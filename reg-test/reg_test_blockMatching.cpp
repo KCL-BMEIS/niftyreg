@@ -144,7 +144,6 @@ int main(int argc, char **argv)
       con->setPercentageOfBlock(100);
       con->setInlierLts(100);
       con->setBlockStepSize(1);
-
    }
 #ifdef _USE_CUDA
    else if (platformCode == NR_PLATFORM_CUDA) {
