@@ -22,43 +22,28 @@ private:
   AladinContent *backCon;
   Kernel *bAffineTransformation3DKernel, *bConvolutionKernel, *bBlockMatchingKernel, *bOptimiseKernel, *bResamplingKernel;
 
-  virtual void initAladinContent(nifti_image *ref,
-                                 nifti_image *flo,
-                                 int *mask,
-                                 mat44 *transMat,
-                                 size_t bytes);
-  virtual void initAladinContent(nifti_image *ref,
-                                 nifti_image *flo,
-                                 int *mask,
-                                 mat44 *transMat,
-                                 size_t bytes,
-                                 unsigned int blockPercentage,
-                                 unsigned int inlierLts,
-                                 unsigned int blockStepSize);
-  virtual void clearAladinContent();
-  virtual void createKernels();
-  virtual void clearKernels();
+  virtual void InitCurrentLevel(unsigned int cl);
+
+  //virtual void ClearAladinContent();
+  virtual void AllocateImages();
+  virtual void ClearAllocatedImages();
+
+  virtual void CreateKernels();
+  virtual void ClearKernels();
 
 protected:
-  nifti_image *InputFloatingMask;
-  int **FloatingMaskPyramid;
-  int *BackwardActiveVoxelNumber;
-
-  _reg_blockMatchingParam *BackwardBlockMatchingParams;
-
-  mat44 *BackwardTransformationMatrix;
-
-  virtual void ClearCurrentInputImage();
+  //virtual void ClearCurrentImagePyramid();
+  virtual void ClearBlockMatchingParams();
   virtual void GetBackwardDeformationField();
   virtual void UpdateTransformationMatrix(int);
 
   virtual void DebugPrintLevelInfoStart();
   virtual void DebugPrintLevelInfoEnd();
   virtual void InitialiseRegistration();
-  virtual void GetWarpedImage(int);
+  virtual void GetWarpedImage(int interp = 1);
 
 public:
-  reg_aladin_sym();
+  reg_aladin_sym(int platformCodeIn);
   virtual ~reg_aladin_sym();
   virtual void SetInputFloatingMask(nifti_image *);
 };

@@ -68,22 +68,37 @@ int main(int argc, char **argv)
     }
 
     // Create a deformation field
-    nifti_image *test_field = nifti_copy_nim_info(inputDeformationField);
-    test_field->data = (void *) malloc(test_field->nvox*test_field->nbyper);
+    //nifti_image *test_field = nifti_copy_nim_info(inputDeformationField);
+    //test_field->data = (void *) malloc(test_field->nvox*test_field->nbyper);
 
     // Compute the affine deformation field
+    reg_tools_changeDatatype<float>(referenceImage);
+
+    // Create an empty mask
+    int *mask = (int *)calloc(referenceImage->nvox, sizeof(int));
+
     AladinContent *con = NULL;
     if (platformCode == NR_PLATFORM_CPU) {
-        con = new AladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+        con = new AladinContent(platformCode);
+        con->setCurrentReference(referenceImage);
+        con->setTransformationMatrix(inputMatrix);
+        con->setCurrentReferenceMask(mask, referenceImage->nvox);
     }
 #ifdef _USE_CUDA
     else if (platformCode == NR_PLATFORM_CUDA) {
-        con = new CudaAladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+        con = new CudaAladinContent();
+        con->setCurrentReference(referenceImage);
+        con->setTransformationMatrix(inputMatrix);
+        con->setCurrentReferenceMask(mask, referenceImage->nvox);
     }
 #endif
 #ifdef _USE_OPENCL
     else if (platformCode == NR_PLATFORM_CL) {
-        con = new ClAladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+        //con = new ClAladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+        con = new ClAladinContent();
+        con->setCurrentReference(referenceImage);
+        con->setTransformationMatrix(inputMatrix);
+        con->setCurrentReferenceMask(mask, referenceImage->nvox);
     }
 #endif
     else {
@@ -98,9 +113,9 @@ int main(int argc, char **argv)
     }
 
     //CPU or GPU code
-    reg_tools_changeDatatype<float>(referenceImage);
+    con->AllocateDeformationField();
     test(con, platformCode);
-    test_field = con->getCurrentDeformationField();
+    nifti_image *test_field = con->getCurrentDeformationField();
 
     // Compute the difference between the computed and inputed deformation field
     nifti_image *diff_field = nifti_copy_nim_info(inputDeformationField);

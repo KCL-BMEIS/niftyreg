@@ -133,21 +133,37 @@ int main(int argc, char **argv)
       mask[i] = i;
    }
 
-   _reg_blockMatchingParam* blockMatchingParams;
+   _reg_blockMatchingParam* blockMatchingParams = NULL;
 
    // Platforms
    AladinContent *con = NULL;
    if (platformCode == NR_PLATFORM_CPU) {
-      con = new AladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+      con = new AladinContent(platformCode);
+      con->setCurrentReference(referenceImage);
+      con->setCurrentReferenceMask(mask, referenceImage->nvox);
+      con->setPercentageOfBlock(100);
+      con->setInlierLts(100);
+      con->setBlockStepSize(1);
+
    }
 #ifdef _USE_CUDA
    else if (platformCode == NR_PLATFORM_CUDA) {
-      con = new CudaAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+       con = new CudaAladinContent();
+       con->setCurrentReference(referenceImage);
+       con->setCurrentReferenceMask(mask, referenceImage->nvox);
+       con->setPercentageOfBlock(100);
+       con->setInlierLts(100);
+       con->setBlockStepSize(1);
    }
 #endif
 #ifdef _USE_OPENCL
    else if (platformCode == NR_PLATFORM_CL) {
-      con = new ClAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+       con = new ClAladinContent();
+       con->setCurrentReference(referenceImage);
+       con->setCurrentReferenceMask(mask, referenceImage->nvox);
+       con->setPercentageOfBlock(100);
+       con->setInlierLts(100);
+       con->setBlockStepSize(1);
    }
 #endif
    else {
@@ -155,7 +171,7 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
    con->setCurrentWarped(warpedImage);
-   //con->setCurrentWarped(referenceImage);
+   con->InitBlockMatchingParams();
    test(con, platformCode);
    blockMatchingParams = con->getBlockMatchingParams();
 

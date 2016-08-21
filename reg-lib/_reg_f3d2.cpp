@@ -100,7 +100,7 @@ void reg_f3d2<T>::GetDeformationField()
 #endif
    // The forward transformation is computed using the scaling-and-squaring approach
    reg_spline_getDefFieldFromVelocityGrid(this->controlPointGrid,
-                                          this->deformationFieldImage,
+                                          this->forwardGlobalContent->getCurrentDeformationField(),
                                           updateStepNumber
                                           );
 #ifndef NDEBUG
@@ -176,7 +176,7 @@ void reg_f3d2<T>::ExponentiateGradient()
                             sizeof(nifti_image *));
    for(unsigned int i=0; i<=(unsigned int)fabs(this->backwardControlPointGrid->intent_p2); ++i)
    {
-      tempDef[i]=nifti_copy_nim_info(this->deformationFieldImage);
+      tempDef[i]=nifti_copy_nim_info(this->forwardGlobalContent->getCurrentDeformationField());
       tempDef[i]->data=(void *)malloc(tempDef[i]->nvox*tempDef[i]->nbyper);
    }
    // Generate all intermediate deformation fields
@@ -185,10 +185,10 @@ void reg_f3d2<T>::ExponentiateGradient()
 
    // Remove the affine component
    nifti_image *affine_disp=NULL;
-   if(this->affineTransformation!=NULL){
-      affine_disp=nifti_copy_nim_info(this->deformationFieldImage);
+   if(this->forwardGlobalContent->getAffineTransformation()!=NULL){
+      affine_disp=nifti_copy_nim_info(this->forwardGlobalContent->getCurrentDeformationField());
       affine_disp->data=(void *)malloc(affine_disp->nvox*affine_disp->nbyper);
-      mat44 backwardAffineTransformation=nifti_mat44_inverse(*this->affineTransformation);
+      mat44 backwardAffineTransformation=nifti_mat44_inverse(*this->forwardGlobalContent->getAffineTransformation());
       reg_affine_getDeformationField(&backwardAffineTransformation,
                                      affine_disp);
       reg_getDisplacementFromDeformation(affine_disp);
@@ -254,10 +254,10 @@ void reg_f3d2<T>::ExponentiateGradient()
          tempDef);
 
    // Remove the affine component
-   if(this->affineTransformation!=NULL){
+   if(this->forwardGlobalContent->getAffineTransformation()!=NULL){
       affine_disp=nifti_copy_nim_info(this->backwardDeformationFieldImage);
       affine_disp->data=(void *)malloc(affine_disp->nvox*affine_disp->nbyper);
-      reg_affine_getDeformationField(this->affineTransformation,
+      reg_affine_getDeformationField(this->forwardGlobalContent->getAffineTransformation(),
                                      affine_disp);
       reg_getDisplacementFromDeformation(affine_disp);
    }
@@ -428,8 +428,8 @@ template<class T>
 nifti_image **reg_f3d2<T>::GetWarpedImage()
 {
    // The initial images are used
-   if(this->inputReference==NULL ||
-         this->inputFloating==NULL ||
+   if(this->forwardGlobalContent->getInputReference()==NULL ||
+         this->forwardGlobalContent->getInputFloating()==NULL ||
          this->controlPointGrid==NULL ||
          this->backwardControlPointGrid==NULL)
    {
@@ -439,10 +439,10 @@ nifti_image **reg_f3d2<T>::GetWarpedImage()
    }
 
    // Set the input images
-   reg_f3d2<T>::currentReference = this->inputReference;
-   reg_f3d2<T>::currentFloating = this->inputFloating;
+   this->forwardGlobalContent->setCurrentReference(this->forwardGlobalContent->getInputReference());
+   this->forwardGlobalContent->setCurrentFloating(this->forwardGlobalContent->getInputFloating());
    // No mask is used to perform the final resampling
-   reg_f3d2<T>::currentMask = NULL;
+   this->forwardGlobalContent->setCurrentReferenceMask(NULL, 0);
    reg_f3d2<T>::currentFloatingMask = NULL;
 
    // Allocate the forward and backward warped images
@@ -458,20 +458,20 @@ nifti_image **reg_f3d2<T>::GetWarpedImage()
 
    // Allocate and save the forward transformation warped image
    nifti_image **warpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
-   warpedImage[0] = nifti_copy_nim_info(this->warped);
-   warpedImage[0]->cal_min=this->inputFloating->cal_min;
-   warpedImage[0]->cal_max=this->inputFloating->cal_max;
-   warpedImage[0]->scl_slope=this->inputFloating->scl_slope;
-   warpedImage[0]->scl_inter=this->inputFloating->scl_inter;
+   warpedImage[0] = nifti_copy_nim_info(this->forwardGlobalContent->getCurrentWarped());
+   warpedImage[0]->cal_min=this->forwardGlobalContent->getInputFloating()->cal_min;
+   warpedImage[0]->cal_max=this->forwardGlobalContent->getInputFloating()->cal_max;
+   warpedImage[0]->scl_slope=this->forwardGlobalContent->getInputFloating()->scl_slope;
+   warpedImage[0]->scl_inter=this->forwardGlobalContent->getInputFloating()->scl_inter;
    warpedImage[0]->data=(void *)malloc(warpedImage[0]->nvox*warpedImage[0]->nbyper);
-   memcpy(warpedImage[0]->data, this->warped->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
+   memcpy(warpedImage[0]->data, this->forwardGlobalContent->getInputFloating()->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
 
    // Allocate and save the backward transformation warped image
    warpedImage[1] = nifti_copy_nim_info(this->backwardWarped);
-   warpedImage[1]->cal_min=this->inputReference->cal_min;
-   warpedImage[1]->cal_max=this->inputReference->cal_max;
-   warpedImage[1]->scl_slope=this->inputReference->scl_slope;
-   warpedImage[1]->scl_inter=this->inputReference->scl_inter;
+   warpedImage[1]->cal_min=this->forwardGlobalContent->getInputReference()->cal_min;
+   warpedImage[1]->cal_max=this->forwardGlobalContent->getInputReference()->cal_max;
+   warpedImage[1]->scl_slope=this->forwardGlobalContent->getInputReference()->scl_slope;
+   warpedImage[1]->scl_inter=this->forwardGlobalContent->getInputReference()->scl_inter;
    warpedImage[1]->data=(void *)malloc(warpedImage[1]->nvox*warpedImage[1]->nbyper);
    memcpy(warpedImage[1]->data, this->backwardWarped->data, warpedImage[1]->nvox*warpedImage[1]->nbyper);
 

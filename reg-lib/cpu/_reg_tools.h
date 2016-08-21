@@ -373,9 +373,8 @@ int reg_createMaskPyramid(nifti_image *input,
  */
 extern "C++" template<class T>
 void reg_thresholdImage(nifti_image *image,
-                        T lowThr,
-                        T upThr
-                       );
+                        T* lowThr,
+                        T* upThr);
 /* *************************************************************** */
 /** @brief This function flipp the specified axis
  * @param image Input image to be flipped

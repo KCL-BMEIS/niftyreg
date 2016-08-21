@@ -4,7 +4,7 @@
 #include <algorithm>
 
 /* *************************************************************** */
-CudaAladinContent::CudaAladinContent()
+CudaAladinContent::CudaAladinContent() : AladinContent(NR_PLATFORM_CUDA)
 {
    initVars();
    allocateCuPtrs();

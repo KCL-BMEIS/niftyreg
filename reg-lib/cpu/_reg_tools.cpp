@@ -314,9 +314,8 @@ void reg_getRealImageSpacing(nifti_image *image,
 //and sets cal_min and cal_max to have the min/max image data values
 template<class T,class DTYPE>
 void reg_thresholdImage2(nifti_image *image,
-                         T lowThr,
-                         T upThr
-                         )
+                         T* lowThr,
+                         T* upThr)
 {
    DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
    T currentMin=std::numeric_limits<T>::max();
@@ -326,16 +325,20 @@ void reg_thresholdImage2(nifti_image *image,
 
    for(unsigned int index=0; index<image->nvox; index++)
    {
+      unsigned t = reg_floor((double) index / (double)(image->nx * image->ny * image->nz));
       T value = (T)(*imagePtr * image->scl_slope + image->scl_inter);
+      T current_lowThr = lowThr[t];
+      T current_upThr = upThr[t];
+
       if(value==value)
       {
-         if(value<lowThr)
+         if(value<current_lowThr)
          {
-            value = lowThr;
+            value = current_lowThr;
          }
-         else if(value>upThr)
+         else if(value>current_upThr)
          {
-            value = upThr;
+            value = current_upThr;
          }
          currentMin=(currentMin<value)?currentMin:value;
          currentMax=(currentMax>value)?currentMax:value;
@@ -349,9 +352,8 @@ void reg_thresholdImage2(nifti_image *image,
 /* *************************************************************** */
 template<class T>
 void reg_thresholdImage(nifti_image *image,
-                        T lowThr,
-                        T upThr
-                        )
+                        T* lowThr,
+                        T* upThr)
 {
    switch(image->datatype)
    {
@@ -385,8 +387,8 @@ void reg_thresholdImage(nifti_image *image,
       reg_exit();
    }
 }
-template void reg_thresholdImage<float>(nifti_image *, float, float);
-template void reg_thresholdImage<double>(nifti_image *, double, double);
+template void reg_thresholdImage<float>(nifti_image *, float*, float*);
+template void reg_thresholdImage<double>(nifti_image *, double*, double*);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>

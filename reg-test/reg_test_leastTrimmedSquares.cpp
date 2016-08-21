@@ -78,7 +78,7 @@ int main(int argc, char **argv)
    // Platforms
    AladinContent *con = NULL;
    if (platformCode == NR_PLATFORM_CPU) {
-      con = new AladinContent();
+      con = new AladinContent(NR_PLATFORM_CPU);
    }
 #ifdef _USE_CUDA
    else if (platformCode == NR_PLATFORM_CUDA) {
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
    blockMatchingParams->totalBlockNumber = num_points;
    blockMatchingParams->activeBlockNumber = num_points;
    blockMatchingParams->definedActiveBlockNumber = num_points;
-   blockMatchingParams->percent_to_keep = percentToKeep;
+   blockMatchingParams->percent_to_keep_opt = percentToKeep;
 
    mat44* test_LTS = (mat44 *)malloc(sizeof(mat44));
    reg_mat44_eye(test_LTS);

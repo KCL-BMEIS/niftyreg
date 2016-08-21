@@ -60,14 +60,14 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-rmask <filename>\t\tFilename of a mask image in the reference space");
    reg_print_info(exec, "\t-smooR <float>\t\t\tSmooth the reference image using the specified sigma (mm) [0]");
    reg_print_info(exec, "\t-smooF <float>\t\t\tSmooth the floating image using the specified sigma (mm) [0]");
-   reg_print_info(exec, "\t--rLwTh <float>\t\t\tLower threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*");
-   reg_print_info(exec, "\t--rUpTh <float>\t\t\tUpper threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*");
-   reg_print_info(exec, "\t--fLwTh <float>\t\t\tLower threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*");
-   reg_print_info(exec, "\t--fUpTh <float>\t\t\tUpper threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*");
-   reg_print_info(exec, "\t-rLwTh <timepoint> <float>\tLower threshold to apply to the reference image intensities [none]*");
-   reg_print_info(exec, "\t-rUpTh <timepoint> <float>\tUpper threshold to apply to the reference image intensities [none]*");
-   reg_print_info(exec, "\t-fLwTh <timepoint> <float>\tLower threshold to apply to the floating image intensities [none]*");
-   reg_print_info(exec, "\t-fUpTh <timepoint> <float>\tUpper threshold to apply to the floating image intensities [none]*");
+   reg_print_info(exec, "\t--rLwTh <float>\t\t\tFlooring to apply to the reference image intensities [none]. Identical value for every timepoint.*");
+   reg_print_info(exec, "\t--rUpTh <float>\t\t\tCeiling to apply to the reference image intensities [none]. Identical value for every timepoint.*");
+   reg_print_info(exec, "\t--fLwTh <float>\t\t\tFlooring to apply to the floating image intensities [none]. Identical value for every timepoint.*");
+   reg_print_info(exec, "\t--fUpTh <float>\t\t\tCeiling to apply to the floating image intensities [none]. Identical value for every timepoint.*");
+   reg_print_info(exec, "\t-rLwTh <timepoint> <float>\tFlooring to apply to the reference image intensities [none]*");
+   reg_print_info(exec, "\t-rUpTh <timepoint> <float>\tCeiling to apply to the reference image intensities [none]*");
+   reg_print_info(exec, "\t-fLwTh <timepoint> <float>\tFlooring to apply to the floating image intensities [none]*");
+   reg_print_info(exec, "\t-fUpTh <timepoint> <float>\tCeiling to apply to the floating image intensities [none]*");
    reg_print_info(exec, "\t* The scl_slope and scl_inter from the nifti header are taken into account for the thresholds");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Spline options (All defined at full resolution):");
@@ -289,8 +289,8 @@ int main(int argc, char **argv)
    }
    if(REG==NULL)
       REG=new reg_f3d<float>(referenceImage->nt,floatingImage->nt);
-   REG->SetReferenceImage(referenceImage);
-   REG->SetFloatingImage(floatingImage);
+   REG->SetInputReference(referenceImage);
+   REG->SetInputFloating(floatingImage);
 
    // Create some pointers that could be used
    mat44 affineMatrix;
@@ -302,6 +302,8 @@ int main(int argc, char **argv)
    bool useMeanLNCC=false;
    int refBinNumber=0;
    int floBinNumber=0;
+   unsigned int platformFlag = NR_PLATFORM_CPU;
+   unsigned gpuIdx = 999;
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -358,7 +360,7 @@ int main(int argc, char **argv)
             reg_print_msg_error(argv[i-1]);
             return EXIT_FAILURE;
          }
-         REG->SetReferenceMask(referenceMaskImage);
+         REG->SetInputReferenceMask(referenceMaskImage);
       }
       else if((strcmp(argv[i],"-res")==0) || (strcmp(argv[i],"-result")==0) || (strcmp(argv[i],"--res")==0))
       {
@@ -675,7 +677,35 @@ int main(int argc, char **argv)
          REG->SetPairwiseEnergyWeight(atof(argv[++i]));
       }
 #endif
-
+      else if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
+      {
+            int value=atoi(argv[++i]);
+            if(value<NR_PLATFORM_CPU || value>NR_PLATFORM_CL){
+                reg_print_msg_error("The platform argument is expected to be 0, 1 or 2 | 0=CPU, 1=CUDA 2=OPENCL");
+                return EXIT_FAILURE;
+            }
+#ifndef _USE_CUDA
+            if(value==NR_PLATFORM_CUDA){
+               reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
+               reg_print_msg_warn("The CPU platform is used");
+               value=0;
+            }
+#endif
+#ifndef _USE_OPENCL
+            if(value==NR_PLATFORM_CL){
+               reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
+               reg_print_msg_warn("The CPU platform is used");
+               value=0;
+            }
+#endif
+         platformFlag=value;
+         REG->SetPlatformCode(platformFlag);
+      }
+      else if(strcmp(argv[i], "-gpuid")==0 || strcmp(argv[i], "--gpuid")==0)
+      {
+          gpuIdx = unsigned(atoi(argv[++i]));
+          REG->SetGpuIdx(gpuIdx);
+      }
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
 #if defined (_OPENMP)

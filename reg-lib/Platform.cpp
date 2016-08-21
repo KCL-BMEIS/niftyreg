@@ -14,25 +14,26 @@
 using namespace std;
 
 /* *************************************************************** */
-Platform::Platform(int platformCode)
+Platform::Platform(int platformCodeIn)
 {
-    this->platformCode = platformCode;
-    if (platformCode == NR_PLATFORM_CPU) {
+    this->platformCode = platformCodeIn;
+    if(this->platformCode == NR_PLATFORM_CPU) {
         this->factory = new CPUKernelFactory();
         this->platformName = "cpu_platform";
     }
 #ifdef _USE_CUDA
-    else if (platformCode == NR_PLATFORM_CUDA) {
+    else if(this->platformCode == NR_PLATFORM_CUDA) {
         this->factory = new CUDAKernelFactory();
         this->platformName = "cuda_platform";
     }
 #endif
 #ifdef _USE_OPENCL
-    else if (platformCode == NR_PLATFORM_CL) {
+    else if(this->platformCode == NR_PLATFORM_CL) {
         this->factory = new CLKernelFactory();
         this->platformName = "cl_platform";
     }
 #endif
+    this->gpuIdx = 999;
 }
 /* *************************************************************** */
 Kernel *Platform::createKernel(const string& name, AladinContent *con) const
@@ -86,13 +87,15 @@ void Platform::setGpuIdx(unsigned gpuIdxIn)
 #endif
 }
 /* *************************************************************** */
-int Platform::getPlatformCode() {
+int Platform::getPlatformCode()
+{
     return this->platformCode;
 }
 /* *************************************************************** */
-//void Platform::setPlatformCode(const int platformCodeIn) {
-//    this->platformCode = platformCodeIn;
-//}
+void Platform::setPlatformCode(int platformCodeIn)
+{
+    this->platformCode = platformCodeIn;
+}
 /* *************************************************************** */
 Platform::~Platform()
 {

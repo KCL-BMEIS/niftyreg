@@ -981,11 +981,11 @@ int main(int argc, char **argv)
             temp_mask[i]=i;
         // Initialise the block matching
         _reg_blockMatchingParam bm_param;
+        bm_param.percent_to_keep_block = 100;
+        bm_param.percent_to_keep_opt = 100;
+        bm_param.stepSize = 1;
         initialise_block_matching_method(image,
                                          &bm_param,
-                                         100,
-                                         100,
-                                         1,
                                          temp_mask);
 
 

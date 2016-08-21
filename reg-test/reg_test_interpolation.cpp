@@ -95,16 +95,16 @@ int main(int argc, char **argv)
 
     AladinContent *con = NULL;
     if (platformCode == NR_PLATFORM_CPU) {
-        con = new AladinContent(NULL, floatingImage, NULL, sizeof(float));
+        con = new AladinContent(platformCode);
     }
 #ifdef _USE_CUDA
     else if (platformCode == NR_PLATFORM_CUDA) {
-        con = new CudaAladinContent(NULL, floatingImage, NULL, sizeof(float));
+        con = new CudaAladinContent();
     }
 #endif
 #ifdef _USE_OPENCL
     else if (platformCode == NR_PLATFORM_CL) {
-        con = new ClAladinContent(NULL, floatingImage, NULL, sizeof(float));
+        con = new ClAladinContent();
     }
 #endif
     else {
@@ -118,6 +118,7 @@ int main(int argc, char **argv)
         proper_eps = EPS_SINGLE;
     }
 
+    con->setCurrentFloating(floatingImage);
     con->setCurrentWarped(test_warped);
     con->setCurrentDeformationField(inputDeformationField);
     con->setCurrentReferenceMask(tempMask, test_warped->nvox);

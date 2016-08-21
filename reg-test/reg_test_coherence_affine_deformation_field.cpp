@@ -48,6 +48,7 @@ int main(int argc, char **argv)
         reg_print_msg_error("The input reference image could not be read");
         return EXIT_FAILURE;
     }
+    reg_tools_changeDatatype<float>(referenceImage);
     // Read the input affine matrix
     mat44 *inputMatrix = (mat44 *)malloc(sizeof(mat44));
     reg_tool_ReadAffineFile(inputMatrix, inputMatFileName);
@@ -68,23 +69,34 @@ int main(int argc, char **argv)
     }
 
     // Create a deformation field
-    nifti_image *test_field_cpu = nifti_copy_nim_info(inputDeformationField);
-    test_field_cpu->data = (void *) malloc(test_field_cpu->nvox*test_field_cpu->nbyper);
+    nifti_image *test_field_cpu = NULL;
+    nifti_image *test_field_gpu = NULL;
 
-    nifti_image *test_field_gpu = nifti_copy_nim_info(inputDeformationField);
-    test_field_gpu->data = (void *) malloc(test_field_gpu->nvox*test_field_gpu->nbyper);
-
+    // Create an empty mask
+    int *mask = (int *)calloc(referenceImage->nvox, sizeof(int));
     // Compute the affine deformation field
-    AladinContent *con_cpu = new AladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+    AladinContent *con_cpu = new AladinContent(NR_PLATFORM_CPU);
+    con_cpu->setCurrentReference(referenceImage);
+    con_cpu->setCurrentReferenceMask(mask, referenceImage->nvox);
+    con_cpu->setTransformationMatrix(inputMatrix);
+    con_cpu->AllocateDeformationField();
     AladinContent *con_gpu = NULL;
 #ifdef _USE_CUDA
     if (platformCode == NR_PLATFORM_CUDA) {
-        con_gpu = new CudaAladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+        con_gpu = new CudaAladinContent();
+        con_gpu->setCurrentReference(referenceImage);
+        con_gpu->setTransformationMatrix(inputMatrix);
+        con_gpu->setCurrentReferenceMask(mask, referenceImage->nvox);
+        con_gpu->AllocateDeformationField();
     }
 #endif
 #ifdef _USE_OPENCL
     if (platformCode == NR_PLATFORM_CL) {
-        con_gpu = new ClAladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+        con_gpu = new ClAladinContent();
+        con_gpu->setCurrentReference(referenceImage);
+        con_gpu->setCurrentReferenceMask(mask, referenceImage->nvox);
+        con_gpu->setTransformationMatrix(inputMatrix);
+        con_gpu->AllocateDeformationField();
     }
 #endif
     if(platformCode!=NR_PLATFORM_CUDA && platformCode!=NR_PLATFORM_CL){
@@ -99,7 +111,6 @@ int main(int argc, char **argv)
     }
 
     //CPU or GPU code
-    reg_tools_changeDatatype<float>(referenceImage);
     test(con_cpu, NR_PLATFORM_CPU);
     test_field_cpu = con_cpu->getCurrentDeformationField();
 
@@ -114,6 +125,7 @@ int main(int argc, char **argv)
     double max_difference = reg_tools_getMaxValue(diff_field, -1);
 
     nifti_image_free(referenceImage);
+    free(mask);
     nifti_image_free(inputDeformationField);
 
     delete con_cpu;

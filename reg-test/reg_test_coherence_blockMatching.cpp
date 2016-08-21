@@ -154,8 +154,14 @@ int main(int argc, char **argv)
    // CPU Platform
    _reg_blockMatchingParam* blockMatchingParams_cpu = NULL;
    AladinContent *con_cpu = NULL;
-   con_cpu = new AladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+   con_cpu = new AladinContent(NR_PLATFORM_CPU);
+   con_cpu->setCurrentReference(referenceImage);
+   con_cpu->setCurrentReferenceMask(mask, referenceImage->nvox);
    con_cpu->setCurrentWarped(warpedImage);
+   con_cpu->setInlierLts(100);
+   con_cpu->setPercentageOfBlock(100);
+   con_cpu->setBlockStepSize(1);
+   con_cpu->InitBlockMatchingParams();
    test(con_cpu, NR_PLATFORM_CPU);
    blockMatchingParams_cpu = con_cpu->getBlockMatchingParams();
 
@@ -168,15 +174,21 @@ int main(int argc, char **argv)
    _reg_blockMatchingParam* blockMatchingParams_gpu = NULL;
 #ifdef _USE_CUDA
    if (platformCode == NR_PLATFORM_CUDA) {
-      con_gpu = new CudaAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+       con_gpu = new CudaAladinContent();
    }
 #endif
 #ifdef _USE_OPENCL
    if (platformCode == NR_PLATFORM_CL) {
-      con_gpu = new ClAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+       con_gpu = new ClAladinContent();
    }
 #endif
+   con_gpu->setCurrentReference(referenceImage);
+   con_gpu->setCurrentReferenceMask(mask, referenceImage->nvox);
    con_gpu->setCurrentWarped(warpedImage);
+   con_gpu->setInlierLts(100);
+   con_gpu->setPercentageOfBlock(100);
+   con_gpu->setBlockStepSize(1);
+   con_gpu->InitBlockMatchingParams();
    test(con_gpu, platformCode);
    blockMatchingParams_gpu = con_gpu->getBlockMatchingParams();
 

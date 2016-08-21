@@ -15,32 +15,17 @@ class ClAladinContent: public AladinContent {
 public:
 
 	//constructors
-	ClAladinContent();
-	ClAladinContent(nifti_image *CurrentReferenceIn,
-						 nifti_image *CurrentFloatingIn,
-						 int *CurrentReferenceMaskIn,
-						 size_t byte,
-						 const unsigned int blockPercentage,
-						 const unsigned int inlierLts,
-						 int blockStep);
-	ClAladinContent(nifti_image *CurrentReferenceIn,
-						 nifti_image *CurrentFloatingIn,
-						 int *CurrentReferenceMaskIn,
-						 size_t byte);
-	ClAladinContent(nifti_image *CurrentReferenceIn,
-						 nifti_image *CurrentFloatingIn,
-						 int *CurrentReferenceMaskIn,
-						 mat44 *transMat,
-						 size_t byte,
-						 const unsigned int blockPercentage,
-						 const unsigned int inlierLts,
-						 int blockStep);
-	ClAladinContent(nifti_image *CurrentReferenceIn,
-						 nifti_image *CurrentFloatingIn,
-						 int *CurrentReferenceMaskIn,
-						 mat44 *transMat,
-						 size_t byte);
-	~ClAladinContent();
+    ClAladinContent();
+	virtual ~ClAladinContent();
+
+    virtual void AllocateWarped();
+    virtual void ClearWarped();
+    virtual void AllocateDeformationField();
+    virtual void ClearDeformationField();
+
+    void InitBlockMatchingParams();
+
+    virtual void ClearBlockMatchingParams();
 
     bool isCurrentComputationDoubleCapable();
 
@@ -59,23 +44,25 @@ public:
 	int *getFloatingDims();
 
 	//cpu getters with data downloaded from device
-	_reg_blockMatchingParam* getBlockMatchingParams();
-	nifti_image *getCurrentDeformationField();
-	nifti_image *getCurrentWarped(int typ);
+    nifti_image* getCurrentWarped(int datatype);
+    nifti_image* getCurrentDeformationField();
+    _reg_blockMatchingParam* getBlockMatchingParams();
 
 	//setters
-	void setTransformationMatrix(mat44 *transformationMatrixIn);
-	void setCurrentWarped(nifti_image *warpedImageIn);
-	void setCurrentDeformationField(nifti_image *CurrentDeformationFieldIn);
-	void setCurrentReferenceMask(int *maskIn, size_t size);
-	void setBlockMatchingParams(_reg_blockMatchingParam* bmp);
+    virtual void setCurrentReference(nifti_image* currentRefIn);
+    virtual void setCurrentReferenceMask(int *maskIn, size_t size);
+    virtual void setCurrentFloating(nifti_image* currentFloIn);
+    virtual void setCurrentWarped(nifti_image *warpedImageIn);
+    virtual void setCurrentDeformationField(nifti_image *currentDeformationFieldIn);
+
+    virtual void setTransformationMatrix(mat44 *transformationMatrixIn);
+    virtual void setTransformationMatrix(mat44 transformationMatrixIn);
+    virtual void setBlockMatchingParams(_reg_blockMatchingParam* bmp);
 
 
 private:
-	void initVars();
-
-	void uploadContext();
-	void allocateClPtrs();
+    //void uploadContext();
+    //void allocateClPtrs();
 	void freeClPtrs();
 
 	CLContextSingletton *sContext;

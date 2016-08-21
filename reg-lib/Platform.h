@@ -22,7 +22,8 @@ public:
     std::string getName();
 
     int getPlatformCode();
-    //void setPlatformCode(const int platformCodeIn);
+    void setPlatformCode(int platformCodeIn);
+
     void setGpuIdx(unsigned gpuIdxIn);
     unsigned getGpuIdx();
 

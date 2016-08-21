@@ -131,6 +131,8 @@ install(FILES cpu/_reg_femTrans.h DESTINATION include)
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
 set(_reg_aladin_files
+  GlobalContent.cpp
+  GlobalContent.h
   AladinContent.cpp
   AladinContent.h
   Platform.cpp
@@ -169,7 +171,7 @@ install(TARGETS _reg_aladin
 install(FILES cpu/_reg_macros.h DESTINATION include)
 install(FILES _reg_aladin.h _reg_aladin_sym.h DESTINATION include)
 install(FILES _reg_aladin.cpp _reg_aladin_sym.cpp DESTINATION include)
-install(FILES AladinContent.h Platform.h  DESTINATION include)
+install(FILES GlobalContent.h AladinContent.h Platform.h  DESTINATION include)
 install(FILES
         Kernel.h
         AffineDeformationFieldKernel.h
@@ -187,6 +189,23 @@ install(FILES
 #-----------------------------------------------------------------------------
 ## BUILD THE F3D LIBRARY
 set(_reg_f3d_files
+    GlobalContent.cpp
+    GlobalContent.h
+    Platform.cpp
+    Platform.h
+    Kernel.h
+    cpu/CPUAffineDeformationFieldKernel.h
+    cpu/CPUAffineDeformationFieldKernel.cpp
+    cpu/CPUBlockMatchingKernel.h
+    cpu/CPUBlockMatchingKernel.cpp
+    cpu/CPUConvolutionKernel.h
+    cpu/CPUConvolutionKernel.cpp
+    cpu/CPUOptimiseKernel.h
+    cpu/CPUOptimiseKernel.cpp
+    cpu/CPUResampleImageKernel.h
+    cpu/CPUResampleImageKernel.cpp
+    cpu/CPUKernelFactory.cpp
+    cpu/CPUKernelFactory.h
     _reg_base.h
     _reg_base.cpp
     _reg_f3d.h
@@ -207,11 +226,14 @@ if(BUILD_DEV)
 endif(BUILD_DEV)
 set(_reg_f3d_libraries
   _reg_localTrans
+  _reg_blockMatching
   _reg_globalTrans
   _reg_resampling
   _reg_measure
   _reg_tools
   _reg_ReadWriteImage
+  ${NR_OPENCL_LIBRARIES}
+  ${NR_CUDA_LIBRARIES}
 )
 add_library(_reg_f3d ${NIFTYREG_LIBRARY_TYPE} ${_reg_f3d_files})
 target_link_libraries(_reg_f3d ${_reg_f3d_libraries})
@@ -225,6 +247,7 @@ install(FILES _reg_f3d.h DESTINATION include)
 install(FILES _reg_f3d2.h DESTINATION include)
 install(FILES _reg_f3d_sym.h DESTINATION include)
 install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
+install(FILES GlobalContent.h DESTINATION include)
 if(BUILD_DEV)
   install(FILES cpu/_reg_discrete_init.h DESTINATION include)
 endif(BUILD_DEV)

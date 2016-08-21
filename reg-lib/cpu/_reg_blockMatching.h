@@ -35,8 +35,10 @@ struct _reg_blockMatchingParam
    int totalBlockNumber;
    int *totalBlock;
    unsigned int blockNumber[3];
+   //Percent we keep
+   int percent_to_keep_block;
    //Number of block we keep for LTS
-   int percent_to_keep;
+   int percent_to_keep_opt;
 
    unsigned int dim;
    float *referencePosition;
@@ -60,13 +62,14 @@ struct _reg_blockMatchingParam
    _reg_blockMatchingParam()
        : totalBlockNumber(0),
         totalBlock(0),
-        percent_to_keep(0),
+        percent_to_keep_block(50),
+        percent_to_keep_opt(50),
         dim(0),
         referencePosition(0),
         warpedPosition(0),
         activeBlockNumber(0),
-        voxelCaptureRange(0),
-        stepSize(0)
+        voxelCaptureRange(3),
+        stepSize(1)
    {}
 
    ~_reg_blockMatchingParam()
@@ -81,11 +84,6 @@ struct _reg_blockMatchingParam
  * according to the the provided arguments
  * @param referenceImage Reference image where the blocks are defined
  * @param params Block matching parameter structure that will be populated
- * @param percentToKeep_block Amount of block to block to keep for the
- * optimisation process
- * @param percentToKeep_opt Hmmmm ... I actually don't remember.
- * Need to check the source :)
- * @param stepSize_block To define
  * @param mask Array than contains a mask of the voxel form the reference
  * image to consider for the registration
  * @param runningOnGPU Has to be set to true if the registration has to be performed on the GPU
@@ -93,9 +91,6 @@ struct _reg_blockMatchingParam
 extern "C++"
 void initialise_block_matching_method(nifti_image * referenceImage,
                                       _reg_blockMatchingParam *params,
-                                      int percentToKeep_block,
-                                      int percentToKeep_opt,
-                                      int stepSize_block,
                                       int *mask,
                                       bool runningOnGPU = false);
 

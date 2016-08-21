@@ -32,6 +32,7 @@
 #include "_reg_discrete_init.h"
 #include "_reg_mrf.h"
 #endif
+#include "GlobalContent.h"
 
 /// @brief Base registration class
 template <class T>
@@ -39,9 +40,9 @@ class reg_base : public InterfaceOptimiser
 {
 protected:
    // Platform !!!
-//   Platform *platform;
-//   int platformCode;
-//   unsigned gpuIdx;
+   // Platform *platform;
+   // int platformCode;
+   // unsigned gpuIdx;
 
    // Optimiser related variables
    reg_optimiser<T> *optimiser;
@@ -66,40 +67,42 @@ protected:
    char *executableName;
    int referenceTimePoint;
    int floatingTimePoint;
-   nifti_image *inputReference; // pointer to external
-   nifti_image *inputFloating; // pointer to external
-   nifti_image *maskImage; // pointer to external
-   mat44 *affineTransformation; // pointer to external
-   int *referenceMask;
-   T referenceSmoothingSigma;
-   T floatingSmoothingSigma;
-   float *referenceThresholdUp;
-   float *referenceThresholdLow;
-   float *floatingThresholdUp;
-   float *floatingThresholdLow;
-   bool robustRange;
-   T warpedPaddingValue;
-   unsigned int levelNumber;
-   unsigned int levelToPerform;
+//   nifti_image *inputReference; // pointer to external
+//   nifti_image *inputFloating; // pointer to external
+//   nifti_image *maskImage; // pointer to external
+//   mat44 *affineTransformation; // pointer to external
+//   int *referenceMask;
+//   T referenceSmoothingSigma;
+//   T floatingSmoothingSigma;
+//   float *referenceThresholdUp;
+//   float *referenceThresholdLow;
+//   float *floatingThresholdUp;
+//   float *floatingThresholdLow;
+//   bool robustRange;
+//   T warpedPaddingValue;
+//   unsigned int levelNumber;
+//   unsigned int levelToPerform;
    T gradientSmoothingSigma;
    T similarityWeight;
    bool additive_mc_nmi;
    bool useConjGradient;
    bool useApproxGradient;
    bool verbose;
-   bool usePyramid;
+//   bool usePyramid;
    int interpolation;
 
    bool initialised;
-   nifti_image **referencePyramid;
-   nifti_image **floatingPyramid;
-   int **maskPyramid;
-   int *activeVoxelNumber;
-   nifti_image *currentReference;
-   nifti_image *currentFloating;
-   int *currentMask;
-   nifti_image *warped;
-   nifti_image *deformationFieldImage;
+   //nifti_image **referencePyramid;
+   //nifti_image **floatingPyramid;
+   //int **maskPyramid;
+   //int *activeVoxelNumber;
+   //nifti_image *currentReference;
+   //nifti_image *currentFloating;
+   //int *currentMask;
+   //nifti_image *warped;
+   //nifti_image *deformationFieldImage;
+   GlobalContent *forwardGlobalContent;
+
    nifti_image *warImgGradient;
    nifti_image *voxelBasedMeasureGradient;
    unsigned int currentLevel;
@@ -113,10 +116,10 @@ protected:
    bool discrete_init;
 #endif
 
-   virtual void AllocateWarped();
-   virtual void ClearWarped();
-   virtual void AllocateDeformationField();
-   virtual void ClearDeformationField();
+   //virtual void AllocateWarped();
+   //virtual void ClearWarped();
+   //virtual void AllocateDeformationField();
+   //virtual void ClearDeformationField();
    virtual void AllocateWarpedGradient();
    virtual void ClearWarpedGradient();
    virtual void AllocateVoxelBasedMeasureGradient();
@@ -252,9 +255,9 @@ public:
    virtual void UseLNCC(int timepoint, float stdDevKernel);
    virtual void SetLNCCKernelType(int type);
 
-   void SetReferenceImage(nifti_image *);
-   void SetFloatingImage(nifti_image *);
-   void SetReferenceMask(nifti_image *);
+   void SetInputReference(nifti_image *);
+   void SetInputFloating(nifti_image *);
+   void SetInputReferenceMask(nifti_image *);
    void SetAffineTransformation(mat44 *);
    void SetReferenceSmoothingSigma(T);
    void SetFloatingSmoothingSigma(T);
@@ -268,6 +271,7 @@ public:
    void SetWarpedPaddingValue(T);
    void SetLevelNumber(unsigned int);
    void SetLevelToPerform(unsigned int);
+
    void PrintOutInformation();
    void DoNotPrintOutInformation();
    void DoNotUsePyramidalApproach();
@@ -310,6 +314,9 @@ public:
    {
       this->optimiser=opt;
    }
+   //Platform
+   void SetPlatformCode(const int platformCodeIn);
+   void SetGpuIdx(unsigned gpuIdxIn);
 };
 
 #endif // _REG_BASE_H

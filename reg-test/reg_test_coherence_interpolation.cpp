@@ -76,33 +76,35 @@ int main(int argc, char **argv)
     int *tempMask = (int *)calloc(referenceImage->nvox, sizeof(int));
 
     // CPU platform
-    AladinContent *con_cpu = new AladinContent(NULL, referenceImage, NULL, sizeof(float));
+    AladinContent *con_cpu = new AladinContent(NR_PLATFORM_CPU);
+    con_cpu->setCurrentFloating(referenceImage);
+    con_cpu->setCurrentReferenceMask(tempMask, referenceImage->nvox);
     con_cpu->setCurrentWarped(cpu_warped);
     con_cpu->setCurrentDeformationField(inputDeformationField);
-    con_cpu->setCurrentReferenceMask(tempMask, cpu_warped->nvox);
     Platform *platform_cpu = new Platform(NR_PLATFORM_CPU);
     Kernel *resampleImageKernel_cpu = platform_cpu->createKernel(ResampleImageKernel::getName(), con_cpu);
     resampleImageKernel_cpu->castTo<ResampleImageKernel>()->calculate(interpolation,
                                                                       std::numeric_limits<float>::quiet_NaN());
     delete resampleImageKernel_cpu;
     delete platform_cpu;
-    cpu_warped = con_cpu->getCurrentWarped(referenceImage->datatype);
+    cpu_warped = con_cpu->getCurrentWarped();
 
     // GPU platform
     AladinContent *con_gpu = NULL;
 #ifdef _USE_CUDA
     if (platformCode == NR_PLATFORM_CUDA) {
-        con_gpu = new CudaAladinContent(NULL, referenceImage, NULL, sizeof(float));
+        con_gpu = new CudaAladinContent();
     }
 #endif
 #ifdef _USE_OPENCL
     if (platformCode == NR_PLATFORM_CL) {
-        con_gpu = new ClAladinContent(NULL, referenceImage, NULL, sizeof(float));
+        con_gpu = new ClAladinContent();
     }
 #endif
+    con_gpu->setCurrentFloating(referenceImage);
+    con_gpu->setCurrentReferenceMask(tempMask, referenceImage->nvox);
     con_gpu->setCurrentWarped(gpu_warped);
     con_gpu->setCurrentDeformationField(inputDeformationField);
-    con_gpu->setCurrentReferenceMask(tempMask, gpu_warped->nvox);
     Platform *platform_gpu = NULL;
 #ifdef _USE_CUDA
     if (platformCode == NR_PLATFORM_CUDA)

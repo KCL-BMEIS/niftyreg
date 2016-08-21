@@ -181,9 +181,6 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
 /* *************************************************************** */
 void initialise_block_matching_method(nifti_image * reference,
                                       _reg_blockMatchingParam *params,
-                                      int percentToKeep_block,
-                                      int percentToKeep_opt,
-                                      int stepSize_block,
                                       int *mask,
                                       bool runningOnGPU) {
    if (params->totalBlock != NULL) {
@@ -213,12 +210,13 @@ void initialise_block_matching_method(nifti_image * reference,
    }
    params->totalBlockNumber = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
 
-   params->stepSize = stepSize_block;
+   //params->stepSize = stepSize_block;
 
-   params->percent_to_keep = percentToKeep_opt;
+   //params->percent_to_keep_opt = percentToKeep_opt;
 
    //number of block that the user wants to keep after _reg_set_active_blocks it will be: the min between params->totalBlockNumber * percentToKeep_block and params->totalBlockNumber - unsuable blocks
-   params->activeBlockNumber = (int)((double) params->totalBlockNumber * ((double) percentToKeep_block / (double) 100));
+   //params->activeBlockNumber = (int)((double) params->totalBlockNumber * ((double) percentToKeep_block / (double) 100));
+   params->activeBlockNumber = (int)((double) params->totalBlockNumber * ((double) params->percent_to_keep_block / (double) 100));
    params->totalBlock = (int *)malloc(params->totalBlockNumber * sizeof(int));
 
    switch (reference->datatype) {
@@ -247,7 +245,7 @@ void initialise_block_matching_method(nifti_image * reference,
       #endif
          //params->activeBlock = (int *)malloc(params->activeBlockNumber * sizeof(int));
          params->referencePosition = (float *)malloc(params->activeBlockNumber * params->dim * sizeof(float));
-   params->warpedPosition = (float *)malloc(params->activeBlockNumber * params->dim * sizeof(float));
+         params->warpedPosition = (float *)malloc(params->activeBlockNumber * params->dim * sizeof(float));
 
 #ifndef NDEBUG
    reg_print_msg_debug("block matching initialisation done.");
@@ -757,7 +755,7 @@ void optimize(_reg_blockMatchingParam *params,
          }
       }
       optimize_2D(&referencePositionVect[0], &warpedPositionVect[0],
-            nbNonNaNBlock, params->percent_to_keep,
+            nbNonNaNBlock, params->percent_to_keep_opt,
             MAX_ITERATIONS, TOLERANCE,
             transformation_matrix, affine);
    }
@@ -810,7 +808,7 @@ void optimize(_reg_blockMatchingParam *params,
          }
       }
       optimize_3D(&referencePositionVect[0], &warpedPositionVect[0],
-            nbNonNaNBlock, params->percent_to_keep,
+            nbNonNaNBlock, params->percent_to_keep_opt,
             MAX_ITERATIONS, TOLERANCE,
             transformation_matrix, affine);
    }

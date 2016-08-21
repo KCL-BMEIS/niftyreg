@@ -24,6 +24,7 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
 //   this->platformCode = NR_PLATFORM_CPU;
 //   this->gpuIdx = 999;
 
+   this->forwardGlobalContent = new GlobalContent(NR_PLATFORM_CPU, refTimePoint, floTimePoint);
    this->optimiser=NULL;
    this->maxiterationNumber=150;
    this->optimiseX=true;
@@ -46,47 +47,47 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->executableName=(char *)"NiftyReg BASE";
    this->referenceTimePoint=refTimePoint;
    this->floatingTimePoint=floTimePoint;
-   this->inputReference=NULL; // pointer to external
-   this->inputFloating=NULL; // pointer to external
-   this->maskImage=NULL; // pointer to external
-   this->affineTransformation=NULL;  // pointer to external
-   this->referenceMask=NULL;
-   this->referenceSmoothingSigma=0.;
-   this->floatingSmoothingSigma=0.;
-   this->referenceThresholdUp=new float[this->referenceTimePoint];
-   this->referenceThresholdLow=new float[this->referenceTimePoint];
-   this->floatingThresholdUp=new float[this->floatingTimePoint];
-   this->floatingThresholdLow=new float[this->floatingTimePoint];
-   for(int i=0; i<this->referenceTimePoint; i++)
-   {
-      this->referenceThresholdUp[i]=std::numeric_limits<T>::max();
-      this->referenceThresholdLow[i]=-std::numeric_limits<T>::max();
-   }
-   for(int i=0; i<this->floatingTimePoint; i++)
-   {
-      this->floatingThresholdUp[i]=std::numeric_limits<T>::max();
-      this->floatingThresholdLow[i]=-std::numeric_limits<T>::max();
-   }
-   this->robustRange=false;
-   this->warpedPaddingValue=std::numeric_limits<T>::quiet_NaN();
-   this->levelNumber=3;
-   this->levelToPerform=0;
+   //this->inputReference=NULL; // pointer to external
+   //this->inputFloating=NULL; // pointer to external
+   //this->maskImage=NULL; // pointer to external
+   //this->affineTransformation=NULL;  // pointer to external
+   //this->referenceMask=NULL;
+   //this->referenceSmoothingSigma=0.;
+   //this->floatingSmoothingSigma=0.;
+   //this->referenceThresholdUp=new float[this->referenceTimePoint];
+   //this->referenceThresholdLow=new float[this->referenceTimePoint];
+   //this->floatingThresholdUp=new float[this->floatingTimePoint];
+   //this->floatingThresholdLow=new float[this->floatingTimePoint];
+   //for(int i=0; i<this->referenceTimePoint; i++)
+   //{
+   //   this->referenceThresholdUp[i]=std::numeric_limits<T>::max();
+   //   this->referenceThresholdLow[i]=-std::numeric_limits<T>::max();
+   //}
+   //for(int i=0; i<this->floatingTimePoint; i++)
+   //{
+   //   this->floatingThresholdUp[i]=std::numeric_limits<T>::max();
+   //   this->floatingThresholdLow[i]=-std::numeric_limits<T>::max();
+   //}
+   //this->robustRange=false;
+   //this->warpedPaddingValue=std::numeric_limits<T>::quiet_NaN();
+   //this->levelNumber=3;
+   //this->levelToPerform=0;
    this->gradientSmoothingSigma=0;
    this->verbose=true;
-   this->usePyramid=true;
+   //this->usePyramid=true;
    this->forwardJacobianMatrix=NULL;
 
 
    this->initialised=false;
-   this->referencePyramid=NULL;
-   this->floatingPyramid=NULL;
-   this->maskPyramid=NULL;
-   this->activeVoxelNumber=NULL;
-   this->currentReference=NULL;
-   this->currentFloating=NULL;
-   this->currentMask=NULL;
-   this->warped=NULL;
-   this->deformationFieldImage=NULL;
+   //this->referencePyramid=NULL;
+   //this->floatingPyramid=NULL;
+   //this->maskPyramid=NULL;
+   //this->activeVoxelNumber=NULL;
+   //this->currentReference=NULL;
+   //this->currentFloating=NULL;
+   //this->currentMask=NULL;
+   //this->warped=NULL;
+   //this->deformationFieldImage=NULL;
    this->warImgGradient=NULL;
    this->voxelBasedMeasureGradient=NULL;
 
@@ -105,112 +106,9 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
 template <class T>
 reg_base<T>::~reg_base()
 {
-   this->ClearWarped();
    this->ClearWarpedGradient();
-   this->ClearDeformationField();
    this->ClearVoxelBasedMeasureGradient();
-   if(this->referencePyramid!=NULL)
-   {
-      if(this->usePyramid)
-      {
-         for(unsigned int i=0; i<this->levelToPerform; i++)
-         {
-            if(referencePyramid[i]!=NULL)
-            {
-               nifti_image_free(referencePyramid[i]);
-               referencePyramid[i]=NULL;
-            }
-         }
-      }
-      else
-      {
-         if(referencePyramid[0]!=NULL)
-         {
-            nifti_image_free(referencePyramid[0]);
-            referencePyramid[0]=NULL;
-         }
-      }
-      free(referencePyramid);
-      referencePyramid=NULL;
-   }
-   if(this->maskPyramid!=NULL)
-   {
-      if(this->usePyramid)
-      {
-         for(unsigned int i=0; i<this->levelToPerform; i++)
-         {
-            if(this->maskPyramid[i]!=NULL)
-            {
-               free(this->maskPyramid[i]);
-               this->maskPyramid[i]=NULL;
-            }
-         }
-      }
-      else
-      {
-         if(this->maskPyramid[0]!=NULL)
-         {
-            free(this->maskPyramid[0]);
-            this->maskPyramid[0]=NULL;
-         }
-      }
-      free(this->maskPyramid);
-      maskPyramid=NULL;
-   }
-   if(this->floatingPyramid!=NULL)
-   {
-      if(this->usePyramid)
-      {
-         for(unsigned int i=0; i<this->levelToPerform; i++)
-         {
-            if(floatingPyramid[i]!=NULL)
-            {
-               nifti_image_free(floatingPyramid[i]);
-               floatingPyramid[i]=NULL;
-            }
-         }
-      }
-      else
-      {
-         if(floatingPyramid[0]!=NULL)
-         {
-            nifti_image_free(floatingPyramid[0]);
-            floatingPyramid[0]=NULL;
-         }
-      }
-      free(floatingPyramid);
-      floatingPyramid=NULL;
-   }
-   if(this->activeVoxelNumber!=NULL)
-   {
-      free(activeVoxelNumber);
-      this->activeVoxelNumber=NULL;
-   }
-   if(this->referenceThresholdUp!=NULL)
-   {
-      delete []this->referenceThresholdUp;
-      this->referenceThresholdUp=NULL;
-   }
-   if(this->referenceThresholdLow!=NULL)
-   {
-      delete []this->referenceThresholdLow;
-      this->referenceThresholdLow=NULL;
-   }
-   if(this->floatingThresholdUp!=NULL)
-   {
-      delete []this->floatingThresholdUp;
-      this->floatingThresholdUp=NULL;
-   }
-   if(this->floatingThresholdLow!=NULL)
-   {
-      delete []this->floatingThresholdLow;
-      this->floatingThresholdLow=NULL;
-   }
-   if(this->activeVoxelNumber!=NULL)
-   {
-      delete []this->activeVoxelNumber;
-      this->activeVoxelNumber=NULL;
-   }
+
    if(this->optimiser!=NULL)
    {
       delete this->optimiser;
@@ -232,6 +130,7 @@ reg_base<T>::~reg_base()
    if(this->measure_mindssc!=NULL)
       delete this->measure_mindssc;
 
+   delete this->forwardGlobalContent;
    //Platform
 //   delete this->platform;
 #ifndef NDEBUG
@@ -264,20 +163,29 @@ reg_base<T>::~reg_base()
 /* *************************************************************** */
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetReferenceImage(nifti_image *r)
+void reg_base<T>::SetInputReference(nifti_image *r)
 {
-   this->inputReference = r;
+   this->forwardGlobalContent->setInputReference(r);
 #ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::SetReferenceImage");
+   reg_print_fct_debug("reg_base<T>::SetInputReference");
 #endif
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetFloatingImage(nifti_image *f)
+void reg_base<T>::SetInputFloating(nifti_image *f)
 {
-   this->inputFloating = f;
+   this->forwardGlobalContent->setInputFloating(f);
 #ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::SetFloatingImage");
+   reg_print_fct_debug("reg_base<T>::SetInputFloating");
+#endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetInputReferenceMask(nifti_image *m)
+{
+   this->forwardGlobalContent->setInputReferenceMask(m);
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::SetInputReferenceMask");
 #endif
 }
 /* *************************************************************** */
@@ -291,18 +199,9 @@ void reg_base<T>::SetMaximalIterationNumber(unsigned int iter)
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetReferenceMask(nifti_image *m)
-{
-   this->maskImage = m;
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::SetReferenceMask");
-#endif
-}
-/* *************************************************************** */
-template<class T>
 void reg_base<T>::SetAffineTransformation(mat44 *a)
 {
-   this->affineTransformation=a;
+   this->forwardGlobalContent->setAffineTransformation(a);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetAffineTransformation");
 #endif
@@ -311,7 +210,7 @@ void reg_base<T>::SetAffineTransformation(mat44 *a)
 template<class T>
 void reg_base<T>::SetReferenceSmoothingSigma(T s)
 {
-   this->referenceSmoothingSigma = s;
+   this->forwardGlobalContent->setReferenceSmoothingSigma(s);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetReferenceSmoothingSigma");
 #endif
@@ -320,7 +219,7 @@ void reg_base<T>::SetReferenceSmoothingSigma(T s)
 template<class T>
 void reg_base<T>::SetFloatingSmoothingSigma(T s)
 {
-   this->floatingSmoothingSigma = s;
+   this->forwardGlobalContent->setFloatingSmoothingSigma(s);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetFloatingSmoothingSigma");
 #endif
@@ -329,7 +228,7 @@ void reg_base<T>::SetFloatingSmoothingSigma(T s)
 template<class T>
 void reg_base<T>::SetReferenceThresholdUp(unsigned int i, T t)
 {
-   this->referenceThresholdUp[i] = t;
+   this->forwardGlobalContent->setReferenceThresholdUp(i,t);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetReferenceThresholdUp");
 #endif
@@ -338,7 +237,7 @@ void reg_base<T>::SetReferenceThresholdUp(unsigned int i, T t)
 template<class T>
 void reg_base<T>::SetReferenceThresholdLow(unsigned int i, T t)
 {
-   this->referenceThresholdLow[i] = t;
+   this->forwardGlobalContent->setReferenceThresholdLow(i,t);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetReferenceThresholdLow");
 #endif
@@ -347,7 +246,7 @@ void reg_base<T>::SetReferenceThresholdLow(unsigned int i, T t)
 template<class T>
 void reg_base<T>::SetFloatingThresholdUp(unsigned int i, T t)
 {
-   this->floatingThresholdUp[i] = t;
+   this->forwardGlobalContent->setFloatingThresholdUp(i,t);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetFloatingThresholdUp");
 #endif
@@ -356,7 +255,7 @@ void reg_base<T>::SetFloatingThresholdUp(unsigned int i, T t)
 template<class T>
 void reg_base<T>::SetFloatingThresholdLow(unsigned int i, T t)
 {
-   this->floatingThresholdLow[i] = t;
+   this->forwardGlobalContent->setFloatingThresholdLow(i,t);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetFloatingThresholdLow");
 #endif
@@ -365,7 +264,7 @@ void reg_base<T>::SetFloatingThresholdLow(unsigned int i, T t)
 template <class T>
 void reg_base<T>::UseRobustRange()
 {
-   this->robustRange=true;
+   this->forwardGlobalContent->useRobustRange();
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseRobustRange");
 #endif
@@ -374,7 +273,7 @@ void reg_base<T>::UseRobustRange()
 template <class T>
 void reg_base<T>::DoNotUseRobustRange()
 {
-   this->robustRange=false;
+   this->forwardGlobalContent->doNotUseRobustRange();
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseRobustRange");
 #endif
@@ -383,7 +282,7 @@ void reg_base<T>::DoNotUseRobustRange()
 template<class T>
 void reg_base<T>::SetWarpedPaddingValue(T p)
 {
-   this->warpedPaddingValue = p;
+   this->forwardGlobalContent->setWarpedPaddingValue(p);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetWarpedPaddingValue");
 #endif
@@ -392,7 +291,7 @@ void reg_base<T>::SetWarpedPaddingValue(T p)
 template<class T>
 void reg_base<T>::SetLevelNumber(unsigned int l)
 {
-   this->levelNumber = l;
+   this->forwardGlobalContent->setLevelNumber(l);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetLevelNumber");
 #endif
@@ -401,7 +300,7 @@ void reg_base<T>::SetLevelNumber(unsigned int l)
 template<class T>
 void reg_base<T>::SetLevelToPerform(unsigned int l)
 {
-   this->levelToPerform = l;
+   this->forwardGlobalContent->setLevelToPerform(l);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetLevelToPerform");
 #endif
@@ -473,7 +372,7 @@ void reg_base<T>::DoNotPrintOutInformation()
 template<class T>
 void reg_base<T>::DoNotUsePyramidalApproach()
 {
-   this->usePyramid=false;
+   this->forwardGlobalContent->doNotUsePyramidalApproach();
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::DoNotUsePyramidalApproach");
 #endif
@@ -526,138 +425,22 @@ void reg_base<T>::DoNotUseDiscreteInit()
 template <class T>
 void reg_base<T>::ClearCurrentInputImage()
 {
-   this->currentReference=NULL;
-   this->currentMask=NULL;
-   this->currentFloating=NULL;
+   this->forwardGlobalContent->ClearCurrentInputImages();
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::ClearCurrentInputImage");
 #endif
 }
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_base<T>::AllocateWarped()
-{
-   if(this->currentReference==NULL)
-   {
-      reg_print_fct_error("reg_base::AllocateWarped()");
-      reg_print_msg_error("The reference image is not defined");
-      reg_exit();
-   }
-   reg_base<T>::ClearWarped();
-   this->warped = nifti_copy_nim_info(this->currentReference);
-   this->warped->dim[0]=this->warped->ndim=this->currentFloating->ndim;
-   this->warped->dim[4]=this->warped->nt=this->currentFloating->nt;
-   this->warped->pixdim[4]=this->warped->dt=1.0;
-   this->warped->nvox =
-      (size_t)this->warped->nx *
-      (size_t)this->warped->ny *
-      (size_t)this->warped->nz *
-      (size_t)this->warped->nt;
-   this->warped->scl_slope=1.f;
-   this->warped->scl_inter=0.f;
-   this->warped->datatype = this->currentFloating->datatype;
-   this->warped->nbyper = this->currentFloating->nbyper;
-   this->warped->data = (void *)calloc(this->warped->nvox, this->warped->nbyper);
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::AllocateWarped");
-#endif
-}
-/* *************************************************************** */
-template <class T>
-void reg_base<T>::ClearWarped()
-{
-   if(this->warped!=NULL)
-      nifti_image_free(this->warped);
-   this->warped=NULL;
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::ClearWarped");
-#endif
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_base<T>::AllocateDeformationField()
-{
-   if(this->currentReference==NULL)
-   {
-      reg_print_fct_error("reg_base::AllocateDeformationField()");
-      reg_print_msg_error("The reference image is not defined");
-      reg_exit();
-   }
-   reg_base<T>::ClearDeformationField();
-   this->deformationFieldImage = nifti_copy_nim_info(this->currentReference);
-   this->deformationFieldImage->dim[0]=this->deformationFieldImage->ndim=5;
-   this->deformationFieldImage->dim[1]=this->deformationFieldImage->nx=this->currentReference->nx;
-   this->deformationFieldImage->dim[2]=this->deformationFieldImage->ny=this->currentReference->ny;
-   this->deformationFieldImage->dim[3]=this->deformationFieldImage->nz=this->currentReference->nz;
-   this->deformationFieldImage->dim[4]=this->deformationFieldImage->nt=1;
-   this->deformationFieldImage->pixdim[4]=this->deformationFieldImage->dt=1.0;
-   if(this->currentReference->nz==1)
-      this->deformationFieldImage->dim[5]=this->deformationFieldImage->nu=2;
-   else this->deformationFieldImage->dim[5]=this->deformationFieldImage->nu=3;
-   this->deformationFieldImage->pixdim[5]=this->deformationFieldImage->du=1.0;
-   this->deformationFieldImage->dim[6]=this->deformationFieldImage->nv=1;
-   this->deformationFieldImage->pixdim[6]=this->deformationFieldImage->dv=1.0;
-   this->deformationFieldImage->dim[7]=this->deformationFieldImage->nw=1;
-   this->deformationFieldImage->pixdim[7]=this->deformationFieldImage->dw=1.0;
-   this->deformationFieldImage->nvox =
-      (size_t)this->deformationFieldImage->nx *
-      (size_t)this->deformationFieldImage->ny *
-      (size_t)this->deformationFieldImage->nz *
-      (size_t)this->deformationFieldImage->nt *
-      (size_t)this->deformationFieldImage->nu;
-   this->deformationFieldImage->nbyper = sizeof(T);
-   if(sizeof(T)==sizeof(float))
-      this->deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
-   else this->deformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
-   this->deformationFieldImage->data = (void *)calloc(this->deformationFieldImage->nvox,
-                                       this->deformationFieldImage->nbyper);
-   this->deformationFieldImage->intent_code=NIFTI_INTENT_VECTOR;
-   memset(this->deformationFieldImage->intent_name, 0, 16);
-   strcpy(this->deformationFieldImage->intent_name,"NREG_TRANS");
-   this->deformationFieldImage->intent_p1=DEF_FIELD;
-   this->deformationFieldImage->scl_slope=1.f;
-   this->deformationFieldImage->scl_inter=0.f;
-
-   if(this->measure_dti!=NULL)
-      this->forwardJacobianMatrix=(mat33 *)malloc(
-                                     this->deformationFieldImage->nx *
-                                     this->deformationFieldImage->ny *
-                                     this->deformationFieldImage->nz *
-                                     sizeof(mat33));
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::AllocateDeformationField");
-#endif
-}
-/* *************************************************************** */
-template <class T>
-void reg_base<T>::ClearDeformationField()
-{
-   if(this->deformationFieldImage!=NULL)
-   {
-      nifti_image_free(this->deformationFieldImage);
-      this->deformationFieldImage=NULL;
-   }
-   if(this->forwardJacobianMatrix!=NULL)
-      free(this->forwardJacobianMatrix);
-   this->forwardJacobianMatrix=NULL;
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::ClearDeformationField");
-#endif
-}
-/* *************************************************************** */
 template <class T>
 void reg_base<T>::AllocateWarpedGradient()
 {
-   if(this->deformationFieldImage==NULL)
+   if(this->forwardGlobalContent->getCurrentDeformationField()==NULL)
    {
       reg_print_fct_error("reg_base::AllocateWarpedGradient()");
       reg_print_msg_error("The deformation field image is not defined");
       reg_exit();
    }
    reg_base<T>::ClearWarpedGradient();
-   this->warImgGradient = nifti_copy_nim_info(this->deformationFieldImage);
+   this->warImgGradient = nifti_copy_nim_info(this->forwardGlobalContent->getCurrentDeformationField());
    this->warImgGradient->data = (void *)calloc(this->warImgGradient->nvox,
                                      this->warImgGradient->nbyper);
 #ifndef NDEBUG
@@ -681,14 +464,14 @@ void reg_base<T>::ClearWarpedGradient()
 template <class T>
 void reg_base<T>::AllocateVoxelBasedMeasureGradient()
 {
-   if(this->deformationFieldImage==NULL)
+   if(this->forwardGlobalContent->getCurrentDeformationField()==NULL)
    {
       reg_print_fct_error("reg_base::AllocateVoxelBasedMeasureGradient()");
       reg_print_msg_error("The deformation field image is not defined");
       reg_exit();
    }
    reg_base<T>::ClearVoxelBasedMeasureGradient();
-   this->voxelBasedMeasureGradient = nifti_copy_nim_info(this->deformationFieldImage);
+   this->voxelBasedMeasureGradient = nifti_copy_nim_info(this->forwardGlobalContent->getCurrentDeformationField());
    this->voxelBasedMeasureGradient->data = (void *)calloc(this->voxelBasedMeasureGradient->nvox,
          this->voxelBasedMeasureGradient->nbyper);
 #ifndef NDEBUG
@@ -712,45 +495,7 @@ void reg_base<T>::ClearVoxelBasedMeasureGradient()
 template<class T>
 void reg_base<T>::CheckParameters()
 {
-   // CHECK THAT BOTH INPUT IMAGES ARE DEFINED
-   if(this->inputReference==NULL)
-   {
-      reg_print_fct_error("reg_base::CheckParameters()");
-      reg_print_msg_error("The reference image is not defined");
-      reg_exit();
-   }
-   if(this->inputFloating==NULL)
-   {
-      reg_print_fct_error("reg_base::CheckParameters()");
-      reg_print_msg_error("The floating image is not defined");
-      reg_exit();
-   }
-
-   // CHECK THE MASK DIMENSION IF IT IS DEFINED
-   if(this->maskImage!=NULL)
-   {
-      if(this->inputReference->nx != this->maskImage->nx ||
-            this->inputReference->ny != this->maskImage->ny ||
-            this->inputReference->nz != this->maskImage->nz )
-      {
-         reg_print_fct_error("reg_base::CheckParameters()");
-         reg_print_msg_error("The reference and mask images have different dimension");
-         reg_exit();
-      }
-   }
-
-   // CHECK THE NUMBER OF LEVEL TO PERFORM
-   if(this->levelToPerform>0)
-   {
-      this->levelToPerform=this->levelToPerform<this->levelNumber?this->levelToPerform:this->levelNumber;
-   }
-   else this->levelToPerform=this->levelNumber;
-   if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
-      this->levelToPerform=this->levelNumber;
-
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::CheckParameters");
-#endif
+    this->forwardGlobalContent->CheckParameters();
 }
 /* *************************************************************** */
 template<class T>
@@ -767,68 +512,68 @@ void reg_base<T>::InitialiseSimilarity()
          this->measure_mindssc==NULL)
    {
       this->measure_nmi=new reg_nmi;
-      for(int i=0; i<this->inputReference->nt; ++i)
+      for(int i=0; i<this->forwardGlobalContent->getCurrentReference()->nt; ++i)
          this->measure_nmi->SetActiveTimepoint(i);
    }
    if(this->measure_nmi!=NULL)
-      this->measure_nmi->InitialiseMeasure(this->currentReference,
-                                           this->currentFloating,
-                                           this->currentMask,
-                                           this->warped,
+      this->measure_nmi->InitialiseMeasure(this->forwardGlobalContent->getCurrentReference(),
+                                           this->forwardGlobalContent->getCurrentFloating(),
+                                           this->forwardGlobalContent->getCurrentReferenceMask(),
+                                           this->forwardGlobalContent->getCurrentWarped(),
                                            this->warImgGradient,
                                            this->voxelBasedMeasureGradient
                                           );
 
    if(this->measure_ssd!=NULL)
-      this->measure_ssd->InitialiseMeasure(this->currentReference,
-                                           this->currentFloating,
-                                           this->currentMask,
-                                           this->warped,
+      this->measure_ssd->InitialiseMeasure(this->forwardGlobalContent->getCurrentReference(),
+                                           this->forwardGlobalContent->getCurrentFloating(),
+                                           this->forwardGlobalContent->getCurrentReferenceMask(),
+                                           this->forwardGlobalContent->getCurrentWarped(),
                                            this->warImgGradient,
                                            this->voxelBasedMeasureGradient
                                           );
 
    if(this->measure_kld!=NULL)
-      this->measure_kld->InitialiseMeasure(this->currentReference,
-                                           this->currentFloating,
-                                           this->currentMask,
-                                           this->warped,
+      this->measure_kld->InitialiseMeasure(this->forwardGlobalContent->getCurrentReference(),
+                                           this->forwardGlobalContent->getCurrentFloating(),
+                                           this->forwardGlobalContent->getCurrentReferenceMask(),
+                                           this->forwardGlobalContent->getCurrentWarped(),
                                            this->warImgGradient,
                                            this->voxelBasedMeasureGradient
                                           );
 
    if(this->measure_lncc!=NULL)
-      this->measure_lncc->InitialiseMeasure(this->currentReference,
-                                            this->currentFloating,
-                                            this->currentMask,
-                                            this->warped,
+      this->measure_lncc->InitialiseMeasure(this->forwardGlobalContent->getCurrentReference(),
+                                            this->forwardGlobalContent->getCurrentFloating(),
+                                            this->forwardGlobalContent->getCurrentReferenceMask(),
+                                            this->forwardGlobalContent->getCurrentWarped(),
                                             this->warImgGradient,
                                             this->voxelBasedMeasureGradient
                                            );
 
    if(this->measure_dti!=NULL)
-      this->measure_dti->InitialiseMeasure(this->currentReference,
-                                           this->currentFloating,
-                                           this->currentMask,
-                                           this->warped,
+      this->measure_dti->InitialiseMeasure(this->forwardGlobalContent->getCurrentReference(),
+                                           this->forwardGlobalContent->getCurrentFloating(),
+                                           this->forwardGlobalContent->getCurrentReferenceMask(),
+                                           this->forwardGlobalContent->getCurrentWarped(),
                                            this->warImgGradient,
                                            this->voxelBasedMeasureGradient
                                           );
 
    if(this->measure_mind!=NULL)
-      this->measure_mind->InitialiseMeasure(this->currentReference,
-                                            this->currentFloating,
-                                            this->currentMask,
-                                            this->warped,
+      this->measure_mind->InitialiseMeasure(this->forwardGlobalContent->getCurrentReference(),
+                                            this->forwardGlobalContent->getCurrentFloating(),
+                                            this->forwardGlobalContent->getCurrentReferenceMask(),
+                                            this->forwardGlobalContent->getCurrentWarped(),
                                             this->warImgGradient,
                                             this->voxelBasedMeasureGradient
                                             );
 
    if(this->measure_mindssc!=NULL)
-      this->measure_mindssc->InitialiseMeasure(this->currentReference,
-                                               this->currentFloating,
-                                               this->currentMask,
-                                               this->warped,
+      this->measure_mindssc->InitialiseMeasure(this->forwardGlobalContent->getCurrentReference(),
+                                               this->forwardGlobalContent->getCurrentFloating(),
+                                               this->forwardGlobalContent->getCurrentReferenceMask(),
+                                               this->forwardGlobalContent->getCurrentWarped(),
                                                this->warImgGradient,
                                                this->voxelBasedMeasureGradient
                                                );
@@ -846,129 +591,10 @@ void reg_base<T>::Initialise()
 
    this->CheckParameters();
 
-   //PLATFORM
+   this->forwardGlobalContent->InitialiseGlobalContent();
+//PLATFORM
 //   this->platform = new Platform(this->platformCode);
 //   this->platform->setGpuIdx(this->gpuIdx);
-
-   // CREATE THE PYRAMIDE IMAGES
-   if(this->usePyramid)
-   {
-      this->referencePyramid = (nifti_image **)malloc(this->levelToPerform*sizeof(nifti_image *));
-      this->floatingPyramid = (nifti_image **)malloc(this->levelToPerform*sizeof(nifti_image *));
-      this->maskPyramid = (int **)malloc(this->levelToPerform*sizeof(int *));
-      this->activeVoxelNumber= (int *)malloc(this->levelToPerform*sizeof(int));
-   }
-   else
-   {
-      this->referencePyramid = (nifti_image **)malloc(sizeof(nifti_image *));
-      this->floatingPyramid = (nifti_image **)malloc(sizeof(nifti_image *));
-      this->maskPyramid = (int **)malloc(sizeof(int *));
-      this->activeVoxelNumber= (int *)malloc(sizeof(int));
-   }
-
-   // Update the input images threshold if required
-   if(this->robustRange==true){
-      // Create a copy of the reference image to extract the robust range
-      nifti_image *temp_reference = nifti_copy_nim_info(this->inputReference);
-      temp_reference->data = (void *)malloc(temp_reference->nvox * temp_reference->nbyper);
-      memcpy(temp_reference->data, this->inputReference->data,temp_reference->nvox * temp_reference->nbyper);
-      reg_tools_changeDatatype<T>(temp_reference);
-      // Extract the robust range of the reference image
-      T *refDataPtr = static_cast<T *>(temp_reference->data);
-      reg_heapSort(refDataPtr, temp_reference->nvox);
-      // Update the reference threshold values if no value has been setup by the user
-      if(this->referenceThresholdLow[0]==-std::numeric_limits<T>::max())
-         this->referenceThresholdLow[0] = refDataPtr[(int)reg_round((float)temp_reference->nvox*0.02f)];
-      if(this->referenceThresholdUp[0]==std::numeric_limits<T>::max())
-         this->referenceThresholdUp[0] = refDataPtr[(int)reg_round((float)temp_reference->nvox*0.98f)];
-      // Free the temporarly allocated image
-      nifti_image_free(temp_reference);
-
-      // Create a copy of the floating image to extract the robust range
-      nifti_image *temp_floating = nifti_copy_nim_info(this->inputFloating);
-      temp_floating->data = (void *)malloc(temp_floating->nvox * temp_floating->nbyper);
-      memcpy(temp_floating->data, this->inputFloating->data,temp_floating->nvox * temp_floating->nbyper);
-      reg_tools_changeDatatype<T>(temp_floating);
-      // Extract the robust range of the floating image
-      T *floDataPtr = static_cast<T *>(temp_floating->data);
-      reg_heapSort(floDataPtr, temp_floating->nvox);
-      // Update the floating threshold values if no value has been setup by the user
-      if(this->floatingThresholdLow[0]==-std::numeric_limits<T>::max())
-         this->floatingThresholdLow[0] = floDataPtr[(int)reg_round((float)temp_floating->nvox*0.02f)];
-      if(this->floatingThresholdUp[0]==std::numeric_limits<T>::max())
-         this->floatingThresholdUp[0] = floDataPtr[(int)reg_round((float)temp_floating->nvox*0.98f)];
-      // Free the temporarly allocated image
-      nifti_image_free(temp_floating);
-   }
-
-   // FINEST LEVEL OF REGISTRATION
-   if(this->usePyramid)
-   {
-      reg_createImagePyramid<T>(this->inputReference, this->referencePyramid, this->levelNumber, this->levelToPerform);
-      reg_createImagePyramid<T>(this->inputFloating, this->floatingPyramid, this->levelNumber, this->levelToPerform);
-      if (this->maskImage!=NULL)
-         reg_createMaskPyramid<T>(this->maskImage, this->maskPyramid, this->levelNumber, this->levelToPerform, this->activeVoxelNumber);
-      else
-      {
-         for(unsigned int l=0; l<this->levelToPerform; ++l)
-         {
-            this->activeVoxelNumber[l]=this->referencePyramid[l]->nx*this->referencePyramid[l]->ny*this->referencePyramid[l]->nz;
-            this->maskPyramid[l]=(int *)calloc(activeVoxelNumber[l],sizeof(int));
-         }
-      }
-   }
-   else
-   {
-      reg_createImagePyramid<T>(this->inputReference, this->referencePyramid, 1, 1);
-      reg_createImagePyramid<T>(this->inputFloating, this->floatingPyramid, 1, 1);
-      if (this->maskImage!=NULL)
-         reg_createMaskPyramid<T>(this->maskImage, this->maskPyramid, 1, 1, this->activeVoxelNumber);
-      else
-      {
-         this->activeVoxelNumber[0]=this->referencePyramid[0]->nx*this->referencePyramid[0]->ny*this->referencePyramid[0]->nz;
-         this->maskPyramid[0]=(int *)calloc(activeVoxelNumber[0],sizeof(int));
-      }
-   }
-
-   unsigned int pyramidalLevelNumber=1;
-   if(this->usePyramid) pyramidalLevelNumber=this->levelToPerform;
-
-   // SMOOTH THE INPUT IMAGES IF REQUIRED
-   for(unsigned int l=0; l<this->levelToPerform; l++)
-   {
-      if(this->referenceSmoothingSigma!=0.0)
-      {
-         bool *active = new bool[this->referencePyramid[l]->nt];
-         float *sigma = new float[this->referencePyramid[l]->nt];
-         active[0]=true;
-         for(int i=1; i<this->referencePyramid[l]->nt; ++i)
-            active[i]=false;
-         sigma[0]=this->referenceSmoothingSigma;
-         reg_tools_kernelConvolution(this->referencePyramid[l], sigma, GAUSSIAN_KERNEL, NULL, active);
-         delete []active;
-         delete []sigma;
-      }
-      if(this->floatingSmoothingSigma!=0.0)
-      {
-         // Only the first image is smoothed
-         bool *active = new bool[this->floatingPyramid[l]->nt];
-         float *sigma = new float[this->floatingPyramid[l]->nt];
-         active[0]=true;
-         for(int i=1; i<this->floatingPyramid[l]->nt; ++i)
-            active[i]=false;
-         sigma[0]=this->floatingSmoothingSigma;
-         reg_tools_kernelConvolution(this->floatingPyramid[l], sigma, GAUSSIAN_KERNEL, NULL, active);
-         delete []active;
-         delete []sigma;
-      }
-   }
-
-   // THRESHOLD THE INPUT IMAGES IF REQUIRED
-   for(unsigned int l=0; l<pyramidalLevelNumber; l++)
-   {
-      reg_thresholdImage<T>(this->referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-      reg_thresholdImage<T>(this->floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-   }
 
    this->initialised=true;
 #ifndef NDEBUG
@@ -1052,13 +678,13 @@ void reg_base<T>::GetVoxelBasedGradient()
    //   if(this->measure_dti!=NULL)
    //      this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
 
-   for(int t=0; t<this->currentReference->nt; ++t){
-      reg_getImageGradient(this->currentFloating,
+   for(int t=0; t<this->forwardGlobalContent->getCurrentReference()->nt; ++t){
+      reg_getImageGradient(this->forwardGlobalContent->getCurrentFloating(),
                            this->warImgGradient,
-                           this->deformationFieldImage,
-                           this->currentMask,
+                           this->forwardGlobalContent->getCurrentDeformationField(),
+                           this->forwardGlobalContent->getCurrentReferenceMask(),
                            this->interpolation,
-                           this->warpedPaddingValue,
+                           this->forwardGlobalContent->getWarpedPaddingValue(),
                            t);
 
       // The gradient of the various measures of similarity are computed
@@ -1215,7 +841,7 @@ void reg_base<T>::UseDTI(bool *timepoint)
 
    if(this->measure_dti==NULL)
       this->measure_dti=new reg_dti;
-   for(int i=0; i<this->inputReference->nt; ++i)
+   for(int i=0; i<this->forwardGlobalContent->getCurrentReference()->nt; ++i)
    {
       if(timepoint[i]==true)
          this->measure_dti->SetActiveTimepoint(i);
@@ -1235,23 +861,23 @@ void reg_base<T>::WarpFloatingImage(int inter)
    if(this->measure_dti==NULL)
    {
       // Resample the floating image
-      reg_resampleImage(this->currentFloating,
-                        this->warped,
-                        this->deformationFieldImage,
-                        this->currentMask,
+      reg_resampleImage(this->forwardGlobalContent->getCurrentFloating(),
+                        this->forwardGlobalContent->getCurrentWarped(),
+                        this->forwardGlobalContent->getCurrentDeformationField(),
+                        this->forwardGlobalContent->getCurrentReferenceMask(),
                         inter,
-                        this->warpedPaddingValue);
+                        this->forwardGlobalContent->getWarpedPaddingValue());
    }
    else
    {
-      reg_defField_getJacobianMatrix(this->deformationFieldImage,
+      reg_defField_getJacobianMatrix(this->forwardGlobalContent->getCurrentDeformationField(),
                                      this->forwardJacobianMatrix);
-      reg_resampleImage(this->currentFloating,
-                        this->warped,
-                        this->deformationFieldImage,
-                        this->currentMask,
+      reg_resampleImage(this->forwardGlobalContent->getCurrentFloating(),
+                        this->forwardGlobalContent->getCurrentWarped(),
+                        this->forwardGlobalContent->getCurrentDeformationField(),
+                        this->forwardGlobalContent->getCurrentReferenceMask(),
                         inter,
-                        this->warpedPaddingValue,
+                        this->forwardGlobalContent->getWarpedPaddingValue(),
                         this->measure_dti->GetActiveTimepoints(),
                         this->forwardJacobianMatrix);
    }
@@ -1281,31 +907,28 @@ void reg_base<T>::Run()
 #endif
 
    // Update the maximal number of iteration to perform per level
-   this->maxiterationNumber = this->maxiterationNumber * pow(2, this->levelToPerform-1);
+   this->maxiterationNumber = this->maxiterationNumber * pow(2, this->forwardGlobalContent->getLevelToPerform()-1);
 
    // Loop over the different resolution level to perform
    for(this->currentLevel=0;
-         this->currentLevel<this->levelToPerform;
+         this->currentLevel<this->forwardGlobalContent->getLevelToPerform();
          this->currentLevel++)
    {
 
       // Set the current input images
-      if(this->usePyramid)
-      {
-         this->currentReference = this->referencePyramid[this->currentLevel];
-         this->currentFloating = this->floatingPyramid[this->currentLevel];
-         this->currentMask = this->maskPyramid[this->currentLevel];
-      }
-      else
-      {
-         this->currentReference = this->referencePyramid[0];
-         this->currentFloating = this->floatingPyramid[0];
-         this->currentMask = this->maskPyramid[0];
+      if(this->forwardGlobalContent->isPyramidUsed()) {
+        this->forwardGlobalContent->setCurrentReference(this->forwardGlobalContent->getReferencePyramid()[this->currentLevel]);
+        this->forwardGlobalContent->setCurrentFloating(this->forwardGlobalContent->getFloatingPyramid()[this->currentLevel]);
+        this->forwardGlobalContent->setCurrentReferenceMask(this->forwardGlobalContent->getMaskPyramid()[this->currentLevel], this->forwardGlobalContent->getActiveVoxelNumber()[this->currentLevel]);
+      } else {
+        this->forwardGlobalContent->setCurrentReference(this->forwardGlobalContent->getReferencePyramid()[0]);
+        this->forwardGlobalContent->setCurrentFloating(this->forwardGlobalContent->getFloatingPyramid()[0]);
+        this->forwardGlobalContent->setCurrentReferenceMask(this->forwardGlobalContent->getMaskPyramid()[0], this->forwardGlobalContent->getActiveVoxelNumber()[this->currentLevel]);
       }
 
       // Allocate image that depends on the reference image
-      this->AllocateWarped();
-      this->AllocateDeformationField();
+      this->forwardGlobalContent->AllocateWarped();
+      this->forwardGlobalContent->AllocateDeformationField();
       this->AllocateWarpedGradient();
 
       // The grid is refined if necessary
@@ -1396,29 +1019,17 @@ void reg_base<T>::Run()
       // Some cleaning is performed
       delete this->optimiser;
       this->optimiser=NULL;
-      this->ClearWarped();
-      this->ClearDeformationField();
+      this->forwardGlobalContent->ClearWarped();
+      this->forwardGlobalContent->ClearDeformationField();
       this->ClearWarpedGradient();
       this->ClearVoxelBasedMeasureGradient();
       this->ClearTransformationGradient();
-      if(this->usePyramid)
-      {
-         nifti_image_free(this->referencePyramid[this->currentLevel]);
-         this->referencePyramid[this->currentLevel]=NULL;
-         nifti_image_free(this->floatingPyramid[this->currentLevel]);
-         this->floatingPyramid[this->currentLevel]=NULL;
-         free(this->maskPyramid[this->currentLevel]);
-         this->maskPyramid[this->currentLevel]=NULL;
+      if(this->forwardGlobalContent->isPyramidUsed()) {
+         this->forwardGlobalContent->ClearCurrentImagePyramid(this->currentLevel);
+      } else if(this->currentLevel==this->forwardGlobalContent->getLevelToPerform()-1) {
+         this->forwardGlobalContent->ClearCurrentImagePyramid(0);
       }
-      else if(this->currentLevel==this->levelToPerform-1)
-      {
-         nifti_image_free(this->referencePyramid[0]);
-         this->referencePyramid[0]=NULL;
-         nifti_image_free(this->floatingPyramid[0]);
-         this->floatingPyramid[0]=NULL;
-         free(this->maskPyramid[0]);
-         this->maskPyramid[0]=NULL;
-      }
+
       this->ClearCurrentInputImage();
 
 #ifdef NDEBUG
@@ -1437,6 +1048,17 @@ void reg_base<T>::Run()
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::Run");
 #endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetPlatformCode(const int platformCodeIn) {
+    this->forwardGlobalContent->getPlatform()->setPlatformCode(platformCodeIn);
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetGpuIdx(unsigned gpuIdxIn){
+   this->forwardGlobalContent->getPlatform()->setGpuIdx(gpuIdxIn);
 }
 /* *************************************************************** */
 /* *************************************************************** */

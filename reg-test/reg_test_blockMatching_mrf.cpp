@@ -78,7 +78,8 @@ int main(int argc, char **argv)
    for(size_t i=0;i<nb_CP*nb_disp3D;i++) {
        float currentValue = reg_mrfObject->GetDiscretisedMeasurePtr()[i];
        float expectedValue = expectedDataCost[i];
-       if((currentValue - expectedValue) > EPS) {
+       float diffValue = std::abs(currentValue - expectedValue);
+       if(diffValue > EPS) {
            reg_print_msg_error("the 2 dataCost are different");
            return EXIT_FAILURE;
        }
