@@ -413,8 +413,9 @@ template<class T>
 void reg_aladin<T>::InitCurrentLevel(unsigned int cl)
 {
   this->con->setCurrentReference(this->con->getReferencePyramid()[cl]);
-  this->con->setCurrentFloating(this->con->getFloatingPyramid()[cl]);
   this->con->setCurrentReferenceMask(this->con->getMaskPyramid()[cl], this->con->getActiveVoxelNumber()[cl]);
+  this->con->setTransformationMatrix(this->con->getTransformationMatrix());
+  this->con->setCurrentFloating(this->con->getFloatingPyramid()[cl]);
   this->con->AllocateWarped();
   this->con->AllocateDeformationField();
   this->con->InitBlockMatchingParams();

@@ -195,22 +195,7 @@ void reg_aladin_sym<T>::InitialiseRegistration()
       this->con->getTransformationMatrix()->m[2][3]=floCOG[2]-refCOG[2];
    }
    mat44 tmpMat = nifti_mat44_inverse(*(this->con->getTransformationMatrix()));
-   this->backCon->getTransformationMatrix()->m[0][0] = tmpMat.m[0][0];
-   this->backCon->getTransformationMatrix()->m[0][1] = tmpMat.m[0][1];
-   this->backCon->getTransformationMatrix()->m[0][2] = tmpMat.m[0][2];
-   this->backCon->getTransformationMatrix()->m[0][3] = tmpMat.m[0][3];
-   this->backCon->getTransformationMatrix()->m[1][0] = tmpMat.m[1][0];
-   this->backCon->getTransformationMatrix()->m[1][1] = tmpMat.m[1][1];
-   this->backCon->getTransformationMatrix()->m[1][2] = tmpMat.m[1][2];
-   this->backCon->getTransformationMatrix()->m[1][3] = tmpMat.m[1][3];
-   this->backCon->getTransformationMatrix()->m[2][0] = tmpMat.m[2][0];
-   this->backCon->getTransformationMatrix()->m[2][1] = tmpMat.m[2][1];
-   this->backCon->getTransformationMatrix()->m[2][2] = tmpMat.m[2][2];
-   this->backCon->getTransformationMatrix()->m[2][3] = tmpMat.m[2][3];
-   this->backCon->getTransformationMatrix()->m[3][0] = tmpMat.m[3][0];
-   this->backCon->getTransformationMatrix()->m[3][1] = tmpMat.m[3][1];
-   this->backCon->getTransformationMatrix()->m[3][2] = tmpMat.m[3][2];
-   this->backCon->getTransformationMatrix()->m[3][3] = tmpMat.m[3][3];
+   this->backCon->AladinContent::setTransformationMatrix(tmpMat);
 }
 /* *************************************************************** */
 template <class T>
@@ -266,8 +251,9 @@ void reg_aladin_sym<T>::InitCurrentLevel(unsigned int cl)
 {
    reg_aladin<T>::InitCurrentLevel(cl);
    this->backCon->setCurrentReference(this->backCon->getReferencePyramid()[cl]);
-   this->backCon->setCurrentFloating(this->backCon->getFloatingPyramid()[cl]);
    this->backCon->setCurrentReferenceMask(this->backCon->getMaskPyramid()[cl], this->backCon->getActiveVoxelNumber()[cl]);
+   this->backCon->setTransformationMatrix(this->backCon->getTransformationMatrix());
+   this->backCon->setCurrentFloating(this->backCon->getFloatingPyramid()[cl]);
    this->backCon->AllocateWarped();
    this->backCon->AllocateDeformationField();
    this->backCon->InitBlockMatchingParams();
