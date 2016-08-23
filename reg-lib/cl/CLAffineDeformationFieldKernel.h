@@ -6,10 +6,10 @@
 
 class CLAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
     public:
-       CLAffineDeformationFieldKernel(AladinContent * conIn, std::string nameIn);
+       CLAffineDeformationFieldKernel(GlobalContent * conIn, std::string nameIn);
        ~CLAffineDeformationFieldKernel();
-
        void calculate(bool compose = false);
+
     private:
        mat44 *affineTransformation, *ReferenceMatrix;
        nifti_image *deformationFieldImage;

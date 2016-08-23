@@ -1,7 +1,9 @@
 #include "CPUAffineDeformationFieldKernel.h"
 #include "_reg_globalTrans.h"
 
-CPUAffineDeformationFieldKernel::CPUAffineDeformationFieldKernel(AladinContent *con, std::string nameIn) : AffineDeformationFieldKernel(nameIn) {
+CPUAffineDeformationFieldKernel::CPUAffineDeformationFieldKernel(GlobalContent *conIn, std::string nameIn) : AffineDeformationFieldKernel(nameIn) {
+    //cast to the "real type"
+    con = dynamic_cast<AladinContent*>(conIn);
     this->deformationFieldImage = con->getCurrentDeformationField();
     this->affineTransformation = con->getTransformationMatrix();
     this->mask = con->getCurrentReferenceMask();

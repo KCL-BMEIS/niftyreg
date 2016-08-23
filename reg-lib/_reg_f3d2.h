@@ -35,7 +35,7 @@ protected:
    virtual void DoNotUseGradientCumulativeExp();
 
 public:
-   reg_f3d2(int refTimePoint,int floTimePoint);
+   reg_f3d2(unsigned platformFlag, int refTimePoint,int floTimePoint);
    ~reg_f3d2();
    virtual void Initialise();
    virtual nifti_image **GetWarpedImage();

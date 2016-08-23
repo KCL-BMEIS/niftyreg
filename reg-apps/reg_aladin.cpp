@@ -413,7 +413,7 @@ int main(int argc, char **argv)
    }
 #endif
 
-   reg_aladin<PrecisionTYPE> *REG;
+   reg_aladin<PrecisionTYPE> *REG = NULL;
    if(symFlag)
    {
       REG = new reg_aladin_sym<PrecisionTYPE>(platformFlag);

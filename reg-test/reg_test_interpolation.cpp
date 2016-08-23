@@ -15,7 +15,7 @@
 #define EPS 0.000001
 #define EPS_SINGLE 0.0001
 
-void test(AladinContent *con, const unsigned int interp, int platformCode) {
+void test(GlobalContent *con, const unsigned int interp, int platformCode) {
 
     Platform *platform = new Platform(platformCode);
 

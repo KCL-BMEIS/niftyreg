@@ -7,7 +7,7 @@
 class CPUResampleImageKernel : public ResampleImageKernel
 {
     public:
-        CPUResampleImageKernel(AladinContent *con, std::string name);
+        CPUResampleImageKernel(GlobalContent *con, std::string name);
 
         nifti_image *floatingImage;
         nifti_image *warpedImage;

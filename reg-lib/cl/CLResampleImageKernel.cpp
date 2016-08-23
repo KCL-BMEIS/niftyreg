@@ -4,9 +4,9 @@
 #include <algorithm>
 
 /* *************************************************************** */
-CLResampleImageKernel::CLResampleImageKernel(AladinContent *conIn, std::string name) : ResampleImageKernel(name) {
+CLResampleImageKernel::CLResampleImageKernel(GlobalContent *conIn, std::string name) : ResampleImageKernel(name) {
     //populate the CLContext object ptr
-    con = static_cast<ClAladinContent*>(conIn);
+    this->con = dynamic_cast<ClGlobalContent*>(conIn);
 
     //path to kernel file
     const char* niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");
@@ -44,9 +44,9 @@ CLResampleImageKernel::CLResampleImageKernel(AladinContent *conIn, std::string n
     program = sContext->CreateProgram(clKernelPath.c_str());
 
     //get cpu ptrs
-    floatingImage = con->AladinContent::getCurrentFloating();
-    warpedImage = con->AladinContent::getCurrentWarped();
-    mask = con->AladinContent::getCurrentReferenceMask();
+    floatingImage = con->GlobalContent::getCurrentFloating();
+    warpedImage = con->GlobalContent::getCurrentWarped();
+    mask = con->GlobalContent::getCurrentReferenceMask();
 
     //get cl ptrs
     clCurrentFloating = con->getFloatingImageArrayClmem();

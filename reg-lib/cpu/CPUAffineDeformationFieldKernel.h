@@ -8,10 +8,11 @@
 
 class CPUAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
-        CPUAffineDeformationFieldKernel(AladinContent *con, std::string nameIn);
-
+        CPUAffineDeformationFieldKernel(GlobalContent *con, std::string nameIn);
         void calculate(bool compose = false);
 
+private:
+        AladinContent *con;
         mat44 *affineTransformation;
         nifti_image *deformationFieldImage;
         int *mask;

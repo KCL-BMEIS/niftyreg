@@ -36,7 +36,7 @@ Platform::Platform(int platformCodeIn)
     this->gpuIdx = 999;
 }
 /* *************************************************************** */
-Kernel *Platform::createKernel(const string& name, AladinContent *con) const
+Kernel *Platform::createKernel(const string& name, GlobalContent *con) const
 {
     return this->factory->produceKernel(name, con);
 }

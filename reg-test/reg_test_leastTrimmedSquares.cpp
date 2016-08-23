@@ -33,7 +33,7 @@ int check_matrix_difference(mat44 matrix1, mat44 matrix2, char *name, float &max
    }
    return EXIT_SUCCESS;
 }
-void test(AladinContent *con, int platformCode, bool isAffine) {
+void test(GlobalContent *con, int platformCode, bool isAffine) {
 
    Platform *platform = new Platform(platformCode);
 

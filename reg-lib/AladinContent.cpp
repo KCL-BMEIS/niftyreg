@@ -166,8 +166,3 @@ void AladinContent::ClearBlockMatchingParams()
         this->blockMatchingParams = NULL;
     }
 }
-/* *************************************************************** */
-bool AladinContent::isCurrentComputationDoubleCapable()
-{
-    return true;
-}

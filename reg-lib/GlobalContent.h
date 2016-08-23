@@ -11,6 +11,8 @@
 #include "_reg_maths.h"
 #include "_reg_tools.h"
 #include "Platform.h"
+#include "Kernel.h"
+#include "ResampleImageKernel.h"
 #include "ConvolutionKernel.h"
 
 /// @brief shared content between reg_aladin and reg_f3d
@@ -40,6 +42,8 @@ public:
     virtual void ClearCurrentImagePyramid(int currentPyramidLevel);
 
     void CheckParameters();
+    //
+    virtual void WarpFloatingImage(int interp = 1);
 
     //getters
     nifti_image* getInputReference();
@@ -67,7 +71,7 @@ public:
     float getWarpedPaddingValue();
     virtual int* getCurrentReferenceMask();
     //mat44* getTransformationMatrix();
-    virtual nifti_image* getCurrentWarped(int datatype = 0);
+    virtual nifti_image* getCurrentWarped(int datatype = NIFTI_TYPE_FLOAT32);
     virtual nifti_image* getCurrentDeformationField();
 
     bool isPyramidUsed();
@@ -117,6 +121,7 @@ public:
     virtual void setCurrentWarped(nifti_image* currentWarpedImageIn);
     virtual void setCurrentDeformationField(nifti_image* currentDeformationFieldIn);
     //
+    virtual bool isCurrentComputationDoubleCapable();
 
 protected:
     nifti_image *inputReference; // pointer to external

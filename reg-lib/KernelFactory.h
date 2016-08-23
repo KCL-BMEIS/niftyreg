@@ -6,7 +6,7 @@
 class  KernelFactory {
 public:
 
-    virtual Kernel* produceKernel(std::string name, AladinContent* con) const = 0;
+    virtual Kernel* produceKernel(std::string name, GlobalContent* con) const = 0;
     virtual ~KernelFactory() {
     }
 };

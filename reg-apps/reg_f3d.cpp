@@ -273,22 +273,49 @@ int main(int argc, char **argv)
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check the type of registration object to create
+   unsigned int platformFlag = NR_PLATFORM_CPU;
+   for(int i=1; i<argc; i++)
+   {
+       if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
+       {
+             int value=atoi(argv[++i]);
+             if(value<NR_PLATFORM_CPU || value>NR_PLATFORM_CL){
+                 reg_print_msg_error("The platform argument is expected to be 0, 1 or 2 | 0=CPU, 1=CUDA 2=OPENCL");
+                 return EXIT_FAILURE;
+             }
+ #ifndef _USE_CUDA
+             if(value==NR_PLATFORM_CUDA){
+                reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
+                reg_print_msg_warn("The CPU platform is used");
+                value=0;
+             }
+ #endif
+ #ifndef _USE_OPENCL
+             if(value==NR_PLATFORM_CL){
+                reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
+                reg_print_msg_warn("The CPU platform is used");
+                value=0;
+             }
+ #endif
+          platformFlag=value;
+       }
+   }
    reg_f3d<float> *REG=NULL;
    for(int i=1; i<argc; i++)
    {
       if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0)
       {
-         REG=new reg_f3d2<float>(referenceImage->nt,floatingImage->nt);
+         REG=new reg_f3d2<float>(platformFlag,referenceImage->nt,floatingImage->nt);
          break;
       }
       if(strcmp(argv[i], "-sym")==0 || strcmp(argv[i], "--sym")==0)
       {
-         REG=new reg_f3d_sym<float>(referenceImage->nt,floatingImage->nt);
+         REG=new reg_f3d_sym<float>(platformFlag,referenceImage->nt,floatingImage->nt);
          break;
       }
    }
    if(REG==NULL)
-      REG=new reg_f3d<float>(referenceImage->nt,floatingImage->nt);
+      REG=new reg_f3d<float>(platformFlag,referenceImage->nt,floatingImage->nt);
    REG->SetInputReference(referenceImage);
    REG->SetInputFloating(floatingImage);
 
@@ -302,7 +329,7 @@ int main(int argc, char **argv)
    bool useMeanLNCC=false;
    int refBinNumber=0;
    int floBinNumber=0;
-   unsigned int platformFlag = NR_PLATFORM_CPU;
+   //GPUId
    unsigned gpuIdx = 999;
 
    /* read the input parameter */
@@ -310,7 +337,8 @@ int main(int argc, char **argv)
    {
       if(strcmp(argv[i],"-ref")==0 || strcmp(argv[i],"-target")==0 ||
             strcmp(argv[i],"--ref")==0 || strcmp(argv[i],"-flo")==0 ||
-            strcmp(argv[i],"-source")==0 || strcmp(argv[i],"--flo")==0 )
+            strcmp(argv[i],"-source")==0 || strcmp(argv[i],"--flo")==0 ||
+              strcmp(argv[i],"-platf")==0 || strcmp(argv[i],"--platf")==0)
       {
          // argument has already been parsed
          ++i;
@@ -677,30 +705,6 @@ int main(int argc, char **argv)
          REG->SetPairwiseEnergyWeight(atof(argv[++i]));
       }
 #endif
-      else if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
-      {
-            int value=atoi(argv[++i]);
-            if(value<NR_PLATFORM_CPU || value>NR_PLATFORM_CL){
-                reg_print_msg_error("The platform argument is expected to be 0, 1 or 2 | 0=CPU, 1=CUDA 2=OPENCL");
-                return EXIT_FAILURE;
-            }
-#ifndef _USE_CUDA
-            if(value==NR_PLATFORM_CUDA){
-               reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
-               reg_print_msg_warn("The CPU platform is used");
-               value=0;
-            }
-#endif
-#ifndef _USE_OPENCL
-            if(value==NR_PLATFORM_CL){
-               reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
-               reg_print_msg_warn("The CPU platform is used");
-               value=0;
-            }
-#endif
-         platformFlag=value;
-         REG->SetPlatformCode(platformFlag);
-      }
       else if(strcmp(argv[i], "-gpuid")==0 || strcmp(argv[i], "--gpuid")==0)
       {
           gpuIdx = unsigned(atoi(argv[++i]));
@@ -723,7 +727,8 @@ int main(int argc, char **argv)
               strcmp(argv[i], "-Version")!=0 && strcmp(argv[i], "-V")!=0 &&
               strcmp(argv[i], "-v")!=0 && strcmp(argv[i], "--v")!=0 &&
               strcmp(argv[i], "-gpu")!=0 && strcmp(argv[i], "--gpu")!=0 &&
-              strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0)
+              strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0 &&
+              strcmp(argv[i], "-platf")!=0 && strcmp(argv[i], "--platf")!=0)
       {
          reg_print_msg_error("\tParameter unknown:");
          reg_print_msg_error(argv[i]);

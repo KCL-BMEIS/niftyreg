@@ -7,7 +7,7 @@
 //
 #include "AladinContent.h"
 
-Kernel *CPUKernelFactory::produceKernel(std::string name,  AladinContent *con) const
+Kernel *CPUKernelFactory::produceKernel(std::string name,  GlobalContent *con) const
 {
 	if (name == AffineDeformationFieldKernel::getName()) return new CPUAffineDeformationFieldKernel(con, name);
 	else if (name == ConvolutionKernel::getName()) return new CPUConvolutionKernel(name);

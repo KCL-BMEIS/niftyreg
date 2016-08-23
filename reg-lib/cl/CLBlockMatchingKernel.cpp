@@ -2,10 +2,10 @@
 #include "config.h"
 #include <fstream>
 
-CLBlockMatchingKernel::CLBlockMatchingKernel(AladinContent *conIn, std::string name) :
+CLBlockMatchingKernel::CLBlockMatchingKernel(GlobalContent *conIn, std::string name) :
    BlockMatchingKernel(name) {
    //populate the CLAladinContent object ptr
-   this->con = static_cast<ClAladinContent*>(conIn);
+   this->con = dynamic_cast<ClAladinContent*>(conIn);
 
    //path to kernel file
    const char* niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");

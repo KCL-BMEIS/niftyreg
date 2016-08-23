@@ -17,14 +17,18 @@
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
-reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
+reg_base<T>::reg_base(unsigned platformFlag, int refTimePoint, int floTimePoint)
 {
-   //Platform
-//   this->platform = NULL;
-//   this->platformCode = NR_PLATFORM_CPU;
-//   this->gpuIdx = 999;
-
-   this->forwardGlobalContent = new GlobalContent(NR_PLATFORM_CPU, refTimePoint, floTimePoint);
+   if(platformFlag == NR_PLATFORM_CPU)
+        this->forwardGlobalContent = new GlobalContent(platformFlag, refTimePoint, floTimePoint);
+#ifdef _USE_CUDA
+   else if(platformFlag == NR_PLATFORM_CUDA)
+        this->forwardGlobalContent = new CudaGlobalContent(refTimePoint, floTimePoint);
+#endif
+#ifdef _USE_OPENCL
+   else if(platformFlag == NR_PLATFORM_CL)
+        this->forwardGlobalContent = new ClGlobalContent(refTimePoint, floTimePoint);
+#endif
    this->optimiser=NULL;
    this->maxiterationNumber=150;
    this->optimiseX=true;
@@ -45,49 +49,13 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->similarityWeight=0.; // is automatically set depending of the penalty term weights
 
    this->executableName=(char *)"NiftyReg BASE";
-   this->referenceTimePoint=refTimePoint;
-   this->floatingTimePoint=floTimePoint;
-   //this->inputReference=NULL; // pointer to external
-   //this->inputFloating=NULL; // pointer to external
-   //this->maskImage=NULL; // pointer to external
-   //this->affineTransformation=NULL;  // pointer to external
-   //this->referenceMask=NULL;
-   //this->referenceSmoothingSigma=0.;
-   //this->floatingSmoothingSigma=0.;
-   //this->referenceThresholdUp=new float[this->referenceTimePoint];
-   //this->referenceThresholdLow=new float[this->referenceTimePoint];
-   //this->floatingThresholdUp=new float[this->floatingTimePoint];
-   //this->floatingThresholdLow=new float[this->floatingTimePoint];
-   //for(int i=0; i<this->referenceTimePoint; i++)
-   //{
-   //   this->referenceThresholdUp[i]=std::numeric_limits<T>::max();
-   //   this->referenceThresholdLow[i]=-std::numeric_limits<T>::max();
-   //}
-   //for(int i=0; i<this->floatingTimePoint; i++)
-   //{
-   //   this->floatingThresholdUp[i]=std::numeric_limits<T>::max();
-   //   this->floatingThresholdLow[i]=-std::numeric_limits<T>::max();
-   //}
-   //this->robustRange=false;
-   //this->warpedPaddingValue=std::numeric_limits<T>::quiet_NaN();
-   //this->levelNumber=3;
-   //this->levelToPerform=0;
    this->gradientSmoothingSigma=0;
    this->verbose=true;
    //this->usePyramid=true;
    this->forwardJacobianMatrix=NULL;
 
-
    this->initialised=false;
-   //this->referencePyramid=NULL;
-   //this->floatingPyramid=NULL;
-   //this->maskPyramid=NULL;
-   //this->activeVoxelNumber=NULL;
-   //this->currentReference=NULL;
-   //this->currentFloating=NULL;
-   //this->currentMask=NULL;
-   //this->warped=NULL;
-   //this->deformationFieldImage=NULL;
+
    this->warImgGradient=NULL;
    this->voxelBasedMeasureGradient=NULL;
 
@@ -512,7 +480,7 @@ void reg_base<T>::InitialiseSimilarity()
          this->measure_mindssc==NULL)
    {
       this->measure_nmi=new reg_nmi;
-      for(int i=0; i<this->forwardGlobalContent->getCurrentReference()->nt; ++i)
+      for(int i=0; i<this->forwardGlobalContent->getNbRefTimePoint(); ++i)
          this->measure_nmi->SetActiveTimepoint(i);
    }
    if(this->measure_nmi!=NULL)
@@ -592,9 +560,6 @@ void reg_base<T>::Initialise()
    this->CheckParameters();
 
    this->forwardGlobalContent->InitialiseGlobalContent();
-//PLATFORM
-//   this->platform = new Platform(this->platformCode);
-//   this->platform->setGpuIdx(this->gpuIdx);
 
    this->initialised=true;
 #ifndef NDEBUG
@@ -678,7 +643,7 @@ void reg_base<T>::GetVoxelBasedGradient()
    //   if(this->measure_dti!=NULL)
    //      this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
 
-   for(int t=0; t<this->forwardGlobalContent->getCurrentReference()->nt; ++t){
+   for(int t=0; t<this->forwardGlobalContent->getNbRefTimePoint(); ++t){
       reg_getImageGradient(this->forwardGlobalContent->getCurrentFloating(),
                            this->warImgGradient,
                            this->forwardGlobalContent->getCurrentDeformationField(),
@@ -862,11 +827,15 @@ void reg_base<T>::WarpFloatingImage(int inter)
    {
       // Resample the floating image
       reg_resampleImage(this->forwardGlobalContent->getCurrentFloating(),
-                        this->forwardGlobalContent->getCurrentWarped(),
-                        this->forwardGlobalContent->getCurrentDeformationField(),
-                        this->forwardGlobalContent->getCurrentReferenceMask(),
-                        inter,
-                        this->forwardGlobalContent->getWarpedPaddingValue());
+                               this->forwardGlobalContent->getCurrentWarped(),
+                               this->forwardGlobalContent->getCurrentDeformationField(),
+                               this->forwardGlobalContent->getCurrentReferenceMask(),
+                               inter,
+                               this->forwardGlobalContent->getWarpedPaddingValue());
+      //4 the moment - gpu kernel not implemented
+      this->forwardGlobalContent->setCurrentWarped(this->forwardGlobalContent->GlobalContent::getCurrentWarped());
+      //this->forwardGlobalContent->WarpFloatingImage(inter);
+      //this->forwardGlobalContent->GlobalContent::setCurrentWarped(this->forwardGlobalContent->getCurrentWarped());
    }
    else
    {
@@ -895,7 +864,7 @@ void reg_base<T>::Run()
    sprintf(text, "%s::Run() called", this->executableName);
    reg_print_msg_debug(text);
 #endif
-
+   //CPU init
    if(!this->initialised) this->Initialise();
 #ifdef NDEBUG
    if(this->verbose)

@@ -8,12 +8,13 @@
 
 class CPUOptimiseKernel : public OptimiseKernel {
 public:
-    CPUOptimiseKernel(AladinContent *con, std::string name);
+    CPUOptimiseKernel(GlobalContent *con, std::string name);
+    void calculate(bool affine);
 
+private:
+    AladinContent* con;
     _reg_blockMatchingParam *blockMatchingParams;
     mat44 *transformationMatrix;
-
-    void calculate(bool affine);
 
 };
 

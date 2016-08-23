@@ -8,7 +8,7 @@ class CLOptimiseKernel : public OptimiseKernel
 {
     public:
 
-       CLOptimiseKernel(AladinContent * con, std::string name);
+       CLOptimiseKernel(GlobalContent * con, std::string name);
        ~CLOptimiseKernel();
        void calculate(bool affine);
     private:

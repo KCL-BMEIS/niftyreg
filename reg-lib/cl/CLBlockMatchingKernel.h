@@ -6,7 +6,7 @@
 
 class CLBlockMatchingKernel : public BlockMatchingKernel {
     public:
-       CLBlockMatchingKernel(AladinContent * conIn, std::string name);
+       CLBlockMatchingKernel(GlobalContent * conIn, std::string name);
        ~CLBlockMatchingKernel();
        void calculate();
 

@@ -82,7 +82,7 @@ protected:
    void *paramsProgressCallback;
 
 public:
-   reg_f3d(int refTimePoint,int floTimePoint);
+   reg_f3d(unsigned platformFlag, int refTimePoint,int floTimePoint);
    virtual ~reg_f3d();
 
    void SetControlPointGridImage(nifti_image *);

@@ -2,23 +2,23 @@
 #define CLRESAMPLEIMAGEKERNEL_H
 
 #include "ResampleImageKernel.h"
+#include "ClGlobalContent.h"
 #include "CLAladinContent.h"
 
 class CLResampleImageKernel : public ResampleImageKernel
 {
-    public:
-
-       CLResampleImageKernel(AladinContent * conIn, std::string name);
+public:
+       CLResampleImageKernel(GlobalContent * conIn, std::string name);
        ~CLResampleImageKernel();
 
        void calculate(int interp, float paddingValue, bool * dti_timepoint = NULL, mat33 * jacMat = NULL);
-    private:
 
+private:
        nifti_image *floatingImage;
        nifti_image *warpedImage;
        int *mask;
        CLContextSingletton *sContext;
-       ClAladinContent *con;
+       ClGlobalContent *con;
        cl_command_queue commandQueue;
        cl_kernel kernel;
        cl_context clContext;

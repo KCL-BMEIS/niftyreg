@@ -762,3 +762,15 @@ void GlobalContent::ClearThresholds()
     reg_print_fct_debug("GlobalContent::ClearThresholds()");
 #endif
 }
+/* *************************************************************** */
+bool GlobalContent::isCurrentComputationDoubleCapable()
+{
+    return true;
+}
+/* *************************************************************** */
+void GlobalContent::WarpFloatingImage(int interp)
+{
+    Kernel* resamplingKernel = this->platform->createKernel(ResampleImageKernel::getName(), this);
+    resamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, this->warpedPaddingValue);
+    delete resamplingKernel;
+}

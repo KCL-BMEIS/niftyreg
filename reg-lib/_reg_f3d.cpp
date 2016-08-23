@@ -17,8 +17,8 @@
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
-reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
-   : reg_base<T>::reg_base(refTimePoint,floTimePoint)
+reg_f3d<T>::reg_f3d(unsigned platformFlag, int refTimePoint,int floTimePoint)
+   : reg_base<T>::reg_base(platformFlag, refTimePoint,floTimePoint)
 {
 
    this->executableName=(char *)"NiftyReg F3D";
@@ -481,6 +481,8 @@ void reg_f3d<T>::GetDeformationField()
                                   false, //composition
                                   true // bspline
                                   );
+   //4 the moment - gpu kernel not implemented
+   this->forwardGlobalContent->setCurrentDeformationField(this->forwardGlobalContent->GlobalContent::getCurrentDeformationField());
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetDeformationField");
 #endif
@@ -1089,14 +1091,23 @@ nifti_image **reg_f3d<T>::GetWarpedImage()
       reg_exit();
    }
 
+   int *mask = (int *)calloc(this->forwardGlobalContent->getInputReference()->nx*
+                             this->forwardGlobalContent->getInputReference()->ny*
+                             this->forwardGlobalContent->getInputReference()->nz,
+                             sizeof(int));
+
    this->forwardGlobalContent->setCurrentReference(this->forwardGlobalContent->getInputReference());
    this->forwardGlobalContent->setCurrentFloating(this->forwardGlobalContent->getInputFloating());
-   this->forwardGlobalContent->setCurrentReferenceMask(NULL, 0);
+   this->forwardGlobalContent->setCurrentReferenceMask(mask,
+                                                       this->forwardGlobalContent->getInputReference()->nx*
+                                                       this->forwardGlobalContent->getInputReference()->ny*
+                                                       this->forwardGlobalContent->getInputReference()->nz);
 
    this->forwardGlobalContent->AllocateWarped();
    this->forwardGlobalContent->AllocateDeformationField();
    reg_base<T>::WarpFloatingImage(3); // cubic spline interpolation
    this->forwardGlobalContent->ClearDeformationField();
+   free(mask);
 
    nifti_image **warpedImage= (nifti_image **)malloc(2*sizeof(nifti_image *));
    warpedImage[0]=nifti_copy_nim_info(this->forwardGlobalContent->getCurrentWarped());

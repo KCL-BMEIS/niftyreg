@@ -1,9 +1,9 @@
 #include "CLOptimiseKernel.h"
 
 /* *************************************************************** */
-CLOptimiseKernel::CLOptimiseKernel(AladinContent *conIn, std::string name) : OptimiseKernel(name) {
+CLOptimiseKernel::CLOptimiseKernel(GlobalContent *conIn, std::string name) : OptimiseKernel(name) {
     //populate the CLAladinContent object ptr
-    con = static_cast<ClAladinContent*>(conIn);
+    this->con = dynamic_cast<ClAladinContent*>(conIn);
 
     //get opencl context params
     sContext = &CLContextSingletton::Instance();

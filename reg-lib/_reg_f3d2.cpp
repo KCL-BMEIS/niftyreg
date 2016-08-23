@@ -18,8 +18,8 @@
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
-reg_f3d2<T>::reg_f3d2(int refTimePoint,int floTimePoint)
-   :reg_f3d_sym<T>::reg_f3d_sym(refTimePoint,floTimePoint)
+reg_f3d2<T>::reg_f3d2(unsigned platformFlag, int refTimePoint,int floTimePoint)
+   :reg_f3d_sym<T>::reg_f3d_sym(platformFlag, refTimePoint,floTimePoint)
 {
    this->executableName=(char *)"NiftyReg F3D2";
    this->inverseConsistencyWeight=0;

@@ -10,7 +10,7 @@
 #include "_reg_blockMatching.h"
 #include "GlobalContent.h"
 
-class AladinContent : public GlobalContent
+class AladinContent : public virtual GlobalContent
 {
 public:
 
@@ -35,8 +35,6 @@ public:
     virtual _reg_blockMatchingParam* getBlockMatchingParams();
 
     virtual void ClearBlockMatchingParams();
-
-    virtual bool isCurrentComputationDoubleCapable();
 
 protected:
 

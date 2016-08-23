@@ -79,7 +79,7 @@ void check_matching_difference(int dim,
    }
 }
 
-void test(AladinContent *con, int platformCode) {
+void test(GlobalContent *con, int platformCode) {
 
    Platform *platform = new Platform(platformCode);
 

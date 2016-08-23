@@ -33,17 +33,13 @@
 #include "_reg_mrf.h"
 #endif
 #include "GlobalContent.h"
+#include "ClGlobalContent.h"
 
 /// @brief Base registration class
 template <class T>
 class reg_base : public InterfaceOptimiser
 {
 protected:
-   // Platform !!!
-   // Platform *platform;
-   // int platformCode;
-   // unsigned gpuIdx;
-
    // Optimiser related variables
    reg_optimiser<T> *optimiser;
    size_t maxiterationNumber;
@@ -65,42 +61,18 @@ protected:
    reg_mindssc *measure_mindssc;
 
    char *executableName;
-   int referenceTimePoint;
-   int floatingTimePoint;
-//   nifti_image *inputReference; // pointer to external
-//   nifti_image *inputFloating; // pointer to external
-//   nifti_image *maskImage; // pointer to external
-//   mat44 *affineTransformation; // pointer to external
-//   int *referenceMask;
-//   T referenceSmoothingSigma;
-//   T floatingSmoothingSigma;
-//   float *referenceThresholdUp;
-//   float *referenceThresholdLow;
-//   float *floatingThresholdUp;
-//   float *floatingThresholdLow;
-//   bool robustRange;
-//   T warpedPaddingValue;
-//   unsigned int levelNumber;
-//   unsigned int levelToPerform;
+
    T gradientSmoothingSigma;
    T similarityWeight;
    bool additive_mc_nmi;
    bool useConjGradient;
    bool useApproxGradient;
    bool verbose;
-//   bool usePyramid;
+
    int interpolation;
 
    bool initialised;
-   //nifti_image **referencePyramid;
-   //nifti_image **floatingPyramid;
-   //int **maskPyramid;
-   //int *activeVoxelNumber;
-   //nifti_image *currentReference;
-   //nifti_image *currentFloating;
-   //int *currentMask;
-   //nifti_image *warped;
-   //nifti_image *deformationFieldImage;
+
    GlobalContent *forwardGlobalContent;
 
    nifti_image *warImgGradient;
@@ -116,10 +88,6 @@ protected:
    bool discrete_init;
 #endif
 
-   //virtual void AllocateWarped();
-   //virtual void ClearWarped();
-   //virtual void AllocateDeformationField();
-   //virtual void ClearDeformationField();
    virtual void AllocateWarpedGradient();
    virtual void ClearWarpedGradient();
    virtual void AllocateVoxelBasedMeasureGradient();
@@ -211,7 +179,7 @@ protected:
    void *paramsProgressCallback;
 
 public:
-   reg_base(int refTimePoint,int floTimePoint);
+   reg_base(unsigned platformFlag, int refTimePoint,int floTimePoint);
    virtual ~reg_base();
 
    //PLATFORM

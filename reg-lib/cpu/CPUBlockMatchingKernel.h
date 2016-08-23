@@ -9,10 +9,11 @@
 class CPUBlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-    CPUBlockMatchingKernel(AladinContent *con, std::string name);
-
+    CPUBlockMatchingKernel(GlobalContent *con, std::string name);
     void calculate();
 
+private:
+    AladinContent* con;
     nifti_image *reference;
     nifti_image *warped;
     _reg_blockMatchingParam* params;

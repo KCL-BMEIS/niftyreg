@@ -1,6 +1,8 @@
 #include "CPUOptimiseKernel.h"
 
-CPUOptimiseKernel::CPUOptimiseKernel(AladinContent *con, std::string name) : OptimiseKernel(name) {
+CPUOptimiseKernel::CPUOptimiseKernel(GlobalContent *conIn, std::string name) : OptimiseKernel(name) {
+    //cast to the "real type"
+    con = dynamic_cast<AladinContent*>(conIn);
     transformationMatrix = con->getTransformationMatrix();
     blockMatchingParams = con->getBlockMatchingParams();
 }

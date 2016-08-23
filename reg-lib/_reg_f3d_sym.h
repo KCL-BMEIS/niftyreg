@@ -93,7 +93,7 @@ public:
    virtual void SetFloatingMask(nifti_image *);
    virtual void SetInverseConsistencyWeight(T);
 
-   reg_f3d_sym(int refTimePoint,int floTimePoint);
+   reg_f3d_sym(unsigned platformFlag, int refTimePoint,int floTimePoint);
    ~reg_f3d_sym();
    void CheckParameters();
    void Initialise();
