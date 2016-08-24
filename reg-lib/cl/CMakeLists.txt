@@ -31,6 +31,7 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CLConvolutionKernel.cpp
 	CLOptimiseKernel.cpp
 	CLResampleImageKernel.cpp
+    ../GlobalContent.cpp
 	../AladinContent.cpp
 	../Platform.cpp
 )

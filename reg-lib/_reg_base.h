@@ -34,6 +34,7 @@
 #endif
 #include "GlobalContent.h"
 #include "ClGlobalContent.h"
+#include "CUDAGlobalContent.h"
 
 /// @brief Base registration class
 template <class T>

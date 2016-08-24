@@ -3,7 +3,6 @@
 
 #include "AladinContent.h"
 #include "ClGlobalContent.h"
-#include "CLContextSingletton.h"
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>

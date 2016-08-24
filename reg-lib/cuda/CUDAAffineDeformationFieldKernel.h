@@ -8,7 +8,7 @@
 class CUDAAffineDeformationFieldKernel: public AffineDeformationFieldKernel
 {
 public:
-    CUDAAffineDeformationFieldKernel(AladinContent *conIn, std::string nameIn);
+    CUDAAffineDeformationFieldKernel(GlobalContent *conIn, std::string nameIn);
     void calculate(bool compose = false);
 private:
     mat44 *affineTransformation;

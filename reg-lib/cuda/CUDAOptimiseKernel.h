@@ -8,7 +8,7 @@
 class CUDAOptimiseKernel: public OptimiseKernel
 {
 public:
-    CUDAOptimiseKernel(AladinContent *conIn, std::string name);
+    CUDAOptimiseKernel(GlobalContent *conIn, std::string name);
     void calculate(bool affine);
 
 private:

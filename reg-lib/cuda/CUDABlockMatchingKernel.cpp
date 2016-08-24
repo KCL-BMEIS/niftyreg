@@ -2,11 +2,11 @@
 #include "blockMatchingKernel.h"
 
 /* *************************************************************** */
-CUDABlockMatchingKernel::CUDABlockMatchingKernel(AladinContent *conIn, std::string name) :
+CUDABlockMatchingKernel::CUDABlockMatchingKernel(GlobalContent *conIn, std::string name) :
    BlockMatchingKernel(name)
 {
    //get CudaAladinContent ptr
-   con = static_cast<CudaAladinContent*>(conIn);
+   con = dynamic_cast<CudaAladinContent*>(conIn);
 
    //get cpu ptrs
    reference = con->AladinContent::getCurrentReference();

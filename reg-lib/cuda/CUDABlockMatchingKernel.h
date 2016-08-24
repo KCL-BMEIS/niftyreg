@@ -8,7 +8,7 @@
 class CUDABlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-    CUDABlockMatchingKernel(AladinContent *conIn, std::string name);
+    CUDABlockMatchingKernel(GlobalContent *conIn, std::string name);
     void calculate();
 private:
     nifti_image *reference;

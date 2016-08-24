@@ -4,11 +4,11 @@
 #include "optimizeKernel.h"
 
 /* *************************************************************** */
-CUDAOptimiseKernel::CUDAOptimiseKernel(AladinContent *conIn, std::string name) :
+CUDAOptimiseKernel::CUDAOptimiseKernel(GlobalContent *conIn, std::string name) :
    OptimiseKernel(name)
 {
    //get CudaAladinContent ptr
-   con = static_cast<CudaAladinContent*>(conIn);
+   con = dynamic_cast<CudaAladinContent*>(conIn);
 
    //cudaSContext = &CUDAContextSingletton::Instance();
 

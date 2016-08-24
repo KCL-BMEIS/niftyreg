@@ -2,14 +2,14 @@
 #define CUDARESAMPLEIMAGEKERNEL_H
 
 #include "ResampleImageKernel.h"
-#include "CUDAAladinContent.h"
+#include "CUDAGlobalContent.h"
 
 /*
  * kernel functions for image resampling with three interpolation variations
  * */
 class CUDAResampleImageKernel: public ResampleImageKernel {
 public:
-    CUDAResampleImageKernel(AladinContent *conIn, std::string name);
+    CUDAResampleImageKernel(GlobalContent *conIn, std::string name);
     void calculate(int interp,
                         float paddingValue,
                         bool *dti_timepoint = NULL,
@@ -26,7 +26,7 @@ private:
     int *mask_d;
 
     //CUDAContextSingletton *cudaSContext;
-    CudaAladinContent *con;
+    CudaGlobalContent *con;
 };
 
 #endif // CUDARESAMPLEIMAGEKERNEL_H

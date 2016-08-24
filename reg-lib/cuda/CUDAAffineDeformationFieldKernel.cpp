@@ -2,10 +2,10 @@
 #include "affineDeformationKernel.h"
 
 /* *************************************************************** */
-CUDAAffineDeformationFieldKernel::CUDAAffineDeformationFieldKernel(AladinContent *conIn, std::string nameIn) :
+CUDAAffineDeformationFieldKernel::CUDAAffineDeformationFieldKernel(GlobalContent *conIn, std::string nameIn) :
    AffineDeformationFieldKernel(nameIn)
 {
-   con = static_cast<CudaAladinContent*>(conIn);
+   con = dynamic_cast<CudaAladinContent*>(conIn);
 
    //get necessary cpu ptrs
    this->deformationFieldImage = con->AladinContent::getCurrentDeformationField();

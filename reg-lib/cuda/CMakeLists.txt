@@ -61,6 +61,7 @@ install(FILES ${NAME}.h DESTINATION include/cuda)
 set(NAME _reg_cuda_kernels)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CUDAContextSingletton.cpp
+    CUDAGlobalContent.cpp
 	CUDAAladinContent.cpp
 	CUDAKernelFactory.cpp
 	affineDeformationKernel.cu
@@ -71,6 +72,7 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CUDAConvolutionKernel.cpp
 	CUDAOptimiseKernel.cpp
 	CUDAResampleImageKernel.cpp
+    ../GlobalContent.cpp
 	../AladinContent.cpp
 	../Platform.cpp
 )
@@ -80,7 +82,7 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES blockMatchingKernel.h CUDAContextSingletton.h CUDAAladinContent.h DESTINATION include/cuda)
+install(FILES blockMatchingKernel.h CUDAContextSingletton.h CUDAGlobalContent.h CUDAAladinContent.h DESTINATION include/cuda)
 install(FILES CUDAKernelFactory.h affineDeformationKernel.h resampleKernel.h optimizeKernel.h CUDAAffineDeformationFieldKernel.h CUDABlockMatchingKernel.h CUDAConvolutionKernel.h CUDAOptimiseKernel.h CUDAResampleImageKernel.h DESTINATION include/cuda)
 #-----------------------------------------------------------------------------
 set(NAME _reg_cudainfo)
