@@ -57,7 +57,9 @@ void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
    int j=0;
    for(int i=0; i<refImgPtr->nt; ++i)
    {
-      if(this->activeTimePoint[i]==true)
+      //JM - note, the specific value of timePointWeight is not used for DTI images
+	   //any value > 0 indicates the 'time point' is active
+	   if(this->timePointWeight[i]>0)
       {
          this->dtIndicies[j++]=i;
 #ifndef NDEBUG
@@ -332,7 +334,7 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 {
    // Check if the specified time point exists and is active
    reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
-   if(this->activeTimePoint[current_timepoint]==false)
+   if(this->timePointWeight[current_timepoint]==0.0)
       return;
 
    // Check if all required input images are of the same data type

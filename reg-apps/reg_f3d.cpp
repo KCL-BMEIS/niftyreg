@@ -100,6 +100,13 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
    reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
    reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98\% ile");
+   reg_print_info(exec, "*** Options for setting the weights for each timepoint for each similarity");
+   reg_print_info(exec, "*** Note, the weights must be set after the options above, otherwise the default weight (1.0) will be used");
+   reg_print_info(exec, "\t-nmiw <tp> <float>\t\tNMI Weight. Weight to use for the NMI similarity measure for the specified timepoint");
+   reg_print_info(exec, "\t-lnccw <tp> <float>\t\tLNCC Weight. Weight to use for the LNCC similarity measure for the specified timepoint");
+   reg_print_info(exec, "\t-ssdw <tp> <float>\t\tSSD Weight. Weight to use for the SSD similarity measure for the specified timepoint");
+   reg_print_info(exec, "\t-kldw <tp> <float>\t\tKLD Weight. Weight to use for the KLD similarity measure for the specified timepoint");
+
    //   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Optimisation options:");
@@ -594,7 +601,31 @@ int main(int argc, char **argv)
          REG->UseDTI(timePoint);
          delete []timePoint;
       }
-      else if(strcmp(argv[i], "-pad")==0)
+	  else if (strcmp(argv[i], "-nmiw") == 0)
+	  {
+		  int tp = atoi(argv[++i]);
+		  double w = atof(argv[++i]);
+		  REG->SetNMIWeight(tp, w);
+	  }
+	  else if (strcmp(argv[i], "-lnccw") == 0)
+	  {
+		  int tp = atoi(argv[++i]);
+		  double w = atof(argv[++i]);
+		  REG->SetLNCCWeight(tp, w);
+	  }
+	  else if (strcmp(argv[i], "-ssdw") == 0)
+	  {
+		  int tp = atoi(argv[++i]);
+		  double w = atof(argv[++i]);
+		  REG->SetSSDWeight(tp, w);
+	  }
+	  else if (strcmp(argv[i], "-kldw") == 0)
+	  {
+		  int tp = atoi(argv[++i]);
+		  double w = atof(argv[++i]);
+		  REG->SetKLDWeight(tp, w);
+	  }
+	  else if (strcmp(argv[i], "-pad") == 0)
       {
          REG->SetWarpedPaddingValue(atof(argv[++i]));
       }

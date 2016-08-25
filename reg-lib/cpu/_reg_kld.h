@@ -55,7 +55,7 @@ public:
 extern "C++" template <class DTYPE>
 double reg_getKLDivergence(nifti_image *reference,
                            nifti_image *warped,
-                           bool *activeTimePoint,
+                           double *timePointWeight,
                            nifti_image *jacobianDeterminantImage,
                            int *mask);
 /* *************************************************************** */
@@ -81,7 +81,8 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *reference,
                                            nifti_image *KLdivGradient,
                                            nifti_image *jacobianDeterminantImage,
                                            int *mask,
-                                           int current_timepoint);
+                                           int current_timepoint,
+										   double timepoint_weight);
 /* *************************************************************** */
 
 #endif

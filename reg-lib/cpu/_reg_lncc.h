@@ -41,7 +41,6 @@ public:
    /// @brief Stuff
    void SetKernelStandardDeviation(int t, float stddev)
    {
-      this->activeTimePoint[t]=true;
       this->kernelStandardDeviation[t]=stddev;
    }
    /// @brief Stuff
@@ -126,6 +125,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    nifti_image *warImgGradient,
                                    nifti_image *lnccGradientImage,
                                    int kernelType,
-                                   int current_timepoint);
+                                   int current_timepoint,
+								   double timepoint_weight);
 #endif
 

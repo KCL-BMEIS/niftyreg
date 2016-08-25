@@ -768,7 +768,7 @@ void reg_base<T>::InitialiseSimilarity()
    {
       this->measure_nmi=new reg_nmi;
       for(int i=0; i<this->inputReference->nt; ++i)
-         this->measure_nmi->SetActiveTimepoint(i);
+         this->measure_nmi->SetTimepointWeight(i,1.0);
    }
    if(this->measure_nmi!=NULL)
       this->measure_nmi->InitialiseMeasure(this->currentReference,
@@ -1111,7 +1111,7 @@ void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber)
 {
    if(this->measure_nmi==NULL)
       this->measure_nmi=new reg_nmi;
-   this->measure_nmi->SetActiveTimepoint(timepoint);
+   this->measure_nmi->SetTimepointWeight(timepoint,1.0);//weight initially set to default value of 1.0
    // I am here adding 4 to the specified bin number to accomodate for
    // the spline support
    this->measure_nmi->SetReferenceBinNumber(refBinNumber+4, timepoint);
@@ -1125,7 +1125,7 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
 {
    if(this->measure_nmi==NULL)
       this->measure_nmi=new reg_nmi;
-   this->measure_nmi->SetActiveTimepoint(timepoint);
+   this->measure_nmi->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
    // I am here adding 4 to the specified bin number to accomodate for
    // the spline support
    this->measure_nmi->SetFloatingBinNumber(floBinNumber+4, timepoint);
@@ -1139,8 +1139,8 @@ void reg_base<T>::UseSSD(int timepoint, bool normalise)
 {
    if(this->measure_ssd==NULL)
       this->measure_ssd=new reg_ssd();
-   this->measure_ssd->SetActiveTimepoint(timepoint);
-   this->measure_ssd->SetNormaliseTimepoint(timepoint, normalise);
+   this->measure_ssd->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
+   this->measure_ssd->SetNormaliseTimepoint(timepoint,normalise);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseSSD");
 #endif
@@ -1151,7 +1151,7 @@ void reg_base<T>::UseMIND(int timepoint, int offset)
 {
    if(this->measure_mind==NULL)
       this->measure_mind=new reg_mind;
-   this->measure_mind->SetActiveTimepoint(timepoint);
+   this->measure_mind->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
    this->measure_mind->SetDescriptorOffset(offset);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseMIND");
@@ -1163,7 +1163,7 @@ void reg_base<T>::UseMINDSSC(int timepoint, int offset)
 {
    if(this->measure_mindssc==NULL)
       this->measure_mindssc=new reg_mindssc;
-   this->measure_mindssc->SetActiveTimepoint(timepoint);
+   this->measure_mindssc->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
    this->measure_mindssc->SetDescriptorOffset(offset);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseMINDSSC");
@@ -1175,7 +1175,7 @@ void reg_base<T>::UseKLDivergence(int timepoint)
 {
    if(this->measure_kld==NULL)
       this->measure_kld=new reg_kld;
-   this->measure_kld->SetActiveTimepoint(timepoint);
+   this->measure_kld->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseKLDivergence");
 #endif
@@ -1188,6 +1188,7 @@ void reg_base<T>::UseLNCC(int timepoint, float stddev)
       this->measure_lncc=new reg_lncc;
    this->measure_lncc->SetKernelStandardDeviation(timepoint,
          stddev);
+   this->measure_lncc->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseLNCC");
 #endif
@@ -1219,11 +1220,59 @@ void reg_base<T>::UseDTI(bool *timepoint)
    for(int i=0; i<this->inputReference->nt; ++i)
    {
       if(timepoint[i]==true)
-         this->measure_dti->SetActiveTimepoint(i);
+		  this->measure_dti->SetTimepointWeight(i, 1.0);//weight set to 1.0 to indicate timepoint is active
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseDTI");
 #endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetNMIWeight(int timepoint, double weight)
+{
+	if (this->measure_nmi == NULL)
+	{
+		reg_print_fct_error("reg_base<T>::SetNMIWeight");
+		reg_print_msg_error("The NMI object has to be created before the timepoint weights can be set");
+		reg_exit();
+	}
+	this->measure_nmi->SetTimepointWeight(timepoint, weight);
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetLNCCWeight(int timepoint, double weight)
+{
+	if (this->measure_lncc == NULL)
+	{
+		reg_print_fct_error("reg_base<T>::SetLNCCWeight");
+		reg_print_msg_error("The LNCC object has to be created before the timepoint weights can be set");
+		reg_exit();
+	}
+	this->measure_lncc->SetTimepointWeight(timepoint, weight);
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetSSDWeight(int timepoint, double weight)
+{
+	if (this->measure_ssd == NULL)
+	{
+		reg_print_fct_error("reg_base<T>::SetSSDWeight");
+		reg_print_msg_error("The SSD object has to be created before the timepoint weights can be set");
+		reg_exit();
+	}
+	this->measure_ssd->SetTimepointWeight(timepoint, weight);
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetKLDWeight(int timepoint, double weight)
+{
+	if (this->measure_kld == NULL)
+	{
+		reg_print_fct_error("reg_base<T>::SetKLDWeight");
+		reg_print_msg_error("The KLD object has to be created before the timepoint weights can be set");
+		reg_exit();
+	}
+	this->measure_kld->SetTimepointWeight(timepoint, weight);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1247,14 +1296,15 @@ void reg_base<T>::WarpFloatingImage(int inter)
    {
       reg_defField_getJacobianMatrix(this->deformationFieldImage,
                                      this->forwardJacobianMatrix);
-      reg_resampleImage(this->currentFloating,
+      /*DTI needs fixing!
+	  reg_resampleImage(this->currentFloating,
                         this->warped,
                         this->deformationFieldImage,
                         this->currentMask,
                         inter,
                         this->warpedPaddingValue,
                         this->measure_dti->GetActiveTimepoints(),
-                        this->forwardJacobianMatrix);
+                        this->forwardJacobianMatrix);*/
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::WarpFloatingImage");

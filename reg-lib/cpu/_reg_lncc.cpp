@@ -177,7 +177,7 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImgPtr,
 
    for(int i=0; i<this->referenceImagePointer->nt; ++i)
    {
-      if(this->activeTimePoint[i])
+      if(this->timePointWeight[i]>0.0)
       {
          reg_intensityRescale(this->referenceImagePointer,
                               i,
@@ -296,15 +296,20 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImgPtr,
 #ifndef NDEBUG
    char text[255];
    reg_print_msg_debug("reg_lncc::InitialiseMeasure().");
-   sprintf(text, "Active time point:");
    for(int i=0; i<this->referenceImagePointer->nt; ++i)
-      if(this->activeTimePoint[i])
-         sprintf(text, "%s %i", text, i);
-   reg_print_msg_debug(text);
+   {
+	   sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
+	   reg_print_msg_debug(text);
+   }
 #endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
+//JM - I am confused why the inputs to this function do not match the
+//inputs to the same function defined in _reg_lncc.h, i.e. here there
+//is an extra current_timepoint input
+//if anyone ever reads this and can explain this issue please let me
+//know :-) (j.mcclelland@ucl.ac.uk)
 template<class DTYPE>
 double reg_getLNCCValue(nifti_image *referenceImage,
                         nifti_image *referenceMeanImage,
@@ -387,126 +392,128 @@ double reg_lncc::GetSimilarityMeasureValue()
 
    for(int current_timepoint=0; current_timepoint<this->referenceImagePointer->nt; ++current_timepoint)
    {
-      if(this->activeTimePoint[current_timepoint]==true)
-      {
-         // Compute the mean and variance of the reference and warped floating
-         switch(this->referenceImagePointer->datatype)
-         {
-         case NIFTI_TYPE_FLOAT32:
-            this->UpdateLocalStatImages<float>(this->referenceImagePointer,
-                                               this->warpedFloatingImagePointer,
-                                               this->referenceMeanImage,
-                                               this->warpedFloatingMeanImage,
-                                               this->referenceSdevImage,
-                                               this->warpedFloatingSdevImage,
-                                               this->referenceMaskPointer,
-                                               this->forwardMask,
-                                               current_timepoint);
-            break;
-         case NIFTI_TYPE_FLOAT64:
-            this->UpdateLocalStatImages<double>(this->referenceImagePointer,
-                                                this->warpedFloatingImagePointer,
-                                                this->referenceMeanImage,
-                                                this->warpedFloatingMeanImage,
-                                                this->referenceSdevImage,
-                                                this->warpedFloatingSdevImage,
-                                                this->referenceMaskPointer,
-                                                this->forwardMask,
-                                                current_timepoint);
-            break;
-         }
+	   if (this->timePointWeight[current_timepoint] > 0.0)
+	   {
+		   double tp_value = 0.0;
+		   // Compute the mean and variance of the reference and warped floating
+		   switch (this->referenceImagePointer->datatype)
+		   {
+		   case NIFTI_TYPE_FLOAT32:
+			   this->UpdateLocalStatImages<float>(this->referenceImagePointer,
+				   this->warpedFloatingImagePointer,
+				   this->referenceMeanImage,
+				   this->warpedFloatingMeanImage,
+				   this->referenceSdevImage,
+				   this->warpedFloatingSdevImage,
+				   this->referenceMaskPointer,
+				   this->forwardMask,
+				   current_timepoint);
+			   break;
+		   case NIFTI_TYPE_FLOAT64:
+			   this->UpdateLocalStatImages<double>(this->referenceImagePointer,
+				   this->warpedFloatingImagePointer,
+				   this->referenceMeanImage,
+				   this->warpedFloatingMeanImage,
+				   this->referenceSdevImage,
+				   this->warpedFloatingSdevImage,
+				   this->referenceMaskPointer,
+				   this->forwardMask,
+				   current_timepoint);
+			   break;
+		   }
 
-         // Compute the LNCC - Forward
-         switch(this->referenceImagePointer->datatype)
-         {
-         case NIFTI_TYPE_FLOAT32:
-            lncc_value += reg_getLNCCValue<float>(this->referenceImagePointer,
-                                                  this->referenceMeanImage,
-                                                  this->referenceSdevImage,
-                                                  this->warpedFloatingImagePointer,
-                                                  this->warpedFloatingMeanImage,
-                                                  this->warpedFloatingSdevImage,
-                                                  this->forwardMask,
-                                                  this->kernelStandardDeviation,
-                                                  this->forwardCorrelationImage,
-                                                  this->kernelType,
-                                                  current_timepoint);
-            break;
-         case NIFTI_TYPE_FLOAT64:
-            lncc_value += reg_getLNCCValue<double>(this->referenceImagePointer,
-                                                   this->referenceMeanImage,
-                                                   this->referenceSdevImage,
-                                                   this->warpedFloatingImagePointer,
-                                                   this->warpedFloatingMeanImage,
-                                                   this->warpedFloatingSdevImage,
-                                                   this->forwardMask,
-                                                   this->kernelStandardDeviation,
-                                                   this->forwardCorrelationImage,
-                                                   this->kernelType,
-                                                   current_timepoint);
-            break;
-         }
-         if(this->isSymmetric)
-         {
-            // Compute the mean and variance of the floating and warped reference
-            switch(this->floatingImagePointer->datatype)
-            {
-            case NIFTI_TYPE_FLOAT32:
-               this->UpdateLocalStatImages<float>(this->floatingImagePointer,
-                                                  this->warpedReferenceImagePointer,
-                                                  this->floatingMeanImage,
-                                                  this->warpedReferenceMeanImage,
-                                                  this->floatingSdevImage,
-                                                  this->warpedReferenceSdevImage,
-                                                  this->floatingMaskPointer,
-                                                  this->backwardMask,
-                                                  current_timepoint);
-               break;
-            case NIFTI_TYPE_FLOAT64:
-               this->UpdateLocalStatImages<double>(this->floatingImagePointer,
-                                                   this->warpedReferenceImagePointer,
-                                                   this->floatingMeanImage,
-                                                   this->warpedReferenceMeanImage,
-                                                   this->floatingSdevImage,
-                                                   this->warpedReferenceSdevImage,
-                                                   this->floatingMaskPointer,
-                                                   this->backwardMask,
-                                                   current_timepoint);
-               break;
-            }
-            // Compute the LNCC - Backward
-            switch(this->floatingImagePointer->datatype)
-            {
-            case NIFTI_TYPE_FLOAT32:
-               lncc_value += reg_getLNCCValue<float>(this->floatingImagePointer,
-                                                     this->floatingMeanImage,
-                                                     this->floatingSdevImage,
-                                                     this->warpedReferenceImagePointer,
-                                                     this->warpedReferenceMeanImage,
-                                                     this->warpedReferenceSdevImage,
-                                                     this->backwardMask,
-                                                     this->kernelStandardDeviation,
-                                                     this->backwardCorrelationImage,
-                                                     this->kernelType,
-                                                     current_timepoint);
-               break;
-            case NIFTI_TYPE_FLOAT64:
-               lncc_value += reg_getLNCCValue<double>(this->floatingImagePointer,
-                                                      this->floatingMeanImage,
-                                                      this->floatingSdevImage,
-                                                      this->warpedReferenceImagePointer,
-                                                      this->warpedReferenceMeanImage,
-                                                      this->warpedReferenceSdevImage,
-                                                      this->backwardMask,
-                                                      this->kernelStandardDeviation,
-                                                      this->backwardCorrelationImage,
-                                                      this->kernelType,
-                                                      current_timepoint);
-               break;
-            }
-         }
-      number_activeTimePoint++;
-      }
+		   // Compute the LNCC - Forward
+		   switch (this->referenceImagePointer->datatype)
+		   {
+		   case NIFTI_TYPE_FLOAT32:
+			   tp_value += reg_getLNCCValue<float>(this->referenceImagePointer,
+				   this->referenceMeanImage,
+				   this->referenceSdevImage,
+				   this->warpedFloatingImagePointer,
+				   this->warpedFloatingMeanImage,
+				   this->warpedFloatingSdevImage,
+				   this->forwardMask,
+				   this->kernelStandardDeviation,
+				   this->forwardCorrelationImage,
+				   this->kernelType,
+				   current_timepoint);
+			   break;
+		   case NIFTI_TYPE_FLOAT64:
+			   tp_value += reg_getLNCCValue<double>(this->referenceImagePointer,
+				   this->referenceMeanImage,
+				   this->referenceSdevImage,
+				   this->warpedFloatingImagePointer,
+				   this->warpedFloatingMeanImage,
+				   this->warpedFloatingSdevImage,
+				   this->forwardMask,
+				   this->kernelStandardDeviation,
+				   this->forwardCorrelationImage,
+				   this->kernelType,
+				   current_timepoint);
+			   break;
+		   }
+		   if (this->isSymmetric)
+		   {
+			   // Compute the mean and variance of the floating and warped reference
+			   switch (this->floatingImagePointer->datatype)
+			   {
+			   case NIFTI_TYPE_FLOAT32:
+				   this->UpdateLocalStatImages<float>(this->floatingImagePointer,
+					   this->warpedReferenceImagePointer,
+					   this->floatingMeanImage,
+					   this->warpedReferenceMeanImage,
+					   this->floatingSdevImage,
+					   this->warpedReferenceSdevImage,
+					   this->floatingMaskPointer,
+					   this->backwardMask,
+					   current_timepoint);
+				   break;
+			   case NIFTI_TYPE_FLOAT64:
+				   this->UpdateLocalStatImages<double>(this->floatingImagePointer,
+					   this->warpedReferenceImagePointer,
+					   this->floatingMeanImage,
+					   this->warpedReferenceMeanImage,
+					   this->floatingSdevImage,
+					   this->warpedReferenceSdevImage,
+					   this->floatingMaskPointer,
+					   this->backwardMask,
+					   current_timepoint);
+				   break;
+			   }
+			   // Compute the LNCC - Backward
+			   switch (this->floatingImagePointer->datatype)
+			   {
+			   case NIFTI_TYPE_FLOAT32:
+				   tp_value += reg_getLNCCValue<float>(this->floatingImagePointer,
+					   this->floatingMeanImage,
+					   this->floatingSdevImage,
+					   this->warpedReferenceImagePointer,
+					   this->warpedReferenceMeanImage,
+					   this->warpedReferenceSdevImage,
+					   this->backwardMask,
+					   this->kernelStandardDeviation,
+					   this->backwardCorrelationImage,
+					   this->kernelType,
+					   current_timepoint);
+				   break;
+			   case NIFTI_TYPE_FLOAT64:
+				   tp_value += reg_getLNCCValue<double>(this->floatingImagePointer,
+					   this->floatingMeanImage,
+					   this->floatingSdevImage,
+					   this->warpedReferenceImagePointer,
+					   this->warpedReferenceMeanImage,
+					   this->warpedReferenceSdevImage,
+					   this->backwardMask,
+					   this->kernelStandardDeviation,
+					   this->backwardCorrelationImage,
+					   this->kernelType,
+					   current_timepoint);
+				   break;
+			   }
+		   }
+		   number_activeTimePoint++;
+		   lncc_value += tp_value * this->timePointWeight[current_timepoint];
+	   }
    }
    return lncc_value/static_cast<double>(number_activeTimePoint);
 }
@@ -525,7 +532,8 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    nifti_image *warImgGradient,
                                    nifti_image *measureGradientImage,
                                    int kernelType,
-                                   int current_timepoint)
+                                   int current_timepoint,
+								   double timepoint_weight)
 {
 #ifdef _WIN32
    long voxel;
@@ -629,7 +637,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
 #pragma omp parallel for default(none) \
    shared(voxelNumber,combinedMask,currentRefPtr,currentWarPtr, \
    warMeanPtr,warSdevPtr,correlaPtr,measureGradPtrX,measureGradPtrY, \
-   measureGradPtrZ, warpGradPtrX, warpGradPtrY, warpGradPtrZ) \
+   measureGradPtrZ, warpGradPtrX, warpGradPtrY, warpGradPtrZ, timepoint_weight) \
    private(voxel, common)
 #endif
    for(voxel=0; voxel<voxelNumber; ++voxel)
@@ -640,6 +648,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
          common = warMeanPtr[voxel] * currentRefPtr[voxel] -
                warSdevPtr[voxel] * currentWarPtr[voxel] +
                correlaPtr[voxel];
+		 common *= timepoint_weight;
          measureGradPtrX[voxel] -= warpGradPtrX[voxel] * common;
          measureGradPtrY[voxel] -= warpGradPtrY[voxel] * common;
          if(warpGradPtrZ!=NULL)
@@ -671,7 +680,7 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 {
    // Check if the specified time point exists and is active
    reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
-   if(this->activeTimePoint[current_timepoint]==false)
+   if(this->timePointWeight[current_timepoint]==0.0)
       return;
 
    // Compute the mean and variance of the reference and warped floating
@@ -717,7 +726,8 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                                            this->warpedFloatingGradientImagePointer,
                                            this->forwardVoxelBasedGradientImagePointer,
                                            this->kernelType,
-                                           current_timepoint);
+                                           current_timepoint,
+										   this->timePointWeight[current_timepoint]);
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_getVoxelBasedLNCCGradient<double>(this->referenceImagePointer,
@@ -732,7 +742,8 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                                             this->warpedFloatingGradientImagePointer,
                                             this->forwardVoxelBasedGradientImagePointer,
                                             this->kernelType,
-                                            current_timepoint);
+											current_timepoint,
+											this->timePointWeight[current_timepoint]);
       break;
    }
    if(this->isSymmetric)
@@ -779,7 +790,8 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                                               this->warpedReferenceGradientImagePointer,
                                               this->backwardVoxelBasedGradientImagePointer,
                                               this->kernelType,
-                                              current_timepoint);
+											  current_timepoint,
+											  this->timePointWeight[current_timepoint]);
          break;
       case NIFTI_TYPE_FLOAT64:
          reg_getVoxelBasedLNCCGradient<double>(this->floatingImagePointer,
@@ -794,7 +806,8 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                                                this->warpedReferenceGradientImagePointer,
                                                this->backwardVoxelBasedGradientImagePointer,
                                                this->kernelType,
-                                               current_timepoint);
+											   current_timepoint,
+											   this->timePointWeight[current_timepoint]);
          break;
       }
    }
