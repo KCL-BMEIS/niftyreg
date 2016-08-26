@@ -33,8 +33,14 @@
 #include "_reg_mrf.h"
 #endif
 #include "GlobalContent.h"
+//OPENCL
+#ifdef _USE_OPENCL
 #include "ClGlobalContent.h"
+#endif
+//CUDA
+#ifdef _USE_CUDA
 #include "CUDAGlobalContent.h"
+#endif
 
 /// @brief Base registration class
 template <class T>
