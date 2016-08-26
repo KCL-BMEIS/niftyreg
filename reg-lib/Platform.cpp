@@ -100,5 +100,6 @@ void Platform::setPlatformCode(int platformCodeIn)
 Platform::~Platform()
 {
     delete this->factory;
+    this->factory = NULL;
 }
 /* *************************************************************** */

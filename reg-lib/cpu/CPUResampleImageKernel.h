@@ -6,15 +6,17 @@
 
 class CPUResampleImageKernel : public ResampleImageKernel
 {
-    public:
+public:
         CPUResampleImageKernel(GlobalContent *con, std::string name);
+        void calculate(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 
+private:
         nifti_image *floatingImage;
         nifti_image *warpedImage;
         nifti_image *deformationField;
         int *mask;
-
-        void calculate(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
+        //
+        GlobalContent *con;
 };
 
 #endif // CPURESAMPLEIMAGEKERNEL_H

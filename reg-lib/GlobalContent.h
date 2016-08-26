@@ -43,7 +43,7 @@ public:
 
     void CheckParameters();
     //
-    virtual void WarpFloatingImage(int interp = 1);
+    //virtual void WarpFloatingImage(int interp = 1);
 
     //getters
     nifti_image* getInputReference();

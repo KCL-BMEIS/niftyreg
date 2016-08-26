@@ -7,8 +7,7 @@ class  KernelFactory {
 public:
 
     virtual Kernel* produceKernel(std::string name, GlobalContent* con) const = 0;
-    virtual ~KernelFactory() {
-    }
+    virtual ~KernelFactory() {}
 };
 
 

@@ -61,7 +61,10 @@ template<class T>
 reg_aladin<T>::~reg_aladin()
 {
     this->ClearKernels();
-    delete this->con;
+    if(this->con != NULL) {
+        delete this->con;
+        this->con = NULL;
+    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_aladin<T>::~reg_aladin()");
 #endif

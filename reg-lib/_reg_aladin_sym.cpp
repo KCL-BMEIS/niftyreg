@@ -279,8 +279,13 @@ void reg_aladin_sym<T>::CreateKernels()
   reg_aladin<T>::CreateKernels();
   this->bAffineTransformation3DKernel = this->backCon->getPlatform()->createKernel (AffineDeformationFieldKernel::getName(), this->backCon);
   this->bBlockMatchingKernel = this->backCon->getPlatform()->createKernel(BlockMatchingKernel::getName(), this->backCon);
-  this->bResamplingKernel = this->backCon->getPlatform()->createKernel(ResampleImageKernel::getName(), this->backCon);
-  this->bOptimiseKernel = this->backCon->getPlatform()->createKernel(OptimiseKernel::getName(), this->backCon);
+  if (this->backCon->AladinContent::getBlockMatchingParams() != NULL) {
+    this->bResamplingKernel = this->backCon->getPlatform()->createKernel(ResampleImageKernel::getName(), this->backCon);
+    this->bOptimiseKernel = this->backCon->getPlatform()->createKernel(OptimiseKernel::getName(), this->backCon);
+  } else {
+    this->bResamplingKernel = NULL;
+    this->bOptimiseKernel = NULL;
+  }
 }
 /* *************************************************************** */
 //template <class T>
