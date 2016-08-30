@@ -33,16 +33,17 @@ void ClF3DContent::setCurrentControlPointGrid(nifti_image *cpgIn)
     }
     F3DContent::setCurrentControlPointGrid(cpgIn);
     this->controlPointGridClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, this->currentControlPointGrid->nvox * sizeof(float), this->currentControlPointGrid->data, &this->errNum);
-    this->sContext->checkErrNum(this->errNum, "ClGlobalContent::setCurrentWarped failed to allocate memory (warpedImageClmem): ");
+    this->sContext->checkErrNum(this->errNum, "ClF3DContent::setCurrentControlPointGrid failed to allocate memory (controlPointGridClmem): ");
 }
 /* *************************************************************** */
 void ClF3DContent::ClearControlPointGrid()
 {
    if(this->currentControlPointGrid!=NULL) {
-       clReleaseMemObject(this->controlPointGridClmem);
+       //Already destroyed in the destructor
+       //clReleaseMemObject(this->controlPointGridClmem);
        F3DContent::ClearControlPointGrid();
    }
 #ifndef NDEBUG
-   reg_print_fct_debug("ClGlobalContent::ClearWarped");
+   reg_print_fct_debug("ClF3DContent::ClearControlPointGrid");
 #endif
 }

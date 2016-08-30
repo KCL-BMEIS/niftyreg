@@ -53,9 +53,8 @@ template <class T>
 reg_f3d<T>::~reg_f3d()
 {
    this->ClearTransformationGradient();
-   if(this->con->getCurrentControlPointGrid()!=NULL)
-   {
-      this->con->ClearControlPointGrid();
+   if(this->con->F3DContent::getCurrentControlPointGrid()!=NULL) {
+      this->con->F3DContent::ClearControlPointGrid();
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::~reg_f3d");

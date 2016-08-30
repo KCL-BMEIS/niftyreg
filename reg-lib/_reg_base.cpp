@@ -100,7 +100,7 @@ reg_base<T>::~reg_base()
 
    delete this->con;
    //Platform
-//   delete this->platform;
+   //delete this->platform;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::~reg_base");
 #endif
