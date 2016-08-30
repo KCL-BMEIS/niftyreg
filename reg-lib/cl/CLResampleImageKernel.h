@@ -2,7 +2,7 @@
 #define CLRESAMPLEIMAGEKERNEL_H
 
 #include "ResampleImageKernel.h"
-#include "ClGlobalContent.h"
+#include "CLGlobalContent.h"
 #include "CLAladinContent.h"
 
 class CLResampleImageKernel : public ResampleImageKernel

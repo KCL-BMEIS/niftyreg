@@ -2,7 +2,7 @@
 #define CLREFINECONTROLPOINTGRIDKERNEL_H
 
 #include "RefineControlPointGridKernel.h"
-#include "ClF3DContent.h"
+#include "CLF3DContent.h"
 #include "_reg_localTrans.h"
 
 class ClRefineControlPointGridKernel : public RefineControlPointGridKernel

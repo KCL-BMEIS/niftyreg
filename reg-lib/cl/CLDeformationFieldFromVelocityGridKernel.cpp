@@ -1,4 +1,4 @@
-#include "ClDeformationFieldFromVelocityGridKernel.h"
+#include "CLDeformationFieldFromVelocityGridKernel.h"
 
 ClDeformationFieldFromVelocityGridKernel::ClDeformationFieldFromVelocityGridKernel(GlobalContent *conIn, std::string nameIn) : DeformationFieldFromVelocityGridKernel(nameIn)
 {

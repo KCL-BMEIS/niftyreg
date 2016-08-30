@@ -5,9 +5,9 @@
 #include "CLResampleImageKernel.h"
 #include "CLOptimiseKernel.h"
 //New
-#include "ClSplineDeformationFieldKernel.h"
-#include "ClRefineControlPointGridKernel.h"
-#include "ClDeformationFieldFromVelocityGridKernel.h"
+#include "CLSplineDeformationFieldKernel.h"
+#include "CLRefineControlPointGridKernel.h"
+#include "CLDeformationFieldFromVelocityGridKernel.h"
 
 Kernel *CLKernelFactory::produceKernel(std::string name, GlobalContent *con) const {
 

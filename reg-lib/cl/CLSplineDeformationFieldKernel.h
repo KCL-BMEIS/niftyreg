@@ -2,7 +2,7 @@
 #define CLSPLINEDEFORMATIONFIELDKERNEL_H
 
 #include "SplineDeformationFieldKernel.h"
-#include "ClF3DContent.h"
+#include "CLF3DContent.h"
 #include "_reg_localTrans.h"
 
 class ClSplineDeformationFieldKernel : public SplineDeformationFieldKernel

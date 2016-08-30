@@ -2,7 +2,7 @@
 #define CLCONTENT_H_
 
 #include "AladinContent.h"
-#include "ClGlobalContent.h"
+#include "CLGlobalContent.h"
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>

@@ -1,4 +1,4 @@
-#include "ClF3DContent.h"
+#include "CLF3DContent.h"
 
 ClF3DContent::ClF3DContent(int refTime, int floTime) : F3DContent(NR_PLATFORM_CL, refTime, floTime), ClGlobalContent(refTime, floTime), GlobalContent(NR_PLATFORM_CL, refTime, floTime)
 {

@@ -1,4 +1,4 @@
-#include "ClRefineControlPointGridKernel.h"
+#include "CLRefineControlPointGridKernel.h"
 
 ClRefineControlPointGridKernel::ClRefineControlPointGridKernel(GlobalContent *conIn, std::string nameIn) : RefineControlPointGridKernel(nameIn)
 {

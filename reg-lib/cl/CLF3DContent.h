@@ -2,7 +2,7 @@
 #define CLF3DCONTENT_H
 
 #include "F3DContent.h"
-#include "ClGlobalContent.h"
+#include "CLGlobalContent.h"
 
 class ClF3DContent : public F3DContent, public ClGlobalContent
 {

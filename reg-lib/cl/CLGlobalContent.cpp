@@ -1,4 +1,4 @@
-#include "ClGlobalContent.h"
+#include "CLGlobalContent.h"
 
 /* *************************************************************** */
 ClGlobalContent::ClGlobalContent(int refTimePoint,int floTimePoint) : GlobalContent(NR_PLATFORM_CL, refTimePoint, floTimePoint)

@@ -35,11 +35,11 @@
 #include "F3DContent.h"
 //OPENCL
 #ifdef _USE_OPENCL
-#include "ClF3DContent.h"
+#include "CLF3DContent.h"
 #endif
 //CUDA
 #ifdef _USE_CUDA
-#include "CUDAGlobalContent.h"
+#include "CUDAF3DContent.h"
 #endif
 //Kernels
 //#include "AffineDeformationFieldKernel.h"

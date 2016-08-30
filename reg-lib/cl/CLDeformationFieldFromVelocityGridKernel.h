@@ -2,7 +2,7 @@
 #define CLDEFORMATIONFIELDFROMVELOCITYGRIDKERNEL_H
 
 #include "DeformationFieldFromVelocityGridKernel.h"
-#include "ClF3DContent.h"
+#include "CLF3DContent.h"
 #include "_reg_localTrans.h"
 
 class ClDeformationFieldFromVelocityGridKernel : public DeformationFieldFromVelocityGridKernel

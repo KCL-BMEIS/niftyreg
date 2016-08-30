@@ -23,14 +23,14 @@ include_directories(${OPENCL_INCLUDE_DIRS})
 set(NAME _reg_opencl_kernels)
 add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CLContextSingletton.cpp
-        ClGlobalContent.cpp
-        ClF3DContent.cpp
+        CLGlobalContent.cpp
+        CLF3DContent.cpp
 	CLAladinContent.cpp
 	CLKernelFactory.cpp
 	CLAffineDeformationFieldKernel.cpp
         CLSplineDeformationFieldKernel.cpp
-        ClRefineControlPointGridKernel.cpp
-        ClDeformationFieldFromVelocityGridKernel.cpp
+        CLRefineControlPointGridKernel.cpp
+        CLDeformationFieldFromVelocityGridKernel.cpp
 	CLBlockMatchingKernel.cpp
 	CLConvolutionKernel.cpp
 	CLOptimiseKernel.cpp
@@ -48,14 +48,14 @@ install(TARGETS ${NAME}
 )
 #-----------------------------------------------------------------------------
 install(FILES CLContextSingletton.h
-              ClGlobalContent.h
-              ClF3DContent.h
+              CLGlobalContent.h
+              CLF3DContent.h
               CLAladinContent.h
               CLKernelFactory.h
               CLAffineDeformationFieldKernel.h
               CLSplineDeformationFieldKernel.h
-              ClRefineControlPointGridKernel.h
-              ClDeformationFieldFromVelocityGridKernel.h
+              CLRefineControlPointGridKernel.h
+              CLDeformationFieldFromVelocityGridKernel.h
               CLBlockMatchingKernel.h
               CLConvolutionKernel.h
               CLOptimiseKernel.h

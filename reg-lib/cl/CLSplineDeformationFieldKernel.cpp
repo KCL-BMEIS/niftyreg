@@ -1,4 +1,4 @@
-#include "ClSplineDeformationFieldKernel.h"
+#include "CLSplineDeformationFieldKernel.h"
 
 ClSplineDeformationFieldKernel::ClSplineDeformationFieldKernel(GlobalContent *conIn, std::string nameIn) : SplineDeformationFieldKernel(nameIn)
 {
