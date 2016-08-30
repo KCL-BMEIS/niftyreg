@@ -32,15 +32,20 @@
 #include "_reg_discrete_init.h"
 #include "_reg_mrf.h"
 #endif
-#include "GlobalContent.h"
+#include "F3DContent.h"
 //OPENCL
 #ifdef _USE_OPENCL
-#include "ClGlobalContent.h"
+#include "ClF3DContent.h"
 #endif
 //CUDA
 #ifdef _USE_CUDA
 #include "CUDAGlobalContent.h"
 #endif
+//Kernels
+//#include "AffineDeformationFieldKernel.h"
+#include "SplineDeformationFieldKernel.h"
+#include "RefineControlPointGridKernel.h"
+#include "DeformationFieldFromVelocityGridKernel.h"
 
 /// @brief Base registration class
 template <class T>
@@ -80,7 +85,7 @@ protected:
 
    bool initialised;
 
-   GlobalContent *forwardGlobalContent;
+   F3DContent *con;
 
    nifti_image *warImgGradient;
    nifti_image *voxelBasedMeasureGradient;
@@ -95,6 +100,10 @@ protected:
    bool discrete_init;
 #endif
 
+   virtual void AllocateWarped();
+   virtual void ClearWarped();
+   virtual void AllocateDeformationField();
+   virtual void ClearDeformationField();
    virtual void AllocateWarpedGradient();
    virtual void ClearWarpedGradient();
    virtual void AllocateVoxelBasedMeasureGradient();

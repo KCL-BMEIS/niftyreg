@@ -73,10 +73,10 @@ void reg_f3d2<T>::Initialise()
    reg_f3d_sym<T>::Initialise();
 
    // Convert the control point grid into velocity field parametrisation
-   this->controlPointGrid->intent_p1=SPLINE_VEL_GRID;
+   this->con->getCurrentControlPointGrid()->intent_p1=SPLINE_VEL_GRID;
    this->backwardControlPointGrid->intent_p1=SPLINE_VEL_GRID;
    // Set the number of composition to 6 by default
-   this->controlPointGrid->intent_p2=6;
+   this->con->getCurrentControlPointGrid()->intent_p2=6;
    this->backwardControlPointGrid->intent_p2=6;
 
 #ifndef NDEBUG
@@ -99,16 +99,20 @@ void reg_f3d2<T>::GetDeformationField()
    reg_print_msg_debug(text);
 #endif
    // The forward transformation is computed using the scaling-and-squaring approach
-   reg_spline_getDefFieldFromVelocityGrid(this->controlPointGrid,
-                                          this->forwardGlobalContent->getCurrentDeformationField(),
-                                          updateStepNumber
-                                          );
+   //reg_spline_getDefFieldFromVelocityGrid(this->con->getCurrentControlPointGrid(),
+   //                                       this->con->getCurrentDeformationField(),
+   //                                       updateStepNumber
+   //                                       );
+   Kernel* defFieldKernel = this->con->getPlatform()->createKernel(DeformationFieldFromVelocityGridKernel::getName(), this->con);
+   defFieldKernel->castTo<DeformationFieldFromVelocityGridKernel>()->calculate(updateStepNumber);
+   delete defFieldKernel;
+
 #ifndef NDEBUG
    sprintf(text, "Velocity integration backward. Step number update=%i",updateStepNumber);
    reg_print_msg_debug(text);
 #endif
    // The number of step number is copied over from the forward transformation
-   this->backwardControlPointGrid->intent_p2=this->controlPointGrid->intent_p2;
+   this->backwardControlPointGrid->intent_p2=this->con->getCurrentControlPointGrid()->intent_p2;
    // The backward transformation is computed using the scaling-and-squaring approach
    reg_spline_getDefFieldFromVelocityGrid(this->backwardControlPointGrid,
                                           this->backwardDeformationFieldImage,
@@ -176,7 +180,7 @@ void reg_f3d2<T>::ExponentiateGradient()
                             sizeof(nifti_image *));
    for(unsigned int i=0; i<=(unsigned int)fabs(this->backwardControlPointGrid->intent_p2); ++i)
    {
-      tempDef[i]=nifti_copy_nim_info(this->forwardGlobalContent->getCurrentDeformationField());
+      tempDef[i]=nifti_copy_nim_info(this->con->getCurrentDeformationField());
       tempDef[i]->data=(void *)malloc(tempDef[i]->nvox*tempDef[i]->nbyper);
    }
    // Generate all intermediate deformation fields
@@ -185,10 +189,10 @@ void reg_f3d2<T>::ExponentiateGradient()
 
    // Remove the affine component
    nifti_image *affine_disp=NULL;
-   if(this->forwardGlobalContent->getAffineTransformation()!=NULL){
-      affine_disp=nifti_copy_nim_info(this->forwardGlobalContent->getCurrentDeformationField());
+   if(this->con->getAffineTransformation()!=NULL){
+      affine_disp=nifti_copy_nim_info(this->con->getCurrentDeformationField());
       affine_disp->data=(void *)malloc(affine_disp->nvox*affine_disp->nbyper);
-      mat44 backwardAffineTransformation=nifti_mat44_inverse(*this->forwardGlobalContent->getAffineTransformation());
+      mat44 backwardAffineTransformation=nifti_mat44_inverse(*this->con->getAffineTransformation());
       reg_affine_getDeformationField(&backwardAffineTransformation,
                                      affine_disp);
       reg_getDisplacementFromDeformation(affine_disp);
@@ -243,26 +247,26 @@ void reg_f3d2<T>::ExponentiateGradient()
    tempGrad=nifti_copy_nim_info(this->backwardVoxelBasedMeasureGradientImage);
    tempGrad->data=(void *)malloc(tempGrad->nvox*tempGrad->nbyper);
    // Create all deformation field images needed for resampling
-   tempDef=(nifti_image **)malloc((unsigned int)(fabs(this->controlPointGrid->intent_p2)+1) * sizeof(nifti_image *));
-   for(unsigned int i=0; i<=(unsigned int)fabs(this->controlPointGrid->intent_p2); ++i)
+   tempDef=(nifti_image **)malloc((unsigned int)(fabs(this->con->getCurrentControlPointGrid()->intent_p2)+1) * sizeof(nifti_image *));
+   for(unsigned int i=0; i<=(unsigned int)fabs(this->con->getCurrentControlPointGrid()->intent_p2); ++i)
    {
       tempDef[i]=nifti_copy_nim_info(this->backwardDeformationFieldImage);
       tempDef[i]->data=(void *)malloc(tempDef[i]->nvox*tempDef[i]->nbyper);
    }
    // Generate all intermediate deformation fields
-   reg_spline_getIntermediateDefFieldFromVelGrid(this->controlPointGrid,
+   reg_spline_getIntermediateDefFieldFromVelGrid(this->con->getCurrentControlPointGrid(),
          tempDef);
 
    // Remove the affine component
-   if(this->forwardGlobalContent->getAffineTransformation()!=NULL){
+   if(this->con->getAffineTransformation()!=NULL){
       affine_disp=nifti_copy_nim_info(this->backwardDeformationFieldImage);
       affine_disp->data=(void *)malloc(affine_disp->nvox*affine_disp->nbyper);
-      reg_affine_getDeformationField(this->forwardGlobalContent->getAffineTransformation(),
+      reg_affine_getDeformationField(this->con->getAffineTransformation(),
                                      affine_disp);
       reg_getDisplacementFromDeformation(affine_disp);
    }
 
-   for(int i=0; i<(int)fabsf(this->controlPointGrid->intent_p2); ++i)
+   for(int i=0; i<(int)fabsf(this->con->getCurrentControlPointGrid()->intent_p2); ++i)
    {
       if(affine_disp!=NULL)
          reg_tools_substractImageToImage(tempDef[i],
@@ -279,7 +283,7 @@ void reg_f3d2<T>::ExponentiateGradient()
    }
 
    // Free the temporary deformation field
-   for(int i=0; i<=(int)fabsf(this->controlPointGrid->intent_p2); ++i)
+   for(int i=0; i<=(int)fabsf(this->con->getCurrentControlPointGrid()->intent_p2); ++i)
    {
       nifti_image_free(tempDef[i]);
       tempDef[i]=NULL;
@@ -296,7 +300,7 @@ void reg_f3d2<T>::ExponentiateGradient()
    // Normalise the backward gradient
    reg_tools_divideValueToImage(this->backwardVoxelBasedMeasureGradientImage, // in
                                 this->backwardVoxelBasedMeasureGradientImage, // out
-                                powf(2.f,fabsf(this->controlPointGrid->intent_p2))); // value
+                                powf(2.f,fabsf(this->con->getCurrentControlPointGrid()->intent_p2))); // value
 
    return;
 }
@@ -327,16 +331,16 @@ void reg_f3d2<T>::UpdateParameters(float scale)
 #ifndef NDEBUG
       reg_print_msg_debug("Update the forward control point grid using BCH approximation");
 #endif
-      compute_BCH_update(this->controlPointGrid,
+      compute_BCH_update(this->con->getCurrentControlPointGrid(),
                          forwardScaledGradient,
                          this->BCHUpdateValue);
    }
    else
    {
       // Update the velocity field
-      reg_tools_addImageToImage(this->controlPointGrid, // in1
+      reg_tools_addImageToImage(this->con->getCurrentControlPointGrid(), // in1
                                 forwardScaledGradient, // in2
-                                this->controlPointGrid); // out
+                                this->con->getCurrentControlPointGrid()); // out
    }
    // Clean the temporary nifti_images
    nifti_image_free(forwardScaledGradient);
@@ -385,30 +389,30 @@ void reg_f3d2<T>::UpdateParameters(float scale)
    /****************************/
    nifti_image *warpedForwardTrans = nifti_copy_nim_info(this->backwardControlPointGrid);
    warpedForwardTrans->data=(void *)malloc(warpedForwardTrans->nvox*warpedForwardTrans->nbyper);
-   nifti_image *warpedBackwardTrans = nifti_copy_nim_info(this->controlPointGrid);
+   nifti_image *warpedBackwardTrans = nifti_copy_nim_info(this->con->getCurrentControlPointGrid());
    warpedBackwardTrans->data=(void *)malloc(warpedBackwardTrans->nvox*warpedBackwardTrans->nbyper);
 
    // Both parametrisations are converted into displacement
-   reg_getDisplacementFromDeformation(this->controlPointGrid);
+   reg_getDisplacementFromDeformation(this->con->getCurrentControlPointGrid());
    reg_getDisplacementFromDeformation(this->backwardControlPointGrid);
 
    // Both parametrisations are copied over
    memcpy(warpedBackwardTrans->data,this->backwardControlPointGrid->data,warpedBackwardTrans->nvox*warpedBackwardTrans->nbyper);
-   memcpy(warpedForwardTrans->data,this->controlPointGrid->data,warpedForwardTrans->nvox*warpedForwardTrans->nbyper);
+   memcpy(warpedForwardTrans->data,this->con->getCurrentControlPointGrid()->data,warpedForwardTrans->nvox*warpedForwardTrans->nbyper);
 
    // and substracted (sum and negation)
    reg_tools_substractImageToImage(this->backwardControlPointGrid, // displacement
                                    warpedForwardTrans, // displacement
                                    this->backwardControlPointGrid); // displacement output
-   reg_tools_substractImageToImage(this->controlPointGrid, // displacement
+   reg_tools_substractImageToImage(this->con->getCurrentControlPointGrid(), // displacement
                                    warpedBackwardTrans, // displacement
-                                   this->controlPointGrid); // displacement output
+                                   this->con->getCurrentControlPointGrid()); // displacement output
    // Division by 2
    reg_tools_multiplyValueToImage(this->backwardControlPointGrid, // displacement
                                   this->backwardControlPointGrid, // displacement
                                   0.5f); // *(0.5)
-   reg_tools_multiplyValueToImage(this->controlPointGrid, // displacement
-                                  this->controlPointGrid, // displacement
+   reg_tools_multiplyValueToImage(this->con->getCurrentControlPointGrid(), // displacement
+                                  this->con->getCurrentControlPointGrid(), // displacement
                                   0.5f); // *(0.5)
    // Clean the temporary allocated velocity fields
    nifti_image_free(warpedForwardTrans);
@@ -417,7 +421,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
    warpedBackwardTrans=NULL;
 
    // Convert the velocity field from displacement to deformation
-   reg_getDeformationFromDisplacement(this->controlPointGrid);
+   reg_getDeformationFromDisplacement(this->con->getCurrentControlPointGrid());
    reg_getDeformationFromDisplacement(this->backwardControlPointGrid);
 
    return;
@@ -428,9 +432,9 @@ template<class T>
 nifti_image **reg_f3d2<T>::GetWarpedImage()
 {
    // The initial images are used
-   if(this->forwardGlobalContent->getInputReference()==NULL ||
-         this->forwardGlobalContent->getInputFloating()==NULL ||
-         this->controlPointGrid==NULL ||
+   if(this->con->getInputReference()==NULL ||
+         this->con->getInputFloating()==NULL ||
+         this->con->getCurrentControlPointGrid()==NULL ||
          this->backwardControlPointGrid==NULL)
    {
       reg_print_fct_error("reg_f3d2<T>::GetWarpedImage()");
@@ -439,10 +443,17 @@ nifti_image **reg_f3d2<T>::GetWarpedImage()
    }
 
    // Set the input images
-   this->forwardGlobalContent->setCurrentReference(this->forwardGlobalContent->getInputReference());
-   this->forwardGlobalContent->setCurrentFloating(this->forwardGlobalContent->getInputFloating());
+   this->con->setCurrentReference(this->con->getInputReference());
+   this->con->setCurrentFloating(this->con->getInputFloating());
    // No mask is used to perform the final resampling
-   this->forwardGlobalContent->setCurrentReferenceMask(NULL, 0);
+   int *mask = (int *)calloc(this->con->getInputReference()->nx*
+                             this->con->getInputReference()->ny*
+                             this->con->getInputReference()->nz,
+                             sizeof(int));
+   this->con->setCurrentReferenceMask(mask,
+                                      this->con->getInputReference()->nx*
+                                      this->con->getInputReference()->ny*
+                                      this->con->getInputReference()->nz);
    reg_f3d2<T>::currentFloatingMask = NULL;
 
    // Allocate the forward and backward warped images
@@ -455,23 +466,25 @@ nifti_image **reg_f3d2<T>::GetWarpedImage()
 
    // Clear the deformation field
    reg_f3d2<T>::ClearDeformationField();
+   //
+   free(mask);
 
    // Allocate and save the forward transformation warped image
    nifti_image **warpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
-   warpedImage[0] = nifti_copy_nim_info(this->forwardGlobalContent->getCurrentWarped());
-   warpedImage[0]->cal_min=this->forwardGlobalContent->getInputFloating()->cal_min;
-   warpedImage[0]->cal_max=this->forwardGlobalContent->getInputFloating()->cal_max;
-   warpedImage[0]->scl_slope=this->forwardGlobalContent->getInputFloating()->scl_slope;
-   warpedImage[0]->scl_inter=this->forwardGlobalContent->getInputFloating()->scl_inter;
+   warpedImage[0] = nifti_copy_nim_info(this->con->getCurrentWarped());
+   warpedImage[0]->cal_min=this->con->getInputFloating()->cal_min;
+   warpedImage[0]->cal_max=this->con->getInputFloating()->cal_max;
+   warpedImage[0]->scl_slope=this->con->getInputFloating()->scl_slope;
+   warpedImage[0]->scl_inter=this->con->getInputFloating()->scl_inter;
    warpedImage[0]->data=(void *)malloc(warpedImage[0]->nvox*warpedImage[0]->nbyper);
-   memcpy(warpedImage[0]->data, this->forwardGlobalContent->getInputFloating()->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
+   memcpy(warpedImage[0]->data, this->con->getInputFloating()->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
 
    // Allocate and save the backward transformation warped image
    warpedImage[1] = nifti_copy_nim_info(this->backwardWarped);
-   warpedImage[1]->cal_min=this->forwardGlobalContent->getInputReference()->cal_min;
-   warpedImage[1]->cal_max=this->forwardGlobalContent->getInputReference()->cal_max;
-   warpedImage[1]->scl_slope=this->forwardGlobalContent->getInputReference()->scl_slope;
-   warpedImage[1]->scl_inter=this->forwardGlobalContent->getInputReference()->scl_inter;
+   warpedImage[1]->cal_min=this->con->getInputReference()->cal_min;
+   warpedImage[1]->cal_max=this->con->getInputReference()->cal_max;
+   warpedImage[1]->scl_slope=this->con->getInputReference()->scl_slope;
+   warpedImage[1]->scl_inter=this->con->getInputReference()->scl_inter;
    warpedImage[1]->data=(void *)malloc(warpedImage[1]->nvox*warpedImage[1]->nbyper);
    memcpy(warpedImage[1]->data, this->backwardWarped->data, warpedImage[1]->nvox*warpedImage[1]->nbyper);
 

@@ -57,11 +57,8 @@ void CudaGlobalContent::setCurrentReference(nifti_image *currentRefIn)
        cudaCommon_free<float>(&referenceImageArray_d);
        cudaCommon_free<float>(&referenceMat_d);
     }
-    if (currentRefIn != NULL && currentRefIn->datatype != NIFTI_TYPE_FLOAT32)
-        reg_tools_changeDatatype<float>(currentRefIn);
 
     GlobalContent::setCurrentReference(currentRefIn);
-
     cudaCommon_allocateArrayToDevice<float>(&referenceImageArray_d, this->currentReference->nvox);
     cudaCommon_allocateArrayToDevice<float>(&referenceMat_d, 16);
     cudaCommon_transferFromDeviceToNiftiSimple<float>(&referenceImageArray_d, this->currentReference);
@@ -88,11 +85,8 @@ void CudaGlobalContent::setCurrentFloating(nifti_image *currentFloIn)
         cudaCommon_free<float>(&floatingImageArray_d);
         cudaCommon_free<float>(&floIJKMat_d);
     }
-    if (currentFloIn != NULL && currentFloIn->datatype != NIFTI_TYPE_FLOAT32)
-        reg_tools_changeDatatype<float>(currentFloIn);
 
     GlobalContent::setCurrentFloating(currentFloIn);
-
     cudaCommon_allocateArrayToDevice<float>(&floatingImageArray_d, this->currentFloating->nvox);
     cudaCommon_allocateArrayToDevice<float>(&floIJKMat_d, 16);
 
@@ -108,9 +102,6 @@ void CudaGlobalContent::setCurrentWarped(nifti_image *currentWarpedIn)
 {
    if (this->currentWarped != NULL) {
       cudaCommon_free<float>(&warpedImageArray_d);
-   }
-   if (currentWarpedIn->datatype != NIFTI_TYPE_FLOAT32) {
-       reg_tools_changeDatatype<float>(currentWarpedIn);
    }
 
    GlobalContent::setCurrentWarped(currentWarpedIn);

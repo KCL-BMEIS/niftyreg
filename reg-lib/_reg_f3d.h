@@ -19,13 +19,13 @@ template <class T>
 class reg_f3d : public reg_base<T>
 {
 protected:
-   nifti_image *inputControlPointGrid; // pointer to external
-   nifti_image *controlPointGrid;
+   //nifti_image *inputControlPointGrid; // pointer to external
+   //nifti_image *controlPointGrid;
    T bendingEnergyWeight;
    T linearEnergyWeight;
    T jacobianLogWeight;
    bool jacobianLogApproximation;
-   T spacing[3];
+   //T spacing[3];
 
    nifti_image *transformationGradient;
    bool gridRefinement;
@@ -72,7 +72,7 @@ protected:
    T pairwiseEnergyWeight;
    double bestWPE;
    double currentWPE;
-   bool linearSpline;
+   //
    virtual double ComputePairwiseEnergyPenaltyTerm();
    virtual void GetPairwiseEnergyGradient();
    virtual void DiscreteInitialisation();
@@ -160,7 +160,7 @@ public:
    // Function used for testing
    virtual void reg_test_setControlPointGrid(nifti_image *cpp)
    {
-      this->controlPointGrid=cpp;
+      this->con->setCurrentControlPointGrid(cpp);
    }
 };
 

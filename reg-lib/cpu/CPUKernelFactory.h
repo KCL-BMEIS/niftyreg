@@ -3,7 +3,6 @@
 
 #include "KernelFactory.h"
 
-class AladinContent;
 
 class CPUKernelFactory : public KernelFactory
 {

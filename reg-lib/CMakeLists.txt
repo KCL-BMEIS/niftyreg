@@ -140,6 +140,12 @@ set(_reg_aladin_files
   Kernel.h
   cpu/CPUAffineDeformationFieldKernel.h
   cpu/CPUAffineDeformationFieldKernel.cpp
+  cpu/CPUSplineDeformationFieldKernel.h
+  cpu/CPUSplineDeformationFieldKernel.cpp
+  cpu/CPURefineControlPointGridKernel.h
+  cpu/CPURefineControlPointGridKernel.cpp
+  cpu/CPUDeformationFieldFromVelocityGridKernel.h
+  cpu/CPUDeformationFieldFromVelocityGridKernel.cpp
   cpu/CPUBlockMatchingKernel.h
   cpu/CPUBlockMatchingKernel.cpp
   cpu/CPUConvolutionKernel.h
@@ -175,11 +181,17 @@ install(FILES GlobalContent.h AladinContent.h Platform.h  DESTINATION include)
 install(FILES
         Kernel.h
         AffineDeformationFieldKernel.h
+        SplineDeformationFieldKernel.h
+        RefineControlPointGridKernel.h
+        DeformationFieldFromVelocityGridKernel.h
         BlockMatchingKernel.h
         ConvolutionKernel.h
         OptimiseKernel.h
         ResampleImageKernel.h
         cpu/CPUAffineDeformationFieldKernel.h
+        cpu/CPUSplineDeformationFieldKernel.h
+        cpu/CPURefineControlPointGridKernel.h
+        cpu/CPUDeformationFieldFromVelocityGridKernel.h
         cpu/CPUBlockMatchingKernel.h
         cpu/CPUConvolutionKernel.h
         cpu/CPUOptimiseKernel.h
@@ -196,6 +208,12 @@ set(_reg_f3d_files
     Kernel.h
     cpu/CPUAffineDeformationFieldKernel.h
     cpu/CPUAffineDeformationFieldKernel.cpp
+    cpu/CPUSplineDeformationFieldKernel.h
+    cpu/CPUSplineDeformationFieldKernel.cpp
+    cpu/CPURefineControlPointGridKernel.h
+    cpu/CPURefineControlPointGridKernel.cpp
+    cpu/CPUDeformationFieldFromVelocityGridKernel.h
+    cpu/CPUDeformationFieldFromVelocityGridKernel.cpp
     cpu/CPUBlockMatchingKernel.h
     cpu/CPUBlockMatchingKernel.cpp
     cpu/CPUConvolutionKernel.h
@@ -204,8 +222,8 @@ set(_reg_f3d_files
     cpu/CPUOptimiseKernel.cpp
     cpu/CPUResampleImageKernel.h
     cpu/CPUResampleImageKernel.cpp
-    cpu/CPUKernelFactory.cpp
     cpu/CPUKernelFactory.h
+    cpu/CPUKernelFactory.cpp
     _reg_base.h
     _reg_base.cpp
     _reg_f3d.h
@@ -246,8 +264,19 @@ install(FILES _reg_base.h DESTINATION include)
 install(FILES _reg_f3d.h DESTINATION include)
 install(FILES _reg_f3d2.h DESTINATION include)
 install(FILES _reg_f3d_sym.h DESTINATION include)
-install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
+install(FILES cpu/_reg_optimiser.h DESTINATION include)
 install(FILES GlobalContent.h DESTINATION include)
+install(FILES Platform.h DESTINATION include)
+install(FILES Kernel.h DESTINATION include)
+install(FILES CPUAffineDeformationFieldKernel.h DESTINATION include)
+install(FILES CPUSplineDeformationFieldKernel.h DESTINATION include)
+install(FILES CPURefineControlPointGridKernel.h DESTINATION include)
+install(FILES CPUDeformationFieldFromVelocityGridKernel.h DESTINATION include)
+install(FILES CPUBlockMatchingKernel.h DESTINATION include)
+install(FILES CPUConvolutionKernel.h DESTINATION include)
+install(FILES CPUOptimiseKernel.h DESTINATION include)
+install(FILES CPUResampleImageKernel.h DESTINATION include)
+install(FILES CPUKernelFactory.h DESTINATION include)
 if(BUILD_DEV)
   install(FILES cpu/_reg_discrete_init.h DESTINATION include)
 endif(BUILD_DEV)

@@ -13,7 +13,6 @@
 class AladinContent : public virtual GlobalContent
 {
 public:
-
     AladinContent(int platformCodeIn);
     virtual ~AladinContent();
 
@@ -37,7 +36,6 @@ public:
     virtual void ClearBlockMatchingParams();
 
 protected:
-
     mat44 *transformationMatrix;
 	_reg_blockMatchingParam* blockMatchingParams;
 

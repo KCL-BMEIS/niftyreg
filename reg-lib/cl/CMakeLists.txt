@@ -24,14 +24,19 @@ set(NAME _reg_opencl_kernels)
 add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CLContextSingletton.cpp
         ClGlobalContent.cpp
+        ClF3DContent.cpp
 	CLAladinContent.cpp
 	CLKernelFactory.cpp
 	CLAffineDeformationFieldKernel.cpp
+        CLSplineDeformationFieldKernel.cpp
+        ClRefineControlPointGridKernel.cpp
+        ClDeformationFieldFromVelocityGridKernel.cpp
 	CLBlockMatchingKernel.cpp
 	CLConvolutionKernel.cpp
 	CLOptimiseKernel.cpp
 	CLResampleImageKernel.cpp
-    ../GlobalContent.cpp
+        ../F3DContent.cpp
+        ../GlobalContent.cpp
 	../AladinContent.cpp
 	../Platform.cpp
 )
@@ -44,9 +49,13 @@ install(TARGETS ${NAME}
 #-----------------------------------------------------------------------------
 install(FILES CLContextSingletton.h
               ClGlobalContent.h
+              ClF3DContent.h
               CLAladinContent.h
               CLKernelFactory.h
               CLAffineDeformationFieldKernel.h
+              CLSplineDeformationFieldKernel.h
+              ClRefineControlPointGridKernel.h
+              ClDeformationFieldFromVelocityGridKernel.h
               CLBlockMatchingKernel.h
               CLConvolutionKernel.h
               CLOptimiseKernel.h

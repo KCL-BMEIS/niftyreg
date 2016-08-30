@@ -4,7 +4,10 @@
 #include "CLBlockMatchingKernel.h"
 #include "CLResampleImageKernel.h"
 #include "CLOptimiseKernel.h"
-#include "AladinContent.h"
+//New
+#include "ClSplineDeformationFieldKernel.h"
+#include "ClRefineControlPointGridKernel.h"
+#include "ClDeformationFieldFromVelocityGridKernel.h"
 
 Kernel *CLKernelFactory::produceKernel(std::string name, GlobalContent *con) const {
 
@@ -13,5 +16,9 @@ Kernel *CLKernelFactory::produceKernel(std::string name, GlobalContent *con) con
 	else if (name == BlockMatchingKernel::getName()) return new CLBlockMatchingKernel(con, name);
 	else if( name == ResampleImageKernel::getName() ) return new CLResampleImageKernel(con, name);
 	else if( name == OptimiseKernel::getName() ) return new CLOptimiseKernel(con, name);
+    //NEW Kernels
+    else if (name == SplineDeformationFieldKernel::getName()) return new ClSplineDeformationFieldKernel(con, name);
+    else if (name == RefineControlPointGridKernel::getName()) return new ClRefineControlPointGridKernel(con, name);
+    else if (name == DeformationFieldFromVelocityGridKernel::getName()) return new ClDeformationFieldFromVelocityGridKernel(con, name);
 	else return NULL;
 }

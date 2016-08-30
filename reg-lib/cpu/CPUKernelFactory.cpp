@@ -4,8 +4,10 @@
 #include "CPUBlockMatchingKernel.h"
 #include "CPUResampleImageKernel.h"
 #include "CPUOptimiseKernel.h"
-//
-#include "AladinContent.h"
+//New kernels
+#include "CPUSplineDeformationFieldKernel.h"
+#include "CPURefineControlPointGridKernel.h"
+#include "CPUDeformationFieldFromVelocityGridKernel.h"
 
 Kernel *CPUKernelFactory::produceKernel(std::string name,  GlobalContent *con) const
 {
@@ -14,5 +16,9 @@ Kernel *CPUKernelFactory::produceKernel(std::string name,  GlobalContent *con) c
 	else if (name == BlockMatchingKernel::getName()) return new CPUBlockMatchingKernel(con, name);
 	else if (name == ResampleImageKernel::getName()) return new CPUResampleImageKernel(con, name);
 	else if (name == OptimiseKernel::getName()) return new CPUOptimiseKernel(con, name);
+    //NEW kernels
+    else if (name == SplineDeformationFieldKernel::getName()) return new CPUSplineDeformationFieldKernel(con, name);
+    else if (name == RefineControlPointGridKernel::getName()) return new CPURefineControlPointGridKernel(con, name);
+    else if (name == DeformationFieldFromVelocityGridKernel::getName()) return new CPUDeformationFieldFromVelocityGridKernel(con, name);
 	else return NULL;
 }

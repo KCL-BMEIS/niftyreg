@@ -58,9 +58,6 @@ void ClGlobalContent::setCurrentReference(nifti_image *currentRefIn)
     if(this->refMatrix_xyz != NULL)
         clReleaseMemObject(refMatClmem);
 
-    if (currentRefIn != NULL && currentRefIn->datatype != NIFTI_TYPE_FLOAT32)
-        reg_tools_changeDatatype<float>(currentRefIn);
-
     GlobalContent::setCurrentReference(currentRefIn);
     this->referenceImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->currentReference->nvox * sizeof(float), this->currentReference->data, &this->errNum);
     this->sContext->checkErrNum(this->errNum, "ClGlobalContent::setCurrentReference failed to allocate memory (referenceImageClmem): ");
@@ -90,9 +87,6 @@ void ClGlobalContent::setCurrentFloating(nifti_image *currentFloIn)
     if(this->floMatrix_ijk != NULL)
         clReleaseMemObject(floMatClmem);
 
-    if (currentFloIn != NULL && currentFloIn->datatype != NIFTI_TYPE_FLOAT32)
-        reg_tools_changeDatatype<float>(currentFloIn);
-
     GlobalContent::setCurrentFloating(currentFloIn);
     this->floatingImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->currentFloating->nvox * sizeof(float), this->currentFloating->data, &this->errNum);
     this->sContext->checkErrNum(this->errNum, "ClGlobalContent::setCurrentFloating failed to allocate memory (floatingImageClmem): ");
@@ -108,12 +102,9 @@ void ClGlobalContent::setCurrentFloating(nifti_image *currentFloIn)
 /* *************************************************************** */
 void ClGlobalContent::setCurrentWarped(nifti_image *currentWarpedIn)
 {
-    if (this->currentWarped != NULL) {
-                clReleaseMemObject(this->warpedImageClmem);
-        }
-    if (currentWarpedIn->datatype != NIFTI_TYPE_FLOAT32) {
-        reg_tools_changeDatatype<float>(currentWarpedIn);
-        }
+    if (this->currentWarped != NULL)
+        clReleaseMemObject(this->warpedImageClmem);
+
     GlobalContent::setCurrentWarped(currentWarpedIn);
     this->warpedImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, this->currentWarped->nvox * sizeof(float), this->currentWarped->data, &this->errNum);
         this->sContext->checkErrNum(this->errNum, "ClGlobalContent::setCurrentWarped failed to allocate memory (warpedImageClmem): ");

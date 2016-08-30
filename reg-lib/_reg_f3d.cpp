@@ -20,17 +20,16 @@ template <class T>
 reg_f3d<T>::reg_f3d(unsigned platformFlag, int refTimePoint,int floTimePoint)
    : reg_base<T>::reg_base(platformFlag, refTimePoint,floTimePoint)
 {
-
    this->executableName=(char *)"NiftyReg F3D";
-   this->inputControlPointGrid=NULL; // pointer to external
-   this->controlPointGrid=NULL;
+   //this->inputControlPointGrid=NULL; // pointer to external
+   //this->controlPointGrid=NULL;
    this->bendingEnergyWeight=0.001;
    this->linearEnergyWeight=0.01;
    this->jacobianLogWeight=0.;
    this->jacobianLogApproximation=true;
-   this->spacing[0]=-5;
-   this->spacing[1]=std::numeric_limits<T>::quiet_NaN();
-   this->spacing[2]=std::numeric_limits<T>::quiet_NaN();
+   //this->spacing[0]=-5;
+   //this->spacing[1]=std::numeric_limits<T>::quiet_NaN();
+   //this->spacing[2]=std::numeric_limits<T>::quiet_NaN();
    this->useConjGradient=true;
    this->useApproxGradient=false;
 
@@ -42,7 +41,6 @@ reg_f3d<T>::reg_f3d(unsigned platformFlag, int refTimePoint,int floTimePoint)
 
 #ifdef BUILD_DEV
    pairwiseEnergyWeight=0;
-   linearSpline=false;
 #endif
 
 #ifndef NDEBUG
@@ -55,10 +53,9 @@ template <class T>
 reg_f3d<T>::~reg_f3d()
 {
    this->ClearTransformationGradient();
-   if(this->controlPointGrid!=NULL)
+   if(this->con->getCurrentControlPointGrid()!=NULL)
    {
-      nifti_image_free(this->controlPointGrid);
-      this->controlPointGrid=NULL;
+      this->con->ClearControlPointGrid();
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::~reg_f3d");
@@ -69,7 +66,7 @@ reg_f3d<T>::~reg_f3d()
 template<class T>
 void reg_f3d<T>::SetControlPointGridImage(nifti_image *cp)
 {
-   this->inputControlPointGrid = cp;
+   this->con->setInputControlPointGrid(cp);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::SetControlPointGridImage");
 #endif
@@ -124,13 +121,13 @@ void reg_f3d<T>::DoNotApproximateJacobianLog()
 template<class T>
 void reg_f3d<T>::UseLinearSpline()
 {
-   this->linearSpline=true;
+   this->con->setLinearSpline(true);
 }
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::DoNotLinearSpline()
 {
-   this->linearSpline=false;
+   this->con->setLinearSpline(false);
 }
 /* *************************************************************** */
 template<class T>
@@ -143,7 +140,7 @@ void reg_f3d<T>::SetPairwiseEnergyWeight(T pw)
 template<class T>
 void reg_f3d<T>::SetSpacing(unsigned int i, T s)
 {
-   this->spacing[i] = s;
+   this->con->setSpacing(i,s);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::SetSpacing");
 #endif
@@ -153,19 +150,21 @@ template <class T>
 T reg_f3d<T>::InitialiseCurrentLevel()
 {
    // Set the initial step size for the gradient ascent
-   T maxStepSize = this->forwardGlobalContent->getCurrentReference()->dx>this->forwardGlobalContent->getCurrentReference()->dy?this->forwardGlobalContent->getCurrentReference()->dx:this->forwardGlobalContent->getCurrentReference()->dy;
-   if(this->forwardGlobalContent->getCurrentReference()->ndim>2)
-      maxStepSize = (this->forwardGlobalContent->getCurrentReference()->dz>maxStepSize)?this->forwardGlobalContent->getCurrentReference()->dz:maxStepSize;
+   T maxStepSize = this->con->getCurrentReference()->dx>this->con->getCurrentReference()->dy?this->con->getCurrentReference()->dx:this->con->getCurrentReference()->dy;
+   if(this->con->getCurrentReference()->ndim>2)
+      maxStepSize = (this->con->getCurrentReference()->dz>maxStepSize)?this->con->getCurrentReference()->dz:maxStepSize;
 
    // Refine the control point grid if required
    if(this->gridRefinement==true)
    {
       if(this->currentLevel==0){
-         this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->forwardGlobalContent->getLevelNumber()-1));
+         this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->con->getLevelNumber()-1));
       }
       else
       {
-         reg_spline_refineControlPointGrid(this->controlPointGrid,this->forwardGlobalContent->getCurrentReference());
+         Kernel* refineKernel = this->con->getPlatform()->createKernel(RefineControlPointGridKernel::getName(), this->con);
+         refineKernel->castTo<RefineControlPointGridKernel>()->calculate();
+         delete refineKernel;
          this->bendingEnergyWeight = this->bendingEnergyWeight * static_cast<T>(16);
       }
    }
@@ -179,14 +178,14 @@ T reg_f3d<T>::InitialiseCurrentLevel()
 template <class T>
 void reg_f3d<T>::AllocateTransformationGradient()
 {
-   if(this->controlPointGrid==NULL)
+   if(this->con->getCurrentControlPointGrid()==NULL)
    {
       reg_print_fct_error("reg_f3d<T>::AllocateTransformationGradient()");
       reg_print_msg_error("The control point image is not defined");
       reg_exit();
    }
    reg_f3d<T>::ClearTransformationGradient();
-   this->transformationGradient = nifti_copy_nim_info(this->controlPointGrid);
+   this->transformationGradient = nifti_copy_nim_info(this->con->getCurrentControlPointGrid());
    this->transformationGradient->data = (void *)calloc(this->transformationGradient->nvox,
                                                        this->transformationGradient->nbyper);
 #ifndef NDEBUG
@@ -216,7 +215,7 @@ void reg_f3d<T>::CheckParameters()
          strcmp(this->executableName,"NiftyReg F3D GPU")==0)
    {
 #ifdef BUILD_DEV
-   if(this->linearSpline==true){
+   if(this->con->getLinearSpline()==true){
       if(this->bendingEnergyWeight>0){
          this->bendingEnergyWeight=0;
          reg_print_msg_warn("The weight of the bending energy term is set to 0 when using linear spline");
@@ -261,64 +260,57 @@ template<class T>
 void reg_f3d<T>::Initialise()
 {
    if(this->initialised) return;
-
+   //CPU init
    reg_base<T>::Initialise();
 
+   //CPU init for the control point grid
    // DETERMINE THE GRID SPACING AND CREATE THE GRID
-   if(this->inputControlPointGrid==NULL)
+   if(this->con->getInputControlPointGrid()==NULL)
    {
       // Set the spacing along y and z if undefined. Their values are set to match
       // the spacing along the x axis
-      if(this->spacing[1]!=this->spacing[1]) this->spacing[1]=this->spacing[0];
-      if(this->spacing[2]!=this->spacing[2]) this->spacing[2]=this->spacing[0];
+      if(this->con->getSpacing()[1]!=this->con->getSpacing()[1]) this->con->setSpacing(1,this->con->getSpacing()[0]);
+      if(this->con->getSpacing()[2]!=this->con->getSpacing()[2]) this->con->setSpacing(2,this->con->getSpacing()[0]);
 
       /* Convert the spacing from voxel to mm if necessary */
-      float spacingInMillimeter[3]= {this->spacing[0],this->spacing[1],this->spacing[2]};
-      if(spacingInMillimeter[0]<0) spacingInMillimeter[0] *= -1.0f * this->forwardGlobalContent->getInputReference()->dx;
-      if(spacingInMillimeter[1]<0) spacingInMillimeter[1] *= -1.0f * this->forwardGlobalContent->getInputReference()->dy;
-      if(spacingInMillimeter[2]<0) spacingInMillimeter[2] *= -1.0f * this->forwardGlobalContent->getInputReference()->dz;
+      float spacingInMillimeter[3]= {this->con->getSpacing()[0],this->con->getSpacing()[1],this->con->getSpacing()[2]};
+      if(spacingInMillimeter[0]<0) spacingInMillimeter[0] *= -1.0f * this->con->getInputReference()->dx;
+      if(spacingInMillimeter[1]<0) spacingInMillimeter[1] *= -1.0f * this->con->getInputReference()->dy;
+      if(spacingInMillimeter[2]<0) spacingInMillimeter[2] *= -1.0f * this->con->getInputReference()->dz;
 
       // Define the spacing for the first level
       float gridSpacing[3];
-      gridSpacing[0] = spacingInMillimeter[0] * powf(2.0f, (float)(this->forwardGlobalContent->getLevelNumber()-1));
-      gridSpacing[1] = spacingInMillimeter[1] * powf(2.0f, (float)(this->forwardGlobalContent->getLevelNumber()-1));
+      gridSpacing[0] = spacingInMillimeter[0] * powf(2.0f, (float)(this->con->getLevelNumber()-1));
+      gridSpacing[1] = spacingInMillimeter[1] * powf(2.0f, (float)(this->con->getLevelNumber()-1));
       gridSpacing[2] = 1.0f;
-      if(this->forwardGlobalContent->getReferencePyramid()[0]->nz>1)
-         gridSpacing[2] = spacingInMillimeter[2] * powf(2.0f, (float)(this->forwardGlobalContent->getLevelNumber()-1));
+      if(this->con->getReferencePyramid()[0]->nz>1)
+         gridSpacing[2] = spacingInMillimeter[2] * powf(2.0f, (float)(this->con->getLevelNumber()-1));
 
       // Create and allocate the control point image
-      reg_createControlPointGrid<T>(&this->controlPointGrid,
-                                    this->forwardGlobalContent->getReferencePyramid()[0],
-            gridSpacing);
+      this->con->AllocateControlPointGrid(gridSpacing);
 
       // The control point position image is initialised with the affine transformation
-      if(this->forwardGlobalContent->getAffineTransformation()==NULL)
+      if(this->con->getAffineTransformation()==NULL)
       {
-         memset(this->controlPointGrid->data,0,
-                this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
-         reg_tools_multiplyValueToImage(this->controlPointGrid,this->controlPointGrid,0.f);
-         reg_getDeformationFromDisplacement(this->controlPointGrid);
+         memset(this->con->getCurrentControlPointGrid()->data,0,
+                this->con->getCurrentControlPointGrid()->nvox*this->con->getCurrentControlPointGrid()->nbyper);
+         reg_tools_multiplyValueToImage(this->con->getCurrentControlPointGrid(),this->con->getCurrentControlPointGrid(),0.f);
+         reg_getDeformationFromDisplacement(this->con->getCurrentControlPointGrid());
+         //4 the moment - to update the gpu
+         this->con->setCurrentControlPointGrid(this->con->getCurrentControlPointGrid());
       }
-      else reg_affine_getDeformationField(this->forwardGlobalContent->getAffineTransformation(), this->controlPointGrid);
+      else
+      {
+          reg_affine_getDeformationField(this->con->getAffineTransformation(), this->con->getCurrentControlPointGrid());
+          //4 the moment - to update the gpu
+          this->con->setCurrentControlPointGrid(this->con->getCurrentControlPointGrid());
+      }
    }
    else
    {
       // The control point grid image is initialised with the provided grid
-      this->controlPointGrid = nifti_copy_nim_info(this->inputControlPointGrid);
-      this->controlPointGrid->data = (void *)malloc( this->controlPointGrid->nvox *
-                                                     this->controlPointGrid->nbyper);
-      memcpy( this->controlPointGrid->data, this->inputControlPointGrid->data,
-              this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
-      // The final grid spacing is computed
-      this->spacing[0] = this->controlPointGrid->dx / powf(2.0f, (float)(this->forwardGlobalContent->getLevelNumber()-1));
-      this->spacing[1] = this->controlPointGrid->dy / powf(2.0f, (float)(this->forwardGlobalContent->getLevelNumber()-1));
-      if(this->controlPointGrid->nz>1)
-         this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->forwardGlobalContent->getLevelNumber()-1));
+      this->con->AllocateControlPointGrid();
    }
-#ifdef BUILD_DEV
-   if(this->linearSpline)
-      this->controlPointGrid->intent_p1=LIN_SPLINE_GRID;
-#endif
 #ifdef NDEBUG
    if(this->verbose)
    {
@@ -329,67 +321,67 @@ void reg_f3d<T>::Initialise()
       reg_print_info(this->executableName, "INPUT PARAMETERS");
       reg_print_info(this->executableName, "***********************************************************");
       reg_print_info(this->executableName, "Reference image:");
-      sprintf(text, "\t* name: %s", this->forwardGlobalContent->getInputReference()->fname);
+      sprintf(text, "\t* name: %s", this->con->getInputReference()->fname);
       reg_print_info(this->executableName, text);
       sprintf(text, "\t* image dimension: %i x %i x %i x %i",
-              this->forwardGlobalContent->getInputReference()->nx, this->forwardGlobalContent->getInputReference()->ny,
-              this->forwardGlobalContent->getInputReference()->nz, this->forwardGlobalContent->getInputReference()->nt);
+              this->con->getInputReference()->nx, this->con->getInputReference()->ny,
+              this->con->getInputReference()->nz, this->con->getInputReference()->nt);
       reg_print_info(this->executableName, text);
       sprintf(text, "\t* image spacing: %g x %g x %g mm",
-              this->forwardGlobalContent->getInputReference()->dx,
-              this->forwardGlobalContent->getInputReference()->dy, this->forwardGlobalContent->getInputReference()->dz);
+              this->con->getInputReference()->dx,
+              this->con->getInputReference()->dy, this->con->getInputReference()->dz);
       reg_print_info(this->executableName, text);
-      for(int i=0; i<this->forwardGlobalContent->getInputReference()->nt; i++)
+      for(int i=0; i<this->con->getInputReference()->nt; i++)
       {
          sprintf(text, "\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
-                 i, this->forwardGlobalContent->getInputReference()->nt-1, this->forwardGlobalContent->getReferenceThresholdLow()[i],this->forwardGlobalContent->getReferenceThresholdUp()[i]);
+                 i, this->con->getInputReference()->nt-1, this->con->getReferenceThresholdLow()[i],this->con->getReferenceThresholdUp()[i]);
          reg_print_info(this->executableName, text);
          if(this->measure_nmi!=NULL){
             if(this->measure_nmi->GetActiveTimepoints()[i]){
                sprintf(text, "\t* binnining size for timepoint %i/%i: %i",
-                       i, this->forwardGlobalContent->getInputFloating()->nt-1, this->measure_nmi->GetReferenceBinNumber()[i]-4);
+                       i, this->con->getInputFloating()->nt-1, this->measure_nmi->GetReferenceBinNumber()[i]-4);
                reg_print_info(this->executableName, text);
             }
          }
       }
-      sprintf(text, "\t* gaussian smoothing sigma: %g", this->forwardGlobalContent->getReferenceSmoothingSigma());
+      sprintf(text, "\t* gaussian smoothing sigma: %g", this->con->getReferenceSmoothingSigma());
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "");
       reg_print_info(this->executableName, "Floating image:");
       reg_print_info(this->executableName, text);
-      sprintf(text, "\t* name: %s", this->forwardGlobalContent->getInputFloating()->fname);
+      sprintf(text, "\t* name: %s", this->con->getInputFloating()->fname);
       reg_print_info(this->executableName, text);
       sprintf(text, "\t* image dimension: %i x %i x %i x %i",
-              this->forwardGlobalContent->getInputFloating()->nx, this->forwardGlobalContent->getInputFloating()->ny,
-              this->forwardGlobalContent->getInputFloating()->nz, this->forwardGlobalContent->getInputFloating()->nt);
+              this->con->getInputFloating()->nx, this->con->getInputFloating()->ny,
+              this->con->getInputFloating()->nz, this->con->getInputFloating()->nt);
       reg_print_info(this->executableName, text);
       sprintf(text, "\t* image spacing: %g x %g x %g mm",
-              this->forwardGlobalContent->getInputFloating()->dx,
-              this->forwardGlobalContent->getInputFloating()->dy, this->forwardGlobalContent->getInputFloating()->dz);
+              this->con->getInputFloating()->dx,
+              this->con->getInputFloating()->dy, this->con->getInputFloating()->dz);
       reg_print_info(this->executableName, text);
-      for(int i=0; i<this->forwardGlobalContent->getInputFloating()->nt; i++)
+      for(int i=0; i<this->con->getInputFloating()->nt; i++)
       {
          sprintf(text, "\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
-                 i, this->forwardGlobalContent->getInputFloating()->nt-1, this->forwardGlobalContent->getFloatingThresholdLow()[i],this->forwardGlobalContent->getFloatingThresholdUp()[i]);
+                 i, this->con->getInputFloating()->nt-1, this->con->getFloatingThresholdLow()[i],this->con->getFloatingThresholdUp()[i]);
          reg_print_info(this->executableName, text);
          if(this->measure_nmi!=NULL){
             if(this->measure_nmi->GetActiveTimepoints()[i]){
                sprintf(text, "\t* binnining size for timepoint %i/%i: %i",
-                       i, this->forwardGlobalContent->getInputFloating()->nt-1, this->measure_nmi->GetFloatingBinNumber()[i]-4);
+                       i, this->con->getInputFloating()->nt-1, this->measure_nmi->GetFloatingBinNumber()[i]-4);
                reg_print_info(this->executableName, text);
             }
          }
       }
-      sprintf(text, "\t* gaussian smoothing sigma: %g", this->forwardGlobalContent->getFloatingSmoothingSigma());
+      sprintf(text, "\t* gaussian smoothing sigma: %g", this->con->getFloatingSmoothingSigma());
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "");
-      sprintf(text, "Warped image padding value: %g", this->forwardGlobalContent->getWarpedPaddingValue());
+      sprintf(text, "Warped image padding value: %g", this->con->getWarpedPaddingValue());
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "");
-      sprintf(text, "Level number: %i", this->forwardGlobalContent->getLevelNumber());
+      sprintf(text, "Level number: %i", this->con->getLevelNumber());
       reg_print_info(this->executableName, text);
-      if(this->forwardGlobalContent->getLevelNumber()!=this->forwardGlobalContent->getLevelToPerform()){
-         sprintf(text, "\t* Level to perform: %i", this->forwardGlobalContent->getLevelToPerform());
+      if(this->con->getLevelNumber()!=this->con->getLevelToPerform()){
+         sprintf(text, "\t* Level to perform: %i", this->con->getLevelToPerform());
          reg_print_info(this->executableName, text);
       }
       reg_print_info(this->executableName, "");
@@ -398,7 +390,7 @@ void reg_f3d<T>::Initialise()
       reg_print_info(this->executableName, "");
 
 #ifdef BUILD_DEV
-      if(this->linearSpline){
+      if(this->con->getLinearSpline()){
          sprintf(text, "Linear interpolation is used for the parametrisation");
          reg_print_info(this->executableName, text);
       }
@@ -410,7 +402,7 @@ void reg_f3d<T>::Initialise()
       }
 #endif
       sprintf(text, "Final spacing in mm: %g %g %g",
-              this->spacing[0], this->spacing[1], this->spacing[2]);
+              this->con->getSpacing()[0], this->con->getSpacing()[1], this->con->getSpacing()[2]);
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "");
       if(this->measure_ssd!=NULL)
@@ -464,7 +456,6 @@ void reg_f3d<T>::Initialise()
 #ifdef NDEBUG
    }
 #endif
-
    this->initialised=true;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::Initialise");
@@ -475,14 +466,9 @@ void reg_f3d<T>::Initialise()
 template <class T>
 void reg_f3d<T>::GetDeformationField()
 {
-   reg_spline_getDeformationField(this->controlPointGrid,
-                                  this->forwardGlobalContent->getCurrentDeformationField(),
-                                  this->forwardGlobalContent->getCurrentReferenceMask(),
-                                  false, //composition
-                                  true // bspline
-                                  );
-   //4 the moment - gpu kernel not implemented
-   this->forwardGlobalContent->setCurrentDeformationField(this->forwardGlobalContent->GlobalContent::getCurrentDeformationField());
+   Kernel* splineKernel = this->con->getPlatform()->createKernel(SplineDeformationFieldKernel::getName(), this->con);
+   splineKernel->castTo<SplineDeformationFieldKernel>()->calculate(false);
+   delete splineKernel;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetDeformationField");
 #endif
@@ -498,14 +484,14 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
 
    if(type==2)
    {
-      value = reg_spline_getJacobianPenaltyTerm(this->controlPointGrid,
-                                                this->forwardGlobalContent->getCurrentReference(),
+      value = reg_spline_getJacobianPenaltyTerm(this->con->getCurrentControlPointGrid(),
+                                                this->con->getCurrentReference(),
                                                 false);
    }
    else
    {
-      value = reg_spline_getJacobianPenaltyTerm(this->controlPointGrid,
-                                                this->forwardGlobalContent->getCurrentReference(),
+      value = reg_spline_getJacobianPenaltyTerm(this->con->getCurrentControlPointGrid(),
+                                                this->con->getCurrentReference(),
                                                 this->jacobianLogApproximation);
    }
    unsigned int maxit=5;
@@ -515,14 +501,14 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
    {
       if(type==2)
       {
-         value = reg_spline_correctFolding(this->controlPointGrid,
-                                           this->forwardGlobalContent->getCurrentReference(),
+         value = reg_spline_correctFolding(this->con->getCurrentControlPointGrid(),
+                                           this->con->getCurrentReference(),
                                            false);
       }
       else
       {
-         value = reg_spline_correctFolding(this->controlPointGrid,
-                                           this->forwardGlobalContent->getCurrentReference(),
+         value = reg_spline_correctFolding(this->con->getCurrentControlPointGrid(),
+                                           this->con->getCurrentReference(),
                                            this->jacobianLogApproximation);
       }
 #ifndef NDEBUG
@@ -561,7 +547,7 @@ double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 {
    if(this->bendingEnergyWeight<=0) return 0.;
 
-   double value = reg_spline_approxBendingEnergy(this->controlPointGrid);
+   double value = reg_spline_approxBendingEnergy(this->con->getCurrentControlPointGrid());
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::ComputeBendingEnergyPenaltyTerm");
 #endif
@@ -575,7 +561,7 @@ double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
    if(this->linearEnergyWeight<=0)
       return 0.;
 
-   double value = reg_spline_approxLinearEnergy(this->controlPointGrid);
+   double value = reg_spline_approxLinearEnergy(this->con->getCurrentControlPointGrid());
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::ComputeLinearEnergyPenaltyTerm");
@@ -591,7 +577,7 @@ double reg_f3d<T>::ComputePairwiseEnergyPenaltyTerm()
    if(this->pairwiseEnergyWeight<=0)
       return 0.;
 
-   double value = reg_spline_approxLinearPairwise(this->controlPointGrid);
+   double value = reg_spline_approxLinearPairwise(this->con->getCurrentControlPointGrid());
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::ComputePairwiseEnergyPenaltyTerm");
@@ -608,13 +594,13 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
 
    int kernel_type=CUBIC_SPLINE_KERNEL;
 #ifdef BUILD_DEV
-   if(this->linearSpline)
+   if(this->con->getLinearSpline())
       kernel_type=LINEAR_KERNEL;
 #endif
    // The voxel based NMI gradient is convolved with a spline kernel
    // Convolution along the x axis
    float currentNodeSpacing[3];
-   currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dx;
+   currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->con->getCurrentControlPointGrid()->dx;
    bool activeAxis[3]= {1,0,0};
    reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
                                currentNodeSpacing,
@@ -624,7 +610,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
                                activeAxis
                                );
    // Convolution along the y axis
-   currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dy;
+   currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->con->getCurrentControlPointGrid()->dy;
    activeAxis[0]=0;
    activeAxis[1]=1;
    reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
@@ -637,7 +623,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    // Convolution along the z axis if required
    if(this->voxelBasedMeasureGradient->nz>1)
    {
-      currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dz;
+      currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->con->getCurrentControlPointGrid()->dz;
       activeAxis[1]=0;
       activeAxis[2]=1;
       reg_tools_kernelConvolution(this->voxelBasedMeasureGradient,
@@ -651,9 +637,9 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
 
    // The node based NMI gradient is extracted
    mat44 reorientation;
-   if(this->forwardGlobalContent->getCurrentFloating()->sform_code>0)
-      reorientation = this->forwardGlobalContent->getCurrentFloating()->sto_ijk;
-   else reorientation = this->forwardGlobalContent->getCurrentFloating()->qto_ijk;
+   if(this->con->getCurrentFloating()->sform_code>0)
+      reorientation = this->con->getCurrentFloating()->sto_ijk;
+   else reorientation = this->con->getCurrentFloating()->qto_ijk;
    reg_voxelCentric2NodeCentric(this->transformationGradient,
                                 this->voxelBasedMeasureGradient,
                                 this->similarityWeight,
@@ -672,7 +658,7 @@ void reg_f3d<T>::GetBendingEnergyGradient()
 {
    if(this->bendingEnergyWeight<=0) return;
 
-   reg_spline_approxBendingEnergyGradient(this->controlPointGrid,
+   reg_spline_approxBendingEnergyGradient(this->con->getCurrentControlPointGrid(),
                                           this->transformationGradient,
                                           this->bendingEnergyWeight);
 #ifndef NDEBUG
@@ -686,7 +672,7 @@ void reg_f3d<T>::GetLinearEnergyGradient()
 {
    if(this->linearEnergyWeight<=0) return;
 
-   reg_spline_approxLinearEnergyGradient(this->controlPointGrid,
+   reg_spline_approxLinearEnergyGradient(this->con->getCurrentControlPointGrid(),
                                          this->transformationGradient,
                                          this->linearEnergyWeight);
 #ifndef NDEBUG
@@ -700,8 +686,8 @@ void reg_f3d<T>::GetJacobianBasedGradient()
 {
    if(this->jacobianLogWeight<=0) return;
 
-   reg_spline_getJacobianPenaltyTermGradient(this->controlPointGrid,
-                                             this->forwardGlobalContent->getCurrentReference(),
+   reg_spline_getJacobianPenaltyTermGradient(this->con->getCurrentControlPointGrid(),
+                                             this->con->getCurrentReference(),
                                              this->transformationGradient,
                                              this->jacobianLogWeight,
                                              this->jacobianLogApproximation);
@@ -717,7 +703,7 @@ void reg_f3d<T>::GetPairwiseEnergyGradient()
 {
    if(this->pairwiseEnergyWeight<=0) return;
 
-   reg_spline_approxLinearPairwiseGradient(this->controlPointGrid,
+   reg_spline_approxLinearPairwiseGradient(this->con->getCurrentControlPointGrid(),
                                            this->transformationGradient,
                                            this->pairwiseEnergyWeight);
 #ifndef NDEBUG
@@ -865,53 +851,53 @@ void reg_f3d<T>::DisplayCurrentLevelParameters()
    {
 #endif
       char text[255];
-      sprintf(text, "Current level: %i / %i", this->currentLevel+1, this->forwardGlobalContent->getLevelNumber());
+      sprintf(text, "Current level: %i / %i", this->currentLevel+1, this->con->getLevelNumber());
       reg_print_info(this->executableName, text);
       sprintf(text, "Maximum iteration number: %i", (int)this->maxiterationNumber);
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "Current reference image");
       sprintf(text, "\t* image dimension: %i x %i x %i x %i",
-              this->forwardGlobalContent->getCurrentReference()->nx, this->forwardGlobalContent->getCurrentReference()->ny,
-              this->forwardGlobalContent->getCurrentReference()->nz,this->forwardGlobalContent->getCurrentReference()->nt);
+              this->con->getCurrentReference()->nx, this->con->getCurrentReference()->ny,
+              this->con->getCurrentReference()->nz,this->con->getCurrentReference()->nt);
       reg_print_info(this->executableName, text);
       sprintf(text, "\t* image spacing: %g x %g x %g mm",
-              this->forwardGlobalContent->getCurrentReference()->dx, this->forwardGlobalContent->getCurrentReference()->dy,
-              this->forwardGlobalContent->getCurrentReference()->dz);
+              this->con->getCurrentReference()->dx, this->con->getCurrentReference()->dy,
+              this->con->getCurrentReference()->dz);
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "Current floating image");
       sprintf(text, "\t* image dimension: %i x %i x %i x %i",
-              this->forwardGlobalContent->getCurrentFloating()->nx, this->forwardGlobalContent->getCurrentFloating()->ny,
-              this->forwardGlobalContent->getCurrentFloating()->nz,this->forwardGlobalContent->getCurrentFloating()->nt);
+              this->con->getCurrentFloating()->nx, this->con->getCurrentFloating()->ny,
+              this->con->getCurrentFloating()->nz,this->con->getCurrentFloating()->nt);
       reg_print_info(this->executableName, text);
       sprintf(text, "\t* image spacing: %g x %g x %g mm",
-              this->forwardGlobalContent->getCurrentFloating()->dx, this->forwardGlobalContent->getCurrentFloating()->dy,
-              this->forwardGlobalContent->getCurrentFloating()->dz);
+              this->con->getCurrentFloating()->dx, this->con->getCurrentFloating()->dy,
+              this->con->getCurrentFloating()->dz);
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "Current control point image");
       sprintf(text, "\t* image dimension: %i x %i x %i",
-              this->controlPointGrid->nx, this->controlPointGrid->ny,
-              this->controlPointGrid->nz);
+              this->con->getCurrentControlPointGrid()->nx, this->con->getCurrentControlPointGrid()->ny,
+              this->con->getCurrentControlPointGrid()->nz);
       reg_print_info(this->executableName, text);
       sprintf(text, "\t* image spacing: %g x %g x %g mm",
-              this->controlPointGrid->dx, this->controlPointGrid->dy,
-              this->controlPointGrid->dz);
+              this->con->getCurrentControlPointGrid()->dx, this->con->getCurrentControlPointGrid()->dy,
+              this->con->getCurrentControlPointGrid()->dz);
       reg_print_info(this->executableName, text);
 #ifdef NDEBUG
    }
 #endif
 
 #ifndef NDEBUG
-   if(this->forwardGlobalContent->getCurrentReference()->sform_code>0)
-      reg_mat44_disp(&(this->forwardGlobalContent->getCurrentReference()->sto_xyz), (char *)"[NiftyReg DEBUG] Reference sform");
-   else reg_mat44_disp(&(this->forwardGlobalContent->getCurrentReference()->qto_xyz), (char *)"[NiftyReg DEBUG] Reference qform");
+   if(this->con->getCurrentReference()->sform_code>0)
+      reg_mat44_disp(&(this->con->getCurrentReference()->sto_xyz), (char *)"[NiftyReg DEBUG] Reference sform");
+   else reg_mat44_disp(&(this->con->getCurrentReference()->qto_xyz), (char *)"[NiftyReg DEBUG] Reference qform");
 
-   if(this->forwardGlobalContent->getCurrentFloating()->sform_code>0)
-      reg_mat44_disp(&(this->forwardGlobalContent->getCurrentFloating()->sto_xyz), (char *)"[NiftyReg DEBUG] Floating sform");
-   else reg_mat44_disp(&(this->forwardGlobalContent->getCurrentFloating()->qto_xyz), (char *)"[NiftyReg DEBUG] Floating qform");
+   if(this->con->getCurrentFloating()->sform_code>0)
+      reg_mat44_disp(&(this->con->getCurrentFloating()->sto_xyz), (char *)"[NiftyReg DEBUG] Floating sform");
+   else reg_mat44_disp(&(this->con->getCurrentFloating()->qto_xyz), (char *)"[NiftyReg DEBUG] Floating qform");
 
-   if(this->controlPointGrid->sform_code>0)
-      reg_mat44_disp(&(this->controlPointGrid->sto_xyz), (char *)"[NiftyReg DEBUG] CPP sform");
-   else reg_mat44_disp(&(this->controlPointGrid->qto_xyz), (char *)"[NiftyReg DEBUG] CPP qform");
+   if(this->con->getCurrentControlPointGrid()->sform_code>0)
+      reg_mat44_disp(&(this->con->getCurrentControlPointGrid()->sto_xyz), (char *)"[NiftyReg DEBUG] CPP sform");
+   else reg_mat44_disp(&(this->con->getCurrentControlPointGrid()->qto_xyz), (char *)"[NiftyReg DEBUG] CPP qform");
 #endif
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::DisplayCurrentLevelParameters");
@@ -1021,15 +1007,15 @@ template <class T>
 void reg_f3d<T>::SetOptimiser()
 {
    reg_base<T>::SetOptimiser();
-   this->optimiser->Initialise(this->controlPointGrid->nvox,
-                               this->controlPointGrid->nz>1?3:2,
+   this->optimiser->Initialise(this->con->getCurrentControlPointGrid()->nvox,
+                               this->con->getCurrentControlPointGrid()->nz>1?3:2,
                                this->optimiseX,
                                this->optimiseY,
                                this->optimiseZ,
                                this->maxiterationNumber,
                                0, // currentIterationNumber,
                                this,
-                               static_cast<T *>(this->controlPointGrid->data),
+                               static_cast<T *>(this->con->getCurrentControlPointGrid()->data),
                                static_cast<T *>(this->transformationGradient->data)
                                );
 #ifndef NDEBUG
@@ -1059,10 +1045,10 @@ template <class T>
 void reg_f3d<T>::GetApproximatedGradient()
 {
    // Loop over every control point
-   T *gridPtr = static_cast<T *>(this->controlPointGrid->data);
+   T *gridPtr = static_cast<T *>(this->con->getCurrentControlPointGrid()->data);
    T *gradPtr = static_cast<T *>(this->transformationGradient->data);
-   T eps = this->controlPointGrid->dx / 100.f;
-   for(size_t i=0; i<this->controlPointGrid->nvox; ++i)
+   T eps = this->con->getCurrentControlPointGrid()->dx / 100.f;
+   for(size_t i=0; i<this->con->getCurrentControlPointGrid()->nvox; ++i)
    {
       T currentValue = this->optimiser->GetBestDOF()[i];
       gridPtr[i] = currentValue + eps;
@@ -1082,45 +1068,45 @@ template<class T>
 nifti_image **reg_f3d<T>::GetWarpedImage()
 {
    // The initial images are used
-   if(this->forwardGlobalContent->getInputReference()==NULL ||
-         this->forwardGlobalContent->getInputFloating()==NULL ||
-         this->controlPointGrid==NULL)
+   if(this->con->getInputReference()==NULL ||
+         this->con->getInputFloating()==NULL ||
+         this->con->getCurrentControlPointGrid()==NULL)
    {
       reg_print_fct_error("reg_f3d<T>::GetWarpedImage()");
       reg_print_msg_error("The reference, floating and control point grid images have to be defined");
       reg_exit();
    }
 
-   int *mask = (int *)calloc(this->forwardGlobalContent->getInputReference()->nx*
-                             this->forwardGlobalContent->getInputReference()->ny*
-                             this->forwardGlobalContent->getInputReference()->nz,
+   int *mask = (int *)calloc(this->con->getInputReference()->nx*
+                             this->con->getInputReference()->ny*
+                             this->con->getInputReference()->nz,
                              sizeof(int));
 
-   this->forwardGlobalContent->setCurrentReference(this->forwardGlobalContent->getInputReference());
-   this->forwardGlobalContent->setCurrentFloating(this->forwardGlobalContent->getInputFloating());
-   this->forwardGlobalContent->setCurrentReferenceMask(mask,
-                                                       this->forwardGlobalContent->getInputReference()->nx*
-                                                       this->forwardGlobalContent->getInputReference()->ny*
-                                                       this->forwardGlobalContent->getInputReference()->nz);
+   this->con->setCurrentReference(this->con->getInputReference());
+   this->con->setCurrentFloating(this->con->getInputFloating());
+   this->con->setCurrentReferenceMask(mask,
+                                      this->con->getInputReference()->nx*
+                                      this->con->getInputReference()->ny*
+                                      this->con->getInputReference()->nz);
 
-   this->forwardGlobalContent->AllocateWarped();
-   this->forwardGlobalContent->AllocateDeformationField();
+   reg_base<T>::AllocateWarped();
+   reg_base<T>::AllocateDeformationField();
    reg_base<T>::WarpFloatingImage(3); // cubic spline interpolation
-   this->forwardGlobalContent->ClearDeformationField();
+   reg_base<T>::ClearDeformationField();
    free(mask);
 
    nifti_image **warpedImage= (nifti_image **)malloc(2*sizeof(nifti_image *));
-   warpedImage[0]=nifti_copy_nim_info(this->forwardGlobalContent->getCurrentWarped());
-   warpedImage[0]->cal_min=this->forwardGlobalContent->getInputFloating()->cal_min;
-   warpedImage[0]->cal_max=this->forwardGlobalContent->getInputFloating()->cal_max;
-   warpedImage[0]->scl_slope=this->forwardGlobalContent->getInputFloating()->scl_slope;
-   warpedImage[0]->scl_inter=this->forwardGlobalContent->getInputFloating()->scl_inter;
+   warpedImage[0]=nifti_copy_nim_info(this->con->getCurrentWarped());
+   warpedImage[0]->cal_min=this->con->getInputFloating()->cal_min;
+   warpedImage[0]->cal_max=this->con->getInputFloating()->cal_max;
+   warpedImage[0]->scl_slope=this->con->getInputFloating()->scl_slope;
+   warpedImage[0]->scl_inter=this->con->getInputFloating()->scl_inter;
    warpedImage[0]->data=(void *)malloc(warpedImage[0]->nvox*warpedImage[0]->nbyper);
-   memcpy(warpedImage[0]->data, this->forwardGlobalContent->getCurrentWarped()->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
+   memcpy(warpedImage[0]->data, this->con->getCurrentWarped()->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
 
    warpedImage[1]=NULL;
 
-   this->forwardGlobalContent->ClearWarped();
+   reg_f3d<T>::ClearWarped();
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetWarpedImage");
 #endif
@@ -1131,9 +1117,9 @@ nifti_image **reg_f3d<T>::GetWarpedImage()
 template<class T>
 nifti_image * reg_f3d<T>::GetControlPointPositionImage()
 {
-   nifti_image *returnedControlPointGrid = nifti_copy_nim_info(this->controlPointGrid);
+   nifti_image *returnedControlPointGrid = nifti_copy_nim_info(this->con->getCurrentControlPointGrid());
    returnedControlPointGrid->data=(void *)malloc(returnedControlPointGrid->nvox*returnedControlPointGrid->nbyper);
-   memcpy(returnedControlPointGrid->data, this->controlPointGrid->data,
+   memcpy(returnedControlPointGrid->data, this->con->getCurrentControlPointGrid()->data,
           returnedControlPointGrid->nvox*returnedControlPointGrid->nbyper);
    return returnedControlPointGrid;
 #ifndef NDEBUG
@@ -1265,7 +1251,7 @@ void reg_f3d<T>::DiscreteInitialisation()
    // Check if the discrete initialisation can be performed
    if(this->measure_mind!=NULL || this->measure_mindssc!=NULL || this->measure_ssd!=NULL || sizeof(float)!=sizeof(T))
    {
-      if(this->forwardGlobalContent->getCurrentReference()->nt>1){
+      if(this->con->getCurrentReference()->nt>1){
          reg_print_fct_error("reg_f3d<T>::DiscreteInitialisation()");
          reg_print_msg_error("This function does not support 4D for now");
          reg_exit();
@@ -1291,14 +1277,14 @@ void reg_f3d<T>::DiscreteInitialisation()
 
       if((this->measure_mind!=NULL || this->measure_mindssc!=NULL) && this->measure_ssd==NULL){
          // Allocate MIND descriptor of the reference image
-         MIND_refImg = nifti_copy_nim_info(this->forwardGlobalContent->getCurrentReference());
+         MIND_refImg = nifti_copy_nim_info(this->con->getCurrentReference());
          MIND_refImg->ndim = MIND_refImg->dim[0] = 4;
          MIND_refImg->nt = MIND_refImg->dim[4] = desc_length;
          MIND_refImg->nvox = MIND_refImg->nvox*desc_length;
          MIND_refImg->data=(void *)calloc(MIND_refImg->nvox,
                                           MIND_refImg->nbyper);
          // Allocate MIND descriptor of the warped image
-         MIND_warImg = nifti_copy_nim_info(this->forwardGlobalContent->getCurrentWarped());
+         MIND_warImg = nifti_copy_nim_info(this->con->getCurrentWarped());
          MIND_warImg->ndim = MIND_warImg->dim[0] = 4;
          MIND_warImg->nt = MIND_warImg->dim[4] = desc_length;
          MIND_warImg->nvox = MIND_warImg->nvox*desc_length;
@@ -1306,7 +1292,7 @@ void reg_f3d<T>::DiscreteInitialisation()
                                           MIND_warImg->nbyper);
 
          // Allocate a mask embedding all voxel for the warped image
-         int *temp_mask = (int *)calloc(this->forwardGlobalContent->getCurrentWarped()->nx*this->forwardGlobalContent->getCurrentWarped()->ny*this->forwardGlobalContent->getCurrentWarped()->nz,
+         int *temp_mask = (int *)calloc(this->con->getCurrentWarped()->nx*this->con->getCurrentWarped()->ny*this->con->getCurrentWarped()->nz,
                                         sizeof(int));
 
          int offset = 1;
@@ -1317,13 +1303,13 @@ void reg_f3d<T>::DiscreteInitialisation()
          // Compute the descriptors
          if(this->measure_mindssc!=NULL){
             // Compute the MINDSSC descriptor of the reference image
-            GetMINDSSCImageDesciptor(this->forwardGlobalContent->getCurrentReference(),
+            GetMINDSSCImageDesciptor(this->con->getCurrentReference(),
                                      MIND_refImg,
-                                     this->forwardGlobalContent->getCurrentReferenceMask(),
+                                     this->con->getCurrentReferenceMask(),
                                      offset,
                                      0);
             // Compute the MINDSSC descriptor of the warped image
-            GetMINDSSCImageDesciptor(this->forwardGlobalContent->getCurrentWarped(),
+            GetMINDSSCImageDesciptor(this->con->getCurrentWarped(),
                                      MIND_warImg,
                                      temp_mask,
                                      offset,
@@ -1332,13 +1318,13 @@ void reg_f3d<T>::DiscreteInitialisation()
          }
          else{
             // Compute the MIND descriptor of the reference image
-            GetMINDImageDesciptor(this->forwardGlobalContent->getCurrentReference(),
+            GetMINDImageDesciptor(this->con->getCurrentReference(),
                                   MIND_refImg,
-                                  this->forwardGlobalContent->getCurrentReferenceMask(),
+                                  this->con->getCurrentReferenceMask(),
                                   offset,
                                   0);
             // Compute the MIND descriptor of the warped image
-            GetMINDImageDesciptor(this->forwardGlobalContent->getCurrentWarped(),
+            GetMINDImageDesciptor(this->con->getCurrentWarped(),
                                   MIND_warImg,
                                   temp_mask,
                                   offset,
@@ -1348,17 +1334,17 @@ void reg_f3d<T>::DiscreteInitialisation()
          // Initialise the measure with the descriptors
          ssdMeasure->InitialiseMeasure(MIND_refImg,
                                        MIND_warImg,
-                                       this->forwardGlobalContent->getCurrentReferenceMask(),
+                                       this->con->getCurrentReferenceMask(),
                                        MIND_warImg,
                                        NULL,
                                        NULL);
       }
       else{
          // Initialise the measure with the input images
-         ssdMeasure->InitialiseMeasure(this->forwardGlobalContent->getCurrentReference(),
-                                       this->forwardGlobalContent->getCurrentWarped(),
-                                       this->forwardGlobalContent->getCurrentReferenceMask(),
-                                       this->forwardGlobalContent->getCurrentWarped(),
+         ssdMeasure->InitialiseMeasure(this->con->getCurrentReference(),
+                                       this->con->getCurrentWarped(),
+                                       this->con->getCurrentReferenceMask(),
+                                       this->con->getCurrentWarped(),
                                        NULL,
                                        NULL);
       }
@@ -1372,7 +1358,7 @@ void reg_f3d<T>::DiscreteInitialisation()
       //std::cout<<"(this->levelNumber-this->currentLevel-1)="<<(this->levelNumber-this->currentLevel-1)<<std::endl;
       //DEBUG
       int discretisation_radius=
-              reg_ceil(discrete_increment*(this->controlPointGrid->dx/this->forwardGlobalContent->getCurrentReference()->dx)/pow(2.0,(this->forwardGlobalContent->getLevelNumber()-this->currentLevel-1)));
+              reg_ceil(discrete_increment*(this->con->getCurrentControlPointGrid()->dx/this->con->getCurrentReference()->dx)/pow(2.0,(this->con->getLevelNumber()-this->currentLevel-1)));
       //
 //      reg_discrete_init *discrete_init_object = new reg_discrete_init(ssdMeasure,
 //                                                                      this->currentReference,
@@ -1383,11 +1369,11 @@ void reg_f3d<T>::DiscreteInitialisation()
 //                                                                      this->bendingEnergyWeight*pow(16.f,(this->levelNumber-this->currentLevel-1)) +
 //                                                                      this->linearEnergyWeight);
       reg_mrf *discrete_init_object = new reg_mrf(ssdMeasure,
-                                                  this->forwardGlobalContent->getCurrentReference(),
-                                                  this->controlPointGrid,
+                                                  this->con->getCurrentReference(),
+                                                  this->con->getCurrentControlPointGrid(),
                                                   discretisation_radius,
                                                   discrete_increment,
-                                                  this->bendingEnergyWeight*pow(16.f,(this->forwardGlobalContent->getLevelNumber()-this->currentLevel-1)) +
+                                                  this->bendingEnergyWeight*pow(16.f,(this->con->getLevelNumber()-this->currentLevel-1)) +
                                                   this->linearEnergyWeight);
 
       // Run the discrete initialisation

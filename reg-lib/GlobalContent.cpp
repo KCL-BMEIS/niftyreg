@@ -474,7 +474,11 @@ void GlobalContent::setActiveVoxelNumber(int py, int avn) {
     this->activeVoxelNumber[py] = avn;
 }
 //
-void GlobalContent::setCurrentReference(nifti_image* currentRefIn) {
+void GlobalContent::setCurrentReference(nifti_image* currentRefIn)
+{
+    if (currentRefIn != NULL && currentRefIn->datatype != NIFTI_TYPE_FLOAT32)
+        reg_tools_changeDatatype<float>(currentRefIn);
+
     this->currentReference = currentRefIn;
     //mat44 tmpMat = (this->currentReference->sform_code > 0) ? (this->currentReference->sto_xyz) : (this->currentReference->qto_xyz);
     this->refMatrix_xyz = &((this->currentReference->sform_code > 0) ? (this->currentReference->sto_xyz) : (this->currentReference->qto_xyz));
@@ -482,19 +486,29 @@ void GlobalContent::setCurrentReference(nifti_image* currentRefIn) {
     //tmpMat = (this->currentReference->sform_code > 0) ? (this->currentReference->sto_ijk) : (this->currentReference->qto_ijk);
     this->refMatrix_ijk = &((this->currentReference->sform_code > 0) ? (this->currentReference->sto_ijk) : (this->currentReference->qto_ijk));
 }
-void GlobalContent::setCurrentReferenceMask(int * currentRefMaskIn, size_t nvox) {
+void GlobalContent::setCurrentReferenceMask(int * currentRefMaskIn, size_t nvox)
+{
     this->currentReferenceMask = currentRefMaskIn;
 }
-void GlobalContent::setCurrentFloating(nifti_image* currentFloIn) {
+void GlobalContent::setCurrentFloating(nifti_image* currentFloIn)
+{
+    if (currentFloIn != NULL && currentFloIn->datatype != NIFTI_TYPE_FLOAT32)
+        reg_tools_changeDatatype<float>(currentFloIn);
+
     this->currentFloating = currentFloIn;
     this->floMatrix_ijk = &((this->currentFloating->sform_code > 0) ? (this->currentFloating->sto_ijk) :  (this->currentFloating->qto_ijk));
     this->floMatrix_xyz = &((this->currentFloating->sform_code > 0) ? (this->currentFloating->sto_xyz) :  (this->currentFloating->qto_xyz));
 }
-void GlobalContent::setCurrentDeformationField(nifti_image* currentDeformationFieldIn) {
+void GlobalContent::setCurrentDeformationField(nifti_image* currentDeformationFieldIn)
+{
     this->currentDeformationField = currentDeformationFieldIn;
 }
-void GlobalContent::setCurrentWarped(nifti_image* currentWarpedImageIn) {
-    this->currentWarped = currentWarpedImageIn;
+void GlobalContent::setCurrentWarped(nifti_image* currentWarpedIn)
+{
+    if (currentWarpedIn->datatype != NIFTI_TYPE_FLOAT32)
+        reg_tools_changeDatatype<float>(currentWarpedIn);
+
+    this->currentWarped = currentWarpedIn;
 }
 /* *************************************************************** */
 void GlobalContent::CheckParameters()

@@ -118,7 +118,7 @@ public:
     virtual void setCurrentReferenceMask(int * currentRefMaskIn, size_t nvox);
     virtual void setCurrentFloating(nifti_image* currentFloIn);
     //void setCurrentTransformationMatrix(mat44 *transformationMatrixIn);
-    virtual void setCurrentWarped(nifti_image* currentWarpedImageIn);
+    virtual void setCurrentWarped(nifti_image* currentWarpedIn);
     virtual void setCurrentDeformationField(nifti_image* currentDeformationFieldIn);
     //
     virtual bool isCurrentComputationDoubleCapable();
