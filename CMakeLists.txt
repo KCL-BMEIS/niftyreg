@@ -1,4 +1,6 @@
 project(NiftyReg)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #-----------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.2.2)
 if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^3\\.2\\.2$")
