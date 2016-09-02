@@ -604,9 +604,9 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
 
                     DTYPE warpedValue;
                     int paddedImageVox[3] = {
-                        imageVox[0]+warPaddedOffset[0],
-                        imageVox[1]+warPaddedOffset[1],
-                        imageVox[2]+warPaddedOffset[2]
+                        (int) imageVox[0]+warPaddedOffset[0],
+                        (int) imageVox[1]+warPaddedOffset[1],
+                        (int) imageVox[2]+warPaddedOffset[2]
                     };
                     int cc;
                     double currentSum;

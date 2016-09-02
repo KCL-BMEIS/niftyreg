@@ -202,7 +202,7 @@ void reg_aladin<T>::SetNumberOfLevels(unsigned levelNumber)
 template<class T>
 unsigned reg_aladin<T>::GetNumberOfLevels()
 {
-  this->con->getLevelNumber();
+  return this->con->getLevelNumber();
 }
 /* *************************************************************** */
 template<class T>
@@ -214,7 +214,7 @@ void reg_aladin<T>::SetLevelsToPerform(unsigned lp)
 template<class T>
 unsigned reg_aladin<T>::GetLevelsToPerform()
 {
-  this->con->getLevelToPerform();
+  return this->con->getLevelToPerform();
 }
 /* *************************************************************** */
 template<class T>
@@ -232,7 +232,7 @@ void reg_aladin<T>::SetFloatingSigma(float sigma)
 template<class T>
 mat44* reg_aladin<T>::GetTransformationMatrix()
 {
-  this->con->getTransformationMatrix();
+  return this->con->getTransformationMatrix();
 }
 /* *************************************************************** */
 template<class T>
