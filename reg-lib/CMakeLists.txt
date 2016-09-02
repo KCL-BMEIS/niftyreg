@@ -203,6 +203,10 @@ install(FILES
 set(_reg_f3d_files
     GlobalContent.cpp
     GlobalContent.h
+    AladinContent.cpp
+    AladinContent.h
+    F3DContent.cpp
+    F3DContent.h
     Platform.cpp
     Platform.h
     Kernel.h
@@ -266,6 +270,8 @@ install(FILES _reg_f3d2.h DESTINATION include)
 install(FILES _reg_f3d_sym.h DESTINATION include)
 install(FILES cpu/_reg_optimiser.h DESTINATION include)
 install(FILES GlobalContent.h DESTINATION include)
+install(FILES AladinContent.h DESTINATION include)
+install(FILES F3DContent.h DESTINATION include)
 install(FILES Platform.h DESTINATION include)
 install(FILES Kernel.h DESTINATION include)
 install(FILES CPUAffineDeformationFieldKernel.h DESTINATION include)
