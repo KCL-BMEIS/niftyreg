@@ -803,10 +803,10 @@ int main(int argc, char **argv)
    }
 
    // Save the warped image(s)
-   nifti_image **outputWarpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
-   outputWarpedImage[0]=NULL;
-   outputWarpedImage[1]=NULL;
-   outputWarpedImage = REG->GetWarpedImage();
+   //nifti_image **outputWarpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
+   //outputWarpedImage[0]=NULL;
+   //outputWarpedImage[1]=NULL;
+   nifti_image** outputWarpedImage = REG->GetWarpedImage();
    if(outputWarpedImageName==NULL)
       outputWarpedImageName=(char *)"outputResult.nii";
    memset(outputWarpedImage[0]->descrip, 0, 80);

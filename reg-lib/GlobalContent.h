@@ -40,6 +40,7 @@ public:
 
     virtual void ClearCurrentInputImages();
     virtual void ClearCurrentImagePyramid(int currentPyramidLevel);
+    virtual void ClearPyramid();
 
     void CheckParameters();
     //

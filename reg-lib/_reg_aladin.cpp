@@ -348,6 +348,12 @@ void reg_aladin<T>::InitialiseRegistration()
 //}
 /* *************************************************************** */
 template<class T>
+void reg_aladin<T>::ClearPyramid()
+{
+    this->con->ClearPyramid();
+}
+/* *************************************************************** */
+template<class T>
 void reg_aladin<T>::ClearBlockMatchingParams()
 {
     this->con->ClearBlockMatchingParams();
@@ -374,7 +380,7 @@ void reg_aladin<T>::ClearKernels()
       delete this->affineTransformation3DKernel;
       this->affineTransformation3DKernel = NULL;
   }
-  if(this->resamplingKernel == NULL) {
+  if(this->resamplingKernel != NULL) {
       delete this->resamplingKernel;
       this->resamplingKernel = NULL;
   }
@@ -525,6 +531,7 @@ void reg_aladin<T>::Run()
 #endif
   }
   this->ClearBlockMatchingParams();
+  this->ClearPyramid();
 #ifndef NDEBUG
   reg_print_msg_debug("reg_aladin::Run() done");
 #endif

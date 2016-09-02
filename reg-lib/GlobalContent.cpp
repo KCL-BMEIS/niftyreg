@@ -71,78 +71,6 @@ GlobalContent::GlobalContent(int platformCodeIn, int refTimePoint,int floTimePoi
 /* *************************************************************** */
 GlobalContent::~GlobalContent()
 {
-   //Py
-   if(this->referencePyramid!=NULL)
-   {
-       if(this->usePyramid)
-       {
-         for(unsigned int i=0; i<this->levelToPerform; i++)
-         {
-            if(referencePyramid[i]!=NULL)
-            {
-               nifti_image_free(referencePyramid[i]);
-               referencePyramid[i]=NULL;
-            }
-         }
-       }
-       else
-       {
-           if(referencePyramid[0]!=NULL)
-           {
-              nifti_image_free(referencePyramid[0]);
-              referencePyramid[0]=NULL;
-           }
-       }
-      free(this->referencePyramid);
-      this->referencePyramid=NULL;
-   }
-   if(this->maskPyramid!=NULL)
-   {
-       if(this->usePyramid)
-       {
-         for(unsigned int i=0; i<this->levelToPerform; i++)
-         {
-            if(this->maskPyramid[i]!=NULL)
-            {
-               free(this->maskPyramid[i]);
-               this->maskPyramid[i]=NULL;
-            }
-         }
-       }
-       else
-       {
-           if(this->maskPyramid[0]!=NULL)
-           {
-              free(this->maskPyramid[0]);
-              this->maskPyramid[0]=NULL;
-           }
-       }
-      free(this->maskPyramid);
-      this->maskPyramid=NULL;
-   }
-   if(this->floatingPyramid!=NULL)
-   {
-       if(this->usePyramid)
-       {
-         for(unsigned int i=0; i<this->levelToPerform; i++)
-         {
-            if(floatingPyramid[i]!=NULL)
-            {
-               nifti_image_free(floatingPyramid[i]);
-               floatingPyramid[i]=NULL;
-            }
-         }
-       }
-       else {
-           if(floatingPyramid[0]!=NULL)
-           {
-              nifti_image_free(floatingPyramid[0]);
-              floatingPyramid[0]=NULL;
-           }
-       }
-      free(this->floatingPyramid);
-      this->floatingPyramid=NULL;
-   }
    if(this->activeVoxelNumber!=NULL)
    {
       free(activeVoxelNumber);
@@ -169,9 +97,9 @@ GlobalContent::~GlobalContent()
       this->floatingThresholdLow=NULL;
    }
    //
-   ClearWarped();
-   ClearDeformationField();
-   ClearCurrentInputImages();
+   GlobalContent::ClearWarped();
+   GlobalContent::ClearDeformationField();
+   GlobalContent::ClearCurrentInputImages();
    if(this->platform != NULL) {
        delete this->platform;
        this->platform = NULL;
@@ -747,6 +675,86 @@ void GlobalContent::ClearCurrentImagePyramid(int currentPyramidLevel)
 
 #ifndef NDEBUG
     reg_print_fct_debug("GlobalContent::ClearCurrentImagePyramid()");
+#endif
+}
+/* *************************************************************** */
+void GlobalContent::ClearPyramid()
+{
+    //Py
+    if(this->referencePyramid!=NULL)
+    {
+        if(this->usePyramid)
+        {
+          for(unsigned int i=0; i<this->levelToPerform; i++)
+          {
+             if(referencePyramid[i]!=NULL)
+             {
+                nifti_image_free(referencePyramid[i]);
+                referencePyramid[i]=NULL;
+             }
+          }
+        }
+        else
+        {
+            if(referencePyramid[0]!=NULL)
+            {
+               nifti_image_free(referencePyramid[0]);
+               referencePyramid[0]=NULL;
+            }
+        }
+       free(this->referencePyramid);
+       this->referencePyramid=NULL;
+    }
+    if(this->maskPyramid!=NULL)
+    {
+        if(this->usePyramid)
+        {
+          for(unsigned int i=0; i<this->levelToPerform; i++)
+          {
+             if(this->maskPyramid[i]!=NULL)
+             {
+                free(this->maskPyramid[i]);
+                this->maskPyramid[i]=NULL;
+             }
+          }
+        }
+        else
+        {
+            if(this->maskPyramid[0]!=NULL)
+            {
+               free(this->maskPyramid[0]);
+               this->maskPyramid[0]=NULL;
+            }
+        }
+       free(this->maskPyramid);
+       this->maskPyramid=NULL;
+    }
+    if(this->floatingPyramid!=NULL)
+    {
+        if(this->usePyramid)
+        {
+          for(unsigned int i=0; i<this->levelToPerform; i++)
+          {
+             if(floatingPyramid[i]!=NULL)
+             {
+                nifti_image_free(floatingPyramid[i]);
+                floatingPyramid[i]=NULL;
+             }
+          }
+        }
+        else {
+            if(floatingPyramid[0]!=NULL)
+            {
+               nifti_image_free(floatingPyramid[0]);
+               floatingPyramid[0]=NULL;
+            }
+        }
+       free(this->floatingPyramid);
+       this->floatingPyramid=NULL;
+    }
+
+#ifndef NDEBUG
+    reg_print_fct_debug("GlobalContent::ClearPyramid()");
 #endif
 }
 /* *************************************************************** */

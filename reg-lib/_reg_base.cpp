@@ -1060,7 +1060,7 @@ void reg_base<T>::Run()
       // Update the number of level for the next level
       this->maxiterationNumber /= 2;
    } // level this->levelToPerform
-
+   this->con->ClearPyramid();
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::Run");
 #endif

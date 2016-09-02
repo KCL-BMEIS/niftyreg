@@ -53,12 +53,12 @@ reg_aladin_sym<T>::~reg_aladin_sym()
     delete this->bOptimiseKernel;
     this->bOptimiseKernel = NULL;
     }
-    this->backCon->ClearWarped();
-    this->backCon->ClearDeformationField();
+    //this->backCon->ClearWarped();
+    //this->backCon->ClearDeformationField();
+    //this->backCon->ClearActiveVoxelNumber();
+    //this->backCon->ClearThresholds();
     this->backCon->ClearMaskPyramid();
-    this->backCon->ClearActiveVoxelNumber();
-    this->backCon->ClearThresholds();
-    //delete this->backCon;
+    delete this->backCon;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_aladin_sym<T>::~reg_aladin_sym()");
 #endif

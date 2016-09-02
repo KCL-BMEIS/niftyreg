@@ -14,11 +14,14 @@ F3DContent::F3DContent(int platformCodeIn, int refTime, int floTime) : GlobalCon
 }
 F3DContent::~F3DContent()
 {
-    if(this->inputControlPointGrid != NULL)
-        nifti_image_free(this->inputControlPointGrid);
+    //if(this->inputControlPointGrid != NULL)
+    //    nifti_image_free(this->inputControlPointGrid);
 
     if(this->currentControlPointGrid != NULL)
         nifti_image_free(this->currentControlPointGrid);
+
+    if(this->spacing != NULL)
+        delete[] spacing;
 }
 /* *************************************************************** */
 void F3DContent::setInputControlPointGrid(nifti_image* cpg)

@@ -7,7 +7,7 @@ CudaF3DContent::CudaF3DContent(int refTime, int floTime) : F3DContent(NR_PLATFOR
 /* *************************************************************** */
 CudaF3DContent::~CudaF3DContent()
 {
-    if (this->controlPointGrid_d != NULL) {
+    if (this->currentControlPointGrid != NULL) {
         cudaCommon_free<float>(&controlPointGrid_d);
     }
 }

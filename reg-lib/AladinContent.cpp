@@ -22,7 +22,7 @@ AladinContent::~AladinContent()
        delete this->transformationMatrix;
        this->transformationMatrix = NULL;
    }
-   ClearBlockMatchingParams();
+   AladinContent::ClearBlockMatchingParams();
 #ifndef NDEBUG
    reg_print_fct_debug("AladinContent::~AladinContent()");
 #endif

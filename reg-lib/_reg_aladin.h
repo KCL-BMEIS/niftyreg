@@ -155,6 +155,7 @@ protected:
 
     virtual void InitialiseRegistration();
     //virtual void ClearCurrentImagePyramid();
+    virtual void ClearPyramid();
     virtual void ClearBlockMatchingParams();
 
     virtual void GetDeformationField();
