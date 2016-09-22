@@ -48,14 +48,16 @@ reg_aladin_sym<T>::~reg_aladin_sym()
       {
          if(this->FloatingMaskPyramid[i]!=NULL)
          {
-            free(this->FloatingMaskPyramid[i]);
+           if(this->FloatingMaskPyramid!=NULL)
+             free(this->FloatingMaskPyramid[i]);
             this->FloatingMaskPyramid[i]=NULL;
          }
       }
       free(this->FloatingMaskPyramid);
       this->FloatingMaskPyramid=NULL;
    }
-   free(this->BackwardActiveVoxelNumber);
+   if(this->BackwardActiveVoxelNumber!=NULL)
+     free(this->BackwardActiveVoxelNumber);
    this->BackwardActiveVoxelNumber=NULL;
 
 }

@@ -85,24 +85,40 @@ template<class T> reg_aladin<T>::~reg_aladin()
     delete this->TransformationMatrix;
   this->TransformationMatrix = NULL;
 
-  for (unsigned int l = 0; l < this->LevelsToPerform; ++l)
-  {
-    nifti_image_free(this->ReferencePyramid[l]);
-    this->ReferencePyramid[l] = NULL;
-    nifti_image_free(this->FloatingPyramid[l]);
-    this->FloatingPyramid[l] = NULL;
-    free(this->ReferenceMaskPyramid[l]);
-    this->ReferenceMaskPyramid[l] = NULL;
+  if(this->ReferencePyramid!=NULL){
+    for (unsigned int l = 0; l < this->LevelsToPerform; ++l)
+    {
+      if(this->ReferencePyramid[l] != NULL)
+        nifti_image_free(this->ReferencePyramid[l]);
+      this->ReferencePyramid[l] = NULL;
+    }
+    free(this->ReferencePyramid);
+    this->ReferencePyramid = NULL;
   }
-  free(this->ReferencePyramid);
-  this->ReferencePyramid = NULL;
-  free(this->FloatingPyramid);
-  this->FloatingPyramid = NULL;
-  free(this->ReferenceMaskPyramid);
-  this->ReferenceMaskPyramid = NULL;
-
-  free(activeVoxelNumber);
-  delete this->platform;
+  if(this->FloatingPyramid!=NULL){
+    for (unsigned int l = 0; l < this->LevelsToPerform; ++l)
+    {
+      if(this->FloatingPyramid[l] != NULL)
+        nifti_image_free(this->FloatingPyramid[l]);
+      this->FloatingPyramid[l] = NULL;
+    }
+    free(this->FloatingPyramid);
+    this->FloatingPyramid = NULL;
+  }
+  if(this->ReferenceMaskPyramid!=NULL){
+    for (unsigned int l = 0; l < this->LevelsToPerform; ++l)
+    {
+      if(this->ReferenceMaskPyramid[l] != NULL)
+        free(this->ReferenceMaskPyramid[l]);
+      this->ReferenceMaskPyramid[l] = NULL;
+    }
+    free(this->ReferenceMaskPyramid);
+    this->ReferenceMaskPyramid = NULL;
+  }
+  if(this->activeVoxelNumber!=NULL)
+    free(this->activeVoxelNumber);
+  if(this->platform!=NULL)
+    delete this->platform;
 }
 /* *************************************************************** */
 template<class T>
