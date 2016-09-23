@@ -79,6 +79,31 @@ void average_norm_intensity(nifti_image *image)
    return;
 }
 
+template <class DTYPE>
+int remove_nan_and_add(nifti_image *averageImage,
+                        nifti_image *toAddImage,
+                        nifti_image *nanNumImage)
+{
+   if(averageImage->nvox!=toAddImage->nvox || averageImage->nvox!=nanNumImage->nvox)
+   {
+      reg_print_msg_error(" All images must have the same size");
+      return EXIT_FAILURE;
+   }
+   DTYPE *avgImgPtr = static_cast<DTYPE *>(averageImage->data);
+   DTYPE *addImgPtr = static_cast<DTYPE *>(toAddImage->data);
+   DTYPE *nanImgPtr = static_cast<DTYPE *>(nanNumImage->data);
+   for(size_t i=0; i<averageImage->nvox; ++i){
+      DTYPE value = *addImgPtr;
+      if(value==value)
+         *avgImgPtr+=value;
+      else *nanImgPtr+=1;
+      avgImgPtr++;
+      addImgPtr++;
+      nanImgPtr++;
+   }
+   return EXIT_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
    // Check that the number of argument is sufficient
@@ -198,35 +223,40 @@ int main(int argc, char **argv)
          averageImage->nbyper=sizeof(PrecisionTYPE);
          averageImage->data=(void *)calloc(averageImage->nvox,averageImage->nbyper);
 
+         // Create an image to store the number of nan value
+         nifti_image *nanNumberImage = nifti_copy_nim_info(averageImage);
+         nanNumberImage->data=(void *)calloc(averageImage->nvox,averageImage->nbyper);
+
          int imageTotalNumber=0;
          for(int i=3; i<argc; ++i)
          {
             nifti_image *tempImage=reg_io_ReadImageFile(argv[i]);
+            // Check if the image can be read
             if(tempImage==NULL)
             {
                reg_print_msg_error("The following image can not be read:");
                reg_print_msg_error(argv[i]);
                return EXIT_FAILURE;
             }
+            // change the datatype
             if(sizeof(PrecisionTYPE)==sizeof(double))
                reg_tools_changeDatatype<double>(tempImage);
             else reg_tools_changeDatatype<float>(tempImage);
-            if(averageImage->nvox!=tempImage->nvox)
-            {
-               reg_print_msg_error(" All images must have the same size. Error when processing:");
-               reg_print_msg_error(argv[i]);
+
+            // Accumulate in the average image and remove nan
+            if(remove_nan_and_add<PrecisionTYPE>(averageImage, tempImage, nanNumberImage))
                return EXIT_FAILURE;
-            }
-//            if(sizeof(PrecisionTYPE)==sizeof(double))
-//               average_norm_intensity<double>(tempImage);
-//            else average_norm_intensity<float>(tempImage);
-            reg_tools_addImageToImage(averageImage,tempImage,averageImage);
+
             imageTotalNumber++;
             nifti_image_free(tempImage);
             tempImage=NULL;
          }
-         reg_tools_divideValueToImage(averageImage,averageImage,(float)imageTotalNumber);
+         // Normalise the average image
+         reg_tools_substractValueToImage(nanNumberImage, nanNumberImage, -1.f*imageTotalNumber);
+         reg_tools_divideImageToImage(averageImage,averageImage,nanNumberImage);
+         nifti_image_free(nanNumberImage);
 
+         // Save the average image
          reg_io_WriteImageFile(averageImage,outputName);
          nifti_image_free(averageImage);
       }
@@ -556,6 +586,10 @@ int main(int argc, char **argv)
          averageImage->data=(void *)calloc(averageImage->nvox,
                                            averageImage->nbyper);
 
+         // Create an image to store the number of nan value
+         nifti_image *nanNumberImage = nifti_copy_nim_info(averageImage);
+         nanNumberImage->data=(void *)calloc(averageImage->nvox,averageImage->nbyper);
+
          for(int i=4;i<argc;i+=2){
             mat44 *inputTransformationMatrix=NULL;
             nifti_image *inputTransformationImage=NULL;
@@ -674,12 +708,15 @@ int main(int argc, char **argv)
             // Normalise the warped image intensity
             //average_norm_intensity<float>(warpedImage);
             // Accumulate the warped image
-            reg_tools_addImageToImage(averageImage,warpedImage,averageImage);
+            remove_nan_and_add<PrecisionTYPE>(averageImage,warpedImage,nanNumberImage);
             nifti_image_free(warpedImage);
          }
          // Normalise the average image intensity by the number of input images
          float inputImagesNumber = (argc - 4)/2;
-         reg_tools_divideValueToImage(averageImage,averageImage,inputImagesNumber);
+         reg_tools_substractValueToImage(nanNumberImage, nanNumberImage, -1.f*inputImagesNumber);
+         reg_tools_divideImageToImage(averageImage,averageImage,nanNumberImage);
+         nifti_image_free(nanNumberImage);
+
          // Save the average image
          reg_io_WriteImageFile(averageImage,outputName);
          nifti_image_free(averageImage);
@@ -750,6 +787,11 @@ int main(int argc, char **argv)
             averageImage->nbyper=sizeof(float);
          }
          averageImage->data = (void *)calloc(averageImage->nvox,averageImage->nbyper);
+
+         // Create an image to store the number of nan value
+         nifti_image *nanNumberImage = nifti_copy_nim_info(averageImage);
+         nanNumberImage->data=(void *)calloc(averageImage->nvox,averageImage->nbyper);
+
          // Create a temporary image
          nifti_image *tempImage = nifti_copy_nim_info(averageImage);
          tempImage->scl_slope=1.f;
@@ -779,11 +821,13 @@ int main(int argc, char **argv)
                }
             }
             reg_resampleImage(floatingImage,tempImage,deformationField,NULL,3,0.f);
-            reg_tools_addImageToImage(averageImage,tempImage,averageImage);
+            remove_nan_and_add<PrecisionTYPE>(averageImage,tempImage,nanNumberImage);
             nifti_image_free(floatingImage);
          }
          // Normalise the intensity by the number of images
-         reg_tools_divideValueToImage(averageImage,averageImage,(float)affineNumber);
+         reg_tools_substractValueToImage(nanNumberImage, nanNumberImage, -1.f*affineNumber);
+         reg_tools_divideImageToImage(averageImage,averageImage,nanNumberImage);
+         nifti_image_free(nanNumberImage);
          // Free the allocated arrays and images
          nifti_image_free(deformationField);
          nifti_image_free(tempImage);
@@ -936,6 +980,11 @@ int main(int argc, char **argv)
          averageImage->scl_slope=1.f;
          averageImage->scl_inter=0.f;
          averageImage->data = (void *)calloc(averageImage->nvox,averageImage->nbyper);
+
+         // Create an image to store the number of nan value
+         nifti_image *nanNumberImage = nifti_copy_nim_info(averageImage);
+         nanNumberImage->data=(void *)calloc(averageImage->nvox,averageImage->nbyper);
+
          // Create a temporary image
          nifti_image *tempImage = nifti_copy_nim_info(averageImage);
          tempImage->data = (void *)malloc(tempImage->nvox*tempImage->nbyper);
@@ -1036,12 +1085,14 @@ int main(int argc, char **argv)
             sprintf(msg,"reg_average_%i.nii",i);
             reg_io_WriteImageFile(tempImage,msg);
 #endif
-            reg_tools_addImageToImage(averageImage,tempImage,averageImage);
+            remove_nan_and_add<PrecisionTYPE>(averageImage,tempImage,nanNumberImage);
             nifti_image_free(floatingImage);
             nifti_image_free(deformationField);
          } // iteration over all transformation parametrisation
          // Normalise the average image by the number of input images
-         reg_tools_divideValueToImage(averageImage,averageImage,subjectNumber);
+         reg_tools_substractValueToImage(nanNumberImage, nanNumberImage, -1.f*subjectNumber);
+         reg_tools_divideImageToImage(averageImage,averageImage,nanNumberImage);
+         nifti_image_free(nanNumberImage);
          // Free the allocated field
          nifti_image_free(averageField);
          // Save and free the average image
