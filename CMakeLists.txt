@@ -42,6 +42,13 @@ set(NR_VERSION_MAJOR 1)
 set(NR_VERSION_MINOR 5)
 file(STRINGS "niftyreg_build_version.txt" NR_VERSION_BUILD)
 add_definitions(-DNR_VERSION="${NR_VERSION_MAJOR}.${NR_VERSION_MINOR}.${NR_VERSION_BUILD}")
+# Define the pre-commit hook for developer
+find_package(Git)
+if(GIT_FOUND)
+  message(STATUS "Found Git")
+  file(COPY "${CMAKE_SOURCE_DIR}/update_version_hook" DESTINATION "${CMAKE_SOURCE_DIR}/.git/hooks" USE_SOURCE_PERMISSIONS)
+  file(RENAME "${CMAKE_SOURCE_DIR}/.git/hooks/update_version_hook" "${CMAKE_SOURCE_DIR}/.git/hooks/pre-commit")
+endif(GIT_FOUND)
 #-----------------------------------------------------------------------------
 if(MSVC)
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /bigobj")
