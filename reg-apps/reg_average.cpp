@@ -57,11 +57,9 @@ void usage(char *exec)
           defaultOpenMPValue, omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
-#ifdef _GIT_HASH
-   reg_print_info(exec, "");
-   sprintf(text, "\t--version\t\tPrint current source code git hash key and exit\t\t\t\t(%s)", _GIT_HASH);
+   reg_print_info(exec, "\t--version\t\tPrint current version and exit");
+   sprintf(text, "\t\t\t\t(%s)",NR_VERSION);
    reg_print_info(exec, text);
-#endif
    reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
@@ -153,15 +151,13 @@ int main(int argc, char **argv)
          ++i;
 #endif
       }
-#ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
             strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",_GIT_HASH);
+         printf("%s\n",NR_VERSION);
          return EXIT_SUCCESS;
       }
-#endif
    }
 
    // Set the name of the file to output

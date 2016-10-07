@@ -129,7 +129,6 @@ void Usage(char *exec)
    printf("\t\tfilename2 - Image used as a reference (-ref arg in FLIRT)\n");
    printf("\t\tfilename3 - Image used as a floating (-in arg in FLIRT)\n");
    printf("\t\tfilename4 - Output affine transformation file name\n\n");
-
 #if defined (_OPENMP)
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
@@ -139,10 +138,9 @@ void Usage(char *exec)
           defaultOpenMPValue, omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
-
-#ifdef _GIT_HASH
-   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
-#endif
+   reg_print_info(exec, "\t--version\t\tPrint current version and exit");
+   sprintf(text, "\t\t\t\t(%s)",NR_VERSION);
+   reg_print_info(exec, text);
 
    printf("\t* The supported transformation types are:\n");
    printf("\t\t- cubic B-Spline parametrised grid (reference image is required)\n");
@@ -200,15 +198,13 @@ int main(int argc, char **argv)
          ++i;
 #endif
       }
-#ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
             strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",_GIT_HASH);
+         printf("%s\n",NR_VERSION);
          return EXIT_SUCCESS;
       }
-#endif
       else if(strcmp(argv[i],"-ref")==0 || strcmp(argv[i],"--ref")==0 || strcmp(argv[i],"-target")==0)
       {
          flag->referenceImageFlag=true;

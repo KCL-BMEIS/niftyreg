@@ -121,9 +121,8 @@ void Usage(char *exec)
     printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
            defaultOpenMPValue, omp_get_num_procs());
 #endif
-#ifdef _GIT_HASH
-    printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
-#endif
+    printf("\t--version\t\tPrint current version and exit");
+    printf("\t\t\t\t(%s)",NR_VERSION);
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
@@ -172,15 +171,13 @@ int main(int argc, char **argv)
             ++i;
 #endif
         }
-#ifdef _GIT_HASH
         else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
                 strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
                 strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
         {
-            printf("%s\n",_GIT_HASH);
+            printf("%s\n",NR_VERSION);
             return EXIT_SUCCESS;
         }
-#endif
         else if(strcmp(argv[i], "-in") == 0)
         {
             param->inputImageName=argv[++i];

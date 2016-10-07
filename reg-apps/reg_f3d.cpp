@@ -147,12 +147,9 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]");
    reg_print_info(exec, "\t-pad <float>\t\tPadding value [nan]");
    reg_print_info(exec, "\t-voff\t\t\tTo turn verbose off");
-#ifdef _GIT_HASH
-   reg_print_info(exec, "");
-   reg_print_info(exec, "\t--version\t\tPrint current source code git hash key and exit");
-   sprintf(text, "\t\t\t\t(%s)" ,_GIT_HASH);
+   reg_print_info(exec, "\t--version\t\tPrint current version and exit");
+   sprintf(text, "\t\t\t\t(%s)",NR_VERSION);
    reg_print_info(exec, text);
-#endif
    reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
    return;
 }
@@ -202,7 +199,6 @@ int main(int argc, char **argv)
       {
          verbose=false;
       }
-#ifdef _GIT_HASH
       if( strcmp(argv[i], "-version")==0 ||
           strcmp(argv[i], "-Version")==0 ||
           strcmp(argv[i], "-V")==0 ||
@@ -210,10 +206,9 @@ int main(int argc, char **argv)
           strcmp(argv[i], "--v")==0 ||
           strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",_GIT_HASH);
+         printf("%s\n",NR_VERSION);
          return EXIT_SUCCESS;
       }
-#endif
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Output the command line

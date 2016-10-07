@@ -37,9 +37,11 @@ if(NOT MSVC)
   endif(cmake_build_type_tolower STREQUAL "debug")
 endif(NOT MSVC)
 #-----------------------------------------------------------------------------
-set(NiftyReg_VERSION_MAJOR 1)
-set(NiftyReg_VERSION_MINOR 4)
-set(NiftyReg_VERSION_PATCH 0)
+# Set the NiftyReg version
+set(NR_VERSION_MAJOR 1)
+set(NR_VERSION_MINOR 5)
+file(STRINGS "niftyreg_build.txt" NR_VERSION_BUILD)
+add_definitions(-DNR_VERSION="${NR_VERSION_MAJOR}.${NR_VERSION_MINOR}.${NR_VERSION_BUILD}")
 #-----------------------------------------------------------------------------
 if(MSVC)
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /bigobj")
@@ -182,25 +184,6 @@ if(BUILD_SHARED_LIBS)
 else(BUILD_SHARED_LIBS)
   set(NIFTYREG_LIBRARY_TYPE STATIC)
 endif(BUILD_SHARED_LIBS)
-#-----------------------------------------------------------------------------
-find_package(Git)
-if(GIT_FOUND)
-  execute_process(
-    COMMAND git rev-parse --short HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_COMMIT_HASH
-    RESULT_VARIABLE GIT_FAILED
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-  if(NOT GIT_FAILED)
-     add_definitions(-D_GIT_HASH=\"${GIT_COMMIT_HASH}\")
-     message(STATUS "Found Git")
-  else(NOT GIT_FAILED)
-     add_definitions(-D_GIT_HASH="${NiftyReg_VERSION_MAJOR}.${NiftyReg_VERSION_MINOR}.${NiftyReg_VERSION_PATCH}")
-  endif(NOT GIT_FAILED)
-else(GIT_FOUND)
-   add_definitions(-D_GIT_HASH="${NiftyReg_VERSION_MAJOR}.${NiftyReg_VERSION_MINOR}.${NiftyReg_VERSION_PATCH}")
-endif(GIT_FOUND)
 #-----------------------------------------------------------------------------
 add_subdirectory(third-party)
 add_subdirectory(reg-io)
