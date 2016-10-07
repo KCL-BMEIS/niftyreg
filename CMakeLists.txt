@@ -40,7 +40,7 @@ endif(NOT MSVC)
 # Set the NiftyReg version
 set(NR_VERSION_MAJOR 1)
 set(NR_VERSION_MINOR 5)
-file(STRINGS "niftyreg_build.txt" NR_VERSION_BUILD)
+file(STRINGS "niftyreg_build_version.txt" NR_VERSION_BUILD)
 add_definitions(-DNR_VERSION="${NR_VERSION_MAJOR}.${NR_VERSION_MINOR}.${NR_VERSION_BUILD}")
 #-----------------------------------------------------------------------------
 if(MSVC)
