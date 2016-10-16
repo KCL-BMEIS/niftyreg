@@ -74,9 +74,8 @@ void Usage(char *exec)
           defaultOpenMPValue, omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
-   reg_print_info(exec, "\t--version\t\tPrint current version and exit");
-   sprintf(text, "\t\t\t\t(%s)",NR_VERSION);
-   reg_print_info(exec, text);
+   printf("\t--version\t\tPrint current version and exit");
+   printf("\t\t\t\t(%s)",NR_VERSION);
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }
