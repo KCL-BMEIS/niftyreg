@@ -185,8 +185,6 @@ void set_first_order_basis_values(DTYPE *basisX, DTYPE *basisY)
       for(int x=0;x<3;++x){
          basisX[index] = FIRST[x] * BASIS[y];
          basisY[index] = BASIS[x] * FIRST[y];
-//         printf("basisX[%i]=static_cast<DTYPE>(%g);\n", index, basisX[index]);
-//         printf("basisY[%i]=static_cast<DTYPE>(%g);\n", index, basisY[index]);
          index++;
       }
    }

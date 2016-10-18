@@ -71,6 +71,13 @@ void reg_getImageGradient(nifti_image *floatingImage,
                           bool *dti_timepoint = NULL,
                           mat33 *jacMat = NULL,
                           nifti_image *warpedImage = NULL);
+
+extern "C++"
+void reg_getImageGradient_symDiff(nifti_image* inputImg,
+                                  nifti_image* gradImg,
+                                  int *mask,
+                                  float padding_value,
+                                  int timepoint);
 extern "C++"
 nifti_image *reg_makeIsotropic(nifti_image *, int);
 

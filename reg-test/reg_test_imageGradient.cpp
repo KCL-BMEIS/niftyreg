@@ -1,16 +1,14 @@
-
-//TEST CHANGE DATATYPE
 #include "_reg_ReadWriteImage.h"
 #include "_reg_globalTrans.h"
 #include "_reg_tools.h"
 #include "_reg_mind.h"
-//
+
 #define EPS 0.000001
-//
+
 int main(int argc, char **argv)
 {
     if (argc != 4) {
-        fprintf(stderr, "Usage: %s <image to process> <expected gradient image> <m>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <image to process> <expected gradient image> <type=0|1>\n", argv[0]);
         return EXIT_FAILURE;
     }
     char *inputImageName = argv[1];
@@ -33,116 +31,133 @@ int main(int argc, char **argv)
 
     int usedMethod = atoi(argv[3]);
     // Read the expected image
-    if(usedMethod != 0 && usedMethod != 1) {
-        reg_print_msg_error("The current method is not supported - should be 0 or 1");
+    if(usedMethod != 0 && usedMethod != 1 && usedMethod != 3) {
+        reg_print_msg_error("The current method is not supported - should be 0, 1 or 3");
         return EXIT_FAILURE;
     }
-
     int dim = (inputImage->nz > 1) ? 3 : 2;
-    //NB VOXEL
-    //int voxelNumber = inputImage->nx*inputImage->ny*inputImage->nz;
-    // COMPUTE THE GRADIENT OF THE IMAGE
-    nifti_image *gradImg = nifti_copy_nim_info(inputImage);
-    gradImg->dim[0]=gradImg->ndim=5;
-    gradImg->dim[5]=gradImg->nu=dim;
-    gradImg->nvox = (size_t)gradImg->nx*
-                    gradImg->ny*
-                    gradImg->nz*
-                    gradImg->nt*
-                    gradImg->nu;
-    gradImg->data=(void *)malloc(gradImg->nvox*gradImg->nbyper);
-    //GRAD IMAGE "3D"
-    nifti_image *gradImg3D = nifti_copy_nim_info(inputImage);
-    gradImg3D->dim[0]=gradImg3D->ndim=5;
-    gradImg3D->dim[4]=gradImg3D->nt=1;
-    gradImg3D->dim[5]=gradImg3D->nu=dim;
-    gradImg3D->nvox = (size_t)gradImg3D->nx*
-                      gradImg3D->ny*
-                      gradImg3D->nz*
-                      gradImg3D->nt*
-                      gradImg3D->nu;
-    gradImg3D->data=(void *)malloc(gradImg3D->nvox*gradImg3D->nbyper);
 
-    // Create a mask
-    //int *mask = (int *)malloc(inputImage->nvox*sizeof(int));
-    //for (size_t i = 0; i < inputImage->nvox; ++i) {
-    //   mask[i] = i;
-    //}
+    // Allocate a gradient image
+    nifti_image *gradientImage = nifti_copy_nim_info(inputImage);
+    gradientImage->dim[0]=gradientImage->ndim=5;
+    gradientImage->dim[5]=gradientImage->nu=dim;
+    gradientImage->nvox = (size_t)gradientImage->nx*gradientImage->ny*
+                      gradientImage->nz*gradientImage->nt*gradientImage->nu;
+    gradientImage->nbyper=sizeof(float);
+    gradientImage->datatype=NIFTI_TYPE_FLOAT32;
+    gradientImage->data=(void *)malloc(gradientImage->nvox*gradientImage->nbyper);
 
-    // Compute the gradient of the warped floating descriptor image
-    if(usedMethod == 0) {
+    // Allocate a temporary file to compute the gradient's timepoint one at the time
+    nifti_image *tempGradImage = nifti_copy_nim_info(gradientImage);
+    tempGradImage->dim[4]=tempGradImage->nt=1;
+    tempGradImage->nvox = (size_t)tempGradImage->nx*tempGradImage->ny*
+                      tempGradImage->nz*tempGradImage->nt*tempGradImage->nu;
+    tempGradImage->data=(void *)malloc(tempGradImage->nvox*tempGradImage->nbyper);
 
-        // Create an identity transformation
-        nifti_image *identityDefField = nifti_copy_nim_info(inputImage);
-        identityDefField->dim[0]=identityDefField->ndim=5;
-        identityDefField->dim[4]=identityDefField->nt=1;
-        identityDefField->dim[5]=identityDefField->nu=dim;
-        identityDefField->nvox = (size_t)identityDefField->nx *
-                                 identityDefField->ny *
-                                 identityDefField->nz *
-                                 identityDefField->nu;
-        identityDefField->datatype=NIFTI_TYPE_FLOAT32;
-        identityDefField->nbyper=sizeof(float);
-        identityDefField->data = (void *)calloc(identityDefField->nvox,
-                                                identityDefField->nbyper);
-        identityDefField->intent_code=NIFTI_INTENT_VECTOR;
-        memset(identityDefField->intent_name, 0, 16);
-        strcpy(identityDefField->intent_name,"NREG_TRANS");
-        identityDefField->intent_p1=DISP_FIELD;
-        reg_getDeformationFromDisplacement(identityDefField);
+    // Declare a deformation field image
+    nifti_image *defFieldImage = NULL;
+    // Allocate a deformation field image if required
+    if(usedMethod > 0)
+    {
+        defFieldImage = nifti_copy_nim_info(inputImage);
+        defFieldImage->dim[0]=defFieldImage->ndim=5;
+        defFieldImage->dim[4]=defFieldImage->nt=1;
+        defFieldImage->dim[5]=defFieldImage->nu=dim;
+        defFieldImage->nvox = (size_t)defFieldImage->nx*defFieldImage->ny *
+                                 defFieldImage->nz*defFieldImage->nu;
+        defFieldImage->nbyper=sizeof(float);
+        defFieldImage->datatype=NIFTI_TYPE_FLOAT32;
+        defFieldImage->intent_code=NIFTI_INTENT_VECTOR;
+        memset(defFieldImage->intent_name, 0, 16);
+        strcpy(defFieldImage->intent_name,"NREG_TRANS");
+        defFieldImage->intent_p1=DISP_FIELD;
+        // Set the deformation field to identity
+        defFieldImage->data = (void *)calloc(defFieldImage->nvox, defFieldImage->nbyper);
+        reg_getDeformationFromDisplacement(defFieldImage);
+    }
 
-        reg_getImageGradient(inputImage,
-                             gradImg,
-                             identityDefField,
-                             NULL,
-                             1,
-                             std::numeric_limits<float>::quiet_NaN(),
-                             0);
-        //
-        nifti_image_free(identityDefField);identityDefField=NULL;
-        //
-    } else {
-        float *gradPtr = static_cast<float *>(gradImg->data);
-        float *grad3DPtr = static_cast<float *>(gradImg3D->data);
-        int *mask = (int *)calloc(inputImage->nvox,sizeof(int));
-        for(int t=0; t<inputImage->nt; ++t){
-            spatialGradient<float>(inputImage,gradImg3D,mask,t);
-            //It is not very optimised...
-            for(int u=0; u<gradImg3D->nu; ++u){
-                for(int z=0; z<gradImg3D->nz; ++z){
-                    for(int y=0; y<gradImg3D->ny; ++y){
-                        for(int x=0; x<gradImg3D->nx; ++x){
-                            size_t voxIndex_gradImg=
-                                     gradImg->nx*gradImg->ny*gradImg->nz*gradImg->nt*u
-                                    +gradImg->nx*gradImg->ny*gradImg->nz*t
-                                    +gradImg->nx*gradImg->ny*z
-                                    +gradImg->nx*y
-                                    +x;
-                            size_t voxIndex_gradImg3D=
-                                     gradImg3D->nx*gradImg3D->ny*gradImg3D->nz*gradImg3D->nt*u
-                                    +gradImg3D->nx*gradImg3D->ny*gradImg3D->nz*0
-                                    +gradImg3D->nx*gradImg3D->ny*z
-                                    +gradImg3D->nx*y
-                                    +x;
-                            gradPtr[voxIndex_gradImg]=grad3DPtr[voxIndex_gradImg3D];
-                        }
+    // Allocate a mask array
+    int *mask = (int *)calloc(inputImage->nvox,sizeof(int));
+
+    // Setup pointers over the gradient images
+    float *tempGradImgPtr = static_cast<float *>(tempGradImage->data);
+
+    float *gradImagePtr = static_cast<float *>(gradientImage->data);
+    // Loop over the input image timepoints
+    for(int time=0; time<inputImage->nt; ++time){
+        if(usedMethod == 0){
+            // Compute the gradient using symmetric difference
+            reg_getImageGradient_symDiff(inputImage,
+                                         tempGradImage,
+                                         mask,
+                                         0,
+                                         time);
+        }
+        else if(usedMethod == 3){
+            // Compute the gradient from the deformation field using spline interpolation
+            // Given an identity transformation, since gives the same as symmetric
+            // difference with a kernel of [-1/2 0 1/2]
+            reg_getImageGradient(inputImage,
+                                 tempGradImage,
+                                 defFieldImage,
+                                 mask,
+                                 3,
+                                 0.f,
+                                 time);
+        }
+        else{
+            // Compute the gradient from the deformation field using linear interpolation
+            reg_getImageGradient(inputImage,
+                                 tempGradImage,
+                                 defFieldImage,
+                                 mask,
+                                 1,
+                                 std::numeric_limits<float>::quiet_NaN(),
+                                 time);
+        }
+        // Copy the single time point gradient in the less effective way known to mankind
+        for(int u=0; u<gradientImage->nu; ++u){
+            for(int z=0; z<gradientImage->nz; ++z){
+                for(int y=0; y<gradientImage->ny; ++y){
+                    for(int x=0; x<gradientImage->nx; ++x){
+                        size_t voxIndex_gradImg=
+                                gradientImage->nx*gradientImage->ny*gradientImage->nz*gradientImage->nt*u +
+                                gradientImage->nx*gradientImage->ny*gradientImage->nz*time +
+                                gradientImage->nx*gradientImage->ny*z +
+                                gradientImage->nx*y +
+                                x;
+                        size_t voxIndex_tempGrad=
+                                tempGradImage->nx*tempGradImage->ny*tempGradImage->nz*tempGradImage->nt*u +
+                                tempGradImage->nx*tempGradImage->ny*z +
+                                tempGradImage->nx*y +
+                                x;
+                        gradImagePtr[voxIndex_gradImg]=tempGradImgPtr[voxIndex_tempGrad];
                     }
                 }
             }
         }
-        free(mask);
     }
-    //
-    //Compute the difference between the computed and expected image
-    //
-    reg_tools_substractImageToImage(gradImg, expectedImage, expectedImage);
 
+    // Free the allocated arrays and images
+    if(defFieldImage!=NULL)
+        nifti_image_free(defFieldImage);
+    nifti_image_free(tempGradImage);
+    free(mask);
+
+    //Compute the difference between the computed and expected image
+    reg_tools_substractImageToImage(gradientImage, expectedImage, expectedImage);
+
+    // Extract the maximal absolute value
     reg_tools_abs_image(expectedImage);
     double max_difference = reg_tools_getMaxValue(expectedImage, -1);
 
+
+    reg_io_WriteImageFile(gradientImage, "res.nii.gz");
+    reg_io_WriteImageFile(expectedImage, "diff.nii.gz");
+
     nifti_image_free(inputImage);
     nifti_image_free(expectedImage);
-    nifti_image_free(gradImg);
+    nifti_image_free(gradientImage);
 
     if (max_difference > EPS){
         fprintf(stderr, "reg_test_imageGradient error too large: %g (>%g)\n",
