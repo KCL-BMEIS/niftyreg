@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 
    if(argc!=5)
    {
-      fprintf(stderr, "Usage: %s <refImage> <warImage> <LNCC|NMI|SSD|MIND> <expectedValue>\n", argv[0]);
+      fprintf(stderr, "Usage: %s <refImage> <warImage> <LNCC|NMI|SSD|MIND> <expectedValueFile>\n", argv[0]);
       return EXIT_FAILURE;
    }
 
@@ -130,8 +130,10 @@ int main(int argc, char **argv)
    else if(strcmp(measure_type, "SSD")==0)
    {
       reg_ssd *measure_object=new reg_ssd();
-      for(int i=0;i<refImage->nt;++i)
+      for(int i=0;i<refImage->nt;++i){
          measure_object->SetActiveTimepoint(i);
+         measure_object->SetNormaliseTimepoint(i,true);
+      }
       measure_object->InitialiseMeasure(refImage,
                                         warImage,
                                         mask_image,

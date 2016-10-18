@@ -19,7 +19,7 @@
 reg_ssd::reg_ssd()
     : reg_measure()
 {
-    memset(this->normalizeTimePoint,0,255*sizeof(bool) );
+    memset(this->normaliseTimePoint,0,255*sizeof(bool) );
 #ifndef NDEBUG
     reg_print_msg_debug("reg_ssd constructor called");
 #endif
@@ -59,8 +59,9 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
     // Input images are normalised between 0 and 1
     for(int i=0; i<this->referenceImagePointer->nt; ++i)
     {
-        if(this->activeTimePoint[i] && normalizeTimePoint[i])
+        if(this->activeTimePoint[i] && this->normaliseTimePoint[i])
         {
+            printf("BOUM");
             reg_intensityRescale(this->referenceImagePointer,
                                  i,
                                  0.f,
@@ -91,9 +92,9 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_ssd::SetNormalizeTimepoint(int timepoint, bool normalize)
+void reg_ssd::SetNormaliseTimepoint(int timepoint, bool normalise)
 {
-   this->normalizeTimePoint[timepoint]=normalize;
+   this->normaliseTimePoint[timepoint]=normalise;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -122,7 +123,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
         jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
 
-    double SSD_global=0.0, n=0.0;
+    double SSD_global=0.0;
     double refValue, warValue, diff;
 
     // Loop over the different time points
@@ -134,54 +135,26 @@ double reg_getSSDValue(nifti_image *referenceImage,
             DTYPE *currentRefPtr=&referencePtr[time*voxelNumber];
             DTYPE *currentWarPtr=&warpedPtr[time*voxelNumber];
 
-            double SSD_local=0.;
-            n=0.;
-            int nRef = 0;
-            int nWar = 0;
-            int nMask = 0;
-/*#if defined (_OPENMP)
+            double SSD_local=0., n=0.;
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-    shared(referenceImage, currentRefPtr, currentWarPtr, mask, \
+    shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, mask, \
     jacobianDetImage, jacDetPtr, voxelNumber) \
     private(voxel, refValue, warValue, diff) \
     reduction(+:SSD_local) \
     reduction(+:n)
 #endif
-*/
             for(voxel=0; voxel<voxelNumber; ++voxel)
             {
-                // Ensure that both ref and warped values are defined
-                refValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
-                                    referenceImage->scl_inter);
-                warValue = (double)(currentWarPtr[voxel] * referenceImage->scl_slope +
-                                    referenceImage->scl_inter);
-                //
-                //DEBUG
-                if(refValue == refValue) {
-                    nRef = nRef + 1;
-                }
-                if(warValue == warValue) {
-                    nWar = nWar + 1;
-                }
-                //DEBUG
-                //
                 // Check if the current voxel belongs to the mask
                 if(mask[voxel]>-1)
                 {
-                    nMask = nMask +1;
                     // Ensure that both ref and warped values are defined
                     refValue = (double)(currentRefPtr[voxel] * referenceImage->scl_slope +
                                         referenceImage->scl_inter);
-                    warValue = (double)(currentWarPtr[voxel] * referenceImage->scl_slope +
-                                        referenceImage->scl_inter);
-                    //DEBUG
-//                    if(refValue == refValue) {
-//                        nRef = nRef + 1;
-//                    }
-//                    if(warValue == warValue) {
-//                        nWar = nWar + 1;
-//                    }
-                    //DEBUG
+                    warValue = (double)(currentWarPtr[voxel] * warpedImage->scl_slope +
+                                        warpedImage->scl_inter);
+
                     if(refValue==refValue && warValue==warValue)
                     {
 #ifdef MRF_USE_SAD
@@ -203,6 +176,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
                     }
                 }
             }
+            printf("SSD[%i]=%f\n", time, SSD_local);
             currentValue[time]=-SSD_local;
             SSD_global -= SSD_local/n;
         }
