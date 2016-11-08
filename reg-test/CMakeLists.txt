@@ -247,10 +247,5 @@ if(BUILD_DEV)
   target_link_libraries(${EXEC} _reg_dev)
   #add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/indexNeighbours.dat ${DFOLDER}/EWeightMatrix.dat ${DFOLDER}/expectedOrderedList.dat ${DFOLDER}/expectedParentsList.dat ${DFOLDER}/expectedEdgeWeight.dat)
   add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/indexNeighbours.dat ${DFOLDER}/EWeightMatrix.dat ${DFOLDER}/expectedParentsList.dat)
-
-  set(EXEC reg_test_coherence_mrf)
-  add_executable(${EXEC} ${EXEC}.cpp)
-  target_link_libraries(${EXEC} _reg_dev)
-  add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/target_im.nii.gz ${DFOLDER}/moving_im.nii.gz similarity2.dat)
 endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
