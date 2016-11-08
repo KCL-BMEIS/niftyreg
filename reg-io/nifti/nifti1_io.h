@@ -396,7 +396,7 @@ extern "C" {
 
 
    /* other routines */
-   struct nifti_1_header   nifti_convert_nim2nhdr(const nifti_image* nim);
+   struct nifti_1_header   nifti_convert_nim2nhdr(const nifti_image *nim);
    nifti_1_header * nifti_make_new_header(const int arg_dims[], int arg_dtype);
    nifti_1_header * nifti_read_header(const char *hname, int *swapped, int check);
    nifti_image    * nifti_copy_nim_info(const nifti_image * src);

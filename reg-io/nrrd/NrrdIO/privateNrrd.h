@@ -165,9 +165,9 @@ extern "C" {
    extern gzFile _nrrdGzOpen(FILE* fd, const char *mode);
    extern int _nrrdGzClose(gzFile file);
    extern int _nrrdGzRead(gzFile file, voidp buf, size_t len,
-                          unsigned int* read);
+                          unsigned int *read);
    extern int _nrrdGzWrite(gzFile file, const voidp buf, size_t len,
-                           unsigned int* written);
+                           unsigned int *written);
 #endif
 
 

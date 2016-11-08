@@ -14,6 +14,7 @@
 
 #include "_reg_base.h"
 
+/// @brief Fast Free Form Deformation registration class
 template <class T>
 class reg_f3d : public reg_base<T>
 {
@@ -21,9 +22,7 @@ protected:
    nifti_image *inputControlPointGrid; // pointer to external
    nifti_image *controlPointGrid;
    T bendingEnergyWeight;
-   T linearEnergyWeight0;
-   T linearEnergyWeight1;
-   T L2NormWeight;
+   T linearEnergyWeight;
    T jacobianLogWeight;
    bool jacobianLogApproximation;
    T spacing[3];
@@ -34,11 +33,9 @@ protected:
    double currentWJac;
    double currentWBE;
    double currentWLE;
-   double currentWL2;
    double bestWJac;
    double bestWBE;
    double bestWLE;
-   double bestWL2;
 
    virtual void AllocateTransformationGradient();
    virtual void ClearTransformationGradient();
@@ -47,11 +44,9 @@ protected:
    virtual double ComputeJacobianBasedPenaltyTerm(int);
    virtual double ComputeBendingEnergyPenaltyTerm();
    virtual double ComputeLinearEnergyPenaltyTerm();
-   virtual double ComputeL2NormDispPenaltyTerm();
 
    virtual void GetBendingEnergyGradient();
    virtual void GetLinearEnergyGradient();
-   virtual void GetL2NormDispGradient();
    virtual void GetJacobianBasedGradient();
    virtual void SetGradientImageToZero();
    virtual T NormaliseGradient();
@@ -73,6 +68,16 @@ protected:
 
    virtual void CorrectTransformation();
 
+#ifdef BUILD_DEV
+   T pairwiseEnergyWeight;
+   double bestWPE;
+   double currentWPE;
+   bool linearSpline;
+   virtual double ComputePairwiseEnergyPenaltyTerm();
+   virtual void GetPairwiseEnergyGradient();
+   virtual void DiscreteInitialisation();
+#endif
+
    void (*funcProgressCallback)(float pcntProgress, void *params);
    void *paramsProgressCallback;
 
@@ -82,8 +87,7 @@ public:
 
    void SetControlPointGridImage(nifti_image *);
    void SetBendingEnergyWeight(T);
-   void SetLinearEnergyWeights(T,T);
-   void SetL2NormDisplacementWeight(T);
+   void SetLinearEnergyWeight(T);
    void SetJacobianLogWeight(T);
    void ApproximateJacobianLog();
    void DoNotApproximateJacobianLog();
@@ -95,6 +99,12 @@ public:
    {
       this->gridRefinement=false;
    }
+
+#ifdef BUILD_DEV
+   void UseLinearSpline();
+   void DoNotLinearSpline();
+   void SetPairwiseEnergyWeight(T);
+#endif
 
    // F3D2 specific options
    virtual void SetCompositionStepNumber(int)
@@ -117,6 +127,10 @@ public:
    {
       return;
    }
+   virtual void DoNotUseGradientCumulativeExp()
+   {
+      return;
+   }
 
    // F3D_SYM specific options
    virtual void SetFloatingMask(nifti_image *)
@@ -135,7 +149,7 @@ public:
    // F3D_gpu specific option
    virtual int CheckMemoryMB()
    {
-      return 0;
+      return EXIT_SUCCESS;
    }
 
    virtual void CheckParameters();
@@ -149,7 +163,5 @@ public:
       this->controlPointGrid=cpp;
    }
 };
-
-#include "_reg_f3d.cpp"
 
 #endif

@@ -10,162 +10,147 @@
  */
 
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_f3d2.h"
 #include "reg_f3d.h"
 #include <float.h>
-#include <limits>
-
-#ifdef _USE_CUDA
-#   include "_reg_f3d_gpu.h"
-#endif
+//#include <libgen.h> //DOES NOT WORK ON WINDOWS !
 
 #ifdef _WIN32
 #   include <time.h>
 #endif
 
-#ifdef _USE_NR_DOUBLE
-#   define PrecisionTYPE double
-#else
-#   define PrecisionTYPE float
-#endif
-
-void HelpPenaltyTerm()
-{
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Additional help on the penalty term that have been implemented in F3D\n");
-   printf("\t-be\t Bending Energy, sum of the second derivatives of the transformation T\n");
-   printf("\t\t\t (d2T/dxx)^2 + (d2T/dyy)^2 + (d2T/dzz)^2 + 2*((d2T/dxy)^2 + (d2T/dyz)^2 + (d2T/dxz)^2)\n");
-   printf("\t-le\t Linear Elasticity, 2 parameters weighted differently:\n");
-   printf("\t\t\t 1: Squared member of the symmetric part of the Jacobian matrix\n");
-   printf("\t\t\t 1: (dTx/dx)^2 + (dTy/dy)^2 + (dTz/dz)^2 + 1/2 * ( (dTx/dy+dTy/dx)^2 +  (dTx/dz+dTz/dx)^2 +  (dTy/dz+dTz/dy)^2 ) \n");
-   printf("\t\t\t 2: Divergence\n");
-   printf("\t\t\t 2: (dTx/dx)^2 + (dTy/dy)^2 + (dTz/dz)^2\n");
-   printf("\t-l2\t Squared Eucliean distance of the displacement field D\n");
-   printf("\t\t\t (Dx)^2 + (Dy)^2 + (Dz)^2\n");
-   printf("\t-jl\t Penalty term based on the Jacobian determiant |J(T)|. Squared log of the Jacobian determinant\n");
-   printf("\t\t\t log^2(|J(T)|)\n");
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   return;
-}
 void PetitUsage(char *exec)
 {
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   fprintf(stderr,"Fast Free-Form Deformation algorithm for non-rigid registration.\n");
-   fprintf(stderr,"Usage:\t%s -ref <targetImageName> -flo <sourceImageName> [OPTIONS].\n",exec);
-   fprintf(stderr,"\tSee the help for more details (-h).\n");
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+   char text[255];
+   reg_print_msg_error("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   reg_print_msg_error("Fast Free-Form Deformation algorithm for non-rigid registration");
+   sprintf(text,"Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS]",exec);
+   reg_print_msg_error(text);
+   reg_print_msg_error("\tSee the help for more details (-h)");
+   reg_print_msg_error("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
    return;
 }
 void Usage(char *exec)
 {
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Fast Free-Form Deformation algorithm for non-rigid registration.\n");
-   printf("This implementation is a re-factoring of Daniel Rueckert' 99 TMI work.\n");
-   printf("The code is presented in Modat et al., \"Fast Free-Form Deformation using\n");
-   printf("graphics processing units\", CMPB, 2010\n");
-   printf("Cubic B-Spline are used to deform a source image in order to optimise a objective function\n");
-   printf("based on the Normalised Mutual Information and a penalty term. The penalty term could\n");
-   printf("be either the bending energy or the squared Jacobian determinant log.\n");
-   printf("This code has been written by Marc Modat (m.modat@ucl.ac.uk), for any comment,\n");
-   printf("please contact him.\n");
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].\n",exec);
-   printf("\t-ref <filename>\tFilename of the reference image (mandatory)\n");
-   printf("\t-flo <filename>\tFilename of the floating image (mandatory)\n");
-   printf("\n***************\n*** OPTIONS ***\n***************\n");
-   printf("*** Initial transformation options (One option will be considered):\n");
-   printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=Floating)\n");
-   printf("\t-incpp <filename>\tFilename ofloatf control point grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
+   char text[255];
+   reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   reg_print_info(exec, "Fast Free-Form Deformation (F3D) algorithm for non-rigid registration.");
+   reg_print_info(exec, "Based on Modat et al., \"Fast Free-Form Deformation using");
+   reg_print_info(exec, "graphics processing units\", CMPB, 2010");
+   reg_print_info(exec, "For any comment, please contact Marc Modat (m.modat@ucl.ac.uk)");
+   reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   sprintf(text, "Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].",exec);
+   reg_print_info(exec, text);
+   reg_print_info(exec, "\t-ref <filename>\tFilename of the reference image (mandatory)");
+   reg_print_info(exec, "\t-flo <filename>\tFilename of the floating image (mandatory)");
+   reg_print_info(exec, "***************");
+   reg_print_info(exec, "*** OPTIONS ***");
+   reg_print_info(exec, "***************");
+   reg_print_info(exec, "*** Initial transformation options (One option will be considered):");
+   reg_print_info(exec, "\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=Floating)");
+   reg_print_info(exec, "\t-incpp <filename>\tFilename ofloatf control point grid input");
+   reg_print_info(exec, "\t\t\t\tThe coarse spacing is defined by this file.");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "*** Output options:");
+   reg_print_info(exec, "\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]");
+   reg_print_info(exec, "\t-res <filename> \tFilename of the resampled image [outputResult.nii]");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "*** Input image options:");
+   reg_print_info(exec, "\t-rmask <filename>\t\tFilename of a mask image in the reference space");
+   reg_print_info(exec, "\t-smooR <float>\t\t\tSmooth the reference image using the specified sigma (mm) [0]");
+   reg_print_info(exec, "\t-smooF <float>\t\t\tSmooth the floating image using the specified sigma (mm) [0]");
+   reg_print_info(exec, "\t--rLwTh <float>\t\t\tLower threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*");
+   reg_print_info(exec, "\t--rUpTh <float>\t\t\tUpper threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*");
+   reg_print_info(exec, "\t--fLwTh <float>\t\t\tLower threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*");
+   reg_print_info(exec, "\t--fUpTh <float>\t\t\tUpper threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*");
+   reg_print_info(exec, "\t-rLwTh <timepoint> <float>\tLower threshold to apply to the reference image intensities [none]*");
+   reg_print_info(exec, "\t-rUpTh <timepoint> <float>\tUpper threshold to apply to the reference image intensities [none]*");
+   reg_print_info(exec, "\t-fLwTh <timepoint> <float>\tLower threshold to apply to the floating image intensities [none]*");
+   reg_print_info(exec, "\t-fUpTh <timepoint> <float>\tUpper threshold to apply to the floating image intensities [none]*");
+   reg_print_info(exec, "\t* The scl_slope and scl_inter from the nifti header are taken into account for the thresholds");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "*** Spline options (All defined at full resolution):");
+   reg_print_info(exec, "\t-sx <float>\t\tFinal grid spacing along the x axis in mm (in voxel if negative value) [5 voxels]");
+   reg_print_info(exec, "\t-sy <float>\t\tFinal grid spacing along the y axis in mm (in voxel if negative value) [sx value]");
+   reg_print_info(exec, "\t-sz <float>\t\tFinal grid spacing along the z axis in mm (in voxel if negative value) [sx value]");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "*** Regularisation options:");
+   reg_print_info(exec, "\t-be <float>\t\tWeight of the bending energy (second derivative of the transformation) penalty term [0.001]");
+   reg_print_info(exec, "\t-le <float>\t\tWeight of first order penalty term (symmetric and anti-symmetric part of the Jacobian) [0.01]");
+   reg_print_info(exec, "\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]");
+   reg_print_info(exec, "\t-noAppJL\t\tTo not approximate the JL value only at the control point position");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "*** Measure of similarity options:");
+   reg_print_info(exec, "*** NMI with 64 bins is used expect if specified otherwise");
+   reg_print_info(exec, "\t--nmi\t\t\tNMI. Used NMI even when one or several other measures are specified");
+   reg_print_info(exec, "\t--rbn <int>\t\tNMI. Number of bin to use for the reference image histogram. Identical value for every timepoint");
+   reg_print_info(exec, "\t--fbn <int>\t\tNMI. Number of bin to use for the floating image histogram. Identical value for every timepoint");
+   reg_print_info(exec, "\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the reference image histogram for the specified time point");
+   reg_print_info(exec, "\t-fbn <tp> <int>\t\tNMI. Number of bin to use for the floating image histogram for the specified time point");
+   reg_print_info(exec, "\t--lncc <float>\t\tLNCC. Standard deviation of the Gaussian kernel. Identical value for every timepoint");
+   reg_print_info(exec, "\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint");
+   reg_print_info(exec, "\t--ssd \t\t\tSSD. Used for all time points - images are normalized between 0 and 1 before computing the measure");
+   reg_print_info(exec, "\t-ssd <tp> \t\tSSD. Used for the specified timepoint - images are normalized between 0 and 1 before computing the measure");
+   reg_print_info(exec, "\t--ssdn \t\t\tSSD. Used for all time points - images are NOT normalized between 0 and 1 before computing the measure");
+   reg_print_info(exec, "\t-ssdn <tp> \t\tSSD. Used for the specified timepoint - images are NOT normalized between 0 and 1 before computing the measure");
+   reg_print_info(exec, "\t--mind <offset>\t\tMIND and the offset to use to compute the descriptor");
+   reg_print_info(exec, "\t--mindssc <offset>\tMIND-SCC and the offset to use to compute the descriptor");
+   reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
+   reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
+   reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
+   reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98\% ile");
+   //   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "*** Optimisation options:");
+   reg_print_info(exec, "\t-maxit <int>\t\tMaximal number of iteration at the final level [150]");
+   reg_print_info(exec, "\t-ln <int>\t\tNumber of level to perform [3]");
+   reg_print_info(exec, "\t-lp <int>\t\tOnly perform the first levels [ln]");
+   reg_print_info(exec, "\t-nopy\t\t\tDo not use a pyramidal approach");
+   reg_print_info(exec, "\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent");
+   reg_print_info(exec, "\t-pert <int>\t\tTo add perturbation step(s) after each optimisation scheme");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "*** F3D2 options:");
+   reg_print_info(exec, "\t-vel \t\t\tUse a velocity field integration to generate the deformation");
+   reg_print_info(exec, "\t-nogce \t\t\tDo not use the gradient accumulation through exponentiation");
+   reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space");
+   reg_print_info(exec, "");
 
-   printf("\n*** Output options:\n");
-   printf("\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]\n");
-   printf("\t-res <filename> \tFilename of the resampled image [outputResult.nii]\n");
-
-   printf("\n*** Input image options:\n");
-   printf("\t-rmask <filename>\t\tFilename of a mask image in the reference space\n");
-   printf("\t-smooR <float>\t\t\tSmooth the reference image using the specified sigma (mm) [0]\n");
-   printf("\t-smooF <float>\t\t\tSmooth the floating image using the specified sigma (mm) [0]\n");
-   printf("\t--rLwTh <float>\t\t\tLower threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*\n");
-   printf("\t--rUpTh <float>\t\t\tUpper threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*\n");
-   printf("\t--fLwTh <float>\t\t\tLower threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*\n");
-   printf("\t--fUpTh <float>\t\t\tUpper threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*\n");
-   printf("\t-rLwTh <timepoint> <float>\tLower threshold to apply to the reference image intensities [none]*\n");
-   printf("\t-rUpTh <timepoint> <float>\tUpper threshold to apply to the reference image intensities [none]*\n");
-   printf("\t-fLwTh <timepoint> <float>\tLower threshold to apply to the floating image intensities [none]*\n");
-   printf("\t-fUpTh <timepoint> <float>\tUpper threshold to apply to the floating image intensities [none]*\n");
-   printf("\t* The scl_slope and scl_inter from the nifti header are taken into account for the thresholds\n");
-
-   printf("\n*** Spline options:\n");
-   printf("\t-sx <float>\t\tFinal grid spacing along the x axis in mm (in voxel if negative value) [5 voxels]\n");
-   printf("\t-sy <float>\t\tFinal grid spacing along the y axis in mm (in voxel if negative value) [sx value]\n");
-   printf("\t-sz <float>\t\tFinal grid spacing along the z axis in mm (in voxel if negative value) [sx value]\n");
-
-   printf("\n*** Regularisation options:\n");
-   printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.005]\n");
-   printf("\t-le <float> <float>\tWeights of linear elasticity penalty term [0.0 0.0]\n");
-   printf("\t-l2 <float>\t\tWeights of L2 norm displacement penalty term [0.0]\n");
-   printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
-   printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position\n");
-
-
-
-   printf("\n*** Measure of similarity options:\n");
-   printf("*** NMI with 64 bins is used expect if specified otherwise\n");
-   printf("\t--nmi\t\t\tNMI. Used NMI even when one or several other measures are specified.\n");
-   printf("\t--rbn <int>\t\tNMI. Number of bin to use for the reference image histogram. Identical value for every timepoint.\n");
-   printf("\t--fbn <int>\t\tNMI. Number of bin to use for the floating image histogram. Identical value for every timepoint.\n");
-   printf("\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the reference image histogram for the specified time point.\n");
-   printf("\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the floating image histogram for the specified time point.\n");
-
-   printf("\t--lncc <float>\t\tLNCC. Standard deviation of the Gaussian kernel. Identical value for every timepoint\n");
-   printf("\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint\n");
-
-   printf("\t--ssd\t\t\tSSD. Used for all time points\n");
-   printf("\t-ssd <tp>\t\tSSD. Used for the specified timepoint\n");
-
-   printf("\t--kld\t\t\tKLD. Used for all time points\n");
-   printf("\t-kld <tp>\t\tKLD. Used for the specified timepoint\n");
-   printf("\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities\n");
-
-   printf("\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)\n");
-
-   printf("\n*** Optimisation options:\n");
-   printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
-   printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
-   printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
-   printf("\t-nopy\t\t\tDo not use a pyramidal approach\n");
-   printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
-   printf("\t-pert <int>\t\tTo add perturbation step(s) after each optimisation scheme\n");
-
-//   printf("\n*** F3D_SYM options:\n");
-//   printf("\t-sym \t\t\tUse symmetric approach\n");
-//   printf("\t-ic <float>\t\tWeight of the inverse consistency penalty term [0.01]\n");
-
-   printf("\n*** F3D2 options:\n");
-   printf("\t-vel \t\t\tUse a velocity field integration to generate the deformation\n");
-   printf("\t-fmask <filename>\tFilename of a mask image in the floating space\n");
+   reg_print_info(exec, "*** Platform options:");
+#if defined(_USE_CUDA) && defined(_USE_OPENCL)
+   reg_print_info(exec, "\t-platf <uint>\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
+#else
+#ifdef _USE_CUDA
+   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 [0]");
+#endif
+#ifdef _USE_OPENCL
+   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | OpenCL=2 [0]");
+#endif
+#endif
+#if defined(_USE_CUDA) || defined(_USE_OPENCL)
+   reg_print_info(exec, "\t-gpuid <uint>\t\tChoose a custom gpu.");
+   reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
+#endif
 
 #if defined (_OPENMP)
-   printf("\n*** OpenMP-related options:\n");
-   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]\n",
-          omp_get_num_procs());
+   reg_print_info(exec, "");
+   reg_print_info(exec, "*** OpenMP-related options:");
+   int defaultOpenMPValue=omp_get_num_procs();
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+           defaultOpenMPValue, omp_get_num_procs());
+   reg_print_info(exec, text);
 #endif
-#ifdef _USE_CUDA
-   printf("\n*** GPU-related options:\n");
-   printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
-   printf("\t-gpu \t\t\tTo use the GPU implementation [no]\n");
-#endif
-   printf("\n*** Other options:\n");
-   printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
-   printf("\t-pad <float>\t\tPadding value [nan]\n");
-   printf("\t-voff\t\t\tTo turn verbose off\n");
-
-#ifdef _GIT_HASH
-   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
-#endif
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("For further description of the penalty term, use: %s -helpPenalty\n", exec);
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "*** Other options:");
+   reg_print_info(exec, "\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]");
+   reg_print_info(exec, "\t-pad <float>\t\tPadding value [nan]");
+   reg_print_info(exec, "\t-voff\t\t\tTo turn verbose off");
+   reg_print_info(exec, "\t--version\t\tPrint current version and exit");
+   sprintf(text, "\t\t\t\t(%s)",NR_VERSION);
+   reg_print_info(exec, text);
+   reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
    return;
 }
 
@@ -173,13 +158,22 @@ int main(int argc, char **argv)
 {
    if(argc==1)
    {
-      PetitUsage(argv[0]);
-      return 1;
+      PetitUsage((argv[0]));
+      return EXIT_FAILURE;
    }
    time_t start;
    time(&start);
    int verbose=true;
 
+#if defined (_OPENMP)
+   // Set the default number of thread
+   int defaultOpenMPValue=omp_get_num_procs();
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
+#endif
+
+   char text[1024];
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check if any information is required
    for(int i=1; i<argc; i++)
@@ -188,34 +182,32 @@ int main(int argc, char **argv)
             strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
-         Usage(argv[0]);
-         return 0;
+         Usage((argv[0]));
+         return EXIT_SUCCESS;
       }
       if(strcmp(argv[i], "--xml")==0)
       {
          printf("%s",xml_f3d);
-         return 0;
+         return EXIT_SUCCESS;
+      }
+      if(strcmp(argv[i], "-gpu")==0 || strcmp(argv[i], "--gpu")==0)
+      {
+         reg_print_msg_error("The reg_f3d GPU capability has been de-activated in the current release.");
+         return EXIT_FAILURE;
       }
       if(strcmp(argv[i], "-voff")==0)
       {
          verbose=false;
       }
-#ifdef _GIT_HASH
       if( strcmp(argv[i], "-version")==0 ||
-            strcmp(argv[i], "-Version")==0 ||
-            strcmp(argv[i], "-V")==0 ||
-            strcmp(argv[i], "-v")==0 ||
-            strcmp(argv[i], "--v")==0 ||
-            strcmp(argv[i], "--version")==0)
+          strcmp(argv[i], "-Version")==0 ||
+          strcmp(argv[i], "-V")==0 ||
+          strcmp(argv[i], "-v")==0 ||
+          strcmp(argv[i], "--v")==0 ||
+          strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",_GIT_HASH);
+         printf("%s\n",NR_VERSION);
          return EXIT_SUCCESS;
-      }
-#endif
-      if(strcmp(argv[i], "-helpPenalty")==0)
-      {
-         HelpPenaltyTerm();
-         return 0;
       }
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -224,13 +216,17 @@ int main(int argc, char **argv)
    if(verbose)
    {
 #endif
-      printf("\n[NiftyReg F3D] Command line:\n\t");
+      reg_print_info((argv[0]), "");
+      reg_print_info((argv[0]), "Command line:");
+      sprintf(text, "\t");
       for(int i=0; i<argc; i++)
-         printf(" %s", argv[i]);
-      printf("\n\n");
+         sprintf(text+strlen(text), " %s", argv[i]);
+      reg_print_info((argv[0]), text);
+      reg_print_info((argv[0]), "");
 #ifdef NDEBUG
    }
 #endif
+
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Read the reference and floating image
    nifti_image *referenceImage=NULL;
@@ -242,8 +238,9 @@ int main(int argc, char **argv)
          referenceImage=reg_io_ReadImageFile(argv[++i]);
          if(referenceImage==NULL)
          {
-            fprintf(stderr, "Error when reading the reference image %s\n",argv[i-1]);
-            return 1;
+            reg_print_msg_error("Error when reading the reference image:");
+            reg_print_msg_error(argv[i-1]);
+            return EXIT_FAILURE;
          }
       }
       if((strcmp(argv[i],"-flo")==0) || (strcmp(argv[i],"-source")==0) || (strcmp(argv[i],"--flo")==0))
@@ -251,59 +248,44 @@ int main(int argc, char **argv)
          floatingImage=reg_io_ReadImageFile(argv[++i]);
          if(floatingImage==NULL)
          {
-            fprintf(stderr, "Error when reading the floating image %s\n",argv[i-1]);
-            return 1;
+            reg_print_msg_error("Error when reading the floating image:");
+            reg_print_msg_error(argv[i-1]);
+            return EXIT_FAILURE;
          }
       }
    }
    // Check that both reference and floating image have been defined
    if(referenceImage==NULL)
    {
-      fprintf(stderr, "Error. No reference image has been defined\n");
-      PetitUsage(argv[0]);
-      return 1;
+      reg_print_msg_error("Error. No reference image has been defined");
+      PetitUsage((argv[0]));
+      return EXIT_FAILURE;
    }
    // Read the floating image
    if(floatingImage==NULL)
    {
-      fprintf(stderr, "Error. No floating image has been defined\n");
-      PetitUsage(argv[0]);
-      return 1;
+      reg_print_msg_error("Error. No floating image has been defined");
+      PetitUsage((argv[0]));
+      return EXIT_FAILURE;
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check the type of registration object to create
-#ifdef _USE_CUDA
-   CUcontext ctx;
-#endif // _USE_CUDA
-   reg_f3d<PrecisionTYPE> *REG=NULL;
+   reg_f3d<float> *REG=NULL;
    for(int i=1; i<argc; i++)
    {
       if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0)
       {
-         REG=new reg_f3d2<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+         REG=new reg_f3d2<float>(referenceImage->nt,floatingImage->nt);
          break;
       }
       if(strcmp(argv[i], "-sym")==0 || strcmp(argv[i], "--sym")==0)
       {
-         REG=new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+         REG=new reg_f3d_sym<float>(referenceImage->nt,floatingImage->nt);
          break;
       }
-#ifdef _USE_CUDA
-      if(strcmp(argv[i], "-gpu")==0 || strcmp(argv[i], "-mem")==0)
-      {
-         // Set up the cuda card and display some relevant information and check if the card is suitable
-         if(cudaCommon_setCUDACard(&ctx, true))
-         {
-            fprintf(stderr,"\n[NiftyReg CUDA ERROR] Error while detecting a CUDA card\n");
-            fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
-         }
-         else REG=new reg_f3d_gpu(referenceImage->nt,floatingImage->nt);
-         break;
-      }
-#endif // _USE_CUDA
    }
    if(REG==NULL)
-      REG=new reg_f3d<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+      REG=new reg_f3d<float>(referenceImage->nt,floatingImage->nt);
    REG->SetReferenceImage(referenceImage);
    REG->SetFloatingImage(floatingImage);
 
@@ -315,16 +297,12 @@ int main(int argc, char **argv)
    char *outputWarpedImageName=NULL;
    char *outputCPPImageName=NULL;
    bool useMeanLNCC=false;
-#ifdef _USE_CUDA
-   bool checkMemory=false;
-#endif // _use_CUDA
    int refBinNumber=0;
    int floBinNumber=0;
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
    {
-
       if(strcmp(argv[i],"-ref")==0 || strcmp(argv[i],"-target")==0 ||
             strcmp(argv[i],"--ref")==0 || strcmp(argv[i],"-flo")==0 ||
             strcmp(argv[i],"-source")==0 || strcmp(argv[i],"--flo")==0 )
@@ -347,9 +325,9 @@ int main(int argc, char **argv)
          }
          else
          {
-            fprintf(stderr,"The specified input affine file (%s) can not be read\n",
-                    affineTransformationName);
-            return 1;
+            reg_print_msg_error("The specified input affine file can not be read:");
+            reg_print_msg_error(affineTransformationName);
+            return EXIT_FAILURE;
          }
          // Read the affine matrix
          reg_tool_ReadAffineFile(&affineMatrix,
@@ -362,8 +340,9 @@ int main(int argc, char **argv)
          inputCCPImage=reg_io_ReadImageFile(argv[++i]);
          if(inputCCPImage==NULL)
          {
-            fprintf(stderr, "Error when reading the input control point grid image: %s\n",argv[i-1]);
-            return 1;
+            reg_print_msg_error("Error when reading the input control point grid image:");
+            reg_print_msg_error(argv[i-1]);
+            return EXIT_FAILURE;
          }
          REG->SetControlPointGridImage(inputCCPImage);
       }
@@ -372,8 +351,9 @@ int main(int argc, char **argv)
          referenceMaskImage=reg_io_ReadImageFile(argv[++i]);
          if(referenceMaskImage==NULL)
          {
-            fprintf(stderr, "Error when reading the reference mask image: %s\n",argv[i-1]);
-            return 1;
+            reg_print_msg_error("Error when reading the reference mask image:");
+            reg_print_msg_error(argv[i-1]);
+            return EXIT_FAILURE;
          }
          REG->SetReferenceMask(referenceMaskImage);
       }
@@ -456,13 +436,7 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-le")==0)
       {
-         float val1=atof(argv[++i]);
-         float val2=atof(argv[++i]);
-         REG->SetLinearEnergyWeights(val1,val2);
-      }
-      else if(strcmp(argv[i], "-l2")==0 || strcmp(argv[i], "--l2")==0)
-      {
-         REG->SetL2NormDisplacementWeight(atof(argv[++i]));
+         REG->SetLinearEnergyWeight(atof(argv[++i]));
       }
       else if(strcmp(argv[i], "-jl")==0 || strcmp(argv[i], "--jl")==0)
       {
@@ -534,12 +508,43 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-ssd")==0)
       {
-         REG->UseSSD(atoi(argv[++i]));
+         int timepoint = atoi(argv[++i]);
+         bool normalise = 1;
+         REG->UseSSD(timepoint, normalise);
       }
       else if(strcmp(argv[i], "--ssd")==0)
       {
+         bool normalise = 1;
          for(int t=0; t<floatingImage->nt; ++t)
-            REG->UseSSD(t);
+            REG->UseSSD(t, normalise);
+      }
+      else if(strcmp(argv[i], "-ssdn")==0)
+      {
+         int timepoint = atoi(argv[++i]);
+         bool normalise = 0;
+         REG->UseSSD(timepoint, normalise);
+      }
+      else if(strcmp(argv[i], "--ssdn")==0)
+      {
+         bool normalise = 0;
+         for(int t=0; t<floatingImage->nt; ++t)
+            REG->UseSSD(t, normalise);
+      }
+      else if(strcmp(argv[i], "--mind")==0)
+      {
+         if(referenceImage->nt>1 || floatingImage->nt>1){
+            reg_print_msg_error("reg_mind does not support multiple time point image");
+            reg_exit();
+         }
+         REG->UseMIND(0, atoi(argv[++i]));
+      }
+      else if(strcmp(argv[i], "--mindssc")==0)
+      {
+         if(referenceImage->nt>1 || floatingImage->nt>1){
+            reg_print_msg_error("reg_mindssc does not support multiple time point image");
+            reg_exit();
+         }
+         REG->UseMINDSSC(0, atoi(argv[++i]));
       }
       else if(strcmp(argv[i], "-kld")==0)
       {
@@ -550,9 +555,10 @@ int main(int argc, char **argv)
          for(int t=0; t<floatingImage->nt; ++t)
             REG->UseKLDivergence(t);
       }
-//        else if(strcmp(argv[i], "-amc")==0){ // HERE TODO
-//            REG->UseMultiChannelNMI();
-//        }
+      else if(strcmp(argv[i], "-rr")==0)
+      {
+         REG->UseRobustRange();
+      }
       else if(strcmp(argv[i], "-lncc")==0)
       {
          int tp=atoi(argv[++i]);
@@ -620,17 +626,18 @@ int main(int argc, char **argv)
             break;
          }
       }
-//        else if(strcmp(argv[i], "-noAppPW")==0){ // HERE TODO
-//            parzenWindowApproximation=false;
-//        }
+      //        else if(strcmp(argv[i], "-noAppPW")==0){ // HERE TODO
+      //            parzenWindowApproximation=false;
+      //        }
       else if((strcmp(argv[i],"-fmask")==0) || (strcmp(argv[i],"-smask")==0) ||
               (strcmp(argv[i],"--fmask")==0) || (strcmp(argv[i],"--smask")==0))
       {
          floatingMaskImage=reg_io_ReadImageFile(argv[++i]);
          if(floatingMaskImage==NULL)
          {
-            fprintf(stderr, "Error when reading the floating mask image: %s\n",argv[i-1]);
-            return 1;
+            reg_print_msg_error("Error when reading the floating mask image:");
+            reg_print_msg_error(argv[i-1]);
+            return EXIT_FAILURE;
          }
          REG->SetFloatingMask(floatingMaskImage);
       }
@@ -658,100 +665,139 @@ int main(int argc, char **argv)
       {
          REG->NoGridRefinement();
       }
-      else if(strcmp(argv[i], "-gce")==0 || strcmp(argv[i], "--gce")==0)
+      else if(strcmp(argv[i], "-nogce")==0 || strcmp(argv[i], "--nogce")==0)
       {
-         REG->UseGradientCumulativeExp();
+         REG->DoNotUseGradientCumulativeExp();
       }
       else if(strcmp(argv[i], "-bch")==0 || strcmp(argv[i], "--bch")==0)
       {
          REG->UseBCHUpdate(atoi(argv[++i]));
       }
-//        else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
-//            iso=true;
-//        }
-#if defined (_OPENMP)
+#ifdef BUILD_DEV
+      else if(strcmp(argv[i], "-disc_init")==0 || strcmp(argv[i], "--disc_init")==0)
+      {
+         REG->UseDiscreteInit();
+      }
+      else if(strcmp(argv[i], "-lin")==0 || strcmp(argv[i], "--lin")==0)
+      {
+         REG->UseLinearSpline();
+      }
+      else if(strcmp(argv[i], "-pe")==0 || strcmp(argv[i], "--pe")==0)
+      {
+         REG->SetPairwiseEnergyWeight(atof(argv[++i]));
+      }
+#endif
+
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
+#if defined (_OPENMP)
          omp_set_num_threads(atoi(argv[++i]));
-      }
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
 #endif
-#ifdef _USE_CUDA
-      else if(strcmp(argv[i], "-mem")==0)
-      {
-         checkMemory=true;
       }
-#endif
       /* All the following arguments should have already been parsed */
       else if(strcmp(argv[i], "-help")!=0 && strcmp(argv[i], "-Help")!=0 &&
-      strcmp(argv[i], "-HELP")!=0 && strcmp(argv[i], "-h")!=0 &&
-      strcmp(argv[i], "--h")!=0 && strcmp(argv[i], "--help")!=0 &&
-      strcmp(argv[i], "--xml")!=0 && strcmp(argv[i], "-version")!=0 &&
-      strcmp(argv[i], "-Version")!=0 && strcmp(argv[i], "-V")!=0 &&
-      strcmp(argv[i], "-v")!=0 && strcmp(argv[i], "--v")!=0 &&
-      strcmp(argv[i], "--version")!=0 && strcmp(argv[i], "-helpPenalty")!=0 &&
-#ifdef _USE_CUDA
-      strcmp(argv[i], "-gpu")!=0 &&
-#endif
-      strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0)
+              strcmp(argv[i], "-HELP")!=0 && strcmp(argv[i], "-h")!=0 &&
+              strcmp(argv[i], "--h")!=0 && strcmp(argv[i], "--help")!=0 &&
+              strcmp(argv[i], "--xml")!=0 && strcmp(argv[i], "-version")!=0 &&
+              strcmp(argv[i], "-Version")!=0 && strcmp(argv[i], "-V")!=0 &&
+              strcmp(argv[i], "-v")!=0 && strcmp(argv[i], "--v")!=0 &&
+              strcmp(argv[i], "-gpu")!=0 && strcmp(argv[i], "--gpu")!=0 &&
+              strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0)
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
-         PetitUsage(argv[0]);
-         return 1;
+         reg_print_msg_error("\tParameter unknown:");
+         reg_print_msg_error(argv[i]);
+         PetitUsage((argv[0]));
+         return EXIT_FAILURE;
       }
    }
    if(useMeanLNCC)
       REG->SetLNCCKernelType(2);
 
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] *******************************************\n");
-   printf("[NiftyReg DEBUG] *******************************************\n");
-   printf("[NiftyReg DEBUG] NiftyReg has been compiled in DEBUG mode\n");
-   printf("[NiftyReg DEBUG] Please re-run cmake to set the variable\n");
-   printf("[NiftyReg DEBUG] CMAKE_BUILD_TYPE to \"Release\" if required\n");
-   printf("[NiftyReg DEBUG] *******************************************\n");
-   printf("[NiftyReg DEBUG] *******************************************\n");
+   reg_print_msg_debug("*******************************************");
+   reg_print_msg_debug("*******************************************");
+   reg_print_msg_debug("NiftyReg has been compiled in DEBUG mode");
+   reg_print_msg_debug("Please re-run cmake to set the variable");
+   reg_print_msg_debug("CMAKE_BUILD_TYPE to \"Release\" if required");
+   reg_print_msg_debug("*******************************************");
+   reg_print_msg_debug("*******************************************");
 #endif
 
 #if defined (_OPENMP)
    if(verbose)
    {
       int maxThreadNumber = omp_get_max_threads();
-      printf("[NiftyReg F3D] OpenMP is used with %i thread(s)\n", maxThreadNumber);
+      sprintf(text, "OpenMP is used with %i thread(s)", maxThreadNumber);
+      reg_print_info((argv[0]), text);
    }
 #endif // _OPENMP
 
    // Run the registration
-#ifdef _USE_CUDA
-   if(checkMemory)
-   {
-      size_t free, total, requiredMemory = REG->CheckMemoryMB();
-      cuMemGetInfo(&free, &total);
-      printf("[NiftyReg CUDA] The required memory to run the registration is %lu Mb\n",
-             (unsigned long int)requiredMemory);
-      printf("[NiftyReg CUDA] The GPU card has %lu Mb from which %lu Mb are currenlty free\n",
-             (unsigned long int)(total/(1024*1024)), (unsigned long int)(free/(1024*1024)));
-   }
-   else
-   {
-#endif
-      REG->Run();
+   REG->Run();
 
-      // Save the control point result
-      nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
-      if(outputCPPImageName==NULL) outputCPPImageName=(char *)"outputCPP.nii";
-      memset(outputControlPointGridImage->descrip, 0, 80);
-      strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
+   // Save the control point image
+   nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
+   if(outputCPPImageName==NULL) outputCPPImageName=(char *)"outputCPP.nii";
+   memset(outputControlPointGridImage->descrip, 0, 80);
+   strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
+   if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
+      strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
+   reg_io_WriteImageFile(outputControlPointGridImage,outputCPPImageName);
+   nifti_image_free(outputControlPointGridImage);
+   outputControlPointGridImage=NULL;
+
+   // Save the backward control point image
+   if(REG->GetSymmetricStatus())
+   {
+      // _backward is added to the forward control point grid image name
+      std::string b(outputCPPImageName);
+      if(b.find( ".nii.gz") != std::string::npos)
+         b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
+      else if(b.find( ".nii") != std::string::npos)
+         b.replace(b.find( ".nii"),4,"_backward.nii");
+      else if(b.find( ".hdr") != std::string::npos)
+         b.replace(b.find( ".hdr"),4,"_backward.hdr");
+      else if(b.find( ".img.gz") != std::string::npos)
+         b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
+      else if(b.find( ".img") != std::string::npos)
+         b.replace(b.find( ".img"),4,"_backward.img");
+      else if(b.find( ".png") != std::string::npos)
+         b.replace(b.find( ".png"),4,"_backward.png");
+      else if(b.find( ".nrrd") != std::string::npos)
+         b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
+      else b.append("_backward.nii");
+      nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
+      memset(outputBackwardControlPointGridImage->descrip, 0, 80);
+      strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
       if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
-         strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
-      reg_io_WriteImageFile(outputControlPointGridImage,outputCPPImageName);
-      nifti_image_free(outputControlPointGridImage);
-      outputControlPointGridImage=NULL;
+         strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
+      reg_io_WriteImageFile(outputBackwardControlPointGridImage,b.c_str());
+      nifti_image_free(outputBackwardControlPointGridImage);
+      outputBackwardControlPointGridImage=NULL;
+   }
 
-      // Save the backward control point result
-      if(REG->GetSymmetricStatus())
+   // Save the warped image(s)
+   nifti_image **outputWarpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
+   outputWarpedImage[0]=NULL;
+   outputWarpedImage[1]=NULL;
+   outputWarpedImage = REG->GetWarpedImage();
+   if(outputWarpedImageName==NULL)
+      outputWarpedImageName=(char *)"outputResult.nii";
+   memset(outputWarpedImage[0]->descrip, 0, 80);
+   strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d)");
+   if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
+   {
+      strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d2)");
+      strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
+   }
+   if(REG->GetSymmetricStatus())
+   {
+      if(outputWarpedImage[1]!=NULL)
       {
-         // _backward is added to the forward control point grid image name
-         std::string b(outputCPPImageName);
+         std::string b(outputWarpedImageName);
          if(b.find( ".nii.gz") != std::string::npos)
             b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
          else if(b.find( ".nii") != std::string::npos)
@@ -767,71 +813,18 @@ int main(int argc, char **argv)
          else if(b.find( ".nrrd") != std::string::npos)
             b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
          else b.append("_backward.nii");
-         nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
-         memset(outputBackwardControlPointGridImage->descrip, 0, 80);
-         strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
-         if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
-            strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
-         reg_io_WriteImageFile(outputBackwardControlPointGridImage,b.c_str());
-         nifti_image_free(outputBackwardControlPointGridImage);
-         outputBackwardControlPointGridImage=NULL;
+         reg_io_WriteImageFile(outputWarpedImage[1],b.c_str());
       }
-
-      // Save the warped image result(s)
-      nifti_image **outputWarpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
-      outputWarpedImage[0]=NULL;
-      outputWarpedImage[1]=NULL;
-      outputWarpedImage = REG->GetWarpedImage();
-      if(outputWarpedImageName==NULL)
-         outputWarpedImageName=(char *)"outputResult.nii";
-      memset(outputWarpedImage[0]->descrip, 0, 80);
-      strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d)");
-      if(strcmp("NiftyReg F3D SYM", REG->GetExecutableName())==0)
-      {
-         strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
-         strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
-      }
-      if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
-      {
-         strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d2)");
-         strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
-      }
-      if(REG->GetSymmetricStatus())
-      {
-         if(outputWarpedImage[1]!=NULL)
-         {
-            std::string b(outputWarpedImageName);
-            if(b.find( ".nii.gz") != std::string::npos)
-               b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
-            else if(b.find( ".nii") != std::string::npos)
-               b.replace(b.find( ".nii"),4,"_backward.nii");
-            else if(b.find( ".hdr") != std::string::npos)
-               b.replace(b.find( ".hdr"),4,"_backward.hdr");
-            else if(b.find( ".img.gz") != std::string::npos)
-               b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
-            else if(b.find( ".img") != std::string::npos)
-               b.replace(b.find( ".img"),4,"_backward.img");
-            else if(b.find( ".png") != std::string::npos)
-               b.replace(b.find( ".png"),4,"_backward.png");
-            else if(b.find( ".nrrd") != std::string::npos)
-               b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
-            else b.append("_backward.nii");
-            reg_io_WriteImageFile(outputWarpedImage[1],b.c_str());
-         }
-      }
-      reg_io_WriteImageFile(outputWarpedImage[0],outputWarpedImageName);
-      if(outputWarpedImage[0]!=NULL)
-         nifti_image_free(outputWarpedImage[0]);
-      outputWarpedImage[0]=NULL;
-      if(outputWarpedImage[1]!=NULL)
-         nifti_image_free(outputWarpedImage[1]);
-      outputWarpedImage[1]=NULL;
-      free(outputWarpedImage);
-      outputWarpedImage=NULL;
-#ifdef _USE_CUDA
    }
-   cudaCommon_unsetCUDACard(&ctx);
-#endif
+   reg_io_WriteImageFile(outputWarpedImage[0],outputWarpedImageName);
+   if(outputWarpedImage[0]!=NULL)
+      nifti_image_free(outputWarpedImage[0]);
+   outputWarpedImage[0]=NULL;
+   if(outputWarpedImage[1]!=NULL)
+      nifti_image_free(outputWarpedImage[1]);
+   outputWarpedImage[1]=NULL;
+   free(outputWarpedImage);
+   outputWarpedImage=NULL;
    // Erase the registration object
    delete REG;
 
@@ -842,19 +835,20 @@ int main(int argc, char **argv)
    if(referenceMaskImage!=NULL) nifti_image_free(referenceMaskImage);
    if(floatingMaskImage!=NULL) nifti_image_free(floatingMaskImage);
 
-   time_t end;
-   time( &end );
-   int minutes = (int)floorf(float(end-start)/60.0f);
-   int seconds = (int)(end-start - 60*minutes);
-
 #ifdef NDEBUG
    if(verbose)
    {
 #endif
-      printf("[NiftyReg F3D] Registration Performed in %i min %i sec\n", minutes, seconds);
-      printf("[NiftyReg F3D] Have a good day !\n");
+      time_t end;
+      time(&end);
+      int minutes=(int)floorf((end-start)/60.0f);
+      int seconds=(int)(end-start - 60*minutes);
+      sprintf(text, "Registration performed in %i min %i sec", minutes, seconds);
+      reg_print_info((argv[0]), text);
+      reg_print_info((argv[0]), "Have a good day !");
 #ifdef NDEBUG
    }
 #endif
-   return 0;
+
+   return EXIT_SUCCESS;
 }

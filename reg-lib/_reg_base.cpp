@@ -14,13 +14,18 @@
 
 #include "_reg_base.h"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
 {
+   //Platform
+//   this->platform = NULL;
+//   this->platformCode = NR_PLATFORM_CPU;
+//   this->gpuIdx = 999;
+
    this->optimiser=NULL;
-   this->maxiterationNumber=300;
+   this->maxiterationNumber=150;
    this->optimiseX=true;
    this->optimiseY=true;
    this->optimiseZ=true;
@@ -33,7 +38,8 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->measure_dti=NULL;
    this->measure_lncc=NULL;
    this->measure_nmi=NULL;
-   this->measure_multichannel_nmi=NULL;
+   this->measure_mind=NULL;
+   this->measure_mindssc=NULL;
 
    this->similarityWeight=0.; // is automatically set depending of the penalty term weights
 
@@ -61,6 +67,7 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
       this->floatingThresholdUp[i]=std::numeric_limits<T>::max();
       this->floatingThresholdLow[i]=-std::numeric_limits<T>::max();
    }
+   this->robustRange=false;
    this->warpedPaddingValue=std::numeric_limits<T>::quiet_NaN();
    this->levelNumber=3;
    this->levelToPerform=0;
@@ -80,20 +87,21 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->currentMask=NULL;
    this->warped=NULL;
    this->deformationFieldImage=NULL;
-   this->warpedGradientImage=NULL;
-   this->voxelBasedMeasureGradientImage=NULL;
+   this->warImgGradient=NULL;
+   this->voxelBasedMeasureGradient=NULL;
 
    this->interpolation=1;
 
-   this->funcProgressCallback=NULL;
-   this->paramsProgressCallback=NULL;
+#ifdef BUILD_DEV
+   this->discrete_init=false;
+#endif
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::reg_base");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 reg_base<T>::~reg_base()
 {
@@ -211,8 +219,6 @@ reg_base<T>::~reg_base()
 
    if(this->measure_nmi!=NULL)
       delete this->measure_nmi;
-   if(this->measure_multichannel_nmi!=NULL)
-      delete this->measure_multichannel_nmi;
    if(this->measure_ssd!=NULL)
       delete this->measure_ssd;
    if(this->measure_kld!=NULL)
@@ -221,12 +227,42 @@ reg_base<T>::~reg_base()
       delete this->measure_dti;
    if(this->measure_lncc!=NULL)
       delete this->measure_lncc;
+   if(this->measure_mind!=NULL)
+      delete this->measure_mind;
+   if(this->measure_mindssc!=NULL)
+      delete this->measure_mindssc;
+
+   //Platform
+//   delete this->platform;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::~reg_base");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
+//template<class T>
+//void reg_base<T>::setPlaform(Platform* inputPlatform)
+//{
+//    this->platform = inputPlatform;
+//}
+/* *************************************************************** */
+//template<class T>
+//Platform* reg_base<T>::getPlaform()
+//{
+//    return this->platform;
+//}
+/* *************************************************************** */
+//template<class T>
+//void reg_base<T>::setPlatformCode(int inputPlatformCode) {
+//    this->platformCode = inputPlatformCode;
+//}
+/* *************************************************************** */
+//template<class T>
+//void reg_base<T>::setGpuIdx(unsigned inputGPUIdx) {
+//    this->gpuIdx = inputGPUIdx;
+//}
+/* *************************************************************** */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceImage(nifti_image *r)
 {
@@ -235,7 +271,7 @@ void reg_base<T>::SetReferenceImage(nifti_image *r)
    reg_print_fct_debug("reg_base<T>::SetReferenceImage");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingImage(nifti_image *f)
 {
@@ -244,7 +280,7 @@ void reg_base<T>::SetFloatingImage(nifti_image *f)
    reg_print_fct_debug("reg_base<T>::SetFloatingImage");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetMaximalIterationNumber(unsigned int iter)
 {
@@ -253,7 +289,7 @@ void reg_base<T>::SetMaximalIterationNumber(unsigned int iter)
    reg_print_fct_debug("reg_base<T>::SetMaximalIterationNumber");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceMask(nifti_image *m)
 {
@@ -262,7 +298,7 @@ void reg_base<T>::SetReferenceMask(nifti_image *m)
    reg_print_fct_debug("reg_base<T>::SetReferenceMask");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetAffineTransformation(mat44 *a)
 {
@@ -271,7 +307,7 @@ void reg_base<T>::SetAffineTransformation(mat44 *a)
    reg_print_fct_debug("reg_base<T>::SetAffineTransformation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceSmoothingSigma(T s)
 {
@@ -280,7 +316,7 @@ void reg_base<T>::SetReferenceSmoothingSigma(T s)
    reg_print_fct_debug("reg_base<T>::SetReferenceSmoothingSigma");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingSmoothingSigma(T s)
 {
@@ -289,7 +325,7 @@ void reg_base<T>::SetFloatingSmoothingSigma(T s)
    reg_print_fct_debug("reg_base<T>::SetFloatingSmoothingSigma");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceThresholdUp(unsigned int i, T t)
 {
@@ -298,7 +334,7 @@ void reg_base<T>::SetReferenceThresholdUp(unsigned int i, T t)
    reg_print_fct_debug("reg_base<T>::SetReferenceThresholdUp");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceThresholdLow(unsigned int i, T t)
 {
@@ -307,7 +343,7 @@ void reg_base<T>::SetReferenceThresholdLow(unsigned int i, T t)
    reg_print_fct_debug("reg_base<T>::SetReferenceThresholdLow");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingThresholdUp(unsigned int i, T t)
 {
@@ -316,7 +352,7 @@ void reg_base<T>::SetFloatingThresholdUp(unsigned int i, T t)
    reg_print_fct_debug("reg_base<T>::SetFloatingThresholdUp");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingThresholdLow(unsigned int i, T t)
 {
@@ -325,7 +361,25 @@ void reg_base<T>::SetFloatingThresholdLow(unsigned int i, T t)
    reg_print_fct_debug("reg_base<T>::SetFloatingThresholdLow");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+template <class T>
+void reg_base<T>::UseRobustRange()
+{
+   this->robustRange=true;
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::UseRobustRange");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_base<T>::DoNotUseRobustRange()
+{
+   this->robustRange=false;
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::UseRobustRange");
+#endif
+}
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetWarpedPaddingValue(T p)
 {
@@ -334,7 +388,7 @@ void reg_base<T>::SetWarpedPaddingValue(T p)
    reg_print_fct_debug("reg_base<T>::SetWarpedPaddingValue");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLevelNumber(unsigned int l)
 {
@@ -343,7 +397,7 @@ void reg_base<T>::SetLevelNumber(unsigned int l)
    reg_print_fct_debug("reg_base<T>::SetLevelNumber");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLevelToPerform(unsigned int l)
 {
@@ -352,7 +406,7 @@ void reg_base<T>::SetLevelToPerform(unsigned int l)
    reg_print_fct_debug("reg_base<T>::SetLevelToPerform");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetGradientSmoothingSigma(T g)
 {
@@ -361,47 +415,43 @@ void reg_base<T>::SetGradientSmoothingSigma(T g)
    reg_print_fct_debug("reg_base<T>::SetGradientSmoothingSigma");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseConjugateGradient()
 {
    this->useConjGradient = true;
-   this->useApproxGradient = false;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseConjugateGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotUseConjugateGradient()
 {
    this->useConjGradient = false;
-   this->useApproxGradient = false;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::DoNotUseConjugateGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseApproximatedGradient()
 {
-   this->useConjGradient = false;
    this->useApproxGradient = true;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseApproximatedGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotUseApproximatedGradient()
 {
-   this->useConjGradient = true;
    this->useApproxGradient = false;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::DoNotUseApproximatedGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::PrintOutInformation()
 {
@@ -410,7 +460,7 @@ void reg_base<T>::PrintOutInformation()
    reg_print_fct_debug("reg_base<T>::PrintOutInformation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotPrintOutInformation()
 {
@@ -419,7 +469,7 @@ void reg_base<T>::DoNotPrintOutInformation()
    reg_print_fct_debug("reg_base<T>::DoNotPrintOutInformation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotUsePyramidalApproach()
 {
@@ -428,7 +478,7 @@ void reg_base<T>::DoNotUsePyramidalApproach()
    reg_print_fct_debug("reg_base<T>::DoNotUsePyramidalApproach");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseNeareatNeighborInterpolation()
 {
@@ -437,7 +487,7 @@ void reg_base<T>::UseNeareatNeighborInterpolation()
    reg_print_fct_debug("reg_base<T>::UseNeareatNeighborInterpolation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseLinearInterpolation()
 {
@@ -446,7 +496,7 @@ void reg_base<T>::UseLinearInterpolation()
    reg_print_fct_debug("reg_base<T>::UseLinearInterpolation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseCubicSplineInterpolation()
 {
@@ -455,8 +505,24 @@ void reg_base<T>::UseCubicSplineInterpolation()
    reg_print_fct_debug("reg_base<T>::UseCubicSplineInterpolation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+#ifdef BUILD_DEV
+/* *************************************************************** */
+template <class T>
+void reg_base<T>::UseDiscreteInit()
+{
+   this->discrete_init=true;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
+void reg_base<T>::DoNotUseDiscreteInit()
+{
+   this->discrete_init=false;
+}
+/* *************************************************************** */
+#endif
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::ClearCurrentInputImage()
 {
@@ -467,15 +533,16 @@ void reg_base<T>::ClearCurrentInputImage()
    reg_print_fct_debug("reg_base<T>::ClearCurrentInputImage");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::AllocateWarped()
 {
    if(this->currentReference==NULL)
    {
-      fprintf(stderr, "[NiftyReg ERROR] The reference image is not defined\n");
-      reg_exit(1);
+      reg_print_fct_error("reg_base::AllocateWarped()");
+      reg_print_msg_error("The reference image is not defined");
+      reg_exit();
    }
    reg_base<T>::ClearWarped();
    this->warped = nifti_copy_nim_info(this->currentReference);
@@ -496,7 +563,7 @@ void reg_base<T>::AllocateWarped()
    reg_print_fct_debug("reg_base<T>::AllocateWarped");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::ClearWarped()
 {
@@ -507,15 +574,16 @@ void reg_base<T>::ClearWarped()
    reg_print_fct_debug("reg_base<T>::ClearWarped");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::AllocateDeformationField()
 {
    if(this->currentReference==NULL)
    {
-      fprintf(stderr, "[NiftyReg ERROR] The reference image is not defined\n");
-      reg_exit(1);
+      reg_print_fct_error("reg_base::AllocateDeformationField()");
+      reg_print_msg_error("The reference image is not defined");
+      reg_exit();
    }
    reg_base<T>::ClearDeformationField();
    this->deformationFieldImage = nifti_copy_nim_info(this->currentReference);
@@ -562,7 +630,7 @@ void reg_base<T>::AllocateDeformationField()
    reg_print_fct_debug("reg_base<T>::AllocateDeformationField");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::ClearDeformationField()
 {
@@ -578,88 +646,84 @@ void reg_base<T>::ClearDeformationField()
    reg_print_fct_debug("reg_base<T>::ClearDeformationField");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::AllocateWarpedGradient()
 {
    if(this->deformationFieldImage==NULL)
    {
-      fprintf(stderr, "[NiftyReg ERROR] The deformation field image is not defined\n");
-      reg_exit(1);
+      reg_print_fct_error("reg_base::AllocateWarpedGradient()");
+      reg_print_msg_error("The deformation field image is not defined");
+      reg_exit();
    }
    reg_base<T>::ClearWarpedGradient();
-   this->warpedGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
-   this->warpedGradientImage->dim[0]=this->warpedGradientImage->ndim=5;
-   this->warpedGradientImage->nt = this->warpedGradientImage->dim[4] = this->currentFloating->nt;
-   this->warpedGradientImage->nvox =
-      (size_t)this->warpedGradientImage->nx *
-      (size_t)this->warpedGradientImage->ny *
-      (size_t)this->warpedGradientImage->nz *
-      (size_t)this->warpedGradientImage->nt *
-      (size_t)this->warpedGradientImage->nu;
-   this->warpedGradientImage->data = (void *)calloc(this->warpedGradientImage->nvox,
-                                     this->warpedGradientImage->nbyper);
+   this->warImgGradient = nifti_copy_nim_info(this->deformationFieldImage);
+   this->warImgGradient->data = (void *)calloc(this->warImgGradient->nvox,
+                                     this->warImgGradient->nbyper);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::AllocateWarpedGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::ClearWarpedGradient()
 {
-   if(this->warpedGradientImage!=NULL)
+   if(this->warImgGradient!=NULL)
    {
-      nifti_image_free(this->warpedGradientImage);
-      this->warpedGradientImage=NULL;
+      nifti_image_free(this->warImgGradient);
+      this->warImgGradient=NULL;
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::ClearWarpedGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::AllocateVoxelBasedMeasureGradient()
 {
    if(this->deformationFieldImage==NULL)
    {
-      fprintf(stderr, "[NiftyReg ERROR] The deformation field image is not defined\n");
-      reg_exit(1);
+      reg_print_fct_error("reg_base::AllocateVoxelBasedMeasureGradient()");
+      reg_print_msg_error("The deformation field image is not defined");
+      reg_exit();
    }
    reg_base<T>::ClearVoxelBasedMeasureGradient();
-   this->voxelBasedMeasureGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
-   this->voxelBasedMeasureGradientImage->data = (void *)calloc(this->voxelBasedMeasureGradientImage->nvox,
-         this->voxelBasedMeasureGradientImage->nbyper);
+   this->voxelBasedMeasureGradient = nifti_copy_nim_info(this->deformationFieldImage);
+   this->voxelBasedMeasureGradient->data = (void *)calloc(this->voxelBasedMeasureGradient->nvox,
+         this->voxelBasedMeasureGradient->nbyper);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::AllocateVoxelBasedMeasureGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::ClearVoxelBasedMeasureGradient()
 {
-   if(this->voxelBasedMeasureGradientImage!=NULL)
+   if(this->voxelBasedMeasureGradient!=NULL)
    {
-      nifti_image_free(this->voxelBasedMeasureGradientImage);
-      this->voxelBasedMeasureGradientImage=NULL;
+      nifti_image_free(this->voxelBasedMeasureGradient);
+      this->voxelBasedMeasureGradient=NULL;
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::ClearVoxelBasedMeasureGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::CheckParameters()
 {
    // CHECK THAT BOTH INPUT IMAGES ARE DEFINED
    if(this->inputReference==NULL)
    {
-      fprintf(stderr,"[NiftyReg ERROR] No reference image has been defined.\n");
-      reg_exit(1);
+      reg_print_fct_error("reg_base::CheckParameters()");
+      reg_print_msg_error("The reference image is not defined");
+      reg_exit();
    }
    if(this->inputFloating==NULL)
    {
-      fprintf(stderr,"[NiftyReg ERROR] No floating image has been defined.\n");
-      reg_exit(1);
+      reg_print_fct_error("reg_base::CheckParameters()");
+      reg_print_msg_error("The floating image is not defined");
+      reg_exit();
    }
 
    // CHECK THE MASK DIMENSION IF IT IS DEFINED
@@ -669,11 +733,9 @@ void reg_base<T>::CheckParameters()
             this->inputReference->ny != this->maskImage->ny ||
             this->inputReference->nz != this->maskImage->nz )
       {
-         printf("x: %i %i\n",this->inputReference->nx, this->maskImage->nx);
-         printf("y: %i %i\n",this->inputReference->ny, this->maskImage->ny);
-         printf("z: %i %i\n",this->inputReference->nz, this->maskImage->nz);
-         fprintf(stderr,"[NiftyReg ERROR] The mask image has different x, y or z dimension than the reference image.\n");
-         reg_exit(1);
+         reg_print_fct_error("reg_base::CheckParameters()");
+         reg_print_msg_error("The reference and mask images have different dimension");
+         reg_exit();
       }
    }
 
@@ -690,7 +752,7 @@ void reg_base<T>::CheckParameters()
    reg_print_fct_debug("reg_base<T>::CheckParameters");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::InitialiseSimilarity()
 {
@@ -699,7 +761,10 @@ void reg_base<T>::InitialiseSimilarity()
          this->measure_ssd==NULL &&
          this->measure_dti==NULL &&
          this->measure_lncc==NULL &&
-         this->measure_lncc==NULL)
+         this->measure_lncc==NULL &&
+         this->measure_kld==NULL &&
+         this->measure_mind==NULL &&
+         this->measure_mindssc==NULL)
    {
       this->measure_nmi=new reg_nmi;
       for(int i=0; i<this->inputReference->nt; ++i)
@@ -710,26 +775,17 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient
                                           );
-
-   if(this->measure_multichannel_nmi!=NULL)
-      this->measure_multichannel_nmi->InitialiseMeasure(this->currentReference,
-            this->currentFloating,
-            this->currentMask,
-            this->warped,
-            this->warpedGradientImage,
-            this->voxelBasedMeasureGradientImage
-                                                       );
 
    if(this->measure_ssd!=NULL)
       this->measure_ssd->InitialiseMeasure(this->currentReference,
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient
                                           );
 
    if(this->measure_kld!=NULL)
@@ -737,8 +793,8 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient
                                           );
 
    if(this->measure_lncc!=NULL)
@@ -746,8 +802,8 @@ void reg_base<T>::InitialiseSimilarity()
                                             this->currentFloating,
                                             this->currentMask,
                                             this->warped,
-                                            this->warpedGradientImage,
-                                            this->voxelBasedMeasureGradientImage
+                                            this->warImgGradient,
+                                            this->voxelBasedMeasureGradient
                                            );
 
    if(this->measure_dti!=NULL)
@@ -755,22 +811,44 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warpedGradientImage,
-                                           this->voxelBasedMeasureGradientImage
+                                           this->warImgGradient,
+                                           this->voxelBasedMeasureGradient
                                           );
+
+   if(this->measure_mind!=NULL)
+      this->measure_mind->InitialiseMeasure(this->currentReference,
+                                            this->currentFloating,
+                                            this->currentMask,
+                                            this->warped,
+                                            this->warImgGradient,
+                                            this->voxelBasedMeasureGradient
+                                            );
+
+   if(this->measure_mindssc!=NULL)
+      this->measure_mindssc->InitialiseMeasure(this->currentReference,
+                                               this->currentFloating,
+                                               this->currentMask,
+                                               this->warped,
+                                               this->warImgGradient,
+                                               this->voxelBasedMeasureGradient
+                                               );
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::InitialiseSimilarity");
 #endif
    return;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::Initialise()
 {
    if(this->initialised) return;
 
    this->CheckParameters();
+
+   //PLATFORM
+//   this->platform = new Platform(this->platformCode);
+//   this->platform->setGpuIdx(this->gpuIdx);
 
    // CREATE THE PYRAMIDE IMAGES
    if(this->usePyramid)
@@ -786,6 +864,41 @@ void reg_base<T>::Initialise()
       this->floatingPyramid = (nifti_image **)malloc(sizeof(nifti_image *));
       this->maskPyramid = (int **)malloc(sizeof(int *));
       this->activeVoxelNumber= (int *)malloc(sizeof(int));
+   }
+
+   // Update the input images threshold if required
+   if(this->robustRange==true){
+      // Create a copy of the reference image to extract the robust range
+      nifti_image *temp_reference = nifti_copy_nim_info(this->inputReference);
+      temp_reference->data = (void *)malloc(temp_reference->nvox * temp_reference->nbyper);
+      memcpy(temp_reference->data, this->inputReference->data,temp_reference->nvox * temp_reference->nbyper);
+      reg_tools_changeDatatype<T>(temp_reference);
+      // Extract the robust range of the reference image
+      T *refDataPtr = static_cast<T *>(temp_reference->data);
+      reg_heapSort(refDataPtr, temp_reference->nvox);
+      // Update the reference threshold values if no value has been setup by the user
+      if(this->referenceThresholdLow[0]==-std::numeric_limits<T>::max())
+         this->referenceThresholdLow[0] = refDataPtr[(int)reg_round((float)temp_reference->nvox*0.02f)];
+      if(this->referenceThresholdUp[0]==std::numeric_limits<T>::max())
+         this->referenceThresholdUp[0] = refDataPtr[(int)reg_round((float)temp_reference->nvox*0.98f)];
+      // Free the temporarly allocated image
+      nifti_image_free(temp_reference);
+
+      // Create a copy of the floating image to extract the robust range
+      nifti_image *temp_floating = nifti_copy_nim_info(this->inputFloating);
+      temp_floating->data = (void *)malloc(temp_floating->nvox * temp_floating->nbyper);
+      memcpy(temp_floating->data, this->inputFloating->data,temp_floating->nvox * temp_floating->nbyper);
+      reg_tools_changeDatatype<T>(temp_floating);
+      // Extract the robust range of the floating image
+      T *floDataPtr = static_cast<T *>(temp_floating->data);
+      reg_heapSort(floDataPtr, temp_floating->nvox);
+      // Update the floating threshold values if no value has been setup by the user
+      if(this->floatingThresholdLow[0]==-std::numeric_limits<T>::max())
+         this->floatingThresholdLow[0] = floDataPtr[(int)reg_round((float)temp_floating->nvox*0.02f)];
+      if(this->floatingThresholdUp[0]==std::numeric_limits<T>::max())
+         this->floatingThresholdUp[0] = floDataPtr[(int)reg_round((float)temp_floating->nvox*0.98f)];
+      // Free the temporarly allocated image
+      nifti_image_free(temp_floating);
    }
 
    // FINEST LEVEL OF REGISTRATION
@@ -831,7 +944,7 @@ void reg_base<T>::Initialise()
          for(int i=1; i<this->referencePyramid[l]->nt; ++i)
             active[i]=false;
          sigma[0]=this->referenceSmoothingSigma;
-         reg_tools_kernelConvolution(this->referencePyramid[l], sigma, 0, NULL, active);
+         reg_tools_kernelConvolution(this->referencePyramid[l], sigma, GAUSSIAN_KERNEL, NULL, active);
          delete []active;
          delete []sigma;
       }
@@ -844,7 +957,7 @@ void reg_base<T>::Initialise()
          for(int i=1; i<this->floatingPyramid[l]->nt; ++i)
             active[i]=false;
          sigma[0]=this->floatingSmoothingSigma;
-         reg_tools_kernelConvolution(this->floatingPyramid[l], sigma, 0, NULL, active);
+         reg_tools_kernelConvolution(this->floatingPyramid[l], sigma, GAUSSIAN_KERNEL, NULL, active);
          delete []active;
          delete []sigma;
       }
@@ -862,8 +975,8 @@ void reg_base<T>::Initialise()
    reg_print_fct_debug("reg_base<T>::Initialise");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::SetOptimiser()
 {
@@ -874,17 +987,14 @@ void reg_base<T>::SetOptimiser()
    reg_print_fct_debug("reg_base<T>::SetOptimiser");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 double reg_base<T>::ComputeSimilarityMeasure()
 {
    double measure=0.;
    if(this->measure_nmi!=NULL)
       measure += this->measure_nmi->GetSimilarityMeasureValue();
-
-   if(this->measure_multichannel_nmi!=NULL)
-      measure += this->measure_multichannel_nmi->GetSimilarityMeasureValue();
 
    if(this->measure_ssd!=NULL)
       measure += this->measure_ssd->GetSimilarityMeasureValue();
@@ -898,66 +1008,85 @@ double reg_base<T>::ComputeSimilarityMeasure()
    if(this->measure_dti!=NULL)
       measure += this->measure_dti->GetSimilarityMeasureValue();
 
+   if(this->measure_mind!=NULL)
+      measure += this->measure_mind->GetSimilarityMeasureValue();
+
+   if(this->measure_mindssc!=NULL)
+      measure += this->measure_mindssc->GetSimilarityMeasureValue();
+
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::ComputeSimilarityMeasure");
 #endif
    return double(this->similarityWeight) * measure;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::GetVoxelBasedGradient()
 {
-   // The intensity gradient is first computed
-//    if(this->measure_dti!=NULL){
-//        reg_getImageGradient(this->currentFloating,
-//                             this->warpedGradientImage,
-//                             this->deformationFieldImage,
-//                             this->currentMask,
-//                             this->interpolation,
-//                             this->warpedPaddingValue,
-//                             this->measure_dti->GetActiveTimepoints(),
-//		 					   this->forwardJacobianMatrix,
-//							   this->warped);
-//    }
-//    else{
-   reg_getImageGradient(this->currentFloating,
-                        this->warpedGradientImage,
-                        this->deformationFieldImage,
-                        this->currentMask,
-                        this->interpolation,
-                        this->warpedPaddingValue);
-//    }
-
    // The voxel based gradient image is filled with zeros
-   reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradientImage,
-                                  this->voxelBasedMeasureGradientImage,
+   reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradient,
+                                  this->voxelBasedMeasureGradient,
                                   0.f);
-   // The gradient of the various measures of similarity are computed
-   if(this->measure_nmi!=NULL)
-      this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient();
 
-   if(this->measure_multichannel_nmi!=NULL)
-      this->measure_multichannel_nmi->GetVoxelBasedSimilarityMeasureGradient();
+   // The intensity gradient is first computed
+   //   if(this->measure_nmi!=NULL || this->measure_ssd!=NULL ||
+   //         this->measure_kld!=NULL || this->measure_lncc!=NULL ||
+   //         this->measure_dti!=NULL)
+   //   {
+   //    if(this->measure_dti!=NULL){
+   //        reg_getImageGradient(this->currentFloating,
+   //                             this->warImgGradient,
+   //                             this->deformationFieldImage,
+   //                             this->currentMask,
+   //                             this->interpolation,
+   //                             this->warpedPaddingValue,
+   //                             this->measure_dti->GetActiveTimepoints(),
+   //		 					   this->forwardJacobianMatrix,
+   //							   this->warped);
+   //    }
+   //    else{
+   //    }
+   //   }
 
-   if(this->measure_ssd!=NULL)
-      this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient();
+   //   if(this->measure_dti!=NULL)
+   //      this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
 
-   if(this->measure_kld!=NULL)
-      this->measure_kld->GetVoxelBasedSimilarityMeasureGradient();
+   for(int t=0; t<this->currentReference->nt; ++t){
+      reg_getImageGradient(this->currentFloating,
+                           this->warImgGradient,
+                           this->deformationFieldImage,
+                           this->currentMask,
+                           this->interpolation,
+                           this->warpedPaddingValue,
+                           t);
 
-   if(this->measure_lncc!=NULL)
-      this->measure_lncc->GetVoxelBasedSimilarityMeasureGradient();
+      // The gradient of the various measures of similarity are computed
+      if(this->measure_nmi!=NULL)
+         this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient(t);
 
-   if(this->measure_dti!=NULL)
-      this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
+      if(this->measure_ssd!=NULL)
+         this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_kld!=NULL)
+         this->measure_kld->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_lncc!=NULL)
+         this->measure_lncc->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_mind!=NULL)
+         this->measure_mind->GetVoxelBasedSimilarityMeasureGradient(t);
+
+      if(this->measure_mindssc!=NULL)
+         this->measure_mindssc->GetVoxelBasedSimilarityMeasureGradient(t);
+   }
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::GetVoxelBasedGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 //template<class T>
 //void reg_base<T>::ApproximateParzenWindow()
 //{
@@ -966,7 +1095,7 @@ void reg_base<T>::GetVoxelBasedGradient()
 //    this->measure_nmi=approxParzenWindow = true;
 //    return;
 //}
-///* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+///* *************************************************************** */
 //template<class T>
 //void reg_base<T>::DoNotApproximateParzenWindow()
 //{
@@ -975,8 +1104,8 @@ void reg_base<T>::GetVoxelBasedGradient()
 //    this->measure_nmi=approxParzenWindow = false;
 //    return;
 //}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber)
 {
@@ -990,7 +1119,7 @@ void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber)
    reg_print_fct_debug("reg_base<T>::UseNMISetReferenceBinNumber");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
 {
@@ -1004,30 +1133,43 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
    reg_print_fct_debug("reg_base<T>::UseNMISetFloatingBinNumber");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
-void reg_base<T>::UseMultiChannelNMI(int timepointNumber)
-{
-   if(this->measure_multichannel_nmi==NULL)
-      this->measure_multichannel_nmi=new reg_multichannel_nmi;
-   for(int i=0; i<timepointNumber; ++i)
-      this->measure_multichannel_nmi->SetActiveTimepoint(i);
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::UseMultiChannelNMI");
-#endif
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-void reg_base<T>::UseSSD(int timepoint)
+void reg_base<T>::UseSSD(int timepoint, bool normalise)
 {
    if(this->measure_ssd==NULL)
-      this->measure_ssd=new reg_ssd;
+      this->measure_ssd=new reg_ssd();
    this->measure_ssd->SetActiveTimepoint(timepoint);
+   this->measure_ssd->SetNormaliseTimepoint(timepoint, normalise);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseSSD");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::UseMIND(int timepoint, int offset)
+{
+   if(this->measure_mind==NULL)
+      this->measure_mind=new reg_mind;
+   this->measure_mind->SetActiveTimepoint(timepoint);
+   this->measure_mind->SetDescriptorOffset(offset);
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::UseMIND");
+#endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::UseMINDSSC(int timepoint, int offset)
+{
+   if(this->measure_mindssc==NULL)
+      this->measure_mindssc=new reg_mindssc;
+   this->measure_mindssc->SetActiveTimepoint(timepoint);
+   this->measure_mindssc->SetDescriptorOffset(offset);
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::UseMINDSSC");
+#endif
+}
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseKLDivergence(int timepoint)
 {
@@ -1038,7 +1180,7 @@ void reg_base<T>::UseKLDivergence(int timepoint)
    reg_print_fct_debug("reg_base<T>::UseKLDivergence");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseLNCC(int timepoint, float stddev)
 {
@@ -1050,7 +1192,7 @@ void reg_base<T>::UseLNCC(int timepoint, float stddev)
    reg_print_fct_debug("reg_base<T>::UseLNCC");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLNCCKernelType(int type)
 {
@@ -1058,17 +1200,20 @@ void reg_base<T>::SetLNCCKernelType(int type)
    {
       reg_print_fct_error("reg_base<T>::SetLNCCKernelType");
       reg_print_msg_error("The LNCC object has to be created first");
-      reg_exit(1);
+      reg_exit();
    }
    this->measure_lncc->SetKernelType(type);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetLNCCKernelType");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseDTI(bool *timepoint)
 {
+   reg_print_msg_error("The use of DTI has been deactivated as it requires some refactoring");
+   reg_exit();
+
    if(this->measure_dti==NULL)
       this->measure_dti=new reg_dti;
    for(int i=0; i<this->inputReference->nt; ++i)
@@ -1080,8 +1225,8 @@ void reg_base<T>::UseDTI(bool *timepoint)
    reg_print_fct_debug("reg_base<T>::UseDTI");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::WarpFloatingImage(int inter)
 {
@@ -1115,20 +1260,29 @@ void reg_base<T>::WarpFloatingImage(int inter)
    reg_print_fct_debug("reg_base<T>::WarpFloatingImage");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::Run()
 {
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] %s::Run() called\n", this->executableName);
+   char text[255];
+   sprintf(text, "%s::Run() called", this->executableName);
+   reg_print_msg_debug(text);
 #endif
 
    if(!this->initialised) this->Initialise();
+#ifdef NDEBUG
+   if(this->verbose)
+   {
+#endif
+      reg_print_info(this->executableName, "***********************************************************");
+#ifdef NDEBUG
+   }
+#endif
 
-   // Compute the resolution of the progress bar
-   float iProgressStep=1, nProgressSteps;
-   nProgressSteps = this->levelToPerform*this->maxiterationNumber;
+   // Update the maximal number of iteration to perform per level
+   this->maxiterationNumber = this->maxiterationNumber * pow(2, this->levelToPerform-1);
 
    // Loop over the different resolution level to perform
    for(this->currentLevel=0;
@@ -1162,7 +1316,13 @@ void reg_base<T>::Run()
 
       this->DisplayCurrentLevelParameters();
 
-      // Allocate iamge that are required to compute the gradient
+#ifdef BUILD_DEV
+      // Perform the discrete initialisation if required
+      if(this->discrete_init==true)
+         this->DiscreteInitialisation();
+#endif
+
+      // Allocate image that are required to compute the gradient
       this->AllocateVoxelBasedMeasureGradient();
       this->AllocateTransformationGradient();
 
@@ -1189,8 +1349,10 @@ void reg_base<T>::Run()
             if(currentSize==0)
                break;
 
-            if(this->optimiser->GetCurrentIterationNumber()>=this->optimiser->GetMaxIterationNumber())
+            if(this->optimiser->GetCurrentIterationNumber()>=this->optimiser->GetMaxIterationNumber()){
+               reg_print_msg_warn("The current level reached the maximum number of iteration");
                break;
+            }
 
             // Compute the objective function gradient
             this->GetObjectiveFunctionGradient();
@@ -1207,26 +1369,6 @@ void reg_base<T>::Run()
             // Update the obecjtive function variables and print some information
             this->PrintCurrentObjFunctionValue(currentSize);
 
-            // Monitoring progression when f3d is ran as a library
-            if(currentSize==0.f)
-            {
-               iProgressStep += this->optimiser->GetMaxIterationNumber() - 1 - this->optimiser->GetCurrentIterationNumber();
-               if(funcProgressCallback && paramsProgressCallback)
-               {
-                  (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
-                                          paramsProgressCallback);
-               }
-               break;
-            }
-            else
-            {
-               iProgressStep++;
-               if(funcProgressCallback && paramsProgressCallback)
-               {
-                  (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
-                                          paramsProgressCallback);
-               }
-            }
          } // while
          if(perturbation<this->perturbationNumber)
          {
@@ -1237,12 +1379,11 @@ void reg_base<T>::Run()
             if(this->verbose)
             {
 #endif
-               printf("[%s] Perturbation Step - The number of iteration is reset to 0\n",
-                      this->executableName);
-               printf("[%s] Perturbation Step - Every control point positions is altered by [-%g %g]\n",
-                      this->executableName,
-                      smallestSize,
-                      smallestSize);
+               char text[255];
+               reg_print_info(this->executableName, "Perturbation Step - The number of iteration is reset to 0");
+               sprintf(text, "Perturbation Step - Every control point positions is altered by [-%g %g]",
+                      smallestSize, smallestSize);
+               reg_print_info(this->executableName, text);
 
 #ifdef NDEBUG
             }
@@ -1285,23 +1426,20 @@ void reg_base<T>::Run()
       if(this->verbose)
       {
 #endif
-         printf("[%s] Current registration level done\n", this->executableName);
-         printf("[%s] --------------------------------------------------\n", this->executableName);
+         reg_print_info(this->executableName, "Current registration level done");
+         reg_print_info(this->executableName, "***********************************************************");
 #ifdef NDEBUG
       }
 #endif
-
+      // Update the number of level for the next level
+      this->maxiterationNumber /= 2;
    } // level this->levelToPerform
 
-   if ( funcProgressCallback && paramsProgressCallback )
-   {
-      (*funcProgressCallback)( 100., paramsProgressCallback);
-   }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::Run");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
+/* *************************************************************** */
+/* *************************************************************** */
+template class reg_base<float>;
 #endif // _REG_BASE_CPP

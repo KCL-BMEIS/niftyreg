@@ -14,6 +14,8 @@
 #ifndef _REG_F3D2_H
 #define _REG_F3D2_H
 
+
+/// @brief Fast Free Form Diffeomorphic Deformation registration class
 template <class T>
 class reg_f3d2 : public reg_f3d_sym<T>
 {
@@ -30,6 +32,7 @@ protected:
    virtual void ExponentiateGradient();
    virtual void UseBCHUpdate(int);
    virtual void UseGradientCumulativeExp();
+   virtual void DoNotUseGradientCumulativeExp();
 
 public:
    reg_f3d2(int refTimePoint,int floTimePoint);
@@ -37,7 +40,5 @@ public:
    virtual void Initialise();
    virtual nifti_image **GetWarpedImage();
 };
-
-#include "_reg_f3d2.cpp"
 
 #endif

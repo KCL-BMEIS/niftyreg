@@ -18,15 +18,18 @@
 #include <string>
 
 #include "reg_png.h"
+#ifdef _USE_NRRD
 #include "reg_nrrd.h"
-
+#endif
 /** @defgroup NIFTYREG_FILEFORMAT_TYPE
  *  @brief Codes to define the image file format
  *  @{
  */
 #define NR_NII_FORMAT 0
 #define NR_PNG_FORMAT 1
+#ifdef _USE_NRRD
 #define NR_NRRD_FORMAT 2
+#endif
 /* @} */
 
 /* *************************************************************** */
@@ -61,5 +64,11 @@ nifti_image *reg_io_ReadImageHeader(const char *filename);
   * @param filename Filename of the output images
   */
 void reg_io_WriteImageFile(nifti_image *image, const char *filename);
+/* *************************************************************** */
+/** The function expects a nifti_image structure
+  * The image will be displayed on the standard output
+  * @param Nifti image to be displayed
+  */
+void reg_io_diplayImageData(nifti_image *image);
 /* *************************************************************** */
 #endif

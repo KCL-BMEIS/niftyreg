@@ -12,12 +12,10 @@
  *
  */
 
-#ifndef _MM_JACOBIAN_CPP
-#define _MM_JACOBIAN_CPP
-
 #include "_reg_ReadWriteImage.h"
-#include "_reg_globalTransformation.h"
-#include "_reg_localTransformation.h"
+#include "_reg_ReadWriteMatrix.h"
+#include "_reg_globalTrans.h"
+#include "_reg_localTrans_jac.h"
 #include "_reg_tools.h"
 #include "_reg_resampling.h"
 #include "reg_jacobian.h"
@@ -118,9 +116,17 @@ void Usage(char *exec)
    printf("\t\tFilename of the Jacobian matrix map. (9 or 4 values are stored as a 5D nifti).\n");
    printf("\t-jacL <filename>\n");
    printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
-#ifdef _GIT_HASH
-   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
+#if defined (_OPENMP)
+   int defaultOpenMPValue=omp_get_num_procs();
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   char text[255];
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
+   reg_print_info(exec, text);
 #endif
+   printf("\t--version\t\tPrint current version and exit");
+   printf("\t\t\t\t(%s)",NR_VERSION);
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }
@@ -129,11 +135,19 @@ int main(int argc, char **argv)
 {
    if(argc==1){
       PetitUsage(argv[0]);
-      return 1;
+      return EXIT_FAILURE;
    }
 
    PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
+
+#if defined (_OPENMP)
+   // Set the default number of thread
+   int defaultOpenMPValue=omp_get_num_procs();
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
+#endif
 
    // read the input parameters
    for(int i=1; i<argc; i++)
@@ -143,14 +157,22 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
          Usage(argv[0]);
-         return 0;
+         return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "--xml")==0)
       {
          printf("%s",xml_jacobian);
-         return 0;
+         return EXIT_SUCCESS;
       }
-#ifdef _GIT_HASH
+      else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
+      {
+#if defined (_OPENMP)
+         omp_set_num_threads(atoi(argv[++i]));
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
+#endif
+      }
       else if( strcmp(argv[i], "-version")==0 ||
           strcmp(argv[i], "-Version")==0 ||
           strcmp(argv[i], "-V")==0 ||
@@ -158,10 +180,9 @@ int main(int argc, char **argv)
           strcmp(argv[i], "--v")==0 ||
           strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",_GIT_HASH);
+         printf("%s\n",NR_VERSION);
          return EXIT_SUCCESS;
       }
-#endif
       else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||
               (strcmp(argv[i],"--ref")==0))
       {
@@ -194,9 +215,9 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+         fprintf(stderr,"Err:\tParameter %s unknown.\n", argv[i]);
          PetitUsage(argv[0]);
-         return 1;
+         return EXIT_FAILURE;
       }
    }
 
@@ -210,7 +231,7 @@ int main(int argc, char **argv)
       if(!reg_isAnImageFileName(param->inputTransName)){
          mat44 *affineTransformation=(mat44 *)malloc(sizeof(mat44));
          reg_tool_ReadAffineFile(affineTransformation,param->inputTransName);
-         printf("%g\n", reg_mat44_det(affineTransformation));
+         printf("%g\n", reg_mat44_det<double>(affineTransformation));
          return EXIT_SUCCESS;
       }
 
@@ -218,14 +239,13 @@ int main(int argc, char **argv)
       if(inputTransformation == NULL)
       {
          fprintf(stderr,"** ERROR Error when reading the transformation image: %s\n",param->inputTransName);
-         return 1;
+         return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(inputTransformation);
    }
    else
    {
       fprintf(stderr, "No transformation has been provided.\n");
-      return 1;
+      return EXIT_FAILURE;
    }
 
    /* *************************** */
@@ -233,20 +253,20 @@ int main(int argc, char **argv)
    /* *************************** */
    // Create a deformation field if needed
    nifti_image *referenceImage=NULL;
-   if(inputTransformation->intent_p1==SPLINE_GRID ||
+   if(inputTransformation->intent_p1==LIN_SPLINE_GRID ||
+         inputTransformation->intent_p1==CUB_SPLINE_GRID ||
          inputTransformation->intent_p1==SPLINE_VEL_GRID){
       if(!flag->refImageFlag){
          reg_print_msg_error("A reference image has to be specified with a spline parametrisation.");
-         reg_exit(1);
+         reg_exit();
       }
       // Read the reference image
       referenceImage = reg_io_ReadImageHeader(param->refImageName);
       if(referenceImage == NULL)
       {
          reg_print_msg_error("Error when reading the reference image.");
-         reg_exit(1);
+         reg_exit();
       }
-      reg_checkAndCorrectDimension(referenceImage);
    }
 
    if(flag->outputJacDetFlag || flag->outputLogDetFlag){
@@ -282,7 +302,8 @@ int main(int argc, char **argv)
       case DEF_VEL_FIELD:
          reg_defField_GetJacobianDetFromFlowField(jacobianImage,inputTransformation);
          break;
-      case SPLINE_GRID:
+      case LIN_SPLINE_GRID:
+      case CUB_SPLINE_GRID:
          reg_spline_GetJacobianMap(inputTransformation,jacobianImage);
          break;
       case SPLINE_VEL_GRID:
@@ -338,7 +359,8 @@ int main(int argc, char **argv)
       case DEF_VEL_FIELD:
          reg_defField_GetJacobianMatFromFlowField(jacobianMatriceArray,inputTransformation);
          break;
-      case SPLINE_GRID:
+      case LIN_SPLINE_GRID:
+      case CUB_SPLINE_GRID:
          reg_spline_GetJacobianMatrix(jacobianImage,inputTransformation,jacobianMatriceArray);
          break;
       case SPLINE_VEL_GRID:
@@ -363,5 +385,3 @@ int main(int argc, char **argv)
 
    return EXIT_SUCCESS;
 }
-
-#endif

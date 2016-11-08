@@ -7,39 +7,43 @@
 --------------------------------
 1 WHAT DOES THE PACKAGE CONTAIN?
 --------------------------------
-The code contains programs to perform rigid, affine and non-linearregistration
-of 3D images.
+The code contains programs to perform rigid, affine and non-linear registration
+of 2D and 3D images stored as Nifti (nii).
 
+The rigid and affine registration are performed using an algorithm initially
+presented by Ourselin et al.[1]. The symmetric versions of the rigid and
+affine registration have been presented in Modat et al.[2].
+The non-linear registration is based on the work is based on the work initially
+presented by Rueckert et al.[3]. The current implementation has been presented
+in Modat et al.[4].
 
-The rigid and afiine registration are performed using an algorithm presented by
-Ourselin et al.[1, 2]; whereas the non-rigid registration is based on the work
-of Modat et al.[3].
-
-Ourselin et al.[1, 2] presented an algorithm called Aladin, which is based on
+Ourselin et al.[1] presented an algorithm called Aladin, which is based on
 a block-matching approach and a Trimmed Least Square (TLS) scheme. Firstly,
-the block matching provides a set of corresponding points between a target and
-a source image. Secondly, using this set of corresponding points, the best
-rigid or affine transformation is evaluated. This two-step loop is repeated
-until convergence to the best transformation.
+the block matching provides a set of corresponding points between a reference
+and a warped floating image. Secondly, using this set of corresponding points,
+the best rigid or affine transformation is evaluated. This two-step loop is
+repeated until convergence to the best transformation.
 In our implementation, we used the normalised cross-correlation between the
-target and source blocks to extract the best correspondence. The block width
-is constant and has been set to 4 voxels. A coarse-to-ﬁne approach is used,
-where the registration is ﬁrst performed on down-sampled images (using a
-Gaussian ﬁlter to resample images) and finally performed on full resolution
-images.
+reference and warped floating blocks to extract the best correspondence. The
+block width is constant and has been set to 4 pixels or voxels. A coarse-to-
+ﬁne approach is used, where the registration is ﬁrst performed on down-sampled
+images (using a Gaussian pyramid) and finally performed on full resolution
+images. The symmetric approach optimises concurrently forward and backward
+transformations.
 reg aladin is the name of the command to perform rigid or affine registration.
 
 The non-rigid algorithm implementation is based on the Free-From Deformation
-presented by Rueckert et al.[4]. However, the algorithm has been re-factored
-in order to speed-up registration. The deformation of the source image is
+presented by Rueckert et al.[3]. However, the algorithm has been re-factored
+in order to speed-up registration. The deformation of the floating image is
 performed using cubic B-splines to generate the deformation ﬁeld. Concretely,
-a lattice of equally spaced control points is defined over the target image
-and moving each point allows to locally modify the mapping to the source image.
-In order to assess the quality of the warping between both input images, an
-objective function composed from the Normalised Mutual Information (NMI) and
-the Bending-Energy (BE) is used. The ob jective function value is optimised
+a lattice of equally spaced control points is defined over the reference image
+and moving each point allows to locally modify the mapping to the floating
+image. In order to assess the quality of the warping between both input images,
+an objective function composed from the Normalised Mutual Information (NMI) and
+the Bending-Energy (BE) is used. The objective function value is optimised
 using the analytical derivative of both, the NMI and the BE within a conjugate
-gradient scheme.
+gradient scheme. The symmetric version of the algorithm takes advantage of
+stationary velocity field parametrisation.
 reg f3d is the command to perform non-linear registration.
 
 A third program, called reg resample, is been embedded in the package. It
@@ -54,93 +58,22 @@ The nifti library (http://nifti.nimh.nih.gov/) is used to read and write
 images. The code is thus dealing with nifti and analyse formats.
 
 If you are planning to use any of our research, we would be grateful if you
-would be kind enough to cite reference(s) 1, 2 (rigid or affine) and/or
-3 (non-rigid).
-
-##############################################################################
-
------------------------
-2 HOW TO BUILD THE CODE
------------------------
-The code can be easily build using cmake (http://www.cmake.org/). The latest 
-version can be downloaded from http://www.cmake.org/cmake/resources/software.html
-Assuming that the code source are in the source path folder, you will have 
-to ﬁrst create a new folder, i.e. build path (#1) and then to change 
-directory to move into that folder (#2).
-#1 >> mkdir build path 
-#2 >> cd build path 
-
-There you will need to call ccmake (#3a) in order to ﬁll in the 
-build options. If you don’t want to specify options, we could just use cmake 
-(#3b) and the default build values will be used.
-#3a >> ccmake source path
-#3b >> cmake source path
-
-The main option in the ccmake gui are deﬁned bellow:
->BUILD ALADIN if this ﬂag is set to ON, the reg aladin command will be created
->BUILD F3D if this ﬂag is set to ON, the reg f3d command will be created 
->BUILD RESAMPLE if this ﬂag is set to ON, the reg resample command will be
-created 
->CMAKE BUILD INSTALL options are Release, RelWithDebInfo or Debug 
->USE CUDA if the ﬂag is set to ON, both version CPU and GPU version can be
-used; otherwise, only the CPU version is compiled 
->USE DEBUG if the ﬂag is set to ON, the program will print out some information
-which are only used to debug 
->USE SSE if the ﬂag is set to ON, the spline computation will be perform using
-sse in order to speed-up to processing
-
-If the USE CUDA ﬂag is ON, some other informations will be require to use the
-Cuda compiler. The ﬂag CUDA TOOL ROOT DIR expect the path to the 
-cuda installation (/usr/local/cuda for example) and the CUDA TOOLKIT ROOT DIR 
-expected the path the cuda SDK installation (/usr/local/cuda-sdk/C for example). 
-Once all the ﬂags are properly ﬁlled in, just press the ”c” to conﬁgure the Make- 
-ﬁle and then the ”g” key to generate them. In the prompt, you just have to 
-make (#4) ﬁrst and then make install (#5).
-#4 >> make 
-#5 >> make install 
+would be kind enough to cite reference(s) 2 (rigid or affine) and/or
+4 (non-rigid).
 
 ##############################################################################
 
 ---------
-3 EXAMPLE
----------
-In this example, we will register two nifti images called target img.nii and 
-source img.nii. 
-Firstly, we perform an affine registration using reg aladin using the following
-command line: 
-# reg aladin -target target img.nii -source source img.nii ...
- -aff source-to-target_affine.txt 
-More options can be speciﬁed, for more details, use the command: 
-# reg aladin -help 
-Secondly, we will perform a non-rigid registration between the two previous 
-images and the warping will be initialised by the previously found affine
-transformation: 
-# reg f3d -target target img.nii -source source img.nii ...
- -aff source-to-target_affine.txt -cpp source-to-target cpp.nii ...
- -result source-to-target warped.nii 
-As previously, more details can be found using the command: 
-# reg f3d -help 
-Lastly, the control point position image will be used to generate the Jacobian
-map of the transformation. This will be done using: 
-# reg resample -target target img.nii -source source img.nii ...
- -cpp source-to-target cpp.nii -jac source-to-target jac.nii 
-Once again, the ”-help” argument gives more details about the options. Please
-note that the affine matrix does not need to be speciﬁed. We choose to include
-the affine transformation in the control point position image. 
-
-##############################################################################
-
----------
-4 LICENSE
+2 LICENSE
 ---------
 Copyright (c) 2009, University College London, United-Kingdom
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
+Redistribution and use in floating and binary forms, with or without
 modification,
 are permitted provided that the following conditions are met:
 
-Redistributions of source code must retain the above copyright notice,
+Redistributions of floating code must retain the above copyright notice,
 this list of conditions and the following disclaimer.
 Redistributions in binary form must reproduce the above copyright notice,
 this list of conditions and the following disclaimer in the documentation
@@ -165,27 +98,26 @@ THE POSSIBILITY OF SUCH DAMAGE.
 ##############################################################################
 
 ---------
-5 CONTACT
+3 CONTACT
 ---------
 For any comment, please, feel free to contact Marc Modat (m.modat@ucl.ac.uk).
 
 ##############################################################################
 
 ------------
-6 REFERENCES
+4 REFERENCES
 ------------
-[1] Sebastien Ourselin, A Roche, G Subsol, Xavier Pennec, and Nicholas Ayache.
-Reconstructing a 3d structure from serial histological sections. Image 
-and Vision Computing, 19(1-2):25–31, 2001. 
-[2] Robust registration of multi-modal images: Towards real-time clinical
-applications, 2002. 
-[3] Marc Modat, Gerard G Ridgway, Zeike A Taylor, Manja Lehmann, 
-Josephine Barnes, Nick C Fox, David J Hawkes, and S´ebastien Ourselin. 
-Fast free-form deformation using graphics processing units. Comput Meth 
-Prog Bio, accepted. 
-[4] D. Rueckert, L.I. Sonoda, C. Hayes, D.L.G. Hill, M.O. Leach, and D.J. 
-Hawkes. Nonrigid Registration Using Free-Form Deformations: Application 
-to Breast MR Images. IEEE Trans. Med. Imag., 18:712–721, 1999.
+[1] Ourselin, et al. (2001). Reconstructing a 3D structure from serial
+histological sections. Image and Vision Computing, 19(1-2), 25–31.
+[2] Modat, et al. (2014). Global image registration using a symmetric block-
+matching approach. Journal of Medical Imaging, 1(2), 024003–024003.
+doi:10.1117/1.JMI.1.2.024003
+[3] Rueckert, et al.. (1999). Nonrigid registration using free-form
+deformations: Application to breast MR images. IEEE Transactions on Medical
+Imaging, 18(8), 712–721. doi:10.1109/42.796284
+[4] Modat, et al. (2010). Fast free-form deformation using graphics processing
+units. Computer Methods And Programs In Biomedicine,98(3), 278–284.
+doi:10.1016/j.cmpb.2009.09.002
 
 ##############################################################################
 ##############################################################################

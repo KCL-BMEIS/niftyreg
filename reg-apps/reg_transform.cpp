@@ -9,15 +9,14 @@
  *
  */
 
-#ifndef _MM_TRANSFORM_CPP
-#define _MM_TRANSFORM_CPP
-
 #include "_reg_ReadWriteImage.h"
+#include "_reg_ReadWriteMatrix.h"
 #include "_reg_resampling.h"
-#include "_reg_globalTransformation.h"
-#include "_reg_localTransformation.h"
+#include "_reg_globalTrans.h"
+#include "_reg_localTrans.h"
 #include "_reg_tools.h"
 #include "_reg_thinPlateSpline.h"
+#include "_reg_maths_eigen.h"
 
 #include "reg_transform.h"
 
@@ -106,7 +105,7 @@ void Usage(char *exec)
    printf("\t-invNrr <filename1> <filename2> <filename3>\n");
    printf("\t\tInvert a non-rigid transformation and save the result as a deformation field.\n");
    printf("\t\tfilename1 - Input transformation file name\n");
-   printf("\t\tfilename2 - Input floating (source) image where the inverted transformation is defined\n");
+   printf("\t\tfilename2 - Input floating image where the inverted transformation is defined\n");
    printf("\t\tfilename3 - Output inverted transformation file name\n");
    printf("\t\tNote that the cubic b-spline grid parametrisations can not be inverted without approximation,\n");
    printf("\t\tas a result, they are converted into deformation fields before inversion.\n\n");
@@ -130,10 +129,17 @@ void Usage(char *exec)
    printf("\t\tfilename2 - Image used as a reference (-ref arg in FLIRT)\n");
    printf("\t\tfilename3 - Image used as a floating (-in arg in FLIRT)\n");
    printf("\t\tfilename4 - Output affine transformation file name\n\n");
-
-#ifdef _GIT_HASH
-   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
+#if defined (_OPENMP)
+   int defaultOpenMPValue=omp_get_num_procs();
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   char text[255];
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
+   reg_print_info(exec, text);
 #endif
+   printf("\t--version\t\tPrint current version and exit");
+   printf("\t\t\t\t(%s)",NR_VERSION);
 
    printf("\t* The supported transformation types are:\n");
    printf("\t\t- cubic B-Spline parametrised grid (reference image is required)\n");
@@ -153,12 +159,20 @@ int main(int argc, char **argv)
    if(argc==1)
    {
       PetitUsage(argv[0]);
-      return 0;
+      return EXIT_SUCCESS;
    }
 
    // Set the variables used to store the parsed data
    PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
+
+#if defined (_OPENMP)
+   // Set the default number of thread
+   int defaultOpenMPValue=omp_get_num_procs();
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
+#endif
 
    // Parse the input data
    for(int i=1; i<argc; ++i)
@@ -172,17 +186,24 @@ int main(int argc, char **argv)
          free(param);
          free(flag);
          Usage(argv[0]);
-         return 0;
+         return EXIT_SUCCESS;
       }
-#ifdef _GIT_HASH
+      else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
+      {
+#if defined (_OPENMP)
+         omp_set_num_threads(atoi(argv[++i]));
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
+#endif
+      }
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
             strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",_GIT_HASH);
+         printf("%s\n",NR_VERSION);
          return EXIT_SUCCESS;
       }
-#endif
       else if(strcmp(argv[i],"-ref")==0 || strcmp(argv[i],"--ref")==0 || strcmp(argv[i],"-target")==0)
       {
          flag->referenceImageFlag=true;
@@ -270,7 +291,7 @@ int main(int argc, char **argv)
       {
          fprintf(stderr, "[NiftyReg ERROR] Unrecognised argument: %s\n",
                  argv[i]);
-         return 1;
+         return EXIT_FAILURE;
       }
    }
 
@@ -292,11 +313,11 @@ int main(int argc, char **argv)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the provided transformation: %s\n",
                     param->inputTransName);
-            return 1;
+            return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(inputTransformationImage);
          // If the input transformation is a grid, check that the reference image has been specified
-         if(inputTransformationImage->intent_p1==SPLINE_GRID ||
+         if(inputTransformationImage->intent_p1==LIN_SPLINE_GRID ||
+               inputTransformationImage->intent_p1==CUB_SPLINE_GRID ||
                inputTransformationImage->intent_p1==SPLINE_VEL_GRID)
          {
             if(!flag->referenceImageFlag)
@@ -304,16 +325,15 @@ int main(int argc, char **argv)
                fprintf(stderr, "[NiftyReg ERROR] When using a control point grid parametrisation (%s),",
                        param->inputTransName);
                fprintf(stderr, " a reference image shoud be specified (-ref flag).\n");
-               return 1;
+               return EXIT_FAILURE;
             }
             referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
             if(referenceImage==NULL)
             {
                fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                        param->referenceImageName);
-               return 1;
+               return EXIT_FAILURE;
             }
-            reg_checkAndCorrectDimension(referenceImage);
          }
       }
       else
@@ -326,20 +346,20 @@ int main(int argc, char **argv)
             fprintf(stderr, "[NiftyReg ERROR] When using an affine transformation (%s),",
                     param->inputTransName);
             fprintf(stderr, " a reference image shoud be specified (-ref flag).\n");
-            return 1;
+            return EXIT_FAILURE;
          }
          referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
          if(referenceImage==NULL)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                     param->referenceImageName);
-            return 1;
+            return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(referenceImage);
       }
       // Create a dense field
       if(affineTransformation!=NULL ||
-            inputTransformationImage->intent_p1==SPLINE_GRID ||
+            inputTransformationImage->intent_p1==LIN_SPLINE_GRID ||
+            inputTransformationImage->intent_p1==CUB_SPLINE_GRID ||
             inputTransformationImage->intent_p1==SPLINE_VEL_GRID)
       {
          // Create a field image from the reference image
@@ -372,22 +392,27 @@ int main(int argc, char **argv)
          if(affineTransformation!=NULL)
          {
             fprintf(stderr,"[NiftyReg ERROR] A flow field transformation can not be generated from an affine transformation\n");
-            return 1;
+            return EXIT_FAILURE;
          }
-         if(inputTransformationImage->intent_p1==SPLINE_GRID)
+         if(inputTransformationImage->intent_p1==LIN_SPLINE_GRID)
+         {
+            fprintf(stderr,"[NiftyReg ERROR] A flow field transformation can not be generated from a linear spline grid\n");
+            return EXIT_FAILURE;
+         }
+         if(inputTransformationImage->intent_p1==CUB_SPLINE_GRID)
          {
             fprintf(stderr,"[NiftyReg ERROR] A flow field transformation can not be generated from a cubic spline grid\n");
-            return 1;
+            return EXIT_FAILURE;
          }
          if(inputTransformationImage->intent_p1==DEF_FIELD)
          {
             fprintf(stderr,"[NiftyReg ERROR] A flow field transformation can not be generated from a deformation field\n");
-            return 1;
+            return EXIT_FAILURE;
          }
          if(inputTransformationImage->intent_p1==DISP_FIELD)
          {
             fprintf(stderr,"[NiftyReg ERROR] A flow field transformation can not be generated from a displacement field\n");
-            return 1;
+            return EXIT_FAILURE;
          }
          switch(static_cast<int>(inputTransformationImage->intent_p1))
          {
@@ -415,7 +440,7 @@ int main(int argc, char **argv)
             break;
          default:
             fprintf(stderr,"[NiftyReg ERROR] Unknown input transformation type\n");
-            return 1;
+            return EXIT_FAILURE;
          }
          outputTransformationImage->intent_p1=DEF_VEL_FIELD;
          outputTransformationImage->intent_p2=inputTransformationImage->intent_p2;
@@ -446,7 +471,8 @@ int main(int argc, char **argv)
                       outputTransformationImage->nvox*outputTransformationImage->nbyper);
                reg_getDeformationFromDisplacement(outputTransformationImage);
                break;
-            case SPLINE_GRID:
+            case LIN_SPLINE_GRID:
+            case CUB_SPLINE_GRID:
                printf("[NiftyReg] The specified transformation is a spline parametrisation:\n[NiftyReg] %s\n",
                       inputTransformationImage->fname);
                // The output field is filled with an identity deformation field
@@ -493,7 +519,7 @@ int main(int argc, char **argv)
                break;
             default:
                fprintf(stderr,"[NiftyReg ERROR] Unknown input transformation type\n");
-               return 1;
+               return EXIT_FAILURE;
             }
          }
          outputTransformationImage->intent_p1=DEF_FIELD;
@@ -555,9 +581,8 @@ int main(int argc, char **argv)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the transformation image: %s\n",
                     param->inputTransName);
-            return 1;
+            return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(input1TransImage);
       }
       // Read the second transformation
       if(!reg_isAnImageFileName(param->input2TransName))
@@ -572,9 +597,8 @@ int main(int argc, char **argv)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the transformation image: %s\n",
                     param->input2TransName);
-            return 1;
+            return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(input2TransImage);
       }
       // Check if the two input transformations are affine transformation
       if(affine1Trans!=NULL && affine2Trans!=NULL)
@@ -594,34 +618,34 @@ int main(int argc, char **argv)
                fprintf(stderr, "[NiftyReg ERROR] When using an affine transformation (%s),",
                        param->inputTransName);
                fprintf(stderr, " a reference image shoud be specified (-res flag).\n");
-               return 1;
+               return EXIT_FAILURE;
             }
             referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
             if(referenceImage==NULL)
             {
                fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                        param->referenceImageName);
-               return 1;
+               return EXIT_FAILURE;
             }
-            reg_checkAndCorrectDimension(referenceImage);
          }
-         else if(input1TransImage->intent_p1==SPLINE_GRID || input1TransImage->intent_p1==SPLINE_VEL_GRID)
+         else if(input1TransImage->intent_p1==LIN_SPLINE_GRID ||
+                 input1TransImage->intent_p1==CUB_SPLINE_GRID ||
+                 input1TransImage->intent_p1==SPLINE_VEL_GRID)
          {
             if(!flag->referenceImageFlag)
             {
                fprintf(stderr, "[NiftyReg ERROR] When using an cubic b-spline parametrisation (%s),",
                        param->inputTransName);
                fprintf(stderr, " a reference image shoud be specified (-ref flag).\n");
-               return 1;
+               return EXIT_FAILURE;
             }
             referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
             if(referenceImage==NULL)
             {
                fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                        param->referenceImageName);
-               return 1;
+               return EXIT_FAILURE;
             }
-            reg_checkAndCorrectDimension(referenceImage);
          }
          // Read the second reference image if specified
          if(flag->referenceImage2Flag==true)
@@ -631,7 +655,7 @@ int main(int argc, char **argv)
             {
                fprintf(stderr, "[NiftyReg ERROR] Error when reading the second reference image: %s\n",
                        param->referenceImage2Name);
-               return 1;
+               return EXIT_FAILURE;
             }
          }
          // Generate the first deformation field
@@ -671,8 +695,9 @@ int main(int argc, char **argv)
             reg_affine_getDeformationField(affine1Trans,output1TransImage);
          }
          else switch(reg_round(input1TransImage->intent_p1))
-            {
-            case SPLINE_GRID:
+         {
+         case LIN_SPLINE_GRID:
+         case CUB_SPLINE_GRID:
                printf("[NiftyReg] Transformation 1 is a spline parametrisation:\n[NiftyReg] %s\n",
                       input1TransImage->fname);
                reg_tools_multiplyValueToImage(output1TransImage,output1TransImage,0.f);
@@ -725,7 +750,7 @@ int main(int argc, char **argv)
             default:
                fprintf(stderr,"[NiftyReg ERROR] The specified first input transformation type is not recognised: %s\n",
                        param->input2TransName);
-               return 1;
+               return EXIT_FAILURE;
             }
          if(affine2Trans!=NULL)
          {
@@ -746,7 +771,8 @@ int main(int argc, char **argv)
          {
             switch(reg_round(input2TransImage->intent_p1))
             {
-            case SPLINE_GRID:
+            case LIN_SPLINE_GRID:
+            case CUB_SPLINE_GRID:
                printf("[NiftyReg] Transformation 2 is a spline parametrisation:\n[NiftyReg] %s\n",
                       input2TransImage->fname);
                reg_spline_getDeformationField(input2TransImage,
@@ -829,7 +855,7 @@ int main(int argc, char **argv)
             default:
                fprintf(stderr,"[NiftyReg ERROR] The specified second input transformation type is not recognised: %s\n",
                        param->input2TransName);
-               return 1;
+               return EXIT_FAILURE;
             }
          }
          // Save the composed transformation
@@ -859,9 +885,8 @@ int main(int argc, char **argv)
       {
          fprintf(stderr,"[NiftyReg ERROR] Error when reading the input image: %s\n",
                  param->inputTransName);
-         return 1;
+         return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(image);
       // Read the affine transformation
       mat44 *affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
       reg_tool_ReadAffineFile(affineTransformation,
@@ -915,12 +940,12 @@ int main(int argc, char **argv)
          {
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the input image: %s\n",
                     param->inputTransName);
-            return 1;
+            return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(inputTransImage);
          switch(reg_round(inputTransImage->intent_p1))
          {
-         case SPLINE_GRID:
+         case LIN_SPLINE_GRID:
+         case CUB_SPLINE_GRID:
             reg_getDisplacementFromDeformation(inputTransImage);
             reg_tools_multiplyValueToImage(inputTransImage,inputTransImage,0.5f);
             reg_getDeformationFromDisplacement(inputTransImage);
@@ -954,7 +979,7 @@ int main(int argc, char **argv)
          default:
             fprintf(stderr,"[NiftyReg ERROR] The specified input transformation type is not recognised: %s\n",
                     param->inputTransName);
-            return 1;
+            return EXIT_FAILURE;
          }
          // Save the image
          reg_io_WriteImageFile(inputTransImage,param->outputTransName);
@@ -973,18 +998,16 @@ int main(int argc, char **argv)
       {
          fprintf(stderr,"[NiftyReg ERROR] Error when reading the input image: %s\n",
                  param->inputTransName);
-         return 1;
+         return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(inputTransImage);
       // Read the provided floating space image
       nifti_image *floatingImage = reg_io_ReadImageFile(param->input2TransName);
       if(floatingImage==NULL)
       {
          fprintf(stderr,"[NiftyReg ERROR] Error when reading the input image: %s\n",
                  param->input2TransName);
-         return 1;
+         return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(floatingImage);
       // Create a field to store the transformation
       nifti_image *outputTransImage=nifti_copy_nim_info(floatingImage);
       outputTransImage->ndim=outputTransImage->dim[0]=5;
@@ -1005,7 +1028,9 @@ int main(int argc, char **argv)
       outputTransImage->data=(void *)malloc
                              (outputTransImage->nvox*outputTransImage->nbyper);
       // Convert the spline parametrisation into a dense deformation parametrisation
-      if(inputTransImage->intent_p1==SPLINE_GRID || inputTransImage->intent_p1==SPLINE_VEL_GRID)
+      if(inputTransImage->intent_p1==LIN_SPLINE_GRID ||
+            inputTransImage->intent_p1==CUB_SPLINE_GRID ||
+            inputTransImage->intent_p1==SPLINE_VEL_GRID)
       {
          // Read the reference image
          if(!flag->referenceImageFlag)
@@ -1013,16 +1038,15 @@ int main(int argc, char **argv)
             fprintf(stderr, "[NiftyReg ERROR] When using an spline parametrisation transformation (%s),",
                     param->inputTransName);
             fprintf(stderr, " a reference image shoud be specified (-res flag).\n");
-            return 1;
+            return EXIT_FAILURE;
          }
          nifti_image *referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
          if(referenceImage==NULL)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                     param->referenceImageName);
-            return 1;
+            return EXIT_FAILURE;
          }
-         reg_checkAndCorrectDimension(referenceImage);
          // Create a deformation field or a flow field
          nifti_image *tempField=nifti_copy_nim_info(referenceImage);
          tempField->ndim=tempField->dim[0]=5;
@@ -1045,7 +1069,8 @@ int main(int argc, char **argv)
          tempField->scl_inter=0.f;
          tempField->data=(void *)calloc(tempField->nvox,tempField->nbyper);
          // Compute the dense field
-         if(inputTransImage->intent_p1==SPLINE_GRID)
+         if(inputTransImage->intent_p1==LIN_SPLINE_GRID ||
+               inputTransImage->intent_p1==CUB_SPLINE_GRID)
             reg_spline_getDeformationField(inputTransImage,
                                            tempField,
                                            NULL,
@@ -1108,7 +1133,7 @@ int main(int argc, char **argv)
       default:
          fprintf(stderr,"[NiftyReg ERROR] The specified input transformation type is not recognised: %s\n",
                  param->inputTransName);
-         return 1;
+         return EXIT_FAILURE;
       }
       // Save the inverted transformation
       reg_io_WriteImageFile(outputTransImage,param->outputTransName);
@@ -1213,7 +1238,5 @@ int main(int argc, char **argv)
    free(param);
    free(flag);
 
-   return 0;
+   return EXIT_SUCCESS;
 }
-
-#endif

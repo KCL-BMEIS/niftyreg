@@ -14,6 +14,7 @@
 #include "_reg_tools.h"
 #include "float.h"
 #include <limits>
+#include <cmath>
 #include <string.h>
 
 #ifdef _WINDOWS
@@ -161,7 +162,7 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
          Usage(argv[0]);
-         return 0;
+         return EXIT_SUCCESS;
       }
 #ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
@@ -226,7 +227,7 @@ int main(int argc, char **argv)
          }
          nifti_image_free(source);
          nifti_image_free(makesource);
-         return 0;
+         return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "-pmask") == 0)
       {
@@ -363,7 +364,7 @@ int main(int argc, char **argv)
    }
    if(flag->makesourcex)
    {
-      return 0;  // stop if being used to concatenate 3D images into 4D object.
+      return EXIT_SUCCESS;  // stop if being used to concatenate 3D images into 4D object.
    }
    if(flag->tp)
    {
@@ -374,14 +375,14 @@ int main(int argc, char **argv)
    {
       fprintf(stderr,"Error:\tAt least define a source image!\n");
       Usage(argv[0]);
-      return 1;
+      return EXIT_FAILURE;
    }
 
    nifti_image *image = nifti_image_read(param->sourceImageName,true);
    if(image == NULL)
    {
       fprintf(stderr,"* ERROR Error when reading image: %s\n",param->sourceImageName);
-      return 1;
+      return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<PrecisionTYPE>(image); // FIX DATA TYPE - DOES THIS WORK?
 
@@ -393,7 +394,7 @@ int main(int argc, char **argv)
       if(mask == NULL)
       {
          fprintf(stderr,"* ERROR Error when reading image: %s\n",param->pcaMaskName);
-         return 1;
+         return EXIT_FAILURE;
       }
       reg_tools_changeDatatype<PrecisionTYPE>(mask);
    }
@@ -583,7 +584,7 @@ int main(int argc, char **argv)
          if(l>0)
          {
             for(k=0; k<i; k++)
-               scale+=abs(z[i+n*k]);
+               scale+=std::abs(z[i+n*k]);
             if (scale==0.0)
                e[i]=z[i+n*l];
             else
@@ -672,15 +673,15 @@ int main(int argc, char **argv)
          {
             for (m=l; m<n-1; m++)
             {
-               dd=abs(d[m])+abs(d[m+1]);
-               if(abs(e[m])<=EPS*dd) break;
+               dd=std::abs(d[m])+std::abs(d[m+1]);
+               if(std::abs(e[m])<=EPS*dd) break;
             }
             if(m!=l)
             {
                if(iter++==30) break;
                g=(d[l+1]-d[l])/(2.0*e[l]);
                r=sqrt(g*g+1.0);
-               g=d[m]-d[l]+e[l]/(g+abs(r)*g/abs(g));
+               g=d[m]-d[l]+e[l]/(g+std::abs(r)*g/std::abs(g));
                s=c=1.0;
                p=0.0;
                for (i=m-1; i>=l; i--)
@@ -1098,5 +1099,5 @@ int main(int argc, char **argv)
    free( flag );
    free( param );
 
-   return 0;
+   return EXIT_SUCCESS;
 }

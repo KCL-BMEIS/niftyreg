@@ -9,18 +9,14 @@
  *
  */
 
-#ifndef _REG_MEASURE_CPP
-#define _REG_MEASURE_CPP
-
-#include <limits>
-
 #include "_reg_ReadWriteImage.h"
 #include "_reg_resampling.h"
 #include "_reg_tools.h"
 #include "_reg_nmi.h"
 #include "_reg_dti.h"
 #include "_reg_ssd.h"
-#include "_reg_KLdivergence.h"
+#include "_reg_mind.h"
+#include "_reg_kld.h"
 #include "_reg_lncc.h"
 
 typedef struct
@@ -43,6 +39,7 @@ typedef struct
    bool returnSSDFlag;
    bool returnLNCCFlag;
    bool returnNCCFlag;
+   bool returnMINDFlag;
    bool outFileFlag;
 } FLAG;
 
@@ -68,9 +65,17 @@ void Usage(char *exec)
    printf("\t-nmi\t\tReturns the NMI value (64 bins are used)\n");
    printf("\t-ssd\t\tReturns the SSD value\n");
    printf("\n\t-out\t\tText file output where to store the value(s).\n\t\t\tThe stdout is used by default\n");
-#ifdef _GIT_HASH
-   printf("\n\t--version\tPrint current source code git hash key and exit\n\t\t\t(%s)\n",_GIT_HASH);
+#if defined (_OPENMP)
+   int defaultOpenMPValue=omp_get_num_procs();
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   char text[255];
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+          defaultOpenMPValue, omp_get_num_procs());
+   reg_print_info(exec, text);
 #endif
+   printf("\t--version\t\tPrint current version and exit");
+   printf("\t\t\t\t(%s)",NR_VERSION);
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }
@@ -83,6 +88,14 @@ int main(int argc, char **argv)
    param->interpolation=3; // Cubic spline interpolation used by default
    param->paddingValue=std::numeric_limits<float>::quiet_NaN();
 
+#if defined (_OPENMP)
+   // Set the default number of thread
+   int defaultOpenMPValue=omp_get_num_procs();
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   omp_set_num_threads(defaultOpenMPValue);
+#endif
+
    /* read the input parameter */
    for(int i=1; i<argc; i++)
    {
@@ -91,14 +104,22 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
          Usage(argv[0]);
-         return 0;
+         return EXIT_SUCCESS;
       }
 //      else if(strcmp(argv[i], "--xml")==0)
 //      {
 //         printf("%s",xml_measure);
-//         return 0;
+//         return exit_success;
 //      }
-#ifdef _GIT_HASH
+      else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
+      {
+#if defined (_OPENMP)
+         omp_set_num_threads(atoi(argv[++i]));
+#else
+         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         ++i;
+#endif
+      }
       else if( strcmp(argv[i], "-version")==0 ||
             strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 ||
@@ -106,10 +127,9 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--v")==0 ||
             strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",_GIT_HASH);
+         printf("%s\n",NR_VERSION);
          return EXIT_SUCCESS;
       }
-#endif
       else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||
               (strcmp(argv[i],"--ref")==0))
       {
@@ -164,6 +184,11 @@ int main(int argc, char **argv)
       {
          flag->returnSSDFlag=true;
       }
+      else if(strcmp(argv[i], "-mind") == 0 ||
+              (strcmp(argv[i],"--mind")==0))
+      {
+         flag->returnMINDFlag=true;
+      }
       else if(strcmp(argv[i], "-out") == 0 ||
               (strcmp(argv[i],"--out")==0))
       {
@@ -174,7 +199,7 @@ int main(int argc, char **argv)
       {
          fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
          PetitUsage(argv[0]);
-         return 1;
+         return EXIT_FAILURE;
       }
    }
 
@@ -182,7 +207,7 @@ int main(int argc, char **argv)
    {
       fprintf(stderr,"[NiftyReg ERROR] The reference and the floating image have both to be defined.\n");
       PetitUsage(argv[0]);
-      return 1;
+      return EXIT_FAILURE;
    }
 
    /* Read the reference image */
@@ -191,9 +216,8 @@ int main(int argc, char **argv)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",
               param->refImageName);
-      return 1;
+      return EXIT_FAILURE;
    }
-   reg_checkAndCorrectDimension(refImage);
    reg_tools_changeDatatype<float>(refImage);
 
    /* Read the floating image */
@@ -202,9 +226,8 @@ int main(int argc, char **argv)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n",
               param->floImageName);
-      return 1;
+      return EXIT_FAILURE;
    }
-   reg_checkAndCorrectDimension(floImage);
    reg_tools_changeDatatype<float>(floImage);
 
    /* Read and create the mask array */
@@ -216,9 +239,8 @@ int main(int argc, char **argv)
       {
          fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference mask image: %s\n",
                  param->refMaskImageName);
-         return 1;
+         return EXIT_FAILURE;
       }
-      reg_checkAndCorrectDimension(refMaskImage);
       reg_createMaskPyramid<float>(refMaskImage, &refMask, 1, 1, &refMaskVoxNumber);
    }
    else{
@@ -358,6 +380,23 @@ int main(int argc, char **argv)
       else printf("SSD: %g\n", measure);
       delete ssd_object;
    }
+   /* Compute the MIND SSD if required */
+   if(flag->returnMINDFlag){
+      reg_mind *mind_object=new reg_mind();
+      for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
+         mind_object->SetActiveTimepoint(i);
+      mind_object->InitialiseMeasure(refImage,
+                                    warpedFloImage,
+                                    refMask,
+                                    warpedFloImage,
+                                    NULL,
+                                    NULL);
+      double measure=mind_object->GetSimilarityMeasureValue();
+      if(outFile!=NULL)
+         fprintf(outFile, "%g\n", measure);
+      else printf("MIND: %g\n", measure);
+      delete mind_object;
+   }
 
    // Close the output file if required
    if(outFile!=NULL)
@@ -370,7 +409,5 @@ int main(int argc, char **argv)
 
    free(flag);
    free(param);
-   return 0;
+   return EXIT_SUCCESS;
 }
-
-#endif

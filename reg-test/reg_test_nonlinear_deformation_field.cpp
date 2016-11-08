@@ -1,5 +1,5 @@
 #include "_reg_ReadWriteImage.h"
-#include "_reg_localTransformation.h"
+#include "_reg_localTrans.h"
 #include "_reg_tools.h"
 
 #define EPS 0.000001

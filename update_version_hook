@@ -1,0 +1,19 @@
+#!/bin/sh
+
+echo "Update the build version number"
+version_file=`git rev-parse --show-toplevel`/niftyreg_build_version.txt
+if [ ! -f ${version_file} ]
+then
+	echo "Could not find ${version_file}. Abort"
+	exit 0
+fi
+current_val=$(cat ${version_file})
+if [ "${current_val}" == "" ]
+then
+	echo "File ${version_file} is empty. Abort"
+	exit 0
+fi
+new_val=`expr ${current_val} + 1`
+echo "Build version is updated from ${current_val} to ${new_val}"
+echo "${new_val}" > ${version_file}
+git add ${version_file}

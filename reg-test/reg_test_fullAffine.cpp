@@ -40,24 +40,30 @@ int main(int argc, char **argv)
    reg_aladin_sym<float> *affine=new reg_aladin_sym<float>();
    affine->SetInputReference(referenceImage);
    affine->SetInputFloating(floatingImage);
+   affine->setPlatformCode(NR_PLATFORM_CPU);
    affine->Run();
    mat44 differenceMatrix = *inputMatrix - *(affine->GetTransformationMatrix());
 
    // Cleaning up
-   free(inputMatrix);
-   delete affine;
    nifti_image_free(referenceImage);
    nifti_image_free(floatingImage);
 
    for(int i=0;i<4;++i){
       for(int j=0;j<4;++j){
-         if(differenceMatrix.m[i][j]>EPS){
+         if(fabsf(differenceMatrix.m[i][j])>EPS){
             fprintf(stderr, "reg_test_fullAffine error too large: %g (>%g)\n",
-                    differenceMatrix.m[i][j], EPS);
+                    fabs(differenceMatrix.m[i][j]), EPS);
+            reg_mat44_disp(inputMatrix, (char *)"Expected Matrix");
+            reg_mat44_disp(affine->GetTransformationMatrix(), (char *)"Obtained Matrix");
+            reg_mat44_disp(&differenceMatrix, (char *)"Difference Matrix");
+            free(inputMatrix);
+            delete affine;
             return EXIT_FAILURE;
          }
       }
    }
+   free(inputMatrix);
+   delete affine;
 
    return EXIT_SUCCESS;
 }

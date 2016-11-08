@@ -18,10 +18,7 @@
   * \sa cwiseAbs2()
   */
 EIGEN_STRONG_INLINE const CwiseUnaryOp<internal::scalar_abs_op<Scalar>, const Derived>
-cwiseAbs() const
-{
-   return derived();
-}
+cwiseAbs() const { return derived(); }
 
 /** \returns an expression of the coefficient-wise squared absolute value of \c *this
   *
@@ -31,10 +28,7 @@ cwiseAbs() const
   * \sa cwiseAbs()
   */
 EIGEN_STRONG_INLINE const CwiseUnaryOp<internal::scalar_abs2_op<Scalar>, const Derived>
-cwiseAbs2() const
-{
-   return derived();
-}
+cwiseAbs2() const { return derived(); }
 
 /** \returns an expression of the coefficient-wise square root of *this.
   *
@@ -44,10 +38,7 @@ cwiseAbs2() const
   * \sa cwisePow(), cwiseSquare()
   */
 inline const CwiseUnaryOp<internal::scalar_sqrt_op<Scalar>, const Derived>
-cwiseSqrt() const
-{
-   return derived();
-}
+cwiseSqrt() const { return derived(); }
 
 /** \returns an expression of the coefficient-wise inverse of *this.
   *
@@ -57,10 +48,7 @@ cwiseSqrt() const
   * \sa cwiseProduct()
   */
 inline const CwiseUnaryOp<internal::scalar_inverse_op<Scalar>, const Derived>
-cwiseInverse() const
-{
-   return derived();
-}
+cwiseInverse() const { return derived(); }
 
 /** \returns an expression of the coefficient-wise == operator of \c *this and a scalar \a s
   *
@@ -72,8 +60,8 @@ cwiseInverse() const
   * \sa cwiseEqual(const MatrixBase<OtherDerived> &) const
   */
 inline const CwiseUnaryOp<std::binder1st<std::equal_to<Scalar> >, const Derived>
-cwiseEqual(const Scalar &s) const
+cwiseEqual(const Scalar& s) const
 {
-   return CwiseUnaryOp<std::binder1st<std::equal_to<Scalar> >,const Derived>
+  return CwiseUnaryOp<std::binder1st<std::equal_to<Scalar> >,const Derived>
           (derived(), std::bind1st(std::equal_to<Scalar>(), s));
 }

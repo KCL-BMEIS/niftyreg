@@ -33,11 +33,9 @@
 #ifndef EIGEN_TRIANGULAR_SOLVER_MATRIX_MKL_H
 #define EIGEN_TRIANGULAR_SOLVER_MATRIX_MKL_H
 
-namespace Eigen
-{
+namespace Eigen {
 
-namespace internal
-{
+namespace internal {
 
 // implements LeftSide op(triangular)^-1 * general
 #define EIGEN_MKL_TRSM_L(EIGTYPE, MKLTYPE, MKLPREFIX) \

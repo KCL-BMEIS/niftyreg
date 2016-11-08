@@ -1,84 +1,292 @@
-#include "_reg_maths.h"
+#include "_reg_tools.h"
+#include "_reg_maths_eigen.h"
+#include "_reg_ReadWriteMatrix.h"
+#include <algorithm>
 
-#define EPS 0.00001
+#define EPS 0.000001
 
-int main()
+int main(int argc, char **argv)
 {
-   // Create the input matrices
-   size_t n=5;
-   size_t m=10;
-   float **matrix=NULL;
-   float *w=NULL;
-   float **v=NULL;
-
-   // Create the test matrices
-   float *res_w=NULL;
-   float **res_v=NULL;
-
-   // Allocate the matrices
-   matrix = (float **)malloc(m*sizeof(float*));
-   w = (float *)malloc(m*sizeof(float));
-   res_w = (float *)malloc(m*sizeof(float));
-   v = (float **)malloc(n*sizeof(float*));
-   res_v = (float **)malloc(n*sizeof(float*));
-   for(size_t i=0;i<m;++i){
-      matrix[i] = (float *)malloc(n*sizeof(float));
-   }
-   for(size_t i=0;i<n;++i){
-      v[i] = (float *)malloc(n*sizeof(float));
-      res_v[i] = (float *)malloc(n*sizeof(float));
+   //NOT REALLY PLATFORM... HAVE TO CHANGE THAT LATER
+   if (argc != 5) {
+      fprintf(stderr, "Usage: %s <inputSVDMatrix> <expectedUMatrix> <expectedSMatrix> <expectedVMatrix>\n", argv[0]);
+      return EXIT_FAILURE;
    }
 
-   // Set the matrices
-   matrix[0][0]=0.623716f;matrix[0][1]=0.193245f;matrix[0][2]=0.510153f;matrix[0][3]=0.485652f;matrix[0][4]=0.124774f;
-   matrix[1][0]=0.236445f;matrix[1][1]=0.895892f;matrix[1][2]=0.906364f;matrix[1][3]=0.894448f;matrix[1][4]=0.730585f;
-   matrix[2][0]=0.177124f;matrix[2][1]=0.0990896f;matrix[2][2]=0.628924f;matrix[2][3]=0.137547f;matrix[2][4]=0.646477f;
-   matrix[3][0]=0.829643f;matrix[3][1]=0.0441656f;matrix[3][2]=0.101534f;matrix[3][3]=0.390005f;matrix[3][4]=0.833152f;
-   matrix[4][0]=0.766922f;matrix[4][1]=0.557295f;matrix[4][2]=0.390855f;matrix[4][3]=0.927356f;matrix[4][4]=0.398282f;
-   matrix[5][0]=0.934478f;matrix[5][1]=0.772495f;matrix[5][2]=0.0546166f;matrix[5][3]=0.917494f;matrix[5][4]=0.749822f;
-   matrix[6][0]=0.107889f;matrix[6][1]=0.31194f;matrix[6][2]=0.501283f;matrix[6][3]=0.713574f;matrix[6][4]=0.835221f;
-   matrix[7][0]=0.182228f;matrix[7][1]=0.178982f;matrix[7][2]=0.431721f;matrix[7][3]=0.618337f;matrix[7][4]=0.32246f;
-   matrix[8][0]=0.0990953f;matrix[8][1]=0.338956f;matrix[8][2]=0.99756f;matrix[8][3]=0.343288f;matrix[8][4]=0.552262f;
-   matrix[9][0]=0.489764f;matrix[9][1]=0.210146f;matrix[9][2]=0.811603f;matrix[9][3]=0.936027f;matrix[9][4]=0.979129f;
-   res_v[0][0]=-0.368836f;res_v[0][1]=-0.66061f;res_v[0][2]=0.209725f;res_v[0][3]=0.560415f;res_v[0][4]=0.263637f;
-   res_v[1][0]=-0.326943f;res_v[1][1]=-0.0714797f;res_v[1][2]=-0.662116f;res_v[1][3]=-0.327027f;res_v[1][4]=0.585366f;
-   res_v[2][0]=-0.430015f;res_v[2][1]=0.72255f;res_v[2][2]=-0.0312705f;res_v[2][3]=0.529405f;res_v[2][4]=0.108449f;
-   res_v[3][0]=-0.551549f;res_v[3][1]=-0.166557f;res_v[3][2]=-0.325048f;res_v[3][3]=-0.0873002f;res_v[3][4]=-0.744832f;
-   res_v[4][0]=-0.517638f;res_v[4][1]=0.0930836f;res_v[4][2]=0.64108f;res_v[4][3]=-0.539535f;res_v[4][4]=0.145964f;
-   res_w[0]=3.868f;res_w[1]=1.28005f;res_w[2]=0.862982f;res_w[3]=0.625536f;res_w[4]=0.456751f;
+   char *inputSVDMatrixFilename = argv[1];
+   char *expectedUMatrixFilename = argv[2];
+   char *expectedSMatrixFilename = argv[3];
+   char *expectedVMatrixFilename = argv[4];
 
-   svd<float>(matrix, m, n, w, v);
+   std::pair<size_t, size_t> inputMatrixSize = reg_tool_sizeInputMatrixFile(inputSVDMatrixFilename);
+   size_t m = inputMatrixSize.first;
+   size_t n = inputMatrixSize.second;
+   size_t min_size = std::min(m, n);
+#ifndef NDEBUG
+   std::cout << "min_size=" << min_size << std::endl;
+#endif
 
-   for(size_t i=0;i<n;++i){
-      float difference=fabsf(res_w[i]-w[i]);
-      if(difference>EPS){
-         fprintf(stderr, "reg_test_svd - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
-         return EXIT_FAILURE;
+   float **inputSVDMatrix = reg_tool_ReadMatrixFile<float>(inputSVDMatrixFilename, m, n);
+
+#ifndef NDEBUG
+   std::cout << "inputSVDMatrix[i][j]=" << std::endl;
+   for (size_t i = 0; i < m; i++) {
+      for (size_t j = 0; j < n; j++) {
+         std::cout << inputSVDMatrix[i][j] << " ";
       }
+      std::cout << std::endl;
    }
-   for(size_t i=0;i<n;++i){
-      for(size_t j=0;j<n;++j){
-         float difference=fabsf(res_v[i][j])+-fabsf(v[i][j]);
-         if(difference>EPS){
-            fprintf(stderr, "reg_test_svd - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
-            return EXIT_FAILURE;
+#endif
+
+   float ** expectedSMatrix = reg_tool_ReadMatrixFile<float>(expectedSMatrixFilename, min_size, min_size);
+   float **test_SMatrix = reg_matrix2DAllocate<float>(min_size, min_size);
+
+   //more row than columns
+   if (m > n) {
+
+      float ** expectedUMatrix = reg_tool_ReadMatrixFile<float>(expectedUMatrixFilename, m, n);
+      float ** expectedVMatrix = reg_tool_ReadMatrixFile<float>(expectedVMatrixFilename, min_size, min_size);
+
+      float **test_UMatrix = reg_matrix2DAllocate<float>(m, n);
+      float **test_VMatrix = reg_matrix2DAllocate<float>(min_size, min_size);
+
+      //For the old version of the function:
+      float **inputSVDMatrixNotTouched = reg_tool_ReadMatrixFile<float>(inputSVDMatrixFilename, m, n);
+      float *test_SVect = (float*)malloc(min_size*sizeof(float));
+      //SVD
+      svd<float>(inputSVDMatrix, m, n, test_SVect, test_VMatrix);
+      //U
+      for (size_t i = 0; i < m; i++) {
+         for (size_t j = 0; j < n; j++) {
+            test_UMatrix[i][j] = inputSVDMatrix[i][j];
          }
       }
-   }
-   // Free the allocated variables
-   for(size_t i=0;i<m;++i){
-      free(matrix[i]);
-   }
-   for(size_t i=0;i<n;++i){
-      free(v[i]);
-      free(res_v[i]);
-   }
-   free(matrix);
-   free(v);
-   free(res_v);
-   free(w);
-   free(res_w);
+      //S
+      for (size_t i = 0; i < min_size; i++) {
+         for (size_t j = 0; j < min_size; j++) {
+            if (i == j) {
+               test_SMatrix[i][j] = test_SVect[i];
+            }
+            else {
+               test_SMatrix[i][j] = 0;
+            }
+         }
+      }
 
-   return EXIT_SUCCESS;
+#ifndef NDEBUG
+      std::cout << "test_UMatrix[i][j]=" << std::endl;
+      for (size_t i = 0; i < m; i++) {
+         for (size_t j = 0; j < n; j++) {
+            std::cout << test_UMatrix[i][j] << " ";
+         }
+         std::cout << std::endl;
+      }
+      std::cout << "test_SMatrix[i][j]=" << std::endl;
+      for (size_t i = 0; i < min_size; i++) {
+         for (size_t j = 0; j < min_size; j++) {
+            std::cout << test_SMatrix[i][j] << " ";
+         }
+         std::cout << std::endl;
+      }
+      std::cout << "test_VMatrix[i][j]=" << std::endl;
+      for (size_t i = 0; i < min_size; i++) {
+         for (size_t j = 0; j < min_size; j++) {
+            std::cout << test_VMatrix[i][j] << " ";
+         }
+         std::cout << std::endl;
+      }
+#endif
+      //The sign of the vector are different between Matlab and Eigen so let's take the absolute value and let's check that U*S*V' = M
+      float max_difference = 0;
+
+      for (size_t i = 0; i < min_size; i++) {
+         for (size_t j = 0; j < min_size; j++) {
+            float difference = fabsf(test_SMatrix[i][j]) - fabsf(expectedSMatrix[i][j]);
+            max_difference = std::max(difference, max_difference);
+            if (difference > EPS){
+               fprintf(stderr, "reg_test_svd - checking S - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
+               return EXIT_FAILURE;
+            }
+            difference = fabsf(test_VMatrix[i][j]) - fabsf(expectedVMatrix[i][j]);
+            max_difference = std::max(difference, max_difference);
+            if (difference > EPS){
+               fprintf(stderr, "reg_test_svd - checking V - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
+               return EXIT_FAILURE;
+            }
+         }
+      }
+      for (size_t i = 0; i < m; i++) {
+         for (size_t j = 0; j < n; j++) {
+            float difference = fabsf(test_UMatrix[i][j]) - fabsf(expectedUMatrix[i][j]);
+            max_difference = std::max(difference, max_difference);
+            if (difference > EPS){
+               fprintf(stderr, "reg_test_svd - checking U - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
+               return EXIT_FAILURE;
+            }
+         }
+      }
+      //check that U*S*V' = M
+      float ** US = reg_matrix2DMultiply(test_UMatrix, m, n, test_SMatrix, min_size, min_size, false);
+      float ** VT = reg_matrix2DTranspose(test_VMatrix, min_size, min_size);
+      float ** test_inputMatrix = reg_matrix2DMultiply(US, m, min_size, VT, min_size, min_size, false);
+#ifndef NDEBUG
+      std::cout << "test_inputMatrix[i][j]=" << std::endl;
+      for (size_t i = 0; i < m; i++) {
+         for (size_t j = 0; j < n; j++) {
+            std::cout << test_inputMatrix[i][j] << " ";
+         }
+         std::cout << std::endl;
+      }
+#endif
+      for (size_t i = 0; i < m; i++) {
+         for (size_t j = 0; j < n; j++) {
+            float difference = fabsf(inputSVDMatrixNotTouched[i][j] - test_inputMatrix[i][j]);
+            max_difference = std::max(difference, max_difference);
+            if (difference > EPS){
+               fprintf(stderr, "reg_test_svd - checking that U*S*V' = M - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
+               return EXIT_FAILURE;
+            }
+         }
+      }
+
+      // Free the allocated variables
+      for (size_t i = 0; i < m; i++) {
+         free(inputSVDMatrix[i]);
+         free(inputSVDMatrixNotTouched[i]);
+         free(expectedUMatrix[i]);
+         free(test_UMatrix[i]);
+      }
+      for (size_t j = 0; j < min_size; j++) {
+         free(expectedSMatrix[j]);
+         free(expectedVMatrix[j]);
+         free(test_SMatrix[j]);
+         free(test_VMatrix[j]);
+      }
+      free(inputSVDMatrix);
+      free(inputSVDMatrixNotTouched);
+      free(expectedUMatrix);
+      free(expectedSMatrix);
+      free(expectedVMatrix);
+      free(test_UMatrix);
+      free(test_SMatrix);
+      free(test_VMatrix);
+      free(test_SVect);
+      //
+#ifndef NDEBUG
+      fprintf(stdout, "reg_test_svd ok: %g ( <%g )\n", max_difference, EPS);
+#endif
+      return EXIT_SUCCESS;
+   }
+   //more colums than rows
+   else {
+
+      float ** expectedUMatrix = reg_tool_ReadMatrixFile<float>(expectedUMatrixFilename, min_size, min_size);
+      float ** expectedVMatrix = reg_tool_ReadMatrixFile<float>(expectedVMatrixFilename, n, m);
+
+      float **test_UMatrix = reg_matrix2DAllocate<float>(min_size, min_size);
+      float **test_VMatrix = reg_matrix2DAllocate<float>(n, m);
+
+      svd<float>(inputSVDMatrix, m, n, &test_UMatrix, &test_SMatrix, &test_VMatrix);
+#ifndef NDEBUG
+      std::cout << "test_UMatrix[i][j]=" << std::endl;
+      for (size_t i = 0; i < min_size; i++) {
+         for (size_t j = 0; j < min_size; j++) {
+            std::cout << test_UMatrix[i][j] << " ";
+         }
+         std::cout << std::endl;
+      }
+      std::cout << "test_SMatrix[i][j]=" << std::endl;
+      for (size_t i = 0; i < min_size; i++) {
+         for (size_t j = 0; j < min_size; j++) {
+            std::cout << test_SMatrix[i][j] << " ";
+         }
+         std::cout << std::endl;
+      }
+      std::cout << "test_VMatrix[i][j]=" << std::endl;
+      for (size_t i = 0; i < n; i++) {
+         for (size_t j = 0; j < m; j++) {
+            std::cout << test_VMatrix[i][j] << " ";
+         }
+         std::cout << std::endl;
+      }
+#endif
+      //The sign of the vector are different between Matlab and Eigen so let's take the absolute value and let's check that U*S*V' = M
+      float max_difference = 0;
+
+      for (size_t i = 0; i < min_size; i++) {
+         for (size_t j = 0; j < min_size; j++) {
+            float difference = fabsf(test_SMatrix[i][j]) - fabsf(expectedSMatrix[i][j]);
+            max_difference = std::max(difference, max_difference);
+            if (difference > EPS){
+               fprintf(stderr, "reg_test_svd - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
+               return EXIT_FAILURE;
+            }
+            difference = fabsf(test_UMatrix[i][j]) - fabsf(test_UMatrix[i][j]);
+            max_difference = std::max(difference, max_difference);
+            if (difference > EPS){
+               fprintf(stderr, "reg_test_svd - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
+               return EXIT_FAILURE;
+            }
+         }
+      }
+      for (size_t i = 0; i < n; i++) {
+         for (size_t j = 0; j < m; j++) {
+            float difference = fabsf(test_VMatrix[i][j]) - fabsf(test_VMatrix[i][j]);
+            max_difference = std::max(difference, max_difference);
+            if (difference > EPS){
+               fprintf(stderr, "reg_test_svd - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
+               return EXIT_FAILURE;
+            }
+         }
+      }
+
+      //check that U*S*V' = M
+      float ** US = reg_matrix2DMultiply(test_UMatrix, min_size, min_size, test_SMatrix, min_size, min_size, false);
+      float ** VT = reg_matrix2DTranspose(test_VMatrix, n, m);
+      float ** test_inputMatrix = reg_matrix2DMultiply(US, min_size, min_size, VT, m, n, false);
+#ifndef NDEBUG
+      std::cout << "test_inputMatrix[i][j]=" << std::endl;
+      for (size_t i = 0; i < m; i++) {
+         for (size_t j = 0; j < n; j++) {
+            std::cout << test_inputMatrix[i][j] << " ";
+         }
+         std::cout << std::endl;
+      }
+#endif
+      for (size_t i = 0; i < m; i++) {
+         for (size_t j = 0; j < n; j++) {
+            float difference = fabsf(inputSVDMatrix[i][j] - test_inputMatrix[i][j]);
+            max_difference = std::max(difference, max_difference);
+            if (difference > EPS){
+               fprintf(stderr, "reg_test_svd - checking that U*S*V' = M - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
+               return EXIT_FAILURE;
+            }
+         }
+      }
+
+      // Free the allocated variables
+      for (size_t i = 0; i < min_size; i++) {
+         free(inputSVDMatrix[i]);
+         free(expectedUMatrix[i]);
+         free(test_UMatrix[i]);
+         free(expectedSMatrix[i]);
+         free(test_SMatrix[i]);
+      }
+      for (size_t j = 0; j < n; j++) {
+         free(expectedVMatrix[j]);
+         free(test_VMatrix[j]);
+      }
+      free(inputSVDMatrix);
+      free(expectedUMatrix);
+      free(expectedSMatrix);
+      free(expectedVMatrix);
+      free(test_UMatrix);
+      free(test_SMatrix);
+      free(test_VMatrix);
+      //
+#ifndef NDEBUG
+      fprintf(stdout, "reg_test_svd ok: %g (<%g)\n", max_difference, EPS);
+#endif
+      return EXIT_SUCCESS;
+   }
 }
-

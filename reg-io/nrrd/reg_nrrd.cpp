@@ -86,8 +86,9 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
    // Check if the file can be converted
    if(nrrdImage->dim>7)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_io_nrdd2nifti - The Nifti format only support 7 dimensions\n");
-      exit(1);
+      reg_print_fct_error("reg_io_nrdd2nifti");
+      reg_print_msg_error("The Nifti format only support 7 dimensions");
+      reg_exit(1);
    }
 
    // Need first to extract the input image dimension
@@ -139,8 +140,9 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
       niiImage=nifti_make_new_nim(dim,NIFTI_TYPE_FLOAT64,true);
       break;
    default:
-      fprintf(stderr, "[NiftyReg ERROR] reg_io_nrdd2nifti - The data type is not supported\n");
-      exit(1);
+      reg_print_fct_error("reg_io_nrdd2nifti");
+      reg_print_msg_error("The data type is not supported");
+      reg_exit(1);
    }
 
    // The data are copied over from the nrrd to the nifti structure
@@ -198,7 +200,8 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
            nrrdImage->space!=nrrdSpaceScannerXYZTime )
    {
       niiImage->qform_code=0;
-      fprintf(stderr, "[NiftyReg WARNING] reg_io_nrdd2nifti - nrrd space value unrecognised: the Nifti qform is set to identity\n");
+      reg_print_fct_warn("reg_io_nrdd2nifti");
+      reg_print_msg_warn("nrrd space value unrecognised: the Nifti qform is set to identity");
    }
    if(niiImage->qform_code>0)
    {
@@ -311,8 +314,9 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
          reg_convertVectorField_nrrd_to_nifti<double>(nrrdImage,niiImage);
          break;
       default:
-         fprintf(stderr, "[NiftyReg ERROR] - reg_convertVectorField_nrrd_to_nifti - unsupported datatype\n");
-         exit(1);
+         reg_print_fct_error("reg_convertVectorField_nrrd_to_nifti");
+         reg_print_msg_error("Unsupported datatype. Exit");
+         reg_exit(1);
       }
       // The orientation flag are re-organised
       niiImage->ndim=5;
@@ -383,8 +387,9 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
       nrrdAlloc_nva(nrrdImage,nrrdTypeDouble,niiImage->ndim,size);
       break;
    default:
-      fprintf(stderr, "[NiftyReg ERROR] reg_io_nifti2nrrd - The data type is not supported\n");
-      exit(1);
+      reg_print_fct_error("reg_io_nifti2nrrd");
+      reg_print_msg_error("he data type is not supported. Exit");
+      reg_exit(1);
    }
 
    // Rescale the nii image intensity if required
@@ -539,8 +544,9 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
          reg_convertVectorField_nifti_to_nrrd<double>(niiImage,nrrdImage);
          break;
       default:
-         fprintf(stderr, "[NiftyReg ERROR] - reg_convertVectorField_nifti_to_nrrd - unsupported datatype\n");
-         exit(1);
+         reg_print_fct_error("reg_convertVectorField_nifti_to_nrrd");
+         reg_print_msg_error("he data type is not supported. Exit");
+         reg_exit(1);
       }
 
       // The orientation flag are re-organised
@@ -603,9 +609,12 @@ Nrrd *reg_io_readNRRDfile(const char *filename)
    if (nrrdLoad(nrrdImage, filename, NULL))
    {
       err = biffGetDone(NRRD);
-      fprintf(stderr, "[NiftyReg ERROR] Can not read the file \"%s\":\n%s\n", filename, err);
+      char text[255];
+      sprintf(text, "Can not read the file \"%s\":%s\n", filename, err);
+      reg_print_fct_error("reg_io_readNRRDfile");
+      reg_print_msg_error(text);
       free(err);
-      exit(1);
+      reg_exit(1);
    }
    return nrrdImage;
 }
@@ -621,16 +630,20 @@ void reg_io_writeNRRDfile(Nrrd *image, const char *filename)
    }
    else
    {
-      fprintf(stderr, "[NiftyReg ERROR] Can not compress the file: \"%s\"\n", filename);
+      char text[255];
+      sprintf(text, "Can not compress the file: \"%s\"", filename);
+      reg_print_fct_error("reg_io_writeNRRDfile");
+      reg_print_msg_error(text);
+      reg_exit(1);
    }
 
-   char *err;
    if (nrrdSave(filename, image, nio))
    {
-      err = biffGetDone(NRRD);
-      fprintf(stderr, "[NiftyReg ERROR] Can not write the file \"%s\":\n%s\n", filename, err);
-      free(err);
-      exit(1);
+      char text[255];
+      sprintf(text, "Can not write the file \"%s\"", filename);
+      reg_print_fct_error("reg_io_readNRRDfile");
+      reg_print_msg_error(text);
+      reg_exit(1);
    }
    return;
 }

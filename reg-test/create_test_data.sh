@@ -235,7 +235,7 @@ cxx_compiler=`cat ${TEMPFOLDER}/niftyreg-git_build/CMakeCache.txt | grep CMAKE_C
 echo "CXX compiler: `${cxx_compiler} --version | head -n 1`" >> README.txt
 
 
-tar czvf ${input_output}/niftyreg_test_data.tar.gz \
+tar czvf ${input_output}/niftyreg_test_data_${5}.tar.gz \
 	$(basename ${refImg2D}) $(basename ${floImg2D}) \
 	$(basename ${refImg3D}) $(basename ${floImg3D}) \
 	$(basename ${affine_mat2D}) $(basename ${affine_mat3D}) \
