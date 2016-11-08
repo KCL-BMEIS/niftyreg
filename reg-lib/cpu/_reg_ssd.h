@@ -36,7 +36,8 @@ public:
                           nifti_image *warRefGraPtr = NULL,
                           nifti_image *bckVoxBasedGraPtr = NULL);
 
-   void SetNormalizeTimepoint(int timepoint, bool normalize);
+   /// @brief Define if the specified time point should be normalised
+   void SetNormaliseTimepoint(int timepoint, bool normalise);
    /// @brief Returns the ssd value
    virtual double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based ssd gradient
@@ -52,7 +53,7 @@ protected:
    float currentValue[255];
 
 private:
-   bool normalizeTimePoint[255];
+   bool normaliseTimePoint[255];
 };
 /* *************************************************************** */
 

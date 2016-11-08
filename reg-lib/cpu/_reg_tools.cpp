@@ -129,8 +129,8 @@ void reg_intensityRescale_core(nifti_image *image,
       currentMax=0;
       break;
    case NIFTI_TYPE_INT16:
-      currentMin=(DTYPE)std::numeric_limits<char>::max();
-      currentMax=-(DTYPE)std::numeric_limits<char>::max();
+      currentMin=(DTYPE)std::numeric_limits<short>::max();
+      currentMax=-(DTYPE)std::numeric_limits<short>::max();
       break;
    case NIFTI_TYPE_UINT32:
       currentMin=(DTYPE)std::numeric_limits<unsigned int>::max();

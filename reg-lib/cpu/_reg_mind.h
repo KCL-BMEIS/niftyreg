@@ -86,10 +86,4 @@ void GetMINDSSCImageDesciptor(nifti_image* inputImgPtr,
                               int *mask,
                               int descriptorOffset,
                               int current_timepoint);
-
-extern "C++" template <class DTYPE>
-void spatialGradient(nifti_image* inputImg,
-                     nifti_image* gradImg,
-                     int *mask,
-                     int desc_index);
 #endif

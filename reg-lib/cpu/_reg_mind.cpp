@@ -64,61 +64,6 @@ void ShiftImage(nifti_image* inputImgPtr,
    }
 }
 /* *************************************************************** */
-template<class DTYPE>
-void spatialGradient(nifti_image *img,
-                     nifti_image *gradImg,
-                     int *mask,
-                     int desc_index)
-{
-   size_t voxIndex, voxelNumber = (size_t)img->nx *
-         img->ny * img->nz;
-
-   int dimImg = img->nz > 1 ? 3 : 2;
-   int x, y, z;
-
-   DTYPE *imgPtr = static_cast<DTYPE *>(img->data);
-   DTYPE *currentImgPtr = &imgPtr[desc_index*voxelNumber];
-
-   DTYPE *gradPtrX = static_cast<DTYPE *>(gradImg->data);
-   DTYPE *gradPtrY = &gradPtrX[voxelNumber];
-   DTYPE *gradPtrZ = NULL;
-   if(dimImg==3)
-      gradPtrZ = &gradPtrY[voxelNumber];
-
-#if defined (_OPENMP)
-#pragma omp parallel for default(none) \
-   shared(img, currentImgPtr, mask, \
-   gradPtrX, gradPtrY, gradPtrZ) \
-   private(x, y, z, voxIndex)
-#endif
-   for(z=0; z<img->nz; ++z){
-      voxIndex=z*img->nx*img->ny;
-      for(y=0; y<img->ny; ++y){
-         for(x=0; x<img->nx; ++x){
-            if(mask[voxIndex]>-1){
-               if(x<img->nx-1 && x>0)
-                  gradPtrX[voxIndex] =  (currentImgPtr[voxIndex+1] - currentImgPtr[voxIndex-1]) / 2.f;
-               else gradPtrX[voxIndex] = 0.f;
-               if(gradPtrX[voxIndex]!=gradPtrX[voxIndex]) gradPtrX[voxIndex]=0.;
-               if(y<img->ny-1 && y>0)
-                  gradPtrY[voxIndex] = (currentImgPtr[voxIndex+img->nx] - currentImgPtr[voxIndex-img->nx]) / 2.f;
-               else gradPtrY[voxIndex] = 0.f;
-               if(gradPtrY[voxIndex]!=gradPtrY[voxIndex]) gradPtrY[voxIndex]=0.;
-               if(gradPtrZ!=NULL){
-                  if(z<img->nz-1 && z>0)
-                     gradPtrZ[voxIndex] = (currentImgPtr[voxIndex+img->nx*img->ny] - currentImgPtr[voxIndex-img->nx*img->ny]) / 2.f;
-                  else gradPtrZ[voxIndex] = 0.f;
-                  if(gradPtrZ[voxIndex]!=gradPtrZ[voxIndex]) gradPtrZ[voxIndex]=0.;
-               }
-            }
-            ++voxIndex;
-         } // x
-      } // y
-   } // z
-}
-template void spatialGradient<float>(nifti_image *img, nifti_image *gradImg, int *mask, int);
-template void spatialGradient<double>(nifti_image *img, nifti_image *gradImg, int *mask, int);
-/* *************************************************************** */
 template <class DTYPE>
 void GetMINDImageDesciptor_core(nifti_image* inputImage,
                                 nifti_image* MINDImage,
@@ -739,10 +684,11 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 
    for(int desc_index=0; desc_index<this->discriptor_number; ++desc_index){
       // Compute the warped image descriptors gradient
-      spatialGradient<float>(this->warpedFloatingImageDescriptor,
-                             this->warpedFloatingGradientImagePointer,
-                             combinedMask,
-                             desc_index);
+       reg_getImageGradient_symDiff(this->warpedFloatingImageDescriptor,
+                                    this->warpedFloatingGradientImagePointer,
+                                    combinedMask,
+                                    std::numeric_limits<float>::quiet_NaN(),
+                                    desc_index);
 
       // Compute the gradient of the ssd for the forward transformation
       switch(referenceImageDescriptor->datatype)
@@ -813,10 +759,11 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
       }
 
       for(int desc_index=0; desc_index<this->discriptor_number; ++desc_index){
-         spatialGradient<float>(this->warpedReferenceImageDescriptor,
-                                this->warpedReferenceGradientImagePointer,
-                                combinedMask,
-                                desc_index);
+          reg_getImageGradient_symDiff(this->warpedReferenceImageDescriptor,
+                                       this->warpedReferenceGradientImagePointer,
+                                       combinedMask,
+                                       std::numeric_limits<float>::quiet_NaN(),
+                                       desc_index);
 
          // Compute the gradient of the nmi for the backward transformation
          switch(floatingImagePointer->datatype)
