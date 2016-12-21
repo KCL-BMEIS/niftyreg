@@ -85,7 +85,7 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
     reg_print_msg_debug(text);
     sprintf(text, "Normalize time point:");
     for(int i=0; i<this->referenceImagePointer->nt; ++i)
-        if(this->normalizeTimePoint[i])
+        if(this->normaliseTimePoint[i])
             sprintf(text, "%s %i", text, i);
     reg_print_msg_debug(text);
 #endif
