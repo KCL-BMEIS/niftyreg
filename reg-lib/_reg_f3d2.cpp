@@ -333,6 +333,11 @@ void reg_f3d2<T>::UpdateParameters(float scale)
    }
    else
    {
+      // Reset the gradient along the axes if appropriate
+      reg_setGradientToZero(forwardScaledGradient,
+                            !this->optimiser->GetOptimiseX(),
+                            !this->optimiser->GetOptimiseY(),
+                            !this->optimiser->GetOptimiseZ());
       // Update the velocity field
       reg_tools_addImageToImage(this->controlPointGrid, // in1
                                 forwardScaledGradient, // in2
@@ -367,6 +372,11 @@ void reg_f3d2<T>::UpdateParameters(float scale)
    }
    else
    {
+      // Reset the gradient along the axes if appropriate
+      reg_setGradientToZero(backwardScaledGradient,
+                            !this->optimiser->GetOptimiseX(),
+                            !this->optimiser->GetOptimiseY(),
+                            !this->optimiser->GetOptimiseZ());
       // Update the velocity field
       reg_tools_addImageToImage(this->backwardControlPointGrid, // in1
                                 backwardScaledGradient, // in2
