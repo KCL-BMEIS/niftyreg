@@ -408,6 +408,19 @@ int reg_getDisplacementFromDeformation(nifti_image *image);
 extern "C++"
 int reg_getDeformationFromDisplacement(nifti_image *image);
 /* *************************************************************** */
+/** @brief Set the gradient value along specified direction to zero
+ * @param image Input Image that will be modified
+ * @param x_axis Boolean to specified if the x-axis has to be zeroed
+ * @param y_axis Boolean to specified if the y-axis has to be zeroed
+ * @param z_axis Boolean to specified if the z-axis has to be zeroed
+ */
+extern "C++"
+void reg_setGradientToZero(nifti_image *image,
+                          bool x_axis,
+                          bool y_axis,
+                          bool z_axis);
+/* *************************************************************** */
+/* *************************************************************** */
 /** @brief The functions returns the largest ratio between two arrays
  * The returned value is the largest value computed as ((A/B)-1)
  * If A or B are zeros then the (A-B) value is returned.

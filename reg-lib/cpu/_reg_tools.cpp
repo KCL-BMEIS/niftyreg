@@ -3064,6 +3064,58 @@ int reg_getDeformationFromDisplacement(nifti_image *field)
    return EXIT_SUCCESS;
 }
 /* *************************************************************** */
+template <class DTYPE>
+void reg_setGradientToZero_core(nifti_image *image,
+                               bool x_axis,
+                               bool y_axis,
+                               bool z_axis)
+{
+   size_t voxel_number = (size_t)image->nx*image->ny*image->nz;
+   DTYPE *ptr = static_cast<DTYPE *>(image->data);
+   if(x_axis==true){
+      for(size_t i=0; i<voxel_number; ++i)
+         *ptr++=0;
+   }
+   else ptr += voxel_number;
+   if(y_axis==true){
+      for(size_t i=0; i<voxel_number; ++i)
+         *ptr++=0;
+   }
+   else ptr += voxel_number;
+   if(z_axis==true && image->nu>2){
+      for(size_t i=0; i<voxel_number; ++i)
+         *ptr++=0;
+   }
+   return;
+}
+/* *************************************************************** */
+void reg_setGradientToZero(nifti_image *image,
+                           bool x_axis,
+                           bool y_axis,
+                           bool z_axis=false)
+{
+   // Ensure that the specified image is a 5D image
+   if(image->ndim != 5)
+   {
+      reg_print_fct_error("reg_setGradientToZero");
+      reg_print_msg_error("Input image is expected to be a 5D image");
+      reg_exit();
+   }
+   switch(image->datatype){
+   case NIFTI_TYPE_FLOAT32:
+      reg_setGradientToZero_core<float>(image, x_axis, y_axis, z_axis);
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      reg_setGradientToZero_core<double>(image, x_axis, y_axis, z_axis);
+      break;
+   default:
+      reg_print_fct_error("reg_setGradientToZero");
+      reg_print_msg_error("Input image is expected to be float or double");
+      reg_exit();
+   }
+   return;
+}
+/* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
 double reg_test_compare_arrays(DTYPE *ptrA,
