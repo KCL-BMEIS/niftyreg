@@ -107,7 +107,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
    DTYPE *jacPtr=NULL;
    if(jacobianDetImg!=NULL)
       jacPtr=static_cast<DTYPE *>(jacobianDetImg->data);
-   double measure=0., num=0., tempRefValue, tempWarValue, tempValue;
+   double measure = 0., measure_tp = 0., num = 0., tempRefValue, tempWarValue, tempValue;
 
    for(int time=0; time<referenceImage->nt; ++time)
    {
@@ -120,7 +120,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
    shared(voxelNumber,currentRefPtr, currentWarPtr, \
    maskPtr, jacobianDetImg, jacPtr) \
    private(voxel, tempRefValue, tempWarValue, tempValue) \
-   reduction(+:measure) \
+   reduction(+:measure_tp) \
    reduction(+:num)
 #endif
          for(voxel=0; voxel<voxelNumber; ++voxel)
@@ -135,22 +135,22 @@ double reg_getKLDivergence(nifti_image *referenceImage,
                {
                   if(jacobianDetImg==NULL)
                   {
-                     measure -= tempValue;
+                     measure_tp -= tempValue;
                      num++;
                   }
                   else
                   {
-                     measure -= tempValue * jacPtr[voxel];
+                     measure_tp -= tempValue * jacPtr[voxel];
                      num+=jacPtr[voxel];
                   }
                }
             }
          }
-		 measure *= timePointWeight[time];
+		 measure += measure_tp * timePointWeight[time] / num;
       }
    }
    if(MrClean==true) free(maskPtr);
-   return measure/num;
+   return measure;
 }
 template double reg_getKLDivergence<float>
 (nifti_image *,nifti_image *,double *,nifti_image *,int *);
@@ -283,12 +283,24 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
    if(referenceImage->nz>1)
       measureGradPtrZ = &measureGradPtrY[voxelNumber];
 
+   // find number of active voxels and correct weight
+   double activeVoxel_num = 0.0;
+   for (voxel = 0; voxel < voxelNumber; voxel++)
+   {
+	   if (mask[voxel]>-1)
+	   {
+		   if (currentRefPtr[voxel] == currentRefPtr[voxel] && currentWarPtr[voxel] == currentWarPtr[voxel])
+			   activeVoxel_num += 1.0;
+	   }
+   }
+   double adjusted_weight = timepoint_weight / activeVoxel_num;
+
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(voxelNumber,currentRefPtr, currentWarPtr, \
    maskPtr, jacobianDetImg, jacPtr, referenceImage, \
    measureGradPtrX, measureGradPtrY, measureGradPtrZ, \
-   currentGradPtrX, currentGradPtrY, currentGradPtrZ, timepoint_weight) \
+   currentGradPtrX, currentGradPtrY, currentGradPtrZ, adjusted_weight) \
    private(voxel, tempValue, tempGradX, tempGradY, tempGradZ, \
    tempRefValue, tempWarValue)
 #endif
@@ -307,7 +319,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
                tempValue>0)
          {
             tempValue = tempRefValue * (tempValue>1?1.:-1.) / tempWarValue;
-			tempValue *= timepoint_weight;
+			tempValue *= adjusted_weight;
 
             // Jacobian modulation if the Jacobian determinant image is defined
             if(jacobianDetImg!=NULL)

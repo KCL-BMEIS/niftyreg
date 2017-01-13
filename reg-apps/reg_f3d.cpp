@@ -82,7 +82,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-noAppJL\t\tTo not approximate the JL value only at the control point position");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Measure of similarity options:");
-   reg_print_info(exec, "*** NMI with 64 bins is used expect if specified otherwise");
+   reg_print_info(exec, "*** NMI with 64 bins is used except if specified otherwise");
    reg_print_info(exec, "\t--nmi\t\t\tNMI. Used NMI even when one or several other measures are specified");
    reg_print_info(exec, "\t--rbn <int>\t\tNMI. Number of bin to use for the reference image histogram. Identical value for every timepoint");
    reg_print_info(exec, "\t--fbn <int>\t\tNMI. Number of bin to use for the floating image histogram. Identical value for every timepoint");
@@ -101,11 +101,12 @@ void Usage(char *exec)
    reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
    reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98\% ile");
    reg_print_info(exec, "*** Options for setting the weights for each timepoint for each similarity");
-   reg_print_info(exec, "*** Note, the weights must be set after the options above, otherwise the default weight (1.0) will be used");
-   reg_print_info(exec, "\t-nmiw <tp> <float>\t\tNMI Weight. Weight to use for the NMI similarity measure for the specified timepoint");
-   reg_print_info(exec, "\t-lnccw <tp> <float>\t\tLNCC Weight. Weight to use for the LNCC similarity measure for the specified timepoint");
-   reg_print_info(exec, "\t-ssdw <tp> <float>\t\tSSD Weight. Weight to use for the SSD similarity measure for the specified timepoint");
-   reg_print_info(exec, "\t-kldw <tp> <float>\t\tKLD Weight. Weight to use for the KLD similarity measure for the specified timepoint");
+   reg_print_info(exec, "*** Note, the options above should be used first and will set a default weight of 1");
+   reg_print_info(exec, "*** The options below should be used afterwards to set the desired weight if different to 1");
+   reg_print_info(exec, "\t-nmiw <tp> <float>\tNMI Weight. Weight to use for the NMI similarity measure for the specified timepoint");
+   reg_print_info(exec, "\t-lnccw <tp> <float>\tLNCC Weight. Weight to use for the LNCC similarity measure for the specified timepoint");
+   reg_print_info(exec, "\t-ssdw <tp> <float>\tSSD Weight. Weight to use for the SSD similarity measure for the specified timepoint");
+   reg_print_info(exec, "\t-kldw <tp> <float>\tKLD Weight. Weight to use for the KLD similarity measure for the specified timepoint");
 
    //   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
    reg_print_info(exec, "");

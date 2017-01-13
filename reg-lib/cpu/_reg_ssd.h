@@ -43,8 +43,6 @@ public:
    /// @brief Compute the voxel based ssd gradient
    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
    /// @brief Here
-   //JM - I'm not sure what this function is for (description above not very informative!)
-   //therefore I have not modified it to use the timePointWeights
    virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
                                     float *discretisedValue,
                                     int discretise_radius,

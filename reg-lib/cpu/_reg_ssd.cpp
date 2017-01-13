@@ -60,15 +60,23 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
     for(int i=0; i<this->referenceImagePointer->nt; ++i)
     {if(this->timePointWeight[i] > 0.0 && normaliseTimePoint[i])
         {
-            printf("BOUM");
-            reg_intensityRescale(this->referenceImagePointer,
-                                 i,
-                                 0.f,
-                                 1.f);
-            reg_intensityRescale(this->floatingImagePointer,
-                                 i,
-                                 0.f,
-                                 1.f);
+			//sets max value over both images to be 1 and min value over both images to be 0
+			//scales values such that identical values in the images are still identical after scaling
+			float maxF = reg_tools_getMaxValue(this->floatingImagePointer,i);
+			float maxR = reg_tools_getMaxValue(this->referenceImagePointer, i);
+			float minF = reg_tools_getMinValue(this->floatingImagePointer, i);
+			float minR = reg_tools_getMinValue(this->referenceImagePointer,i);
+			float maxFR = fmax(maxF, maxR);
+			float minFR = fmin(minF, minR);
+			float rangeFR = maxFR - minFR;
+			reg_intensityRescale(this->referenceImagePointer,
+				i,
+				(minR - minFR)/rangeFR,
+				1 - ((maxFR - maxR) / rangeFR));
+			reg_intensityRescale(this->floatingImagePointer,
+				i,
+				(minF - minFR) / rangeFR,
+				1 - ((maxFR - maxF) / rangeFR));
         }
     }
 #ifdef MRF_USE_SAD
@@ -314,13 +322,25 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
     if(jacobianDetImage!=NULL)
         jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
-    double refValue, warValue, common;
+	// find number of active voxels and correct weight
+	double activeVoxel_num = 0.0;
+	for (voxel = 0; voxel < voxelNumber; voxel++)
+	{
+		if (mask[voxel]>-1)
+		{
+			if (currentRefPtr[voxel] == currentRefPtr[voxel] && currentWarPtr[voxel] == currentWarPtr[voxel])
+				activeVoxel_num += 1.0;
+		}
+	}
+	double adjusted_weight = timepoint_weight / activeVoxel_num;
+
+	double refValue, warValue, common;
 
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, \
     mask, jacDetPtr, spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, \
-    measureGradPtrX, measureGradPtrY, measureGradPtrZ, voxelNumber, timepoint_weight) \
+    measureGradPtrX, measureGradPtrY, measureGradPtrZ, voxelNumber, adjusted_weight) \
     private(voxel, refValue, warValue, common)
 #endif
     for(voxel=0; voxel<voxelNumber; voxel++)
@@ -337,12 +357,12 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                 common = refValue>warValue?-1.f:1.f;
                 common *= (refValue - warValue);
 #else
-                common = -2.0 * (refValue - warValue) / (float)referenceImage->nt;
+                common = -2.0 * (refValue - warValue);
 #endif
                 if(jacDetPtr!=NULL)
                     common *= jacDetPtr[voxel];
 
-				common *= timepoint_weight;
+				common *= adjusted_weight;
 
                 if(spatialGradPtrX[voxel]==spatialGradPtrX[voxel])
                     measureGradPtrX[voxel] += (DTYPE)(common * spatialGradPtrX[voxel]);

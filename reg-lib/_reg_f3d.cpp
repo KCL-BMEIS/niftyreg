@@ -1211,10 +1211,13 @@ void reg_f3d<T>::GetObjectiveFunctionGradient()
       {
          this->SetGradientImageToZero();
       }
-      // Compute the penalty term gradients if required
-      this->GetBendingEnergyGradient();
-      this->GetJacobianBasedGradient();
-      this->GetLinearEnergyGradient();
+	  reg_io_WriteImageFile(this->transformationGradient, "trans_grad_just_sim.nii");
+	  // Compute the penalty term gradients if required
+	  this->GetBendingEnergyGradient();
+	  reg_io_WriteImageFile(this->transformationGradient, "trans_grad_with_be.nii");
+	  this->GetJacobianBasedGradient();
+	  this->GetLinearEnergyGradient();
+	  reg_io_WriteImageFile(this->transformationGradient, "trans_grad_with_be_and_le.nii");
 #ifdef BUILD_DEV
       this->GetPairwiseEnergyGradient();
 #endif

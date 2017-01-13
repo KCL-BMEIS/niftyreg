@@ -305,11 +305,6 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImgPtr,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-//JM - I am confused why the inputs to this function do not match the
-//inputs to the same function defined in _reg_lncc.h, i.e. here there
-//is an extra current_timepoint input
-//if anyone ever reads this and can explain this issue please let me
-//know :-) (j.mcclelland@ucl.ac.uk)
 template<class DTYPE>
 double reg_getLNCCValue(nifti_image *referenceImage,
                         nifti_image *referenceMeanImage,
@@ -388,7 +383,6 @@ double reg_getLNCCValue(nifti_image *referenceImage,
 double reg_lncc::GetSimilarityMeasureValue()
 {
    double lncc_value=0.f;
-   int number_activeTimePoint = 0;
 
    for(int current_timepoint=0; current_timepoint<this->referenceImagePointer->nt; ++current_timepoint)
    {
@@ -511,11 +505,10 @@ double reg_lncc::GetSimilarityMeasureValue()
 				   break;
 			   }
 		   }
-		   number_activeTimePoint++;
 		   lncc_value += tp_value * this->timePointWeight[current_timepoint];
 	   }
    }
-   return lncc_value/static_cast<double>(number_activeTimePoint);
+   return lncc_value;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -566,6 +559,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
    double refMeanValue, warMeanValue, refSdevValue,
          warSdevValue, correlaValue;
    double temp1, temp2, temp3;
+   double activeVoxel_num = 0.;
 
    // Iteration over all voxels
 #if defined (_OPENMP)
@@ -573,7 +567,8 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
    shared(voxelNumber,combinedMask,refMeanPtr,warMeanPtr, \
    refSdevPtr,warSdevPtr,correlaPtr) \
    private(voxel,refMeanValue,warMeanValue,refSdevValue, \
-   warSdevValue, correlaValue, temp1, temp2, temp3)
+   warSdevValue, correlaValue, temp1, temp2, temp3) \
+   reduction(+:activeVoxel_num)
 #endif
    for(voxel=0; voxel<voxelNumber; ++voxel)
    {
@@ -608,11 +603,15 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
             warMeanPtr[voxel]=temp1;
             warSdevPtr[voxel]=temp2;
             correlaPtr[voxel]=temp3;
+			activeVoxel_num++;
          }
          else warMeanPtr[voxel]=warSdevPtr[voxel]=correlaPtr[voxel]=0.;
       }
       else warMeanPtr[voxel]=warSdevPtr[voxel]=correlaPtr[voxel]=0.;
    }
+
+   //adjust weight for number of voxels
+   double adjusted_weight = timepoint_weight / activeVoxel_num;
 
    // Smooth the newly computed values
    reg_tools_kernelConvolution(warpedMeanImage, kernelStandardDeviation, kernelType, combinedMask);
@@ -637,7 +636,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
 #pragma omp parallel for default(none) \
    shared(voxelNumber,combinedMask,currentRefPtr,currentWarPtr, \
    warMeanPtr,warSdevPtr,correlaPtr,measureGradPtrX,measureGradPtrY, \
-   measureGradPtrZ, warpGradPtrX, warpGradPtrY, warpGradPtrZ, timepoint_weight) \
+   measureGradPtrZ, warpGradPtrX, warpGradPtrY, warpGradPtrZ, adjusted_weight) \
    private(voxel, common)
 #endif
    for(voxel=0; voxel<voxelNumber; ++voxel)
@@ -648,7 +647,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
          common = warMeanPtr[voxel] * currentRefPtr[voxel] -
                warSdevPtr[voxel] * currentWarPtr[voxel] +
                correlaPtr[voxel];
-		 common *= timepoint_weight;
+		 common *= adjusted_weight;
          measureGradPtrX[voxel] -= warpGradPtrX[voxel] * common;
          measureGradPtrY[voxel] -= warpGradPtrY[voxel] * common;
          if(warpGradPtrZ!=NULL)

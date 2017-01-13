@@ -598,7 +598,7 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
    // Create pointers to the current joint histogram
    double *logHistoPtr = jointHistogramLog[current_timepoint];
    double *entropyPtr = entropyValues[current_timepoint];
-   double nmi = timepoint_weight * (entropyPtr[0]+entropyPtr[1])/entropyPtr[2];
+   double nmi = (entropyPtr[0]+entropyPtr[1])/entropyPtr[2];
    size_t referenceOffset=referenceBinNumber[current_timepoint]*floatingBinNumber[current_timepoint];
    size_t floatingOffset=referenceOffset+referenceBinNumber[current_timepoint];
    // Iterate over all voxel
@@ -646,9 +646,9 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                   }
                }
             }
-            measureGradPtrX[i] += (DTYPE)((refDeriv[0] + warDeriv[0] -
+			measureGradPtrX[i] += (DTYPE)(timepoint_weight * (refDeriv[0] + warDeriv[0] -
                   nmi * jointDeriv[0]) / (entropyPtr[2]*entropyPtr[3]));
-            measureGradPtrY[i] += (DTYPE)((refDeriv[1] + warDeriv[1] -
+			measureGradPtrY[i] += (DTYPE)(timepoint_weight * (refDeriv[1] + warDeriv[1] -
                   nmi * jointDeriv[1]) / (entropyPtr[2]*entropyPtr[3]));
          }// Check that the values are defined
       } // mask
@@ -706,7 +706,7 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
    // Create pointers to the current joint histogram
    double *logHistoPtr = jointHistogramLog[current_timepoint];
    double *entropyPtr = entropyValues[current_timepoint];
-   double nmi = timepoint_weight * (entropyPtr[0]+entropyPtr[1])/entropyPtr[2];
+   double nmi = (entropyPtr[0]+entropyPtr[1])/entropyPtr[2];
    size_t referenceOffset=referenceBinNumber[current_timepoint]*floatingBinNumber[current_timepoint];
    size_t floatingOffset=referenceOffset+referenceBinNumber[current_timepoint];
    int r,w;
@@ -719,7 +719,7 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
    jointDeriv,refDeriv,warDeriv,commun,jointLog,refLog,warLog) \
    shared(voxelNumber,referenceMask,refPtr,warPtr,referenceBinNumber,floatingBinNumber, \
    logHistoPtr,referenceOffset,floatingOffset,measureGradPtrX,measureGradPtrY,measureGradPtrZ, \
-   warGradPtrX,warGradPtrY,warGradPtrZ,entropyPtr,nmi,current_timepoint)
+   warGradPtrX,warGradPtrY,warGradPtrZ,entropyPtr,nmi,current_timepoint,timepoint_weight)
 #endif // _OPENMP
    for(i=0; i<voxelNumber; ++i)
    {
@@ -770,11 +770,11 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                   }
                }
             }
-            measureGradPtrX[i] += (DTYPE)((refDeriv[0] + warDeriv[0] -
+			measureGradPtrX[i] += (DTYPE)(timepoint_weight * (refDeriv[0] + warDeriv[0] -
                   nmi * jointDeriv[0]) / (entropyPtr[2]*entropyPtr[3]));
-            measureGradPtrY[i] += (DTYPE)((refDeriv[1] + warDeriv[1] -
+			measureGradPtrY[i] += (DTYPE)(timepoint_weight * (refDeriv[1] + warDeriv[1] -
                   nmi * jointDeriv[1]) / (entropyPtr[2]*entropyPtr[3]));
-            measureGradPtrZ[i] += (DTYPE)((refDeriv[2] + warDeriv[2] -
+			measureGradPtrZ[i] += (DTYPE)(timepoint_weight * (refDeriv[2] + warDeriv[2] -
                   nmi * jointDeriv[2]) / (entropyPtr[2]*entropyPtr[3]));
          }// Check that the values are defined
       } // mask

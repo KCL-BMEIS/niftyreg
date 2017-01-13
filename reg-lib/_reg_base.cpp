@@ -712,42 +712,193 @@ void reg_base<T>::ClearVoxelBasedMeasureGradient()
 template<class T>
 void reg_base<T>::CheckParameters()
 {
-   // CHECK THAT BOTH INPUT IMAGES ARE DEFINED
-   if(this->inputReference==NULL)
-   {
-      reg_print_fct_error("reg_base::CheckParameters()");
-      reg_print_msg_error("The reference image is not defined");
-      reg_exit();
-   }
-   if(this->inputFloating==NULL)
-   {
-      reg_print_fct_error("reg_base::CheckParameters()");
-      reg_print_msg_error("The floating image is not defined");
-      reg_exit();
-   }
+	// CHECK THAT BOTH INPUT IMAGES ARE DEFINED
+	if (this->inputReference == NULL)
+	{
+		reg_print_fct_error("reg_base::CheckParameters()");
+		reg_print_msg_error("The reference image is not defined");
+		reg_exit();
+	}
+	if (this->inputFloating == NULL)
+	{
+		reg_print_fct_error("reg_base::CheckParameters()");
+		reg_print_msg_error("The floating image is not defined");
+		reg_exit();
+	}
 
-   // CHECK THE MASK DIMENSION IF IT IS DEFINED
-   if(this->maskImage!=NULL)
-   {
-      if(this->inputReference->nx != this->maskImage->nx ||
-            this->inputReference->ny != this->maskImage->ny ||
-            this->inputReference->nz != this->maskImage->nz )
-      {
-         reg_print_fct_error("reg_base::CheckParameters()");
-         reg_print_msg_error("The reference and mask images have different dimension");
-         reg_exit();
-      }
-   }
+	// CHECK THE MASK DIMENSION IF IT IS DEFINED
+	if (this->maskImage != NULL)
+	{
+		if (this->inputReference->nx != this->maskImage->nx ||
+			this->inputReference->ny != this->maskImage->ny ||
+			this->inputReference->nz != this->maskImage->nz)
+		{
+			reg_print_fct_error("reg_base::CheckParameters()");
+			reg_print_msg_error("The reference and mask images have different dimension");
+			reg_exit();
+		}
+	}
 
-   // CHECK THE NUMBER OF LEVEL TO PERFORM
-   if(this->levelToPerform>0)
-   {
-      this->levelToPerform=this->levelToPerform<this->levelNumber?this->levelToPerform:this->levelNumber;
-   }
-   else this->levelToPerform=this->levelNumber;
-   if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
-      this->levelToPerform=this->levelNumber;
+	// CHECK THE NUMBER OF LEVEL TO PERFORM
+	if (this->levelToPerform > 0)
+	{
+		this->levelToPerform = this->levelToPerform < this->levelNumber ? this->levelToPerform : this->levelNumber;
+	}
+	else this->levelToPerform = this->levelNumber;
+	if (this->levelToPerform == 0 || this->levelToPerform > this->levelNumber)
+		this->levelToPerform = this->levelNumber;
 
+	// SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
+	if (this->measure_nmi == NULL &&
+		this->measure_ssd == NULL &&
+		this->measure_dti == NULL &&
+		this->measure_lncc == NULL &&
+		this->measure_lncc == NULL &&
+		this->measure_kld == NULL &&
+		this->measure_mind == NULL &&
+		this->measure_mindssc == NULL)
+	{
+		this->measure_nmi = new reg_nmi;
+		for (int i = 0; i < this->inputReference->nt; ++i)
+			this->measure_nmi->SetTimepointWeight(i, 1.0);
+	}
+
+	// CHECK THAT IMAGES HAVE SAME NUMBER OF CHANNELS (TIMEPOINTS)
+	// THAT EACH CHANNEL HAS AT LEAST ONE SIMILARITY MEASURE ASSIGNED
+	// AND THAT EACH SIMILARITY MEASURE IS USED FOR AT LEAST ONE CHANNEL
+	// NORMALISE CHANNEL AND SIMILARITY WEIGHTS SO TOTAL = 1
+	//
+	// NOTE - DTI currently ignored as needs fixing
+	//
+	// tests ignored if using MIND or MINDSSD as they are not implemented for multi-channel or weighting
+	if (this->measure_mind == NULL && this->measure_mindssc == NULL)
+	{
+		if (this->inputFloating->nt != this->inputReference->nt)
+		{
+			reg_print_fct_error("reg_base::CheckParameters()");
+			reg_print_msg_error("The reference and floating images have different numbers of channels (timepoints)");
+			reg_exit();
+		}
+		double *chanWeightSum = new double[this->inputReference->nt]();
+		double simWeightSum, totWeightSum;
+		double *nmiWeights, *ssdWeights, *kldWeights, *lnccWeights;
+		totWeightSum = 0.0;
+		if (this->measure_nmi != NULL)
+		{
+			nmiWeights = this->measure_nmi->GetTimepointsWeights();
+			simWeightSum = 0.0;
+			for (int n = 0; n < this->inputReference->nt; n++)
+			{
+				if (nmiWeights[n] < 0)
+				{
+					char text[255];
+					sprintf(text, "The NMI weight for timepoint %d has a negative value - weights must be positive", n);
+					reg_print_fct_error("reg_base::CheckParameters()");
+					reg_print_msg_error(text);
+					reg_exit();
+				}
+				chanWeightSum[n] += nmiWeights[n];
+				simWeightSum += nmiWeights[n];
+				totWeightSum += nmiWeights[n];
+			}
+			if (simWeightSum == 0.0)
+			{
+				reg_print_fct_warn("reg_base::CheckParameters()");
+				reg_print_msg_warn("The NMI similarity measure has a weight of 0 for all channels so will be ignored");
+			}
+		}
+		if (this->measure_ssd != NULL)
+		{
+			ssdWeights = this->measure_ssd->GetTimepointsWeights();
+			simWeightSum = 0.0;
+			for (int n = 0; n < this->inputReference->nt; n++)
+			{
+				if (ssdWeights[n] < 0)
+				{
+					char text[255];
+					sprintf(text, "The SSD weight for timepoint %d has a negative value - weights must be positive", n);
+					reg_print_fct_error("reg_base::CheckParameters()");
+					reg_print_msg_error(text);
+					reg_exit();
+				}
+				chanWeightSum[n] += ssdWeights[n];
+				simWeightSum += ssdWeights[n];
+				totWeightSum += ssdWeights[n];
+			}
+			if (simWeightSum == 0.0)
+			{
+				reg_print_fct_warn("reg_base::CheckParameters()");
+				reg_print_msg_warn("The SSD similarity measure has a weight of 0 for all channels so will be ignored");
+			}
+		}
+		if (this->measure_kld != NULL)
+		{
+			kldWeights = this->measure_kld->GetTimepointsWeights();
+			simWeightSum = 0.0;
+			for (int n = 0; n < this->inputReference->nt; n++)
+			{
+				if (kldWeights[n] < 0)
+				{
+					char text[255];
+					sprintf(text, "The KLD weight for timepoint %d has a negative value - weights must be positive", n);
+					reg_print_fct_error("reg_base::CheckParameters()");
+					reg_print_msg_error(text);
+					reg_exit();
+				}
+				chanWeightSum[n] += kldWeights[n];
+				simWeightSum += kldWeights[n];
+				totWeightSum += kldWeights[n];
+			}
+			if (simWeightSum == 0.0)
+			{
+				reg_print_fct_warn("reg_base::CheckParameters()");
+				reg_print_msg_warn("The KLD similarity measure has a weight of 0 for all channels so will be ignored");
+			}
+		}
+		if (this->measure_lncc != NULL)
+		{
+			lnccWeights = this->measure_lncc->GetTimepointsWeights();
+			simWeightSum = 0.0;
+			for (int n = 0; n < this->inputReference->nt; n++)
+			{
+				if (lnccWeights[n] < 0)
+				{
+					char text[255];
+					sprintf(text, "The LNCC weight for timepoint %d has a negative value - weights must be positive", n);
+					reg_print_fct_error("reg_base::CheckParameters()");
+					reg_print_msg_error(text);
+					reg_exit();
+				}
+				chanWeightSum[n] += lnccWeights[n];
+				simWeightSum += lnccWeights[n];
+				totWeightSum += lnccWeights[n];
+			}
+			if (simWeightSum == 0.0)
+			{
+				reg_print_fct_warn("reg_base::CheckParameters()");
+				reg_print_msg_warn("The LNCC similarity measure has a weight of 0 for all channels so will be ignored");
+			}
+		}
+		for (int n = 0; n < this->inputReference->nt; n++)
+		{
+			if (chanWeightSum[n] == 0)
+			{
+				char text[255];
+				sprintf(text, "Channel %d has a weight of 0 for all similarity measures so will be ignored", n);
+				reg_print_fct_warn("reg_base::CheckParameters()");
+				reg_print_msg_warn(text);
+			}
+			if (this->measure_nmi != NULL)
+				this->measure_nmi->SetTimepointWeight(n, nmiWeights[n] / totWeightSum);
+			if (this->measure_ssd != NULL)
+				this->measure_ssd->SetTimepointWeight(n, ssdWeights[n] / totWeightSum);
+			if (this->measure_kld != NULL)
+				this->measure_kld->SetTimepointWeight(n, kldWeights[n] / totWeightSum);
+			if (this->measure_lncc != NULL)
+				this->measure_lncc->SetTimepointWeight(n, lnccWeights[n] / totWeightSum);
+		}
+	} 
+   
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::CheckParameters");
 #endif
@@ -756,20 +907,7 @@ void reg_base<T>::CheckParameters()
 template<class T>
 void reg_base<T>::InitialiseSimilarity()
 {
-   // SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
-   if(this->measure_nmi==NULL &&
-         this->measure_ssd==NULL &&
-         this->measure_dti==NULL &&
-         this->measure_lncc==NULL &&
-         this->measure_lncc==NULL &&
-         this->measure_kld==NULL &&
-         this->measure_mind==NULL &&
-         this->measure_mindssc==NULL)
-   {
-      this->measure_nmi=new reg_nmi;
-      for(int i=0; i<this->inputReference->nt; ++i)
-         this->measure_nmi->SetTimepointWeight(i,1.0);
-   }
+  
    if(this->measure_nmi!=NULL)
       this->measure_nmi->InitialiseMeasure(this->currentReference,
                                            this->currentFloating,
