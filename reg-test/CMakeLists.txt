@@ -1,5 +1,27 @@
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
+# Generate the test data using matlab
+find_package(Matlab)
+if(NOT Matlab_FOUND)
+  set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
+  message(STATUS "Matlab not found")
+  message(ERROR "Matlab is required to generate the test data. The BUILD_TESTING flag is turned OFF")
+else(NOT Matlab_FOUND)
+  message(STATUS "Found Matlab - Generating the test data - Takes a few minutes")
+endif(NOT Matlab_FOUND)
+set(TESTING_2D_FILE "" CACHE FILEPATH "2D nifti file used to generate testing data")
+set(TESTING_3D_FILE "" CACHE FILEPATH "3D nifti file used to generate testing data")
+set(DFOLDER ${CMAKE_BINARY_DIR}/reg-test/test-data)
+execute_process(COMMAND
+                ${Matlab_ROOT_DIR}/bin/matlab "-nodisplay -nosplash -nodesktop -r \";create_test_data(\'${TESTING_2D_FILE}\',\'${TESTING_3D_FILE}\',\'${DFOLDER}\');exit\""
+                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/reg-test/matlab_tests"
+                OUTPUT_VARIABLE MATLAB_CMD_OUTPUT
+                ERROR_VARIABLE MATLAB_CMD_OUTPUT
+                )
+message(STATUS "Maltab command output:")
+message(STATUS "${MATLAB_CMD_OUTPUT}")
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 # Build the coverage test
 if(NOT MSVC)
   option(WITH_COVERAGE "Set up the C, CXX and linker flags to run the coverage test" OFF)
@@ -44,37 +66,6 @@ else(MSVC)
   message(STATUS "The buildname might need manual editing")
 endif(NOT MSVC)
 mark_as_advanced(BUILDNAME)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-  # The test data are dowloaded
-set(DFOLDER ${CMAKE_BINARY_DIR}/reg-test/test-data)
-if(NOT EXISTS "${DFOLDER}/test_data.tar.gz")
-  file(MAKE_DIRECTORY ${DFOLDER})
-  set(test_data_url "http://www.cs.ucl.ac.uk/staff/mmodat/niftyreg_test_data.tar.gz")
-  message(STATUS "Downloading the test data: ${test_data_url}")
-  file(DOWNLOAD
-       ${test_data_url}
-       "${DFOLDER}/test_data.tar.gz"
-       SHOW_PROGRESS STATUS download_status)
-  list(GET download_status 0 test_data_download_status)
-  if(${test_data_download_status})
-    message(WARNING "Error when downloading the test data, forcing BUILD_TESTING to OFF")
-    set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
-    endif(${test_data_download_status})
-endif(NOT EXISTS "${DFOLDER}/test_data.tar.gz")
-
-if(NOT EXISTS "${DFOLDER}/refImg2D.nii.gz")
-  message(STATUS "Extracting test data in ${DFOLDER}")
-  execute_process(
-    COMMAND ${CMAKE_COMMAND} -E tar xzf ${DFOLDER}/test_data.tar.gz
-    WORKING_DIRECTORY ${DFOLDER}
-    ERROR_VARIABLE test_data_extract_status
-  )
-  if(NOT ${test_data_extract_status} STREQUAL "")
-    message(WARNING "Error when extracting the test data, forcing BUILD_TESTING to OFF")
-    set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
-  endif(NOT ${test_data_extract_status} STREQUAL "")
-endif(NOT EXISTS "${DFOLDER}/refImg2D.nii.gz")
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 set(PLATFORM_LIST 0)
