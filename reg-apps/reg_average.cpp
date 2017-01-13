@@ -21,6 +21,14 @@
 
 #define PrecisionTYPE float
 
+typedef enum
+{
+   AVG_INPUT,
+   AVG_MAT_LTS,
+   AVG_IMG_TRANS,
+   AVG_IMG_TRANS_NOAFF
+} NREG_AVG_TYPE;
+
 void usage(char *exec)
 {
    char text[255];
@@ -39,16 +47,19 @@ void usage(char *exec)
    reg_print_info(exec, "\t\tAll input images are resampled into the space of <reference image> and averaged");
    reg_print_info(exec, "\t\tA cubic spline interpolation scheme is used for resampling");
    reg_print_info(exec, "");
-   reg_print_info(exec, "\t-demean1 <referenceImage> <AffineMat1> <floatingImage1> ...  <AffineMatN> <floatingImageN>");
-   reg_print_info(exec, "\t\tThe demean1 option enforces the mean of all affine matrices to have");
-   reg_print_info(exec, "\t\ta Jacobian determinant equal to one. This is done by computing the");
-   reg_print_info(exec, "\t\taverage transformation by considering only the scaling and shearing");
-   reg_print_info(exec, "\t\targuments.The inverse of this computed average matrix is then removed");
-   reg_print_info(exec, "\t\tto all input affine matrix beforeresampling all floating images to the");
-   reg_print_info(exec, "\t\tuser-defined reference space");
+   reg_print_info(exec, "\t-demean <referenceImage> <transformationFileName1> <floatingImage1> ...  <transformationFileNameN> <floatingImageN>");
+   reg_print_info(exec, "\t\tThe demean option enforces the mean of all transformations to be");
+   reg_print_info(exec, "\t\tidentity.");
+   reg_print_info(exec, "\t\tIf affine transformations are provided, only the non-rigid part is");
+   reg_print_info(exec, "\t\tconsidered after removing the rigid components.");
+   reg_print_info(exec, "\t\tIf non-linear transformation are provided the mean (euclidean) is ");
+   reg_print_info(exec, "\t\tremoved from all input transformations.");
+   reg_print_info(exec, "\t\tIf velocity field non-linear parametrisations are used, the affine");
+   reg_print_info(exec, "\t\tcomponent is discarded and the mean in the log space is removed.");
    reg_print_info(exec, "");
-   reg_print_info(exec, "\t-demean2 <referenceImage> <NonRigidTrans1> <floatingImage1> ... <NonRigidTransN> <floatingImageN>");
-   reg_print_info(exec, "\t-demean3 <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>");
+   reg_print_info(exec, "\t-demean_noaff <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>");
+   reg_print_info(exec, "\t\tSame as -demean expect that the specified affine is removed from the");
+   reg_print_info(exec, "\t\tnon-linear (euclidean) transformation.");
 #if defined (_OPENMP)
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
@@ -60,24 +71,27 @@ void usage(char *exec)
    reg_print_info(exec, "\t--version\t\tPrint current version and exit");
    sprintf(text, "\t\t\t\t(%s)",NR_VERSION);
    reg_print_info(exec, text);
+   reg_print_info(exec, "");
+   reg_print_info(exec, "alternative usage:");
+   sprintf(text, "\t%s --cmd_file <textFile>", exec);
+   reg_print_info(exec, text);
+   reg_print_info(exec, "\t\tA text file that contains the full command is provided");
    reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
-template <class DTYPE>
 void average_norm_intensity(nifti_image *image)
 {
-   DTYPE *rankedIntensities = (DTYPE *)malloc(image->nvox*sizeof(DTYPE));
-   memcpy(rankedIntensities,image->data,image->nvox*sizeof(DTYPE));
+   PrecisionTYPE *rankedIntensities = (PrecisionTYPE *)malloc(image->nvox*sizeof(PrecisionTYPE));
+   memcpy(rankedIntensities,image->data,image->nvox*sizeof(PrecisionTYPE));
    reg_heapSort(rankedIntensities,static_cast<int>(image->nvox));
-   DTYPE lowerValue=rankedIntensities[static_cast<unsigned int>(static_cast<float>(image->nvox)*0.03f)];
-   DTYPE higherValue=rankedIntensities[static_cast<unsigned int>(static_cast<float>(image->nvox)*0.97f)];
+   PrecisionTYPE lowerValue=rankedIntensities[static_cast<unsigned int>(static_cast<float>(image->nvox)*0.03f)];
+   PrecisionTYPE higherValue=rankedIntensities[static_cast<unsigned int>(static_cast<float>(image->nvox)*0.97f)];
    reg_tools_substractValueToImage(image,image,lowerValue);
    reg_tools_multiplyValueToImage(image,image,255.f/(higherValue-lowerValue));
    free(rankedIntensities);
    return;
 }
 
-template <class DTYPE>
 int remove_nan_and_add(nifti_image *averageImage,
                         nifti_image *toAddImage,
                         nifti_image *definedNumImage)
@@ -87,11 +101,11 @@ int remove_nan_and_add(nifti_image *averageImage,
       reg_print_msg_error(" All images must have the same size");
       return EXIT_FAILURE;
    }
-   DTYPE *avgImgPtr = static_cast<DTYPE *>(averageImage->data);
-   DTYPE *addImgPtr = static_cast<DTYPE *>(toAddImage->data);
-   DTYPE *defImgPtr = static_cast<DTYPE *>(definedNumImage->data);
+   PrecisionTYPE *avgImgPtr = static_cast<PrecisionTYPE *>(averageImage->data);
+   PrecisionTYPE *addImgPtr = static_cast<PrecisionTYPE *>(toAddImage->data);
+   PrecisionTYPE *defImgPtr = static_cast<PrecisionTYPE *>(definedNumImage->data);
    for(size_t i=0; i<averageImage->nvox; ++i){
-      DTYPE value = *addImgPtr;
+      PrecisionTYPE value = *addImgPtr;
       if(value==value){
          *avgImgPtr+=value;
          *defImgPtr+=1;
@@ -100,6 +114,387 @@ int remove_nan_and_add(nifti_image *averageImage,
       addImgPtr++;
       defImgPtr++;
    }
+   return EXIT_SUCCESS;
+}
+
+mat44 compute_average_matrices(size_t matrixNumber,
+                               char **inputAffName,
+                               float lts_inlier=1.f)
+{
+   // Read all input images
+   mat44 *matrices=NULL;
+   matrices = (mat44 *)malloc(matrixNumber*sizeof(mat44));
+   for(size_t m=0; m<matrixNumber; ++m)
+      reg_tool_ReadAffineFile(&matrices[m],inputAffName[m]);
+   // Matrix to store the final result is created
+   mat44 average_matrix;
+   // An array to store the weight given to each matrix is generated
+   float *matrixWeight = (float *)malloc(matrixNumber*sizeof(float));
+   int *matrixIndexSorted = (int *)malloc(matrixNumber*sizeof(int));
+   // Input matrices are logged in place
+   for(size_t m=0; m<matrixNumber; ++m)
+   {
+      matrices[m] = reg_mat44_logm(&matrices[m]);
+      matrixWeight[m]=1.;
+   }
+   // The number of iteration to perform is defined based on the use of lts
+   size_t iterationNumber = 1;
+   if(lts_inlier<1.f && lts_inlier>0)
+      iterationNumber=10;
+   for(size_t it=0; it<iterationNumber; ++it){
+      double tempValue[16]= {0,0,0,0,
+                             0,0,0,0,
+                             0,0,0,0,
+                             0,0,0,0
+                            };
+      double weightSum=0;
+      // The (weighted) average matrix is computed
+      for(size_t m=0; m<matrixNumber; ++m)
+      {
+         tempValue[0]+= (double)matrices[m].m[0][0] * matrixWeight[m];
+         tempValue[1]+= (double)matrices[m].m[0][1] * matrixWeight[m];
+         tempValue[2]+= (double)matrices[m].m[0][2] * matrixWeight[m];
+         tempValue[3]+= (double)matrices[m].m[0][3] * matrixWeight[m];
+         tempValue[4]+= (double)matrices[m].m[1][0] * matrixWeight[m];
+         tempValue[5]+= (double)matrices[m].m[1][1] * matrixWeight[m];
+         tempValue[6]+= (double)matrices[m].m[1][2] * matrixWeight[m];
+         tempValue[7]+= (double)matrices[m].m[1][3] * matrixWeight[m];
+         tempValue[8]+= (double)matrices[m].m[2][0] * matrixWeight[m];
+         tempValue[9]+= (double)matrices[m].m[2][1] * matrixWeight[m];
+         tempValue[10]+=(double)matrices[m].m[2][2] * matrixWeight[m];
+         tempValue[11]+=(double)matrices[m].m[2][3] * matrixWeight[m];
+         tempValue[12]+=(double)matrices[m].m[3][0] * matrixWeight[m];
+         tempValue[13]+=(double)matrices[m].m[3][1] * matrixWeight[m];
+         tempValue[14]+=(double)matrices[m].m[3][2] * matrixWeight[m];
+         tempValue[15]+=(double)matrices[m].m[3][3] * matrixWeight[m];
+         weightSum += matrixWeight[m];
+      }
+      tempValue[0] /= weightSum;
+      tempValue[1] /= weightSum;
+      tempValue[2] /= weightSum;
+      tempValue[3] /= weightSum;
+      tempValue[4] /= weightSum;
+      tempValue[5] /= weightSum;
+      tempValue[6] /= weightSum;
+      tempValue[7] /= weightSum;
+      tempValue[8] /= weightSum;
+      tempValue[9] /= weightSum;
+      tempValue[10]/= weightSum;
+      tempValue[11]/= weightSum;
+      tempValue[12]/= weightSum;
+      tempValue[13]/= weightSum;
+      tempValue[14]/= weightSum;
+      tempValue[15]/= weightSum;
+      // The average matrix is converted into a mat44
+      average_matrix.m[0][0]=(float)tempValue[0];
+      average_matrix.m[0][1]=(float)tempValue[1];
+      average_matrix.m[0][2]=(float)tempValue[2];
+      average_matrix.m[0][3]=(float)tempValue[3];
+      average_matrix.m[1][0]=(float)tempValue[4];
+      average_matrix.m[1][1]=(float)tempValue[5];
+      average_matrix.m[1][2]=(float)tempValue[6];
+      average_matrix.m[1][3]=(float)tempValue[7];
+      average_matrix.m[2][0]=(float)tempValue[8];
+      average_matrix.m[2][1]=(float)tempValue[9];
+      average_matrix.m[2][2]=(float)tempValue[10];
+      average_matrix.m[2][3]=(float)tempValue[11];
+      average_matrix.m[3][0]=(float)tempValue[12];
+      average_matrix.m[3][1]=(float)tempValue[13];
+      average_matrix.m[3][2]=(float)tempValue[14];
+      average_matrix.m[3][3]=(float)tempValue[15];
+
+      // The distance between the average and input matrices are computed
+      if(lts_inlier<1.f && lts_inlier>0){
+         for(size_t m=0; m<matrixNumber; ++m)
+         {
+            mat44 Minus=matrices[m] - average_matrix;
+            mat44 Minus_transpose;
+            for(int i=0; i<4; ++i)
+               for(int j=0; j<4; ++j)
+                  Minus_transpose.m[i][j] = Minus.m[j][i];
+            mat44 MTM=Minus_transpose * Minus;
+            double trace=0;
+            for(size_t i=0; i<4; ++i)
+               trace+=MTM.m[i][i];
+            if(trace<std::numeric_limits<double>::epsilon())
+               trace = std::numeric_limits<double>::epsilon();
+            matrixWeight[m]=1.f/(sqrt(trace));
+            matrixIndexSorted[m]=m;
+         }
+         // Sort the computed distances
+         reg_heapSort(matrixWeight, matrixIndexSorted, matrixNumber);
+         // Re-assign the weights for the next iteration
+         memset(matrixWeight, 0, matrixNumber*sizeof(float));
+         for(size_t m=matrixNumber-1; m>lts_inlier * matrixNumber; --m)
+         {
+            matrixWeight[matrixIndexSorted[m]]=1.f;
+         }
+      }
+      // The average matrix is exponentiated
+      average_matrix = reg_mat44_expm(&average_matrix);
+   } // iteration number
+   // Free the allocated array
+   free(matrixWeight);
+   free(matrixIndexSorted);
+   if(matrices!=NULL) free(matrices);
+   return average_matrix;
+}
+
+mat44 compute_affine_demean(size_t matrixNumber,
+                            char **inputAffName)
+{
+   mat44 demeanMatrix, tempMatrix;
+   memset(&demeanMatrix,0,sizeof(mat44));
+   for(size_t m=0; m<matrixNumber; ++m)
+   {
+      // Read the current matrix
+      mat44 current_affine;
+      reg_tool_ReadAffineFile(&current_affine,inputAffName[m]);
+      // extract the rigid matrix from the affine
+      float qb,qc,qd,qx,qy,qz,qfac;
+      nifti_mat44_to_quatern(current_affine,&qb,&qc,&qd,&qx,&qy,&qz,NULL,NULL,NULL,&qfac);
+      tempMatrix=nifti_quatern_to_mat44(qb,qc,qd,qx,qy,qz,1.f,1.f,1.f,qfac);
+      // remove the rigid componenent from the affine matrix
+      tempMatrix=nifti_mat44_inverse(tempMatrix);
+      tempMatrix=reg_mat44_mul(&tempMatrix,&current_affine);
+      // sum up all the affine matrices
+      tempMatrix = reg_mat44_logm(&tempMatrix);
+      demeanMatrix = demeanMatrix + tempMatrix;
+   }
+   // The average matrix is normalised
+   demeanMatrix = reg_mat44_mul(&demeanMatrix,1.f/(float)matrixNumber);
+   // The average matrix is exponentiated
+   demeanMatrix = reg_mat44_expm(&demeanMatrix);
+   // The average matrix is inverted
+   demeanMatrix = nifti_mat44_inverse(demeanMatrix);
+   return demeanMatrix;
+}
+
+int compute_nrr_demean(nifti_image *demean_field,
+                       size_t transformationNumber,
+                       char **inputNRRName,
+                       char **inputAffName=NULL)
+{
+   // Set the demean field to zero
+   reg_tools_multiplyValueToImage(demean_field,demean_field,0.f);
+   // iterate over all transformations
+   for(size_t t=0; t<transformationNumber; ++t){
+      // read the transformation
+      nifti_image *transformation = reg_io_ReadImageFile(inputNRRName[t]);
+      // Generate the deformation or flow field
+      nifti_image *deformationField = nifti_copy_nim_info(demean_field);
+      deformationField->data = (void *)malloc(deformationField->nvox*deformationField->nbyper);
+      reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
+      deformationField->scl_slope=1.f;
+      deformationField->scl_inter=0.f;
+      deformationField->intent_p1=DISP_FIELD;
+      reg_getDeformationFromDisplacement(deformationField);
+      // Generate a deformation field or a flow field depending of the input transformation
+      switch(static_cast<int>(transformation->intent_p1))
+      {
+      case DISP_FIELD:
+         reg_getDeformationFromDisplacement(transformation);
+      case DEF_FIELD:
+         reg_defField_compose(transformation,deformationField,NULL);
+         break;
+      case CUB_SPLINE_GRID:
+         reg_spline_getDeformationField(transformation,deformationField,NULL,true,true);
+         break;
+      case DISP_VEL_FIELD:
+         reg_getDeformationFromDisplacement(transformation);
+      case DEF_VEL_FIELD:
+         reg_defField_compose(transformation,deformationField,NULL);
+         break;
+      case SPLINE_VEL_GRID:
+         reg_spline_getFlowFieldFromVelocityGrid(transformation,deformationField);
+         break;
+      default:
+         reg_print_msg_error("Unsupported transformation parametrisation type:");
+         reg_print_msg_error(transformation->fname);
+         return EXIT_FAILURE;
+      }
+      // The affine component is removed
+      if(inputAffName!=NULL || transformation->num_ext>0){
+         mat44 affineTransformation;
+         if(transformation->num_ext>0)
+         {
+            affineTransformation=*reinterpret_cast<mat44 *>(transformation->ext_list[0].edata);
+            // Note that if the transformation is a flow field, only half-of the affine has be used
+            if(transformation->num_ext>1 && deformationField->intent_p1!=DEF_VEL_FIELD)
+            {
+               affineTransformation=reg_mat44_mul(
+                                       reinterpret_cast<mat44 *>(transformation->ext_list[1].edata),
+                                       &affineTransformation);
+            }
+         }
+         else reg_tool_ReadAffineFile(&affineTransformation,inputAffName[t]);
+         // The affine component is substracted
+         nifti_image *tempField = nifti_copy_nim_info(deformationField);
+         tempField->data = (void *)malloc(tempField->nvox*tempField->nbyper);
+         tempField->scl_slope=1.f;
+         tempField->scl_inter=0.f;
+         reg_affine_getDeformationField(&affineTransformation, tempField);
+         reg_tools_substractImageToImage(deformationField,tempField,deformationField);
+         nifti_image_free(tempField);
+         if(deformationField->intent_p1==DEF_FIELD)
+            deformationField->intent_p1=DISP_FIELD;
+         if(deformationField->intent_p1==DEF_VEL_FIELD)
+            deformationField->intent_p1=DISP_VEL_FIELD;
+      }
+      else reg_getDisplacementFromDeformation(deformationField);
+      free(transformation);
+      // The current field is added to the average image
+      reg_tools_addImageToImage(demean_field,deformationField,demean_field);
+      free(deformationField);
+   } // iteration over transformation: t
+   // The average image is normalised by the number of inputs
+   reg_tools_divideValueToImage(demean_field,demean_field,transformationNumber);
+
+   return EXIT_SUCCESS;
+}
+
+int compute_average_image(nifti_image *averageImage,
+                          size_t imageNumber,
+                          char **inputImageName,
+                          char **inputAffName=NULL,
+                          char **inputNRRName=NULL,
+                          bool demean=false)
+{
+   // Compute the matrix required for demeaning if required
+   mat44 demeanMatrix;
+   nifti_image *demeanField = NULL;
+   if(demean && inputAffName!=NULL && inputNRRName==NULL){
+      demeanMatrix = compute_affine_demean(imageNumber, inputAffName);
+#ifndef NDEBUG
+      reg_print_msg_debug("Matrix to use for demeaning computed");
+#endif
+   }
+   if(demean && inputNRRName!=NULL){
+      demeanField=nifti_copy_nim_info(averageImage);
+      demeanField->ndim=demeanField->dim[0]=5;
+      demeanField->nt=demeanField->dim[4]=1;
+      demeanField->nu=demeanField->dim[5]=demeanField->nz>1?3:2;
+      demeanField->nvox=(size_t)demeanField->nx *
+            demeanField->ny * demeanField->nz *
+            demeanField->nt * demeanField->nu;
+      demeanField->nbyper=sizeof(float);
+      demeanField->datatype=NIFTI_TYPE_FLOAT32;
+      demeanField->intent_code=NIFTI_INTENT_VECTOR;
+      memset(demeanField->intent_name, 0, 16);
+      strcpy(demeanField->intent_name,"NREG_TRANS");
+      demeanField->scl_slope=1.f;
+      demeanField->scl_inter=0.f;
+      demeanField->intent_p1=DISP_FIELD;
+      demeanField->data=(void *)calloc(demeanField->nvox, demeanField->nbyper);
+      compute_nrr_demean(demeanField, imageNumber, inputNRRName, inputAffName);
+#ifndef NDEBUG
+      reg_print_msg_debug("Displacement field to use for demeaning computed");
+#endif
+   }
+
+   // Set the average image to zero
+   memset(averageImage->data, 0, averageImage->nvox*averageImage->nbyper);
+   // Create an image to store the defined value number
+   nifti_image *definedValue = nifti_copy_nim_info(averageImage);
+   definedValue->data = (void *)calloc(averageImage->nvox, averageImage->nbyper);
+   // Loop over all input images
+   for(size_t i=0; i<imageNumber; ++i){
+      // Generate a deformation field defined by the average final
+      nifti_image *deformationField=nifti_copy_nim_info(averageImage);
+      deformationField->ndim=deformationField->dim[0]=5;
+      deformationField->nt=deformationField->dim[4]=1;
+      deformationField->nu=deformationField->dim[5]=deformationField->nz>1?3:2;
+      deformationField->nvox=(size_t)deformationField->nx *
+            deformationField->ny * deformationField->nz *
+            deformationField->nt * deformationField->nu;
+      deformationField->nbyper=sizeof(float);
+      deformationField->datatype=NIFTI_TYPE_FLOAT32;
+      deformationField->intent_code=NIFTI_INTENT_VECTOR;
+      memset(deformationField->intent_name, 0, 16);
+      strcpy(deformationField->intent_name,"NREG_TRANS");
+      deformationField->scl_slope=1.f;
+      deformationField->scl_inter=0.f;
+      deformationField->intent_p1=DISP_FIELD;
+      deformationField->data=(void *)calloc(deformationField->nvox, deformationField->nbyper);
+      reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
+      // Set the transformation to identity
+      reg_getDeformationFromDisplacement(deformationField);
+      // Compute the transformation if required
+      if(inputNRRName!=NULL){
+         nifti_image *current_transformation = reg_io_ReadImageFile(inputNRRName[i]);
+         switch(static_cast<int>(current_transformation->intent_p1)){
+         case DISP_FIELD:
+            reg_getDeformationFromDisplacement(current_transformation);
+         case DEF_FIELD:
+            reg_defField_compose(current_transformation, deformationField, NULL);
+            break;
+         case CUB_SPLINE_GRID:
+            reg_spline_getDeformationField(current_transformation, deformationField, NULL, true, true);
+            break;
+         case SPLINE_VEL_GRID:
+            if(current_transformation->num_ext>0)
+               nifti_copy_extensions(deformationField,current_transformation);
+            reg_spline_getFlowFieldFromVelocityGrid(current_transformation, deformationField);
+            break;
+         case DISP_VEL_FIELD:
+            reg_getDeformationFromDisplacement(current_transformation);
+         case DEF_VEL_FIELD:
+            reg_defField_compose(current_transformation,deformationField,NULL);
+            break;
+         default: reg_print_msg_error("Unsupported transformation type")
+                  reg_exit();
+         }
+         free(current_transformation);
+         if(demeanField!=NULL){
+            if(deformationField->intent_p1==DEF_VEL_FIELD){
+               reg_tools_substractImageToImage(deformationField,demeanField,deformationField);
+               nifti_image *tempDef = nifti_copy_nim_info(deformationField);
+               tempDef->data = (void *)malloc(tempDef->nvox*tempDef->nbyper);
+               memcpy(tempDef->data,deformationField->data,tempDef->nvox*tempDef->nbyper);
+               tempDef->scl_slope=1.f;
+               tempDef->scl_inter=0.f;
+               reg_defField_getDeformationFieldFromFlowField(tempDef,deformationField,false);
+               deformationField->intent_p1=DEF_FIELD;
+               nifti_free_extensions(deformationField);
+               nifti_image_free(tempDef);
+            }
+            else reg_tools_substractImageToImage(deformationField,demeanField,deformationField);
+#ifndef NDEBUG
+            reg_print_msg_debug("Input non-linear transformation has been demeaned");
+#endif
+         }
+      }
+      else if(inputAffName!=NULL){
+         mat44 current_affine;
+         reg_tool_ReadAffineFile(&current_affine,inputAffName[i]);
+         if(demean && inputAffName!=NULL && inputNRRName==NULL){
+            current_affine = demeanMatrix * current_affine;
+#ifndef NDEBUG
+      reg_print_msg_debug("Input affine transformation has been demeaned");
+#endif
+         }
+         reg_affine_getDeformationField(&current_affine, deformationField);
+      }
+      // Create a warped image file
+      nifti_image *warpedImage = nifti_copy_nim_info(averageImage);
+      warpedImage->datatype = NIFTI_TYPE_FLOAT32;
+      warpedImage->nbyper = sizeof(float);
+      warpedImage->data = (void *)malloc(warpedImage->nvox*warpedImage->nbyper);
+      // Read the input image
+      nifti_image *current_input_image = reg_io_ReadImageFile(inputImageName[i]);
+      reg_tools_changeDatatype<PrecisionTYPE>(current_input_image);
+      // Apply the transformation
+      reg_resampleImage(current_input_image, warpedImage, deformationField, NULL, 3, std::numeric_limits<float>::quiet_NaN());
+      nifti_image_free(deformationField);
+      // Add the image to the average
+      remove_nan_and_add(averageImage, warpedImage, definedValue);
+      nifti_image_free(warpedImage);
+   }
+   // Clear the allocated demeanField if needed
+   if(demeanField!=NULL) nifti_image_free(demeanField);
+   // Normalised the average image
+   reg_tools_divideImageToImage(averageImage,definedValue, averageImage);
+   nifti_image_free(definedValue);
    return EXIT_SUCCESS;
 }
 
@@ -118,12 +513,7 @@ int main(int argc, char **argv)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
 #endif
-   // Check if the --xml information is required
-   if(strcmp(argv[1], "--xml")==0)
-   {
-      printf("%s",xml_average);
-      return EXIT_SUCCESS;
-   }
+
    // Check if help is required
    for(int i=1; i<argc; ++i)
    {
@@ -161,938 +551,205 @@ int main(int argc, char **argv)
       }
    }
 
+   // Check if a command text file is provided
+   char **pointer_to_command = NULL;
+   int arg_num_command = 0;
+   if(strcmp(argv[1],"--cmd_file")==0 && argc==3){
+      char buffer[512];
+      FILE *cmd_file = fopen(argv[2], "r+");
+      if(cmd_file==NULL){
+         reg_print_msg_error("Error when reading the provided command line file:");
+         reg_print_msg_error(argv[2]);
+         reg_exit();
+      }
+      // First path to extract the actual argument number
+      while(fscanf(cmd_file," %511s", buffer)==1)
+         ++arg_num_command;
+      // Allocate the required size
+      pointer_to_command = (char **)malloc(arg_num_command*sizeof(char *));
+      // Store the arguments
+      fseek(cmd_file, 0, SEEK_SET);
+      arg_num_command=0;
+      while(fscanf(cmd_file," %511s", buffer)==1){
+         int length = strchr(buffer, '\0')-buffer+1;
+         pointer_to_command[arg_num_command] = (char *)malloc(length*sizeof(char));
+         strcpy(pointer_to_command[arg_num_command], buffer);
+         ++arg_num_command;
+      }
+      fclose(cmd_file);
+   }
+   else{
+      pointer_to_command = argv;
+      arg_num_command = argc;
+   }
+
+   // Set some variables
+   int operation;
+   bool use_demean=false;
+   size_t image_number=0;
+   char *referenceImageName;
+
    // Set the name of the file to output
-   char *outputName = argv[1];
+   char *outputName = pointer_to_command[1];
+
 
    // Check what operation is required
-   int operation;
-   if(strcmp(argv[2],"-avg")==0)
-      operation=0;
-   else if(strcmp(argv[2],"-avg_lts")==0 || strcmp(argv[2],"-lts_avg")==0)
-      operation=1;
-   else if(strcmp(argv[2],"-avg_tran")==0)
-      operation=2;
-   else if(strcmp(argv[2],"-demean1")==0)
-      operation=3;
-   else if(strcmp(argv[2],"-demean2")==0)
-      operation=4;
-   else if(strcmp(argv[2],"-demean3")==0)
-      operation=5;
+   if(strcmp(pointer_to_command[2],"-avg")==0){
+      operation=AVG_INPUT;
+      image_number=arg_num_command-3;
+   }
+   else if(strcmp(pointer_to_command[2],"-avg_lts")==0 || strcmp(pointer_to_command[2],"-lts_avg")==0){
+      operation=AVG_MAT_LTS;
+      image_number=arg_num_command-3;
+   }
+   else if(strcmp(pointer_to_command[2],"-avg_tran")==0){
+      referenceImageName=pointer_to_command[3];
+      operation=AVG_IMG_TRANS;
+      image_number=(arg_num_command-4)/2;
+   }
+   else if(strcmp(pointer_to_command[2],"-demean")==0 || strcmp(pointer_to_command[2],"-demean1")==0 || strcmp(pointer_to_command[2],"-demean2")==0){
+      referenceImageName=pointer_to_command[3];
+      operation=AVG_IMG_TRANS;
+      image_number=(arg_num_command-4)/2;
+      use_demean=true;
+   }
+   else if(strcmp(pointer_to_command[2],"-demean_noaff")==0 || strcmp(pointer_to_command[2],"-demean3")==0){
+      referenceImageName=pointer_to_command[3];
+      operation=AVG_IMG_TRANS_NOAFF;
+      image_number=(arg_num_command-4)/3;
+      use_demean=true;
+   }
    else
    {
       reg_print_msg_error("unknow operation. Options are \"-avg\", \"-avg_lts\", \"-avg_tran\", ");
-      reg_print_msg_error("\"-demean1\", \"-demean2\" or \"-demean3\". Specified argument:");
-      reg_print_msg_error(argv[2]);
-      usage(argv[0]);
+      reg_print_msg_error("\"-demean\" or \"-demean_noaff\". Specified argument:");
+      reg_print_msg_error(pointer_to_command[2]);
+      usage(pointer_to_command[0]);
       return EXIT_FAILURE;
    }
 
-   // Create the average image or average matrix
-   if(operation==0)
-   {
-      //Check the name of the first file to verify if they are analyse or nifti image
-      std::string n(argv[3]);
-      if(     n.find( ".nii.gz") != std::string::npos ||
-              n.find( ".nii") != std::string::npos ||
+   // Check if the inputs are affine or images
+   bool trans_is_affine=true;
+   if(operation==AVG_INPUT || operation==AVG_IMG_TRANS){
+      std::string n(pointer_to_command[4]);
+      if(     n.find( ".nii") != std::string::npos ||
+              n.find( ".nii.gz") != std::string::npos ||
               n.find( ".hdr") != std::string::npos ||
               n.find( ".img") != std::string::npos ||
-              n.find( ".img.gz") != std::string::npos)
+              n.find( ".img.gz") != std::string::npos ||
+              n.find( ".png") != std::string::npos ||
+              n.find( ".nrrd") != std::string::npos)
       {
-         // Input arguments are image filename
-         // Read the first image to average
-         nifti_image *tempImage=reg_io_ReadImageHeader(argv[3]);
-         if(tempImage==NULL)
-         {
-            reg_print_msg_error("The following image can not be read:");
-            reg_print_msg_error(argv[3]);
-            return EXIT_FAILURE;
-         }
-
-         // Create the average image
-         nifti_image *averageImage=nifti_copy_nim_info(tempImage);
-         averageImage->scl_slope=1.f;
-         averageImage->scl_inter=0.f;
-         nifti_image_free(tempImage);
-         tempImage=NULL;
-         averageImage->datatype=NIFTI_TYPE_FLOAT32;
-         if(sizeof(PrecisionTYPE)==sizeof(double))
-            averageImage->datatype=NIFTI_TYPE_FLOAT64;
-         averageImage->nbyper=sizeof(PrecisionTYPE);
-         averageImage->data=(void *)calloc(averageImage->nvox,averageImage->nbyper);
-
-         // Create an image to store the number of nan value
-         nifti_image *definedNumberImage = nifti_copy_nim_info(averageImage);
-         definedNumberImage->data=(void *)calloc(averageImage->nvox,averageImage->nbyper);
-
-         int imageTotalNumber=0;
-         for(int i=3; i<argc; ++i)
-         {
-            nifti_image *tempImage=reg_io_ReadImageFile(argv[i]);
-            // Check if the image can be read
-            if(tempImage==NULL)
-            {
-               reg_print_msg_error("The following image can not be read:");
-               reg_print_msg_error(argv[i]);
-               return EXIT_FAILURE;
-            }
-            // change the datatype
-            if(sizeof(PrecisionTYPE)==sizeof(double))
-               reg_tools_changeDatatype<double>(tempImage);
-            else reg_tools_changeDatatype<float>(tempImage);
-
-            // Accumulate in the average image and remove nan
-            if(remove_nan_and_add<PrecisionTYPE>(averageImage, tempImage, definedNumberImage))
-               return EXIT_FAILURE;
-
-            imageTotalNumber++;
-            nifti_image_free(tempImage);
-            tempImage=NULL;
-         }
-         // Normalise the average image
-         reg_tools_divideImageToImage(averageImage,definedNumberImage, averageImage);
-         nifti_image_free(definedNumberImage);
-
-         // Save the average image
-         reg_io_WriteImageFile(averageImage,outputName);
-         nifti_image_free(averageImage);
-      }
-      else
-      {
-         // input arguments are assumed to be text file name
-         // Create an mat44 array to store all input matrices
-         const size_t matrixNumber=argc-3;
-         mat44 *inputMatrices=(mat44 *)malloc(matrixNumber * sizeof(mat44));
-         // Read all the input matrices
-         for(size_t m=0; m<matrixNumber; ++m)
-         {
-            if(FILE *aff=fopen(argv[m+3], "r"))
-            {
-               fclose(aff);
-            }
-            else
-            {
-               reg_print_msg_error("The specified input affine file can not be read");
-               reg_print_msg_error(argv[m+3]);
-               reg_exit();
-            }
-            // Read the current matrix file
-            std::ifstream affineFile;
-            affineFile.open(argv[m+3]);
-            if(affineFile.is_open())
-            {
-               // Transfer the values into the mat44 array
-               int i=0;
-               float value1,value2,value3,value4;
-               while(!affineFile.eof())
-               {
-                  affineFile >> value1 >> value2 >> value3 >> value4;
-                  inputMatrices[m].m[i][0] = value1;
-                  inputMatrices[m].m[i][1] = value2;
-                  inputMatrices[m].m[i][2] = value3;
-                  inputMatrices[m].m[i][3] = value4;
-                  i++;
-                  if(i>3) break;
-               }
-            }
-            affineFile.close();
-         }
-         // All the input matrices are log-ed
-         for(size_t m=0; m<matrixNumber; ++m)
-         {
-            inputMatrices[m] = reg_mat44_logm(&inputMatrices[m]);
-         }
-         // All the exponentiated matrices are summed up into one matrix
-         //temporary double are used to avoid error accumulation
-         double tempValue[16]= {0,0,0,0,
-                                0,0,0,0,
-                                0,0,0,0,
-                                0,0,0,0
-                               };
-         for(size_t m=0; m<matrixNumber; ++m)
-         {
-            tempValue[0]+= (double)inputMatrices[m].m[0][0];
-            tempValue[1]+= (double)inputMatrices[m].m[0][1];
-            tempValue[2]+= (double)inputMatrices[m].m[0][2];
-            tempValue[3]+= (double)inputMatrices[m].m[0][3];
-            tempValue[4]+= (double)inputMatrices[m].m[1][0];
-            tempValue[5]+= (double)inputMatrices[m].m[1][1];
-            tempValue[6]+= (double)inputMatrices[m].m[1][2];
-            tempValue[7]+= (double)inputMatrices[m].m[1][3];
-            tempValue[8]+= (double)inputMatrices[m].m[2][0];
-            tempValue[9]+= (double)inputMatrices[m].m[2][1];
-            tempValue[10]+=(double)inputMatrices[m].m[2][2];
-            tempValue[11]+=(double)inputMatrices[m].m[2][3];
-            tempValue[12]+=(double)inputMatrices[m].m[3][0];
-            tempValue[13]+=(double)inputMatrices[m].m[3][1];
-            tempValue[14]+=(double)inputMatrices[m].m[3][2];
-            tempValue[15]+=(double)inputMatrices[m].m[3][3];
-         }
-         // Average matrix is computed
-         tempValue[0] /= (double)matrixNumber;
-         tempValue[1] /= (double)matrixNumber;
-         tempValue[2] /= (double)matrixNumber;
-         tempValue[3] /= (double)matrixNumber;
-         tempValue[4] /= (double)matrixNumber;
-         tempValue[5] /= (double)matrixNumber;
-         tempValue[6] /= (double)matrixNumber;
-         tempValue[7] /= (double)matrixNumber;
-         tempValue[8] /= (double)matrixNumber;
-         tempValue[9] /= (double)matrixNumber;
-         tempValue[10]/= (double)matrixNumber;
-         tempValue[11]/= (double)matrixNumber;
-         tempValue[12]/= (double)matrixNumber;
-         tempValue[13]/= (double)matrixNumber;
-         tempValue[14]/= (double)matrixNumber;
-         tempValue[15]/= (double)matrixNumber;
-         // The final matrix is exponentiated
-         mat44 outputMatrix;
-         outputMatrix.m[0][0]=(float)tempValue[0];
-         outputMatrix.m[0][1]=(float)tempValue[1];
-         outputMatrix.m[0][2]=(float)tempValue[2];
-         outputMatrix.m[0][3]=(float)tempValue[3];
-         outputMatrix.m[1][0]=(float)tempValue[4];
-         outputMatrix.m[1][1]=(float)tempValue[5];
-         outputMatrix.m[1][2]=(float)tempValue[6];
-         outputMatrix.m[1][3]=(float)tempValue[7];
-         outputMatrix.m[2][0]=(float)tempValue[8];
-         outputMatrix.m[2][1]=(float)tempValue[9];
-         outputMatrix.m[2][2]=(float)tempValue[10];
-         outputMatrix.m[2][3]=(float)tempValue[11];
-         outputMatrix.m[3][0]=(float)tempValue[12];
-         outputMatrix.m[3][1]=(float)tempValue[13];
-         outputMatrix.m[3][2]=(float)tempValue[14];
-         outputMatrix.m[3][3]=(float)tempValue[15];
-         outputMatrix = reg_mat44_expm(&outputMatrix);
-         // Free the array containing the input matrices
-         free(inputMatrices);
-         // The final matrix is saved
-         reg_tool_WriteAffineFile(&outputMatrix,outputName);
+         trans_is_affine=false;
       }
    }
-   // Create the LTS average matrix
-   else if(operation==1)
-   {
-       //Check the name of the first file to verify if they are analyse or nifti image, as it only works for affines
-       std::string n(argv[3]);
-       if(     n.find( ".nii.gz") != std::string::npos ||
-               n.find( ".nii") != std::string::npos ||
-               n.find( ".hdr") != std::string::npos ||
-               n.find( ".img") != std::string::npos ||
-               n.find( ".img.gz") != std::string::npos)
-       {
-           reg_print_msg_error("The LTS average method only works with affine transformations.");
-           return EXIT_FAILURE;
-       }
-       else
-       {
-           // input arguments are assumed to be text file name
-           // Create an mat44 array to store all input matrices
-           const size_t matrixNumber=argc-3;
-           mat44 *inputMatrices=(mat44 *)malloc(matrixNumber * sizeof(mat44));
-           // Read all the input matrices
-           for(size_t m=0; m<matrixNumber; ++m)
-           {
-               if(FILE *aff=fopen(argv[m+3], "r"))
-               {
-                   fclose(aff);
-               }
-               else
-               {
-                   reg_print_msg_error("The specified input affine file can not be read");
-                   reg_print_msg_error(argv[m+3]);
-                   reg_exit();
-               }
-               // Read the current matrix file
-               std::ifstream affineFile;
-               affineFile.open(argv[m+3]);
-               if(affineFile.is_open())
-               {
-                   // Transfer the values into the mat44 array
-                   int i=0;
-                   float value1,value2,value3,value4;
-                   while(!affineFile.eof())
-                   {
-                       affineFile >> value1 >> value2 >> value3 >> value4;
-                       inputMatrices[m].m[i][0] = value1;
-                       inputMatrices[m].m[i][1] = value2;
-                       inputMatrices[m].m[i][2] = value3;
-                       inputMatrices[m].m[i][3] = value4;
-                       i++;
-                       if(i>3) break;
-                   }
-               }
-               affineFile.close();
-           }
-           // All the input matrices are log-ed
-           for(size_t m=0; m<matrixNumber; ++m)
-           {
-               inputMatrices[m] = reg_mat44_logm(&inputMatrices[m]);
-           }
 
-           // All the exponentiated matrices are summed up into one matrix
-           // temporary double are used to avoid error accumulation
-
-           double percent=0.5f;
-           double * weight=(double *)malloc(matrixNumber * sizeof(double));
-           double * weight2=(double *)malloc(matrixNumber * sizeof(double));
-           for(size_t m=0; m<matrixNumber; ++m)
-           {
-               weight[m]=1;
-               weight2[m]=1;
-           }
-
-           mat44 outputMatrix;
-           for(int iter=0; iter<10; iter++)
-           {
-               double tempValue[16]= {0,0,0,0,
-                                      0,0,0,0,
-                                      0,0,0,0,
-                                      0,0,0,0
-                                     };
-
-               // All the exponentiated matrices are summed up into one matrix
-               // in order to create the average matrix.
-               // temporary double are used to avoid error accumulation
-               double sumdistance=0;
-               for(size_t m=0; m<matrixNumber; ++m)
-               {
-                   tempValue[ 0]+=weight[m]*(double)inputMatrices[m].m[0][0];
-                   tempValue[ 1]+=weight[m]*(double)inputMatrices[m].m[0][1];
-                   tempValue[ 2]+=weight[m]*(double)inputMatrices[m].m[0][2];
-                   tempValue[ 3]+=weight[m]*(double)inputMatrices[m].m[0][3];
-                   tempValue[ 4]+=weight[m]*(double)inputMatrices[m].m[1][0];
-                   tempValue[ 5]+=weight[m]*(double)inputMatrices[m].m[1][1];
-                   tempValue[ 6]+=weight[m]*(double)inputMatrices[m].m[1][2];
-                   tempValue[ 7]+=weight[m]*(double)inputMatrices[m].m[1][3];
-                   tempValue[ 8]+=weight[m]*(double)inputMatrices[m].m[2][0];
-                   tempValue[ 9]+=weight[m]*(double)inputMatrices[m].m[2][1];
-                   tempValue[10]+=weight[m]*(double)inputMatrices[m].m[2][2];
-                   tempValue[11]+=weight[m]*(double)inputMatrices[m].m[2][3];
-                   tempValue[12]+=weight[m]*(double)inputMatrices[m].m[3][0];
-                   tempValue[13]+=weight[m]*(double)inputMatrices[m].m[3][1];
-                   tempValue[14]+=weight[m]*(double)inputMatrices[m].m[3][2];
-                   tempValue[15]+=weight[m]*(double)inputMatrices[m].m[3][3];
-                   sumdistance+=weight[m];
-               }
-               // Average matrix is computed
-               tempValue[ 0] /= (double)sumdistance;
-               tempValue[ 1] /= (double)sumdistance;
-               tempValue[ 2] /= (double)sumdistance;
-               tempValue[ 3] /= (double)sumdistance;
-               tempValue[ 4] /= (double)sumdistance;
-               tempValue[ 5] /= (double)sumdistance;
-               tempValue[ 6] /= (double)sumdistance;
-               tempValue[ 7] /= (double)sumdistance;
-               tempValue[ 8] /= (double)sumdistance;
-               tempValue[ 9] /= (double)sumdistance;
-               tempValue[10] /= (double)sumdistance;
-               tempValue[11] /= (double)sumdistance;
-               tempValue[12] /= (double)sumdistance;
-               tempValue[13] /= (double)sumdistance;
-               tempValue[14] /= (double)sumdistance;
-               tempValue[15] /= (double)sumdistance;
-
-               // The final matrix is exponentiated
-               outputMatrix.m[0][0]=(float)tempValue[ 0];
-               outputMatrix.m[0][1]=(float)tempValue[ 1];
-               outputMatrix.m[0][2]=(float)tempValue[ 2];
-               outputMatrix.m[0][3]=(float)tempValue[ 3];
-               outputMatrix.m[1][0]=(float)tempValue[ 4];
-               outputMatrix.m[1][1]=(float)tempValue[ 5];
-               outputMatrix.m[1][2]=(float)tempValue[ 6];
-               outputMatrix.m[1][3]=(float)tempValue[ 7];
-               outputMatrix.m[2][0]=(float)tempValue[ 8];
-               outputMatrix.m[2][1]=(float)tempValue[ 9];
-               outputMatrix.m[2][2]=(float)tempValue[10];
-               outputMatrix.m[2][3]=(float)tempValue[11];
-               outputMatrix.m[3][0]=(float)tempValue[12];
-               outputMatrix.m[3][1]=(float)tempValue[13];
-               outputMatrix.m[3][2]=(float)tempValue[14];
-               outputMatrix.m[3][3]=(float)tempValue[15];
-
-               // The weights are updated based on the
-               for(size_t m=0; m<matrixNumber; ++m)
-               {
-                   weight[m]=1;
-
-                   mat44 Minus=reg_mat44_minus(&(inputMatrices[m]),&outputMatrix);
-
-                   mat44 Minus_transpose;
-                   for(int i=0; i<4; ++i)
-                   {
-                       for(int j=0; j<4; ++j)
-                       {
-                           Minus_transpose.m[i][j]=Minus.m[j][i];
-                       }
-                   }
-                   mat44 MTM=reg_mat44_mul(&Minus_transpose,&Minus);
-                   double trace=0;
-                   for(size_t i=0; i<4; ++i)
-                   {
-                       trace+=MTM.m[i][i];
-                   }
-                   weight[m]=1/(sqrt(trace));
-                   weight2[m]=1/(sqrt(trace));
-               }
-
-               reg_heapSort(weight2,matrixNumber);
-               for(size_t m=0; m<matrixNumber; ++m)
-               {
-                   weight[m]=weight[m]>weight2[(int)ceil(matrixNumber*percent)];
-               }
-               outputMatrix = reg_mat44_expm(&outputMatrix);
-           }
-
-           // Free the array containing the input matrices
-           free(inputMatrices);
-           // The final matrix is saved
-           reg_tool_WriteAffineFile(&outputMatrix,outputName);
-       }
+   // Parse the input data
+   char **input_image_names = NULL;
+   char **input_affine_names = NULL;
+   char **input_nonrigid_names = NULL;
+   if(operation!=AVG_INPUT || trans_is_affine==false){
+      input_image_names = (char **)malloc(image_number*sizeof(char *));
    }
-   else
-   {
-      /* **** the average image is created after resampling **** */
-      // read the reference image
-      nifti_image *referenceImage=reg_io_ReadImageFile(argv[3]);
-      if(referenceImage==NULL)
-      {
-         reg_print_msg_error("The reference image cannot be read:");
-         reg_print_msg_error(argv[3]);
-         return EXIT_FAILURE;
+   if((operation==AVG_INPUT && trans_is_affine==true) || trans_is_affine || operation==AVG_IMG_TRANS_NOAFF){
+      input_affine_names = (char **)malloc(image_number*sizeof(char *));
+   }
+   if((operation==AVG_IMG_TRANS && trans_is_affine==false) || operation==AVG_IMG_TRANS_NOAFF){
+      input_nonrigid_names = (char **)malloc(image_number*sizeof(char *));
+   }
+   int start=3;
+   int increment=1;
+   if(operation==AVG_IMG_TRANS){
+      start=4;
+      increment=2;
+   }
+   else if(operation==AVG_IMG_TRANS_NOAFF){
+      start=4;
+      increment=3;
+   }
+   int index=0;
+   for(int i=start; i<arg_num_command; i+=increment){
+      if(operation==AVG_INPUT){
+         if(trans_is_affine)
+            input_affine_names[index] = pointer_to_command[i];
+         else input_image_names[index] = pointer_to_command[i];
       }
-#ifndef NDEBUG
-      reg_print_msg_debug("reg_average: User-specified reference image:");
-      reg_print_msg_debug(referenceImage->fname);
-#endif
-      // Create the average image without demeaning
-      if(operation==2)
-      {
-          // Throw an error
-          if ( (argc-4) % 2 != 0)
-          {
-              reg_print_msg_error("An odd number of transformation/image pairs was provided.");
-              return EXIT_FAILURE;
-          }
-         // Create an average image
-         nifti_image *averageImage = nifti_copy_nim_info(referenceImage);
-         averageImage->nbyper=sizeof(float);
-         averageImage->datatype=NIFTI_TYPE_FLOAT32;
-         averageImage->scl_slope=1.f;
-         averageImage->scl_inter=0.f;
-         averageImage->data=(void *)calloc(averageImage->nvox,
-                                           averageImage->nbyper);
-
-         // Create an image to store the number of nan value
-         nifti_image *definedNumberImage = nifti_copy_nim_info(averageImage);
-         definedNumberImage->data=(void *)calloc(averageImage->nvox,averageImage->nbyper);
-
-         for(int i=4;i<argc;i+=2){
-            mat44 *inputTransformationMatrix=NULL;
-            nifti_image *inputTransformationImage=NULL;
-            // First check if the input filename is an image
-            if(reg_isAnImageFileName(argv[i]))
-            {
-               inputTransformationImage=reg_io_ReadImageFile(argv[i]);
-               if(inputTransformationImage==NULL)
-               {
-                  reg_print_msg_error("Error when reading the provided transformation:");
-                  reg_print_msg_error(argv[i]);
-                  return EXIT_FAILURE;
-               }
-            }
-            else
-            {
-               // Read the affine transformation
-               inputTransformationMatrix=(mat44 *)malloc(sizeof(mat44));
-               reg_tool_ReadAffineFile(inputTransformationMatrix,argv[i]);
-            }
-            // Generate a deformation field if required
-            bool requireDeformationField=false;
-            if(inputTransformationMatrix!=NULL)
-               requireDeformationField=true;
-            else if(inputTransformationImage!=NULL)
-               if(inputTransformationImage->intent_p1!=DEF_FIELD &&
-                  inputTransformationImage->intent_p1!=DISP_FIELD)
-                  requireDeformationField=true;
-            nifti_image *deformationField=NULL;
-            if(requireDeformationField){
-               deformationField=nifti_copy_nim_info(referenceImage);
-               deformationField->ndim=deformationField->dim[0]=5;
-               deformationField->nt=deformationField->dim[4]=1;
-               deformationField->nu=deformationField->dim[5]=deformationField->nz>1?3:2;
-               deformationField->nvox=(size_t)deformationField->nx *
-                                               deformationField->ny * deformationField->nz *
-                                               deformationField->nt * deformationField->nu;
-               deformationField->nbyper=sizeof(float);
-               deformationField->datatype=NIFTI_TYPE_FLOAT32;
-               deformationField->intent_code=NIFTI_INTENT_VECTOR;
-               memset(deformationField->intent_name, 0, 16);
-               strcpy(deformationField->intent_name,"NREG_TRANS");
-               deformationField->scl_slope=1.f;
-               deformationField->scl_inter=0.f;
-               deformationField->intent_p1=DEF_FIELD;
-               deformationField->data=(void *)malloc(deformationField->nvox*deformationField->nbyper);
-               if(inputTransformationMatrix!=NULL){
-                  reg_affine_getDeformationField(inputTransformationMatrix,
-                                                 deformationField);
-               }
-               else switch(static_cast<int>(inputTransformationImage->intent_p1)){
-               case LIN_SPLINE_GRID:
-               case CUB_SPLINE_GRID:
-                  reg_spline_getDeformationField(inputTransformationImage,
-                                                 deformationField,
-                                                 NULL,
-                                                 false,
-                                                 true);
-                  break;
-               case SPLINE_VEL_GRID:
-                  reg_spline_getDefFieldFromVelocityGrid(inputTransformationImage,
-                                                         deformationField,
-                                                         false);
-                  break;
-               case DISP_VEL_FIELD:
-                  reg_getDeformationFromDisplacement(inputTransformationImage);
-               case DEF_VEL_FIELD:
-                  reg_defField_getDeformationFieldFromFlowField(inputTransformationImage,
-                                                                deformationField,
-                                                                false);
-                  break;
-               }
-               if(inputTransformationMatrix!=NULL)
-                  free(inputTransformationMatrix);
-               if(inputTransformationImage!=NULL)
-                  nifti_image_free(inputTransformationImage);
-            }
-            else{
-               // Check the deformation field dimension
-               if(deformationField->nx!=referenceImage->nx ||
-                     deformationField->ny!=referenceImage->ny ||
-                     deformationField->nz!=referenceImage->nz ||
-                     deformationField->nu!=(referenceImage->nz>1?3:2)){
-                  reg_print_msg_error("The provided def or disp field dimension");
-                  reg_print_msg_error("do not match the reference image dimension");
-                  char name[255];
-                  sprintf(name,"Field: %s", argv[i]);
-                  reg_print_msg_error(name);
-                  reg_exit();
-               }
-               deformationField=inputTransformationImage;
-               if(deformationField->intent_p1==DISP_FIELD)
-                  reg_getDeformationFromDisplacement(deformationField);
-            }
-
-            // Read the floating image
-            nifti_image *floatingImage = reg_io_ReadImageFile(argv[i+1]);
-            reg_tools_changeDatatype<float>(floatingImage);
-
-            // Create a warped image
-            nifti_image *warpedImage = nifti_copy_nim_info(referenceImage);
-            warpedImage->nbyper=sizeof(float);
-            warpedImage->datatype=NIFTI_TYPE_FLOAT32;
-            warpedImage->scl_slope=1.f;
-            warpedImage->scl_inter=0.f;
-            warpedImage->data=(void *)malloc(warpedImage->nvox*warpedImage->nbyper);
-            // Warp the floating image
-            reg_resampleImage(floatingImage,
-                              warpedImage,
-                              deformationField,
-                              NULL,
-                              3,
-                              0);
-            nifti_image_free(floatingImage);
-            nifti_image_free(deformationField);
-            // Normalise the warped image intensity
-            //average_norm_intensity<float>(warpedImage);
-            // Accumulate the warped image
-            remove_nan_and_add<PrecisionTYPE>(averageImage,warpedImage,definedNumberImage);
-            nifti_image_free(warpedImage);
-         }
-         // Normalise the average image intensity by the number of input images
-         reg_tools_divideImageToImage(averageImage,definedNumberImage, averageImage);
-         nifti_image_free(definedNumberImage);
-
-         // Save the average image
-         reg_io_WriteImageFile(averageImage,outputName);
-         nifti_image_free(averageImage);
+      if(operation==AVG_MAT_LTS){
+         input_affine_names[index] = pointer_to_command[i];
       }
-      else if(operation==3)
-      {
-         // Affine parametrisations are provided
-         size_t affineNumber = (argc - 4)/2;
-         // All affine matrices are read in
-         mat44 *affineMatrices = (mat44 *)malloc(affineNumber*sizeof(mat44));
-         for(int i=4, j=0; i<argc; i+=2,++j)
-         {
-            if(reg_isAnImageFileName(argv[i]))
-            {
-               reg_print_msg_error("An affine transformation was expected:");
-               reg_print_msg_error(argv[i]);
-               return EXIT_FAILURE;
-            }
-            reg_tool_ReadAffineFile(&affineMatrices[j],argv[i]);
-         }
-         // The rigid matrices are removed from all affine matrices
-         mat44 tempMatrix, averageMatrix;
-         memset(&averageMatrix,0,sizeof(mat44));
-         for(size_t i=0; i<affineNumber; ++i)
-         {
-            // extract the rigid matrix from the affine
-            float qb,qc,qd,qx,qy,qz,qfac;
-            nifti_mat44_to_quatern(affineMatrices[i],&qb,&qc,&qd,&qx,&qy,&qz,NULL,NULL,NULL,&qfac);
-            tempMatrix=nifti_quatern_to_mat44(qb,qc,qd,qx,qy,qz,1.f,1.f,1.f,qfac);
-            // remove the rigid componenent from the affine matrix
-            tempMatrix=nifti_mat44_inverse(tempMatrix);
-            tempMatrix=reg_mat44_mul(&tempMatrix,&affineMatrices[i]);
-            // sum up all the affine matrices
-            tempMatrix = reg_mat44_logm(&tempMatrix);
-            averageMatrix = averageMatrix + tempMatrix;
-         }
-         // The average matrix is normalised
-         averageMatrix = reg_mat44_mul(&averageMatrix,1.f/(float)affineNumber);
-         // The average matrix is exponentiated
-         averageMatrix = reg_mat44_expm(&averageMatrix);
-         // The average matrix is inverted
-         averageMatrix = nifti_mat44_inverse(averageMatrix);
-         // Demean all the input affine matrices
-         for(size_t i=0; i<affineNumber; ++i)
-         {
-            affineMatrices[i] = averageMatrix * affineMatrices[i];
-         }
-         // Create a deformation field to be used to resample all the floating images
-         nifti_image *deformationField = nifti_copy_nim_info(referenceImage);
-         deformationField->dim[0]=deformationField->ndim=5;
-         deformationField->dim[4]=deformationField->nt=1;
-         deformationField->dim[5]=deformationField->nu=referenceImage->nz>1?3:2;
-         deformationField->nvox = (size_t)deformationField->nx *
-                                  deformationField->ny * deformationField->nz * deformationField->nu;
-         if(deformationField->datatype!=NIFTI_TYPE_FLOAT32 || deformationField->datatype!=NIFTI_TYPE_FLOAT64)
-         {
-            deformationField->datatype=NIFTI_TYPE_FLOAT32;
-            deformationField->nbyper=sizeof(float);
-         }
-         deformationField->scl_slope=1.f;
-         deformationField->scl_inter=0.f;
-         deformationField->data = (void *)malloc(deformationField->nvox*deformationField->nbyper);
-         // Create an average image
-         nifti_image *averageImage = nifti_copy_nim_info(referenceImage);
-         if(averageImage->datatype!=NIFTI_TYPE_FLOAT32 || averageImage->datatype!=NIFTI_TYPE_FLOAT64)
-         {
-            averageImage->datatype=NIFTI_TYPE_FLOAT32;
-            averageImage->nbyper=sizeof(float);
-         }
-         averageImage->data = (void *)calloc(averageImage->nvox,averageImage->nbyper);
+      if(operation==AVG_IMG_TRANS){
+         input_image_names[index] = pointer_to_command[i+1];
+         if(trans_is_affine)
+            input_affine_names[index] = pointer_to_command[i];
+         else input_nonrigid_names[index] = pointer_to_command[i];
+      }
+      if(operation==AVG_IMG_TRANS_NOAFF){
+         input_affine_names[index] = pointer_to_command[i];
+         input_nonrigid_names[index] = pointer_to_command[i+1];
+         input_image_names[index] = pointer_to_command[i+2];
+      }
+      ++index;
+   }
 
-         // Create an image to store the number of nan value
-         nifti_image *definedNumberImage = nifti_copy_nim_info(averageImage);
-         definedNumberImage->data=(void *)calloc(averageImage->nvox,averageImage->nbyper);
+   mat44 avg_output_matrix;
+   nifti_image *avg_output_image=NULL;
 
-         // Create a temporary image
-         nifti_image *tempImage = nifti_copy_nim_info(averageImage);
-         tempImage->scl_slope=1.f;
-         tempImage->scl_inter=0.f;
-         tempImage->data = (void *)malloc(tempImage->nvox*tempImage->nbyper);
-         // warp all floating images and sum them up
-         for(int i=5, j=0; i<argc; i+=2,++j)
-         {
-            nifti_image *floatingImage = reg_io_ReadImageFile(argv[i]);
-            if(floatingImage==NULL)
-            {
-               reg_print_msg_error("The floating image cannot be read:");
-               reg_print_msg_error(argv[i]);
-               return EXIT_FAILURE;
-            }
-            reg_affine_getDeformationField(&affineMatrices[j],deformationField);
-            if(floatingImage->datatype!=tempImage->datatype)
-            {
-               switch(tempImage->datatype)
-               {
-               case NIFTI_TYPE_FLOAT32:
-                  reg_tools_changeDatatype<float>(floatingImage);
-                  break;
-               case NIFTI_TYPE_FLOAT64:
-                  reg_tools_changeDatatype<double>(floatingImage);
-                  break;
-               }
-            }
-            reg_resampleImage(floatingImage,tempImage,deformationField,NULL,3,0.f);
-            remove_nan_and_add<PrecisionTYPE>(averageImage,tempImage,definedNumberImage);
-            nifti_image_free(floatingImage);
-         }
-         // Normalise the intensity by the number of images
-         reg_tools_divideImageToImage(averageImage,definedNumberImage, averageImage);
-         nifti_image_free(definedNumberImage);
-         // Free the allocated arrays and images
-         nifti_image_free(deformationField);
-         nifti_image_free(tempImage);
-         free(affineMatrices);
-         // Save the average image
-         reg_io_WriteImageFile(averageImage, outputName);
-         // Free the average image
-         nifti_image_free(averageImage);
-      } // -demean1
-      else if(operation==4 || operation==5)
-      {
-         // Compute some constant
-         int incrementValue=operation==4?2:3;
-         int subjectNumber=(argc-4)/incrementValue;
-#ifndef NDEBUG
-         char msg[256];
-         sprintf(msg,"reg_average: Number of input transformations: %i",subjectNumber);
-         reg_print_msg_debug(msg);
-#endif
-         /* **** Create an average image by demeaning the non-rigid transformation **** */
-         // First compute an average field to remove from the final field
-         nifti_image *averageField = nifti_copy_nim_info(referenceImage);
-         averageField->dim[0]=averageField->ndim=5;
-         averageField->dim[4]=averageField->nt=1;
-         averageField->dim[5]=averageField->nu=averageField->nz>1?3:2;
-         averageField->nvox = (size_t)averageField->nx *
-                              averageField->ny * averageField->nz * averageField->nu;
-         if(averageField->datatype!=NIFTI_TYPE_FLOAT32 || averageField->datatype!=NIFTI_TYPE_FLOAT64)
-         {
-            averageField->datatype=NIFTI_TYPE_FLOAT32;
-            averageField->nbyper=sizeof(float);
-         }
-         averageField->data = (void *)calloc(averageField->nvox,averageField->nbyper);
-         averageField->scl_slope=1.f;
-         averageField->scl_inter=0.f;
-         reg_tools_multiplyValueToImage(averageField,averageField,0.f);
-         // Iterate over all the transformation parametrisations - Note that I don't store them all to save space
+   // Go over the different operations
+   if(operation==AVG_INPUT && trans_is_affine==true){
+      // compute the average matrix from the input provided
+      avg_output_matrix = compute_average_matrices(image_number, input_affine_names);
+   }
+   else if(operation==AVG_MAT_LTS){
+      // compute the average LTS matrix from the input provided
+      avg_output_matrix = compute_average_matrices(image_number, input_affine_names, 0.5f);
+   }
+   else{
+      // Allocate the average warped image
+      if(referenceImageName==NULL)
+         referenceImageName=input_image_names[0];
+      avg_output_image = reg_io_ReadImageFile(referenceImageName);
+      // clean the data and reallocate them
+      free(avg_output_image->data);
+      avg_output_image->scl_slope=1.f;
+      avg_output_image->scl_inter=0.f;
+      avg_output_image->datatype=NIFTI_TYPE_FLOAT32;
+      if(sizeof(PrecisionTYPE)==sizeof(double))
+         avg_output_image->datatype=NIFTI_TYPE_FLOAT64;
+      avg_output_image->nbyper=sizeof(PrecisionTYPE);
+      avg_output_image->data=(void *)calloc(avg_output_image->nvox,avg_output_image->nbyper);
+      reg_tools_multiplyValueToImage(avg_output_image, avg_output_image, 0.f);
+      // Set the output filename
+      nifti_set_filenames(avg_output_image, outputName, 0, 0);
+      // Compute the average image
+      compute_average_image(avg_output_image,
+                            image_number,
+                            input_image_names,
+                            input_affine_names,
+                            input_nonrigid_names,
+                            use_demean);
+   }
+   // Save the output
+   if(avg_output_image==NULL)
+      reg_tool_WriteAffineFile(&avg_output_matrix, outputName);
+   else reg_io_WriteImageFile(avg_output_image, outputName);
 
-         for(int i=operation; i<argc; i+=incrementValue)
-         {
-            nifti_image *transformation = reg_io_ReadImageFile(argv[i]);
-            if(transformation==NULL)
-            {
-               reg_print_msg_error("The transformation parametrisation cannot be read:");
-               reg_print_msg_error(argv[i]);
-               return EXIT_FAILURE;
-            }
-            if(transformation->ndim!=5)
-            {
-               reg_print_msg_error("The specified filename does not seem to be a transformation parametrisation:");
-               reg_print_msg_error(transformation->fname);
-               return EXIT_FAILURE;
-            }
-#ifndef NDEBUG
-            reg_print_msg_debug("reg_average: Input non-rigid transformation:");
-            reg_print_msg_debug(transformation->fname);
-#endif
-            // Generate the deformation or flow field
-            nifti_image *deformationField = nifti_copy_nim_info(averageField);
-            deformationField->data = (void *)malloc(deformationField->nvox*deformationField->nbyper);
-            reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
-            deformationField->scl_slope=1.f;
-            deformationField->scl_inter=0.f;
-            deformationField->intent_p1=DISP_FIELD;
-            reg_getDeformationFromDisplacement(deformationField);
-            // Generate a deformation field or a flow field depending of the input transformation
-            switch(static_cast<int>(transformation->intent_p1))
-            {
-            case DISP_FIELD:
-               reg_getDeformationFromDisplacement(transformation);
-            case DEF_FIELD:
-               reg_defField_compose(transformation,deformationField,NULL);
-               break;
-            case LIN_SPLINE_GRID:
-            case CUB_SPLINE_GRID:
-               reg_spline_getDeformationField(transformation,deformationField,NULL,true,true);
-               break;
-            case DISP_VEL_FIELD:
-               reg_getDeformationFromDisplacement(transformation);
-            case DEF_VEL_FIELD:
-               reg_defField_compose(transformation,deformationField,NULL);
-               break;
-            case SPLINE_VEL_GRID:
-               reg_spline_getFlowFieldFromVelocityGrid(transformation,deformationField);
-#ifndef NDEBUG
-               reg_print_msg_debug("A dense flow field has been computed from:");
-               reg_print_msg_debug(transformation->fname);
-#endif
-               break;
-            default:
-               reg_print_msg_error("Unsupported transformation parametrisation type:");
-               reg_print_msg_error(transformation->fname);
-               return EXIT_FAILURE;
-            }
-            // An affine transformation is use to remove the affine component
-            if(operation==5 || transformation->num_ext>0)
-            {
-               mat44 affineTransformation;
-               if(transformation->num_ext>0)
-               {
-                  if(operation==5)
-                  {
-                     reg_print_msg_warn("The provided non-rigid parametrisation already embbeds an affine transformation");
-                     reg_print_msg_warn(transformation->fname);
-                  }
-                  affineTransformation=*reinterpret_cast<mat44 *>(transformation->ext_list[0].edata);
-                  // Note that if the transformation is a flow field, only half-of the affine has be used
-                  if(transformation->num_ext>1 &&
-                        deformationField->intent_p1!=DEF_VEL_FIELD)
-                  {
-                     affineTransformation=reg_mat44_mul(
-                                             reinterpret_cast<mat44 *>(transformation->ext_list[1].edata),
-                                             &affineTransformation);
-                  }
-               }
-               else
-               {
-                  reg_tool_ReadAffineFile(&affineTransformation,
-                                          argv[i-1]);
-#ifndef NDEBUG
-                  reg_print_msg_debug("reg_average: Input affine transformation:");
-                  reg_print_msg_debug(argv[i-1]);
-#endif
-               }
-               // The affine component is substracted
-               nifti_image *tempField = nifti_copy_nim_info(deformationField);
-               tempField->data = (void *)malloc(tempField->nvox*tempField->nbyper);
-               tempField->scl_slope=1.f;
-               tempField->scl_inter=0.f;
-               reg_affine_getDeformationField(&affineTransformation,
-                                              tempField);
-               reg_tools_substractImageToImage(deformationField,tempField,deformationField);
-               nifti_image_free(tempField);
-            }
-            else reg_getDisplacementFromDeformation(deformationField);
-            reg_tools_addImageToImage(averageField,deformationField,averageField);
-            nifti_image_free(transformation);
-            nifti_image_free(deformationField);
-         } // iteration over all transformation parametrisation
-         // the average def/flow field is normalised by the number of input image
-         reg_tools_divideValueToImage(averageField,averageField,subjectNumber);
-         // The new de-mean transformation are computed and the floating image resample
-         // Create an image to store average image
-         nifti_image *averageImage = nifti_copy_nim_info(referenceImage);
-         if(averageImage->datatype!=NIFTI_TYPE_FLOAT32 || averageImage->datatype!=NIFTI_TYPE_FLOAT64)
-         {
-            averageImage->datatype=NIFTI_TYPE_FLOAT32;
-            averageImage->nbyper=sizeof(float);
-         }
-         averageImage->scl_slope=1.f;
-         averageImage->scl_inter=0.f;
-         averageImage->data = (void *)calloc(averageImage->nvox,averageImage->nbyper);
-
-         // Create an image to store the number of nan value
-         nifti_image *definedNumberImage = nifti_copy_nim_info(averageImage);
-         definedNumberImage->data=(void *)calloc(averageImage->nvox,averageImage->nbyper);
-
-         // Create a temporary image
-         nifti_image *tempImage = nifti_copy_nim_info(averageImage);
-         tempImage->data = (void *)malloc(tempImage->nvox*tempImage->nbyper);
-         // Iterate over all the transformation parametrisations
-         for(int i=operation; i<argc; i+=incrementValue)
-         {
-            nifti_image *transformation = reg_io_ReadImageFile(argv[i]);
-            if(transformation==NULL)
-            {
-               reg_print_msg_error("The transformation parametrisation cannot be read:");
-               reg_print_msg_error(argv[i]);
-               return EXIT_FAILURE;
-            }
-            if(transformation->ndim!=5)
-            {
-               reg_print_msg_error("The specified filename does not seem to be a transformation parametrisation");
-               reg_print_msg_error(transformation->fname);
-               return EXIT_FAILURE;
-            }
-#ifndef NDEBUG
-            reg_print_msg_debug("reg_average: Demeaning transformation:");
-            reg_print_msg_debug(transformation->fname);
-#endif
-            // Generate the deformation or flow field
-            nifti_image *deformationField = nifti_copy_nim_info(averageField);
-            deformationField->data = (void *)malloc(deformationField->nvox*deformationField->nbyper);
-            reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
-            deformationField->intent_p1=DISP_FIELD;
-            reg_getDeformationFromDisplacement(deformationField);
-            deformationField->scl_slope=1.f;
-            deformationField->scl_inter=0.f;
-            // Generate a deformation field or a flow field depending of the input transformation
-            switch(static_cast<int>(transformation->intent_p1))
-            {
-            case DISP_FIELD:
-               reg_getDeformationFromDisplacement(transformation);
-            case DEF_FIELD:
-               reg_defField_compose(transformation,deformationField,NULL);
-               break;
-            case LIN_SPLINE_GRID:
-            case CUB_SPLINE_GRID:
-               reg_spline_getDeformationField(transformation,deformationField,NULL,true,true);
-               break;
-            case DISP_VEL_FIELD:
-               reg_getDeformationFromDisplacement(transformation);
-            case DEF_VEL_FIELD:
-               reg_defField_compose(transformation,deformationField,NULL);
-               break;
-            case SPLINE_VEL_GRID:
-               if(transformation->num_ext>0)
-                  nifti_copy_extensions(deformationField,transformation);
-               reg_spline_getFlowFieldFromVelocityGrid(transformation,deformationField);
-               break;
-            default:
-               reg_print_msg_error("Unsupported transformation parametrisation type:");
-               reg_print_msg_error(transformation->fname);
-               return EXIT_FAILURE;
-            }
-            // The deformation is de-mean
-            if(deformationField->intent_p1==DEF_VEL_FIELD)
-            {
-               reg_tools_substractImageToImage(deformationField,averageField,deformationField);
-               nifti_image *tempDef = nifti_copy_nim_info(deformationField);
-               tempDef->data = (void *)malloc(tempDef->nvox*tempDef->nbyper);
-               memcpy(tempDef->data,deformationField->data,tempDef->nvox*tempDef->nbyper);
-               tempDef->scl_slope=1.f;
-               tempDef->scl_inter=0.f;
-               reg_defField_getDeformationFieldFromFlowField(tempDef,deformationField,false);
-               deformationField->intent_p1=DEF_FIELD;
-               nifti_free_extensions(deformationField);
-               nifti_image_free(tempDef);
-            }
-            else reg_tools_substractImageToImage(deformationField,averageField,deformationField);
-            // The floating image is resampled
-            nifti_image *floatingImage=reg_io_ReadImageFile(argv[i+1]);
-            if(floatingImage==NULL)
-            {
-               reg_print_msg_error("The floating image cannot be read:");
-               reg_print_msg_error(argv[i+1]);
-               return EXIT_FAILURE;
-            }
-            if(floatingImage->datatype!=tempImage->datatype)
-            {
-               switch(tempImage->datatype)
-               {
-               case NIFTI_TYPE_FLOAT32:
-                  reg_tools_changeDatatype<float>(floatingImage);
-                  break;
-               case NIFTI_TYPE_FLOAT64:
-                  reg_tools_changeDatatype<double>(floatingImage);
-                  break;
-               }
-            }
-            reg_resampleImage(floatingImage,tempImage,deformationField,NULL,3,0.f);
-#ifndef NDEBUG
-            reg_print_msg_debug("reg_average: Warping floating image:");
-            reg_print_msg_debug(floatingImage->fname);
-            sprintf(msg,"reg_average_%i.nii",i);
-            reg_io_WriteImageFile(tempImage,msg);
-#endif
-            remove_nan_and_add<PrecisionTYPE>(averageImage,tempImage,definedNumberImage);
-            nifti_image_free(floatingImage);
-            nifti_image_free(deformationField);
-         } // iteration over all transformation parametrisation
-         // Normalise the average image by the number of input images
-         reg_tools_divideImageToImage(averageImage,definedNumberImage, averageImage);
-         nifti_image_free(definedNumberImage);
-         // Free the allocated field
-         nifti_image_free(averageField);
-         // Save and free the average image
-         reg_io_WriteImageFile(averageImage,outputName);
-         nifti_image_free(averageImage);
-      } // (operation==4 || operation==5)
-      nifti_image_free(referenceImage);
-   } // (-demean -avg_tran)
+   // Free the allocated array
+   if(argc!=arg_num_command){
+      for(int i=0; i<arg_num_command; ++i)
+         free(pointer_to_command[i]);
+      free(pointer_to_command);
+   }
+   if(avg_output_image!=NULL)
+      nifti_image_free(avg_output_image);
+   if(input_image_names!=NULL){
+      free(input_image_names);
+   }
+   if(input_affine_names!=NULL){
+      free(input_affine_names);
+   }
+   if(input_nonrigid_names!=NULL){
+      free(input_nonrigid_names);
+   }
 
    return EXIT_SUCCESS;
 }

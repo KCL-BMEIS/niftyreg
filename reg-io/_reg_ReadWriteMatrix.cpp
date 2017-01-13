@@ -145,10 +145,6 @@ void reg_tool_ReadAffineFile(mat44 *mat,
         reg_exit();
     }
     affineFile.close();
-
-#ifndef NDEBUG
-    reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Affine matrix");
-#endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
