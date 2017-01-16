@@ -1402,9 +1402,9 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 /* *************************************************************** */
 void reg_spline_getDeformationField(nifti_image *splineControlPoint,
                                     nifti_image *deformationField,
-                                    int *mask,
-                                    bool composition,
-                                    bool bspline)
+                                    int *mask=NULL,
+                                    bool composition=false,
+                                    bool bspline=true)
 {
    if(splineControlPoint->datatype != deformationField->datatype)
    {

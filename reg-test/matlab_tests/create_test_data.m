@@ -52,6 +52,17 @@ if ~exist([output_path,'/affine_mat2D.txt'], 'file') || ...
 else
     fprintf('[NiftyReg Build Tests] Affine deformation fields already exist\n');
 end
+%% Create control point grids and associated deformation fields
+fprintf('[NiftyReg Build Tests] Starting to generate spline deformation fields\n')
+if ~exist([output_path,'/bspline_def2D.nii,gz'], 'file') || ...
+    ~exist([output_path,'/bspline_def3D.txt'], 'file') || ...
+    ~exist([output_path,'/bspline_grid2D.nii.gz'], 'file') || ...
+    ~exist([output_path,'/bspline_grid3D.nii.gz'], 'file')
+    getBSplineField_test(ref2D, ref3D, output_path);
+    fprintf('[NiftyReg Build Tests] Spline deformation fields created\n');
+else
+    fprintf('[NiftyReg Build Tests] Spline deformation fields already exist\n');
+end
 %% Create data to test the block matching
 fprintf('[NiftyReg Build Tests] Starting to generate Block matching test data\n')
 if ~exist([output_path,'/expectedBlockMatching_mat2D.txt'], 'file') || ...

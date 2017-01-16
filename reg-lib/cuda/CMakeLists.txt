@@ -2,6 +2,8 @@
 # Check if the CUDA drivers are available
 find_package(CUDA)
 mark_as_advanced(CUDA_SDK_ROOT_DIR)
+option(CUDA_FAST_MATH "To use the fast math flag" OFF)
+mark_as_advanced(CUDA_FAST_MATH)
 #-----------------------------------------------------------------------------
 if(NOT CUDA_FOUND)
     set(USE_CUDA OFF CACHE BOOL "To use the CUDA platform" FORCE)
@@ -13,10 +15,10 @@ include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
 #-----------------------------------------------------------------------------
 # Compile an executable to check if there is at least one suitable graphical card
 try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/checkCudaCard.cpp
-    CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${CUDA_INCLUDE_DIRS} -DLINK_LIBRARIES:STRING=${CUDA_LIBRARIES}
-    COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT_VAR
-    RUN_OUTPUT_VARIABLE RUN_OUTPUT_VAR
-    )
+  CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${CUDA_INCLUDE_DIRS} -DLINK_LIBRARIES:STRING=${CUDA_LIBRARIES}
+  COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT_VAR
+  RUN_OUTPUT_VARIABLE RUN_OUTPUT_VAR
+  )
 # Check if the executable could not compile
 if(NOT COMPILE_RESULT_VAR)
     message(WARNING "The code to check the presence of a CUDA-enabled card failed.")

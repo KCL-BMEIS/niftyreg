@@ -80,6 +80,7 @@ int main(int argc, char **argv)
        float expectedValue = expectedDataCost[i];
        if((currentValue - expectedValue) > EPS) {
            reg_print_msg_error("the 2 dataCost are different");
+           fprintf(stderr, "[Obtained / Expected] = [%g / %g]\n", currentValue, expectedValue);
            return EXIT_FAILURE;
        }
    }
