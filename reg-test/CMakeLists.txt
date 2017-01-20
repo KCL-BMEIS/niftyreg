@@ -7,19 +7,89 @@ if(NOT Matlab_FOUND)
   message(STATUS "Matlab not found")
   message(ERROR "Matlab is required to generate the test data. The BUILD_TESTING flag is turned OFF")
 else(NOT Matlab_FOUND)
-  message(STATUS "Found Matlab - Generating the test data - Takes a few minutes")
+  message(STATUS "Found Matlab")
 endif(NOT Matlab_FOUND)
-set(TESTING_2D_FILE "" CACHE FILEPATH "2D nifti file used to generate testing data")
-set(TESTING_3D_FILE "" CACHE FILEPATH "3D nifti file used to generate testing data")
+#-----------------------------------------------------------------------------
+# Define the folder to use to store all data
 set(DFOLDER ${CMAKE_BINARY_DIR}/reg-test/test-data)
-execute_process(COMMAND
-                ${Matlab_ROOT_DIR}/bin/matlab "-nodisplay -nosplash -nodesktop -r \";create_test_data(\'${TESTING_2D_FILE}\',\'${TESTING_3D_FILE}\',\'${DFOLDER}\');exit\""
-                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/reg-test/matlab_tests"
-                OUTPUT_VARIABLE MATLAB_CMD_OUTPUT
-                ERROR_VARIABLE MATLAB_CMD_OUTPUT
-                )
-message(STATUS "Maltab command output:")
-message(STATUS "${MATLAB_CMD_OUTPUT}")
+#-----------------------------------------------------------------------------
+# Set the 2D image input file
+if(EXISTS "${DFOLDER}/refImg2D.nii.gz")
+  set(TESTING_2D_FILE "${DFOLDER}/refImg2D.nii.gz" CACHE FILEPATH "2D nifti file used to generate testing data")
+else(EXISTS "${DFOLDER}/refImg2D.nii.gz")
+  set(TESTING_2D_FILE "" CACHE FILEPATH "2D nifti file used to generate testing data")
+endif(EXISTS "${DFOLDER}/refImg2D.nii.gz")
+if(NOT EXISTS ${TESTING_2D_FILE} AND NOT EXISTS "${DFOLDER}/refImg2D.nii.gz")
+  set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
+  message(STATUS "The specified 2D image file does not exists")
+  message(STATUS "TESTING_2D_FILE=${TESTING_2D_FILE}")
+  message(ERROR "The BUILD_TESTING flag is turned OFF")
+endif(NOT EXISTS ${TESTING_2D_FILE} AND NOT EXISTS "${DFOLDER}/refImg2D.nii.gz")
+#-----------------------------------------------------------------------------
+# Set the 3D image input file
+if(EXISTS "${DFOLDER}/refImg3D.nii.gz")
+  set(TESTING_2D_FILE "${DFOLDER}/refImg3D.nii.gz" CACHE FILEPATH "3D nifti file used to generate testing data")
+else(EXISTS "${DFOLDER}/refImg3D.nii.gz")
+  set(TESTING_2D_FILE "" CACHE FILEPATH "3D nifti file used to generate testing data")
+endif(EXISTS "${DFOLDER}/refImg3D.nii.gz")
+if(NOT EXISTS ${TESTING_3D_FILE} AND NOT EXISTS "${DFOLDER}/refImg3D.nii.gz")
+  set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
+  message(STATUS "The specified 3D image file does not exists")
+  message(STATUS "TESTING_3D_FILE=${TESTING_3D_FILE}")
+  message(ERROR "The BUILD_TESTING flag is turned OFF")
+endif(NOT EXISTS ${TESTING_3D_FILE} AND NOT EXISTS "${DFOLDER}/refImg3D.nii.gz")
+#-----------------------------------------------------------------------------
+# Run the matlab command if required
+if(NOT EXISTS "${DFOLDER}/refImg2D.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/affine_mat2D.txt" OR NOT EXISTS "${DFOLDER}/affine_mat3D.txt" OR
+   NOT EXISTS "${DFOLDER}/affine_def2D.nii.gz" OR NOT EXISTS "${DFOLDER}/affine_def3D.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/bspline_def2D.nii.gz" OR NOT EXISTS "${DFOLDER}/bspline_def3D.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/bspline_grid2D.nii.gz" OR NOT EXISTS "${DFOLDER}/bspline_grid3D.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/refImg2D_uchar.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D_uchar.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/refImg2D_float.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D_float.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/refImg2D_double.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D_double.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/warped_nearest2D.nii.gz" OR NOT EXISTS "${DFOLDER}/warped_nearest3D.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/warped_linear2D.nii.gz" OR NOT EXISTS "${DFOLDER}/warped_linear3D.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/warped_cubic2D.nii.gz" OR NOT EXISTS "${DFOLDER}/warped_cubic3D.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/expectedBlockMatching_mat2D.txt" OR NOT EXISTS "${DFOLDER}/expectedBlockMatching_mat3D.txt" OR
+   NOT EXISTS "${DFOLDER}/warpedBlockMatchingImg2D.nii.gz" OR NOT EXISTS "${DFOLDER}/warpedBlockMatchingImg3D.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/inputSVDMatrix.txt" OR NOT EXISTS "${DFOLDER}/expectedSMatrix.txt" OR
+   NOT EXISTS "${DFOLDER}/inputMatrix1.txt" OR NOT EXISTS "${DFOLDER}/inputMatrix2.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedVMatrix.txt" OR NOT EXISTS "${DFOLDER}/expectedUMatrix.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedSubMatrix.txt" OR NOT EXISTS "${DFOLDER}/expectedAddMatrix.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedMulMatrix.txt" OR NOT EXISTS "${DFOLDER}/expectedInvMatrix.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedLogMatrix.txt" OR NOT EXISTS "${DFOLDER}/expectedExpMatrix.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedRigidLTS_2D_70.txt" OR NOT EXISTS "${DFOLDER}/expectedRigidLTS_3D_70.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedRigidLTS_2D_100.txt" OR NOT EXISTS "${DFOLDER}/expectedRigidLTS_3D_100.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedAffineLTS_2D_70.txt" OR NOT EXISTS "${DFOLDER}/expectedAffineLTS_3D_70.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedAffineLTS_2D_100.txt" OR NOT EXISTS "${DFOLDER}/expectedAffineLTS_3D_100.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz" OR NOT EXISTS "${DFOLDER}/expectedMINDDescriptor3D_1.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/expectedMINDDescriptor2D_2.nii.gz" OR NOT EXISTS "${DFOLDER}/expectedMINDDescriptor3D_2.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/P1_2D.txt" OR NOT EXISTS "${DFOLDER}/P1_3D.txt" OR
+   NOT EXISTS "${DFOLDER}/P2_2D.txt" OR NOT EXISTS "${DFOLDER}/P2_3D.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedSSDValue2D.txt" OR NOT EXISTS "${DFOLDER}/expectedSSDValue3D.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedMINDSSDValue2D.txt" OR NOT EXISTS "${DFOLDER}/expectedMINDSSDValue3D.txt" OR
+   NOT EXISTS "${DFOLDER}/expectedMINDSSCDescriptor2D_1.nii.gz" OR NOT EXISTS "${DFOLDER}/expectedMINDSSCDescriptor3D_1.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/expectedMINDSSCDescriptor2D_2.nii.gz" OR NOT EXISTS "${DFOLDER}/expectedMINDSSCDescriptor3D_2.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/expectedImageGradient2D.nii.gz" OR NOT EXISTS "${DFOLDER}/expectedImageGradient3D.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/discretisedValues.mat" OR NOT EXISTS "${DFOLDER}/discretisedValues.dat" OR
+   NOT EXISTS "${DFOLDER}/expectedLabeling.dat" OR NOT EXISTS "${DFOLDER}/dataCost.dat" OR
+   NOT EXISTS "${DFOLDER}/indexNeighbours.dat" OR NOT EXISTS "${DFOLDER}/EWeightMatrix.dat" OR
+   NOT EXISTS "${DFOLDER}//convolution2D_med.nii.gz" OR NOT EXISTS "${DFOLDER}//convolution3D_med.nii.gz" OR
+   NOT EXISTS "${DFOLDER}//convolution2D_gau.nii.gz" OR NOT EXISTS "${DFOLDER}//convolution3D_med.nii.gz" OR
+   NOT EXISTS "${DFOLDER}//convolution2D_spl.nii.gz" OR NOT EXISTS "${DFOLDER}//convolution3D_med.nii.gz"
+   )
+  message(STATUS "Generating the test data - Takes several minutes")
+  execute_process(COMMAND
+                  ${Matlab_ROOT_DIR}/bin/matlab "-nodisplay -nosplash -nodesktop -r \";create_test_data(\'${TESTING_2D_FILE}\',\'${TESTING_3D_FILE}\',\'${DFOLDER}\');exit\""
+                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/reg-test/matlab_tests"
+                  OUTPUT_VARIABLE MATLAB_CMD_OUTPUT
+                  )
+  message(STATUS "Maltab command output:")
+  message(STATUS "${MATLAB_CMD_OUTPUT}")
+else()
+  message(STATUS "All test data already exists")
+endif()
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # Build the coverage test
@@ -77,21 +147,29 @@ if(USE_OPENCL)
 endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
-  set(EXEC reg_test_affine_deformation_field)
-  add_executable(${EXEC} ${EXEC}.cpp)
-  target_link_libraries(${EXEC} _reg_aladin)
-  foreach(CURRENT_PLATFORM ${PLATFORM_LIST})
-    add_test(${EXEC}_2D_${CURRENT_PLATFORM} ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/affine_mat2D.txt ${DFOLDER}/affine_def2D.nii.gz ${CURRENT_PLATFORM})
-    add_test(${EXEC}_3D_${CURRENT_PLATFORM} ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/affine_mat3D.txt ${DFOLDER}/affine_def3D.nii.gz ${CURRENT_PLATFORM})
-  endforeach(CURRENT_PLATFORM)
+set(EXEC reg_test_affine_deformation_field)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+foreach(CURRENT_PLATFORM ${PLATFORM_LIST})
+  add_test(${EXEC}_2D_${CURRENT_PLATFORM} ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/affine_mat2D.txt ${DFOLDER}/affine_def2D.nii.gz ${CURRENT_PLATFORM})
+  add_test(${EXEC}_3D_${CURRENT_PLATFORM} ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/affine_mat3D.txt ${DFOLDER}/affine_def3D.nii.gz ${CURRENT_PLATFORM})
+endforeach(CURRENT_PLATFORM)
 #-----------------------------------------------------------------------------
-  set(EXEC reg_test_blockMatching)
-  add_executable(${EXEC} ${EXEC}.cpp)
-  target_link_libraries(${EXEC} _reg_aladin)
-  foreach(CURRENT_PLATFORM ${PLATFORM_LIST})
-    add_test(${EXEC}_2D_${CURRENT_PLATFORM} ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/warpedBlockMatchingImg2D.nii.gz ${DFOLDER}/expectedBlockMatching_mat2D.txt ${CURRENT_PLATFORM})
-    add_test(${EXEC}_3D_${CURRENT_PLATFORM} ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/warpedBlockMatchingImg3D.nii.gz ${DFOLDER}/expectedBlockMatching_mat3D.txt ${CURRENT_PLATFORM})
-  endforeach(CURRENT_PLATFORM)
+set(EXEC reg_test_bspline_deformation_field)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_f3d)
+foreach(CURRENT_PLATFORM "0")
+  add_test(${EXEC}_2D_${CURRENT_PLATFORM} ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/bspline_grid2D.nii.gz ${DFOLDER}/bspline_def2D.nii.gz ${CURRENT_PLATFORM})
+  add_test(${EXEC}_3D_${CURRENT_PLATFORM} ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/bspline_grid3D.nii.gz ${DFOLDER}/bspline_def3D.nii.gz ${CURRENT_PLATFORM})
+endforeach(CURRENT_PLATFORM)
+#-----------------------------------------------------------------------------
+set(EXEC reg_test_blockMatching)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+foreach(CURRENT_PLATFORM ${PLATFORM_LIST})
+  add_test(${EXEC}_2D_${CURRENT_PLATFORM} ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/warpedBlockMatchingImg2D.nii.gz ${DFOLDER}/expectedBlockMatching_mat2D.txt ${CURRENT_PLATFORM})
+  add_test(${EXEC}_3D_${CURRENT_PLATFORM} ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/warpedBlockMatchingImg3D.nii.gz ${DFOLDER}/expectedBlockMatching_mat3D.txt ${CURRENT_PLATFORM})
+endforeach(CURRENT_PLATFORM)
 #-----------------------------------------------------------------------------
   set(EXEC reg_test_changeDataType)
   add_executable(${EXEC} ${EXEC}.cpp)
@@ -221,6 +299,18 @@ add_test(${EXEC}_imageGradient_SYD_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3
 add_test(${EXEC}_imageGradient_SPL_2D ${EXEC} ${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz ${DFOLDER}/expectedImageGradient2D.nii.gz 3)
 add_test(${EXEC}_imageGradient_SPL_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3D_1.nii.gz ${DFOLDER}/expectedImageGradient3D.nii.gz 3)
 #-----------------------------------------------------------------------------
+set(EXEC reg_test_convolution)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_f3d)
+add_test(${EXEC}_convolution_MEA_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/convolution2D_mea.nii.gz 0)
+add_test(${EXEC}_convolution_LIN_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/convolution2D_lin.nii.gz 1)
+add_test(${EXEC}_convolution_GAU_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/convolution2D_gau.nii.gz 2)
+add_test(${EXEC}_convolution_SPL_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/convolution2D_spl.nii.gz 3)
+add_test(${EXEC}_convolution_MEA_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/convolution3D_mea.nii.gz 0)
+add_test(${EXEC}_convolution_LIN_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/convolution3D_lin.nii.gz 1)
+add_test(${EXEC}_convolution_GAU_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/convolution3D_gau.nii.gz 2)
+add_test(${EXEC}_convolution_SPL_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/convolution3D_spl.nii.gz 3)
+#-----------------------------------------------------------------------------
 if(BUILD_DEV)
   set(EXEC reg_test_blockMatching_mrf)
   add_executable(${EXEC} ${EXEC}.cpp)
@@ -239,4 +329,10 @@ if(BUILD_DEV)
   #add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/indexNeighbours.dat ${DFOLDER}/EWeightMatrix.dat ${DFOLDER}/expectedOrderedList.dat ${DFOLDER}/expectedParentsList.dat ${DFOLDER}/expectedEdgeWeight.dat)
   add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/indexNeighbours.dat ${DFOLDER}/EWeightMatrix.dat ${DFOLDER}/expectedParentsList.dat)
 endif(BUILD_DEV)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC reg_test_computation_time)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_f3d)
+#-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

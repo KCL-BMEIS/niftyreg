@@ -12,7 +12,7 @@ int main() {
 
     // Error when running cudaGetDeviceCount
     if(cudaResultCode != cudaSuccess){
-        fprintf(stderr, "%s (%d)\n", cudaGetErrorString(cudaResultCode), (int)cudaResultCode);
+        fprintf(stderr, "%s (CUDA error Code=%d)\n", cudaGetErrorString(cudaResultCode), (int)cudaResultCode);
         return EXIT_FAILURE;
     }
 

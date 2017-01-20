@@ -24,6 +24,14 @@
 #include <omp.h>
 #endif
 
+#if _USE_SSE
+#include <emmintrin.h>
+#include <xmmintrin.h>
+#ifdef __SSE3__
+#include <pmmintrin.h>
+#endif
+#endif
+
 typedef enum
 {
    DEF_FIELD,

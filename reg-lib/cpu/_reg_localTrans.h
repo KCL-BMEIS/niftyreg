@@ -20,11 +20,6 @@
 #include "_reg_globalTrans.h"
 #include "_reg_splineBasis.h"
 
-#if _USE_SSE
-#include <emmintrin.h>
-#include <xmmintrin.h>
-#endif
-
 /* *********************************************** */
 /* ****      CUBIC SPLINE BASED FUNCTIONS     **** */
 /* *********************************************** */
@@ -69,10 +64,10 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
 extern "C++"
 void reg_spline_getDeformationField(nifti_image *controlPointGridImage,
                                     nifti_image *deformationField,
-                                    int *mask,
-                                    bool composition,
-                                    bool bspline
-                                    );
+                                    int *mask = NULL,
+                                    bool composition = false,
+                                    bool bspline = true,
+                                    bool force_no_lut = false);
 /* *************************************************************** */
 /** @brief Upsample an image from voxel space to node space using
  * millimiter correspendences.
