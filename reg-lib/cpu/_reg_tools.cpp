@@ -1157,13 +1157,18 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                // Define the kernel size
                if(kernelType==MEAN_KERNEL || kernelType==LINEAR_KERNEL)
                {
-                  // Mean filtering
+                  // Mean  or linear filtering
                   radius = static_cast<int>(temp);
                }
-               else if(kernelType==GAUSSIAN_KERNEL || kernelType==CUBIC_SPLINE_KERNEL)
+               else if(kernelType==GAUSSIAN_KERNEL)
                {
                   // Gaussian kernel
                   radius=static_cast<int>(temp*3.0f);
+               }
+               else if(kernelType==CUBIC_SPLINE_KERNEL)
+               {
+                  // Spline kernel
+                  radius=static_cast<int>(temp*2.0f);
                }
                else{
                   reg_print_fct_error("reg_tools_kernelConvolution_core");
@@ -1173,7 +1178,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                if(radius>0)
                {
                   // Allocate the kernel
-                  float kernel[8192];//2048 before - next step = make a dynamic array according to the radius value
+                  float kernel[4096];
                   double kernelSum=0;
                   // Fill the kernel
                   if(kernelType==CUBIC_SPLINE_KERNEL)
@@ -1206,7 +1211,16 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                      // Compute the linear kernel
                      for(int i=-radius; i<=radius; i++)
                      {
-                        kernel[radius+i]=static_cast<float>(i)/static_cast<float>(radius);
+                        kernel[radius+i]= 1.f - fabs(static_cast<float>(i)/static_cast<float>(radius));
+                        kernelSum += kernel[radius+i];
+                     }
+                  }
+                  else if(kernelType==MEAN_KERNEL && imageDim[2]==1)
+                  {
+                     // Compute the mean kernel
+                     for(int i=-radius; i<=radius; i++)
+                     {
+                        kernel[radius+i]= 1.f;
                         kernelSum += kernel[radius+i];
                      }
                   }
@@ -1242,16 +1256,35 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                   float *currentDensityPtr = NULL;
                   DTYPE bufferIntensity[2048];
                   float bufferDensity[2048];
-                  DTYPE bufferIntensitycur=0;
-                  float bufferDensitycur=0;
+                  double bufferIntensitycur=0;
+                  double bufferDensitycur=0;
+
+#ifdef _USE_SSE
+                  union
+                  {
+                     __m128 m;
+                     float f[4] ;
+                  } intensity_sum_sse, density_sum_sse;
+                  __m128 kernel_sse, intensity_sse, density_sse;
+#endif
 
 #if defined (_OPENMP)
+#ifdef _USE_SSE
+#pragma omp parallel for default(none) \
+   shared(imageDim, intensityPtr, densityPtr, radius, kernel, lineOffset, n, \
+   planeNumber,kernelSum) \
+   private(realIndex,currentIntensityPtr,currentDensityPtr,lineIndex,bufferIntensity, \
+   bufferDensity,shiftPre,shiftPst,kernelPtr,kernelValue,densitySum,intensitySum, \
+   k, bufferIntensitycur,bufferDensitycur, planeIndex, \
+   kernel_sse, intensity_sse, density_sse, intensity_sum_sse, density_sum_sse)
+#else
 #pragma omp parallel for default(none) \
    shared(imageDim, intensityPtr, densityPtr, radius, kernel, lineOffset, n, \
    planeNumber,kernelSum) \
    private(realIndex,currentIntensityPtr,currentDensityPtr,lineIndex,bufferIntensity, \
    bufferDensity,shiftPre,shiftPst,kernelPtr,kernelValue,densitySum,intensitySum, \
    k, bufferIntensitycur,bufferDensitycur, planeIndex)
+#endif
 #endif // _OPENMP
                   // Loop over the different voxel
                   for(planeIndex=0; planeIndex<planeNumber; ++planeIndex)
@@ -1299,15 +1332,51 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                            else kernelPtr = &kernel[0];
                            if(shiftPst>imageDim[n]) shiftPst=imageDim[n];
                            // Set the current values to zero
+                           // Increment the current value by performing the weighted sum
+#ifdef _USE_SSE
+                           intensity_sum_sse.m = _mm_set_ps1(0.0);
+                           density_sum_sse.m = _mm_set_ps1(0.0);
+                           k=shiftPre;
+                           while(k<shiftPst-3)
+                           {
+                              kernel_sse = _mm_set_ps(kernelPtr[0], kernelPtr[1], kernelPtr[2], kernelPtr[3]);
+                              kernelPtr+=4;
+                              intensity_sse = _mm_set_ps(static_cast<float>(bufferIntensity[k]),
+                                                         static_cast<float>(bufferIntensity[k+1]),
+                                                         static_cast<float>(bufferIntensity[k+2]),
+                                                         static_cast<float>(bufferIntensity[k+3]));
+                              density_sse = _mm_set_ps(bufferDensity[k++],
+                                    bufferDensity[k++],
+                                    bufferDensity[k++],
+                                    bufferDensity[k++]);
+                              intensity_sum_sse.m = _mm_add_ps(_mm_mul_ps(kernel_sse, intensity_sse), intensity_sum_sse.m);
+                              density_sum_sse.m = _mm_add_ps(_mm_mul_ps(kernel_sse, density_sse), density_sum_sse.m);
+                           }
+#ifdef __SSE3__
+                           intensity_sum_sse.m = _mm_hadd_ps(intensity_sum_sse.m, density_sum_sse.m);
+                           intensity_sum_sse.m = _mm_hadd_ps(intensity_sum_sse.m, intensity_sum_sse.m);
+                           intensitySum = intensity_sum_sse.f[0];
+                           densitySum = intensity_sum_sse.f[1];
+#else
+                           intensitySum = intensity_sum_sse.f[0] + intensity_sum_sse.f[1] + intensity_sum_sse.f[2] + intensity_sum_sse.f[3];
+                           densitySum = density_sum_sse.f[0] + density_sum_sse.f[1] + density_sum_sse.f[2] + density_sum_sse.f[3];
+#endif
+                           while(k<shiftPst)
+                           {
+                              kernelValue   = *kernelPtr++;
+                              intensitySum +=  kernelValue * bufferIntensity[k];
+                              densitySum   +=  kernelValue * bufferDensity[k++];
+                           }
+#else
                            intensitySum=0;
                            densitySum=0;
-                           // Increment the current value by performing the weighted sum
                            for(k=shiftPre; k<shiftPst; ++k)
                            {
                               kernelValue   = *kernelPtr++;
                               intensitySum +=  kernelValue * bufferIntensity[k];
                               densitySum   +=  kernelValue * bufferDensity[k];
                            }
+#endif
                            // Store the computed value inplace
                            intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
                            densityPtr[realIndex] = static_cast<float>(densitySum);
@@ -1329,29 +1398,29 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                            {
                               if(shiftPst<imageDim[n])
                               {
-                                 bufferIntensitycur = (DTYPE)(bufferIntensity[shiftPre]-bufferIntensity[shiftPst]);
-                                 bufferDensitycur = (DTYPE)(bufferDensity[shiftPre]-bufferDensity[shiftPst]);
+                                 bufferIntensitycur = bufferIntensity[shiftPre]-bufferIntensity[shiftPst];
+                                 bufferDensitycur = bufferDensity[shiftPre]-bufferDensity[shiftPst];
                               }
                               else
                               {
-                                 bufferIntensitycur = (DTYPE)(bufferIntensity[shiftPre]-bufferIntensity[imageDim[n]-1]);
-                                 bufferDensitycur = (DTYPE)(bufferDensity[shiftPre]-bufferDensity[imageDim[n]-1]);
+                                 bufferIntensitycur = bufferIntensity[shiftPre]-bufferIntensity[imageDim[n]-1];
+                                 bufferDensitycur = bufferDensity[shiftPre]-bufferDensity[imageDim[n]-1];
                               }
                            }
                            else
                            {
                               if(shiftPst<imageDim[n])
                               {
-                                 bufferIntensitycur = (DTYPE)(-bufferIntensity[shiftPst]);
-                                 bufferDensitycur = (DTYPE)(-bufferDensity[shiftPst]);
+                                 bufferIntensitycur = -bufferIntensity[shiftPst];
+                                 bufferDensitycur = -bufferDensity[shiftPst];
                               }
                               else{
-                                 bufferIntensitycur = (DTYPE)(0);
-                                 bufferDensitycur = (DTYPE)(0);
+                                 bufferIntensitycur = 0;
+                                 bufferDensitycur = 0;
                               }
                            }
-                           intensityPtr[realIndex]=bufferIntensitycur;
-                           densityPtr[realIndex]=bufferDensitycur;
+                           intensityPtr[realIndex]=static_cast<DTYPE>(bufferIntensitycur);
+                           densityPtr[realIndex]=static_cast<float>(bufferDensitycur);
 
                            realIndex += lineOffset;
                         } // line convolution of mean filter
@@ -1648,24 +1717,6 @@ void reg_tools_kernelConvolution(nifti_image *image,
 
    switch(image->datatype)
    {
-   case NIFTI_TYPE_UINT8:
-      reg_tools_kernelConvolution_core<unsigned char>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-      break;
-   case NIFTI_TYPE_INT8:
-      reg_tools_kernelConvolution_core<char>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-      break;
-   case NIFTI_TYPE_UINT16:
-      reg_tools_kernelConvolution_core<unsigned short>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-      break;
-   case NIFTI_TYPE_INT16:
-      reg_tools_kernelConvolution_core<short>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-      break;
-   case NIFTI_TYPE_UINT32:
-      reg_tools_kernelConvolution_core<unsigned int>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-      break;
-   case NIFTI_TYPE_INT32:
-      reg_tools_kernelConvolution_core<int>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-      break;
    case NIFTI_TYPE_FLOAT32:
       reg_tools_kernelConvolution_core<float>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
       break;

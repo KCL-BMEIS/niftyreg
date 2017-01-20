@@ -15,7 +15,7 @@ include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
 #-----------------------------------------------------------------------------
 # Compile an executable to check if there is at least one suitable graphical card
 try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/checkCudaCard.cpp
-  CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${CUDA_INCLUDE_DIRS} -DLINK_LIBRARIES:STRING=${CUDA_LIBRARIES}
+  CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${CUDA_INCLUDE_DIRS} -DLINK_LIBRARIES:STRING=${CUDA_CUDART_LIBRARY}
   COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT_VAR
   RUN_OUTPUT_VARIABLE RUN_OUTPUT_VAR
   )

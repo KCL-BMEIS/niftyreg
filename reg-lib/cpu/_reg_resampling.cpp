@@ -468,34 +468,58 @@ void ResampleImage3D(nifti_image *floatingImage,
                 previous[2]-=kernel_offset;
 
                 intensity=0.0;
-                for(c=0; c<kernel_size; c++)
-                {
-                    Z= previous[2]+c;
-                    zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-                    yTempNewValue=0.0;
-                    for(b=0; b<kernel_size; b++)
-                    {
-                        Y= previous[1]+b;
-                        xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                        xTempNewValue=0.0;
-                        for(a=0; a<kernel_size; a++)
-                        {
+                if(-1<(previous[0]) && (previous[0]+kernel_size-1)<floatingImage->nx &&
+                   -1<(previous[1]) && (previous[1]+kernel_size-1)<floatingImage->ny &&
+                   -1<(previous[2]) && (previous[2]+kernel_size-1)<floatingImage->nz){
+                   for(c=0; c<kernel_size; c++)
+                   {
+                      Z= previous[2]+c;
+                      zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
+                      yTempNewValue=0.0;
+                      for(b=0; b<kernel_size; b++)
+                      {
+                         Y= previous[1]+b;
+                         xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
+                         xTempNewValue=0.0;
+                         for(a=0; a<kernel_size; a++)
+                         {
+                            xTempNewValue +=  static_cast<double>(*xyzPointer++) * xBasis[a];
+                         }
+                         yTempNewValue += xTempNewValue * yBasis[b];
+                      }
+                      intensity += yTempNewValue * zBasis[c];
+                   }
+                }
+                else{
+                   for(c=0; c<kernel_size; c++)
+                   {
+                      Z= previous[2]+c;
+                      zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
+                      yTempNewValue=0.0;
+                      for(b=0; b<kernel_size; b++)
+                      {
+                         Y= previous[1]+b;
+                         xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
+                         xTempNewValue=0.0;
+                         for(a=0; a<kernel_size; a++)
+                         {
                             if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
-                                    -1<Z && Z<floatingImage->nz &&
-                                    -1<Y && Y<floatingImage->ny)
+                               -1<Z && Z<floatingImage->nz &&
+                               -1<Y && Y<floatingImage->ny)
                             {
-                                xTempNewValue +=  static_cast<double>(*xyzPointer) * xBasis[a];
+                               xTempNewValue +=  static_cast<double>(*xyzPointer) * xBasis[a];
                             }
                             else
                             {
-                                // paddingValue
-                                xTempNewValue +=  static_cast<double>(paddingValue) * xBasis[a];
+                               // paddingValue
+                               xTempNewValue +=  static_cast<double>(paddingValue) * xBasis[a];
                             }
                             xyzPointer++;
-                        }
-                        yTempNewValue += xTempNewValue * yBasis[b];
-                    }
-                    intensity += yTempNewValue * zBasis[c];
+                         }
+                         yTempNewValue += xTempNewValue * yBasis[b];
+                      }
+                      intensity += yTempNewValue * zBasis[c];
+                   }
                 }
             }
 

@@ -1337,7 +1337,6 @@ void reg_base<T>::Run()
             perturbation<=this->perturbationNumber;
             ++perturbation)
       {
-
          // Evalulate the objective function value
          this->UpdateBestObjFunctionValue();
          this->PrintInitialObjFunctionValue();

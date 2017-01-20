@@ -75,7 +75,9 @@ if(NOT EXISTS "${DFOLDER}/refImg2D.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D.ni
    NOT EXISTS "${DFOLDER}/discretisedValues.mat" OR NOT EXISTS "${DFOLDER}/discretisedValues.dat" OR
    NOT EXISTS "${DFOLDER}/expectedLabeling.dat" OR NOT EXISTS "${DFOLDER}/dataCost.dat" OR
    NOT EXISTS "${DFOLDER}/indexNeighbours.dat" OR NOT EXISTS "${DFOLDER}/EWeightMatrix.dat" OR
-   NOT EXISTS "${DFOLDER}/"
+   NOT EXISTS "${DFOLDER}//convolution2D_med.nii.gz" OR NOT EXISTS "${DFOLDER}//convolution3D_med.nii.gz" OR
+   NOT EXISTS "${DFOLDER}//convolution2D_gau.nii.gz" OR NOT EXISTS "${DFOLDER}//convolution3D_med.nii.gz" OR
+   NOT EXISTS "${DFOLDER}//convolution2D_spl.nii.gz" OR NOT EXISTS "${DFOLDER}//convolution3D_med.nii.gz"
    )
   message(STATUS "Generating the test data - Takes several minutes")
   execute_process(COMMAND
@@ -297,6 +299,18 @@ add_test(${EXEC}_imageGradient_SYD_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3
 add_test(${EXEC}_imageGradient_SPL_2D ${EXEC} ${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz ${DFOLDER}/expectedImageGradient2D.nii.gz 3)
 add_test(${EXEC}_imageGradient_SPL_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3D_1.nii.gz ${DFOLDER}/expectedImageGradient3D.nii.gz 3)
 #-----------------------------------------------------------------------------
+set(EXEC reg_test_convolution)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_f3d)
+add_test(${EXEC}_convolution_MEA_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/convolution2D_mea.nii.gz 0)
+add_test(${EXEC}_convolution_LIN_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/convolution2D_lin.nii.gz 1)
+add_test(${EXEC}_convolution_GAU_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/convolution2D_gau.nii.gz 2)
+add_test(${EXEC}_convolution_SPL_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/convolution2D_spl.nii.gz 3)
+add_test(${EXEC}_convolution_MEA_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/convolution3D_mea.nii.gz 0)
+add_test(${EXEC}_convolution_LIN_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/convolution3D_lin.nii.gz 1)
+add_test(${EXEC}_convolution_GAU_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/convolution3D_gau.nii.gz 2)
+add_test(${EXEC}_convolution_SPL_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/convolution3D_spl.nii.gz 3)
+#-----------------------------------------------------------------------------
 if(BUILD_DEV)
   set(EXEC reg_test_blockMatching_mrf)
   add_executable(${EXEC} ${EXEC}.cpp)
@@ -315,4 +329,10 @@ if(BUILD_DEV)
   #add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/indexNeighbours.dat ${DFOLDER}/EWeightMatrix.dat ${DFOLDER}/expectedOrderedList.dat ${DFOLDER}/expectedParentsList.dat ${DFOLDER}/expectedEdgeWeight.dat)
   add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/indexNeighbours.dat ${DFOLDER}/EWeightMatrix.dat ${DFOLDER}/expectedParentsList.dat)
 endif(BUILD_DEV)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC reg_test_computation_time)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_f3d)
+#-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
