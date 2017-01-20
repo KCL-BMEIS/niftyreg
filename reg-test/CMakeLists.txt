@@ -1,15 +1,5 @@
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
-# Generate the test data using matlab
-find_package(Matlab)
-if(NOT Matlab_FOUND)
-  set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
-  message(STATUS "Matlab not found")
-  message(ERROR "Matlab is required to generate the test data. The BUILD_TESTING flag is turned OFF")
-else(NOT Matlab_FOUND)
-  message(STATUS "Found Matlab")
-endif(NOT Matlab_FOUND)
-#-----------------------------------------------------------------------------
 # Define the folder to use to store all data
 set(DFOLDER ${CMAKE_BINARY_DIR}/reg-test/test-data)
 #-----------------------------------------------------------------------------
@@ -28,9 +18,9 @@ endif(NOT EXISTS ${TESTING_2D_FILE} AND NOT EXISTS "${DFOLDER}/refImg2D.nii.gz")
 #-----------------------------------------------------------------------------
 # Set the 3D image input file
 if(EXISTS "${DFOLDER}/refImg3D.nii.gz")
-  set(TESTING_2D_FILE "${DFOLDER}/refImg3D.nii.gz" CACHE FILEPATH "3D nifti file used to generate testing data")
+  set(TESTING_3D_FILE "${DFOLDER}/refImg3D.nii.gz" CACHE FILEPATH "3D nifti file used to generate testing data")
 else(EXISTS "${DFOLDER}/refImg3D.nii.gz")
-  set(TESTING_2D_FILE "" CACHE FILEPATH "3D nifti file used to generate testing data")
+  set(TESTING_3D_FILE "" CACHE FILEPATH "3D nifti file used to generate testing data")
 endif(EXISTS "${DFOLDER}/refImg3D.nii.gz")
 if(NOT EXISTS ${TESTING_3D_FILE} AND NOT EXISTS "${DFOLDER}/refImg3D.nii.gz")
   set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
@@ -78,7 +68,16 @@ if(NOT EXISTS "${DFOLDER}/refImg2D.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D.ni
    NOT EXISTS "${DFOLDER}//convolution2D_med.nii.gz" OR NOT EXISTS "${DFOLDER}//convolution3D_med.nii.gz" OR
    NOT EXISTS "${DFOLDER}//convolution2D_gau.nii.gz" OR NOT EXISTS "${DFOLDER}//convolution3D_med.nii.gz" OR
    NOT EXISTS "${DFOLDER}//convolution2D_spl.nii.gz" OR NOT EXISTS "${DFOLDER}//convolution3D_med.nii.gz"
-   )
+  )
+  # Generate the test data using matlab
+  find_package(Matlab)
+  if(NOT Matlab_FOUND)
+    set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
+    message(STATUS "Matlab not found")
+    message(ERROR "Matlab is required to generate the test data. The BUILD_TESTING flag is turned OFF")
+  else(NOT Matlab_FOUND)
+    message(STATUS "Found Matlab")
+  endif(NOT Matlab_FOUND)
   message(STATUS "Generating the test data - Takes several minutes")
   execute_process(COMMAND
                   ${Matlab_ROOT_DIR}/bin/matlab "-nodisplay -nosplash -nodesktop -r \";create_test_data(\'${TESTING_2D_FILE}\',\'${TESTING_3D_FILE}\',\'${DFOLDER}\');exit\""
