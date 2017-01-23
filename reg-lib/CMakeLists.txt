@@ -91,7 +91,7 @@ set(measure_files
   cpu/_reg_mind.cpp
 )
 add_library(_reg_measure ${NIFTYREG_LIBRARY_TYPE} ${measure_files})
-target_link_libraries(_reg_measure _reg_tools)
+target_link_libraries(_reg_measure _reg_tools _reg_resampling)
 install(TARGETS _reg_measure
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
