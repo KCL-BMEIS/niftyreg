@@ -4127,6 +4127,9 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                             nifti_image *deformationFieldImage,
                                             bool updateStepNumber)
 {
+   // Clean any extension in the deformation field as it is unexpected
+   nifti_free_extensions(deformationFieldImage);
+
    // Check if the velocity field is actually a velocity field
    if(velocityFieldGrid->intent_p1 == CUB_SPLINE_GRID)
    {
@@ -4148,7 +4151,7 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
       strcpy(flowField->intent_name,"NREG_TRANS");
       flowField->intent_p1=DEF_VEL_FIELD;
       flowField->intent_p2=velocityFieldGrid->intent_p2;
-      if(velocityFieldGrid->num_ext>0 && flowField->ext_list==NULL)
+      if(velocityFieldGrid->num_ext>0)
          nifti_copy_extensions(flowField, velocityFieldGrid);
 
       // Generate the velocity field
