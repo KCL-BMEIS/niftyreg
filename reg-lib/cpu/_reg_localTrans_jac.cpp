@@ -2631,7 +2631,7 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
 {
    if(splineControlPoint->nz==1)
    {
-      switch(referenceImage->datatype)
+      switch(splineControlPoint->datatype)
       {
       case NIFTI_TYPE_FLOAT32:
          reg_cubic_spline_jacobian2D<float>(splineControlPoint,
@@ -2657,7 +2657,7 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
    }
    else
    {
-      switch(referenceImage->datatype)
+      switch(splineControlPoint->datatype)
       {
       case NIFTI_TYPE_FLOAT32:
          reg_cubic_spline_jacobian3D<float>(splineControlPoint,

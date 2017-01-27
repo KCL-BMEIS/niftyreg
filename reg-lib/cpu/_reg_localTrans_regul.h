@@ -15,7 +15,6 @@
 
 #include "_reg_splineBasis.h"
 
-
 /* *************************************************************** */
 /** @brief Compute and return the average bending energy computed using cubic b-spline.
  * The value is approximated as the bending energy is computed at
@@ -42,6 +41,15 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *controlPointGridImage,
                                             float weight
                                             );
 /* *************************************************************** */
+/** @brief Compute and return the linear elastic energy terms.
+ * @param controlPointGridImage Image that contains the transformation
+ * parametrisation
+ * @return The normalised linear energy. Normalised by the number of voxel
+ */
+extern "C++"
+double reg_spline_linearEnergy(nifti_image *referenceImage,
+                               nifti_image *controlPointGridImage);
+/* *************************************************************** */
 /** @brief Compute and return the linear elastic energy terms approximated
  * at the control point positions only.
  * @param controlPointGridImage Image that contains the transformation
@@ -66,6 +74,13 @@ void reg_spline_approxLinearEnergyGradient(nifti_image *controlPointGridImage,
                                            nifti_image *gradientImage,
                                            float weight
                                            );
+/* *************************************************************** */
+/** @brief Compute and return the linear elastic energy terms.
+ * @param deformationField Image that contains the transformation.
+ * @return The normalised linear energy. Normalised by the number of voxel
+ */
+extern "C++"
+double reg_defField_linearEnergy(nifti_image *deformationField);
 /* *************************************************************** */
 #ifdef BUILD_DEV
 /** @brief Compute and return a pairwise energy.

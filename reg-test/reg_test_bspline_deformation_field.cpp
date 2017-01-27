@@ -5,7 +5,7 @@
 
 #include "AffineDeformationFieldKernel.h"
 
-#define EPS 0.00001
+#define EPS 0.0001
 
 int main(int argc, char **argv)
 {

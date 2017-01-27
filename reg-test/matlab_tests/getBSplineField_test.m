@@ -36,6 +36,33 @@ for i=1:2
         1,...
         input_ndim ...
         );
+    % Convert from displacement to deformation
+    def_matrix = eye(4,4,'single');
+    def_matrix(1,:)=input_image.hdr.hist.srow_x;
+    def_matrix(2,:)=input_image.hdr.hist.srow_y;
+    def_matrix(3,:)=input_image.hdr.hist.srow_z;
+    spl_matrix = eye(4,4,'single');
+    spl_matrix(1:3, 1) = def_matrix(1:3, 1) .* spacing;
+    spl_matrix(1:3, 2) = def_matrix(1:3, 2) .* spacing;
+    spl_matrix(1:3, 3) = def_matrix(1:3, 3) .* spacing;
+    new_origin = spl_matrix * [-1, -1, -1, 1]';
+    spl_matrix(:,4) = new_origin;
+    for kk=1:grid_dim(3)
+        for jj=1:grid_dim(2)
+            for ii=1:grid_dim(1)
+                newPosition = single(double(spl_matrix) * ...
+                    double([ii-1 jj-1 kk-1 1]'));
+                gridField(ii,jj,kk,1,1)= ...
+                    gridField(ii,jj,kk,1,1)+newPosition(1);
+                gridField(ii,jj,kk,1,2)= ...
+                    gridField(ii,jj,kk,1,2)+newPosition(2);
+                if grid_dim(3) > 1
+                    gridField(ii,jj,kk,1,3)= ...
+                        gridField(ii,jj,kk,1,3)+newPosition(3);
+                end
+            end
+        end
+    end
     %% Fill the deformation field image using the slowest approach
     % known to mankind
     for x=0:input_dim(1)-1
@@ -73,9 +100,6 @@ for i=1:2
                     for a=1:4
                         for b=1:4
                             for c=1:4
-%                                 fprintf('%i %i %i -> %i %i %i\n', ...
-%                                     x, y, z, ...
-%                                     first_x, first_y, first_z);
                                 basis = basis_x(a) * basis_y(b) * ...
                                     basis_z(c);
                                 current_value_x=current_value_x+basis*...
@@ -104,10 +128,6 @@ for i=1:2
         end
     end
     %% Save the deformation field image
-    input_matrix = eye(4,4,'single');
-    input_matrix(1,:)=input_image.hdr.hist.srow_x;
-    input_matrix(2,:)=input_image.hdr.hist.srow_y;
-    input_matrix(3,:)=input_image.hdr.hist.srow_z;
     expectedField_nii=make_nii(expectedField,...
         [input_image.hdr.dime.pixdim(2),...
          input_image.hdr.dime.pixdim(3),...
@@ -122,18 +142,13 @@ for i=1:2
     expectedField_nii.hdr.hist.qoffset_x=input_image.hdr.hist.qoffset_x;
     expectedField_nii.hdr.hist.qoffset_y=input_image.hdr.hist.qoffset_y;
     expectedField_nii.hdr.hist.qoffset_z=input_image.hdr.hist.qoffset_z;
-    expectedField_nii.hdr.hist.srow_x=input_matrix(1,:);
-    expectedField_nii.hdr.hist.srow_y=input_matrix(2,:);
-    expectedField_nii.hdr.hist.srow_z=input_matrix(3,:);
+    expectedField_nii.hdr.hist.srow_x=def_matrix(1,:);
+    expectedField_nii.hdr.hist.srow_y=def_matrix(2,:);
+    expectedField_nii.hdr.hist.srow_z=def_matrix(3,:);
     expectedField_nii.hdr.hist=input_image.hdr.hist;
     save_nii(expectedField_nii, [output_path,'/bspline_def', ...
         int2str(input_ndim), 'D.nii.gz']);
     %% Save the control point grid
-    input_matrix(1:3, 1) = input_matrix(1:3, 1) .* spacing;
-    input_matrix(1:3, 2) = input_matrix(1:3, 2) .* spacing;
-    input_matrix(1:3, 3) = input_matrix(1:3, 3) .* spacing;
-    new_origin = input_matrix * [-1, -1, -1, 1]';
-    input_matrix(:,4) = new_origin;
     gridField_nii=make_nii(gridField,...
         [spacing*input_image.hdr.dime.pixdim(2),...
          spacing*input_image.hdr.dime.pixdim(3),...
@@ -149,9 +164,9 @@ for i=1:2
     gridField_nii.hdr.hist.qoffset_y=input_image.hdr.hist.qoffset_y;
     gridField_nii.hdr.hist.qoffset_z=input_image.hdr.hist.qoffset_z;
     gridField_nii.hdr.hist=input_image.hdr.hist;
-    gridField_nii.hdr.hist.srow_x=input_matrix(1,:);
-    gridField_nii.hdr.hist.srow_y=input_matrix(2,:);
-    gridField_nii.hdr.hist.srow_z=input_matrix(3,:);    
+    gridField_nii.hdr.hist.srow_x=spl_matrix(1,:);
+    gridField_nii.hdr.hist.srow_y=spl_matrix(2,:);
+    gridField_nii.hdr.hist.srow_z=spl_matrix(3,:);
     save_nii(gridField_nii, [output_path,'/bspline_grid', ...
         int2str(input_ndim), 'D.nii.gz']);
 end

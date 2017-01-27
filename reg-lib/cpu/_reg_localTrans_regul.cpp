@@ -743,6 +743,235 @@ double reg_spline_approxLinearEnergy(nifti_image *splineControlPoint)
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
+double reg_spline_linearEnergyValue2D(nifti_image *referenceImage,
+                                      nifti_image *splineControlPoint)
+{
+   size_t voxelNumber = (size_t)referenceImage->nx *
+         referenceImage->ny;
+   int a, b, x, y, index, xPre, yPre;
+   DTYPE basis;
+
+
+   DTYPE gridVoxelSpacing[2] ={
+      gridVoxelSpacing[0] = splineControlPoint->dx / referenceImage->dx,
+      gridVoxelSpacing[1] = splineControlPoint->dy / referenceImage->dy
+   };
+
+   double constraintValue = 0.;
+   double currentValue;
+
+   // Create pointers to the spline coefficients
+   size_t nodeNumber = (size_t)splineControlPoint->nx *
+         splineControlPoint->ny * splineControlPoint->nz;
+   DTYPE *splinePtrX = static_cast<DTYPE *>(splineControlPoint->data);
+   DTYPE *splinePtrY = &splinePtrX[nodeNumber];
+   DTYPE splineCoeffX, splineCoeffY;
+
+   // Store the basis values since they are constant as the value is approximated
+   // at the control point positions only
+   DTYPE basisX[4], basisY[4];
+   DTYPE firstX[4], firstY[4];
+
+   mat33 matrix, R;
+
+   // Matrix to use to convert the gradient from mm to voxel
+   mat33 reorientation;
+   if(splineControlPoint->sform_code>0)
+      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
+   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
+
+
+   for(y=0; y<referenceImage->ny; ++y){
+
+      yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
+      basis=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
+      if(basis<0.0) basis=0.0; //rounding error
+      get_BSplineBasisValues<DTYPE>(basis, basisY, firstY);
+
+      for(x=0; x<referenceImage->nx; ++x){
+
+         xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
+         basis=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
+         if(basis<0.0) basis=0.0; //rounding error
+         get_BSplineBasisValues<DTYPE>(basis, basisX, firstX);
+
+         memset(&matrix, 0, sizeof(mat33));
+
+         for(b=0; b<4; b++){
+            for(a=0; a<4; a++){
+               index = (yPre+b)*splineControlPoint->nx+xPre+a;
+               splineCoeffX = splinePtrX[index];
+               splineCoeffY = splinePtrY[index];
+
+               matrix.m[0][0] += firstX[a]*basisY[b]*splineCoeffX;
+               matrix.m[1][0] += basisX[a]*firstY[b]*splineCoeffX;
+
+               matrix.m[0][1] += firstX[a]*basisY[b]*splineCoeffY;
+               matrix.m[1][1] += basisX[a]*firstY[b]*splineCoeffY;
+            }
+         }
+         // Convert from mm to voxel
+         matrix = nifti_mat33_mul(reorientation, matrix);
+         // Removing the rotation component
+         R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+         matrix = nifti_mat33_mul(R, matrix);
+         // Convert to displacement
+         --matrix.m[0][0];
+         --matrix.m[1][1];
+
+         currentValue = 0.;
+         for(b=0; b<2; b++){
+            for(a=0; a<2; a++){
+               currentValue += reg_pow2(0.5*(matrix.m[a][b]+matrix.m[b][a])); // symmetric part
+            }
+         }
+         constraintValue += currentValue;
+      }
+   }
+   return constraintValue / static_cast<double>(referenceImage->nvox*2);
+}
+/* *************************************************************** */
+template <class DTYPE>
+double reg_spline_linearEnergyValue3D(nifti_image *referenceImage,
+                                      nifti_image *splineControlPoint)
+{
+   size_t voxelNumber = (size_t)referenceImage->nx *
+         referenceImage->ny * referenceImage->nz;
+   int a, b, c, x, y, z, index, xPre, yPre, zPre;
+   DTYPE basis;
+
+
+   DTYPE gridVoxelSpacing[3] ={
+      gridVoxelSpacing[0] = splineControlPoint->dx / referenceImage->dx,
+      gridVoxelSpacing[1] = splineControlPoint->dy / referenceImage->dy,
+      gridVoxelSpacing[2] = splineControlPoint->dz / referenceImage->dz
+   };
+
+   double constraintValue = 0.;
+   double currentValue;
+
+   // Create pointers to the spline coefficients
+   size_t nodeNumber = (size_t)splineControlPoint->nx *
+         splineControlPoint->ny * splineControlPoint->nz;
+   DTYPE *splinePtrX = static_cast<DTYPE *>(splineControlPoint->data);
+   DTYPE *splinePtrY = &splinePtrX[nodeNumber];
+   DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
+   DTYPE splineCoeffX, splineCoeffY, splineCoeffZ;
+
+   // Store the basis values since they are constant as the value is approximated
+   // at the control point positions only
+   DTYPE basisX[4], basisY[4], basisZ[4];
+   DTYPE firstX[4], firstY[4], firstZ[4];
+
+   mat33 matrix, R;
+
+   // Matrix to use to convert the gradient from mm to voxel
+   mat33 reorientation;
+   if(splineControlPoint->sform_code>0)
+      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
+   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
+
+   for(z=0; z<referenceImage->nz; ++z){
+
+      zPre=static_cast<int>(static_cast<DTYPE>(z)/gridVoxelSpacing[2]);
+      basis=static_cast<DTYPE>(z)/gridVoxelSpacing[2]-static_cast<DTYPE>(zPre);
+      if(basis<0.0) basis=0.0; //rounding error
+      get_BSplineBasisValues<DTYPE>(basis, basisZ, firstZ);
+
+      for(y=0; y<referenceImage->ny; ++y){
+
+         yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
+         basis=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
+         if(basis<0.0) basis=0.0; //rounding error
+         get_BSplineBasisValues<DTYPE>(basis, basisY, firstY);
+
+         for(x=0; x<referenceImage->nx; ++x){
+
+            xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
+            basis=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
+            if(basis<0.0) basis=0.0; //rounding error
+            get_BSplineBasisValues<DTYPE>(basis, basisX, firstX);
+
+            memset(&matrix, 0, sizeof(mat33));
+
+            for(c=0; c<4; c++){
+               for(b=0; b<4; b++){
+                  for(a=0; a<4; a++){
+                     index = ((zPre+c)*splineControlPoint->ny+yPre+b)*splineControlPoint->nx+xPre+a;
+                     splineCoeffX = splinePtrX[index];
+                     splineCoeffY = splinePtrY[index];
+                     splineCoeffZ = splinePtrZ[index];
+
+                     matrix.m[0][0] += firstX[a]*basisY[b]*basisZ[c]*splineCoeffX;
+                     matrix.m[1][0] += basisX[a]*firstY[b]*basisZ[c]*splineCoeffX;
+                     matrix.m[2][0] += basisX[a]*basisY[b]*firstZ[c]*splineCoeffX;
+
+                     matrix.m[0][1] += firstX[a]*basisY[b]*basisZ[c]*splineCoeffY;
+                     matrix.m[1][1] += basisX[a]*firstY[b]*basisZ[c]*splineCoeffY;
+                     matrix.m[2][1] += basisX[a]*basisY[b]*firstZ[c]*splineCoeffY;
+
+                     matrix.m[0][2] += firstX[a]*basisY[b]*basisZ[c]*splineCoeffZ;
+                     matrix.m[1][2] += basisX[a]*firstY[b]*basisZ[c]*splineCoeffZ;
+                     matrix.m[2][2] += basisX[a]*basisY[b]*firstZ[c]*splineCoeffZ;
+                  }
+               }
+            }
+            // Convert from mm to voxel
+            matrix = nifti_mat33_mul(reorientation, matrix);
+            // Removing the rotation component
+            R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+            matrix = nifti_mat33_mul(R, matrix);
+            // Convert to displacement
+            --matrix.m[0][0];
+            --matrix.m[1][1];
+            --matrix.m[2][2];
+
+            currentValue = 0.;
+            for(b=0; b<3; b++){
+               for(a=0; a<3; a++){
+                  currentValue += reg_pow2(0.5*(matrix.m[a][b]+matrix.m[b][a])); // symmetric part
+               }
+            }
+            constraintValue += currentValue;
+         }
+      }
+   }
+   return constraintValue / static_cast<double>(referenceImage->nvox*3);
+}
+/* *************************************************************** */
+double reg_spline_linearEnergy(nifti_image *referenceImage,
+                               nifti_image *splineControlPoint)
+{
+   if(splineControlPoint->nz>1){
+      switch(splineControlPoint->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         return reg_spline_linearEnergyValue3D<float>(referenceImage, splineControlPoint);
+      case NIFTI_TYPE_FLOAT64:
+         return reg_spline_linearEnergyValue3D<double>(referenceImage, splineControlPoint);
+      default:
+         reg_print_fct_error("reg_spline_linearEnergyValue3D");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit();
+      }
+   }
+   else{
+      switch(splineControlPoint->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         return reg_spline_linearEnergyValue2D<float>(referenceImage, splineControlPoint);
+      case NIFTI_TYPE_FLOAT64:
+         return reg_spline_linearEnergyValue2D<double>(referenceImage, splineControlPoint);
+      default:
+         reg_print_fct_error("reg_spline_approxLinearEnergyValue2D");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit();
+      }
+   }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
 void reg_spline_approxLinearEnergyGradient2D(nifti_image *splineControlPoint,
                                              nifti_image *gradientImage,
                                              float weight
@@ -1118,6 +1347,182 @@ void reg_spline_approxLinearEnergyGradient(nifti_image *splineControlPoint,
          break;
       default:
          reg_print_fct_error("reg_spline_linearEnergyGradient");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit();
+      }
+   }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+double reg_defField_linearEnergyValue2D(nifti_image *deformationField)
+{
+   size_t voxelNumber = (size_t)deformationField->nx *
+         deformationField->ny;
+   int a, b, x, y, X, Y, index;
+   DTYPE basis[2]={1,0};
+   DTYPE first[2]={-1,1};
+
+   double constraintValue = 0.;
+   double currentValue;
+
+   // Create pointers to the deformation field
+   DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);
+   DTYPE *defPtrY = &defPtrX[voxelNumber];
+   DTYPE defX, defY;
+
+   mat33 matrix, R;
+
+   // Matrix to use to convert the gradient from mm to voxel
+   mat33 reorientation;
+   if(deformationField->sform_code>0)
+      reorientation = reg_mat44_to_mat33(&deformationField->sto_ijk);
+   else reorientation = reg_mat44_to_mat33(&deformationField->qto_ijk);
+
+   for(y=0; y<deformationField->ny; ++y){
+      Y=(y!=deformationField->ny-1)?y:y-1;
+      for(x=0; x<deformationField->nx; ++x){
+         X=(x!=deformationField->nx-1)?x:x-1;
+
+         memset(&matrix, 0, sizeof(mat33));
+
+         for(b=0; b<2; b++){
+            for(a=0; a<2; a++){
+               index = (Y+b)*deformationField->nx+X+a;
+               defX = defPtrX[index];
+               defY = defPtrY[index];
+
+               matrix.m[0][0] += first[a]*basis[b]*defX;
+               matrix.m[1][0] += basis[a]*first[b]*defX;
+               matrix.m[0][1] += first[a]*basis[b]*defY;
+               matrix.m[1][1] += basis[a]*first[b]*defY;
+            }
+         }
+         // Convert from mm to voxel
+         matrix = nifti_mat33_mul(reorientation, matrix);
+         // Removing the rotation component
+         R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+         matrix = nifti_mat33_mul(R, matrix);
+         // Convert to displacement
+         --matrix.m[0][0];
+         --matrix.m[1][1];
+
+         currentValue = 0.;
+         for(b=0; b<2; b++){
+            for(a=0; a<2; a++){
+               currentValue += reg_pow2(0.5*(matrix.m[a][b]+matrix.m[b][a])); // symmetric part
+            }
+         }
+         constraintValue += currentValue;
+      }
+   }
+   return constraintValue / static_cast<double>(deformationField->nvox);
+}
+/* *************************************************************** */
+template <class DTYPE>
+double reg_defField_linearEnergyValue3D(nifti_image *deformationField)
+{
+   size_t voxelNumber = (size_t)deformationField->nx *
+         deformationField->ny * deformationField->nz;
+   int a, b, c, x, y, z, X, Y, Z, index;
+   DTYPE basis[2]={1,0};
+   DTYPE first[2]={-1,1};
+
+   double constraintValue = 0.;
+   double currentValue;
+
+   // Create pointers to the deformation field
+   DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);
+   DTYPE *defPtrY = &defPtrX[voxelNumber];
+   DTYPE *defPtrZ = &defPtrY[voxelNumber];
+   DTYPE defX, defY, defZ;
+
+   mat33 matrix, R;
+
+   // Matrix to use to convert the gradient from mm to voxel
+   mat33 reorientation;
+   if(deformationField->sform_code>0)
+      reorientation = reg_mat44_to_mat33(&deformationField->sto_ijk);
+   else reorientation = reg_mat44_to_mat33(&deformationField->qto_ijk);
+
+   for(z=0; z<deformationField->nz; ++z){
+      Z=(z!=deformationField->nz-1)?z:z-1;
+      for(y=0; y<deformationField->ny; ++y){
+         Y=(y!=deformationField->ny-1)?y:y-1;
+         for(x=0; x<deformationField->nx; ++x){
+            X=(x!=deformationField->nx-1)?x:x-1;
+
+            memset(&matrix, 0, sizeof(mat33));
+
+            for(c=0; c<2; c++){
+               for(b=0; b<2; b++){
+                  for(a=0; a<2; a++){
+                     index = ((Z+c)*deformationField->ny+Y+b)*deformationField->nx+X+a;
+                     defX = defPtrX[index];
+                     defY = defPtrY[index];
+                     defZ = defPtrZ[index];
+
+                     matrix.m[0][0] += first[a]*basis[b]*basis[c]*defX;
+                     matrix.m[1][0] += basis[a]*first[b]*basis[c]*defX;
+                     matrix.m[2][0] += basis[a]*basis[b]*first[c]*defX;
+
+                     matrix.m[0][1] += first[a]*basis[b]*basis[c]*defY;
+                     matrix.m[1][1] += basis[a]*first[b]*basis[c]*defY;
+                     matrix.m[2][1] += basis[a]*basis[b]*first[c]*defY;
+
+                     matrix.m[0][2] += first[a]*basis[b]*basis[c]*defZ;
+                     matrix.m[1][2] += basis[a]*first[b]*basis[c]*defZ;
+                     matrix.m[2][2] += basis[a]*basis[b]*first[c]*defZ;
+                  }
+               }
+            }
+            // Convert from mm to voxel
+            matrix = nifti_mat33_mul(reorientation, matrix);
+            // Removing the rotation component
+            R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+            matrix = nifti_mat33_mul(R, matrix);
+            // Convert to displacement
+            --matrix.m[0][0];
+            --matrix.m[1][1];
+            --matrix.m[2][2];
+
+            currentValue = 0.;
+            for(b=0; b<3; b++){
+               for(a=0; a<3; a++){
+                  currentValue += reg_pow2(0.5*(matrix.m[a][b]+matrix.m[b][a])); // symmetric part
+               }
+            }
+            constraintValue += currentValue;
+         }
+      }
+   }
+   return constraintValue / static_cast<double>(deformationField->nvox);
+}
+/* *************************************************************** */
+double reg_defField_linearEnergy(nifti_image *deformationField)
+{
+   if(deformationField->nz>1){
+      switch(deformationField->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         return reg_defField_linearEnergyValue3D<float>(deformationField);
+      case NIFTI_TYPE_FLOAT64:
+         return reg_defField_linearEnergyValue3D<double>(deformationField);
+      default:
+         reg_print_fct_error("reg_defField_linearEnergyValue3D");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit();
+      }
+   }
+   else{
+      switch(deformationField->datatype)
+      {
+      case NIFTI_TYPE_FLOAT32:
+         return reg_defField_linearEnergyValue2D<float>(deformationField);
+      case NIFTI_TYPE_FLOAT64:
+         return reg_defField_linearEnergyValue2D<double>(deformationField);
+      default:
+         reg_print_fct_error("reg_defField_linearEnergyValue2D");
          reg_print_msg_error("Only implemented for single or double precision images");
          reg_exit();
       }
