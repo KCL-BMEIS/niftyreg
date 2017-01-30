@@ -587,7 +587,7 @@ int main(int argc, char **argv)
    int operation;
    bool use_demean=false;
    size_t image_number=0;
-   char *referenceImageName;
+   char *referenceImageName=NULL;
 
    // Set the name of the file to output
    char *outputName = pointer_to_command[1];
