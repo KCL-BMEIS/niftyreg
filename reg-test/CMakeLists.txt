@@ -70,7 +70,10 @@ if(NOT EXISTS "${DFOLDER}/refImg2D.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D.ni
    NOT EXISTS "${DFOLDER}/convolution2D_spl.nii.gz" OR NOT EXISTS "${DFOLDER}/convolution3D_med.nii.gz" OR
    NOT EXISTS "${DFOLDER}/le_spline_approx2D.txt" OR NOT EXISTS "${DFOLDER}/le_spline_approx2D.txt" OR
    NOT EXISTS "${DFOLDER}/le_spline_dense2D.txt" OR NOT EXISTS "${DFOLDER}/le_spline_dense3D.txt" OR
-   NOT EXISTS "${DFOLDER}/le_field_dense2D.txt" OR NOT EXISTS "${DFOLDER}/le_field_dense3D.txt"
+   NOT EXISTS "${DFOLDER}/le_field_dense2D.txt" OR NOT EXISTS "${DFOLDER}/le_field_dense3D.txt" OR
+   NOT EXISTS "${DFOLDER}/le_grad_spline_approx2D.nii.gz" OR NOT EXISTS "${DFOLDER}/le_grad_spline_approx3D.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/le_grad_spline_dense2D.nii.gz" OR NOT EXISTS "${DFOLDER}/le_grad_spline_dense3D.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/le_grad_field_dense2D.nii.gz" OR NOT EXISTS "${DFOLDER}/le_grad_field_dense3D.nii.gz"
   )
   # Generate the test data using matlab
   find_package(Matlab)
@@ -322,6 +325,16 @@ add_test(${EXEC}_SPL_DEN_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/bsplin
 add_test(${EXEC}_SPL_DEN_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/bspline_grid3D.nii.gz ${DFOLDER}/le_spline_dense3D.txt 1)
 add_test(${EXEC}_DEF_DEN_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/bspline_def2D.nii.gz ${DFOLDER}/le_field_dense2D.txt 2)
 add_test(${EXEC}_DEF_DEN_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/bspline_def3D.nii.gz ${DFOLDER}/le_field_dense3D.txt 2)
+#-----------------------------------------------------------------------------
+set(EXEC reg_test_linearElasticityGradient)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_f3d)
+add_test(${EXEC}_SPL_APP_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/bspline_grid2D.nii.gz ${DFOLDER}/le_grad_spline_approx2D.nii.gz 0)
+add_test(${EXEC}_SPL_APP_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/bspline_grid3D.nii.gz ${DFOLDER}/le_grad_spline_approx3D.nii.gz 0)
+add_test(${EXEC}_SPL_DEN_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/bspline_grid2D.nii.gz ${DFOLDER}/le_grad_spline_dense2D.nii.gz 1)
+add_test(${EXEC}_SPL_DEN_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/bspline_grid3D.nii.gz ${DFOLDER}/le_grad_spline_dense3D.nii.gz 1)
+add_test(${EXEC}_DEF_DEN_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/bspline_def2D.nii.gz ${DFOLDER}/le_grad_field_dense2D.nii.gz 2)
+add_test(${EXEC}_DEF_DEN_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/bspline_def3D.nii.gz ${DFOLDER}/le_grad_field_dense3D.nii.gz 2)
 #-----------------------------------------------------------------------------
 if(BUILD_DEV)
   set(EXEC reg_test_blockMatching_mrf)
