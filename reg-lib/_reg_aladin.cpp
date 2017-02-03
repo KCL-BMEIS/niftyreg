@@ -77,6 +77,10 @@ template<class T> reg_aladin<T>::reg_aladin()
   this->platformCode = NR_PLATFORM_CPU;
   this->CurrentLevel = 0;
   this->gpuIdx = 999;
+
+#ifndef NDEBUG
+   reg_print_msg_debug("reg_aladin constructor called");
+#endif
 }
 /* *************************************************************** */
 template<class T> reg_aladin<T>::~reg_aladin()
@@ -119,6 +123,9 @@ template<class T> reg_aladin<T>::~reg_aladin()
     free(this->activeVoxelNumber);
   if(this->platform!=NULL)
     delete this->platform;
+#ifndef NDEBUG
+   reg_print_msg_debug("reg_aladin destructor called");
+#endif
 }
 /* *************************************************************** */
 template<class T>

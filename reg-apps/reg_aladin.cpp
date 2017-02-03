@@ -119,7 +119,7 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
 
-   char text[1024];
+   char text[2048];
 
    time_t start;
    time(&start);

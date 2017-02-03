@@ -173,7 +173,7 @@ int main(int argc, char **argv)
    omp_set_num_threads(defaultOpenMPValue);
 #endif
 
-   char text[1024];
+   char text[2048];
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check if any information is required
    for(int i=1; i<argc; i++)

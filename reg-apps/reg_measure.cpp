@@ -69,13 +69,10 @@ void Usage(char *exec)
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   char text[255];
-   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+   printf("\t-omp <int>\tNumber of thread to use with OpenMP. [%i/%i]\n",
           defaultOpenMPValue, omp_get_num_procs());
-   reg_print_info(exec, text);
 #endif
-   printf("\t--version\t\tPrint current version and exit");
-   printf("\t\t\t\t(%s)",NR_VERSION);
+   printf("\t--version\tPrint current version and exit (%s)\n",NR_VERSION);
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }

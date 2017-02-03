@@ -115,14 +115,13 @@ void Usage(char *exec)
     printf("\t-mindssc\t\tCreate a MIND-SSC descriptor image\n");
     printf("\t-interp\t\t\tInterpolation order to use to warp the floating image\n");
 #if defined (_OPENMP)
-    int defaultOpenMPValue=omp_get_num_procs();
-    if(getenv("OMP_NUM_THREADS")!=NULL)
-        defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
-           defaultOpenMPValue, omp_get_num_procs());
+   int defaultOpenMPValue=omp_get_num_procs();
+   if(getenv("OMP_NUM_THREADS")!=NULL)
+      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
+   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]\n",
+          defaultOpenMPValue, omp_get_num_procs());
 #endif
-    printf("\t--version\t\tPrint current version and exit");
-    printf("\t\t\t\t(%s)",NR_VERSION);
+   printf("\t--version\t\tPrint current version and exit (%s)\n",NR_VERSION);
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }

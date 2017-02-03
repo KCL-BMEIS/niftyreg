@@ -133,15 +133,12 @@ void Usage(char *exec)
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=NULL)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   char text[255];
-   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
+   printf("\t-omp <int>\n\t\tNumber of thread to use with OpenMP. [%i/%i]\n",
           defaultOpenMPValue, omp_get_num_procs());
-   reg_print_info(exec, text);
 #endif
-   printf("\t--version\t\tPrint current version and exit");
-   printf("\t\t\t\t(%s)",NR_VERSION);
+   printf("\t--version\n\t\tPrint current version and exit (%s)\n",NR_VERSION);
 
-   printf("\t* The supported transformation types are:\n");
+   printf("\n\t* The supported transformation types are:\n");
    printf("\t\t- cubic B-Spline parametrised grid (reference image is required)\n");
    printf("\t\t- a dense deformation field\n");
    printf("\t\t- a dense displacement field\n");

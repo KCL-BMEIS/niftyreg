@@ -60,14 +60,6 @@ void usage(char *exec)
    reg_print_info(exec, "\t-demean_noaff <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>");
    reg_print_info(exec, "\t\tSame as -demean expect that the specified affine is removed from the");
    reg_print_info(exec, "\t\tnon-linear (euclidean) transformation.");
-#if defined (_OPENMP)
-   int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
-      defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
-          defaultOpenMPValue, omp_get_num_procs());
-   reg_print_info(exec, text);
-#endif
    reg_print_info(exec, "\t--version\t\tPrint current version and exit");
    sprintf(text, "\t\t\t\t(%s)",NR_VERSION);
    reg_print_info(exec, text);
@@ -532,15 +524,6 @@ int main(int argc, char **argv)
       {
          printf("%s",xml_average);
          return EXIT_SUCCESS;
-      }
-      else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
-      {
-#if defined (_OPENMP)
-         omp_set_num_threads(atoi(argv[++i]));
-#else
-         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
-         ++i;
-#endif
       }
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||

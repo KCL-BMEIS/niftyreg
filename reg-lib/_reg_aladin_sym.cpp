@@ -60,6 +60,9 @@ reg_aladin_sym<T>::~reg_aladin_sym()
      free(this->BackwardActiveVoxelNumber);
    this->BackwardActiveVoxelNumber=NULL;
 
+#ifndef NDEBUG
+   reg_print_msg_debug("reg_aladin_sym destructor called");
+#endif
 }
 /* *************************************************************** */
 template <class T>
