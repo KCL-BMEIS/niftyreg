@@ -9,12 +9,13 @@ if(EXISTS "${DFOLDER}/refImg2D.nii.gz")
 else(EXISTS "${DFOLDER}/refImg2D.nii.gz")
   set(TESTING_2D_FILE "" CACHE FILEPATH "2D nifti file used to generate testing data")
 endif(EXISTS "${DFOLDER}/refImg2D.nii.gz")
-if(NOT EXISTS ${TESTING_2D_FILE} AND NOT EXISTS "${DFOLDER}/refImg2D.nii.gz")
+if(NOT EXISTS "${TESTING_2D_FILE}" AND NOT EXISTS "${DFOLDER}/refImg2D.nii.gz")
   set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
   message(STATUS "The specified 2D image file does not exists")
   message(STATUS "TESTING_2D_FILE=${TESTING_2D_FILE}")
-  message(ERROR "The BUILD_TESTING flag is turned OFF")
-endif(NOT EXISTS ${TESTING_2D_FILE} AND NOT EXISTS "${DFOLDER}/refImg2D.nii.gz")
+  message(SEND_ERROR "The BUILD_TESTING flag is turned OFF")
+  return()
+endif(NOT EXISTS "${TESTING_2D_FILE}" AND NOT EXISTS "${DFOLDER}/refImg2D.nii.gz")
 #-----------------------------------------------------------------------------
 # Set the 3D image input file
 if(EXISTS "${DFOLDER}/refImg3D.nii.gz")
@@ -22,12 +23,13 @@ if(EXISTS "${DFOLDER}/refImg3D.nii.gz")
 else(EXISTS "${DFOLDER}/refImg3D.nii.gz")
   set(TESTING_3D_FILE "" CACHE FILEPATH "3D nifti file used to generate testing data")
 endif(EXISTS "${DFOLDER}/refImg3D.nii.gz")
-if(NOT EXISTS ${TESTING_3D_FILE} AND NOT EXISTS "${DFOLDER}/refImg3D.nii.gz")
+if(NOT EXISTS "${TESTING_3D_FILE}" AND NOT EXISTS "${DFOLDER}/refImg3D.nii.gz")
   set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
   message(STATUS "The specified 3D image file does not exists")
   message(STATUS "TESTING_3D_FILE=${TESTING_3D_FILE}")
-  message(ERROR "The BUILD_TESTING flag is turned OFF")
-endif(NOT EXISTS ${TESTING_3D_FILE} AND NOT EXISTS "${DFOLDER}/refImg3D.nii.gz")
+  message(SEND_ERROR "The BUILD_TESTING flag is turned OFF")
+  return()
+endif(NOT EXISTS "${TESTING_3D_FILE}" AND NOT EXISTS "${DFOLDER}/refImg3D.nii.gz")
 #-----------------------------------------------------------------------------
 # Run the matlab command if required
 if(NOT EXISTS "${DFOLDER}/refImg2D.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D.nii.gz" OR
@@ -65,10 +67,11 @@ if(NOT EXISTS "${DFOLDER}/refImg2D.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D.ni
    NOT EXISTS "${DFOLDER}/discretisedValues.mat" OR NOT EXISTS "${DFOLDER}/discretisedValues.dat" OR
    NOT EXISTS "${DFOLDER}/expectedLabeling.dat" OR NOT EXISTS "${DFOLDER}/dataCost.dat" OR
    NOT EXISTS "${DFOLDER}/indexNeighbours.dat" OR NOT EXISTS "${DFOLDER}/EWeightMatrix.dat" OR
-   NOT EXISTS "${DFOLDER}/convolution2D_med.nii.gz" OR NOT EXISTS "${DFOLDER}/convolution3D_med.nii.gz" OR
-   NOT EXISTS "${DFOLDER}/convolution2D_gau.nii.gz" OR NOT EXISTS "${DFOLDER}/convolution3D_med.nii.gz" OR
-   NOT EXISTS "${DFOLDER}/convolution2D_spl.nii.gz" OR NOT EXISTS "${DFOLDER}/convolution3D_med.nii.gz" OR
-   NOT EXISTS "${DFOLDER}/le_spline_approx2D.txt" OR NOT EXISTS "${DFOLDER}/le_spline_approx2D.txt" OR
+   NOT EXISTS "${DFOLDER}/convolution2D_mea.nii.gz" OR NOT EXISTS "${DFOLDER}/convolution3D_mea.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/convolution2D_lin.nii.gz" OR NOT EXISTS "${DFOLDER}/convolution3D_lin.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/convolution2D_gau.nii.gz" OR NOT EXISTS "${DFOLDER}/convolution3D_gau.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/convolution2D_spl.nii.gz" OR NOT EXISTS "${DFOLDER}/convolution3D_spl.nii.gz" OR
+   NOT EXISTS "${DFOLDER}/le_spline_approx2D.txt" OR NOT EXISTS "${DFOLDER}/le_spline_approx3D.txt" OR
    NOT EXISTS "${DFOLDER}/le_spline_dense2D.txt" OR NOT EXISTS "${DFOLDER}/le_spline_dense3D.txt" OR
    NOT EXISTS "${DFOLDER}/le_field_dense2D.txt" OR NOT EXISTS "${DFOLDER}/le_field_dense3D.txt" OR
    NOT EXISTS "${DFOLDER}/le_grad_spline_approx2D.nii.gz" OR NOT EXISTS "${DFOLDER}/le_grad_spline_approx3D.nii.gz" OR
@@ -80,7 +83,8 @@ if(NOT EXISTS "${DFOLDER}/refImg2D.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D.ni
   if(NOT Matlab_FOUND)
     set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
     message(STATUS "Matlab not found")
-    message(ERROR "Matlab is required to generate the test data. The BUILD_TESTING flag is turned OFF")
+    message(SEND_ERROR "Matlab is required to generate the test data. The BUILD_TESTING flag is turned OFF")
+    return()
   else(NOT Matlab_FOUND)
     message(STATUS "Found Matlab")
   endif(NOT Matlab_FOUND)
