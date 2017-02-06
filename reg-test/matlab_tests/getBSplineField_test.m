@@ -45,6 +45,7 @@ for i=1:2
     spl_matrix(1:3, 1) = def_matrix(1:3, 1) .* spacing;
     spl_matrix(1:3, 2) = def_matrix(1:3, 2) .* spacing;
     spl_matrix(1:3, 3) = def_matrix(1:3, 3) .* spacing;
+    spl_matrix(:,4) = def_matrix(:,4);
     new_origin = spl_matrix * [-1, -1, -1, 1]';
     spl_matrix(:,4) = new_origin;
     for kk=1:grid_dim(3)

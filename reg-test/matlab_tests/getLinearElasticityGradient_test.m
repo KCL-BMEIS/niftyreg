@@ -166,7 +166,7 @@ for i=1:2
     % reset to gradient data
     grad_data = zeros(size(grid_data));
     % Compute the value from all voxel position
-     for x=0:def_dim(1)-1
+    for x=0:def_dim(1)-1
          pre_x = floor(x/spacing);
          norm_x = x/spacing - pre_x;
          basis_x = getBSplineCoefficient(norm_x);

@@ -1092,9 +1092,6 @@ void reg_spline_linearEnergyGradient3D(nifti_image *referenceImage,
       gridVoxelSpacing[2] = splineControlPoint->dz / referenceImage->dz
    };
 
-   double constraintValue = 0.;
-   double currentValue;
-
    // Create pointers to the spline coefficients
    size_t nodeNumber = (size_t)splineControlPoint->nx *
          splineControlPoint->ny * splineControlPoint->nz;

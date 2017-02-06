@@ -72,9 +72,9 @@ int main(int argc, char **argv)
     // Generate a control point grids
     nifti_image *splineGridOne = NULL;
     float spacing[3] = {
-        inputImageOne->dx * 5.,
-        inputImageOne->dz * 5.,
-        inputImageOne->dy * 5.
+        inputImageOne->dx * 5.f,
+        inputImageOne->dz * 5.f,
+        inputImageOne->dy * 5.f
     };
     reg_createControlPointGrid<float>(&splineGridOne,
                                       inputImageOne,

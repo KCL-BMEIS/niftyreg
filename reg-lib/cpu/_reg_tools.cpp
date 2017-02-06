@@ -1345,10 +1345,11 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                                                          static_cast<float>(bufferIntensity[k+1]),
                                                          static_cast<float>(bufferIntensity[k+2]),
                                                          static_cast<float>(bufferIntensity[k+3]));
-                              density_sse = _mm_set_ps(bufferDensity[k++],
-                                    bufferDensity[k++],
-                                    bufferDensity[k++],
-                                    bufferDensity[k++]);
+                              density_sse = _mm_set_ps(bufferDensity[k],
+                                    bufferDensity[k+1],
+                                    bufferDensity[k+2],
+                                    bufferDensity[k+3]);
+                              k+=4;
                               intensity_sum_sse.m = _mm_add_ps(_mm_mul_ps(kernel_sse, intensity_sse), intensity_sum_sse.m);
                               density_sum_sse.m = _mm_add_ps(_mm_mul_ps(kernel_sse, density_sse), density_sum_sse.m);
                            }

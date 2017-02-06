@@ -1388,10 +1388,11 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                               tempY =  _mm_set_ps1(0.0);
                                               tempZ =  _mm_set_ps1(0.0);
                                               for(coord=0;coord<16;++coord){
-                                                  val.m = _mm_set_ps(coefficients[coeff_index++],
-                                                        coefficients[coeff_index++],
-                                                        coefficients[coeff_index++],
-                                                        coefficients[coeff_index++]);
+                                                  val.m = _mm_set_ps(coefficients[coeff_index+3],
+                                                        coefficients[coeff_index+2],
+                                                        coefficients[coeff_index+1],
+                                                        coefficients[coeff_index]);
+                                                  coeff_index+=4;
                                                   tempX = _mm_add_ps(_mm_mul_ps(val.m,
                                                                                 xControlPointCoordinates.m[coord]),
                                                                      tempX );
