@@ -950,19 +950,19 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
     } // node
 }
 /* *************************************************************** */
-template <class DTYPE>
-void GetDiscretisedValueSSD_core2D(nifti_image *controlPointGridImage,
-                                   float *discretisedValue,
-                                   int discretise_radius,
-                                   int discretise_step,
-                                   nifti_image *refImage,
-                                   nifti_image *warImage,
-                                   int *mask)
-{
-    reg_print_fct_warn("GetDiscretisedValue_core2D");
-    reg_print_msg_warn("No yet implemented");
-    reg_exit();
-}
+//template <class DTYPE>
+//void GetDiscretisedValueSSD_core2D(nifti_image *controlPointGridImage,
+//                                   float *discretisedValue,
+//                                   int discretise_radius,
+//                                   int discretise_step,
+//                                   nifti_image *refImage,
+//                                   nifti_image *warImage,
+//                                   int *mask)
+//{
+//    reg_print_fct_warn("GetDiscretisedValue_core2D");
+//    reg_print_msg_warn("No yet implemented");
+//    reg_exit();
+//}
 /* *************************************************************** */
 void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
                                   float *discretisedValue,
@@ -999,36 +999,41 @@ void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
             reg_print_msg_error("Unsupported datatype");
             reg_exit();
         }
-    } else {
-        switch(this->referenceImagePointer->datatype)
-        {
-        case NIFTI_TYPE_FLOAT32:
-            GetDiscretisedValueSSD_core2D<float>
-                    (controlPointGridImage,
-                     discretisedValue,
-                     discretise_radius,
-                     discretise_step,
-                     this->referenceImagePointer,
-                     this->warpedFloatingImagePointer,
-                     this->referenceMaskPointer
-                     );
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            GetDiscretisedValueSSD_core2D<double>
-                    (controlPointGridImage,
-                     discretisedValue,
-                     discretise_radius,
-                     discretise_step,
-                     this->referenceImagePointer,
-                     this->warpedFloatingImagePointer,
-                     this->referenceMaskPointer
-                     );
-            break;
-        default:
-            reg_print_fct_error("reg_ssd::GetDiscretisedValue");
-            reg_print_msg_error("Unsupported datatype");
-            reg_exit();
-        }
+    }
+    else
+    {
+       reg_print_fct_error("reg_ssd::GetDiscretisedValue");
+       reg_print_msg_error("Not implemented in 2D yet");
+       reg_exit();
+//        switch(this->referenceImagePointer->datatype)
+//        {
+//        case NIFTI_TYPE_FLOAT32:
+//            GetDiscretisedValueSSD_core2D<float>
+//                    (controlPointGridImage,
+//                     discretisedValue,
+//                     discretise_radius,
+//                     discretise_step,
+//                     this->referenceImagePointer,
+//                     this->warpedFloatingImagePointer,
+//                     this->referenceMaskPointer
+//                     );
+//            break;
+//        case NIFTI_TYPE_FLOAT64:
+//            GetDiscretisedValueSSD_core2D<double>
+//                    (controlPointGridImage,
+//                     discretisedValue,
+//                     discretise_radius,
+//                     discretise_step,
+//                     this->referenceImagePointer,
+//                     this->warpedFloatingImagePointer,
+//                     this->referenceMaskPointer
+//                     );
+//            break;
+//        default:
+//            reg_print_fct_error("reg_ssd::GetDiscretisedValue");
+//            reg_print_msg_error("Unsupported datatype");
+//            reg_exit();
+//        }
     }
 }
 /* *************************************************************** */

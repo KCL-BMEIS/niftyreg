@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     char *inputRefImageName = argv[1];
     char *inputCPPFileName = argv[2];
     char *inputDefImageName = argv[3];
-    int platformCode = atoi(argv[4]);
+//    int platformCode = atoi(argv[4]);
 
     // Read the input reference image
     nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
