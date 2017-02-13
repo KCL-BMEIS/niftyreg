@@ -1430,9 +1430,9 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                               fieldPtrX[index] = real[0];
                                               fieldPtrY[index] = real[1];
                                               fieldPtrZ[index] = real[2];
-                                              index++;
                                           } // x defined
                                           else coeff_index += 64;
+                                          index++;
                                       } // a
                                   } // y defined
                                   else coeff_index += 5*64;

@@ -1340,11 +1340,16 @@ void reg_spline_approxLinearEnergyGradient2D(nifti_image *splineControlPoint,
                index=(y+b)*splineControlPoint->nx+x+a;
                gradValues[0] = -2.0*matrix.m[0][0]*basisX[i];
                gradValues[1] = -2.0*matrix.m[1][1]*basisY[i];
+
+#ifdef _OPENMP
                #pragma omp atomic
+#endif
                gradientXPtr[index] += approxRatio *
                      ( inv_reorientation.m[0][0]*gradValues[0]
                      + inv_reorientation.m[0][1]*gradValues[1]);
+#ifdef _OPENMP
                #pragma omp atomic
+#endif
                gradientYPtr[index] += approxRatio *
                      ( inv_reorientation.m[1][0]*gradValues[0]
                      + inv_reorientation.m[1][1]*gradValues[1]);
@@ -1399,14 +1404,6 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
    DTYPE approxRatio = (DTYPE)weight / (DTYPE)(nodeNumber);
    DTYPE gradValues[3];
 
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(splineControlPoint, splinePtrX, splinePtrY, splinePtrZ, \
-   basisX, basisY, basisZ, reorientation, inv_reorientation, \
-   gradientXPtr, gradientYPtr, gradientZPtr, approxRatio) \
-   private(x, y, z, a, b, c, i, index, gradValues, \
-   splineCoeffX, splineCoeffY, splineCoeffZ, matrix, R)
-#endif
    for(z=1; z<splineControlPoint->nz-1; z++)
    {
       for(y=1; y<splineControlPoint->ny-1; y++)
@@ -1456,17 +1453,17 @@ void reg_spline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
                      gradValues[0] = -2.0*matrix.m[0][0]*basisX[i];
                      gradValues[1] = -2.0*matrix.m[1][1]*basisY[i];
                      gradValues[2] = -2.0*matrix.m[2][2]*basisZ[i];
-                     #pragma omp atomic
+
                      gradientXPtr[index] += approxRatio *
                            ( inv_reorientation.m[0][0]*gradValues[0]
                            + inv_reorientation.m[0][1]*gradValues[1]
                            + inv_reorientation.m[0][2]*gradValues[2]);
-                     #pragma omp atomic
+
                      gradientYPtr[index] += approxRatio *
                            ( inv_reorientation.m[1][0]*gradValues[0]
                            + inv_reorientation.m[1][1]*gradValues[1]
                            + inv_reorientation.m[1][2]*gradValues[2]);
-                     #pragma omp atomic
+
                      gradientZPtr[index] += approxRatio *
                            ( inv_reorientation.m[2][0]*gradValues[0]
                            + inv_reorientation.m[2][1]*gradValues[1]

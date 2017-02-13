@@ -1833,8 +1833,9 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
    image->data=(void *)calloc(image->nvox, image->nbyper);
    imagePtr = static_cast<ImageTYPE *>(image->data);
 
-   PrecisionTYPE real[3], position[3], relative, xBasis[2], yBasis[2], zBasis[2], intensity;
-   int previous[3];
+   PrecisionTYPE real[3];
+   ImageTYPE intensity;
+   int position[3];
 
    // qform is used for resampling
    for(size_t tuvw=0; tuvw<(size_t)image->nt*image->nu*image->nv*image->nw; tuvw++)
@@ -1860,93 +1861,19 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
                      z*image->qto_xyz.m[2][2] +
                      image->qto_xyz.m[2][3];
                // Extract the position in voxel in the old image;
-               position[0]=real[0]*real2Voxel_qform.m[0][0] + real[1]*real2Voxel_qform.m[0][1] + real[2]*real2Voxel_qform.m[0][2] + real2Voxel_qform.m[0][3];
-               position[1]=real[0]*real2Voxel_qform.m[1][0] + real[1]*real2Voxel_qform.m[1][1] + real[2]*real2Voxel_qform.m[1][2] + real2Voxel_qform.m[1][3];
-               position[2]=real[0]*real2Voxel_qform.m[2][0] + real[1]*real2Voxel_qform.m[2][1] + real[2]*real2Voxel_qform.m[2][2] + real2Voxel_qform.m[2][3];
-               /* trilinear interpolation */
-               previous[0] = (int)reg_round(position[0]);
-               previous[1] = (int)reg_round(position[1]);
-               previous[2] = (int)reg_round(position[2]);
-
-               // basis values along the x axis
-               relative=position[0]-(PrecisionTYPE)previous[0];
-               if(relative<0) relative=0.0; // reg_rounding error correction
-               xBasis[0]= (PrecisionTYPE)(1.0-relative);
-               xBasis[1]= relative;
-               // basis values along the y axis
-               relative=position[1]-(PrecisionTYPE)previous[1];
-               if(relative<0) relative=0.0; // reg_rounding error correction
-               yBasis[0]= (PrecisionTYPE)(1.0-relative);
-               yBasis[1]= relative;
-               // basis values along the z axis
-               relative=position[2]-(PrecisionTYPE)previous[2];
-               if(relative<0) relative=0.0; // reg_rounding error correction
-               zBasis[0]= (PrecisionTYPE)(1.0-relative);
-               zBasis[1]= relative;
-               intensity=0;
-               for(short c=0; c<2; c++)
+               position[0]=(int)reg_round(real[0]*real2Voxel_qform.m[0][0] + real[1]*real2Voxel_qform.m[0][1] + real[2]*real2Voxel_qform.m[0][2] + real2Voxel_qform.m[0][3]);
+               position[1]=(int)reg_round(real[0]*real2Voxel_qform.m[1][0] + real[1]*real2Voxel_qform.m[1][1] + real[2]*real2Voxel_qform.m[1][2] + real2Voxel_qform.m[1][3]);
+               position[2]=(int)reg_round(real[0]*real2Voxel_qform.m[2][0] + real[1]*real2Voxel_qform.m[2][1] + real[2]*real2Voxel_qform.m[2][2] + real2Voxel_qform.m[2][3]);
+               if(oldDim[3]==1) position[2]=0;
+               // Nearest neighboor is used as downsampling ratio is constant
+               intensity=std::numeric_limits<ImageTYPE>::quiet_NaN();
+               if(-1<position[0] && position[0]<oldDim[1] &&
+                     -1<position[1] && position[1]<oldDim[2] &&
+                     -1<position[2] && position[2]<oldDim[3])
                {
-                  short Z= previous[2]+c;
-                  if(-1<Z && Z<oldDim[3])
-                  {
-                     ImageTYPE *zPointer = &valuesPtrTUVW[Z*oldDim[1]*oldDim[2]];
-                     PrecisionTYPE yTempNewValue=0.0;
-                     for(short b=0; b<2; b++)
-                     {
-                        short Y= previous[1]+b;
-                        if(-1<Y && Y<oldDim[2])
-                        {
-                           ImageTYPE *yzPointer = &zPointer[Y*oldDim[1]];
-                           ImageTYPE *xyzPointer = &yzPointer[previous[0]];
-                           PrecisionTYPE xTempNewValue=0.0;
-                           for(short a=0; a<2; a++)
-                           {
-                              if(-1<(previous[0]+a) && (previous[0]+a)<oldDim[1])
-                              {
-                                 const ImageTYPE coeff = *xyzPointer;
-                                 xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-                              } // X in range
-                              else if(xBasis[a]>0.f)
-                              {
-                                 xTempNewValue=std::numeric_limits<ImageTYPE>::quiet_NaN();
-                              }
-                              xyzPointer++;
-                           }
-                           yTempNewValue += (xTempNewValue * yBasis[b]);
-                        } // Y in range
-                        else if(yBasis[b]>0.f)
-                        {
-                           yTempNewValue=std::numeric_limits<ImageTYPE>::quiet_NaN();
-                        }
-                     }
-                     intensity += yTempNewValue * zBasis[c];
-                  } // Z in range
-                  else if(zBasis[c]>0.f)
-                  {
-                     intensity=std::numeric_limits<ImageTYPE>::quiet_NaN();
-                  }
+                  intensity = valuesPtrTUVW[(position[2]*oldDim[2]+position[1])*oldDim[1]+position[0]];
                }
-               switch(image->datatype)
-               {
-               case NIFTI_TYPE_FLOAT32:
-                  (*imagePtr)=(ImageTYPE)intensity;
-                  break;
-               case NIFTI_TYPE_FLOAT64:
-                  (*imagePtr)=(ImageTYPE)intensity;
-                  break;
-               case NIFTI_TYPE_UINT8:
-                  (*imagePtr)=(ImageTYPE)(intensity>0?reg_round(intensity):0);
-                  break;
-               case NIFTI_TYPE_UINT16:
-                  (*imagePtr)=(ImageTYPE)(intensity>0?reg_round(intensity):0);
-                  break;
-               case NIFTI_TYPE_UINT32:
-                  (*imagePtr)=(ImageTYPE)(intensity>0?reg_round(intensity):0);
-                  break;
-               default:
-                  (*imagePtr)=(ImageTYPE)reg_round(intensity);
-                  break;
-               }
+               *imagePtr=intensity;
                imagePtr++;
             }
          }
