@@ -109,6 +109,14 @@ protected:
    double bestWMeasure;
    double currentWMeasure;
 
+   double currentWLand;
+   double bestWLand;
+
+   float landmarkRegWeight;
+   size_t landmarkRegNumber;
+   float *landmarkReference;
+   float *landmarkFloating;
+
 #ifdef BUILD_DEV
    bool discrete_init;
 #endif
@@ -274,6 +282,7 @@ public:
    void UseNeareatNeighborInterpolation();
    void UseLinearInterpolation();
    void UseCubicSplineInterpolation();
+   void SetLandmarkRegularisationParam(size_t, float *, float*, float);
 
 #ifdef BUILD_DEV
    void UseDiscreteInit();

@@ -109,6 +109,39 @@ void reg_defField_linearEnergyGradient(nifti_image *deformationField,
                                        nifti_image *gradientImage,
                                        float weight);
 /* *************************************************************** */
+/** @Brief Compute the distance between two set of points given a
+ * transformation
+ * @param controlPointGridImage Image that contains the transformation
+ * parametrisation
+ * @param landmarkNumber Number of landmark defined in each image
+ * @param landmarkReference Landmark in the reference image
+ * @param landmarkFloating Landmark in the floating image
+ */
+extern "C++"
+double reg_spline_getLandmarkDistance(nifti_image *controlPointImage,
+                                      size_t landmarkNumber,
+                                      float *landmarkReference,
+                                      float *landmarkFloating);
+/* *************************************************************** */
+/** @Brief Compute the gradient of the distance between two set of
+ * points given a transformation
+ * @param controlPointGridImage Image that contains the transformation
+ * parametrisation
+ * @param gradientImage Image that contains the gradient in the space
+ * of the transformation parametrisation
+ * @param landmarkNumber Number of landmark defined in each image
+ * @param landmarkReference Landmark in the reference image
+ * @param landmarkFloating Landmark in the floating image
+ * @param weight weight to apply to the gradient
+ */
+extern "C++"
+void reg_spline_getLandmarkDistanceGradient(nifti_image *controlPointImage,
+                                            nifti_image *gradientImage,
+                                            size_t landmarkNumber,
+                                            float *landmarkReference,
+                                            float *landmarkFloating,
+                                            float weight);
+/* *************************************************************** */
 #ifdef BUILD_DEV
 /** @brief Compute and return a pairwise energy.
  * @param controlPointGridImage Image that contains the transformation

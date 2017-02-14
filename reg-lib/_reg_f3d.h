@@ -41,13 +41,15 @@ protected:
    virtual void ClearTransformationGradient();
    virtual T InitialiseCurrentLevel();
 
-   virtual double ComputeJacobianBasedPenaltyTerm(int);
    virtual double ComputeBendingEnergyPenaltyTerm();
    virtual double ComputeLinearEnergyPenaltyTerm();
+   virtual double ComputeJacobianBasedPenaltyTerm(int);
+   virtual double ComputeLandmarkDistancePenaltyTerm();
 
    virtual void GetBendingEnergyGradient();
    virtual void GetLinearEnergyGradient();
    virtual void GetJacobianBasedGradient();
+   virtual void GetLandmarkDistanceGradient();
    virtual void SetGradientImageToZero();
    virtual T NormaliseGradient();
    virtual void SmoothGradient();

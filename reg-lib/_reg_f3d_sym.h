@@ -57,9 +57,10 @@ protected:
    virtual T InitialiseCurrentLevel();
    virtual void ClearCurrentInputImage();
 
-   virtual double ComputeJacobianBasedPenaltyTerm(int);
    virtual double ComputeBendingEnergyPenaltyTerm();
    virtual double ComputeLinearEnergyPenaltyTerm();
+   virtual double ComputeJacobianBasedPenaltyTerm(int);
+   virtual double ComputeLandmarkDistancePenaltyTerm();
    virtual void GetDeformationField();
    virtual void WarpFloatingImage(int);
    virtual void GetVoxelBasedGradient();
@@ -68,6 +69,7 @@ protected:
    virtual void GetBendingEnergyGradient();
    virtual void GetLinearEnergyGradient();
    virtual void GetJacobianBasedGradient();
+   virtual void GetLandmarkDistanceGradient();
    virtual void SetGradientImageToZero();
    virtual T NormaliseGradient();
    virtual void SmoothGradient();

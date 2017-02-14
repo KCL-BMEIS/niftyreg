@@ -1925,6 +1925,294 @@ void reg_defField_linearEnergyGradient(nifti_image *deformationField,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template <class DTYPE>
+double reg_spline_getLandmarkDistance_core(nifti_image *controlPointImage,
+                                           size_t landmarkNumber,
+                                           float *landmarkReference,
+                                           float *landmarkFloating)
+{
+   int imageDim=controlPointImage->nz>1?3:2;
+   size_t controlPointNumber = (size_t)controlPointImage->nx *
+         controlPointImage->ny * controlPointImage->nz;
+   double constraintValue=0.;
+   size_t l, index;
+   float ref_position[4];
+   float def_position[4];
+   float flo_position[4];
+   int previous[3], a, b, c;
+   DTYPE basisX[4], basisY[4], basisZ[4], basis;
+   mat44 *gridRealToVox = &(controlPointImage->qto_ijk);
+   if(controlPointImage->sform_code>0)
+      gridRealToVox = &(controlPointImage->sto_ijk);
+   DTYPE *gridPtrX = static_cast<DTYPE *>(controlPointImage->data);
+   DTYPE *gridPtrY = &gridPtrX[controlPointNumber];
+   DTYPE *gridPtrZ=NULL;
+   if(imageDim>2)
+      gridPtrZ = &gridPtrY[controlPointNumber];
+
+   // Loop over all landmarks
+   for(l=0;l<landmarkNumber;++l){
+      // fetch the initial positions
+      ref_position[0]=landmarkReference[l*imageDim];
+      flo_position[0]=landmarkFloating[l*imageDim];
+      ref_position[1]=landmarkReference[l*imageDim+1];
+      flo_position[1]=landmarkFloating[l*imageDim+1];
+      if(imageDim>2){
+         ref_position[2]=landmarkReference[l*imageDim+2];
+         flo_position[2]=landmarkFloating[l*imageDim+2];
+      }
+      else ref_position[2]=flo_position[2]=0.f;
+      ref_position[3]=flo_position[3]=1.f;
+      // Convert the reference position to voxel in the control point grid space
+      reg_mat44_mul(gridRealToVox, ref_position, def_position);
+
+
+
+      // Extract the corresponding nodes
+      previous[0]=static_cast<int>(reg_floor(def_position[0]))-1;
+      previous[1]=static_cast<int>(reg_floor(def_position[1]))-1;
+      previous[2]=static_cast<int>(reg_floor(def_position[2]))-1;
+      // Check that the specified landmark belongs to the input image
+      if(previous[0]>-1 && previous[0]+3<controlPointImage->nx &&
+         previous[1]>-1 && previous[1]+3<controlPointImage->ny &&
+         ((previous[2]>-1 && previous[2]+3<controlPointImage->nz) || imageDim==2)){
+         // Extract the corresponding basis values
+         get_BSplineBasisValues<DTYPE>(def_position[0] - 1.f -(DTYPE)previous[0], basisX);
+         get_BSplineBasisValues<DTYPE>(def_position[1] - 1.f -(DTYPE)previous[1], basisY);
+         get_BSplineBasisValues<DTYPE>(def_position[2] - 1.f -(DTYPE)previous[2], basisZ);
+         def_position[0]=0.f;
+         def_position[1]=0.f;
+         def_position[2]=0.f;
+         if(imageDim>2){
+            for(c=0;c<4;++c){
+               for(b=0;b<4;++b){
+                  for(a=0;a<4;++a){
+                     index = ((previous[2]+c)*controlPointImage->ny+previous[1]+b) *
+                           controlPointImage->nx+previous[0]+a;
+                     basis = basisX[a] * basisY[b] * basisZ[c];
+                     def_position[0] += gridPtrX[index] * basis;
+                     def_position[1] += gridPtrY[index] * basis;
+                     def_position[2] += gridPtrZ[index] * basis;
+                  }
+               }
+            }
+         }
+         else{
+            for(b=0;b<4;++b){
+               for(a=0;a<4;++a){
+                  index = (previous[1]+b)*controlPointImage->nx+previous[0]+a;
+                  basis = basisX[a] * basisY[b];
+                  def_position[0] += gridPtrX[index] * basis;
+                  def_position[1] += gridPtrY[index] * basis;
+               }
+            }
+         }
+         constraintValue += reg_pow2(flo_position[0]-def_position[0]);
+         constraintValue += reg_pow2(flo_position[1]-def_position[1]);
+         if(imageDim>2)
+            constraintValue += reg_pow2(flo_position[2]-def_position[2]);
+      }
+      else{
+         char warning_text[255];
+         if(imageDim>2)
+            sprintf(warning_text, "The current landmark at position %g %g %g is ignored",
+                    ref_position[0], ref_position[1], ref_position[2]);
+         else
+            sprintf(warning_text, "The current landmark at position %g %g is ignored",
+                    ref_position[0], ref_position[1]);
+         reg_print_msg_warn(warning_text);
+         reg_print_msg_warn("as it is not in the space of the reference image");
+      }
+   }
+   return constraintValue;
+}
+/* *************************************************************** */
+double reg_spline_getLandmarkDistance(nifti_image *controlPointImage,
+                                      size_t landmarkNumber,
+                                      float *landmarkReference,
+                                      float *landmarkFloating)
+{
+   if(controlPointImage->intent_p1!=CUB_SPLINE_GRID){
+      reg_print_fct_error("reg_spline_getLandmarkDistance");
+      reg_print_msg_error("This function is only implemented for control point grid within an Euclidean setting for now");
+      reg_exit();
+   }
+   switch(controlPointImage->datatype)
+   {
+   case NIFTI_TYPE_FLOAT32:
+      return reg_spline_getLandmarkDistance_core<float>
+            (controlPointImage, landmarkNumber, landmarkReference, landmarkFloating);
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      return reg_spline_getLandmarkDistance_core<double>
+            (controlPointImage, landmarkNumber, landmarkReference, landmarkFloating);
+      break;
+   default:
+      reg_print_fct_error("reg_spline_getLandmarkDistance_core");
+      reg_print_msg_error("Only implemented for single or double precision images");
+      reg_exit();
+   }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+void reg_spline_getLandmarkDistanceGradient_core(nifti_image *controlPointImage,
+                                                 nifti_image *gradientImage,
+                                                 size_t landmarkNumber,
+                                                 float *landmarkReference,
+                                                 float *landmarkFloating,
+                                                 float weight)
+{
+   int imageDim=controlPointImage->nz>1?3:2;
+   size_t controlPointNumber = (size_t)controlPointImage->nx *
+         controlPointImage->ny * controlPointImage->nz;
+   size_t l, index;
+   float ref_position[3];
+   float def_position[3];
+   float flo_position[3];
+   int previous[3], a, b, c;
+   DTYPE basisX[4], basisY[4], basisZ[4], basis;
+   mat44 *gridRealToVox = &(controlPointImage->qto_ijk);
+   if(controlPointImage->sform_code>0)
+      gridRealToVox = &(controlPointImage->sto_ijk);
+   DTYPE *gridPtrX = static_cast<DTYPE *>(controlPointImage->data);
+   DTYPE *gradPtrX = static_cast<DTYPE *>(gradientImage->data);
+   DTYPE *gridPtrY = &gridPtrX[controlPointNumber];
+   DTYPE *gradPtrY = &gradPtrX[controlPointNumber];
+   DTYPE *gridPtrZ=NULL;
+   DTYPE *gradPtrZ=NULL;
+   if(imageDim>2){
+      gridPtrZ = &gridPtrY[controlPointNumber];
+      gradPtrZ = &gradPtrY[controlPointNumber];
+   }
+
+   // Loop over all landmarks
+   for(l=0;l<landmarkNumber;++l){
+      // fetch the initial positions
+      ref_position[0]=landmarkReference[l*imageDim];
+      flo_position[0]=landmarkFloating[l*imageDim];
+      ref_position[1]=landmarkReference[l*imageDim+1];
+      flo_position[1]=landmarkFloating[l*imageDim+1];
+      if(imageDim>2){
+         ref_position[2]=landmarkReference[l*imageDim+2];
+         flo_position[2]=landmarkFloating[l*imageDim+2];
+      }
+      else ref_position[2]=flo_position[2]=0.f;
+      // Convert the reference position to voxel in the control point grid space
+      reg_mat44_mul(gridRealToVox, ref_position, def_position);
+      if(imageDim==2) def_position[2]=0.f;
+      // Extract the corresponding nodes
+      previous[0]=static_cast<int>(reg_floor(def_position[0]))-1;
+      previous[1]=static_cast<int>(reg_floor(def_position[1]))-1;
+      previous[2]=static_cast<int>(reg_floor(def_position[2]))-1;
+      // Check that the specified landmark belongs to the input image
+      if(previous[0]>-1 && previous[0]+3<controlPointImage->nx &&
+         previous[1]>-1 && previous[1]+3<controlPointImage->ny &&
+         ((previous[2]>-1 && previous[2]+3<controlPointImage->nz) || imageDim==2)){
+         // Extract the corresponding basis values
+         get_BSplineBasisValues<DTYPE>(def_position[0] - 1.f -(DTYPE)previous[0], basisX);
+         get_BSplineBasisValues<DTYPE>(def_position[1] - 1.f -(DTYPE)previous[1], basisY);
+         get_BSplineBasisValues<DTYPE>(def_position[2] - 1.f -(DTYPE)previous[2], basisZ);
+         def_position[0]=0.f;
+         def_position[1]=0.f;
+         def_position[2]=0.f;
+         if(imageDim>2){
+            for(c=0;c<4;++c){
+               for(b=0;b<4;++b){
+                  for(a=0;a<4;++a){
+                     index = ((previous[2]+c)*controlPointImage->ny+previous[1]+b) *
+                           controlPointImage->nx+previous[0]+a;
+                     basis = basisX[a] * basisY[b] * basisZ[c];
+                     def_position[0] += gridPtrX[index] * basis;
+                     def_position[1] += gridPtrY[index] * basis;
+                     def_position[2] += gridPtrZ[index] * basis;
+                  }
+               }
+            }
+         }
+         else{
+            for(b=0;b<4;++b){
+               for(a=0;a<4;++a){
+                  index = (previous[1]+b)*controlPointImage->nx+previous[0]+a;
+                  basis = basisX[a] * basisY[b];
+                  def_position[0] += gridPtrX[index] * basis;
+                  def_position[1] += gridPtrY[index] * basis;
+               }
+            }
+         }
+         def_position[0]=flo_position[0]-def_position[0];
+         def_position[1]=flo_position[1]-def_position[1];
+         if(imageDim>2)
+            def_position[2]=flo_position[2]-def_position[2];
+         if(imageDim>2){
+            for(c=0;c<4;++c){
+               for(b=0;b<4;++b){
+                  for(a=0;a<4;++a){
+                     index = ((previous[2]+c)*controlPointImage->ny+previous[1]+b) *
+                           controlPointImage->nx+previous[0]+a;
+                     basis = basisX[a] * basisY[b] * basisZ[c] * weight;
+                     gradPtrX[index] -= def_position[0] * basis;
+                     gradPtrY[index] -= def_position[1] * basis;
+                     gradPtrZ[index] -= def_position[2] * basis;
+                  }
+               }
+            }
+         }
+         else{
+            for(b=0;b<4;++b){
+               for(a=0;a<4;++a){
+                  index = (previous[1]+b)*controlPointImage->nx+previous[0]+a;
+                  basis = basisX[a] * basisY[b] * weight;
+                  gradPtrX[index] -= def_position[0] * basis;
+                  gradPtrY[index] -= def_position[1] * basis;
+               }
+            }
+         }
+      }
+      else{
+         char warning_text[255];
+         if(imageDim>2)
+            sprintf(warning_text, "The current landmark at position %g %g %g is ignored",
+                    ref_position[0], ref_position[1], ref_position[2]);
+         else
+            sprintf(warning_text, "The current landmark at position %g %g is ignored",
+                    ref_position[0], ref_position[1]);
+         reg_print_msg_warn(warning_text);
+         reg_print_msg_warn("as it is not in the space of the reference image");
+      }
+   }
+}
+/* *************************************************************** */
+void reg_spline_getLandmarkDistanceGradient(nifti_image *controlPointImage,
+                                            nifti_image *gradientImage,
+                                            size_t landmarkNumber,
+                                            float *landmarkReference,
+                                            float *landmarkFloating,
+                                            float weight)
+{
+   if(controlPointImage->intent_p1!=CUB_SPLINE_GRID){
+      reg_print_fct_error("reg_spline_getLandmarkDistance");
+      reg_print_msg_error("This function is only implemented for control point grid within an Euclidean setting for now");
+      reg_exit();
+   }
+   switch(controlPointImage->datatype)
+   {
+   case NIFTI_TYPE_FLOAT32:
+      reg_spline_getLandmarkDistanceGradient_core<float>
+            (controlPointImage, gradientImage, landmarkNumber, landmarkReference, landmarkFloating, weight);
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      reg_spline_getLandmarkDistanceGradient_core<double>
+            (controlPointImage, gradientImage, landmarkNumber, landmarkReference, landmarkFloating, weight);
+      break;
+   default:
+      reg_print_fct_error("reg_spline_getLandmarkDistanceGradient_core");
+      reg_print_msg_error("Only implemented for single or double precision images");
+      reg_exit();
+   }
+}
+/* *************************************************************** */
+/* *************************************************************** */
 #ifdef BUILD_DEV
 template <class DTYPE>
 double reg_spline_approxLinearPairwise3D(nifti_image *splineControlPoint)

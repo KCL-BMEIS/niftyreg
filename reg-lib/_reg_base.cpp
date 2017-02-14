@@ -76,7 +76,6 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->usePyramid=true;
    this->forwardJacobianMatrix=NULL;
 
-
    this->initialised=false;
    this->referencePyramid=NULL;
    this->floatingPyramid=NULL;
@@ -91,6 +90,11 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->voxelBasedMeasureGradient=NULL;
 
    this->interpolation=1;
+
+   this->landmarkRegWeight=0.f;
+   this->landmarkRegNumber=0;
+   this->landmarkReference=NULL;
+   this->landmarkFloating=NULL;
 
 #ifdef BUILD_DEV
    this->discrete_init=false;
@@ -503,6 +507,18 @@ void reg_base<T>::UseCubicSplineInterpolation()
    this->interpolation=3;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseCubicSplineInterpolation");
+#endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, float w)
+{
+   this->landmarkRegNumber = n;
+   this->landmarkReference = r;
+   this->landmarkFloating = f;
+   this->landmarkRegWeight = w;
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::SetLandmarkRegularisationParam");
 #endif
 }
 /* *************************************************************** */

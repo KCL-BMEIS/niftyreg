@@ -80,6 +80,11 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-le <float>\t\tWeight of first order penalty term (symmetric and anti-symmetric part of the Jacobian) [0.01]");
    reg_print_info(exec, "\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]");
    reg_print_info(exec, "\t-noAppJL\t\tTo not approximate the JL value only at the control point position");
+   reg_print_info(exec, "\t-land <float> <file>\tUse of a set of landmarks which distance should be minimised");
+   reg_print_info(exec, "\t\t\t\tThe first argument corresponds to the weight given to this regularisation (between 0 and 1)");
+   reg_print_info(exec, "\t\t\t\tThe second argument corresponds to a text file containing the landmark positions in millimeter as");
+   reg_print_info(exec, "\t\t\t\t<refX> <refY> <refZ> <floX> <floY> <floZ>\\n for 3D images and");
+   reg_print_info(exec, "\t\t\t\t<refX> <refY> <floX> <floY>\\n for 2D images");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Measure of similarity options:");
    reg_print_info(exec, "*** NMI with 64 bins is used expect if specified otherwise");
@@ -271,6 +276,8 @@ int main(int argc, char **argv)
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check the type of registration object to create
    reg_f3d<float> *REG=NULL;
+   float *referenceLandmark=NULL;
+   float *floatingLandmark=NULL;
    for(int i=1; i<argc; i++)
    {
       if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0)
@@ -445,6 +452,52 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-noAppJL")==0 || strcmp(argv[i], "--noAppJL")==0)
       {
          REG->DoNotApproximateJacobianLog();
+      }
+      else if(strcmp(argv[i], "-land")==0 ||strcmp(argv[i], "--land")==0)
+      {
+         float weight = atof(argv[++i]);
+         char *filename = argv[++i];
+         std::pair<size_t, size_t> inputMatrixSize = reg_tool_sizeInputMatrixFile(filename);
+         size_t landmarkNumber = inputMatrixSize.first;
+         size_t n = inputMatrixSize.second;
+         if(n==4 && referenceImage->nz>1){
+            reg_print_msg_error("4 values per line are expected for 2D images");
+            return EXIT_FAILURE;
+         }
+         else if(n==6 && referenceImage->nz<2){
+            reg_print_msg_error("6 values per line are expected for 3D images");
+            return EXIT_FAILURE;
+         }
+         else if(n!=4 && n!=6){
+            reg_print_msg_error("4 or 6 values are expected per line");
+            return EXIT_FAILURE;
+         }
+         float **allLandmarks = reg_tool_ReadMatrixFile<float>(filename, landmarkNumber, n);
+         referenceLandmark=(float *)malloc(landmarkNumber * n/2 * sizeof(float));
+         floatingLandmark=(float *)malloc(landmarkNumber * n/2 * sizeof(float));
+         for(size_t l=0, index=0;l<landmarkNumber;++l){
+            referenceLandmark[index]=allLandmarks[l][0];
+            referenceLandmark[index+1]=allLandmarks[l][1];
+            if(n==4){
+               floatingLandmark[index]=allLandmarks[l][2];
+               floatingLandmark[index+1]=allLandmarks[l][3];
+               index+=2;
+            }
+            else{
+               referenceLandmark[index+2]=allLandmarks[l][2];
+               floatingLandmark[index]=allLandmarks[l][3];
+               floatingLandmark[index+1]=allLandmarks[l][4];
+               floatingLandmark[index+2]=allLandmarks[l][5];
+               index+=3;
+            }
+         }
+         REG->SetLandmarkRegularisationParam(landmarkNumber,
+                                             referenceLandmark,
+                                             floatingLandmark,
+                                             weight);
+         for(size_t l=0; l<landmarkNumber; ++l)
+            free(allLandmarks[l]);
+         free(allLandmarks);
       }
       else if((strcmp(argv[i],"-smooR")==0) || (strcmp(argv[i],"-smooT")==0) || strcmp(argv[i], "--smooR")==0)
       {
@@ -825,6 +878,10 @@ int main(int argc, char **argv)
    outputWarpedImage[1]=NULL;
    free(outputWarpedImage);
    outputWarpedImage=NULL;
+   // Free the allocated landmarks if used
+   free(referenceLandmark);
+   free(floatingLandmark);
+
    // Erase the registration object
    delete REG;
 

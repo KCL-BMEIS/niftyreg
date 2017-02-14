@@ -438,7 +438,8 @@ void reg_f3d_sym<T>::CheckParameters()
          this->bendingEnergyWeight
          +this->linearEnergyWeight
          +this->jacobianLogWeight
-         +this->inverseConsistencyWeight;
+         +this->inverseConsistencyWeight
+         +this->landmarkRegWeight;
    if(penaltySum>=1)
    {
       this->similarityWeight=0;
@@ -446,6 +447,7 @@ void reg_f3d_sym<T>::CheckParameters()
       this->linearEnergyWeight /= penaltySum;
       this->jacobianLogWeight /= penaltySum;
       this->inverseConsistencyWeight /= penaltySum;
+      this->landmarkRegWeight /= penaltySum;
    }
    else this->similarityWeight = 1.0 - penaltySum;
 
@@ -767,6 +769,25 @@ double reg_f3d_sym<T>::ComputeLinearEnergyPenaltyTerm()
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
+double reg_f3d_sym<T>::ComputeLandmarkDistancePenaltyTerm()
+{
+   if(this->landmarkRegWeight<=0) return 0.;
+
+   double forwardPenaltyTerm=reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm();
+
+   double backwardPenaltyTerm = this->landmarkRegWeight*reg_spline_getLandmarkDistance(this->backwardControlPointGrid,
+                                                                                       this->landmarkRegNumber,
+                                                                                       this->landmarkFloating,
+                                                                                       this->landmarkReference);
+
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_f3d_sym<T>::ComputeLandmarkDistancePenaltyTerm");
+#endif
+   return forwardPenaltyTerm+backwardPenaltyTerm;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
 void reg_f3d_sym<T>::GetVoxelBasedGradient()
 {
    // The voxel based gradient image is initialised with zeros
@@ -951,10 +972,30 @@ void reg_f3d_sym<T>::GetLinearEnergyGradient()
    reg_f3d<T>::GetLinearEnergyGradient();
 
    reg_spline_approxLinearEnergyGradient(this->backwardControlPointGrid,
-                                         this->transformationGradient,
+                                         this->backwardTransformationGradient,
                                          this->linearEnergyWeight);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::GetLinearEnergyGradient");
+#endif
+   return;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sym<T>::GetLandmarkDistanceGradient()
+{
+   if(this->landmarkRegWeight<=0) return;
+
+   reg_f3d<T>::GetLandmarkDistanceGradient();
+
+   reg_spline_getLandmarkDistanceGradient(this->backwardControlPointGrid,
+                                          this->backwardTransformationGradient,
+                                          this->landmarkRegNumber,
+                                          this->landmarkFloating,
+                                          this->landmarkReference,
+                                          this->landmarkRegWeight);
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_f3d_sym<T>::GetLandmarkDistanceGradient");
 #endif
    return;
 }
@@ -1118,6 +1159,7 @@ void reg_f3d_sym<T>::GetObjectiveFunctionGradient()
       this->GetBendingEnergyGradient();
       this->GetJacobianBasedGradient();
       this->GetLinearEnergyGradient();
+      this->GetLandmarkDistanceGradient();
       this->GetInverseConsistencyGradient();
    }
 #ifndef NDEBUG
@@ -1512,6 +1554,8 @@ void reg_f3d_sym<T>::PrintCurrentObjFunctionValue(T currentSize)
       sprintf(text+strlen(text), " - (wLE)%.2e", this->bestWLE);
    if(this->jacobianLogWeight>0)
       sprintf(text+strlen(text), " - (wJAC)%.2e", this->bestWJac);
+   if(this->landmarkRegWeight>0)
+      sprintf(text+strlen(text), " - (wLAN)%.2e", this->bestWLand);
    if(this->inverseConsistencyWeight>0)
       sprintf(text+strlen(text), " - (wIC)%.2e", this->bestIC);
    sprintf(text+strlen(text), " [+ %g mm]", currentSize);
@@ -1556,6 +1600,8 @@ double reg_f3d_sym<T>::GetObjectiveFunctionValue()
 
    this->currentWLE = this->ComputeLinearEnergyPenaltyTerm();
 
+   this->currentWLand = this->ComputeLandmarkDistancePenaltyTerm();
+
    // Compute initial similarity measure
    this->currentWMeasure = 0.0;
    if(this->similarityWeight>0)
@@ -1569,10 +1615,12 @@ double reg_f3d_sym<T>::GetObjectiveFunctionValue()
 
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wJac) %g | (wIC) %g",
+   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wJac) %g | (wLan) %g | (wIC) %g",
            this->currentWMeasure, this->currentWBE,
            this->currentWLE,
-           this->currentWJac, this->currentIC);
+           this->currentWJac,
+           this->currentWLandmarkReg,
+           this->currentIC);
    reg_print_msg_debug(text);
 #endif
 

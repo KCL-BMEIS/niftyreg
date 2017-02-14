@@ -234,7 +234,8 @@ void reg_f3d<T>::CheckParameters()
 #else
       T penaltySum=this->bendingEnergyWeight +
             this->linearEnergyWeight +
-            this->jacobianLogWeight;
+            this->jacobianLogWeight +
+            this->landmarkRegWeight;
 #endif
       if(penaltySum>=1.0)
       {
@@ -243,6 +244,7 @@ void reg_f3d<T>::CheckParameters()
          this->bendingEnergyWeight /= penaltySum;
          this->linearEnergyWeight /= penaltySum;
          this->jacobianLogWeight /= penaltySum;
+         this->landmarkRegWeight /= penaltySum;
 #ifdef BUILD_DEV
          this->pairwiseEnergyWeight /= penaltySum;
 #endif
@@ -451,6 +453,12 @@ void reg_f3d<T>::Initialise()
          else reg_print_info(this->executableName, "\t* Jacobian-based penalty term is not approximated");
          reg_print_info(this->executableName, "");
       }
+      if((this->landmarkRegWeight)>0){
+         sprintf(text, "Landmark distance regularisation term weight: %g",
+                 this->landmarkRegWeight);
+         reg_print_info(this->executableName, text);
+         reg_print_info(this->executableName, "");
+      }
 #ifdef BUILD_DEV
       if((this->pairwiseEnergyWeight)>0){
          sprintf(text, "Pairwise energy penalty term weight: %g",
@@ -580,6 +588,24 @@ double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template <class T>
+double reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm()
+{
+   if(this->landmarkRegWeight<=0)
+      return 0.;
+
+   double value = reg_spline_getLandmarkDistance(this->controlPointGrid,
+                                                 this->landmarkRegNumber,
+                                                 this->landmarkReference,
+                                                 this->landmarkFloating);
+
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm");
+#endif
+   return this->landmarkRegWeight*value;
+}
+/* *************************************************************** */
+/* *************************************************************** */
 #ifdef BUILD_DEV
 template <class T>
 double reg_f3d<T>::ComputePairwiseEnergyPenaltyTerm()
@@ -703,6 +729,23 @@ void reg_f3d<T>::GetJacobianBasedGradient()
                                              this->jacobianLogApproximation);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetJacobianBasedGradient");
+#endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
+void reg_f3d<T>::GetLandmarkDistanceGradient()
+{
+   if(this->landmarkRegWeight<=0) return;
+
+   reg_spline_getLandmarkDistanceGradient(this->controlPointGrid,
+                                          this->transformationGradient,
+                                          this->landmarkRegNumber,
+                                          this->landmarkReference,
+                                          this->landmarkFloating,
+                                          this->landmarkRegWeight);
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_f3d<T>::GetLandmarkDistanceGradient");
 #endif
 }
 /* *************************************************************** */
@@ -924,6 +967,8 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
 
    this->currentWLE = this->ComputeLinearEnergyPenaltyTerm();
 
+   this->currentWLand = this->ComputeLandmarkDistancePenaltyTerm();
+
 #ifdef BUILD_DEV
    this->currentWPE = this->ComputePairwiseEnergyPenaltyTerm();
 #endif
@@ -937,8 +982,8 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
    }
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wJac) %g",
-           this->currentWMeasure, this->currentWBE, this->currentWLE, this->currentWJac);
+   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wJac) %g | (wLan) %g",
+           this->currentWMeasure, this->currentWBE, this->currentWLE, this->currentWJac, this->currentWLandmarkReg);
    reg_print_msg_debug(text);
 #endif
 
@@ -948,9 +993,9 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
    // Store the global objective function value
 
 #ifdef BUILD_DEV
-   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac - this->currentWPE;
+   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac - this->currentWLandmarkReg - this->currentWPE;
 #else
-   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac;
+   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac - this->currentWLand;
 #endif
 }
 /* *************************************************************** */
@@ -1136,6 +1181,7 @@ void reg_f3d<T>::UpdateBestObjFunctionValue()
    this->bestWBE=this->currentWBE;
    this->bestWLE=this->currentWLE;
    this->bestWJac=this->currentWJac;
+   this->bestWLand=this->currentWLand;
 #ifdef BUILD_DEV
    this->bestWPE=this->currentWPE;
 #endif
@@ -1154,11 +1200,11 @@ void reg_f3d<T>::PrintInitialObjFunctionValue()
 
    char text[255];
 #ifdef BUILD_DEV
-   sprintf(text, "Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wJAC)%g - (wPW)%g",
-           bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWJac, this->bestWPE);
+   sprintf(text, "Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wJAC)%g - (wLAN)%g - (wPW)%g",
+           bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWJac, this->bestWLandmarkReg, this->bestWPE);
 #else
-   sprintf(text, "Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wJAC)%g",
-           bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWJac);
+   sprintf(text, "Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wJAC)%g - (wLAN)%g",
+           bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWJac, this->bestWLand);
 #endif
    reg_print_info(this->executableName, text);
 #ifndef NDEBUG
@@ -1182,7 +1228,9 @@ void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize)
    if(this->linearEnergyWeight>0)
       sprintf(text+strlen(text), " - (wLE)%.2e", this->bestWLE);
    if(this->jacobianLogWeight>0)
-      sprintf(text+strlen(text), "- (wJAC)%.2e", this->bestWJac);
+      sprintf(text+strlen(text), " - (wJAC)%.2e", this->bestWJac);
+   if(this->landmarkRegWeight>0)
+      sprintf(text+strlen(text), " - (wLAN)%.2e", this->bestWLand);
 #ifdef BUILD_DEV
    if(this->pairwiseEnergyWeight>0)
       sprintf(text+strlen(text), " - (wPW)%.2e", this->bestWPE);
@@ -1215,6 +1263,7 @@ void reg_f3d<T>::GetObjectiveFunctionGradient()
       this->GetBendingEnergyGradient();
       this->GetJacobianBasedGradient();
       this->GetLinearEnergyGradient();
+      this->GetLandmarkDistanceGradient();
 #ifdef BUILD_DEV
       this->GetPairwiseEnergyGradient();
 #endif
