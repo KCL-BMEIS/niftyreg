@@ -72,7 +72,7 @@ private:
 extern "C++" template <class DTYPE>
 double reg_getSSDValue(nifti_image *referenceImage,
                        nifti_image *warpedImage,
-                       bool *activeTimePoint,
+					   double *timePointWeight,
                        nifti_image *jacobianDeterminantImage,
                        int *mask,
                        float *currentValue
@@ -99,6 +99,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDeterminantImage,
                                   int *mask,
-                                  int current_timepoint
+								  int current_timepoint,
+								  double timepoint_weight
                                  );
 #endif

@@ -58,18 +58,25 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
     }
     // Input images are normalised between 0 and 1
     for(int i=0; i<this->referenceImagePointer->nt; ++i)
-    {
-        if(this->activeTimePoint[i] && this->normaliseTimePoint[i])
+    {if(this->timePointWeight[i] > 0.0 && normaliseTimePoint[i])
         {
-            printf("BOUM");
-            reg_intensityRescale(this->referenceImagePointer,
-                                 i,
-                                 0.f,
-                                 1.f);
-            reg_intensityRescale(this->floatingImagePointer,
-                                 i,
-                                 0.f,
-                                 1.f);
+			//sets max value over both images to be 1 and min value over both images to be 0
+			//scales values such that identical values in the images are still identical after scaling
+			float maxF = reg_tools_getMaxValue(this->floatingImagePointer,i);
+			float maxR = reg_tools_getMaxValue(this->referenceImagePointer, i);
+			float minF = reg_tools_getMinValue(this->floatingImagePointer, i);
+			float minR = reg_tools_getMinValue(this->referenceImagePointer,i);
+			float maxFR = fmax(maxF, maxR);
+			float minFR = fmin(minF, minR);
+			float rangeFR = maxFR - minFR;
+			reg_intensityRescale(this->referenceImagePointer,
+				i,
+				(minR - minFR)/rangeFR,
+				1 - ((maxFR - maxR) / rangeFR));
+			reg_intensityRescale(this->floatingImagePointer,
+				i,
+				(minF - minFR) / rangeFR,
+				1 - ((maxFR - maxF) / rangeFR));
         }
     }
 #ifdef MRF_USE_SAD
@@ -77,12 +84,12 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
 #endif
 #ifndef NDEBUG
     char text[255];
-    reg_print_msg_debug("reg_ssd::InitialiseMeasure().");
-    sprintf(text, "Active time point:");
-    for(int i=0; i<this->referenceImagePointer->nt; ++i)
-        if(this->activeTimePoint[i])
-            sprintf(text, "%s %i", text, i);
-    reg_print_msg_debug(text);
+	reg_print_msg_debug("reg_ssd::InitialiseMeasure().");
+	for(int i=0; i<this->referenceImagePointer->nt; ++i)
+	{
+		sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
+		reg_print_msg_debug(text);
+	}
     sprintf(text, "Normalize time point:");
     for(int i=0; i<this->referenceImagePointer->nt; ++i)
         if(this->normaliseTimePoint[i])
@@ -101,7 +108,7 @@ void reg_ssd::SetNormaliseTimepoint(int timepoint, bool normalise)
 template<class DTYPE>
 double reg_getSSDValue(nifti_image *referenceImage,
                        nifti_image *warpedImage,
-                       bool *activeTimePoint,
+					   double *timePointWeight,
                        nifti_image *jacobianDetImage,
                        int *mask,
                        float *currentValue
@@ -129,7 +136,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
     // Loop over the different time points
     for(int time=0; time<referenceImage->nt; ++time)
     {
-        if(activeTimePoint[time])
+        if(timePointWeight[time] > 0.0)
         {
             // Create pointers to the current time point of the reference and warped images
             DTYPE *currentRefPtr=&referencePtr[time*voxelNumber];
@@ -176,15 +183,16 @@ double reg_getSSDValue(nifti_image *referenceImage,
                     }
                 }
             }
-            printf("SSD[%i]=%f\n", time, SSD_local);
+
+			SSD_local *= timePointWeight[time];
             currentValue[time]=-SSD_local;
             SSD_global -= SSD_local/n;
         }
     }
     return SSD_global;
 }
-template double reg_getSSDValue<float>(nifti_image *,nifti_image *,bool *,nifti_image *,int *, float *);
-template double reg_getSSDValue<double>(nifti_image *,nifti_image *,bool *,nifti_image *,int *, float *);
+template double reg_getSSDValue<float>(nifti_image *,nifti_image *,double *,nifti_image *,int *, float *);
+template double reg_getSSDValue<double>(nifti_image *,nifti_image *,double *,nifti_image *,int *, float *);
 /* *************************************************************** */
 double reg_ssd::GetSimilarityMeasureValue()
 {
@@ -202,7 +210,7 @@ double reg_ssd::GetSimilarityMeasureValue()
         SSDValue = reg_getSSDValue<float>
                    (this->referenceImagePointer,
                     this->warpedFloatingImagePointer,
-                    this->activeTimePoint,
+                    this->timePointWeight,
                     NULL, // HERE TODO this->forwardJacDetImagePointer,
                     this->referenceMaskPointer,
                     this->currentValue
@@ -212,7 +220,7 @@ double reg_ssd::GetSimilarityMeasureValue()
         SSDValue = reg_getSSDValue<double>
                    (this->referenceImagePointer,
                     this->warpedFloatingImagePointer,
-                    this->activeTimePoint,
+                    this->timePointWeight,
                     NULL, // HERE TODO this->forwardJacDetImagePointer,
                     this->referenceMaskPointer,
                     this->currentValue
@@ -240,7 +248,7 @@ double reg_ssd::GetSimilarityMeasureValue()
             SSDValue += reg_getSSDValue<float>
                         (this->floatingImagePointer,
                          this->warpedReferenceImagePointer,
-                         this->activeTimePoint,
+                         this->timePointWeight,
                          NULL, // HERE TODO this->backwardJacDetImagePointer,
                          this->floatingMaskPointer,
                          this->currentValue
@@ -250,7 +258,7 @@ double reg_ssd::GetSimilarityMeasureValue()
             SSDValue += reg_getSSDValue<double>
                         (this->floatingImagePointer,
                          this->warpedReferenceImagePointer,
-                         this->activeTimePoint,
+                         this->timePointWeight,
                          NULL, // HERE TODO this->backwardJacDetImagePointer,
                          this->floatingMaskPointer,
                          this->currentValue
@@ -273,7 +281,8 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *measureGradientImage,
                                   nifti_image *jacobianDetImage,
                                   int *mask,
-                                  int current_timepoint)
+                                  int current_timepoint,
+								  double timepoint_weight)
 {
     if(current_timepoint<0 || current_timepoint>=referenceImage->nt){
         reg_print_fct_error("reg_getVoxelBasedNMIGradient2D");
@@ -313,13 +322,25 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
     if(jacobianDetImage!=NULL)
         jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
-    double refValue, warValue, common;
+	// find number of active voxels and correct weight
+	double activeVoxel_num = 0.0;
+	for (voxel = 0; voxel < voxelNumber; voxel++)
+	{
+		if (mask[voxel]>-1)
+		{
+			if (currentRefPtr[voxel] == currentRefPtr[voxel] && currentWarPtr[voxel] == currentWarPtr[voxel])
+				activeVoxel_num += 1.0;
+		}
+	}
+	double adjusted_weight = timepoint_weight / activeVoxel_num;
+
+	double refValue, warValue, common;
 
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, \
     mask, jacDetPtr, spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, \
-    measureGradPtrX, measureGradPtrY, measureGradPtrZ, voxelNumber) \
+    measureGradPtrX, measureGradPtrY, measureGradPtrZ, voxelNumber, adjusted_weight) \
     private(voxel, refValue, warValue, common)
 #endif
     for(voxel=0; voxel<voxelNumber; voxel++)
@@ -336,10 +357,12 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                 common = refValue>warValue?-1.f:1.f;
                 common *= (refValue - warValue);
 #else
-                common = -2.0 * (refValue - warValue) / (float)referenceImage->nt;
+                common = -2.0 * (refValue - warValue);
 #endif
                 if(jacDetPtr!=NULL)
                     common *= jacDetPtr[voxel];
+
+				common *= adjusted_weight;
 
                 if(spatialGradPtrX[voxel]==spatialGradPtrX[voxel])
                     measureGradPtrX[voxel] += (DTYPE)(common * spatialGradPtrX[voxel]);
@@ -357,15 +380,15 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template void reg_getVoxelBasedSSDGradient<float>
-(nifti_image *,nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, int);
+(nifti_image *,nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, int, double);
 template void reg_getVoxelBasedSSDGradient<double>
-(nifti_image *,nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, int);
+(nifti_image *,nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, int, double);
 /* *************************************************************** */
 void reg_ssd::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 {
     // Check if the specified time point exists and is active
     reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
-    if(this->activeTimePoint[current_timepoint]==false)
+    if(this->timePointWeight[current_timepoint]==0.0)
         return;
 
     // Check if all required input images are of the same data type
@@ -390,7 +413,8 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                  this->forwardVoxelBasedGradientImagePointer,
                  NULL, // HERE TODO this->forwardJacDetImagePointer,
                  this->referenceMaskPointer,
-                 current_timepoint
+                 current_timepoint,
+				 this->timePointWeight[current_timepoint]
                  );
         break;
     case NIFTI_TYPE_FLOAT64:
@@ -401,7 +425,8 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                  this->forwardVoxelBasedGradientImagePointer,
                  NULL, // HERE TODO this->forwardJacDetImagePointer,
                  this->referenceMaskPointer,
-                 current_timepoint
+				 current_timepoint,
+				 this->timePointWeight[current_timepoint]
                  );
         break;
     default:
@@ -433,7 +458,8 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                      this->backwardVoxelBasedGradientImagePointer,
                      NULL, // HERE TODO this->backwardJacDetImagePointer,
                      this->floatingMaskPointer,
-                     current_timepoint
+					 current_timepoint,
+					 this->timePointWeight[current_timepoint]
                      );
             break;
         case NIFTI_TYPE_FLOAT64:
@@ -444,7 +470,8 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                      this->backwardVoxelBasedGradientImagePointer,
                      NULL, // HERE TODO this->backwardJacDetImagePointer,
                      this->floatingMaskPointer,
-                     current_timepoint
+					 current_timepoint,
+					 this->timePointWeight[current_timepoint]
                      );
             break;
         default:

@@ -84,7 +84,7 @@ protected:
 extern "C++" template <class DTYPE>
 void reg_getNMIValue(nifti_image *referenceImage,
                      nifti_image *warpedImage,
-                     bool *activeTimePoint,
+                     double *timePointWeight,
                      unsigned short *referenceBinNumber,
                      unsigned short *floatingBinNumber,
                      unsigned short *totalBinNumber,
@@ -104,7 +104,8 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                                     nifti_image *warImgGradient,
                                     nifti_image *nmiGradientImage,
                                     int *referenceMask,
-                                    int current_timepoint
+                                    int current_timepoint,
+                                    double timepoint_weight
                                    );
 /* *************************************************************** */
 extern "C++" template <class DTYPE>
@@ -117,7 +118,8 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                                     nifti_image *warImgGradient,
                                     nifti_image *nmiGradientImage,
                                     int *referenceMask,
-                                    int current_timepoint
+                                    int current_timepoint,
+                                    double timepoint_weight
                                    );
 /* *************************************************************** */
 /* *************************************************************** */
@@ -271,7 +273,7 @@ public:
    {
       // Check if the specified time point exists and is active
       reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
-      if(this->activeTimePoint[current_timepoint]==false)
+      if(this->timePointWeight[current_timepoint]==0.0)
          return;;
    }
    /// @brief reg_nmi class destructor

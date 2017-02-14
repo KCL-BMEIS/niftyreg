@@ -728,64 +728,201 @@ void reg_base<T>::ClearVoxelBasedMeasureGradient()
 template<class T>
 void reg_base<T>::CheckParameters()
 {
-   // CHECK THAT BOTH INPUT IMAGES ARE DEFINED
-   if(this->inputReference==NULL)
-   {
-      reg_print_fct_error("reg_base::CheckParameters()");
-      reg_print_msg_error("The reference image is not defined");
-      reg_exit();
-   }
-   if(this->inputFloating==NULL)
-   {
-      reg_print_fct_error("reg_base::CheckParameters()");
-      reg_print_msg_error("The floating image is not defined");
-      reg_exit();
-   }
+	// CHECK THAT BOTH INPUT IMAGES ARE DEFINED
+	if (this->inputReference == NULL)
+	{
+		reg_print_fct_error("reg_base::CheckParameters()");
+		reg_print_msg_error("The reference image is not defined");
+		reg_exit();
+	}
+	if (this->inputFloating == NULL)
+	{
+		reg_print_fct_error("reg_base::CheckParameters()");
+		reg_print_msg_error("The floating image is not defined");
+		reg_exit();
+	}
 
-   // CHECK THE MASK DIMENSION IF IT IS DEFINED
-   if(this->maskImage!=NULL)
-   {
-      if(this->inputReference->nx != this->maskImage->nx ||
-            this->inputReference->ny != this->maskImage->ny ||
-            this->inputReference->nz != this->maskImage->nz )
-      {
-         reg_print_fct_error("reg_base::CheckParameters()");
-         reg_print_msg_error("The reference and mask images have different dimension");
-         reg_exit();
-      }
-   }
+	// CHECK THE MASK DIMENSION IF IT IS DEFINED
+	if (this->maskImage != NULL)
+	{
+		if (this->inputReference->nx != this->maskImage->nx ||
+			this->inputReference->ny != this->maskImage->ny ||
+			this->inputReference->nz != this->maskImage->nz)
+		{
+			reg_print_fct_error("reg_base::CheckParameters()");
+			reg_print_msg_error("The reference and mask images have different dimension");
+			reg_exit();
+		}
+	}
 
-   // CHECK THE NUMBER OF LEVEL TO PERFORM
-   if(this->levelToPerform>0)
-   {
-      this->levelToPerform=this->levelToPerform<this->levelNumber?this->levelToPerform:this->levelNumber;
-   }
-   else this->levelToPerform=this->levelNumber;
-   if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
-      this->levelToPerform=this->levelNumber;
+	// CHECK THE NUMBER OF LEVEL TO PERFORM
+	if (this->levelToPerform > 0)
+	{
+		this->levelToPerform = this->levelToPerform < this->levelNumber ? this->levelToPerform : this->levelNumber;
+	}
+	else this->levelToPerform = this->levelNumber;
+	if (this->levelToPerform == 0 || this->levelToPerform > this->levelNumber)
+		this->levelToPerform = this->levelNumber;
+
+	// SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
+	if (this->measure_nmi == NULL &&
+		this->measure_ssd == NULL &&
+		this->measure_dti == NULL &&
+		this->measure_lncc == NULL &&
+		this->measure_lncc == NULL &&
+		this->measure_kld == NULL &&
+		this->measure_mind == NULL &&
+		this->measure_mindssc == NULL)
+	{
+		this->measure_nmi = new reg_nmi;
+		for (int i = 0; i < this->inputReference->nt; ++i)
+			this->measure_nmi->SetTimepointWeight(i, 1.0);
+	}
+
+	// CHECK THAT IMAGES HAVE SAME NUMBER OF CHANNELS (TIMEPOINTS)
+	// THAT EACH CHANNEL HAS AT LEAST ONE SIMILARITY MEASURE ASSIGNED
+	// AND THAT EACH SIMILARITY MEASURE IS USED FOR AT LEAST ONE CHANNEL
+	// NORMALISE CHANNEL AND SIMILARITY WEIGHTS SO TOTAL = 1
+	//
+	// NOTE - DTI currently ignored as needs fixing
+	//
+	// tests ignored if using MIND or MINDSSD as they are not implemented for multi-channel or weighting
+	if (this->measure_mind == NULL && this->measure_mindssc == NULL)
+	{
+		if (this->inputFloating->nt != this->inputReference->nt)
+		{
+			reg_print_fct_error("reg_base::CheckParameters()");
+			reg_print_msg_error("The reference and floating images have different numbers of channels (timepoints)");
+			reg_exit();
+		}
+		double *chanWeightSum = new double[this->inputReference->nt]();
+		double simWeightSum, totWeightSum =0.;
+		double *nmiWeights=NULL, *ssdWeights=NULL, *kldWeights=NULL, *lnccWeights=NULL;
+		if (this->measure_nmi != NULL)
+		{
+			nmiWeights = this->measure_nmi->GetTimepointsWeights();
+			simWeightSum = 0.0;
+			for (int n = 0; n < this->inputReference->nt; n++)
+			{
+				if (nmiWeights[n] < 0)
+				{
+					char text[255];
+					sprintf(text, "The NMI weight for timepoint %d has a negative value - weights must be positive", n);
+					reg_print_fct_error("reg_base::CheckParameters()");
+					reg_print_msg_error(text);
+					reg_exit();
+				}
+				chanWeightSum[n] += nmiWeights[n];
+				simWeightSum += nmiWeights[n];
+				totWeightSum += nmiWeights[n];
+			}
+			if (simWeightSum == 0.0)
+			{
+				reg_print_fct_warn("reg_base::CheckParameters()");
+				reg_print_msg_warn("The NMI similarity measure has a weight of 0 for all channels so will be ignored");
+			}
+		}
+		if (this->measure_ssd != NULL)
+		{
+			ssdWeights = this->measure_ssd->GetTimepointsWeights();
+			simWeightSum = 0.0;
+			for (int n = 0; n < this->inputReference->nt; n++)
+			{
+				if (ssdWeights[n] < 0)
+				{
+					char text[255];
+					sprintf(text, "The SSD weight for timepoint %d has a negative value - weights must be positive", n);
+					reg_print_fct_error("reg_base::CheckParameters()");
+					reg_print_msg_error(text);
+					reg_exit();
+				}
+				chanWeightSum[n] += ssdWeights[n];
+				simWeightSum += ssdWeights[n];
+				totWeightSum += ssdWeights[n];
+			}
+			if (simWeightSum == 0.0)
+			{
+				reg_print_fct_warn("reg_base::CheckParameters()");
+				reg_print_msg_warn("The SSD similarity measure has a weight of 0 for all channels so will be ignored");
+			}
+		}
+		if (this->measure_kld != NULL)
+		{
+			kldWeights = this->measure_kld->GetTimepointsWeights();
+			simWeightSum = 0.0;
+			for (int n = 0; n < this->inputReference->nt; n++)
+			{
+				if (kldWeights[n] < 0)
+				{
+					char text[255];
+					sprintf(text, "The KLD weight for timepoint %d has a negative value - weights must be positive", n);
+					reg_print_fct_error("reg_base::CheckParameters()");
+					reg_print_msg_error(text);
+					reg_exit();
+				}
+				chanWeightSum[n] += kldWeights[n];
+				simWeightSum += kldWeights[n];
+				totWeightSum += kldWeights[n];
+			}
+			if (simWeightSum == 0.0)
+			{
+				reg_print_fct_warn("reg_base::CheckParameters()");
+				reg_print_msg_warn("The KLD similarity measure has a weight of 0 for all channels so will be ignored");
+			}
+		}
+		if (this->measure_lncc != NULL)
+		{
+			lnccWeights = this->measure_lncc->GetTimepointsWeights();
+			simWeightSum = 0.0;
+			for (int n = 0; n < this->inputReference->nt; n++)
+			{
+				if (lnccWeights[n] < 0)
+				{
+					char text[255];
+					sprintf(text, "The LNCC weight for timepoint %d has a negative value - weights must be positive", n);
+					reg_print_fct_error("reg_base::CheckParameters()");
+					reg_print_msg_error(text);
+					reg_exit();
+				}
+				chanWeightSum[n] += lnccWeights[n];
+				simWeightSum += lnccWeights[n];
+				totWeightSum += lnccWeights[n];
+			}
+			if (simWeightSum == 0.0)
+			{
+				reg_print_fct_warn("reg_base::CheckParameters()");
+				reg_print_msg_warn("The LNCC similarity measure has a weight of 0 for all channels so will be ignored");
+			}
+		}
+		for (int n = 0; n < this->inputReference->nt; n++)
+		{
+			if (chanWeightSum[n] == 0)
+			{
+				char text[255];
+				sprintf(text, "Channel %d has a weight of 0 for all similarity measures so will be ignored", n);
+				reg_print_fct_warn("reg_base::CheckParameters()");
+				reg_print_msg_warn(text);
+			}
+			if (this->measure_nmi != NULL)
+				this->measure_nmi->SetTimepointWeight(n, nmiWeights[n] / totWeightSum);
+			if (this->measure_ssd != NULL)
+				this->measure_ssd->SetTimepointWeight(n, ssdWeights[n] / totWeightSum);
+			if (this->measure_kld != NULL)
+				this->measure_kld->SetTimepointWeight(n, kldWeights[n] / totWeightSum);
+			if (this->measure_lncc != NULL)
+				this->measure_lncc->SetTimepointWeight(n, lnccWeights[n] / totWeightSum);
+		}
+	}
 
 #ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::CheckParameters");
+	reg_print_fct_debug("reg_base<T>::CheckParameters");
 #endif
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::InitialiseSimilarity()
 {
-   // SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
-   if(this->measure_nmi==NULL &&
-         this->measure_ssd==NULL &&
-         this->measure_dti==NULL &&
-         this->measure_lncc==NULL &&
-         this->measure_lncc==NULL &&
-         this->measure_kld==NULL &&
-         this->measure_mind==NULL &&
-         this->measure_mindssc==NULL)
-   {
-      this->measure_nmi=new reg_nmi;
-      for(int i=0; i<this->inputReference->nt; ++i)
-         this->measure_nmi->SetActiveTimepoint(i);
-   }
+
    if(this->measure_nmi!=NULL)
       this->measure_nmi->InitialiseMeasure(this->currentReference,
                                            this->currentFloating,
@@ -1127,7 +1264,7 @@ void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber)
 {
    if(this->measure_nmi==NULL)
       this->measure_nmi=new reg_nmi;
-   this->measure_nmi->SetActiveTimepoint(timepoint);
+   this->measure_nmi->SetTimepointWeight(timepoint,1.0);//weight initially set to default value of 1.0
    // I am here adding 4 to the specified bin number to accomodate for
    // the spline support
    this->measure_nmi->SetReferenceBinNumber(refBinNumber+4, timepoint);
@@ -1141,7 +1278,7 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
 {
    if(this->measure_nmi==NULL)
       this->measure_nmi=new reg_nmi;
-   this->measure_nmi->SetActiveTimepoint(timepoint);
+   this->measure_nmi->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
    // I am here adding 4 to the specified bin number to accomodate for
    // the spline support
    this->measure_nmi->SetFloatingBinNumber(floBinNumber+4, timepoint);
@@ -1155,8 +1292,8 @@ void reg_base<T>::UseSSD(int timepoint, bool normalise)
 {
    if(this->measure_ssd==NULL)
       this->measure_ssd=new reg_ssd();
-   this->measure_ssd->SetActiveTimepoint(timepoint);
-   this->measure_ssd->SetNormaliseTimepoint(timepoint, normalise);
+   this->measure_ssd->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
+   this->measure_ssd->SetNormaliseTimepoint(timepoint,normalise);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseSSD");
 #endif
@@ -1167,7 +1304,7 @@ void reg_base<T>::UseMIND(int timepoint, int offset)
 {
    if(this->measure_mind==NULL)
       this->measure_mind=new reg_mind;
-   this->measure_mind->SetActiveTimepoint(timepoint);
+   this->measure_mind->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
    this->measure_mind->SetDescriptorOffset(offset);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseMIND");
@@ -1179,7 +1316,7 @@ void reg_base<T>::UseMINDSSC(int timepoint, int offset)
 {
    if(this->measure_mindssc==NULL)
       this->measure_mindssc=new reg_mindssc;
-   this->measure_mindssc->SetActiveTimepoint(timepoint);
+   this->measure_mindssc->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
    this->measure_mindssc->SetDescriptorOffset(offset);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseMINDSSC");
@@ -1191,7 +1328,7 @@ void reg_base<T>::UseKLDivergence(int timepoint)
 {
    if(this->measure_kld==NULL)
       this->measure_kld=new reg_kld;
-   this->measure_kld->SetActiveTimepoint(timepoint);
+   this->measure_kld->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseKLDivergence");
 #endif
@@ -1204,6 +1341,7 @@ void reg_base<T>::UseLNCC(int timepoint, float stddev)
       this->measure_lncc=new reg_lncc;
    this->measure_lncc->SetKernelStandardDeviation(timepoint,
          stddev);
+   this->measure_lncc->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseLNCC");
 #endif
@@ -1235,11 +1373,59 @@ void reg_base<T>::UseDTI(bool *timepoint)
    for(int i=0; i<this->inputReference->nt; ++i)
    {
       if(timepoint[i]==true)
-         this->measure_dti->SetActiveTimepoint(i);
+        this->measure_dti->SetTimepointWeight(i, 1.0);//weight set to 1.0 to indicate timepoint is active
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseDTI");
 #endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetNMIWeight(int timepoint, double weight)
+{
+	if (this->measure_nmi == NULL)
+	{
+		reg_print_fct_error("reg_base<T>::SetNMIWeight");
+		reg_print_msg_error("The NMI object has to be created before the timepoint weights can be set");
+		reg_exit();
+	}
+	this->measure_nmi->SetTimepointWeight(timepoint, weight);
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetLNCCWeight(int timepoint, double weight)
+{
+	if (this->measure_lncc == NULL)
+	{
+		reg_print_fct_error("reg_base<T>::SetLNCCWeight");
+		reg_print_msg_error("The LNCC object has to be created before the timepoint weights can be set");
+		reg_exit();
+	}
+	this->measure_lncc->SetTimepointWeight(timepoint, weight);
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetSSDWeight(int timepoint, double weight)
+{
+	if (this->measure_ssd == NULL)
+	{
+		reg_print_fct_error("reg_base<T>::SetSSDWeight");
+		reg_print_msg_error("The SSD object has to be created before the timepoint weights can be set");
+		reg_exit();
+	}
+	this->measure_ssd->SetTimepointWeight(timepoint, weight);
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetKLDWeight(int timepoint, double weight)
+{
+	if (this->measure_kld == NULL)
+	{
+		reg_print_fct_error("reg_base<T>::SetKLDWeight");
+		reg_print_msg_error("The KLD object has to be created before the timepoint weights can be set");
+		reg_exit();
+	}
+	this->measure_kld->SetTimepointWeight(timepoint, weight);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1263,14 +1449,15 @@ void reg_base<T>::WarpFloatingImage(int inter)
    {
       reg_defField_getJacobianMatrix(this->deformationFieldImage,
                                      this->forwardJacobianMatrix);
-      reg_resampleImage(this->currentFloating,
+      /*DTI needs fixing!
+     reg_resampleImage(this->currentFloating,
                         this->warped,
                         this->deformationFieldImage,
                         this->currentMask,
                         inter,
                         this->warpedPaddingValue,
                         this->measure_dti->GetActiveTimepoints(),
-                        this->forwardJacobianMatrix);
+                        this->forwardJacobianMatrix);*/
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::WarpFloatingImage");

@@ -79,7 +79,7 @@ int main(int argc, char **argv)
       //TO VERIFY !!!!!
       reg_lncc *measure_object=new reg_lncc();
       for(int i=0;i<refImage->nt;++i)
-         measure_object->SetActiveTimepoint(i);
+         measure_object->SetTimepointWeight(i, 1.);
       measure_object->InitialiseMeasure(refImage,
                                         warImage,
                                         mask_image,
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
       //TO VERIFY !!!!!
       reg_nmi *measure_object=new reg_nmi();
       for(int i=0;i<refImage->nt;++i)
-         measure_object->SetActiveTimepoint(i);
+         measure_object->SetTimepointWeight(i, 1.);
       measure_object->InitialiseMeasure(refImage,
                                         warImage,
                                         mask_image,
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
    {
       reg_ssd *measure_object=new reg_ssd();
       for(int i=0;i<refImage->nt;++i){
-         measure_object->SetActiveTimepoint(i);
+         measure_object->SetTimepointWeight(i, 1.);
          measure_object->SetNormaliseTimepoint(i,true);
       }
       measure_object->InitialiseMeasure(refImage,
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
       reg_mind *measure_object=new reg_mind();
       //Let's normalize between 0..1
       for(int i=0;i<refImage->nt;++i)
-         measure_object->SetActiveTimepoint(i);
+         measure_object->SetTimepointWeight(i, 1.);
       measure_object->InitialiseMeasure(refImage,
                                         warImage,
                                         mask_image,

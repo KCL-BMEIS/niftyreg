@@ -260,6 +260,11 @@ public:
    virtual void UseLNCC(int timepoint, float stdDevKernel);
    virtual void SetLNCCKernelType(int type);
 
+   void SetNMIWeight(int, double);
+   void SetSSDWeight(int, double);
+   void SetKLDWeight(int, double);
+   void SetLNCCWeight(int, double);
+
    void SetReferenceImage(nifti_image *);
    void SetFloatingImage(nifti_image *);
    void SetReferenceMask(nifti_image *);

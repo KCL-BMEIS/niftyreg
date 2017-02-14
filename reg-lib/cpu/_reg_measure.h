@@ -65,13 +65,13 @@ public:
    }
    /// @brief Here
    virtual void GetDiscretisedValue(nifti_image *, float *, int , int) {}
-   void SetActiveTimepoint(int timepoint)
+   void SetTimepointWeight(int timepoint, double weight)
    {
-      this->activeTimePoint[timepoint]=true;
+      this->timePointWeight[timepoint]=weight;
    }
-   bool *GetActiveTimepoints(void)
+   double *GetTimepointsWeights(void)
    {
-      return this->activeTimePoint;
+      return this->timePointWeight;
    }
 /************************************************************************/
    nifti_image* GetReferenceImage(void)
@@ -97,12 +97,12 @@ protected:
    nifti_image *warpedReferenceGradientImagePointer;
    nifti_image *backwardVoxelBasedGradientImagePointer;
 
-   bool activeTimePoint[255];
+   double timePointWeight[255];
    int referenceTimePoint;
    /// @brief Measure class constructor
    reg_measure()
    {
-      memset(this->activeTimePoint,0,255*sizeof(bool) );
+      memset(this->timePointWeight,0,255*sizeof(double) );
 #ifndef NDEBUG
       printf("[NiftyReg DEBUG] reg_measure constructor called\n");
 #endif

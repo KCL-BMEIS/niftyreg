@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 #endif
     // generate and initialise a NMI object
     reg_nmi *nmi=new reg_nmi;
-    nmi->SetActiveTimepoint(0);
+    nmi->SetTimepointWeight(0, 1.);
     nmi->SetRefAndFloatBinNumbers(68, 68, 0);
     nmi->InitialiseMeasure(inputImageOne,
                            inputImageTwo,

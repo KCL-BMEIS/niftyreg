@@ -621,14 +621,15 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
    {
       reg_defField_getJacobianMatrix(this->deformationFieldImage,
                                      this->forwardJacobianMatrix);
-      reg_resampleImage(this->currentFloating,
+      /*DTI needs fixing!
+	  reg_resampleImage(this->currentFloating,
                         this->warped,
                         this->deformationFieldImage,
                         this->currentMask,
                         inter,
                         this->warpedPaddingValue,
                         this->measure_dti->GetActiveTimepoints(),
-                        this->forwardJacobianMatrix);
+                        this->forwardJacobianMatrix);*/
    }
 
    // Resample the reference image
@@ -645,14 +646,15 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
    {
       reg_defField_getJacobianMatrix(this->backwardDeformationFieldImage,
                                      this->backwardJacobianMatrix);
-      reg_resampleImage(this->currentReference, // input image
+     /* DTI needs fixing
+	 reg_resampleImage(this->currentReference, // input image
                         this->backwardWarped, // warped input image
                         this->backwardDeformationFieldImage, // deformation field
                         this->currentFloatingMask, // mask
                         inter, // interpolation type
                         this->warpedPaddingValue, // padding value
                         this->measure_dti->GetActiveTimepoints(),
-                        this->backwardJacobianMatrix);
+                        this->backwardJacobianMatrix);*/
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::WarpFloatingImage");
@@ -1646,7 +1648,7 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
    {
       this->measure_nmi=new reg_nmi;
       for(int i=0; i<this->inputReference->nt; ++i)
-         this->measure_nmi->SetActiveTimepoint(i);
+         this->measure_nmi->SetTimepointWeight(i,1.0);
    }
    if(this->measure_nmi!=NULL)
       this->measure_nmi->InitialiseMeasure(this->currentReference,

@@ -367,7 +367,7 @@ void GetMINDSSCImageDesciptor(nifti_image* inputImgPtr,
 reg_mind::reg_mind()
    : reg_ssd()
 {
-   memset(this->activeTimePointDescriptor,0,255*sizeof(bool) );
+   memset(this->timePointWeightDescriptor,0,255*sizeof(double) );
    this->referenceImageDescriptor=NULL;
    this->floatingImageDescriptor=NULL;
    this->warpedFloatingImageDescriptor=NULL;
@@ -487,7 +487,7 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
    }
 
    for(int i=0;i<referenceImageDescriptor->nt;++i) {
-      this->activeTimePointDescriptor[i]=true;
+      this->timePointWeightDescriptor[i]=1.0;
    }
 
 #ifndef NDEBUG
@@ -495,7 +495,7 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
    reg_print_msg_debug("reg_mind::InitialiseMeasure().");
    sprintf(text, "Active time point:");
    for(int i=0; i<this->referenceImageDescriptor->nt; ++i)
-      if(this->activeTimePointDescriptor[i])
+      if(this->timePointWeightDescriptor[i]>0.0)
          sprintf(text, "%s %i", text, i);
    reg_print_msg_debug(text);
 #endif
@@ -505,7 +505,7 @@ double reg_mind::GetSimilarityMeasureValue()
 {
    double MINDValue=0.;
    for(int t=0; t<this->referenceImagePointer->nt; ++t){
-      if(this->activeTimePoint[t]==true){
+      if(this->timePointWeight[t]>0.0){
          size_t voxelNumber = (size_t)referenceImagePointer->nx *
                referenceImagePointer->ny * referenceImagePointer->nz;
          int *combinedMask = (int *)malloc(voxelNumber*sizeof(int));
@@ -544,7 +544,7 @@ double reg_mind::GetSimilarityMeasureValue()
             MINDValue += reg_getSSDValue<float>
                   (this->referenceImageDescriptor,
                    this->warpedFloatingImageDescriptor,
-                   this->activeTimePointDescriptor,
+                   this->timePointWeightDescriptor,
                    NULL, // HERE TODO this->forwardJacDetImagePointer,
                    combinedMask,
                    this->currentValue
@@ -554,7 +554,7 @@ double reg_mind::GetSimilarityMeasureValue()
             MINDValue += reg_getSSDValue<double>
                   (this->referenceImageDescriptor,
                    this->warpedFloatingImageDescriptor,
-                   this->activeTimePointDescriptor,
+                   this->timePointWeightDescriptor,
                    NULL, // HERE TODO this->forwardJacDetImagePointer,
                    combinedMask,
                    this->currentValue
@@ -608,7 +608,7 @@ double reg_mind::GetSimilarityMeasureValue()
                MINDValue += reg_getSSDValue<float>
                      (this->floatingImageDescriptor,
                       this->warpedReferenceImageDescriptor,
-                      this->activeTimePointDescriptor,
+                      this->timePointWeightDescriptor,
                       NULL, // HERE TODO this->backwardJacDetImagePointer,
                       combinedMask,
                       this->currentValue
@@ -618,7 +618,7 @@ double reg_mind::GetSimilarityMeasureValue()
                MINDValue += reg_getSSDValue<double>
                      (this->floatingImageDescriptor,
                       this->warpedReferenceImageDescriptor,
-                      this->activeTimePointDescriptor,
+                      this->timePointWeightDescriptor,
                       NULL, // HERE TODO this->backwardJacDetImagePointer,
                       combinedMask,
                       this->currentValue
@@ -640,7 +640,7 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 {
    // Check if the specified time point exists and is active
    reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
-   if(this->activeTimePoint[current_timepoint]==false)
+   if(this->timePointWeight[current_timepoint]==0.0)
       return;
 
    // Create a combined mask to ignore masked and undefined values
@@ -701,7 +701,8 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 this->forwardVoxelBasedGradientImagePointer,
                 NULL, // no Jacobian required here,
                 combinedMask,
-                desc_index
+                desc_index,
+				1.0 //all discriptors given weight of 1
                 );
          break;
       case NIFTI_TYPE_FLOAT64:
@@ -712,7 +713,8 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 this->forwardVoxelBasedGradientImagePointer,
                 NULL, // no Jacobian required here,
                 combinedMask,
-                desc_index
+				desc_index,
+				1.0 //all discriptors given weight of 1
                 );
          break;
       default:
@@ -776,7 +778,8 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                    this->backwardVoxelBasedGradientImagePointer,
                    NULL, // no Jacobian required here,
                    combinedMask,
-                   desc_index
+				   desc_index,
+				   1.0 //all discriptors given weight of 1
                    );
             break;
          case NIFTI_TYPE_FLOAT64:
@@ -787,7 +790,8 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                    this->backwardVoxelBasedGradientImagePointer,
                    NULL, // no Jacobian required here,
                    combinedMask,
-                   desc_index
+				   desc_index,
+				   1.0 //all discriptors given weight of 1
                    );
             break;
          default:

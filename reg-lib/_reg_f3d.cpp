@@ -345,7 +345,7 @@ void reg_f3d<T>::Initialise()
                  i, this->inputReference->nt-1, this->referenceThresholdLow[i],this->referenceThresholdUp[i]);
          reg_print_info(this->executableName, text);
          if(this->measure_nmi!=NULL){
-            if(this->measure_nmi->GetActiveTimepoints()[i]){
+            if(this->measure_nmi->GetTimepointsWeights()[i]>0.0){
                sprintf(text, "\t* binnining size for timepoint %i/%i: %i",
                        i, this->inputFloating->nt-1, this->measure_nmi->GetReferenceBinNumber()[i]-4);
                reg_print_info(this->executableName, text);
@@ -373,7 +373,7 @@ void reg_f3d<T>::Initialise()
                  i, this->inputFloating->nt-1, this->floatingThresholdLow[i],this->floatingThresholdUp[i]);
          reg_print_info(this->executableName, text);
          if(this->measure_nmi!=NULL){
-            if(this->measure_nmi->GetActiveTimepoints()[i]){
+          if (this->measure_nmi->GetTimepointsWeights()[i]>0.0){
                sprintf(text, "\t* binnining size for timepoint %i/%i: %i",
                        i, this->inputFloating->nt-1, this->measure_nmi->GetFloatingBinNumber()[i]-4);
                reg_print_info(this->executableName, text);

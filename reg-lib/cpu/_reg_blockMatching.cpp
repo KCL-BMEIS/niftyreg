@@ -351,6 +351,7 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                            if (-1 < x && x < warped->nx) {
                               warpedPtr_XY = &warpedPtr[index];
                               value = *warpedPtr_XY;
+                              maskPtr_XY = &mask[index];
                               if (value == value && *maskPtr_XY > -1) {
                                  warpedValues[warpedIndex] = value;
                                  warpedOverlap[warpedIndex] = 1;

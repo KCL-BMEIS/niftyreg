@@ -56,7 +56,7 @@ protected:
    nifti_image *floatingImageDescriptor;
    nifti_image *warpedReferenceImageDescriptor;
    nifti_image *warpedFloatingImageDescriptor;
-   bool activeTimePointDescriptor[255];
+   double timePointWeightDescriptor[255];
 
    int descriptorOffset;
    int mind_type;

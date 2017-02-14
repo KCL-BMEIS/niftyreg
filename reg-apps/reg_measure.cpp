@@ -330,7 +330,7 @@ int main(int argc, char **argv)
    if(flag->returnLNCCFlag){
       reg_lncc *lncc_object=new reg_lncc();
       for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
-         lncc_object->SetActiveTimepoint(i);
+         lncc_object->SetTimepointWeight(i,1.0);
       lncc_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
                                     refMask,
@@ -347,7 +347,7 @@ int main(int argc, char **argv)
    if(flag->returnNMIFlag){
       reg_nmi *nmi_object=new reg_nmi();
       for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
-         nmi_object->SetActiveTimepoint(i);
+		  nmi_object->SetTimepointWeight(i, 1.0);
       nmi_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
                                     refMask,
@@ -364,7 +364,7 @@ int main(int argc, char **argv)
    if(flag->returnSSDFlag){
       reg_ssd *ssd_object=new reg_ssd();
       for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
-         ssd_object->SetActiveTimepoint(i);
+		  ssd_object->SetTimepointWeight(i, 1.0);
       ssd_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
                                     refMask,
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
    if(flag->returnMINDFlag){
       reg_mind *mind_object=new reg_mind();
       for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
-         mind_object->SetActiveTimepoint(i);
+		  mind_object->SetTimepointWeight(i, 1.0);
       mind_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
                                     refMask,
