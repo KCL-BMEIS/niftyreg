@@ -282,6 +282,7 @@ void reg_mat33_logm(mat33 *in_tensor)
 
    // Convert to Eigen format
    bool all_zeros = true;
+   double det = 0;
    for (sm = 0; sm < 3; sm++){
       for (sn = 0; sn < 3; sn++){
          float val=in_tensor->m[sm][sn];
@@ -290,7 +291,14 @@ void reg_mat33_logm(mat33 *in_tensor)
          tensor(sm, sn) = static_cast<double>(val);
       }
    }
-   if(all_zeros==true){
+   // Actually R case requires invertible and no negative real ev,
+   // but the only observed case so far was non-invertible.
+   // determinant is not a perfect check for invertibility and
+   // identity with zero not great either, but the alternative
+   // is a general eigensolver and the logarithm function should
+   // suceed unless convergence just isn't happening.
+   det = tensor.determinant();
+   if(all_zeros==true || det == 0){
       reg_mat33_to_nan(in_tensor);
       return;
    }
