@@ -843,4 +843,132 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
    delete [] newWarpedPosition;
 }
 /* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientImage,
+                                                         nifti_image *maskImage)
+{
+   int imageDim = maskImage->nz>1?3:2;
+   size_t voxelNumber = (size_t)maskImage->nx *
+         maskImage->ny * maskImage->nz;
+   size_t i;
+   // Allocate a temporary deformation field to store the reference position
+   nifti_image *identityDeformation = nifti_copy_nim_info(gradientImage);
+   identityDeformation->data = (void *)calloc(identityDeformation->nvox,
+                                              identityDeformation->nbyper);
+   reg_tools_multiplyValueToImage(identityDeformation,
+                                  identityDeformation,
+                                  0.f);
+   identityDeformation->intent_p1=DISP_FIELD;
+   reg_getDeformationFromDisplacement(identityDeformation);
+   // Define a few pointers to access the data
+   DTYPE *gradPtrX = static_cast<DTYPE *>(gradientImage->data);
+   DTYPE *gradPtrY = &gradPtrX[voxelNumber];
+   DTYPE *gradPtrZ = NULL;
+   if(imageDim>2)
+      gradPtrZ = &gradPtrY[voxelNumber];
+
+   DTYPE *defPtrX = static_cast<DTYPE *>(identityDeformation->data);
+   DTYPE *defPtrY = &defPtrX[voxelNumber];
+   DTYPE *defPtrZ = NULL;
+   if(imageDim>2)
+      defPtrZ = &defPtrY[voxelNumber];
+
+   unsigned char *maskPtr = static_cast<unsigned char *>(maskImage->data);
+
+   // Loop over all timepoints in the mask image
+   for(int t=0; t<maskImage->nt; ++t){
+      // Extract the mask pointer to the current time point
+      unsigned char *currentMaskPtr=&maskPtr[t*voxelNumber];
+      // Check the number of active voxel
+      size_t activeVoxel = 0;
+      for(i=0; i<voxelNumber; ++i) activeVoxel += currentMaskPtr[i]>0?1:0;
+      // Allocate array to store the results
+      float *referencePosition = (float *)malloc(activeVoxel*imageDim*sizeof(float));
+      float *floatingPosition = (float *)malloc(activeVoxel*imageDim*sizeof(float));
+      // Loop over all voxel
+      size_t index=0;
+      for(i=0; i<voxelNumber; ++i)
+      {
+         if(currentMaskPtr[i]>0){
+            // Extract the reference and floating position
+            referencePosition[index] = defPtrX[i];
+            referencePosition[index+1] = defPtrY[i];
+            floatingPosition[index] = defPtrX[i] + gradPtrX[i];
+            floatingPosition[index+1] = defPtrY[i] + gradPtrY[i];
+            if(imageDim>2){
+               referencePosition[index+2] = defPtrZ[i];
+               floatingPosition[index+2] = defPtrZ[i] + gradPtrZ[i];
+               index+=3;
+            }
+            else index +=2;
+         } // active voxel
+      } // loop over voxels
+      // Extract the rigid matrix that best fits the gradient
+      mat44 currentMatrix;
+      if(imageDim>2)
+         optimize_2D(referencePosition,floatingPosition,activeVoxel,50,20,0.001f,&currentMatrix,false);
+      else optimize_3D(referencePosition,floatingPosition,activeVoxel,50,20,0.001f,&currentMatrix,false);
+      free(referencePosition);
+      free(floatingPosition);
+      // Replace the gradient values where needed
+      float tempRefPos[4]={0.f, 0.f, 0.f, 1.f};
+      float tempFloPos[4]={0.f, 0.f, 0.f, 1.f};
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   shared(voxelNumber, currentMaskPtr, defPtrX, defPtrY, defPtrZ, \
+   currentMatrix, gradPtrX, gradPtrY, gradPtrZ, imageDim) \
+   private(i, tempRefPos, tempFloPos)
+#endif
+      for(i=0; i<voxelNumber; ++i)
+      {
+         if(currentMaskPtr[i]>0){
+            // Extract the reference
+            tempRefPos[2]=0;
+            tempRefPos[3]=1;
+            tempRefPos[0] = defPtrX[i];
+            tempRefPos[1] = defPtrY[i];
+            if(imageDim>2)
+               tempRefPos[2] = defPtrZ[i];
+            // Compute the corresponding position based on the recovered matrix
+            reg_mat44_mul(&currentMatrix, tempRefPos, tempFloPos);
+            // Store the displacement as gradient
+            gradPtrX[i] = tempFloPos[0] - tempRefPos[0];
+            gradPtrY[i] = tempFloPos[1] - tempRefPos[1];
+            if(imageDim>2)
+               gradPtrZ[i] = tempFloPos[2] - tempRefPos[2];
+         } // active voxel
+      } // loop over voxels
+   } // Loop over timepoints
+
+   nifti_image_free(identityDeformation);
+
+}
+/* *************************************************************** */
+void regulariseNonLinearGradientWithRigidConstraint(nifti_image *gradientImage,
+                                                    nifti_image *maskImage)
+{
+   if(maskImage->datatype!=NIFTI_TYPE_UINT8){
+      reg_print_fct_error("regulariseNonLinearGradientWithRigidConstraint");
+      reg_print_msg_error("The input mask is expected to be of unsigned char type");
+      reg_exit();
+   }
+   switch(gradientImage->datatype){
+   case NIFTI_TYPE_FLOAT32:
+      regulariseNonLinearGradientWithRigidConstraint_core<float>
+            (gradientImage, maskImage);
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      regulariseNonLinearGradientWithRigidConstraint_core<double>
+            (gradientImage, maskImage);
+      break;
+   default:
+      reg_print_fct_error("regulariseNonLinearGradientWithRigidConstraint");
+      reg_print_msg_error("Only implemented for single or double precision images");
+      reg_exit();
+   }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+
 #endif

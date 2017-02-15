@@ -207,6 +207,64 @@ void reg_f3d<T>::ClearTransformationGradient()
 #endif
 }
 /* *************************************************************** */
+template <class T>
+void reg_f3d<T>::AllocateRigidConstraintMask()
+{
+   if(this->use_rigidConstraint==true && this->inputRigidMask!=NULL){
+      if(this->transformationGradient==NULL)
+      {
+         reg_print_fct_error("reg_f3d<T>::AllocateRigidConstraintMask()");
+         reg_print_msg_error("The transformation gradient image is not defined");
+         reg_exit();
+      }
+      if(this->transformationGradient->dx != this->currentReference->dx ||
+         this->transformationGradient->dy != this->currentReference->dy ||
+         this->transformationGradient->dz != this->currentReference->dz){
+         reg_print_fct_error("reg_f3d<T>::AllocateRigidConstraintMask()");
+         reg_print_msg_error("This constraint can only be used for 1 voxel control point spacing parametrisation, for now");
+         reg_exit();
+      }
+      // Allocate the current mask image based on the size of the gradient along the
+      // x, y and z axes and the input rigid mask image for the rest
+      this->currentRigidMask = nifti_copy_nim_info(this->transformationGradient);
+      this->currentRigidMask->dim[0]=this->currentRigidMask->ndim=this->inputRigidMask->ndim;
+      this->currentRigidMask->dim[4]=this->currentRigidMask->nt=this->inputRigidMask->nt;
+      this->currentRigidMask->dim[5]=this->currentRigidMask->nu=this->inputRigidMask->nu;
+      this->currentRigidMask->nvox = (size_t)this->currentRigidMask->nx *
+            this->currentRigidMask->ny * this->currentRigidMask->nz *
+            this->currentRigidMask->nt * this->currentRigidMask->nu;
+      this->currentRigidMask->datatype = this->inputRigidMask->datatype;
+      this->currentRigidMask->nbyper = this->inputRigidMask->nbyper;
+      this->currentRigidMask->data = (void *)malloc(this->currentRigidMask->nvox *
+                                                    this->currentRigidMask->nbyper);
+      // Compute an identity deformation field and use the gradient image to store it
+      reg_tools_multiplyValueToImage(this->transformationGradient,
+                                     this->transformationGradient,
+                                     0);
+      reg_getDeformationFromDisplacement(this->transformationGradient);
+      reg_resampleImage(this->inputRigidMask,
+                        this->currentRigidMask,
+                        this->transformationGradient,
+                        NULL,
+                        0, // nearest-neighboor interpolation
+                        0 // padding with a value of 0
+                        );
+   }
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d<T>::ClearRigidConstraintMask()
+{
+   if(this->currentRigidMask!=NULL)
+   {
+      nifti_image_free(this->currentRigidMask);
+      this->currentRigidMask=NULL;
+   }
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_f3d<T>::ClearRigidConstraintMask");
+#endif
+}
+/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::CheckParameters()
 {
@@ -1076,6 +1134,16 @@ void reg_f3d<T>::SetOptimiser()
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::SetOptimiser");
 #endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
+void reg_f3d<T>::ApplyGradientRigidConstraint()
+{
+   if(this->use_rigidConstraint){
+      regulariseNonLinearGradientWithRigidConstraint(this->transformationGradient,
+                                                     this->currentRigidMask);
+   }
 }
 /* *************************************************************** */
 /* *************************************************************** */

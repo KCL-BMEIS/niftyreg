@@ -85,6 +85,8 @@ void Usage(char *exec)
    reg_print_info(exec, "\t\t\t\tThe second argument corresponds to a text file containing the landmark positions in millimeter as");
    reg_print_info(exec, "\t\t\t\t<refX> <refY> <refZ> <floX> <floY> <floZ>\\n for 3D images and");
    reg_print_info(exec, "\t\t\t\t<refX> <refY> <floX> <floY>\\n for 2D images");
+   reg_print_info(exec, "\t-rigMask <filename>\tMask in which the deformation is constrained to be rigid");
+   reg_print_info(exec, "\t\t\t\tThe mask is expected to be a 4D image where each timepoint corresponds to an independent mask");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Measure of similarity options:");
    reg_print_info(exec, "*** NMI with 64 bins is used except if specified otherwise");
@@ -286,6 +288,7 @@ int main(int argc, char **argv)
    reg_f3d<float> *REG=NULL;
    float *referenceLandmark=NULL;
    float *floatingLandmark=NULL;
+   nifti_image *rigidMaskImage=NULL;
    for(int i=1; i<argc; i++)
    {
       if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0)
@@ -511,6 +514,15 @@ int main(int argc, char **argv)
       {
          REG->SetReferenceSmoothingSigma(atof(argv[++i]));
       }
+      else if((strcmp(argv[i],"-rigMask")==0) || (strcmp(argv[i],"-rigMask")==0))
+      {
+         // Read the nifti image
+         rigidMaskImage = reg_io_ReadImageFile(argv[++i]);
+         // Convert the input mask(s) to binary unsigned char
+         reg_tools_binarise_image(rigidMaskImage);
+         reg_tools_changeDatatype<unsigned char>(rigidMaskImage);
+         REG->SetRigidConstraintMask(rigidMaskImage);
+      }
       else if((strcmp(argv[i],"-smooF")==0) || (strcmp(argv[i],"-smooS")==0) || strcmp(argv[i], "--smooF")==0)
       {
          REG->SetFloatingSmoothingSigma(atof(argv[++i]));
@@ -655,31 +667,31 @@ int main(int argc, char **argv)
          REG->UseDTI(timePoint);
          delete []timePoint;
       }
-	  else if (strcmp(argv[i], "-nmiw") == 0)
-	  {
-		  int tp = atoi(argv[++i]);
-		  double w = atof(argv[++i]);
-		  REG->SetNMIWeight(tp, w);
-	  }
-	  else if (strcmp(argv[i], "-lnccw") == 0)
-	  {
-		  int tp = atoi(argv[++i]);
-		  double w = atof(argv[++i]);
-		  REG->SetLNCCWeight(tp, w);
-	  }
-	  else if (strcmp(argv[i], "-ssdw") == 0)
-	  {
-		  int tp = atoi(argv[++i]);
-		  double w = atof(argv[++i]);
-		  REG->SetSSDWeight(tp, w);
-	  }
-	  else if (strcmp(argv[i], "-kldw") == 0)
-	  {
-		  int tp = atoi(argv[++i]);
-		  double w = atof(argv[++i]);
-		  REG->SetKLDWeight(tp, w);
-	  }
-	  else if (strcmp(argv[i], "-pad") == 0)
+     else if (strcmp(argv[i], "-nmiw") == 0)
+     {
+        int tp = atoi(argv[++i]);
+        double w = atof(argv[++i]);
+        REG->SetNMIWeight(tp, w);
+     }
+     else if (strcmp(argv[i], "-lnccw") == 0)
+     {
+        int tp = atoi(argv[++i]);
+        double w = atof(argv[++i]);
+        REG->SetLNCCWeight(tp, w);
+     }
+     else if (strcmp(argv[i], "-ssdw") == 0)
+     {
+        int tp = atoi(argv[++i]);
+        double w = atof(argv[++i]);
+        REG->SetSSDWeight(tp, w);
+     }
+     else if (strcmp(argv[i], "-kldw") == 0)
+     {
+        int tp = atoi(argv[++i]);
+        double w = atof(argv[++i]);
+        REG->SetKLDWeight(tp, w);
+     }
+     else if (strcmp(argv[i], "-pad") == 0)
       {
          REG->SetWarpedPaddingValue(atof(argv[++i]));
       }
@@ -910,9 +922,13 @@ int main(int argc, char **argv)
    outputWarpedImage[1]=NULL;
    free(outputWarpedImage);
    outputWarpedImage=NULL;
+
    // Free the allocated landmarks if used
    free(referenceLandmark);
    free(floatingLandmark);
+
+   // Clean the rigid mask input image
+   if(rigidMaskImage!=NULL) nifti_image_free(rigidMaskImage);
 
    // Erase the registration object
    delete REG;

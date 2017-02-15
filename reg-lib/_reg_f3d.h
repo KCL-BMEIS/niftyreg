@@ -39,6 +39,8 @@ protected:
 
    virtual void AllocateTransformationGradient();
    virtual void ClearTransformationGradient();
+   virtual void AllocateRigidConstraintMask();
+   virtual void ClearRigidConstraintMask();
    virtual T InitialiseCurrentLevel();
 
    virtual double ComputeBendingEnergyPenaltyTerm();
@@ -56,6 +58,7 @@ protected:
    virtual void GetObjectiveFunctionGradient();
    virtual void GetApproximatedGradient();
    void GetSimilarityMeasureGradient();
+   void ApplyGradientRigidConstraint();
 
    virtual void GetDeformationField();
    virtual void DisplayCurrentLevelParameters();

@@ -117,6 +117,10 @@ protected:
    float *landmarkReference;
    float *landmarkFloating;
 
+   bool use_rigidConstraint;
+   nifti_image *inputRigidMask;
+   nifti_image *currentRigidMask;
+
 #ifdef BUILD_DEV
    bool discrete_init;
 #endif
@@ -129,6 +133,14 @@ protected:
    virtual void ClearWarpedGradient();
    virtual void AllocateVoxelBasedMeasureGradient();
    virtual void ClearVoxelBasedMeasureGradient();
+   virtual void AllocateRigidConstraintMask()
+   {
+      return;
+   }
+   virtual void ClearRigidConstraintMask()
+   {
+      return;
+   }
    virtual T InitialiseCurrentLevel()
    {
       return 0.;
@@ -138,6 +150,10 @@ protected:
    virtual void WarpFloatingImage(int);
    virtual double ComputeSimilarityMeasure();
    virtual void GetVoxelBasedGradient();
+   virtual void ApplyGradientRigidConstraint()
+   {
+      return;
+   }
    virtual void SmoothGradient()
    {
       return;
@@ -288,6 +304,7 @@ public:
    void UseLinearInterpolation();
    void UseCubicSplineInterpolation();
    void SetLandmarkRegularisationParam(size_t, float *, float*, float);
+   void SetRigidConstraintMask(nifti_image *);
 
 #ifdef BUILD_DEV
    void UseDiscreteInit();

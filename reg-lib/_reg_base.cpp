@@ -96,6 +96,10 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->landmarkReference=NULL;
    this->landmarkFloating=NULL;
 
+   this->use_rigidConstraint=false;
+   this->inputRigidMask=NULL;
+   this->currentRigidMask=NULL;
+
 #ifdef BUILD_DEV
    this->discrete_init=false;
 #endif
@@ -519,6 +523,16 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
    this->landmarkRegWeight = w;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetLandmarkRegularisationParam");
+#endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetRigidConstraintMask(nifti_image *i)
+{
+   this->use_rigidConstraint = true;
+   this->inputRigidMask = i;
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::SetRigidConstraintMask");
 #endif
 }
 /* *************************************************************** */
@@ -1529,6 +1543,9 @@ void reg_base<T>::Run()
       this->AllocateVoxelBasedMeasureGradient();
       this->AllocateTransformationGradient();
 
+      // Allocate the rigid mask to use to constraint the gradient
+      this->AllocateRigidConstraintMask();
+
       // Initialise the measures of similarity
       this->InitialiseSimilarity();
 
@@ -1558,6 +1575,9 @@ void reg_base<T>::Run()
 
             // Compute the objective function gradient
             this->GetObjectiveFunctionGradient();
+
+            // Apply the rigid constraint if required
+            this->ApplyGradientRigidConstraint();
 
             // Normalise the gradient
             this->NormaliseGradient();
@@ -1603,6 +1623,7 @@ void reg_base<T>::Run()
       this->ClearDeformationField();
       this->ClearWarpedGradient();
       this->ClearVoxelBasedMeasureGradient();
+      this->ClearRigidConstraintMask();
       this->ClearTransformationGradient();
       if(this->usePyramid)
       {

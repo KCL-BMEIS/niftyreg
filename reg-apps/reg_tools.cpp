@@ -14,6 +14,7 @@
 #include "_reg_blockMatching.h"
 #include "_reg_globalTrans.h"
 #include "_reg_localTrans.h"
+#include "_reg_localTrans_jac.h"
 #include "_reg_tools.h"
 #include "_reg_mind.h"
 
@@ -136,6 +137,57 @@ int main(int argc, char **argv)
     {
         PetitUsage(argv[0]);
         return EXIT_FAILURE;
+    }
+    if(strcmp(argv[1], "-marta")==0){
+       nifti_image *inputCPP = reg_io_ReadImageFile(argv[2]);
+       nifti_image *mask = reg_io_ReadImageFile(argv[3]);
+       // Convert the mask
+       reg_tools_binarise_image(mask);
+       reg_tools_changeDatatype<unsigned char>(mask);
+       // Create a temp deformation field
+       nifti_image *currentRigidMask = nifti_copy_nim_info(inputCPP);
+       currentRigidMask->dim[0]=currentRigidMask->ndim=mask->ndim;
+       currentRigidMask->dim[4]=currentRigidMask->nt=mask->nt;
+       currentRigidMask->dim[5]=currentRigidMask->nu=mask->nu;
+       currentRigidMask->nvox = (size_t)currentRigidMask->nx *
+             currentRigidMask->ny * currentRigidMask->nz *
+             currentRigidMask->nt * currentRigidMask->nu;
+       currentRigidMask->datatype = mask->datatype;
+       currentRigidMask->nbyper = mask->nbyper;
+       currentRigidMask->data = (void *)malloc(currentRigidMask->nvox *
+                                               currentRigidMask->nbyper);
+       // Compute an identity deformation field and use the gradient image to store it
+       nifti_image *temp_def = nifti_copy_nim_info(inputCPP);
+       int input_type1=inputCPP->intent_p1;
+       int input_type2=inputCPP->intent_p2;
+       temp_def->data = (void *)malloc(temp_def->nvox * temp_def->nbyper);
+       reg_tools_multiplyValueToImage(temp_def,
+                                      temp_def,
+                                      0);
+       reg_getDeformationFromDisplacement(temp_def);
+       reg_resampleImage(mask,
+                         currentRigidMask,
+                         temp_def,
+                         NULL,
+                         0, // nearest-neighboor interpolation
+                         0 // padding with a value of 0
+                         );
+       // Convert to displacement
+       reg_getDisplacementFromDeformation(inputCPP);
+       // Regularise
+       regulariseNonLinearGradientWithRigidConstraint(inputCPP,currentRigidMask);
+       // Convert to displacement
+       reg_getDeformationFromDisplacement(inputCPP);
+
+       // Back to spline
+       inputCPP->intent_p1=input_type1;
+       inputCPP->intent_p2=input_type2;
+       nifti_image_write(inputCPP);
+       nifti_image_free(currentRigidMask);
+       nifti_image_free(temp_def);
+       nifti_image_free(inputCPP);
+       nifti_image_free(mask);
+       return EXIT_SUCCESS;
     }
 
 #if defined (_OPENMP)

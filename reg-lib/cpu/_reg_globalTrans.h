@@ -97,4 +97,16 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
 /* *************************************************************** */
 void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);
 /* *************************************************************** */
+/** @brief The function apply rigid contraints onto a non-line
+ * transformation gradient. This is done by extracting the robust
+ * gradient into region of interest. All gradient values in the region
+ * are then replaced by the robust one.
+ * @param gradientImage Input image than contains the gradient
+ * to regularise. The gradient values will be updated in place.
+ * @param maskImage Image containing the different masks where to
+ * apply the rigid constraint.
+ */
+void regulariseNonLinearGradientWithRigidConstraint(nifti_image *gradientImage,
+                                                    nifti_image *maskImage);
+/* *************************************************************** */
 #endif
