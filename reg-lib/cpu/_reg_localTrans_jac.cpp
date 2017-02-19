@@ -3089,8 +3089,16 @@ void reg_getDetArrayFromMatArray(nifti_image *jacobianDetImage,
 {
    size_t voxelNumber=jacobianDetImage->nx*jacobianDetImage->ny*jacobianDetImage->nz;
    DTYPE *jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
-   for(size_t voxel=0; voxel<voxelNumber; ++voxel)
-      jacDetPtr[voxel]=nifti_mat33_determ(jacobianMatrices[voxel]);
+   if(jacobianDetImage->nz>1){
+       for(size_t voxel=0; voxel<voxelNumber; ++voxel)
+          jacDetPtr[voxel]=nifti_mat33_determ(jacobianMatrices[voxel]);
+   }
+   else{
+       for(size_t voxel=0; voxel<voxelNumber; ++voxel)
+          jacDetPtr[voxel]=
+                  jacobianMatrices[voxel].m[0][0] * jacobianMatrices[voxel].m[1][1] -
+                  jacobianMatrices[voxel].m[1][0] * jacobianMatrices[voxel].m[0][1];
+   }
 }
 /* *************************************************************** */
 /* *************************************************************** */

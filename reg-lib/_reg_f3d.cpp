@@ -983,7 +983,7 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
 #ifndef NDEBUG
    char text[255];
    sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wJac) %g | (wLan) %g",
-           this->currentWMeasure, this->currentWBE, this->currentWLE, this->currentWJac, this->currentWLandmarkReg);
+           this->currentWMeasure, this->currentWBE, this->currentWLE, this->currentWJac, this->currentWLand);
    reg_print_msg_debug(text);
 #endif
 
@@ -993,7 +993,7 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
    // Store the global objective function value
 
 #ifdef BUILD_DEV
-   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac - this->currentWLandmarkReg - this->currentWPE;
+   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac - this->currentWLand - this->currentWPE;
 #else
    return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac - this->currentWLand;
 #endif
