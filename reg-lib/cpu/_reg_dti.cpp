@@ -29,6 +29,7 @@ void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
                                 nifti_image *warFloImgPtr,
                                 nifti_image *warFloGraPtr,
                                 nifti_image *forVoxBasedGraPtr,
+                                nifti_image *forwardLocalWeightPtr,
                                 int *maskFloPtr,
                                 nifti_image *warRefImgPtr,
                                 nifti_image *warRefGraPtr,
@@ -41,6 +42,7 @@ void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
                                   warFloImgPtr,
                                   warFloGraPtr,
                                   forVoxBasedGraPtr,
+                                  forwardLocalWeightPtr,
                                   maskFloPtr,
                                   warRefImgPtr,
                                   warRefGraPtr,
@@ -58,8 +60,8 @@ void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
    for(int i=0; i<refImgPtr->nt; ++i)
    {
       //JM - note, the specific value of timePointWeight is not used for DTI images
-	   //any value > 0 indicates the 'time point' is active
-	   if(this->timePointWeight[i]>0)
+      //any value > 0 indicates the 'time point' is active
+      if(this->timePointWeight[i]>0)
       {
          this->dtIndicies[j++]=i;
 #ifndef NDEBUG

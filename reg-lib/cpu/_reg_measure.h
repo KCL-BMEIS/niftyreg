@@ -23,6 +23,7 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
+                          nifti_image *localWeightSimPtr = NULL,
                           int *maskFloPtr = NULL,
                           nifti_image *warRefImgPtr = NULL,
                           nifti_image *warRefGraPtr = NULL,
@@ -36,6 +37,7 @@ public:
       this->warpedFloatingImagePointer=warFloImgPtr;
       this->warpedFloatingGradientImagePointer=warFloGraPtr;
       this->forwardVoxelBasedGradientImagePointer=forVoxBasedGraPtr;
+      this->forwardLocalWeightSimImagePointer=localWeightSimPtr;
       if(maskFloPtr != NULL && warRefImgPtr!=NULL && warRefGraPtr!=NULL && bckVoxBasedGraPtr!=NULL) {
          this->isSymmetric=true;
          this->floatingMaskPointer=maskFloPtr;
@@ -89,6 +91,7 @@ protected:
    nifti_image *warpedFloatingImagePointer;
    nifti_image *warpedFloatingGradientImagePointer;
    nifti_image *forwardVoxelBasedGradientImagePointer;
+   nifti_image *forwardLocalWeightSimImagePointer;
 
    bool isSymmetric;
    nifti_image *floatingImagePointer;

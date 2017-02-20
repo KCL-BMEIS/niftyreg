@@ -62,6 +62,8 @@ protected:
    reg_nmi *measure_nmi;
    reg_mind *measure_mind;
    reg_mindssc *measure_mindssc;
+   nifti_image *localWeightSimInput;
+   nifti_image *localWeightSimCurrent;
 
    char *executableName;
    int referenceTimePoint;
@@ -259,6 +261,7 @@ public:
    virtual void UseDTI(bool *timepoint);
    virtual void UseLNCC(int timepoint, float stdDevKernel);
    virtual void SetLNCCKernelType(int type);
+  void SetLocalWeightSim(nifti_image *);
 
    void SetNMIWeight(int, double);
    void SetSSDWeight(int, double);

@@ -28,6 +28,7 @@ void reg_kld::InitialiseMeasure(nifti_image *refImgPtr,
                                 nifti_image *warFloImgPtr,
                                 nifti_image *warFloGraPtr,
                                 nifti_image *forVoxBasedGraPtr,
+                                nifti_image *forwardLocalWeightPtr,
                                 int *maskFloPtr,
                                 nifti_image *warRefImgPtr,
                                 nifti_image *warRefGraPtr,
@@ -40,6 +41,7 @@ void reg_kld::InitialiseMeasure(nifti_image *refImgPtr,
                                   warFloImgPtr,
                                   warFloGraPtr,
                                   forVoxBasedGraPtr,
+                                  forwardLocalWeightPtr,
                                   maskFloPtr,
                                   warRefImgPtr,
                                   warRefGraPtr,
@@ -71,8 +73,8 @@ void reg_kld::InitialiseMeasure(nifti_image *refImgPtr,
    reg_print_msg_debug("reg_kld::InitialiseMeasure().");
    for(int i=0; i<this->referenceImagePointer->nt; ++i)
    {
-	   sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
-	   reg_print_msg_debug(text);
+      sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
+      reg_print_msg_debug(text);
    }
 #endif
 }
@@ -146,7 +148,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
                }
             }
          }
-		 measure += measure_tp * timePointWeight[time] / num;
+       measure += measure_tp * timePointWeight[time] / num;
       }
    }
    if(MrClean==true) free(maskPtr);
@@ -241,7 +243,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
                                            nifti_image *jacobianDetImg,
                                            int *mask,
                                            int current_timepoint,
-										   double timepoint_weight)
+                                 double timepoint_weight)
 {
 #ifdef _WIN32
    long voxel;
@@ -287,11 +289,11 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
    double activeVoxel_num = 0.0;
    for (voxel = 0; voxel < voxelNumber; voxel++)
    {
-	   if (mask[voxel]>-1)
-	   {
-		   if (currentRefPtr[voxel] == currentRefPtr[voxel] && currentWarPtr[voxel] == currentWarPtr[voxel])
-			   activeVoxel_num += 1.0;
-	   }
+      if (mask[voxel]>-1)
+      {
+         if (currentRefPtr[voxel] == currentRefPtr[voxel] && currentWarPtr[voxel] == currentWarPtr[voxel])
+            activeVoxel_num += 1.0;
+      }
    }
    double adjusted_weight = timepoint_weight / activeVoxel_num;
 
@@ -319,7 +321,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
                tempValue>0)
          {
             tempValue = tempRefValue * (tempValue>1?1.:-1.) / tempWarValue;
-			tempValue *= adjusted_weight;
+         tempValue *= adjusted_weight;
 
             // Jacobian modulation if the Jacobian determinant image is defined
             if(jacobianDetImg!=NULL)
@@ -386,7 +388,7 @@ void reg_kld::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
              NULL, // HERE TODO this->forwardJacDetImagePointer,
              this->referenceMaskPointer,
              current_timepoint,
-			 this->timePointWeight[current_timepoint]
+          this->timePointWeight[current_timepoint]
              );
       break;
    case NIFTI_TYPE_FLOAT64:
@@ -397,8 +399,8 @@ void reg_kld::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
              this->forwardVoxelBasedGradientImagePointer,
              NULL, // HERE TODO this->forwardJacDetImagePointer,
              this->referenceMaskPointer,
-			 current_timepoint,
-			 this->timePointWeight[current_timepoint]
+          current_timepoint,
+          this->timePointWeight[current_timepoint]
              );
       break;
    default:
@@ -430,8 +432,8 @@ void reg_kld::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 this->backwardVoxelBasedGradientImagePointer,
                 NULL, // HERE TODO this->backwardJacDetImagePointer,
                 this->floatingMaskPointer,
-				current_timepoint,
-				this->timePointWeight[current_timepoint]
+            current_timepoint,
+            this->timePointWeight[current_timepoint]
                 );
          break;
       case NIFTI_TYPE_FLOAT64:
@@ -442,8 +444,8 @@ void reg_kld::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 this->backwardVoxelBasedGradientImagePointer,
                 NULL, // HERE TODO this->backwardJacDetImagePointer,
                 this->floatingMaskPointer,
-				current_timepoint,
-				this->timePointWeight[current_timepoint]
+            current_timepoint,
+            this->timePointWeight[current_timepoint]
                 );
          break;
       default:

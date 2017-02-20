@@ -139,6 +139,7 @@ int main(int argc, char **argv)
                                         mask_image,
                                         warImage,
                                         NULL,
+                                        NULL,
                                         NULL);
       double measure=measure_object->GetSimilarityMeasureValue();
 

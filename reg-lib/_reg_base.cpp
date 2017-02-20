@@ -40,6 +40,8 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->measure_nmi=NULL;
    this->measure_mind=NULL;
    this->measure_mindssc=NULL;
+   this->localWeightSimInput = NULL;
+   this->localWeightSimCurrent=NULL;
 
    this->similarityWeight=0.; // is automatically set depending of the penalty term weights
 
@@ -545,6 +547,9 @@ void reg_base<T>::ClearCurrentInputImage()
    this->currentReference=NULL;
    this->currentMask=NULL;
    this->currentFloating=NULL;
+   if(this->localWeightSimCurrent!=NULL)
+      nifti_image_free(this->localWeightSimCurrent);
+   this->localWeightSimCurrent=NULL;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::ClearCurrentInputImage");
 #endif
@@ -923,13 +928,40 @@ template<class T>
 void reg_base<T>::InitialiseSimilarity()
 {
 
+   if(this->localWeightSimInput!=NULL){
+      if(this->localWeightSimCurrent!=NULL)
+         nifti_image_free(this->localWeightSimCurrent);
+      this->localWeightSimCurrent=nifti_copy_nim_info(this->currentReference);
+      this->localWeightSimCurrent->dim[0]=this->localWeightSimCurrent->ndim=this->localWeightSimInput->dim[0];
+      this->localWeightSimCurrent->dim[4]=this->localWeightSimCurrent->nt=this->localWeightSimInput->dim[4];
+      this->localWeightSimCurrent->dim[5]=this->localWeightSimCurrent->nu=this->localWeightSimInput->dim[5];
+      this->localWeightSimCurrent->nvox = (size_t)this->localWeightSimCurrent->nx *
+            this->localWeightSimCurrent->ny * this->localWeightSimCurrent->nz *
+            this->localWeightSimCurrent->nt * this->localWeightSimCurrent->nu;
+      this->localWeightSimCurrent->data = (void *)malloc(this->localWeightSimCurrent->nvox *
+                                                         this->localWeightSimCurrent->nbyper);
+      reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradient,
+                                     this->voxelBasedMeasureGradient,
+                                     0.f);
+      reg_getDeformationFromDisplacement(this->voxelBasedMeasureGradient);
+      reg_tools_changeDatatype<T>(localWeightSimInput);
+      reg_resampleImage(this->localWeightSimInput,
+                        this->localWeightSimCurrent,
+                        this->voxelBasedMeasureGradient,
+                        NULL,
+                        1,
+                        0);
+   }
+   else this->localWeightSimCurrent=NULL;
+
    if(this->measure_nmi!=NULL)
       this->measure_nmi->InitialiseMeasure(this->currentReference,
                                            this->currentFloating,
                                            this->currentMask,
                                            this->warped,
                                            this->warImgGradient,
-                                           this->voxelBasedMeasureGradient
+                                           this->voxelBasedMeasureGradient,
+                                           this->localWeightSimCurrent
                                           );
 
    if(this->measure_ssd!=NULL)
@@ -938,7 +970,8 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->currentMask,
                                            this->warped,
                                            this->warImgGradient,
-                                           this->voxelBasedMeasureGradient
+                                           this->voxelBasedMeasureGradient,
+                                           this->localWeightSimCurrent
                                           );
 
    if(this->measure_kld!=NULL)
@@ -947,7 +980,8 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->currentMask,
                                            this->warped,
                                            this->warImgGradient,
-                                           this->voxelBasedMeasureGradient
+                                           this->voxelBasedMeasureGradient,
+                                           this->localWeightSimCurrent
                                           );
 
    if(this->measure_lncc!=NULL)
@@ -956,7 +990,8 @@ void reg_base<T>::InitialiseSimilarity()
                                             this->currentMask,
                                             this->warped,
                                             this->warImgGradient,
-                                            this->voxelBasedMeasureGradient
+                                            this->voxelBasedMeasureGradient,
+                                            this->localWeightSimCurrent
                                            );
 
    if(this->measure_dti!=NULL)
@@ -965,7 +1000,8 @@ void reg_base<T>::InitialiseSimilarity()
                                            this->currentMask,
                                            this->warped,
                                            this->warImgGradient,
-                                           this->voxelBasedMeasureGradient
+                                           this->voxelBasedMeasureGradient,
+                                           this->localWeightSimCurrent
                                           );
 
    if(this->measure_mind!=NULL)
@@ -974,7 +1010,8 @@ void reg_base<T>::InitialiseSimilarity()
                                             this->currentMask,
                                             this->warped,
                                             this->warImgGradient,
-                                            this->voxelBasedMeasureGradient
+                                            this->voxelBasedMeasureGradient,
+                                            this->localWeightSimCurrent
                                             );
 
    if(this->measure_mindssc!=NULL)
@@ -983,7 +1020,8 @@ void reg_base<T>::InitialiseSimilarity()
                                                this->currentMask,
                                                this->warped,
                                                this->warImgGradient,
-                                               this->voxelBasedMeasureGradient
+                                               this->voxelBasedMeasureGradient,
+                                               this->localWeightSimCurrent
                                                );
 
 #ifndef NDEBUG
@@ -1426,6 +1464,13 @@ void reg_base<T>::SetKLDWeight(int timepoint, double weight)
 		reg_exit();
 	}
 	this->measure_kld->SetTimepointWeight(timepoint, weight);
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class T>
+void reg_base<T>::SetLocalWeightSim(nifti_image *i)
+{
+	this->localWeightSimInput = i;
 }
 /* *************************************************************** */
 /* *************************************************************** */

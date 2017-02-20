@@ -622,7 +622,7 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
       reg_defField_getJacobianMatrix(this->deformationFieldImage,
                                      this->forwardJacobianMatrix);
       /*DTI needs fixing!
-	  reg_resampleImage(this->currentFloating,
+     reg_resampleImage(this->currentFloating,
                         this->warped,
                         this->deformationFieldImage,
                         this->currentMask,
@@ -647,7 +647,7 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
       reg_defField_getJacobianMatrix(this->backwardDeformationFieldImage,
                                      this->backwardJacobianMatrix);
      /* DTI needs fixing
-	 reg_resampleImage(this->currentReference, // input image
+    reg_resampleImage(this->currentReference, // input image
                         this->backwardWarped, // warped input image
                         this->backwardDeformationFieldImage, // deformation field
                         this->currentFloatingMask, // mask
@@ -1657,6 +1657,7 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                            this->warped,
                                            this->warImgGradient,
                                            this->voxelBasedMeasureGradient,
+                                           this->localWeightSimCurrent,
                                            this->currentFloatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
@@ -1670,6 +1671,7 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                            this->warped,
                                            this->warImgGradient,
                                            this->voxelBasedMeasureGradient,
+                                           this->localWeightSimCurrent,
                                            this->currentFloatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
@@ -1683,6 +1685,7 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                            this->warped,
                                            this->warImgGradient,
                                            this->voxelBasedMeasureGradient,
+                                           this->localWeightSimCurrent,
                                            this->currentFloatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
@@ -1696,6 +1699,7 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                             this->warped,
                                             this->warImgGradient,
                                             this->voxelBasedMeasureGradient,
+                                            this->localWeightSimCurrent,
                                             this->currentFloatingMask,
                                             this->backwardWarped,
                                             this->backwardWarpedGradientImage,
@@ -1709,6 +1713,7 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                            this->warped,
                                            this->warImgGradient,
                                            this->voxelBasedMeasureGradient,
+                                           this->localWeightSimCurrent,
                                            this->currentFloatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
@@ -1722,6 +1727,7 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                             this->warped,
                                             this->warImgGradient,
                                             this->voxelBasedMeasureGradient,
+                                            this->localWeightSimCurrent,
                                             this->currentFloatingMask,
                                             this->backwardWarped,
                                             this->backwardWarpedGradientImage,
@@ -1735,6 +1741,7 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
                                                this->warped,
                                                this->warImgGradient,
                                                this->voxelBasedMeasureGradient,
+                                               this->localWeightSimCurrent,
                                                this->currentFloatingMask,
                                                this->backwardWarped,
                                                this->backwardWarpedGradientImage,

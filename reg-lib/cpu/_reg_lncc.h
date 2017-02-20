@@ -30,6 +30,7 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
+                          nifti_image *forwardLocalWeightPtr = NULL,
                           int *maskFloPtr = NULL,
                           nifti_image *warRefImgPtr = NULL,
                           nifti_image *warRefGraPtr = NULL,
@@ -126,6 +127,6 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    nifti_image *lnccGradientImage,
                                    int kernelType,
                                    int current_timepoint,
-								   double timepoint_weight);
+                           double timepoint_weight);
 #endif
 

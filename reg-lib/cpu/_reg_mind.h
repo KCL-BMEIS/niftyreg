@@ -37,6 +37,7 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
+                          nifti_image *forwardLocalWeightPtr = NULL,
                           int *maskFloPtr = NULL,
                           nifti_image *warRefImgPtr = NULL,
                           nifti_image *warRefGraPtr = NULL,
