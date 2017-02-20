@@ -107,6 +107,7 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, m
  * apply the rigid constraint.
  */
 void regulariseNonLinearGradientWithRigidConstraint(nifti_image *gradientImage,
-                                                    nifti_image *maskImage);
+                                                    nifti_image *maskImage,
+                                                    bool isGradient);
 /* *************************************************************** */
 #endif

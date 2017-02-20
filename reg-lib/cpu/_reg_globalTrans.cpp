@@ -846,7 +846,8 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
 /* *************************************************************** */
 template <class DTYPE>
 void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientImage,
-                                                         nifti_image *maskImage)
+                                                         nifti_image *maskImage,
+                                                         bool isGradient)
 {
    int imageDim = maskImage->nz>1?3:2;
    size_t voxelNumber = (size_t)maskImage->nx *
@@ -894,11 +895,19 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
             // Extract the reference and floating position
             referencePosition[index] = defPtrX[i];
             referencePosition[index+1] = defPtrY[i];
-            floatingPosition[index] = defPtrX[i] + gradPtrX[i];
-            floatingPosition[index+1] = defPtrY[i] + gradPtrY[i];
+            if(isGradient){
+               floatingPosition[index] = defPtrX[i] + gradPtrX[i];
+               floatingPosition[index+1] = defPtrY[i] + gradPtrY[i];
+            }
+            else{
+               floatingPosition[index] = gradPtrX[i];
+               floatingPosition[index+1] = gradPtrY[i];
+            }
             if(imageDim>2){
                referencePosition[index+2] = defPtrZ[i];
-               floatingPosition[index+2] = defPtrZ[i] + gradPtrZ[i];
+               if(isGradient)
+                  floatingPosition[index+2] = defPtrZ[i] + gradPtrZ[i];
+               else floatingPosition[index+2] = gradPtrZ[i];
                index+=3;
             }
             else index +=2;
@@ -907,8 +916,10 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
       // Extract the rigid matrix that best fits the gradient
       mat44 currentMatrix;
       if(imageDim>2)
-         optimize_2D(referencePosition,floatingPosition,activeVoxel,50,20,0.001f,&currentMatrix,false);
-      else optimize_3D(referencePosition,floatingPosition,activeVoxel,50,20,0.001f,&currentMatrix,false);
+         optimize_3D(referencePosition,floatingPosition,activeVoxel,
+                     50,20,0.001f,&currentMatrix,false);
+      else optimize_2D(referencePosition,floatingPosition,activeVoxel,
+                       50,20,0.001f,&currentMatrix,false);
       free(referencePosition);
       free(floatingPosition);
       // Replace the gradient values where needed
@@ -917,7 +928,7 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(voxelNumber, currentMaskPtr, defPtrX, defPtrY, defPtrZ, \
-   currentMatrix, gradPtrX, gradPtrY, gradPtrZ, imageDim) \
+   currentMatrix, gradPtrX, gradPtrY, gradPtrZ, imageDim, isGradient) \
    private(i, tempRefPos, tempFloPos)
 #endif
       for(i=0; i<voxelNumber; ++i)
@@ -933,10 +944,19 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
             // Compute the corresponding position based on the recovered matrix
             reg_mat44_mul(&currentMatrix, tempRefPos, tempFloPos);
             // Store the displacement as gradient
-            gradPtrX[i] = tempFloPos[0] - tempRefPos[0];
-            gradPtrY[i] = tempFloPos[1] - tempRefPos[1];
-            if(imageDim>2)
-               gradPtrZ[i] = tempFloPos[2] - tempRefPos[2];
+            if(isGradient){
+               gradPtrX[i] = tempFloPos[0] - tempRefPos[0];
+               gradPtrY[i] = tempFloPos[1] - tempRefPos[1];
+            }
+            else{
+               gradPtrX[i] = tempFloPos[0];
+               gradPtrY[i] = tempFloPos[1];
+            }
+            if(imageDim>2){
+               if(isGradient)
+                  gradPtrZ[i] = tempFloPos[2] - tempRefPos[2];
+               else gradPtrZ[i] = tempFloPos[2];
+            }
          } // active voxel
       } // loop over voxels
    } // Loop over timepoints
@@ -946,7 +966,8 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
 }
 /* *************************************************************** */
 void regulariseNonLinearGradientWithRigidConstraint(nifti_image *gradientImage,
-                                                    nifti_image *maskImage)
+                                                    nifti_image *maskImage,
+                                                    bool isGradient)
 {
    if(maskImage->datatype!=NIFTI_TYPE_UINT8){
       reg_print_fct_error("regulariseNonLinearGradientWithRigidConstraint");
@@ -956,11 +977,11 @@ void regulariseNonLinearGradientWithRigidConstraint(nifti_image *gradientImage,
    switch(gradientImage->datatype){
    case NIFTI_TYPE_FLOAT32:
       regulariseNonLinearGradientWithRigidConstraint_core<float>
-            (gradientImage, maskImage);
+            (gradientImage, maskImage, isGradient);
       break;
    case NIFTI_TYPE_FLOAT64:
       regulariseNonLinearGradientWithRigidConstraint_core<double>
-            (gradientImage, maskImage);
+            (gradientImage, maskImage, isGradient);
       break;
    default:
       reg_print_fct_error("regulariseNonLinearGradientWithRigidConstraint");

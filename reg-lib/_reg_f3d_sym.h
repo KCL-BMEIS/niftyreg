@@ -54,6 +54,7 @@ protected:
    virtual void ClearVoxelBasedMeasureGradient();
    virtual void AllocateTransformationGradient();
    virtual void ClearTransformationGradient();
+   virtual void AllocateRigidConstraintMask();
    virtual T InitialiseCurrentLevel();
    virtual void ClearCurrentInputImage();
 

@@ -249,6 +249,9 @@ void reg_f3d<T>::AllocateRigidConstraintMask()
                         0, // nearest-neighboor interpolation
                         0 // padding with a value of 0
                         );
+      regulariseNonLinearGradientWithRigidConstraint(this->controlPointGrid,
+                                                     this->currentRigidMask,
+                                                     false);
    }
 }
 /* *************************************************************** */
@@ -1142,7 +1145,8 @@ void reg_f3d<T>::ApplyGradientRigidConstraint()
 {
    if(this->use_rigidConstraint){
       regulariseNonLinearGradientWithRigidConstraint(this->transformationGradient,
-                                                     this->currentRigidMask);
+                                                     this->currentRigidMask,
+                                                     true);
    }
 }
 /* *************************************************************** */

@@ -414,6 +414,18 @@ void reg_f3d_sym<T>::ClearTransformationGradient()
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template <class T>
+void reg_f3d_sym<T>::AllocateRigidConstraintMask()
+{
+   if(this->use_rigidConstraint==true && this->inputRigidMask!=NULL){
+      reg_f3d<T>::AllocateRigidConstraintMask();
+      regulariseNonLinearGradientWithRigidConstraint(this->backwardControlPointGrid,
+                                                     this->currentRigidMask,
+                                                     false);
+   }
+}
+/* *************************************************************** */
+/* *************************************************************** */
 template<class T>
 void reg_f3d_sym<T>::CheckParameters()
 {
@@ -1139,7 +1151,8 @@ void reg_f3d_sym<T>::ApplyGradientRigidConstraint()
    reg_f3d<T>::ApplyGradientRigidConstraint();
    if(this->use_rigidConstraint){
       regulariseNonLinearGradientWithRigidConstraint(this->backwardTransformationGradient,
-                                                     this->currentRigidMask);
+                                                     this->currentRigidMask,
+                                                     true);
    }
 }
 /* *************************************************************** */
