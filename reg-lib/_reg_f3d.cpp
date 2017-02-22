@@ -217,13 +217,6 @@ void reg_f3d<T>::AllocateRigidConstraintMask()
          reg_print_msg_error("The transformation gradient image is not defined");
          reg_exit();
       }
-      if(this->transformationGradient->dx != this->currentReference->dx ||
-         this->transformationGradient->dy != this->currentReference->dy ||
-         this->transformationGradient->dz != this->currentReference->dz){
-         reg_print_fct_error("reg_f3d<T>::AllocateRigidConstraintMask()");
-         reg_print_msg_error("This constraint can only be used for 1 voxel control point spacing parametrisation, for now");
-         reg_exit();
-      }
       // Allocate the current mask image based on the size of the gradient along the
       // x, y and z axes and the input rigid mask image for the rest
       this->currentRigidMask = nifti_copy_nim_info(this->transformationGradient);
@@ -883,9 +876,6 @@ T reg_f3d<T>::NormaliseGradient()
          maxGradValue = (length>maxGradValue)?length:maxGradValue;
       }
    }
-   //	reg_heapSort(length,voxNumber);
-   //	T maxGradValue = (T)(length[90*voxNumber/100 - 1]);
-   //	free(length);
 
 
    if(strcmp(this->executableName,"NiftyReg F3D")==0)
@@ -912,12 +902,6 @@ T reg_f3d<T>::NormaliseGradient()
                valY = *ptrY;
             if(this->optimiseZ==true)
                valZ = *ptrZ;
-            //				T tempLength = (float)(sqrt(valX*valX + valY*valY + valZ*valZ));
-            //				if(tempLength>maxGradValue){
-            //					*ptrX *= maxGradValue / tempLength;
-            //					*ptrY *= maxGradValue / tempLength;
-            //					*ptrZ *= maxGradValue / tempLength;
-            //				}
             *ptrX++ = valX / maxGradValue;
             *ptrY++ = valY / maxGradValue;
             *ptrZ++ = valZ / maxGradValue;
@@ -934,11 +918,6 @@ T reg_f3d<T>::NormaliseGradient()
                valX = *ptrX;
             if(this->optimiseY==true)
                valY = *ptrY;
-            //				T tempLength = (float)(sqrt(valX*valX + valY*valY));
-            //				if(tempLength>maxGradValue){
-            //					*ptrX *= maxGradValue / tempLength;
-            //					*ptrY *= maxGradValue / tempLength;
-            //				}
             *ptrX++ = valX / maxGradValue;
             *ptrY++ = valY / maxGradValue;
          }
@@ -948,10 +927,6 @@ T reg_f3d<T>::NormaliseGradient()
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::NormaliseGradient");
 #endif
-
-   //   reg_io_WriteImageFile(transformationGradient,
-   //                         "gradient.nii");
-   //   reg_exit();
 
    return maxGradValue;
 }
