@@ -242,6 +242,18 @@ void reg_f3d<T>::AllocateRigidConstraintMask()
                         0, // nearest-neighboor interpolation
                         0 // padding with a value of 0
                         );
+      reg_tools_changeDatatype<T>(this->currentRigidMask);
+      reg_tools_binarise_image(this->currentRigidMask);
+      float *radius=new float[this->currentRigidMask->nt];
+      for(int i=0; i<this->currentRigidMask->nt; ++i){
+         radius[i]=-1.f;
+      }
+      reg_tools_kernelConvolution(this->currentRigidMask,
+                                  radius,
+                                  MEAN_KERNEL);
+      reg_tools_binarise_image(this->currentRigidMask);
+      reg_tools_changeDatatype<unsigned char>(this->currentRigidMask);
+      delete []radius;
       regulariseNonLinearGradientWithRigidConstraint(this->controlPointGrid,
                                                      this->currentRigidMask,
                                                      false);
