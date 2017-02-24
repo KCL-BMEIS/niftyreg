@@ -430,6 +430,16 @@ void reg_f3d2<T>::UpdateParameters(float scale)
    reg_getDeformationFromDisplacement(this->controlPointGrid);
    reg_getDeformationFromDisplacement(this->backwardControlPointGrid);
 
+
+   if(this->use_rigidConstraint){
+      regulariseNonLinearGradientWithRigidConstraint(this->controlPointGrid,
+                                                     this->currentRigidMask,
+                                                     false);
+      regulariseNonLinearGradientWithRigidConstraint(this->backwardControlPointGrid,
+                                                     this->currentRigidMask,
+                                                     false);
+   }
+
    return;
 }
 /* *************************************************************** */

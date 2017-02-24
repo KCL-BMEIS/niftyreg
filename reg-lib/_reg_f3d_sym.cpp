@@ -1479,8 +1479,8 @@ void reg_f3d_sym<T>::UpdateParameters(float scale)
 
    // Update the control point position
    if(this->optimiser->GetOptimiseX()==true &&
-         this->optimiser->GetOptimiseY()==true &&
-         this->optimiser->GetOptimiseZ()==true)
+      this->optimiser->GetOptimiseY()==true &&
+      this->optimiser->GetOptimiseZ()==true)
    {
       // Update the values for all axis displacement
       for(size_t i=0; i<this->optimiser->GetDOFNumber_b(); ++i)
