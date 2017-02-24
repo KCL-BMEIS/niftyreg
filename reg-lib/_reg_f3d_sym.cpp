@@ -1145,18 +1145,6 @@ T reg_f3d_sym<T>::NormaliseGradient()
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
-void reg_f3d_sym<T>::ApplyGradientRigidConstraint()
-{
-   reg_f3d<T>::ApplyGradientRigidConstraint();
-   if(this->use_rigidConstraint){
-      regulariseNonLinearGradientWithRigidConstraint(this->backwardTransformationGradient,
-                                                     this->currentRigidMask,
-                                                     true);
-   }
-}
-/* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_f3d_sym<T>::GetObjectiveFunctionGradient()
 {
@@ -1533,6 +1521,12 @@ void reg_f3d_sym<T>::UpdateParameters(float scale)
             currentDOFZ_b[i] = bestDOFZ_b[i] + scale * gradientZ_b[i];
          }
       }
+   }
+   // Apply the rigid constraint if required
+   if(this->use_rigidConstraint){
+      regulariseNonLinearGradientWithRigidConstraint(this->backwardControlPointGrid,
+                                                     this->currentRigidMask,
+                                                     false);
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::UpdateParameters");

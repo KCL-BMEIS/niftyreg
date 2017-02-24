@@ -917,9 +917,9 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
       mat44 currentMatrix;
       if(imageDim>2)
          optimize_3D(referencePosition,floatingPosition,activeVoxel,
-                     50,20,0.001f,&currentMatrix,false);
+                     100,1,0.001f,&currentMatrix,false);
       else optimize_2D(referencePosition,floatingPosition,activeVoxel,
-                       50,20,0.001f,&currentMatrix,false);
+                       100,1,0.001f,&currentMatrix,false);
       free(referencePosition);
       free(floatingPosition);
       // Replace the gradient values where needed

@@ -1576,9 +1576,6 @@ void reg_base<T>::Run()
             // Compute the objective function gradient
             this->GetObjectiveFunctionGradient();
 
-            // Apply the rigid constraint if required
-            this->ApplyGradientRigidConstraint();
-
             // Normalise the gradient
             this->NormaliseGradient();
 

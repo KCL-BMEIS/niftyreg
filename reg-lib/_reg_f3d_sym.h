@@ -71,7 +71,6 @@ protected:
    virtual void GetLinearEnergyGradient();
    virtual void GetJacobianBasedGradient();
    virtual void GetLandmarkDistanceGradient();
-   virtual void ApplyGradientRigidConstraint();
    virtual void SetGradientImageToZero();
    virtual T NormaliseGradient();
    virtual void SmoothGradient();

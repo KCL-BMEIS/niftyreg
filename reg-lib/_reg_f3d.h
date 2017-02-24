@@ -58,7 +58,6 @@ protected:
    virtual void GetObjectiveFunctionGradient();
    virtual void GetApproximatedGradient();
    void GetSimilarityMeasureGradient();
-   void ApplyGradientRigidConstraint();
 
    virtual void GetDeformationField();
    virtual void DisplayCurrentLevelParameters();

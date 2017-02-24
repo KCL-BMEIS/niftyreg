@@ -150,10 +150,6 @@ protected:
    virtual void WarpFloatingImage(int);
    virtual double ComputeSimilarityMeasure();
    virtual void GetVoxelBasedGradient();
-   virtual void ApplyGradientRigidConstraint()
-   {
-      return;
-   }
    virtual void SmoothGradient()
    {
       return;

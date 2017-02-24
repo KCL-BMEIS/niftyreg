@@ -1100,6 +1100,12 @@ void reg_f3d<T>::UpdateParameters(float scale)
          }
       }
    }
+   // Apply the rigid constraint if required
+   if(this->use_rigidConstraint){
+      regulariseNonLinearGradientWithRigidConstraint(this->controlPointGrid,
+                                                     this->currentRigidMask,
+                                                     false);
+   }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::UpdateParameters");
 #endif
@@ -1124,17 +1130,6 @@ void reg_f3d<T>::SetOptimiser()
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::SetOptimiser");
 #endif
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d<T>::ApplyGradientRigidConstraint()
-{
-   if(this->use_rigidConstraint){
-      regulariseNonLinearGradientWithRigidConstraint(this->transformationGradient,
-                                                     this->currentRigidMask,
-                                                     true);
-   }
 }
 /* *************************************************************** */
 /* *************************************************************** */
