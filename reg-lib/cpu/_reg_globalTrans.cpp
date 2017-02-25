@@ -889,12 +889,15 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
       float *floatingPosition = (float *)malloc(activeVoxel*imageDim*sizeof(float));
       // Loop over all voxel
       size_t index=0;
+
+      float barycentre[3]={0.f, 0.f, 0.f};
+
       for(i=0; i<voxelNumber; ++i)
       {
          if(currentMaskPtr[i]>0){
             // Extract the reference and floating position
-            referencePosition[index] = defPtrX[i];
-            referencePosition[index+1] = defPtrY[i];
+            barycentre[0] += referencePosition[index] = defPtrX[i];
+            barycentre[1] += referencePosition[index+1] = defPtrY[i];
             if(isGradient){
                floatingPosition[index] = defPtrX[i] + gradPtrX[i];
                floatingPosition[index+1] = defPtrY[i] + gradPtrY[i];
@@ -904,7 +907,7 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
                floatingPosition[index+1] = gradPtrY[i];
             }
             if(imageDim>2){
-               referencePosition[index+2] = defPtrZ[i];
+               barycentre[2] += referencePosition[index+2] = defPtrZ[i];
                if(isGradient)
                   floatingPosition[index+2] = defPtrZ[i] + gradPtrZ[i];
                else floatingPosition[index+2] = gradPtrZ[i];
@@ -913,15 +916,45 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
             else index +=2;
          } // active voxel
       } // loop over voxels
+      barycentre[0] /= static_cast<float>(activeVoxel);
+      barycentre[1] /= static_cast<float>(activeVoxel);
+      barycentre[2] /= static_cast<float>(activeVoxel);
+      i=0;
+      while(i<activeVoxel*imageDim){
+         referencePosition[i] -= barycentre[0];
+         floatingPosition[i] -= barycentre[0];
+         ++i;
+         referencePosition[i] -= barycentre[1];
+         floatingPosition[i] -= barycentre[1];
+         ++i;
+         if(imageDim>2){
+            referencePosition[i] -= barycentre[2];
+            floatingPosition[i] -= barycentre[2];
+            ++i;
+         }
+      }
+
       // Extract the rigid matrix that best fits the gradient
       mat44 currentMatrix;
       if(imageDim>2)
          optimize_3D(referencePosition,floatingPosition,activeVoxel,
-                     100,1,0.001f,&currentMatrix,false);
+                     50,5,0.001f,&currentMatrix,false);
       else optimize_2D(referencePosition,floatingPosition,activeVoxel,
-                       100,1,0.001f,&currentMatrix,false);
+                       50,5,0.001f,&currentMatrix,false);
       free(referencePosition);
       free(floatingPosition);
+      // Apply a change of origin
+      mat44 mat1;reg_mat44_eye(&mat1);
+      mat44 mat2;reg_mat44_eye(&mat2);
+      mat1.m[0][3] = barycentre[0];
+      mat2.m[0][3] = -barycentre[0];
+      mat1.m[1][3] = barycentre[1];
+      mat2.m[1][3] = -barycentre[1];
+      if(imageDim>2){
+         mat1.m[2][3] = barycentre[2];
+         mat2.m[2][3] = -barycentre[2];
+      }
+      currentMatrix = mat1 * currentMatrix * mat2;
       // Replace the gradient values where needed
       float tempRefPos[4]={0.f, 0.f, 0.f, 1.f};
       float tempFloPos[4]={0.f, 0.f, 0.f, 1.f};
@@ -953,8 +986,9 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
                gradPtrY[i] = tempFloPos[1];
             }
             if(imageDim>2){
-               if(isGradient)
+               if(isGradient){
                   gradPtrZ[i] = tempFloPos[2] - tempRefPos[2];
+               }
                else gradPtrZ[i] = tempFloPos[2];
             }
          } // active voxel
