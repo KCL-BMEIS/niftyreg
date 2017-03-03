@@ -997,7 +997,6 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
    if(composition)  // Composition of deformation fields
    {
-
       // read the ijk sform or qform, as appropriate
       mat44 referenceMatrix_real_to_voxel;
       if(splineControlPoint->sform_code>0)

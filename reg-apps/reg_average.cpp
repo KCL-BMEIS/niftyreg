@@ -275,7 +275,7 @@ int compute_nrr_demean(nifti_image *demean_field,
       nifti_image *transformation = reg_io_ReadImageFile(inputNRRName[t]);
       // Generate the deformation or flow field
       nifti_image *deformationField = nifti_copy_nim_info(demean_field);
-      deformationField->data = (void *)malloc(deformationField->nvox*deformationField->nbyper);
+      deformationField->data = (void *)calloc(deformationField->nvox,deformationField->nbyper);
       reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
       deformationField->scl_slope=1.f;
       deformationField->scl_inter=0.f;
@@ -334,10 +334,10 @@ int compute_nrr_demean(nifti_image *demean_field,
             deformationField->intent_p1=DISP_VEL_FIELD;
       }
       else reg_getDisplacementFromDeformation(deformationField);
-      free(transformation);
+      nifti_image_free(transformation);
       // The current field is added to the average image
       reg_tools_addImageToImage(demean_field,deformationField,demean_field);
-      free(deformationField);
+      nifti_image_free(deformationField);
    } // iteration over transformation: t
    // The average image is normalised by the number of inputs
    reg_tools_divideValueToImage(demean_field,demean_field,transformationNumber);
@@ -436,7 +436,7 @@ int compute_average_image(nifti_image *averageImage,
          default: reg_print_msg_error("Unsupported transformation type")
                   reg_exit();
          }
-         free(current_transformation);
+         nifti_image_free(current_transformation);
          if(demeanField!=NULL){
             if(deformationField->intent_p1==DEF_VEL_FIELD){
                reg_tools_substractImageToImage(deformationField,demeanField,deformationField);
@@ -478,6 +478,7 @@ int compute_average_image(nifti_image *averageImage,
       // Apply the transformation
       reg_resampleImage(current_input_image, warpedImage, deformationField, NULL, 3, std::numeric_limits<float>::quiet_NaN());
       nifti_image_free(deformationField);
+      nifti_image_free(current_input_image);
       // Add the image to the average
       remove_nan_and_add(averageImage, warpedImage, definedValue);
       nifti_image_free(warpedImage);
