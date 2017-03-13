@@ -14,6 +14,7 @@
 
 #include "_reg_ReadWriteImage.h"
 #include "_reg_tools.h"
+#include "_reg_stringFormat.h"
 
 /* *************************************************************** */
 void reg_hack_filename(nifti_image *image, const char *filename)
@@ -185,7 +186,7 @@ void reg_io_diplayImageData1(nifti_image *image)
     reg_print_msg_debug("image values:");
     size_t voxelNumber = (size_t)image->nx * image->ny * image->nz;
     DTYPE *data = static_cast<DTYPE *>(image->data);
-    char text[255];
+    std::string text;
 
     size_t voxelIndex=0;
     for(int z=0; z<image->nz; z++)
@@ -194,12 +195,13 @@ void reg_io_diplayImageData1(nifti_image *image)
        {
           for(int x=0; x<image->nx; x++)
           {
-             sprintf(text, "[%d - %d - %d] = [", x, y, z);
+             text = stringFormat("[%d - %d - %d] = [", x, y, z);
              for(int tu=0;tu<image->nt*image->nu; ++tu){
-                sprintf(text,"%s%g ", text, static_cast<double>(data[voxelIndex + tu*voxelNumber]));
+                text = stringFormat("%s%g ", text.c_str(),
+                    static_cast<double>(data[voxelIndex + tu*voxelNumber]));
              }
-             sprintf(text,"%s]", text);
-             reg_print_msg_debug(text);
+             text = stringFormat("%s]", text.c_str());
+             reg_print_msg_debug(text.c_str());
           }
        }
     }

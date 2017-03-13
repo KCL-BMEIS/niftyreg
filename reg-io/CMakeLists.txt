@@ -20,11 +20,13 @@ if(USE_NRRD)
 endif(USE_NRRD)
 
 # Create the reg_io library
-add_library(_reg_ReadWriteImage _reg_ReadWriteImage.h _reg_ReadWriteImage.cpp _reg_ReadWriteMatrix.h _reg_ReadWriteMatrix.cpp _reg_ReadWriteBinary.h _reg_ReadWriteBinary.cpp)
+add_library(_reg_ReadWriteImage _reg_ReadWriteImage.h _reg_ReadWriteImage.cpp
+_reg_ReadWriteMatrix.h _reg_ReadWriteMatrix.cpp _reg_ReadWriteBinary.h
+_reg_ReadWriteBinary.cpp _reg_stringFormat.h _reg_stringFormat.cpp)
 target_link_libraries(_reg_ReadWriteImage ${LIBRARIES})
 install(TARGETS _reg_ReadWriteImage
         RUNTIME DESTINATION bin COMPONENT Development
         LIBRARY DESTINATION lib COMPONENT Development
         ARCHIVE DESTINATION lib COMPONENT Development
 )
-install(FILES _reg_ReadWriteImage.h _reg_ReadWriteMatrix.h DESTINATION include COMPONENT Development)
+install(FILES _reg_ReadWriteImage.h _reg_ReadWriteMatrix.h _reg_stringFormat.h DESTINATION include COMPONENT Development)
