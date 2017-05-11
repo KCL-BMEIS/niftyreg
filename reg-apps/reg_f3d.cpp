@@ -186,7 +186,7 @@ int main(int argc, char **argv)
    omp_set_num_threads(defaultOpenMPValue);
 #endif
 
-   char text[2048];
+   std::string text;
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check if any information is required
    for(int i=1; i<argc; i++)
@@ -231,10 +231,11 @@ int main(int argc, char **argv)
 #endif
       reg_print_info((argv[0]), "");
       reg_print_info((argv[0]), "Command line:");
-      sprintf(text, "\t");
-      for(int i=0; i<argc; i++)
-         sprintf(text+strlen(text), " %s", argv[i]);
-      reg_print_info((argv[0]), text);
+      text = "\t";
+      for(int i=0; i<argc; i++) {
+        text = stringFormat("%s %s", text.c_str(), argv[i]);
+      }
+      reg_print_info((argv[0]), text.c_str());
       reg_print_info((argv[0]), "");
 #ifdef NDEBUG
    }
@@ -815,8 +816,8 @@ int main(int argc, char **argv)
    if(verbose)
    {
       int maxThreadNumber = omp_get_max_threads();
-      sprintf(text, "OpenMP is used with %i thread(s)", maxThreadNumber);
-      reg_print_info((argv[0]), text);
+      text = stringFormat("OpenMP is used with %i thread(s)", maxThreadNumber);
+      reg_print_info((argv[0]), text.c_str());
    }
 #endif // _OPENMP
 
@@ -932,8 +933,8 @@ int main(int argc, char **argv)
       time(&end);
       int minutes=(int)floorf((end-start)/60.0f);
       int seconds=(int)(end-start - 60*minutes);
-      sprintf(text, "Registration performed in %i min %i sec", minutes, seconds);
-      reg_print_info((argv[0]), text);
+      text = stringFormat("Registration performed in %i min %i sec", minutes, seconds);
+      reg_print_info((argv[0]), text.c_str());
       reg_print_info((argv[0]), "Have a good day !");
 #ifdef NDEBUG
    }

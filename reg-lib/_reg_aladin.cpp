@@ -3,6 +3,7 @@
 
 #include "_reg_ReadWriteMatrix.h"
 #include "_reg_aladin.h"
+#include "_reg_stringFormat.h"
 #include "Platform.h"
 #include "AffineDeformationFieldKernel.h"
 #include "ResampleImageKernel.h"
@@ -213,28 +214,28 @@ int reg_aladin<T>::Print()
   if(this->Verbose)
   {
 #endif
-    char text[255];
+    std::string text;
     reg_print_info(this->executableName, "Parameters");
-    sprintf(text, "Platform: %s", this->platform->getName().c_str());
-    reg_print_info(this->executableName, text);
-    sprintf(text, "Reference image name: %s", this->InputReference->fname);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "\t%ix%ix%i voxels", this->InputReference->nx, this->InputReference->ny, this->InputReference->nz);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "\t%gx%gx%g mm", this->InputReference->dx, this->InputReference->dy, this->InputReference->dz);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "Floating image name: %s", this->InputFloating->fname);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "\t%ix%ix%i voxels", this->InputFloating->nx, this->InputFloating->ny, this->InputFloating->nz);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "\t%gx%gx%g mm", this->InputFloating->dx, this->InputFloating->dy, this->InputFloating->dz);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "Maximum iteration number: %i", this->MaxIterations);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "\t(%i during the first level)", 2 * this->MaxIterations);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "Percentage of blocks: %i %%", this->BlockPercentage);
-    reg_print_info(this->executableName, text);
+    text = stringFormat("Platform: %s", this->platform->getName().c_str());
+    reg_print_info(this->executableName, text.c_str());
+    text = stringFormat("Reference image name: %s", this->InputReference->fname);
+    reg_print_info(this->executableName, text.c_str());
+    text = stringFormat("\t%ix%ix%i voxels", this->InputReference->nx, this->InputReference->ny, this->InputReference->nz);
+    reg_print_info(this->executableName, text.c_str());
+    text = stringFormat("\t%gx%gx%g mm", this->InputReference->dx, this->InputReference->dy, this->InputReference->dz);
+    reg_print_info(this->executableName, text.c_str());
+    text = stringFormat("Floating image name: %s", this->InputFloating->fname);
+    reg_print_info(this->executableName, text.c_str());
+    text = stringFormat("\t%ix%ix%i voxels", this->InputFloating->nx, this->InputFloating->ny, this->InputFloating->nz);
+    reg_print_info(this->executableName, text.c_str());
+    text = stringFormat("\t%gx%gx%g mm", this->InputFloating->dx, this->InputFloating->dy, this->InputFloating->dz);
+    reg_print_info(this->executableName, text.c_str());
+    text = stringFormat("Maximum iteration number: %i", this->MaxIterations);
+    reg_print_info(this->executableName, text.c_str());
+    text = stringFormat("\t(%i during the first level)", 2 * this->MaxIterations);
+    reg_print_info(this->executableName, text.c_str());
+    text = stringFormat("Percentage of blocks: %i %%", this->BlockPercentage);
+    reg_print_info(this->executableName, text.c_str());
     reg_print_info(this->executableName, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 #ifdef NDEBUG
   }
@@ -335,10 +336,10 @@ void reg_aladin<T>::InitialiseRegistration()
     }
     else
     {
-      char text[255];
-      sprintf(text, "The specified input affine file (%s) can not be read", this->InputTransformName);
+      std::string text;
+      text = stringFormat("The specified input affine file (%s) can not be read", this->InputTransformName);
       reg_print_fct_error("reg_aladin<T>::InitialiseRegistration()");
-      reg_print_msg_error(text);
+      reg_print_msg_error(text.c_str());
       reg_exit();
     }
     reg_tool_ReadAffineFile(this->TransformationMatrix, this->InputTransformName);

@@ -323,95 +323,95 @@ void reg_f3d<T>::Initialise()
    if(this->verbose)
    {
 #endif
-      char text[255];
+     std::string text;
       // Print out some global information about the registration
       reg_print_info(this->executableName, "***********************************************************");
       reg_print_info(this->executableName, "INPUT PARAMETERS");
       reg_print_info(this->executableName, "***********************************************************");
       reg_print_info(this->executableName, "Reference image:");
-      sprintf(text, "\t* name: %s", this->inputReference->fname);
-      reg_print_info(this->executableName, text);
-      sprintf(text, "\t* image dimension: %i x %i x %i x %i",
+      text = stringFormat("\t* name: %s", this->inputReference->fname);
+      reg_print_info(this->executableName, text.c_str());
+      text = stringFormat("\t* image dimension: %i x %i x %i x %i",
               this->inputReference->nx, this->inputReference->ny,
               this->inputReference->nz, this->inputReference->nt);
-      reg_print_info(this->executableName, text);
-      sprintf(text, "\t* image spacing: %g x %g x %g mm",
+      reg_print_info(this->executableName, text.c_str());
+      text = stringFormat("\t* image spacing: %g x %g x %g mm",
               this->inputReference->dx,
               this->inputReference->dy, this->inputReference->dz);
-      reg_print_info(this->executableName, text);
+      reg_print_info(this->executableName, text.c_str());
       for(int i=0; i<this->inputReference->nt; i++)
       {
-         sprintf(text, "\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
+         text = stringFormat("\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
                  i, this->inputReference->nt-1, this->referenceThresholdLow[i],this->referenceThresholdUp[i]);
-         reg_print_info(this->executableName, text);
+         reg_print_info(this->executableName, text.c_str());
          if(this->measure_nmi!=NULL){
             if(this->measure_nmi->GetTimepointsWeights()[i]>0.0){
-               sprintf(text, "\t* binnining size for timepoint %i/%i: %i",
+               text = stringFormat("\t* binnining size for timepoint %i/%i: %i",
                        i, this->inputFloating->nt-1, this->measure_nmi->GetReferenceBinNumber()[i]-4);
-               reg_print_info(this->executableName, text);
+               reg_print_info(this->executableName, text.c_str());
             }
          }
       }
-      sprintf(text, "\t* gaussian smoothing sigma: %g", this->referenceSmoothingSigma);
-      reg_print_info(this->executableName, text);
+      text = stringFormat("\t* gaussian smoothing sigma: %g", this->referenceSmoothingSigma);
+      reg_print_info(this->executableName, text.c_str());
       reg_print_info(this->executableName, "");
       reg_print_info(this->executableName, "Floating image:");
-      reg_print_info(this->executableName, text);
-      sprintf(text, "\t* name: %s", this->inputFloating->fname);
-      reg_print_info(this->executableName, text);
-      sprintf(text, "\t* image dimension: %i x %i x %i x %i",
+      reg_print_info(this->executableName, text.c_str());
+      text = stringFormat("\t* name: %s", this->inputFloating->fname);
+      reg_print_info(this->executableName, text.c_str());
+      text = stringFormat("\t* image dimension: %i x %i x %i x %i",
               this->inputFloating->nx, this->inputFloating->ny,
               this->inputFloating->nz, this->inputFloating->nt);
-      reg_print_info(this->executableName, text);
-      sprintf(text, "\t* image spacing: %g x %g x %g mm",
+      reg_print_info(this->executableName, text.c_str());
+      text = stringFormat("\t* image spacing: %g x %g x %g mm",
               this->inputFloating->dx,
               this->inputFloating->dy, this->inputFloating->dz);
-      reg_print_info(this->executableName, text);
+      reg_print_info(this->executableName, text.c_str());
       for(int i=0; i<this->inputFloating->nt; i++)
       {
-         sprintf(text, "\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
+         text = stringFormat("\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
                  i, this->inputFloating->nt-1, this->floatingThresholdLow[i],this->floatingThresholdUp[i]);
-         reg_print_info(this->executableName, text);
+         reg_print_info(this->executableName, text.c_str());
          if(this->measure_nmi!=NULL){
           if (this->measure_nmi->GetTimepointsWeights()[i]>0.0){
-               sprintf(text, "\t* binnining size for timepoint %i/%i: %i",
+               text = stringFormat("\t* binnining size for timepoint %i/%i: %i",
                        i, this->inputFloating->nt-1, this->measure_nmi->GetFloatingBinNumber()[i]-4);
-               reg_print_info(this->executableName, text);
+               reg_print_info(this->executableName, text.c_str());
             }
          }
       }
-      sprintf(text, "\t* gaussian smoothing sigma: %g", this->floatingSmoothingSigma);
-      reg_print_info(this->executableName, text);
+      text = stringFormat("\t* gaussian smoothing sigma: %g", this->floatingSmoothingSigma);
+      reg_print_info(this->executableName, text.c_str());
       reg_print_info(this->executableName, "");
-      sprintf(text, "Warped image padding value: %g", this->warpedPaddingValue);
-      reg_print_info(this->executableName, text);
+      text = stringFormat("Warped image padding value: %g", this->warpedPaddingValue);
+      reg_print_info(this->executableName, text.c_str());
       reg_print_info(this->executableName, "");
-      sprintf(text, "Level number: %i", this->levelNumber);
-      reg_print_info(this->executableName, text);
+      text = stringFormat("Level number: %i", this->levelNumber);
+      reg_print_info(this->executableName, text.c_str());
       if(this->levelNumber!=this->levelToPerform){
-         sprintf(text, "\t* Level to perform: %i", this->levelToPerform);
-         reg_print_info(this->executableName, text);
+         text = stringFormat("\t* Level to perform: %i", this->levelToPerform);
+         reg_print_info(this->executableName, text.c_str());
       }
       reg_print_info(this->executableName, "");
-      sprintf(text, "Maximum iteration number during the last level: %i", (int)this->maxiterationNumber);
-      reg_print_info(this->executableName, text);
+      text = stringFormat("Maximum iteration number during the last level: %i", (int)this->maxiterationNumber);
+      reg_print_info(this->executableName, text.c_str());
       reg_print_info(this->executableName, "");
 
 #ifdef BUILD_DEV
       if(this->linearSpline){
-         sprintf(text, "Linear interpolation is used for the parametrisation");
-         reg_print_info(this->executableName, text);
+         text = stringFormat("Linear interpolation is used for the parametrisation");
+         reg_print_info(this->executableName, text.c_str());
       }
       else{
 #endif
-         sprintf(text, "Cubic B-Spline is used for the parametrisation");
-         reg_print_info(this->executableName, text);
+         text = stringFormat("Cubic B-Spline is used for the parametrisation");
+         reg_print_info(this->executableName, text.c_str());
 #ifdef BUILD_DEV
       }
 #endif
-      sprintf(text, "Final spacing in mm: %g %g %g",
+      text = stringFormat("Final spacing in mm: %g %g %g",
               this->spacing[0], this->spacing[1], this->spacing[2]);
-      reg_print_info(this->executableName, text);
+      reg_print_info(this->executableName, text.c_str());
       reg_print_info(this->executableName, "");
       if(this->measure_ssd!=NULL)
          reg_print_info(this->executableName, "The SSD is used as a similarity measure.");
@@ -430,23 +430,23 @@ void reg_f3d<T>::Initialise()
                                      this->measure_ssd==NULL && this->measure_mind==NULL  &&
                                      this->measure_mindssc==NULL) )
          reg_print_info(this->executableName, "The NMI is used as a similarity measure.");
-      sprintf(text, "Similarity measure term weight: %g", this->similarityWeight);
-      reg_print_info(this->executableName, text);
+      text = stringFormat("Similarity measure term weight: %g", this->similarityWeight);
+      reg_print_info(this->executableName, text.c_str());
       reg_print_info(this->executableName, "");
       if(this->bendingEnergyWeight>0){
-         sprintf(text, "Bending energy penalty term weight: %g", this->bendingEnergyWeight);
-         reg_print_info(this->executableName, text);
+         text = stringFormat("Bending energy penalty term weight: %g", this->bendingEnergyWeight);
+         reg_print_info(this->executableName, text.c_str());
          reg_print_info(this->executableName, "");
       }
       if((this->linearEnergyWeight)>0){
-         sprintf(text, "Linear energy penalty term weight: %g",
+         text = stringFormat("Linear energy penalty term weight: %g",
                  this->linearEnergyWeight);
-         reg_print_info(this->executableName, text);
+         reg_print_info(this->executableName, text.c_str());
          reg_print_info(this->executableName, "");
       }
       if(this->jacobianLogWeight>0){
-         sprintf(text, "Jacobian-based penalty term weight: %g", this->jacobianLogWeight);
-         reg_print_info(this->executableName, text);
+         text = stringFormat("Jacobian-based penalty term weight: %g", this->jacobianLogWeight);
+         reg_print_info(this->executableName, text.c_str());
          if(this->jacobianLogApproximation){
             reg_print_info(this->executableName, "\t* Jacobian-based penalty term is approximated");
          }
@@ -454,16 +454,16 @@ void reg_f3d<T>::Initialise()
          reg_print_info(this->executableName, "");
       }
       if((this->landmarkRegWeight)>0){
-         sprintf(text, "Landmark distance regularisation term weight: %g",
+         text = stringFormat("Landmark distance regularisation term weight: %g",
                  this->landmarkRegWeight);
-         reg_print_info(this->executableName, text);
+         reg_print_info(this->executableName, text.c_str());
          reg_print_info(this->executableName, "");
       }
 #ifdef BUILD_DEV
       if((this->pairwiseEnergyWeight)>0){
-         sprintf(text, "Pairwise energy penalty term weight: %g",
+         text = stringFormat("Pairwise energy penalty term weight: %g",
                  this->pairwiseEnergyWeight);
-         reg_print_info(this->executableName, text);
+         reg_print_info(this->executableName, text.c_str());
          reg_print_info(this->executableName, "");
       }
 #endif
