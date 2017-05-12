@@ -8,7 +8,7 @@
 1 WHAT DOES THE PACKAGE CONTAIN?
 --------------------------------
 The code contains programs to perform rigid, affine and non-linear registration
-of 2D and 3D images stored as Nifti or Analyze (nii or hdr, unzipped or not).
+of 2D and 3D images stored as Nifti or Analyze.
 
 The rigid and affine registration are performed using an algorithm initially
 presented by Ourselin et al.[1]. The symmetric versions of the rigid and
