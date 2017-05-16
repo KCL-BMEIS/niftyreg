@@ -6,12 +6,6 @@
 #include "_reg_mind.h"
 #include "_reg_lncc.h"
 
-#define LNCC_VALUE_2D 0.7367886
-#define NMI_VALUE_2D  1.126839
-
-#define LNCC_VALUE_3D 0.8726988
-#define NMI_VALUE_3D  1.148607
-
 #define EPS 0.000001
 
 int main(int argc, char **argv)
@@ -23,7 +17,7 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
 
-   double max_difference;
+   double max_difference = EPS;
 
    char *inputRefImageName=argv[1];
    char *inputWarImageName=argv[2];
@@ -74,60 +68,7 @@ int main(int argc, char **argv)
    int *mask_image=(int *)calloc(refImage->nvox,sizeof(int));
 
    /* Compute the LNCC if required */
-   if(strcmp(measure_type, "LNCC")==0)
-   {
-      //TO VERIFY !!!!!
-      reg_lncc *measure_object=new reg_lncc();
-      for(int i=0;i<refImage->nt;++i)
-         measure_object->SetTimepointWeight(i, 1.);
-      measure_object->InitialiseMeasure(refImage,
-                                        warImage,
-                                        mask_image,
-                                        warImage,
-                                        NULL,
-                                        NULL);
-      double measure=measure_object->GetSimilarityMeasureValue();
-      printf("reg_test_measure: LNCC value %iD = %.7g\n",
-             (refImage->nz>1?3:2), measure);
-      double expectedValue = LNCC_VALUE_2D;
-      if(refImage->nz>1)
-         expectedValue = LNCC_VALUE_3D;
-      if(fabs(measure-expectedValue)>EPS) {
-         printf("reg_test_measure: Incorrect measure value %.7g (diff=%.7g)\n",
-                measure, fabs(measure-expectedValue));
-         return EXIT_FAILURE;
-      }
-      delete measure_object;
-   }
-   /* Compute the NMI if required */
-   else if(strcmp(measure_type, "NMI")==0)
-   {
-      //TO VERIFY !!!!!
-      reg_nmi *measure_object=new reg_nmi();
-      for(int i=0;i<refImage->nt;++i)
-         measure_object->SetTimepointWeight(i, 1.);
-      measure_object->InitialiseMeasure(refImage,
-                                        warImage,
-                                        mask_image,
-                                        warImage,
-                                        NULL,
-                                        NULL);
-      double measure=measure_object->GetSimilarityMeasureValue();
-      printf("reg_test_measure: NMI value %iD = %.7g\n",
-             (refImage->nz>1?3:2), measure);
-      double expectedValue = NMI_VALUE_2D;
-      if(refImage->nz>1)
-         expectedValue = NMI_VALUE_3D;
-      if(fabs(measure-expectedValue)>EPS)
-      {
-         printf("reg_test_measure: Incorrect measure value %.7g (diff=%.7g)\n",
-                measure, fabs(measure-expectedValue));
-         return EXIT_FAILURE;
-      }
-      delete measure_object;
-   }
-   /* Compute the SSD if required */
-   else if(strcmp(measure_type, "SSD")==0)
+   if(strcmp(measure_type, "SSD")==0)
    {
       reg_ssd *measure_object=new reg_ssd();
       for(int i=0;i<refImage->nt;++i){

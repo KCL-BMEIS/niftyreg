@@ -95,8 +95,6 @@ public:
    void DoNotApproximateJacobianLog();
    void SetSpacing(unsigned int ,T);
 
-   void UseComposition();
-   void DoNotUseComposition();
    void NoGridRefinement()
    {
       this->gridRefinement=false;

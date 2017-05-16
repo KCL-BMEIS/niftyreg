@@ -174,11 +174,15 @@ int main(int argc, char **argv)
    // Parse the input data
    for(int i=1; i<argc; ++i)
    {
-      if(strcmp(argv[i],"-h")==0 || strcmp(argv[i],"--h")==0 ||
-            strcmp(argv[i],"-H")==0 || strcmp(argv[i],"--H")==0 ||
-            strcmp(argv[i],"-help")==0 || strcmp(argv[i],"--help")==0 ||
-            strcmp(argv[i],"-Help")==0 || strcmp(argv[i],"--Help")==0 ||
-            strcmp(argv[i],"-HELP")==0 || strcmp(argv[i],"--HELP")==0)
+      if(strcmp(argv[i],"-h")==0 ||
+            strcmp(argv[i],"-H")==0 ||
+            strcmp(argv[i],"-help")==0 ||
+            strcmp(argv[i],"--help")==0 ||
+            strcmp(argv[i],"-HELP")==0 ||
+            strcmp(argv[i],"--HELP")==0 ||
+            strcmp(argv[i],"-Help")==0 ||
+            strcmp(argv[i],"--Help")==0
+        )
       {
          free(param);
          free(flag);

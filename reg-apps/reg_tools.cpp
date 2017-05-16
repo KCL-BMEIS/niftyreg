@@ -149,9 +149,15 @@ int main(int argc, char **argv)
     /* read the input parameter */
     for(int i=1; i<argc; i++)
     {
-        if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
-                strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
-                strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
+       if(strcmp(argv[i],"-h")==0 ||
+             strcmp(argv[i],"-H")==0 ||
+             strcmp(argv[i],"-help")==0 ||
+             strcmp(argv[i],"--help")==0 ||
+             strcmp(argv[i],"-HELP")==0 ||
+             strcmp(argv[i],"--HELP")==0 ||
+             strcmp(argv[i],"-Help")==0 ||
+             strcmp(argv[i],"--Help")==0
+         )
         {
             Usage(argv[0]);
             return EXIT_SUCCESS;
@@ -191,7 +197,7 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-add") == 0)
         {
             param->operationImageName=argv[++i];
-            if(isNumeric(param->operationImageName)==true)
+            if(isNumeric(param->operationImageName)==0)
             {
                 param->operationValue=(float)atof(param->operationImageName);
                 param->operationImageName=NULL;

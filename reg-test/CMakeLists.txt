@@ -291,12 +291,8 @@ add_test(${EXEC}_MINDSSCDescriptor_3D2 ${EXEC} ${DFOLDER}/warped_linear3D.nii.gz
 set(EXEC reg_test_measure)
 add_executable(${EXEC} ${EXEC}.cpp)
 target_link_libraries(${EXEC} _reg_f3d)
-#   add_test(${EXEC}_LNCC_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/warped_sin2D.nii.gz LNCC)
-#   add_test(${EXEC}_NMI_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/warped_sin2D.nii.gz NMI)
 add_test(${EXEC}_SSD_2D ${EXEC} ${DFOLDER}/expectedMINDDescriptor2D_1.nii.gz ${DFOLDER}/expectedMINDDescriptor2D_2.nii.gz SSD ${DFOLDER}/expectedSSDValue2D.txt)
 add_test(${EXEC}_MINDSSD_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/warped_linear2D.nii.gz MIND ${DFOLDER}/expectedMINDSSDValue2D.txt)
-#   add_test(${EXEC}_LNCC_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/warped_sin3D.nii.gz LNCC)
-#   add_test(${EXEC}_NMI_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/warped_sin3D.nii.gz NMI)
 add_test(${EXEC}_SSD_3D ${EXEC} ${DFOLDER}/expectedMINDDescriptor3D_1.nii.gz ${DFOLDER}/expectedMINDDescriptor3D_2.nii.gz SSD ${DFOLDER}/expectedSSDValue3D.txt)
 add_test(${EXEC}_MINDSSD_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/warped_linear3D.nii.gz MIND ${DFOLDER}/expectedMINDSSDValue3D.txt)
 #-----------------------------------------------------------------------------
