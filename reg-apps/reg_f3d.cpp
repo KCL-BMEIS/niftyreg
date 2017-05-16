@@ -104,7 +104,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
    reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
-   reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98\% ile");
+   reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98% ile");
    reg_print_info(exec, "*** Options for setting the weights for each timepoint for each similarity");
    reg_print_info(exec, "*** Note, the options above should be used first and will set a default weight of 1");
    reg_print_info(exec, "*** The options below should be used afterwards to set the desired weight if different to 1");
@@ -193,9 +193,15 @@ int main(int argc, char **argv)
    // Check if any information is required
    for(int i=1; i<argc; i++)
    {
-      if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
-            strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
-            strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
+      if(strcmp(argv[i],"-h")==0 ||
+            strcmp(argv[i],"-H")==0 ||
+            strcmp(argv[i],"-help")==0 ||
+            strcmp(argv[i],"--help")==0 ||
+            strcmp(argv[i],"-HELP")==0 ||
+            strcmp(argv[i],"--HELP")==0 ||
+            strcmp(argv[i],"-Help")==0 ||
+            strcmp(argv[i],"--Help")==0
+        )
       {
          Usage((argv[0]));
          return EXIT_SUCCESS;
@@ -212,7 +218,11 @@ int main(int argc, char **argv)
       }
       if(strcmp(argv[i], "-voff")==0)
       {
+#ifndef NDEBUG
+         reg_print_msg_debug("The verbose cannot be switch off in debug");
+#else
          verbose=false;
+#endif
       }
       if( strcmp(argv[i], "-version")==0 ||
           strcmp(argv[i], "-Version")==0 ||
