@@ -31,6 +31,7 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
+                          nifti_image *localWeightSimPtr,
                           int *maskFloPtr = NULL,
                           nifti_image *warRefImgPtr = NULL,
                           nifti_image *warRefGraPtr = NULL,
@@ -71,12 +72,13 @@ private:
  */
 extern "C++" template <class DTYPE>
 double reg_getSSDValue(nifti_image *referenceImage,
-                       nifti_image *warpedImage,
-					   double *timePointWeight,
-                       nifti_image *jacobianDeterminantImage,
-                       int *mask,
-                       float *currentValue
-                      );
+							  nifti_image *warpedImage,
+							  double *timePointWeight,
+							  nifti_image *jacobianDeterminantImage,
+							  int *mask,
+							  float *currentValue,
+							  nifti_image *localWeightImage
+							 );
 
 /** @brief Compute a voxel based gradient of the sum squared difference.
  * @param referenceImage First input image to use to compute the metric
@@ -99,7 +101,8 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDeterminantImage,
                                   int *mask,
-								  int current_timepoint,
-								  double timepoint_weight
+                                  int current_timepoint,
+                                  double timepoint_weight,
+                                  nifti_image *localWeightImage
                                  );
 #endif

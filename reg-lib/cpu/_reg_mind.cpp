@@ -413,6 +413,7 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
                                  nifti_image *warFloImgPtr,
                                  nifti_image *warFloGraPtr,
                                  nifti_image *forVoxBasedGraPtr,
+                                 nifti_image *forwardLocalWeightPtr,
                                  int *maskFloPtr,
                                  nifti_image *warRefImgPtr,
                                  nifti_image *warRefGraPtr,
@@ -425,6 +426,7 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
                               warFloImgPtr,
                               warFloGraPtr,
                               forVoxBasedGraPtr,
+                              forwardLocalWeightPtr,
                               maskFloPtr,
                               warRefImgPtr,
                               warRefGraPtr,
@@ -547,7 +549,8 @@ double reg_mind::GetSimilarityMeasureValue()
                    this->timePointWeightDescriptor,
                    NULL, // HERE TODO this->forwardJacDetImagePointer,
                    combinedMask,
-                   this->currentValue
+                   this->currentValue,
+                   NULL
                    );
             break;
          case NIFTI_TYPE_FLOAT64:
@@ -557,7 +560,8 @@ double reg_mind::GetSimilarityMeasureValue()
                    this->timePointWeightDescriptor,
                    NULL, // HERE TODO this->forwardJacDetImagePointer,
                    combinedMask,
-                   this->currentValue
+                   this->currentValue,
+                   NULL
                    );
             break;
          default:
@@ -611,7 +615,8 @@ double reg_mind::GetSimilarityMeasureValue()
                       this->timePointWeightDescriptor,
                       NULL, // HERE TODO this->backwardJacDetImagePointer,
                       combinedMask,
-                      this->currentValue
+                      this->currentValue,
+                      NULL
                       );
                break;
             case NIFTI_TYPE_FLOAT64:
@@ -621,7 +626,8 @@ double reg_mind::GetSimilarityMeasureValue()
                       this->timePointWeightDescriptor,
                       NULL, // HERE TODO this->backwardJacDetImagePointer,
                       combinedMask,
-                      this->currentValue
+                      this->currentValue,
+                      NULL
                       );
                break;
             default:
@@ -702,7 +708,8 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 NULL, // no Jacobian required here,
                 combinedMask,
                 desc_index,
-				1.0 //all discriptors given weight of 1
+                1.0, //all discriptors given weight of 1
+                NULL
                 );
          break;
       case NIFTI_TYPE_FLOAT64:
@@ -713,8 +720,9 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 this->forwardVoxelBasedGradientImagePointer,
                 NULL, // no Jacobian required here,
                 combinedMask,
-				desc_index,
-				1.0 //all discriptors given weight of 1
+                desc_index,
+                1.0, //all discriptors given weight of 1
+                NULL
                 );
          break;
       default:
@@ -778,8 +786,9 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                    this->backwardVoxelBasedGradientImagePointer,
                    NULL, // no Jacobian required here,
                    combinedMask,
-				   desc_index,
-				   1.0 //all discriptors given weight of 1
+                   desc_index,
+                   1.0, //all discriptors given weight of 1
+                   NULL
                    );
             break;
          case NIFTI_TYPE_FLOAT64:
@@ -790,8 +799,9 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                    this->backwardVoxelBasedGradientImagePointer,
                    NULL, // no Jacobian required here,
                    combinedMask,
-				   desc_index,
-				   1.0 //all discriptors given weight of 1
+                   desc_index,
+                   1.0, //all discriptors given weight of 1
+                   NULL
                    );
             break;
          default:

@@ -112,6 +112,8 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-lnccw <tp> <float>\tLNCC Weight. Weight to use for the LNCC similarity measure for the specified timepoint");
    reg_print_info(exec, "\t-ssdw <tp> <float>\tSSD Weight. Weight to use for the SSD similarity measure for the specified timepoint");
    reg_print_info(exec, "\t-kldw <tp> <float>\tKLD Weight. Weight to use for the KLD similarity measure for the specified timepoint");
+   reg_print_info(exec, "\t-wSim <filename>\tWeight to apply to the measure of simillarity at all voxel positions");
+
 
    //   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
    reg_print_info(exec, "");
@@ -310,6 +312,7 @@ int main(int argc, char **argv)
    nifti_image *inputCCPImage=NULL;
    nifti_image *referenceMaskImage=NULL;
    nifti_image *floatingMaskImage=NULL;
+   nifti_image *refLocalWeightSim=NULL;
    char *outputWarpedImageName=NULL;
    char *outputCPPImageName=NULL;
    bool useMeanLNCC=false;
@@ -656,31 +659,36 @@ int main(int argc, char **argv)
          REG->UseDTI(timePoint);
          delete []timePoint;
       }
-     else if (strcmp(argv[i], "-nmiw") == 0)
-     {
-        int tp = atoi(argv[++i]);
-        double w = atof(argv[++i]);
-        REG->SetNMIWeight(tp, w);
-     }
-     else if (strcmp(argv[i], "-lnccw") == 0)
-     {
-        int tp = atoi(argv[++i]);
-        double w = atof(argv[++i]);
-        REG->SetLNCCWeight(tp, w);
-     }
-     else if (strcmp(argv[i], "-ssdw") == 0)
-     {
-        int tp = atoi(argv[++i]);
-        double w = atof(argv[++i]);
-        REG->SetSSDWeight(tp, w);
-     }
-     else if (strcmp(argv[i], "-kldw") == 0)
-     {
-        int tp = atoi(argv[++i]);
-        double w = atof(argv[++i]);
-        REG->SetKLDWeight(tp, w);
-     }
-     else if (strcmp(argv[i], "-pad") == 0)
+      else if (strcmp(argv[i], "-nmiw") == 0)
+      {
+         int tp = atoi(argv[++i]);
+         double w = atof(argv[++i]);
+         REG->SetNMIWeight(tp, w);
+      }
+      else if (strcmp(argv[i], "-lnccw") == 0)
+      {
+         int tp = atoi(argv[++i]);
+         double w = atof(argv[++i]);
+         REG->SetLNCCWeight(tp, w);
+      }
+      else if (strcmp(argv[i], "-ssdw") == 0)
+      {
+         int tp = atoi(argv[++i]);
+         double w = atof(argv[++i]);
+         REG->SetSSDWeight(tp, w);
+      }
+      else if (strcmp(argv[i], "-kldw") == 0)
+      {
+         int tp = atoi(argv[++i]);
+         double w = atof(argv[++i]);
+         REG->SetKLDWeight(tp, w);
+      }
+      else if(strcmp(argv[i], "-wSim") == 0 || strcmp(argv[i], "--wSim") == 0)
+      {
+         refLocalWeightSim = reg_io_ReadImageFile(argv[++i]);
+         REG->SetLocalWeightSim(refLocalWeightSim);
+      }
+      else if (strcmp(argv[i], "-pad") == 0)
       {
          REG->SetWarpedPaddingValue(atof(argv[++i]));
       }
@@ -916,6 +924,7 @@ int main(int argc, char **argv)
    delete REG;
 
    // Clean the allocated images
+   if(refLocalWeightSim!=NULL) nifti_image_free(refLocalWeightSim);
    if(referenceImage!=NULL) nifti_image_free(referenceImage);
    if(floatingImage!=NULL) nifti_image_free(floatingImage);
    if(inputCCPImage!=NULL) nifti_image_free(inputCCPImage);
