@@ -656,31 +656,31 @@ int main(int argc, char **argv)
          REG->UseDTI(timePoint);
          delete []timePoint;
       }
-	  else if (strcmp(argv[i], "-nmiw") == 0)
-	  {
-		  int tp = atoi(argv[++i]);
-		  double w = atof(argv[++i]);
-		  REG->SetNMIWeight(tp, w);
-	  }
-	  else if (strcmp(argv[i], "-lnccw") == 0)
-	  {
-		  int tp = atoi(argv[++i]);
-		  double w = atof(argv[++i]);
-		  REG->SetLNCCWeight(tp, w);
-	  }
-	  else if (strcmp(argv[i], "-ssdw") == 0)
-	  {
-		  int tp = atoi(argv[++i]);
-		  double w = atof(argv[++i]);
-		  REG->SetSSDWeight(tp, w);
-	  }
-	  else if (strcmp(argv[i], "-kldw") == 0)
-	  {
-		  int tp = atoi(argv[++i]);
-		  double w = atof(argv[++i]);
-		  REG->SetKLDWeight(tp, w);
-	  }
-	  else if (strcmp(argv[i], "-pad") == 0)
+     else if (strcmp(argv[i], "-nmiw") == 0)
+     {
+        int tp = atoi(argv[++i]);
+        double w = atof(argv[++i]);
+        REG->SetNMIWeight(tp, w);
+     }
+     else if (strcmp(argv[i], "-lnccw") == 0)
+     {
+        int tp = atoi(argv[++i]);
+        double w = atof(argv[++i]);
+        REG->SetLNCCWeight(tp, w);
+     }
+     else if (strcmp(argv[i], "-ssdw") == 0)
+     {
+        int tp = atoi(argv[++i]);
+        double w = atof(argv[++i]);
+        REG->SetSSDWeight(tp, w);
+     }
+     else if (strcmp(argv[i], "-kldw") == 0)
+     {
+        int tp = atoi(argv[++i]);
+        double w = atof(argv[++i]);
+        REG->SetKLDWeight(tp, w);
+     }
+     else if (strcmp(argv[i], "-pad") == 0)
       {
          REG->SetWarpedPaddingValue(atof(argv[++i]));
       }
@@ -712,9 +712,6 @@ int main(int argc, char **argv)
             break;
          }
       }
-      //        else if(strcmp(argv[i], "-noAppPW")==0){ // HERE TODO
-      //            parzenWindowApproximation=false;
-      //        }
       else if((strcmp(argv[i],"-fmask")==0) || (strcmp(argv[i],"-smask")==0) ||
               (strcmp(argv[i],"--fmask")==0) || (strcmp(argv[i],"--smask")==0))
       {
