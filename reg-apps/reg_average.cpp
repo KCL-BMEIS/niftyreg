@@ -556,9 +556,26 @@ int main(int argc, char **argv)
       arg_num_command=0;
       while(fscanf(cmd_file," %511s", buffer)==1){
          int length = strchr(buffer, '\0')-buffer+1;
-         pointer_to_command[arg_num_command] = (char *)malloc(length*sizeof(char));
-         strcpy(pointer_to_command[arg_num_command], buffer);
-         ++arg_num_command;
+         if(strcmp(buffer, "-omp")==0){
+            fscanf(cmd_file," %511s", buffer);
+#if defined (_OPENMP)
+            omp_set_num_threads(atoi(buffer));
+#else
+            reg_print_msg_warn("OpenMP flag detected and ignored.");
+#endif
+#ifndef NDEBUG
+            reg_print_msg_debug("OpenMP flag detected");
+#if defined (_OPENMP)
+            reg_print_msg_debug("OpenMP core number set to:");
+            reg_print_msg_debug(buffer);
+#endif
+#endif
+         }
+         else{
+            pointer_to_command[arg_num_command] = (char *)malloc(length*sizeof(char));
+            strcpy(pointer_to_command[arg_num_command], buffer);
+            ++arg_num_command;
+         }
       }
       fclose(cmd_file);
    }
@@ -566,6 +583,15 @@ int main(int argc, char **argv)
       pointer_to_command = argv;
       arg_num_command = argc;
    }
+
+#ifndef NDEBUG
+   reg_print_msg_debug("command");
+   for(int i=0;i<arg_num_command;++i){
+      printf("%s ", pointer_to_command[i]);
+   }
+   printf("\n");
+#endif
+
 
    // Set some variables
    int operation;
