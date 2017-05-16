@@ -112,7 +112,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-lnccw <tp> <float>\tLNCC Weight. Weight to use for the LNCC similarity measure for the specified timepoint");
    reg_print_info(exec, "\t-ssdw <tp> <float>\tSSD Weight. Weight to use for the SSD similarity measure for the specified timepoint");
    reg_print_info(exec, "\t-kldw <tp> <float>\tKLD Weight. Weight to use for the KLD similarity measure for the specified timepoint");
-   reg_print_info(exec, "\t-wSim <filename>\tWeight to apply to the measure of simillarity at all voxel positions");
+   reg_print_info(exec, "\t-wSim <filename>\tWeight to apply to the measure of simillarity at each voxel position");
 
 
    //   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
