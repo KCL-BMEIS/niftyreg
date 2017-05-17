@@ -19,7 +19,7 @@ if ~exist([output_path, '/refImg2D.nii.gz'], 'file')
     end
     fprintf('[NiftyReg Build Tests] Input 2D file copied\n');
 else
-    fprintf(['[NiftyReg Build Tests]', output_path, ...
+    fprintf(['[NiftyReg Build Tests] ', output_path, ...
         '/refImg2D.nii.gz already exists\n'])
 end
 if ~exist([output_path, '/refImg3D.nii.gz'], 'file')
