@@ -90,17 +90,17 @@ if(NOT EXISTS "${DFOLDER}/refImg2D.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D.ni
   endif(NOT Matlab_FOUND)
   message(STATUS "Generating the test data - Takes several minutes")
   if(MSVC)
-	execute_process(COMMAND
-		            ${Matlab_ROOT_DIR}/bin/matlab -noFigureWindows -nosplash -wait -r "create_test_data('${TESTING_2D_FILE}', '${TESTING_3D_FILE}', '${DFOLDER}');exit"
-                    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/reg-test/matlab_tests"
-                    OUTPUT_VARIABLE MATLAB_CMD_OUTPUT
-                    )
+    execute_process(COMMAND
+      ${Matlab_ROOT_DIR}/bin/matlab -noFigureWindows -nosplash -wait -r "create_test_data('${TESTING_2D_FILE}', '${TESTING_3D_FILE}', '${DFOLDER}');exit"
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/reg-test/matlab_tests"
+      OUTPUT_VARIABLE MATLAB_CMD_OUTPUT
+      )
   else(MSVC)
-	execute_process(COMMAND
-		            ${Matlab_ROOT_DIR}/bin/matlab "-nodisplay -nosplash -nodesktop -r \";create_test_data(\'${TESTING_2D_FILE}\',\'${TESTING_3D_FILE}\',\'${DFOLDER}\');exit\""
-                    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/reg-test/matlab_tests"
-                    OUTPUT_VARIABLE MATLAB_CMD_OUTPUT
-                    )
+    execute_process(COMMAND
+      ${Matlab_ROOT_DIR}/bin/matlab "-nodisplay -nosplash -nodesktop -r \";create_test_data(\'${TESTING_2D_FILE}\',\'${TESTING_3D_FILE}\',\'${DFOLDER}\');exit\""
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/reg-test/matlab_tests"
+      OUTPUT_VARIABLE MATLAB_CMD_OUTPUT
+      )
   endif(MSVC)
 
   message(STATUS "Maltab command output:")
