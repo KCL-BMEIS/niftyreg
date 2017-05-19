@@ -160,7 +160,8 @@ int main(int argc, char **argv)
    blockMatchingParams_cpu = con_cpu->getBlockMatchingParams();
 
 #ifndef NDEBUG
-   std::cout << "blockMatchingParams_cpu->definedActiveBlock = " << blockMatchingParams_cpu->definedActiveBlockNumber << std::endl;
+   std::cout << "blockMatchingParams_cpu->activeBlockNumber = " << blockMatchingParams_cpu->activeBlockNumber << std::endl;
+   std::cout << "blockMatchingParams_cpu->definedActiveBlockNumber = " << blockMatchingParams_cpu->definedActiveBlockNumber << std::endl;
 #endif
 
    // GPU Platform
@@ -181,13 +182,23 @@ int main(int argc, char **argv)
    blockMatchingParams_gpu = con_gpu->getBlockMatchingParams();
 
 #ifndef NDEBUG
-   std::cout << "blockMatchingParams_gpu->definedActiveBlock = " << blockMatchingParams_gpu->definedActiveBlockNumber << std::endl;
+   std::cout << "blockMatchingParams_gpu->activeBlockNumber = " << blockMatchingParams_gpu->activeBlockNumber << std::endl;
+   std::cout << "blockMatchingParams_gpu->definedActiveBlockNumber = " << blockMatchingParams_gpu->definedActiveBlockNumber << std::endl;
 #endif
 
    float max_difference = 0;
 
    if(blockMatchingParams_cpu->definedActiveBlockNumber != blockMatchingParams_gpu->definedActiveBlockNumber){
       reg_print_msg_error("The number of defined active blockNumber blocks vary accros platforms");
+      char out_text[255];
+      sprintf(out_text, "activeBlockNumber CPU: %i", blockMatchingParams_cpu->activeBlockNumber);
+      reg_print_msg_error(out_text);
+      sprintf(out_text, "activeBlockNumber GPU: %i", blockMatchingParams_gpu->activeBlockNumber);
+      reg_print_msg_error(out_text);
+      sprintf(out_text, "definedActiveBlockNumber CPU: %i", blockMatchingParams_cpu->definedActiveBlockNumber);
+      reg_print_msg_error(out_text);
+      sprintf(out_text, "definedActiveBlockNumber CPU: %i", blockMatchingParams_gpu->definedActiveBlockNumber);
+      reg_print_msg_error(out_text);
       return EXIT_FAILURE;
    }
 

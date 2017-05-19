@@ -484,8 +484,7 @@ void block_matching_method3D(nifti_image * reference,
    bool warpedOverlap[1][BLOCK_3D_SIZE];
 #endif
 
-   params->definedActiveBlockNumber = 0;
-
+   int currentDefinedActiveBlockNumber = 0;
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(params, reference, warped, referencePtr, warpedPtr, mask, referenceMatrix_xyz, \
@@ -498,7 +497,8 @@ void block_matching_method3D(nifti_image * reference,
    warpedIndex_start_x, warpedIndex_start_y, warpedIndex_start_z, \
    warpedIndex_end_x, warpedIndex_end_y, warpedIndex_end_z, \
    warpedIndex, referencePosition_temp, tempPosition, referenceTemp, warpedTemp, \
-   referenceMean, referenceVar, warpedMean, warpedVar, voxelNumber,localCC)
+   referenceMean, referenceVar, warpedMean, warpedVar, voxelNumber,localCC) \
+   reduction(+:currentDefinedActiveBlockNumber)
 #endif
    for (k = 0; k < (int)params->blockNumber[2]; k++) {
 #if defined (_OPENMP)
@@ -655,13 +655,14 @@ void block_matching_method3D(nifti_image * reference,
                params->warpedPosition[z + 1] = tempPosition[1];
                params->warpedPosition[z + 2] = tempPosition[2];
                if (bestDisplacement[0] == bestDisplacement[0]) {
-                  params->definedActiveBlockNumber++;
+                  currentDefinedActiveBlockNumber++;
                }
             }
             blockIndex++;
          }
       }
    }
+   params->definedActiveBlockNumber = currentDefinedActiveBlockNumber;
 
 #if defined (_OPENMP)
    omp_set_num_threads(threadNumber);
