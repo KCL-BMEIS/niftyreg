@@ -9,15 +9,16 @@
 
 int main(int argc, char **argv)
 {
-    if (argc != 5) {
-        fprintf(stderr, "Usage: %s <refImage> <inputGrid> <expectedField> <platformCode>\n", argv[0]);
+    if (argc != 6) {
+        fprintf(stderr, "Usage: %s <refImage> <inputGrid> <expectedField> <useComp> <platformCode>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     char *inputRefImageName = argv[1];
     char *inputCPPFileName = argv[2];
     char *inputDefImageName = argv[3];
-//    int platformCode = atoi(argv[4]);
+    bool useComposition = atoi(argv[4]);
+//    int platformCode = atoi(argv[5]);
 
     // Read the input reference image
     nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
@@ -50,12 +51,28 @@ int main(int argc, char **argv)
     nifti_image *test_field = nifti_copy_nim_info(expectedDefField);
     test_field->data = (void *)malloc(test_field->nvox*test_field->nbyper);
 
-    // Compute the deformation field
-    reg_spline_getDeformationField(cppImage,
-                                   test_field,
-                                   NULL,
-                                   false,
-                                   true);
+    if(useComposition)
+    {
+       // Set the deformation to identity
+       reg_tools_multiplyValueToImage(test_field, test_field, 0.f);
+       test_field->intent_p1=DISP_FIELD;
+       reg_getDeformationFromDisplacement(test_field);
+
+       // Compute the deformation field throught composition
+       reg_spline_getDeformationField(cppImage,
+                                      test_field,
+                                      NULL,
+                                      true,
+                                      true);
+    }
+    else{
+       // Compute the deformation field from scratch
+       reg_spline_getDeformationField(cppImage,
+                                      test_field,
+                                      NULL,
+                                      false,
+                                      true);
+    }
 
     // Compute the difference between the computed and expected deformation fields
     nifti_image *diff_field = nifti_copy_nim_info(expectedDefField);
@@ -64,24 +81,27 @@ int main(int argc, char **argv)
     reg_tools_abs_image(diff_field);
     double max_difference = reg_tools_getMaxValue(diff_field, -1);
 
+    // Delete all allocated images
     nifti_image_free(referenceImage);
     nifti_image_free(expectedDefField);
     nifti_image_free(cppImage);
-
-    if (max_difference > EPS){
-        fprintf(stderr, "reg_test_bspline_deformation_field error too large: %g (>%g)\n",
-                max_difference, EPS);
-        reg_io_WriteImageFile(test_field, "obtained_spline_def.nii.gz");
-        reg_io_WriteImageFile(diff_field, "obtained_spline_diff.nii.gz");
-        return EXIT_FAILURE;
-    }
-#ifndef NDEBUG
-    fprintf(stdout, "reg_test_bspline_deformation_field ok: %g (<%g)\n",
-            max_difference, EPS);
-#endif
     nifti_image_free(test_field);
     nifti_image_free(diff_field);
 
+    // Check if the obtained difference is below a specific threshold
+    if (max_difference > EPS){
+        fprintf(stderr, "reg_test_bspline_deformation_field from blank error too large: %g (>%g)\n",
+                max_difference, EPS);
+        // return on a failed test
+        return EXIT_FAILURE;
+    }
+
+#ifndef NDEBUG
+    fprintf(stdout, "reg_test_bspline_deformation_field ok 1: %g (<%g)\n",
+            max_difference, EPS);
+#endif
+
+    // return on a successful test
     return EXIT_SUCCESS;
 }
 
