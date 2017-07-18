@@ -1823,16 +1823,5 @@ nifti_image * reg_f3d_sym<T>::GetBackwardControlPointPositionImage()
 }
 /* *************************************************************** */
 /* *************************************************************** */
-#ifdef BUILD_DEV
-template<class T>
-void reg_f3d_sym<T>::DiscreteInitialisation()
-{
-   reg_print_fct_error("reg_f3d_sym<T>::DiscreteInitialisation()");
-   reg_print_msg_error("This function has not been implemented yet");
-   reg_exit();
-}
-#endif
-/* *************************************************************** */
-/* *************************************************************** */
 template class reg_f3d_sym<float>;
 #endif

@@ -2213,7 +2213,6 @@ void reg_spline_getLandmarkDistanceGradient(nifti_image *controlPointImage,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-#ifdef BUILD_DEV
 template <class DTYPE>
 double reg_spline_approxLinearPairwise3D(nifti_image *splineControlPoint)
 {
@@ -2457,5 +2456,4 @@ void reg_spline_approxLinearPairwiseGradient(nifti_image *splineControlPoint,
       reg_exit();
    }
 }
-#endif // BUILD_DEV
 /* *************************************************************** */

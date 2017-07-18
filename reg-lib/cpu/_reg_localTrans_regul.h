@@ -142,7 +142,6 @@ void reg_spline_getLandmarkDistanceGradient(nifti_image *controlPointImage,
                                             float *landmarkFloating,
                                             float weight);
 /* *************************************************************** */
-#ifdef BUILD_DEV
 /** @brief Compute and return a pairwise energy.
  * @param controlPointGridImage Image that contains the transformation
  * parametrisation
@@ -156,6 +155,5 @@ void reg_spline_approxLinearPairwiseGradient(nifti_image *controlPointGridImage,
 /* *************************************************************** */
 extern "C++"
 double reg_spline_approxLinearPairwise(nifti_image *controlPointGridImage);
-#endif // BUILD_DEV
 /* *************************************************************** */
 #endif

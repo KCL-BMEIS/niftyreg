@@ -23,14 +23,14 @@ else
         '/refImg2D.nii.gz already exists\n'])
 end
 if ~exist([output_path, '/refImg3D.nii.gz'], 'file')
-    
+
     [~,~,ext] = fileparts(ref2D_path);
     if strcmp(ext,'.gz')
         copyfile(ref3D_path, [output_path, '/refImg3D.nii.gz'], 'f');
     else
         copyfile(ref3D_path, [output_path, '/refImg3D.nii'], 'f');
         gzip([output_path, '/refImg3D.nii'])
-        
+
     end
     fprintf('[NiftyReg Build Tests]Input 3D file copied\n');
 else
@@ -242,36 +242,6 @@ if ~exist([output_path,'/P1_2D.txt'], 'file') || ...
     fprintf('[NiftyReg Build Tests] MINDSSC 2 tests data created\n');
 else
     fprintf('[NiftyReg Build Tests] MINDSSC 2 tests data already exist\n');
-end
-%% Create data to test BlockMatching MRF
-fprintf('[NiftyReg Build Tests] Starting to generate BlockMatching MRF\n')
-if ~exist([output_path,'/discretisedValues.mat'], 'file') || ...
-    ~exist([output_path,'/discretisedValues.dat'], 'file')
-    getDiscretiseMeasure_test(ref3D, 8, ...
-        [output_path,'/warped_linear3D.nii.gz'], ...
-        output_path, 18, 3);
-    fprintf('[NiftyReg Build Tests] BlockMatching MRF tests data created\n');
-else
-    fprintf('[NiftyReg Build Tests] BlockMatching MRF tests data already exist\n');
-end
-%% Create data to test the best labeling
-fprintf('[NiftyReg Build Tests] Starting to generate labeling\n')
-if ~exist([output_path,'/dataCost.dat'], 'file') || ...
-    ~exist([output_path,'/expectedLabeling.dat'], 'file')
-    getBestLabelling_test(output_path);
-    fprintf('[NiftyReg Build Tests] labeling tests data created\n');
-else
-    fprintf('[NiftyReg Build Tests] labeling tests data already exist\n');
-end
-%% Create data to test the MST
-fprintf('[NiftyReg Build Tests] Starting to generate MST\n')
-if ~exist([output_path,'/indexNeighbours.dat'], 'file') || ...
-    ~exist([output_path,'/EWeightMatrix.dat'], 'file') || ...
-    ~exist([output_path,'/expectedParentsList.dat'], 'file')
-    getMST_test(output_path);
-    fprintf('[NiftyReg Build Tests] MST tests data created\n');
-else
-    fprintf('[NiftyReg Build Tests] MST tests data already exist\n');
 end
 %% Create data to test the convolution
 fprintf('[NiftyReg Build Tests] Starting to generate convolution\n')

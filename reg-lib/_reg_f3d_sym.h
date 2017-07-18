@@ -87,10 +87,6 @@ protected:
    virtual void UpdateParameters(float);
    virtual void InitialiseSimilarity();
 
-#ifdef BUILD_DEV
-   virtual void DiscreteInitialisation();
-#endif
-
 public:
    virtual void SetFloatingMask(nifti_image *);
    virtual void SetInverseConsistencyWeight(T);
