@@ -40,11 +40,6 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
 
    this->gridRefinement=true;
 
-#ifdef BUILD_DEV
-   pairwiseEnergyWeight=0;
-   linearSpline=false;
-#endif
-
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::reg_f3d");
 #endif
@@ -119,26 +114,6 @@ void reg_f3d<T>::DoNotApproximateJacobianLog()
    reg_print_fct_debug("reg_f3d<T>::DoNotApproximateJacobianLog");
 #endif
 }
-/* *************************************************************** */
-#ifdef BUILD_DEV
-template<class T>
-void reg_f3d<T>::UseLinearSpline()
-{
-   this->linearSpline=true;
-}
-/* *************************************************************** */
-template<class T>
-void reg_f3d<T>::DoNotLinearSpline()
-{
-   this->linearSpline=false;
-}
-/* *************************************************************** */
-template<class T>
-void reg_f3d<T>::SetPairwiseEnergyWeight(T pw)
-{
-   this->pairwiseEnergyWeight=pw;
-}
-#endif
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::SetSpacing(unsigned int i, T s)
@@ -215,28 +190,10 @@ void reg_f3d<T>::CheckParameters()
    if(strcmp(this->executableName,"NiftyReg F3D")==0 ||
          strcmp(this->executableName,"NiftyReg F3D GPU")==0)
    {
-#ifdef BUILD_DEV
-   if(this->linearSpline==true){
-      if(this->bendingEnergyWeight>0){
-         this->bendingEnergyWeight=0;
-         reg_print_msg_warn("The weight of the bending energy term is set to 0 when using linear spline");
-      }
-      if(this->linearEnergyWeight>0){
-         this->linearEnergyWeight=0;
-         reg_print_msg_warn("The weight of the lienar energy term is set to 0 when using linear spline");
-      }
-      if(this->jacobianLogWeight>0){
-         this->jacobianLogWeight=0;
-         reg_print_msg_warn("The weight of the Jacobian based regularisation term is set to 0 when using linear spline");
-      }
-   }
-   T penaltySum=this->pairwiseEnergyWeight;
-#else
       T penaltySum=this->bendingEnergyWeight +
             this->linearEnergyWeight +
             this->jacobianLogWeight +
             this->landmarkRegWeight;
-#endif
       if(penaltySum>=1.0)
       {
          this->similarityWeight=0;
@@ -245,9 +202,6 @@ void reg_f3d<T>::CheckParameters()
          this->linearEnergyWeight /= penaltySum;
          this->jacobianLogWeight /= penaltySum;
          this->landmarkRegWeight /= penaltySum;
-#ifdef BUILD_DEV
-         this->pairwiseEnergyWeight /= penaltySum;
-#endif
       }
       else this->similarityWeight=1.0 - penaltySum;
    }
@@ -315,10 +269,6 @@ void reg_f3d<T>::Initialise()
       if(this->controlPointGrid->nz>1)
          this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->levelNumber-1));
    }
-#ifdef BUILD_DEV
-   if(this->linearSpline)
-      this->controlPointGrid->intent_p1=LIN_SPLINE_GRID;
-#endif
 #ifdef NDEBUG
    if(this->verbose)
    {
@@ -397,18 +347,6 @@ void reg_f3d<T>::Initialise()
       reg_print_info(this->executableName, text.c_str());
       reg_print_info(this->executableName, "");
 
-#ifdef BUILD_DEV
-      if(this->linearSpline){
-         text = stringFormat("Linear interpolation is used for the parametrisation");
-         reg_print_info(this->executableName, text.c_str());
-      }
-      else{
-#endif
-         text = stringFormat("Cubic B-Spline is used for the parametrisation");
-         reg_print_info(this->executableName, text.c_str());
-#ifdef BUILD_DEV
-      }
-#endif
       text = stringFormat("Final spacing in mm: %g %g %g",
               this->spacing[0], this->spacing[1], this->spacing[2]);
       reg_print_info(this->executableName, text.c_str());
@@ -459,14 +397,6 @@ void reg_f3d<T>::Initialise()
          reg_print_info(this->executableName, text.c_str());
          reg_print_info(this->executableName, "");
       }
-#ifdef BUILD_DEV
-      if((this->pairwiseEnergyWeight)>0){
-         text = stringFormat("Pairwise energy penalty term weight: %g",
-                 this->pairwiseEnergyWeight);
-         reg_print_info(this->executableName, text.c_str());
-         reg_print_info(this->executableName, "");
-      }
-#endif
 #ifdef NDEBUG
    }
 #endif
@@ -606,33 +536,12 @@ double reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm()
 }
 /* *************************************************************** */
 /* *************************************************************** */
-#ifdef BUILD_DEV
-template <class T>
-double reg_f3d<T>::ComputePairwiseEnergyPenaltyTerm()
-{
-   if(this->pairwiseEnergyWeight<=0)
-      return 0.;
-
-   double value = reg_spline_approxLinearPairwise(this->controlPointGrid);
-
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d<T>::ComputePairwiseEnergyPenaltyTerm");
-#endif
-   return this->pairwiseEnergyWeight*value;
-}
-#endif
-/* *************************************************************** */
-/* *************************************************************** */
 template <class T>
 void reg_f3d<T>::GetSimilarityMeasureGradient()
 {
    this->GetVoxelBasedGradient();
 
    int kernel_type=CUBIC_SPLINE_KERNEL;
-#ifdef BUILD_DEV
-   if(this->linearSpline)
-      kernel_type=LINEAR_KERNEL;
-#endif
    // The voxel based NMI gradient is convolved with a spline kernel
    // Convolution along the x axis
    float currentNodeSpacing[3];
@@ -748,22 +657,6 @@ void reg_f3d<T>::GetLandmarkDistanceGradient()
    reg_print_fct_debug("reg_f3d<T>::GetLandmarkDistanceGradient");
 #endif
 }
-/* *************************************************************** */
-/* *************************************************************** */
-#ifdef BUILD_DEV
-template <class T>
-void reg_f3d<T>::GetPairwiseEnergyGradient()
-{
-   if(this->pairwiseEnergyWeight<=0) return;
-
-   reg_spline_approxLinearPairwiseGradient(this->controlPointGrid,
-                                           this->transformationGradient,
-                                           this->pairwiseEnergyWeight);
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d<T>::GetPairwiseEnergyGradient");
-#endif
-}
-#endif
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
@@ -969,10 +862,6 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
 
    this->currentWLand = this->ComputeLandmarkDistancePenaltyTerm();
 
-#ifdef BUILD_DEV
-   this->currentWPE = this->ComputePairwiseEnergyPenaltyTerm();
-#endif
-
    // Compute initial similarity measure
    this->currentWMeasure = 0.0;
    if(this->similarityWeight>0)
@@ -992,11 +881,7 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
 #endif
    // Store the global objective function value
 
-#ifdef BUILD_DEV
-   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac - this->currentWLand - this->currentWPE;
-#else
    return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac - this->currentWLand;
-#endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1182,9 +1067,6 @@ void reg_f3d<T>::UpdateBestObjFunctionValue()
    this->bestWLE=this->currentWLE;
    this->bestWJac=this->currentWJac;
    this->bestWLand=this->currentWLand;
-#ifdef BUILD_DEV
-   this->bestWPE=this->currentWPE;
-#endif
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::UpdateBestObjFunctionValue");
 #endif
@@ -1199,13 +1081,8 @@ void reg_f3d<T>::PrintInitialObjFunctionValue()
    double bestValue=this->optimiser->GetBestObjFunctionValue();
 
    char text[255];
-#ifdef BUILD_DEV
-   sprintf(text, "Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wJAC)%g - (wLAN)%g - (wPW)%g",
-           bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWJac, this->bestWLandmarkReg, this->bestWPE);
-#else
    sprintf(text, "Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wJAC)%g - (wLAN)%g",
            bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWJac, this->bestWLand);
-#endif
    reg_print_info(this->executableName, text);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::PrintInitialObjFunctionValue");
@@ -1231,10 +1108,6 @@ void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize)
       sprintf(text+strlen(text), " - (wJAC)%.2e", this->bestWJac);
    if(this->landmarkRegWeight>0)
       sprintf(text+strlen(text), " - (wLAN)%.2e", this->bestWLand);
-#ifdef BUILD_DEV
-   if(this->pairwiseEnergyWeight>0)
-      sprintf(text+strlen(text), " - (wPW)%.2e", this->bestWPE);
-#endif
    sprintf(text+strlen(text), " [+ %g mm]", currentSize);
    reg_print_info(this->executableName, text);
 #ifndef NDEBUG
@@ -1264,9 +1137,6 @@ void reg_f3d<T>::GetObjectiveFunctionGradient()
       this->GetJacobianBasedGradient();
       this->GetLinearEnergyGradient();
       this->GetLandmarkDistanceGradient();
-#ifdef BUILD_DEV
-      this->GetPairwiseEnergyGradient();
-#endif
    }
    else
    {
@@ -1292,162 +1162,6 @@ void reg_f3d<T>::CorrectTransformation()
    reg_print_fct_debug("reg_f3d<T>::CorrectTransformation");
 #endif
 }
-/* *************************************************************** */
-/* *************************************************************** */
-#ifdef BUILD_DEV
-template<class T>
-void reg_f3d<T>::DiscreteInitialisation()
-{
-   // Check if the discrete initialisation can be performed
-   if(this->measure_mind!=NULL || this->measure_mindssc!=NULL || this->measure_ssd!=NULL || sizeof(float)!=sizeof(T))
-   {
-      if(this->currentReference->nt>1){
-         reg_print_fct_error("reg_f3d<T>::DiscreteInitialisation()");
-         reg_print_msg_error("This function does not support 4D for now");
-         reg_exit();
-      }
-      // Warp the floating image
-      this->WarpFloatingImage(3);
-
-      // Define the descriptor images
-      nifti_image *MIND_refImg = NULL;
-      nifti_image *MIND_warImg = NULL;
-
-      // Set the length of the descriptor
-      int desc_length = 1;
-      if(this->measure_mind!=NULL)
-         desc_length = 6;
-      else if(this->measure_mindssc!=NULL)
-         desc_length = 12;
-
-      // Initialise the measure of similarity use to compute the distance between the blocks
-      reg_ssd *ssdMeasure = new reg_ssd();
-      for(int i=0;i<desc_length;++i)
-         ssdMeasure->SetActiveTimepoint(i);
-
-      if((this->measure_mind!=NULL || this->measure_mindssc!=NULL) && this->measure_ssd==NULL){
-         // Allocate MIND descriptor of the reference image
-         MIND_refImg = nifti_copy_nim_info(this->currentReference);
-         MIND_refImg->ndim = MIND_refImg->dim[0] = 4;
-         MIND_refImg->nt = MIND_refImg->dim[4] = desc_length;
-         MIND_refImg->nvox = MIND_refImg->nvox*desc_length;
-         MIND_refImg->data=(void *)calloc(MIND_refImg->nvox,
-                                          MIND_refImg->nbyper);
-         // Allocate MIND descriptor of the warped image
-         MIND_warImg = nifti_copy_nim_info(this->warped);
-         MIND_warImg->ndim = MIND_warImg->dim[0] = 4;
-         MIND_warImg->nt = MIND_warImg->dim[4] = desc_length;
-         MIND_warImg->nvox = MIND_warImg->nvox*desc_length;
-         MIND_warImg->data=(void *)calloc(MIND_warImg->nvox,
-                                          MIND_warImg->nbyper);
-
-         // Allocate a mask embedding all voxel for the warped image
-         int *temp_mask = (int *)calloc(this->warped->nx*this->warped->ny*this->warped->nz,
-                                        sizeof(int));
-
-         int offset = 1;
-         if(this->measure_mindssc!=NULL)
-            offset = this->measure_mindssc->GetDescriptorOffset();
-         else offset = this->measure_mind->GetDescriptorOffset();
-
-         // Compute the descriptors
-         if(this->measure_mindssc!=NULL){
-            // Compute the MINDSSC descriptor of the reference image
-            GetMINDSSCImageDesciptor(this->currentReference,
-                                     MIND_refImg,
-                                     this->currentMask,
-                                     offset,
-                                     0);
-            // Compute the MINDSSC descriptor of the warped image
-            GetMINDSSCImageDesciptor(this->warped,
-                                     MIND_warImg,
-                                     temp_mask,
-                                     offset,
-                                     0);
-
-         }
-         else{
-            // Compute the MIND descriptor of the reference image
-            GetMINDImageDesciptor(this->currentReference,
-                                  MIND_refImg,
-                                  this->currentMask,
-                                  offset,
-                                  0);
-            // Compute the MIND descriptor of the warped image
-            GetMINDImageDesciptor(this->warped,
-                                  MIND_warImg,
-                                  temp_mask,
-                                  offset,
-                                  0);
-         }
-         free(temp_mask);
-         // Initialise the measure with the descriptors
-         ssdMeasure->InitialiseMeasure(MIND_refImg,
-                                       MIND_warImg,
-                                       this->currentMask,
-                                       MIND_warImg,
-                                       NULL,
-                                       NULL);
-      }
-      else{
-         // Initialise the measure with the input images
-         ssdMeasure->InitialiseMeasure(this->currentReference,
-                                       this->warped,
-                                       this->currentMask,
-                                       this->warped,
-                                       NULL,
-                                       NULL);
-      }
-      //
-      // Create and initialise the discretisation initialisation object
-      //
-      //int discrete_increment=3;
-      //int discretisation_radius=discrete_increment*reg_ceil(this->controlPointGrid->dx/this->currentReference->dx);
-      int discrete_increment=1;
-      //DEBUG
-      //std::cout<<"(this->levelNumber-this->currentLevel-1)="<<(this->levelNumber-this->currentLevel-1)<<std::endl;
-      //DEBUG
-      int discretisation_radius=
-              reg_ceil(discrete_increment*(this->controlPointGrid->dx/this->currentReference->dx)/pow(2.0,(this->levelNumber-this->currentLevel-1)));
-      //
-//      reg_discrete_init *discrete_init_object = new reg_discrete_init(ssdMeasure,
-//                                                                      this->currentReference,
-//                                                                      this->controlPointGrid,
-//                                                                      discretisation_radius,
-//                                                                      discrete_increment,
-//                                                                      100,
-//                                                                      this->bendingEnergyWeight*pow(16.f,(this->levelNumber-this->currentLevel-1)) +
-//                                                                      this->linearEnergyWeight);
-      reg_mrf *discrete_init_object = new reg_mrf(ssdMeasure,
-                                                  this->currentReference,
-                                                  this->controlPointGrid,
-                                                  discretisation_radius,
-                                                  discrete_increment,
-                                                  this->bendingEnergyWeight*pow(16.f,(this->levelNumber-this->currentLevel-1)) +
-                                                  this->linearEnergyWeight);
-
-      // Run the discrete initialisation
-      discrete_init_object->Run();
-
-      // Free all the allocate objects
-      if(MIND_refImg!=NULL)
-         nifti_image_free(MIND_refImg);
-      if(MIND_warImg!=NULL)
-         nifti_image_free(MIND_warImg);
-      delete ssdMeasure;
-      delete discrete_init_object;
-      char text[255];
-
-      sprintf(text, "Discrete initialisation done");
-      reg_print_info(this->executableName, text);
-   }
-   else{
-      reg_print_msg_error("The discrete initialisation can only be performed when using SSD, MIND or MIND-SSC");
-      reg_print_msg_error("when single precision is used.");
-      reg_print_msg_error("No discrete initialisation has been performed");
-   }
-}
-#endif
 /* *************************************************************** */
 /* *************************************************************** */
 

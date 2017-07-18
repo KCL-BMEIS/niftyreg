@@ -62,7 +62,6 @@ else(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 #-----------------------------------------------------------------------------
 option(BUILD_ALL_DEP "All the dependencies are build" OFF)
-option(BUILD_DEV "To build the developement features" OFF)
 option(BUILD_SHARED_LIBS "Build the libraries as shared" OFF)
 option(BUILD_TESTING "To build the unit tests" OFF)
 option(USE_CUDA "To use the CUDA platform" OFF)
@@ -99,10 +98,6 @@ if(NOT BUILD_ALL_DEP)
 else(NOT BUILD_ALL_DEP)
     include_directories(${CMAKE_SOURCE_DIR}/reg-io/zlib)
 endif(NOT BUILD_ALL_DEP)
-#-----------------------------------------------------------------------------
-if(BUILD_DEV)
-  add_definitions(-DBUILD_DEV)
-endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
 # Try to find the png library and header on the system
 if(NOT BUILD_ALL_DEP)
@@ -202,9 +197,6 @@ if(BUILD_TESTING)
   set(TESTING_3D_FILE "" CACHE FILEPATH "2D nifti file used to generate testing data")
   add_subdirectory(reg-test)
 endif(BUILD_TESTING)
-if(BUILD_DEV)
-  add_subdirectory(reg-dev)
-endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
 # add a target to generate API documentation with Doxygen
 find_package(Doxygen)

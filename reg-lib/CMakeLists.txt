@@ -196,15 +196,6 @@ set(_reg_f3d_files
     _reg_f3d_sym.h
     _reg_f3d_sym.cpp
 )
-if(BUILD_DEV)
-  set(_reg_f3d_files
-    ${_reg_f3d_files}
-    cpu/_reg_discrete_init.h
-    cpu/_reg_discrete_init.cpp
-    cpu/_reg_mrf.h
-    cpu/_reg_mrf.cpp
-  )
-endif(BUILD_DEV)
 set(_reg_f3d_libraries
   _reg_localTrans
   _reg_globalTrans
@@ -225,37 +216,6 @@ install(FILES _reg_f3d.h DESTINATION include)
 install(FILES _reg_f3d2.h DESTINATION include)
 install(FILES _reg_f3d_sym.h DESTINATION include)
 install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
-if(BUILD_DEV)
-  install(FILES cpu/_reg_discrete_init.h DESTINATION include)
-endif(BUILD_DEV)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-## BUILD THE DEV LIBRARY
-if(BUILD_DEV)
-  set(_reg_dev_files
-    cpu/_reg_mrf.h
-    cpu/_reg_mrf.cpp
-    cpu/_reg_discrete_init.h
-    cpu/_reg_discrete_init.cpp
-    )
-  set(_reg_dev_libraries
-    _reg_femTrans
-    _reg_localTrans
-    _reg_globalTrans
-    _reg_resampling
-    _reg_measure
-    _reg_tools
-    _reg_ReadWriteImage
-    )
-  add_library(_reg_dev ${NIFTYREG_LIBRARY_TYPE} ${_reg_dev_files})
-  target_link_libraries(_reg_dev ${_reg_dev_libraries})
-  install(TARGETS _reg_dev
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    )
-  install(FILES cpu/_reg_mrf.cpp cpu/_reg_mrf.h DESTINATION include)
-endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY

@@ -64,9 +64,6 @@ if(NOT EXISTS "${DFOLDER}/refImg2D.nii.gz" OR NOT EXISTS "${DFOLDER}/refImg3D.ni
    NOT EXISTS "${DFOLDER}/expectedMINDSSCDescriptor2D_1.nii.gz" OR NOT EXISTS "${DFOLDER}/expectedMINDSSCDescriptor3D_1.nii.gz" OR
    NOT EXISTS "${DFOLDER}/expectedMINDSSCDescriptor2D_2.nii.gz" OR NOT EXISTS "${DFOLDER}/expectedMINDSSCDescriptor3D_2.nii.gz" OR
    NOT EXISTS "${DFOLDER}/expectedImageGradient2D.nii.gz" OR NOT EXISTS "${DFOLDER}/expectedImageGradient3D.nii.gz" OR
-   NOT EXISTS "${DFOLDER}/discretisedValues.mat" OR NOT EXISTS "${DFOLDER}/discretisedValues.dat" OR
-   NOT EXISTS "${DFOLDER}/expectedLabeling.dat" OR NOT EXISTS "${DFOLDER}/dataCost.dat" OR
-   NOT EXISTS "${DFOLDER}/indexNeighbours.dat" OR NOT EXISTS "${DFOLDER}/EWeightMatrix.dat" OR
    NOT EXISTS "${DFOLDER}/convolution2D_mea.nii.gz" OR NOT EXISTS "${DFOLDER}/convolution3D_mea.nii.gz" OR
    NOT EXISTS "${DFOLDER}/convolution2D_lin.nii.gz" OR NOT EXISTS "${DFOLDER}/convolution3D_lin.nii.gz" OR
    NOT EXISTS "${DFOLDER}/convolution2D_gau.nii.gz" OR NOT EXISTS "${DFOLDER}/convolution3D_gau.nii.gz" OR
@@ -346,25 +343,6 @@ add_test(${EXEC}_SPL_DEN_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/bsplin
 add_test(${EXEC}_SPL_DEN_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/bspline_grid3D.nii.gz ${DFOLDER}/le_grad_spline_dense3D.nii.gz 1)
 add_test(${EXEC}_DEF_DEN_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/bspline_def2D.nii.gz ${DFOLDER}/le_grad_field_dense2D.nii.gz 2)
 add_test(${EXEC}_DEF_DEN_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/bspline_def3D.nii.gz ${DFOLDER}/le_grad_field_dense3D.nii.gz 2)
-#-----------------------------------------------------------------------------
-if(BUILD_DEV)
-  set(EXEC reg_test_blockMatching_mrf)
-  add_executable(${EXEC} ${EXEC}.cpp)
-  target_link_libraries(${EXEC} _reg_dev)
-  #add_test(${EXEC}_2D ${EXEC} ${DFOLDER}/refImg2D.nii.gz ${DFOLDER}/floImg2D.nii.gz)
-  add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/refImg3D.nii.gz ${DFOLDER}/warped_linear3D.nii.gz ${DFOLDER}/discretisedValues.dat)
-
-  set(EXEC reg_test_mrf)
-  add_executable(${EXEC} ${EXEC}.cpp)
-  target_link_libraries(${EXEC} _reg_dev)
-  add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/dataCost.dat ${DFOLDER}/expectedLabeling.dat)
-
-  set(EXEC reg_test_mst)
-  add_executable(${EXEC} ${EXEC}.cpp)
-  target_link_libraries(${EXEC} _reg_dev)
-  #add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/indexNeighbours.dat ${DFOLDER}/EWeightMatrix.dat ${DFOLDER}/expectedOrderedList.dat ${DFOLDER}/expectedParentsList.dat ${DFOLDER}/expectedEdgeWeight.dat)
-  add_test(${EXEC}_3D ${EXEC} ${DFOLDER}/indexNeighbours.dat ${DFOLDER}/EWeightMatrix.dat ${DFOLDER}/expectedParentsList.dat)
-endif(BUILD_DEV)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 set(EXEC reg_test_computation_time)

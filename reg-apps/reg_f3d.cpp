@@ -774,20 +774,6 @@ int main(int argc, char **argv)
       {
          REG->UseBCHUpdate(atoi(argv[++i]));
       }
-#ifdef BUILD_DEV
-      else if(strcmp(argv[i], "-disc_init")==0 || strcmp(argv[i], "--disc_init")==0)
-      {
-         REG->UseDiscreteInit();
-      }
-      else if(strcmp(argv[i], "-lin")==0 || strcmp(argv[i], "--lin")==0)
-      {
-         REG->UseLinearSpline();
-      }
-      else if(strcmp(argv[i], "-pe")==0 || strcmp(argv[i], "--pe")==0)
-      {
-         REG->SetPairwiseEnergyWeight(atof(argv[++i]));
-      }
-#endif
 
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {

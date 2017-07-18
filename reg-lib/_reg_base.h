@@ -29,10 +29,6 @@
 #include "_reg_optimiser.h"
 #include "float.h"
 //#include "Platform.h"
-#ifdef BUILD_DEV
-#include "_reg_discrete_init.h"
-#include "_reg_mrf.h"
-#endif
 
 /// @brief Base registration class
 template <class T>
@@ -120,10 +116,6 @@ protected:
    float *landmarkReference;
    float *landmarkFloating;
 
-#ifdef BUILD_DEV
-   bool discrete_init;
-#endif
-
    virtual void AllocateWarped();
    virtual void ClearWarped();
    virtual void AllocateDeformationField();
@@ -208,12 +200,6 @@ protected:
    {
       return;  // Need to be filled
    }
-#ifdef BUILD_DEV
-   virtual void DiscreteInitialisation()
-   {
-      return;  // Need to be filled
-   }
-#endif
 
    void (*funcProgressCallback)(float pcntProgress, void *params);
    void *paramsProgressCallback;
@@ -292,11 +278,6 @@ public:
    void UseLinearInterpolation();
    void UseCubicSplineInterpolation();
    void SetLandmarkRegularisationParam(size_t, float *, float*, float);
-
-#ifdef BUILD_DEV
-   void UseDiscreteInit();
-   void DoNotUseDiscreteInit();
-#endif
 
    virtual void CheckParameters();
    void Run();
