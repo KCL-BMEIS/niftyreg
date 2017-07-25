@@ -79,14 +79,28 @@ std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename);
 /**
 * @brief Read a file that contains a m-by-n matrix and store it into
 * an appropriate structure
+* @param filename Filename of the text file that contains the matrix to read
 * @param nbLine number of line of the imput matrix
 * @param nbColumn number of column of the imput matrix
-* @param filename Filename of the text file that contains the matrix to read
 * @return a pointer to a 2D array that points the read matrix
 **/
 extern "C++" template <class T>
-T** reg_tool_ReadMatrixFile(char *filename, size_t nbLine, size_t nbColumn);
+T** reg_tool_ReadMatrixFile(char *filename,
+                            size_t nbLine,
+                            size_t nbColumn);
 
+/**
+* @brief Write a file that contains a m-by-n matrix into a text file
+* @param filename Filename of the text file to be written
+* @param mat Input matrix to be saved
+* @param nbLine number of line of the imput matrix
+* @param nbColumn number of column of the imput matrix
+**/
+extern "C++" template <class T>
+void reg_tool_WriteMatrixFile(char *filename,
+                              T **mat,
+                              size_t nbLine,
+                              size_t nbColumn);
 
 #endif // _REG_READWRITEMATRIX_H
 
