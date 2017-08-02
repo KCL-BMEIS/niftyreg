@@ -197,7 +197,7 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-add") == 0)
         {
             param->operationImageName=argv[++i];
-            if(isNumeric(param->operationImageName)==0)
+            if(isNumeric(param->operationImageName))
             {
                 param->operationValue=(float)atof(param->operationImageName);
                 param->operationImageName=NULL;
