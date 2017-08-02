@@ -860,6 +860,8 @@ int main(int argc, char **argv)
             }
          }
          // Save the composed transformation
+		 memset(output1TransImage->descrip, 0, 80);
+		 strcpy(output1TransImage->descrip, "Deformation field from NiftyReg (reg_transform -comp)");
          reg_io_WriteImageFile(output1TransImage,param->outputTransName);
          printf("[NiftyReg] The final deformation field has been saved as:\n[NiftyReg] %s\n",
                 param->outputTransName);
@@ -1009,25 +1011,6 @@ int main(int argc, char **argv)
                  param->input2TransName);
          return EXIT_FAILURE;
       }
-      // Create a field to store the transformation
-      nifti_image *outputTransImage=nifti_copy_nim_info(floatingImage);
-      outputTransImage->ndim=outputTransImage->dim[0]=5;
-      outputTransImage->nt=outputTransImage->dim[4]=1;
-      outputTransImage->nu=outputTransImage->dim[5]=outputTransImage->nz>1?3:2;
-      outputTransImage->nvox=(size_t)outputTransImage->nx *
-                             outputTransImage->ny * outputTransImage->nz *
-                             outputTransImage->nt * outputTransImage->nu;
-      outputTransImage->nbyper=inputTransImage->nbyper;
-      outputTransImage->datatype=inputTransImage->datatype;
-      outputTransImage->intent_code=NIFTI_INTENT_VECTOR;
-      memset(outputTransImage->intent_name, 0, 16);
-      strcpy(outputTransImage->intent_name,"NREG_TRANS");
-      outputTransImage->intent_p1=inputTransImage->intent_p1;
-      outputTransImage->intent_p2=inputTransImage->intent_p2;
-      outputTransImage->scl_slope=1.f;
-      outputTransImage->scl_inter=0.f;
-      outputTransImage->data=(void *)malloc
-                             (outputTransImage->nvox*outputTransImage->nbyper);
       // Convert the spline parametrisation into a dense deformation parametrisation
       if(inputTransImage->intent_p1==LIN_SPLINE_GRID ||
             inputTransImage->intent_p1==CUB_SPLINE_GRID ||
@@ -1086,16 +1069,39 @@ int main(int argc, char **argv)
          inputTransImage=tempField;
          tempField=NULL;
       }
+	  // Create a field to store the transformation
+	  nifti_image *outputTransImage = nifti_copy_nim_info(floatingImage);
+	  outputTransImage->ndim = outputTransImage->dim[0] = 5;
+	  outputTransImage->nt = outputTransImage->dim[4] = 1;
+	  outputTransImage->nu = outputTransImage->dim[5] = outputTransImage->nz>1 ? 3 : 2;
+	  outputTransImage->nvox = (size_t)outputTransImage->nx *
+		  outputTransImage->ny * outputTransImage->nz *
+		  outputTransImage->nt * outputTransImage->nu;
+	  outputTransImage->nbyper = inputTransImage->nbyper;
+	  outputTransImage->datatype = inputTransImage->datatype;
+	  outputTransImage->intent_code = NIFTI_INTENT_VECTOR;
+	  memset(outputTransImage->intent_name, 0, 16);
+	  strcpy(outputTransImage->intent_name, "NREG_TRANS");
+	  outputTransImage->intent_p1 = inputTransImage->intent_p1;
+	  outputTransImage->intent_p2 = inputTransImage->intent_p2;
+	  outputTransImage->scl_slope = 1.f;
+	  outputTransImage->scl_inter = 0.f;
+	  outputTransImage->data = (void *)malloc
+		  (outputTransImage->nvox*outputTransImage->nbyper);
       // Invert the provided
       switch(reg_round(inputTransImage->intent_p1))
       {
       case DEF_FIELD:
          reg_defFieldInvert(inputTransImage,outputTransImage,1.0e-6f);
+		 memset(outputTransImage->descrip, 0, 80);
+		 strcpy(outputTransImage->descrip, "Deformation field from NiftyReg (reg_transform -invNrr)");
          break;
       case DISP_FIELD:
          reg_getDeformationFromDisplacement(inputTransImage);
          reg_defFieldInvert(inputTransImage,outputTransImage,1.0e-6f);
-         reg_getDisplacementFromDeformation(outputTransImage);
+		 reg_getDisplacementFromDeformation(outputTransImage);
+		 memset(outputTransImage->descrip, 0, 80);
+		 strcpy(outputTransImage->descrip, "Displacement field from NiftyReg (reg_transform -invNrr)");
          break;
       case DEF_VEL_FIELD:
       {
@@ -1112,7 +1118,9 @@ int main(int argc, char **argv)
                               0);
          nifti_image_free(tempField);
          reg_getDeformationFromDisplacement(outputTransImage);
-         outputTransImage->intent_p2 *= -1.f;
+		 outputTransImage->intent_p2 *= -1.f;
+		 memset(outputTransImage->descrip, 0, 80);
+		 strcpy(outputTransImage->descrip, "Deformation velocity field from NiftyReg (reg_transform -invNrr)");
          break;
       }
       case DISP_VEL_FIELD:
@@ -1128,7 +1136,9 @@ int main(int argc, char **argv)
                               1,
                               0);
          nifti_image_free(tempField);
-         outputTransImage->intent_p2 *= -1.f;
+		 outputTransImage->intent_p2 *= -1.f;
+		 memset(outputTransImage->descrip, 0, 80);
+		 strcpy(outputTransImage->descrip, "Displacement velocity field from NiftyReg (reg_transform -invNrr)");
          break;
       }
       default:
