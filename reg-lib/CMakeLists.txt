@@ -195,6 +195,8 @@ set(_reg_f3d_files
     _reg_f3d2.cpp
     _reg_f3d_sym.h
     _reg_f3d_sym.cpp
+    _reg_f3d_sli.h
+    _reg_f3d_sli.cpp
 )
 set(_reg_f3d_libraries
   _reg_localTrans
@@ -215,6 +217,7 @@ install(FILES _reg_base.h DESTINATION include)
 install(FILES _reg_f3d.h DESTINATION include)
 install(FILES _reg_f3d2.h DESTINATION include)
 install(FILES _reg_f3d_sym.h DESTINATION include)
+install(FILES _reg_f3d_sli.h DESTINATION include)
 install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
