@@ -51,11 +51,17 @@ protected:
 	double bestWGO;
 
 
-	//reimplement function to get deformation field
+	//reimplement method to get deformation field
 	//combines deformation fields from each region based on warped distance maps
 	virtual void GetDeformationField();
 
-	//new functions for Gap-Overlap penalty term
+	//reimplement method to convert voxel-based similarity gradient to CPG based
+	//gradient(s). splits voxel-based gradient between two regions, based on warped
+	//distance maps, and then converts voxel-based gradient for each region to CPG
+	//gradients
+	virtual void GetSimilarityMeasureGradient();
+
+	//new methods for Gap-Overlap penalty term
 	//virtual double GetGapOverlapPenaltyTerm();
 	//virtual void GetGapOverlapGradient();
 
