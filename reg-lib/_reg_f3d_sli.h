@@ -42,13 +42,25 @@ protected:
 	nifti_image *distanceMapImage;
 	nifti_image **distanceMapPyramid;
 	nifti_image *currentDistanceMap;
+
+	//variables for the distance map warped by the transform for each region
 	nifti_image *warpedDistanceMapRegion1;
 	nifti_image *warpedDistanceMapRegion2;
 
-	//variables for penalty term
+	//variables for the spatial gradient of distance map warped by the transform
+	//for each region
+	nifti_image *warpedDistanceMapGradientRegion1;
+	nifti_image *warpedDistanceMapGradientRegion2;
+
+	//variables for gap-overlap penalty term
 	T gapOverlapWeight;
 	double currentWGO;
 	double bestWGO;
+
+	//variables for the gradient of the penalty term with respect to the def field
+	//for each region
+	nifti_image *gapOverlapGradientWRTDefFieldRegion1;
+	nifti_image *gapOverlapGradientWRTDefFieldRegion2;
 
 
 	//reimplement method to get deformation field
@@ -61,9 +73,10 @@ protected:
 	//gradients
 	virtual void GetSimilarityMeasureGradient();
 
+
 	//new methods for Gap-Overlap penalty term
-	//virtual double GetGapOverlapPenaltyTerm();
-	//virtual void GetGapOverlapGradient();
+	virtual double ComputeGapOverlapPenaltyTerm();
+	virtual void GetGapOverlapGradient();
 
 public:
 	reg_f3d_sli(int refTimePoint, int floTimePoint);
