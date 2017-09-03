@@ -238,6 +238,287 @@ void reg_f3d_sli<T>::GetDeformationField()
 }
 /* *************************************************************** */
 template <class T>
+void reg_f3d_sli<T>::AllocateDeformationField()
+{
+	//clear any previously allocated deformation fields
+	this->ClearDeformationField();
+
+	//call method from reg_base to allocate combined deformation field
+	reg_base<T>::AllocateDeformationField();
+
+	//now allocate def fields for regions 1 and 2 using header info from combined def field
+	this->region1DeformationFieldImage = nifti_copy_nim_info(this->deformationFieldImage);
+	this->region1DeformationFieldImage->data = (void *)calloc(this->region1DeformationFieldImage->nvox,
+		this->region1DeformationFieldImage->nbyper);
+	this->region1DeformationFieldImage = nifti_copy_nim_info(this->deformationFieldImage);
+	this->region2DeformationFieldImage->data = (void *)calloc(this->region2DeformationFieldImage->nvox,
+		this->region2DeformationFieldImage->nbyper);
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::AllocateDeformationField");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::ClearDeformationField()
+{
+	//call method from reg_base to clear combined def field
+	reg_base<T>::ClearDeformationField();
+
+	//now clear def fields for regions 1 and 2
+	if (this->region1DeformationFieldImage != NULL)
+	{
+		nifti_image_free(this->region1DeformationFieldImage);
+		this->region1DeformationFieldImage == NULL;
+	}
+	if (this->region2DeformationFieldImage != NULL)
+	{
+		nifti_image_free(this->region2DeformationFieldImage);
+		this->region2DeformationFieldImage == NULL;
+	}
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::ClearDeformationField");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::AllocateWarped()
+{
+	//clear any previously allocated warped images
+	this->ClearWarped();
+
+	//call method from reg_base to allocate warped floating image
+	reg_base<T>::AllocateWarped();
+
+	//Allocate warped distance maps for region 1 and region 2
+	//use header info from warped image, but update some info using header from current distance map
+	this->warpedDistanceMapRegion1 = nifti_copy_nim_info(this->warped);
+	this->warpedDistanceMapRegion2 = nifti_copy_nim_info(this->warped);
+	this->warpedDistanceMapRegion1->dim[0] = this->warpedDistanceMapRegion1->ndim =
+		this->warpedDistanceMapRegion2->dim[0] = this->warpedDistanceMapRegion2->ndim =
+		this->currentDistanceMap->ndim;
+	this->warpedDistanceMapRegion1->dim[4] = this->warpedDistanceMapRegion1->nt =
+		this->warpedDistanceMapRegion2->dim[4] = this->warpedDistanceMapRegion2->nt =
+		this->currentDistanceMap->nt;
+	this->warpedDistanceMapRegion1->nvox = this->warpedDistanceMapRegion2->nvox =
+		this->warpedDistanceMapRegion1->nx *
+		this->warpedDistanceMapRegion1->ny *
+		this->warpedDistanceMapRegion1->nz *
+		this->warpedDistanceMapRegion1->nt;
+	this->warpedDistanceMapRegion1->datatype = this->warpedDistanceMapRegion2->datatype = this->currentDistanceMap->datatype;
+	this->warpedDistanceMapRegion1->nbyper = this->warpedDistanceMapRegion2->nbyper = this->currentDistanceMap->nbyper;
+	//now allocate memory for warped distance maps data
+	this->warpedDistanceMapRegion1->data = (void *)calloc(this->warpedDistanceMapRegion1->nvox, this->warpedDistanceMapRegion1->nbyper);
+	this->warpedDistanceMapRegion2->data = (void *)calloc(this->warpedDistanceMapRegion2->nvox, this->warpedDistanceMapRegion2->nbyper);
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::AllocateWarped");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::ClearWarped()
+{
+	//call method from reg_base to clear warped floating image
+	reg_base<T>::ClearWarped();
+
+	//now clear warped distance maps
+	if (this->warpedDistanceMapRegion1 != NULL)
+	{
+		nifti_image_free(this->warpedDistanceMapRegion1);
+		this->warpedDistanceMapRegion1 = NULL;
+	}
+	if (this->warpedDistanceMapRegion2 != NULL)
+	{
+		nifti_image_free(this->warpedDistanceMapRegion2);
+		this->warpedDistanceMapRegion2 = NULL;
+	}
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::ClearWarped");
+#endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
+double reg_f3d_sli<T>::GetObjectiveFunctionValue()
+{
+	//call method from reg_f3d to calculate objective function value for similarity
+	//measure and other penalty terms
+	double objFuncValue = reg_f3d<T>::GetObjectiveFunctionValue();
+
+	//calculate weighted gap-overlap penalty term
+	this->currentWGO = this->ComputeGapOverlapPenaltyTerm();
+
+#ifndef NDEBUG
+	char text[255];
+	sprintf(text, " | (wGO) %g", this->currentWGO);
+	reg_print_msg_debug(text);
+	reg_print_fct_debug("reg_f3d<T>::GetObjectiveFunctionValue");
+#endif
+
+	//return objective function value with weighted gap-overlap value subtracted
+	return objFuncValue - this->currentWGO;
+}
+/* *************************************************************** */
+template <class T>
+double reg_f3d_sli<T>::ComputeGapOverlapPenaltyTerm()
+{
+	//NOTE - this method assumes the current warped distance maps (WDMs) have already
+	//been calculated by calling the GetDeformationField() method prior to calling this
+	//method. The GetDeformtionField method will usually be called when warping the image
+	//to calculate the image similarities, so this prevents re-calculating the WDMs
+	//unnecessarily, but if the image similarities all have a weight of 0 and therefore
+	//the warped image is not calculated, the GetDeformationField() method must still be
+	//called.
+
+	//NOTE2 - the gap-overlap penalty term is calculated at all voxels within the reference
+	//image, even if they are outside the mask or have a NaN value in the reference or
+	//warped image - this is to ensure the transformations for the 2 regions are free of
+	//gaps and overlaps, even in areas where the images are not being used to drive the
+	//registration
+
+	if (this->gapOverlapWeight <= 0)
+		return 0.;
+
+	//loop over all voxels and sum up gap-overlap penalty term values from each voxel.
+	//the gap-overlap penalty term is defined as -WDM1*WDM2 if WDM1*WDM2<0 (i.e. the
+	//WDMs point to different regions, indicating a gap or overlap), and 0 otherwise
+	double gapOverlapTotal = 0.;
+	double gapOverlapValue = 0.;
+
+	//pointers to warped distance maps
+	T *warpedDMR1Ptr = static_cast<T *>(this->warpedDistanceMapRegion1->data);
+	T *warpedDMR2Ptr = static_cast<T *>(this->warpedDistanceMapRegion2->data);
+
+	size_t numVox = this->warpedDistanceMapRegion1->nx *
+		this->warpedDistanceMapRegion1->ny *
+		this->warpedDistanceMapRegion1->nz;
+	for (size_t n = 0; n < numVox; n++)
+	{
+		gapOverlapValue = warpedDMR1Ptr[n] * warpedDMR2Ptr[n];
+		//if NaN value in either WDM then gapOverlapValue = NaN, so will fail
+		//test for less than 0
+		if (gapOverlapValue < 0)
+			gapOverlapTotal -= gapOverlapValue;
+	}
+
+	//normalise by the number of voxels and return weighted value
+	gapOverlapTotal /= double(numVox);
+	return double(this->gapOverlapWeight) * gapOverlapTotal;
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::ComputeGapOverlapPenaltyTerm()");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+double reg_f3d_sli <T>::ComputeBendingEnergyPenaltyTerm()
+{
+	//check if penalty term used, i.e. weight > 0
+	if (this->bendingEnergyWeight <= 0) return 0.;
+
+	//calculate the bending energy penalty term for region 1
+	double region1PenaltyTerm = reg_f3d<T>::ComputeBendingEnergyPenaltyTerm();
+
+	//calculate the bending energy penalty term for region 2
+	double region2PenaltyTerm = this->bendingEnergyWeight * reg_spline_approxBendingEnergy(this->region2ControlPointGrid);
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::ComputeBendingEnergyPenaltyTerm");
+#endif
+	return region1PenaltyTerm + region2PenaltyTerm;
+}
+/* *************************************************************** */
+template <class T>
+double reg_f3d_sli<T>::ComputeLinearEnergyPenaltyTerm()
+{
+	//check if penalty term used, i.e. weight > 0
+	if (this->linearEnergyWeight <= 0) return 0.;
+
+	//calculate the linear energy penalty term for region 1
+	double region1PenaltyTerm = reg_f3d<T>::ComputeLinearEnergyPenaltyTerm();
+
+	//calculate the bending energy penalty term for region 2
+	double region2PenaltyTerm = this->linearEnergyWeight * reg_spline_approxLinearEnergy(this->region2ControlPointGrid);
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::ComputeLinearEnergyPenaltyTerm");
+#endif
+	return region1PenaltyTerm + region2PenaltyTerm;
+}
+/* *************************************************************** */
+template <class T>
+double reg_f3d_sli<T>::ComputeJacobianBasedPenaltyTerm(int type)
+{
+	//check if penalty term used, i.e. weight > 0
+	if (this->jacobianLogWeight <= 0) return 0.;
+
+	//Jacobian penalty term not currently implemented for sliding region registrations
+	//so throw error
+	reg_print_fct_error("reg_f3d_sli<T>::ComputeJacobianBasedPenaltyTerm");
+	reg_print_msg_error("Jacobian penalty term not currently implemented for sliding region registrations");
+	reg_exit();
+}
+/* *************************************************************** */
+template <class T>
+double reg_f3d_sli<T>::ComputeLandmarkDistancePenaltyTerm()
+{
+	//check if penalty term used, i.e. weight > 0
+	if (this->landmarkRegWeight <= 0) return 0.;
+
+	//Landmark penalty term not currently implemented for sliding region registrations
+	//so throw error
+	reg_print_fct_error("reg_f3d_sli<T>::ComputeLandmarkDistancePenaltyTerm");
+	reg_print_msg_error("Landmark distance penalty term not currently implemented for sliding region registrations");
+	reg_exit();
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class T>
+void reg_f3d_sli<T>::GetObjectiveFunctionGradient()
+{
+	//note - cannot call method from reg_f3d as objective function gradient will
+	//be smoothed before the gap-overlap gradient is added to it, so need to
+	//reproduce code here
+
+	//check if gradient is approximated
+	if (!this->useApproxGradient)
+	{
+		// Compute the gradient of the similarity measure
+		if (this->similarityWeight>0)
+		{
+			this->WarpFloatingImage(this->interpolation);
+			this->GetSimilarityMeasureGradient();
+		}
+		else
+		{
+			this->SetGradientImageToZero();
+		}
+		// Compute the penalty term gradients if required
+		this->GetBendingEnergyGradient();
+		this->GetJacobianBasedGradient();
+		this->GetLinearEnergyGradient();
+		this->GetLandmarkDistanceGradient();
+		//include the gap-penalty term gradient
+		this->GetGapOverlapGradient();
+	}
+	else
+	{
+		this->GetApproximatedGradient();
+	}
+
+	//increment the optimiser iteration number 
+	this->optimiser->IncrementCurrentIterationNumber();
+
+	// Smooth the gradient if required
+	this->SmoothGradient();
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::GetObjectiveFunctionGradient");
+#endif
+}
+/* *************************************************************** */
+template <class T>
 void reg_f3d_sli<T>::GetSimilarityMeasureGradient()
 {
 	//get voxel-based similairty gradient
@@ -377,57 +658,6 @@ void reg_f3d_sli<T>::GetSimilarityMeasureGradient()
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-double reg_f3d_sli<T>::ComputeGapOverlapPenaltyTerm()
-{
-	//NOTE - this method assumes the current warped distance maps (WDMs) have already
-	//been calculated by calling the GetDeformationField() method prior to calling this
-	//method. The GetDeformtionField method will usually be called when warping the image
-	//to calculate the image similarities, so this prevents re-calculating the WDMs
-	//unnecessarily, but if the image similarities all have a weight of 0 and therefore
-	//the warped image is not calculated, the GetDeformationField() method must still be
-	//called.
-
-	//NOTE2 - the gap-overlap penalty term is calculate at all voxels within the reference
-	//image, even if they are outside the mask or have a NaN value in the reference or
-	//warped image - this is to ensure the transformations for the 2 regions are free of
-	//gaps and overlaps, even in areas where the images are not being used to drive the
-	//registration
-
-	if (this->gapOverlapWeight <= 0)
-		return 0.;
-
-	//loop over all voxels and sum up gap-overlap penalty term values from each voxel.
-	//the gap-overlap penalty term is defined as -WDM1*WDM2 if WDM1*WDM2<0 (i.e. the
-	//WDMs point to different regions, indicating a gap or overlap), and 0 otherwise
-	double gapOverlapTotal = 0.;
-	double gapOverlapValue = 0.;
-	
-	//pointers to warped distance maps
-	T *warpedDMR1Ptr = static_cast<T *>(this->warpedDistanceMapRegion1->data);
-	T *warpedDMR2Ptr = static_cast<T *>(this->warpedDistanceMapRegion2->data);
-
-	size_t numVox = this->warpedDistanceMapRegion1->nx *
-		this->warpedDistanceMapRegion1->ny *
-		this->warpedDistanceMapRegion1->nz;
-	for (size_t n = 0; n < numVox; n++)
-	{
-		gapOverlapValue = warpedDMR1Ptr[n] * warpedDMR2Ptr[n];
-		//if NaN value in either WDM then gapOverlapValue = NaN, so will fail
-		//test for less than 0
-		if (gapOverlapValue < 0)
-			gapOverlapTotal -= gapOverlapValue;
-	}
-
-	//normalise by the number of voxels and return weighted value
-	gapOverlapTotal /= double(numVox);
-	return double(this->gapOverlapWeight) * gapOverlapTotal;
-
-#ifndef NDEBUG
-	reg_print_fct_debug("reg_f3d_sli<T>::ComputeGapOverlapPenaltyTerm()");
-#endif
-}
 /* *************************************************************** */
 template <class T>
 void reg_f3d_sli<T>::GetGapOverlapGradient()
@@ -600,6 +830,406 @@ void reg_f3d_sli<T>::GetGapOverlapGradient()
 		&reorientation);
 
 }
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::GetBendingEnergyGradient()
+{
+	//check if bending energy used
+	if (this->bendingEnergyWeight <= 0) return;
+
+	//calculate bending energy gradient for region 1 transform
+	reg_f3d<T>::GetBendingEnergyGradient();
+
+	//calculate bending energy gradient for region 2 transform
+	reg_spline_approxBendingEnergyGradient(this->region2ControlPointGrid,
+		this->region2TransformationGradient,
+		this->bendingEnergyWeight);
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::GetBendingEnergyGradient");
+#endif
+	return;
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::GetLinearEnergyGradient()
+{
+	//check if linear energy used
+	if (this->linearEnergyWeight <= 0) return;
+
+	//calculate linear energy gradient for region 1 transform
+	reg_f3d<T>::GetLinearEnergyGradient();
+
+	//calculate linear energy gradient for region 2 transform
+	reg_spline_approxLinearEnergyGradient(this->region2ControlPointGrid,
+		this->region2TransformationGradient,
+		this->linearEnergyWeight);
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::GetLinearEnergyGradient");
+#endif
+	return;
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::GetJacobianBasedGradient()
+{
+	//check if penalty term used, i.e. weight > 0
+	if (this->jacobianLogWeight <= 0) return;
+
+	//Jacobian penalty term not currently implemented for sliding region registrations
+	//so throw error
+	reg_print_fct_error("reg_f3d_sli<T>::GetJacobianBasedGradient");
+	reg_print_msg_error("Jacobian penalty term not currently implemented for sliding region registrations");
+	reg_exit();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::GetLandmarkDistanceGradient()
+{
+	//check if penalty term used, i.e. weight > 0
+	if (this->landmarkRegWeight <= 0) return;
+
+	//Landmark penalty term not currently implemented for sliding region registrations
+	//so throw error
+	reg_print_fct_error("reg_f3d_sli<T>::GetLandmarkDistanceGradient");
+	reg_print_msg_error("Landmark distance penalty term not currently implemented for sliding region registrations");
+	reg_exit();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::SetGradientImageToZero()
+{
+	//call method from reg_f3d to set region 1 gradient image to 0
+	reg_f3d<T>::SetGradientImageToZero();
+
+	//set region 2 gradient image to 0
+	T* nodeGradPtr = static_cast<T *>(this->region2TransformationGradient->data);
+	for (size_t i = 0; i<this->region2TransformationGradient->nvox; ++i)
+		*nodeGradPtr++ = 0;
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::SetGradientImageToZero");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+T reg_f3d_sli<T>::NormaliseGradient()
+{
+	// call method from reg_f3d to calculate max length of region 1 gradient image
+	// note - this method does not normalise the gradient (as the executable name
+	// is not "NiftyReg F3D"), it will just return the max length
+	T region1MaxValue = reg_f3d<T>::NormaliseGradient();
+
+	// The max length of the region 2 gradient image is calculated
+	T maxGradValue = 0;
+	size_t voxNumber = this->region2TransformationGradient->nx *
+		this->region2TransformationGradient->ny *
+		this->region2TransformationGradient->nz;
+	//pointers to gradient data
+	T *r2PtrX = static_cast<T *>(this->region2TransformationGradient->data);
+	T *r2PtrY = &r2PtrX[voxNumber];
+	T *r2PtrZ = NULL;
+	//check for 3D
+	if (this->region2TransformationGradient->nz > 1)
+		r2PtrZ = &r2PtrY[voxNumber];
+	//loop over voxels, calculate length of gradient vector (ignoring dimension(s) not
+	//being optimised), and store value if greater than current max value
+	for (size_t i = 0; i<voxNumber; i++)
+	{
+		T valX = 0, valY = 0, valZ = 0;
+		if (this->optimiseX == true)
+			valX = *r2PtrX++;
+		if (this->optimiseY == true)
+			valY = *r2PtrY++;
+		if (r2PtrZ != NULL && this->optimiseZ == true)
+			valZ = *r2PtrZ++;
+		T length = (T)(sqrt(valX*valX + valY*valY + valZ*valZ));
+		maxGradValue = (length > maxGradValue) ? length : maxGradValue;
+	}
+	
+	// The largest value between the region 1 and region 2 gradients is kept
+	maxGradValue = maxGradValue>region1MaxValue ? maxGradValue : region1MaxValue;
+#ifndef NDEBUG
+	char text[255];
+	sprintf(text, "Objective function gradient maximal length: %g", maxGradValue);
+	reg_print_msg_debug(text);
+#endif
+
+	// The region 1 gradient is normalised
+	T *r1Ptr = static_cast<T *>(this->transformationGradient->data);
+	for (size_t i = 0; i < this->transformationGradient->nvox; ++i)
+	{
+		*r1Ptr++ /= maxGradValue;
+	}
+	// The backward gradient is normalised
+	T *r2Ptr = static_cast<T *>(this->region2TransformationGradient->data);
+	for (size_t i = 0; i<this->region2TransformationGradient->nvox; ++i)
+	{
+		*r2Ptr++ /= maxGradValue;
+	}
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::NormaliseGradient");
+#endif
+	// Returns the largest gradient distance
+	return maxGradValue;
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::SmoothGradient()
+{
+	//check if gradients require smoothing
+	if (this->gradientSmoothingSigma != 0)
+	{
+		//call method from reg_f3d to smooth gradient for region 1 transform
+		reg_f3d<T>::SmoothGradient();
+		
+		//smooth the gradient for region 2 transform
+		float kernel = fabs(this->gradientSmoothingSigma);
+		reg_tools_kernelConvolution(this->region2TransformationGradient,
+			&kernel,
+			GAUSSIAN_KERNEL);
+	}
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::SmoothGradient");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::GetApproximatedGradient()
+{
+	//call method from reg_f3d to approximate gradient for region 1
+	reg_f3d<T>::GetApproximatedGradient();
+
+	// approximate gradient for region 2 using finite differences
+	//
+	//pointers to region 2 CPG and gradient
+	T *r2CPGPtr = static_cast<T *>(this->region2ControlPointGrid->data);
+	T *r2GradPtr = static_cast<T *>(this->region2TransformationGradient->data);
+	//amount to increase/decrease CPG values by
+	//equal to floating voxel size in x dimension / 1000
+	T eps = this->currentFloating->dx / 1000.f;
+	//loop over CPG values
+	for (size_t i = 0; i<this->region2ControlPointGrid->nvox; i++)
+	{
+		//get best CPG value from optimiser
+		T currentValue = this->optimiser->GetBestDOF_b()[i];
+		//increase the value by eps and calculate new objective function value
+		r2CPGPtr[i] = currentValue + eps;
+		double valPlus = this->GetObjectiveFunctionValue();
+		//decrease the value by eps and calculate new objective function value
+		r2CPGPtr[i] = currentValue - eps;
+		double valMinus = this->GetObjectiveFunctionValue();
+		//reset CPG to best value
+		r2CPGPtr[i] = currentValue;
+		//set the value of gradient by approximating using finite differences
+		r2GradPtr[i] = -(T)((valPlus - valMinus) / (2.0*eps));
+	}
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::GetApproximatedGradient");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::AllocateWarpedGradient()
+{
+	//clear any previously allocated warped gradient images
+	this->ClearWarpedGradient();
+
+	//call method from reg_base to allocate warped (floating) gradient image
+	reg_base<T>::AllocateWarpedGradient();
+
+	//allocate warped distance map gradient images using header info from
+	//warped (floating) gradient image
+	this->warpedDistanceMapGradientRegion1 = nifti_copy_nim_info(this->warImgGradient);
+	this->warpedDistanceMapGradientRegion2 = nifti_copy_nim_info(this->warImgGradient);
+	this->warpedDistanceMapGradientRegion1->data = (void *)calloc(this->warpedDistanceMapGradientRegion1->nvox,
+		this->warpedDistanceMapGradientRegion1->nbyper);
+	this->warpedDistanceMapGradientRegion2->data = (void *)calloc(this->warpedDistanceMapGradientRegion2->nvox,
+		this->warpedDistanceMapGradientRegion2->nbyper);
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::AllocateWarpedGradient");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::ClearWarpedGradient()
+{
+	//call method from reg_base to clear warped (floating) gradient image
+	reg_base<T>::ClearWarpedGradient();
+
+	//now clear warped distance map gradient images
+	if (this->warpedDistanceMapGradientRegion1 != NULL)
+	{
+		nifti_image_free(this->warpedDistanceMapGradientRegion1);
+		this->warpedDistanceMapGradientRegion1 = NULL;
+	}
+	if (this->warpedDistanceMapGradientRegion2 != NULL)
+	{
+		nifti_image_free(this->warpedDistanceMapGradientRegion2);
+		this->warpedDistanceMapGradientRegion2 = NULL;
+	}
+
+#ifndef NDEBUG
+		reg_print_fct_debug("reg_f3d_sli<T>::ClearWarpedGradient");
+#endif
+	
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::AllocateVoxelBasedMeasureGradient()
+{
+	//clear any previously allocated images
+	this->ClearVoxelBasedMeasureGradient();
+
+	//call method from reg_base to allocate voxel-based similarity measure gradient image
+	//for combined transform
+	reg_base<T>::AllocateVoxelBasedMeasureGradient();
+
+	//allocate voxel-based similarity measure gradient images for each region
+	this->region1VoxelBasedMeasureGradientImage = nifti_copy_nim_info(this->voxelBasedMeasureGradient);
+	this->region2VoxelBasedMeasureGradientImage = nifti_copy_nim_info(this->voxelBasedMeasureGradient);
+	this->region1VoxelBasedMeasureGradientImage->data = (void *)calloc(this->region1VoxelBasedMeasureGradientImage->nvox,
+		this->region1VoxelBasedMeasureGradientImage->nbyper);
+	this->region2VoxelBasedMeasureGradientImage->data = (void *)calloc(this->region2VoxelBasedMeasureGradientImage->nvox,
+		this->region2VoxelBasedMeasureGradientImage->nbyper);
+
+	//allocate voxel-based gap-overlap peanlty term gradient images
+	this->gapOverlapGradientWRTDefFieldRegion1 = nifti_copy_nim_info(this->voxelBasedMeasureGradient);
+	this->gapOverlapGradientWRTDefFieldRegion2 = nifti_copy_nim_info(this->voxelBasedMeasureGradient);
+	this->gapOverlapGradientWRTDefFieldRegion1->data = (void *)calloc(this->gapOverlapGradientWRTDefFieldRegion1->nvox,
+		this->gapOverlapGradientWRTDefFieldRegion1->nbyper);
+	this->gapOverlapGradientWRTDefFieldRegion2->data = (void *)calloc(this->gapOverlapGradientWRTDefFieldRegion2->nvox,
+		this->gapOverlapGradientWRTDefFieldRegion2->nbyper);
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::AllocateVoxelBasedMeasureGradient");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::ClearVoxelBasedMeasureGradient()
+{
+	//call method from reg_base to clear voxel-based similarity gradient image for combined transform
+	reg_base<T>::ClearVoxelBasedMeasureGradient();
+
+	//clear voxel-based similarity gradient images for each region
+	if (this->region1VoxelBasedMeasureGradientImage != NULL)
+	{
+		nifti_image_free(this->region1VoxelBasedMeasureGradientImage);
+		this->region1VoxelBasedMeasureGradientImage = NULL;
+	}
+	if (this->region2VoxelBasedMeasureGradientImage != NULL)
+	{
+		nifti_image_free(this->region2VoxelBasedMeasureGradientImage);
+		this->region2VoxelBasedMeasureGradientImage = NULL;
+	}
+
+	//clear voxel-based gap-overlap penalty term gradient images
+	if (this->gapOverlapGradientWRTDefFieldRegion1 != NULL)
+	{
+		nifti_image_free(this->gapOverlapGradientWRTDefFieldRegion1);
+		this->gapOverlapGradientWRTDefFieldRegion1 = NULL;
+	}
+	if (this->gapOverlapGradientWRTDefFieldRegion2 != NULL)
+	{
+		nifti_image_free(this->gapOverlapGradientWRTDefFieldRegion2);
+		this->gapOverlapGradientWRTDefFieldRegion2 = NULL;
+	}
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::ClearVoxelBasedMeasureGradient");
+#endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::AllocateTransformationGradient()
+{
+	//clear any previously allocated transformation gradients
+	this->ClearTransformationGradient();
+
+	//call method from reg_f3d to allocate transformation gradient for region 1
+	reg_f3d<T>::AllocateTransformationGradient();
+
+	//allocate transformation gradient image for region 2
+	this->region2TransformationGradient = nifti_copy_nim_info(this->region2ControlPointGrid);
+	this->region2TransformationGradient->data = (void *)calloc(this->region2TransformationGradient->nvox,
+		this->region2TransformationGradient->nbyper);
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::AllocateTransformationGradient");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::ClearTransformationGradient()
+{
+	//call method from reg_f3d to clear transformation gradient for region 1
+	reg_f3d<T>::ClearTransformationGradient();
+
+	//clear transformation gradient image for region 2
+	if (this->region2TransformationGradient != NULL)
+	{
+		nifti_image_free(this->region2TransformationGradient);
+		this->region2TransformationGradient = NULL;
+	}
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::ClearTransformationGradient");
+#endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
+T reg_f3d_sli<T>::InitialiseCurrentLevel()
+{
+	//call method from reg_f3d to calculate max step size for this level and to
+	//refine gpg for region 1 and modify bending energy weight (and linear energy
+	//weight?) if required
+	T maxStepSize = reg_f3d<T>::InitialiseCurrentLevel();
+
+	// Refine the control point grid for region 2 if required
+	if (this->gridRefinement && this->currentLevel > 0)
+		reg_spline_refineControlPointGrid(this->region2ControlPointGrid, this->currentReference);
+
+	//set current distance map
+	if(this->usePyramid)
+		this->currentDistanceMap = this->distanceMapPyramid[this->currentLevel];
+	else
+		this->currentDistanceMap = this->distanceMapPyramid[0];
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::InitialiseCurrentLevel");
+#endif
+
+	//return max step size
+	return maxStepSize;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::ClearCurrentInputImage()
+{
+	//call method from reg_base to clear current reference, floating, and mask image
+	reg_base<T>::ClearCurrentInputImage();
+
+	//clear current distance map image
+	this->currentDistanceMap = NULL;
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::ClearCurrentInputImage");
+#endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+
+/* *************************************************************** */
+/* *************************************************************** */
 /* *************************************************************** */
 /* *************************************************************** */
 template class reg_f3d_sli<float>;

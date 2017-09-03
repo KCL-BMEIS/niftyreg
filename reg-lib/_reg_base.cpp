@@ -1532,11 +1532,6 @@ void reg_base<T>::Run()
          this->currentMask = this->maskPyramid[0];
       }
 
-      // Allocate image that depends on the reference image
-      this->AllocateWarped();
-      this->AllocateDeformationField();
-      this->AllocateWarpedGradient();
-
       // The grid is refined if necessary
       T maxStepSize=this->InitialiseCurrentLevel();
       T currentSize = maxStepSize;
@@ -1544,7 +1539,12 @@ void reg_base<T>::Run()
 
       this->DisplayCurrentLevelParameters();
 
-      // Allocate image that are required to compute the gradient
+	  // Allocate image that depends on the reference image
+	  this->AllocateWarped();
+	  this->AllocateDeformationField();
+	  this->AllocateWarpedGradient();
+
+	  // Allocate image that are required to compute the gradient
       this->AllocateVoxelBasedMeasureGradient();
       this->AllocateTransformationGradient();
 

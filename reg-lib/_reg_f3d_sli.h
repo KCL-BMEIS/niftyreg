@@ -65,20 +65,106 @@ protected:
 
 	//reimplement method to get deformation field
 	//combines deformation fields from each region based on warped distance maps
+	//at each voxel, if sum of warped distance maps < 0 use region 1 def field else
+	//use region 2 def field. if one warped distance map has a value of NaN (due to
+	//transform mapping outside distance map image) and other warped distance map
+	//maps to the same region as used to warp it (i.e. region 1 warped distance map
+	// < 0 or region 2 warped distance map >= 0) then use def field from non-NaN
+	//region, else combined def field set to NaN. If both warped distance maps are
+	//NaN then combined def field set to NaN.
 	virtual void GetDeformationField();
+	//reimplement methods to allocate/clear deformation field
+	//these methods will allocate/clear the deformation fields for each region as well
+	//as the combined deformation field.
+	virtual void AllocateDeformationField();
+	virtual void ClearDeformationField();
+	//reimplement methods to allocate/clear the warped images so that the warped
+	//distance maps are also allocated/cleared
+	virtual void AllocateWarped();
+	virtual void ClearWarped();
 
+
+	//methods to calculate objective function
+	//note - no need to reimplement method to get similarity measure value as ths will
+	//be calculated using the combined deformation field using the existing methods
+	//
+	//reimplement method to calculate objective function value to also include
+	//value of gap-overlap penalty term
+	virtual double GetObjectiveFunctionValue();
+	//new method to calculate gap-overlap penalty term
+	//at each voxel, the warped distance maps are multiplied together - if the result
+	//is less than 0 (indicating the transforms for the two regions map the voxel into
+	//different regiions, i.e. a gap or overlap is present) then the negative of the
+	//result is added to the gap-overlap penalty term.
+	virtual double ComputeGapOverlapPenaltyTerm();
+	//reimplement methods to calculate prenalty terms using transforms for both regions
+	virtual double ComputeBendingEnergyPenaltyTerm();
+	virtual double ComputeLinearEnergyPenaltyTerm();
+	//Jacobian penalty term not currently implemented to work with sliding region registrations
+	//this method will throw an error if called
+	virtual double ComputeJacobianBasedPenaltyTerm(int);
+	//Landmark distance penalty term not currently implemented to work with sliding region registrations
+	//this method will throw an error if called
+	virtual double ComputeLandmarkDistancePenaltyTerm();
+
+
+	//methods to calculate objective function gradient
+	//
+	//reimplement method to calculate objective function gradient to include gradient of
+	//gap-ovlerlap penalty term
+	virtual void GetObjectiveFunctionGradient();
 	//reimplement method to convert voxel-based similarity gradient to CPG based
 	//gradient(s). splits voxel-based gradient between two regions, based on warped
 	//distance maps, and then converts voxel-based gradient for each region to CPG
 	//gradients
 	virtual void GetSimilarityMeasureGradient();
-
-
-	//new methods for Gap-Overlap penalty term
-	virtual double ComputeGapOverlapPenaltyTerm();
+	//new method to calculate the gap-overlap penalty term gradient
 	virtual void GetGapOverlapGradient();
+	//reimplement methods to calculate penalty term gradients for transforms for both regions
+	virtual void GetBendingEnergyGradient();
+	virtual void GetLinearEnergyGradient();
+	//Jacobian penalty term not currently implemented to work with sliding region registrations
+	//this method will throw an error if called
+	virtual void GetJacobianBasedGradient();
+	//Landmark distance penalty term not currently implemented to work with sliding region registrations
+	//this method will throw an error if called
+	virtual void GetLandmarkDistanceGradient();
+	//reimplement method to set gradient image to zero to set gradient images for both regions to 0
+	virtual void SetGradientImageToZero();
+	//reimplement method to normalise gradient so that gradients for both regions are normalised
+	//using the max value over both gradient images
+	virtual T NormaliseGradient();
+	//reimplement method to smooth gradient so that gradients for both regions are smoothed
+	virtual void SmoothGradient();
+	//remiplement method to approximate gradient so that gradients for both regions are approximated
+	virtual void GetApproximatedGradient();
+	//reimplement methods to allocate/clear warped gradient images so that the warped
+	//distance map gradients are also allocated/cleared
+	virtual void AllocateWarpedGradient();
+	virtual void ClearWarpedGradient();
+	//reimplement methods to allocate/clear 'voxel-based' similarity measure gradient
+	//image (i.e. the similarity measure gradient WRT the def field) - these methods
+	//will now also allocate/clear the 'voxel-based' similarity measure gradients for
+	//each region and the 'voxel-based' gap-overlap penalty term gradient images
+	virtual void AllocateVoxelBasedMeasureGradient();
+	virtual void ClearVoxelBasedMeasureGradient();
+	//reimplement methods to allocate/clear transformation gradient images - these methods
+	//will now also allocate/clear the transformation gradient image for region 2
+	virtual void AllocateTransformationGradient();
+	virtual void ClearTransformationGradient();
+
+	//reimplement method to initialise current level to refine CPGs for transforms for both
+	//regions and to set the current distance map image
+	virtual T InitialiseCurrentLevel();
+	//reimplement method to clear current input images to also clear current distance map
+	//image
+	virtual void ClearCurrentInputImage();
+
+
+	//virtual void SetOptimiser();
 
 public:
+	//constructor and destructor methods
 	reg_f3d_sli(int refTimePoint, int floTimePoint);
 	~reg_f3d_sli();
 };
