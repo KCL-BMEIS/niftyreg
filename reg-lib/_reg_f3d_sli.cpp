@@ -21,8 +21,9 @@ template <class T>
 reg_f3d_sli<T>::reg_f3d_sli(int refTimePoint, int floTimePoint)
 	:reg_f3d<T>::reg_f3d(refTimePoint, floTimePoint)
 {
-	this->executableName = (char *)"NiftyReg F3D SLI";
+	this->executableName = (char *)"NiftyReg F3D Sliding regions";
 
+	this->inputRegion2ControlPointGrid = NULL;
 	this->region2ControlPointGrid = NULL;
 	this->region2DeformationFieldImage = NULL;
 	this->region2VoxelBasedMeasureGradientImage = NULL;
@@ -31,13 +32,21 @@ reg_f3d_sli<T>::reg_f3d_sli(int refTimePoint, int floTimePoint)
 	this->region1DeformationFieldImage = NULL;
 	this->region1VoxelBasedMeasureGradientImage = NULL;
 
-	this->distanceMapImage = NULL;
+	this->inputDistanceMap = NULL;
 	this->distanceMapPyramid = NULL;
 	this->currentDistanceMap = NULL;
+
 	this->warpedDistanceMapRegion1 = NULL;
 	this->warpedDistanceMapRegion2 = NULL;
+	this->warpedDistanceMapGradientRegion1 = NULL;
+	this->warpedDistanceMapGradientRegion2 = NULL;
+
+	this->gapOverlapGradientWRTDefFieldRegion1 = NULL;
+	this->gapOverlapGradientWRTDefFieldRegion2 = NULL;
 
 	this->gapOverlapWeight = 0.1;
+	this->currentWGO = 0;
+	this->bestWGO = 0;
 
 #ifndef NDEBUG
 	reg_print_fct_debug("reg_f3d_sli<T>::reg_f3d_sli");
@@ -962,7 +971,7 @@ T reg_f3d_sli<T>::NormaliseGradient()
 	{
 		*r1Ptr++ /= maxGradValue;
 	}
-	// The backward gradient is normalised
+	// The region 2 gradient is normalised
 	T *r2Ptr = static_cast<T *>(this->region2TransformationGradient->data);
 	for (size_t i = 0; i<this->region2TransformationGradient->nvox; ++i)
 	{
@@ -1211,7 +1220,6 @@ T reg_f3d_sli<T>::InitialiseCurrentLevel()
 	return maxStepSize;
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template <class T>
 void reg_f3d_sli<T>::ClearCurrentInputImage()
 {
@@ -1227,9 +1235,321 @@ void reg_f3d_sli<T>::ClearCurrentInputImage()
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::SetOptimiser()
+{
+	//create new optimiser object
+	//if useConjGradient set then create new conjugate gradient optimiser
+	if (this->useConjGradient)
+		this->optimiser = new reg_conjugateGradient<T>();
+	//else create standard (gradient ascent) optimiser
+	else this->optimiser = new reg_optimiser<T>();
 
+	//initialise optimiser passing pointers to data from transforms and gradients
+	//from both regions
+	this->optimiser->Initialise(this->controlPointGrid->nvox,//number of voxels in region 1 CPG
+		this->controlPointGrid->nz>1 ? 3 : 2,
+		this->optimiseX,
+		this->optimiseY,
+		this->optimiseZ,
+		this->maxiterationNumber,
+		0, // currentIterationNumber
+		this, //this object, which implements interface for interacting with optimiser
+		static_cast<T *>(this->controlPointGrid->data),//pointer to data from region 1 CPG
+		static_cast<T *>(this->transformationGradient->data),//pointer to data from region 1 gradient
+		this->region2ControlPointGrid->nvox,//number of voxels in region 2 CPG
+		static_cast<T *>(this->region2ControlPointGrid->data),//pointer to data from region 2 CPG
+		static_cast<T *>(this->region2TransformationGradient->data));//pointer to data from region 2 gradient
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::SetOptimiser");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d_sli<T>::UpdateParameters(float scale)
+{
+	// First update the transformation for region 1
+	reg_f3d<T>::UpdateParameters(scale);
+
+	// Create some pointers to the relevant arrays
+	//noet - call '_b' methods from optimiser to access the region 2 data
+	T *currentDOFRegion2 = this->optimiser->GetCurrentDOF_b();
+	T *bestDOFRegion2 = this->optimiser->GetBestDOF_b();
+	T *gradientRegion2 = this->optimiser->GetGradient_b();
+
+	// update the CPG values for region 2
+	size_t voxNumberRegion2 = this->optimiser->GetVoxNumber_b();
+	// Update the values for the x-axis displacement
+	if (this->optimiser->GetOptimiseX() == true)
+	{
+		for (size_t i = 0; i < voxNumberRegion2; ++i)
+		{
+			currentDOFRegion2[i] = bestDOFRegion2[i] + scale * gradientRegion2[i];
+		}
+	}
+	// Update the values for the y-axis displacement
+	if (this->optimiser->GetOptimiseY() == true)
+	{
+		//pointers to y-axis displacements
+		T *currentDOFYRegion2 = &currentDOFRegion2[voxNumberRegion2];
+		T *bestDOFYRegion2 = &bestDOFRegion2[voxNumberRegion2];
+		T *gradientYRegion2 = &gradientRegion2[voxNumberRegion2];
+		for (size_t i = 0; i < voxNumberRegion2; ++i)
+		{
+			currentDOFYRegion2[i] = bestDOFYRegion2[i] + scale * gradientYRegion2[i];
+		}
+	}
+	// Update the values for the z-axis displacement
+	if (this->optimiser->GetOptimiseZ() == true && this->optimiser->GetNDim()>2)
+	{
+		//pointers to z-axis displacements
+		T *currentDOFZRegion2 = &currentDOFRegion2[2 * voxNumberRegion2];
+		T *bestDOFZRegion2 = &bestDOFRegion2[2 * voxNumberRegion2];
+		T *gradientZRegion2 = &gradientRegion2[2 * voxNumberRegion2];
+		for (size_t i = 0; i < voxNumberRegion2; ++i)
+		{
+			currentDOFZRegion2[i] = bestDOFZRegion2[i] + scale * gradientZRegion2[i];
+		}
+	}
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::UpdateParameters");
+#endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d_sli<T>::UpdateBestObjFunctionValue()
+{
+	// call method from reg_f3d to update all values except gap-overlap term
+	reg_f3d<T>::UpdateBestObjFunctionValue();
+	//now update best gap-overlap value
+	this->bestWGO = this->currentWGO;
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::UpdateBestObjFunctionValue");
+#endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d_sli<T>::PrintInitialObjFunctionValue()
+{
+	// if verbose not set don't display anything
+	if (!this->verbose) return;
+
+	// format text with initial total objective function value
+	char text[255];
+	sprintf(text, "Initial objective function: %g",	this->optimiser->GetBestObjFunctionValue());
+	// and similarity measure(s) value
+	sprintf(text + strlen(text), " = (wSIM)%g", this->bestWMeasure);
+	// and values of penalty terms
+	if (this->bendingEnergyWeight > 0)
+		sprintf(text + strlen(text), " - (wBE)%.2e", this->bestWBE);
+	if (this->linearEnergyWeight > 0)
+		sprintf(text + strlen(text), " - (wLE)%.2e", this->bestWLE);
+	//jacobian and landmark penalty terms not currently implemented for sliding region registrations
+	//if (this->jacobianLogWeight>0)
+	//	sprintf(text + strlen(text), " - (wJAC)%.2e", this->bestWJac);
+	//if (this->landmarkRegWeight>0)
+	//	sprintf(text + strlen(text), " - (wLAN)%.2e", this->bestWLand);
+	if (this->gapOverlapWeight > 0)
+		sprintf(text + strlen(text), " - (wGO)%.2e", this->bestWGO);
+
+	//display text
+	reg_print_info(this->executableName, text);
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::PrintInitialObjFunctionValue");
+#endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d_sli<T>::PrintCurrentObjFunctionValue(T currentSize)
+{
+	// if verbose not set don't display anything
+	if (!this->verbose) return;
+
+	// format text with iteration number and current total objective function value
+	char text[255];
+	sprintf(text, "[%i] Current objective function: %g",
+		(int)this->optimiser->GetCurrentIterationNumber(),
+		this->optimiser->GetBestObjFunctionValue());
+	// and similarity measure(s) value
+	sprintf(text + strlen(text), " = (wSIM)%g", this->bestWMeasure);
+	// and values of penalty terms
+	if (this->bendingEnergyWeight > 0)
+		sprintf(text + strlen(text), " - (wBE)%.2e", this->bestWBE);
+	if (this->linearEnergyWeight > 0)
+		sprintf(text + strlen(text), " - (wLE)%.2e", this->bestWLE);
+	//jacobian and landmark penalty terms not currently implemented for sliding region registrations
+	//if (this->jacobianLogWeight>0)
+	//	sprintf(text + strlen(text), " - (wJAC)%.2e", this->bestWJac);
+	//if (this->landmarkRegWeight>0)
+	//	sprintf(text + strlen(text), " - (wLAN)%.2e", this->bestWLand);
+	if (this->gapOverlapWeight > 0)
+		sprintf(text + strlen(text), " - (wGO)%.2e", this->bestWGO);
+	//add current step size to text
+	sprintf(text + strlen(text), " [+ %g mm]", currentSize);
+
+	//display text
+	reg_print_info(this->executableName, text);
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::PrintCurrentObjFunctionValue");
+#endif
+}
 /* *************************************************************** */
 /* *************************************************************** */
+template<class T>
+void reg_f3d_sli<T>::SetDistanceMapImage(nifti_image *distanceMapImage)
+{
+	this->inputDistanceMap = distanceMapImage;
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::SetDistanceMapImage");
+#endif
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d_sli<T>::SetGapOverlapWeight(T weight)
+{
+	this->gapOverlapWeight = weight;
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::SetGapOverlapWeight");
+#endif
+}
+/* *************************************************************** */
+template<class T>
+nifti_image * reg_f3d_sli<T>::GetRegion2ControlPointPositionImage()
+{
+	// Create a control point grid nifti image
+	nifti_image *returnedControlPointGrid = nifti_copy_nim_info(this->region2ControlPointGrid);
+
+	// Allocate the new image data array
+	returnedControlPointGrid->data = (void *)malloc(returnedControlPointGrid->nvox*returnedControlPointGrid->nbyper);
+	
+	// Copy the final region2 control point grid image
+	memcpy(returnedControlPointGrid->data, this->region2ControlPointGrid->data,
+		returnedControlPointGrid->nvox * returnedControlPointGrid->nbyper);
+	
+	// Return the new control point grid
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::GetRegion2ControlPointPositionImage");
+#endif
+	return returnedControlPointGrid;
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d_sli<T>::SetRegion2ControlPointGridImage(nifti_image *controlPointGrid)
+{
+	this->inputRegion2ControlPointGrid = controlPointGrid;
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::SetRegion2ControlPointGridImage");
+#endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class T>
+void reg_f3d_sli<T>::CheckParameters()
+{
+	//call method from reg_f3d to check standard parameters
+	reg_f3d<T>::CheckParameters();
+
+	//check the distance map has been defined
+	if (this->inputDistanceMap == NULL)
+	{
+		reg_print_fct_error("reg_f3d_sli::CheckParameters()");
+		reg_print_msg_error("The distance map image is not defined");
+		reg_exit();
+	}
+	else
+	{
+		//and has the same dimensions as the floating (source) image
+		if (this->inputDistanceMap->nx != this->inputFloating->nx ||
+			this->inputDistanceMap->ny != this->inputFloating->ny ||
+			this->inputDistanceMap->nz != this->inputFloating->nz)
+		{
+			reg_print_fct_error("reg_f3d_sli<T>::CheckParameters()");
+			reg_print_msg_error("The distance map has different dimensions to the floating image");
+			reg_exit();
+		}
+	}
+
+	//check if an input CPG has only been provided for one region
+	if ((this->inputControlPointGrid != NULL && this->inputRegion2ControlPointGrid == NULL) ||
+		(this->inputControlPointGrid == NULL && this->inputRegion2ControlPointGrid != NULL))
+	{
+		reg_print_fct_error("reg_f3d_sli<T>::CheckParameters()");
+		reg_print_msg_error("An input Control Point Grid has only been provided for one region");
+		reg_print_msg_error("You must provide a Control Point Grid for both regions (or none)");
+		reg_exit();
+	}
+	
+	//if input CPGs provided for both regions check they have the same dimensions
+	if (this->inputControlPointGrid != NULL && this->inputRegion2ControlPointGrid != NULL)
+	{
+		if (this->inputControlPointGrid->nx != this->inputRegion2ControlPointGrid->nx ||
+			this->inputControlPointGrid->ny != this->inputRegion2ControlPointGrid->ny ||
+			this->inputControlPointGrid->nz != this->inputRegion2ControlPointGrid->nz)
+		{
+			reg_print_fct_error("reg_f3d_sli<T>::CheckParameters()");
+			reg_print_msg_error("The input Control Point Grids for the two regions have different dimensions");
+			reg_exit();
+		}
+	}
+
+
+	//check if jacobian or landmark penalty term weights have been set - if so throw error as
+	//these terms are not yet implemented for sliding region registrations
+	if (this->jacobianLogWeight > 0)
+	{
+		reg_print_fct_error("reg_f3d_sli<T>::CheckParameters()");
+		reg_print_msg_error("Jacobian penalty term weight > 0");
+		reg_print_msg_error("Jacobian penalty term has not yet been implemented to work with sliding region registrations");
+		reg_exit();
+	}
+	if (this->landmarkRegWeight > 0)
+	{
+		reg_print_fct_error("reg_f3d_sli<T>::CheckParameters()");
+		reg_print_msg_error("Landmark penalty term weight > 0");
+		reg_print_msg_error("Landmark penalty term has not yet been implemented to work with sliding region registrations");
+		reg_exit();
+	}
+
+	// check if penalty term weights >= 1
+	T penaltySum = this->bendingEnergyWeight + this->linearEnergyWeight + this->gapOverlapWeight;
+	if (penaltySum >= 1)
+	{
+		//display a warning saying images will be ignored for the registration
+		reg_print_fct_warn("reg_f3d_sli<T>::CheckParameters()");
+		reg_print_msg_warn("Penalty term weights greater than or equal to 1");
+		reg_print_msg_warn("The images will be ignored during the registration ");
+		this->similarityWeight = 0;
+		this->bendingEnergyWeight /= penaltySum;
+		this->linearEnergyWeight /= penaltySum;
+		this->gapOverlapWeight /= penaltySum;
+	}
+	else this->similarityWeight = 1.0 - penaltySum;
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::CheckParameters");
+#endif
+	return;
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d_sli<T>::Initialise()
+{
+	//call method from reg_f3d to initialise image pyramids and region 1 control point grid
+	reg_f3d<T>::Initialise();
+
+	//initialise control point grid for region 2
+	//
+	//if no input grid provided just copy region 1 CPG
+	if ()
+}
 /* *************************************************************** */
 /* *************************************************************** */
 template class reg_f3d_sli<float>;

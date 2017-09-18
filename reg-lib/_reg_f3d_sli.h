@@ -29,6 +29,7 @@ class reg_f3d_sli : public reg_f3d<T>
 {
 protected:
 	//variables for region2 transform
+	nifti_image *inputRegion2ControlPointGrid; //pointer to external
 	nifti_image *region2ControlPointGrid;
 	nifti_image *region2DeformationFieldImage;
 	nifti_image *region2VoxelBasedMeasureGradientImage;
@@ -39,7 +40,7 @@ protected:
 	nifti_image *region1VoxelBasedMeasureGradientImage;
 
 	//variables for distance map image
-	nifti_image *distanceMapImage;
+	nifti_image *inputDistanceMap; //pointer to external
 	nifti_image **distanceMapPyramid;
 	nifti_image *currentDistanceMap;
 
@@ -160,13 +161,52 @@ protected:
 	//image
 	virtual void ClearCurrentInputImage();
 
-
-	//virtual void SetOptimiser();
-
+	//reimplement method for setting optimiser so that region 2 transform data and gradient
+	//data also passed to optimiser.
+	//note - no modifications to optimiser required as it can already jointly optimise 2
+	//transforms for use with symmetric registrations
+	virtual void SetOptimiser();
+	//reimplement method for updating parameters so that region 2 transform is updated as well
+	virtual void UpdateParameters(float);
+	//reimplement method for updating best objective function value so that gap-overlap value
+	//is updated as well
+	virtual void UpdateBestObjFunctionValue();
+	//reimplement methods for printing objective function value so that gap-overlap value is
+	//also printed
+	virtual void PrintInitialObjFunctionValue();
+	virtual void PrintCurrentObjFunctionValue(T);
+	
 public:
 	//constructor and destructor methods
 	reg_f3d_sli(int refTimePoint, int floTimePoint);
 	~reg_f3d_sli();
+
+
+	//new method to set distance map image
+	virtual void SetDistanceMapImage(nifti_image *);
+
+	//new method to set gap-overlap penalty term weight
+	virtual void SetGapOverlapWeight(T);
+
+	//new methods to get and set transform for region 2
+	//note - used similar method names as for methods for region 1 (i.e. standard methods from reg_f3d)
+	//hence get method called ...Position... and set method called ...Grid...
+	virtual nifti_image *GetRegion2ControlPointPositionImage();
+	virtual void SetRegion2ControlPointGridImage(nifti_image *);
+
+
+	//reimplement method to check parameters so that also checks if distance map has been set
+	//and has same dimensions as floating image.
+	//Also checks if an input control point grid has been set for one region but not the other,
+	//and throws an error if so. If input control point grids have been set for both regions
+	//then checks they have the same dimensions.
+	//And checks that jacobian and landmark penalty terms have not been set (as not yet
+	//implemented for sliding region registrations) and normalises penalty term weights
+	virtual void CheckParameters();
+
+	//reimplement method to initialise registration so that also initialises CPG for region 2
+	//and image pyramid for distance map image
+	virtual void Initialise();
 };
 
 #endif
