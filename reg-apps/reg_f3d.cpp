@@ -643,7 +643,7 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "--lncc")==0)
       {
          float stdev = (float)atof(argv[++i]);
-         if(stdev!=999999){ // Value specified by the CLI - to be ignored
+         if(stdev!=-999999){ // Value specified by the CLI - to be ignored
             for(int t=0; t<referenceImage->nt; ++t)
                REG->UseLNCC(t,stdev);
          }
