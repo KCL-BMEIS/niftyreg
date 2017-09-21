@@ -24,6 +24,19 @@
 
 #include "reg_tools.h"
 
+std::vector<float> splitFloatVector(char* input)
+{
+    std::vector<float> floatVector;
+    char* charArray = strtok(input, ",");
+    while (charArray != NULL)
+    {
+        floatVector.push_back(atof(charArray));
+        charArray = strtok(NULL, ",");
+    }
+
+    return floatVector;
+}
+
 int isNumeric (const char *s)
 {
     if(s==NULL || *s=='\0' || isspace(*s))
@@ -289,24 +302,69 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "-smoS") == 0 || strcmp(argv[i], "--smoS") == 0)
         {
-            param->smoothValueX=atof(argv[++i]);
+          char* val = argv[++i];
+          if (isNumeric(val))
+          {
+            param->smoothValueX=atof(val);
             param->smoothValueY=atof(argv[++i]);
             param->smoothValueZ=atof(argv[++i]);
             flag->smoothSplineFlag=1;
+          }
+          else
+          {
+            std::vector<float> valArray = splitFloatVector(val);
+            if (valArray.size() == 3)
+            {
+                param->smoothValueX=valArray[0];
+                param->smoothValueY=valArray[1];
+                param->smoothValueZ=valArray[2];
+                flag->smoothSplineFlag=1;
+            }
+          }
         }
         else if(strcmp(argv[i], "-smoG") == 0 || strcmp(argv[i], "--smoG") == 0)
         {
-            param->smoothValueX=atof(argv[++i]);
+          char* val = argv[++i];
+          if (isNumeric(val))
+          {
+            param->smoothValueX=atof(val);
             param->smoothValueY=atof(argv[++i]);
             param->smoothValueZ=atof(argv[++i]);
             flag->smoothGaussianFlag=1;
+          }
+          else
+          {
+            std::vector<float> valArray = splitFloatVector(val);
+            if (valArray.size() == 3)
+            {
+                param->smoothValueX=valArray[0];
+                param->smoothValueY=valArray[1];
+                param->smoothValueZ=valArray[2];
+                flag->smoothGaussianFlag=1;
+            }
+          }
         }
         else if(strcmp(argv[i], "-smoL") == 0 || strcmp(argv[i], "--smoL") == 0)
         {
-            param->smoothValueX=atof(argv[++i]);
+          char* val = argv[++i];
+          if (isNumeric(val))
+          {
+            param->smoothValueX=atof(val);
             param->smoothValueY=atof(argv[++i]);
             param->smoothValueZ=atof(argv[++i]);
             flag->smoothLabFlag=1;
+          }
+          else
+          {
+            std::vector<float> valArray = splitFloatVector(val);
+            if (valArray.size() == 3)
+            {
+                param->smoothValueX=valArray[0];
+                param->smoothValueY=valArray[1];
+                param->smoothValueZ=valArray[2];
+                flag->smoothLabFlag=1;
+            }
+          }
         }
         else if(strcmp(argv[i], "-smoM") == 0)
         {
@@ -352,10 +410,25 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "-chgres") == 0 || strcmp(argv[i], "--chgres") == 0)
         {
-            flag->changeResFlag=1;
-            param->pixdimX=atof(argv[++i]);
-            param->pixdimY=atof(argv[++i]);
-            param->pixdimZ=atof(argv[++i]);
+          char* val = argv[++i];
+          if (isNumeric(val))
+          {
+              flag->changeResFlag=1;
+              param->pixdimX=atof(val);
+              param->pixdimY=atof(argv[++i]);
+              param->pixdimZ=atof(argv[++i]);
+          }
+          else
+          {
+            std::vector<float> valArray = splitFloatVector(val);
+            if (valArray.size() == 3)
+            {
+                param->pixdimX=valArray[0];
+                param->pixdimY=valArray[1];
+                param->pixdimZ=valArray[2];
+                flag->changeResFlag=1;
+            }
+          }
         }
         else if(strcmp(argv[i], "-4d2rgb") == 0)
         {
