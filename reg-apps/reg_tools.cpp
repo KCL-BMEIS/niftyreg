@@ -209,58 +209,55 @@ int main(int argc, char **argv)
 
         else if(strcmp(argv[i], "-add") == 0 || strcmp(argv[i], "--add") == 0)
         {
-           param->operationImageName=argv[++i];
-           if (isNumeric(param->operationImageName))
+           char * val = argv[++i];
+           if (isNumeric(val))
            {
-              float val = (float)atof(param->operationImageName);
-              param->operationImageName=NULL;
-
-              if(val != -999999)
+              float floatVal = (float)atof(val);
+              if(floatVal != -999999)
               {
-                  param->operationValue=val;
+                  param->operationValue=floatVal;
                   flag->operationTypeFlag=0;
               }
            }
            else
            {
+             param->operationImageName=val;
              flag->operationTypeFlag=0;
            }
         }
         else if(strcmp(argv[i], "-sub") == 0 || strcmp(argv[i], "--sub") == 0)
         {
-           param->operationImageName=argv[++i];
-           if (isNumeric(param->operationImageName))
+           char * val = argv[++i];
+           if (isNumeric(val))
            {
-              float val = (float)atof(param->operationImageName);
-              param->operationImageName=NULL;
-
-              if(val != -999999)
+              float floatVal = (float)atof(val);
+              if(floatVal != -999999)
               {
-                  param->operationValue=val;
+                  param->operationValue=floatVal;
                   flag->operationTypeFlag=1;
               }
            }
            else
            {
+             param->operationImageName=val;
              flag->operationTypeFlag=1;
            }
         }
         else if(strcmp(argv[i], "-mul") == 0 || strcmp(argv[i], "--mul") == 0)
         {
-           param->operationImageName=argv[++i];
-           if (isNumeric(param->operationImageName))
+           char * val = argv[++i];
+           if (isNumeric(val))
            {
-              float val = (float)atof(param->operationImageName);
-              param->operationImageName=NULL;
-
-              if(val != -999999)
+              float floatVal = (float)atof(val);
+              if(floatVal != -999999)
               {
-                  param->operationValue=val;
+                  param->operationValue=floatVal;
                   flag->operationTypeFlag=2;
               }
            }
            else
            {
+             param->operationImageName=val;
              flag->operationTypeFlag=2;
            }
         }
@@ -270,20 +267,19 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "-div") == 0 || strcmp(argv[i], "--div") == 0)
         {
-           param->operationImageName=argv[++i];
-           if (isNumeric(param->operationImageName))
+           char * val = argv[++i];
+           if (isNumeric(val))
            {
-              float val = (float)atof(param->operationImageName);
-              param->operationImageName=NULL;
-
-              if(val != -999999)
+              float floatVal = (float)atof(val);
+              if(floatVal != -999999)
               {
-                  param->operationValue=val;
+                  param->operationValue=floatVal;
                   flag->operationTypeFlag=3;
               }
            }
            else
            {
+             param->operationImageName=val;
              flag->operationTypeFlag=3;
            }
         }
