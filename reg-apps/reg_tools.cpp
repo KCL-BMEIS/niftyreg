@@ -183,89 +183,125 @@ int main(int argc, char **argv)
             printf("%s\n",NR_VERSION);
             return EXIT_SUCCESS;
         }
-        else if(strcmp(argv[i], "-in") == 0)
+        else if(strcmp(argv[i], "-in") == 0 || strcmp(argv[i], "--in") == 0)
         {
             param->inputImageName=argv[++i];
             flag->inputImageFlag=1;
         }
-        else if(strcmp(argv[i], "-out") == 0)
+        else if(strcmp(argv[i], "-out") == 0 || strcmp(argv[i], "--out") == 0)
         {
             param->outputImageName=argv[++i];
             flag->outputImageFlag=1;
         }
 
-        else if(strcmp(argv[i], "-add") == 0)
+        else if(strcmp(argv[i], "-add") == 0 || strcmp(argv[i], "--add") == 0)
         {
-            param->operationImageName=argv[++i];
-            if(isNumeric(param->operationImageName)==0)
-            {
-                param->operationValue=(float)atof(param->operationImageName);
-                param->operationImageName=NULL;
-            }
-            flag->operationTypeFlag=0;
+           param->operationImageName=argv[++i];
+           if (isNumeric(param->operationImageName))
+           {
+              float val = (float)atof(param->operationImageName);
+              param->operationImageName=NULL;
+
+              if(val != -999999)
+              {
+                  param->operationValue=val;
+                  flag->operationTypeFlag=0;
+              }
+           }
+           else
+           {
+             flag->operationTypeFlag=0;
+           }
         }
-        else if(strcmp(argv[i], "-sub") == 0)
+        else if(strcmp(argv[i], "-sub") == 0 || strcmp(argv[i], "--sub") == 0)
         {
-            param->operationImageName=argv[++i];
-            if(isNumeric(param->operationImageName))
-            {
-                param->operationValue=(float)atof(param->operationImageName);
-                param->operationImageName=NULL;
-            }
-            flag->operationTypeFlag=1;
+           param->operationImageName=argv[++i];
+           if (isNumeric(param->operationImageName))
+           {
+              float val = (float)atof(param->operationImageName);
+              param->operationImageName=NULL;
+
+              if(val != -999999)
+              {
+                  param->operationValue=val;
+                  flag->operationTypeFlag=1;
+              }
+           }
+           else
+           {
+             flag->operationTypeFlag=1;
+           }
         }
-        else if(strcmp(argv[i], "-mul") == 0)
+        else if(strcmp(argv[i], "-mul") == 0 || strcmp(argv[i], "--mul") == 0)
         {
-            param->operationImageName=argv[++i];
-            if(isNumeric(param->operationImageName))
-            {
-                param->operationValue=(float)atof(param->operationImageName);
-                param->operationImageName=NULL;
-            }
-            flag->operationTypeFlag=2;
+           param->operationImageName=argv[++i];
+           if (isNumeric(param->operationImageName))
+           {
+              float val = (float)atof(param->operationImageName);
+              param->operationImageName=NULL;
+
+              if(val != -999999)
+              {
+                  param->operationValue=val;
+                  flag->operationTypeFlag=2;
+              }
+           }
+           else
+           {
+             flag->operationTypeFlag=2;
+           }
         }
-        else if(strcmp(argv[i], "-iso") == 0)
+        else if(strcmp(argv[i], "-iso") == 0 || strcmp(argv[i], "--iso") == 0)
         {
             flag->iso=true;
         }
-        else if(strcmp(argv[i], "-div") == 0)
+        else if(strcmp(argv[i], "-div") == 0 || strcmp(argv[i], "--div") == 0)
         {
-            param->operationImageName=argv[++i];
-            if(isNumeric(param->operationImageName))
-            {
-                param->operationValue=(float)atof(param->operationImageName);
-                param->operationImageName=NULL;
-            }
-            flag->operationTypeFlag=3;
+           param->operationImageName=argv[++i];
+           if (isNumeric(param->operationImageName))
+           {
+              float val = (float)atof(param->operationImageName);
+              param->operationImageName=NULL;
+
+              if(val != -999999)
+              {
+                  param->operationValue=val;
+                  flag->operationTypeFlag=3;
+              }
+           }
+           else
+           {
+             flag->operationTypeFlag=3;
+           }
         }
-        else if(strcmp(argv[i], "-rms") == 0)
+        else if(strcmp(argv[i], "-rms") == 0 || strcmp(argv[i], "--rms") == 0)
         {
             param->rmsImageName=argv[++i];
             flag->rmsImageFlag=1;
         }
-        else if(strcmp(argv[i], "-down") == 0)
+        else if(strcmp(argv[i], "-down") == 0 || strcmp(argv[i], "--down") == 0)
         {
             flag->downsampleFlag=1;
         }
-        else if(strcmp(argv[i], "-float") == 0)
+        else if(strcmp(argv[i], "-float") == 0 || strcmp(argv[i], "--float") == 0)
         {
             flag->floatFlag=1;
         }
-        else if(strcmp(argv[i], "-smoS") == 0)
+        else if(strcmp(argv[i], "-smoS") == 0 || strcmp(argv[i], "--smoS") == 0)
         {
             param->smoothValueX=atof(argv[++i]);
             param->smoothValueY=atof(argv[++i]);
             param->smoothValueZ=atof(argv[++i]);
             flag->smoothSplineFlag=1;
         }
-        else if(strcmp(argv[i], "-smoG") == 0)
+        else if(strcmp(argv[i], "-smoG") == 0 || strcmp(argv[i], "--smoG") == 0)
         {
             param->smoothValueX=atof(argv[++i]);
             param->smoothValueY=atof(argv[++i]);
             param->smoothValueZ=atof(argv[++i]);
             flag->smoothGaussianFlag=1;
         }
-        else if(strcmp(argv[i], "-smoL") == 0)
+        else if(strcmp(argv[i], "-smoL") == 0 || strcmp(argv[i], "--smoL") == 0)
         {
             param->smoothValueX=atof(argv[++i]);
             param->smoothValueY=atof(argv[++i]);
@@ -279,16 +315,20 @@ int main(int argc, char **argv)
             param->smoothValueZ=atof(argv[++i]);
             flag->smoothMeanFlag=1;
         }
-        else if(strcmp(argv[i], "-bin") == 0)
+        else if(strcmp(argv[i], "-bin") == 0 || strcmp(argv[i], "--bin") == 0)
         {
             flag->binarisedImageFlag=1;
         }
-        else if(strcmp(argv[i], "-thr") == 0)
+        else if(strcmp(argv[i], "-thr") == 0 || strcmp(argv[i], "--thr") == 0)
         {
-            param->thresholdImageValue=atof(argv[++i]);
-            flag->thresholdImageFlag=1;
+            float val = atof(argv[++i]);
+            if(val != -999999)
+            {
+                param->thresholdImageValue=val;
+                flag->thresholdImageFlag=1;
+            }
         }
-        else if(strcmp(argv[i], "-nan") == 0)
+        else if(strcmp(argv[i], "-nan") == 0 || strcmp(argv[i], "--nan") == 0)
         {
             param->operationImageName=argv[++i];
             flag->nanMaskFlag=1;
@@ -297,16 +337,20 @@ int main(int argc, char **argv)
         {
             flag->normFlag=1;
         }
-        else if(strcmp(argv[i], "-noscl") == 0)
+        else if(strcmp(argv[i], "-noscl") == 0 || strcmp(argv[i], "--noscl") == 0)
         {
             flag->nosclFlag=1;
         }
-        else if(strcmp(argv[i], "-rmNanInf") == 0)
+        else if(strcmp(argv[i], "-rmNanInf") == 0 || strcmp(argv[i], "--rmNanInf") == 0)
         {
-            flag->removeNanInf=1;
-            param->removeNanInfValue=atof(argv[++i]);
+            float val = atof(argv[++i]);
+            if(val != -999999)
+            {
+                flag->removeNanInf=1;
+                param->removeNanInfValue=val;
+            }
         }
-        else if(strcmp(argv[i], "-chgres") == 0)
+        else if(strcmp(argv[i], "-chgres") == 0 || strcmp(argv[i], "--chgres") == 0)
         {
             flag->changeResFlag=1;
             param->pixdimX=atof(argv[++i]);
@@ -321,18 +365,19 @@ int main(int argc, char **argv)
         {
             flag->bsi2rgbFlag=1;
         }
-        else if (strcmp(argv[i], "-testActiveBlocks") == 0){
+        else if (strcmp(argv[i], "-testActiveBlocks") == 0 || strcmp(argv[i], "--testActiveBlocks") == 0)
+        {
             flag->testActiveBlocksFlag=1;
         }
-        else if(strcmp(argv[i], "-mind") == 0)
+        else if(strcmp(argv[i], "-mind") == 0 || strcmp(argv[i], "--mind") == 0)
         {
             flag->mindFlag=1;
         }
-        else if(strcmp(argv[i], "-mindssc") == 0)
+        else if(strcmp(argv[i], "-mindssc") == 0 || strcmp(argv[i], "--mindssc") == 0)
         {
             flag->mindSSCFlag=1;
         }
-        else if(strcmp(argv[i], "-interp") == 0)
+        else if(strcmp(argv[i], "-interp") == 0 || strcmp(argv[i], "--interp") == 0)
         {
             flag->interpFlag=1;
             param->interpOrder=atoi(argv[++i]);
