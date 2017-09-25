@@ -18,7 +18,7 @@ char xml_jacobian[] =
    "  <category>Registration.NiftyReg</category>\n"
    "  <title>RegJacobian (NiftyReg)</title>\n"
    "  <description><![CDATA[NiftyReg module to create Jacobian-based images]]></description>\n"
-   "  <version>0.0.1</version>\n"
+   "  <version>@NR_VERSION@</version>\n"
    "  <documentation-url>http://cmic.cs.ucl.ac.uk/home/software/</documentation-url>\n"
    "  <license>BSD</license>\n"
    "  <contributor>Marc Modat (UCL)</contributor>\n"
@@ -77,7 +77,7 @@ char xml_jacobian[] =
 #ifdef GIMIAS_CLI
    "      <default>None</default>\n"
 #else
-   "      <default>JacMatImage.nii</default>\n"
+   "      <default>jacMatImage.nii</default>\n"
 #endif
    "      <channel>output</channel>\n"
    "    </image>"
