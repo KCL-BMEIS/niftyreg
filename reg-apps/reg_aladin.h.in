@@ -11,7 +11,7 @@ char xml_aladin[] =
    "  <category>Registration.NiftyReg</category>\n"
    "  <title>RegAladin (NiftyReg)</title>\n"
    "  <description><![CDATA[Module/executable for global registration (rigid and/or affine) based on a block-matching approach and a trimmed least squared optimisation.]]></description>\n"
-   "  <version>1.5.44</version>\n"
+   "  <version>@NR_VERSION@</version>\n"
    "  <documentation-url>http://cmic.cs.ucl.ac.uk/home/software/</documentation-url>\n"
    "  <license>BSD</license>\n"
    "  <contributor>Marc Modat, Pankaj Daga, David Cash (UCL)</contributor>\n"
