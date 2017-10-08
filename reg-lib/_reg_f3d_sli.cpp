@@ -1547,8 +1547,59 @@ void reg_f3d_sli<T>::Initialise()
 
 	//initialise control point grid for region 2
 	//
-	//if no input grid provided just copy region 1 CPG
-	if ()
+	//check if an input grid has been provided
+	if (this->inputRegion2ControlPointGrid != NULL)
+	{
+		//if so use input grid to initialise region 2 control point grid
+		this->region2ControlPointGrid = nifti_copy_nim_info(this->inputRegion2ControlPointGrid);
+		this->region2ControlPointGrid->data = (void *)malloc(this->region2ControlPointGrid->nvox * this->region2ControlPointGrid->nbyper);
+		memcpy(this->region2ControlPointGrid->data, this->inputRegion2ControlPointGrid->data, 
+			this->region2ControlPointGrid->nvox * this->region2ControlPointGrid->nbyper);
+	}
+	else
+	{
+		//if not copy grid from region 1
+		this->region2ControlPointGrid = nifti_copy_nim_info(this->controlPointGrid);
+		this->region2ControlPointGrid->data = (void *)malloc(this->region2ControlPointGrid->nvox * this->region2ControlPointGrid->nbyper);
+		memcpy(this->region2ControlPointGrid->data, this->controlPointGrid->data,
+			this->region2ControlPointGrid->nvox * this->region2ControlPointGrid->nbyper);
+	}
+
+	//check if image pyramids are being used for multi-resolution
+	if (this->usePyramid)
+	{
+		//create image pyramid for distance map, with one image for each resolution level
+		this->distanceMapPyramid = (nifti_image **)malloc(this->levelToPerform * sizeof(nifti_image *));
+		reg_createImagePyramid<T>(this->inputDistanceMap, this->distanceMapPyramid, this->levelNumber, this->levelToPerform);
+	}
+	else
+	{
+		//image pyramids are not used, so create pyramid with just one level (i.e. copy of input image)
+		this->distanceMapPyramid = (nifti_image **)malloc(sizeof(nifti_image *));
+		reg_createImagePyramid<T>(this->inputDistanceMap, this->distanceMapPyramid, 1, 1);
+	}
+
+#ifdef NDEBUG
+	if (this->verbose)
+	{
+#endif
+		//print out some info:
+		std::string text;
+		//name of distance map image
+		text = stringFormat("Distance map image used for sliding regions: %s", this->inputDistanceMap->fname);
+		reg_print_info(this->executableName, text.c_str());
+		//weight of gap-overlap penalty term
+		text = stringFormat("Gap-overlap penalty term weight: %g", this->gapOverlapWeight);
+		reg_print_info(this->executableName, text.c_str());
+		reg_print_info(this->executableName, "");
+
+#ifdef NDEBUG
+	}
+#endif
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d<T>::Initialise");
+#endif
+
 }
 /* *************************************************************** */
 /* *************************************************************** */

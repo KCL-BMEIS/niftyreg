@@ -13,6 +13,7 @@
 #include "_reg_ReadWriteMatrix.h"
 #include "_reg_f3d2.h"
 #include "reg_f3d.h"
+#include "_reg_f3d_sli.h"
 #include <float.h>
 //#include <libgen.h> //DOES NOT WORK ON WINDOWS !
 
@@ -49,7 +50,7 @@ void Usage(char *exec)
    reg_print_info(exec, "***************");
    reg_print_info(exec, "*** Initial transformation options (One option will be considered):");
    reg_print_info(exec, "\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=Floating)");
-   reg_print_info(exec, "\t-incpp <filename>\tFilename ofloatf control point grid input");
+   reg_print_info(exec, "\t-incpp <filename>\tFilename of control point grid input");
    reg_print_info(exec, "\t\t\t\tThe coarse spacing is defined by this file.");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Output options:");
@@ -130,6 +131,15 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-nogce \t\t\tDo not use the gradient accumulation through exponentiation");
    reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space");
    reg_print_info(exec, "");
+
+   //sliding regions registration options
+   reg_print_info(exec, "*** Sliding regions options:");
+   reg_print_info(exec, "\t-sli \t\t\tUse two transformations and a penalty term to allow for sliding regions");
+   reg_print_info(exec, "\t-dmap <filename>\tFilename of a distance map image in the floating space, defining the two sliding regions");
+   reg_print_info(exec, "\t-go <float>\t\tWeight of the gap-overlap penalty term [0.1]");
+   reg_print_info(exec, "\t-incpp2 <filename>\tFilename of control point grid input for region 2");
+   reg_print_info(exec, "");
+
 
    reg_print_info(exec, "*** Platform options:");
 #if defined(_USE_CUDA) && defined(_USE_OPENCL)
@@ -297,8 +307,7 @@ int main(int argc, char **argv)
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check the type of registration object to create
    reg_f3d<float> *REG=NULL;
-   float *referenceLandmark=NULL;
-   float *floatingLandmark=NULL;
+   reg_f3d_sli<float> *REG_SLI = NULL;
    for(int i=1; i<argc; i++)
    {
       if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0)
@@ -311,6 +320,12 @@ int main(int argc, char **argv)
          REG=new reg_f3d_sym<float>(referenceImage->nt,floatingImage->nt);
          break;
       }
+	  if (strcmp(argv[i], "-sli") == 0 || strcmp(argv[i], "--sli") == 0)
+	  {
+		  REG_SLI = new reg_f3d_sli<float>(referenceImage->nt, floatingImage->nt);
+		  REG = static_cast<reg_f3d<float> *>(REG_SLI);
+		  break;
+	  }
    }
    if(REG==NULL)
       REG=new reg_f3d<float>(referenceImage->nt,floatingImage->nt);
@@ -328,6 +343,10 @@ int main(int argc, char **argv)
    bool useMeanLNCC=false;
    int refBinNumber=0;
    int floBinNumber=0;
+   float *referenceLandmark = NULL;
+   float *floatingLandmark = NULL;
+   nifti_image *distMapImage = NULL;
+   nifti_image *inputCPPImageR2 = NULL;
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -775,6 +794,58 @@ int main(int argc, char **argv)
          REG->UseBCHUpdate(atoi(argv[++i]));
       }
 
+	  //sliding region registration options
+	  else if (strcmp(argv[i], "-dmap") == 0 || strcmp(argv[i], "--dmap") == 0)
+	  {
+		  distMapImage = reg_io_ReadImageFile(argv[++i]);
+		  if (distMapImage == NULL)
+		  {
+			  reg_print_msg_error("Error when reading the distance map image");
+			  reg_print_msg_error(argv[i - 1]);
+			  return EXIT_FAILURE;
+		  }
+		  if (REG_SLI != NULL)
+		  {
+			  REG_SLI->SetDistanceMapImage(distMapImage);
+		  }
+		  else
+		  {
+			  reg_print_msg_error("Sliding regions registrations (-sli flag) must be used when specifying a distance map image");
+			  return EXIT_FAILURE;
+		  }
+	  }
+	  else if (strcmp(argv[i], "-go") == 0 || strcmp(argv[i], "--go") == 0)
+	  {
+		  if (REG_SLI != NULL)
+		  {
+			  REG_SLI->SetGapOverlapWeight(atof(argv[++i]));
+		  }
+		  else
+		  {
+			  reg_print_msg_error("Sliding regions registrations (-sli flag) must be used when specifying the gap-overlap penalty term weight");
+			  return EXIT_FAILURE;
+		  }
+	  }
+	  else if (strcmp(argv[i], "-incpp2") == 0 || strcmp(argv[i], "--incpp2") == 0)
+	  {
+		  inputCPPImageR2 = reg_io_ReadImageFile(argv[++i]);
+		  if (inputCPPImageR2 == NULL)
+		  {
+			  reg_print_msg_error("Error when reading the input control point grid image for region 2:");
+			  reg_print_msg_error(argv[i - 1]);
+			  return EXIT_FAILURE;
+		  }
+		  if (REG_SLI != NULL)
+		  {
+			  REG_SLI->SetRegion2ControlPointGridImage(inputCPPImageR2);
+		  }
+		  else
+		  {
+			  reg_print_msg_error("Sliding regions registrations (-sli flag) must be used when specifying a input control point grid for region 2");
+			  return EXIT_FAILURE;
+		  }
+	  }
+
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
 #if defined (_OPENMP)
@@ -792,7 +863,8 @@ int main(int argc, char **argv)
               strcmp(argv[i], "-Version")!=0 && strcmp(argv[i], "-V")!=0 &&
               strcmp(argv[i], "-v")!=0 && strcmp(argv[i], "--v")!=0 &&
               strcmp(argv[i], "-gpu")!=0 && strcmp(argv[i], "--gpu")!=0 &&
-              strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0)
+              strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0 &&
+			  strcmp(argv[i], "-sli") != 0)
       {
          reg_print_msg_error("\tParameter unknown:");
          reg_print_msg_error(argv[i]);
