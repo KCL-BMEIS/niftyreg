@@ -898,44 +898,119 @@ int main(int argc, char **argv)
    REG->Run();
 
    // Save the control point image
-   nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
    if(outputCPPImageName==NULL) outputCPPImageName=(char *)"outputCPP.nii";
-   memset(outputControlPointGridImage->descrip, 0, 80);
-   strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
-   if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
-      strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
-   reg_io_WriteImageFile(outputControlPointGridImage,outputCPPImageName);
-   nifti_image_free(outputControlPointGridImage);
-   outputControlPointGridImage=NULL;
-
-   // Save the backward control point image
-   if(REG->GetSymmetricStatus())
+   //check if sliding region registration
+   if (REG_SLI == NULL)
    {
-      // _backward is added to the forward control point grid image name
-      std::string b(outputCPPImageName);
-      if(b.find( ".nii.gz") != std::string::npos)
-         b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
-      else if(b.find( ".nii") != std::string::npos)
-         b.replace(b.find( ".nii"),4,"_backward.nii");
-      else if(b.find( ".hdr") != std::string::npos)
-         b.replace(b.find( ".hdr"),4,"_backward.hdr");
-      else if(b.find( ".img.gz") != std::string::npos)
-         b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
-      else if(b.find( ".img") != std::string::npos)
-         b.replace(b.find( ".img"),4,"_backward.img");
-      else if(b.find( ".png") != std::string::npos)
-         b.replace(b.find( ".png"),4,"_backward.png");
-      else if(b.find( ".nrrd") != std::string::npos)
-         b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
-      else b.append("_backward.nii");
-      nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
-      memset(outputBackwardControlPointGridImage->descrip, 0, 80);
-      strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
-      if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
-         strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
-      reg_io_WriteImageFile(outputBackwardControlPointGridImage,b.c_str());
-      nifti_image_free(outputBackwardControlPointGridImage);
-      outputBackwardControlPointGridImage=NULL;
+	   //if not get output image, set description, save, and clear
+	   nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
+	   memset(outputControlPointGridImage->descrip, 0, 80);
+	   strcpy(outputControlPointGridImage->descrip, "Control point position from NiftyReg (reg_f3d)");
+	   if (strcmp("NiftyReg F3D2", REG->GetExecutableName()) == 0)
+		   strcpy(outputControlPointGridImage->descrip, "Velocity field grid from NiftyReg (reg_f3d2)");
+	   reg_io_WriteImageFile(outputControlPointGridImage, outputCPPImageName);
+	   nifti_image_free(outputControlPointGridImage);
+	   outputControlPointGridImage = NULL;
+
+	   // and save backwards CPP image if exists
+	   if (REG->GetSymmetricStatus())
+	   {
+		   // _backward is added to the forward control point grid image name
+		   std::string b(outputCPPImageName);
+		   if (b.find(".nii.gz") != std::string::npos)
+			   b.replace(b.find(".nii.gz"), 7, "_backward.nii.gz");
+		   else if (b.find(".nii") != std::string::npos)
+			   b.replace(b.find(".nii"), 4, "_backward.nii");
+		   else if (b.find(".hdr") != std::string::npos)
+			   b.replace(b.find(".hdr"), 4, "_backward.hdr");
+		   else if (b.find(".img.gz") != std::string::npos)
+			   b.replace(b.find(".img.gz"), 7, "_backward.img.gz");
+		   else if (b.find(".img") != std::string::npos)
+			   b.replace(b.find(".img"), 4, "_backward.img");
+		   else if (b.find(".png") != std::string::npos)
+			   b.replace(b.find(".png"), 4, "_backward.png");
+		   else if (b.find(".nrrd") != std::string::npos)
+			   b.replace(b.find(".nrrd"), 5, "_backward.nrrd");
+		   else b.append("_backward.nii");
+		   nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
+		   memset(outputBackwardControlPointGridImage->descrip, 0, 80);
+		   strcpy(outputBackwardControlPointGridImage->descrip, "Backward Control point position from NiftyReg (reg_f3d)");
+		   if (strcmp("NiftyReg F3D2", REG->GetExecutableName()) == 0)
+			   strcpy(outputBackwardControlPointGridImage->descrip, "Backward velocity field grid from NiftyReg (reg_f3d2)");
+		   reg_io_WriteImageFile(outputBackwardControlPointGridImage, b.c_str());
+		   nifti_image_free(outputBackwardControlPointGridImage);
+		   outputBackwardControlPointGridImage = NULL;
+	   }
+   }
+   else
+   {
+	   //if sliding registration create two versions of CPP name,
+	   //one with _region1 appended and the other with _region2 appended
+	   std::string region1Name(outputCPPImageName);
+	   std::string region2Name(outputCPPImageName);
+	   if (region1Name.find(".nii.gz") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".nii.gz"), 7, "_region1.nii.gz");
+		   region2Name.replace(region2Name.find(".nii.gz"), 7, "_region2.nii.gz");
+	   }
+	   if (region1Name.find(".nii") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".nii"), 4, "_region1.nii");
+		   region2Name.replace(region2Name.find(".nii"), 4, "_region2.nii");
+	   }
+	   if (region1Name.find(".hdr") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".hdr"), 4, "_region1.hdr");
+		   region2Name.replace(region2Name.find(".hdr"), 4, "_region2.hdr");
+	   }
+	   if (region1Name.find(".img.gz") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".img.gz"), 7, "_region1.img.gz");
+		   region2Name.replace(region2Name.find(".img.gz"), 7, "_region2.img.gz");
+	   }
+	   if (region1Name.find(".img") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".img"), 4, "_region1.img");
+		   region2Name.replace(region2Name.find(".img"), 4, "_region2.img");
+	   }
+	   if (region1Name.find(".png") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".png"), 4, "_region1.png");
+		   region2Name.replace(region2Name.find(".png"), 4, "_region2.png");
+	   }
+	   if (region1Name.find(".nrrd") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".nrrd"), 5, "_region1.nrrd");
+		   region2Name.replace(region2Name.find(".nrrd"), 5, "_region2.nrrd");
+	   }
+	   else
+	   {
+		   region1Name.append("_region1.nii");
+		   region2Name.append("_region2.nii");
+	   }
+
+	   //now get output CPP image for region 1
+	   nifti_image *region1OutputCPPImage = REG_SLI->GetControlPointPositionImage();
+	   //set description for CPP image for region 1
+	   memset(region1OutputCPPImage->descrip, 0, 80);
+	   strcpy(region1OutputCPPImage->descrip, "Control point position for Region 1 from NiftyReg (reg_f3d_sli)");
+	   //save CPP image for region 1
+	   reg_io_WriteImageFile(region1OutputCPPImage, region1Name.c_str());
+	   //clear CPP image for region 1
+	   nifti_image_free(region1OutputCPPImage);
+	   region1OutputCPPImage = NULL;
+
+	   //and same for region 2...
+	   //get output CPP image for region 2
+	   nifti_image *region2OutputCPPImage = REG_SLI->GetRegion2ControlPointPositionImage();
+	   //set description for CPP image for region 2
+	   memset(region2OutputCPPImage->descrip, 0, 80);
+	   strcpy(region2OutputCPPImage->descrip, "Control point position for Region 2 from NiftyReg (reg_f3d_sli)");
+	   //save CPP image for region 2
+	   reg_io_WriteImageFile(region2OutputCPPImage, region2Name.c_str());
+	   //clear CPP image for region 2
+	   nifti_image_free(region2OutputCPPImage);
+	   region2OutputCPPImage = NULL;
    }
 
    // Save the warped image(s)
@@ -998,6 +1073,8 @@ int main(int argc, char **argv)
    if(inputCCPImage!=NULL) nifti_image_free(inputCCPImage);
    if(referenceMaskImage!=NULL) nifti_image_free(referenceMaskImage);
    if(floatingMaskImage!=NULL) nifti_image_free(floatingMaskImage);
+   if (distMapImage != NULL) nifti_image_free(distMapImage);
+   if (inputCPPImageR2 != NULL) nifti_image_free(inputCPPImageR2);
 
 #ifdef NDEBUG
    if(verbose)
