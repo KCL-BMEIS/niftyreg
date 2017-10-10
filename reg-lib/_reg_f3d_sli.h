@@ -207,6 +207,10 @@ public:
 	//reimplement method to initialise registration so that also initialises CPG for region 2
 	//and image pyramid for distance map image
 	virtual void Initialise();
+
+	//reimplement method to get warped image so that distance map set to input distance map
+	//before calling method from ref_f3d
+	virtual nifti_image **GetWarpedImage();
 };
 
 #endif

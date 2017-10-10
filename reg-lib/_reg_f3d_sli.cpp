@@ -155,8 +155,8 @@ void reg_f3d_sli<T>::GetDeformationField()
 	//loop over voxels
 	for (size_t n = 0; n < numVox; n++)
 	{
-		//check in mask
-		if (this->currentMask[n] > -1)
+		//check mask exists and in mask
+		if (this->currentMask != NULL && this->currentMask[n] > -1)
 		{
 			//warped distance maps (WDMs) will contain NaN values if the transform
 			//maps the voxel outside the extent of the distance map so need to check
@@ -259,7 +259,7 @@ void reg_f3d_sli<T>::AllocateDeformationField()
 	this->region1DeformationFieldImage = nifti_copy_nim_info(this->deformationFieldImage);
 	this->region1DeformationFieldImage->data = (void *)calloc(this->region1DeformationFieldImage->nvox,
 		this->region1DeformationFieldImage->nbyper);
-	this->region1DeformationFieldImage = nifti_copy_nim_info(this->deformationFieldImage);
+	this->region2DeformationFieldImage = nifti_copy_nim_info(this->deformationFieldImage);
 	this->region2DeformationFieldImage->data = (void *)calloc(this->region2DeformationFieldImage->nvox,
 		this->region2DeformationFieldImage->nbyper);
 
@@ -278,12 +278,12 @@ void reg_f3d_sli<T>::ClearDeformationField()
 	if (this->region1DeformationFieldImage != NULL)
 	{
 		nifti_image_free(this->region1DeformationFieldImage);
-		this->region1DeformationFieldImage == NULL;
+		this->region1DeformationFieldImage = NULL;
 	}
 	if (this->region2DeformationFieldImage != NULL)
 	{
 		nifti_image_free(this->region2DeformationFieldImage);
-		this->region2DeformationFieldImage == NULL;
+		this->region2DeformationFieldImage = NULL;
 	}
 
 #ifndef NDEBUG
@@ -1600,6 +1600,29 @@ void reg_f3d_sli<T>::Initialise()
 	reg_print_fct_debug("reg_f3d<T>::Initialise");
 #endif
 
+}
+/* *************************************************************** */
+template<class T>
+nifti_image **reg_f3d_sli<T>::GetWarpedImage()
+{
+	//the input distance map image is used
+	if (this->inputDistanceMap == NULL)
+	{
+		reg_print_fct_error("reg_f3d_sli<T>::GetWarpedImage()");
+		reg_print_msg_error("The distance map image has to be defined");
+		reg_exit();
+	}
+	this->currentDistanceMap = this->inputDistanceMap;
+
+	//call method from reg_f3d to get image
+	nifti_image **warpedImage = reg_f3d<T>::GetWarpedImage();
+
+#ifndef NDEBUG
+	reg_print_fct_debug("reg_f3d_sli<T>::GetWarpedImage");
+#endif
+
+	//and return image
+	return warpedImage;
 }
 /* *************************************************************** */
 /* *************************************************************** */
