@@ -72,6 +72,8 @@ template<class T> reg_aladin<T>::reg_aladin()
   this->FloatingUpperThreshold = std::numeric_limits<T>::max();
   this->FloatingLowerThreshold = -std::numeric_limits<T>::max();
 
+  this->WarpedPaddingValue = std::numeric_limits<T>::quiet_NaN();
+
   this->funcProgressCallback = NULL;
   this->paramsProgressCallback = NULL;
 
@@ -423,10 +425,10 @@ void reg_aladin<T>::GetDeformationField()
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::GetWarpedImage(int interp)
+void reg_aladin<T>::GetWarpedImage(int interp, float padding)
 {
   this->GetDeformationField();
-  this->resamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, std::numeric_limits<T>::quiet_NaN());
+  this->resamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, padding);
 }
 /* *************************************************************** */
 template<class T>
@@ -501,7 +503,7 @@ void reg_aladin<T>::resolveMatrix(unsigned int iterations, const unsigned int op
             this->CurrentLevel+1, this->NumberOfLevels, iteration+1, iterations);
     reg_print_msg_debug(text);
 #endif
-    this->GetWarpedImage(this->Interpolation);
+    this->GetWarpedImage(this->Interpolation, this->WarpedPaddingValue);
     this->UpdateTransformationMatrix(optimizationFlag);
 
     iteration++;
@@ -604,8 +606,10 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
                                    sizeof(T));
   reg_aladin<T>::createKernels();
 
-  reg_aladin<T>::GetWarpedImage(3); // cubic spline interpolation
+  reg_aladin<T>::GetWarpedImage(3, this->WarpedPaddingValue); // cubic spline interpolation
   nifti_image *CurrentWarped = this->con->getCurrentWarped(floatingType);
+
+  printf("Padding value here %g\n", this->WarpedPaddingValue);
 
   free(mask);
   nifti_image *resultImage = nifti_copy_nim_info(CurrentWarped);

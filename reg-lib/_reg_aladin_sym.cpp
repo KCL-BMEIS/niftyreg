@@ -218,11 +218,11 @@ void reg_aladin_sym<T>::GetBackwardDeformationField()
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::GetWarpedImage(int interp)
+void reg_aladin_sym<T>::GetWarpedImage(int interp, float padding)
 {
-   reg_aladin<T>::GetWarpedImage(interp);
+   reg_aladin<T>::GetWarpedImage(interp, padding);
    this->GetBackwardDeformationField();
-   this->bResamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, std::numeric_limits<T>::quiet_NaN());
+   this->bResamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, padding);
 
 }
 /* *************************************************************** */

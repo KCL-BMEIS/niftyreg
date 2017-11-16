@@ -99,6 +99,7 @@ class reg_aladin
         float ReferenceLowerThreshold;
         float FloatingUpperThreshold;
         float FloatingLowerThreshold;
+        float WarpedPaddingValue;
 
         Platform *platform;
         int platformCode;
@@ -110,7 +111,7 @@ class reg_aladin
         virtual void ClearCurrentInputImage();
 
         virtual void GetDeformationField();
-        virtual void GetWarpedImage(int);
+        virtual void GetWarpedImage(int, float padding);
         virtual void UpdateTransformationMatrix(int);
 
         void (*funcProgressCallback)(float pcntProgress, void *params);
@@ -217,6 +218,9 @@ class reg_aladin
         GetMacro(FloatingUpperThreshold,float)
         SetMacro(FloatingLowerThreshold,float)
         GetMacro(FloatingLowerThreshold,float)
+
+        SetMacro(WarpedPaddingValue,float)
+        GetMacro(WarpedPaddingValue,float)
 
         SetMacro(FloatingSigma,float)
         GetMacro(FloatingSigma,float)
