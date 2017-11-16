@@ -55,7 +55,7 @@ protected:
   virtual void DebugPrintLevelInfoStart();
   virtual void DebugPrintLevelInfoEnd();
   virtual void InitialiseRegistration();
-  virtual void GetWarpedImage(int);
+  virtual void GetWarpedImage(int, float);
 
 public:
   reg_aladin_sym();
