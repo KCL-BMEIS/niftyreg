@@ -644,7 +644,7 @@ int main(int argc, char **argv)
    // Check if the inputs are affine or images
    bool trans_is_affine=true;
    if(operation==AVG_INPUT || operation==AVG_IMG_TRANS){
-      std::string n(pointer_to_command[3]);
+      std::string n(pointer_to_command[4]);
       if(     n.find( ".nii") != std::string::npos ||
               n.find( ".nii.gz") != std::string::npos ||
               n.find( ".hdr") != std::string::npos ||
