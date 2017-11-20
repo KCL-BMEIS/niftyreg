@@ -156,7 +156,7 @@ void reg_f3d_sli<T>::GetDeformationField()
 	for (size_t n = 0; n < numVox; n++)
 	{
 		//check mask exists and in mask
-		if (this->currentMask != NULL && this->currentMask[n] > -1)
+		if (this->currentMask == NULL || this->currentMask[n] > -1)
 		{
 			//warped distance maps (WDMs) will contain NaN values if the transform
 			//maps the voxel outside the extent of the distance map so need to check
@@ -414,7 +414,7 @@ double reg_f3d_sli<T>::ComputeGapOverlapPenaltyTerm()
 	}
 
 	//normalise by the number of voxels and return weighted value
-	gapOverlapTotal /= double(numVox);
+	//gapOverlapTotal /= double(numVox);
 	return double(this->gapOverlapWeight) * gapOverlapTotal;
 
 #ifndef NDEBUG
@@ -545,17 +545,29 @@ void reg_f3d_sli<T>::GetSimilarityMeasureGradient()
 	T *warpedDMR1Ptr = static_cast<T *>(this->warpedDistanceMapRegion1->data);
 	T *warpedDMR2Ptr = static_cast<T *>(this->warpedDistanceMapRegion2->data);
 	//pointers to voxel-based similarity gradients
-	T *combinedVBMGPtr = static_cast<T *>(this->voxelBasedMeasureGradient->data);
-	T *region1VBMGPtr = static_cast<T *>(this->region1VoxelBasedMeasureGradientImage->data);
-	T *region2VBMGPtr = static_cast<T *>(this->region2VoxelBasedMeasureGradientImage->data);
-
+	size_t numVox = this->voxelBasedMeasureGradient->nx *
+		this->voxelBasedMeasureGradient->ny *
+		this->voxelBasedMeasureGradient->nz;
+	T *combinedVBMGPtrX = static_cast<T *>(this->voxelBasedMeasureGradient->data);
+	T *combinedVBMGPtrY = &combinedVBMGPtrX[numVox];
+	T *combinedVBMGPtrZ = NULL;
+	T *region1VBMGPtrX = static_cast<T *>(this->region1VoxelBasedMeasureGradientImage->data);
+	T *region1VBMGPtrY = &region1VBMGPtrX[numVox];
+	T *region1VBMGPtrZ = NULL;
+	T *region2VBMGPtrX = static_cast<T *>(this->region2VoxelBasedMeasureGradientImage->data);
+	T *region2VBMGPtrY = &region2VBMGPtrX[numVox];
+	T *region2VBMGPtrZ = NULL;
+	//check for 3D
+	if (this->voxelBasedMeasureGradient->nz > 1)
+	{
+		combinedVBMGPtrZ = &combinedVBMGPtrY[numVox];
+		region1VBMGPtrZ = &region1VBMGPtrY[numVox];
+		region2VBMGPtrZ = &region2VBMGPtrY[numVox];
+	}
 	//loop over voxels and split voxel-based gradient between two regions
 	//based on warped distance maps (WDMs).
 	//Note - GetDeformationField() will be called before this method, so
 	//WDMs will have already been calculated
-	size_t numVox = this->voxelBasedMeasureGradient->nx *
-		this->voxelBasedMeasureGradient->ny *
-		this->voxelBasedMeasureGradient->nz;
 	for (size_t n = 0; n < numVox; n++)
 	{
 		//is in mask?
@@ -566,13 +578,23 @@ void reg_f3d_sli<T>::GetSimilarityMeasureGradient()
 			//then copy voxel-based gradient value in to region2VoxelBasedMeasureGradientImage
 			if (warpedDMR1Ptr[n] != warpedDMR1Ptr[n] && warpedDMR2Ptr[n] >= 0)
 			{
-				region2VBMGPtr[n] = combinedVBMGPtr[n];
+				region2VBMGPtrX[n] = combinedVBMGPtrX[n];
+				region2VBMGPtrY[n] = combinedVBMGPtrY[n];
+				if (combinedVBMGPtrZ != NULL)
+				{
+					region2VBMGPtrZ[n] = combinedVBMGPtrZ[n];
+				}
 			}
 			//if WDM2 is NaN and WDM1 < 0 (indicating region1 transform maps into region 1)
 			//then copy voxel-based gradient value in to region1VoxelBasedMeasureGradientImage
 			if (warpedDMR2Ptr[n] != warpedDMR2Ptr[n] && warpedDMR1Ptr[n] < 0)
 			{
-				region1VBMGPtr[n] = combinedVBMGPtr[n];
+				region1VBMGPtrX[n] = combinedVBMGPtrX[n];
+				region1VBMGPtrY[n] = combinedVBMGPtrY[n];
+				if (combinedVBMGPtrZ != NULL)
+				{
+					region1VBMGPtrZ[n] = combinedVBMGPtrZ[n];
+				}
 			}
 			//if both WDMs are not NaN then assign voxel-based gradient value to correct region
 			//based on WDMs
@@ -580,12 +602,36 @@ void reg_f3d_sli<T>::GetSimilarityMeasureGradient()
 			{
 				//if sum of WDMs < 0 assign value to region 1, else assign to region 2
 				if (warpedDMR1Ptr[n] + warpedDMR2Ptr[n] < 0)
-					region1VBMGPtr[n] = combinedVBMGPtr[n];
+				{
+					region1VBMGPtrX[n] = combinedVBMGPtrX[n];
+					region1VBMGPtrY[n] = combinedVBMGPtrY[n];
+					if (combinedVBMGPtrZ != NULL)
+					{
+						region1VBMGPtrZ[n] = combinedVBMGPtrZ[n];
+					}
+				}
 				else
-					region2VBMGPtr[n] = combinedVBMGPtr[n];
+				{
+					region2VBMGPtrX[n] = combinedVBMGPtrX[n];
+					region2VBMGPtrY[n] = combinedVBMGPtrY[n];
+					if (combinedVBMGPtrZ != NULL)
+					{
+						region2VBMGPtrZ[n] = combinedVBMGPtrZ[n];
+					}
+				}
 			}
 		}
 	}
+
+
+	/*char im_name[100];
+	sprintf(im_name, "debug_vox_grad_comb_lev_%i_iter_%i.nii", this->currentLevel, this->optimiser->GetCurrentIterationNumber());
+	reg_io_WriteImageFile(this->voxelBasedMeasureGradient, im_name);
+	sprintf(im_name, "debug_vox_grad_R1_lev_%i_iter_%i.nii", this->currentLevel, this->optimiser->GetCurrentIterationNumber());
+	reg_io_WriteImageFile(this->region1VoxelBasedMeasureGradientImage, im_name);
+	sprintf(im_name, "debug_vox_grad_R2_lev_%i_iter_%i.nii", this->currentLevel, this->optimiser->GetCurrentIterationNumber());
+	reg_io_WriteImageFile(this->region2VoxelBasedMeasureGradientImage, im_name);*/
+
 
 
 	//convert voxel-based gradienta to CPG gradients for both regions
@@ -660,6 +706,13 @@ void reg_f3d_sli<T>::GetSimilarityMeasureGradient()
 		this->similarityWeight,
 		false, // no update
 		&reorientation);
+
+
+	/*sprintf(im_name, "debug_cp_grad_R1_lev_%i_iter_%i.nii", this->currentLevel, this->optimiser->GetCurrentIterationNumber());
+	reg_io_WriteImageFile(this->transformationGradient, im_name);
+	sprintf(im_name, "debug_cp_grad_R2_lev_%i_iter_%i.nii", this->currentLevel, this->optimiser->GetCurrentIterationNumber());
+	reg_io_WriteImageFile(this->region2TransformationGradient, im_name);
+	reg_exit(0);*/
 
 	
 #ifndef NDEBUG
@@ -1571,12 +1624,23 @@ void reg_f3d_sli<T>::Initialise()
 		//create image pyramid for distance map, with one image for each resolution level
 		this->distanceMapPyramid = (nifti_image **)malloc(this->levelToPerform * sizeof(nifti_image *));
 		reg_createImagePyramid<T>(this->inputDistanceMap, this->distanceMapPyramid, this->levelNumber, this->levelToPerform);
+
+		//divide each distance map in pyramid by sqrt of number of voxel to normalise gap-overlap penalty term
+		for (int n = 0; n < this->levelToPerform; n++)
+		{
+			float numVox = this->distanceMapPyramid[n]->nx * this->distanceMapPyramid[n]->ny * this->distanceMapPyramid[n]->nz;
+			reg_tools_divideValueToImage(this->distanceMapPyramid[n], this->distanceMapPyramid[n], sqrt(numVox));
+		}
 	}
 	else
 	{
 		//image pyramids are not used, so create pyramid with just one level (i.e. copy of input image)
 		this->distanceMapPyramid = (nifti_image **)malloc(sizeof(nifti_image *));
 		reg_createImagePyramid<T>(this->inputDistanceMap, this->distanceMapPyramid, 1, 1);
+
+		//divide distance map in pyramid by sqrt of number of voxel to normalise gap-overlap penalty term
+		float numVox = this->distanceMapPyramid[0]->nx * this->distanceMapPyramid[0]->ny * this->distanceMapPyramid[0]->nz;
+		reg_tools_divideValueToImage(this->distanceMapPyramid[0], this->distanceMapPyramid[0], sqrt(numVox));
 	}
 
 #ifdef NDEBUG

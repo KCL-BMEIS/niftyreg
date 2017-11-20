@@ -541,6 +541,13 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
 {
    this->GetVoxelBasedGradient();
 
+
+   /*char im_name[100];
+   sprintf(im_name, "debug_vox_grad_lev_%i_iter_%i.nii", this->currentLevel, this->optimiser->GetCurrentIterationNumber());
+   reg_io_WriteImageFile(this->voxelBasedMeasureGradient, im_name);*/
+
+
+
    int kernel_type=CUBIC_SPLINE_KERNEL;
    // The voxel based NMI gradient is convolved with a spline kernel
    // Convolution along the x axis
@@ -591,6 +598,12 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
                                 false, // no update
                                 &reorientation
                                 );
+
+
+   /*sprintf(im_name, "debug_cp_grad_lev_%i_iter_%i.nii", this->currentLevel, this->optimiser->GetCurrentIterationNumber());
+   reg_io_WriteImageFile(this->transformationGradient, im_name);
+   reg_exit(0);*/
+
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetSimilarityMeasureGradient");
 #endif
