@@ -953,32 +953,32 @@ int main(int argc, char **argv)
 		   region1Name.replace(region1Name.find(".nii.gz"), 7, "_region1.nii.gz");
 		   region2Name.replace(region2Name.find(".nii.gz"), 7, "_region2.nii.gz");
 	   }
-	   if (region1Name.find(".nii") != std::string::npos)
+	   else if (region1Name.find(".nii") != std::string::npos)
 	   {
 		   region1Name.replace(region1Name.find(".nii"), 4, "_region1.nii");
 		   region2Name.replace(region2Name.find(".nii"), 4, "_region2.nii");
 	   }
-	   if (region1Name.find(".hdr") != std::string::npos)
+	   else if (region1Name.find(".hdr") != std::string::npos)
 	   {
 		   region1Name.replace(region1Name.find(".hdr"), 4, "_region1.hdr");
 		   region2Name.replace(region2Name.find(".hdr"), 4, "_region2.hdr");
 	   }
-	   if (region1Name.find(".img.gz") != std::string::npos)
+	   else if (region1Name.find(".img.gz") != std::string::npos)
 	   {
 		   region1Name.replace(region1Name.find(".img.gz"), 7, "_region1.img.gz");
 		   region2Name.replace(region2Name.find(".img.gz"), 7, "_region2.img.gz");
 	   }
-	   if (region1Name.find(".img") != std::string::npos)
+	   else if (region1Name.find(".img") != std::string::npos)
 	   {
 		   region1Name.replace(region1Name.find(".img"), 4, "_region1.img");
 		   region2Name.replace(region2Name.find(".img"), 4, "_region2.img");
 	   }
-	   if (region1Name.find(".png") != std::string::npos)
+	   else if (region1Name.find(".png") != std::string::npos)
 	   {
 		   region1Name.replace(region1Name.find(".png"), 4, "_region1.png");
 		   region2Name.replace(region2Name.find(".png"), 4, "_region2.png");
 	   }
-	   if (region1Name.find(".nrrd") != std::string::npos)
+	   else if (region1Name.find(".nrrd") != std::string::npos)
 	   {
 		   region1Name.replace(region1Name.find(".nrrd"), 5, "_region1.nrrd");
 		   region2Name.replace(region2Name.find(".nrrd"), 5, "_region2.nrrd");
