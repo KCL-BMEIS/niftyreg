@@ -443,7 +443,10 @@ void ResampleImage3D(nifti_image *floatingImage,
 
             intensity=paddingValue;
 
-            if((maskPtr[index])>-1)
+            if((maskPtr[index])>-1 &&
+				deformationFieldPtrX[index] == deformationFieldPtrX[index] &&
+				deformationFieldPtrY[index] == deformationFieldPtrY[index] &&
+				deformationFieldPtrZ[index] == deformationFieldPtrZ[index])
             {
                 world[0]=static_cast<float>(deformationFieldPtrX[index]);
                 world[1]=static_cast<float>(deformationFieldPtrY[index]);
@@ -644,7 +647,9 @@ void ResampleImage2D(nifti_image *floatingImage,
         {
 
             intensity=paddingValue;
-            if((maskPtr[index])>-1)
+			if ((maskPtr[index])>-1 &&
+				deformationFieldPtrX[index] == deformationFieldPtrX[index] &&
+				deformationFieldPtrY[index] == deformationFieldPtrY[index])
             {
                 world[0] = static_cast<float>(deformationFieldPtrX[index]);
                 world[1] = static_cast<float>(deformationFieldPtrY[index]);
