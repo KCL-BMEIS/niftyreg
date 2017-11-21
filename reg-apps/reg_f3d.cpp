@@ -482,7 +482,7 @@ int main(int argc, char **argv)
       {
          REG->SetBendingEnergyWeight(atof(argv[++i]));
       }
-      else if(strcmp(argv[i], "-le")==0)
+      else if(strcmp(argv[i], "-le")==0 || strcmp(argv[i], "--le")==0)
       {
          REG->SetLinearEnergyWeight(atof(argv[++i]));
       }
@@ -600,6 +600,10 @@ int main(int argc, char **argv)
       {
          REG->SetGradientSmoothingSigma(atof(argv[++i]));
       }
+      else if(strcmp(argv[i], "--smoothGrad")==0)
+      {
+         REG->SetGradientSmoothingSigma(atof(argv[++i]));
+      }
       else if(strcmp(argv[i], "-ssd")==0)
       {
          int timepoint = atoi(argv[++i]);
@@ -626,19 +630,25 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "--mind")==0)
       {
-         if(referenceImage->nt>1 || floatingImage->nt>1){
-            reg_print_msg_error("reg_mind does not support multiple time point image");
-            reg_exit();
+         int offset = atoi(argv[++i]);
+         if(offset!=-999999){ // Value specified by the CLI - to be ignored
+            if(referenceImage->nt>1 || floatingImage->nt>1){
+               reg_print_msg_error("reg_mind does not support multiple time point image");
+               reg_exit();
+            }
+            REG->UseMIND(0, offset);
          }
-         REG->UseMIND(0, atoi(argv[++i]));
       }
       else if(strcmp(argv[i], "--mindssc")==0)
       {
-         if(referenceImage->nt>1 || floatingImage->nt>1){
-            reg_print_msg_error("reg_mindssc does not support multiple time point image");
-            reg_exit();
+         int offset = atoi(argv[++i]);
+         if(offset!=-999999){ // Value specified by the CLI - to be ignored
+            if(referenceImage->nt>1 || floatingImage->nt>1){
+               reg_print_msg_error("reg_mindssc does not support multiple time point image");
+               reg_exit();
+            }
+            REG->UseMINDSSC(0, offset);
          }
-         REG->UseMINDSSC(0, atoi(argv[++i]));
       }
       else if(strcmp(argv[i], "-kld")==0)
       {
@@ -649,7 +659,7 @@ int main(int argc, char **argv)
          for(int t=0; t<floatingImage->nt; ++t)
             REG->UseKLDivergence(t);
       }
-      else if(strcmp(argv[i], "-rr")==0)
+      else if(strcmp(argv[i], "-rr")==0 || strcmp(argv[i], "--rr")==0)
       {
          REG->UseRobustRange();
       }
@@ -662,7 +672,7 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "--lncc")==0)
       {
          float stdev = (float)atof(argv[++i]);
-         if(stdev!=999999){ // Value specified by the CLI - to be ignored
+         if(stdev!=-999999){ // Value specified by the CLI - to be ignored
             for(int t=0; t<referenceImage->nt; ++t)
                REG->UseLNCC(t,stdev);
          }
@@ -717,7 +727,7 @@ int main(int argc, char **argv)
          refLocalWeightSim = reg_io_ReadImageFile(argv[++i]);
          REG->SetLocalWeightSim(refLocalWeightSim);
       }
-      else if (strcmp(argv[i], "-pad") == 0)
+      else if (strcmp(argv[i], "-pad") == 0 || strcmp(argv[i], "--pad") == 0)
       {
          REG->SetWarpedPaddingValue(atof(argv[++i]));
       }

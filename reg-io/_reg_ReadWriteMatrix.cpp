@@ -201,6 +201,26 @@ std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename)
 /* *************************************************************** */
 /* *************************************************************** */
 template<class T>
+void reg_tool_WriteMatrixFile(char *filename, T **mat, size_t nbLine, size_t nbColumn)
+{
+   // Create a file
+   std::ofstream outFile;
+   outFile.open(filename);
+   // Loop over all values
+   for(size_t l=0;l<nbLine;++l){
+      for(size_t c=0;c<nbColumn;++c){
+         outFile << mat[l][c] << " ";
+      }
+      outFile << "\n";
+   }
+   // Close the opened file
+   outFile.close();
+}
+template void reg_tool_WriteMatrixFile<float>(char *, float **, size_t , size_t);
+template void reg_tool_WriteMatrixFile<double>(char *, double **, size_t , size_t);
+/* *************************************************************** */
+/* *************************************************************** */
+template<class T>
 T** reg_tool_ReadMatrixFile(char *filename, size_t nbLine, size_t nbColumn)
 {
     //THEN CONSTRUCT THE MATRIX

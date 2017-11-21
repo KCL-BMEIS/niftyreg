@@ -69,6 +69,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-refUpThr <float>\tUpper threshold value applied to the reference image. [0]");
    reg_print_info(exec, "\t-floLowThr <float>\tLower threshold value applied to the floating image. [0]");
    reg_print_info(exec, "\t-floUpThr <float>\tUpper threshold value applied to the floating image. [0]");
+   reg_print_info(exec, "\t-pad <float>\t\tPadding value [nan]");
 
    reg_print_info(exec, "\t-nac\t\t\tUse the nifti header origin to initialise the transformation. (Image centres are used by default)");
    reg_print_info(exec, "\t-cog\t\t\tUse the input masks centre of mass to initialise the transformation. (Image centres are used by default)");
@@ -165,6 +166,7 @@ int main(int argc, char **argv)
    float referenceUpperThr=std::numeric_limits<PrecisionTYPE>::max();
    float floatingLowerThr=-std::numeric_limits<PrecisionTYPE>::max();
    float floatingUpperThr=std::numeric_limits<PrecisionTYPE>::max();
+   float paddingValue=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
 
    bool iso=false;
    bool verbose=true;
@@ -326,6 +328,11 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-floUpThr")==0 || strcmp(argv[i], "--floUpThr")==0)
       {
          floatingUpperThr=atof(argv[++i]);
+      }
+
+      else if(strcmp(argv[i], "-pad")==0 || strcmp(argv[i], "--pad")==0)
+      {
+         paddingValue=atof(argv[++i]);
       }
       else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0)
       {
@@ -551,6 +558,8 @@ int main(int argc, char **argv)
       REG->SetFloatingUpperThreshold(floatingUpperThr);
    }
 
+   REG->SetWarpedPaddingValue(paddingValue);
+
    if(REG->GetLevelsToPerform() > REG->GetNumberOfLevels())
       REG->SetLevelsToPerform(REG->GetNumberOfLevels());
 
@@ -590,7 +599,7 @@ int main(int argc, char **argv)
       REG->SetInputFloating(floatingHeader);
    }
    nifti_image *outputResultImage=REG->GetFinalWarpedImage();
-   if(!outputResultFlag) outputResultName=(char *)"outputResult.nii";
+   if(!outputResultFlag) outputResultName=(char *)"outputResult.nii.gz";
    reg_io_WriteImageFile(outputResultImage,outputResultName);
    nifti_image_free(outputResultImage);
 

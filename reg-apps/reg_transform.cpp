@@ -30,8 +30,9 @@ typedef struct
    char *referenceImage2Name;
    char *inputTransName;
    char *input2TransName;
-   char *outputTransName;
+   char *inputLandmarkName;
    float affTransParam[12];
+   char *outputTransName;
 } PARAM;
 typedef struct
 {
@@ -41,6 +42,7 @@ typedef struct
    bool outputDispFlag;
    bool outputFlowFlag;
    bool outputCompFlag;
+   bool outputLandFlag;
    bool updSFormFlag;
    bool halfTransFlag;
    bool invertAffFlag;
@@ -90,6 +92,15 @@ void Usage(char *exec)
    printf("\t\tfilename1 - Input transformation 1 file name (associated with -ref if required)\n");
    printf("\t\tfilename2 - Input transformation 2 file name (associated with -ref2 if required)\n");
    printf("\t\tfilename3 - Output deformation field file name\n\n");
+
+   printf("\t-land <filename1> <filename2> <filename3>\n");
+   printf("\t\tApply a transformation to a set of landmark(s).\n");
+   printf("\t\tLandmarks are encoded in a text file with one landmark position (mm) per line:\n");
+   printf("\t\t\t<key1_x> <key1_y> <key1_z>\n");
+   printf("\t\t\t<key2_x> <key2_y> <key2_z>\n");
+   printf("\t\tfilename1 - Input transformation file name\n");
+   printf("\t\tfilename2 - Input landmark file name.\n");
+   printf("\t\tfilename3 - Output landmark file name\n\n");
 
    printf("\t-updSform <filename1> <filename2> <filename3>\n");
    printf("\t\tUpdate the sform of an image using an affine transformation.\n");
@@ -240,6 +251,14 @@ int main(int argc, char **argv)
          param->input2TransName=argv[++i];
          param->outputTransName=argv[++i];
       }
+      else if(strcmp(argv[i],"-land")==0 || strcmp(argv[i],"--land")==0)
+      {
+         flag->outputLandFlag=true;
+         param->inputTransName=argv[++i];
+         param->inputLandmarkName=argv[++i];
+         param->outputTransName=argv[++i];
+      }
+
       else if(strcmp(argv[i],"-updSform")==0 || strcmp(argv[i],"--comp")==0)
       {
          flag->updSFormFlag=true;
@@ -860,6 +879,8 @@ int main(int argc, char **argv)
             }
          }
          // Save the composed transformation
+         memset(output1TransImage->descrip, 0, 80);
+         strcpy(output1TransImage->descrip, "Deformation field from NiftyReg (reg_transform -comp)");
          reg_io_WriteImageFile(output1TransImage,param->outputTransName);
          printf("[NiftyReg] The final deformation field has been saved as:\n[NiftyReg] %s\n",
                 param->outputTransName);
@@ -875,6 +896,243 @@ int main(int argc, char **argv)
       if(output2TransImage!=NULL) nifti_image_free(output2TransImage);
    }
 
+
+   /* ********************************** */
+   // Update the landmark transformation //
+   /* ********************************** */
+   if(flag->outputLandFlag)
+   {
+      // Create some variables
+      mat44 *affineTransformation=NULL;
+      nifti_image *referenceImage=NULL;
+      nifti_image *inputTransformationImage=NULL;
+      nifti_image *deformationFieldImage=NULL;
+      // First check if the input filename is an image
+      if(reg_isAnImageFileName(param->inputTransName))
+      {
+         inputTransformationImage=reg_io_ReadImageFile(param->inputTransName);
+         if(inputTransformationImage==NULL)
+         {
+            fprintf(stderr, "[NiftyReg ERROR] Error when reading the provided transformation: %s\n",
+                    param->inputTransName);
+            return EXIT_FAILURE;
+         }
+         // If the input transformation is a grid, check that the reference image has been specified
+         if(inputTransformationImage->intent_p1==LIN_SPLINE_GRID ||
+               inputTransformationImage->intent_p1==CUB_SPLINE_GRID ||
+               inputTransformationImage->intent_p1==SPLINE_VEL_GRID)
+         {
+            if(!flag->referenceImageFlag)
+            {
+               fprintf(stderr, "[NiftyReg ERROR] When using a control point grid parametrisation (%s),",
+                       param->inputTransName);
+               fprintf(stderr, " a reference image shoud be specified (-ref flag).\n");
+               return EXIT_FAILURE;
+            }
+            referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
+            if(referenceImage==NULL)
+            {
+               fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
+                       param->referenceImageName);
+               return EXIT_FAILURE;
+            }
+         }
+      }
+      else
+      {
+         // Read the affine transformation
+         affineTransformation=(mat44 *)malloc(sizeof(mat44));
+         reg_tool_ReadAffineFile(affineTransformation,param->inputTransName);
+         if(!flag->referenceImageFlag)
+         {
+            fprintf(stderr, "[NiftyReg ERROR] When using an affine transformation (%s),",
+                    param->inputTransName);
+            fprintf(stderr, " a reference image shoud be specified (-ref flag).\n");
+            return EXIT_FAILURE;
+         }
+         referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
+         if(referenceImage==NULL)
+         {
+            fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
+                    param->referenceImageName);
+            return EXIT_FAILURE;
+         }
+      }
+      // Create a dense field
+      if(affineTransformation!=NULL ||
+         inputTransformationImage->intent_p1==LIN_SPLINE_GRID ||
+         inputTransformationImage->intent_p1==CUB_SPLINE_GRID ||
+         inputTransformationImage->intent_p1==SPLINE_VEL_GRID)
+      {
+         // Create a field image from the reference image
+         deformationFieldImage=nifti_copy_nim_info(referenceImage);
+         deformationFieldImage->ndim=deformationFieldImage->dim[0]=5;
+         deformationFieldImage->nt=deformationFieldImage->dim[4]=1;
+         deformationFieldImage->nu=deformationFieldImage->dim[5]=deformationFieldImage->nz>1?3:2;
+         deformationFieldImage->nvox=(size_t)deformationFieldImage->nx *
+               deformationFieldImage->ny * deformationFieldImage->nz *
+               deformationFieldImage->nt * deformationFieldImage->nu;
+         deformationFieldImage->nbyper=sizeof(float);
+         deformationFieldImage->datatype=NIFTI_TYPE_FLOAT32;
+         deformationFieldImage->intent_code=NIFTI_INTENT_VECTOR;
+         memset(deformationFieldImage->intent_name, 0, 16);
+         strcpy(deformationFieldImage->intent_name,"NREG_TRANS");
+         deformationFieldImage->scl_slope=1.f;
+         deformationFieldImage->scl_inter=0.f;
+      }
+      else
+      {
+         // Create a deformation field from in the input transformation
+         deformationFieldImage=nifti_copy_nim_info(inputTransformationImage);
+      }
+      // Allocate the deformation field
+      deformationFieldImage->data=(void *)malloc
+            (deformationFieldImage->nvox*deformationFieldImage->nbyper);
+      // Fill the deformation field
+      if(affineTransformation!=NULL)
+      {
+         reg_affine_getDeformationField(affineTransformation,deformationFieldImage);
+      }
+      else
+      {
+         switch(static_cast<int>(reg_round(inputTransformationImage->intent_p1)))
+         {
+         case DEF_FIELD:
+            printf("[NiftyReg] The specified transformation is a deformation field:\n[NiftyReg] %s\n",
+                   inputTransformationImage->fname);
+            // the current in transformation is copied
+            memcpy(deformationFieldImage->data,inputTransformationImage->data,
+                   deformationFieldImage->nvox*deformationFieldImage->nbyper);
+            break;
+         case DISP_FIELD:
+            printf("[NiftyReg] The specified transformation is a displacement field:\n[NiftyReg] %s\n",
+                   inputTransformationImage->fname);
+            // the current in transformation is copied and converted
+            memcpy(deformationFieldImage->data,inputTransformationImage->data,
+                   deformationFieldImage->nvox*deformationFieldImage->nbyper);
+            reg_getDeformationFromDisplacement(deformationFieldImage);
+            break;
+         case LIN_SPLINE_GRID:
+         case CUB_SPLINE_GRID:
+            printf("[NiftyReg] The specified transformation is a spline parametrisation:\n[NiftyReg] %s\n",
+                   inputTransformationImage->fname);
+            // The deformation field is filled with an identity deformation field
+            memset(deformationFieldImage->data,
+                   0,
+                   deformationFieldImage->nvox*deformationFieldImage->nbyper);
+            reg_getDeformationFromDisplacement(deformationFieldImage);
+            // The spline transformation is composed with the identity field
+            reg_spline_getDeformationField(inputTransformationImage,
+                                           deformationFieldImage,
+                                           NULL, // no mask
+                                           true, // composition is used,
+                                           true // b-spline are used
+                                           );
+            break;
+         case DEF_VEL_FIELD:
+            printf("[NiftyReg] The specified transformation is a deformation velocity field:\n[NiftyReg] %s\n",
+                   inputTransformationImage->fname);
+            // The flow field is exponentiated
+            reg_defField_getDeformationFieldFromFlowField(inputTransformationImage,
+                                                          deformationFieldImage,
+                                                          false // step number is not updated
+                                                          );
+            break;
+         case DISP_VEL_FIELD:
+            printf("[NiftyReg] The specified transformation is a displacement velocity field:\n[NiftyReg] %s\n",
+                   inputTransformationImage->fname);
+            // The input transformation is converted into a def flow
+            reg_getDeformationFromDisplacement(deformationFieldImage);
+            // The flow field is exponentiated
+            reg_defField_getDeformationFieldFromFlowField(inputTransformationImage,
+                                                          deformationFieldImage,
+                                                          false // step number is not updated
+                                                          );
+            break;
+         case SPLINE_VEL_GRID:
+            printf("[NiftyReg] The specified transformation is a spline velocity parametrisation:\n[NiftyReg] %s\n",
+                   inputTransformationImage->fname);
+            // The spline parametrisation is converted into a dense flow and exponentiated
+            reg_spline_getDefFieldFromVelocityGrid(inputTransformationImage,
+                                                   deformationFieldImage,
+                                                   false // step number is not updated
+                                                   );
+            break;
+         default:
+            fprintf(stderr,"[NiftyReg ERROR] Unknown input transformation type\n");
+            return EXIT_FAILURE;
+         }
+      }
+      deformationFieldImage->intent_p1=DEF_FIELD;
+      deformationFieldImage->intent_p2=0;
+      // Free all allocated input
+      if(affineTransformation!=NULL){
+         free(affineTransformation);
+      }
+      if(referenceImage!=NULL){
+         nifti_image_free(referenceImage);
+      }
+      if(inputTransformationImage!=NULL){
+         nifti_image_free(inputTransformationImage);
+      }
+      // Read the landmark file
+      std::pair<size_t, size_t> inputMatrixSize =
+            reg_tool_sizeInputMatrixFile(param->inputLandmarkName);
+      size_t landmarkNumber = inputMatrixSize.first;
+      size_t n = inputMatrixSize.second;
+      if(n==2 && deformationFieldImage->nz>1){
+         reg_print_msg_error("2 values per line are expected for 2D images");
+         return EXIT_FAILURE;
+      }
+      else if(n==3 && deformationFieldImage->nz<2){
+         reg_print_msg_error("3 values per line are expected for 3D images");
+         return EXIT_FAILURE;
+      }
+      else if(n!=2 && n!=3){
+         reg_print_msg_error("2 or 3 values are expected per line");
+         return EXIT_FAILURE;
+      }
+      float **allLandmarks = reg_tool_ReadMatrixFile<float>(param->inputLandmarkName,
+                                                            landmarkNumber,
+                                                            n);
+      // Allocate a deformation field to store the landmark position
+      nifti_image *landmarkImage=nifti_copy_nim_info(deformationFieldImage);
+      landmarkImage->ndim=landmarkImage->dim[0]=5;
+      landmarkImage->nx=landmarkImage->dim[1]=1;
+      landmarkImage->ny=landmarkImage->dim[2]=1;
+      landmarkImage->nz=landmarkImage->dim[3]=1;
+      landmarkImage->nvox=(size_t)landmarkImage->nx *
+            landmarkImage->ny * landmarkImage->nz *
+            landmarkImage->nt * landmarkImage->nu;
+      landmarkImage->data=(void *)malloc(landmarkImage->nvox*landmarkImage->nbyper);
+      float *landmarkImagePtr = static_cast<float *>(landmarkImage->data);
+      for(size_t l=0, index=0;l<landmarkNumber;++l){
+         for(size_t i=0;i<n;++i){
+            landmarkImagePtr[i]=allLandmarks[l][i];
+         }
+         reg_defField_compose(deformationFieldImage,
+                              landmarkImage,
+                              NULL);
+         for(size_t i=0;i<n;++i){
+            allLandmarks[l][i]=landmarkImagePtr[i];
+         }
+      }
+      // Save the update landmark positions
+      reg_tool_WriteMatrixFile(param->outputTransName,
+                               allLandmarks,
+                               landmarkNumber,
+                               n);
+      // Free all allocated array and image
+      for(size_t l=0; l<landmarkNumber; ++l)
+         free(allLandmarks[l]);
+      free(allLandmarks);
+      if(deformationFieldImage!=NULL){
+         nifti_image_free(deformationFieldImage);
+      }
+      if(landmarkImage!=NULL){
+         nifti_image_free(landmarkImage);
+      }
+   }
    /* **************************************** */
    // Update the SForm matrix of a given image //
    /* **************************************** */
@@ -1009,25 +1267,6 @@ int main(int argc, char **argv)
                  param->input2TransName);
          return EXIT_FAILURE;
       }
-      // Create a field to store the transformation
-      nifti_image *outputTransImage=nifti_copy_nim_info(floatingImage);
-      outputTransImage->ndim=outputTransImage->dim[0]=5;
-      outputTransImage->nt=outputTransImage->dim[4]=1;
-      outputTransImage->nu=outputTransImage->dim[5]=outputTransImage->nz>1?3:2;
-      outputTransImage->nvox=(size_t)outputTransImage->nx *
-                             outputTransImage->ny * outputTransImage->nz *
-                             outputTransImage->nt * outputTransImage->nu;
-      outputTransImage->nbyper=inputTransImage->nbyper;
-      outputTransImage->datatype=inputTransImage->datatype;
-      outputTransImage->intent_code=NIFTI_INTENT_VECTOR;
-      memset(outputTransImage->intent_name, 0, 16);
-      strcpy(outputTransImage->intent_name,"NREG_TRANS");
-      outputTransImage->intent_p1=inputTransImage->intent_p1;
-      outputTransImage->intent_p2=inputTransImage->intent_p2;
-      outputTransImage->scl_slope=1.f;
-      outputTransImage->scl_inter=0.f;
-      outputTransImage->data=(void *)malloc
-                             (outputTransImage->nvox*outputTransImage->nbyper);
       // Convert the spline parametrisation into a dense deformation parametrisation
       if(inputTransImage->intent_p1==LIN_SPLINE_GRID ||
             inputTransImage->intent_p1==CUB_SPLINE_GRID ||
@@ -1086,16 +1325,39 @@ int main(int argc, char **argv)
          inputTransImage=tempField;
          tempField=NULL;
       }
+     // Create a field to store the transformation
+     nifti_image *outputTransImage = nifti_copy_nim_info(floatingImage);
+     outputTransImage->ndim = outputTransImage->dim[0] = 5;
+     outputTransImage->nt = outputTransImage->dim[4] = 1;
+     outputTransImage->nu = outputTransImage->dim[5] = outputTransImage->nz>1 ? 3 : 2;
+     outputTransImage->nvox = (size_t)outputTransImage->nx *
+        outputTransImage->ny * outputTransImage->nz *
+        outputTransImage->nt * outputTransImage->nu;
+     outputTransImage->nbyper = inputTransImage->nbyper;
+     outputTransImage->datatype = inputTransImage->datatype;
+     outputTransImage->intent_code = NIFTI_INTENT_VECTOR;
+     memset(outputTransImage->intent_name, 0, 16);
+     strcpy(outputTransImage->intent_name, "NREG_TRANS");
+     outputTransImage->intent_p1 = inputTransImage->intent_p1;
+     outputTransImage->intent_p2 = inputTransImage->intent_p2;
+     outputTransImage->scl_slope = 1.f;
+     outputTransImage->scl_inter = 0.f;
+     outputTransImage->data = (void *)malloc
+        (outputTransImage->nvox*outputTransImage->nbyper);
       // Invert the provided
       switch(reg_round(inputTransImage->intent_p1))
       {
       case DEF_FIELD:
          reg_defFieldInvert(inputTransImage,outputTransImage,1.0e-6f);
+       memset(outputTransImage->descrip, 0, 80);
+       strcpy(outputTransImage->descrip, "Deformation field from NiftyReg (reg_transform -invNrr)");
          break;
       case DISP_FIELD:
          reg_getDeformationFromDisplacement(inputTransImage);
          reg_defFieldInvert(inputTransImage,outputTransImage,1.0e-6f);
-         reg_getDisplacementFromDeformation(outputTransImage);
+       reg_getDisplacementFromDeformation(outputTransImage);
+       memset(outputTransImage->descrip, 0, 80);
+       strcpy(outputTransImage->descrip, "Displacement field from NiftyReg (reg_transform -invNrr)");
          break;
       case DEF_VEL_FIELD:
       {
@@ -1112,7 +1374,9 @@ int main(int argc, char **argv)
                               0);
          nifti_image_free(tempField);
          reg_getDeformationFromDisplacement(outputTransImage);
-         outputTransImage->intent_p2 *= -1.f;
+       outputTransImage->intent_p2 *= -1.f;
+       memset(outputTransImage->descrip, 0, 80);
+       strcpy(outputTransImage->descrip, "Deformation velocity field from NiftyReg (reg_transform -invNrr)");
          break;
       }
       case DISP_VEL_FIELD:
@@ -1128,7 +1392,9 @@ int main(int argc, char **argv)
                               1,
                               0);
          nifti_image_free(tempField);
-         outputTransImage->intent_p2 *= -1.f;
+       outputTransImage->intent_p2 *= -1.f;
+       memset(outputTransImage->descrip, 0, 80);
+       strcpy(outputTransImage->descrip, "Displacement velocity field from NiftyReg (reg_transform -invNrr)");
          break;
       }
       default:
