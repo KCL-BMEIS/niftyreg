@@ -803,16 +803,16 @@ void reg_f3d_sli<T>::GetGapOverlapGradient()
 		if (warpedDMR1Ptr[n] * warpedDMR2Ptr[n] < 0)
 		{
 			//dGO / dDF1 = -WDM2*(dWDM1 / dDF1)
-			gapOverlapGradR1PtrX[n] = warpedDMR2Ptr[n] * warpedDMGradR1PtrX[n];
-			gapOverlapGradR1PtrY[n] = warpedDMR2Ptr[n] * warpedDMGradR1PtrY[n];
+			gapOverlapGradR1PtrX[n] = -warpedDMR2Ptr[n] * warpedDMGradR1PtrX[n];
+			gapOverlapGradR1PtrY[n] = -warpedDMR2Ptr[n] * warpedDMGradR1PtrY[n];
 			//dGO / dDF2 = -WDM1*(dWDM2 / dDF2)
-			gapOverlapGradR2PtrX[n] = warpedDMR1Ptr[n] * warpedDMGradR2PtrX[n];
-			gapOverlapGradR2PtrY[n] = warpedDMR1Ptr[n] * warpedDMGradR2PtrY[n];
+			gapOverlapGradR2PtrX[n] = -warpedDMR1Ptr[n] * warpedDMGradR2PtrX[n];
+			gapOverlapGradR2PtrY[n] = -warpedDMR1Ptr[n] * warpedDMGradR2PtrY[n];
 			//check for 3D
 			if (gapOverlapGradR1PtrZ != NULL)
 			{
-				gapOverlapGradR1PtrZ[n] = warpedDMR2Ptr[n] * warpedDMGradR1PtrZ[n];
-				gapOverlapGradR2PtrZ[n] = warpedDMR1Ptr[n] * warpedDMGradR2PtrZ[n];
+				gapOverlapGradR1PtrZ[n] = -warpedDMR2Ptr[n] * warpedDMGradR1PtrZ[n];
+				gapOverlapGradR2PtrZ[n] = -warpedDMR1Ptr[n] * warpedDMGradR2PtrZ[n];
 			}
 		}//if (warpedDMR1Ptr[n] * warpedDMR2Ptr[n])
 	}//for (size_t n = 0; n < numVox; n++)
