@@ -1,4 +1,18 @@
-## Eigen version 3.2.2 - 1306d75b4a21
+#-----------------------------------------------------------------------------
+# Eigen version 3.3.3 - 67e894c6cd8f
+if(NOT EXISTS ${CMAKE_BINARY_DIR}/third-party/eigen3)
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E tar x ${CMAKE_SOURCE_DIR}/third-party/eigen_3.3.3.tar.gz
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/third-party
+  )
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E rename
+    ${CMAKE_BINARY_DIR}/third-party/eigen-eigen-67e894c6cd8f
+    ${CMAKE_BINARY_DIR}/third-party/eigen3
+  )
+  message(STATUS "Eigen3 files are copied in ${CMAKE_BINARY_DIR}/third-party/eigen3")
+endif(NOT EXISTS ${CMAKE_BINARY_DIR}/third-party/eigen3)
+#-----------------------------------------------------------------------------
 if(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj" )
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /bigobj" )
