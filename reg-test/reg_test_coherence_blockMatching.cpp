@@ -215,7 +215,7 @@ int main(int argc, char **argv)
        test_cpu = (blockMatchingParams_cpu->warpedPosition[i]==blockMatchingParams_cpu->warpedPosition[i])?test_cpu+1:test_cpu;
        test_gpu = (blockMatchingParams_gpu->warpedPosition[i]==blockMatchingParams_gpu->warpedPosition[i])?test_gpu+1:test_gpu;
    }
-   printf("CPU: %lu - GPU: %lu\n", test_cpu, test_gpu);
+   printf("CPU: %zu - GPU: %zu\n", test_cpu, test_gpu);
 
    delete con_gpu;
    //delete con_cpu;

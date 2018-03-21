@@ -7,7 +7,7 @@
 // Eigen headers are in there because of the nvcc preprocessing step
 #include "Eigen/Core"
 #include "Eigen/SVD"
-#include "Eigen/unsupported/MatrixFunctions"
+#include "unsupported/Eigen/MatrixFunctions"
 
 //_reg_maths_eigen.cpp
 /* *************************************************************** */
