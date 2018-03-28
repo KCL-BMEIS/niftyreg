@@ -1276,7 +1276,6 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
                         }
                     }
                 }
-                //exit(1);
                 if(psfWeightSum>0){
                     intensity/=psfWeightSum;
                 }

@@ -1276,7 +1276,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_getJacobianPenaltyTerm");
          reg_print_fct_error("Only single or double precision has been implemented");
-         exit(1);
+         reg_exit();
       }
    }
    else
@@ -1302,7 +1302,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_getJacobianPenaltyTerm");
          reg_print_fct_error("Only single or double precision has been implemented");
-         exit(1);
+         reg_exit();
       }
    }
    // The jacobian determinant are averaged

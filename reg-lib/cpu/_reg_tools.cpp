@@ -122,7 +122,7 @@ void reg_intensityRescale_core(nifti_image *image,
       break;
    case NIFTI_TYPE_INT8:
       currentMin=(DTYPE)std::numeric_limits<char>::max();
-      currentMax=(DTYPE)std::numeric_limits<char>::lowest();
+      currentMax=-(DTYPE)std::numeric_limits<char>::max();
       break;
    case NIFTI_TYPE_UINT16:
       currentMin=(DTYPE)std::numeric_limits<unsigned short>::max();
@@ -130,7 +130,7 @@ void reg_intensityRescale_core(nifti_image *image,
       break;
    case NIFTI_TYPE_INT16:
       currentMin=(DTYPE)std::numeric_limits<short>::max();
-      currentMax=(DTYPE)std::numeric_limits<short>::lowest();
+      currentMax=-(DTYPE)std::numeric_limits<short>::max();
       break;
    case NIFTI_TYPE_UINT32:
       currentMin=(DTYPE)std::numeric_limits<unsigned int>::max();
@@ -138,15 +138,15 @@ void reg_intensityRescale_core(nifti_image *image,
       break;
    case NIFTI_TYPE_INT32:
       currentMin=(DTYPE)std::numeric_limits<int>::max();
-      currentMax=(DTYPE)std::numeric_limits<int>::lowest();
+      currentMax=-(DTYPE)std::numeric_limits<int>::max();
       break;
    case NIFTI_TYPE_FLOAT32:
       currentMin=(DTYPE)std::numeric_limits<float>::max();
-      currentMax=(DTYPE)std::numeric_limits<float>::lowest();
+      currentMax=-(DTYPE)std::numeric_limits<float>::max();
       break;
    case NIFTI_TYPE_FLOAT64:
       currentMin=(DTYPE)std::numeric_limits<double>::max();
-      currentMax=(DTYPE)std::numeric_limits<double>::lowest();
+      currentMax=-(DTYPE)std::numeric_limits<double>::max();
       break;
    }
 
