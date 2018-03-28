@@ -178,7 +178,7 @@ cl_program CLContextSingletton::CreateProgram(const char* fileName)
 		char buffer[2048];
 		clGetProgramBuildInfo(program, this->devices[this->clIdx], CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &length);
 		std::cout<<"--- Build log ---\n "<<buffer<<std::endl;
-		exit(1);
+		reg_exit();
 	}
 
 	return program;

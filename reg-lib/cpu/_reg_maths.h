@@ -69,14 +69,14 @@ typedef enum
 #define reg_print_fct_error(text){REprintf("[NiftyReg ERROR] Function: %s\n", text);}
 #define reg_print_msg_error(text){REprintf("[NiftyReg ERROR] %s\n", text);}
 #else
-#ifndef NR_THROW_EXCEP
+#ifdef NR_THROW_EXCEP
 #define reg_exit(){ \
-    fprintf(stderr,"[NiftyReg] Exit here. File: %s:%i\n",__FILE__, __LINE__); \
-    exit(1); \
+    throw std::runtime_error("[NiftyReg] Exception"); \
 }
 #else // NR_THROW_EXCEP
 #define reg_exit(){ \
-    std::throw("[NiftyReg] Exception"); \
+    fprintf(stderr,"[NiftyReg] Exit here. File: %s:%i\n",__FILE__, __LINE__); \
+    exit(1); \
 }
 #endif // NR_THROW_EXCEP
 #define reg_print_info(executable,text){printf("[%s] %s\n", executable, text);}

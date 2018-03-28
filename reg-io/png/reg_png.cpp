@@ -104,7 +104,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
 
       uch *image_data;
       if ((image_data = (uch *)malloc(Width*Height*Channels*sizeof(uch))) == NULL)
-         exit(1);
+         reg_exit();
 
       for (png_uint_32 i=0; i<Height; ++i)
       {
