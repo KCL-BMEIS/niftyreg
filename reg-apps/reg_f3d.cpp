@@ -134,7 +134,8 @@ void Usage(char *exec)
 
    //sliding regions registration options
    reg_print_info(exec, "*** Sliding regions options:");
-   reg_print_info(exec, "\t-sli \t\t\tUse two transformations and a penalty term to allow for sliding regions");
+   reg_print_info(exec, "\t-sli \t\t\tUse two transformations and a penalty term to allow for sliding regions.");
+   reg_print_info(exec, "\t\t\t\tFor more details see Eiben et al., Statistical motion mask and Sliding image registration, WBIR, 2018" );
    reg_print_info(exec, "\t-dmap <filename>\tFilename of a distance map image in the floating space, defining the two sliding regions");
    reg_print_info(exec, "\t-go <float>\t\tWeight of the gap-overlap penalty term [0.1]");
    reg_print_info(exec, "\t-incpp2 <filename>\tFilename of control point grid input for region 2");
