@@ -419,10 +419,12 @@ void reg_f3d_sym<T>::AllocateRigidConstraintMask()
 {
    if(this->use_rigidConstraint==true && this->inputRigidMask!=NULL){
       reg_f3d<T>::AllocateRigidConstraintMask();
+      // MARTA ADDENDUM ARGUMENT FOR NR of ITERATIONS
       regulariseNonLinearGradientWithRigidConstraint(this->backwardControlPointGrid,
                                                      this->currentRigidMask,
-                                                     false);
-   }
+                                                     false,
+                                                     this->nrIterationsRigid);
+   } // END ADDENDUM
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1523,11 +1525,13 @@ void reg_f3d_sym<T>::UpdateParameters(float scale)
       }
    }
    // Apply the rigid constraint if required
+   // MARTA ADDENDUM ARGUMENT FOR NR of ITERATIONS
    if(this->use_rigidConstraint){
       regulariseNonLinearGradientWithRigidConstraint(this->backwardControlPointGrid,
                                                      this->currentRigidMask,
-                                                     false);
-   }
+                                                     false,
+                                                     this->nrIterationsRigid);
+   } // END ADDENDUM
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::UpdateParameters");
 #endif

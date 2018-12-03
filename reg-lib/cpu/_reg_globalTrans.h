@@ -108,6 +108,8 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, m
  */
 void regulariseNonLinearGradientWithRigidConstraint(nifti_image *gradientImage,
                                                     nifti_image *maskImage,
-                                                    bool isGradient);
+                                                    bool isGradient,
+                                                    unsigned int nrIterLTSRigid);
+// ADDENDUM MARTA: added the unsigned int nrIterLTSRigid
 /* *************************************************************** */
 #endif

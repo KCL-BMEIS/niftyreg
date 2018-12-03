@@ -523,6 +523,15 @@ int main(int argc, char **argv)
          reg_tools_changeDatatype<unsigned char>(rigidMaskImage);
          REG->SetRigidConstraintMask(rigidMaskImage);
       }
+      // MARTA ADDENDUM
+      else if((strcmp(argv[i],"-nrIterRigid")==0) || (strcmp(argv[i],"--nrIterRigid")==0))
+      {
+          REG->SetNrIterationsRigidEstimationInMasks(atoi(argv[++i]));
+      }
+      else if((strcmp(argv[i],"-gradFileOut")==0) || (strcmp(argv[i],"--gradFileOut")==0))
+      {
+          REG->SaveGradientFiles(argv[++i]);
+      }   // END MARTA ADDENDUM
       else if((strcmp(argv[i],"-smooF")==0) || (strcmp(argv[i],"-smooS")==0) || strcmp(argv[i], "--smooF")==0)
       {
          REG->SetFloatingSmoothingSigma(atof(argv[++i]));

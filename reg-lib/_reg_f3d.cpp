@@ -199,6 +199,15 @@ void reg_f3d<T>::ClearTransformationGradient()
 {
    if(this->transformationGradient!=NULL)
    {
+      // MARTA ADDENDUM
+      // Save the gradients for each level
+      if(this->pathOutGradient != NULL){
+          std::string b(this->pathOutGradient);
+          char gradient_text[255];
+          sprintf(gradient_text, "/transformationGradient_level%d_final.nii.gz", this->currentLevel);
+          b.append(gradient_text);
+          reg_io_WriteImageFile(this->transformationGradient,b.c_str());
+      } // END ADDENDUM
       nifti_image_free(this->transformationGradient);
       this->transformationGradient=NULL;
    }
@@ -1099,9 +1108,32 @@ void reg_f3d<T>::UpdateParameters(float scale)
    }
    // Apply the rigid constraint if required
    if(this->use_rigidConstraint){
+       // MARTA ADDENDUM
+       // Save the transformation for each level before application of gradient
+       if(this->pathOutGradient != NULL){
+           std::string b(this->pathOutGradient);
+           char gradient_text[255];
+           sprintf(gradient_text, "/transformation_level%d_before.nii.gz", this->currentLevel);
+           b.append(gradient_text);
+           reg_io_WriteImageFile(this->controlPointGrid,b.c_str());
+       } // END ADDENDUM
+
+       // MARTA ADDENDUM ARGUMENT FOR NR of ITERATIONS
       regulariseNonLinearGradientWithRigidConstraint(this->controlPointGrid,
                                                      this->currentRigidMask,
-                                                     false);
+                                                     false,
+                                                     this->nrIterationsRigid);
+       // MARTA ADDENDUM ARGUMENT FOR NR of ITERATIONS
+
+       // MARTA ADDENDUM
+       // Save the transformation for each level after application of gradient
+       if(this->pathOutGradient != NULL){
+           std::string b_2(this->pathOutGradient);
+           char gradient_text[255];
+           sprintf(gradient_text, "/transformation_level%d_after.nii.gz", this->currentLevel);
+           b_2.append(gradient_text);
+           reg_io_WriteImageFile(this->controlPointGrid,b_2.c_str());
+       } // END ADDENDUM
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::UpdateParameters");

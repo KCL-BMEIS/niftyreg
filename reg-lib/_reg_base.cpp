@@ -99,6 +99,10 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->use_rigidConstraint=false;
    this->inputRigidMask=NULL;
    this->currentRigidMask=NULL;
+   // MARTA ADDENDUM
+   this->nrIterationsRigid=20;
+   this->pathOutGradient=NULL;
+   // END ADDENDUM
 
 #ifdef BUILD_DEV
    this->discrete_init=false;
@@ -1612,6 +1616,16 @@ void reg_base<T>::Run()
 
       // Final folding correction
       this->CorrectTransformation();
+
+      // MARTA ADDENDUM
+      // Save the gradients for each level
+      if(this->pathOutGradient != NULL){
+         std::string b(this->pathOutGradient);
+         char gradient_text[255];
+         sprintf(gradient_text, "/voxelBasedMeasureGradient_level%d.nii.gz", this->currentLevel);
+         b.append(gradient_text);
+         reg_io_WriteImageFile(this->voxelBasedMeasureGradient,b.c_str());
+      } // END ADDENDUM
 
       // Some cleaning is performed
       delete this->optimiser;

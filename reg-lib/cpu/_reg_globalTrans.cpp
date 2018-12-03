@@ -844,10 +844,12 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+// MARTA ADDENDUM EXTRA ARGUMENT FOR NR if ITERATIONS
 template <class DTYPE>
 void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientImage,
                                                          nifti_image *maskImage,
-                                                         bool isGradient)
+                                                         bool isGradient,
+                                                         unsigned int nrIterLTSRigid)
 {
    int imageDim = maskImage->nz>1?3:2;
    size_t voxelNumber = (size_t)maskImage->nx *
@@ -938,9 +940,9 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
       mat44 currentMatrix;
       if(imageDim>2)
          optimize_3D(referencePosition,floatingPosition,activeVoxel,
-                     50,5,0.001f,&currentMatrix,false);
+                     50,nrIterLTSRigid,0.001f,&currentMatrix,false);
       else optimize_2D(referencePosition,floatingPosition,activeVoxel,
-                       50,5,0.001f,&currentMatrix,false);
+                       50,nrIterLTSRigid,0.001f,&currentMatrix,false);
       free(referencePosition);
       free(floatingPosition);
       // Apply a change of origin
@@ -955,6 +957,12 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
          mat2.m[2][3] = -barycentre[2];
       }
       currentMatrix = mat1 * currentMatrix * mat2;
+
+      // MARTA ADDENDUM
+//      char message[255];
+//      sprintf(message, "[Optimise Rigid in mask %d] Estimated rigid matrix:", t);
+//      reg_mat44_disp(&currentMatrix, message);
+      // END ADDENDUM
       // Replace the gradient values where needed
       float tempRefPos[4]={0.f, 0.f, 0.f, 1.f};
       float tempFloPos[4]={0.f, 0.f, 0.f, 1.f};
@@ -1001,7 +1009,8 @@ void regulariseNonLinearGradientWithRigidConstraint_core(nifti_image *gradientIm
 /* *************************************************************** */
 void regulariseNonLinearGradientWithRigidConstraint(nifti_image *gradientImage,
                                                     nifti_image *maskImage,
-                                                    bool isGradient)
+                                                    bool isGradient,
+                                                    unsigned int nrIterLTSRigid)
 {
    if(maskImage->datatype!=NIFTI_TYPE_UINT8){
       reg_print_fct_error("regulariseNonLinearGradientWithRigidConstraint");
@@ -1011,18 +1020,18 @@ void regulariseNonLinearGradientWithRigidConstraint(nifti_image *gradientImage,
    switch(gradientImage->datatype){
    case NIFTI_TYPE_FLOAT32:
       regulariseNonLinearGradientWithRigidConstraint_core<float>
-            (gradientImage, maskImage, isGradient);
+            (gradientImage, maskImage, isGradient,  nrIterLTSRigid);
       break;
    case NIFTI_TYPE_FLOAT64:
       regulariseNonLinearGradientWithRigidConstraint_core<double>
-            (gradientImage, maskImage, isGradient);
+            (gradientImage, maskImage, isGradient, nrIterLTSRigid);
       break;
    default:
       reg_print_fct_error("regulariseNonLinearGradientWithRigidConstraint");
       reg_print_msg_error("Only implemented for single or double precision images");
       reg_exit();
    }
-}
+} // END ADDENDUM
 /* *************************************************************** */
 /* *************************************************************** */
 

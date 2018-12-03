@@ -120,6 +120,10 @@ protected:
    bool use_rigidConstraint;
    nifti_image *inputRigidMask;
    nifti_image *currentRigidMask;
+   // MARTA ADDENDUM
+   unsigned int nrIterationsRigid;
+   const char *pathOutGradient;
+   // END ADDENDUM
 
 #ifdef BUILD_DEV
    bool discrete_init;
@@ -301,6 +305,15 @@ public:
    void UseCubicSplineInterpolation();
    void SetLandmarkRegularisationParam(size_t, float *, float*, float);
    void SetRigidConstraintMask(nifti_image *);
+   // MARTA ADDENDUM
+   void SetNrIterationsRigidEstimationInMasks(unsigned int iter)
+   {
+       this->nrIterationsRigid = iter;
+   };
+   void SaveGradientFiles(const char *path)
+   {
+       this->pathOutGradient = path;
+   }; // END ADDENDUM
 
 #ifdef BUILD_DEV
    void UseDiscreteInit();

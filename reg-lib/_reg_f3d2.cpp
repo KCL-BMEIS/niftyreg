@@ -432,12 +432,32 @@ void reg_f3d2<T>::UpdateParameters(float scale)
 
 
    if(this->use_rigidConstraint){
+      // MARTA ADDENDUM
+      // Save the gradients for each level before application of gradient
+      if(this->pathOutGradient != NULL){
+          std::string b(this->pathOutGradient);
+          char gradient_text[255];
+          sprintf(gradient_text, "/cpp_level%d_before.nii.gz", this->currentLevel);
+          b.append(gradient_text);
+          reg_io_WriteImageFile(this->controlPointGrid,b.c_str());
+      } // END ADDENDUM
       regulariseNonLinearGradientWithRigidConstraint(this->controlPointGrid,
                                                      this->currentRigidMask,
-                                                     false);
+                                                     false,
+                                                     this->nrIterationsRigid);
       regulariseNonLinearGradientWithRigidConstraint(this->backwardControlPointGrid,
                                                      this->currentRigidMask,
-                                                     false);
+                                                     false,
+                                                     this->nrIterationsRigid);
+       // MARTA ADDENDUM
+       // Save the gradients for each level after application of gradient
+       if(this->pathOutGradient != NULL){
+           std::string b_2(this->pathOutGradient);
+           char gradient_text[255];
+           sprintf(gradient_text, "/cpp_level%d_after.nii.gz", this->currentLevel);
+           b_2.append(gradient_text);
+           reg_io_WriteImageFile(this->controlPointGrid,b_2.c_str());
+       } // END ADDENDUM
    }
 
    return;

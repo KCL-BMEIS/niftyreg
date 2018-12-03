@@ -312,6 +312,13 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
       }
    }
 
+   minPosition[0] -= 2*spacing[0];
+   minPosition[1] -= 2*spacing[1];
+   minPosition[2] -= 2*spacing[2];
+   maxPosition[0] += 2*spacing[0];
+   maxPosition[1] += 2*spacing[1];
+   maxPosition[2] += 2*spacing[2];
+
    // Compute the dimension of the control point grids
    const int dim[8]= {5,
                       static_cast<int>(reg_ceil((maxPosition[0]-minPosition[0])/spacing[0])+3),
