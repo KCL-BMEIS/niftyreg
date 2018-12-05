@@ -216,7 +216,8 @@ void reg_tps<T>::FillDeformationField(nifti_image *deformationField)
    if(this->initialised==false)
       this->InitialiseTPS();
 
-   size_t voxelNumber = deformationField->nx*deformationField->ny*deformationField->nz;
+   size_t voxelNumber = (size_t)deformationField->nx*
+           deformationField->ny*deformationField->nz;
    T *defX=static_cast<T *>(deformationField->data);
    T *defY=&defX[voxelNumber];
    T *defZ=NULL;

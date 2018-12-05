@@ -61,6 +61,8 @@ add_library(_reg_localTrans
   cpu/_reg_localTrans.cpp
   cpu/_reg_localTrans_regul.h
   cpu/_reg_localTrans_regul.cpp
+  cpu/_reg_thinPlateSpline.h
+  cpu/_reg_thinPlateSpline.cpp
   cpu/_reg_localTrans_jac.h
   cpu/_reg_localTrans_jac.cpp
 )
@@ -212,6 +214,7 @@ set(_reg_f3d_libraries
   _reg_measure
   _reg_tools
   _reg_ReadWriteImage
+  _reg_aladin
 )
 add_library(_reg_f3d ${NIFTYREG_LIBRARY_TYPE} ${_reg_f3d_files})
 target_link_libraries(_reg_f3d ${_reg_f3d_libraries})

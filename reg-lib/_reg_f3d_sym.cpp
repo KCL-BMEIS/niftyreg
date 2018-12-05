@@ -1644,7 +1644,7 @@ double reg_f3d_sym<T>::GetObjectiveFunctionValue()
            this->currentWMeasure, this->currentWBE,
            this->currentWLE,
            this->currentWJac,
-           this->currentWLandmarkReg,
+           this->currentWLand,
            this->currentIC);
    reg_print_msg_debug(text);
 #endif

@@ -535,6 +535,7 @@ void reg_base<T>::SetRigidConstraintMask(nifti_image *i)
 {
    this->use_rigidConstraint = true;
    this->inputRigidMask = i;
+    reg_tools_changeDatatype<unsigned char>(this->inputRigidMask, NIFTI_TYPE_UINT8);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetRigidConstraintMask");
 #endif
