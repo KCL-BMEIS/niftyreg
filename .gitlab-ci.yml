@@ -1,0 +1,61 @@
+stages:
+  - build
+  - test
+  - cleanup
+
+
+before_script:
+  - export src_dir=${CI_PROJECT_DIR}
+  - export git_hash=${CI_COMMIT_SHA:0:6}
+  - export pb_dir="${CI_PROJECT_DIR}-build-${git_hash}"
+  - hostname
+  - whoami
+  - pwd
+  - echo "Sources - ${src_dir}"
+  - echo "Commit - ${git_hash}"
+  - echo "Project build - ${pb_dir}"
+
+
+Mac:
+
+  stage: build
+
+  script:
+    - mkdir -p ${pb_dir}
+    - cd ${sb_dir}
+    - cmake
+          -DCMAKE_CXX_COMPILER=g++-7
+          -DCMAKE_C_COMPILER=gcc-7
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_ALL_DEP=ON
+          -DUSE_CUDA=ON
+          -DCUDA_HOST_COMPILER=/usr/bin/clang
+          -DUSE_OPENCL=ON
+          -DUSE_SSE=ON
+          -DUSE_OPENMP=ON
+          -DBUILD_TESTING=ON
+          -DTESTING_2D_FILE=${src_dir}/reg-test/target_2D.nii.gz
+          -DTESTING_3D_FILE=${src_dir}/reg-test/target_3D.nii.gz
+          ${src_dir}
+    - make -j 4
+
+  only:
+    - branches
+
+  tags:
+    - mac, continuous
+
+Mac:
+
+  stage: test
+
+  script:
+    - cd ${pb_dir}
+    - ctest -S CTestContinuous.cmake -V
+
+  only:
+    - branches
+
+  tags:
+    - mac, continuous
+
