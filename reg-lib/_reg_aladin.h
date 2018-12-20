@@ -88,7 +88,7 @@ class reg_aladin
         _reg_blockMatchingParam *blockMatchingParams;
 
         bool AlignCentre;
-        bool AlignCentreGravity;
+        int AlignCentreMass;
 
         int Interpolation;
 
@@ -236,9 +236,8 @@ class reg_aladin
         GetMacro(AlignCentre,bool)
         SetMacro(AlignCentre,bool)
         BooleanMacro(AlignCentre, bool)
-        GetMacro(AlignCentreGravity,bool)
-        SetMacro(AlignCentreGravity,bool)
-        BooleanMacro(AlignCentreGravity, bool)
+        GetMacro(AlignCentreMass,int)
+        SetMacro(AlignCentreMass,int)
 
         SetClampMacro(Interpolation,int,0,3)
         GetMacro(Interpolation, int)
