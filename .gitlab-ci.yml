@@ -66,6 +66,33 @@ Mac-build:
     - mac
 
 
+Linux-build:
+
+  stage: build
+
+  script:
+    - mkdir -p ${pb_dir}
+    - cd ${pb_dir}
+    - cmake
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_ALL_DEP=ON
+          -DUSE_CUDA=ON
+          -DUSE_OPENCL=ON
+          -DUSE_SSE=ON
+          -DUSE_OPENMP=ON
+          -DBUILD_TESTING=ON
+          -DTESTING_2D_FILE=${src_dir}/reg-test/target_2D.nii.gz
+          -DTESTING_3D_FILE=${src_dir}/reg-test/target_3D.nii.gz
+          ${src_dir}
+    - make -j 4
+
+  only:
+    - branches
+
+  tags:
+    - linux
+
+
 Mac-test:
 
   stage: test
@@ -83,7 +110,22 @@ Mac-test:
     - mac
 
 
-Mac-cleanup:
+Linux-test:
+
+  stage: test
+
+  script:
+    - cd ${pb_dir}
+    - ctest -V
+
+  only:
+    - branches
+
+  tags:
+    - mac
+
+
+Cleanup:
 
   stage: cleanup
 
@@ -96,4 +138,4 @@ Mac-cleanup:
     - branches
 
   tags:
-    - mac
+    - mac,linux
