@@ -59,7 +59,7 @@ template<class T> reg_aladin<T>::reg_aladin()
   this->InlierLts = 50;
 
   this->AlignCentre = 1;
-  this->AlignCentreGravity = 0;
+  this->AlignCentreMass = 0;
 
   this->Interpolation = 1;
 
@@ -354,7 +354,7 @@ void reg_aladin<T>::InitialiseRegistration()
       }
       this->TransformationMatrix->m[i][i] = 1.0;
     }
-    if (this->AlignCentre)
+    if (this->AlignCentre && this->AlignCentreMass==0)
     {
       const mat44 *floatingMatrix = (this->InputFloating->sform_code > 0) ? &(this->InputFloating->sto_xyz) : &(this->InputFloating->qto_xyz);
       const mat44 *referenceMatrix = (this->InputReference->sform_code > 0) ? &(this->InputReference->sto_xyz) : &(this->InputReference->qto_xyz);
@@ -377,6 +377,60 @@ void reg_aladin<T>::InitialiseRegistration()
       this->TransformationMatrix->m[1][3] = floatingRealPosition[1] - referenceRealPosition[1];
       this->TransformationMatrix->m[2][3] = floatingRealPosition[2] - referenceRealPosition[2];
     }
+	else if (this->AlignCentreMass == 2)
+	{
+		float referenceCentre[3] = { 0,0,0 };
+		float referenceCount = 0;
+		reg_tools_changeDatatype<float>(this->InputReference);
+		float *refPtr = static_cast<float *>(this->InputReference->data);
+		size_t refIndex = 0;
+		for (int z = 0; z < this->InputReference->nz; ++z) {
+			for (int y = 0; y < this->InputReference->ny; ++y) {
+				for (int x = 0; x < this->InputReference->nx; ++x) {
+					float value = refPtr[refIndex];
+					referenceCentre[0] += (float)x * value;
+					referenceCentre[1] += (float)y * value;
+					referenceCentre[2] += (float)z * value;
+					referenceCount+=value;
+					refIndex++;
+				}
+			}
+		}
+		referenceCentre[0] /= referenceCount;
+		referenceCentre[1] /= referenceCount;
+		referenceCentre[2] /= referenceCount;
+		float refCOM[3];
+		if (this->InputReference->sform_code > 0)
+			reg_mat44_mul(&(this->InputReference->sto_xyz), referenceCentre, refCOM);
+
+		float floatingCentre[3] = { 0,0,0 };
+		float floatingCount = 0;
+		reg_tools_changeDatatype<float>(this->InputFloating);
+		float *floPtr = static_cast<float *>(this->InputFloating->data);
+		size_t floIndex = 0;
+		for (int z = 0; z < this->InputFloating->nz; ++z) {
+			for (int y = 0; y < this->InputFloating->ny; ++y) {
+				for (int x = 0; x < this->InputFloating->nx; ++x) {
+					float value = floPtr[floIndex];
+					floatingCentre[0] += (float)x * value;
+					floatingCentre[1] += (float)y * value;
+					floatingCentre[2] += (float)z * value;
+					floatingCount += value;
+					floIndex++;
+				}
+			}
+		}
+		floatingCentre[0] /= floatingCount;
+		floatingCentre[1] /= floatingCount;
+		floatingCentre[2] /= floatingCount;
+		float floCOM[3];
+		if (this->InputFloating->sform_code > 0)
+			reg_mat44_mul(&(this->InputFloating->sto_xyz), floatingCentre, floCOM);
+		reg_mat44_eye(this->TransformationMatrix);
+		this->TransformationMatrix->m[0][3] = floCOM[0] - refCOM[0];
+		this->TransformationMatrix->m[1][3] = floCOM[1] - refCOM[1];
+		this->TransformationMatrix->m[2][3] = floCOM[2] - refCOM[2];
+	}
   }
 }
 /* *************************************************************** */
@@ -608,8 +662,6 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 
   reg_aladin<T>::GetWarpedImage(3, this->WarpedPaddingValue); // cubic spline interpolation
   nifti_image *CurrentWarped = this->con->getCurrentWarped(floatingType);
-
-  printf("Padding value here %g\n", this->WarpedPaddingValue);
 
   free(mask);
   nifti_image *resultImage = nifti_copy_nim_info(CurrentWarped);
