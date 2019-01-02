@@ -131,22 +131,6 @@ Mac-test:
 
   stage: test
 
-
-Cleanup:
-
-  stage: cleanup
-
-  script:
-    - rm -rf ${pb_dir}
-
-  when: always
-
-  only:
-    - branches
-
-  tags:
-    - mac,linux
-
   script:
     - cd ${pb_dir}/llvm
     - ctest -V
