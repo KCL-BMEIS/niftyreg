@@ -141,7 +141,9 @@ Windows-build:
   script:
     - if not exist %pb_dir% mkdir -p %pb_dir%
     - cd %pb_dir%
-    - cmake.exe
+    - set cmake="C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe"
+    - call %cmake%
+          -G "Visual Studio 15 2017 Win64"
           -DCMAKE_BUILD_TYPE=Release
           -DBUILD_ALL_DEP=ON
           -DUSE_CUDA=ON
@@ -149,7 +151,6 @@ Windows-build:
           -DUSE_SSE=ON
           -DUSE_OPENMP=ON
           %src_dir%
-
     - set msbuild="C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/MSBuild/15.0/Bin/MSBuild.exe"
     - echo "%msbuild%"
     - call %msbuild% NiftyReg.sln /t:Build /p:Configuration=Release
