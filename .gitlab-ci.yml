@@ -7,8 +7,8 @@ stages:
 
 
 before_script:
-  - export src_dir=${CI_PROJECT_DIR}
-  - export git_hash=${CI_COMMIT_SHA:0:6}
+  - export src_dir="${CI_PROJECT_DIR}"
+  - export git_hash="${CI_COMMIT_SHA:0:6}"
   - export pb_dir="${CI_PROJECT_DIR}-build-${git_hash}"
   - hostname
   - whoami
@@ -123,6 +123,43 @@ Linux-build:
     - linux
 
 
+Windows-build:
+
+  stage: build
+
+  before_script:
+    - set src_dir="%CI_PROJECT_DIR%"
+    - set git_hash="%CI_COMMIT_SHA:~0,6%"
+    - set pb_dir="%CI_PROJECT_DIR%-build-%git_hash%"
+    - hostname
+    - whoami
+    - echo %cd%
+    - echo "Sources - %src_dir%"
+    - echo "Commit - %git_hash%"
+    - echo "Project build - %pb_dir%"
+
+  script:
+    - if not exist %pb_dir% mkdir -p %pb_dir%
+    - cd %pb_dir%
+    - cmake.exe
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_ALL_DEP=ON
+          -DUSE_CUDA=ON
+          -DUSE_OPENCL=ON
+          -DUSE_SSE=ON
+          -DUSE_OPENMP=ON
+          %src_dir%
+
+    - set msbuild="C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/MSBuild/15.0/Bin/MSBuild.exe"
+    - echo "%msbuild%"
+    - call %msbuild% NiftyReg.sln /t:Build /p:Configuration=Release
+
+  only:
+    - branches
+
+  tags:
+    - windows
+
 ##############################################################
 ### TEST
 
@@ -193,3 +230,31 @@ Linux-Cleanup:
 
   tags:
     - linux
+
+
+
+Windows-Cleanup:
+
+  stage: cleanup
+
+  before_script:
+    - set src_dir="%CI_PROJECT_DIR%"
+    - set git_hash="%CI_COMMIT_SHA:~0,6%"
+    - set pb_dir="%CI_PROJECT_DIR%-build-%git_hash%"
+    - hostname
+    - whoami
+    - echo %cd%
+    - echo "Sources - %src_dir%"
+    - echo "Commit - %git_hash%"
+    - echo "Project build - %pb_dir%"
+
+  script:
+    - call rd /s /q %pb_dir%
+
+  when: always
+
+  only:
+    - branches
+
+  tags:
+    - windows
