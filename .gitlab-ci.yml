@@ -229,7 +229,7 @@ Windows-test:
   script:
     - cd %pb_dir%
     - set ctest="C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/ctest.exe"
-    - call ctest -V
+    - call %ctest% -V
 
   only:
     - branches
