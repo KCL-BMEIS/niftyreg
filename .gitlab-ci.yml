@@ -114,6 +114,17 @@ Linux-build:
           -DTESTING_2D_FILE=${src_dir}/reg-test/target_2D.nii.gz
           -DTESTING_3D_FILE=${src_dir}/reg-test/target_3D.nii.gz
           ${src_dir}
+    - cmake
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_ALL_DEP=ON
+          -DUSE_CUDA=ON
+          -DUSE_OPENCL=ON
+          -DUSE_SSE=ON
+          -DUSE_OPENMP=ON
+          -DBUILD_TESTING=ON
+          -DTESTING_2D_FILE=${src_dir}/reg-test/target_2D.nii.gz
+          -DTESTING_3D_FILE=${src_dir}/reg-test/target_3D.nii.gz
+          ${src_dir}
     - make -j 4
 
   only:
@@ -150,6 +161,9 @@ Windows-build:
           -DUSE_OPENCL=ON
           -DUSE_SSE=ON
           -DUSE_OPENMP=ON
+          -DBUILD_TESTING=ON
+          -DTESTING_2D_FILE="%src_dir%/reg-test/target_2D.nii.gz"
+          -DTESTING_3D_FILE="%src_dir%/reg-test/target_3D.nii.gz"
           %src_dir%
     - set msbuild="C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/MSBuild/15.0/Bin/MSBuild.exe"
     - echo "%msbuild%"
@@ -197,11 +211,38 @@ Linux-test:
     - mac
 
 
+Windows-test:
+
+  stage: test
+
+  before_script:
+    - set src_dir="%CI_PROJECT_DIR%"
+    - set git_hash="%CI_COMMIT_SHA:~0,6%"
+    - set pb_dir="%CI_PROJECT_DIR%-build-%git_hash%"
+    - hostname
+    - whoami
+    - echo %cd%
+    - echo "Sources - %src_dir%"
+    - echo "Commit - %git_hash%"
+    - echo "Project build - %pb_dir%"
+
+  script:
+    - cd %pb_dir%
+    - set ctest="C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/ctest.exe"
+    - call ctest -V
+
+  only:
+    - branches
+
+  tags:
+    - windows
+
+
 ##############################################################
 ### CLEAN
 
 
-Mac-Cleanup:
+Mac-cleanup:
 
   stage: cleanup
 
@@ -217,7 +258,7 @@ Mac-Cleanup:
     - mac
 
 
-Linux-Cleanup:
+Linux-cleanup:
 
   stage: cleanup
 
@@ -233,8 +274,7 @@ Linux-Cleanup:
     - linux
 
 
-
-Windows-Cleanup:
+Windows-cleanup:
 
   stage: cleanup
 
