@@ -297,8 +297,8 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
       // Note that the header information is not used here
       float basisX[9], basisY[9];
       DTYPE coeffX[9], coeffY[9];
-      DTYPE normal[3]= {1.0/6.0, 2.0/3.0, 1.0/6.0};
-      DTYPE first[3]= {-0.5, 0, 0.5};
+	  DTYPE normal[3] = { 1.f / 6.f, 2.f / 3.f, 1.f / 6.f };
+	  DTYPE first[3] = { -0.5f, 0.f, 0.5f };
       // There are six different values taken into account
       int coord=0;
       for(int b=0; b<3; ++b)
@@ -582,8 +582,8 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
       // Note that the header information is not used here
       float basisX[27], basisY[27], basisZ[27];
       DTYPE coeffX[27], coeffY[27], coeffZ[27];
-      DTYPE normal[3]= {1.0/6.0, 2.0/3.0, 1.0/6.0};
-      DTYPE first[3]= {-0.5, 0, 0.5};
+	  DTYPE normal[3] = { 1.f / 6.f, 2.f / 3.f, 1.f / 6.f };
+	  DTYPE first[3] = { -0.5f, 0.f, 0.5f };
       // There are six different values taken into account
       DTYPE tempX[9], tempY[9], tempZ[9];
       int coord=0;
@@ -1276,7 +1276,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_getJacobianPenaltyTerm");
          reg_print_fct_error("Only single or double precision has been implemented");
-         exit(1);
+         reg_exit();
       }
    }
    else
@@ -1302,7 +1302,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
       default:
          reg_print_fct_error("reg_spline_getJacobianPenaltyTerm");
          reg_print_fct_error("Only single or double precision has been implemented");
-         exit(1);
+         reg_exit();
       }
    }
    // The jacobian determinant are averaged
@@ -1398,8 +1398,8 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
    if(approximation)
    {
       DTYPE basisX[9], basisY[9];
-      DTYPE normal[3]= {1.0/6.0, 2.0/3.0, 1.0/6.0};
-      DTYPE first[3]= {-0.5, 0.0, 0.5};
+	  DTYPE normal[3] = { 1.f / 6.f, 2.f / 3.f, 1.f / 6.f };
+	  DTYPE first[3] = { -0.5f, 0.f, 0.5f };
       DTYPE jacobianConstraint[2], detJac;
       size_t coord=0, jacIndex, index;
       int x, y, pixelX, pixelY;
@@ -1639,8 +1639,8 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
    if(approximation)
    {
       DTYPE basisX[27], basisY[27], basisZ[27];
-      DTYPE normal[3]= {1.0/6.0, 2.0/3.0, 1.0/6.0};
-      DTYPE first[3]= {-0.5, 0.0, 0.5};
+      DTYPE normal[3]= {1.f/6.f, 2.f/3.f, 1.f/6.f};
+      DTYPE first[3]= {-0.5f, 0.f, 0.5f};
       DTYPE jacobianConstraint[3], detJac;
       size_t coord=0, jacIndex, index;
       int x, y, z, pixelX, pixelY, pixelZ;

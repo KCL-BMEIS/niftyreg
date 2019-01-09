@@ -69,10 +69,16 @@ typedef enum
 #define reg_print_fct_error(text){REprintf("[NiftyReg ERROR] Function: %s\n", text);}
 #define reg_print_msg_error(text){REprintf("[NiftyReg ERROR] %s\n", text);}
 #else
+#ifdef NR_THROW_EXCEP
+#define reg_exit(){ \
+    throw std::runtime_error("[NiftyReg] Exception"); \
+}
+#else // NR_THROW_EXCEP
 #define reg_exit(){ \
     fprintf(stderr,"[NiftyReg] Exit here. File: %s:%i\n",__FILE__, __LINE__); \
     exit(1); \
 }
+#endif // NR_THROW_EXCEP
 #define reg_print_info(executable,text){printf("[%s] %s\n", executable, text);}
 #define reg_print_fct_debug(text){printf("[NiftyReg DEBUG] Function: %s called\n", text);}
 #define reg_print_msg_debug(text){printf("[NiftyReg DEBUG] %s\n", text);}
@@ -91,8 +97,10 @@ typedef enum
 #ifndef isnan
 #define isnan(_X) _isnan(_X)
 #endif
+#if (_MSC_VER < 1900)
 #ifndef strtof
 #define strtof(_s, _t) (float) strtod(_s, _t)
+#endif
 #endif
 template<class PrecisionType> inline int round(PrecisionType x)
 {

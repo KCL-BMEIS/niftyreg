@@ -417,7 +417,7 @@ void ResampleImage3D(nifti_image *floatingImage,
     {
 #ifndef NDEBUG
         char text[255];
-        sprintf(text, "3D resampling of volume number %lu",t);
+        sprintf(text, "3D resampling of volume number %zu",t);
         reg_print_msg_debug(text);
 #endif
 
@@ -622,7 +622,7 @@ void ResampleImage2D(nifti_image *floatingImage,
     {
 #ifndef NDEBUG
         char text[255];
-        sprintf(text, "2D resampling of volume number %lu",t);
+        sprintf(text, "2D resampling of volume number %zu",t);
         reg_print_msg_debug(text);
 #endif
         FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
@@ -1100,7 +1100,7 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
     for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
     {
 #ifndef NDEBUG
-        printf("[NiftyReg DEBUG] 3D resampling of volume number %lu\n",t);
+        printf("[NiftyReg DEBUG] 3D resampling of volume number %zu\n",t);
 #endif
 
         FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
@@ -1281,7 +1281,6 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
                         }
                     }
                 }
-                //exit(1);
                 if(psfWeightSum>0){
                     intensity/=psfWeightSum;
                 }
@@ -1422,7 +1421,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
     {
 #ifndef NDEBUG
         char text[255];
-        sprintf(text,"PSF 3D resampling of volume number %lu\n",t);
+        sprintf(text,"PSF 3D resampling of volume number %zu\n",t);
         reg_print_msg_debug(text);
 #endif
 

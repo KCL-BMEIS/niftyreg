@@ -86,7 +86,7 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
       if(deviceProp.totalGlobalMem != total){
          fprintf(stderr,"[NiftyReg CUDA ERROR] The CUDA card %s does not seem to be available\n",
                  deviceProp.name);
-         fprintf(stderr,"[NiftyReg CUDA ERROR] Expected total memory: %lu Mb - Recovered total memory: %lu Mb\n",
+         fprintf(stderr,"[NiftyReg CUDA ERROR] Expected total memory: %zu Mb - Recovered total memory: %zu Mb\n",
                  deviceProp.totalGlobalMem/(1024*1024), total/(1024*1024));
          reg_exit();
       }
@@ -99,7 +99,7 @@ void CUDAContextSingletton::pickCard(unsigned deviceId = 999)
       printf("[NiftyReg CUDA] Card compute capability: %i.%i\n",
              deviceProp.major,
              deviceProp.minor);
-      printf("[NiftyReg CUDA] Shared memory size in bytes: %lu\n",
+      printf("[NiftyReg CUDA] Shared memory size in bytes: %zu\n",
              deviceProp.sharedMemPerBlock);
       printf("[NiftyReg CUDA] CUDA version %i\n",
              CUDART_VERSION);

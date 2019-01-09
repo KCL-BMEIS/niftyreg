@@ -712,7 +712,7 @@ void showCUDACardInfo(void)
           printf("[NiftyReg CUDA] Card compute capability: %i.%i\n",
                  deviceProp.major,
                  deviceProp.minor);
-          printf("[NiftyReg CUDA] Shared memory size in bytes: %lu\n",
+          printf("[NiftyReg CUDA] Shared memory size in bytes: %zu\n",
                  deviceProp.sharedMemPerBlock);
           printf("[NiftyReg CUDA] CUDA version %i\n",
                  CUDART_VERSION);

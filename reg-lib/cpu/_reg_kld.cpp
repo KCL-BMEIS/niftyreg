@@ -131,7 +131,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
             {
                tempRefValue = currentRefPtr[voxel]+1e-16;
                tempWarValue = currentWarPtr[voxel]+1e-16;
-               tempValue=tempRefValue*fabs(log(tempRefValue/tempWarValue));
+               tempValue=tempRefValue*log(tempRefValue/tempWarValue);
                if(tempValue==tempValue &&
                      tempValue!=std::numeric_limits<double>::infinity())
                {
@@ -320,8 +320,8 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
                tempValue!=std::numeric_limits<double>::infinity() &&
                tempValue>0)
          {
-            tempValue = tempRefValue * (tempValue>1?1.:-1.) / tempWarValue;
-         tempValue *= adjusted_weight;
+            tempValue = tempRefValue / tempWarValue;
+            tempValue *= adjusted_weight;
 
             // Jacobian modulation if the Jacobian determinant image is defined
             if(jacobianDetImg!=NULL)
