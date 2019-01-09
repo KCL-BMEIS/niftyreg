@@ -72,7 +72,8 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-pad <float>\t\tPadding value [nan]");
 
    reg_print_info(exec, "\t-nac\t\t\tUse the nifti header origin to initialise the transformation. (Image centres are used by default)");
-   reg_print_info(exec, "\t-cog\t\t\tUse the input masks centre of mass to initialise the transformation. (Image centres are used by default)");
+   reg_print_info(exec, "\t-comm\t\t\tUse the input masks centre of mass to initialise the transformation. (Image centres are used by default)");
+   reg_print_info(exec, "\t-comi\t\t\tUse the input images centre of mass to initialise the transformation. (Image centres are used by default)");
    reg_print_info(exec, "\t-interp\t\t\tInterpolation order to use internally to warp the floating image.");
    reg_print_info(exec, "\t-iso\t\t\tMake floating and reference images isotropic if required.");
 
@@ -157,7 +158,7 @@ int main(int argc, char **argv)
    int blockPercentage=50;
    float inlierLts=50.0f;
    int alignCentre=1;
-   int alignCentreOfGravity=0;
+   int alignCentreOfMass=0;
    int interpolation=1;
    float floatingSigma=0.0;
    float referenceSigma=0.0;
@@ -282,12 +283,18 @@ int main(int argc, char **argv)
       {
          alignCentre=0;
       }
-      else if(strcmp(argv[i], "-cog")==0 || strcmp(argv[i], "--cog")==0)
-      {
-         alignCentre=0;
-         alignCentreOfGravity=1;
-      }
-      else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "-pv")==0 || strcmp(argv[i], "--pv")==0)
+	  else if (strcmp(argv[i], "-comm") == 0 || strcmp(argv[i], "--comm") == 0 ||
+		  strcmp(argv[i], "-cog") == 0 || strcmp(argv[i], "--cog") == 0)
+	  {
+		  alignCentre = 0;
+		  alignCentreOfMass=1;
+	  }
+	  else if (strcmp(argv[i], "-comi") == 0 || strcmp(argv[i], "--comi") == 0)
+	  {
+		  alignCentre = 0;
+		  alignCentreOfMass=2;
+	  }
+      else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "-pv")==0 || strcmp(argv[i], "--pv")==0 )
       {
          float value=atof(argv[++i]);
          if(value<0.f || value>100.f){
@@ -535,7 +542,7 @@ int main(int argc, char **argv)
    REG->SetReferenceSigma(referenceSigma);
    REG->SetFloatingSigma(floatingSigma);
    REG->SetAlignCentre(alignCentre);
-   REG->SetAlignCentreGravity(alignCentreOfGravity);
+   REG->SetAlignCentreMass(alignCentreOfMass);
    REG->SetPerformAffine(affineFlag);
    REG->SetPerformRigid(rigidFlag);
    REG->SetBlockStepSize(blockStepSize);

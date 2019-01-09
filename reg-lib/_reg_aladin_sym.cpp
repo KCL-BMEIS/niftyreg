@@ -147,10 +147,10 @@ void reg_aladin_sym<T>::InitialiseRegistration()
       }
    }
 
-   if(this->AlignCentreGravity && this->InputTransformName==NULL)
+   if(this->AlignCentreMass==1 && this->InputTransformName==NULL)
    {
       if(!this->InputReferenceMask && !this->InputFloatingMask){
-         reg_print_msg_error("The masks' centre of gravity can only be used when two masks are specified");
+         reg_print_msg_error("The masks' centre of mass can only be used when two masks are specified");
          reg_exit();
       }
       float referenceCentre[3]={0,0,0};
