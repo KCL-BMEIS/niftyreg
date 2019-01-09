@@ -56,11 +56,9 @@ if(MSVC)
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /bigobj")
 endif(MSVC)
 #-----------------------------------------------------------------------------
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    add_definitions(/W1)
-else(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     add_definitions(-fPIC)
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 #-----------------------------------------------------------------------------
 option(BUILD_ALL_DEP "All the dependencies are build" OFF)
 option(BUILD_SHARED_LIBS "Build the libraries as shared" OFF)
