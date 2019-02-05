@@ -1663,4 +1663,5 @@ void reg_base<T>::Run()
 /* *************************************************************** */
 /* *************************************************************** */
 template class reg_base<float>;
+template class reg_base<double>;
 #endif // _REG_BASE_CPP

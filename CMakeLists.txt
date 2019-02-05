@@ -1,6 +1,8 @@
 project(NiftyReg)
 #-----------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.2.2)
+set(CMAKE_CXX_STANDARD 11)
+
 if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^3\\.2\\.2$")
  mark_as_advanced(FORCE CMAKE_BACKWARDS_COMPATIBILITY)
 else("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^3\\.2\\.2$")

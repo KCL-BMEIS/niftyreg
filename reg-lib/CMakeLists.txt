@@ -195,6 +195,8 @@ set(_reg_f3d_files
     _reg_f3d2.cpp
     _reg_f3d_sym.h
     _reg_f3d_sym.cpp
+    _reg_f3d2_ipopt.h
+    _reg_f3d2_ipopt.cpp
 )
 set(_reg_f3d_libraries
   _reg_localTrans
@@ -206,6 +208,30 @@ set(_reg_f3d_libraries
 )
 add_library(_reg_f3d ${NIFTYREG_LIBRARY_TYPE} ${_reg_f3d_files})
 target_link_libraries(_reg_f3d ${_reg_f3d_libraries})
+#-----------------------------------------------------------------------------
+# add local Ipopt library for debuging
+set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-debug")
+#message("$ENV{IPOPT_LIB_DIR}")
+#message("${IPOPT_BUILD_DIR}")
+#include_directories("/opt/CoinIpopt/Ipopt/src/Interfaces")
+include_directories("${IPOPT_BUILD_DIR}/include/coin")
+
+add_library(ipopt SHARED IMPORTED)
+#add_library(ipopt STATIC IMPORTED)
+set_property(TARGET ipopt PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/libipopt.so")
+#set_property(TARGET ipopt PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/libipopt.a")
+target_link_libraries(_reg_f3d ipopt)
+
+add_library(blas SHARED IMPORTED)
+#set_property(TARGET blas PROPERTY IMPORTED_LOCATION "/usr/lib/x86_64-linux-gnu/libblas.so")
+set_property(TARGET blas PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/libcoinblas.so")
+target_link_libraries(_reg_f3d blas)
+
+#add_library(dl SHARED IMPORTED)
+#set_property(TARGET dl PROPERTY IMPORTED_LOCATION "/usr/lib/x86_64-linux-gnu/libdl.so")
+#target_link_libraries(_reg_f3d dl)
+#-----------------------------------------------------------------------------
+
 install(TARGETS _reg_f3d
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
@@ -215,6 +241,7 @@ install(FILES _reg_base.h DESTINATION include)
 install(FILES _reg_f3d.h DESTINATION include)
 install(FILES _reg_f3d2.h DESTINATION include)
 install(FILES _reg_f3d_sym.h DESTINATION include)
+install(FILES _reg_f3d2_ipopt.h DESTINATION include)
 install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
