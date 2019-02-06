@@ -79,14 +79,15 @@ int main(int argc, char** argv){
     SmartPtr<IpoptApplication> app = new IpoptApplication();
 
     // Set IpoptApplication options
-    app->Options()->SetNumericValue("tol", 1e-5);
     app->Options()->SetStringValue("hessian_approximation", "limited-memory");
     app->Options()->SetIntegerValue("print_level", 5);  // between 1 and 12
     if (level == levelToPerform - 1){
+      app->Options()->SetNumericValue("tol", 1e-6);
       app->Options()->SetIntegerValue("max_iter", 150);
     }
     else {
-      app->Options()->SetIntegerValue("max_iter", 50);
+      app->Options()->SetNumericValue("tol", 1e-5);
+      app->Options()->SetIntegerValue("max_iter",50);
     }
     //  app->Options()->SetStringValue("print_info_string", "yes");
     //  app->Options()->SetStringValue("jac_c_constant", "yes");
@@ -106,6 +107,7 @@ int main(int argc, char** argv){
     if (level < levelToPerform - 1){
       REG->updateOptimInitControlPoint(level);
     }
+    REG->clearLevel(level);
 
 //    if (status == Solve_Succeeded) {
 //      std::cout << std::endl << "*** The problem is solved!" << std::endl;

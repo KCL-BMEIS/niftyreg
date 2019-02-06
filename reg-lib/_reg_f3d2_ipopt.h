@@ -446,11 +446,16 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
   outputWarpedImage[1]=NULL;
   outputWarpedImage = this->GetWarpedImage();
   std::string fileName = stringFormat("out_level%d.nii", this->currentLevel+1);
-//  char * outputWarpedImageName=(char *)("outputResult-reg_ipopt-level" + char(this->currentLevel) + ".nii");
   memset(outputWarpedImage[0]->descrip, 0, 80);
   strcpy (outputWarpedImage[0]->descrip, "Warped image using NiftyReg");
-//  reg_io_WriteImageFile(outputWarpedImage[0],outputWarpedImageName);
   reg_io_WriteImageFile(outputWarpedImage[0], fileName.c_str());
+  // Compute and save absolute error map
+  reg_tools_substractImageToImage(outputWarpedImage[0],
+          this->currentReference, outputWarpedImage[0]);
+  reg_tools_abs_image(outputWarpedImage[0]);
+  fileName = stringFormat("abs_error_level%d.nii", this->currentLevel+1);
+  reg_io_WriteImageFile(outputWarpedImage[0], fileName.c_str());
+  // free allocated memory
   if(outputWarpedImage[0]!=NULL)
     nifti_image_free(outputWarpedImage[0]);
   outputWarpedImage[0]=NULL;
@@ -458,6 +463,17 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
     nifti_image_free(outputWarpedImage[1]);
   outputWarpedImage[1]=NULL;
   free(outputWarpedImage);
+
+  // Compute and save the jacobian map
+  size_t nvox = (size_t) this->currentReference->nx * this->currentReference->ny * this->currentReference->nz;
+  nifti_image *jacobianDeterminantArray = nifti_copy_nim_info(this->currentReference);
+  jacobianDeterminantArray->nbyper = this->controlPointGrid->nbyper;
+  jacobianDeterminantArray->datatype = this->controlPointGrid->datatype;
+  jacobianDeterminantArray->data = malloc(nvox*this->controlPointGrid->nbyper);
+  reg_spline_GetJacobianMap(this->controlPointGrid, jacobianDeterminantArray);
+  fileName = stringFormat("jacobian_map_level%d.nii", this->currentLevel+1);
+  reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
+  nifti_image_free(jacobianDeterminantArray);
 
 //  std::cout << std::endl << "Writing solution file solution.txt" << std::endl;
   FILE* fp = fopen("solution.txt", "w");

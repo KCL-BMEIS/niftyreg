@@ -20,7 +20,7 @@
  * @param controlPointGridImage Image that contains the transformation
  * parametrisation.
  * @param jacobianImage Image that will be populated with the determinant
- * of the Jacobian matrix of the transformation at every voxel posision.
+ * of the Jacobian matrix of the transformation at every voxel position.
  */
 extern "C++"
 void reg_spline_GetJacobianMap(nifti_image *controlPointGridImage,
