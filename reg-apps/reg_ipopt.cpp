@@ -46,7 +46,8 @@ int main(int argc, char** argv){
   }
 
  // Create the registration object
-  SmartPtr<reg_f3d2_ipopt<float> > REG = new reg_f3d2_ipopt<float>(referenceImage->nt, floatingImage->nt);
+//  SmartPtr<reg_f3d2_ipopt<float> > REG = new reg_f3d2_ipopt<float>(referenceImage->nt, floatingImage->nt);
+  SmartPtr<reg_f3d2_ipopt<double> > REG = new reg_f3d2_ipopt<double>(referenceImage->nt, floatingImage->nt);
   REG->SetReferenceImage(referenceImage);
   REG->SetFloatingImage(floatingImage);
 
@@ -54,7 +55,6 @@ int main(int argc, char** argv){
   REG->UseCubicSplineInterpolation();
 //  REG->UseApproximatedGradient();
   REG->DoNotUseConjugateGradient();
-//  REG->DoNotUsePyramidalApproach();
 
   // Set the objective function (default is NMI)
 //  bool normalise = false;
@@ -62,17 +62,25 @@ int main(int argc, char** argv){
 //  REG->SetSpacing(0, 10.f);
 //  REG->SetLinearEnergyWeight(0.f);
 //  REG->SetBendingEnergyWeight(0.001f);
+  REG->SetInverseConsistencyWeight(0.f);  // make sure inverse consistency is not used
 
   // Set the number of levels to perform for the pyramidal approach
-  unsigned int levelToPerform = 3;
+  unsigned int levelToPerform = 1;
+  if (levelToPerform <= 1){
+    REG->DoNotUsePyramidalApproach();
+  }
+  // number of level to perform starting from the one with the lowest resolution
   REG->SetLevelToPerform(levelToPerform);
+  // number of downsampling to perform
+  REG->SetLevelNumber(levelToPerform);
+
   ApplicationReturnStatus status;
 
   for(int level=0; level<levelToPerform; level++) {
 //    std::cout << "ready to start" << std::endl;
     time(&startLevel);
+    // all NiftyReg variables are initialised for the current level
     REG->initLevel(level);
-//    std::cout << "start level " << level + 1 << std::endl;
     SmartPtr<TNLP> mynlp = REG;
 
     // Create a new instance of IpoptApplication
@@ -86,8 +94,8 @@ int main(int argc, char** argv){
       app->Options()->SetIntegerValue("max_iter", 150);
     }
     else {
-      app->Options()->SetNumericValue("tol", 1e-5);
-      app->Options()->SetIntegerValue("max_iter",50);
+      app->Options()->SetNumericValue("tol", 1e-6);
+      app->Options()->SetIntegerValue("max_iter", 300);
     }
     //  app->Options()->SetStringValue("print_info_string", "yes");
     //  app->Options()->SetStringValue("jac_c_constant", "yes");
@@ -103,17 +111,8 @@ int main(int argc, char** argv){
     // Ask Ipopt to solve the problem
     status = app->OptimizeTNLP(mynlp);
 
-    // Set inputControlPoint to the current controlPoint to initialise next level
-    if (level < levelToPerform - 1){
-      REG->updateOptimInitControlPoint(level);
-    }
     REG->clearLevel(level);
 
-//    if (status == Solve_Succeeded) {
-//      std::cout << std::endl << "*** The problem is solved!" << std::endl;
-//    } else {
-//      std::cout << std::endl << "*** The problem FAILED!" << std::endl;
-//    }
     time(&end);
     int minutes=(int)floorf((end-startLevel)/60.0f);
     int seconds=(int)(end-startLevel - 60*minutes);
