@@ -2209,6 +2209,8 @@ int reg_createImagePyramid(nifti_image *inputImage, nifti_image **pyramid, int u
       if((pyramid[l]->nx/2) < 32) downsampleAxis[1]=false;
       if((pyramid[l]->ny/2) < 32) downsampleAxis[2]=false;
       if((pyramid[l]->nz/2) < 32) downsampleAxis[3]=false;
+       // "1" as second argument of reg_downsampleImage means the image
+       // is convolved with a gausian kernel before NN downsampling
       reg_downsampleImage<DTYPE>(pyramid[l], 1, downsampleAxis);
    }
    return EXIT_SUCCESS;
@@ -2981,7 +2983,7 @@ void reg_getDeformationFromDisplacement_3D(nifti_image *field)
                   + matrix.m[2][2]*static_cast<float>(z)
                   + matrix.m[2][3];
 
-            // The initial position is subtracted from every values
+            // The initial position is added to every values
             ptrX[index] += static_cast<DTYPE>(xInit);
             ptrY[index] += static_cast<DTYPE>(yInit);
             ptrZ[index] += static_cast<DTYPE>(zInit);

@@ -50,7 +50,10 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
 
 /* *************************************************************** */
 /** @brief Compute a dense deformation field in the space of a reference
- * image from a grid of control point.
+ * image from a grid of control points.
+ * Or warp the grid of control points by an existing dense deformation field,
+ * and then compute the associated dense deformation field in appropriate space.
+ * This behaviour depends to the value of the parameter "composition" (see below)
  * @param controlPointGridImage Control point grid that contains the deformation
  * parametrisation
  * @param deformationField Output image that will be populated with the deformation field
@@ -125,7 +128,7 @@ int reg_spline_cppComposition(nifti_image *grid1,
 /** @brief Preforms the composition of two deformation fields
  * The deformation field image is applied to the second image:
  * dfToUpdate. Both images are expected to contain deformation
- * field.
+ * field. Linear interpolation is used.
  * @param deformationField Image that contains the deformation field
  * that will be applied
  * @param dfToUpdate Image that contains the deformation field that
@@ -160,11 +163,18 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
 
 /* *************************************************************** */
 /** @brief The deformation field (img2) is computed by integrating
- * a velocity Grid (img1)
+ * a velocity Grid (img1).
+ * First, a dense velocity field corresponding to velocityFieldGrid is computed.
+ * Then, this dense field is exponentiated by a scaling and squaring method.
+ * Note that performing exponentiation on a dense field is important for accuracy.
+ * Linear interpolation is used during the composition of dense fields
+ * used for the exponentiation.
  * @param velocityFieldImage Image that contains a velocity field
  * parametrised using a grid of control points
  * @param deformationFieldImage Deformation field image that will
  * be filled using the exponentiation of the velocity field.
+ * @param updateStepNumber If true, the number of squaring steps is adapted
+ * based on an upperbound on the infinite norm of the scaled dense velocity field.
  */
 extern "C++"
 void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,

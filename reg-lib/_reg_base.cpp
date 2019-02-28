@@ -741,6 +741,7 @@ void reg_base<T>::CheckParameters()
 	}
 
 	// CHECK THE NUMBER OF LEVEL TO PERFORM
+	// make sure that levelToPerform <= levelNumber
 	if (this->levelToPerform > 0)
 	{
 		this->levelToPerform = this->levelToPerform < this->levelNumber ? this->levelToPerform : this->levelNumber;
@@ -1587,7 +1588,7 @@ void reg_base<T>::Run()
             // A line search is performed
             this->optimiser->Optimise(maxStepSize,smallestSize,currentSize);
 
-            // Update the obecjtive function variables and print some information
+            // Update the objective function variables and print some information
             this->PrintCurrentObjFunctionValue(currentSize);
 
          } // while

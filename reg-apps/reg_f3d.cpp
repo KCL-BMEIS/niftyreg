@@ -926,6 +926,9 @@ int main(int argc, char **argv)
    free(referenceLandmark);
    free(floatingLandmark);
 
+   // Print stat info
+   REG->PrintStatInfo();
+
    // Erase the registration object
    delete REG;
 

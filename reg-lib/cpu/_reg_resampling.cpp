@@ -438,20 +438,25 @@ void ResampleImage3D(nifti_image *floatingImage,
     deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
     floatingIJKMatrix, floatingImage, paddingValue, kernel_size, kernel_offset, kernelCompFctPtr)
 #endif // _OPENMP
+        // Iteration over the voxels of the 3D volumes corresponding to time point t
         for(index=0; index<warpedVoxelNumber; index++)
         {
 
-            intensity=paddingValue;
+            intensity=paddingValue;  // padding value for outside the mask
 
             if((maskPtr[index])>-1)
             {
+                // Get the deformation vector at the current position index
+                // in the world space
                 world[0]=static_cast<float>(deformationFieldPtrX[index]);
                 world[1]=static_cast<float>(deformationFieldPtrY[index]);
                 world[2]=static_cast<float>(deformationFieldPtrZ[index]);
 
                 // real -> voxel; floating space
+                // position is the deformation vector in voxel space of the floating image
                 reg_mat44_mul(floatingIJKMatrix, world, position);
 
+                // Get the closest integer position below the deformation vector
                 previous[0] = static_cast<int>(reg_floor(position[0]));
                 previous[1] = static_cast<int>(reg_floor(position[1]));
                 previous[2] = static_cast<int>(reg_floor(position[2]));
@@ -463,22 +468,27 @@ void ResampleImage3D(nifti_image *floatingImage,
                 (*kernelCompFctPtr)(relative[0], xBasis);
                 (*kernelCompFctPtr)(relative[1], yBasis);
                 (*kernelCompFctPtr)(relative[2], zBasis);
+                // kernel offset is applied so that previous is aligned with the lower left corner
+                // of the kernel to apply
                 previous[0]-=kernel_offset;
                 previous[1]-=kernel_offset;
                 previous[2]-=kernel_offset;
 
                 intensity=0.0;
+                // Apply kernel to compute floatingImage(deformationField(position))
+                // which will be warpedImage[index, t].
+                // This computation is exact.
                 if(-1<(previous[0]) && (previous[0]+kernel_size-1)<floatingImage->nx &&
                    -1<(previous[1]) && (previous[1]+kernel_size-1)<floatingImage->ny &&
                    -1<(previous[2]) && (previous[2]+kernel_size-1)<floatingImage->nz){
                    for(c=0; c<kernel_size; c++)
                    {
-                      Z= previous[2]+c;
+                      Z = previous[2]+c;
                       zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
                       yTempNewValue=0.0;
                       for(b=0; b<kernel_size; b++)
                       {
-                         Y= previous[1]+b;
+                         Y = previous[1]+b;
                          xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
                          xTempNewValue=0.0;
                          for(a=0; a<kernel_size; a++)
@@ -493,12 +503,12 @@ void ResampleImage3D(nifti_image *floatingImage,
                 else{
                    for(c=0; c<kernel_size; c++)
                    {
-                      Z= previous[2]+c;
+                      Z = previous[2]+c;
                       zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
                       yTempNewValue=0.0;
                       for(b=0; b<kernel_size; b++)
                       {
-                         Y= previous[1]+b;
+                         Y = previous[1]+b;
                          xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
                          xTempNewValue=0.0;
                          for(a=0; a<kernel_size; a++)
@@ -2242,7 +2252,7 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
     if(floatingImage->sform_code!=0)
         floating_mm_to_voxel = &floatingImage->sto_ijk;
 
-    // The spacing is computed in case the sform if defined
+    // The spacing is computed in case the sform is defined
     float realSpacing[3];
     if(warpedImage->sform_code>0)
     {
@@ -2267,7 +2277,7 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
     int x,y,z,a,b,c,defIndex,floIndex,warpedIndex;
     DTYPE val_x,val_y,val_z,weight[3];
 
-    // Loop over all voxel
+    // Loop over all voxels of warpedImage
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(x,y,z,a,b,c,val_x,val_y,val_z,defIndex,floIndex,warpedIndex, \
@@ -2280,7 +2290,7 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
 #endif // _OPENMP
     for(z=0; z<warpedImage->nz; ++z)
     {
-        warpedIndex=z*warpedImage->nx*warpedImage->ny;
+        warpedIndex=z*warpedImage->nx*warpedImage->ny;  // current index for warpedImage
         deriv[0]=-1;
         deriv[1]=1;
         basis[0]=1;
@@ -2331,15 +2341,18 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
                 basisZ[0]=1.0-basisZ[1];
                 for(c=0; c<2; ++c)
                 {
+                    // if in z-range of floatingImage space
                     if(anteIntZ[c]>-1 && anteIntZ[c]<floatingImage->nz)
                     {
                         for(b=0; b<2; ++b)
                         {
+                            // if in y-range of floatingImage space
                             if(anteIntY[b]>-1 && anteIntY[b]<floatingImage->ny)
                             {
                                 for(a=0; a<2; ++a)
                                 {
                                     weight[0]=basisX[a] * basisY[b] * basisZ[c];
+                                    // if in x-range of floatingImage space
                                     if(anteIntX[a]>-1 && anteIntX[a]<floatingImage->nx)
                                     {
                                         floIndex = (anteIntZ[c]*floatingImage->ny+anteIntY[b])*floatingImage->nx+anteIntX[a];

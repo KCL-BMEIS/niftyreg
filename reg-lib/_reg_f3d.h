@@ -37,6 +37,9 @@ protected:
    double bestWBE;
    double bestWLE;
 
+   int NumObjFctEval;  // number of calls to the objective function
+   int NumObjGradFctEval;  // number of calls to the objective gradient function
+
    virtual void AllocateTransformationGradient();
    virtual void ClearTransformationGradient();
    virtual T InitialiseCurrentLevel();
@@ -145,6 +148,8 @@ public:
    {
       this->controlPointGrid=cpp;
    }
+
+   void PrintStatInfo();
 };
 
 #endif

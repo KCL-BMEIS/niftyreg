@@ -78,8 +78,12 @@ protected:
    float *floatingThresholdLow;
    bool robustRange;
    T warpedPaddingValue;
-   unsigned int levelNumber;
-   unsigned int levelToPerform;
+   unsigned int levelNumber;  ///< number of levels to create in the pyramid;
+                              ///< e.g. number of times the resolution is divided by 2
+   unsigned int levelToPerform;  ///< number of levels in the pyramid approach for which
+                                 ///< an optimisation is performed.
+                                 ///< The pyramid optimisation starts with the level of lowest resolution.
+                                 ///< As a result, levelToPerform <= levelNumber must be guaranteed
    T gradientSmoothingSigma;
    T similarityWeight;
    bool additive_mc_nmi;
@@ -140,6 +144,9 @@ protected:
    virtual void InitialiseSimilarity();
 
    // Virtual empty functions that have to be filled
+   // It computes the dense deformation field associated
+   // to the (sparse) control point grid.
+   // The dense deformation field is stored in this->deformationFieldImage
    virtual void GetDeformationField()
    {
       return;  // Need to be filled

@@ -211,7 +211,10 @@ void reg_optimiser<T>::Optimise(T maxLength,
          // No improvement - Decrease the step size
          currentLength*=0.5;
       }
-      this->IncrementCurrentIterationNumber();
+      // Several line search call can be done for each iteration
+      // Deactivated for comparison with Ipopt
+      // The number of iterations is now the number of outer loops in the optimization
+//      this->IncrementCurrentIterationNumber();
       ++lineIteration;
    }
    // update the current size for the next iteration

@@ -1164,6 +1164,8 @@ void reg_f3d_sym<T>::GetObjectiveFunctionGradient()
       this->GetLandmarkDistanceGradient();
       this->GetInverseConsistencyGradient();
    }
+   // Increment number of calls to the objective gradient function
+   ++this->NumObjGradFctEval;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::GetObjectiveFunctionGradient");
 #endif
@@ -1614,6 +1616,9 @@ double reg_f3d_sym<T>::GetObjectiveFunctionValue()
 
    // Compute the Inverse consistency penalty term if required
    this->currentIC = this->GetInverseConsistencyPenaltyTerm();
+   
+   // increment numbe rof calls to the objective function
+   ++this->NumObjFctEval;
 
 #ifndef NDEBUG
    char text[255];
@@ -1824,4 +1829,5 @@ nifti_image * reg_f3d_sym<T>::GetBackwardControlPointPositionImage()
 /* *************************************************************** */
 /* *************************************************************** */
 template class reg_f3d_sym<float>;
+template class reg_f3d_sym<double>;
 #endif

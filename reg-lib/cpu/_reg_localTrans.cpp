@@ -1096,7 +1096,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                   if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
                   else get_SplineBasisValues<DTYPE>(basis, zBasis);
 
-                  // The control point postions are extracted
+                  // The control point positions are extracted
                   if(xPre!=oldPreX || yPre!=oldPreY || zPre!=oldPreZ)
                   {
 #ifdef _USE_SSE
@@ -1158,7 +1158,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                         tempZ = _mm_add_ps(_mm_mul_ps(basis_sse, zControlPointCoordinates.m[c*4+b]), tempZ );
                      }
                   }
-                  //the values stored in SSE variables are transfered to normal float
+                  //the values stored in SSE variables are transferred to normal float
                   val.m = tempX;
                   real[0] = val.f[0]+val.f[1]+val.f[2]+val.f[3];
                   val.m = tempY;
@@ -1617,8 +1617,8 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
    return;
 }
 /* *************************************************************** */
-void reg_spline_getDeformationField(nifti_image *splineControlPoint,
-                                    nifti_image *deformationField,
+void reg_spline_getDeformationField(nifti_image *splineControlPoint,  // in
+                                    nifti_image *deformationField, // out
                                     int *mask,
                                     bool composition,
                                     bool bspline,
@@ -4104,7 +4104,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
       reg_print_msg_debug(text);
 #endif
    }
-   // The affine conponent of the transformation is restored
+   // The affine component of the transformation is restored
    if(affineOnly!=NULL)
    {
       reg_getDisplacementFromDeformation(deformationFieldImage);
@@ -4155,11 +4155,11 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
          nifti_copy_extensions(flowField, velocityFieldGrid);
 
       // Generate the velocity field
-      reg_spline_getFlowFieldFromVelocityGrid(velocityFieldGrid,
-                                              flowField);
+      reg_spline_getFlowFieldFromVelocityGrid(velocityFieldGrid,  // in
+                                              flowField);  // out
       // Exponentiate the flow field
-      reg_defField_getDeformationFieldFromFlowField(flowField,
-                                                    deformationFieldImage,
+      reg_defField_getDeformationFieldFromFlowField(flowField,  // in
+                                                    deformationFieldImage,  // out
                                                     updateStepNumber);
       // Update the number of step required. No action otherwise
       velocityFieldGrid->intent_p2=flowField->intent_p2;
@@ -4252,7 +4252,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
          reg_print_msg_debug(text);
    #endif
       }
-      // The affine conponent of the transformation is restored
+      // The affine component of the transformation is restored
       if(affineOnly!=NULL)
       {
          for(unsigned short i=0; i<=squaringNumber; ++i){

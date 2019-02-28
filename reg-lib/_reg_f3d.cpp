@@ -40,6 +40,9 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
 
    this->gridRefinement=true;
 
+   this->NumObjFctEval=0;
+   this->NumObjGradFctEval=0;
+
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::reg_f3d");
 #endif
@@ -871,6 +874,10 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
       this->WarpFloatingImage(this->interpolation);
       this->currentWMeasure = this->ComputeSimilarityMeasure();
    }
+
+   // Increment number of calls to the objective function
+   ++this->NumObjFctEval;
+
 #ifndef NDEBUG
    char text[255];
    sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wJac) %g | (wLan) %g",
@@ -1145,10 +1152,14 @@ void reg_f3d<T>::GetObjectiveFunctionGradient()
       this->GetApproximatedGradient();
    }
 
+   // Increment the number of iterations (same as number of calls to the gradient)
    this->optimiser->IncrementCurrentIterationNumber();
 
    // Smooth the gradient if require
    this->SmoothGradient();
+
+   // Increment number of calls to the objective gradient function
+   ++this->NumObjGradFctEval;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetObjectiveFunctionGradient");
 #endif
@@ -1166,6 +1177,13 @@ void reg_f3d<T>::CorrectTransformation()
 }
 /* *************************************************************** */
 /* *************************************************************** */
+
+template<class T>
+void reg_f3d<T>::PrintStatInfo() {
+    std::cout << std::endl;
+    std::cout << "Number of objective function evaluations = " << this->NumObjFctEval << std::endl;
+    std::cout << "Number of objective gradient evaluations = " << this->NumObjGradFctEval << std::endl;
+}
 
 template class reg_f3d<float>;
 template class reg_f3d<double>;
