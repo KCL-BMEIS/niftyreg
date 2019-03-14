@@ -106,8 +106,8 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *refImage,
    size_t voxelNumber = (size_t)refImage->nx*refImage->ny*refImage->nz;
 #endif
    memcpy(combinedMask, refMask, voxelNumber*sizeof(int));
-   reg_tools_removeNanFromMask(refImage, combinedMask);
-   reg_tools_removeNanFromMask(warImage, combinedMask);
+   reg_tools_removeNanFromMask(refImage, combinedMask,current_timepoint);
+   reg_tools_removeNanFromMask(warImage, combinedMask,current_timepoint);
 
    DTYPE *origRefPtr = static_cast<DTYPE *>(refImage->data);
    DTYPE *meanRefPtr = static_cast<DTYPE *>(meanRefImage->data);

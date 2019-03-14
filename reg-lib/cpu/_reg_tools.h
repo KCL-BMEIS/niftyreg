@@ -296,7 +296,7 @@ int reg_tools_nanMask_image(nifti_image *img,
  */
 extern "C++"
 int reg_tools_removeNanFromMask(nifti_image *image,
-                                int *mask);
+                                int *mask, int time_point_index);
 /* *************************************************************** */
 /** @brief Get the minimal value of an image
  * @param img Input image
