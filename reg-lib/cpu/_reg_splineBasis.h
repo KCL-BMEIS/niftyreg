@@ -17,7 +17,8 @@
 
 extern "C++" template<class DTYPE>
 void get_BSplineBasisValues(DTYPE basis,
-                            DTYPE *values);
+                            DTYPE *values);//,
+//                            int order=3);  // default is cubic B-Spline
 extern "C++" template<class DTYPE>
 void get_BSplineBasisValues(DTYPE basis,
                             DTYPE *values,
@@ -27,6 +28,17 @@ void get_BSplineBasisValues(DTYPE basis,
                             DTYPE *values,
                             DTYPE *first,
                             DTYPE *second);
+// add the order as a parameter of existing functions instead
+/** @brief Refactoring of get_BSplineBasisValues that works for any B-spline order.
+ * Compute the weights for a 1D B-spline of a given order.
+ * @param coord centered coordinate
+ * @param values output array of the corresponding weights
+ * @param order order of the B-spline basis to use (default is 3: cubic B-spline)
+ */
+extern "C++" template<class DTYPE>
+void get_BSplineBasisWeights(DTYPE coord,
+                             DTYPE *values,
+                             int order=3);
 
 
 extern "C++" template<class DTYPE>

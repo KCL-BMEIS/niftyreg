@@ -587,7 +587,7 @@ void reg_tools_operationImageToImage(nifti_image *img1,
 
    switch(type)
    {
-   case 0:
+   case 0:  // addition
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
@@ -598,7 +598,7 @@ void reg_tools_operationImageToImage(nifti_image *img1,
                               ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
                               (double)img1->scl_inter)/(double)img1->scl_slope);
       break;
-   case 1:
+   case 1:  // substraction
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
@@ -610,7 +610,7 @@ void reg_tools_operationImageToImage(nifti_image *img1,
                                    (double)img1->scl_inter) / (double)img1->scl_slope);
        }
       break;
-   case 2:
+   case 2: // multiplication
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
@@ -622,7 +622,7 @@ void reg_tools_operationImageToImage(nifti_image *img1,
                (double)img1->scl_inter) / (double)img1->scl_slope);
        }
       break;
-   case 3:
+   case 3: // division
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
@@ -829,6 +829,172 @@ void reg_tools_divideImageToImage(nifti_image *img1,
       reg_print_fct_error("reg_tools_divideImageToImage");
       reg_print_msg_error("Unsupported datatype");
       reg_exit();
+   }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class TYPE1>
+void reg_tools_operationImageToGradient(nifti_image *img,
+                                        nifti_image *grad,
+                                        nifti_image *res,
+                                        int type) {
+#ifdef _WIN32
+   long i;
+   long voxelNumber=(long)res->nvox;
+#else
+    size_t i;
+    size_t voxelNumber=img->nvox;
+#endif
+    TYPE1 *imgPtr = static_cast<TYPE1 *>(img->data);
+    TYPE1 *resPtrX = static_cast<TYPE1 *>(res->data);
+    TYPE1 *resPtrY = &resPtrX[voxelNumber];
+    TYPE1 *resPtrZ = NULL;
+    if (img->nz>1) {
+       resPtrZ = &resPtrY[voxelNumber];
+    }
+    TYPE1 *gradPtrX = static_cast<TYPE1 *>(grad->data);
+    TYPE1 *gradPtrY = &gradPtrX[voxelNumber];
+    TYPE1 *gradPtrZ = NULL;
+    if (img->nz>1) {
+        gradPtrZ = &gradPtrY[voxelNumber];
+    }
+
+    if(img->scl_slope==0) {
+        img->scl_slope=1.f;
+    }
+    if(grad->scl_slope==0) {
+        grad->scl_slope=1.f;
+    }
+
+    res->scl_slope=img->scl_slope;
+    res->scl_inter=img->scl_inter;
+
+    switch(type) {  // perform the appropriate operation
+        case 0:  // addition
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtrX, resPtrY, resPtrZ, imgPtr,gradPtrX, gradPtrY, gradPtrZ, img, grad)
+#endif // _OPENMP
+            for(i=0; i<voxelNumber; i++)
+                resPtrX[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) +
+                                     ((double)gradPtrX[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                     (double)img->scl_inter)/(double)img->scl_slope);
+                resPtrY[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) +
+                                     ((double)gradPtrY[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                     (double)img->scl_inter)/(double)img->scl_slope);
+                if (resPtrZ != NULL) {
+                    resPtrZ[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) +
+                                         ((double)gradPtrZ[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                         (double)img->scl_inter)/(double)img->scl_slope);
+                }
+            break;
+        case 1:  // substraction
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtrX, resPtrY, resPtrZ, imgPtr,gradPtrX, gradPtrY, gradPtrZ, img, grad)
+#endif // _OPENMP
+            for (i = 0; i < voxelNumber; i++) {
+                resPtrX[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) -
+                                      ((double)gradPtrX[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                      (double)img->scl_inter)/(double)img->scl_slope);
+                resPtrY[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) -
+                                      ((double)gradPtrY[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                      (double)img->scl_inter)/(double)img->scl_slope);
+                if (resPtrZ != NULL) {
+                    resPtrZ[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) -
+                                         ((double)gradPtrZ[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                         (double)img->scl_inter)/(double)img->scl_slope);
+                }
+            }
+            break;
+        case 2: // multiplication
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtrX, resPtrY, resPtrZ, imgPtr,gradPtrX, gradPtrY, gradPtrZ, img, grad)
+#endif // _OPENMP
+            for (i = 0; i < voxelNumber; i++) {
+                resPtrX[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) *
+                                      ((double)gradPtrX[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                      (double)img->scl_inter)/(double)img->scl_slope);
+                resPtrY[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) *
+                                      ((double)gradPtrY[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                      (double)img->scl_inter)/(double)img->scl_slope);
+                if (resPtrZ != NULL) {
+                    resPtrZ[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) *
+                                         ((double)gradPtrZ[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                         (double)img->scl_inter)/(double)img->scl_slope);
+                }
+            }
+            break;
+        case 3: // division
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtrX, resPtrY, resPtrZ, imgPtr,gradPtrX, gradPtrY, gradPtrZ, img, grad)
+#endif // _OPENMP
+            for(i=0; i<voxelNumber; i++)
+                resPtrX[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) /
+                                      ((double)gradPtrX[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                      (double)img->scl_inter)/(double)img->scl_slope);
+                resPtrY[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) /
+                                      ((double)gradPtrY[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                      (double)img->scl_inter)/(double)img->scl_slope);
+            if (resPtrZ != NULL) {
+                resPtrZ[i] = (TYPE1)((((double)imgPtr[i] * (double)img->scl_slope + (double)img->scl_inter) /
+                                      ((double)gradPtrZ[i] * (double)grad->scl_slope + (double)grad->scl_inter) -
+                                      (double)img->scl_inter)/(double)img->scl_slope);
+            }
+            break;
+    }
+}
+/* *************************************************************** */
+void reg_tools_multiplyImageToGradient(nifti_image *img,
+                                       nifti_image *grad,
+                                       nifti_image *res) {
+   if(img->datatype != res->datatype || grad->datatype != res->datatype) {
+      reg_print_fct_error("reg_tools_multiplyImageToGradient");
+      reg_print_msg_error("Input images are expected to have the same size");
+      reg_exit();
+   }
+   if(img->nvox != res->nx * res->ny * res->nz || grad->nvox != res->nvox) {
+      reg_print_fct_error("reg_tools_multiplyImageToGradient");
+      reg_print_msg_error("Input images are expected to have the same size");
+      reg_exit();
+   }
+   int multiplicationOperation = 2;
+   switch(img->datatype)
+   {
+      case NIFTI_TYPE_UINT8:
+         reg_tools_operationImageToGradient<unsigned char>(img, grad, res, multiplicationOperation);
+           break;
+      case NIFTI_TYPE_INT8:
+         reg_tools_operationImageToGradient<char>(img, grad, res, multiplicationOperation);
+           break;
+      case NIFTI_TYPE_UINT16:
+         reg_tools_operationImageToGradient<unsigned short>(img, grad, res, multiplicationOperation);
+           break;
+      case NIFTI_TYPE_INT16:
+         reg_tools_operationImageToGradient<short>(img, grad, res, multiplicationOperation);
+           break;
+      case NIFTI_TYPE_UINT32:
+         reg_tools_operationImageToGradient<unsigned int>(img, grad, res, multiplicationOperation);
+           break;
+      case NIFTI_TYPE_INT32:
+         reg_tools_operationImageToGradient<int>(img, grad, res, multiplicationOperation);
+           break;
+      case NIFTI_TYPE_FLOAT32:
+         reg_tools_operationImageToGradient<float>(img, grad, res, multiplicationOperation);
+           break;
+      case NIFTI_TYPE_FLOAT64:
+         reg_tools_operationImageToGradient<double>(img, grad, res, multiplicationOperation);
+           break;
+      default:
+      reg_print_fct_error("reg_tools_multiplyImageToGradient");
+           reg_print_msg_error("Unsupported datatype");
+           reg_exit();
    }
 }
 /* *************************************************************** */
@@ -1132,9 +1298,10 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
       if(timePoint[t])
       {
          DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
+         bool isActiveAxisGradientComponent = axis[t / image->nt];  // for divergence-conforming B-spline only
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(densityPtr, intensityPtr, mask, nanImagePtr, voxelNumber) \
+   shared(densityPtr, intensityPtr, mask, nanImagePtr, voxelNumber, isActiveAxisGradientComponent) \
    private(index)
 #endif
          for(index=0; index<voxelNumber; index++)
@@ -1148,7 +1315,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
          // Loop over the x, y and z dimensions
          for(int n=0; n<3; n++)
          {
-            if(axis[n] && image->dim[n]>1)
+            if(axis[n] && image->dim[n]>1)  // if active spatial axis
             {
                double temp;
                if(sigma[t]>0) temp=sigma[t]/image->pixdim[n+1]; // mm to voxel
@@ -1169,6 +1336,16 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                {
                   // Spline kernel
                   radius=static_cast<int>(temp*2.0f);
+               }
+               else if(kernelType==DIV_CONFORMING_SPLINE_KERNEL) {
+                   // Cubic B-spline is used for the gradient component of the active axis
+                   if (isActiveAxisGradientComponent) {
+                       radius = static_cast<int>(temp*2.0f);
+                   }
+                   // Quadratic B-spline for the other gradient components
+                   else {
+                      radius = static_cast<int>(temp*1.5f);
+                   }
                }
                else{
                   reg_print_fct_error("reg_tools_kernelConvolution_core");
@@ -1194,6 +1371,34 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                         kernelSum += kernel[i+radius];
                      }
                   }
+                  else if(kernelType == DIV_CONFORMING_SPLINE_KERNEL) {
+                      // Cubic Spline kernel for the gradient component of the active axis
+                      if (isActiveAxisGradientComponent) {
+                         for (int i = -radius; i <= radius; i++) {
+                            // temp contains the kernel node spacing
+                            double relative = fabs((double) i / temp);
+                            if (relative < 1.0)
+                               kernel[i + radius] = (float) (2.0 / 3.0 - relative * relative +
+                                                                                 0.5 * relative * relative * relative);
+                            else if (relative < 2.0)
+                               kernel[i + radius] = (float) (-(relative - 2.0) * (relative - 2.0) *
+                                                                                 (relative - 2.0) / 6.0);
+                            else kernel[i + radius] = 0.f;
+                            kernelSum += kernel[i + radius];
+                         }
+                      }
+                      else {  // Quadratic B-spline for the gradient component
+                          for(int i=-radius; i<=radius; i++) {
+                             // temp contains the kernel node spacing
+                             double relative = fabs((double) i / temp);
+                             if (relative < 0.5) kernel[i + radius] = (float) (0.75 - relative * relative);
+                             else if (relative < 1.5)
+                                kernel[i + radius] = (float) (0.5 * (1.5 - relative) * (1.5 - relative));
+                             else kernel[i + radius] = 0.f;
+                             kernelSum += kernel[i + radius];
+                          }
+                      }
+                  } // divergence-conforming B-spline
                   else if(kernelType==GAUSSIAN_KERNEL)
                   {
                      // Compute the Gaussian kernel
@@ -1233,7 +1438,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
 #endif
                   int planeNumber, planeIndex, lineOffset;
                   int lineIndex, shiftPre, shiftPst, k;
-                  switch(n)
+                  switch(n)  // n is for the current axis (x, y or z)
                   {
                   case 0:
                      planeNumber=imageDim[1]*imageDim[2];
@@ -1286,7 +1491,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
    k, bufferIntensitycur,bufferDensitycur, planeIndex)
 #endif
 #endif // _OPENMP
-                  // Loop over the different voxel
+                  // Loop over the different voxels
                   for(planeIndex=0; planeIndex<planeNumber; ++planeIndex)
                   {
 

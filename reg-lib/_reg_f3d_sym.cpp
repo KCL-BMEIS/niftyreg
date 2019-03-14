@@ -829,10 +829,10 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
 
    for(int t=0; t<this->currentReference->nt; ++t){
       reg_getImageGradient(this->currentFloating,
-                           this->warImgGradient,
+                           this->warImgGradient,  // out : gradient of the warped floating image
                            this->deformationFieldImage,
                            this->currentMask,
-                           this->interpolation,
+                           this->interpolation,  // interpolation order of currentFloating
                            this->warpedPaddingValue,
                            t);
 
@@ -1169,6 +1169,78 @@ void reg_f3d_sym<T>::GetObjectiveFunctionGradient()
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::GetObjectiveFunctionGradient");
 #endif
+   if (false) {
+      //TODO: remove all the prints
+      // print info about the gradient
+      std::cout.precision(17);
+      T maxGrad = 0;
+      T *gradient = static_cast<T *>(this->transformationGradient->data);
+      T *backwardGradient = static_cast<T *>(this->backwardTransformationGradient->data);
+      T *warpImgGradient = static_cast<T *>(this->warImgGradient->data);
+      T *backWarpImgGradient = static_cast<T *>(this->backwardWarpedGradientImage->data);
+      T *warpImgSimGradient = static_cast<T *>(this->voxelBasedMeasureGradient->data);
+      T *warpBackImgSimGradient = static_cast<T *>(this->backwardVoxelBasedMeasureGradientImage->data);
+      for (int i = 0; i < this->transformationGradient->nvox; i++) {
+         if (fabs(gradient[i] - backwardGradient[i]) > maxGrad) {
+            maxGrad = fabs(gradient[i] - backwardGradient[i]);
+         }
+         std::cout << "-----------" << std::endl;
+         std::cout << "grad_f[" << i << "] = " << std::fixed << gradient[i] - backwardGradient[i] << std::endl;
+         std::cout << "forward_grad[" << i << "] = " << std::fixed << gradient[i] << std::endl;
+         std::cout << "backward_grad[" << i << "] = " << std::fixed << backwardGradient[i] << std::endl;
+         std::cout << "warp_flo_img_grad[" << i << "] = " << std::fixed << warpImgGradient[i] << std::endl;
+         std::cout << "warp_ref_img_grad[" << i << "] = " << std::fixed << backWarpImgGradient[i] << std::endl;
+      }
+      T maxImgGrad = 0;
+      for (int i = 0; i < this->warImgGradient->nvox; i++) {
+         if (fabs(warpImgGradient[i]) > maxImgGrad) {
+            maxImgGrad = fabs(warpImgGradient[i]);
+         }
+      }
+      T maxRefImgGrad = 0;
+      for (int i = 0; i < this->backwardWarpedGradientImage->nvox; i++) {
+         if (fabs(backWarpImgGradient[i]) > maxRefImgGrad) {
+            maxRefImgGrad = fabs(backWarpImgGradient[i]);
+         }
+      }
+      T maxWarSim = 0;
+      for (int i = 0; i < this->voxelBasedMeasureGradient->nvox; i++) {
+         if (fabs(warpImgSimGradient[i]) > maxWarSim) {
+            maxWarSim = fabs(warpImgSimGradient[i]);
+         }
+      }
+
+      T maxBackWarSim = 0;
+      for (int i = 0; i < this->backwardVoxelBasedMeasureGradientImage->nvox; i++) {
+         if (fabs(warpBackImgSimGradient[i]) > maxBackWarSim) {
+            maxBackWarSim = fabs(warpBackImgSimGradient[i]);
+         }
+      }
+      T *refImg = static_cast<T *>(this->currentReference->data);
+      T *refWarpImg = static_cast<T *>(this->warped->data);
+      T *floImg = static_cast<T *>(this->currentFloating->data);
+      T minRef = reg_tools_getMinValue(this->currentReference, 0);
+      T minFlo = reg_tools_getMinValue(this->currentFloating, 0);
+      T maxRef = reg_tools_getMaxValue(this->currentReference, 0);
+      T maxFlo = reg_tools_getMaxValue(this->currentFloating, 0);
+      T maxAbsDiff = fabs(refWarpImg[0] - floImg[0]);
+      for (int i=1; i < this->currentFloating->nvox; i++) {
+         if (fabs(refWarpImg[i] - floImg[i]) > maxAbsDiff) {
+            maxAbsDiff = fabs(refWarpImg[i] - floImg[i]);
+         }
+      }
+      std::cout << std::endl;
+      std::cout << "Images stats:" << std::endl;
+      std::cout << "Ref Image: min = " << minRef << ", max = " << maxRef << std::endl;
+      std::cout << "Flo Image: min = " << minFlo << ", max = " << maxFlo << std::endl;
+      std::cout << "Max absolute difference = " << maxAbsDiff << std::endl;
+      std::cout << std::endl;
+      std::cout << "Infinite norm of the gradient = " << std::fixed << maxGrad << std::endl;
+      std::cout << "Infinite norm of the floating image gradient = " << std::fixed << maxImgGrad << std::endl;
+      std::cout << "Infinite norm of the reference image gradient = " << std::fixed << maxRefImgGrad << std::endl;
+      std::cout << "Infinite norm of the forward warped similarity gradient = " << std::fixed << maxWarSim << std::endl;
+      std::cout << "Infinite norm of the backward warped similarity gradient = " << std::fixed << maxBackWarSim<< std::endl;
+   }
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1616,7 +1688,7 @@ double reg_f3d_sym<T>::GetObjectiveFunctionValue()
 
    // Compute the Inverse consistency penalty term if required
    this->currentIC = this->GetInverseConsistencyPenaltyTerm();
-   
+
    // increment numbe rof calls to the objective function
    ++this->NumObjFctEval;
 

@@ -23,7 +23,8 @@ typedef enum
    MEAN_KERNEL,
    LINEAR_KERNEL,
    GAUSSIAN_KERNEL,
-   CUBIC_SPLINE_KERNEL
+   CUBIC_SPLINE_KERNEL,
+   DIV_CONFORMING_SPLINE_KERNEL
 } NREG_CONV_KERNEL_TYPE;
 
 /* *************************************************************** */
@@ -187,6 +188,19 @@ extern "C++"
 void reg_tools_divideImageToImage(nifti_image *img1,
                                   nifti_image *img2,
                                   nifti_image *out);
+
+/* *************************************************************** */
+/** @brief Voxel-wise multiplication of all the channels a gradient
+ * image by a (scalar) image.
+ * @param img1 Image to consider
+ * @param img2 Gradient image to consider
+ * @param out Result gradient image that contains the result of the
+ * operation between the first and second image.
+ */
+extern "C++"
+void reg_tools_multiplyImageToGradient(nifti_image *img,
+                                       nifti_image *grad,
+                                       nifti_image *out);
 
 /* *************************************************************** */
 /** @brief Add a scalar to all image intensity

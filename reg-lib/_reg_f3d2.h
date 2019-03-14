@@ -22,6 +22,7 @@ class reg_f3d2 : public reg_f3d_sym<T>
 protected:
    bool BCHUpdate;
    bool useGradientCumulativeExp;
+   bool useLucasExpGradient = false;
    int BCHUpdateValue;
 
    virtual void GetDeformationField();
@@ -30,6 +31,7 @@ protected:
    virtual void GetVoxelBasedGradient();
    virtual void UpdateParameters(float);
    virtual void ExponentiateGradient();
+   virtual void LucasExpGradient();
    virtual void UseBCHUpdate(int);
    virtual void UseGradientCumulativeExp();
    virtual void DoNotUseGradientCumulativeExp();

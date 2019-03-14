@@ -26,7 +26,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/reg_jacobian.h.in ${CMAKE_CURRENT_BIN
 
 #-----------------------------------------------------------------------------
 # add local Ipopt library for debuging
-set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-debug")
+#set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-hsl")
+#set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-debug")
+set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-mkl")
 #include_directories("/opt/CoinIpopt/Ipopt/src/Interfaces")
 include_directories("${IPOPT_BUILD_DIR}/include/coin")
 include_directories("/usr/local/include/boost_1_66_0")
@@ -39,22 +41,23 @@ if(USE_CUDA)
 else(USE_CUDA)
   add_executable(reg_f3d reg_f3d.cpp)
   add_executable(reg_ipopt reg_ipopt.cpp command_line_reader.cpp ../reg-lib/_reg_f3d2_ipopt.cpp)
+  add_executable(reg_test_linearInterpolationImage reg_test_linearInterpolationImage.cpp)
 endif(USE_CUDA)
 target_link_libraries(reg_f3d _reg_f3d)
 target_link_libraries(reg_ipopt _reg_f3d)
+target_link_libraries(reg_test_linearInterpolationImage _reg_f3d)
 
 add_library(ipopt SHARED IMPORTED)
-#add_library(ipopt STATIC IMPORTED)
 set_property(TARGET ipopt PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/libipopt.so")
-#set_property(TARGET ipopt PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/libipopt.a")
 target_link_libraries(reg_ipopt ipopt)
 #message("$ENV{IPOPT_LIB_DIR}")
 #find_library(MY_IPOPT ipopt HINTS $ENV{IPOPT_LIB_DIR})
 #target_link_libraries(reg_ipopt ${MY_IPOPT})
 
 add_library(blas SHARED IMPORTED)
-#set_property(TARGET blas PROPERTY IMPORTED_LOCATION "/usr/lib/x86_64-linux-gnu/libblas.so")
-set_property(TARGET blas PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/libcoinblas.so")
+#set_property(TARGET blas PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/libcoinblas.so")
+# For MKL:
+set_property(TARGET blas PROPERTY IMPORTED_LOCATION "/opt/intel/compilers_and_libraries_2019.2.187/linux/mkl/lib/intel64/libmkl_intel_lp64.so")
 target_link_libraries(reg_ipopt blas)
 
 #add_library(dl SHARED IMPORTED)
@@ -83,6 +86,7 @@ set(MODULE_LIST
   reg_aladin
   reg_f3d
   reg_ipopt
+  reg_test_linearInterpolationImage
   )
 #-----------------------------------------------------------------------------
 if(USE_CUDA OR USE_OPENCL)

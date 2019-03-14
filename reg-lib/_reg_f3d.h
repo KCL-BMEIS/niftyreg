@@ -150,6 +150,7 @@ public:
    }
 
    void PrintStatInfo();
+   virtual void CheckVoxelBasedGradient();
 };
 
 #endif

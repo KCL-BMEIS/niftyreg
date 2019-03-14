@@ -197,7 +197,8 @@ set(_reg_f3d_files
     _reg_f3d_sym.cpp
     _reg_f3d2_ipopt.h
     _reg_f3d2_ipopt.cpp
-)
+        _reg_f3d_ipopt.cpp _reg_f3d_ipopt.h)
+
 set(_reg_f3d_libraries
   _reg_localTrans
   _reg_globalTrans
@@ -210,7 +211,9 @@ add_library(_reg_f3d ${NIFTYREG_LIBRARY_TYPE} ${_reg_f3d_files})
 target_link_libraries(_reg_f3d ${_reg_f3d_libraries})
 #-----------------------------------------------------------------------------
 # add local Ipopt library for debuging
-set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-debug")
+#set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-hsl")
+#set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-debug")
+set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-mkl")
 #message("$ENV{IPOPT_LIB_DIR}")
 #message("${IPOPT_BUILD_DIR}")
 #include_directories("/opt/CoinIpopt/Ipopt/src/Interfaces")
@@ -223,8 +226,9 @@ set_property(TARGET ipopt PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/lib
 target_link_libraries(_reg_f3d ipopt)
 
 add_library(blas SHARED IMPORTED)
-#set_property(TARGET blas PROPERTY IMPORTED_LOCATION "/usr/lib/x86_64-linux-gnu/libblas.so")
-set_property(TARGET blas PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/libcoinblas.so")
+#set_property(TARGET blas PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/libcoinblas.so")
+# For MKL:
+set_property(TARGET blas PROPERTY IMPORTED_LOCATION "/opt/intel/compilers_and_libraries_2019.2.187/linux/mkl/lib/intel64/libmkl_intel_lp64.so")
 target_link_libraries(_reg_f3d blas)
 
 #add_library(dl SHARED IMPORTED)

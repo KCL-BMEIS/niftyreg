@@ -52,6 +52,202 @@ void addJacobianGradientValues(mat33 jacobianMatrix,
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
+void reg_linear_spline_jacobian2D(nifti_image *splineControlPoint,
+                                  nifti_image *referenceImage,
+                                  mat33 *JacobianMatrices,
+                                  DTYPE *JacobianDeterminants,
+                                  bool approximation,
+                                  bool useHeaderInformation) {
+   if (!approximation) {
+      reg_print_fct_error("reg_linear_spline_jacobian2D");
+      reg_print_msg_error("No 2D implementation for the 'approximated' jacobian of linear spline yet");
+      reg_exit();
+   }
+    if(JacobianMatrices==NULL && JacobianDeterminants==NULL) {
+        reg_print_fct_error("reg_spline_jacobian2D");
+        reg_print_msg_error("Both output pointers are NULL");
+        reg_print_msg_error("Nothing to be done");
+        reg_exit();
+    }
+    if(referenceImage==NULL && approximation==false) {
+        reg_print_fct_error("reg_spline_jacobian2D");
+        reg_print_msg_error("The reference image is required to compute the Jacobian at voxel position");
+        reg_exit();
+
+    }
+
+    // Create some pointers towards to control point grid image data
+    size_t nodeNumber = (size_t)(splineControlPoint->nx * splineControlPoint->ny);
+    DTYPE *coeffPtrX = static_cast<DTYPE *>(splineControlPoint->data);
+    DTYPE *coeffPtrY = &coeffPtrX[nodeNumber];
+
+    // Define a matrice to reorient the Jacobian matrices and normalise them by the grid spacing
+    mat33 reorientation, jacobianMatrix;
+   memset(&jacobianMatrix, 0, sizeof(mat33));
+   jacobianMatrix.m[2][2] = 1.f;  // 2D
+   if(splineControlPoint->sform_code>0) {
+       reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
+   }
+   else {
+       reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
+   }
+   reorientation.m[2][2] = 1.f;  // 2D
+   reorientation.m[2][1] = 0.f;  // 2D
+   reorientation.m[2][0] = 0.f;  // 2D
+   reorientation.m[1][2] = 0.f;  // 2D
+   reorientation.m[0][2] = 0.f;  // 2D
+
+    // Useful variables
+//    int x, y;
+    int index = 0;
+
+    if(approximation) {
+        // The Jacobian information is only computed at the control point positions
+        for(int y=1; y<splineControlPoint->ny-1; y++) {
+           index = y * splineControlPoint->nx;
+           for(int x=1; x<splineControlPoint->nx-1; x++) {
+              ++index;
+              jacobianMatrix.m[0][0] = (coeffPtrX[index+1] - coeffPtrX[index-1])/2.;
+              jacobianMatrix.m[0][1] = (coeffPtrX[index+splineControlPoint->nx] - coeffPtrX[index-splineControlPoint->nx])/2.;
+
+              jacobianMatrix.m[1][0] = (coeffPtrY[index+1] - coeffPtrY[index-1])/2.;
+              jacobianMatrix.m[1][1] = (coeffPtrY[index+splineControlPoint->nx] - coeffPtrY[index-splineControlPoint->nx])/2.;
+
+              jacobianMatrix = nifti_mat33_mul(reorientation,jacobianMatrix);
+              if(JacobianMatrices!=NULL) {
+                 JacobianMatrices[index] = jacobianMatrix;
+              }
+              if(JacobianDeterminants!=NULL) {
+                 JacobianDeterminants[index] = static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
+              }
+           } // loop over x
+        } // loop over y
+    } // end if approximation at the control point index only
+//    else {
+//        // The Jacobian matrices and determinants are computed at all voxel positions
+//        // The voxel are discretised using the reference image
+//
+//        // If the control point grid contains an affine transformation,
+//        // the header information is used by default
+//        if(splineControlPoint->num_ext>0)
+//            useHeaderInformation=true;
+//
+//        // Allocate variables that are used in both scenarii
+//        DTYPE gridVoxelSpacing[2]= {
+//                        splineControlPoint->dx / referenceImage->dx,
+//                        splineControlPoint->dy / referenceImage->dy
+////                        splineControlPoint->dz / referenceImage->dz
+//                };
+//        DTYPE pre[2];
+//
+//        if(useHeaderInformation) {
+//            // The reference image is not necessarly aligned with the grid
+//            mat44 transformation;
+//            // reference: voxel to mm
+//            if(referenceImage->sform_code>0)
+//                transformation=referenceImage->sto_xyz;
+//            else transformation=referenceImage->qto_xyz;
+//            // affine: mm to mm
+//            if(splineControlPoint->num_ext>0)
+//                transformation=reg_mat44_mul(
+//                        reinterpret_cast<mat44 *>(splineControlPoint->ext_list[0].edata),
+//                        &transformation);
+//            // grid: mm to voxel
+//            if(splineControlPoint->sform_code>0)
+//                transformation=reg_mat44_mul(&(splineControlPoint->sto_ijk), &transformation);
+//            else transformation=reg_mat44_mul(&(splineControlPoint->qto_ijk), &transformation);
+//
+//            float imageCoord[2], gridCoord[2];
+//            for(z=0; z<referenceImage->nz; z++) {
+//                index=z*referenceImage->nx*referenceImage->ny;
+//                imageCoord[2]=z;
+//                for(y=0; y<referenceImage->ny; y++) {
+//                    imageCoord[1]=y;
+//                    for(x=0; x<referenceImage->nx; x++) {
+//                        imageCoord[0]=x;
+//                        // Compute the position in the grid
+//                        reg_mat44_mul(&transformation,imageCoord,gridCoord);
+//                        // Compute the anterior node coord
+//                        pre[0]=static_cast<int>(reg_floor(gridCoord[0]));
+//                        pre[1]=static_cast<int>(reg_floor(gridCoord[1]));
+////                        pre[2]=static_cast<int>(reg_floor(gridCoord[2]));
+//                        int controlPoint_index = pre[1]*splineControlPoint->nx + pre[0];
+//
+//                        jacobianMatrix.m[0][0] = (coeffPtrX[controlPoint_index+1] - coeffPtrX[controlPoint_index]);
+//                        jacobianMatrix.m[0][1] = (coeffPtrX[controlPoint_index+splineControlPoint->nx] - coeffPtrX[controlPoint_index]);
+////                        jacobianMatrix.m[0][2] = (coeffPtrX[controlPoint_index+splineControlPoint->nx*splineControlPoint->ny] - coeffPtrX[controlPoint_index]);
+//
+//                        jacobianMatrix.m[1][0] = (coeffPtrY[controlPoint_index+1] - coeffPtrY[controlPoint_index]);
+//                        jacobianMatrix.m[1][1] = (coeffPtrY[controlPoint_index+splineControlPoint->nx] - coeffPtrY[controlPoint_index]);
+////                        jacobianMatrix.m[1][2] = (coeffPtrY[controlPoint_index+splineControlPoint->nx*splineControlPoint->ny] - coeffPtrY[controlPoint_index]);
+//
+////                        jacobianMatrix.m[2][0] = (coeffPtrZ[controlPoint_index+1] - coeffPtrZ[controlPoint_index]);
+////                        jacobianMatrix.m[2][1] = (coeffPtrZ[controlPoint_index+splineControlPoint->nx] - coeffPtrZ[controlPoint_index]);
+////                        jacobianMatrix.m[2][2] = (coeffPtrZ[controlPoint_index+splineControlPoint->nx*splineControlPoint->ny] - coeffPtrZ[controlPoint_index]);
+//
+//                        // reorient the matrix
+//                        jacobianMatrix=nifti_mat33_mul(reorientation,
+//                                                       jacobianMatrix);
+//                        if(JacobianMatrices!=NULL)
+//                            JacobianMatrices[index]=jacobianMatrix;
+//                        if(JacobianDeterminants!=NULL)
+//                            JacobianDeterminants[index] =
+//                                    static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
+//                        ++index;
+//                    } // x
+//                } // y
+//            } // z
+//        }
+//        else
+//        {
+//            // The grid is assumed to be aligned with the reference image
+//            for(z=0; z<referenceImage->nz; z++)
+//            {
+//                index=z*referenceImage->nx*referenceImage->ny;
+//                pre[2]=(int)((DTYPE)z/gridVoxelSpacing[2])+1;
+//
+//                for(y=0; y<referenceImage->ny; y++)
+//                {
+//                    pre[1]=(int)((DTYPE)y/gridVoxelSpacing[1])+1;
+//
+//                    for(x=0; x<referenceImage->nx; x++)
+//                    {
+//
+//                        pre[0]=(int)((DTYPE)x/gridVoxelSpacing[0])+1;
+//                        int controlPoint_index=(pre[2]*splineControlPoint->ny+pre[1])*splineControlPoint->nx+pre[0];
+//
+//                        jacobianMatrix.m[0][0] = (coeffPtrX[controlPoint_index+1] - coeffPtrX[controlPoint_index]);
+//                        jacobianMatrix.m[0][1] = (coeffPtrX[controlPoint_index+splineControlPoint->nx] - coeffPtrX[controlPoint_index]);
+//                        jacobianMatrix.m[0][2] = (coeffPtrX[controlPoint_index+splineControlPoint->nx*splineControlPoint->ny] - coeffPtrX[controlPoint_index]);
+//
+//                        jacobianMatrix.m[1][0] = (coeffPtrY[controlPoint_index+1] - coeffPtrY[controlPoint_index]);
+//                        jacobianMatrix.m[1][1] = (coeffPtrY[controlPoint_index+splineControlPoint->nx] - coeffPtrY[controlPoint_index]);
+//                        jacobianMatrix.m[1][2] = (coeffPtrY[controlPoint_index+splineControlPoint->nx*splineControlPoint->ny] - coeffPtrY[controlPoint_index]);
+//
+//                        jacobianMatrix.m[2][0] = (coeffPtrZ[controlPoint_index+1] - coeffPtrZ[controlPoint_index]);
+//                        jacobianMatrix.m[2][1] = (coeffPtrZ[controlPoint_index+splineControlPoint->nx] - coeffPtrZ[controlPoint_index]);
+//                        jacobianMatrix.m[2][2] = (coeffPtrZ[controlPoint_index+splineControlPoint->nx*splineControlPoint->ny] - coeffPtrZ[controlPoint_index]);
+//
+//                        // reorient the matrix
+//                        jacobianMatrix=nifti_mat33_mul(reorientation,
+//                                                       jacobianMatrix);
+//
+//                        if(JacobianMatrices!=NULL)
+//                            JacobianMatrices[index]=jacobianMatrix;
+//                        if(JacobianDeterminants!=NULL)
+//                            JacobianDeterminants[index] =
+//                                    static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
+//                        ++index;
+//                    } // loop over x
+//                } // loop over y
+//            } // loop over z
+//        } // end if the grid is aligned with the reference image
+//    } // end if no approximation
+    return;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class DTYPE>
 void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
                                   nifti_image *referenceImage,
                                   mat33 *JacobianMatrices,
@@ -2536,9 +2732,31 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
    if(splineControlPoint->intent_p1==LIN_SPLINE_GRID){
       if(splineControlPoint->nz==1)
       {
-         reg_print_fct_error("reg_spline_GetJacobianMap");
-         reg_print_msg_error("No 2D implementation for the linear spline yet");
-         reg_exit();
+//         reg_print_fct_error("reg_spline_GetJacobianMap");
+//         reg_print_msg_error("No 2D implementation for the linear spline yet");
+//         reg_exit();
+         switch(jacobianImage->datatype) {
+            case NIFTI_TYPE_FLOAT32:
+               reg_linear_spline_jacobian2D<float>(splineControlPoint,
+                                                   jacobianImage,
+                                                   NULL,
+                                                   static_cast<float *>(jacobianImage->data),
+                                                   true,  // approximation is valid for linear B-spline
+                                                   true);
+                 break;
+            case NIFTI_TYPE_FLOAT64:
+               reg_linear_spline_jacobian2D<double>(splineControlPoint,
+                                                    jacobianImage,
+                                                    NULL,
+                                                    static_cast<double *>(jacobianImage->data),
+                                                    true,
+                                                    true);
+                 break;
+            default:
+               reg_print_fct_error("reg_spline_GetJacobianMap");
+               reg_print_msg_error("Only implemented for single or double precision images");
+               reg_exit();
+         }
       }
       else
       {
@@ -2549,7 +2767,7 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
                                                jacobianImage,
                                                NULL,
                                                static_cast<float *>(jacobianImage->data),
-                                               false,
+                                               true,  // approximation is valid for linear B-spline
                                                true);
             break;
          case NIFTI_TYPE_FLOAT64:
@@ -2557,7 +2775,7 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
                                                 jacobianImage,
                                                 NULL,
                                                 static_cast<double *>(jacobianImage->data),
-                                                false,
+                                                true,
                                                 true);
             break;
          default:
@@ -3201,6 +3419,10 @@ int reg_spline_GetJacobianDetFromVelocityGrid(nifti_image* jacobianDetImage,
    // The velocity grid image is first converted into a flow field
    reg_spline_getFlowFieldFromVelocityGrid(velocityGridImage,
                                            flowFieldImage);
+   // Lucas refactoring ongoing
+//   reg_spline_getDefFieldFromVelocityGrid(velocityGridImage,  // in
+//                                          flowFieldImage,  // out
+//                                          false);  // do not update step number
 
    reg_defField_GetJacobianDetFromFlowField(jacobianDetImage,
                                             flowFieldImage);

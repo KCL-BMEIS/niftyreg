@@ -54,6 +54,42 @@ void get_BSplineBasisValues(DTYPE basis, DTYPE *values, DTYPE *first, DTYPE *sec
 }
 template void get_BSplineBasisValues<float>(float, float *, float *, float *);
 template void get_BSplineBasisValues<double>(double, double *, double *, double *);
+
+template<class DTYPE>
+void get_BSplineBasisWeights(DTYPE coord, DTYPE *values, int order) {
+    switch (order) {
+        case 3:  // cubic B-spline
+            //TODO: refactor code and remove get_BSplineBasisValues functions
+            get_BSplineBasisValues<DTYPE>(coord, values);
+            break;
+        case 1:  // linear B-spline
+            values[0] = 0.;
+            values[1] = 1. - coord;
+            values[2] = coord;
+            values[3] = 0.;
+            break;
+        case 2:  // quadratic B-spline
+            if (coord <= 0.5) {
+                values[0] = 0.5 * (0.5 - coord) * (0.5 - coord);
+                values[1] = 0.75 - coord * coord;
+                values[2] = 0.5 * (0.5 + coord) * (0.5 + coord);
+                values[3] = 0.;
+            }
+            else { // 0.5 < coord <= 1
+                values[0] = 0.;
+                values[1] = 0.5 * (1.5 - coord) * (1.5 - coord);
+                values[2] = 0.75 - (coord - 1.) * (coord - 1.);
+                values[3] = 0.5 * (coord - 0.5) * (coord - 0.5);
+            }
+            break;
+        default:
+            std::cout << "B-spline weights of order " << order
+            << " not implemented yet" << std::endl;
+            reg_exit();
+    }  // switch order
+}
+template void get_BSplineBasisWeights<float>(float, float *, int);
+template void get_BSplineBasisWeights<double>(double, double *, int);
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>

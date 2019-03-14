@@ -40,7 +40,8 @@ typedef enum
    DEF_VEL_FIELD,
    DISP_VEL_FIELD,
    SPLINE_VEL_GRID,
-   LIN_SPLINE_GRID
+   LIN_SPLINE_GRID,
+   DIV_CONFORMING_VEL_GRID
 } NREG_TRANS_TYPE;
 
 /* *************************************************************** */

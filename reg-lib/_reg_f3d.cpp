@@ -1176,13 +1176,51 @@ void reg_f3d<T>::CorrectTransformation()
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
+/* ***************************************************************
+ * Lucas utils functions
+ */
 
 template<class T>
 void reg_f3d<T>::PrintStatInfo() {
     std::cout << std::endl;
     std::cout << "Number of objective function evaluations = " << this->NumObjFctEval << std::endl;
     std::cout << "Number of objective gradient evaluations = " << this->NumObjGradFctEval << std::endl;
+}
+
+template <class T>
+void reg_f3d<T>::CheckVoxelBasedGradient() {
+    reg_io_WriteImageFile(this->currentFloating, "current_flo.nii");
+    // get the warped floating image in this->warped
+    this->WarpFloatingImage(this->interpolation);
+    reg_io_WriteImageFile(this->warped, "warped_flo.nii");
+    // compute gradient of warped image x similarity gradient in this->voxelBasedMeasureGradient
+    this->GetVoxelBasedGradient();
+    // other way to approximate the warpoed image gradient by finite difference
+//    nifti_image* approxWarImgGradient = nifti_copy_nim_info(this->warImgGradient);
+//    approxWarImgGradient->data = (void *)calloc(approxWarImgGradient->nvox, approxWarImgGradient->nbyper);
+    // if deformation field is identity this should amount to finite difference
+//    nifti_image *identity_trans = nifti_copy_nim_info(this->deformationFieldImage);
+//    identity_trans->data = (void *)calloc(identity_trans->nvox, identity_trans->nbyper);
+//    reg_getDeformationFromDisplacement(identity_trans);
+//    reg_getImageGradient(this->warped,  //this->currentFloating,
+//                         approxWarImgGradient,  // out
+//                         identity_trans,  // this->deformationFieldImage,
+//                         this->currentMask,
+//                         3,  // how to interpret the floating image
+//                         this->warpedPaddingValue,
+//                         0);
+    reg_io_WriteImageFile(this->warImgGradient, "warped_images_grad.nii");
+//    reg_io_WriteImageFile(approxWarImgGradient, "warped_images_symdiff_grad.nii");
+    T* warImgGradPtr = static_cast<T *>(this->warImgGradient->data);
+//    T* approxWarImgGradPtr = static_cast<T *>(approxWarImgGradient->data);
+
+    // check gradient values with finite difference
+//    for (int i=0; i<this->deformationFieldImage->nvox; ++i) {
+//        std::cout << "grad_wi[" << i << "] = " << warImgGradPtr[i] << "   ~   " << approxWarImgGradPtr[i] << std::endl;
+//    }
+//    nifti_image_free(approxWarImgGradient);
+//    approxWarImgGradient = NULL;
+
 }
 
 template class reg_f3d<float>;

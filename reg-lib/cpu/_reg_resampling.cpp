@@ -3448,7 +3448,7 @@ void reg_getImageGradient_symDiff_core(nifti_image *img,
                         valZ =  (post - pre) / 2.f;
                     }
                 }
-                gradPtrX[voxIndex] = valX==valX?valX:0;
+                gradPtrX[voxIndex] = valX==valX?valX:0; // replace nan by 0
                 gradPtrY[voxIndex] = valY==valY?valY:0;
                 if(gradPtrZ!=NULL)
                     gradPtrZ[voxIndex] = valZ==valZ?valZ:0;

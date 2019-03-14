@@ -1226,10 +1226,10 @@ void reg_base<T>::GetVoxelBasedGradient()
 
    for(int t=0; t<this->currentReference->nt; ++t){
       reg_getImageGradient(this->currentFloating,
-                           this->warImgGradient,
+                           this->warImgGradient,  // out
                            this->deformationFieldImage,
                            this->currentMask,
-                           this->interpolation,
+                           this->interpolation,  // how to interpret the floating image
                            this->warpedPaddingValue,
                            t);
 

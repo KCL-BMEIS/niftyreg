@@ -36,4 +36,15 @@ public:
     }
 };
 
+/**
+ * @class NaNValueInGradientException is an exception that occurs when
+ * a NaN is found in the gradient.
+ */
+class NaNValueInGradientException: public std::exception {
+public:
+    virtual const char* what() const throw() {
+        return "ERROR! NaN value found in the gradient.";
+    }
+};
+
 #endif
