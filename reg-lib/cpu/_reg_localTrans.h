@@ -180,6 +180,9 @@ extern "C++"
 void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                             nifti_image *deformationFieldImage,
                                             bool updateStepNumber);
+extern "C++"
+void reg_spline_getDefFieldFromVelocityGridEuler(nifti_image *velocityFieldGrid,
+                                                 nifti_image *deformationFieldImage);
 /* *************************************************************** */
 extern "C++"
 void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,

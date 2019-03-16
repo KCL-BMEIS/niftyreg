@@ -4,6 +4,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <boost/program_options.hpp>
 // #include <boost/filesystem.hpp>
@@ -15,21 +16,24 @@
 #include "exception.h"
 
 const std::string CommandLineReader::kUsageMsg(
-        "\nFast Free Form Diffeomorphic Deformation algorithm for Constrained Non-Rigid Registration\n"
-        "It uses NiftyReg as a simulator that provides gradient anf objective function values"
+        "\nConstrained Fast Free Form Diffeomorphic Deformation algorithm\n"
+        "It uses NiftyReg as a simulator that provides gradient and objective function values\n"
         "and Ipopt to perform a Quasi-Newton optimisation."
-        "\nUsage:\t reg_ipopt -ref <referenceImageName> -flo <floatingImageName>\n"
+        "\nUsage:\t reg_ipopt --ref <referenceImageName> --flo <floatingImageName> --mask <maskImageName>\n"
         "\nOptions:\n"
         "--help | -h\t Prints help message.\n"
         "--ref  | -r\t Path to the reference image file (mandatory).\n"
         "--flo  | -f\t Path to the floating image file (mandatory).\n"
+        "--mask | -m\t Path to the constraint mask image file (optional).\n"
+        "--out  | -o\t Name of the directory where to save output (optional).\n"
 );
 
-CommandLineReader::CommandLineReader() : m_usage(false) {
+// put default value for parameters here
+CommandLineReader::CommandLineReader() : m_usage(false), m_useConstraint(false), m_outDir("/home/lf18/workspace/niftyreg_out") {
 }
 
 CommandLineReader& CommandLineReader::getInstance() {
-    static CommandLineReader instance; // Guaranteed to be destroyed and instantiated on first use.
+    static CommandLineReader instance;  // Guaranteed to be destroyed and instantiated on first use.
     return instance;
 }
 
@@ -39,6 +43,18 @@ std::string CommandLineReader::getRefFilePath() const {
 
 std::string CommandLineReader::getFloFilePath() const {
     return m_floPath;
+}
+
+std::string CommandLineReader::getMaskFilePath() const {
+    return m_maskPath;
+}
+
+std::string CommandLineReader::getOutDir() const {
+    return m_outDir;
+}
+
+bool CommandLineReader::getUseConstraint() const {
+    return m_useConstraint;
 }
 
 bool CommandLineReader::justHelp() const {
@@ -62,6 +78,8 @@ void CommandLineReader::processCmdLineOptions(int argc, char **argv) {
             ("h,help", "Prints this help message.")
             ("r,ref", "Path to the reference image file.", cxxopts::value<std::string>())
             ("f,flo", "Path to the floating image file.", cxxopts::value<std::string>())
+            ("m,mask", "Path to the constraint mask image file.", cxxopts::value<std::string>())
+            ("o,out", "Path output directory.", cxxopts::value<std::string>())
             ;
 
     // Parse command line options
@@ -74,10 +92,29 @@ void CommandLineReader::processCmdLineOptions(int argc, char **argv) {
     else if (options.count("ref") && options.count("flo")) { // Only way of using the program so far
         m_refPath = options["ref"].as<std::string>();
         m_floPath = options["flo"].as<std::string>();
+        // optional arguments
+        if (options.count("mask")) {
+            m_maskPath = options["mask"].as<std::string>();
+            m_useConstraint = true;
+        }
+        if (options.count("out")) {
+            m_outDir += "/" + options["out"].as<std::string>();
+        }
     }
+
     else {
         throw NotEnoughArgumentsException();
     }
+}
+
+void CommandLineReader::writeCommandLine(int argc, char **argv) {
+    std::string filename = "/command_line.txt";
+    std::cout << "writing command line in " << m_outDir << filename << std::endl;
+    std::ofstream file(m_outDir + filename);
+    for (int i=0; i < argc; ++i) {
+        file << argv[i] << std::endl;
+    }
+    file.close();
 }
 
 /**

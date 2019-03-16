@@ -1878,7 +1878,9 @@ void reg_divergence_conforming_spline_getDeformationField3D(nifti_image *splineC
       reg_print_msg_error("Implemented only with B-splines.");
       reg_exit();
    }
+#ifndef NDEBUG
    reg_print_msg_debug("reg_divergence_conforming_spline_getDeformationField3D called");
+#endif
 
 //   DTYPE temp[4];
    DTYPE zBasisOrder3[4];  // B-spline basis function of orders 3 and 2 are used
@@ -4952,11 +4954,13 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
 
    // The displacement field is scaled
    float scalingValue = pow(2.0f,std::abs((float)squaringNumber));
-   if(flowFieldImage->intent_p2<0)
+   if(flowFieldImage->intent_p2<0) {
+      reg_print_fct_warn("intent_p2 is negative, the sign of the velocity field is changed");
       // backward deformation field is scaled down
       reg_tools_divideValueToImage(flowFieldImage,
                                    flowFieldImage,
                                    -scalingValue); // (/-scalingValue)
+   }
    else
       // forward deformation field is scaled down
       reg_tools_divideValueToImage(flowFieldImage,
@@ -5035,8 +5039,6 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
          nifti_copy_extensions(flowField, velocityFieldGrid);
 
       // transform velocityFieldGrid to displacement
-      //TODO: vel should always be displacement
-      // errors occured for B-spline of order >1 otherwise
       if (velocityFieldGrid->intent_p1 == DIV_CONFORMING_VEL_GRID) {
           reg_getDisplacementFromDeformation(velocityFieldGrid);
       }
@@ -5073,6 +5075,78 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
    }
    else {
       reg_print_fct_error("reg_spline_getDeformationFieldFromVelocityGrid");
+      reg_print_msg_error("The provided input image is not a spline parametrised transformation");
+      reg_exit();
+   }
+   return;
+}
+/* *************************************************************** */
+void reg_spline_getDefFieldFromVelocityGridEuler(nifti_image *velocityFieldGrid,
+                                                 nifti_image *deformationFieldImage) {
+   // Clean any extension in the deformation field as it is unexpected
+   nifti_free_extensions(deformationFieldImage);
+
+   // Check if the velocity field is actually a velocity field
+   if(velocityFieldGrid->intent_p1 == CUB_SPLINE_GRID) {
+      reg_print_msg_error("reg_spline_getDefFieldFromVelocityGridEuler used with a cubic B-spline")
+      reg_exit();
+      // Use the spline approximation to generate the deformation field
+//      reg_spline_getDeformationField(velocityFieldGrid,
+//                                     deformationFieldImage,
+//                                     NULL,
+//                                     false, // composition
+//                                     true // bspline
+//      );
+   }
+   else if(velocityFieldGrid->intent_p1 == SPLINE_VEL_GRID || velocityFieldGrid->intent_p1 == DIV_CONFORMING_VEL_GRID) {
+      // Create an temporary image to store the flow field
+      nifti_image *scaledVelGrid = nifti_copy_nim_info(velocityFieldGrid);
+      // initialise flowField to zero
+      scaledVelGrid->data = (void *)calloc(scaledVelGrid->nvox, scaledVelGrid->nbyper);
+//      flowField->intent_code = NIFTI_INTENT_VECTOR;
+//      memset(flowField->intent_name, 0, 16);
+//      strcpy(flowField->intent_name,"NREG_TRANS");
+      scaledVelGrid->intent_p1 = velocityFieldGrid->intent_p1;
+//      flowField->intent_p2 = velocityFieldGrid->intent_p2;
+      if(velocityFieldGrid->num_ext>0)
+         nifti_copy_extensions(scaledVelGrid, velocityFieldGrid);
+
+      // transform velocityFieldGrid to displacement for divergence-conforming B-spline
+      if (velocityFieldGrid->intent_p1 == DIV_CONFORMING_VEL_GRID) {
+         reg_getDisplacementFromDeformation(velocityFieldGrid);
+      }
+//      memcpy(scaledVelGrid->data, velocityFieldGrid->data, scaledVelGrid->nvox*scaledVelGrid->nbyper);
+
+      // scale the velocity grid
+      float squaringNumber = velocityFieldGrid->intent_p2;
+      double numTimeSteps = pow(2., std::abs((float)squaringNumber));
+      reg_tools_divideValueToImage(velocityFieldGrid, scaledVelGrid, numTimeSteps);
+
+      // initialise the deformation field to identity
+      reg_tools_multiplyValueToImage(deformationFieldImage, deformationFieldImage, 0.f);
+      reg_getDeformationFromDisplacement(deformationFieldImage);
+
+      // exponentiate the transformation with an euler method
+      for (int t =0; t<numTimeSteps; ++t) {
+         reg_spline_getDeformationField(scaledVelGrid,
+                                        deformationFieldImage,
+                                        NULL,  // mask
+                                        true,  // composition;
+                                        true,  // bspline
+                                        true); // force_no_lut
+      }
+
+      deformationFieldImage->intent_p1 =  DEF_FIELD;
+
+      // return to deformation
+      if (velocityFieldGrid->intent_p1 == DIV_CONFORMING_VEL_GRID) {
+         reg_getDeformationFromDisplacement(velocityFieldGrid);
+      }
+      // clear the temporary velocity grid
+      nifti_image_free(scaledVelGrid);
+   }
+   else {
+      reg_print_fct_error("reg_spline_getDeformationFieldFromVelocityGridEuler");
       reg_print_msg_error("The provided input image is not a spline parametrised transformation");
       reg_exit();
    }

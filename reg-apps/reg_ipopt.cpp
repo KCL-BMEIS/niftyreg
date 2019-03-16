@@ -12,6 +12,8 @@
 #include "exception.h"
 #include <float.h>
 #include <cstdio>
+#include <sys/stat.h>
+//#include <boost/filesystem.hpp>
 
 using namespace Ipopt;
 
@@ -31,18 +33,36 @@ int main(int argc, char** argv){
     return EXIT_SUCCESS;
   }
 
-  // Read the reference and floating image
-  nifti_image *referenceImage=NULL;
-  nifti_image *floatingImage=NULL;
+  // create the directory (with commonly used permissions)
+  std::string saveDir = CommandLineReader::getInstance().getOutDir();
+  const int check = mkdir(saveDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
-  referenceImage=reg_io_ReadImageFile(CommandLineReader::getInstance().getRefFilePath().c_str());
-  if (!referenceImage){
+//  boost::filesystem::path saveDir(CommandLineReader::getInstance().getOutDir().c_str());
+//  if (!boost::filesystem::exists(saveDir)) {
+//      boost::filesystem::create_directory(saveDir);
+//  }
+
+  // write the command line that was used
+  CommandLineReader::getInstance().writeCommandLine(argc, argv);
+
+  // Read the reference and floating image
+  nifti_image *referenceImage = NULL;
+  nifti_image *floatingImage = NULL;
+  nifti_image *maskImage = NULL;
+
+  referenceImage = reg_io_ReadImageFile(CommandLineReader::getInstance().getRefFilePath().c_str());
+  if (!referenceImage) {
     throw CouldNotReadInputImage(CommandLineReader::getInstance().getRefFilePath());
   }
 
-  floatingImage=reg_io_ReadImageFile(CommandLineReader::getInstance().getFloFilePath().c_str());
-  if (!floatingImage){
+  floatingImage = reg_io_ReadImageFile(CommandLineReader::getInstance().getFloFilePath().c_str());
+  if (!floatingImage) {
     throw CouldNotReadInputImage(CommandLineReader::getInstance().getFloFilePath());
+  }
+
+  std::string maskPath = CommandLineReader::getInstance().getMaskFilePath();
+  if (maskPath.length() > 1) {
+    maskImage = reg_io_ReadImageFile(maskPath.c_str());
   }
 
   // Normalize data
@@ -63,8 +83,13 @@ int main(int argc, char** argv){
 //  SmartPtr<reg_f3d_ipopt<double> > REG = new reg_f3d_ipopt<double>(referenceImage->nt, floatingImage->nt);
   REG->SetReferenceImage(referenceImage);
   REG->SetFloatingImage(floatingImage);
+  if (maskImage != NULL) {
+      REG->setConstraintMask(maskImage);
+  }
+  REG->setSaveDir(saveDir);
 
-  REG->setDivergenceConstraint(false);
+  REG->setDivergenceConstraint(CommandLineReader::getInstance().getUseConstraint());
+//  REG->setDivergenceConstraint(true);
 
 //  REG->SetWarpedPaddingValue(0.);
 
@@ -82,6 +107,7 @@ int main(int argc, char** argv){
 //  bool normalise = false;
 //  REG->UseSSD(0, normalise);
   REG->SetSpacing(0, 5.f);  // do not use a spacing of 5 to avoid lut...
+  std::cout << "Set spacing to " << 5 << std::endl;
 //  REG->SetLinearEnergyWeight(0.f);  // default is 0.01
 //  REG->SetBendingEnergyWeight(0.f);  // default is 0.001
   REG->SetInverseConsistencyWeight(0.f);  // make sure inverse consistency is not used
@@ -134,7 +160,8 @@ int main(int argc, char** argv){
     app->Options()->SetIntegerValue("limited_memory_max_history", 12);  // default is 6
     // linear solver options
 //    app->Options()->SetStringValue("nlp_scaling_method", "equilibration-based");
-    app->Options()->SetStringValue("linear_solver", "ma27");  // ma27 or ma86
+    app->Options()->SetStringValue("linear_solver", "ma86");  // ma27 or ma86
+//    app->Options()->SetStringValue("linear_solver", "ma27");  // ma27 or ma86
     // ma27 options
 //    app->Options()->SetStringValue("linear_system_scaling", "mc19");
 //    app->Options()->SetStringValue("linear_scaling_on_demand", "no");

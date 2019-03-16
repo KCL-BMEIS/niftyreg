@@ -17,9 +17,13 @@ public:
     // Getters and setters
     std::string getRefFilePath() const;
     std::string getFloFilePath() const;
+    std::string getMaskFilePath() const;
+    std::string getOutDir() const;
+    bool getUseConstraint() const;
     bool justHelp() const;
     void processCmdLineOptions(int argc, char **argv);
     void printUsage(std::ostream &stream) const;
+    void writeCommandLine(int argc, char **argv);
 
 private:
     CommandLineReader();
@@ -29,6 +33,9 @@ private:
     static const std::string kUsageMsg;
     std::string m_refPath;
     std::string m_floPath;
+    std::string m_maskPath;
+    std::string m_outDir;
+    bool m_useConstraint;
     bool m_usage;
 };
 
