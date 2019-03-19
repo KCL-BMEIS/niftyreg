@@ -25,7 +25,7 @@ protected:
    T linearEnergyWeight;
    T jacobianLogWeight;
    bool jacobianLogApproximation;
-   T spacing[3];
+   float spacing[3];
 
    nifti_image *transformationGradient;
    bool gridRefinement;
@@ -150,6 +150,7 @@ public:
    }
 
    void PrintStatInfo();
+   virtual void SaveStatInfo(std::string path);
    virtual void CheckVoxelBasedGradient();
 };
 

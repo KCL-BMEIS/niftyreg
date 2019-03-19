@@ -1344,7 +1344,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                    }
                    // Quadratic B-spline for the other gradient components
                    else {
-                      radius = static_cast<int>(temp*1.5f);
+                      radius = static_cast<int>(temp*2.0f);
                    }
                }
                else{
@@ -1389,8 +1389,11 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                       }
                       else {  // Quadratic B-spline for the gradient component
                           for(int i=-radius; i<=radius; i++) {
-                             // temp contains the kernel node spacing
-                             double relative = fabs((double) i / temp);
+                             // temp contains the kernel node spacing;
+                             // for B-spline of order 2 there is a shift of 1/2 voxel in the grid voxel space,
+                             // this is to make sure that B-splines of order 2 and 3 are defined on the same grid.
+                             // this is important for divergence constrained optimisation.
+                             double relative = fabs((double) i / temp + 0.5);  // go to centered grid voxel space
                              if (relative < 0.5) kernel[i + radius] = (float) (0.75 - relative * relative);
                              else if (relative < 1.5)
                                 kernel[i + radius] = (float) (0.5 * (1.5 - relative) * (1.5 - relative));

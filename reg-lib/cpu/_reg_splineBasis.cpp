@@ -69,18 +69,23 @@ void get_BSplineBasisWeights(DTYPE coord, DTYPE *values, int order) {
             values[3] = 0.;
             break;
         case 2:  // quadratic B-spline
-            if (coord <= 0.5) {
-                values[0] = 0.5 * (0.5 - coord) * (0.5 - coord);
-                values[1] = 0.75 - coord * coord;
-                values[2] = 0.5 * (0.5 + coord) * (0.5 + coord);
-                values[3] = 0.;
-            }
-            else { // 0.5 < coord <= 1
-                values[0] = 0.;
-                values[1] = 0.5 * (1.5 - coord) * (1.5 - coord);
-                values[2] = 0.75 - (coord - 1.) * (coord - 1.);
-                values[3] = 0.5 * (coord - 0.5) * (coord - 0.5);
-            }
+            // consistent with the parameterisation in Rueckert et al. 1999
+            values[0] = 0.;
+            values[1] = 0.5 * (1. - coord) * (1. - coord);
+            values[2] = 0.5 + coord - coord*coord;
+            values[3] = 0.5 * coord * coord;
+//            if (coord <= 0.5) {
+//                values[0] = 0.5 * (0.5 - coord) * (0.5 - coord);
+//                values[1] = 0.75 - coord * coord;
+//                values[2] = 0.5 * (0.5 + coord) * (0.5 + coord);
+//                values[3] = 0.;
+//            }
+//            else { // 0.5 < coord <= 1
+//                values[0] = 0.;
+//                values[1] = 0.5 * (1.5 - coord) * (1.5 - coord);
+//                values[2] = 0.75 - (coord - 1.) * (coord - 1.);
+//                values[3] = 0.5 * (coord - 0.5) * (coord - 0.5);
+//            }
             break;
         default:
             std::cout << "B-spline weights of order " << order

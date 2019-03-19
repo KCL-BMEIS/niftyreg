@@ -1187,6 +1187,24 @@ void reg_f3d<T>::PrintStatInfo() {
     std::cout << "Number of objective gradient evaluations = " << this->NumObjGradFctEval << std::endl;
 }
 
+template<class T>
+void reg_f3d<T>::SaveStatInfo(std::string path) {
+    std::ofstream file(path);
+
+    double bestObj = this->bestWMeasure - this->bestWBE - this->bestWLE - this->bestWJac - this->bestWLand;
+    file << "Objective value = " << bestObj << std::endl;
+    file << "(wMeasure) " << std::scientific << this->bestWMeasure
+         << " | (wBE) " << std::scientific << this->bestWBE
+         << " | (wLE) " << std::scientific << this->bestWLE
+         << " | (wJac) " << std::scientific << this->bestWJac
+         << " | (wLan)" << std::scientific << this->bestWLand << std::endl;
+
+    file << std::endl;
+    file << "Number of objective function evaluations = " << this->NumObjFctEval << std::endl;
+    file << "Number of objective gradient evaluations = " << this->NumObjGradFctEval << std::endl;
+    file.close();
+}
+
 template <class T>
 void reg_f3d<T>::CheckVoxelBasedGradient() {
     reg_io_WriteImageFile(this->currentFloating, "current_flo.nii");

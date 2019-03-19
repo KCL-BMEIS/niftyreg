@@ -2008,7 +2008,7 @@ void reg_divergence_conforming_spline_getDeformationField3D(nifti_image *splineC
                   }
 
                   // compute new position at the current voxel after composition
-                  // the control point gris is a displacement here
+                  // the control point grid is a displacement here
 //                  real[0] = 0.0;
 //                  real[1] = 0.0;
 //                  real[2] = 0.0;

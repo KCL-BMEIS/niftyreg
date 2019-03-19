@@ -37,18 +37,14 @@ int main(int argc, char** argv){
   std::string saveDir = CommandLineReader::getInstance().getOutDir();
   const int check = mkdir(saveDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
-//  boost::filesystem::path saveDir(CommandLineReader::getInstance().getOutDir().c_str());
-//  if (!boost::filesystem::exists(saveDir)) {
-//      boost::filesystem::create_directory(saveDir);
-//  }
-
   // write the command line that was used
   CommandLineReader::getInstance().writeCommandLine(argc, argv);
 
-  // Read the reference and floating image
+  // Read the reference and floating images, constraint mask and init cpp
   nifti_image *referenceImage = NULL;
   nifti_image *floatingImage = NULL;
   nifti_image *maskImage = NULL;
+  nifti_image *initCPP = NULL;
 
   referenceImage = reg_io_ReadImageFile(CommandLineReader::getInstance().getRefFilePath().c_str());
   if (!referenceImage) {
@@ -65,16 +61,10 @@ int main(int argc, char** argv){
     maskImage = reg_io_ReadImageFile(maskPath.c_str());
   }
 
-  // Normalize data
-//  float scaleIntensity = 100.f;
-//  float meanRef = reg_tools_getMeanValue(referenceImage);
-//  reg_tools_substractValueToImage(referenceImage, referenceImage, meanRef);
-//  float stdRef = reg_tools_getSTDValue(referenceImage);
-//  reg_tools_divideValueToImage(referenceImage, referenceImage, stdRef/scaleIntensity);
-//  float meanFlo = reg_tools_getMeanValue(floatingImage);
-//  reg_tools_substractValueToImage(floatingImage, floatingImage, meanFlo);
-//  float stdFlo = reg_tools_getSTDValue(floatingImage);
-//  reg_tools_divideValueToImage(floatingImage, floatingImage, stdFlo/scaleIntensity);
+  std::string initCPPPath = CommandLineReader::getInstance().getInitCPPPath();
+  if (initCPPPath.length() > 1) {
+      initCPP = reg_io_ReadImageFile(initCPPPath.c_str());
+  }
 
  // Create the registration object
 //  SmartPtr<reg_f3d2_ipopt<float> > REG = new reg_f3d2_ipopt<float>(referenceImage->nt, floatingImage->nt);
@@ -86,7 +76,19 @@ int main(int argc, char** argv){
   if (maskImage != NULL) {
       REG->setConstraintMask(maskImage);
   }
+  if (initCPP != NULL) {
+      REG->SetControlPointGridImage(initCPP);
+  }
   REG->setSaveDir(saveDir);
+
+  // redirect console output into a file
+//  std::string outPrintPath = saveDir + "/console_output.txt";
+//  std::cout << "console output are redirected into " << outPrintPath << std::endl;
+//  std::freopen(outPrintPath.c_str(), "w", stdout);
+
+  // Normalize data
+  REG->UseRobustRange();  // clip 2% and 98% percentiles
+  std::cout << "Use robust range" << std::endl;
 
   REG->setDivergenceConstraint(CommandLineReader::getInstance().getUseConstraint());
 //  REG->setDivergenceConstraint(true);
@@ -108,8 +110,8 @@ int main(int argc, char** argv){
 //  REG->UseSSD(0, normalise);
   REG->SetSpacing(0, 5.f);  // do not use a spacing of 5 to avoid lut...
   std::cout << "Set spacing to " << 5 << std::endl;
-//  REG->SetLinearEnergyWeight(0.f);  // default is 0.01
-//  REG->SetBendingEnergyWeight(0.f);  // default is 0.001
+  REG->SetLinearEnergyWeight(0.015f);  // default is 0.01
+  REG->SetBendingEnergyWeight(0.0015f);  // default is 0.001
   REG->SetInverseConsistencyWeight(0.f);  // make sure inverse consistency is not used
   float scale = 1e7;
   REG->setScale(scale);  // appropriate scaling factor for NMI
@@ -160,8 +162,8 @@ int main(int argc, char** argv){
     app->Options()->SetIntegerValue("limited_memory_max_history", 12);  // default is 6
     // linear solver options
 //    app->Options()->SetStringValue("nlp_scaling_method", "equilibration-based");
-    app->Options()->SetStringValue("linear_solver", "ma86");  // ma27 or ma86
-//    app->Options()->SetStringValue("linear_solver", "ma27");  // ma27 or ma86
+//    app->Options()->SetStringValue("linear_solver", "ma86");  // ma27 or ma86
+    app->Options()->SetStringValue("linear_solver", "ma57");  // ma27 or ma86
     // ma27 options
 //    app->Options()->SetStringValue("linear_system_scaling", "mc19");
 //    app->Options()->SetStringValue("linear_scaling_on_demand", "no");

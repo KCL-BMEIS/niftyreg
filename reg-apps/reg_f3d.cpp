@@ -928,6 +928,10 @@ int main(int argc, char **argv)
 
    // Print stat info
    REG->PrintStatInfo();
+   std::string saveInfoPath(outputCPPImageName);
+   size_t found = saveInfoPath.find_last_of("/\\");
+   saveInfoPath = saveInfoPath.substr(0, found) + "/info.txt";
+   REG->SaveStatInfo(saveInfoPath);
 
    // Erase the registration object
    delete REG;
