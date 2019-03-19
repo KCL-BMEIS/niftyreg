@@ -300,11 +300,11 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
                jacobianMatrix.m[0][1] = (coeffPtrX[index+splineControlPoint->nx] - coeffPtrX[index-splineControlPoint->nx])/2.;
                jacobianMatrix.m[0][2] = (coeffPtrX[index+splineControlPoint->nx*splineControlPoint->ny] - coeffPtrX[index-splineControlPoint->nx*splineControlPoint->ny])/2.;
 
-               jacobianMatrix.m[1][0] = (coeffPtrY[index+1] - coeffPtrX[-1])/2.;
+               jacobianMatrix.m[1][0] = (coeffPtrY[index+1] - coeffPtrY[-1])/2.;
                jacobianMatrix.m[1][1] = (coeffPtrY[index+splineControlPoint->nx] - coeffPtrY[index-splineControlPoint->nx])/2.;
                jacobianMatrix.m[1][2] = (coeffPtrY[index+splineControlPoint->nx*splineControlPoint->ny] - coeffPtrY[index-splineControlPoint->nx*splineControlPoint->ny])/2.;
 
-               jacobianMatrix.m[2][0] = (coeffPtrZ[index+1] - coeffPtrX[-1])/2.;
+               jacobianMatrix.m[2][0] = (coeffPtrZ[index+1] - coeffPtrZ[-1])/2.;
                jacobianMatrix.m[2][1] = (coeffPtrZ[index+splineControlPoint->nx] - coeffPtrZ[index-splineControlPoint->nx])/2.;
                jacobianMatrix.m[2][2] = (coeffPtrZ[index+splineControlPoint->nx*splineControlPoint->ny] - coeffPtrZ[index-splineControlPoint->nx*splineControlPoint->ny])/2.;
 
