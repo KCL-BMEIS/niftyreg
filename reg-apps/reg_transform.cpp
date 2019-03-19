@@ -390,8 +390,10 @@ int main(int argc, char **argv)
          outputTransformationImage->nvox=(size_t)outputTransformationImage->nx *
                                          outputTransformationImage->ny * outputTransformationImage->nz *
                                          outputTransformationImage->nt * outputTransformationImage->nu;
-         outputTransformationImage->nbyper=sizeof(float);
-         outputTransformationImage->datatype=NIFTI_TYPE_FLOAT32;
+         outputTransformationImage->nbyper=inputTransformationImage->nbyper;
+//         outputTransformationImage->nbyper=sizeof(float);
+         outputTransformationImage->datatype=inputTransformationImage->datatype;
+//         outputTransformationImage->datatype=NIFTI_TYPE_FLOAT32;
          outputTransformationImage->intent_code=NIFTI_INTENT_VECTOR;
          memset(outputTransformationImage->intent_name, 0, 16);
          strcpy(outputTransformationImage->intent_name,"NREG_TRANS");
@@ -972,8 +974,10 @@ int main(int argc, char **argv)
          deformationFieldImage->nvox=(size_t)deformationFieldImage->nx *
                deformationFieldImage->ny * deformationFieldImage->nz *
                deformationFieldImage->nt * deformationFieldImage->nu;
-         deformationFieldImage->nbyper=sizeof(float);
-         deformationFieldImage->datatype=NIFTI_TYPE_FLOAT32;
+         deformationFieldImage->nbyper=inputTransformationImage->nbyper;
+//         deformationFieldImage->nbyper=sizeof(float);
+         deformationFieldImage->datatype=inputTransformationImage->datatype;
+//         deformationFieldImage->datatype=NIFTI_TYPE_FLOAT32;
          deformationFieldImage->intent_code=NIFTI_INTENT_VECTOR;
          memset(deformationFieldImage->intent_name, 0, 16);
          strcpy(deformationFieldImage->intent_name,"NREG_TRANS");
@@ -1092,46 +1096,133 @@ int main(int argc, char **argv)
          reg_print_msg_error("2 or 3 values are expected per line");
          return EXIT_FAILURE;
       }
-      float **allLandmarks = reg_tool_ReadMatrixFile<float>(param->inputLandmarkName,
-                                                            landmarkNumber,
-                                                            n);
+      if (inputTransformationImage->datatype == NIFTI_TYPE_FLOAT64) {
+         double **allLandmarks = reg_tool_ReadMatrixFile<double>(param->inputLandmarkName,
+                                                                 landmarkNumber,
+                                                                 n);
+         // Allocate a deformation field to store the landmark position
+         nifti_image *landmarkImage=nifti_copy_nim_info(deformationFieldImage);
+         landmarkImage->ndim=landmarkImage->dim[0]=5;
+         landmarkImage->nx=landmarkImage->dim[1]=1;
+         landmarkImage->ny=landmarkImage->dim[2]=1;
+         landmarkImage->nz=landmarkImage->dim[3]=1;
+         landmarkImage->nvox=(size_t)landmarkImage->nx *
+                             landmarkImage->ny * landmarkImage->nz *
+                             landmarkImage->nt * landmarkImage->nu;
+         landmarkImage->data=(void *)malloc(landmarkImage->nvox*landmarkImage->nbyper);
+         double *landmarkImagePtr = static_cast<double *>(landmarkImage->data);
+         for(size_t l=0, index=0;l<landmarkNumber;++l){
+            for(size_t i=0;i<n;++i){
+               landmarkImagePtr[i]=allLandmarks[l][i];
+            }
+            reg_defField_compose(deformationFieldImage,
+                                 landmarkImage,
+                                 NULL);
+            for(size_t i=0;i<n;++i){
+               allLandmarks[l][i]=landmarkImagePtr[i];
+            }
+         }
+         // Save the update landmark positions
+         reg_tool_WriteMatrixFile(param->outputTransName,
+                                  allLandmarks,
+                                  landmarkNumber,
+                                  n);
+         // Free all allocated array and image
+         for(size_t l=0; l<landmarkNumber; ++l)
+            free(allLandmarks[l]);
+         free(allLandmarks);
+         if(deformationFieldImage!=NULL){
+            nifti_image_free(deformationFieldImage);
+         }
+         if(landmarkImage!=NULL){
+            nifti_image_free(landmarkImage);
+         }
+      }
+      else {
+         float **allLandmarks = reg_tool_ReadMatrixFile<float>(param->inputLandmarkName,
+                                                               landmarkNumber,
+                                                               n);
+         // Allocate a deformation field to store the landmark position
+         nifti_image *landmarkImage=nifti_copy_nim_info(deformationFieldImage);
+         landmarkImage->ndim=landmarkImage->dim[0]=5;
+         landmarkImage->nx=landmarkImage->dim[1]=1;
+         landmarkImage->ny=landmarkImage->dim[2]=1;
+         landmarkImage->nz=landmarkImage->dim[3]=1;
+         landmarkImage->nvox=(size_t)landmarkImage->nx *
+                             landmarkImage->ny * landmarkImage->nz *
+                             landmarkImage->nt * landmarkImage->nu;
+         landmarkImage->data=(void *)malloc(landmarkImage->nvox*landmarkImage->nbyper);
+         float *landmarkImagePtr = static_cast<float *>(landmarkImage->data);
+         for(size_t l=0, index=0;l<landmarkNumber;++l){
+            for(size_t i=0;i<n;++i){
+               landmarkImagePtr[i]=allLandmarks[l][i];
+            }
+            reg_defField_compose(deformationFieldImage,
+                                 landmarkImage,
+                                 NULL);
+            for(size_t i=0;i<n;++i){
+               allLandmarks[l][i]=landmarkImagePtr[i];
+            }
+         }
+         // Save the update landmark positions
+         reg_tool_WriteMatrixFile(param->outputTransName,
+                                  allLandmarks,
+                                  landmarkNumber,
+                                  n);
+         // Free all allocated array and image
+         for(size_t l=0; l<landmarkNumber; ++l)
+            free(allLandmarks[l]);
+         free(allLandmarks);
+         if(deformationFieldImage!=NULL){
+            nifti_image_free(deformationFieldImage);
+         }
+         if(landmarkImage!=NULL){
+            nifti_image_free(landmarkImage);
+         }
+      }
       // Allocate a deformation field to store the landmark position
-      nifti_image *landmarkImage=nifti_copy_nim_info(deformationFieldImage);
-      landmarkImage->ndim=landmarkImage->dim[0]=5;
-      landmarkImage->nx=landmarkImage->dim[1]=1;
-      landmarkImage->ny=landmarkImage->dim[2]=1;
-      landmarkImage->nz=landmarkImage->dim[3]=1;
-      landmarkImage->nvox=(size_t)landmarkImage->nx *
-            landmarkImage->ny * landmarkImage->nz *
-            landmarkImage->nt * landmarkImage->nu;
-      landmarkImage->data=(void *)malloc(landmarkImage->nvox*landmarkImage->nbyper);
-      float *landmarkImagePtr = static_cast<float *>(landmarkImage->data);
-      for(size_t l=0, index=0;l<landmarkNumber;++l){
-         for(size_t i=0;i<n;++i){
-            landmarkImagePtr[i]=allLandmarks[l][i];
-         }
-         reg_defField_compose(deformationFieldImage,
-                              landmarkImage,
-                              NULL);
-         for(size_t i=0;i<n;++i){
-            allLandmarks[l][i]=landmarkImagePtr[i];
-         }
-      }
-      // Save the update landmark positions
-      reg_tool_WriteMatrixFile(param->outputTransName,
-                               allLandmarks,
-                               landmarkNumber,
-                               n);
-      // Free all allocated array and image
-      for(size_t l=0; l<landmarkNumber; ++l)
-         free(allLandmarks[l]);
-      free(allLandmarks);
-      if(deformationFieldImage!=NULL){
-         nifti_image_free(deformationFieldImage);
-      }
-      if(landmarkImage!=NULL){
-         nifti_image_free(landmarkImage);
-      }
+//      nifti_image *landmarkImage=nifti_copy_nim_info(deformationFieldImage);
+//      landmarkImage->ndim=landmarkImage->dim[0]=5;
+//      landmarkImage->nx=landmarkImage->dim[1]=1;
+//      landmarkImage->ny=landmarkImage->dim[2]=1;
+//      landmarkImage->nz=landmarkImage->dim[3]=1;
+//      landmarkImage->nvox=(size_t)landmarkImage->nx *
+//            landmarkImage->ny * landmarkImage->nz *
+//            landmarkImage->nt * landmarkImage->nu;
+//      landmarkImage->data=(void *)malloc(landmarkImage->nvox*landmarkImage->nbyper);
+//
+//      if (inputTransformationImage->datatype == NIFTI_TYPE_FLOAT64) {
+//         double *landmarkImagePtr = static_cast<double *>(landmarkImage->data);
+//      }
+//      else {
+//         float *landmarkImagePtr = static_cast<float *>(landmarkImage->data);
+//      }
+//      for(size_t l=0, index=0;l<landmarkNumber;++l){
+//         for(size_t i=0;i<n;++i){
+//            landmarkImagePtr[i]=allLandmarks[l][i];
+//         }
+//         reg_defField_compose(deformationFieldImage,
+//                              landmarkImage,
+//                              NULL);
+//         for(size_t i=0;i<n;++i){
+//            allLandmarks[l][i]=landmarkImagePtr[i];
+//         }
+//      }
+//       Save the update landmark positions
+//      reg_tool_WriteMatrixFile(param->outputTransName,
+//                               allLandmarks,
+//                               landmarkNumber,
+//                               n);
+//       Free all allocated array and image
+//      for(size_t l=0; l<landmarkNumber; ++l)
+//         free(allLandmarks[l]);
+//      free(allLandmarks);
+//      if(deformationFieldImage!=NULL){
+//         nifti_image_free(deformationFieldImage);
+//      }
+//      if(landmarkImage!=NULL){
+//         nifti_image_free(landmarkImage);
+//      }
    }
    /* **************************************** */
    // Update the SForm matrix of a given image //
