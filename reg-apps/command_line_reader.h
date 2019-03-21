@@ -19,6 +19,7 @@ public:
     std::string getFloFilePath() const;
     std::string getMaskFilePath() const;
     std::string getOutDir() const;
+    std::string getInitCPPPath() const;
     bool getUseConstraint() const;
     bool justHelp() const;
     void processCmdLineOptions(int argc, char **argv);
@@ -35,6 +36,7 @@ private:
     std::string m_floPath;
     std::string m_maskPath;
     std::string m_outDir;
+    std::string m_initCPPPath;
     bool m_useConstraint;
     bool m_usage;
 };

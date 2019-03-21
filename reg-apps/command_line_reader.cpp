@@ -29,7 +29,8 @@ const std::string CommandLineReader::kUsageMsg(
 );
 
 // put default value for parameters here
-CommandLineReader::CommandLineReader() : m_usage(false), m_useConstraint(false), m_outDir("/home/lf18/workspace/niftyreg_out") {
+CommandLineReader::CommandLineReader() : m_usage(false), m_useConstraint(false),
+m_outDir("/home/lf18/workspace/niftyreg_out"), m_maskPath(""), m_initCPPPath("") {
 }
 
 CommandLineReader& CommandLineReader::getInstance() {
@@ -51,6 +52,10 @@ std::string CommandLineReader::getMaskFilePath() const {
 
 std::string CommandLineReader::getOutDir() const {
     return m_outDir;
+}
+
+std::string CommandLineReader::getInitCPPPath() const {
+    return m_initCPPPath;
 }
 
 bool CommandLineReader::getUseConstraint() const {
@@ -80,6 +85,7 @@ void CommandLineReader::processCmdLineOptions(int argc, char **argv) {
             ("f,flo", "Path to the floating image file.", cxxopts::value<std::string>())
             ("m,mask", "Path to the constraint mask image file.", cxxopts::value<std::string>())
             ("o,out", "Path output directory.", cxxopts::value<std::string>())
+            ("i,incpp", "Path to the CPP input to use for warm start initialisation.", cxxopts::value<std::string>())
             ;
 
     // Parse command line options
@@ -98,7 +104,10 @@ void CommandLineReader::processCmdLineOptions(int argc, char **argv) {
             m_useConstraint = true;
         }
         if (options.count("out")) {
-            m_outDir += "/" + options["out"].as<std::string>();
+            m_outDir = options["out"].as<std::string>();
+        }
+        if (options.count("incpp")) {
+            m_initCPPPath = options["incpp"].as<std::string>();
         }
     }
 
