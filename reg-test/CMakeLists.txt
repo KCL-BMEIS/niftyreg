@@ -162,6 +162,11 @@ if(USE_OPENCL)
 endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
+#set(EXEC reg_test_linearInteroplationImage)
+#add_executable(${EXEC} ${EXEC}.cpp)
+#target_link_libraries(${EXEC} _reg_f3d)
+#add_test(${EXEC} ${DFOLDER}/small_2d_test.png)
+#-----------------------------------------------------------------------------
 set(EXEC reg_test_affine_deformation_field)
 add_executable(${EXEC} ${EXEC}.cpp)
 target_link_libraries(${EXEC} _reg_aladin)

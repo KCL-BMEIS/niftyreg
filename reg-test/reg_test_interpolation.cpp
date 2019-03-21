@@ -108,7 +108,7 @@ int main(int argc, char **argv)
     }
 #endif
     else {
-        reg_print_msg_error("The platform code is not suppoted");
+        reg_print_msg_error("The platform code is not supported");
         return EXIT_FAILURE;
     }
     //Check if the platform used is double capable
