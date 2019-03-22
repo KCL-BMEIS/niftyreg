@@ -897,6 +897,24 @@ void reg_mat44_mul(mat44 const* mat,
         static_cast<double>(mat->m[2][2]) * static_cast<double>(in[2]) +
         static_cast<double>(mat->m[2][3]));
 }
+
+void reg_mat44_mul(mat44 const* mat,
+                   float const* in,
+                   int *out)
+{
+    out[0] = static_cast<int>(round(static_cast<double>(mat->m[0][0]) * static_cast<double>(in[0]) +
+                                static_cast<double>(mat->m[0][1]) * static_cast<double>(in[1]) +
+                                static_cast<double>(mat->m[0][2]) * static_cast<double>(in[2]) +
+                                static_cast<double>(mat->m[0][3])));
+    out[1] = static_cast<int>(round(static_cast<double>(mat->m[1][0]) * static_cast<double>(in[0]) +
+                                static_cast<double>(mat->m[1][1]) * static_cast<double>(in[1]) +
+                                static_cast<double>(mat->m[1][2]) * static_cast<double>(in[2]) +
+                                static_cast<double>(mat->m[1][3])));
+    out[2] = static_cast<int>(round(static_cast<double>(mat->m[2][0]) * static_cast<double>(in[0]) +
+                                static_cast<double>(mat->m[2][1]) * static_cast<double>(in[1]) +
+                                static_cast<double>(mat->m[2][2]) * static_cast<double>(in[2]) +
+                                static_cast<double>(mat->m[2][3])));
+}
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_mat44_mul(mat44 const* mat,

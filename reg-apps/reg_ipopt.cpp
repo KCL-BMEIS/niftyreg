@@ -17,7 +17,37 @@
 
 using namespace Ipopt;
 
-int main(int argc, char** argv){
+void clip_last_percentile(nifti_image *img) {
+  // make sure the img datatype is float
+  reg_tools_changeDatatype<float>(img);
+  // Create a copy of the reference image to extract the robust range
+  nifti_image *temp_reference = nifti_copy_nim_info(img);
+  temp_reference->data = (void *)malloc(temp_reference->nvox * temp_reference->nbyper);
+  memcpy(temp_reference->data, img->data, temp_reference->nvox * temp_reference->nbyper);
+//  reg_tools_changeDatatype<float>(temp_reference);
+  // Extract the robust range of the reference image
+  auto *refDataPtr = static_cast<float *>(temp_reference->data);
+  reg_heapSort(refDataPtr, temp_reference->nvox);
+  // get the last percentile
+  float perc = refDataPtr[(int) std::round((float) temp_reference->nvox * 0.99f)];
+  float min = refDataPtr[0];
+#ifndef NDEBUG
+  std::cout << "99% percentile = " << perc << std::endl;
+  std::cout << "min intensity = " << min << std::endl;
+#endif
+  // free the temporary image
+  nifti_image_free(temp_reference);
+  // clip the input image intensity values
+  auto *imgPtr = static_cast<float *>(img->data);
+  for (int i=0; i < img->nvox; ++i) {
+    if(imgPtr[i] > perc) {
+      imgPtr[i] = perc;
+    }
+  }
+
+}
+
+int main(int argc, char** argv) {
   // Set time variables for logs
   time_t start;
   time_t startLevel;
@@ -56,6 +86,10 @@ int main(int argc, char** argv){
     throw CouldNotReadInputImage(CommandLineReader::getInstance().getFloFilePath());
   }
 
+  // Normalisation
+  clip_last_percentile(referenceImage);
+  clip_last_percentile(floatingImage);
+
   std::string maskPath = CommandLineReader::getInstance().getMaskFilePath();
   if (maskPath.length() > 1) {
     maskImage = reg_io_ReadImageFile(maskPath.c_str());
@@ -81,17 +115,7 @@ int main(int argc, char** argv){
   }
   REG->setSaveDir(saveDir);
 
-  // redirect console output into a file
-//  std::string outPrintPath = saveDir + "/console_output.txt";
-//  std::cout << "console output are redirected into " << outPrintPath << std::endl;
-//  std::freopen(outPrintPath.c_str(), "w", stdout);
-
-  // Normalize data
-  REG->UseRobustRange();  // clip 2% and 98% percentiles
-  std::cout << "Use robust range" << std::endl;
-
   REG->setDivergenceConstraint(CommandLineReader::getInstance().getUseConstraint());
-//  REG->setDivergenceConstraint(true);
 
 //  REG->SetWarpedPaddingValue(0.);
 
@@ -113,11 +137,13 @@ int main(int argc, char** argv){
   REG->SetLinearEnergyWeight(0.015f);  // default is 0.01
   REG->SetBendingEnergyWeight(0.0015f);  // default is 0.001
   REG->SetInverseConsistencyWeight(0.f);  // make sure inverse consistency is not used
-  float scale = 1e7;
-  REG->setScale(scale);  // appropriate scaling factor for NMI
+//  float scale = 1e7;  // appropriate scaling factor for NMI
+  float scale = 100000.f;  // appropriate scaling factor for LNCC
+  REG->UseLNCC(0, 1.f);
+  REG->setScale(scale);
 
-//  int maxIter = 1;
-  int maxIter = 300;
+  int maxIter = 100;
+//  int maxIter = 300;
 
   // Set the number of levels to perform for the pyramidal approach
   unsigned int levelToPerform = 1;
@@ -164,6 +190,8 @@ int main(int argc, char** argv){
 //    app->Options()->SetStringValue("nlp_scaling_method", "equilibration-based");
 //    app->Options()->SetStringValue("linear_solver", "ma86");  // ma27 or ma86
     app->Options()->SetStringValue("linear_solver", "ma57");  // ma27 or ma86
+    // ma57 options
+      app->Options()->SetStringValue("ma57_automatic_scaling", "no");
     // ma27 options
 //    app->Options()->SetStringValue("linear_system_scaling", "mc19");
 //    app->Options()->SetStringValue("linear_scaling_on_demand", "no");
@@ -176,16 +204,17 @@ int main(int argc, char** argv){
     app->Options()->SetStringValue("accept_every_trial_step", "no");  // if "yes", deactivate line search
     app->Options()->SetIntegerValue("print_level", 5);  // between 1 and 12
     if (level == levelToPerform - 1){
-      app->Options()->SetNumericValue("tol", scale*1e-4);
-      app->Options()->SetNumericValue("acceptable_obj_change_tol", 1e-5);  // stop criteria based on objective
-      app->Options()->SetNumericValue("acceptable_tol", scale*1e-3);
-      app->Options()->SetIntegerValue("acceptable_iter", 15);  // default 15
+      app->Options()->SetNumericValue("tol", scale*1e-4);  // default scale*1e-4
+      app->Options()->SetNumericValue("acceptable_obj_change_tol", 1e-6);  // stop criteria based on objective
+      app->Options()->SetNumericValue("acceptable_tol", 100.*scale);  // default scale*1e-3
+      app->Options()->SetNumericValue("acceptable_compl_inf_tol", 10000.);  // default 0.01
+      app->Options()->SetIntegerValue("acceptable_iter", 4);  // default 15
       app->Options()->SetIntegerValue("max_iter", maxIter);
 //      app->Options()->SetIntegerValue("max_iter", 150);
     }
     else {
       app->Options()->SetNumericValue("tol", 1e-6);
-      app->Options()->SetIntegerValue("max_iter", 1);
+      app->Options()->SetIntegerValue("max_iter", 5);
 //      app->Options()->SetIntegerValue("max_iter", 300);
     }
       app->Options()->SetStringValue("print_info_string", "yes");  // for more info at each iter

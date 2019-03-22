@@ -243,6 +243,10 @@ void reg_mat44_mul(mat44 const* mat,
                    float *out);
 
 void reg_mat44_mul(mat44 const* mat,
+                   float const* in,
+                   int *out);
+
+void reg_mat44_mul(mat44 const* mat,
                    double const* in,
                    double *out);
 /* *************************************************************** */

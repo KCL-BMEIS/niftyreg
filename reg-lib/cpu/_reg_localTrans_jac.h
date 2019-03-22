@@ -152,6 +152,13 @@ int reg_defField_GetJacobianDetFromFlowField(nifti_image *jacobianDetImage,
 extern "C++"
 int reg_spline_GetJacobianDetFromVelocityGrid(nifti_image *jacobianDetImage,
                                               nifti_image *velocityGridImage);
+extern "C++"
+nifti_image * reg_spline_GetDivergenceFromVelocityGrid(nifti_image *deformationFieldImage,
+                                                       nifti_image *velocityGridImage);
+
+extern "C++"
+nifti_image * reg_spline_GetJacobianFromVelocityGrid(nifti_image *deformationFieldImage,
+                                                     nifti_image *velocityGridImage);
 /* *************************************************************** */
 
 

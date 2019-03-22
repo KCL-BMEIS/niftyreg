@@ -74,18 +74,6 @@ void get_BSplineBasisWeights(DTYPE coord, DTYPE *values, int order) {
             values[1] = 0.5 * (1. - coord) * (1. - coord);
             values[2] = 0.5 + coord - coord*coord;
             values[3] = 0.5 * coord * coord;
-//            if (coord <= 0.5) {
-//                values[0] = 0.5 * (0.5 - coord) * (0.5 - coord);
-//                values[1] = 0.75 - coord * coord;
-//                values[2] = 0.5 * (0.5 + coord) * (0.5 + coord);
-//                values[3] = 0.;
-//            }
-//            else { // 0.5 < coord <= 1
-//                values[0] = 0.;
-//                values[1] = 0.5 * (1.5 - coord) * (1.5 - coord);
-//                values[2] = 0.75 - (coord - 1.) * (coord - 1.);
-//                values[3] = 0.5 * (coord - 0.5) * (coord - 0.5);
-//            }
             break;
         default:
             std::cout << "B-spline weights of order " << order
@@ -95,6 +83,37 @@ void get_BSplineBasisWeights(DTYPE coord, DTYPE *values, int order) {
 }
 template void get_BSplineBasisWeights<float>(float, float *, int);
 template void get_BSplineBasisWeights<double>(double, double *, int);
+
+template<class DTYPE>
+void get_BSplineDerivativeBasisWeights(DTYPE coord, DTYPE *values, int order) {
+    switch (order) {
+        case 3:  // cubic B-spline
+            values[0] = -0.5 * (1. - coord) * (1. - coord);
+            values[1] = 0.5 * coord * (3.*coord - 4.);
+            values[2] = 0.5 * (-3.*coord*coord + 2.*coord + 1.);
+            values[3] = 0.5 * coord * coord;
+            break;
+        case 1:  // linear B-spline
+            values[0] = 0.;
+            values[1] = -1.;
+            values[2] = 1.;
+            values[3] = 0.;
+            break;
+        case 2:  // quadratic B-spline
+            // consistent with the parameterisation in Rueckert et al. 1999
+            values[0] = 0.;
+            values[1] = 1. - coord;
+            values[2] = 1. - 2.*coord;
+            values[3] = coord;
+            break;
+        default:
+            std::cout << "B-spline weights of order " << order
+                      << " not implemented yet" << std::endl;
+            reg_exit();
+    }  // switch order
+}
+template void get_BSplineDerivativeBasisWeights<float>(float, float *, int);
+template void get_BSplineDerivativeBasisWeights<double>(double, double *, int);
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>

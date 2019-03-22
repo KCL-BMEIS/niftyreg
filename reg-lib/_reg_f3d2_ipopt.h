@@ -255,88 +255,50 @@ void reg_f3d2_ipopt<T>::initLevel(int level) {
         if (this->currentFloating->sform_code > 0)
             referenceMatrix_real_to_voxel_dense = (this->currentFloating->sto_ijk);
         else referenceMatrix_real_to_voxel_dense = (this->currentFloating->qto_ijk);
-        // initialise the grid mask to 0
         int numVoxGrid = this->controlPointGrid->nx * this->controlPointGrid->ny * this->controlPointGrid->nz;
         this->currentConstraintMaskGrid = (int *)calloc(numVoxGrid, sizeof(int));
+        float real[3] = {0.f, 0.f, 0.f};  // homogeneous coordinates in real space
+        float voxelGrid[3] = {0.f, 0.f, 0.f};  // homogeneous coordinates in voxel grid space
+        int voxelDense[3] = {0, 0, 0};  // homogeneous coordinates in voxel dense space
         int indexGrid = 0;
         int indexMask = 0;
-        float xReal;
-        float yReal;
-        int iDense;
-        int jDense;
-        if (this->controlPointGrid->nz > 1) {  // 3D
-            float zReal;
-            int kDense;
-            // loop over the grid points (borders are excluded from the constraint mask)
-            for (int k=1; k < (this->controlPointGrid->nz - 2); ++k) {
-                for (int j=1; j < (this->controlPointGrid->ny - 2); ++j) {
-                    for (int i=1; i < (this->controlPointGrid->nx - 2); ++i) {
-                        // go from grid voxel space into real world space
-                        xReal = referenceMatrix_voxel_grid_to_real.m[0][0]*i
-                                + referenceMatrix_voxel_grid_to_real.m[0][1]*j
-                                + referenceMatrix_voxel_grid_to_real.m[0][2]*k
-                                + referenceMatrix_voxel_grid_to_real.m[0][3];
-                        yReal = referenceMatrix_voxel_grid_to_real.m[1][0]*i
-                                + referenceMatrix_voxel_grid_to_real.m[1][1]*j
-                                + referenceMatrix_voxel_grid_to_real.m[1][2]*k
-                                + referenceMatrix_voxel_grid_to_real.m[1][3];
-                        zReal = referenceMatrix_voxel_grid_to_real.m[2][0]*i
-                                + referenceMatrix_voxel_grid_to_real.m[2][1]*j
-                                + referenceMatrix_voxel_grid_to_real.m[2][2]*k
-                                + referenceMatrix_voxel_grid_to_real.m[2][3];
-                        // go from real world space into dense image voxel space
-                        iDense = (int)reg_ceil(referenceMatrix_real_to_voxel_dense.m[0][0] * xReal +
-                                referenceMatrix_real_to_voxel_dense.m[0][1] * yReal +
-                                referenceMatrix_real_to_voxel_dense.m[0][2] * zReal +
-                                referenceMatrix_real_to_voxel_dense.m[0][3]);
-                        jDense = (int)reg_ceil(referenceMatrix_real_to_voxel_dense.m[1][0] * xReal +
-                                referenceMatrix_real_to_voxel_dense.m[1][1] * yReal +
-                                referenceMatrix_real_to_voxel_dense.m[1][2] * zReal +
-                                referenceMatrix_real_to_voxel_dense.m[1][3]);
-                        kDense = (int)reg_ceil(referenceMatrix_real_to_voxel_dense.m[2][0] * xReal +
-                                referenceMatrix_real_to_voxel_dense.m[2][1] * yReal +
-                                referenceMatrix_real_to_voxel_dense.m[2][2] * zReal +
-                                referenceMatrix_real_to_voxel_dense.m[2][3]);
+        bool isOutside = false;  // state if the current control point is inside the dense image domain
+        for (int k=0; k < this->controlPointGrid->nz; ++k) {
+            for (int j=0; j < this->controlPointGrid->ny; ++j) {
+                for (int i=0; i < this->controlPointGrid->nx; ++i) {
+                    // set current voxel grid coordinates
+                    voxelGrid[0] = i;
+                    voxelGrid[1] = j;
+                    voxelGrid[2] = k;
+                    // go from grid voxel space into real world space
+                    reg_mat44_mul(&referenceMatrix_voxel_grid_to_real,
+                                  voxelGrid,  // in
+                                  real);  // out
+                    // go from real world space into dense image voxel space
+                    reg_mat44_mul(&referenceMatrix_real_to_voxel_dense,
+                                  real,  // in
+                                  voxelDense);  // out
+                    isOutside = false;
+                    if (voxelDense[0] < 0 || voxelDense[1] < 0 || voxelDense[2] < 0 ||
+                        voxelDense[0] >= this->currentFloating->nx || voxelDense[1] >= this->currentFloating->ny ||
+                        voxelDense[2] >= this->currentFloating->nz) {
+                        isOutside = true;
+                    }
+                    if (!isOutside) {
                         // currentConstraintMask is defined on the same space as the current floating image
-                        indexMask = (int) (kDense * this->currentFloating->nx * this->currentFloating->ny
-                                           + jDense * this->currentFloating->nx + iDense);
-                        // we only impose incompressibility constraints to the grid point inside the mask
+                        indexMask = (int) (voxelDense[2] * this->currentFloating->nx * this->currentFloating->ny
+                                           + voxelDense[1] * this->currentFloating->nx + voxelDense[0]);
+                        // we only impose incompressibility constraints to the grid points inside the mask
                         if (this->currentConstraintMask[indexMask] > 0) {
                             indexGrid = k * this->controlPointGrid->nx * this->controlPointGrid->ny
-                                        + j * this->controlPointGrid->nx + i;
+                                        + j * this->controlPointGrid->nx
+                                        + i;
                             this->currentConstraintMaskGrid[indexGrid] = 1;
                         }
-                    }  // i
-                }  // j
-            }  // k
-        }  // 3D
-        else {  // 2D
-            for (int j = 1; j < (this->controlPointGrid->ny - 1); ++j) {
-                for (int i = 1; i < (this->controlPointGrid->nx - 1); ++i) {
-                    // go from grid voxel space into real world space
-                    xReal = referenceMatrix_voxel_grid_to_real.m[0][0]*i
-                            + referenceMatrix_voxel_grid_to_real.m[0][1]*j
-                            + referenceMatrix_voxel_grid_to_real.m[0][3];
-                    yReal = referenceMatrix_voxel_grid_to_real.m[1][0]*i
-                            + referenceMatrix_voxel_grid_to_real.m[1][1]*j
-                            + referenceMatrix_voxel_grid_to_real.m[1][3];
-                    // go from real world space into dense image voxel space
-                    iDense = (int)reg_ceil(referenceMatrix_real_to_voxel_dense.m[0][0] * xReal +
-                                           referenceMatrix_real_to_voxel_dense.m[0][1] * yReal +
-                                           referenceMatrix_real_to_voxel_dense.m[0][3]);
-                    jDense = (int)reg_ceil(referenceMatrix_real_to_voxel_dense.m[1][0] * xReal +
-                                           referenceMatrix_real_to_voxel_dense.m[1][1] * yReal +
-                                           referenceMatrix_real_to_voxel_dense.m[1][3]);
-                    // currentConstraintMask is defined on the same space as the current floating image
-                    indexMask = (int) (jDense * this->currentFloating->nx + iDense);
-                    // we only impose incompressibility constraints to the grid point inside the mask
-                    if (this->currentConstraintMask[indexMask] > 0) {
-                        indexGrid = j * this->controlPointGrid->nx + i;
-                        this->currentConstraintMaskGrid[indexGrid] = 1;
                     }
                 }  // i
             }  // j
-        }  // 2D
+        }  // k
     }  // set currentConstraintMaskGrid
 
     // Allocate image that depends on the reference image
@@ -345,9 +307,7 @@ void reg_f3d2_ipopt<T>::initLevel(int level) {
     this->AllocateWarpedGradient();
 
     // The grid is refined if necessary and the floatingMask is set
-    T maxStepSize=this->InitialiseCurrentLevel();  // This has been put in updateInputControlPoint
-    //  T currentSize = maxStepSize;
-    //  T smallestSize = maxStepSize / (T)100.0;
+    T maxStepSize=this->InitialiseCurrentLevel();
 
     this->DisplayCurrentLevelParameters();
 
@@ -540,70 +500,15 @@ bool reg_f3d2_ipopt<T>::get_bounds_info(Index n, // number of variables (dim of 
   // set lower and upper bounds for the primal variables (displacement vector field)
   for (Index i=0; i<n; i++) {
 //    x_l[i] = -1e20;  // -infty
-//    x_l[i] = -1e2;  // in mm
-    x_l[i] = -50.;  // in mm
+    x_l[i] = -10.;  // in mm
 //    x_u[i] = 1e20;  // +infty
-//    x_u[i] = 1e2;  // in mm
-    x_u[i] = 50.;  // in mm
+    x_u[i] = 10.;  // in mm
   }
   // set lower and upper bounds for the inequality constraints
-//  bool useDefaultConstraintOutsideTheMask = false;
-//  if (this->currentConstraintMask != NULL and m>0 and useDefaultConstraintOutsideTheMask) {
-//      std::cout << "Default inequality constraints are imposed on the points outside the mask" << std::endl;
-//      // currentConstraintMask has the same number of voxels and spacing than currentReference
-//      T gridVoxelSpacing[3];
-//      gridVoxelSpacing[0] = this->controlPointGrid->dx / this->currentFloating->dx;
-//      gridVoxelSpacing[1] = this->controlPointGrid->dy / this->currentFloating->dy;
-//      // one constraint per knot of the B-spline sparse grid
-//      int indexGrid = 0;
-//      int indexMask = 0;
-//      if (this->controlPointGrid->nz > 1) {  // 3D
-//          gridVoxelSpacing[2] = this->controlPointGrid->dz / this->currentFloating->dz;
-//          // loop over the grid points
-//          for (int k=1; k < (this->controlPointGrid->nz - 1); ++k) {
-//              for (int j=1; j < (this->controlPointGrid->ny - 1); ++j) {
-//                  for (int i=1; i < (this->controlPointGrid->nx - 1); ++i) {
-//                      // the mask is defined on the dense grid while (i,j,k) are voxel coordinates on the dense grid
-//                      indexMask = (int) ((k * gridVoxelSpacing[2]) * this->currentReference->nx * this->currentReference->ny
-//                                   + (j * gridVoxelSpacing[1]) * this->currentReference->nx + (i * gridVoxelSpacing[0]));
-//                      // we only impose incompressibility constraints to the grid point inside the mask
-//                      if (this->currentConstraintMask[indexMask] > 0) {
-//                          g_l[indexGrid] = 0.;
-//                          g_u[indexGrid] = 0.;
-//                          ++indexGrid;
-//                      }
-//                      else {
-//                          g_l[indexGrid] = -100.;
-//                          g_u[indexGrid] = 100.;
-//                      }
-//                      ++indexGrid;
-//                  }
-//              }
-//          }
-//      }  // 3D
-//      else {  // 2D
-//          for (int j=1; j < (this->controlPointGrid->ny - 1); ++j) {
-//              for (int i=1; i < (this->controlPointGrid->nx - 1); ++i) {
-//                  indexMask = (int) ((j * gridVoxelSpacing[1]) * this->currentReference->nx + (i * gridVoxelSpacing[0]));
-//                  if (this->currentConstraintMask[indexMask] > 0) {
-//                      g_l[indexGrid] = 0.;
-//                      g_u[indexGrid] = 0.;
-//                  }
-//                  else {
-//                      g_l[indexGrid] = -100.;
-//                      g_u[indexGrid] = 100.;
-//                  }
-//                  ++indexGrid;
-//              }
-//          }
-//      }  // 2D
-//  }  // masked constraint
-//  else {  // incompressibility for all grid points that are constrained (see eval_g for more details)
-      for (Index i=0; i<m; i++) {
-          g_l[i] = 0.;
-          g_u[i] = 0.;
-      }
-//  } // no mask for the constraint
+  for (Index i=0; i<m; i++) {
+      g_l[i] = 0.;  // zero for incompressibility
+      g_u[i] = 0.;
+  }
   return true;
 }
 
@@ -796,11 +701,6 @@ bool reg_f3d2_ipopt<T>::eval_grad_f(Index n, const Number* x,
                   bool new_x, Number* grad_f){
   #ifndef NDEBUG
     std::cout << "Call eval_grad_f" << std::endl;
-
-    printf("Grid: %d dimensions (%dx%dx%dx%dx%dx%dx%d)\n", this->controlPointGrid->ndim,
-         this->controlPointGrid->nx, this->controlPointGrid->ny, this->controlPointGrid->nz,
-         this->controlPointGrid->nt, this->controlPointGrid->nu, this->controlPointGrid->nv,
-         this->controlPointGrid->nw);
   #endif
   // make sure there is as many elements the the vel and in x
   if (optimiseBackwardTransform) {
@@ -821,24 +721,13 @@ bool reg_f3d2_ipopt<T>::eval_grad_f(Index n, const Number* x,
   T *backwardGradient = static_cast<T *>(this->backwardTransformationGradient->data);
   if (!optimiseBackwardTransform) {
     for (int i = 0; i < n; i++) {
-      #ifndef NDEBUG
-      if (gradient[i] != gradient[i] || backwardGradient[i] != backwardGradient[i]) {
-        std::cout << "Nan value found at voxel " << i << std::endl;
-//        throw NaNValueInGradientException();
-      }
-      #endif
       // Gradients of the forward and backward objective function terms are added.
       // v_back = -v_for
       // so we have to substract the gradient to take into account the composition by -Id.
       grad_f[i] = (Number) (this->scalingCst*(gradient[i] - backwardGradient[i]));
-      // prints to remove after debugging
-//      std::cout << "grad_f[" << i << "] = " << std::scientific << grad_f[i] << std::endl;
-//      std::cout << "forward_grad[" << i << "] = " << std::scientific << gradient[i] << std::endl;
-//      std::cout << "backward_grad[" << i << "] = " << std::scientific << backwardGradient[i] << std::endl;
     }
   }
   else {
-//    T *backwardGradient = static_cast<T *>(this->backwardTransformationGradient->data);
     size_t nvox_for = this->controlPointGrid->nvox;
     for (int i = 0; i < n; i++) {
       if (i < nvox_for) {
@@ -876,9 +765,9 @@ bool reg_f3d2_ipopt<T>::eval_g(Index n, const Number* x, bool new_x, Index m, Nu
     int tempIndexPrevZ = 0;
     if (this->controlPointGrid->nz > 1) {  // 3D
       gridVoxelSpacing[2] = this->controlPointGrid->dz / this->currentFloating->dz;
-      for (int k=1; k < (this->controlPointGrid->nz - 2); ++k) {
-        for (int j=1; j < (this->controlPointGrid->ny - 2); ++j) {
-          for (int i=1; i < (this->controlPointGrid->nx - 2); ++i) {
+      for (int k=1; k < (this->controlPointGrid->nz - 1); ++k) {
+        for (int j=1; j < (this->controlPointGrid->ny - 1); ++j) {
+          for (int i=1; i < (this->controlPointGrid->nx - 1); ++i) {
             tempIndexX = k * this->controlPointGrid->nx * this->controlPointGrid->ny
                     + j * this->controlPointGrid->nx + i;
             // only constrain in the mask
@@ -898,8 +787,8 @@ bool reg_f3d2_ipopt<T>::eval_g(Index n, const Number* x, bool new_x, Index m, Nu
       }
     }  // 3D
     else {  // 2D
-      for (int j=1; j < (this->controlPointGrid->ny - 2); ++j) {
-        for (int i=1; i < (this->controlPointGrid->nx - 2); ++i) {
+      for (int j=1; j < (this->controlPointGrid->ny - 1); ++j) {
+        for (int i=1; i < (this->controlPointGrid->nx - 1); ++i) {
           tempIndexX = j * this->controlPointGrid->nx + i;
           // only constrain in the mask
           if (this->currentConstraintMaskGrid[tempIndexX] > 0) {
@@ -940,9 +829,9 @@ bool reg_f3d2_ipopt<T>::eval_jac_g(Index n, const Number* x, bool new_x,
     int tempIndexPrevZ = 0;
     if (this->controlPointGrid->nz > 1) {  // 3D
       gridVoxelSpacing[2] = (Number) (this->controlPointGrid->dz / this->currentFloating->dz);
-      for (int k = 1; k < (this->controlPointGrid->nz - 2); ++k) {
-        for (int j = 1; j < (this->controlPointGrid->ny - 2); ++j) {
-          for (int i = 1; i < (this->controlPointGrid->nx - 2); ++i) {
+      for (int k = 1; k < (this->controlPointGrid->nz - 1); ++k) {
+        for (int j = 1; j < (this->controlPointGrid->ny - 1); ++j) {
+          for (int i = 1; i < (this->controlPointGrid->nx - 1); ++i) {
             tempIndex = k * this->controlPointGrid->nx * this->controlPointGrid->ny
                         + j * this->controlPointGrid->nx + i;
             // only constraint inside the mask
@@ -1117,13 +1006,15 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
         fileName = stringFormat("%s/input_mask_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
         reg_io_WriteImageFile(currMask, fileName.c_str());
         nifti_image_free(currMask);
+        currMask = NULL;
+
         // save currentMaskGrid
         nifti_image *currMaskGrid = nifti_copy_nim_info(this->controlPointGrid);
         currMaskGrid->nu = 1;
         currMaskGrid->nvox = currMaskGrid->nx * currMaskGrid->ny * currMaskGrid->nz;
         currMaskGrid->data = (void *)malloc(currMaskGrid->nvox*currMaskGrid->nbyper);
         T *currMaskGridPtr = static_cast<T *>(currMaskGrid->data);
-        for (int i=0; i<currMask->nvox; ++i) {
+        for (int i=0; i<currMaskGrid->nvox; ++i) {
             currMaskGridPtr[i] = this->currentConstraintMaskGrid[i];
         }
         fileName = stringFormat("%s/input_mask_grid_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
@@ -1146,44 +1037,71 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
     jacobianDeterminantArray->scl_slope = 1.0f;
     jacobianDeterminantArray->scl_inter = 0.0f;
 
-    // Jacobian of total transformation with euler integration
-    this->GetDeformationFieldEuler();
-    float defIntentP1 = this->deformationFieldImage->intent_p1;
-    this->deformationFieldImage->intent_p1 = LIN_SPLINE_GRID;  // important to know how to estimate the jacobian
-    // Jacobian map for deformation field
-    reg_spline_GetJacobianMap(this->deformationFieldImage, jacobianDeterminantArray);
-    // Jacobian map for velocity grid - Marc version
-//  reg_spline_GetJacobianDetFromVelocityGrid(jacobianDeterminantArray, this->controlPointGrid);
-    fileName = stringFormat("%s/output_jacobian_map_euler_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//    // Jacobian of total transformation with euler integration
+//    this->GetDeformationFieldEuler();
+//    float defIntentP1 = this->deformationFieldImage->intent_p1;
+//    this->deformationFieldImage->intent_p1 = LIN_SPLINE_GRID;  // important to know how to estimate the jacobian
+//    // Jacobian map for deformation field
+//    reg_spline_GetJacobianMap(this->deformationFieldImage, jacobianDeterminantArray);
+//    fileName = stringFormat("%s/output_jacobian_map_euler_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
+//
+//    reg_tools_substractValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 1);
+//    reg_tools_abs_image(jacobianDeterminantArray);
+//    fileName = stringFormat("%s/output_absolute_compressibility_map_euler_level%d.nii.gz",
+//            this->saveDir.c_str(), this->currentLevel+1);
+//    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
+
+//     // Jacobian of total transformation with scaling ans squaring integration
+//    this->GetDeformationField();
+//    this->deformationFieldImage->intent_p1 = LIN_SPLINE_GRID;  // important to know how to estimate the jacobian
+//    // re-initialise the jacobian determinant map
+//    reg_tools_multiplyValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 0);
+//    reg_tools_addValueToImage(jacobianDeterminantArray,
+//                              jacobianDeterminantArray,
+//                              1);
+//    // Jacobian map for deformation field
+//    reg_spline_GetJacobianMap(this->deformationFieldImage, jacobianDeterminantArray);
+//    // Jacobian map for velocity grid - Marc version
+//    fileName = stringFormat("%s/output_jacobian_map_ss_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
+//
+//    reg_tools_substractValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 1);
+//    reg_tools_abs_image(jacobianDeterminantArray);
+//    fileName = stringFormat("%s/output_absolute_compressibility_map_ss_level%d.nii.gz",
+//            this->saveDir.c_str(), this->currentLevel+1);
+//    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
+
+    // original niftyreg jacobian for f3d2
+    // re-initialise the jacobian determinant map
+    reg_tools_multiplyValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 0);
+    reg_tools_addValueToImage(jacobianDeterminantArray,
+                              jacobianDeterminantArray,
+                              1);
+    reg_spline_GetJacobianDetFromVelocityGrid(jacobianDeterminantArray, this->controlPointGrid);
+    fileName = stringFormat("%s/output_jacobian_map_Marc_level%d.nii.gz",
+                            this->saveDir.c_str(), this->currentLevel+1);
     reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
 
-    reg_tools_substractValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 1);
-    reg_tools_abs_image(jacobianDeterminantArray);
-    fileName = stringFormat("%s/output_absolute_compressibility_map_euler_level%d.nii.gz",
-            this->saveDir.c_str(), this->currentLevel+1);
-    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
-
-    // Jacobian of total transformation with scaling ans squaring integration
-    this->GetDeformationField();
-    this->deformationFieldImage->intent_p1 = LIN_SPLINE_GRID;  // important to know how to estimate the jacobian
-    // Jacobian map for deformation field
-    reg_spline_GetJacobianMap(this->deformationFieldImage, jacobianDeterminantArray);
-    // Jacobian map for velocity grid - Marc version
-//  reg_spline_GetJacobianDetFromVelocityGrid(jacobianDeterminantArray, this->controlPointGrid);
-    fileName = stringFormat("%s/output_jacobian_map_ss_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
-    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
-
-    reg_tools_substractValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 1);
-    reg_tools_abs_image(jacobianDeterminantArray);
-    fileName = stringFormat("%s/output_absolute_compressibility_map_ss_level%d.nii.gz",
-            this->saveDir.c_str(), this->currentLevel+1);
-    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
-
-    //TODO: compute the Jacobian of the integrator
+    // True jacobian of the integrator
+    nifti_image *jac = reg_spline_GetJacobianFromVelocityGrid(this->deformationFieldImage,
+                                                              this->controlPointGrid);
+    fileName = stringFormat("%s/output_jacobian_integrator_level%d.nii.gz",
+                            this->saveDir.c_str(), this->currentLevel+1);
+    reg_io_WriteImageFile(jac, fileName.c_str());
 
     // free nifti_image instance
     nifti_image_free(jacobianDeterminantArray);
-    this->deformationFieldImage->intent_p1 = defIntentP1;
+    nifti_image_free(jac);
+//    this->deformationFieldImage->intent_p1 = defIntentP1;
+
+    // compute and save the divergence of the stationary velocity field
+    nifti_image *divergenceImage = reg_spline_GetDivergenceFromVelocityGrid(this->deformationFieldImage,
+                                                                            this->controlPointGrid);
+    fileName = stringFormat("%s/output_divergence_map_level%d.nii.gz",
+                            this->saveDir.c_str(), this->currentLevel+1);
+    reg_io_WriteImageFile(divergenceImage, fileName.c_str());
+    nifti_image_free(divergenceImage);
 
     // Save the control point image
     nifti_image *outputControlPointGridImage = this->GetControlPointPositionImage();
@@ -1232,14 +1150,9 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
 
     std::cout << "Objective value = "  << this->bestObj << std::endl;
 
-//  std::cout << std::endl << "Writing solution file solution.txt" << std::endl;
     std::string sol_path = this->saveDir;
     sol_path += "/final_objective.txt";
     this->SaveStatInfo(sol_path);
-//    FILE* fp = fopen(sol_path.c_str(), "w");
-//    fprintf(fp, "\n\nObjective value\n");
-//    fprintf(fp, "f(x*) = %e\n", this->bestObj);
-//    fclose(fp);
 }
 
 template <class T>
@@ -1298,12 +1211,6 @@ void reg_f3d2_ipopt<T>::gradientCheck() {
     approxGradPtr[i] = (post - pre) / (2.*eps);
     T error = fabs(approxGradPtr[i] - gradPtr[i]);
     errorGradPtr[i] = error;
-//        if (approxGradPtr[i] != 0) {
-//            errorGradPtr[i] = error / fabs(approxGradPtr[i]);
-//        }
-//        else {
-//            errorGradPtr[i] = error;
-//        }
     std::cout << "grad[" << i << "] = " << std::fixed << gradPtr[i]
               << "   ~   "
               << std::fixed << approxGradPtr[i]
@@ -1311,7 +1218,6 @@ void reg_f3d2_ipopt<T>::gradientCheck() {
   }
   // save approximated gradient
   reg_io_WriteImageFile(approxGrad, "finite_diff_grad_f3d2_ipopt.nii.gz");
-//  reg_io_WriteImageFile(errorGrad, "absolute_error_grad.nii");
 }
 
 template <class T>

@@ -40,6 +40,11 @@ void get_BSplineBasisWeights(DTYPE coord,
                              DTYPE *values,
                              int order=3);
 
+extern "C++" template<class DTYPE>
+void get_BSplineDerivativeBasisWeights(DTYPE coord,
+                             DTYPE *values,
+                             int order=3);
+
 
 extern "C++" template<class DTYPE>
 void get_BSplineBasisValue(DTYPE basis,

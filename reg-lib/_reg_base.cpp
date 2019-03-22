@@ -1049,10 +1049,12 @@ void reg_base<T>::Initialise()
       T *refDataPtr = static_cast<T *>(temp_reference->data);
       reg_heapSort(refDataPtr, temp_reference->nvox);
       // Update the reference threshold values if no value has been setup by the user
-      if(this->referenceThresholdLow[0]==-std::numeric_limits<T>::max())
-         this->referenceThresholdLow[0] = refDataPtr[(int)reg_round((float)temp_reference->nvox*0.02f)];
-      if(this->referenceThresholdUp[0]==std::numeric_limits<T>::max())
-         this->referenceThresholdUp[0] = refDataPtr[(int)reg_round((float)temp_reference->nvox*0.98f)];
+      if(this->referenceThresholdLow[0]==-std::numeric_limits<T>::max()) {
+         this->referenceThresholdLow[0] = refDataPtr[(int) reg_round((float) temp_reference->nvox * 0.02f)];
+      }
+      if(this->referenceThresholdUp[0]==std::numeric_limits<T>::max()) {
+         this->referenceThresholdUp[0] = refDataPtr[(int) reg_round((float) temp_reference->nvox * 0.98f)];
+      }
       // Free the temporarly allocated image
       nifti_image_free(temp_reference);
 

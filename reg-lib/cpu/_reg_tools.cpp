@@ -148,6 +148,9 @@ void reg_intensityRescale_core(nifti_image *image,
       currentMin=(DTYPE)std::numeric_limits<double>::max();
       currentMax=-(DTYPE)std::numeric_limits<double>::max();
       break;
+      default:
+         reg_print_msg_error("Image datatype not supported");
+         reg_exit();
    }
 
    // Extract the minimal and maximal values from the current volume

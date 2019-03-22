@@ -3416,13 +3416,19 @@ int reg_spline_GetJacobianDetFromVelocityGrid(nifti_image* jacobianDetImage,
          flowFieldImage->nz*flowFieldImage->nt*flowFieldImage->nu;
    flowFieldImage->data=(void *)malloc(flowFieldImage->nvox*flowFieldImage->nbyper);
 
+   // transform velocityFieldGrid to displacement
+   if (velocityGridImage->intent_p1 == DIV_CONFORMING_VEL_GRID) {
+      reg_getDisplacementFromDeformation(velocityGridImage);
+   }
+
    // The velocity grid image is first converted into a flow field
    reg_spline_getFlowFieldFromVelocityGrid(velocityGridImage,
                                            flowFieldImage);
-   // Lucas refactoring ongoing
-//   reg_spline_getDefFieldFromVelocityGrid(velocityGridImage,  // in
-//                                          flowFieldImage,  // out
-//                                          false);  // do not update step number
+
+   // return to deformation
+   if (velocityGridImage->intent_p1 == DIV_CONFORMING_VEL_GRID) {
+      reg_getDeformationFromDisplacement(velocityGridImage);
+   }
 
    reg_defField_GetJacobianDetFromFlowField(jacobianDetImage,
                                             flowFieldImage);
@@ -3433,3 +3439,402 @@ int reg_spline_GetJacobianDetFromVelocityGrid(nifti_image* jacobianDetImage,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template<class DTYPE>
+void reg_divergence_conforming_spline_getDivergenceImage(nifti_image *splineControlPoint,  // in
+                                                         nifti_image *deformationField,  // in
+                                                         nifti_image *divergenceField  // out
+                                                         ) {
+#ifndef NDEBUG
+   reg_print_msg_debug("reg_divergence_conforming_spline_getDivergenceImage called");
+#endif
+
+//   DTYPE temp[4];
+   DTYPE zBasisOrder3[4];  // B-spline basis function of orders 3 and 2 are used
+   DTYPE zBasisOrder2[4];
+   DTYPE xControlPointCoordinates[64];  // 4 entries per dimension
+   DTYPE yControlPointCoordinates[64];
+   DTYPE zControlPointCoordinates[64];
+   int coord = 0;
+   DTYPE tempDivergenceVal = 0;
+
+   DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
+   DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx * splineControlPoint->ny *
+                                               splineControlPoint->nz];
+   DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx * splineControlPoint->ny *
+                                               splineControlPoint->nz];
+
+   DTYPE *divergencePtr = static_cast<DTYPE *>(divergenceField->data);
+   DTYPE *fieldPtrX = static_cast<DTYPE *>(deformationField->data);
+   DTYPE *fieldPtrY = &fieldPtrX[deformationField->nx * deformationField->ny * deformationField->nz];
+   DTYPE *fieldPtrZ = &fieldPtrY[deformationField->nx * deformationField->ny * deformationField->nz];
+
+   DTYPE basis, oldBasis = (DTYPE) (1.1);
+
+   int x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, index;
+   DTYPE real[3];
+
+   // read the ijk sform or qform, as appropriate
+   mat44 referenceMatrix_real_to_voxel;
+   if (splineControlPoint->sform_code > 0)
+      referenceMatrix_real_to_voxel = (splineControlPoint->sto_ijk);
+   else referenceMatrix_real_to_voxel = (splineControlPoint->qto_ijk);
+   DTYPE xBasisOrder3[4], yBasisOrder3[4];
+   DTYPE xBasisOrder2[4], yBasisOrder2[4];
+   DTYPE voxel[3];
+
+   DTYPE scaling[3] = {splineControlPoint->dx, splineControlPoint->dy, splineControlPoint->dz};
+
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
+   index, voxel, basis, xBasisOrder3, xBasisOrder2, yBasisOrder3, yBasisOrder2, \
+   zBasisOrder3, zBasisOrder2, xControlPointCoordinates, \
+   yControlPointCoordinates, zControlPointCoordinates, coord, tempDivergenceVal) \
+   shared(deformationField, divergencePtr, fieldPtrX, fieldPtrY, fieldPtrZ, referenceMatrix_real_to_voxel, \
+   controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
+   splineControlPoint, scaling)
+#endif // _OPENMP
+    for (z = 0; z < deformationField->nz; z++) {
+        index = z * deformationField->nx * deformationField->ny;
+        oldPreX = -99;
+        oldPreY = -99;
+        oldPreZ = -99;
+        for (y = 0; y < deformationField->ny; y++) {
+            for (x = 0; x < deformationField->nx; x++) {
+//                if (mask[index] > -1) {
+                    // The previous position at the current pixel position is read
+                    real[0] = fieldPtrX[index];
+                    real[1] = fieldPtrY[index];
+                    real[2] = fieldPtrZ[index];
+
+                    // From real to pixel position in the control point space
+                    reg_mat44_mul(&referenceMatrix_real_to_voxel, real, voxel);
+
+                    // The spline coefficients are computed
+                    xPre = (int) reg_floor(voxel[0]);
+                    basis = voxel[0] - static_cast<DTYPE>(xPre);
+                    --xPre;
+                    if (basis < 0.0) basis = 0.0; //rounding error
+                    get_BSplineDerivativeBasisWeights(basis, xBasisOrder3, 3);
+                    get_BSplineBasisWeights(basis, xBasisOrder2, 2);
+
+                    yPre = (int) reg_floor(voxel[1]);
+                    basis = voxel[1] - static_cast<DTYPE>(yPre);
+                    --yPre;
+                    if (basis < 0.0) basis = 0.0; //rounding error
+                    get_BSplineDerivativeBasisWeights(basis, yBasisOrder3, 3);
+                    get_BSplineBasisWeights(basis, yBasisOrder2, 2);
+
+                    zPre = (int) reg_floor(voxel[2]);
+                    basis = voxel[2] - static_cast<DTYPE>(zPre);
+                    --zPre;
+                    if (basis < 0.0) basis = 0.0; //rounding error
+                    get_BSplineDerivativeBasisWeights(basis, zBasisOrder3, 3);
+                    get_BSplineBasisWeights(basis, zBasisOrder2, 2);
+
+                    // The control point positions are extracted
+                    if (xPre != oldPreX || yPre != oldPreY || zPre != oldPreZ) {
+                        // get the control point coordinates
+                        get_GridValues<DTYPE>(xPre,  // in
+                                             yPre,  // in
+                                             zPre,  // in
+                                             splineControlPoint,  // in nifti_image
+                                             controlPointPtrX,  // in
+                                             controlPointPtrY,  // in
+                                             controlPointPtrZ,  // in
+                                             xControlPointCoordinates,  // out
+                                             yControlPointCoordinates,  // out
+                                             zControlPointCoordinates,  // out
+                                             false, // no approximation
+                                             false); // not a deformation field
+                        oldPreX = xPre;
+                        oldPreY = yPre;
+                        oldPreZ = zPre;
+                    }
+                    coord = 0;
+                    tempDivergenceVal = 0;
+                    for (c = 0; c < 4; c++) {
+                        for (b = 0; b < 4; b++) {
+                            for (a = 0; a < 4; a++) {
+                                DTYPE tempValueX = xBasisOrder3[a] * yBasisOrder2[b] * zBasisOrder2[c];
+                                DTYPE tempValueY = xBasisOrder2[a] * yBasisOrder3[b] * zBasisOrder2[c];
+                                DTYPE tempValueZ = xBasisOrder2[a] * yBasisOrder2[b] * zBasisOrder3[c];
+                                tempDivergenceVal += xControlPointCoordinates[coord] * tempValueX / scaling[0];
+                                tempDivergenceVal += yControlPointCoordinates[coord] * tempValueY / scaling[1];
+                                tempDivergenceVal += zControlPointCoordinates[coord] * tempValueZ / scaling[2];
+                                coord++;
+                            }
+                        }
+                    }
+                    divergencePtr[index] = tempDivergenceVal;
+//                }
+                index++;
+            }
+        }
+    }
+}
+
+
+nifti_image * reg_spline_GetDivergenceFromVelocityGrid(nifti_image* deformationFieldImage,
+                                                       nifti_image* velocityFieldGrid) {
+   // create the divergence image
+   nifti_image *divergenceImage = nifti_copy_nim_info(deformationFieldImage);
+   divergenceImage->nu = 1;  // the diovergence is a scalar field
+   divergenceImage->nvox = divergenceImage->nx * divergenceImage->ny * divergenceImage->nz;
+   divergenceImage->data=(void *)calloc(divergenceImage->nvox, divergenceImage->nbyper);
+   //
+   // Create an temporary image to store the flow field
+   nifti_image *flowField = nifti_copy_nim_info(deformationFieldImage);
+   // initialise flowField that will be used to get the coordinates of where to evaluate the divergence
+   flowField->data = (void *)calloc(flowField->nvox, flowField->nbyper);
+   flowField->intent_code = NIFTI_INTENT_VECTOR;
+   // the flow field is set to identity
+   reg_tools_multiplyValueToImage(flowField, flowField, 0.f);
+   flowField->intent_p1=DISP_VEL_FIELD;
+   reg_getDeformationFromDisplacement(flowField);
+
+   // transform velocityFieldGrid to displacement
+   if (velocityFieldGrid->intent_p1 == DIV_CONFORMING_VEL_GRID) {
+      reg_getDisplacementFromDeformation(velocityFieldGrid);
+   }
+
+   // Compute the divergence image
+   switch (deformationFieldImage->datatype) {
+      case NIFTI_TYPE_FLOAT64:
+         reg_divergence_conforming_spline_getDivergenceImage<double>(velocityFieldGrid,  // in
+                                                                     flowField,  // in
+                                                                     divergenceImage  // out
+                                                                     );
+         break;
+      case NIFTI_TYPE_FLOAT32:
+         reg_divergence_conforming_spline_getDivergenceImage<float>(velocityFieldGrid,  // in
+                                                             flowField,  // in
+                                                             divergenceImage  // out
+                                                             );
+         break;
+      default:
+         reg_print_msg_error("datatype not supported");
+         reg_exit();
+   }
+   // return to deformation
+   if (velocityFieldGrid->intent_p1 == DIV_CONFORMING_VEL_GRID) {
+      reg_getDeformationFromDisplacement(velocityFieldGrid);
+   }
+   nifti_image_free(flowField);
+
+   return divergenceImage;
+}
+
+template<class DTYPE>
+void reg_divergence_conforming_spline_getJacobianDetImage(nifti_image *splineControlPoint,  // in
+                                                         nifti_image *deformationField,  // in
+                                                         nifti_image *jacobianField  // out
+) {
+#ifndef NDEBUG
+   reg_print_msg_debug("reg_divergence_conforming_spline_getJacobianDetImage called");
+#endif
+
+//   DTYPE temp[4];
+   DTYPE zBasisOrder3[4];  // B-spline basis function of orders 3 and 2 are used
+   DTYPE zBasisOrder2[4];
+   DTYPE zBasisDerivOrder3[4];  // B-spline basis function of orders 3 and 2 are used
+   DTYPE zBasisDerivOrder2[4];
+   DTYPE xControlPointCoordinates[64];  // 4 entries per dimension
+   DTYPE yControlPointCoordinates[64];
+   DTYPE zControlPointCoordinates[64];
+   int coord = 0;
+   mat33 tempJacMat;
+   DTYPE tempJacVal = 0;
+
+   DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
+   DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx * splineControlPoint->ny *
+                                               splineControlPoint->nz];
+   DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx * splineControlPoint->ny *
+                                               splineControlPoint->nz];
+
+   DTYPE *jacobianPtr = static_cast<DTYPE *>(jacobianField->data);
+   DTYPE *fieldPtrX = static_cast<DTYPE *>(deformationField->data);
+   DTYPE *fieldPtrY = &fieldPtrX[deformationField->nx * deformationField->ny * deformationField->nz];
+   DTYPE *fieldPtrZ = &fieldPtrY[deformationField->nx * deformationField->ny * deformationField->nz];
+
+   DTYPE basis, oldBasis = (DTYPE) (1.1);
+
+   int x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, index;
+   DTYPE real[3];
+
+   // read the ijk sform or qform, as appropriate
+   mat44 referenceMatrix_real_to_voxel;
+   if (splineControlPoint->sform_code > 0)
+      referenceMatrix_real_to_voxel = (splineControlPoint->sto_ijk);
+   else referenceMatrix_real_to_voxel = (splineControlPoint->qto_ijk);
+   DTYPE xBasisOrder3[4], yBasisOrder3[4];
+   DTYPE xBasisOrder2[4], yBasisOrder2[4];
+   DTYPE xBasisDerivOrder3[4], yBasisDerivOrder3[4];
+   DTYPE xBasisDerivOrder2[4], yBasisDerivOrder2[4];
+   DTYPE voxel[3];
+
+   DTYPE scaling[3] = {splineControlPoint->dx, splineControlPoint->dy, splineControlPoint->dz};
+
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, index, voxel, basis, \
+   xBasisOrder3, xBasisOrder2, yBasisOrder3, yBasisOrder2, zBasisOrder3, zBasisOrder2, \
+   xBasisDerivOrder3, xBasisDerivOrder2, yBasisDerivOrder3, yBasisDerivOrder2, zBasisDerivOrder3, zBasisDerivOrder2, \
+   xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates, coord, tempJacVal, tempJacMat) \
+   shared(deformationField, jacobianPtr, fieldPtrX, fieldPtrY, fieldPtrZ, referenceMatrix_real_to_voxel, \
+   controlPointPtrX, controlPointPtrY, controlPointPtrZ, splineControlPoint, scaling)
+#endif // _OPENMP
+   for (z = 0; z < deformationField->nz; z++) {
+      index = z * deformationField->nx * deformationField->ny;
+      oldPreX = -99;
+      oldPreY = -99;
+      oldPreZ = -99;
+      for (y = 0; y < deformationField->ny; y++) {
+         for (x = 0; x < deformationField->nx; x++) {
+//                if (mask[index] > -1) {
+            // The previous position at the current pixel position is read
+            real[0] = fieldPtrX[index];
+            real[1] = fieldPtrY[index];
+            real[2] = fieldPtrZ[index];
+
+            // From real to pixel position in the control point space
+            reg_mat44_mul(&referenceMatrix_real_to_voxel, real, voxel);
+
+            // The spline coefficients are computed
+            xPre = (int) reg_floor(voxel[0]);
+            basis = voxel[0] - static_cast<DTYPE>(xPre);
+            --xPre;
+            if (basis < 0.0) basis = 0.0; //rounding error
+            get_BSplineBasisWeights(basis, xBasisOrder3, 3);
+            get_BSplineDerivativeBasisWeights(basis, xBasisDerivOrder3, 3);
+            get_BSplineBasisWeights(basis, xBasisOrder2, 2);
+            get_BSplineDerivativeBasisWeights(basis, xBasisDerivOrder2, 2);
+
+            yPre = (int) reg_floor(voxel[1]);
+            basis = voxel[1] - static_cast<DTYPE>(yPre);
+            --yPre;
+            if (basis < 0.0) basis = 0.0; //rounding error
+            get_BSplineBasisWeights(basis, yBasisOrder3, 3);
+            get_BSplineDerivativeBasisWeights(basis, yBasisDerivOrder3, 3);
+            get_BSplineBasisWeights(basis, yBasisOrder2, 2);
+            get_BSplineDerivativeBasisWeights(basis, yBasisDerivOrder2, 2);
+
+            zPre = (int) reg_floor(voxel[2]);
+            basis = voxel[2] - static_cast<DTYPE>(zPre);
+            --zPre;
+            if (basis < 0.0) basis = 0.0; //rounding error
+            get_BSplineBasisWeights(basis, zBasisOrder3, 3);
+            get_BSplineDerivativeBasisWeights(basis, zBasisDerivOrder3, 3);
+            get_BSplineBasisWeights(basis, zBasisOrder2, 2);
+            get_BSplineDerivativeBasisWeights(basis, zBasisDerivOrder2, 2);
+
+            // The control point positions are extracted
+            if (xPre != oldPreX || yPre != oldPreY || zPre != oldPreZ) {
+               // get the control point coordinates
+               get_GridValues<DTYPE>(xPre,  // in
+                                     yPre,  // in
+                                     zPre,  // in
+                                     splineControlPoint,  // in nifti_image
+                                     controlPointPtrX,  // in
+                                     controlPointPtrY,  // in
+                                     controlPointPtrZ,  // in
+                                     xControlPointCoordinates,  // out
+                                     yControlPointCoordinates,  // out
+                                     zControlPointCoordinates,  // out
+                                     false, // no approximation
+                                     false); // not a deformation field
+               oldPreX = xPre;
+               oldPreY = yPre;
+               oldPreZ = zPre;
+            }
+            coord = 0;
+            tempJacVal = 0;
+            // initialised the jacobian matrix to identity
+            tempJacMat.m[0][0] = 1; tempJacMat.m[0][1] = 0; tempJacMat.m[0][2] = 0;
+            tempJacMat.m[1][0] = 0; tempJacMat.m[1][1] = 1; tempJacMat.m[1][2] = 0;
+            tempJacMat.m[2][0] = 0; tempJacMat.m[2][1] = 0; tempJacMat.m[2][2] = 1;
+            for (c = 0; c < 4; c++) {
+               for (b = 0; b < 4; b++) {
+                  for (a = 0; a < 4; a++) {
+                     DTYPE tempValueXDerivX = xBasisDerivOrder3[a] * yBasisOrder2[b] * zBasisOrder2[c];
+                     tempJacMat.m[0][0] += xControlPointCoordinates[coord] * tempValueXDerivX / scaling[0];
+                     DTYPE tempValueXDerivY = xBasisOrder3[a] * yBasisDerivOrder2[b] * zBasisOrder2[c];
+                     tempJacMat.m[0][1] += xControlPointCoordinates[coord] * tempValueXDerivY / scaling[1];
+                     DTYPE tempValueXDerivZ = xBasisOrder3[a] * yBasisOrder2[b] * zBasisDerivOrder2[c];
+                     tempJacMat.m[0][2] += xControlPointCoordinates[coord] * tempValueXDerivZ / scaling[2];
+                     DTYPE tempValueYDerivX = xBasisDerivOrder2[a] * yBasisOrder3[b] * zBasisOrder2[c];
+                     tempJacMat.m[1][0] += yControlPointCoordinates[coord] * tempValueYDerivX / scaling[0];
+                     DTYPE tempValueYDerivY = xBasisOrder2[a] * yBasisDerivOrder3[b] * zBasisOrder2[c];
+                     tempJacMat.m[1][1] += yControlPointCoordinates[coord] * tempValueYDerivY / scaling[1];
+                     DTYPE tempValueYDerivZ = xBasisOrder2[a] * yBasisOrder3[b] * zBasisDerivOrder2[c];
+                     tempJacMat.m[1][2] += yControlPointCoordinates[coord] * tempValueYDerivZ / scaling[2];
+                     DTYPE tempValueZDerivX = xBasisDerivOrder2[a] * yBasisOrder2[b] * zBasisOrder3[c];
+                     tempJacMat.m[2][0] += zControlPointCoordinates[coord] * tempValueZDerivX / scaling[0];
+                     DTYPE tempValueZDerivY = xBasisOrder2[a] * yBasisDerivOrder2[b] * zBasisOrder3[c];
+                     tempJacMat.m[2][1] += zControlPointCoordinates[coord] * tempValueZDerivY / scaling[1];
+                     DTYPE tempValueZDerivZ = xBasisOrder2[a] * yBasisOrder2[b] * zBasisDerivOrder3[c];
+                     tempJacMat.m[2][2] += zControlPointCoordinates[coord] * tempValueZDerivZ / scaling[2];
+                     coord++;
+                  }
+               }
+            }
+            jacobianPtr[index] = nifti_mat33_determ(tempJacMat);
+//                }
+            index++;
+         }
+      }
+   }
+}
+
+nifti_image * reg_spline_GetJacobianFromVelocityGrid(nifti_image* deformationFieldImage,
+                                                     nifti_image* velocityFieldGrid) {
+   // create the jacobian image
+   nifti_image *jacobianImage = nifti_copy_nim_info(deformationFieldImage);
+   jacobianImage->nu = 1;  // the diovergence is a scalar field
+   jacobianImage->nvox = jacobianImage->nx * jacobianImage->ny * jacobianImage->nz;
+   jacobianImage->data=(void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
+   reg_tools_multiplyValueToImage(jacobianImage, jacobianImage, 0);
+   reg_tools_addValueToImage(jacobianImage, jacobianImage, 1);
+   //
+   // Create an temporary image to store the flow field
+   nifti_image *flowField = nifti_copy_nim_info(deformationFieldImage);
+   // initialise flowField that will be used to get the coordinates of where to evaluate the divergence
+   flowField->data = (void *)calloc(flowField->nvox, flowField->nbyper);
+   flowField->intent_code = NIFTI_INTENT_VECTOR;
+   // the flow field is set to identity
+   reg_tools_multiplyValueToImage(flowField, flowField, 0.f);
+   flowField->intent_p1=DISP_VEL_FIELD;
+   reg_getDeformationFromDisplacement(flowField);
+
+   // set the number of integration step
+   int numItegration = (int)pow(2, velocityFieldGrid->intent_p2);
+
+   // create the scaled velocityGrid
+   nifti_image *scaledVelocityFieldGrid = nifti_copy_nim_info(velocityFieldGrid);
+   scaledVelocityFieldGrid->data = (void *)calloc(scaledVelocityFieldGrid->nvox, scaledVelocityFieldGrid->nbyper);
+   reg_getDisplacementFromDeformation(velocityFieldGrid);
+   reg_tools_divideValueToImage(velocityFieldGrid, scaledVelocityFieldGrid, numItegration);
+   reg_getDeformationFromDisplacement(velocityFieldGrid);
+
+   // Compute the divergence image
+   switch (deformationFieldImage->datatype) {
+      case NIFTI_TYPE_FLOAT64:
+         reg_divergence_conforming_spline_getJacobianDetImage<double>(scaledVelocityFieldGrid,  // in
+                                                                     flowField,  // in
+                                                                     jacobianImage  // out
+         );
+           break;
+      case NIFTI_TYPE_FLOAT32:
+         reg_divergence_conforming_spline_getJacobianDetImage<float>(scaledVelocityFieldGrid,  // in
+                                                                    flowField,  // in
+                                                                    jacobianImage  // out
+         );
+           break;
+      default:
+      reg_print_msg_error("datatype not supported");
+           reg_exit();
+   }
+   nifti_image_free(flowField);
+   nifti_image_free(scaledVelocityFieldGrid);
+   return jacobianImage;
+}
