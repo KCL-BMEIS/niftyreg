@@ -21,16 +21,17 @@ const std::string CommandLineReader::kUsageMsg(
         "and Ipopt to perform a Quasi-Newton optimisation."
         "\nUsage:\t reg_ipopt --ref <referenceImageName> --flo <floatingImageName> --mask <maskImageName>\n"
         "\nOptions:\n"
-        "--help | -h\t Prints help message.\n"
-        "--ref  | -r\t Path to the reference image file (mandatory).\n"
-        "--flo  | -f\t Path to the floating image file (mandatory).\n"
-        "--mask | -m\t Path to the constraint mask image file (optional).\n"
-        "--out  | -o\t Name of the directory where to save output (optional).\n"
+        "--help  | -h\t Prints help message.\n"
+        "--ref   | -r\t Path to the reference image file (mandatory).\n"
+        "--flo   | -f\t Path to the floating image file (mandatory).\n"
+        "--mask  | -m\t Path to the constraint mask image file (optional).\n"
+        "--out   | -o\t Name of the directory where to save output (optional).\n"
+        "--incpp | -i\t Path to the CPP to use for initialisation of the first level (optional).\n"
 );
 
 // put default value for parameters here
 CommandLineReader::CommandLineReader() : m_usage(false), m_useConstraint(false),
-m_outDir("/home/lf18/workspace/niftyreg_out"), m_maskPath(""), m_initCPPPath("") {
+m_outDir("/home/lf18/workspace/niftyreg_out"), m_maskPath(""), m_initCPPPath(""), m_levelToPerform(1) {
 }
 
 CommandLineReader& CommandLineReader::getInstance() {
@@ -56,6 +57,10 @@ std::string CommandLineReader::getOutDir() const {
 
 std::string CommandLineReader::getInitCPPPath() const {
     return m_initCPPPath;
+}
+
+unsigned int CommandLineReader::getLevelToPerform() const {
+    return m_levelToPerform;
 }
 
 bool CommandLineReader::getUseConstraint() const {
@@ -86,6 +91,7 @@ void CommandLineReader::processCmdLineOptions(int argc, char **argv) {
             ("m,mask", "Path to the constraint mask image file.", cxxopts::value<std::string>())
             ("o,out", "Path output directory.", cxxopts::value<std::string>())
             ("i,incpp", "Path to the CPP input to use for warm start initialisation.", cxxopts::value<std::string>())
+            ("l,nlevel", "Number of levels to perform", cxxopts::value<unsigned int>())
             ;
 
     // Parse command line options
@@ -108,6 +114,9 @@ void CommandLineReader::processCmdLineOptions(int argc, char **argv) {
         }
         if (options.count("incpp")) {
             m_initCPPPath = options["incpp"].as<std::string>();
+        }
+        if (options.count("nlevel")) {
+            m_levelToPerform = options["nlevel"].as<unsigned int>();
         }
     }
 

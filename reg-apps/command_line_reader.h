@@ -20,6 +20,7 @@ public:
     std::string getMaskFilePath() const;
     std::string getOutDir() const;
     std::string getInitCPPPath() const;
+    unsigned int getLevelToPerform() const;
     bool getUseConstraint() const;
     bool justHelp() const;
     void processCmdLineOptions(int argc, char **argv);
@@ -37,6 +38,7 @@ private:
     std::string m_maskPath;
     std::string m_outDir;
     std::string m_initCPPPath;
+    unsigned int m_levelToPerform;
     bool m_useConstraint;
     bool m_usage;
 };

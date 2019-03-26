@@ -101,9 +101,7 @@ int main(int argc, char** argv) {
   }
 
  // Create the registration object
-//  SmartPtr<reg_f3d2_ipopt<float> > REG = new reg_f3d2_ipopt<float>(referenceImage->nt, floatingImage->nt);
   SmartPtr<reg_f3d2_ipopt<double> > REG = new reg_f3d2_ipopt<double>(referenceImage->nt, floatingImage->nt);
-//  SmartPtr<reg_f3d_ipopt<float> > REG = new reg_f3d_ipopt<float>(referenceImage->nt, floatingImage->nt);
 //  SmartPtr<reg_f3d_ipopt<double> > REG = new reg_f3d_ipopt<double>(referenceImage->nt, floatingImage->nt);
   REG->SetReferenceImage(referenceImage);
   REG->SetFloatingImage(floatingImage);
@@ -132,21 +130,22 @@ int main(int argc, char** argv) {
   // Set the objective function (default is NMI)
 //  bool normalise = false;
 //  REG->UseSSD(0, normalise);
-  REG->SetSpacing(0, 5.f);  // do not use a spacing of 5 to avoid lut...
-  std::cout << "Set spacing to " << 5 << std::endl;
-  REG->SetLinearEnergyWeight(0.015f);  // default is 0.01
-  REG->SetBendingEnergyWeight(0.0015f);  // default is 0.001
+  float spacing_mm = 2.f;
+  REG->SetSpacing(0, spacing_mm);  // do not use a spacing of 5 to avoid lut...
+  std::cout << "Set spacing to " << spacing_mm << " mm" << std::endl;
+  REG->SetLinearEnergyWeight(0.f);  // default is 0.01
+  REG->SetBendingEnergyWeight(0.1f);  // default is 0.001
   REG->SetInverseConsistencyWeight(0.f);  // make sure inverse consistency is not used
 //  float scale = 1e7;  // appropriate scaling factor for NMI
   float scale = 100000.f;  // appropriate scaling factor for LNCC
-  REG->UseLNCC(0, 1.f);
+  REG->UseLNCC(0, 4.f);
   REG->setScale(scale);
 
+//  int maxIter = 1;
   int maxIter = 100;
-//  int maxIter = 300;
 
   // Set the number of levels to perform for the pyramidal approach
-  unsigned int levelToPerform = 1;
+  unsigned int levelToPerform = CommandLineReader::getInstance().getLevelToPerform();
   if (levelToPerform <= 1){
     REG->DoNotUsePyramidalApproach();
   }
@@ -158,11 +157,14 @@ int main(int argc, char** argv) {
   REG->printConfigInfo();
 
 #if defined (_OPENMP)
-  int maxThreadNumber = omp_get_max_threads();
+  int maxThreadNumber = omp_get_max_threads() - 2;
+//  int maxThreadNumber = omp_get_max_threads();
   std::cout << "OpenMP is used with " << maxThreadNumber << " thread(s)." << std::endl;
 #endif // _OPENMP
 
-  ApplicationReturnStatus status;
+//  ApplicationReturnStatus status;
+//  SmartPtr<TNLP> mynlp = REG;
+//  SmartPtr<IpoptApplication> app;
 
   for(int level=0; level<levelToPerform; level++) {
 //    std::cout << "ready to start" << std::endl;
@@ -175,10 +177,13 @@ int main(int argc, char** argv) {
 //    REG->printImgStat();
 //    REG->CheckWarpImageGradient();
 //    reg_exit();
+
     SmartPtr<TNLP> mynlp = REG;
+    ApplicationReturnStatus status;
 
     // Create a new instance of IpoptApplication
     SmartPtr<IpoptApplication> app = new IpoptApplication();
+//    app = new IpoptApplication();
 
     // Set IpoptApplication options
     app->Options()->SetStringValue("jac_c_constant", "yes");  // all constraints are linear
@@ -208,25 +213,16 @@ int main(int argc, char** argv) {
       app->Options()->SetNumericValue("acceptable_obj_change_tol", 1e-6);  // stop criteria based on objective
       app->Options()->SetNumericValue("acceptable_tol", 100.*scale);  // default scale*1e-3
       app->Options()->SetNumericValue("acceptable_compl_inf_tol", 10000.);  // default 0.01
-      app->Options()->SetIntegerValue("acceptable_iter", 4);  // default 15
+      app->Options()->SetIntegerValue("acceptable_iter", 15);  // default 15
       app->Options()->SetIntegerValue("max_iter", maxIter);
-//      app->Options()->SetIntegerValue("max_iter", 150);
     }
     else {
       app->Options()->SetNumericValue("tol", 1e-6);
-      app->Options()->SetIntegerValue("max_iter", 5);
+      app->Options()->SetIntegerValue("max_iter", 5*(levelToPerform - level));
 //      app->Options()->SetIntegerValue("max_iter", 300);
     }
       app->Options()->SetStringValue("print_info_string", "yes");  // for more info at each iter
-    //  app->Options()->SetStringValue("jac_c_constant", "yes");
 
-    // TODO: Gradient check will mess up your controlPointGrid and so the initialisation...
-//    app->Options()->SetStringValue("derivative_test", "first-order");
-//    app->Options()->SetStringValue("derivative_test_print_all", "yes");
-    // in reg_f3d in ApproximatedGradient eps = this->controlPointGrid->dx / 100.f is used
-//    app->Options()->SetNumericValue("derivative_test_perturbation", 1e-2);
-//    app->Options()->SetIntegerValue("derivative_test_first_index", 20770);
-//      app->Options()->SetStringValue("check_derivatives_for_naninf", "yes");
 
     // Intialize the IpoptApplication and process the options
     app->Initialize();
@@ -242,22 +238,45 @@ int main(int argc, char** argv) {
     std::string text = stringFormat("Registration level %d performed in %i min %i sec",
             level+1, minutes, seconds);
     reg_print_info((argv[0]), text.c_str());
+
+    if (level == levelToPerform - 1) {
+      // print status for the final step
+      switch (status) {
+        case Solve_Succeeded:
+          std::cout << std::endl << "*** Optimal solution found" << std::endl;
+              break;
+        case Solved_To_Acceptable_Level:
+          std::cout << std::endl << "*** Acceptable solution found" << std::endl;
+              break;
+        case Maximum_Iterations_Exceeded:
+          std::cout << std::endl
+                    << "*** Return current best solution after the number of iterations has been exceeded" << std::endl;
+              break;
+        default:
+          std::cout << std::endl << "*** The problem FAILED" << std::endl;
+              break;
+      }
+    }
   }
   // print stats info
   REG->PrintStatInfo();
 
-  // print status for the final step
-  switch (status) {
-    case Solve_Succeeded:
-      std::cout << std::endl << "*** Optimal solution found" << std::endl;
-      break;
-    case Solved_To_Acceptable_Level:
-      std::cout << std::endl << "*** Acceptable solution found" << std::endl;
-      break;
-    default:
-      std::cout << std::endl << "*** The problem FAILED" << std::endl;
-      break;
-  }
+//  // print status for the final step
+//  switch (status) {
+//    case Solve_Succeeded:
+//      std::cout << std::endl << "*** Optimal solution found" << std::endl;
+//      break;
+//    case Solved_To_Acceptable_Level:
+//      std::cout << std::endl << "*** Acceptable solution found" << std::endl;
+//      break;
+//    case Maximum_Iterations_Exceeded:
+//      std::cout << std::endl
+//      << "*** Return current best solution after the number of iterations has been exceeded" << std::endl;
+//      break;
+//    default:
+//      std::cout << std::endl << "*** The problem FAILED" << std::endl;
+//      break;
+//  }
   // Print total time for the registration
   time(&end);
   int minutes=(int)floorf((end-start)/60.0f);
@@ -267,5 +286,5 @@ int main(int argc, char** argv) {
   reg_print_info((argv[0]), text.c_str());
   reg_print_info((argv[0]), "Have a good day !");
 
-  return (int) status;
+  return 0;
 }

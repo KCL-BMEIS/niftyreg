@@ -52,7 +52,13 @@ public:
 
   void printImgStat();
 
+  void GetDeformationField();
+
   void GetDeformationFieldEuler();
+
+  void WarpFloatingImageEuler(int inter);
+
+  nifti_image **GetWarpedImageEuler();
 
   /**@name Overloaded from TNLP */
   //@{
@@ -219,6 +225,9 @@ void reg_f3d2_ipopt<T>::initLevel(int level) {
             // use divergence-conforming B-splines
             this->controlPointGrid->intent_p1 = DIV_CONFORMING_VEL_GRID;
             this->backwardControlPointGrid->intent_p1 = DIV_CONFORMING_VEL_GRID;
+            // set the number of steps in the scaling and squaring
+            this->controlPointGrid->intent_p2 = 8;
+            this->backwardControlPointGrid->intent_p2 = 8;
             // create constraint mask pyramid
             if (this->constraintMask != NULL) {
                 this->constraintMaskPyramid = (int **)calloc(this->levelToPerform, sizeof(int *));
@@ -235,10 +244,15 @@ void reg_f3d2_ipopt<T>::initLevel(int level) {
 
     this->currentLevel = (unsigned int) level;
 
-    // Set the current input images and masks
+    // Set the current input images
     this->currentReference = this->referencePyramid[level];
     this->currentFloating = this->floatingPyramid[level];
-    this->currentMask = this->maskPyramid[level];
+
+    // The grid is refined if necessary and the reference and floating masks are set
+    // and the weights for the regularisation terms are adapted
+    T maxStepSize = this->InitialiseCurrentLevel();
+//    this->currentMask = this->maskPyramid[level];
+
     // set the current constraint mask that is used to know where to apply the incompressibility constraint
     // on the control point grid.
     // We need to project the currentContraintMask that is defined on the space of the currentFloating image
@@ -305,10 +319,6 @@ void reg_f3d2_ipopt<T>::initLevel(int level) {
     this->AllocateWarped();
     this->AllocateDeformationField();
     this->AllocateWarpedGradient();
-
-    // The grid is refined if necessary and the floatingMask is set
-    T maxStepSize=this->InitialiseCurrentLevel();
-
     this->DisplayCurrentLevelParameters();
 
     // Allocate image that are required to compute the gradient
@@ -343,6 +353,17 @@ void reg_f3d2_ipopt<T>::clearLevel(int level) {
     free(this->maskPyramid[level]);
     this->maskPyramid[level] = NULL;
     this->ClearCurrentInputImage();
+    if (this->constraintMaskPyramid != NULL) {
+        free(this->constraintMaskPyramid[level]);
+        this->constraintMaskPyramid[level] = NULL;
+    }
+    if (this->currentConstraintMask != NULL) {
+        this->currentConstraintMask = NULL;
+    }
+    if (this->currentConstraintMaskGrid != NULL) {
+        free(this->currentConstraintMaskGrid);
+        this->currentConstraintMaskGrid = NULL;
+    }
 }
 
 template <class T>
@@ -361,13 +382,118 @@ void reg_f3d2_ipopt<T>::setSaveDir(std::string saveDir) {
 }
 
 template <class T>
+void reg_f3d2_ipopt<T>::GetDeformationField() {
+#ifndef NDEBUG
+    std::cout << "reg_f3d2_ipopt<T>::GetDeformationField is called" << std::endl;
+#endif
+    // I don't want the number of steps to be updated
+    bool updateStepNumber = false;
+#ifndef NDEBUG
+    char text[255];
+   sprintf(text, "Velocity integration forward. Step number update=%i",updateStepNumber);
+   reg_print_msg_debug(text);
+#endif
+    // The forward transformation is computed using the scaling-and-squaring approach
+    reg_spline_getDefFieldFromVelocityGrid(this->controlPointGrid,  // in
+                                           this->deformationFieldImage,  // out
+                                           updateStepNumber);
+#ifndef NDEBUG
+    sprintf(text, "Velocity integration backward. Step number update=%i",updateStepNumber);
+   reg_print_msg_debug(text);
+#endif
+    // The backward transformation is computed using the scaling-and-squaring approach
+    reg_spline_getDefFieldFromVelocityGrid(this->backwardControlPointGrid,
+                                           this->backwardDeformationFieldImage,
+                                           false);
+}
+
+template <class T>
 void reg_f3d2_ipopt<T>::GetDeformationFieldEuler() {
+#ifndef NDEBUG
     std::cout << "GetDeformationFieldEuler is called" << std::endl;
+#endif
     reg_spline_getDefFieldFromVelocityGridEuler(this->controlPointGrid,  // in
                                                 this->deformationFieldImage);  // out
-
     reg_spline_getDefFieldFromVelocityGridEuler(this->backwardControlPointGrid,  // in
                                                 this->backwardDeformationFieldImage);  // out
+}
+
+template <class T>
+void reg_f3d2_ipopt<T>::WarpFloatingImageEuler(int inter) {
+    // Compute the deformation fields
+    this->GetDeformationFieldEuler();
+
+    // Resample the floating image
+    reg_resampleImage(this->currentFloating,
+                      this->warped,
+                      this->deformationFieldImage,
+                      this->currentMask,
+                      inter,
+                      this->warpedPaddingValue);
+
+    // Resample the reference image
+    reg_resampleImage(this->currentReference, // input image
+                      this->backwardWarped, // warped input image
+                      this->backwardDeformationFieldImage, // deformation field
+                      this->currentFloatingMask, // mask
+                      inter, // interpolation type
+                      this->warpedPaddingValue); // padding value
+}
+
+template<class T>
+nifti_image **reg_f3d2_ipopt<T>::GetWarpedImageEuler() {
+    // The initial images are used
+    if(this->inputReference==NULL ||
+       this->inputFloating==NULL ||
+       this->controlPointGrid==NULL ||
+       this->backwardControlPointGrid==NULL) {
+        reg_print_fct_error("reg_f3d2_ipopt<T>::GetWarpedImageEuler()");
+        reg_print_msg_error("The reference, floating and control point grid images have to be defined");
+        reg_exit();
+    }
+
+    // Set the input images
+    reg_f3d2<T>::currentReference = this->inputReference;
+    reg_f3d2<T>::currentFloating = this->inputFloating;
+    // No mask is used to perform the final resampling
+    reg_f3d2<T>::currentMask = NULL;
+    reg_f3d2<T>::currentFloatingMask = NULL;
+
+    // Allocate the forward and backward warped images
+    reg_f3d2<T>::AllocateWarped();
+    // Allocate the forward and backward dense deformation field
+    reg_f3d2<T>::AllocateDeformationField();
+
+    // Warp the floating images into the reference spaces using a cubic spline interpolation
+    this->WarpFloatingImageEuler(3); // cubic spline interpolation
+
+    // Clear the deformation field
+    reg_f3d2<T>::ClearDeformationField();
+
+    // Allocate and save the forward transformation warped image
+    nifti_image **warpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
+    warpedImage[0] = nifti_copy_nim_info(this->warped);
+    warpedImage[0]->cal_min=this->inputFloating->cal_min;
+    warpedImage[0]->cal_max=this->inputFloating->cal_max;
+    warpedImage[0]->scl_slope=this->inputFloating->scl_slope;
+    warpedImage[0]->scl_inter=this->inputFloating->scl_inter;
+    warpedImage[0]->data=(void *)malloc(warpedImage[0]->nvox*warpedImage[0]->nbyper);
+    memcpy(warpedImage[0]->data, this->warped->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
+
+    // Allocate and save the backward transformation warped image
+    warpedImage[1] = nifti_copy_nim_info(this->backwardWarped);
+    warpedImage[1]->cal_min=this->inputReference->cal_min;
+    warpedImage[1]->cal_max=this->inputReference->cal_max;
+    warpedImage[1]->scl_slope=this->inputReference->scl_slope;
+    warpedImage[1]->scl_inter=this->inputReference->scl_inter;
+    warpedImage[1]->data=(void *)malloc(warpedImage[1]->nvox*warpedImage[1]->nbyper);
+    memcpy(warpedImage[1]->data, this->backwardWarped->data, warpedImage[1]->nvox*warpedImage[1]->nbyper);
+
+    // Clear the warped images
+    reg_f3d2<T>::ClearWarped();
+
+    // Return the two final warped images
+    return warpedImage;
 }
 
 template<class T>
@@ -1037,41 +1163,6 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
     jacobianDeterminantArray->scl_slope = 1.0f;
     jacobianDeterminantArray->scl_inter = 0.0f;
 
-//    // Jacobian of total transformation with euler integration
-//    this->GetDeformationFieldEuler();
-//    float defIntentP1 = this->deformationFieldImage->intent_p1;
-//    this->deformationFieldImage->intent_p1 = LIN_SPLINE_GRID;  // important to know how to estimate the jacobian
-//    // Jacobian map for deformation field
-//    reg_spline_GetJacobianMap(this->deformationFieldImage, jacobianDeterminantArray);
-//    fileName = stringFormat("%s/output_jacobian_map_euler_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
-//    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
-//
-//    reg_tools_substractValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 1);
-//    reg_tools_abs_image(jacobianDeterminantArray);
-//    fileName = stringFormat("%s/output_absolute_compressibility_map_euler_level%d.nii.gz",
-//            this->saveDir.c_str(), this->currentLevel+1);
-//    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
-
-//     // Jacobian of total transformation with scaling ans squaring integration
-//    this->GetDeformationField();
-//    this->deformationFieldImage->intent_p1 = LIN_SPLINE_GRID;  // important to know how to estimate the jacobian
-//    // re-initialise the jacobian determinant map
-//    reg_tools_multiplyValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 0);
-//    reg_tools_addValueToImage(jacobianDeterminantArray,
-//                              jacobianDeterminantArray,
-//                              1);
-//    // Jacobian map for deformation field
-//    reg_spline_GetJacobianMap(this->deformationFieldImage, jacobianDeterminantArray);
-//    // Jacobian map for velocity grid - Marc version
-//    fileName = stringFormat("%s/output_jacobian_map_ss_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
-//    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
-//
-//    reg_tools_substractValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 1);
-//    reg_tools_abs_image(jacobianDeterminantArray);
-//    fileName = stringFormat("%s/output_absolute_compressibility_map_ss_level%d.nii.gz",
-//            this->saveDir.c_str(), this->currentLevel+1);
-//    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
-
     // original niftyreg jacobian for f3d2
     // re-initialise the jacobian determinant map
     reg_tools_multiplyValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 0);
@@ -1147,6 +1238,37 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
         nifti_image_free(outputWarpedImage[1]);
     outputWarpedImage[1]=NULL;
     free(outputWarpedImage);
+
+    // Save the warped image(s) with an Euler integration
+    // allocate memory for two images for the symmetric case
+//    nifti_image **outputWarpedImageEuler=(nifti_image **)malloc(2*sizeof(nifti_image *));
+//    outputWarpedImageEuler[0] = NULL;
+//    outputWarpedImageEuler[1] = NULL;
+//    outputWarpedImageEuler = this->GetWarpedImageEuler();
+//    fileName = stringFormat("%s/output_warped_euler_flo_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//    memset(outputWarpedImageEuler[0]->descrip, 0, 80);
+//    strcpy (outputWarpedImageEuler[0]->descrip, "Warped image using NiftyReg");
+//    reg_io_WriteImageFile(outputWarpedImageEuler[0], fileName.c_str());
+//    if (outputWarpedImageEuler[1] != NULL) {
+//        fileName = stringFormat("%s/output_warped_euler_ref_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//        memset(outputWarpedImageEuler[1]->descrip, 0, 80);
+//        strcpy (outputWarpedImageEuler[1]->descrip, "Warped backward image using NiftyReg");
+//        reg_io_WriteImageFile(outputWarpedImageEuler[1], fileName.c_str());
+//    }
+//    // Compute and save absolute error map
+//    reg_tools_substractImageToImage(outputWarpedImageEuler[0],
+//                                    this->currentReference, outputWarpedImageEuler[0]);
+//    reg_tools_abs_image(outputWarpedImageEuler[0]);
+//    fileName = stringFormat("%s/output_abs_error_euler_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//    reg_io_WriteImageFile(outputWarpedImageEuler[0], fileName.c_str());
+//    // free allocated memory
+//    if(outputWarpedImageEuler[0]!=NULL)
+//        nifti_image_free(outputWarpedImageEuler[0]);
+//    outputWarpedImageEuler[0]=NULL;
+//    if(outputWarpedImageEuler[1]!=NULL)
+//        nifti_image_free(outputWarpedImageEuler[1]);
+//    outputWarpedImageEuler[1]=NULL;
+//    free(outputWarpedImageEuler);
 
     std::cout << "Objective value = "  << this->bestObj << std::endl;
 
