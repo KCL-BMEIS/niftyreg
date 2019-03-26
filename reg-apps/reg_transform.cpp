@@ -1062,6 +1062,16 @@ int main(int argc, char **argv)
                                                    false // step number is not updated
                                                    );
             break;
+         case DIV_CONFORMING_VEL_GRID:
+            printf("[NiftyReg] The specified transformation is a divergence-conforming spline velocity parametrisation:\n[NiftyReg] %s\n",
+                      inputTransformationImage->fname);
+            // The spline parametrisation is converted into a dense flow and exponentiated
+//            reg_spline_getDefFieldFromVelocityGridEuler(inputTransformationImage,
+//                                                        deformationFieldImage);
+            reg_spline_getDefFieldFromVelocityGrid(inputTransformationImage,
+                                                   deformationFieldImage,
+                                                   false);
+            break;
          default:
             fprintf(stderr,"[NiftyReg ERROR] Unknown input transformation type\n");
             return EXIT_FAILURE;
@@ -1093,7 +1103,10 @@ int main(int argc, char **argv)
          return EXIT_FAILURE;
       }
       else if(n!=2 && n!=3){
-         reg_print_msg_error("2 or 3 values are expected per line");
+         reg_print_msg_error("2 or 3 values are expected per line.");
+         std::cout << "Found n = "  << n << std::endl;
+         reg_print_msg_error("Please check your input file: ");
+         reg_print_msg_error(param->inputLandmarkName);
          return EXIT_FAILURE;
       }
       if (inputTransformationImage->datatype == NIFTI_TYPE_FLOAT64) {
@@ -1123,10 +1136,10 @@ int main(int argc, char **argv)
             }
          }
          // Save the update landmark positions
-         reg_tool_WriteMatrixFile(param->outputTransName,
-                                  allLandmarks,
-                                  landmarkNumber,
-                                  n);
+         reg_tool_WriteMatrixFile<double>(param->outputTransName,
+                                          allLandmarks,
+                                          landmarkNumber,
+                                          n);
          // Free all allocated array and image
          for(size_t l=0; l<landmarkNumber; ++l)
             free(allLandmarks[l]);

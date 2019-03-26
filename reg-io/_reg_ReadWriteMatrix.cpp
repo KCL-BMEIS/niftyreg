@@ -206,13 +206,15 @@ void reg_tool_WriteMatrixFile(char *filename, T **mat, size_t nbLine, size_t nbC
    // Create a file
    std::ofstream outFile;
    outFile.open(filename);
+   std::cout.precision(17);
+
    // Loop over all values
-   for(size_t l=0;l<nbLine;++l){
-      for(size_t c=0;c<nbColumn;++c){
+   for(size_t l = 0; l < nbLine; ++l) {
+      for(size_t c = 0; c < nbColumn - 1; ++c)
          outFile << mat[l][c] << " ";
-      }
-      outFile << "\n";
+      outFile << mat[l][nbColumn - 1] << std::endl;
    }
+
    // Close the opened file
    outFile.close();
 }
@@ -241,12 +243,14 @@ T** reg_tool_ReadMatrixFile(char *filename, size_t nbLine, size_t nbColumn)
             while ((pos = line.find(delimiter)) != std::string::npos)
             {
                 token = line.substr(0, pos);
-                currentValue = atof(token.c_str());
+                currentValue = std::strtod(token.c_str(), NULL);
+//                currentValue = atof(token.c_str());
                 mat[j][i] = currentValue;
                 line.erase(0, pos + delimiter.length());
                 i++;
             }
-            currentValue = atof(line.c_str());
+            currentValue = std::strtod(line.c_str(), NULL);
+//            currentValue = atof(line.c_str());
             mat[j][i] = currentValue;
             j++;
         }
