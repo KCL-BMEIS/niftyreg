@@ -24,6 +24,7 @@ install(TARGETS _reg_maths
   ARCHIVE DESTINATION lib
 )
 install(FILES cpu/_reg_maths.h cpu/_reg_maths_eigen.h DESTINATION include)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_maths")
 #-----------------------------------------------------------------------------
 add_library(_reg_tools ${NIFTYREG_LIBRARY_TYPE}
   cpu/_reg_tools.cpp
@@ -38,6 +39,7 @@ install(TARGETS _reg_tools
   ARCHIVE DESTINATION lib
 )
 install(FILES cpu/_reg_tools.h DESTINATION include)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_tools")
 #-----------------------------------------------------------------------------
 add_library(_reg_globalTrans
   ${NIFTYREG_LIBRARY_TYPE}
@@ -52,6 +54,7 @@ install(TARGETS _reg_globalTrans
   ARCHIVE DESTINATION lib
 )
 install(FILES cpu/_reg_globalTrans.h DESTINATION include)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_globalTrans")
 #-----------------------------------------------------------------------------
 add_library(_reg_localTrans
   ${NIFTYREG_LIBRARY_TYPE}
@@ -74,6 +77,7 @@ install(TARGETS _reg_localTrans
   ARCHIVE DESTINATION lib
 )
 install(FILES cpu/_reg_localTrans.h cpu/_reg_splineBasis.h cpu/_reg_localTrans_regul.h cpu/_reg_localTrans_jac.h DESTINATION include)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_localTrans")
 #-----------------------------------------------------------------------------
 set(measure_files
   cpu/_reg_measure.h
@@ -98,6 +102,7 @@ install(TARGETS _reg_measure
   ARCHIVE DESTINATION lib
 )
 install(FILES cpu/_reg_measure.h cpu/_reg_nmi.h cpu/_reg_ssd.h cpu/_reg_kld.h cpu/_reg_lncc.h cpu/_reg_dti.h cpu/_reg_mind.h DESTINATION include)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_measure")
 #-----------------------------------------------------------------------------
 add_library(_reg_resampling ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_resampling.cpp)
 target_link_libraries(_reg_resampling _reg_globalTrans
@@ -108,6 +113,7 @@ install(TARGETS _reg_resampling
   ARCHIVE DESTINATION lib
   )
 install(FILES cpu/_reg_resampling.h DESTINATION include)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_resampling")
 #-----------------------------------------------------------------------------
 add_library(_reg_blockMatching ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_blockMatching.cpp)
 target_link_libraries(_reg_blockMatching _reg_globalTrans
@@ -118,6 +124,7 @@ install(TARGETS _reg_blockMatching
   ARCHIVE DESTINATION lib
   )
 install(FILES cpu/_reg_blockMatching.h DESTINATION include)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_blockMatching")
 #-----------------------------------------------------------------------------
 add_library(_reg_femTrans ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_femTrans.cpp)
 target_link_libraries(_reg_femTrans _reg_globalTrans
@@ -128,6 +135,7 @@ install(TARGETS _reg_femTrans
   ARCHIVE DESTINATION lib
   )
 install(FILES cpu/_reg_femTrans.h DESTINATION include)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_femTrans")
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
 set(_reg_aladin_files
@@ -183,6 +191,7 @@ install(FILES
         cpu/CPUOptimiseKernel.h
         cpu/CPUResampleImageKernel.h
         KernelFactory.h cpu/CPUKernelFactory.h DESTINATION include)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_aladin")
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE F3D LIBRARY
@@ -216,6 +225,7 @@ install(FILES _reg_f3d.h DESTINATION include)
 install(FILES _reg_f3d2.h DESTINATION include)
 install(FILES _reg_f3d_sym.h DESTINATION include)
 install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_f3d")
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY
@@ -250,3 +260,4 @@ install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
 #install(FILES ${NAME}.h  DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES}" PARENT_SCOPE)
