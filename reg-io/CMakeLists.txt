@@ -19,6 +19,8 @@ if(USE_NRRD)
   set(LIBRARIES ${LIBRARIES} reg_nrrd)
 endif(USE_NRRD)
 
+SET(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${LIBRARIES}")
+
 # Create the reg_io library
 add_library(_reg_ReadWriteImage _reg_ReadWriteImage.h _reg_ReadWriteImage.cpp
 _reg_ReadWriteMatrix.h _reg_ReadWriteMatrix.cpp _reg_ReadWriteBinary.h
@@ -30,3 +32,5 @@ install(TARGETS _reg_ReadWriteImage
         ARCHIVE DESTINATION lib COMPONENT Development
 )
 install(FILES _reg_ReadWriteImage.h _reg_ReadWriteMatrix.h _reg_stringFormat.h DESTINATION include COMPONENT Development)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_ReadWriteImage")
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES}" PARENT_SCOPE)

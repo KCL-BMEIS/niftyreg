@@ -195,6 +195,7 @@ add_subdirectory(third-party)
 add_subdirectory(reg-io)
 add_subdirectory(reg-lib)
 add_subdirectory(reg-apps)
+add_subdirectory(cmake)
 #-----------------------------------------------------------------------------
 if(BUILD_TESTING)
   enable_testing()
