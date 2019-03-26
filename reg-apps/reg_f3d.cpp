@@ -131,21 +131,21 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space");
    reg_print_info(exec, "");
 
-   reg_print_info(exec, "*** Platform options:");
-#if defined(_USE_CUDA) && defined(_USE_OPENCL)
-   reg_print_info(exec, "\t-platf <uint>\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
-#else
-#ifdef _USE_CUDA
-   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 [0]");
-#endif
-#ifdef _USE_OPENCL
-   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | OpenCL=2 [0]");
-#endif
-#endif
-#if defined(_USE_CUDA) || defined(_USE_OPENCL)
-   reg_print_info(exec, "\t-gpuid <uint>\t\tChoose a custom gpu.");
-   reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
-#endif
+//   reg_print_info(exec, "*** Platform options:");
+//#if defined(_USE_CUDA) && defined(_USE_OPENCL)
+//   reg_print_info(exec, "\t-platf <uint>\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
+//#else
+//#ifdef _USE_CUDA
+//   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 [0]");
+//#endif
+//#ifdef _USE_OPENCL
+//   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | OpenCL=2 [0]");
+//#endif
+//#endif
+//#if defined(_USE_CUDA) || defined(_USE_OPENCL)
+//   reg_print_info(exec, "\t-gpuid <uint>\t\tChoose a custom gpu.");
+//   reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
+//#endif
 
 #if defined (_OPENMP)
    reg_print_info(exec, "");
