@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
   REG->printConfigInfo();
 
 #if defined (_OPENMP)
-  int maxThreadNumber = omp_get_max_threads() - 2;
+  int maxThreadNumber = omp_get_max_threads();
 //  int maxThreadNumber = omp_get_max_threads();
   std::cout << "OpenMP is used with " << maxThreadNumber << " thread(s)." << std::endl;
 #endif // _OPENMP
