@@ -1116,63 +1116,64 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
 
 //  this->GetObjectiveFunctionValue();  // make sure all the variables are up-to-date
 
-    // save floating and reference image
-    fileName = stringFormat("%s/input_flo_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
-    reg_io_WriteImageFile(this->currentFloating, fileName.c_str());
-    fileName = stringFormat("%s/input_ref_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
-    reg_io_WriteImageFile(this->currentReference, fileName.c_str());
-    if (this->useDivergenceConstraint and this->currentConstraintMask != NULL) {
-        // save currentMask
-        nifti_image *currMask = nifti_copy_nim_info(this->currentReference);
-        currMask->data = (void *)malloc(currMask->nvox*currMask->nbyper);
-        T *currMaskPtr = static_cast<T *>(currMask->data);
-        for (int i=0; i<currMask->nvox; ++i) {
-            currMaskPtr[i] = this->currentConstraintMask[i];
-        }
-        fileName = stringFormat("%s/input_mask_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
-        reg_io_WriteImageFile(currMask, fileName.c_str());
-        nifti_image_free(currMask);
-        currMask = NULL;
+    // save floating and reference images
+//    fileName = stringFormat("%s/input_flo_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//    reg_io_WriteImageFile(this->currentFloating, fileName.c_str());
+//    fileName = stringFormat("%s/input_ref_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//    reg_io_WriteImageFile(this->currentReference, fileName.c_str());
 
-        // save currentMaskGrid
-        nifti_image *currMaskGrid = nifti_copy_nim_info(this->controlPointGrid);
-        currMaskGrid->nu = 1;
-        currMaskGrid->nvox = currMaskGrid->nx * currMaskGrid->ny * currMaskGrid->nz;
-        currMaskGrid->data = (void *)malloc(currMaskGrid->nvox*currMaskGrid->nbyper);
-        T *currMaskGridPtr = static_cast<T *>(currMaskGrid->data);
-        for (int i=0; i<currMaskGrid->nvox; ++i) {
-            currMaskGridPtr[i] = this->currentConstraintMaskGrid[i];
-        }
-        fileName = stringFormat("%s/input_mask_grid_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
-        reg_io_WriteImageFile(currMaskGrid, fileName.c_str());
-        nifti_image_free(currMaskGrid);
-    }
+//    if (this->useDivergenceConstraint and this->currentConstraintMask != NULL) {
+//        // save currentMask
+//        nifti_image *currMask = nifti_copy_nim_info(this->currentReference);
+//        currMask->data = (void *)malloc(currMask->nvox*currMask->nbyper);
+//        T *currMaskPtr = static_cast<T *>(currMask->data);
+//        for (int i=0; i<currMask->nvox; ++i) {
+//            currMaskPtr[i] = this->currentConstraintMask[i];
+//        }
+//        fileName = stringFormat("%s/input_mask_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//        reg_io_WriteImageFile(currMask, fileName.c_str());
+//        nifti_image_free(currMask);
+//        currMask = NULL;
+//
+//        // save currentMaskGrid
+//        nifti_image *currMaskGrid = nifti_copy_nim_info(this->controlPointGrid);
+//        currMaskGrid->nu = 1;
+//        currMaskGrid->nvox = currMaskGrid->nx * currMaskGrid->ny * currMaskGrid->nz;
+//        currMaskGrid->data = (void *)malloc(currMaskGrid->nvox*currMaskGrid->nbyper);
+//        T *currMaskGridPtr = static_cast<T *>(currMaskGrid->data);
+//        for (int i=0; i<currMaskGrid->nvox; ++i) {
+//            currMaskGridPtr[i] = this->currentConstraintMaskGrid[i];
+//        }
+//        fileName = stringFormat("%s/input_mask_grid_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//        reg_io_WriteImageFile(currMaskGrid, fileName.c_str());
+//        nifti_image_free(currMaskGrid);
+//    }
 
-    // Compute and save the jacobian map fo the forward transformation
-    size_t nvox = (size_t) this->currentFloating->nx * this->currentFloating->ny * this->currentFloating->nz;
-    nifti_image *jacobianDeterminantArray = nifti_copy_nim_info(this->currentFloating);
-    jacobianDeterminantArray->nbyper = this->controlPointGrid->nbyper;
-    jacobianDeterminantArray->datatype = this->controlPointGrid->datatype;
-    jacobianDeterminantArray->data = (void *)calloc(nvox, this->controlPointGrid->nbyper);
-    // initialise the jacobian array values to 1
-    reg_tools_addValueToImage(jacobianDeterminantArray,
-                              jacobianDeterminantArray,
-                              1);
-    jacobianDeterminantArray->cal_min=0;
-    jacobianDeterminantArray->cal_max=0;
-    jacobianDeterminantArray->scl_slope = 1.0f;
-    jacobianDeterminantArray->scl_inter = 0.0f;
-
-    // original niftyreg jacobian for f3d2
-    // re-initialise the jacobian determinant map
-    reg_tools_multiplyValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 0);
-    reg_tools_addValueToImage(jacobianDeterminantArray,
-                              jacobianDeterminantArray,
-                              1);
-    reg_spline_GetJacobianDetFromVelocityGrid(jacobianDeterminantArray, this->controlPointGrid);
-    fileName = stringFormat("%s/output_jacobian_map_Marc_level%d.nii.gz",
-                            this->saveDir.c_str(), this->currentLevel+1);
-    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
+//    // Compute and save the jacobian map fo the forward transformation
+//    size_t nvox = (size_t) this->currentFloating->nx * this->currentFloating->ny * this->currentFloating->nz;
+//    nifti_image *jacobianDeterminantArray = nifti_copy_nim_info(this->currentFloating);
+//    jacobianDeterminantArray->nbyper = this->controlPointGrid->nbyper;
+//    jacobianDeterminantArray->datatype = this->controlPointGrid->datatype;
+//    jacobianDeterminantArray->data = (void *)calloc(nvox, this->controlPointGrid->nbyper);
+//    // initialise the jacobian array values to 1
+//    reg_tools_addValueToImage(jacobianDeterminantArray,
+//                              jacobianDeterminantArray,
+//                              1);
+//    jacobianDeterminantArray->cal_min=0;
+//    jacobianDeterminantArray->cal_max=0;
+//    jacobianDeterminantArray->scl_slope = 1.0f;
+//    jacobianDeterminantArray->scl_inter = 0.0f;
+//
+//    // original niftyreg jacobian for f3d2
+//    // re-initialise the jacobian determinant map
+//    reg_tools_multiplyValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 0);
+//    reg_tools_addValueToImage(jacobianDeterminantArray,
+//                              jacobianDeterminantArray,
+//                              1);
+//    reg_spline_GetJacobianDetFromVelocityGrid(jacobianDeterminantArray, this->controlPointGrid);
+//    fileName = stringFormat("%s/output_jacobian_map_Marc_level%d.nii.gz",
+//                            this->saveDir.c_str(), this->currentLevel+1);
+//    reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
 
     // True jacobian of the integrator
     nifti_image *jac = reg_spline_GetJacobianFromVelocityGrid(this->deformationFieldImage,
@@ -1182,7 +1183,7 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
     reg_io_WriteImageFile(jac, fileName.c_str());
 
     // free nifti_image instance
-    nifti_image_free(jacobianDeterminantArray);
+//    nifti_image_free(jacobianDeterminantArray);
     nifti_image_free(jac);
 //    this->deformationFieldImage->intent_p1 = defIntentP1;
 
@@ -1201,43 +1202,43 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
     memset(outputControlPointGridImage->descrip, 0, 80);
     strcpy (outputControlPointGridImage->descrip, "Velocity field grid from NiftyReg");
     reg_io_WriteImageFile(outputControlPointGridImage, outputCPPImageName.c_str());
-    // save the displacement control point grid
-    reg_getDisplacementFromDeformation(outputControlPointGridImage);
-    outputCPPImageName=stringFormat("%s/outputCPPdisplacement_level%d.nii.gz",
-                                    this->saveDir.c_str(), this->currentLevel+1);
-    reg_io_WriteImageFile(outputControlPointGridImage, outputCPPImageName.c_str());
+//    // save the displacement control point grid
+//    reg_getDisplacementFromDeformation(outputControlPointGridImage);
+//    outputCPPImageName=stringFormat("%s/outputCPPdisplacement_level%d.nii.gz",
+//                                    this->saveDir.c_str(), this->currentLevel+1);
+//    reg_io_WriteImageFile(outputControlPointGridImage, outputCPPImageName.c_str());
     nifti_image_free(outputControlPointGridImage);
 
-    // Save the warped image(s)
-    // allocate memory for two images for the symmetric case
-    nifti_image **outputWarpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
-    outputWarpedImage[0] = NULL;
-    outputWarpedImage[1] = NULL;
-    outputWarpedImage = this->GetWarpedImage();
-    fileName = stringFormat("%s/output_warped_flo_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
-    memset(outputWarpedImage[0]->descrip, 0, 80);
-    strcpy (outputWarpedImage[0]->descrip, "Warped image using NiftyReg");
-    reg_io_WriteImageFile(outputWarpedImage[0], fileName.c_str());
-    if (outputWarpedImage[1] != NULL) {
-        fileName = stringFormat("%s/output_warped_ref_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
-        memset(outputWarpedImage[1]->descrip, 0, 80);
-        strcpy (outputWarpedImage[1]->descrip, "Warped backward image using NiftyReg");
-        reg_io_WriteImageFile(outputWarpedImage[1], fileName.c_str());
-    }
+//    // Save the warped image(s)
+//    // allocate memory for two images for the symmetric case
+//    nifti_image **outputWarpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
+//    outputWarpedImage[0] = NULL;
+//    outputWarpedImage[1] = NULL;
+//    outputWarpedImage = this->GetWarpedImage();
+//    fileName = stringFormat("%s/output_warped_flo_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//    memset(outputWarpedImage[0]->descrip, 0, 80);
+//    strcpy (outputWarpedImage[0]->descrip, "Warped image using NiftyReg");
+//    reg_io_WriteImageFile(outputWarpedImage[0], fileName.c_str());
+//    if (outputWarpedImage[1] != NULL) {
+//        fileName = stringFormat("%s/output_warped_ref_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//        memset(outputWarpedImage[1]->descrip, 0, 80);
+//        strcpy (outputWarpedImage[1]->descrip, "Warped backward image using NiftyReg");
+//        reg_io_WriteImageFile(outputWarpedImage[1], fileName.c_str());
+//    }
     // Compute and save absolute error map
-    reg_tools_substractImageToImage(outputWarpedImage[0],
-            this->currentReference, outputWarpedImage[0]);
-    reg_tools_abs_image(outputWarpedImage[0]);
-    fileName = stringFormat("%s/output_abs_error_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
-    reg_io_WriteImageFile(outputWarpedImage[0], fileName.c_str());
-    // free allocated memory
-    if(outputWarpedImage[0]!=NULL)
-        nifti_image_free(outputWarpedImage[0]);
-    outputWarpedImage[0]=NULL;
-    if(outputWarpedImage[1]!=NULL)
-        nifti_image_free(outputWarpedImage[1]);
-    outputWarpedImage[1]=NULL;
-    free(outputWarpedImage);
+//    reg_tools_substractImageToImage(outputWarpedImage[0],
+//            this->currentReference, outputWarpedImage[0]);
+//    reg_tools_abs_image(outputWarpedImage[0]);
+//    fileName = stringFormat("%s/output_abs_error_level%d.nii.gz", this->saveDir.c_str(), this->currentLevel+1);
+//    reg_io_WriteImageFile(outputWarpedImage[0], fileName.c_str());
+//    // free allocated memory
+//    if(outputWarpedImage[0]!=NULL)
+//        nifti_image_free(outputWarpedImage[0]);
+//    outputWarpedImage[0]=NULL;
+//    if(outputWarpedImage[1]!=NULL)
+//        nifti_image_free(outputWarpedImage[1]);
+//    outputWarpedImage[1]=NULL;
+//    free(outputWarpedImage);
 
     // Save the warped image(s) with an Euler integration
     // allocate memory for two images for the symmetric case
