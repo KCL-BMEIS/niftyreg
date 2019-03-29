@@ -31,7 +31,8 @@ const std::string CommandLineReader::kUsageMsg(
 
 // put default value for parameters here
 CommandLineReader::CommandLineReader() : m_usage(false), m_useConstraint(false),
-m_outDir("/home/lf18/workspace/niftyreg_out"), m_maskPath(""), m_initCPPPath(""), m_levelToPerform(1) {
+m_outDir("/home/lf18/workspace/niftyreg_out"), m_maskPath(""), m_initCPPPath(""),
+m_levelToPerform(1), m_saveMoreOutput(false) {
 }
 
 CommandLineReader& CommandLineReader::getInstance() {
@@ -67,6 +68,10 @@ bool CommandLineReader::getUseConstraint() const {
     return m_useConstraint;
 }
 
+bool CommandLineReader::getSaveMoreOutput() const {
+    return m_saveMoreOutput;
+}
+
 bool CommandLineReader::justHelp() const {
     return m_usage;
 }
@@ -92,6 +97,7 @@ void CommandLineReader::processCmdLineOptions(int argc, char **argv) {
             ("o,out", "Path output directory.", cxxopts::value<std::string>())
             ("i,incpp", "Path to the CPP input to use for warm start initialisation.", cxxopts::value<std::string>())
             ("l,nlevel", "Number of levels to perform", cxxopts::value<unsigned int>())
+            ("v,verbose", "Save more output", cxxopts::value<bool>())
             ;
 
     // Parse command line options
@@ -117,6 +123,9 @@ void CommandLineReader::processCmdLineOptions(int argc, char **argv) {
         }
         if (options.count("nlevel")) {
             m_levelToPerform = options["nlevel"].as<unsigned int>();
+        }
+        if (options.count("verbose")) {
+            m_saveMoreOutput = true;
         }
     }
 
