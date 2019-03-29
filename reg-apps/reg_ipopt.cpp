@@ -136,15 +136,15 @@ int main(int argc, char** argv) {
   REG->SetSpacing(0, spacing_mm);  // do not use a spacing of 5 to avoid lut...
   std::cout << "Set spacing to " << spacing_mm << " mm" << std::endl;
   REG->SetLinearEnergyWeight(0.f);  // default is 0.01
-  REG->SetBendingEnergyWeight(0.1f);  // default is 0.001
+  REG->SetBendingEnergyWeight(0.01f);  // default is 0.001 and 0.1 works ok for SSFP
   REG->SetInverseConsistencyWeight(0.f);  // make sure inverse consistency is not used
 //  float scale = 1e7;  // appropriate scaling factor for NMI
   float scale = 100000.f;  // appropriate scaling factor for LNCC
-  REG->UseLNCC(0, 4.f);
+//  REG->UseLNCC(0, 4.f);
   REG->setScale(scale);
 
 //  int maxIter = 1;
-  int maxIter = 100;
+  int maxIter = 150;
 
   // Set the number of levels to perform for the pyramidal approach
   unsigned int levelToPerform = CommandLineReader::getInstance().getLevelToPerform();
