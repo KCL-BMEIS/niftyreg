@@ -1914,13 +1914,14 @@ void reg_divergence_conforming_spline_getDeformationField3D(nifti_image *splineC
       DTYPE xBasisOrder3[4], yBasisOrder3[4];
       DTYPE xBasisOrder2[4], yBasisOrder2[4];
       DTYPE voxel[3];
+      bool isOutside = false;  // assess if we are trying to look at a position outside the grid
 
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
    index, voxel, basis, xBasisOrder3, xBasisOrder2, yBasisOrder3, yBasisOrder2, \
    zBasisOrder3, zBasisOrder2, xControlPointCoordinates, \
-   yControlPointCoordinates, zControlPointCoordinates, coord) \
+   yControlPointCoordinates, zControlPointCoordinates, coord, isOutside) \
    shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, referenceMatrix_real_to_voxel, \
    bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
    splineControlPoint, mask)
@@ -1934,102 +1935,103 @@ void reg_divergence_conforming_spline_getDeformationField3D(nifti_image *splineC
          for (y = 0; y < deformationField->ny; y++) {
             for (x = 0; x < deformationField->nx; x++) {
                if (mask[index] > -1) {
+                  isOutside = false;
                   // The previous position at the current pixel position is read
                   real[0] = fieldPtrX[index];
                   real[1] = fieldPtrY[index];
                   real[2] = fieldPtrZ[index];
 
                   // From real to pixel position in the control point space
-                  voxel[0] =
-                          referenceMatrix_real_to_voxel.m[0][0] * real[0] +
-                          referenceMatrix_real_to_voxel.m[0][1] * real[1] +
-                          referenceMatrix_real_to_voxel.m[0][2] * real[2] +
-                          referenceMatrix_real_to_voxel.m[0][3];
-                  voxel[1] =
-                          referenceMatrix_real_to_voxel.m[1][0] * real[0] +
-                          referenceMatrix_real_to_voxel.m[1][1] * real[1] +
-                          referenceMatrix_real_to_voxel.m[1][2] * real[2] +
-                          referenceMatrix_real_to_voxel.m[1][3];
-                  voxel[2] =
-                          referenceMatrix_real_to_voxel.m[2][0] * real[0] +
-                          referenceMatrix_real_to_voxel.m[2][1] * real[1] +
-                          referenceMatrix_real_to_voxel.m[2][2] * real[2] +
-                          referenceMatrix_real_to_voxel.m[2][3];
-                  //                        reg_mat44_mul(referenceMatrix_real_to_voxel, real, voxel);
-
-                  // The spline coefficients are computed
-                  xPre = (int) reg_floor(voxel[0]);
-                  basis = voxel[0] - static_cast<DTYPE>(xPre);
-                  --xPre;
-                  // TODO : Check rounding errors
-                  if (basis < 0.0) basis = 0.0; //rounding error
-//                        if(bspline) get_BSplineBasisValues<DTYPE>(basis, xBasis);
-//                        else get_SplineBasisValues<DTYPE>(basis, xBasis);
-                  get_BSplineBasisWeights(basis, xBasisOrder3, 3);
-                  get_BSplineBasisWeights(basis, xBasisOrder2, 2);
-
-                  yPre = (int) reg_floor(voxel[1]);
-                  basis = voxel[1] - static_cast<DTYPE>(yPre);
-                  --yPre;
-                  if (basis < 0.0) basis = 0.0; //rounding error
-//                        if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
-//                        else get_SplineBasisValues<DTYPE>(basis, yBasis);
-                  get_BSplineBasisWeights(basis, yBasisOrder3, 3);
-                  get_BSplineBasisWeights(basis, yBasisOrder2, 2);
-
-                  zPre = (int) reg_floor(voxel[2]);
-                  basis = voxel[2] - static_cast<DTYPE>(zPre);
-                  --zPre;
-                  if (basis < 0.0) basis = 0.0; //rounding error
-//                        if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
-//                        else get_SplineBasisValues<DTYPE>(basis, zBasis);
-                  get_BSplineBasisWeights(basis, zBasisOrder3, 3);
-                  get_BSplineBasisWeights(basis, zBasisOrder2, 2);
-
-                  // The control point positions are extracted
-                  if (xPre != oldPreX || yPre != oldPreY || zPre != oldPreZ) {
-                     // get the control point coordinates
-                     get_GridValues<DTYPE>(xPre,  // in
-                                           yPre,  // in
-                                           zPre,  // in
-                                           splineControlPoint,  // in nifti_image
-                                           controlPointPtrX,  // in
-                                           controlPointPtrY,  // in
-                                           controlPointPtrZ,  // in
-                                           xControlPointCoordinates,  // out
-                                           yControlPointCoordinates,  // out
-                                           zControlPointCoordinates,  // out
-                                           false, // no approximation
-                                           false // not a deformation field
-                     );
-                     oldPreX = xPre;
-                     oldPreY = yPre;
-                     oldPreZ = zPre;
+//                  voxel[0] =
+//                          referenceMatrix_real_to_voxel.m[0][0] * real[0] +
+//                          referenceMatrix_real_to_voxel.m[0][1] * real[1] +
+//                          referenceMatrix_real_to_voxel.m[0][2] * real[2] +
+//                          referenceMatrix_real_to_voxel.m[0][3];
+//                  voxel[1] =
+//                          referenceMatrix_real_to_voxel.m[1][0] * real[0] +
+//                          referenceMatrix_real_to_voxel.m[1][1] * real[1] +
+//                          referenceMatrix_real_to_voxel.m[1][2] * real[2] +
+//                          referenceMatrix_real_to_voxel.m[1][3];
+//                  voxel[2] =
+//                          referenceMatrix_real_to_voxel.m[2][0] * real[0] +
+//                          referenceMatrix_real_to_voxel.m[2][1] * real[1] +
+//                          referenceMatrix_real_to_voxel.m[2][2] * real[2] +
+//                          referenceMatrix_real_to_voxel.m[2][3];
+                  reg_mat44_mul(&referenceMatrix_real_to_voxel, real, voxel);
+                  // check if the transformation is pointing outside the control grid
+                  if (voxel[0] < 0 || voxel[1] < 0 || voxel[2] < 0 ||
+                      voxel[0] > splineControlPoint->nx || voxel[1] > splineControlPoint->ny ||
+                      voxel[2] > splineControlPoint->nz) {
+                     isOutside = true;
                   }
+                  // if outside the transformation is not updated;
+                  // it corresponds to take null displacement outside the control grid
+                  if (!isOutside) {
+                     // The spline coefficients are computed
+                     xPre = (int) reg_floor(voxel[0]);
+                     basis = voxel[0] - static_cast<DTYPE>(xPre);
+                     --xPre;
+                     // TODO : Check rounding errors
+                     if (basis < 0.0) basis = 0.0; //rounding error
+                     get_BSplineBasisWeights(basis, xBasisOrder3, 3);
+                     get_BSplineBasisWeights(basis, xBasisOrder2, 2);
 
-                  // compute new position at the current voxel after composition
-                  // the control point grid is a displacement here
-//                  real[0] = 0.0;
-//                  real[1] = 0.0;
-//                  real[2] = 0.0;
-                  coord = 0;
-                  for (c = 0; c < 4; c++) {
-                     for (b = 0; b < 4; b++) {
-                        for (a = 0; a < 4; a++) {
-                           DTYPE tempValueX = xBasisOrder3[a] * yBasisOrder2[b] * zBasisOrder2[c];
-                           DTYPE tempValueY = xBasisOrder2[a] * yBasisOrder3[b] * zBasisOrder2[c];
-                           DTYPE tempValueZ = xBasisOrder2[a] * yBasisOrder2[b] * zBasisOrder3[c];
-                           real[0] += xControlPointCoordinates[coord] * tempValueX;
-                           real[1] += yControlPointCoordinates[coord] * tempValueY;
-                           real[2] += zControlPointCoordinates[coord] * tempValueZ;
-                           coord++;
+                     yPre = (int) reg_floor(voxel[1]);
+                     basis = voxel[1] - static_cast<DTYPE>(yPre);
+                     --yPre;
+                     if (basis < 0.0) basis = 0.0; //rounding error
+                     get_BSplineBasisWeights(basis, yBasisOrder3, 3);
+                     get_BSplineBasisWeights(basis, yBasisOrder2, 2);
+
+                     zPre = (int) reg_floor(voxel[2]);
+                     basis = voxel[2] - static_cast<DTYPE>(zPre);
+                     --zPre;
+                     if (basis < 0.0) basis = 0.0; //rounding error
+                     get_BSplineBasisWeights(basis, zBasisOrder3, 3);
+                     get_BSplineBasisWeights(basis, zBasisOrder2, 2);
+
+                     // The control point positions are extracted
+                     if (xPre != oldPreX || yPre != oldPreY || zPre != oldPreZ) {
+                        // get the control point coordinates
+                        get_GridValues<DTYPE>(xPre,  // in
+                                              yPre,  // in
+                                              zPre,  // in
+                                              splineControlPoint,  // in nifti_image
+                                              controlPointPtrX,  // in
+                                              controlPointPtrY,  // in
+                                              controlPointPtrZ,  // in
+                                              xControlPointCoordinates,  // out
+                                              yControlPointCoordinates,  // out
+                                              zControlPointCoordinates,  // out
+                                              false, // no approximation
+                                              false // not a deformation field
+                        );
+                        oldPreX = xPre;
+                        oldPreY = yPre;
+                        oldPreZ = zPre;
+                     }
+
+                     // compute new position at the current voxel after composition
+                     // by adding a displacement to the current transformation
+                     coord = 0;
+                     for (c = 0; c < 4; c++) {
+                        for (b = 0; b < 4; b++) {
+                           for (a = 0; a < 4; a++) {
+                              DTYPE tempValueX = xBasisOrder3[a] * yBasisOrder2[b] * zBasisOrder2[c];
+                              DTYPE tempValueY = xBasisOrder2[a] * yBasisOrder3[b] * zBasisOrder2[c];
+                              DTYPE tempValueZ = xBasisOrder2[a] * yBasisOrder2[b] * zBasisOrder3[c];
+                              real[0] += xControlPointCoordinates[coord] * tempValueX;
+                              real[1] += yControlPointCoordinates[coord] * tempValueY;
+                              real[2] += zControlPointCoordinates[coord] * tempValueZ;
+                              coord++;
+                           }
                         }
                      }
-                  }
-                  fieldPtrX[index] = real[0];
-                  fieldPtrY[index] = real[1];
-                  fieldPtrZ[index] = real[2];
-               }
+                     fieldPtrX[index] = real[0];
+                     fieldPtrY[index] = real[1];
+                     fieldPtrZ[index] = real[2];
+                  }  // not isOutside
+               }   // in mask
                index++;
             }
          }
@@ -2043,426 +2045,8 @@ void reg_divergence_conforming_spline_getDeformationField3D(nifti_image *splineC
       // TODO: implement get_deformation with composition==false
    }
 }
-//        DTYPE gridVoxelSpacing[3];
-//        gridVoxelSpacing[0] = splineControlPoint->dx / deformationField->dx;
-//        gridVoxelSpacing[1] = splineControlPoint->dy / deformationField->dy;
-//        gridVoxelSpacing[2] = splineControlPoint->dz / deformationField->dz;
-//
-//#ifdef _USE_SSE
-//        #ifdef _WIN32
-//      union u1
-//      {
-//         __m128 m[4];
-//         __declspec(align(16)) DTYPE f[16];
-//      } yzBasis;
-//      union u2
-//      {
-//         __m128 m[16];
-//         __declspec(align(16)) DTYPE f[64];
-//      } xyzBasis;
-//#else // _WIN32
-//      union
-//      {
-//         __m128 m[4];
-//         DTYPE f[16] __attribute__((aligned(16)));
-//      } yzBasis;
-//      union
-//      {
-//         __m128 m[16];
-//         DTYPE f[64] __attribute__((aligned(16)));
-//      } xyzBasis;
-//#endif // _WIN32
-//#else // _USE_SSE
-//        DTYPE yzBasis[16], xyzBasis[64];
-//#endif // _USE_SSE
-//
-//         Assess if lookup table can be used
-//        if(gridVoxelSpacing[0]==5. && gridVoxelSpacing[0]==5. && gridVoxelSpacing[0]==5. && force_no_lut==false){
-//
-//             Assign a single array that will contain all coefficients
-//            DTYPE *coefficients = (DTYPE *)malloc(125*64*sizeof(DTYPE));
-//             Compute and store all required coefficients
-//            int coeff_index;
-//#if defined (_OPENMP)
-//#ifdef _USE_SSE
-//            #pragma omp parallel for default(none) \
-//    private(x, y, z, a, b, c, coeff_index, basis, zBasis, temp, \
-//    val, tempCurrent, yzBasis) \
-//    shared(coefficients, bspline)
-//#else //  _USE_SSE
-//#pragma omp parallel for default(none) \
-//    private(x, y, z, a, b, c, coeff_index, basis, zBasis, temp, \
-//    yzBasis, coord) \
-//    shared(coefficients, bspline)
-//#endif // _USE_SSE
-//#endif // _OPENMP
-//            for(z=0;z<5;++z){
-//                coeff_index=z*5*5*64;
-//                basis=(DTYPE)z/5.;
-//                if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
-//                else get_SplineBasisValues<DTYPE>(basis, zBasis);
-//                for(y=0;y<5;++y){
-//                    basis=(DTYPE)y/5.;
-//                    if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
-//                    else get_SplineBasisValues<DTYPE>(basis, temp);
-//#if _USE_SSE
-//                    val.f[0] = temp[0];
-//                  val.f[1] = temp[1];
-//                  val.f[2] = temp[2];
-//                  val.f[3] = temp[3];
-//                  tempCurrent=val.m;
-//                  for(a=0; a<4; a++)
-//                  {
-//                      val.m=_mm_set_ps1(zBasis[a]);
-//                      yzBasis.m[a] = _mm_mul_ps(tempCurrent,val.m);
-//                  }
-//#else
-//                    coord=0;
-//                    for(a=0; a<4; a++)
-//                    {
-//                        yzBasis[coord++]=temp[0]*zBasis[a];
-//                        yzBasis[coord++]=temp[1]*zBasis[a];
-//                        yzBasis[coord++]=temp[2]*zBasis[a];
-//                        yzBasis[coord++]=temp[3]*zBasis[a];
-//                    }
-//#endif
-//
-//                    for(x=0;x<5;++x){
-//                        basis=(DTYPE)x/5.;
-//                        if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
-//                        else get_SplineBasisValues<DTYPE>(basis, temp);
-//#if _USE_SSE
-//
-//                        val.f[0] = temp[0];
-//                      val.f[1] = temp[1];
-//                      val.f[2] = temp[2];
-//                      val.f[3] = temp[3];
-//                      tempCurrent=val.m;
-//                      for(a=0; a<16; ++a)
-//                      {
-//                          val.m=_mm_set_ps1(yzBasis.f[a]);
-//                          val.m=_mm_mul_ps(tempCurrent,val.m);
-//                          coefficients[coeff_index++]=val.f[0];
-//                          coefficients[coeff_index++]=val.f[1];
-//                          coefficients[coeff_index++]=val.f[2];
-//                          coefficients[coeff_index++]=val.f[3];
-//                      }
-//#else
-//                        for(a=0; a<16; a++)
-//                        {
-//                            coefficients[coeff_index++]=temp[0]*yzBasis[a];
-//                            coefficients[coeff_index++]=temp[1]*yzBasis[a];
-//                            coefficients[coeff_index++]=temp[2]*yzBasis[a];
-//                            coefficients[coeff_index++]=temp[3]*yzBasis[a];
-//                        }
-//#endif
-//                    }  // x
-//                }  // y
-//            }  // z
-//
-//            // Loop over block of 5x5x5 voxels
-//#if _USE_SSE
-//            int coord;
-//#endif // USE_SSE
-//#if defined (_OPENMP)
-//#ifdef _USE_SSE
-//            #pragma omp parallel for default(none) \
-//   private(x, y, z, a, b, c, xPre, yPre, zPre, real, \
-//   index, xyzBasis, temp, coeff_index, coord, tempX, tempY, tempZ, val,\
-//   xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates) \
-//   shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
-//   gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
-//   coefficients)
-//#else //  _USE_SSE
-//#pragma omp parallel for default(none) \
-//   private(x, y, z, a, b, c, xPre, yPre, zPre, real, \
-//   index, xyzBasis, temp, coeff_index, coord, basis, \
-//   xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates) \
-//   shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
-//   gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
-//   coefficients)
-//#endif // _USE_SSE
-//#endif // _OPENMP
-//            for(zPre=0; zPre<splineControlPoint->nz-3; zPre++)
-//            {
-//                for(yPre=0; yPre<splineControlPoint->ny-3; yPre++)
-//                {
-//                    for(xPre=0; xPre<splineControlPoint->nx-3; xPre++)
-//                    {
-//#if _USE_SSE
-//                        get_GridValues<DTYPE>(xPre,
-//                                            yPre,
-//                                            zPre,
-//                                            splineControlPoint,
-//                                            controlPointPtrX,
-//                                            controlPointPtrY,
-//                                            controlPointPtrZ,
-//                                            xControlPointCoordinates.f,
-//                                            yControlPointCoordinates.f,
-//                                            zControlPointCoordinates.f,
-//                                            false, // no approximation
-//                                            false // not a deformation field
-//                                            );
-//#else // _USE_SSE
-//                        get_GridValues<DTYPE>(xPre,
-//                                              yPre,
-//                                              zPre,
-//                                              splineControlPoint,
-//                                              controlPointPtrX,
-//                                              controlPointPtrY,
-//                                              controlPointPtrZ,
-//                                              xControlPointCoordinates,
-//                                              yControlPointCoordinates,
-//                                              zControlPointCoordinates,
-//                                              false, // no approximation
-//                                              false // not a deformation field
-//                        );
-//#endif // _USE_SSE
-//                        coeff_index=0;
-//                        for(c=0;c<5;++c){
-//                            z = zPre*5+c;
-//                            if(z<deformationField->nz){
-//                                for(b=0;b<5;++b){
-//                                    y = yPre*5+b;
-//                                    if(y<deformationField->ny){
-//                                        index = (z*deformationField->ny+y)*deformationField->nx+xPre*5;
-//                                        for(a=0;a<5;++a){
-//                                            x = xPre*5+a;
-//                                            if(x<deformationField->nx && mask[index]>-1){
-//#if _USE_SSE
-//                                                tempX =  _mm_set_ps1(0.0);
-//                                              tempY =  _mm_set_ps1(0.0);
-//                                              tempZ =  _mm_set_ps1(0.0);
-//                                              for(coord=0;coord<16;++coord){
-//                                                  val.m = _mm_set_ps(coefficients[coeff_index+3],
-//                                                        coefficients[coeff_index+2],
-//                                                        coefficients[coeff_index+1],
-//                                                        coefficients[coeff_index]);
-//                                                  coeff_index+=4;
-//                                                  tempX = _mm_add_ps(_mm_mul_ps(val.m,
-//                                                                                xControlPointCoordinates.m[coord]),
-//                                                                     tempX );
-//                                                  tempY = _mm_add_ps(_mm_mul_ps(val.m,
-//                                                                                yControlPointCoordinates.m[coord]),
-//                                                                     tempY );
-//                                                  tempZ = _mm_add_ps(_mm_mul_ps(val.m,
-//                                                                                zControlPointCoordinates.m[coord]),
-//                                                                     tempZ );
-//                                              }
-//                                              //the values stored in SSE variables are transfered to normal float
-//#ifdef __SSE3__
-//                                              val.m = _mm_hadd_ps(tempX, tempY);
-//                                              val.m = _mm_hadd_ps(val.m, tempZ);
-//                                              real[0] = val.f[0];
-//                                              real[1] = val.f[1];
-//                                              real[2] = val.f[2]+val.f[3];
-//#else
-//                                              val.m=tempX;
-//                                              real[0]=val.f[0]+val.f[1]+val.f[2]+val.f[3];
-//                                              val.m=tempY;
-//                                              real[1]= val.f[0]+val.f[1]+val.f[2]+val.f[3];
-//                                              val.m=tempZ;
-//                                              real[2]= val.f[0]+val.f[1]+val.f[2]+val.f[3];
-//#endif
-//#else // _USE_SSE
-//                                                real[0]=real[1]=real[2]=0;
-//                                                for(coord=0;coord<64;++coord){
-//                                                    basis = coefficients[coeff_index++];
-//                                                    real[0] += xControlPointCoordinates[coord] * basis;
-//                                                    real[1] += yControlPointCoordinates[coord] * basis;
-//                                                    real[2] += zControlPointCoordinates[coord] * basis;
-//                                                }
-//#endif // _USE_SSE
-//                                                fieldPtrX[index] = real[0];
-//                                                fieldPtrY[index] = real[1];
-//                                                fieldPtrZ[index] = real[2];
-//                                            } // x defined
-//                                            else coeff_index += 64;
-//                                            index++;
-//                                        } // a
-//                                    } // y defined
-//                                    else coeff_index += 5*64;
-//                                } // b
-//                            } // z defined
-//                            else coeff_index += 5*5*64;
-//                        } // c
-//                    } // xPre
-//                } // yPre
-//            } // zPre
-//            free(coefficients);
-//        } // if spacings==5 voxels
-//        else { // no composition and no lut
-//
-//#if defined (_OPENMP)
-//#ifdef _USE_SSE
-//            #pragma omp parallel for default(none) \
-//    private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
-//    index, basis, xyzBasis, yzBasis, zBasis, temp, xControlPointCoordinates, \
-//    yControlPointCoordinates, zControlPointCoordinates, oldBasis, \
-//    tempX, tempY, tempZ, xBasis_sse, yBasis_sse, zBasis_sse, \
-//    temp_basis_sse, basis_sse, val, tempCurrent) \
-//    shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
-//    gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ)
-//#else //  _USE_SSE
-//#pragma omp parallel for default(none) \
-//    private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
-//    index, basis, xyzBasis, yzBasis, zBasis, temp, xControlPointCoordinates, \
-//    yControlPointCoordinates, zControlPointCoordinates, oldBasis, coord) \
-//    shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
-//    gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ)
-//#endif // _USE_SSE
-//#endif // _OPENMP
-//            for(z=0; z<deformationField->nz; z++)
-//            {
-//
-//                index=z*deformationField->nx*deformationField->ny;
-//                oldBasis=1.1;
-//
-//                zPre=static_cast<int>(static_cast<DTYPE>(z)/gridVoxelSpacing[2]);
-//                basis=static_cast<DTYPE>(z)/gridVoxelSpacing[2]-static_cast<DTYPE>(zPre);
-//                if(basis<0.0) basis=0.0; //rounding error
-//                if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
-//                else get_SplineBasisValues<DTYPE>(basis, zBasis);
-//
-//                for(y=0; y<deformationField->ny; y++)
-//                {
-//
-//                    yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
-//                    basis=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
-//                    if(basis<0.0) basis=0.0; //rounding error
-//                    if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
-//                    else get_SplineBasisValues<DTYPE>(basis, temp);
-//#if _USE_SSE
-//                    val.f[0] = temp[0];
-//                  val.f[1] = temp[1];
-//                  val.f[2] = temp[2];
-//                  val.f[3] = temp[3];
-//                  tempCurrent=val.m;
-//                  for(a=0; a<4; a++)
-//                  {
-//                      val.m=_mm_set_ps1(zBasis[a]);
-//                      yzBasis.m[a] = _mm_mul_ps(tempCurrent,val.m);
-//                  }
-//#else
-//                    coord=0;
-//                    for(a=0; a<4; a++)
-//                    {
-//                        yzBasis[coord++]=temp[0]*zBasis[a];
-//                        yzBasis[coord++]=temp[1]*zBasis[a];
-//                        yzBasis[coord++]=temp[2]*zBasis[a];
-//                        yzBasis[coord++]=temp[3]*zBasis[a];
-//                    }
-//#endif
-//
-//                    for(x=0; x<deformationField->nx; x++)
-//                    {
-//
-//                        xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
-//                        basis=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
-//                        if(basis<0.0) basis=0.0; //rounding error
-//                        if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
-//                        else get_SplineBasisValues<DTYPE>(basis, temp);
-//#if _USE_SSE
-//
-//                        val.f[0] = temp[0];
-//                      val.f[1] = temp[1];
-//                      val.f[2] = temp[2];
-//                      val.f[3] = temp[3];
-//                      tempCurrent=val.m;
-//                      for(a=0; a<16; ++a)
-//                      {
-//                          val.m=_mm_set_ps1(yzBasis.f[a]);
-//                          xyzBasis.m[a]=_mm_mul_ps(tempCurrent,val.m);
-//                      }
-//#else
-//                        coord=0;
-//                        for(a=0; a<16; a++)
-//                        {
-//                            xyzBasis[coord++]=temp[0]*yzBasis[a];
-//                            xyzBasis[coord++]=temp[1]*yzBasis[a];
-//                            xyzBasis[coord++]=temp[2]*yzBasis[a];
-//                            xyzBasis[coord++]=temp[3]*yzBasis[a];
-//                        }
-//#endif
-//                        if(basis<=oldBasis || x==0)
-//                        {
-//#ifdef _USE_SSE
-//                            get_GridValues<DTYPE>(xPre,
-//                                                yPre,
-//                                                zPre,
-//                                                splineControlPoint,
-//                                                controlPointPtrX,
-//                                                controlPointPtrY,
-//                                                controlPointPtrZ,
-//                                                xControlPointCoordinates.f,
-//                                                yControlPointCoordinates.f,
-//                                                zControlPointCoordinates.f,
-//                                                false, // no approximation
-//                                                false // not a deformation field
-//                                                );
-//#else // _USE_SSE
-//                            get_GridValues<DTYPE>(xPre,
-//                                                  yPre,
-//                                                  zPre,
-//                                                  splineControlPoint,
-//                                                  controlPointPtrX,
-//                                                  controlPointPtrY,
-//                                                  controlPointPtrZ,
-//                                                  xControlPointCoordinates,
-//                                                  yControlPointCoordinates,
-//                                                  zControlPointCoordinates,
-//                                                  false, // no approximation
-//                                                  false // not a deformation field
-//                            );
-//#endif // _USE_SSE
-//                        }
-//                        oldBasis=basis;
-//
-//                        real[0]=0.0;
-//                        real[1]=0.0;
-//                        real[2]=0.0;
-//
-//                        if(mask[index]>-1)
-//                        {
-//#if _USE_SSE
-//                            tempX =  _mm_set_ps1(0.0);
-//                          tempY =  _mm_set_ps1(0.0);
-//                          tempZ =  _mm_set_ps1(0.0);
-//                          //addition and multiplication of the 64 basis value and CP displacement for each axis
-//                          for(a=0; a<16; a++)
-//                          {
-//                              tempX = _mm_add_ps(_mm_mul_ps(xyzBasis.m[a], xControlPointCoordinates.m[a]), tempX );
-//                              tempY = _mm_add_ps(_mm_mul_ps(xyzBasis.m[a], yControlPointCoordinates.m[a]), tempY );
-//                              tempZ = _mm_add_ps(_mm_mul_ps(xyzBasis.m[a], zControlPointCoordinates.m[a]), tempZ );
-//                          }
-//                          //the values stored in SSE variables are transfered to normal float
-//                          val.m=tempX;
-//                          real[0]=val.f[0]+val.f[1]+val.f[2]+val.f[3];
-//                          val.m=tempY;
-//                          real[1]= val.f[0]+val.f[1]+val.f[2]+val.f[3];
-//                          val.m=tempZ;
-//                          real[2]= val.f[0]+val.f[1]+val.f[2]+val.f[3];
-//#else
-//                            for(a=0; a<64; a++)
-//                            {
-//                                real[0] += xControlPointCoordinates[a] * xyzBasis[a];
-//                                real[1] += yControlPointCoordinates[a] * xyzBasis[a];
-//                                real[2] += zControlPointCoordinates[a] * xyzBasis[a];
-//                            }
-//#endif
-//                        }// mask
-//                        fieldPtrX[index] = real[0];
-//                        fieldPtrY[index] = real[1];
-//                        fieldPtrZ[index] = real[2];
-//                        index++;
-//                    } // x
-//                } // y
-//            } // z
-//        } // else spacing==5
-//    }// from a deformation field
-//
-//    return;
-//}
+
+
 /* *************************************************************** */
 void reg_spline_getDeformationField(nifti_image *splineControlPoint,  // in
                                     nifti_image *deformationField, // out
@@ -5044,20 +4628,8 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
       }
 
       // Generate the (dense) velocity field
-      // Marc Version
       reg_spline_getFlowFieldFromVelocityGrid(velocityFieldGrid,  // in
                                               flowField);  // out
-      // Lucas version (refactoring without composition)
-      // fake the number of extension here to avoid the second half of the affine
-//      int oldNumExt = velocityFieldGrid->num_ext;
-//      if(oldNumExt>1) {velocityFieldGrid->num_ext=1;}
-//      reg_spline_getDeformationField(velocityFieldGrid,
-//                                     flowField,
-//                                     NULL, // mask
-//                                     false, // no composition;
-//                                     true,  // bspline
-//                                     true); // force_no_lut
-//      velocityFieldGrid->num_ext=oldNumExt;
 
       // return to deformation
       if (velocityFieldGrid->intent_p1 == DIV_CONFORMING_VEL_GRID) {

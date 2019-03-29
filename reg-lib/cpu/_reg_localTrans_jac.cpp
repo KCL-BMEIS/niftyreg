@@ -3682,7 +3682,7 @@ void reg_divergence_conforming_spline_getJacobianDetImage(nifti_image *splineCon
    xBasisDerivOrder3, xBasisDerivOrder2, yBasisDerivOrder3, yBasisDerivOrder2, zBasisDerivOrder3, zBasisDerivOrder2, \
    xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates, coord, tempJacVal, tempJacMat) \
    shared(deformationField, jacobianPtr, fieldPtrX, fieldPtrY, fieldPtrZ, referenceMatrix_real_to_voxel, \
-   controlPointPtrX, controlPointPtrY, controlPointPtrZ, splineControlPoint, scaling)
+   controlPointPtrX, controlPointPtrY, controlPointPtrZ, splineControlPoint, scaling, std::cout)
 #endif // _OPENMP
    for (z = 0; z < deformationField->nz; z++) {
       index = z * deformationField->nx * deformationField->ny;
@@ -3778,7 +3778,10 @@ void reg_divergence_conforming_spline_getJacobianDetImage(nifti_image *splineCon
                   }
                }
             }
-            jacobianPtr[index] = nifti_mat33_determ(tempJacMat);
+//            if (nifti_mat33_determ(tempJacMat) > 100) {
+//               std::cout << "high value found in the jacobian map" << std::endl;
+//            }
+            jacobianPtr[index] += log(nifti_mat33_determ(tempJacMat));
 //                }
             index++;
          }
@@ -3794,7 +3797,7 @@ nifti_image * reg_spline_GetJacobianFromVelocityGrid(nifti_image* deformationFie
    jacobianImage->nvox = jacobianImage->nx * jacobianImage->ny * jacobianImage->nz;
    jacobianImage->data=(void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
    reg_tools_multiplyValueToImage(jacobianImage, jacobianImage, 0);
-   reg_tools_addValueToImage(jacobianImage, jacobianImage, 1);
+//   reg_tools_addValueToImage(jacobianImage, jacobianImage, 1);
    //
    // Create an temporary image to store the flow field
    nifti_image *flowField = nifti_copy_nim_info(deformationFieldImage);
@@ -3816,19 +3819,34 @@ nifti_image * reg_spline_GetJacobianFromVelocityGrid(nifti_image* deformationFie
    reg_tools_divideValueToImage(velocityFieldGrid, scaledVelocityFieldGrid, numItegration);
    reg_getDeformationFromDisplacement(velocityFieldGrid);
 
-   // Compute the divergence image
+   // Compute the jacobian image with an Euler integration
    switch (deformationFieldImage->datatype) {
       case NIFTI_TYPE_FLOAT64:
-         reg_divergence_conforming_spline_getJacobianDetImage<double>(scaledVelocityFieldGrid,  // in
-                                                                     flowField,  // in
-                                                                     jacobianImage  // out
-         );
+         for (int i = 0; i < numItegration; ++i) {
+//            std::cout << "i = " << i << std::endl;
+            reg_divergence_conforming_spline_getJacobianDetImage<double>(scaledVelocityFieldGrid,  // in
+                                                                         flowField,  // in
+                                                                         jacobianImage);  // out
+            reg_spline_getDeformationField(scaledVelocityFieldGrid,
+                                           flowField,  // out
+                                           NULL,  // mask
+                                           true,  // composition
+                                           true,  // bspline
+                                           true);  // force_no_lut
+         }
            break;
       case NIFTI_TYPE_FLOAT32:
-         reg_divergence_conforming_spline_getJacobianDetImage<float>(scaledVelocityFieldGrid,  // in
-                                                                    flowField,  // in
-                                                                    jacobianImage  // out
-         );
+         for (int i = 0; i < numItegration; ++i) {
+            reg_divergence_conforming_spline_getJacobianDetImage<float>(scaledVelocityFieldGrid,  // in
+                                                                        flowField,  // in
+                                                                        jacobianImage);  // out
+            reg_spline_getDeformationField(scaledVelocityFieldGrid,
+                                           flowField,  // out
+                                           NULL,  // mask
+                                           true,  // composition
+                                           true,  // bspline
+                                           true);  // force_no_lut
+         }
            break;
       default:
       reg_print_msg_error("datatype not supported");

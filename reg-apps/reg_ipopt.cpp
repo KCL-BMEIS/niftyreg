@@ -115,6 +115,8 @@ int main(int argc, char** argv) {
 
   REG->setDivergenceConstraint(CommandLineReader::getInstance().getUseConstraint());
 
+  REG->setSaveMoreOutput(CommandLineReader::getInstance().getSaveMoreOutput());
+
 //  REG->SetWarpedPaddingValue(0.);
 
   // interpolation of the images (change the parameter ref_f3d::interpolation)
@@ -209,15 +211,15 @@ int main(int argc, char** argv) {
     app->Options()->SetStringValue("accept_every_trial_step", "no");  // if "yes", deactivate line search
     app->Options()->SetIntegerValue("print_level", 5);  // between 1 and 12
     if (level == levelToPerform - 1){
-      app->Options()->SetNumericValue("tol", scale*1e-4);  // default scale*1e-4
-      app->Options()->SetNumericValue("acceptable_obj_change_tol", 1e-6);  // stop criteria based on objective
-      app->Options()->SetNumericValue("acceptable_tol", 100.*scale);  // default scale*1e-3
+      app->Options()->SetNumericValue("tol", scale*3.*1e-6);  // default scale*1e-4
+      app->Options()->SetNumericValue("acceptable_obj_change_tol", 1e-5);  // stop criteria based on objective
+      app->Options()->SetNumericValue("acceptable_tol", scale*100);  // default scale*1e-3
       app->Options()->SetNumericValue("acceptable_compl_inf_tol", 10000.);  // default 0.01
-      app->Options()->SetIntegerValue("acceptable_iter", 15);  // default 15
+      app->Options()->SetIntegerValue("acceptable_iter", 10);  // default 15
       app->Options()->SetIntegerValue("max_iter", maxIter);
     }
     else {
-      app->Options()->SetNumericValue("tol", 1e-6);
+      app->Options()->SetNumericValue("tol", scale*1e-4);
       app->Options()->SetIntegerValue("max_iter", 5*(levelToPerform - level));
 //      app->Options()->SetIntegerValue("max_iter", 300);
     }
@@ -250,7 +252,7 @@ int main(int argc, char** argv) {
               break;
         case Maximum_Iterations_Exceeded:
           std::cout << std::endl
-                    << "*** Return current best solution after the number of iterations has been exceeded" << std::endl;
+                    << "*** Return current best solution after reaching the maximum number of iterations" << std::endl;
               break;
         default:
           std::cout << std::endl << "*** The problem FAILED" << std::endl;
@@ -261,22 +263,6 @@ int main(int argc, char** argv) {
   // print stats info
   REG->PrintStatInfo();
 
-//  // print status for the final step
-//  switch (status) {
-//    case Solve_Succeeded:
-//      std::cout << std::endl << "*** Optimal solution found" << std::endl;
-//      break;
-//    case Solved_To_Acceptable_Level:
-//      std::cout << std::endl << "*** Acceptable solution found" << std::endl;
-//      break;
-//    case Maximum_Iterations_Exceeded:
-//      std::cout << std::endl
-//      << "*** Return current best solution after the number of iterations has been exceeded" << std::endl;
-//      break;
-//    default:
-//      std::cout << std::endl << "*** The problem FAILED" << std::endl;
-//      break;
-//  }
   // Print total time for the registration
   time(&end);
   int minutes=(int)floorf((end-start)/60.0f);
