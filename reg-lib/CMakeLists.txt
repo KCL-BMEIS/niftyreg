@@ -197,7 +197,8 @@ set(_reg_f3d_files
     _reg_f3d_sym.cpp
     _reg_f3d2_ipopt.h
     _reg_f3d2_ipopt.cpp
-        _reg_f3d_ipopt.cpp _reg_f3d_ipopt.h)
+        _reg_f3d_ipopt.cpp _reg_f3d_ipopt.h
+        _div_free_projection.h)
 
 set(_reg_f3d_libraries
   _reg_localTrans

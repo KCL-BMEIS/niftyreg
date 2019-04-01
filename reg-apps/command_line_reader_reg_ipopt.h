@@ -1,18 +1,19 @@
 /**
- * @class CommandLineReader reads the command line string provided by the user, parses it and extracts the relevant parameters.
+ * @class CommandLineReaderRegIpopt reads the command line string provided by the user, parses it and extracts the relevant parameters.
  *
  */
 
 #ifndef COMMAND_LINE_READER_H_
 #define COMMAND_LINE_READER_H_
 
+#include "command_line_reader_abstract.h"
 #include <iostream>
 #include <string>
 
-class CommandLineReader {
+class CommandLineReaderRegIpopt : public CommandLineReaderAbstract {
 public:
     // Singleton: only one command line
-    static CommandLineReader& getInstance();
+    static CommandLineReaderRegIpopt& getInstance();
 
     // Getters and setters
     std::string getRefFilePath() const;
@@ -23,15 +24,15 @@ public:
     unsigned int getLevelToPerform() const;
     bool getUseConstraint() const;
     bool getSaveMoreOutput() const;
-    bool justHelp() const;
+//    bool justHelp() const;
     void processCmdLineOptions(int argc, char **argv);
     void printUsage(std::ostream &stream) const;
     void writeCommandLine(int argc, char **argv);
 
-private:
-    CommandLineReader();
-    CommandLineReader(CommandLineReader const&) = delete;
-    void operator= (CommandLineReader const&) = delete;
+protected:
+    CommandLineReaderRegIpopt();
+    CommandLineReaderRegIpopt(CommandLineReaderRegIpopt const&) = delete;
+    void operator= (CommandLineReaderRegIpopt const&) = delete;
 
     static const std::string kUsageMsg;
     std::string m_refPath;

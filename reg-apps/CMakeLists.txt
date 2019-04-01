@@ -37,19 +37,23 @@ include_directories("/usr/local/include/boost_1_66_0")
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
   cuda_add_executable(reg_f3d reg_f3d.cpp)
-  cuda_add_executable(reg_ipopt reg_ipopt.cpp command_line_reader.cpp)
+  cuda_add_executable(reg_ipopt reg_ipopt.cpp command_line_reader_abstract.cpp command_line_reader_reg_ipopt.cpp)
+  cuda_add_executable(reg_div_free reg_div_free.cpp command_line_reader_div_free_projection.cpp command_line_reader_abstract.cpp)
 else(USE_CUDA)
   add_executable(reg_f3d reg_f3d.cpp)
-  add_executable(reg_ipopt reg_ipopt.cpp command_line_reader.cpp ../reg-lib/_reg_f3d2_ipopt.cpp)
+  add_executable(reg_ipopt reg_ipopt.cpp command_line_reader_abstract.cpp command_line_reader_reg_ipopt.cpp ../reg-lib/_reg_f3d2_ipopt.cpp)
+  add_executable(reg_div_free reg_div_free.cpp command_line_reader_div_free_projection.cpp command_line_reader_abstract.cpp)
   add_executable(reg_test_linearInterpolationImage reg_test_linearInterpolationImage.cpp)
 endif(USE_CUDA)
 target_link_libraries(reg_f3d _reg_f3d)
 target_link_libraries(reg_ipopt _reg_f3d)
+target_link_libraries(reg_div_free _reg_f3d)
 target_link_libraries(reg_test_linearInterpolationImage _reg_f3d)
 
 add_library(ipopt SHARED IMPORTED)
 set_property(TARGET ipopt PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/libipopt.so")
 target_link_libraries(reg_ipopt ipopt)
+target_link_libraries(reg_div_free ipopt)
 #message("$ENV{IPOPT_LIB_DIR}")
 #find_library(MY_IPOPT ipopt HINTS $ENV{IPOPT_LIB_DIR})
 #target_link_libraries(reg_ipopt ${MY_IPOPT})
@@ -59,6 +63,7 @@ add_library(blas SHARED IMPORTED)
 # For MKL:
 set_property(TARGET blas PROPERTY IMPORTED_LOCATION "/opt/intel/compilers_and_libraries_2019.2.187/linux/mkl/lib/intel64/libmkl_intel_lp64.so")
 target_link_libraries(reg_ipopt blas)
+target_link_libraries(reg_div_free blas)
 
 #add_library(dl SHARED IMPORTED)
 #set_property(TARGET dl PROPERTY IMPORTED_LOCATION "/usr/lib/x86_64-linux-gnu/libdl.so")
@@ -86,6 +91,7 @@ set(MODULE_LIST
   reg_aladin
   reg_f3d
   reg_ipopt
+  reg_div_free
   reg_test_linearInterpolationImage
   )
 #-----------------------------------------------------------------------------

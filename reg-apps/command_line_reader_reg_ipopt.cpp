@@ -1,5 +1,5 @@
 /**
- * @class CommandLineReader represents the class that parses and stores the command line options
+ * @class CommandLineReaderRegIpopt represents the class that parses and stores the command line options
  *        provided by the user to the program.
  */
 
@@ -7,15 +7,12 @@
 #include <fstream>
 #include <string>
 #include <boost/program_options.hpp>
-// #include <boost/filesystem.hpp>
 #include <exception>
-
-// My includes
 #include "cxxopts.h"
-#include "command_line_reader.h"
+#include "command_line_reader_reg_ipopt.h"
 #include "exception.h"
 
-const std::string CommandLineReader::kUsageMsg(
+const std::string CommandLineReaderRegIpopt::kUsageMsg(
         "\nConstrained Fast Free Form Diffeomorphic Deformation algorithm\n"
         "It uses NiftyReg as a simulator that provides gradient and objective function values\n"
         "and Ipopt to perform a Quasi-Newton optimisation."
@@ -29,52 +26,57 @@ const std::string CommandLineReader::kUsageMsg(
         "--incpp | -i\t Path to the CPP to use for initialisation of the first level (optional).\n"
 );
 
+CommandLineReaderRegIpopt& CommandLineReaderRegIpopt::getInstance() {
+    static CommandLineReaderRegIpopt instance;  // Guaranteed to be destroyed and instantiated on first use.
+    return instance;
+}
+
 // put default value for parameters here
-CommandLineReader::CommandLineReader() : m_usage(false), m_useConstraint(false),
+CommandLineReaderRegIpopt::CommandLineReaderRegIpopt() : m_usage(false), m_useConstraint(false),
 m_outDir("/home/lf18/workspace/niftyreg_out"), m_maskPath(""), m_initCPPPath(""),
 m_levelToPerform(1), m_saveMoreOutput(false) {
 }
 
-CommandLineReader& CommandLineReader::getInstance() {
-    static CommandLineReader instance;  // Guaranteed to be destroyed and instantiated on first use.
-    return instance;
-}
+//CommandLineReaderRegIpopt& CommandLineReaderRegIpopt::getInstance() {
+//    static CommandLineReaderRegIpopt instance;  // Guaranteed to be destroyed and instantiated on first use.
+//    return instance;
+//}
 
-std::string CommandLineReader::getRefFilePath() const {
+std::string CommandLineReaderRegIpopt::getRefFilePath() const {
     return m_refPath;
 }
 
-std::string CommandLineReader::getFloFilePath() const {
+std::string CommandLineReaderRegIpopt::getFloFilePath() const {
     return m_floPath;
 }
 
-std::string CommandLineReader::getMaskFilePath() const {
+std::string CommandLineReaderRegIpopt::getMaskFilePath() const {
     return m_maskPath;
 }
 
-std::string CommandLineReader::getOutDir() const {
+std::string CommandLineReaderRegIpopt::getOutDir() const {
     return m_outDir;
 }
 
-std::string CommandLineReader::getInitCPPPath() const {
+std::string CommandLineReaderRegIpopt::getInitCPPPath() const {
     return m_initCPPPath;
 }
 
-unsigned int CommandLineReader::getLevelToPerform() const {
+unsigned int CommandLineReaderRegIpopt::getLevelToPerform() const {
     return m_levelToPerform;
 }
 
-bool CommandLineReader::getUseConstraint() const {
+bool CommandLineReaderRegIpopt::getUseConstraint() const {
     return m_useConstraint;
 }
 
-bool CommandLineReader::getSaveMoreOutput() const {
+bool CommandLineReaderRegIpopt::getSaveMoreOutput() const {
     return m_saveMoreOutput;
 }
 
-bool CommandLineReader::justHelp() const {
-    return m_usage;
-}
+//bool CommandLineReaderRegIpopt::justHelp() const {
+//    return m_usage;
+//}
 
 /**
  * @brief Reads and prints the command line arguments provided by the user.
@@ -82,12 +84,12 @@ bool CommandLineReader::justHelp() const {
  * @param[in]  argv Array of strings containing the parameters provided.
  * @returns void.
  */
-void CommandLineReader::processCmdLineOptions(int argc, char **argv) {
+void CommandLineReaderRegIpopt::processCmdLineOptions(int argc, char **argv) {
     // Program name
     const std::string programName = "reg_ipopt";
 
     // Lightweight options parser, boost::program_options is a nightmare to compile with GCC in MAC OS X
-    cxxopts::Options options(programName, CommandLineReader::kUsageMsg);
+    cxxopts::Options options(programName, CommandLineReaderRegIpopt::kUsageMsg);
 
     options.add_options()
             ("h,help", "Prints this help message.")
@@ -134,7 +136,7 @@ void CommandLineReader::processCmdLineOptions(int argc, char **argv) {
     }
 }
 
-void CommandLineReader::writeCommandLine(int argc, char **argv) {
+void CommandLineReaderRegIpopt::writeCommandLine(int argc, char **argv) {
     std::string filename = "/command_line.txt";
     std::cout << "writing command line in " << m_outDir << filename << std::endl;
     std::ofstream file(m_outDir + filename);
@@ -149,6 +151,6 @@ void CommandLineReader::writeCommandLine(int argc, char **argv) {
  * @param[in] stream Flo stream where the usage message will be printed (e.g. std::cout or std::cerr).
  * @returns nothing.
  */
-void CommandLineReader::printUsage(std::ostream &stream) const {
-    stream << CommandLineReader::kUsageMsg << std::endl;
+void CommandLineReaderRegIpopt::printUsage(std::ostream &stream) const {
+    stream << CommandLineReaderRegIpopt::kUsageMsg << std::endl;
 }
