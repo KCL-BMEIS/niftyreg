@@ -8,7 +8,7 @@
 #include "_reg_f3d2_ipopt.h"
 #include "_reg_f3d_ipopt.h"
 #include "IpIpoptApplication.hpp"
-#include "command_line_reader.h"
+#include "command_line_reader_reg_ipopt.h"
 #include "exception.h"
 #include <float.h>
 #include <cstdio>
@@ -55,20 +55,20 @@ int main(int argc, char** argv) {
   time(&start);
 
  // Read the command line options
-  CommandLineReader::getInstance().processCmdLineOptions(argc, argv);
+  CommandLineReaderRegIpopt::getInstance().processCmdLineOptions(argc, argv);
 
   // If the user asks for help print help and close program
-  if (CommandLineReader::getInstance().justHelp()) {
-    CommandLineReader::getInstance().printUsage(std::cout);
+  if (CommandLineReaderRegIpopt::getInstance().justHelp()) {
+    CommandLineReaderRegIpopt::getInstance().printUsage(std::cout);
     return EXIT_SUCCESS;
   }
 
   // create the directory (with commonly used permissions)
-  std::string saveDir = CommandLineReader::getInstance().getOutDir();
+  std::string saveDir = CommandLineReaderRegIpopt::getInstance().getOutDir();
   const int check = mkdir(saveDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
   // write the command line that was used
-  CommandLineReader::getInstance().writeCommandLine(argc, argv);
+  CommandLineReaderRegIpopt::getInstance().writeCommandLine(argc, argv);
 
   // Read the reference and floating images, constraint mask and init cpp
   nifti_image *referenceImage = NULL;
@@ -76,26 +76,21 @@ int main(int argc, char** argv) {
   nifti_image *maskImage = NULL;
   nifti_image *initCPP = NULL;
 
-  referenceImage = reg_io_ReadImageFile(CommandLineReader::getInstance().getRefFilePath().c_str());
+  referenceImage = reg_io_ReadImageFile(CommandLineReaderRegIpopt::getInstance().getRefFilePath().c_str());
   if (!referenceImage) {
-    throw CouldNotReadInputImage(CommandLineReader::getInstance().getRefFilePath());
+    throw CouldNotReadInputImage(CommandLineReaderRegIpopt::getInstance().getRefFilePath());
   }
 
-  floatingImage = reg_io_ReadImageFile(CommandLineReader::getInstance().getFloFilePath().c_str());
+  floatingImage = reg_io_ReadImageFile(CommandLineReaderRegIpopt::getInstance().getFloFilePath().c_str());
   if (!floatingImage) {
-    throw CouldNotReadInputImage(CommandLineReader::getInstance().getFloFilePath());
+    throw CouldNotReadInputImage(CommandLineReaderRegIpopt::getInstance().getFloFilePath());
   }
 
   // Normalisation
-  clip_last_percentile(referenceImage);
-  clip_last_percentile(floatingImage);
+//  clip_last_percentile(referenceImage);
+//  clip_last_percentile(floatingImage);
 
-  std::string maskPath = CommandLineReader::getInstance().getMaskFilePath();
-  if (maskPath.length() > 1) {
-    maskImage = reg_io_ReadImageFile(maskPath.c_str());
-  }
-
-  std::string initCPPPath = CommandLineReader::getInstance().getInitCPPPath();
+  std::string initCPPPath = CommandLineReaderRegIpopt::getInstance().getInitCPPPath();
   if (initCPPPath.length() > 1) {
       initCPP = reg_io_ReadImageFile(initCPPPath.c_str());
   }
@@ -105,17 +100,29 @@ int main(int argc, char** argv) {
 //  SmartPtr<reg_f3d_ipopt<double> > REG = new reg_f3d_ipopt<double>(referenceImage->nt, floatingImage->nt);
   REG->SetReferenceImage(referenceImage);
   REG->SetFloatingImage(floatingImage);
-  if (maskImage != NULL) {
+
+  // add mask constraint if constraints are used
+  if (CommandLineReaderRegIpopt::getInstance().getUseConstraint()) {
+    std::string maskPath = CommandLineReaderRegIpopt::getInstance().getMaskFilePath();
+    if (maskPath.length() > 1) {
+      maskImage = reg_io_ReadImageFile(maskPath.c_str());
       REG->setConstraintMask(maskImage);
+    }
+    else {  // create a mask that covers all the image space
+      REG->setFullConstraint();
+    }
   }
+//  if (maskImage != NULL) {
+//      REG->setConstraintMask(maskImage);
+//  }
   if (initCPP != NULL) {
       REG->SetControlPointGridImage(initCPP);
   }
   REG->setSaveDir(saveDir);
 
-  REG->setDivergenceConstraint(CommandLineReader::getInstance().getUseConstraint());
+  REG->setDivergenceConstraint(CommandLineReaderRegIpopt::getInstance().getUseConstraint());
 
-  REG->setSaveMoreOutput(CommandLineReader::getInstance().getSaveMoreOutput());
+  REG->setSaveMoreOutput(CommandLineReaderRegIpopt::getInstance().getSaveMoreOutput());
 
 //  REG->SetWarpedPaddingValue(0.);
 
@@ -132,22 +139,23 @@ int main(int argc, char** argv) {
   // Set the objective function (default is NMI)
 //  bool normalise = false;
 //  REG->UseSSD(0, normalise);
-  float spacing_mm = 2.f;
+  float spacing_mm = 5.f;
   REG->SetSpacing(0, spacing_mm);  // do not use a spacing of 5 to avoid lut...
   std::cout << "Set spacing to " << spacing_mm << " mm" << std::endl;
   REG->SetLinearEnergyWeight(0.f);  // default is 0.01
-  REG->SetBendingEnergyWeight(0.01f);  // default is 0.001 and 0.1 works ok for SSFP
+  REG->SetBendingEnergyWeight(0.05f);  // default is 0.001 and 0.1 works ok for SSFP
   REG->SetInverseConsistencyWeight(0.f);  // make sure inverse consistency is not used
+//  float scale = 1.f;  // scale for SSD
 //  float scale = 1e7;  // appropriate scaling factor for NMI
   float scale = 100000.f;  // appropriate scaling factor for LNCC
-//  REG->UseLNCC(0, 4.f);
+//  REG->UseLNCC(0, 2.f);
   REG->setScale(scale);
 
 //  int maxIter = 1;
-  int maxIter = 150;
+  int maxIter = 200;
 
   // Set the number of levels to perform for the pyramidal approach
-  unsigned int levelToPerform = CommandLineReader::getInstance().getLevelToPerform();
+  unsigned int levelToPerform = CommandLineReaderRegIpopt::getInstance().getLevelToPerform();
   if (levelToPerform <= 1){
     REG->DoNotUsePyramidalApproach();
   }
@@ -210,17 +218,18 @@ int main(int argc, char** argv) {
     app->Options()->SetStringValue("print_timing_statistics", "yes");
     app->Options()->SetStringValue("accept_every_trial_step", "no");  // if "yes", deactivate line search
     app->Options()->SetIntegerValue("print_level", 5);  // between 1 and 12
+
+    // set options for the convergence criteria
+    app->Options()->SetNumericValue("tol", scale*1e-6);  // default scale*1e-4
+    app->Options()->SetNumericValue("acceptable_obj_change_tol", 1e-5);  // stop criteria based on objective
+    app->Options()->SetNumericValue("acceptable_tol", scale*100);  // default scale*1e-3
+    app->Options()->SetNumericValue("acceptable_compl_inf_tol", 10000.);  // default 0.01
+    app->Options()->SetIntegerValue("acceptable_iter", 15);  // default 15
     if (level == levelToPerform - 1){
-      app->Options()->SetNumericValue("tol", scale*3.*1e-6);  // default scale*1e-4
-      app->Options()->SetNumericValue("acceptable_obj_change_tol", 1e-5);  // stop criteria based on objective
-      app->Options()->SetNumericValue("acceptable_tol", scale*100);  // default scale*1e-3
-      app->Options()->SetNumericValue("acceptable_compl_inf_tol", 10000.);  // default 0.01
-      app->Options()->SetIntegerValue("acceptable_iter", 10);  // default 15
       app->Options()->SetIntegerValue("max_iter", maxIter);
     }
     else {
-      app->Options()->SetNumericValue("tol", scale*1e-4);
-      app->Options()->SetIntegerValue("max_iter", 5*(levelToPerform - level));
+      app->Options()->SetIntegerValue("max_iter", 100*(levelToPerform - level));
 //      app->Options()->SetIntegerValue("max_iter", 300);
     }
       app->Options()->SetStringValue("print_info_string", "yes");  // for more info at each iter

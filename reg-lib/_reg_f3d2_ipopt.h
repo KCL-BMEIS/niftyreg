@@ -21,8 +21,7 @@ using namespace Ipopt;
 // This inherits from NiftyReg reg_f3d2 class and extends its API
 // so as to perform the optimisation using Ipopt library
 template <class T>
-class reg_f3d2_ipopt : public reg_f3d2<T>, public TNLP
-{
+class reg_f3d2_ipopt : public reg_f3d2<T>, public TNLP {
 public:
   /** constructor that takes in problem data */
   reg_f3d2_ipopt(int refTimePoint, int floTimePoint);
@@ -39,6 +38,8 @@ public:
   void setNewControlPointGrid(const Number *x, Index n);
 
   void setDivergenceConstraint(bool state);
+
+  void setFullConstraint();
 
   void setScale(float scale);
 
@@ -216,6 +217,19 @@ void reg_f3d2_ipopt<T>::setConstraintMask(nifti_image *m) {
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d2_ipopt<T>::setConstraintMask");
 #endif
+}
+
+template<class T>
+void reg_f3d2_ipopt<T>::setFullConstraint() {
+    // create a mask that covers all the spatial domain space
+    this->constraintMask = nifti_copy_nim_info(this->inputFloating);
+    this->constraintMask->nu = 1;
+    this->constraintMask->nvox = this->constraintMask->nx * this->constraintMask->ny * this->constraintMask->nz;
+    this->constraintMask->datatype = NIFTI_TYPE_INT32;
+    this->constraintMask->nbyper = NIFTI_TYPE_INT32;
+    this->constraintMask->data = (void *)malloc(this->constraintMask->nvox * this->constraintMask->nbyper);
+    reg_tools_multiplyValueToImage(this->constraintMask, this->constraintMask, 0);
+    reg_tools_addValueToImage(this->constraintMask, this->constraintMask, 1);
 }
 
 template <class T>
@@ -635,9 +649,9 @@ bool reg_f3d2_ipopt<T>::get_bounds_info(Index n, // number of variables (dim of 
   // set lower and upper bounds for the primal variables (displacement vector field)
   for (Index i=0; i<n; i++) {
 //    x_l[i] = -1e20;  // -infty
-    x_l[i] = -10.;  // in mm
+    x_l[i] = -50.;  // in mm
 //    x_u[i] = 1e20;  // +infty
-    x_u[i] = 10.;  // in mm
+    x_u[i] = 50.;  // in mm
   }
   // set lower and upper bounds for the inequality constraints
   for (Index i=0; i<m; i++) {
@@ -887,8 +901,8 @@ bool reg_f3d2_ipopt<T>::eval_g(Index n, const Number* x, bool new_x, Index m, Nu
     int numGridPoint = this->controlPointGrid->nx * this->controlPointGrid->ny * this->controlPointGrid->nz;
     // compute the grid size which appears in the formula of the divergence
     T gridVoxelSpacing[3];
-    gridVoxelSpacing[0] = this->controlPointGrid->dx / this->currentFloating->dx;
-    gridVoxelSpacing[1] = this->controlPointGrid->dy / this->currentFloating->dy;
+    gridVoxelSpacing[0] = this->controlPointGrid->dx;
+    gridVoxelSpacing[1] = this->controlPointGrid->dy;
     // index for g
     int index = 0;
     // index for controlPointGrid
@@ -899,7 +913,7 @@ bool reg_f3d2_ipopt<T>::eval_g(Index n, const Number* x, bool new_x, Index m, Nu
     int tempIndexPrevY = 0;
     int tempIndexPrevZ = 0;
     if (this->controlPointGrid->nz > 1) {  // 3D
-      gridVoxelSpacing[2] = this->controlPointGrid->dz / this->currentFloating->dz;
+      gridVoxelSpacing[2] = this->controlPointGrid->dz;
       for (int k=1; k < (this->controlPointGrid->nz - 1); ++k) {
         for (int j=1; j < (this->controlPointGrid->ny - 1); ++j) {
           for (int i=1; i < (this->controlPointGrid->nx - 1); ++i) {
@@ -953,8 +967,8 @@ bool reg_f3d2_ipopt<T>::eval_jac_g(Index n, const Number* x, bool new_x,
   if (m > 0) {  // constraint
     int numGridPoint = this->controlPointGrid->nx * this->controlPointGrid->ny * this->controlPointGrid->nz;
     Number gridVoxelSpacing[3];
-    gridVoxelSpacing[0] = (Number) (this->controlPointGrid->dx / this->currentFloating->dx);
-    gridVoxelSpacing[1] = (Number) (this->controlPointGrid->dy / this->currentFloating->dy);
+    gridVoxelSpacing[0] = (Number) (this->controlPointGrid->dx);
+    gridVoxelSpacing[1] = (Number) (this->controlPointGrid->dy);
     // constraint index (rows)
     int index = 0;
     // variable index (columns)
@@ -963,7 +977,7 @@ bool reg_f3d2_ipopt<T>::eval_jac_g(Index n, const Number* x, bool new_x,
     int tempIndexPrevY = 0;
     int tempIndexPrevZ = 0;
     if (this->controlPointGrid->nz > 1) {  // 3D
-      gridVoxelSpacing[2] = (Number) (this->controlPointGrid->dz / this->currentFloating->dz);
+      gridVoxelSpacing[2] = (Number) (this->controlPointGrid->dz);
       for (int k = 1; k < (this->controlPointGrid->nz - 1); ++k) {
         for (int j = 1; j < (this->controlPointGrid->ny - 1); ++j) {
           for (int i = 1; i < (this->controlPointGrid->nx - 1); ++i) {

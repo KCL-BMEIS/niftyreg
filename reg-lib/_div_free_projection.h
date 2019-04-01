@@ -444,10 +444,20 @@ void div_free_projection<T>::finalize_solution(SolverReturn status, Index n, con
     for (int i = 0; i < n; ++i) {
         controlPointGridPtr[i] = (T)(x[i]);
     }
-    // convert the projection back to a deforamtion field
+    // convert the projection back to a deformation field
     // because NiftyReg uses deformations by default...
     reg_getDeformationFromDisplacement(this->velocityControlPointGrid);
     reg_io_WriteImageFile(this->velocityControlPointGrid, this->savePath.c_str());
+
+    // save the backward velocity grid
+    std::string b(this->savePath);
+    if(b.find( ".nii.gz") != std::string::npos)
+        b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
+    reg_getDisplacementFromDeformation(this->velocityControlPointGrid);
+    reg_tools_multiplyValueToImage(this->velocityControlPointGrid,
+            this->velocityControlPointGrid, -1.f);
+    reg_getDeformationFromDisplacement(this->velocityControlPointGrid);
+    reg_io_WriteImageFile(this->velocityControlPointGrid, b.c_str());
 }
 template class div_free_projection<double>;
 template class div_free_projection<float>;
