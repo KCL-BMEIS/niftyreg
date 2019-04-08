@@ -6,7 +6,7 @@
 include(CMakePackageConfigHelpers)
 set(ConfigPackageLocation lib/cmake/NiftyReg)
 
-WRITE_BASIC_PACKAGE_VERSION_FILE(${CMAKE_CURRENT_BINARY_DIR}/NiftyRegConfigVersion.cmake
+WRITE_BASIC_PACKAGE_VERSION_FILE(${CMAKE_CURRENT_BINARY_DIR}/NIFTYREGConfigVersion.cmake
                                  VERSION ${NR_VERSION}
                                  COMPATIBILITY SameMajorVersion )
 
