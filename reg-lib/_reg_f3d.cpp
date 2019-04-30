@@ -1036,10 +1036,10 @@ nifti_image **reg_f3d<T>::GetWarpedImage()
    this->currentFloating = this->inputFloating;
    this->currentMask=NULL;
 
-   AllocateWarped();
-   AllocateDeformationField();
-   WarpFloatingImage(3); // cubic spline interpolation
-   ClearDeformationField();
+   this->AllocateWarped();
+   this->AllocateDeformationField();
+   this->WarpFloatingImage(3); // cubic spline interpolation
+   this->ClearDeformationField();
 
    nifti_image **warpedImage= (nifti_image **)malloc(2*sizeof(nifti_image *));
    warpedImage[0]=nifti_copy_nim_info(this->warped);
