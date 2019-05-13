@@ -103,14 +103,16 @@ int main(int argc, char** argv) {
 
   // add mask constraint if constraints are used
   if (CommandLineReaderRegIpopt::getInstance().getUseConstraint()) {
-    std::string maskPath = CommandLineReaderRegIpopt::getInstance().getMaskFilePath();
-    if (maskPath.length() > 1) {
-      maskImage = reg_io_ReadImageFile(maskPath.c_str());
-      REG->setConstraintMask(maskImage);
-    }
-    else {  // create a mask that covers all the image space
-      REG->setFullConstraint();
-    }
+      std::string maskPath = CommandLineReaderRegIpopt::getInstance().getMaskFilePath();
+      if (maskPath.length() > 1) {
+          std::cout << "Load incompressibility mask from "<< maskPath << std::endl;
+          maskImage = reg_io_ReadImageFile(maskPath.c_str());
+          REG->setConstraintMask(maskImage);
+      }
+      else {  // create a mask that covers all the image space
+          std::cout << "Incompressibility constraint is imposed everywhere in the spatial domain" << std::endl;
+          REG->setFullConstraint();
+      }
   }
 //  if (maskImage != NULL) {
 //      REG->setConstraintMask(maskImage);
@@ -203,7 +205,7 @@ int main(int argc, char** argv) {
     app->Options()->SetIntegerValue("limited_memory_max_history", 12);  // default is 6
     // linear solver options
 //    app->Options()->SetStringValue("nlp_scaling_method", "equilibration-based");
-//    app->Options()->SetStringValue("linear_solver", "ma86");  // ma27 or ma86
+//    app->Options()->SetStringValue("linear_solver", "pardiso");  // ma27 or ma86
     app->Options()->SetStringValue("linear_solver", "ma57");  // ma27 or ma86
     // ma57 options
       app->Options()->SetStringValue("ma57_automatic_scaling", "no");

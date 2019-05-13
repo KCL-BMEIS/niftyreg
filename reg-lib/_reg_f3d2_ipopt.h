@@ -137,12 +137,13 @@ public:
   //@}
 
 protected:
-    int n;  // number of variables in ipopt
+//    int n;  // number of variables in ipopt
     bool optimiseBackwardTransform;  // if false, the backward trans is set to be the inverse of the Forward trans
     double scalingCst;
     T bestObj;  // best objective function value
     Number *bestX;  // variable values corresponding to the best objective function
     bool useDivergenceConstraint;
+    bool fullIncompressible;  // true if the incompressibility constraint is applied everywhere on the spatial domain
     nifti_image *constraintMask;  // mask indicating where to impose the incompressibility constraint
     int *currentConstraintMask;
     int *currentConstraintMaskGrid;  // projection of the constraint mask on the grid
@@ -180,6 +181,7 @@ reg_f3d2_ipopt<T>::reg_f3d2_ipopt(int refTimePoint, int floTimePoint)
     this->useGradientCumulativeExp = false; // approximate gradient of the exponential by displacement gradient
     this->useLucasExpGradient = false;
     this->useDivergenceConstraint = false;
+    this->fullIncompressible =  false;
     this->constraintMask = NULL;
     this->constraintMaskPyramid = NULL;
     this->currentConstraintMask = NULL;
@@ -230,6 +232,7 @@ void reg_f3d2_ipopt<T>::setFullConstraint() {
     this->constraintMask->data = (void *)malloc(this->constraintMask->nvox * this->constraintMask->nbyper);
     reg_tools_multiplyValueToImage(this->constraintMask, this->constraintMask, 0);
     reg_tools_addValueToImage(this->constraintMask, this->constraintMask, 1);
+    this->fullIncompressible = true;
 }
 
 template <class T>
@@ -300,39 +303,49 @@ void reg_f3d2_ipopt<T>::initLevel(int level) {
         int indexGrid = 0;
         int indexMask = 0;
         bool isOutside = false;  // state if the current control point is inside the dense image domain
-        for (int k=0; k < this->controlPointGrid->nz; ++k) {
-            for (int j=0; j < this->controlPointGrid->ny; ++j) {
-                for (int i=0; i < this->controlPointGrid->nx; ++i) {
-                    // set current voxel grid coordinates
-                    voxelGrid[0] = i;
-                    voxelGrid[1] = j;
-                    voxelGrid[2] = k;
-                    // go from grid voxel space into real world space
-                    reg_mat44_mul(&referenceMatrix_voxel_grid_to_real,
-                                  voxelGrid,  // in
-                                  real);  // out
-                    // go from real world space into dense image voxel space
-                    reg_mat44_mul(&referenceMatrix_real_to_voxel_dense,
-                                  real,  // in
-                                  voxelDense);  // out
-                    isOutside = false;
-                    if (voxelDense[0] < 0 || voxelDense[1] < 0 || voxelDense[2] < 0 ||
-                        voxelDense[0] >= this->currentFloating->nx || voxelDense[1] >= this->currentFloating->ny ||
-                        voxelDense[2] >= this->currentFloating->nz) {
-                        isOutside = true;
+        // border of the domain are always set to zero (default value)
+        for (int k=1; k < this->controlPointGrid->nz-1; ++k) {
+            for (int j=1; j < this->controlPointGrid->ny-1; ++j) {
+                for (int i=1; i < this->controlPointGrid->nx-1; ++i) {
+                    if (this->fullIncompressible){
+                        // constraint mask is 1 all the time as the incompressibility constraint is applied everywhere
+                        indexGrid = k * this->controlPointGrid->nx * this->controlPointGrid->ny
+                                    + j * this->controlPointGrid->nx
+                                    + i;
+                        this->currentConstraintMaskGrid[indexGrid] = 1;
                     }
-                    if (!isOutside) {
-                        // currentConstraintMask is defined on the same space as the current floating image
-                        indexMask = (int) (voxelDense[2] * this->currentFloating->nx * this->currentFloating->ny
-                                           + voxelDense[1] * this->currentFloating->nx + voxelDense[0]);
-                        // we only impose incompressibility constraints to the grid points inside the mask
-                        if (this->currentConstraintMask[indexMask] > 0) {
-                            indexGrid = k * this->controlPointGrid->nx * this->controlPointGrid->ny
-                                        + j * this->controlPointGrid->nx
-                                        + i;
-                            this->currentConstraintMaskGrid[indexGrid] = 1;
+                    else {
+                        // set current voxel grid coordinates
+                        voxelGrid[0] = i;
+                        voxelGrid[1] = j;
+                        voxelGrid[2] = k;
+                        // go from grid voxel space into real world space
+                        reg_mat44_mul(&referenceMatrix_voxel_grid_to_real,
+                                      voxelGrid,  // in
+                                      real);  // out
+                        // go from real world space into dense image voxel space
+                        reg_mat44_mul(&referenceMatrix_real_to_voxel_dense,
+                                      real,  // in
+                                      voxelDense);  // out
+                        isOutside = false;
+                        if (voxelDense[0] < 0 || voxelDense[1] < 0 || voxelDense[2] < 0 ||
+                            voxelDense[0] >= this->currentFloating->nx || voxelDense[1] >= this->currentFloating->ny ||
+                            voxelDense[2] >= this->currentFloating->nz) {
+                            isOutside = true;
                         }
-                    }
+                        if (!isOutside) {
+                            // currentConstraintMask is defined on the same space as the current floating image
+                            indexMask = (int) (voxelDense[2] * this->currentFloating->nx * this->currentFloating->ny
+                                               + voxelDense[1] * this->currentFloating->nx + voxelDense[0]);
+                            // we only impose incompressibility constraints to the grid points inside the mask
+                            if (this->currentConstraintMask[indexMask] > 0) {
+                                indexGrid = k * this->controlPointGrid->nx * this->controlPointGrid->ny
+                                            + j * this->controlPointGrid->nx
+                                            + i;
+                                this->currentConstraintMaskGrid[indexGrid] = 1;
+                            }
+                        }
+                    }  // incompressible on subregion
                 }  // i
             }  // j
         }  // k
@@ -494,7 +507,7 @@ nifti_image **reg_f3d2_ipopt<T>::GetWarpedImageEuler() {
     reg_f3d2<T>::ClearDeformationField();
 
     // Allocate and save the forward transformation warped image
-    nifti_image **warpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
+    nifti_image **warpedImage = (nifti_image **)malloc(2*sizeof(nifti_image *));
     warpedImage[0] = nifti_copy_nim_info(this->warped);
     warpedImage[0]->cal_min=this->inputFloating->cal_min;
     warpedImage[0]->cal_max=this->inputFloating->cal_max;
@@ -601,8 +614,8 @@ bool reg_f3d2_ipopt<T>::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
     if (optimiseBackwardTransform) {
         n += (int)(this->backwardControlPointGrid->nvox);
     }
-    this->n = n;
-    // initialise tracking of the primal variables values that gives the best ojective function value
+//    this->n = n;
+    // initialise tracking of the primal variables values that gives the best objective function value
     this->bestX = new Number[n];
   // set the number of constraints m (null divergence of the velocity vector field)
     if (this->useDivergenceConstraint) {  // 3D
