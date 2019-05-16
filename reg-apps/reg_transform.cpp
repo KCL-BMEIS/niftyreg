@@ -338,7 +338,8 @@ int main(int argc, char **argv)
          // If the input transformation is a grid, check that the reference image has been specified
          if(inputTransformationImage->intent_p1==LIN_SPLINE_GRID ||
                inputTransformationImage->intent_p1==CUB_SPLINE_GRID ||
-               inputTransformationImage->intent_p1==SPLINE_VEL_GRID)
+               inputTransformationImage->intent_p1==SPLINE_VEL_GRID ||
+                 inputTransformationImage->intent_p1==DIV_CONFORMING_VEL_GRID)
          {
             if(!flag->referenceImageFlag)
             {
@@ -380,7 +381,8 @@ int main(int argc, char **argv)
       if(affineTransformation!=NULL ||
             inputTransformationImage->intent_p1==LIN_SPLINE_GRID ||
             inputTransformationImage->intent_p1==CUB_SPLINE_GRID ||
-            inputTransformationImage->intent_p1==SPLINE_VEL_GRID)
+            inputTransformationImage->intent_p1==SPLINE_VEL_GRID ||
+            inputTransformationImage->intent_p1==DIV_CONFORMING_VEL_GRID)
       {
          // Create a field image from the reference image
          outputTransformationImage=nifti_copy_nim_info(referenceImage);
@@ -460,6 +462,12 @@ int main(int argc, char **argv)
             reg_spline_getFlowFieldFromVelocityGrid(inputTransformationImage,
                                                     outputTransformationImage);
             break;
+         case DIV_CONFORMING_VEL_GRID:
+             printf("[NiftyReg] The specified transformation is a divergence-conforming spline velocity parametrisation:\n[NiftyReg] %s\n",
+                     inputTransformationImage->fname);
+             reg_spline_getFlowFieldFromVelocityGrid(inputTransformationImage,
+                                                     outputTransformationImage);
+             break;
          default:
             fprintf(stderr,"[NiftyReg ERROR] Unknown input transformation type\n");
             return EXIT_FAILURE;
@@ -538,6 +546,16 @@ int main(int argc, char **argv)
                      outputTransformationImage,
                      false // step number is not updated
                                                              );
+               break;
+            case DIV_CONFORMING_VEL_GRID:
+               printf("[NiftyReg] The specified transformation is a spline velocity parametrisation:\n[NiftyReg] %s\n",
+                       inputTransformationImage->fname);
+               // The spline parametrisation is converted into a dense flow and exponentiated
+//               reg_spline_getDefFieldFromVelocityGridEuler(inputTransformationImage,
+//                                                           outputTransformationImage); // step number is not updated
+               reg_spline_getDefFieldFromVelocityGrid(inputTransformationImage,
+                                                      outputTransformationImage,
+                                                      false); // step number is not updated
                break;
             default:
                fprintf(stderr,"[NiftyReg ERROR] Unknown input transformation type\n");
@@ -1123,16 +1141,26 @@ int main(int argc, char **argv)
                              landmarkImage->ny * landmarkImage->nz *
                              landmarkImage->nt * landmarkImage->nu;
          landmarkImage->data=(void *)malloc(landmarkImage->nvox*landmarkImage->nbyper);
+
+
          double *landmarkImagePtr = static_cast<double *>(landmarkImage->data);
-         for(size_t l=0, index=0;l<landmarkNumber;++l){
-            for(size_t i=0;i<n;++i){
-               landmarkImagePtr[i]=allLandmarks[l][i];
+//         double NII2ITK[3] = {1,1,1};
+         double NII2ITK[3] = {-1,-1,1};
+
+         /////////////////////////////////
+         // warp all landmarks
+         for(size_t l = 0, index = 0; l < landmarkNumber; ++l){
+            for(size_t i = 0; i < n; ++i) {
+               landmarkImagePtr[i] = NII2ITK[i] * allLandmarks[l][i];
+//               currLmkReal[i] = allLandmarks[l][i];
             }
+
             reg_defField_compose(deformationFieldImage,
                                  landmarkImage,
                                  NULL);
+
             for(size_t i=0;i<n;++i){
-               allLandmarks[l][i]=landmarkImagePtr[i];
+               allLandmarks[l][i] = NII2ITK[i] * landmarkImagePtr[i];
             }
          }
          // Save the update landmark positions

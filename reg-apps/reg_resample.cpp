@@ -389,6 +389,11 @@ int main(int argc, char **argv)
                                                 deformationFieldImage,
                                                 false);
          break;
+      case DIV_CONFORMING_VEL_GRID:
+          // The spline parametrisation is converted into a dense flow and exponentiated
+          reg_spline_getDefFieldFromVelocityGridEuler(inputTransformationImage,
+                                                      deformationFieldImage);
+          break;
       case DISP_FIELD:
          reg_getDeformationFromDisplacement(inputTransformationImage);
       default:
