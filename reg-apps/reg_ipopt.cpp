@@ -122,6 +122,8 @@ int main(int argc, char** argv) {
   }
   REG->setSaveDir(saveDir);
 
+  REG->setBSplineType(CommandLineReaderRegIpopt::getInstance().getBSplineType());
+
   REG->setDivergenceConstraint(CommandLineReaderRegIpopt::getInstance().getUseConstraint());
 
   REG->setSaveMoreOutput(CommandLineReaderRegIpopt::getInstance().getSaveMoreOutput());
@@ -153,8 +155,8 @@ int main(int argc, char** argv) {
 //  REG->UseLNCC(0, 2.f);
   REG->setScale(scale);
 
-//  int maxIter = 1;
-  int maxIter = 200;
+  int maxIter = 5;
+//  int maxIter = 200;
 
   // Set the number of levels to perform for the pyramidal approach
   unsigned int levelToPerform = CommandLineReaderRegIpopt::getInstance().getLevelToPerform();

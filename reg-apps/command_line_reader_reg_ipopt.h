@@ -7,6 +7,7 @@
 #define COMMAND_LINE_READER_H_
 
 #include "command_line_reader_abstract.h"
+#include "_reg_maths.h"
 #include <iostream>
 #include <string>
 
@@ -18,6 +19,7 @@ public:
     // Getters and setters
     std::string getRefFilePath() const;
     std::string getFloFilePath() const;
+    float getBSplineType() const;
     std::string getMaskFilePath() const;
     std::string getOutDir() const;
     std::string getInitCPPPath() const;
@@ -37,6 +39,7 @@ protected:
     static const std::string kUsageMsg;
     std::string m_refPath;
     std::string m_floPath;
+    float m_bSplineType;
     std::string m_maskPath;
     std::string m_outDir;
     std::string m_initCPPPath;

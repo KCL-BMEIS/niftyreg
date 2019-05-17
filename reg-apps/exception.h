@@ -47,4 +47,11 @@ public:
     }
 };
 
+class UnknownBSplineType: public std::exception {
+public:
+    virtual const char* what() const throw() {
+    return "ERROR! Only cubic and div_conforming are supported as bspline type.";
+}
+};
+
 #endif

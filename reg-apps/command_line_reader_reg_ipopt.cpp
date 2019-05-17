@@ -18,12 +18,13 @@ const std::string CommandLineReaderRegIpopt::kUsageMsg(
         "and Ipopt to perform a Quasi-Newton optimisation."
         "\nUsage:\t reg_ipopt --ref <referenceImageName> --flo <floatingImageName> --mask <maskImageName>\n"
         "\nOptions:\n"
-        "--help  | -h\t Prints help message.\n"
-        "--ref   | -r\t Path to the reference image file (mandatory).\n"
-        "--flo   | -f\t Path to the floating image file (mandatory).\n"
-        "--mask  | -m\t Path to the constraint mask image file (optional).\n"
-        "--out   | -o\t Name of the directory where to save output (optional).\n"
-        "--incpp | -i\t Path to the CPP to use for initialisation of the first level (optional).\n"
+        "--help    | -h\t Prints help message.\n"
+        "--ref     | -r\t Path to the reference image file (mandatory).\n"
+        "--flo     | -f\t Path to the floating image file (mandatory).\n"
+        "--bspline | -b\t Type of Bspline to use. Can be div_conforming or cubic. div_conforming is used by default.\n"
+        "--mask    | -m\t Path to the constraint mask image file or '0' for a full mask (optional).\n"
+        "--out     | -o\t Name of the directory where to save output (optional).\n"
+        "--incpp   | -i\t Path to the CPP to use for initialisation of the first level (optional).\n"
 );
 
 CommandLineReaderRegIpopt& CommandLineReaderRegIpopt::getInstance() {
@@ -48,6 +49,10 @@ std::string CommandLineReaderRegIpopt::getRefFilePath() const {
 
 std::string CommandLineReaderRegIpopt::getFloFilePath() const {
     return m_floPath;
+}
+
+float CommandLineReaderRegIpopt::getBSplineType() const {
+    return m_bSplineType;
 }
 
 std::string CommandLineReaderRegIpopt::getMaskFilePath() const {
@@ -95,6 +100,7 @@ void CommandLineReaderRegIpopt::processCmdLineOptions(int argc, char **argv) {
             ("h,help", "Prints this help message.")
             ("r,ref", "Path to the reference image file.", cxxopts::value<std::string>())
             ("f,flo", "Path to the floating image file.", cxxopts::value<std::string>())
+            ("b,bspline", "Type of bsplines to use. cubic and div_conforming are supported", cxxopts::value<std::string>())
             ("m,mask", "Path to the constraint mask image file.", cxxopts::value<std::string>())
             ("o,out", "Path output directory.", cxxopts::value<std::string>())
             ("i,incpp", "Path to the CPP input to use for warm start initialisation.", cxxopts::value<std::string>())
@@ -112,7 +118,16 @@ void CommandLineReaderRegIpopt::processCmdLineOptions(int argc, char **argv) {
     else if (options.count("ref") && options.count("flo")) { // Only way of using the program so far
         m_refPath = options["ref"].as<std::string>();
         m_floPath = options["flo"].as<std::string>();
+        m_bSplineType = DIV_CONFORMING_VEL_GRID;
         // optional arguments
+        if (options.count("bspline")) {
+            if (options["bspline"].as<std::string>() == "cubic") {
+                m_bSplineType = SPLINE_VEL_GRID;
+            }
+            else {
+                throw UnknownBSplineType();
+            }
+        }
         if (options.count("mask")) {
             m_maskPath = options["mask"].as<std::string>();
             m_useConstraint = true;

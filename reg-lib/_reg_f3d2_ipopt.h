@@ -37,6 +37,8 @@ public:
 
   void setNewControlPointGrid(const Number *x, Index n);
 
+  void setBSplineType(float bsplineType);
+
   void setDivergenceConstraint(bool state);
 
   void setFullConstraint();
@@ -142,6 +144,7 @@ protected:
     double scalingCst;
     T bestObj;  // best objective function value
     Number *bestX;  // variable values corresponding to the best objective function
+    float bSplineType;  // type of bspline basis to use for the stationary velocity field
     bool useDivergenceConstraint;
     bool fullIncompressible;  // true if the incompressibility constraint is applied everywhere on the spatial domain
     nifti_image *constraintMask;  // mask indicating where to impose the incompressibility constraint
@@ -180,6 +183,7 @@ reg_f3d2_ipopt<T>::reg_f3d2_ipopt(int refTimePoint, int floTimePoint)
     this->optimiseBackwardTransform = false;
     this->useGradientCumulativeExp = false; // approximate gradient of the exponential by displacement gradient
     this->useLucasExpGradient = false;
+    this->bSplineType = DIV_CONFORMING_VEL_GRID;  // divergence conforming bsplines are the default
     this->useDivergenceConstraint = false;
     this->fullIncompressible =  false;
     this->constraintMask = NULL;
@@ -211,6 +215,11 @@ reg_f3d2_ipopt<T>::~reg_f3d2_ipopt() {
 #ifndef NDEBUG
    reg_print_msg_debug("reg_f3d2_ipopt destructor called");
 #endif
+}
+
+template<class T>
+void reg_f3d2_ipopt<T>::setBSplineType(float bsType) {
+    this->bSplineType = bsType;
 }
 
 template<class T>
@@ -247,13 +256,18 @@ void reg_f3d2_ipopt<T>::initLevel(int level) {
 #endif
     if(!this->initialised) {
         this->Initialise();
+        this->controlPointGrid->intent_p1 = this->bSplineType;
+        this->backwardControlPointGrid->intent_p1 = this->bSplineType;
+        // set the number of steps in the scaling and squaring
+        this->controlPointGrid->intent_p2 = 8;
+        this->backwardControlPointGrid->intent_p2 = 8;
         if (this->useDivergenceConstraint) {
             // use divergence-conforming B-splines
-            this->controlPointGrid->intent_p1 = DIV_CONFORMING_VEL_GRID;
-            this->backwardControlPointGrid->intent_p1 = DIV_CONFORMING_VEL_GRID;
-            // set the number of steps in the scaling and squaring
-            this->controlPointGrid->intent_p2 = 8;
-            this->backwardControlPointGrid->intent_p2 = 8;
+//            this->controlPointGrid->intent_p1 = DIV_CONFORMING_VEL_GRID;
+//            this->backwardControlPointGrid->intent_p1 = DIV_CONFORMING_VEL_GRID;
+//            // set the number of steps in the scaling and squaring
+//            this->controlPointGrid->intent_p2 = 8;
+//            this->backwardControlPointGrid->intent_p2 = 8;
             // create constraint mask pyramid
             if (this->constraintMask != NULL) {
                 this->constraintMaskPyramid = (int **)calloc(this->levelToPerform, sizeof(int *));
@@ -560,7 +574,7 @@ void reg_f3d2_ipopt<T>::printConfigInfo() {
         std::cout << "True gradient of the approximated exponential mapping is used." << std::endl;
     }
     if (this->useDivergenceConstraint) {
-      std::cout << "Divergence conforming B-spline with hard constraint on its divergence is used." << std::endl;
+      std::cout << "Hard constraints on the SVF divergence are used." << std::endl;
     }
     std::cout << "#################" << std::endl;
     std::cout << std::endl;
@@ -765,8 +779,8 @@ bool reg_f3d2_ipopt<T>::eval_f(Index n, const Number* x,
 
 template <class T>
 void reg_f3d2_ipopt<T>::GetSimilarityMeasureGradient() {
-  if (!this->useDivergenceConstraint) {  // no constraint; can use parent method
-    assert(this->controlPointGrid->intent_p1 != DIV_CONFORMING_VEL_GRID);
+  if (this->controlPointGrid->intent_p1 != DIV_CONFORMING_VEL_GRID) {  // can use parent method
+//    assert(this->controlPointGrid->intent_p1 != DIV_CONFORMING_VEL_GRID);
     reg_f3d2<T>::GetSimilarityMeasureGradient();
   }
   else { // use specific implementation for divergence conforming B-spline
