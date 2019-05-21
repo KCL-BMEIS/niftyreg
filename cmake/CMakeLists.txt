@@ -6,7 +6,7 @@
 include(CMakePackageConfigHelpers)
 set(ConfigPackageLocation lib/cmake/NiftyReg)
 
-WRITE_BASIC_PACKAGE_VERSION_FILE(${CMAKE_CURRENT_BINARY_DIR}/NiftyRegConfigVersion.cmake
+WRITE_BASIC_PACKAGE_VERSION_FILE(${CMAKE_CURRENT_BINARY_DIR}/NIFTYREGConfigVersion.cmake
                                  VERSION ${NR_VERSION}
                                  COMPATIBILITY SameMajorVersion )
 
@@ -18,8 +18,8 @@ set (NIFTYREG_INCLUDE_DIRS "include")
 string(SUBSTRING "${NIFTYREG_LIBRARIES}" 1 -1 NIFTYREG_LIBRARIES)
 
 CONFIGURE_PACKAGE_CONFIG_FILE(
-  "NiftyRegConfig.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/NiftyRegConfig.cmake"
+  "NIFTYREGConfig.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/NIFTYREGConfig.cmake"
    INSTALL_DESTINATION "${ConfigPackageLocation}"
    PATH_VARS NIFTYREG_INCLUDE_DIRS
 )
@@ -27,8 +27,8 @@ CONFIGURE_PACKAGE_CONFIG_FILE(
 # install NiftyReg components
 install(
   FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/NiftyRegConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/NiftyRegConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/NIFTYREGConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/NIFTYREGConfigVersion.cmake"
   DESTINATION "${ConfigPackageLocation}"
 )
 
