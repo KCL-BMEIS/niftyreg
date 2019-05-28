@@ -157,7 +157,7 @@ nifti_image * reg_spline_GetDivergenceFromVelocityGrid(nifti_image *deformationF
                                                        nifti_image *velocityGridImage);
 
 extern "C++"
-nifti_image * reg_spline_GetJacobianFromVelocityGrid(nifti_image *deformationFieldImage,
+nifti_image * reg_spline_GetLogJacobianFromVelocityGrid(nifti_image *deformationFieldImage,
                                                      nifti_image *velocityGridImage);
 /* *************************************************************** */
 

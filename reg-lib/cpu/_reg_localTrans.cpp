@@ -2117,7 +2117,6 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,  // in
       }
    }  // linear spline
    else if (splineControlPoint->intent_p1 == DIV_CONFORMING_VEL_GRID) {  // divergence conforming B-spline
-       //TODO: add divergence conforming B-spline
        if (splineControlPoint->nz == 1) {
 //           reg_print_msg_error("2D not implemented for divergence conforming B-spline");
 //           reg_exit();
@@ -2151,7 +2150,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,  // in
                    reg_print_msg_error("Only single or double precision is implemented for deformation field");
                    reg_exit();
            }
-       }
+       }  // 3D
    }  // divergence conforming B-spline
    else {   // cubic B-spline
        if (splineControlPoint->nz == 1) {  // 2D
@@ -4455,7 +4454,7 @@ void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
 
    // Copy over the number of required squaring steps
    flowField->intent_p2=velocityFieldGrid->intent_p2;
-   // The initial flow field is generated using cubic B-Spline interpolation/approximation
+   // The initial flow field is generated using B-Spline interpolation/approximation
    reg_spline_getDeformationField(velocityFieldGrid,
                                   flowField,
                                   NULL, // mask

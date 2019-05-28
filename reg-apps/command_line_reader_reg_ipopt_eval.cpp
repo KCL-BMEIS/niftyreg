@@ -10,8 +10,8 @@
 
 const std::string CommandLineReaderRegIpoptEval::kUsageMsg(
         "\nCompute the exact log-Jacobian map\n"
-        "of a velocity vector field (outputCPP of reg_ipopt)."
-        "\nUsage:\t reg_ipopt_eval --vel <velocityCPPName> --ref <RefImgName> --res <outputName>\n"
+        "of a velocity vector field (outputCPP of reg_ipopt or reg_f3d)."
+        "\nUsage:\t reg_ipopt_eval --vel <velocityCPPName> --ref <RefImgName> --jacL 0 --out <outputName>\n"
 );
 
 CommandLineReaderRegIpoptEval& CommandLineReaderRegIpoptEval::getInstance() {
@@ -61,10 +61,10 @@ void CommandLineReaderRegIpoptEval::processCmdLineOptions(int argc, char **argv)
 
     options.add_options()
             ("h,help", "Prints this help message.")
-            ("v,vel", "Path to the velocity field image file.", cxxopts::value<std::string>())
+            ("v,vel", "Path to the velocity field control point file. \n(Cubic B-splines and Divergence conforming B-splines are supported)", cxxopts::value<std::string>())
             ("r,ref", "Path to thr reference image file.", cxxopts::value<std::string>())
-            ("j,jac", "Flag to evaluate the log Jacobian map.", cxxopts::value<std::string>())
-            ("l,lmks", "Path to the landmarks to warp.", cxxopts::value<std::string>())
+            ("j,jacL", "Flag to evaluate the log Jacobian map.", cxxopts::value<std::string>())
+            ("l,lmks", "Path to the landmarks to warp. (not supported yet)", cxxopts::value<std::string>())
             ("o,out", "Path to save the output (either landmarks or logjacobian map).", cxxopts::value<std::string>())
             ;
 
@@ -84,7 +84,7 @@ void CommandLineReaderRegIpoptEval::processCmdLineOptions(int argc, char **argv)
             m_lmks_path = options["lmks"].as<std::string>();
         }
         // Log jacobian mode
-        if (options.count("jac")) {
+        if (options.count("jacL")) {
             m_logjacobian_flag = true;
         }
         // optional arguments

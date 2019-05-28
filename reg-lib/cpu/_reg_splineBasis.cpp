@@ -100,7 +100,6 @@ void get_BSplineDerivativeBasisWeights(DTYPE coord, DTYPE *values, int order) {
             values[3] = 0.;
             break;
         case 2:  // quadratic B-spline
-            // consistent with the parameterisation in Rueckert et al. 1999
             values[0] = 0.;
             values[1] = 1. - coord;
             values[2] = 1. - 2.*coord;

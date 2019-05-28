@@ -10,6 +10,7 @@
  */
 
 #include "_reg_localTrans_jac.h"
+#include <cassert>
 
 #define _USE_SQUARE_LOG_JAC
 
@@ -3626,14 +3627,15 @@ nifti_image * reg_spline_GetDivergenceFromVelocityGrid(nifti_image* deformationF
 }
 
 template<class DTYPE>
-void reg_divergence_conforming_spline_getJacobianDetImage(nifti_image *splineControlPoint,  // in
-                                                         nifti_image *deformationField,  // in
-                                                         nifti_image *jacobianField  // out
+void reg_spline_integrateLogJacobianDetImage(nifti_image *splineControlPoint,  // in
+                                             nifti_image *deformationField,  // in
+                                             nifti_image *jacobianField  // out
 ) {
+    assert (splineControlPoint->intent_p1 == SPLINE_VEL_GRID ||
+        splineControlPoint->intent_p1 == DIV_CONFORMING_VEL_GRID);
 #ifndef NDEBUG
    reg_print_msg_debug("reg_divergence_conforming_spline_getJacobianDetImage called");
 #endif
-
 //   DTYPE temp[4];
    DTYPE zBasisOrder3[4];  // B-spline basis function of orders 3 and 2 are used
    DTYPE zBasisOrder2[4];
@@ -3748,60 +3750,94 @@ void reg_divergence_conforming_spline_getJacobianDetImage(nifti_image *splineCon
                oldPreZ = zPre;
             }
             coord = 0;
-            tempJacVal = 0;
+//            tempJacVal = 0;
             // initialised the jacobian matrix to identity
-            tempJacMat.m[0][0] = 1; tempJacMat.m[0][1] = 0; tempJacMat.m[0][2] = 0;
-            tempJacMat.m[1][0] = 0; tempJacMat.m[1][1] = 1; tempJacMat.m[1][2] = 0;
-            tempJacMat.m[2][0] = 0; tempJacMat.m[2][1] = 0; tempJacMat.m[2][2] = 1;
+            tempJacMat.m[0][0] = 1.f; tempJacMat.m[0][1] = 0.f; tempJacMat.m[0][2] = 0.f;
+            tempJacMat.m[1][0] = 0.f; tempJacMat.m[1][1] = 1.f; tempJacMat.m[1][2] = 0.f;
+            tempJacMat.m[2][0] = 0.f; tempJacMat.m[2][1] = 0.f; tempJacMat.m[2][2] = 1.f;
             for (c = 0; c < 4; c++) {
                for (b = 0; b < 4; b++) {
                   for (a = 0; a < 4; a++) {
-                     DTYPE tempValueXDerivX = xBasisDerivOrder3[a] * yBasisOrder2[b] * zBasisOrder2[c];
-                     tempJacMat.m[0][0] += xControlPointCoordinates[coord] * tempValueXDerivX / scaling[0];
-                     DTYPE tempValueXDerivY = xBasisOrder3[a] * yBasisDerivOrder2[b] * zBasisOrder2[c];
-                     tempJacMat.m[0][1] += xControlPointCoordinates[coord] * tempValueXDerivY / scaling[1];
-                     DTYPE tempValueXDerivZ = xBasisOrder3[a] * yBasisOrder2[b] * zBasisDerivOrder2[c];
-                     tempJacMat.m[0][2] += xControlPointCoordinates[coord] * tempValueXDerivZ / scaling[2];
-                     DTYPE tempValueYDerivX = xBasisDerivOrder2[a] * yBasisOrder3[b] * zBasisOrder2[c];
-                     tempJacMat.m[1][0] += yControlPointCoordinates[coord] * tempValueYDerivX / scaling[0];
-                     DTYPE tempValueYDerivY = xBasisOrder2[a] * yBasisDerivOrder3[b] * zBasisOrder2[c];
-                     tempJacMat.m[1][1] += yControlPointCoordinates[coord] * tempValueYDerivY / scaling[1];
-                     DTYPE tempValueYDerivZ = xBasisOrder2[a] * yBasisOrder3[b] * zBasisDerivOrder2[c];
-                     tempJacMat.m[1][2] += yControlPointCoordinates[coord] * tempValueYDerivZ / scaling[2];
-                     DTYPE tempValueZDerivX = xBasisDerivOrder2[a] * yBasisOrder2[b] * zBasisOrder3[c];
-                     tempJacMat.m[2][0] += zControlPointCoordinates[coord] * tempValueZDerivX / scaling[0];
-                     DTYPE tempValueZDerivY = xBasisOrder2[a] * yBasisDerivOrder2[b] * zBasisOrder3[c];
-                     tempJacMat.m[2][1] += zControlPointCoordinates[coord] * tempValueZDerivY / scaling[1];
-                     DTYPE tempValueZDerivZ = xBasisOrder2[a] * yBasisOrder2[b] * zBasisDerivOrder3[c];
-                     tempJacMat.m[2][2] += zControlPointCoordinates[coord] * tempValueZDerivZ / scaling[2];
-                     coord++;
+                      if (splineControlPoint->intent_p1 == DIV_CONFORMING_VEL_GRID) {  // divergence conforming B-splines
+                          DTYPE tempValueXDerivX = xBasisDerivOrder3[a] * yBasisOrder2[b] * zBasisOrder2[c];
+                          tempJacMat.m[0][0] += xControlPointCoordinates[coord] * tempValueXDerivX / scaling[0];
+                          DTYPE tempValueXDerivY = xBasisOrder3[a] * yBasisDerivOrder2[b] * zBasisOrder2[c];
+                          tempJacMat.m[0][1] += xControlPointCoordinates[coord] * tempValueXDerivY / scaling[1];
+                          DTYPE tempValueXDerivZ = xBasisOrder3[a] * yBasisOrder2[b] * zBasisDerivOrder2[c];
+                          tempJacMat.m[0][2] += xControlPointCoordinates[coord] * tempValueXDerivZ / scaling[2];
+                          DTYPE tempValueYDerivX = xBasisDerivOrder2[a] * yBasisOrder3[b] * zBasisOrder2[c];
+                          tempJacMat.m[1][0] += yControlPointCoordinates[coord] * tempValueYDerivX / scaling[0];
+                          DTYPE tempValueYDerivY = xBasisOrder2[a] * yBasisDerivOrder3[b] * zBasisOrder2[c];
+                          tempJacMat.m[1][1] += yControlPointCoordinates[coord] * tempValueYDerivY / scaling[1];
+                          DTYPE tempValueYDerivZ = xBasisOrder2[a] * yBasisOrder3[b] * zBasisDerivOrder2[c];
+                          tempJacMat.m[1][2] += yControlPointCoordinates[coord] * tempValueYDerivZ / scaling[2];
+                          DTYPE tempValueZDerivX = xBasisDerivOrder2[a] * yBasisOrder2[b] * zBasisOrder3[c];
+                          tempJacMat.m[2][0] += zControlPointCoordinates[coord] * tempValueZDerivX / scaling[0];
+                          DTYPE tempValueZDerivY = xBasisOrder2[a] * yBasisDerivOrder2[b] * zBasisOrder3[c];
+                          tempJacMat.m[2][1] += zControlPointCoordinates[coord] * tempValueZDerivY / scaling[1];
+                          DTYPE tempValueZDerivZ = xBasisOrder2[a] * yBasisOrder2[b] * zBasisDerivOrder3[c];
+                          tempJacMat.m[2][2] += zControlPointCoordinates[coord] * tempValueZDerivZ / scaling[2];
+                          coord++;
+                      }  // divergence conforming B-splines
+                      else if (splineControlPoint->intent_p1 == SPLINE_VEL_GRID) {  // cubic B-splines
+                          DTYPE tempValueXDerivX = xBasisDerivOrder3[a] * yBasisOrder3[b] * zBasisOrder3[c];
+                          tempJacMat.m[0][0] += xControlPointCoordinates[coord] * tempValueXDerivX / scaling[0];
+                          DTYPE tempValueXDerivY = xBasisOrder3[a] * yBasisDerivOrder3[b] * zBasisOrder3[c];
+                          tempJacMat.m[0][1] += xControlPointCoordinates[coord] * tempValueXDerivY / scaling[1];
+                          DTYPE tempValueXDerivZ = xBasisOrder3[a] * yBasisOrder3[b] * zBasisDerivOrder3[c];
+                          tempJacMat.m[0][2] += xControlPointCoordinates[coord] * tempValueXDerivZ / scaling[2];
+                          DTYPE tempValueYDerivX = xBasisDerivOrder3[a] * yBasisOrder3[b] * zBasisOrder3[c];
+                          tempJacMat.m[1][0] += yControlPointCoordinates[coord] * tempValueYDerivX / scaling[0];
+                          DTYPE tempValueYDerivY = xBasisOrder3[a] * yBasisDerivOrder3[b] * zBasisOrder3[c];
+                          tempJacMat.m[1][1] += yControlPointCoordinates[coord] * tempValueYDerivY / scaling[1];
+                          DTYPE tempValueYDerivZ = xBasisOrder3[a] * yBasisOrder3[b] * zBasisDerivOrder3[c];
+                          tempJacMat.m[1][2] += yControlPointCoordinates[coord] * tempValueYDerivZ / scaling[2];
+                          DTYPE tempValueZDerivX = xBasisDerivOrder3[a] * yBasisOrder3[b] * zBasisOrder3[c];
+                          tempJacMat.m[2][0] += zControlPointCoordinates[coord] * tempValueZDerivX / scaling[0];
+                          DTYPE tempValueZDerivY = xBasisOrder3[a] * yBasisDerivOrder3[b] * zBasisOrder3[c];
+                          tempJacMat.m[2][1] += zControlPointCoordinates[coord] * tempValueZDerivY / scaling[1];
+                          DTYPE tempValueZDerivZ = xBasisOrder3[a] * yBasisOrder3[b] * zBasisDerivOrder3[c];
+                          tempJacMat.m[2][2] += zControlPointCoordinates[coord] * tempValueZDerivZ / scaling[2];
+                          coord++;
+                      }  // cubic B-splines
                   }
                }
             }
-//            if (nifti_mat33_determ(tempJacMat) > 100) {
-//               std::cout << "high value found in the jacobian map" << std::endl;
-//            }
             jacobianPtr[index] += log(nifti_mat33_determ(tempJacMat));
-//                }
             index++;
          }
       }
    }
 }
 
-nifti_image * reg_spline_GetJacobianFromVelocityGrid(nifti_image* deformationFieldImage,
+nifti_image * reg_spline_GetLogJacobianFromVelocityGrid(nifti_image* deformationFieldImage,
                                                      nifti_image* velocityFieldGrid) {
-   // create the jacobian image
+   if (velocityFieldGrid->nz == 1) {
+       reg_print_msg_error("Only 3D is supported at the moment");
+       reg_exit();
+   }
+   if (velocityFieldGrid->intent_p1 != SPLINE_VEL_GRID and
+       velocityFieldGrid->intent_p1 != DIV_CONFORMING_VEL_GRID) {
+       reg_print_msg_error("only cubic B-splines and divergence conforming B-splines are supported");
+       reg_exit();
+   }
+   // create and initialise the log Jacobian image
    nifti_image *jacobianImage = nifti_copy_nim_info(deformationFieldImage);
-   jacobianImage->nu = 1;  // the diovergence is a scalar field
+   jacobianImage->nu = 1;  // the log Jacobian is a scalar field
    jacobianImage->nvox = jacobianImage->nx * jacobianImage->ny * jacobianImage->nz;
    jacobianImage->data=(void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
    reg_tools_multiplyValueToImage(jacobianImage, jacobianImage, 0);
-//   reg_tools_addValueToImage(jacobianImage, jacobianImage, 1);
-   //
-   // Create an temporary image to store the flow field
+
+   // TEST
+//   nifti_image *jacobianImageInit = nifti_copy_nim_info(deformationFieldImage);
+//   jacobianImage->nu = 1;  // the log Jacobian is a scalar field
+//   jacobianImage->nvox = jacobianImage->nx * jacobianImage->ny * jacobianImage->nz;
+//   jacobianImage->data=(void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
+//   reg_tools_multiplyValueToImage(jacobianImage, jacobianImage, 0);
+
+   // Create a temporary image to store the flow field
    nifti_image *flowField = nifti_copy_nim_info(deformationFieldImage);
-   // initialise flowField that will be used to get the coordinates of where to evaluate the divergence
+   // initialise flowField that will be used to get the coordinates of where to evaluate the jacobian
    flowField->data = (void *)calloc(flowField->nvox, flowField->nbyper);
    flowField->intent_code = NIFTI_INTENT_VECTOR;
    // the flow field is set to identity
@@ -3812,35 +3848,70 @@ nifti_image * reg_spline_GetJacobianFromVelocityGrid(nifti_image* deformationFie
    // set the number of integration step
    int numItegration = (int)pow(2, velocityFieldGrid->intent_p2);
 
-   // create the scaled velocityGrid
+   // create and set the values of the scaled velocityGrid (deformation)
    nifti_image *scaledVelocityFieldGrid = nifti_copy_nim_info(velocityFieldGrid);
    scaledVelocityFieldGrid->data = (void *)calloc(scaledVelocityFieldGrid->nvox, scaledVelocityFieldGrid->nbyper);
+   // remove identity
    reg_getDisplacementFromDeformation(velocityFieldGrid);
-   reg_tools_divideValueToImage(velocityFieldGrid, scaledVelocityFieldGrid, numItegration);
+   reg_tools_divideValueToImage(velocityFieldGrid,  // in
+                                scaledVelocityFieldGrid,  // out
+                                numItegration);  // in
+   // put identity back
    reg_getDeformationFromDisplacement(velocityFieldGrid);
+   reg_getDeformationFromDisplacement(scaledVelocityFieldGrid);
+   scaledVelocityFieldGrid->intent_p1 = velocityFieldGrid->intent_p1;
+
+   // TEST
+//    reg_spline_integrateLogJacobianDetImage<double>(scaledVelocityFieldGrid,  // in
+//                                                    flowField,  // in
+//                                                    jacobianImageInit);  // out
 
    // Compute the jacobian image with an Euler integration
    switch (deformationFieldImage->datatype) {
       case NIFTI_TYPE_FLOAT64:
+          // compute the exact jacobian map iteratively (integration of the log-jacobian)
+          // log(Jac_{phi^k+1}(x)) = log(Jac_{phi}(phi^k(x))) * log(J_{phi^k}(x))
+          // where phi is the scaled velocity field grid
          for (int i = 0; i < numItegration; ++i) {
-//            std::cout << "i = " << i << std::endl;
-            reg_divergence_conforming_spline_getJacobianDetImage<double>(scaledVelocityFieldGrid,  // in
-                                                                         flowField,  // in
-                                                                         jacobianImage);  // out
-            reg_spline_getDeformationField(scaledVelocityFieldGrid,
-                                           flowField,  // out
-                                           NULL,  // mask
-                                           true,  // composition
-                                           true,  // bspline
-                                           true);  // force_no_lut
+            // 1 step of the Euler integration of the log Jacobian
+            reg_getDisplacementFromDeformation(scaledVelocityFieldGrid);
+            reg_spline_integrateLogJacobianDetImage<double>(scaledVelocityFieldGrid,  // in
+                                                            flowField,  // in
+                                                            jacobianImage);  // out
+            if (velocityFieldGrid->intent_p1 == SPLINE_VEL_GRID) {
+                reg_getDeformationFromDisplacement(scaledVelocityFieldGrid);
+                // 1 step of the Euler integration of the dense deformation
+                // compose scaledVelocityFieldGrid with flowField
+                reg_spline_getDeformationField(scaledVelocityFieldGrid,  // in
+                                               flowField,  // out
+                                               NULL,  // mask
+                                               true,  // composition
+                                               true,  // bspline
+                                               true);  // force_no_lut
+            }
+            else if (velocityFieldGrid->intent_p1 == DIV_CONFORMING_VEL_GRID) {
+                // 1 step of the Euler integration of the dense deformation
+                // compose scaledVelocityFieldGrid with flowField
+                // for divergence conforming B-splines reg_spline_getDeformationField
+                // is working only with displacement...
+                reg_spline_getDeformationField(scaledVelocityFieldGrid,  // in
+                                               flowField,  // out
+                                               NULL,  // mask
+                                               true,  // composition
+                                               true,  // bspline
+                                               true);  // force_no_lut
+                reg_getDeformationFromDisplacement(scaledVelocityFieldGrid);
+            }
          }
            break;
       case NIFTI_TYPE_FLOAT32:
          for (int i = 0; i < numItegration; ++i) {
-            reg_divergence_conforming_spline_getJacobianDetImage<float>(scaledVelocityFieldGrid,  // in
+             reg_getDisplacementFromDeformation(scaledVelocityFieldGrid);
+             reg_spline_integrateLogJacobianDetImage<float>(scaledVelocityFieldGrid,  // in
                                                                         flowField,  // in
                                                                         jacobianImage);  // out
-            reg_spline_getDeformationField(scaledVelocityFieldGrid,
+             reg_getDeformationFromDisplacement(scaledVelocityFieldGrid);
+             reg_spline_getDeformationField(scaledVelocityFieldGrid,
                                            flowField,  // out
                                            NULL,  // mask
                                            true,  // composition

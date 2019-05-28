@@ -31,6 +31,8 @@ public:
 
   void setConstraintMask(nifti_image *m);
 
+  int voxel_to_index(int i_x, int i_y, int i_z, int i_d);
+
   void initLevel(int level);
 
   void clearLevel(int level);
@@ -151,6 +153,8 @@ protected:
     int *currentConstraintMask;
     int *currentConstraintMaskGrid;  // projection of the constraint mask on the grid
     int **constraintMaskPyramid;
+    int numGridPoints;
+    float divCoef [3] = {1./6., 2./3., 1./6.};
     std::string saveDir;
     bool saveMoreOutput;
 
@@ -250,6 +254,17 @@ void reg_f3d2_ipopt<T>::setSaveMoreOutput(bool saveMore) {
 }
 
 template <class T>
+int reg_f3d2_ipopt<T>::voxel_to_index(int i_x, int i_y, int i_z, int i_d) {
+    // the forth dimension correspond to the dimension of the vector of the velocity field
+    assert(id < 3);
+    int index = i_d * this->numGridPoints
+                + i_z * this->controlPointGrid->nx * this->controlPointGrid->ny
+                + i_y * this->controlPointGrid->nx
+                + i_x;
+    return index;
+}
+
+template <class T>
 void reg_f3d2_ipopt<T>::initLevel(int level) {
 #ifndef NDEBUG
   std::cout <<"Call initLevel" << std::endl;
@@ -261,13 +276,9 @@ void reg_f3d2_ipopt<T>::initLevel(int level) {
         // set the number of steps in the scaling and squaring
         this->controlPointGrid->intent_p2 = 8;
         this->backwardControlPointGrid->intent_p2 = 8;
+        this->numGridPoints = this->controlPointGrid->nx * this->controlPointGrid->ny
+                              * this->controlPointGrid->nz;
         if (this->useDivergenceConstraint) {
-            // use divergence-conforming B-splines
-//            this->controlPointGrid->intent_p1 = DIV_CONFORMING_VEL_GRID;
-//            this->backwardControlPointGrid->intent_p1 = DIV_CONFORMING_VEL_GRID;
-//            // set the number of steps in the scaling and squaring
-//            this->controlPointGrid->intent_p2 = 8;
-//            this->backwardControlPointGrid->intent_p2 = 8;
             // create constraint mask pyramid
             if (this->constraintMask != NULL) {
                 this->constraintMaskPyramid = (int **)calloc(this->levelToPerform, sizeof(int *));
@@ -523,20 +534,20 @@ nifti_image **reg_f3d2_ipopt<T>::GetWarpedImageEuler() {
     // Allocate and save the forward transformation warped image
     nifti_image **warpedImage = (nifti_image **)malloc(2*sizeof(nifti_image *));
     warpedImage[0] = nifti_copy_nim_info(this->warped);
-    warpedImage[0]->cal_min=this->inputFloating->cal_min;
-    warpedImage[0]->cal_max=this->inputFloating->cal_max;
-    warpedImage[0]->scl_slope=this->inputFloating->scl_slope;
-    warpedImage[0]->scl_inter=this->inputFloating->scl_inter;
-    warpedImage[0]->data=(void *)malloc(warpedImage[0]->nvox*warpedImage[0]->nbyper);
+    warpedImage[0]->cal_min = this->inputFloating->cal_min;
+    warpedImage[0]->cal_max = this->inputFloating->cal_max;
+    warpedImage[0]->scl_slope = this->inputFloating->scl_slope;
+    warpedImage[0]->scl_inter = this->inputFloating->scl_inter;
+    warpedImage[0]->data = (void *)malloc(warpedImage[0]->nvox*warpedImage[0]->nbyper);
     memcpy(warpedImage[0]->data, this->warped->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
 
     // Allocate and save the backward transformation warped image
     warpedImage[1] = nifti_copy_nim_info(this->backwardWarped);
-    warpedImage[1]->cal_min=this->inputReference->cal_min;
-    warpedImage[1]->cal_max=this->inputReference->cal_max;
-    warpedImage[1]->scl_slope=this->inputReference->scl_slope;
-    warpedImage[1]->scl_inter=this->inputReference->scl_inter;
-    warpedImage[1]->data=(void *)malloc(warpedImage[1]->nvox*warpedImage[1]->nbyper);
+    warpedImage[1]->cal_min = this->inputReference->cal_min;
+    warpedImage[1]->cal_max = this->inputReference->cal_max;
+    warpedImage[1]->scl_slope = this->inputReference->scl_slope;
+    warpedImage[1]->scl_inter = this->inputReference->scl_inter;
+    warpedImage[1]->data = (void *)malloc(warpedImage[1]->nvox*warpedImage[1]->nbyper);
     memcpy(warpedImage[1]->data, this->backwardWarped->data, warpedImage[1]->nvox*warpedImage[1]->nbyper);
 
     // Clear the warped images
@@ -569,6 +580,12 @@ void reg_f3d2_ipopt<T>::printConfigInfo() {
     std::cout << std::endl;
     std::cout << "#################" << std::endl;
     std::cout << "REG_F3D2 Config Info" << std::endl;
+    if (this->bSplineType == DIV_CONFORMING_VEL_GRID) {
+        std::cout << "A divergence conforming B-spline is used for the velocity field" << std::endl;
+    }
+    else if (this->bSplineType == SPLINE_VEL_GRID) {
+        std::cout << "A cubic B-spline is used for the velocity field" << std::endl;
+    }
     std::cout << "Scaling factor used for the loss function = " << std::scientific << this->scalingCst << std::endl;
     if (this->useLucasExpGradient) {
         std::cout << "True gradient of the approximated exponential mapping is used." << std::endl;
@@ -645,10 +662,20 @@ bool reg_f3d2_ipopt<T>::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
         // set the number of non zero values in the jacobian matrix of the constraint
         if (this->controlPointGrid->nz > 1) {
             // nnz_jac_g: number of non-zeros values in the jacobian of the constraint function
-            nnz_jac_g = m * 6;  // 2 non zero values per constraint and dimension
+            if (this->controlPointGrid->intent_p1 == SPLINE_VEL_GRID) {
+                nnz_jac_g = m * 18 * this->controlPointGrid->nu;  // 2 * 3 * 3 non-zero values per constraint and per dimension
+            }
+            else {
+                nnz_jac_g = m * 6;  // 2 non zero values per constraint and dimension
+            }
         }  // 3D
         else {  // 2D
-            nnz_jac_g = m * 4;
+            if (this->controlPointGrid->intent_p1 == SPLINE_VEL_GRID) {
+                nnz_jac_g = m * 6 * this->controlPointGrid->nu;
+            }
+            else {
+                nnz_jac_g = m * 4;
+            }
         } // 2D
     }
     else {
@@ -930,6 +957,7 @@ bool reg_f3d2_ipopt<T>::eval_g(Index n, const Number* x, bool new_x, Index m, Nu
     T gridVoxelSpacing[3];
     gridVoxelSpacing[0] = this->controlPointGrid->dx;
     gridVoxelSpacing[1] = this->controlPointGrid->dy;
+    float coef = 0.;
     // index for g
     int index = 0;
     // index for controlPointGrid
@@ -939,23 +967,56 @@ bool reg_f3d2_ipopt<T>::eval_g(Index n, const Number* x, bool new_x, Index m, Nu
     int tempIndexPrevX = 0;
     int tempIndexPrevY = 0;
     int tempIndexPrevZ = 0;
+    int tempIndexNextX = 0;
+    int tempIndexNextY = 0;
+    int tempIndexNextZ = 0;
     if (this->controlPointGrid->nz > 1) {  // 3D
       gridVoxelSpacing[2] = this->controlPointGrid->dz;
       for (int k=1; k < (this->controlPointGrid->nz - 1); ++k) {
         for (int j=1; j < (this->controlPointGrid->ny - 1); ++j) {
           for (int i=1; i < (this->controlPointGrid->nx - 1); ++i) {
-            tempIndexX = k * this->controlPointGrid->nx * this->controlPointGrid->ny
-                    + j * this->controlPointGrid->nx + i;
+//            tempIndexX = k * this->controlPointGrid->nx * this->controlPointGrid->ny
+//                    + j * this->controlPointGrid->nx + i;
+            tempIndexX = this->voxel_to_index(i, j, k, 0);
             // only constrain in the mask
             if (this->currentConstraintMaskGrid[tempIndexX] > 0) {
-                tempIndexY = tempIndexX + numGridPoint;
-                tempIndexZ = tempIndexY + numGridPoint;
-                tempIndexPrevZ = tempIndexZ - this->controlPointGrid->nx * this->controlPointGrid->ny;
-                tempIndexPrevY = tempIndexY - this->controlPointGrid->nx;
-                tempIndexPrevX = tempIndexX - 1;
-                g[index] = (x[tempIndexX] - x[tempIndexPrevX]) / gridVoxelSpacing[0]
-                           + (x[tempIndexY] - x[tempIndexPrevY]) / gridVoxelSpacing[1]
-                           + (x[tempIndexZ] - x[tempIndexPrevZ]) / gridVoxelSpacing[2];
+                g[index] = 0.;
+//                tempIndexY = tempIndexX + numGridPoint;
+//                tempIndexZ = tempIndexY + numGridPoint;
+//                tempIndexPrevZ = tempIndexZ - this->controlPointGrid->nx * this->controlPointGrid->ny;
+//                tempIndexPrevY = tempIndexY - this->controlPointGrid->nx;
+//                tempIndexPrevX = tempIndexX - 1;
+                if (this->controlPointGrid->intent_p1 ==  DIV_CONFORMING_VEL_GRID) {
+                    tempIndexY = this->voxel_to_index(i, j, k, 1);
+                    tempIndexZ = this->voxel_to_index(i, j, k, 2);
+                    tempIndexPrevZ = this->voxel_to_index(i, j, k-1, 2);
+                    tempIndexPrevY = this->voxel_to_index(i, j-1, k, 1);
+                    tempIndexPrevX = this->voxel_to_index(i-1, j, k, 0);
+                    g[index] = (x[tempIndexX] - x[tempIndexPrevX]) / gridVoxelSpacing[0]
+                               + (x[tempIndexY] - x[tempIndexPrevY]) / gridVoxelSpacing[1]
+                               + (x[tempIndexZ] - x[tempIndexPrevZ]) / gridVoxelSpacing[2];
+                }
+                else if (this->controlPointGrid->intent_p1 ==  SPLINE_VEL_GRID) {
+                    // for a given knot (i, j, k) go over all neighbor knots parameters and all channels
+                    // contributing to the divergence of (i, j, k)
+                    for (int u=0; u < 3; ++u) {
+                        for (int v=0; v < 3; ++v) {
+                            coef = this->divCoef[u] * this->divCoef[v];
+                            // update for 1st component of the velocity field param
+                            tempIndexNextX = this->voxel_to_index(i + 1, j + u - 1, k + v - 1, 0);
+                            tempIndexPrevX = this->voxel_to_index(i - 1, j + u - 1, k + v - 1, 0);
+                            g[index] += coef * (x[tempIndexNextX] - x[tempIndexPrevX]) / (2*gridVoxelSpacing[0]);
+                            // update for 2nd component of the velocity field param
+                            tempIndexNextY = this->voxel_to_index(i + u - 1, j + 1, k + v - 1, 1);
+                            tempIndexPrevY = this->voxel_to_index(i + u - 1, j - 1, k + v - 1, 1);
+                            g[index] += coef * (x[tempIndexNextY] - x[tempIndexPrevY]) / (2*gridVoxelSpacing[1]);
+                            // update for 3rd component of the velocity field param
+                            tempIndexNextZ = this->voxel_to_index(i + u - 1, j + v - 1, k + 1, 2);
+                            tempIndexPrevZ = this->voxel_to_index(i + u - 1, j + v - 1, k - 1, 2);
+                            g[index] += coef * (x[tempIndexNextZ] - x[tempIndexPrevZ]) / (2*gridVoxelSpacing[2]);
+                        }
+                    }  // neighbors
+                }
                 ++index;
             }
           }
@@ -968,11 +1029,29 @@ bool reg_f3d2_ipopt<T>::eval_g(Index n, const Number* x, bool new_x, Index m, Nu
           tempIndexX = j * this->controlPointGrid->nx + i;
           // only constrain in the mask
           if (this->currentConstraintMaskGrid[tempIndexX] > 0) {
-              tempIndexY = tempIndexX + numGridPoint;
-              tempIndexPrevY = tempIndexY - this->controlPointGrid->nx;
-              tempIndexPrevX = tempIndexX - 1;
-              g[index] = (x[tempIndexX] - x[tempIndexPrevX]) / gridVoxelSpacing[0]
-                         + (x[tempIndexY] - x[tempIndexPrevY]) / gridVoxelSpacing[1];
+              g[index] = 0.;
+              if (this->controlPointGrid->intent_p1 ==  DIV_CONFORMING_VEL_GRID) {
+                  tempIndexY = tempIndexX + numGridPoint;
+                  tempIndexPrevY = tempIndexY - this->controlPointGrid->nx;
+                  tempIndexPrevX = tempIndexX - 1;
+                  g[index] = (x[tempIndexX] - x[tempIndexPrevX]) / gridVoxelSpacing[0]
+                             + (x[tempIndexY] - x[tempIndexPrevY]) / gridVoxelSpacing[1];
+              }
+              else if (this->controlPointGrid->intent_p1 == SPLINE_VEL_GRID) {
+                  // for a given knot (i, j, k) go over all neighbor knots parameters and all channels
+                  // contributing to the divergence of (i, j, k)
+                  for (int u=0; u < 3; ++u) {
+                      coef = this->divCoef[u];
+                      // update for 1st component of the velocity field param
+                      tempIndexNextX = this->voxel_to_index(i + 1, j + u - 1, 0, 0);
+                      tempIndexPrevX = this->voxel_to_index(i - 1, j + u - 1, 0, 0);
+                      g[index] += coef * (x[tempIndexNextX] - x[tempIndexPrevX]) / (2*gridVoxelSpacing[0]);
+                      // update for 2nd component of the velocity field param
+                      tempIndexNextY = this->voxel_to_index(i + u - 1, j + 1, 0, 1);
+                      tempIndexPrevY = this->voxel_to_index(i + u - 1, j - 1, 0, 1);
+                      g[index] += coef * (x[tempIndexNextY] - x[tempIndexPrevY]) / (2*gridVoxelSpacing[1]);
+                  }  // neighbors
+              }
               ++index;
           }
         }
@@ -999,47 +1078,117 @@ bool reg_f3d2_ipopt<T>::eval_jac_g(Index n, const Number* x, bool new_x,
     // constraint index (rows)
     int index = 0;
     // variable index (columns)
-    int tempIndex = 0;
+    int tempIndexX = 0;
+    int tempIndexY = 0;
+    int tempIndexZ = 0;
     int tempIndexPrevX = 0;
     int tempIndexPrevY = 0;
     int tempIndexPrevZ = 0;
+    int tempIndexNextX = 0;
+    int tempIndexNextY = 0;
+    int tempIndexNextZ = 0;
+    float coef = 0;
+    int indexSparse = 0;
     if (this->controlPointGrid->nz > 1) {  // 3D
       gridVoxelSpacing[2] = (Number) (this->controlPointGrid->dz);
       for (int k = 1; k < (this->controlPointGrid->nz - 1); ++k) {
         for (int j = 1; j < (this->controlPointGrid->ny - 1); ++j) {
           for (int i = 1; i < (this->controlPointGrid->nx - 1); ++i) {
-            tempIndex = k * this->controlPointGrid->nx * this->controlPointGrid->ny
-                        + j * this->controlPointGrid->nx + i;
+//            tempIndex = k * this->controlPointGrid->nx * this->controlPointGrid->ny
+//                        + j * this->controlPointGrid->nx + i;
+            tempIndexX = this->voxel_to_index(i, j, k, 0);
             // only constraint inside the mask
-            if (this->currentConstraintMaskGrid[tempIndex] > 0) {
-                tempIndexPrevZ = tempIndex - this->controlPointGrid->nx * this->controlPointGrid->ny;
-                tempIndexPrevY = tempIndex - this->controlPointGrid->nx;
-                tempIndexPrevX = tempIndex - 1;
-                if (values == NULL) {  // return the structure of the constraint jacobian
-                    // iRow and jCol contain the index of non zero entries of the jacobian of the constraint
-                    // index of the columns correspond to the 1D-array x that contains the problem variables
-                    // index of the rows correspond to the constraint number
-                    iRow[6 * index] = index;
-                    jCol[6 * index] = tempIndex;
-                    iRow[6 * index + 1] = index;
-                    jCol[6 * index + 1] = tempIndexPrevX;
-                    iRow[6 * index + 2] = index;
-                    jCol[6 * index + 2] = numGridPoint + tempIndex;
-                    iRow[6 * index + 3] = index;
-                    jCol[6 * index + 3] = numGridPoint + tempIndexPrevY;
-                    iRow[6 * index + 4] = index;
-                    jCol[6 * index + 4] = 2 * numGridPoint + tempIndex;
-                    iRow[6 * index + 5] = index;
-                    jCol[6 * index + 5] = 2 * numGridPoint + tempIndexPrevZ;
-                }  // jacobian structure
-                else {  // return the values of the jacobian of the constraints
-                    values[6 * index] = 1. / gridVoxelSpacing[0];
-                    values[6 * index + 1] = -1. / gridVoxelSpacing[0];
-                    values[6 * index + 2] = 1. / gridVoxelSpacing[1];
-                    values[6 * index + 3] = -1. / gridVoxelSpacing[1];
-                    values[6 * index + 4] = 1. / gridVoxelSpacing[2];
-                    values[6 * index + 5] = -1. / gridVoxelSpacing[2];
-                }  // jacobian values
+            if (this->currentConstraintMaskGrid[tempIndexX] > 0) {
+                if (this->controlPointGrid->intent_p1 == DIV_CONFORMING_VEL_GRID) {
+//                    tempIndexPrevZ = tempIndex - this->controlPointGrid->nx * this->controlPointGrid->ny;
+//                    tempIndexPrevY = tempIndex - this->controlPointGrid->nx;
+//                    tempIndexPrevX = tempIndex - 1;
+                    tempIndexY = this->voxel_to_index(i, j, k, 1);
+                    tempIndexZ = this->voxel_to_index(i, j, k, 2);
+                    tempIndexPrevZ = this->voxel_to_index(i, j, k-1, 2);
+                    tempIndexPrevY = this->voxel_to_index(i, j-1, k, 1);
+                    tempIndexPrevX = this->voxel_to_index(i-1, j, k, 0);
+                    if (values == NULL) {  // return the structure of the constraint jacobian
+                        // iRow and jCol contain the index of non zero entries of the jacobian of the constraint
+                        // index of the columns correspond to the 1D-array x that contains the problem variables
+                        // index of the rows correspond to the constraint number
+                        iRow[6 * index] = index;
+                        jCol[6 * index] = tempIndexX;
+                        iRow[6 * index + 1] = index;
+                        jCol[6 * index + 1] = tempIndexPrevX;
+                        iRow[6 * index + 2] = index;
+                        jCol[6 * index + 2] = tempIndexY;
+                        iRow[6 * index + 3] = index;
+                        jCol[6 * index + 3] = tempIndexPrevY;
+                        iRow[6 * index + 4] = index;
+                        jCol[6 * index + 4] = tempIndexZ;
+                        iRow[6 * index + 5] = index;
+                        jCol[6 * index + 5] = tempIndexPrevZ;
+                    }  // jacobian structure
+                    else {  // return the values of the jacobian of the constraints
+                        values[6 * index] = 1. / gridVoxelSpacing[0];
+                        values[6 * index + 1] = -1. / gridVoxelSpacing[0];
+                        values[6 * index + 2] = 1. / gridVoxelSpacing[1];
+                        values[6 * index + 3] = -1. / gridVoxelSpacing[1];
+                        values[6 * index + 4] = 1. / gridVoxelSpacing[2];
+                        values[6 * index + 5] = -1. / gridVoxelSpacing[2];
+                    }  // jacobian values
+                }
+                else if (this->controlPointGrid->intent_p1 == SPLINE_VEL_GRID) {
+                    // for a given knot (i, j, k) go over all neighbor knots parameters and all channels
+                    // contributing to the divergence of (i, j, k)
+                    for (int u=0; u < 3; ++u) {
+                        for (int v=0; v < 3; ++v) {
+                            coef = this->divCoef[u] * this->divCoef[v];
+                            // update for 1st component of the velocity field param
+                            tempIndexNextX = this->voxel_to_index(i + 1, j + u - 1, k + v - 1, 0);
+                            tempIndexPrevX = this->voxel_to_index(i - 1, j + u - 1, k + v - 1, 0);
+                            // update for 2nd component of the velocity field param
+                            tempIndexNextY = this->voxel_to_index(i + u - 1, j + 1, k + v - 1, 1);
+                            tempIndexPrevY = this->voxel_to_index(i + u - 1, j - 1, k + v - 1, 1);
+                            // update for 3rd component of the velocity field param
+                            tempIndexNextZ = this->voxel_to_index(i + u - 1, j + v - 1, k + 1, 2);
+                            tempIndexPrevZ = this->voxel_to_index(i + u - 1, j + v - 1, k - 1, 2);
+                            if (values == NULL) {  // return the (sparse) structure of the constraint jacobian
+                                // iRow and jCol contain the index of non zero entries of the jacobian of the constraint
+                                // index of the columns correspond to the 1D-array x that contains the primal variables
+                                // index of the rows correspond to the constraint index
+                                iRow[indexSparse] = index;
+                                jCol[indexSparse] = tempIndexNextX;
+                                indexSparse += 1;
+                                iRow[indexSparse] = index;
+                                jCol[indexSparse] = tempIndexPrevX;
+                                indexSparse += 1;
+                                iRow[indexSparse] = index;
+                                jCol[indexSparse] = tempIndexNextY;
+                                indexSparse += 1;
+                                iRow[indexSparse] = index;
+                                jCol[indexSparse] = tempIndexPrevY;
+                                indexSparse += 1;
+                                iRow[indexSparse] = index;
+                                jCol[indexSparse] = tempIndexNextZ;
+                                indexSparse += 1;
+                                iRow[indexSparse] = index;
+                                jCol[indexSparse] = tempIndexPrevZ;
+                                indexSparse += 1;
+                            }  // jacobian structure
+                            else {  // return the values of the jacobian of the constraints
+                                values[indexSparse] = coef * 0.5 / gridVoxelSpacing[0];
+                                indexSparse += 1;
+                                values[indexSparse] = -coef * 0.5 / gridVoxelSpacing[0];
+                                indexSparse += 1;
+                                values[indexSparse] = coef * 0.5 / gridVoxelSpacing[1];
+                                indexSparse += 1;
+                                values[indexSparse] = -coef * 0.5 / gridVoxelSpacing[1];
+                                indexSparse += 1;
+                                values[indexSparse] = coef * 0.5 / gridVoxelSpacing[2];
+                                indexSparse += 1;
+                                values[indexSparse] = -coef * 0.5 / gridVoxelSpacing[2];
+                                indexSparse += 1;
+                            }  // jacobian values
+                        }
+                    }  // neighbors
+                }
                 ++index;
             }
           }
@@ -1049,30 +1198,72 @@ bool reg_f3d2_ipopt<T>::eval_jac_g(Index n, const Number* x, bool new_x,
     else {  // 2D
       for (int j = 1; j < (this->controlPointGrid->ny - 2); ++j) {
         for (int i = 1; i < (this->controlPointGrid->nx - 2); ++i) {
-          tempIndex = j * this->controlPointGrid->nx + i;
+          tempIndexX = j * this->controlPointGrid->nx + i;
           // only constrain in the mask
-          if (this->currentConstraintMaskGrid[tempIndex] > 0) {  // only constraint inside the mask
-              tempIndexPrevY = tempIndex - this->controlPointGrid->nx;
-              tempIndexPrevX = tempIndex - 1;
-              if (values == NULL) {  // return the structure of the constraint jacobian
-                  // iRow and jCol contain the index of non zero entries of the jacobian of the constraint
-                  // index of the columns correspond to the 1D-array x that contains the problem variables
-                  // index of the rows correspond to the constraint number
-                  iRow[4 * index] = index;
-                  jCol[4 * index] = tempIndex;
-                  iRow[4 * index + 1] = index;
-                  jCol[4 * index + 1] = tempIndexPrevX;
-                  iRow[4 * index + 2] = index;
-                  jCol[4 * index + 2] = numGridPoint + tempIndex;
-                  iRow[4 * index + 3] = index;
-                  jCol[4 * index + 3] = numGridPoint + tempIndexPrevY;
-              }  // jacobian structure
-              else {  // return the values of the jacobian of the constraints
-                  values[4 * index] = 1. / gridVoxelSpacing[0];
-                  values[4 * index + 1] = -1. / gridVoxelSpacing[0];
-                  values[4 * index + 2] = 1. / gridVoxelSpacing[1];
-                  values[4 * index + 3] = -1. / gridVoxelSpacing[1];
-              }  // jacobian values
+          if (this->currentConstraintMaskGrid[tempIndexX] > 0) {  // only constraint inside the mask
+              if (this->controlPointGrid->intent_p1 == DIV_CONFORMING_VEL_GRID) {
+                  tempIndexPrevY = tempIndexX - this->controlPointGrid->nx;
+                  tempIndexPrevX = tempIndexX - 1;
+                  if (values == NULL) {  // return the structure of the constraint jacobian
+                      // iRow and jCol contain the index of non zero entries of the jacobian of the constraint
+                      // index of the columns correspond to the 1D-array x that contains the problem variables
+                      // index of the rows correspond to the constraint number
+                      iRow[4 * index] = index;
+                      jCol[4 * index] = tempIndexX;
+                      iRow[4 * index + 1] = index;
+                      jCol[4 * index + 1] = tempIndexPrevX;
+                      iRow[4 * index + 2] = index;
+                      jCol[4 * index + 2] = numGridPoint + tempIndexX;
+                      iRow[4 * index + 3] = index;
+                      jCol[4 * index + 3] = numGridPoint + tempIndexPrevY;
+                  }  // jacobian structure
+                  else {  // return the values of the jacobian of the constraints
+                      values[4 * index] = 1. / gridVoxelSpacing[0];
+                      values[4 * index + 1] = -1. / gridVoxelSpacing[0];
+                      values[4 * index + 2] = 1. / gridVoxelSpacing[1];
+                      values[4 * index + 3] = -1. / gridVoxelSpacing[1];
+                  }  // jacobian values
+              }
+              else if (this->controlPointGrid->intent_p1 == SPLINE_VEL_GRID) {
+                  // for a given knot (i, j, k) go over all neighbor knots parameters and all channels
+                  // contributing to the divergence of (i, j, k)
+                  for (int u=0; u < 3; ++u) {
+                      coef = this->divCoef[u];
+                      // update for 1st component of the velocity field param
+                      tempIndexNextX = this->voxel_to_index(i + 1, j + u - 1, 0, 0);
+                      tempIndexPrevX = this->voxel_to_index(i - 1, j + u - 1, 0, 0);
+                      // update for 2nd component of the velocity field param
+                      tempIndexNextY = this->voxel_to_index(i + u - 1, j + 1, 0, 1);
+                      tempIndexPrevY = this->voxel_to_index(i + u - 1, j - 1, 0, 1);
+                      if (values == NULL) {  // return the (sparse) structure of the constraint jacobian
+                          // iRow and jCol contain the index of non zero entries of the jacobian of the constraint
+                          // index of the columns correspond to the 1D-array x that contains the primal variables
+                          // index of the rows correspond to the constraint index
+                          iRow[indexSparse] = index;
+                          jCol[indexSparse] = tempIndexNextX;
+                          indexSparse += 1;
+                          iRow[indexSparse] = index;
+                          jCol[indexSparse] = tempIndexPrevX;
+                          indexSparse += 1;
+                          iRow[indexSparse] = index;
+                          jCol[indexSparse] = tempIndexNextY;
+                          indexSparse += 1;
+                          iRow[indexSparse] = index;
+                          jCol[indexSparse] = tempIndexPrevY;
+                          indexSparse += 1;
+                      }  // jacobian structure
+                      else {  // return the values of the jacobian of the constraints
+                          values[indexSparse] = coef * 0.5 / gridVoxelSpacing[0];
+                          indexSparse += 1;
+                          values[indexSparse] = -coef * 0.5 / gridVoxelSpacing[0];
+                          indexSparse += 1;
+                          values[indexSparse] = coef * 0.5 / gridVoxelSpacing[1];
+                          indexSparse += 1;
+                          values[indexSparse] = -coef * 0.5 / gridVoxelSpacing[1];
+                          indexSparse += 1;
+                      }  // jacobian values
+                  }  // neighbors
+              }
               ++index;
           }
         }
@@ -1200,51 +1391,55 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
             nifti_image_free(currMaskGrid);
         }
 
-        // Compute and save the jacobian map fo the forward transformation
-        size_t nvox = (size_t) this->currentFloating->nx * this->currentFloating->ny * this->currentFloating->nz;
-        nifti_image *jacobianDeterminantArray = nifti_copy_nim_info(this->currentFloating);
-        jacobianDeterminantArray->nbyper = this->controlPointGrid->nbyper;
-        jacobianDeterminantArray->datatype = this->controlPointGrid->datatype;
-        jacobianDeterminantArray->data = (void *) calloc(nvox, this->controlPointGrid->nbyper);
-        // initialise the jacobian array values to 1
-        reg_tools_addValueToImage(jacobianDeterminantArray,
-                                  jacobianDeterminantArray,
-                                  1);
-        jacobianDeterminantArray->cal_min = 0;
-        jacobianDeterminantArray->cal_max = 0;
-        jacobianDeterminantArray->scl_slope = 1.0f;
-        jacobianDeterminantArray->scl_inter = 0.0f;
-
-        // original niftyreg jacobian for f3d2
-        // re-initialise the jacobian determinant map
-        reg_tools_multiplyValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 0);
-        reg_tools_addValueToImage(jacobianDeterminantArray,
-                                  jacobianDeterminantArray,
-                                  1);
-        reg_spline_GetJacobianDetFromVelocityGrid(jacobianDeterminantArray, this->controlPointGrid);
-        fileName = stringFormat("%s/output_jacobian_map_Marc_level%d.nii.gz",
-                                this->saveDir.c_str(), this->currentLevel + 1);
-        reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
-        nifti_image_free(jacobianDeterminantArray);
+//        // Compute and save the jacobian map fo the forward transformation
+//        size_t nvox = (size_t) this->currentFloating->nx * this->currentFloating->ny * this->currentFloating->nz;
+//        nifti_image *jacobianDeterminantArray = nifti_copy_nim_info(this->currentFloating);
+//        jacobianDeterminantArray->nbyper = this->controlPointGrid->nbyper;
+//        jacobianDeterminantArray->datatype = this->controlPointGrid->datatype;
+//        jacobianDeterminantArray->data = (void *) calloc(nvox, this->controlPointGrid->nbyper);
+//        // initialise the jacobian array values to 1
+//        reg_tools_addValueToImage(jacobianDeterminantArray,
+//                                  jacobianDeterminantArray,
+//                                  1);
+//        jacobianDeterminantArray->cal_min = 0;
+//        jacobianDeterminantArray->cal_max = 0;
+//        jacobianDeterminantArray->scl_slope = 1.0f;
+//        jacobianDeterminantArray->scl_inter = 0.0f;
+//
+//        // original niftyreg jacobian for f3d2
+//        // re-initialise the jacobian determinant map
+//        reg_tools_multiplyValueToImage(jacobianDeterminantArray, jacobianDeterminantArray, 0);
+//        reg_tools_addValueToImage(jacobianDeterminantArray,
+//                                  jacobianDeterminantArray,
+//                                  1);
+//        reg_spline_GetJacobianDetFromVelocityGrid(jacobianDeterminantArray, this->controlPointGrid);
+//        fileName = stringFormat("%s/output_jacobian_map_Marc_level%d.nii.gz",
+//                                this->saveDir.c_str(), this->currentLevel + 1);
+//        reg_io_WriteImageFile(jacobianDeterminantArray, fileName.c_str());
+//        nifti_image_free(jacobianDeterminantArray);
     }
 
-    // True jacobian of the integrator
-    nifti_image *jac = reg_spline_GetJacobianFromVelocityGrid(this->deformationFieldImage,
-                                                              this->controlPointGrid);
-    fileName = stringFormat("%s/output_logJacobian_euler_level%d.nii.gz",
-                            this->saveDir.c_str(), this->currentLevel+1);
-    reg_io_WriteImageFile(jac, fileName.c_str());
+    // True log jacobian for an Euler integration
+    if (this->saveMoreOutput) {
+        nifti_image *jac = reg_spline_GetLogJacobianFromVelocityGrid(this->deformationFieldImage,
+                                                                     this->controlPointGrid);
+        fileName = stringFormat("%s/output_logJacobian_euler_level%d.nii.gz",
+                                this->saveDir.c_str(), this->currentLevel + 1);
+        reg_io_WriteImageFile(jac, fileName.c_str());
 
-    // free nifti_image instance
-    nifti_image_free(jac);
+        // free nifti_image instance
+        nifti_image_free(jac);
+    }
 
     // compute and save the divergence of the stationary velocity field
-    nifti_image *divergenceImage = reg_spline_GetDivergenceFromVelocityGrid(this->deformationFieldImage,
-                                                                            this->controlPointGrid);
-    fileName = stringFormat("%s/output_divergence_map_level%d.nii.gz",
-                            this->saveDir.c_str(), this->currentLevel+1);
-    reg_io_WriteImageFile(divergenceImage, fileName.c_str());
-    nifti_image_free(divergenceImage);
+    if (this->saveMoreOutput) {
+        nifti_image *divergenceImage = reg_spline_GetDivergenceFromVelocityGrid(this->deformationFieldImage,
+                                                                                this->controlPointGrid);
+        fileName = stringFormat("%s/output_divergence_map_level%d.nii.gz",
+                                this->saveDir.c_str(), this->currentLevel + 1);
+        reg_io_WriteImageFile(divergenceImage, fileName.c_str());
+        nifti_image_free(divergenceImage);
+    }
 
     // Save the control point image
     nifti_image *outputControlPointGridImage = this->GetControlPointPositionImage();
@@ -1253,6 +1448,7 @@ void reg_f3d2_ipopt<T>::finalize_solution(SolverReturn status,
     memset(outputControlPointGridImage->descrip, 0, 80);
     strcpy (outputControlPointGridImage->descrip, "Velocity field grid from NiftyReg");
     reg_io_WriteImageFile(outputControlPointGridImage, outputCPPImageName.c_str());
+
     // save the displacement control point grid
     if (this->saveMoreOutput) {
         reg_getDisplacementFromDeformation(outputControlPointGridImage);

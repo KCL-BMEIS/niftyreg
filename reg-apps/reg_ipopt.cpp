@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
 
   REG->setDivergenceConstraint(CommandLineReaderRegIpopt::getInstance().getUseConstraint());
 
-  REG->setSaveMoreOutput(CommandLineReaderRegIpopt::getInstance().getSaveMoreOutput());
+//  REG->setSaveMoreOutput(CommandLineReaderRegIpopt::getInstance().getSaveMoreOutput());
 
 //  REG->SetWarpedPaddingValue(0.);
 
@@ -231,6 +231,8 @@ int main(int argc, char** argv) {
     app->Options()->SetIntegerValue("acceptable_iter", 15);  // default 15
     if (level == levelToPerform - 1){
       app->Options()->SetIntegerValue("max_iter", maxIter);
+      // save more output for the last level if asked by the user
+      REG->setSaveMoreOutput(CommandLineReaderRegIpopt::getInstance().getSaveMoreOutput());
     }
     else {
       app->Options()->SetIntegerValue("max_iter", 100*(levelToPerform - level));
