@@ -112,7 +112,7 @@ if(NOT BUILD_ALL_DEP)
             set (PNG_DEFINITIONS -DPNG_STATIC)
         endif(NOT BUILD_SHARED_LIBS)
     endif(CYGWIN)
-    set(PNG_NAMES ${PNG_NAMES} png libpng png15 libpng15 png15d libpng15d png14 libpng14 png14d libpng14d png12 libpng12 png12d libpng12d)
+    set(PNG_NAMES ${PNG_NAMES} png libpng libpng16 png15 libpng15 png15d libpng15d png14 libpng14 png14d libpng14d png12 libpng12 png12d libpng12d)
     find_library(PNG_LIBRARY NAMES ${PNG_NAMES})
     find_path(PNG_INCLUDE_DIR png.h
         /usr/local/include/libpng

@@ -26,9 +26,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/reg_jacobian.h.in ${CMAKE_CURRENT_BIN
 
 #-----------------------------------------------------------------------------
 # add local Ipopt library for debuging
-#set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-hsl")
-#set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-debug")
 set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-mkl")
+#set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build-debug")
+#set(IPOPT_BUILD_DIR "/opt/CoinIpopt/build")
 #include_directories("/opt/CoinIpopt/Ipopt/src/Interfaces")
 include_directories("${IPOPT_BUILD_DIR}/include/coin")
 include_directories("/usr/local/include/boost_1_66_0")
@@ -39,15 +39,18 @@ if(USE_CUDA)
   cuda_add_executable(reg_f3d reg_f3d.cpp)
   cuda_add_executable(reg_ipopt reg_ipopt.cpp command_line_reader_abstract.cpp command_line_reader_reg_ipopt.cpp)
   cuda_add_executable(reg_div_free reg_div_free.cpp command_line_reader_div_free_projection.cpp command_line_reader_abstract.cpp)
+  cuda_add_executable(reg_ipopt_eval reg_ipopt_eval.cpp command_line_reader_reg_ipopt_eval.cpp command_line_reader_abstract.cpp)
 else(USE_CUDA)
   add_executable(reg_f3d reg_f3d.cpp)
   add_executable(reg_ipopt reg_ipopt.cpp command_line_reader_abstract.cpp command_line_reader_reg_ipopt.cpp ../reg-lib/_reg_f3d2_ipopt.cpp)
   add_executable(reg_div_free reg_div_free.cpp command_line_reader_div_free_projection.cpp command_line_reader_abstract.cpp)
+  add_executable(reg_ipopt_eval reg_ipopt_eval command_line_reader_reg_ipopt_eval.cpp command_line_reader_abstract.cpp)
   add_executable(reg_test_linearInterpolationImage reg_test_linearInterpolationImage.cpp)
 endif(USE_CUDA)
 target_link_libraries(reg_f3d _reg_f3d)
 target_link_libraries(reg_ipopt _reg_f3d)
 target_link_libraries(reg_div_free _reg_f3d)
+target_link_libraries(reg_ipopt_eval _reg_f3d)
 target_link_libraries(reg_test_linearInterpolationImage _reg_f3d)
 
 add_library(ipopt SHARED IMPORTED)
@@ -61,7 +64,7 @@ target_link_libraries(reg_div_free ipopt)
 add_library(blas SHARED IMPORTED)
 #set_property(TARGET blas PROPERTY IMPORTED_LOCATION "${IPOPT_BUILD_DIR}/lib/libcoinblas.so")
 # For MKL:
-set_property(TARGET blas PROPERTY IMPORTED_LOCATION "/opt/intel/compilers_and_libraries_2019.2.187/linux/mkl/lib/intel64/libmkl_intel_lp64.so")
+set_property(TARGET blas PROPERTY IMPORTED_LOCATION "/opt/intel/compilers_and_libraries_2019.3.199/linux/mkl/lib/intel64/libmkl_intel_lp64.so")
 target_link_libraries(reg_ipopt blas)
 target_link_libraries(reg_div_free blas)
 
@@ -92,6 +95,7 @@ set(MODULE_LIST
   reg_f3d
   reg_ipopt
   reg_div_free
+  reg_ipopt_eval
   reg_test_linearInterpolationImage
   )
 #-----------------------------------------------------------------------------
