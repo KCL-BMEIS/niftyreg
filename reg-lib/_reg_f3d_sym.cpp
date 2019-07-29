@@ -1527,10 +1527,34 @@ void reg_f3d_sym<T>::UpdateParameters(float scale)
    // Apply the rigid constraint if required
    // MARTA ADDENDUM ARGUMENT FOR NR of ITERATIONS
    if(this->use_rigidConstraint){
-      regulariseNonLinearGradientWithRigidConstraint(this->backwardControlPointGrid,
+      // Create a temporary image
+      nifti_image *temp_scaled = nifti_copy_nim_info(this->backwardControlPointGrid);
+      temp_scaled->data=(void *)malloc
+            (temp_scaled->nvox*temp_scaled->nbyper);
+      memcpy(temp_scaled->data, this->backwardControlPointGrid,
+             temp_scaled->nvox*temp_scaled->nbyper);
+      // Remove the identify
+      reg_getDisplacementFromDeformation(temp_scaled);
+      // Scale down the displacement field
+      reg_tools_divideValueToImage(temp_scaled,temp_scaled,
+                                   pow(2.0f,std::abs((float)this->backwardControlPointGrid->intent_p2)));
+      // apply the contraint
+      regulariseNonLinearGradientWithRigidConstraint(temp_scaled,
                                                      this->currentRigidMask,
-                                                     false,
+                                                     true,
                                                      this->nrIterationsRigid);
+      // Scale up the displacement field
+      reg_tools_multiplyValueToImage(temp_scaled,
+                                     temp_scaled,
+                                     pow(2.0f,std::abs((float)this->backwardControlPointGrid->intent_p2)));
+
+      // Add the identity
+      reg_getDeformationFromDisplacement(temp_scaled);
+      // Restore in the original velovity grid
+      memcpy(this->backwardControlPointGrid, temp_scaled->data,
+             temp_scaled->nvox*temp_scaled->nbyper);
+      // free temporary image
+      nifti_image_free(temp_scaled);
    } // END ADDENDUM
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::UpdateParameters");

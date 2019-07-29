@@ -266,107 +266,107 @@ void reg_f3d<T>::AllocateRigidConstraintMask()
       reg_tools_changeDatatype<unsigned char>(this->currentRigidMask);
       delete []radius;
 
-      if(this->currentLevel == 0){
+//      if(this->currentLevel == 0){
 
-          int mask_to_consider = this->inputRigidMask->nt -1;
-//          size_t mask_to_consider = 1;
+//          int mask_to_consider = this->inputRigidMask->nt -1;
+////          size_t mask_to_consider = 1;
 
-          //unsigned char *maskPtr = static_cast<unsigned char *>(maskImage->data);
-          size_t voxelNumber = (size_t)this->inputRigidMask->nx *
-                               this->inputRigidMask->ny * this->inputRigidMask->nz;
+//          //unsigned char *maskPtr = static_cast<unsigned char *>(maskImage->data);
+//          size_t voxelNumber = (size_t)this->inputRigidMask->nx *
+//                               this->inputRigidMask->ny * this->inputRigidMask->nz;
 
-          // Create an array to store the rigid transformation
-          mat44 **mask_transformation = (mat44 **)malloc(mask_to_consider*sizeof(mat44 *));
-          for(int t=0; t<mask_to_consider; ++t) {
-              mask_transformation[t] = (mat44 *)malloc(sizeof(mat44));
-          }
+//          // Create an array to store the rigid transformation
+//          mat44 **mask_transformation = (mat44 **)malloc(mask_to_consider*sizeof(mat44 *));
+//          for(int t=0; t<mask_to_consider; ++t) {
+//              mask_transformation[t] = (mat44 *)malloc(sizeof(mat44));
+//          }
 
-          // loop over the rigid masks to extract affines for bones (no loop on implant)
-          unsigned char *maskPointer = static_cast<unsigned char *>(this->inputRigidMask->data);
-          for(int t=0; t<mask_to_consider; ++t){
+//          // loop over the rigid masks to extract affines for bones (no loop on implant)
+//          unsigned char *maskPointer = static_cast<unsigned char *>(this->inputRigidMask->data);
+//          for(int t=0; t<mask_to_consider; ++t){
 
-              reg_aladin<float> *REG;
-              REG = new reg_aladin<float>; //TODO: symmetric version?
+//              reg_aladin<float> *REG;
+//              REG = new reg_aladin<float>; //TODO: symmetric version?
 
-              REG->SetInputReference(this->inputReference);
-              REG->SetInputFloating(this->inputFloating);
+//              REG->SetInputReference(this->inputReference);
+//              REG->SetInputFloating(this->inputFloating);
 
-              nifti_image *currentMask = nifti_copy_nim_info(this->inputRigidMask);
-              currentMask->nt=1;
-              currentMask->nvox = voxelNumber;
-              currentMask->data = malloc(voxelNumber*currentMask->nbyper);
-              memcpy(currentMask->data,
-                     &maskPointer[t*voxelNumber],
-                     voxelNumber*currentMask->nbyper);
-              REG->SetInputMask(currentMask);
-              REG->SetPerformRigid(1);
-              REG->SetPerformAffine(0);
+//              nifti_image *currentMask = nifti_copy_nim_info(this->inputRigidMask);
+//              currentMask->nt=1;
+//              currentMask->nvox = voxelNumber;
+//              currentMask->data = malloc(voxelNumber*currentMask->nbyper);
+//              memcpy(currentMask->data,
+//                     &maskPointer[t*voxelNumber],
+//                     voxelNumber*currentMask->nbyper);
+//              REG->SetInputMask(currentMask);
+//              REG->SetPerformRigid(1);
+//              REG->SetPerformAffine(0);
 
-              REG->Run();
+//              REG->Run();
 
-              memcpy(mask_transformation[t],
-                     REG->GetTransformationMatrix(),
-                     sizeof(mat44));
-              delete REG;
-              nifti_image_free(currentMask);
-          }
-          maskPointer = static_cast<unsigned char *>(this->currentRigidMask->data);
-          size_t keypoint_number = 0;
-          voxelNumber = (size_t)this->currentRigidMask->nx *
-                        this->currentRigidMask->ny * this->currentRigidMask->nz;
+//              memcpy(mask_transformation[t],
+//                     REG->GetTransformationMatrix(),
+//                     sizeof(mat44));
+//              delete REG;
+//              nifti_image_free(currentMask);
+//          }
+//          maskPointer = static_cast<unsigned char *>(this->currentRigidMask->data);
+//          size_t keypoint_number = 0;
+//          voxelNumber = (size_t)this->currentRigidMask->nx *
+//                        this->currentRigidMask->ny * this->currentRigidMask->nz;
 
-          for(int i=0; i<voxelNumber*mask_to_consider; ++i){
-              keypoint_number += maskPointer[i];
-          }
-          T *refKeyPoint = (T *)malloc(keypoint_number*3*sizeof(T));
-          T *floKeyPoint = (T *)malloc(keypoint_number*3*sizeof(T));
-          size_t k = 0;
+//          for(int i=0; i<voxelNumber*mask_to_consider; ++i){
+//              keypoint_number += maskPointer[i];
+//          }
+//          T *refKeyPoint = (T *)malloc(keypoint_number*3*sizeof(T));
+//          T *floKeyPoint = (T *)malloc(keypoint_number*3*sizeof(T));
+//          size_t k = 0;
 
-          T *cppPtrX = static_cast<T *>(this->controlPointGrid->data);
-          T *cppPtrY = &cppPtrX[voxelNumber];
-          T *cppPtrZ = &cppPtrY[voxelNumber];
-          for(int t=0; t<mask_to_consider; ++t) {
-              bool boum = false;
-              for (int i = 0; i < voxelNumber; ++i) {
-                  if (maskPointer[i+t*voxelNumber] > 0) {
-                      T temp_ref[3], temp_flo[3];
-                      temp_ref[0]=refKeyPoint[k] = cppPtrX[i];
-                      temp_ref[1]=refKeyPoint[k+keypoint_number] = cppPtrY[i];
-                      temp_ref[2]=refKeyPoint[k+2*keypoint_number] = cppPtrZ[i];
-                      reg_mat44_mul(mask_transformation[t], temp_ref, temp_flo);
-                      floKeyPoint[k]=temp_flo[0]-temp_ref[0];
-                      floKeyPoint[k+keypoint_number]=temp_flo[1]-temp_ref[1];
-                      floKeyPoint[k+2*keypoint_number]=temp_flo[2]-temp_ref[2];
-                      ++k;
-                      if (!boum){
-                          std::cout << temp_ref[0] << " " << temp_ref[1] << " " << temp_ref[2] << std::endl;
-                          std::cout << temp_flo[0] << " " << temp_flo[1] << " " << temp_flo[2] << std::endl;
-                          boum = true;
-                      }
-                  }
-              }
-          }
+//          T *cppPtrX = static_cast<T *>(this->controlPointGrid->data);
+//          T *cppPtrY = &cppPtrX[voxelNumber];
+//          T *cppPtrZ = &cppPtrY[voxelNumber];
+//          for(int t=0; t<mask_to_consider; ++t) {
+//              bool boum = false;
+//              for (int i = 0; i < voxelNumber; ++i) {
+//                  if (maskPointer[i+t*voxelNumber] > 0) {
+//                      T temp_ref[3], temp_flo[3];
+//                      temp_ref[0]=refKeyPoint[k] = cppPtrX[i];
+//                      temp_ref[1]=refKeyPoint[k+keypoint_number] = cppPtrY[i];
+//                      temp_ref[2]=refKeyPoint[k+2*keypoint_number] = cppPtrZ[i];
+//                      reg_mat44_mul(mask_transformation[t], temp_ref, temp_flo);
+//                      floKeyPoint[k]=temp_flo[0]-temp_ref[0];
+//                      floKeyPoint[k+keypoint_number]=temp_flo[1]-temp_ref[1];
+//                      floKeyPoint[k+2*keypoint_number]=temp_flo[2]-temp_ref[2];
+//                      ++k;
+//                      if (!boum){
+//                          std::cout << temp_ref[0] << " " << temp_ref[1] << " " << temp_ref[2] << std::endl;
+//                          std::cout << temp_flo[0] << " " << temp_flo[1] << " " << temp_flo[2] << std::endl;
+//                          boum = true;
+//                      }
+//                  }
+//              }
+//          }
 
-          reg_io_WriteImageFile(this->currentRigidMask, "current_rigid_masks.nii.gz");
-          reg_exit();
+//          reg_io_WriteImageFile(this->currentRigidMask, "current_rigid_masks.nii.gz");
+//          reg_exit();
 
-          // Create the TPS object
-          reg_tps<T> *TPS = new reg_tps<T>(3, keypoint_number);
-          TPS->SetAproxInter(1);
-          TPS->SetPosition(&refKeyPoint[0],
-                           &refKeyPoint[keypoint_number],
-                           &refKeyPoint[2*keypoint_number],
-                           &floKeyPoint[0],
-                           &floKeyPoint[keypoint_number],
-                           &floKeyPoint[2*keypoint_number]);
-          TPS->FillDeformationField(this->controlPointGrid);
-          delete TPS;
+//          // Create the TPS object
+//          reg_tps<T> *TPS = new reg_tps<T>(3, keypoint_number);
+//          TPS->SetAproxInter(1);
+//          TPS->SetPosition(&refKeyPoint[0],
+//                           &refKeyPoint[keypoint_number],
+//                           &refKeyPoint[2*keypoint_number],
+//                           &floKeyPoint[0],
+//                           &floKeyPoint[keypoint_number],
+//                           &floKeyPoint[2*keypoint_number]);
+//          TPS->FillDeformationField(this->controlPointGrid);
+//          delete TPS;
 
-          for(int t=0; t<mask_to_consider; ++t) {
-              free(mask_transformation[t]);
-          }
-          free(mask_transformation);
-      }
+//          for(int t=0; t<mask_to_consider; ++t) {
+//              free(mask_transformation[t]);
+//          }
+//          free(mask_transformation);
+//      }
    }
 
 }
@@ -1212,34 +1212,65 @@ void reg_f3d<T>::UpdateParameters(float scale)
       }
    }
    // Apply the rigid constraint if required
+//   if(this->use_rigidConstraint){
+//       // MARTA ADDENDUM
+//       // Save the transformation for each level before application of gradient
+//       if(this->pathOutGradient != NULL){
+//           std::string b(this->pathOutGradient);
+//           char gradient_text[255];
+//           sprintf(gradient_text, "/transformation_level%d_before.nii.gz", this->currentLevel);
+//           b.append(gradient_text);
+//           reg_io_WriteImageFile(this->controlPointGrid,b.c_str());
+//       } // END ADDENDUM
+
+//       // MARTA ADDENDUM ARGUMENT FOR NR of ITERATIONS
+//      regulariseNonLinearGradientWithRigidConstraint(this->controlPointGrid,
+//                                                     this->currentRigidMask,
+//                                                     false,
+//                                                     this->nrIterationsRigid);
+//       // MARTA ADDENDUM ARGUMENT FOR NR of ITERATIONS
+
+//       // MARTA ADDENDUM
+//       // Save the transformation for each level after application of gradient
+//       if(this->pathOutGradient != NULL){
+//           std::string b_2(this->pathOutGradient);
+//           char gradient_text[255];
+//           sprintf(gradient_text, "/transformation_level%d_after.nii.gz", this->currentLevel);
+//           b_2.append(gradient_text);
+//           reg_io_WriteImageFile(this->controlPointGrid,b_2.c_str());
+//       } // END ADDENDUM
+//   }
+
    if(this->use_rigidConstraint){
-       // MARTA ADDENDUM
-       // Save the transformation for each level before application of gradient
-       if(this->pathOutGradient != NULL){
-           std::string b(this->pathOutGradient);
-           char gradient_text[255];
-           sprintf(gradient_text, "/transformation_level%d_before.nii.gz", this->currentLevel);
-           b.append(gradient_text);
-           reg_io_WriteImageFile(this->controlPointGrid,b.c_str());
-       } // END ADDENDUM
-
-       // MARTA ADDENDUM ARGUMENT FOR NR of ITERATIONS
-      regulariseNonLinearGradientWithRigidConstraint(this->controlPointGrid,
+      // Create a temporary image
+      nifti_image *temp_scaled = nifti_copy_nim_info(this->controlPointGrid);
+      temp_scaled->data=(void *)malloc
+            (temp_scaled->nvox*temp_scaled->nbyper);
+      memcpy(temp_scaled->data, this->controlPointGrid,
+             temp_scaled->nvox*temp_scaled->nbyper);
+      // Remove the identify
+      reg_getDisplacementFromDeformation(temp_scaled);
+      // Scale down the displacement field
+      reg_tools_divideValueToImage(temp_scaled,temp_scaled,
+                                   pow(2.0f,std::abs((float)this->controlPointGrid->intent_p2)));
+      // apply the contraint
+      regulariseNonLinearGradientWithRigidConstraint(temp_scaled,
                                                      this->currentRigidMask,
-                                                     false,
+                                                     true,
                                                      this->nrIterationsRigid);
-       // MARTA ADDENDUM ARGUMENT FOR NR of ITERATIONS
+      // Scale up the displacement field
+      reg_tools_multiplyValueToImage(temp_scaled,
+                                     temp_scaled,
+                                     pow(2.0f,std::abs((float)this->controlPointGrid->intent_p2)));
 
-       // MARTA ADDENDUM
-       // Save the transformation for each level after application of gradient
-       if(this->pathOutGradient != NULL){
-           std::string b_2(this->pathOutGradient);
-           char gradient_text[255];
-           sprintf(gradient_text, "/transformation_level%d_after.nii.gz", this->currentLevel);
-           b_2.append(gradient_text);
-           reg_io_WriteImageFile(this->controlPointGrid,b_2.c_str());
-       } // END ADDENDUM
-   }
+      // Add the identity
+      reg_getDeformationFromDisplacement(temp_scaled);
+      // Restore in the original velovity grid
+      memcpy(this->controlPointGrid, temp_scaled->data,
+             temp_scaled->nvox*temp_scaled->nbyper);
+      // free temporary image
+      nifti_image_free(temp_scaled);
+   } // END ADDENDUM
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::UpdateParameters");
 #endif
