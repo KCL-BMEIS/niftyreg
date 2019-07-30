@@ -1531,27 +1531,33 @@ void reg_f3d_sym<T>::UpdateParameters(float scale)
       nifti_image *temp_scaled = nifti_copy_nim_info(this->backwardControlPointGrid);
       temp_scaled->data=(void *)malloc
             (temp_scaled->nvox*temp_scaled->nbyper);
-      memcpy(temp_scaled->data, this->backwardControlPointGrid,
+      memcpy(temp_scaled->data,
+             this->backwardControlPointGrid->data,
              temp_scaled->nvox*temp_scaled->nbyper);
       // Remove the identify
       reg_getDisplacementFromDeformation(temp_scaled);
       // Scale down the displacement field
-      reg_tools_divideValueToImage(temp_scaled,temp_scaled,
-                                   pow(2.0f,std::abs((float)this->backwardControlPointGrid->intent_p2)));
+      if(this->backwardControlPointGrid->intent_p1==SPLINE_VEL_GRID){
+         reg_tools_divideValueToImage(temp_scaled,
+                                      temp_scaled,
+                                      pow(2.0f,std::abs((float)this->backwardControlPointGrid->intent_p2)));
+      }
       // apply the contraint
       regulariseNonLinearGradientWithRigidConstraint(temp_scaled,
                                                      this->currentRigidMask,
                                                      true,
                                                      this->nrIterationsRigid);
       // Scale up the displacement field
-      reg_tools_multiplyValueToImage(temp_scaled,
-                                     temp_scaled,
-                                     pow(2.0f,std::abs((float)this->backwardControlPointGrid->intent_p2)));
-
+      if(this->backwardControlPointGrid->intent_p1==SPLINE_VEL_GRID){
+         reg_tools_multiplyValueToImage(temp_scaled,
+                                        temp_scaled,
+                                        pow(2.0f,std::abs((float)this->backwardControlPointGrid->intent_p2)));
+      }
       // Add the identity
       reg_getDeformationFromDisplacement(temp_scaled);
       // Restore in the original velovity grid
-      memcpy(this->backwardControlPointGrid, temp_scaled->data,
+      memcpy(this->controlPointGrid->data,
+             temp_scaled->data,
              temp_scaled->nvox*temp_scaled->nbyper);
       // free temporary image
       nifti_image_free(temp_scaled);

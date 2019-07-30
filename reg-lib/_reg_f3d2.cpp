@@ -432,33 +432,73 @@ void reg_f3d2<T>::UpdateParameters(float scale)
 
 
    if(this->use_rigidConstraint){
-      // MARTA ADDENDUM
-      // Save the gradients for each level before application of gradient
-      if(this->pathOutGradient != NULL){
-          std::string b(this->pathOutGradient);
-          char gradient_text[255];
-          sprintf(gradient_text, "/cpp_level%d_before.nii.gz", this->currentLevel);
-          b.append(gradient_text);
-          reg_io_WriteImageFile(this->controlPointGrid,b.c_str());
-      } // END ADDENDUM
-      regulariseNonLinearGradientWithRigidConstraint(this->controlPointGrid,
+      // Create a temporary image
+      nifti_image *temp_scaled = nifti_copy_nim_info(this->controlPointGrid);
+      temp_scaled->data=(void *)malloc
+            (temp_scaled->nvox*temp_scaled->nbyper);
+      memcpy(temp_scaled->data,
+             this->controlPointGrid->data,
+             temp_scaled->nvox*temp_scaled->nbyper);
+      // Remove the identify
+      reg_getDisplacementFromDeformation(temp_scaled);
+      // Scale down the displacement field
+      if(this->controlPointGrid->intent_p1==SPLINE_VEL_GRID){
+         reg_tools_divideValueToImage(temp_scaled,
+                                      temp_scaled,
+                                      pow(2.0f,std::abs((float)this->controlPointGrid->intent_p2)));
+      }
+      // apply the contraint
+      regulariseNonLinearGradientWithRigidConstraint(temp_scaled,
                                                      this->currentRigidMask,
-                                                     false,
+                                                     true,
                                                      this->nrIterationsRigid);
-      regulariseNonLinearGradientWithRigidConstraint(this->backwardControlPointGrid,
+      // Scale up the displacement field
+      if(this->controlPointGrid->intent_p1==SPLINE_VEL_GRID){
+         reg_tools_multiplyValueToImage(temp_scaled,
+                                        temp_scaled,
+                                        pow(2.0f,std::abs((float)this->controlPointGrid->intent_p2)));
+      }
+      // Add the identity
+      reg_getDeformationFromDisplacement(temp_scaled);
+      // Restore in the original velovity grid
+      memcpy(this->controlPointGrid->data,
+             temp_scaled->data,
+             temp_scaled->nvox*temp_scaled->nbyper);
+
+
+      // Create a temporary image
+      memcpy(temp_scaled->data,
+             this->backwardControlPointGrid->data,
+             temp_scaled->nvox*temp_scaled->nbyper);
+      // Remove the identify
+      reg_getDisplacementFromDeformation(temp_scaled);
+      // Scale down the displacement field
+      if(this->backwardControlPointGrid->intent_p1==SPLINE_VEL_GRID){
+         reg_tools_divideValueToImage(temp_scaled,
+                                      temp_scaled,
+                                      pow(2.0f,std::abs((float)this->backwardControlPointGrid->intent_p2)));
+      }
+      // apply the contraint
+      regulariseNonLinearGradientWithRigidConstraint(temp_scaled,
                                                      this->currentRigidMask,
-                                                     false,
+                                                     true,
                                                      this->nrIterationsRigid);
-       // MARTA ADDENDUM
-       // Save the gradients for each level after application of gradient
-       if(this->pathOutGradient != NULL){
-           std::string b_2(this->pathOutGradient);
-           char gradient_text[255];
-           sprintf(gradient_text, "/cpp_level%d_after.nii.gz", this->currentLevel);
-           b_2.append(gradient_text);
-           reg_io_WriteImageFile(this->controlPointGrid,b_2.c_str());
-       } // END ADDENDUM
-   }
+      // Scale up the displacement field
+      if(this->backwardControlPointGrid->intent_p1==SPLINE_VEL_GRID){
+         reg_tools_multiplyValueToImage(temp_scaled,
+                                        temp_scaled,
+                                        pow(2.0f,std::abs((float)this->backwardControlPointGrid->intent_p2)));
+      }
+      // Add the identity
+      reg_getDeformationFromDisplacement(temp_scaled);
+      // Restore in the original velovity grid
+      memcpy(this->backwardControlPointGrid->data,
+             temp_scaled->data,
+             temp_scaled->nvox*temp_scaled->nbyper);
+      // free temporary image
+      nifti_image_free(temp_scaled);
+
+   } // END ADDENDUM
 
    return;
 }
