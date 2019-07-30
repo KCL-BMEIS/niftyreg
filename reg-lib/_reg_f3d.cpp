@@ -1255,7 +1255,7 @@ void reg_f3d<T>::UpdateParameters(float scale)
       if(this->controlPointGrid->intent_p1==SPLINE_VEL_GRID){
          reg_tools_divideValueToImage(temp_scaled,
                                       temp_scaled,
-                                      pow(2.0f,std::abs((float)this->controlPointGrid->intent_p2)));
+                                      pow(2.0f,fabs((float)this->controlPointGrid->intent_p2)));
       }
       // apply the contraint
       regulariseNonLinearGradientWithRigidConstraint(temp_scaled,
@@ -1266,7 +1266,7 @@ void reg_f3d<T>::UpdateParameters(float scale)
       if(this->controlPointGrid->intent_p1==SPLINE_VEL_GRID){
          reg_tools_multiplyValueToImage(temp_scaled,
                                         temp_scaled,
-                                        pow(2.0f,std::abs((float)this->controlPointGrid->intent_p2)));
+                                        pow(2.0f,fabs((float)this->controlPointGrid->intent_p2)));
       }
       // Add the identity
       reg_getDeformationFromDisplacement(temp_scaled);

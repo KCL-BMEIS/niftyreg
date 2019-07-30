@@ -100,7 +100,7 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->inputRigidMask=NULL;
    this->currentRigidMask=NULL;
    // MARTA ADDENDUM
-   this->nrIterationsRigid=20;
+   this->nrIterationsRigid=10;
    this->pathOutGradient=NULL;
    // END ADDENDUM
 
