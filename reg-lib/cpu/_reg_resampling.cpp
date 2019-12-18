@@ -113,9 +113,9 @@ void interpNearestNeighKernel(double relative, double *basis)
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
+void reg_dti_resampling_preprocessing(const nifti_image *floatingImage,
                                       void **originalFloatingData,
-                                      int *dtIndicies)
+                                      const int *dtIndicies)
 {
     // If we have some valid diffusion tensor indicies, we need to replace the tensor components
     // by the the log tensor components
@@ -212,9 +212,9 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 /* *************************************************************** */
 template <class DTYPE>
 void reg_dti_resampling_postprocessing(nifti_image *inputImage,
-                                       int *mask,
-                                       mat33 *jacMat,
-                                       int *dtIndicies,
+                                       const int *mask,
+                                       const mat33 *jacMat,
+                                       const int *dtIndicies,
                                        nifti_image *warpedImage = NULL)
 {
     // If we have some valid diffusion tensor indicies, we need to exponentiate the previously logged tensor components
@@ -356,12 +356,12 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class FieldTYPE>
-void ResampleImage3D(nifti_image *floatingImage,
-                     nifti_image *deformationField,
+void ResampleImage3D(const nifti_image *floatingImage,
+                     const nifti_image *deformationField,
                      nifti_image *warpedImage,
-                     int *mask,
-                     FieldTYPE paddingValue,
-                     int kernel)
+                     const int *mask,
+                     const FieldTYPE paddingValue,
+                     const int kernel)
 {
 #ifdef _WIN32
     long  index;
@@ -378,9 +378,9 @@ void ResampleImage3D(nifti_image *floatingImage,
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
     FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[warpedVoxelNumber];
 
-    int *maskPtr = &mask[0];
+    const int *maskPtr = &mask[0];
 
-    mat44 *floatingIJKMatrix;
+    const mat44 *floatingIJKMatrix;
     if(floatingImage->sform_code>0)
         floatingIJKMatrix=&(floatingImage->sto_ijk);
     else floatingIJKMatrix=&(floatingImage->qto_ijk);
@@ -560,12 +560,12 @@ void ResampleImage3D(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class FieldTYPE>
-void ResampleImage2D(nifti_image *floatingImage,
-                     nifti_image *deformationField,
+void ResampleImage2D(const nifti_image *floatingImage,
+                     const nifti_image *deformationField,
                      nifti_image *warpedImage,
-                     int *mask,
-                     FieldTYPE paddingValue,
-                     int kernel)
+                     const int *mask,
+                     const FieldTYPE paddingValue,
+                     const int kernel)
 {
 #ifdef _WIN32
     long  index;
@@ -581,9 +581,9 @@ void ResampleImage2D(nifti_image *floatingImage,
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
 
-    int *maskPtr = &mask[0];
+    const int *maskPtr = &mask[0];
 
-    mat44 *floatingIJKMatrix;
+    const mat44 *floatingIJKMatrix;
     if(floatingImage->sform_code>0)
         floatingIJKMatrix=&(floatingImage->sto_ijk);
     else floatingIJKMatrix=&(floatingImage->qto_ijk);
@@ -731,14 +731,14 @@ void ResampleImage2D(nifti_image *floatingImage,
  * these values are set to -1 if there are not
  */
 template <class FieldTYPE, class FloatingTYPE>
-void reg_resampleImage2(nifti_image *floatingImage,
+void reg_resampleImage2(const nifti_image *floatingImage,
                         nifti_image *warpedImage,
-                        nifti_image *deformationFieldImage,
-                        int *mask,
-                        int interp,
-                        FieldTYPE paddingValue,
-                        int *dtIndicies,
-                        mat33 * jacMat)
+                        const nifti_image *deformationFieldImage,
+                        const int *mask,
+                        const int interp,
+                        const FieldTYPE paddingValue,
+                        const int *dtIndicies,
+                        const mat33 * jacMat)
 {
     // The floating image data is copied in case one deal with DTI
     void *originalFloatingData=NULL;
@@ -770,7 +770,7 @@ void reg_resampleImage2(nifti_image *floatingImage,
     if(originalFloatingData!=NULL)
     {
         free(floatingImage->data);
-        floatingImage->data=originalFloatingData;
+        const_cast<nifti_image*>(floatingImage)->data=originalFloatingData;
         originalFloatingData=NULL;
     }
 
@@ -781,14 +781,14 @@ void reg_resampleImage2(nifti_image *floatingImage,
                                                     dtIndicies);
 }
 /* *************************************************************** */
-void reg_resampleImage(nifti_image *floatingImage,
+void reg_resampleImage(const nifti_image *floatingImage,
                        nifti_image *warpedImage,
-                       nifti_image *deformationField,
-                       int *mask,
-                       int interp,
-                       float paddingValue,
-                       bool *dti_timepoint,
-                       mat33 * jacMat)
+                       const nifti_image *deformationField,
+                       const int *mask,
+                       const int interp,
+                       const float paddingValue,
+                       const bool *dti_timepoint,
+                       const mat33 *jacMat)
 {
     if(floatingImage->datatype != warpedImage->datatype)
     {
@@ -1022,19 +1022,21 @@ void reg_resampleImage(nifti_image *floatingImage,
     }
     if(MrPropreRules==true)
     {
-        free(mask);
+        // Naught cast to remove the const.
+        // But this is safe, since we created it.
+        free(const_cast<int*>(mask));
         mask=NULL;
     }
 }
 /* *************************************************************** */
 
 template<class FloatingTYPE, class FieldTYPE>
-void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
-                              nifti_image *deformationField,
+void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
+                              const nifti_image *deformationField,
                               nifti_image *warpedImage,
-                              int *mask,
-                              FieldTYPE paddingValue,
-                              int kernel)
+                              const int *mask,
+                              const FieldTYPE paddingValue,
+                              const int kernel)
 {
 #ifdef _WIN32
     long index;
@@ -1054,9 +1056,9 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
     FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[warpedVoxelNumber];
-    int *maskPtr = &mask[0];
+    const int *maskPtr = &mask[0];
 
-    mat44 *floatingIJKMatrix;
+    const mat44 *floatingIJKMatrix;
     if(floatingImage->sform_code>0)
         floatingIJKMatrix=&(floatingImage->sto_ijk);
     else floatingIJKMatrix=&(floatingImage->qto_ijk);
@@ -1322,14 +1324,14 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
 /* *************************************************************** */
 /* *************************************************************** */
 template<class FloatingTYPE, class FieldTYPE>
-void ResampleImage3D_PSF(nifti_image *floatingImage,
-                         nifti_image *deformationField,
+void ResampleImage3D_PSF(const nifti_image *floatingImage,
+                         const nifti_image *deformationField,
                          nifti_image *warpedImage,
-                         int *mask,
-                         FieldTYPE paddingValue,
-                         int kernel,
-                         mat33 * jacMat,
-                         char algorithm)
+                         const int *mask,
+                         const FieldTYPE paddingValue,
+                         const int kernel,
+                         const mat33 * jacMat,
+                         const char algorithm)
 {
 #ifdef _WIN32
     long index;
@@ -1350,16 +1352,16 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
     FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[warpedVoxelNumber];
 
-    int *maskPtr = &mask[0];
+    const int *maskPtr = &mask[0];
 
-    mat44 *floatingIJKMatrix;
+    const mat44 *floatingIJKMatrix;
     if(floatingImage->sform_code>0)
         floatingIJKMatrix=&(floatingImage->sto_ijk);
     else floatingIJKMatrix=&(floatingImage->qto_ijk);
-    mat44 *warpedMatrix = &(warpedImage->qto_xyz);
+    const mat44 *warpedMatrix = &(warpedImage->qto_xyz);
     if(warpedImage->sform_code>0)
         warpedMatrix = &(warpedImage->sto_xyz);
-    mat44 *floatingMatrix = &(floatingImage->qto_xyz);
+    const mat44 *floatingMatrix = &(floatingImage->qto_xyz);
     if(floatingImage->sform_code>0)
         floatingMatrix = &(floatingImage->sto_xyz);
 
@@ -1766,14 +1768,14 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
 
 /* *************************************************************** */
 template <class FieldTYPE, class FloatingTYPE>
-void reg_resampleImage2_PSF(nifti_image *floatingImage,
+void reg_resampleImage2_PSF(const nifti_image *floatingImage,
                             nifti_image *warpedImage,
-                            nifti_image *deformationFieldImage,
-                            int *mask,
-                            int interp,
-                            FieldTYPE paddingValue,
-                            mat33 * jacMat,
-                            char algorithm)
+                            const nifti_image *deformationFieldImage,
+                            const int *mask,
+                            const int interp,
+                            const FieldTYPE paddingValue,
+                            const mat33 * jacMat,
+                            const char algorithm)
 {
 
     // The deformation field contains the position in the real world
@@ -1816,14 +1818,14 @@ void reg_resampleImage2_PSF(nifti_image *floatingImage,
 
 }
 /* *************************************************************** */
-void reg_resampleImage_PSF(nifti_image *floatingImage,
+void reg_resampleImage_PSF(const nifti_image *floatingImage,
                            nifti_image *warpedImage,
-                           nifti_image *deformationField,
-                           int *mask,
-                           int interp,
-                           float paddingValue,
-                           mat33 * jacMat,
-                           char algorithm)
+                           const nifti_image *deformationField,
+                           const int *mask,
+                           const int interp,
+                           const float paddingValue,
+                           const mat33 * jacMat,
+                           const char algorithm)
 {
     if(floatingImage->datatype != warpedImage->datatype)
     {
@@ -2032,17 +2034,19 @@ void reg_resampleImage_PSF(nifti_image *floatingImage,
     }
     if(MrPropreRules==true)
     {
-        free(mask);
+        // Naught cast to remove the const.
+        // But this is safe, since we created it.
+        free(const_cast<int*>(mask));
         mask=NULL;
     }
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bilinearResampleGradient(nifti_image *floatingImage,
+void reg_bilinearResampleGradient(const nifti_image *floatingImage,
                                   nifti_image *warpedImage,
-                                  nifti_image *deformationField,
-                                  float paddingValue)
+                                  const nifti_image *deformationField,
+                                  const float paddingValue)
 {
     size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
     size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
@@ -2054,7 +2058,7 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
     DTYPE *deformationFieldPtrY = &deformationFieldPtrX[deformationField->nx*deformationField->ny*deformationField->nz];
 
     // Extract the relevant affine matrix
-    mat44 *floating_mm_to_voxel = &floatingImage->qto_ijk;
+    const mat44 *floating_mm_to_voxel = &floatingImage->qto_ijk;
     if(floatingImage->sform_code!=0)
         floating_mm_to_voxel = &floatingImage->sto_ijk;
 
@@ -2220,10 +2224,10 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_trilinearResampleGradient(nifti_image *floatingImage,
+void reg_trilinearResampleGradient(const nifti_image *floatingImage,
                                    nifti_image *warpedImage,
-                                   nifti_image *deformationField,
-                                   float paddingValue)
+                                   const nifti_image *deformationField,
+                                   const float paddingValue)
 {
     size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
     size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
@@ -2238,7 +2242,7 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
     DTYPE *deformationFieldPtrZ = &deformationFieldPtrY[deformationField->nx*deformationField->ny*deformationField->nz];
 
     // Extract the relevant affine matrix
-    mat44 *floating_mm_to_voxel = &floatingImage->qto_ijk;
+    const mat44 *floating_mm_to_voxel = &floatingImage->qto_ijk;
     if(floatingImage->sform_code!=0)
         floating_mm_to_voxel = &floatingImage->sto_ijk;
 
@@ -2462,11 +2466,11 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
     } // z
 }
 /* *************************************************************** */
-void reg_resampleGradient(nifti_image *floatingImage,
+void reg_resampleGradient(const nifti_image *floatingImage,
                           nifti_image *warpedImage,
-                          nifti_image *deformationField,
-                          int interp,
-                          float paddingValue)
+                          const nifti_image *deformationField,
+                          const int interp,
+                          const float paddingValue)
 {
     if(interp!=1)
     {
@@ -2525,12 +2529,12 @@ void reg_resampleGradient(nifti_image *floatingImage,
 /* *************************************************************** */
 /* *************************************************************** */
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
-void TrilinearImageGradient(nifti_image *floatingImage,
-                            nifti_image *deformationField,
+void TrilinearImageGradient(const nifti_image *floatingImage,
+                            const nifti_image *deformationField,
                             nifti_image *warImgGradient,
-                            int *mask,
-                            float paddingValue,
-                            int active_timepoint)
+                            const int *mask,
+                            const float paddingValue,
+                            const int active_timepoint)
 {
     if(active_timepoint<0 || active_timepoint>=floatingImage->nt){
         reg_print_fct_error("TrilinearImageGradient");
@@ -2557,9 +2561,9 @@ void TrilinearImageGradient(nifti_image *floatingImage,
     GradientTYPE *warpedGradientPtrY = &warpedGradientPtrX[referenceVoxelNumber];
     GradientTYPE *warpedGradientPtrZ = &warpedGradientPtrY[referenceVoxelNumber];
 
-    int *maskPtr = &mask[0];
+    const int *maskPtr = &mask[0];
 
-    mat44 *floatingIJKMatrix;
+    const mat44 *floatingIJKMatrix;
     if(floatingImage->sform_code>0)
         floatingIJKMatrix=&(floatingImage->sto_ijk);
     else floatingIJKMatrix=&(floatingImage->qto_ijk);
@@ -2721,12 +2725,12 @@ void TrilinearImageGradient(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
-void BilinearImageGradient(nifti_image *floatingImage,
-                           nifti_image *deformationField,
+void BilinearImageGradient(const nifti_image *floatingImage,
+                           const nifti_image *deformationField,
                            nifti_image *warImgGradient,
-                           int *mask,
-                           float paddingValue,
-                           int active_timepoint)
+                           const int *mask,
+                           const float paddingValue,
+                           const int active_timepoint)
 {
     if(active_timepoint<0 || active_timepoint>=floatingImage->nt){
         reg_print_fct_error("TrilinearImageGradient");
@@ -2752,12 +2756,12 @@ void BilinearImageGradient(nifti_image *floatingImage,
     GradientTYPE *warpedGradientPtrX = static_cast<GradientTYPE *>(warImgGradient->data);
     GradientTYPE *warpedGradientPtrY = &warpedGradientPtrX[referenceVoxelNumber];
 
-    int *maskPtr = &mask[0];
+    const int *maskPtr = &mask[0];
 
-    mat44 floatingIJKMatrix;
+    const mat44 *floatingIJKMatrix;
     if(floatingImage->sform_code>0)
-        floatingIJKMatrix=floatingImage->sto_ijk;
-    else floatingIJKMatrix=floatingImage->qto_ijk;
+        floatingIJKMatrix=&(floatingImage->sto_ijk);
+    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
 #ifndef NDEBUG
     char text[255];
@@ -2794,10 +2798,10 @@ void BilinearImageGradient(nifti_image *floatingImage,
             world[1]=(FieldTYPE) deformationFieldPtrY[index];
 
             /* real -> voxel; floating space */
-            position[0] = world[0]*floatingIJKMatrix.m[0][0] + world[1]*floatingIJKMatrix.m[0][1] +
-                    floatingIJKMatrix.m[0][3];
-            position[1] = world[0]*floatingIJKMatrix.m[1][0] + world[1]*floatingIJKMatrix.m[1][1] +
-                    floatingIJKMatrix.m[1][3];
+            position[0] = world[0]*floatingIJKMatrix->m[0][0] + world[1]*floatingIJKMatrix->m[0][1] +
+                    floatingIJKMatrix->m[0][3];
+            position[1] = world[0]*floatingIJKMatrix->m[1][0] + world[1]*floatingIJKMatrix->m[1][1] +
+                    floatingIJKMatrix->m[1][3];
 
             previous[0] = static_cast<int>(reg_floor(position[0]));
             previous[1] = static_cast<int>(reg_floor(position[1]));
@@ -2855,12 +2859,12 @@ void BilinearImageGradient(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
-void CubicSplineImageGradient3D(nifti_image *floatingImage,
-                                nifti_image *deformationField,
+void CubicSplineImageGradient3D(const nifti_image *floatingImage,
+                                const nifti_image *deformationField,
                                 nifti_image *warImgGradient,
-                                int *mask,
-                                float paddingValue,
-                                int active_timepoint)
+                                const int *mask,
+                                const float paddingValue,
+                                const int active_timepoint)
 {
     if(active_timepoint<0 || active_timepoint>=floatingImage->nt){
         reg_print_fct_error("TrilinearImageGradient");
@@ -2887,9 +2891,9 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
     GradientTYPE *warpedGradientPtrY = &warpedGradientPtrX[referenceVoxelNumber];
     GradientTYPE *warpedGradientPtrZ = &warpedGradientPtrY[referenceVoxelNumber];
 
-    int *maskPtr = &mask[0];
+    const int *maskPtr = &mask[0];
 
-    mat44 *floatingIJKMatrix;
+    const mat44 *floatingIJKMatrix;
     if(floatingImage->sform_code>0)
         floatingIJKMatrix=&(floatingImage->sto_ijk);
     else floatingIJKMatrix=&(floatingImage->qto_ijk);
@@ -3019,12 +3023,12 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
-void CubicSplineImageGradient2D(nifti_image *floatingImage,
-                                nifti_image *deformationField,
+void CubicSplineImageGradient2D(const nifti_image *floatingImage,
+                                const nifti_image *deformationField,
                                 nifti_image *warImgGradient,
-                                int *mask,
-                                float paddingValue,
-                                int active_timepoint)
+                                const int *mask,
+                                const float paddingValue,
+                                const int active_timepoint)
 {
     if(active_timepoint<0 || active_timepoint>=floatingImage->nt){
         reg_print_fct_error("TrilinearImageGradient");
@@ -3049,9 +3053,9 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
     GradientTYPE *warpedGradientPtrX = static_cast<GradientTYPE *>(warImgGradient->data);
     GradientTYPE *warpedGradientPtrY = &warpedGradientPtrX[referenceVoxelNumber];
 
-    int *maskPtr = &mask[0];
+    const int *maskPtr = &mask[0];
 
-    mat44 *floatingIJKMatrix;
+    const mat44 *floatingIJKMatrix;
     if(floatingImage->sform_code>0)
         floatingIJKMatrix=&(floatingImage->sto_ijk);
     else floatingIJKMatrix=&(floatingImage->qto_ijk);
@@ -3149,15 +3153,15 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template <class FieldTYPE, class FloatingTYPE, class GradientTYPE>
-void reg_getImageGradient3(nifti_image *floatingImage,
+void reg_getImageGradient3(const nifti_image *floatingImage,
                            nifti_image *warImgGradient,
-                           nifti_image *deformationField,
-                           int *mask,
-                           int interp,
-                           float paddingValue,
-                           int active_timepoint,
-                           int *dtIndicies,
-                           mat33 *jacMat,
+                           const nifti_image *deformationField,
+                           const int *mask,
+                           const int interp,
+                           const float paddingValue,
+                           const int active_timepoint,
+                           const int *dtIndicies,
+                           const mat33 *jacMat,
                            nifti_image *warpedImage = NULL
         )
 {
@@ -3218,7 +3222,7 @@ void reg_getImageGradient3(nifti_image *floatingImage,
     if(originalFloatingData!=NULL)
     {
         free(floatingImage->data);
-        floatingImage->data=originalFloatingData;
+        const_cast<nifti_image*>(floatingImage)->data=originalFloatingData;
         originalFloatingData=NULL;
     }
     // The interpolated tensors are reoriented and exponentiated
@@ -3231,15 +3235,15 @@ void reg_getImageGradient3(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template <class FieldTYPE, class FloatingTYPE>
-void reg_getImageGradient2(nifti_image *floatingImage,
+void reg_getImageGradient2(const nifti_image *floatingImage,
                            nifti_image *warImgGradient,
-                           nifti_image *deformationField,
-                           int *mask,
-                           int interp,
-                           float paddingValue,
-                           int active_timepoint,
-                           int *dtIndicies,
-                           mat33 *jacMat,
+                           const nifti_image *deformationField,
+                           const int *mask,
+                           const int interp,
+                           const float paddingValue,
+                           const int active_timepoint,
+                           const int *dtIndicies,
+                           const mat33 *jacMat,
                            nifti_image *warpedImage
                            )
 {
@@ -3261,15 +3265,15 @@ void reg_getImageGradient2(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template <class FieldTYPE>
-void reg_getImageGradient1(nifti_image *floatingImage,
+void reg_getImageGradient1(const nifti_image *floatingImage,
                            nifti_image *warImgGradient,
-                           nifti_image *deformationField,
-                           int *mask,
-                           int interp,
-                           float paddingValue,
-                           int active_timepoint,
-                           int *dtIndicies,
-                           mat33 *jacMat,
+                           const nifti_image *deformationField,
+                           const int *mask,
+                           const int interp,
+                           const float paddingValue,
+                           const int active_timepoint,
+                           const int *dtIndicies,
+                           const mat33 *jacMat,
                            nifti_image *warpedImage
                            )
 {
@@ -3314,25 +3318,25 @@ void reg_getImageGradient1(nifti_image *floatingImage,
     }
 }
 /* *************************************************************** */
-void reg_getImageGradient(nifti_image *floatingImage,
+void reg_getImageGradient(const nifti_image *floatingImage,
                           nifti_image *warImgGradient,
-                          nifti_image *deformationField,
-                          int *mask,
-                          int interp,
-                          float paddingValue,
-                          int active_timepoint,
-                          bool *dti_timepoint,
-                          mat33 *jacMat,
+                          const nifti_image *deformationField,
+                          const int *mask,
+                          const int interp,
+                          const float paddingValue,
+                          const int active_timepoint,
+                          const bool *dti_timepoint,
+                          const mat33 *jacMat,
                           nifti_image *warpedImage
                           )
 {
     // a mask array is created if no mask is specified
-    bool MrPropreRule=false;
+    bool MrPropreRules=false;
     if(mask==NULL)
     {
         // voxels in the backgreg_round are set to -1 so 0 will do the job here
         mask=(int *)calloc(deformationField->nx*deformationField->ny*deformationField->nz,sizeof(int));
-        MrPropreRule=true;
+        MrPropreRules=true;
     }
 
     // Define the DTI indices if required
@@ -3377,7 +3381,13 @@ void reg_getImageGradient(nifti_image *floatingImage,
         reg_exit();
         break;
     }
-    if(MrPropreRule==true) free(mask);
+    if(MrPropreRules==true)
+    {
+        // Naught cast to remove the const.
+        // But this is safe, since we created it.
+        free(const_cast<int*>(mask));
+        mask=NULL;
+    }
 }
 /* *************************************************************** */
 /* *************************************************************** */

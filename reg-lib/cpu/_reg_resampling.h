@@ -34,42 +34,42 @@
  * components in the order xx,yy,zz,xy,xz,yz. If there are no DT images, pass an array of -1's
  */
 extern "C++"
-void reg_resampleImage(nifti_image *floatingImage,
+void reg_resampleImage(const nifti_image *floatingImage,
                        nifti_image *warpedImage,
-                       nifti_image *deformationField,
-                       int *mask,
-                       int interp,
-                       float paddingValue,
-                       bool *dti_timepoint = NULL,
-                       mat33 * jacMat = NULL);
+                       const nifti_image *deformationField,
+                       const int *mask,
+                       const int interp,
+                       const float paddingValue,
+                       const bool *dti_timepoint = NULL,
+                       const mat33 * jacMat = NULL);
 extern "C++"
-void reg_resampleImage_PSF(nifti_image *floatingImage,
+void reg_resampleImage_PSF(const nifti_image *floatingImage,
                            nifti_image *warpedImage,
-                           nifti_image *deformationField,
-                           int *mask,
-                           int interp,
-                           float paddingValue,
-                           mat33 * jacMat,
-                           char algorithm);
+                           const nifti_image *deformationField,
+                           const int *mask,
+                           const int interp,
+                           const float paddingValue,
+                           const mat33 * jacMat,
+                           const char algorithm);
 
 
 extern "C++"
-void reg_resampleGradient(nifti_image *gradientImage,
+void reg_resampleGradient(const nifti_image *gradientImage,
                           nifti_image *warImgGradient,
-                          nifti_image *deformationField,
-                          int interp,
-                          float paddingValue);
+                          const nifti_image *deformationField,
+                          const int interp,
+                          const float paddingValue);
 
 extern "C++"
-void reg_getImageGradient(nifti_image *floatingImage,
+void reg_getImageGradient(const nifti_image *floatingImage,
                           nifti_image *warImgGradient,
-                          nifti_image *deformationField,
-                          int *mask,
-                          int interp,
-                          float paddingValue,
-                          int active_timepoint,
-                          bool *dti_timepoint = NULL,
-                          mat33 *jacMat = NULL,
+                          const nifti_image *deformationField,
+                          const int *mask,
+                          const int interp,
+                          const float paddingValue,
+                          const int active_timepoint,
+                          const bool *dti_timepoint = NULL,
+                          const mat33 *jacMat = NULL,
                           nifti_image *warpedImage = NULL);
 
 extern "C++"
