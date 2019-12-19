@@ -211,11 +211,11 @@ void reg_dti_resampling_preprocessing(const nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_dti_resampling_postprocessing(nifti_image *inputImage,
-                                       const int *mask,
-                                       const mat33 *jacMat,
-                                       const int *dtIndicies,
-                                       nifti_image *warpedImage = NULL)
+void reg_dti_resampling_postprocessing(const nifti_image *inputImage,
+                                       const int * const mask,
+                                       const mat33 * const jacMat,
+                                       const int * const dtIndicies,
+                                       const nifti_image *warpedImage = NULL)
 {
     // If we have some valid diffusion tensor indicies, we need to exponentiate the previously logged tensor components
     // we also need to reorient the tensors based on the local transformation Jacobians
@@ -356,10 +356,10 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class FieldTYPE>
-void ResampleImage3D(const nifti_image *floatingImage,
-                     const nifti_image *deformationField,
-                     nifti_image *warpedImage,
-                     const int *mask,
+void ResampleImage3D(const nifti_image * const floatingImage,
+                     const nifti_image * const deformationField,
+                     const nifti_image *warpedImage,
+                     const int * const mask,
                      const FieldTYPE paddingValue,
                      const int kernel)
 {
@@ -560,10 +560,10 @@ void ResampleImage3D(const nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class FieldTYPE>
-void ResampleImage2D(const nifti_image *floatingImage,
-                     const nifti_image *deformationField,
-                     nifti_image *warpedImage,
-                     const int *mask,
+void ResampleImage2D(const nifti_image * const floatingImage,
+                     const nifti_image * const deformationField,
+                     const nifti_image *warpedImage,
+                     const int * const mask,
                      const FieldTYPE paddingValue,
                      const int kernel)
 {
@@ -716,6 +716,19 @@ void ResampleImage2D(const nifti_image *floatingImage,
     }
 }
 /* *************************************************************** */
+/** Simple to create a blank mask if one has not been provided.
+ */
+const int * get_mask_to_use(const int * const inputMask, const nifti_image * const templateImage)
+{
+    if (inputMask != NULL)
+        return inputMask;
+    else
+        return (int *)calloc(templateImage->nx*
+                             templateImage->ny*
+                             templateImage->nz,
+                             sizeof(int));
+}
+
 /* *************************************************************** */
 
 /** This function resample a floating image into the referential
@@ -731,14 +744,14 @@ void ResampleImage2D(const nifti_image *floatingImage,
  * these values are set to -1 if there are not
  */
 template <class FieldTYPE, class FloatingTYPE>
-void reg_resampleImage2(const nifti_image *floatingImage,
-                        nifti_image *warpedImage,
-                        const nifti_image *deformationFieldImage,
-                        const int *mask,
+void reg_resampleImage2(const nifti_image * const floatingImage,
+                        const nifti_image *warpedImage,
+                        const nifti_image * const deformationFieldImage,
+                        const int * const mask,
                         const int interp,
                         const FieldTYPE paddingValue,
-                        const int *dtIndicies,
-                        const mat33 * jacMat)
+                        const int * const dtIndicies,
+                        const mat33 * const jacMat)
 {
     // The floating image data is copied in case one deal with DTI
     void *originalFloatingData=NULL;
@@ -781,14 +794,14 @@ void reg_resampleImage2(const nifti_image *floatingImage,
                                                     dtIndicies);
 }
 /* *************************************************************** */
-void reg_resampleImage(const nifti_image *floatingImage,
-                       nifti_image *warpedImage,
-                       const nifti_image *deformationField,
-                       const int *mask,
+void reg_resampleImage(const nifti_image * const floatingImage,
+                       const nifti_image *warpedImage,
+                       const nifti_image * const deformationField,
+                       const int * const mask,
                        const int interp,
                        const float paddingValue,
-                       const bool *dti_timepoint,
-                       const mat33 *jacMat)
+                       const bool * const dti_timepoint,
+                       const mat33 * const jacMat)
 {
     if(floatingImage->datatype != warpedImage->datatype)
     {
@@ -830,13 +843,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
     }
 
     // a mask array is created if no mask is specified
-    bool MrPropreRules = false;
-    if(mask==NULL)
-    {
-        // voxels in the background are set to negative value so 0 corresponds to active voxel
-        mask=(int *)calloc(warpedImage->nx*warpedImage->ny*warpedImage->nz,sizeof(int));
-        MrPropreRules = true;
-    }
+    const int * const maskToUse = get_mask_to_use(mask,warpedImage);
 
     switch ( deformationField->datatype )
     {
@@ -847,7 +854,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<float,unsigned char>(floatingImage,
                                                     warpedImage,
                                                     deformationField,
-                                                    mask,
+                                                    maskToUse,
                                                     interp,
                                                     paddingValue,
                                                     dtIndicies,
@@ -857,7 +864,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<float,char>(floatingImage,
                                            warpedImage,
                                            deformationField,
-                                           mask,
+                                           maskToUse,
                                            interp,
                                            paddingValue,
                                            dtIndicies,
@@ -867,7 +874,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<float,unsigned short>(floatingImage,
                                                      warpedImage,
                                                      deformationField,
-                                                     mask,
+                                                     maskToUse,
                                                      interp,
                                                      paddingValue,
                                                      dtIndicies,
@@ -877,7 +884,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<float,short>(floatingImage,
                                             warpedImage,
                                             deformationField,
-                                            mask,
+                                            maskToUse,
                                             interp,
                                             paddingValue,
                                             dtIndicies,
@@ -887,7 +894,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<float,unsigned int>(floatingImage,
                                                    warpedImage,
                                                    deformationField,
-                                                   mask,
+                                                   maskToUse,
                                                    interp,
                                                    paddingValue,
                                                    dtIndicies,
@@ -897,7 +904,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<float,int>(floatingImage,
                                           warpedImage,
                                           deformationField,
-                                          mask,
+                                          maskToUse,
                                           interp,
                                           paddingValue,
                                           dtIndicies,
@@ -907,7 +914,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<float,float>(floatingImage,
                                             warpedImage,
                                             deformationField,
-                                            mask,
+                                            maskToUse,
                                             interp,
                                             paddingValue,
                                             dtIndicies,
@@ -917,7 +924,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<float,double>(floatingImage,
                                              warpedImage,
                                              deformationField,
-                                             mask,
+                                             maskToUse,
                                              interp,
                                              paddingValue,
                                              dtIndicies,
@@ -935,7 +942,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<double,unsigned char>(floatingImage,
                                                      warpedImage,
                                                      deformationField,
-                                                     mask,
+                                                     maskToUse,
                                                      interp,
                                                      paddingValue,
                                                      dtIndicies,
@@ -945,7 +952,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<double,char>(floatingImage,
                                             warpedImage,
                                             deformationField,
-                                            mask,
+                                            maskToUse,
                                             interp,
                                             paddingValue,
                                             dtIndicies,
@@ -955,7 +962,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<double,unsigned short>(floatingImage,
                                                       warpedImage,
                                                       deformationField,
-                                                      mask,
+                                                      maskToUse,
                                                       interp,
                                                       paddingValue,
                                                       dtIndicies,
@@ -965,7 +972,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<double,short>(floatingImage,
                                              warpedImage,
                                              deformationField,
-                                             mask,
+                                             maskToUse,
                                              interp,
                                              paddingValue,
                                              dtIndicies,
@@ -975,7 +982,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<double,unsigned int>(floatingImage,
                                                     warpedImage,
                                                     deformationField,
-                                                    mask,
+                                                    maskToUse,
                                                     interp,
                                                     paddingValue,
                                                     dtIndicies,
@@ -985,7 +992,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<double,int>(floatingImage,
                                            warpedImage,
                                            deformationField,
-                                           mask,
+                                           maskToUse,
                                            interp,
                                            paddingValue,
                                            dtIndicies,
@@ -995,7 +1002,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<double,float>(floatingImage,
                                              warpedImage,
                                              deformationField,
-                                             mask,
+                                             maskToUse,
                                              interp,
                                              paddingValue,
                                              dtIndicies,
@@ -1005,7 +1012,7 @@ void reg_resampleImage(const nifti_image *floatingImage,
             reg_resampleImage2<double,double>(floatingImage,
                                               warpedImage,
                                               deformationField,
-                                              mask,
+                                              maskToUse,
                                               interp,
                                               paddingValue,
                                               dtIndicies,
@@ -1020,21 +1027,18 @@ void reg_resampleImage(const nifti_image *floatingImage,
         printf("Deformation field pixel type unsupported.");
         break;
     }
-    if(MrPropreRules==true)
-    {
-        // Naught cast to remove the const.
-        // But this is safe, since we created it.
-        free(const_cast<int*>(mask));
-        mask=NULL;
-    }
+    // If the input mask is blank,
+    // free the blank mask we created
+    if(mask==NULL)
+        free(const_cast<int*>(maskToUse));
 }
 /* *************************************************************** */
 
 template<class FloatingTYPE, class FieldTYPE>
-void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
-                              const nifti_image *deformationField,
-                              nifti_image *warpedImage,
-                              const int *mask,
+void ResampleImage3D_PSF_Sinc(const nifti_image * const floatingImage,
+                              const nifti_image * const deformationField,
+                              const nifti_image *warpedImage,
+                              const int * const mask,
                               const FieldTYPE paddingValue,
                               const int kernel)
 {
@@ -1324,13 +1328,13 @@ void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
 /* *************************************************************** */
 /* *************************************************************** */
 template<class FloatingTYPE, class FieldTYPE>
-void ResampleImage3D_PSF(const nifti_image *floatingImage,
-                         const nifti_image *deformationField,
-                         nifti_image *warpedImage,
-                         const int *mask,
+void ResampleImage3D_PSF(const nifti_image * const floatingImage,
+                         const nifti_image * const deformationField,
+                         const nifti_image *warpedImage,
+                         const int * const mask,
                          const FieldTYPE paddingValue,
                          const int kernel,
-                         const mat33 * jacMat,
+                         const mat33 * const jacMat,
                          const char algorithm)
 {
 #ifdef _WIN32
@@ -1768,13 +1772,13 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
 
 /* *************************************************************** */
 template <class FieldTYPE, class FloatingTYPE>
-void reg_resampleImage2_PSF(const nifti_image *floatingImage,
-                            nifti_image *warpedImage,
-                            const nifti_image *deformationFieldImage,
-                            const int *mask,
+void reg_resampleImage2_PSF(const nifti_image * const floatingImage,
+                            const nifti_image *warpedImage,
+                            const nifti_image * const deformationFieldImage,
+                            const int * const mask,
                             const int interp,
                             const FieldTYPE paddingValue,
-                            const mat33 * jacMat,
+                            const mat33 * const jacMat,
                             const char algorithm)
 {
 
@@ -1818,13 +1822,13 @@ void reg_resampleImage2_PSF(const nifti_image *floatingImage,
 
 }
 /* *************************************************************** */
-void reg_resampleImage_PSF(const nifti_image *floatingImage,
-                           nifti_image *warpedImage,
-                           const nifti_image *deformationField,
-                           const int *mask,
+void reg_resampleImage_PSF(const nifti_image * const floatingImage,
+                           const nifti_image *warpedImage,
+                           const nifti_image * const deformationField,
+                           const int * const mask,
                            const int interp,
                            const float paddingValue,
-                           const mat33 * jacMat,
+                           const mat33 * const jacMat,
                            const char algorithm)
 {
     if(floatingImage->datatype != warpedImage->datatype)
@@ -1842,13 +1846,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
     }
 
     // a mask array is created if no mask is specified
-    bool MrPropreRules = false;
-    if(mask==NULL)
-    {
-        // voxels in the background are set to negative value so 0 corresponds to active voxel
-        mask=(int *)calloc(warpedImage->nx*warpedImage->ny*warpedImage->nz,sizeof(int));
-        MrPropreRules = true;
-    }
+    const int * const maskToUse = get_mask_to_use(mask,warpedImage);
 
     switch ( deformationField->datatype )
     {
@@ -1859,7 +1857,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<float,unsigned char>(floatingImage,
                                                         warpedImage,
                                                         deformationField,
-                                                        mask,
+                                                        maskToUse,
                                                         interp,
                                                         paddingValue,
                                                         jacMat,
@@ -1869,7 +1867,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<float,char>(floatingImage,
                                                warpedImage,
                                                deformationField,
-                                               mask,
+                                               maskToUse,
                                                interp,
                                                paddingValue,
                                                jacMat,
@@ -1879,7 +1877,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<float,unsigned short>(floatingImage,
                                                          warpedImage,
                                                          deformationField,
-                                                         mask,
+                                                         maskToUse,
                                                          interp,
                                                          paddingValue,
                                                          jacMat,
@@ -1889,7 +1887,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<float,short>(floatingImage,
                                                 warpedImage,
                                                 deformationField,
-                                                mask,
+                                                maskToUse,
                                                 interp,
                                                 paddingValue,
                                                 jacMat,
@@ -1899,7 +1897,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<float,unsigned int>(floatingImage,
                                                        warpedImage,
                                                        deformationField,
-                                                       mask,
+                                                       maskToUse,
                                                        interp,
                                                        paddingValue,
                                                        jacMat,
@@ -1909,7 +1907,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<float,int>(floatingImage,
                                               warpedImage,
                                               deformationField,
-                                              mask,
+                                              maskToUse,
                                               interp,
                                               paddingValue,
                                               jacMat,
@@ -1919,7 +1917,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<float,float>(floatingImage,
                                                 warpedImage,
                                                 deformationField,
-                                                mask,
+                                                maskToUse,
                                                 interp,
                                                 paddingValue,
                                                 jacMat,
@@ -1929,7 +1927,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<float,double>(floatingImage,
                                                  warpedImage,
                                                  deformationField,
-                                                 mask,
+                                                 maskToUse,
                                                  interp,
                                                  paddingValue,
                                                  jacMat,
@@ -1947,7 +1945,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<double,unsigned char>(floatingImage,
                                                          warpedImage,
                                                          deformationField,
-                                                         mask,
+                                                         maskToUse,
                                                          interp,
                                                          paddingValue,
                                                          jacMat,
@@ -1957,7 +1955,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<double,char>(floatingImage,
                                                 warpedImage,
                                                 deformationField,
-                                                mask,
+                                                maskToUse,
                                                 interp,
                                                 paddingValue,
                                                 jacMat,
@@ -1967,7 +1965,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<double,unsigned short>(floatingImage,
                                                           warpedImage,
                                                           deformationField,
-                                                          mask,
+                                                          maskToUse,
                                                           interp,
                                                           paddingValue,
                                                           jacMat,
@@ -1977,7 +1975,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<double,short>(floatingImage,
                                                  warpedImage,
                                                  deformationField,
-                                                 mask,
+                                                 maskToUse,
                                                  interp,
                                                  paddingValue,
                                                  jacMat,
@@ -1987,7 +1985,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<double,unsigned int>(floatingImage,
                                                         warpedImage,
                                                         deformationField,
-                                                        mask,
+                                                        maskToUse,
                                                         interp,
                                                         paddingValue,
                                                         jacMat,
@@ -1997,7 +1995,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<double,int>(floatingImage,
                                                warpedImage,
                                                deformationField,
-                                               mask,
+                                               maskToUse,
                                                interp,
                                                paddingValue,
                                                jacMat,
@@ -2007,7 +2005,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<double,float>(floatingImage,
                                                  warpedImage,
                                                  deformationField,
-                                                 mask,
+                                                 maskToUse,
                                                  interp,
                                                  paddingValue,
                                                  jacMat,
@@ -2017,7 +2015,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
             reg_resampleImage2_PSF<double,double>(floatingImage,
                                                   warpedImage,
                                                   deformationField,
-                                                  mask,
+                                                  maskToUse,
                                                   interp,
                                                   paddingValue,
                                                   jacMat,
@@ -2032,20 +2030,17 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
         printf("Deformation field pixel type unsupported.");
         break;
     }
-    if(MrPropreRules==true)
-    {
-        // Naught cast to remove the const.
-        // But this is safe, since we created it.
-        free(const_cast<int*>(mask));
-        mask=NULL;
-    }
+    // If the input mask is blank,
+    // free the blank mask we created
+    if(mask==NULL)
+        free(const_cast<int*>(maskToUse));
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bilinearResampleGradient(const nifti_image *floatingImage,
-                                  nifti_image *warpedImage,
-                                  const nifti_image *deformationField,
+void reg_bilinearResampleGradient(const nifti_image * const floatingImage,
+                                  const nifti_image *warpedImage,
+                                  const nifti_image * const deformationField,
                                   const float paddingValue)
 {
     size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
@@ -2224,9 +2219,9 @@ void reg_bilinearResampleGradient(const nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_trilinearResampleGradient(const nifti_image *floatingImage,
-                                   nifti_image *warpedImage,
-                                   const nifti_image *deformationField,
+void reg_trilinearResampleGradient(const nifti_image *const floatingImage,
+                                   const nifti_image *warpedImage,
+                                   const nifti_image * const deformationField,
                                    const float paddingValue)
 {
     size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
@@ -2466,9 +2461,9 @@ void reg_trilinearResampleGradient(const nifti_image *floatingImage,
     } // z
 }
 /* *************************************************************** */
-void reg_resampleGradient(const nifti_image *floatingImage,
-                          nifti_image *warpedImage,
-                          const nifti_image *deformationField,
+void reg_resampleGradient(const nifti_image * const floatingImage,
+                          const nifti_image *warpedImage,
+                          const nifti_image * const deformationField,
                           const int interp,
                           const float paddingValue)
 {
@@ -2529,10 +2524,10 @@ void reg_resampleGradient(const nifti_image *floatingImage,
 /* *************************************************************** */
 /* *************************************************************** */
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
-void TrilinearImageGradient(const nifti_image *floatingImage,
-                            const nifti_image *deformationField,
-                            nifti_image *warImgGradient,
-                            const int *mask,
+void TrilinearImageGradient(const nifti_image * const floatingImage,
+                            const nifti_image * const deformationField,
+                            const nifti_image *warImgGradient,
+                            const int * const mask,
                             const float paddingValue,
                             const int active_timepoint)
 {
@@ -2725,10 +2720,10 @@ void TrilinearImageGradient(const nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
-void BilinearImageGradient(const nifti_image *floatingImage,
-                           const nifti_image *deformationField,
-                           nifti_image *warImgGradient,
-                           const int *mask,
+void BilinearImageGradient(const nifti_image * const floatingImage,
+                           const nifti_image * const deformationField,
+                           const nifti_image *warImgGradient,
+                           const int * const mask,
                            const float paddingValue,
                            const int active_timepoint)
 {
@@ -2859,10 +2854,10 @@ void BilinearImageGradient(const nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
-void CubicSplineImageGradient3D(const nifti_image *floatingImage,
-                                const nifti_image *deformationField,
-                                nifti_image *warImgGradient,
-                                const int *mask,
+void CubicSplineImageGradient3D(const nifti_image * const floatingImage,
+                                const nifti_image * const deformationField,
+                                const nifti_image *warImgGradient,
+                                const int * const mask,
                                 const float paddingValue,
                                 const int active_timepoint)
 {
@@ -3023,10 +3018,10 @@ void CubicSplineImageGradient3D(const nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
-void CubicSplineImageGradient2D(const nifti_image *floatingImage,
-                                const nifti_image *deformationField,
-                                nifti_image *warImgGradient,
-                                const int *mask,
+void CubicSplineImageGradient2D(const nifti_image * const floatingImage,
+                                const nifti_image * const deformationField,
+                                const nifti_image *warImgGradient,
+                                const int * const mask,
                                 const float paddingValue,
                                 const int active_timepoint)
 {
@@ -3153,16 +3148,16 @@ void CubicSplineImageGradient2D(const nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template <class FieldTYPE, class FloatingTYPE, class GradientTYPE>
-void reg_getImageGradient3(const nifti_image *floatingImage,
-                           nifti_image *warImgGradient,
-                           const nifti_image *deformationField,
-                           const int *mask,
+void reg_getImageGradient3(const nifti_image * const floatingImage,
+                           const nifti_image *warImgGradient,
+                           const nifti_image * const deformationField,
+                           const int * const mask,
                            const int interp,
                            const float paddingValue,
                            const int active_timepoint,
-                           const int *dtIndicies,
-                           const mat33 *jacMat,
-                           nifti_image *warpedImage = NULL
+                           const int * const dtIndicies,
+                           const mat33 * const jacMat,
+                           const nifti_image *warpedImage = NULL
         )
 {
     // The floating image data is copied in case one deal with DTI
@@ -3235,16 +3230,16 @@ void reg_getImageGradient3(const nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template <class FieldTYPE, class FloatingTYPE>
-void reg_getImageGradient2(const nifti_image *floatingImage,
-                           nifti_image *warImgGradient,
-                           const nifti_image *deformationField,
-                           const int *mask,
+void reg_getImageGradient2(const nifti_image * const floatingImage,
+                           const nifti_image *warImgGradient,
+                           const nifti_image * const deformationField,
+                           const int * const mask,
                            const int interp,
                            const float paddingValue,
                            const int active_timepoint,
-                           const int *dtIndicies,
-                           const mat33 *jacMat,
-                           nifti_image *warpedImage
+                           const int * const dtIndicies,
+                           const mat33 * const jacMat,
+                           const nifti_image *warpedImage
                            )
 {
     switch(warImgGradient->datatype)
@@ -3265,16 +3260,16 @@ void reg_getImageGradient2(const nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template <class FieldTYPE>
-void reg_getImageGradient1(const nifti_image *floatingImage,
-                           nifti_image *warImgGradient,
-                           const nifti_image *deformationField,
-                           const int *mask,
+void reg_getImageGradient1(const nifti_image * const floatingImage,
+                           const nifti_image *warImgGradient,
+                           const nifti_image * const deformationField,
+                           const int * const mask,
                            const int interp,
                            const float paddingValue,
                            const int active_timepoint,
-                           const int *dtIndicies,
-                           const mat33 *jacMat,
-                           nifti_image *warpedImage
+                           const int * const dtIndicies,
+                           const mat33 * const jacMat,
+                           const nifti_image *warpedImage
                            )
 {
     switch(floatingImage->datatype)
@@ -3318,26 +3313,20 @@ void reg_getImageGradient1(const nifti_image *floatingImage,
     }
 }
 /* *************************************************************** */
-void reg_getImageGradient(const nifti_image *floatingImage,
-                          nifti_image *warImgGradient,
-                          const nifti_image *deformationField,
-                          const int *mask,
+void reg_getImageGradient(const nifti_image * const floatingImage,
+                          const nifti_image *warImgGradient,
+                          const nifti_image * const deformationField,
+                          const int * const mask,
                           const int interp,
                           const float paddingValue,
                           const int active_timepoint,
-                          const bool *dti_timepoint,
-                          const mat33 *jacMat,
-                          nifti_image *warpedImage
+                          const bool * const dti_timepoint,
+                          const mat33 * const jacMat,
+                          const nifti_image *warpedImage
                           )
 {
     // a mask array is created if no mask is specified
-    bool MrPropreRules=false;
-    if(mask==NULL)
-    {
-        // voxels in the backgreg_round are set to -1 so 0 will do the job here
-        mask=(int *)calloc(deformationField->nx*deformationField->ny*deformationField->nz,sizeof(int));
-        MrPropreRules=true;
-    }
+    const int * const maskToUse = get_mask_to_use(mask,warpedImage);
 
     // Define the DTI indices if required
     int dtIndicies[6];
@@ -3369,11 +3358,11 @@ void reg_getImageGradient(const nifti_image *floatingImage,
     {
     case NIFTI_TYPE_FLOAT32:
         reg_getImageGradient1<float>
-                (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,active_timepoint,dtIndicies,jacMat, warpedImage);
+                (floatingImage,warImgGradient,deformationField,maskToUse,interp,paddingValue,active_timepoint,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_FLOAT64:
         reg_getImageGradient1<double>
-                (floatingImage,warImgGradient,deformationField,mask,interp,paddingValue,active_timepoint,dtIndicies,jacMat, warpedImage);
+                (floatingImage,warImgGradient,deformationField,maskToUse,interp,paddingValue,active_timepoint,dtIndicies,jacMat, warpedImage);
         break;
     default:
         reg_print_fct_error("reg_getImageGradient");
@@ -3381,13 +3370,10 @@ void reg_getImageGradient(const nifti_image *floatingImage,
         reg_exit();
         break;
     }
-    if(MrPropreRules==true)
-    {
-        // Naught cast to remove the const.
-        // But this is safe, since we created it.
-        free(const_cast<int*>(mask));
-        mask=NULL;
-    }
+    // If the input mask is blank,
+    // free the blank mask we created
+    if(mask==NULL)
+        free(const_cast<int*>(maskToUse));
 }
 /* *************************************************************** */
 /* *************************************************************** */

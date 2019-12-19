@@ -282,7 +282,7 @@ void reg_tools_removeSCLInfo(nifti_image *image)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_getRealImageSpacing(nifti_image *image,
+void reg_getRealImageSpacing(const nifti_image * const image,
                              float *spacingValues)
 {
    float indexVoxel1[3]= {0,0,0};
