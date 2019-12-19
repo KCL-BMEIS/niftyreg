@@ -17,8 +17,8 @@
 /* *************************************************************** */
 template <class DTYPE>
 void reg_createControlPointGrid(nifti_image **controlPointGridImage,
-                                nifti_image *referenceImage,
-                                float *spacingMillimeter)
+                                const nifti_image *referenceImage,
+                                const float *spacingMillimeter)
 {
    // Define the control point grid dimension
    int dim_cpp[8];
@@ -138,8 +138,8 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
    strcpy((*controlPointGridImage)->intent_name,"NREG_TRANS");
    (*controlPointGridImage)->intent_p1=CUB_SPLINE_GRID;
 }
-template void reg_createControlPointGrid<float>(nifti_image **, nifti_image *, float *);
-template void reg_createControlPointGrid<double>(nifti_image **, nifti_image *, float *);
+template void reg_createControlPointGrid<float>(nifti_image **, const nifti_image *, const float *);
+template void reg_createControlPointGrid<double>(nifti_image **, const nifti_image *, const float *);
 /* *************************************************************** */
 template <class DTYPE>
 void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,

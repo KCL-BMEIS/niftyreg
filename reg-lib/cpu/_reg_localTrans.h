@@ -37,8 +37,8 @@
  */
 extern "C++" template <class DTYPE>
 void reg_createControlPointGrid(nifti_image **controlPointGridImage,
-                                nifti_image *referenceImage,
-                                float *spacingMillimeter);
+                                const nifti_image *referenceImage,
+                                const float *spacingMillimeter);
 
 extern "C++" template <class DTYPE>
 void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
