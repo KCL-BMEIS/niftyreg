@@ -65,6 +65,7 @@ install(TARGETS ${NAME}
     ARCHIVE DESTINATION lib
     )
 install(FILES ${NAME}.h DESTINATION include/cuda)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
 set(NAME _reg_cuda_kernels)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
@@ -90,6 +91,7 @@ install(TARGETS ${NAME}
     )
 install(FILES blockMatchingKernel.h CUDAContextSingletton.h CUDAAladinContent.h DESTINATION include/cuda)
 install(FILES CUDAKernelFactory.h affineDeformationKernel.h resampleKernel.h optimizeKernel.h CUDAAffineDeformationFieldKernel.h CUDABlockMatchingKernel.h CUDAConvolutionKernel.h CUDAOptimiseKernel.h CUDAResampleImageKernel.h DESTINATION include/cuda)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
 set(NAME _reg_cudainfo)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cpp ${NAME}.h)
@@ -100,5 +102,6 @@ install(TARGETS ${NAME}
     ARCHIVE DESTINATION lib
     )
 install(FILES ${NAME}.h DESTINATION include/cuda)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
-
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES}" PARENT_SCOPE)

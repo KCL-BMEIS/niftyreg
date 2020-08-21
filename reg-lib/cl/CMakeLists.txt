@@ -40,6 +40,7 @@ install(TARGETS ${NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
 install(FILES CLContextSingletton.h CLAladinContent.h CLKernelFactory.h
         CLAffineDeformationFieldKernel.h
@@ -59,4 +60,6 @@ install(TARGETS ${NAME}
   ARCHIVE DESTINATION lib
 )
 install(FILES ${NAME}.h DESTINATION include/cl)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES}" PARENT_SCOPE)
