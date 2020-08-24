@@ -543,6 +543,13 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
 {
    this->GetVoxelBasedGradient();
 
+
+   /*char im_name[100];
+   sprintf(im_name, "debug_vox_grad_lev_%i_iter_%i.nii", this->currentLevel, this->optimiser->GetCurrentIterationNumber());
+   reg_io_WriteImageFile(this->voxelBasedMeasureGradient, im_name);*/
+
+
+
    int kernel_type=CUBIC_SPLINE_KERNEL;
    // The voxel based NMI gradient is convolved with a spline kernel
    // Convolution along the x axis
@@ -593,6 +600,12 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
                                 false, // no update
                                 &reorientation
                                 );
+
+
+   /*sprintf(im_name, "debug_cp_grad_lev_%i_iter_%i.nii", this->currentLevel, this->optimiser->GetCurrentIterationNumber());
+   reg_io_WriteImageFile(this->transformationGradient, im_name);
+   reg_exit(0);*/
+
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetSimilarityMeasureGradient");
 #endif
@@ -1023,10 +1036,10 @@ nifti_image **reg_f3d<T>::GetWarpedImage()
    this->currentFloating = this->inputFloating;
    this->currentMask=NULL;
 
-   reg_base<T>::AllocateWarped();
-   reg_base<T>::AllocateDeformationField();
-   reg_base<T>::WarpFloatingImage(3); // cubic spline interpolation
-   reg_base<T>::ClearDeformationField();
+   this->AllocateWarped();
+   this->AllocateDeformationField();
+   this->WarpFloatingImage(3); // cubic spline interpolation
+   this->ClearDeformationField();
 
    nifti_image **warpedImage= (nifti_image **)malloc(2*sizeof(nifti_image *));
    warpedImage[0]=nifti_copy_nim_info(this->warped);

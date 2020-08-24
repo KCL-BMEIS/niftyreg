@@ -15,7 +15,8 @@ presented by Ourselin et al.[1]. The symmetric versions of the rigid and
 affine registration have been presented in Modat et al.[2].
 The non-linear registration is based on the work is based on the work initially
 presented by Rueckert et al.[3]. The current implementation has been presented
-in Modat et al.[4].
+in Modat et al.[4]. Sliding-region handling was added as it was presented
+at WBIR 2018 in Eiben et al.[5].
 
 Ourselin et al.[1] presented an algorithm called Aladin, which is based on
 a block-matching approach and a Trimmed Least Square (TLS) scheme. Firstly,
@@ -43,7 +44,10 @@ an objective function composed from the Normalised Mutual Information (NMI) and
 the Bending-Energy (BE) is used. The objective function value is optimised
 using the analytical derivative of both, the NMI and the BE within a conjugate
 gradient scheme. The symmetric version of the algorithm takes advantage of
-stationary velocity field parametrisation.
+stationary velocity field parametrisation. Optional sliding region handling was 
+implemented using two separate control-point grids, one for each region [5]. 
+The boundary between the regions is defined as the zero-crossing of a signed 
+distance map that needs to be given in the floating image space. 
 reg f3d is the command to perform non-linear registration.
 
 A third program, called reg resample, is been embedded in the package. It
@@ -118,6 +122,11 @@ Imaging, 18(8), 712–721. doi:10.1109/42.796284
 [4] Modat, et al. (2010). Fast free-form deformation using graphics processing
 units. Computer Methods And Programs In Biomedicine,98(3), 278–284.
 doi:10.1016/j.cmpb.2009.09.002
+[5] Eiben et al. (2018). 
+Eiben, et al. (2018) Statistical Motion Mask and Sliding Registration. 
+Biomedical Image Registration, WBIR, 13-23 
+doi:10.1007/978-3-319-92258-4_2
+
 
 ##############################################################################
 ##############################################################################

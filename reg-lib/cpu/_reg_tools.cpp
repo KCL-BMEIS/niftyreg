@@ -2386,31 +2386,34 @@ int reg_tools_nanMask_image(nifti_image *image, nifti_image *maskImage, nifti_im
 /* *************************************************************** */
 /* *************************************************************** */
 template <class TYPE>
-int reg_tools_removeNanFromMask_core(nifti_image *image, int *mask)
+int reg_tools_removeNanFromMask_core(nifti_image *image, int *mask, int time_point_index)
 {
    size_t voxelNumber = (size_t)image->nx*image->ny*image->nz;
    TYPE *imagePtr = static_cast<TYPE *>(image->data);
-   for(int t=0; t<image->nt; ++t){
-      for(size_t i=0; i<voxelNumber; ++i){
-         TYPE value=*imagePtr++;
-         if(value!=value)
-            mask[i]=-1;
-      }
+   for(int t=0; t<time_point_index; ++t){
+	imagePtr+=voxelNumber;
    }
+
+   for(size_t i=0; i<voxelNumber; ++i){
+      TYPE value=*imagePtr++;
+      if(value!=value)
+         mask[i]=-1;
+   }
+
    return EXIT_SUCCESS;
 }
 /* *************************************************************** */
 int reg_tools_removeNanFromMask(nifti_image *image,
-                                int *mask)
+                                int *mask, int time_point_index)
 {
    switch(image->datatype)
    {
    case NIFTI_TYPE_FLOAT32:
       return reg_tools_removeNanFromMask_core<float>
-            (image, mask);
+            (image, mask, time_point_index);
    case NIFTI_TYPE_FLOAT64:
       return reg_tools_removeNanFromMask_core<double>
-            (image, mask);
+            (image, mask, time_point_index);
    default:
       reg_print_fct_error("reg_tools_removeNanFromMask");
       reg_print_msg_error("The image data type is not supported");

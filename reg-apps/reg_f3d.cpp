@@ -13,6 +13,7 @@
 #include "_reg_ReadWriteMatrix.h"
 #include "_reg_f3d2.h"
 #include "reg_f3d.h"
+#include "_reg_f3d_sli.h"
 #include <float.h>
 //#include <libgen.h> //DOES NOT WORK ON WINDOWS !
 
@@ -49,7 +50,7 @@ void Usage(char *exec)
    reg_print_info(exec, "***************");
    reg_print_info(exec, "*** Initial transformation options (One option will be considered):");
    reg_print_info(exec, "\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=Floating)");
-   reg_print_info(exec, "\t-incpp <filename>\tFilename ofloatf control point grid input");
+   reg_print_info(exec, "\t-incpp <filename>\tFilename of control point grid input");
    reg_print_info(exec, "\t\t\t\tThe coarse spacing is defined by this file.");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Output options:");
@@ -129,6 +130,15 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-vel \t\t\tUse a velocity field integration to generate the deformation");
    reg_print_info(exec, "\t-nogce \t\t\tDo not use the gradient accumulation through exponentiation");
    reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space");
+   reg_print_info(exec, "");
+
+   //sliding regions registration options
+   reg_print_info(exec, "*** Sliding regions options:");
+   reg_print_info(exec, "\t-sli \t\t\tUse two transformations and a penalty term to allow for sliding regions.");
+   reg_print_info(exec, "\t\t\t\tFor more details see Eiben et al., Statistical motion mask and Sliding image registration, WBIR, 2018" );
+   reg_print_info(exec, "\t-dmap <filename>\tFilename of a distance map image in the floating space, defining the two sliding regions");
+   reg_print_info(exec, "\t-go <float>\t\tWeight of the gap-overlap penalty term [0.1]");
+   reg_print_info(exec, "\t-incpp2 <filename>\tFilename of control point grid input for region 2");
    reg_print_info(exec, "");
 
 //   reg_print_info(exec, "*** Platform options:");
@@ -297,8 +307,7 @@ int main(int argc, char **argv)
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check the type of registration object to create
    reg_f3d<float> *REG=NULL;
-   float *referenceLandmark=NULL;
-   float *floatingLandmark=NULL;
+   reg_f3d_sli<float> *REG_SLI = NULL;
    for(int i=1; i<argc; i++)
    {
       if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0)
@@ -311,6 +320,12 @@ int main(int argc, char **argv)
          REG=new reg_f3d_sym<float>(referenceImage->nt,floatingImage->nt);
          break;
       }
+	  if (strcmp(argv[i], "-sli") == 0 || strcmp(argv[i], "--sli") == 0)
+	  {
+		  REG_SLI = new reg_f3d_sli<float>(referenceImage->nt, floatingImage->nt);
+		  REG = static_cast<reg_f3d<float> *>(REG_SLI);
+		  break;
+	  }
    }
    if(REG==NULL)
       REG=new reg_f3d<float>(referenceImage->nt,floatingImage->nt);
@@ -328,6 +343,10 @@ int main(int argc, char **argv)
    bool useMeanLNCC=false;
    int refBinNumber=0;
    int floBinNumber=0;
+   float *referenceLandmark = NULL;
+   float *floatingLandmark = NULL;
+   nifti_image *distMapImage = NULL;
+   nifti_image *inputCPPImageR2 = NULL;
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -785,6 +804,58 @@ int main(int argc, char **argv)
          REG->UseBCHUpdate(atoi(argv[++i]));
       }
 
+	  //sliding region registration options
+	  else if (strcmp(argv[i], "-dmap") == 0 || strcmp(argv[i], "--dmap") == 0)
+	  {
+		  distMapImage = reg_io_ReadImageFile(argv[++i]);
+		  if (distMapImage == NULL)
+		  {
+			  reg_print_msg_error("Error when reading the distance map image");
+			  reg_print_msg_error(argv[i - 1]);
+			  return EXIT_FAILURE;
+		  }
+		  if (REG_SLI != NULL)
+		  {
+			  REG_SLI->SetDistanceMapImage(distMapImage);
+		  }
+		  else
+		  {
+			  reg_print_msg_error("Sliding regions registrations (-sli flag) must be used when specifying a distance map image");
+			  return EXIT_FAILURE;
+		  }
+	  }
+	  else if (strcmp(argv[i], "-go") == 0 || strcmp(argv[i], "--go") == 0)
+	  {
+		  if (REG_SLI != NULL)
+		  {
+			  REG_SLI->SetGapOverlapWeight(atof(argv[++i]));
+		  }
+		  else
+		  {
+			  reg_print_msg_error("Sliding regions registrations (-sli flag) must be used when specifying the gap-overlap penalty term weight");
+			  return EXIT_FAILURE;
+		  }
+	  }
+	  else if (strcmp(argv[i], "-incpp2") == 0 || strcmp(argv[i], "--incpp2") == 0)
+	  {
+		  inputCPPImageR2 = reg_io_ReadImageFile(argv[++i]);
+		  if (inputCPPImageR2 == NULL)
+		  {
+			  reg_print_msg_error("Error when reading the input control point grid image for region 2:");
+			  reg_print_msg_error(argv[i - 1]);
+			  return EXIT_FAILURE;
+		  }
+		  if (REG_SLI != NULL)
+		  {
+			  REG_SLI->SetRegion2ControlPointGridImage(inputCPPImageR2);
+		  }
+		  else
+		  {
+			  reg_print_msg_error("Sliding regions registrations (-sli flag) must be used when specifying a input control point grid for region 2");
+			  return EXIT_FAILURE;
+		  }
+	  }
+
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
 #if defined (_OPENMP)
@@ -802,7 +873,8 @@ int main(int argc, char **argv)
               strcmp(argv[i], "-Version")!=0 && strcmp(argv[i], "-V")!=0 &&
               strcmp(argv[i], "-v")!=0 && strcmp(argv[i], "--v")!=0 &&
               strcmp(argv[i], "-gpu")!=0 && strcmp(argv[i], "--gpu")!=0 &&
-              strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0)
+              strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0 &&
+			  strcmp(argv[i], "-sli") != 0)
       {
          reg_print_msg_error("\tParameter unknown:");
          reg_print_msg_error(argv[i]);
@@ -836,44 +908,119 @@ int main(int argc, char **argv)
    REG->Run();
 
    // Save the control point image
-   nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
    if(outputCPPImageName==NULL) outputCPPImageName=(char *)"outputCPP.nii";
-   memset(outputControlPointGridImage->descrip, 0, 80);
-   strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
-   if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
-      strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
-   reg_io_WriteImageFile(outputControlPointGridImage,outputCPPImageName);
-   nifti_image_free(outputControlPointGridImage);
-   outputControlPointGridImage=NULL;
-
-   // Save the backward control point image
-   if(REG->GetSymmetricStatus())
+   //check if sliding region registration
+   if (REG_SLI == NULL)
    {
-      // _backward is added to the forward control point grid image name
-      std::string b(outputCPPImageName);
-      if(b.find( ".nii.gz") != std::string::npos)
-         b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
-      else if(b.find( ".nii") != std::string::npos)
-         b.replace(b.find( ".nii"),4,"_backward.nii");
-      else if(b.find( ".hdr") != std::string::npos)
-         b.replace(b.find( ".hdr"),4,"_backward.hdr");
-      else if(b.find( ".img.gz") != std::string::npos)
-         b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
-      else if(b.find( ".img") != std::string::npos)
-         b.replace(b.find( ".img"),4,"_backward.img");
-      else if(b.find( ".png") != std::string::npos)
-         b.replace(b.find( ".png"),4,"_backward.png");
-      else if(b.find( ".nrrd") != std::string::npos)
-         b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
-      else b.append("_backward.nii");
-      nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
-      memset(outputBackwardControlPointGridImage->descrip, 0, 80);
-      strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
-      if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
-         strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
-      reg_io_WriteImageFile(outputBackwardControlPointGridImage,b.c_str());
-      nifti_image_free(outputBackwardControlPointGridImage);
-      outputBackwardControlPointGridImage=NULL;
+	   //if not get output image, set description, save, and clear
+	   nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
+	   memset(outputControlPointGridImage->descrip, 0, 80);
+	   strcpy(outputControlPointGridImage->descrip, "Control point position from NiftyReg (reg_f3d)");
+	   if (strcmp("NiftyReg F3D2", REG->GetExecutableName()) == 0)
+		   strcpy(outputControlPointGridImage->descrip, "Velocity field grid from NiftyReg (reg_f3d2)");
+	   reg_io_WriteImageFile(outputControlPointGridImage, outputCPPImageName);
+	   nifti_image_free(outputControlPointGridImage);
+	   outputControlPointGridImage = NULL;
+
+	   // and save backwards CPP image if exists
+	   if (REG->GetSymmetricStatus())
+	   {
+		   // _backward is added to the forward control point grid image name
+		   std::string b(outputCPPImageName);
+		   if (b.find(".nii.gz") != std::string::npos)
+			   b.replace(b.find(".nii.gz"), 7, "_backward.nii.gz");
+		   else if (b.find(".nii") != std::string::npos)
+			   b.replace(b.find(".nii"), 4, "_backward.nii");
+		   else if (b.find(".hdr") != std::string::npos)
+			   b.replace(b.find(".hdr"), 4, "_backward.hdr");
+		   else if (b.find(".img.gz") != std::string::npos)
+			   b.replace(b.find(".img.gz"), 7, "_backward.img.gz");
+		   else if (b.find(".img") != std::string::npos)
+			   b.replace(b.find(".img"), 4, "_backward.img");
+		   else if (b.find(".png") != std::string::npos)
+			   b.replace(b.find(".png"), 4, "_backward.png");
+		   else if (b.find(".nrrd") != std::string::npos)
+			   b.replace(b.find(".nrrd"), 5, "_backward.nrrd");
+		   else b.append("_backward.nii");
+		   nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
+		   memset(outputBackwardControlPointGridImage->descrip, 0, 80);
+		   strcpy(outputBackwardControlPointGridImage->descrip, "Backward Control point position from NiftyReg (reg_f3d)");
+		   if (strcmp("NiftyReg F3D2", REG->GetExecutableName()) == 0)
+			   strcpy(outputBackwardControlPointGridImage->descrip, "Backward velocity field grid from NiftyReg (reg_f3d2)");
+		   reg_io_WriteImageFile(outputBackwardControlPointGridImage, b.c_str());
+		   nifti_image_free(outputBackwardControlPointGridImage);
+		   outputBackwardControlPointGridImage = NULL;
+	   }
+   }
+   else
+   {
+	   //if sliding registration create two versions of CPP name,
+	   //one with _region1 appended and the other with _region2 appended
+	   std::string region1Name(outputCPPImageName);
+	   std::string region2Name(outputCPPImageName);
+	   if (region1Name.find(".nii.gz") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".nii.gz"), 7, "_region1.nii.gz");
+		   region2Name.replace(region2Name.find(".nii.gz"), 7, "_region2.nii.gz");
+	   }
+	   else if (region1Name.find(".nii") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".nii"), 4, "_region1.nii");
+		   region2Name.replace(region2Name.find(".nii"), 4, "_region2.nii");
+	   }
+	   else if (region1Name.find(".hdr") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".hdr"), 4, "_region1.hdr");
+		   region2Name.replace(region2Name.find(".hdr"), 4, "_region2.hdr");
+	   }
+	   else if (region1Name.find(".img.gz") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".img.gz"), 7, "_region1.img.gz");
+		   region2Name.replace(region2Name.find(".img.gz"), 7, "_region2.img.gz");
+	   }
+	   else if (region1Name.find(".img") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".img"), 4, "_region1.img");
+		   region2Name.replace(region2Name.find(".img"), 4, "_region2.img");
+	   }
+	   else if (region1Name.find(".png") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".png"), 4, "_region1.png");
+		   region2Name.replace(region2Name.find(".png"), 4, "_region2.png");
+	   }
+	   else if (region1Name.find(".nrrd") != std::string::npos)
+	   {
+		   region1Name.replace(region1Name.find(".nrrd"), 5, "_region1.nrrd");
+		   region2Name.replace(region2Name.find(".nrrd"), 5, "_region2.nrrd");
+	   }
+	   else
+	   {
+		   region1Name.append("_region1.nii");
+		   region2Name.append("_region2.nii");
+	   }
+
+	   //now get output CPP image for region 1
+	   nifti_image *region1OutputCPPImage = REG_SLI->GetControlPointPositionImage();
+	   //set description for CPP image for region 1
+	   memset(region1OutputCPPImage->descrip, 0, 80);
+	   strcpy(region1OutputCPPImage->descrip, "Control point position for Region 1 from NiftyReg (reg_f3d_sli)");
+	   //save CPP image for region 1
+	   reg_io_WriteImageFile(region1OutputCPPImage, region1Name.c_str());
+	   //clear CPP image for region 1
+	   nifti_image_free(region1OutputCPPImage);
+	   region1OutputCPPImage = NULL;
+
+	   //and same for region 2...
+	   //get output CPP image for region 2
+	   nifti_image *region2OutputCPPImage = REG_SLI->GetRegion2ControlPointPositionImage();
+	   //set description for CPP image for region 2
+	   memset(region2OutputCPPImage->descrip, 0, 80);
+	   strcpy(region2OutputCPPImage->descrip, "Control point position for Region 2 from NiftyReg (reg_f3d_sli)");
+	   //save CPP image for region 2
+	   reg_io_WriteImageFile(region2OutputCPPImage, region2Name.c_str());
+	   //clear CPP image for region 2
+	   nifti_image_free(region2OutputCPPImage);
+	   region2OutputCPPImage = NULL;
    }
 
    // Save the warped image(s)
@@ -936,6 +1083,8 @@ int main(int argc, char **argv)
    if(inputCCPImage!=NULL) nifti_image_free(inputCCPImage);
    if(referenceMaskImage!=NULL) nifti_image_free(referenceMaskImage);
    if(floatingMaskImage!=NULL) nifti_image_free(floatingMaskImage);
+   if (distMapImage != NULL) nifti_image_free(distMapImage);
+   if (inputCPPImageR2 != NULL) nifti_image_free(inputCPPImageR2);
 
 #ifdef NDEBUG
    if(verbose)
