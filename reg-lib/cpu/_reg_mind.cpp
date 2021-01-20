@@ -72,11 +72,11 @@ void GetMINDImageDesciptor_core(nifti_image* inputImage,
                                 int current_timepoint)
 {
 #ifdef WIN32
-   const long voxelNumber = (long)inputImage->nx *
+   long voxelNumber = (long)inputImage->nx *
          inputImage->ny * inputImage->nz;
    long voxelIndex;
 #else
-   const size_t voxelNumber = (size_t)inputImage->nx *
+   size_t voxelNumber = (size_t)inputImage->nx *
          inputImage->ny * inputImage->nz;
    size_t voxelIndex;
 #endif
@@ -135,7 +135,7 @@ void GetMINDImageDesciptor_core(nifti_image* inputImage,
    DTYPE meanValue, max_desc, descValue;
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(samplingNbr, maskPtr, meanImgDataPtr, \
+   shared(voxelNumber, samplingNbr, maskPtr, meanImgDataPtr, \
    MINDImgDataPtr) \
    private(voxelIndex, meanValue, max_desc, descValue, mindIndex)
 #endif
@@ -211,11 +211,11 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImage,
 {
 
 #ifdef WIN32
-   const long voxelNumber = (long)inputImage->nx *
+   long voxelNumber = (long)inputImage->nx *
          inputImage->ny * inputImage->nz;
    long voxelIndex;
 #else
-   const size_t voxelNumber = (size_t)inputImage->nx *
+   size_t voxelNumber = (size_t)inputImage->nx *
          inputImage->ny * inputImage->nz;
    size_t voxelIndex;
 #endif
@@ -295,7 +295,7 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImage,
    DTYPE meanValue, max_desc, descValue;
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(lengthDescriptor, samplingNbr, maskPtr, meanImgDataPtr, \
+   shared(voxelNumber, lengthDescriptor, samplingNbr, maskPtr, meanImgDataPtr, \
    MINDSSCImgDataPtr) \
    private(voxelIndex, meanValue, max_desc, descValue, mindIndex)
 #endif

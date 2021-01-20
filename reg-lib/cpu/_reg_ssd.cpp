@@ -773,7 +773,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
    size_t voxIndex, voxIndex_t;
    const int label_1D_number = (discretise_radius / discretise_step) * 2 + 1;
    const int label_2D_number = label_1D_number*label_1D_number;
-   const int label_nD_number = label_2D_number*label_1D_number;
+   int label_nD_number = label_2D_number*label_1D_number;
    //output matrix = discretisedValue (first dimension displacement label, second dim. control point)
    float gridVox[3], imageVox[3];
    float currentValue;
@@ -793,12 +793,12 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
       (int)reg_ceil(controlPointGridImage->dy / refImage->dy),
       (int)reg_ceil(controlPointGridImage->dz / refImage->dz),
    };
-   const int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2];
-   const int voxelBlockNumber_t = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
+   int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2];
+   int voxelBlockNumber_t = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
    int currentControlPoint = 0;
 
    // Pointers to the input image
-   const size_t voxelNumber = (size_t)refImage->nx*
+   size_t voxelNumber = (size_t)refImage->nx*
          refImage->ny*refImage->nz;
    DTYPE *refImgPtr = static_cast<DTYPE *>(refImage->data);
    DTYPE *warImgPtr = static_cast<DTYPE *>(warImage->data);
@@ -821,7 +821,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
    // Loop over all control points
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(controlPointGridImage, refImage, warImage, grid2img_vox, blockSize, \
+   shared(voxelBlockNumber_t, voxelNumber, voxelBlockNumber, label_nD_number, controlPointGridImage, refImage, warImage, grid2img_vox, blockSize, \
    padding_value, refBlockValue, mask, refImgPtr, warImgPtr, discretise_radius, \
    discretise_step, discretisedValue) \
    private(cpx, cpy, cpz, x, y, z, a, b, c, t, currentControlPoint, gridVox, imageVox, \
