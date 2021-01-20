@@ -821,7 +821,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
    // Loop over all control points
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(controlPointGridImage, refImage, warImage, grid2img_vox, blockSize, \
+   shared(voxelBlockNumber_t, voxelNumber, voxelBlockNumber, label_nD_number, controlPointGridImage, refImage, warImage, grid2img_vox, blockSize, \
    padding_value, refBlockValue, mask, refImgPtr, warImgPtr, discretise_radius, \
    discretise_step, discretisedValue) \
    private(cpx, cpy, cpz, x, y, z, a, b, c, t, currentControlPoint, gridVox, imageVox, \

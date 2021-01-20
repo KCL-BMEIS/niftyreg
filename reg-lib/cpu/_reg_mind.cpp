@@ -135,7 +135,7 @@ void GetMINDImageDesciptor_core(nifti_image* inputImage,
    DTYPE meanValue, max_desc, descValue;
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(samplingNbr, maskPtr, meanImgDataPtr, \
+   shared(voxelNumber, samplingNbr, maskPtr, meanImgDataPtr, \
    MINDImgDataPtr) \
    private(voxelIndex, meanValue, max_desc, descValue, mindIndex)
 #endif
@@ -295,7 +295,7 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImage,
    DTYPE meanValue, max_desc, descValue;
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(lengthDescriptor, samplingNbr, maskPtr, meanImgDataPtr, \
+   shared(voxelNumber, lengthDescriptor, samplingNbr, maskPtr, meanImgDataPtr, \
    MINDSSCImgDataPtr) \
    private(voxelIndex, meanValue, max_desc, descValue, mindIndex)
 #endif
