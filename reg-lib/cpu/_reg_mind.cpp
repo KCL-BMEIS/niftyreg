@@ -72,11 +72,11 @@ void GetMINDImageDesciptor_core(nifti_image* inputImage,
                                 int current_timepoint)
 {
 #ifdef WIN32
-   const long voxelNumber = (long)inputImage->nx *
+   long voxelNumber = (long)inputImage->nx *
          inputImage->ny * inputImage->nz;
    long voxelIndex;
 #else
-   const size_t voxelNumber = (size_t)inputImage->nx *
+   size_t voxelNumber = (size_t)inputImage->nx *
          inputImage->ny * inputImage->nz;
    size_t voxelIndex;
 #endif
@@ -211,11 +211,11 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImage,
 {
 
 #ifdef WIN32
-   const long voxelNumber = (long)inputImage->nx *
+   long voxelNumber = (long)inputImage->nx *
          inputImage->ny * inputImage->nz;
    long voxelIndex;
 #else
-   const size_t voxelNumber = (size_t)inputImage->nx *
+   size_t voxelNumber = (size_t)inputImage->nx *
          inputImage->ny * inputImage->nz;
    size_t voxelIndex;
 #endif

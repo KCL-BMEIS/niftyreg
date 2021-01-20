@@ -773,7 +773,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
    size_t voxIndex, voxIndex_t;
    const int label_1D_number = (discretise_radius / discretise_step) * 2 + 1;
    const int label_2D_number = label_1D_number*label_1D_number;
-   const int label_nD_number = label_2D_number*label_1D_number;
+   int label_nD_number = label_2D_number*label_1D_number;
    //output matrix = discretisedValue (first dimension displacement label, second dim. control point)
    float gridVox[3], imageVox[3];
    float currentValue;
@@ -793,12 +793,12 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
       (int)reg_ceil(controlPointGridImage->dy / refImage->dy),
       (int)reg_ceil(controlPointGridImage->dz / refImage->dz),
    };
-   const int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2];
-   const int voxelBlockNumber_t = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
+   int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2];
+   int voxelBlockNumber_t = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
    int currentControlPoint = 0;
 
    // Pointers to the input image
-   const size_t voxelNumber = (size_t)refImage->nx*
+   size_t voxelNumber = (size_t)refImage->nx*
          refImage->ny*refImage->nz;
    DTYPE *refImgPtr = static_cast<DTYPE *>(refImage->data);
    DTYPE *warImgPtr = static_cast<DTYPE *>(warImage->data);
