@@ -45,6 +45,11 @@ else(NOT COMPILE_RESULT_VAR)
     endif("${RUN_OUTPUT_VAR}" LESS "30")
     string(REPLACE "." "" CAPABILITY_CODE ${RUN_OUTPUT_VAR})
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_${CAPABILITY_CODE},code=sm_${CAPABILITY_CODE}")
+    # If desired, add PIC flags
+    if(CMAKE_POSITION_INDEPENDENT_CODE AND DEFINED CMAKE_C_COMPILE_OPTIONS_PIC)
+        # add (undocumented) CMake flag that should tell the host compiler to generate position independent code
+        set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --compiler-options ${CMAKE_C_COMPILE_OPTIONS_PIC}")
+    endif()
     #adjust for debug and release versions
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --ptxas-options=-v -g -G -lineinfo")
