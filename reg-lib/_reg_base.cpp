@@ -897,6 +897,7 @@ void reg_base<T>::CheckParameters()
 			if (this->measure_lncc != NULL)
 				this->measure_lncc->SetTimepointWeight(n, lnccWeights[n] / totWeightSum);
 		}
+        delete[] chanWeightSum;
 	}
 
 #ifndef NDEBUG
