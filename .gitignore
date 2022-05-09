@@ -1,0 +1,12 @@
+# Python wrapper
+*.py[co]
+*.so
+__pycache__/
+/_skbuild/
+/_cmake_test_compile/
+/niftyreg/_dist_ver.py
+/niftyreg/niftyreg
+MANIFEST
+/*.egg*/
+/build/
+/dist/
