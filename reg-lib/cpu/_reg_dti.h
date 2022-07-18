@@ -5,8 +5,9 @@
  * @date 19/05/2009
  *
  *  Created by Marc Modat on 19/05/2009.
- *  Copyright (c) 2009, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC)
+ *  Copyright (c) 2009-2018, University College London
+ *  Copyright (c) 2018, NiftyReg Developers.
+ *  All rights reserved.
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */

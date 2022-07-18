@@ -5,8 +5,9 @@
  * @brief library that contains the functions related to matrix
  *
  *  Created by Benoit Presles on 17/09/2015.
- *  Copyright (c) 2015, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC)
+ *  Copyright (c) 2015-2018, University College London
+ *  Copyright (c) 2018, NiftyReg Developers.
+ *  All rights reserved.
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */

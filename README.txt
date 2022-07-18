@@ -66,7 +66,8 @@ would be kind enough to cite reference(s) 2 (rigid or affine) and/or
 ---------
 2 LICENSE
 ---------
-Copyright (c) 2009, University College London, United-Kingdom
+Copyright (c) 2009-2018, University College London
+Copyright (c) 2018, NiftyReg Developers.
 All rights reserved.
 
 Redistribution and use in floating and binary forms, with or without
