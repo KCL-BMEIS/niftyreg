@@ -10,6 +10,9 @@ endif("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MAT
 if(APPLE)
   set(CMAKE_MACOSX_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 endif(APPLE)
+if(SKBUILD)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/niftyreg")
+endif(SKBUILD)
 #-----------------------------------------------------------------------------
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message("In-source builds not allowed by NiftyReg police.")
