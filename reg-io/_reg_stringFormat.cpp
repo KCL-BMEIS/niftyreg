@@ -5,8 +5,9 @@
  * @brief Simple function for safer formatted string use..
  *
  *  Created by Ian Malone on 13/03/2017.
- *  Copyright (c) 2017, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC), Dementia Research Centre (DRC)
+ *  Copyright (c) 2017-2018, University College London
+ *  Copyright (c) 2018, NiftyReg Developers.
+ *  All rights reserved.
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */

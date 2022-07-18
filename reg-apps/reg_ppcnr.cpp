@@ -4,8 +4,9 @@
  * @brief Executable for 4D non-rigid and affine registration (Registration to a single timepoint, timeseries mean, local mean or Progressive Principal Component Registration)
  * @date 17/07/2013
  *
- * Copyright (c) 2009, University College London. All rights reserved.
- * Centre for Medical Image Computing (CMIC)
+ *  Copyright (c) 2009-2018, University College London
+ *  Copyright (c) 2018, NiftyReg Developers.
+ *  All rights reserved.
  * See the LICENSE.txt file in the nifty_reg root folder
  *
  */

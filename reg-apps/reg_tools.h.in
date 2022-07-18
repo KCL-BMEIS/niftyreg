@@ -5,8 +5,9 @@
  * @brief Header file that contains the string to be returned
  * for the slicer extension of reg_tools
  *
- * Copyright (c) 2012, University College London. All rights reserved.
- * Centre for Medical Image Computing (CMIC)
+ *  Copyright (c) 2012-2018, University College London
+ *  Copyright (c) 2018, NiftyReg Developers.
+ *  All rights reserved.
  * See the LICENSE.txt file in the nifty_reg root folder
  *
  */
@@ -18,7 +19,7 @@ char xml_tools[] =
    "  <title>RegTools (NiftyReg)</title>\n"
    "  <description><![CDATA[NiftyReg module under construction]]></description>\n"
    "  <version>@NR_VERSION@</version>\n"
-   "  <documentation-url>http://cmic.cs.ucl.ac.uk/home/software/</documentation-url>\n"
+   "  <documentation-url>https://github.com/KCL-BMEIS/niftyreg/wiki</documentation-url>\n"
    "  <license>BSD</license>\n"
    "  <contributor>Marc Modat (UCL)</contributor>\n"
    "  <parameters advanced=\"false\">\n"

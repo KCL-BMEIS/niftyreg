@@ -4,8 +4,9 @@
  * @author Marc Modat
  * @date 10/11/2012.
  * @brief CPP file for the LNCC related class and functions
- * Copyright (c) 2012, University College London. All rights reserved.
- * Centre for Medical Image Computing (CMIC)
+ * Copyright (c) 2012-2018, University College London
+ * Copyright (c) 2018, NiftyReg Developers.
+ * All rights reserved.
  * See the LICENSE.txt file in the nifty_reg root folder
  */
 
