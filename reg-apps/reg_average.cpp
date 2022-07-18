@@ -61,6 +61,8 @@ void usage(char *exec)
    reg_print_info(exec, "\t-demean_noaff <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>");
    reg_print_info(exec, "\t\tSame as -demean expect that the specified affine is removed from the");
    reg_print_info(exec, "\t\tnon-linear (euclidean) transformation.");
+   reg_print_info(exec, "\t--NN\t\tUse nearest neighboor interpolation - cubic is default");
+   reg_print_info(exec, "\t--LIN\t\tUse linear interpolation - cubic is default");
    reg_print_info(exec, "\t--version\t\tPrint current version and exit");
    sprintf(text, "\t\t\t\t(%s)",NR_VERSION);
    reg_print_info(exec, text);
@@ -351,7 +353,8 @@ int compute_average_image(nifti_image *averageImage,
                           char **inputImageName,
                           char **inputAffName=NULL,
                           char **inputNRRName=NULL,
-                          bool demean=false)
+                          bool demean=false,
+                          int interpolation_order=3)
 {
    // Compute the matrix required for demeaning if required
    mat44 demeanMatrix;
@@ -477,7 +480,12 @@ int compute_average_image(nifti_image *averageImage,
       nifti_image *current_input_image = reg_io_ReadImageFile(inputImageName[i]);
       reg_tools_changeDatatype<PrecisionTYPE>(current_input_image);
       // Apply the transformation
-      reg_resampleImage(current_input_image, warpedImage, deformationField, NULL, 3, std::numeric_limits<float>::quiet_NaN());
+      reg_resampleImage(current_input_image,
+                        warpedImage,
+                        deformationField,
+                        NULL,
+                        interpolation_order,
+                        std::numeric_limits<float>::quiet_NaN());
       nifti_image_free(deformationField);
       nifti_image_free(current_input_image);
       // Add the image to the average
@@ -596,6 +604,35 @@ int main(int argc, char **argv)
    printf("\n");
 #endif
 
+    // Set a variable to store the interpolation order, cubic is used by default
+    int interpolation_order = 3;
+    // Extract the interpolation and update the args variables if needed
+
+    for(int i=1; i<argc; ++i) {
+        if (strcmp(argv[i], "-NN") == 0 ||
+            strcmp(argv[i], "-nn") == 0 ||
+            strcmp(argv[i], "--NN") == 0 ||
+            strcmp(argv[i], "--nn") == 0
+                ) {
+            interpolation_order=0;
+        }
+        else if (strcmp(argv[i], "-LIN") == 0 ||
+                 strcmp(argv[i], "-lin") == 0 ||
+                 strcmp(argv[i], "--LIN") == 0 ||
+                 strcmp(argv[i], "--lin") == 0
+                ) {
+            interpolation_order=1;
+        }
+        if(interpolation_order!=3){
+            // Remove the argument from the input argument list
+            for(int j=i;j<argc-1; ++j){
+                argv[j] = argv[j+1];
+            }
+            argc-=1;
+            arg_num_command = argc;
+            break;
+        }
+    }
 
    // Set some variables
    int operation;
@@ -740,7 +777,8 @@ int main(int argc, char **argv)
                             input_image_names,
                             input_affine_names,
                             input_nonrigid_names,
-                            use_demean);
+                            use_demean,
+                            interpolation_order);
    }
    // Save the output
    if(avg_output_image==NULL)
