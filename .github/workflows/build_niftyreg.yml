@@ -90,6 +90,7 @@ jobs:
       - name: Build NiftyReg
         if: matrix.os != 'windows-2022'
         run: make
+        working-directory: build
         shell: bash
 
       - name: Build NiftyReg (windows)
@@ -97,11 +98,13 @@ jobs:
         run: |
           call "${{ matrix.vcvars64 }}"
           make
+        working-directory: build
         shell: cmd
 
       - name: Run tests
         if: matrix.os != 'windows-2022'
         run: ctest -V
+        working-directory: build
         shell: bash
 
       - name: Run tests (windows)
@@ -109,5 +112,6 @@ jobs:
         run: |
           call "${{ matrix.vcvars64 }}"
           ctest -V
+        working-directory: build
         shell: cmd
 
