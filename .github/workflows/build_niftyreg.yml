@@ -70,7 +70,7 @@ jobs:
         shell: bash
 
       - name: Configure NiftyReg
-        if: matrix.os = "windows-2022"
+        if: matrix.os == 'windows-2022'
         run: |
           mkdir build
           cd build
