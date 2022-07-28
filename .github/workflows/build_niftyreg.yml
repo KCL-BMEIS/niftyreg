@@ -20,7 +20,7 @@ jobs:
       - name: Make directory structure
         run: |
           items=(*)
-          mkdir source, build
+          mkdir source
           mv ${items[*]} source
         shell: bash
 
@@ -29,6 +29,7 @@ jobs:
 
       - name: build NiftyReg
         run: |
+          mkdir build
           cd build
           cmake -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} \
                 -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
