@@ -1,17 +1,15 @@
-<img src="https://github.com/KCL-BMEIS/niftyreg/blob/master/logo/nifty_reg_logo.png" alt="NiftyReg logo" title="NiftyReg" align="centre" height="80" />
+<img src="https://github.com/KCL-BMEIS/niftyreg/blob/master/logo/nifty_reg_logo.png?raw=true" alt="NiftyReg logo" title="NiftyReg" height="80">
+
+# NiftyReg
 
 [![License](https://img.shields.io/github/license/KCL-BMEIS/NiftyReg)](https://github.com/KCL-BMEIS/niftyreg/blob/master/LICENSE.txt)
 [![GitHub Actions](https://img.shields.io/github/checks-status/KCL-BMEIS/niftyreg/master)](https://github.com/KCL-BMEIS/niftyreg/actions)
 
-#####################
-# NIFTY_REG PACKAGE #
-#####################
 
-##############################################################################
 
---------------------------------
-1 WHAT DOES THE PACKAGE CONTAIN?
---------------------------------
+
+### WHAT DOES THE PACKAGE CONTAIN?
+
 The code contains programs to perform rigid, affine and non-linear registration
 of 2D and 3D images stored as Nifti or Analyze (nii or hdr/img).
 
@@ -66,67 +64,21 @@ If you are planning to use any of our research, we would be grateful if you
 would be kind enough to cite reference(s) 2 (rigid or affine) and/or
 4 (non-rigid).
 
-##############################################################################
+### REFERENCES
 
----------
-2 LICENSE
----------
-Copyright (c) 2009-2018, University College London
-Copyright (c) 2018, NiftyReg Developers.
-All rights reserved.
-
-Redistribution and use in floating and binary forms, with or without
-modification,
-are permitted provided that the following conditions are met:
-
-Redistributions of floating code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-
-Neither the name of the University College London nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-THE POSSIBILITY OF SUCH DAMAGE.
-
-##############################################################################
-
----------
-3 CONTACT
----------
-For any comment, please, feel free to contact Marc Modat (m.modat@ucl.ac.uk).
-
-##############################################################################
-
-------------
-4 REFERENCES
-------------
 [1] Ourselin, et al. (2001). Reconstructing a 3D structure from serial
 histological sections. Image and Vision Computing, 19(1-2), 25–31.
+
 [2] Modat, et al. (2014). Global image registration using a symmetric block-
 matching approach. Journal of Medical Imaging, 1(2), 024003–024003.
 doi:10.1117/1.JMI.1.2.024003
+
 [3] Rueckert, et al.. (1999). Nonrigid registration using free-form
 deformations: Application to breast MR images. IEEE Transactions on Medical
 Imaging, 18(8), 712–721. doi:10.1109/42.796284
+
 [4] Modat, et al. (2010). Fast free-form deformation using graphics processing
 units. Computer Methods And Programs In Biomedicine,98(3), 278–284.
 doi:10.1016/j.cmpb.2009.09.002
 
-##############################################################################
-##############################################################################
-##############################################################################
-##############################################################################
 
