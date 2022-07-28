@@ -170,6 +170,8 @@ void AladinContent::AllocateDeformationField(size_t bytes)
 
 	this->CurrentDeformationField = nifti_copy_nim_info(this->CurrentReference);
 	this->CurrentDeformationField->dim[0] = this->CurrentDeformationField->ndim = 5;
+    if (this->CurrentReference->dim[0] == 2)
+        this->CurrentDeformationField->dim[3] = this->CurrentDeformationField->nz = 1;
 	this->CurrentDeformationField->dim[4] = this->CurrentDeformationField->nt = 1;
 	this->CurrentDeformationField->pixdim[4] = this->CurrentDeformationField->dt = 1.0;
 	if (this->CurrentReference->nz == 1)
