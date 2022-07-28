@@ -26,9 +26,9 @@ jobs:
           git clone https://github.com/catchorg/Catch2.git
           cd Catch2
           cmake -Bbuild -H. -DBUILD_TESTING=OFF
-          cmake --build build/ --target install
+          sudo cmake --build build/ --target install
 
-      - name: build NiftyReg
+      - name: Configure NiftyReg
         run: |
           mkdir build
           cd build
@@ -42,7 +42,13 @@ jobs:
                 -DUSE_OPENMP=${{ matrix.use_openmp }} \
                 -DBUILD_TESTING=ON \
                 ..
+          cd ..
         shell: bash
+
+      - name: Build NiftyReg
+        run: |
+          cd build
+          make
 
       - name: Run tests
         run: ctest -V
