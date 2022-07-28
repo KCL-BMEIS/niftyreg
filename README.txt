@@ -1,3 +1,8 @@
+<img src="https://github.com/KCL-BMEIS/niftyreg/blob/master/logo/nifty_reg_logo.png" alt="NiftyReg logo" title="NiftyReg" align="centre" height="80" />
+
+[![License](https://img.shields.io/github/license/KCL-BMEIS/NiftyReg)](https://github.com/KCL-BMEIS/niftyreg/blob/master/LICENSE.txt)
+[![GitHub Actions](https://img.shields.io/github/checks-status/KCL-BMEIS/niftyreg/master)](https://github.com/KCL-BMEIS/niftyreg/actions)
+
 #####################
 # NIFTY_REG PACKAGE #
 #####################
