@@ -36,3 +36,6 @@
 
 # Mac trash folder 
 .DS_Store
+
+# Build
+build

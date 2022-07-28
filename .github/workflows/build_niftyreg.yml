@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    strategy:
+    strategy: 
       max-parallel: 1
       matrix:
         os: [ubuntu-20.04]
@@ -30,7 +30,7 @@ jobs:
       - name: build NiftyReg
         run: |
           cd build
-          cmake -DCMAKE_CXX_COMPILER=${{ matrix.c++-compiler }} \
+          cmake -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} \
                 -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DBUILD_ALL_DEP=ON \
