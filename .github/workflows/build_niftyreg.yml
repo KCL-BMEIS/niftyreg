@@ -4,9 +4,9 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy: 
-      max-parallel: 1
+      max-parallel: 3
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-20.03, macos-11, windows-2022]
         include:
           - os: ubuntu-20.04
             c-compiler: "gcc"
@@ -14,21 +14,46 @@ jobs:
             use_cuda: "OFF"
             use_opencl: "OFF"
             use_openmp: "OFF"
+          - os: macos-11
+            c-compiler: "gcc"
+            cxx-compiler: "g++"
+            use_cuda: "OFF"
+            use_opencl: "OFF"
+            use_openmp: "OFF"
+          - os: windows-2022
+            c-compiler: "cl.exe"
+            cxx-compiler: "cl.exe"
+            use_cuda: "OFF"
+            use_opencl: "OFF"
+            use_openmp: "OFF"
+            vcvars64: "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
     steps:
       - uses: actions/checkout@v3
 
       - name: Get CMake
         uses: lukka/get-cmake@latest
 
-
       - name: Install Catch2
+        if: matrix.os != "windows-2022"
         run:  |
           git clone https://github.com/catchorg/Catch2.git
           cd Catch2
           cmake -Bbuild -H. -DBUILD_TESTING=OFF
           sudo cmake --build build/ --target install
+        shell: bash
+
+      - name: Install Catch2
+        if: matrix.os == "windows-2022"
+        run:  |
+          call "${{ matrix.vcvars64 }}"
+          git clone https://github.com/catchorg/Catch2.git
+          cd Catch2
+          cmake -Bbuild -H. -DBUILD_TESTING=OFF
+          sudo cmake --build build/ --target install
+        shell: cmd
 
       - name: Configure NiftyReg
+        if: matrix.os != "windows-2022"
         run: |
           mkdir build
           cd build
@@ -42,15 +67,47 @@ jobs:
                 -DUSE_OPENMP=${{ matrix.use_openmp }} \
                 -DBUILD_TESTING=ON \
                 ..
-          cd ..
+        shell: bash
+
+      - name: Configure NiftyReg
+        if: matrix.os = "windows-2022"
+        run: |
+          mkdir build
+          cd build
+          call "${{ matrix.vcvars64 }}"
+          cmake -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} \
+                -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DBUILD_ALL_DEP=ON \
+                -DUSE_CUDA=${{ matrix.use_cuda }} \
+                -DUSE_OPENCL=${{ matrix.use_opencl }} \
+                -DUSE_SSE=ON \
+                -DUSE_OPENMP=${{ matrix.use_openmp }} \
+                -DBUILD_TESTING=ON \
+                ..
+        shell: cmd
+
+      - name: Build NiftyReg
+        if: matrix.os != "windows-2022"
+        run: make
         shell: bash
 
       - name: Build NiftyReg
-        run: |
-          cd build
-          make
+        if: matrix.os == "windows-2022"
+        run: make
+        shell: cmd
 
       - name: Run tests
-        run: ctest -V
+        if: matrix.os != "windows-2022"
+        run: |
+          call "${{ matrix.vcvars64 }}"
+          ctest -V
         shell: bash
+
+      - name: Run tests
+        if: matrix.os == "windows-2022"
+        run: |
+          call "${{ matrix.vcvars64 }}"
+          ctest -V
+        shell: cmd
 
