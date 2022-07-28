@@ -1,0 +1,48 @@
+name: build-niftyreg
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 1
+      matrix:
+        os: [ubuntu-20.04]
+        include:
+          - os: ubuntu-20.04
+            c-compiler: "gcc"
+            cxx-compiler: "g++"
+            use_cuda: "OFF"
+            use_opencl: "OFF"
+            use_openmp: "OFF"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Make directory structure
+        run: |
+          items=(*)
+          mkdir source, build
+          mv ${items[*]} source
+        shell: bash
+
+      - name: Get CMake
+        uses: lukka/get-cmake@latest
+
+      - name: build NiftyReg
+        run: |
+          cd build
+          cmake -DCMAKE_CXX_COMPILER=${{ matrix.c++-compiler }} \
+                -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DBUILD_ALL_DEP=ON \
+                -DUSE_CUDA=${{ matrix.use_cuda }} \
+                -DUSE_OPENCL=${{ matrix.use_opencl }} \
+                -DUSE_SSE=ON \
+                -DUSE_OPENMP=${{ matrix.use_openmp }} \
+                -DBUILD_TESTING=ON \
+                ../source
+        shell: bash
+
+      - name: Run tests
+        run: ctest -V
+        shell: bash
+
