@@ -3,8 +3,7 @@
 # NiftyReg
 
 [![License](https://img.shields.io/github/license/KCL-BMEIS/NiftyReg)](https://github.com/KCL-BMEIS/niftyreg/blob/master/LICENSE.txt)
-[![GitHub Actions](https://img.shields.io/github/checks-status/KCL-BMEIS/niftyreg/master)](https://github.com/KCL-BMEIS/niftyreg/actions)
-
+[![GitHub Actions](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/build_and_test.yml/badge.svg?branch=master)](https://github.com/KCL-BMEIS/niftyreg/actions?query=branch%3Amaster)
 
 
 
