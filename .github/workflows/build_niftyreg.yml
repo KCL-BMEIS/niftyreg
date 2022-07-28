@@ -34,7 +34,7 @@ jobs:
         uses: lukka/get-cmake@latest
 
       - name: Install Catch2
-        if: matrix.os != "windows-2022"
+        if: matrix.os != 'windows-2022'
         run:  |
           git clone https://github.com/catchorg/Catch2.git
           cd Catch2
@@ -43,7 +43,7 @@ jobs:
         shell: bash
 
       - name: Install Catch2
-        if: matrix.os == "windows-2022"
+        if: matrix.os == 'windows-2022'
         run:  |
           call "${{ matrix.vcvars64 }}"
           git clone https://github.com/catchorg/Catch2.git
@@ -53,7 +53,7 @@ jobs:
         shell: cmd
 
       - name: Configure NiftyReg
-        if: matrix.os != "windows-2022"
+        if: matrix.os != 'windows-2022'
         run: |
           mkdir build
           cd build
@@ -88,24 +88,24 @@ jobs:
         shell: cmd
 
       - name: Build NiftyReg
-        if: matrix.os != "windows-2022"
+        if: matrix.os != 'windows-2022'
         run: make
         shell: bash
 
       - name: Build NiftyReg
-        if: matrix.os == "windows-2022"
+        if: matrix.os == 'windows-2022'
         run: make
         shell: cmd
 
       - name: Run tests
-        if: matrix.os != "windows-2022"
+        if: matrix.os != 'windows-2022'
         run: |
           call "${{ matrix.vcvars64 }}"
           ctest -V
         shell: bash
 
       - name: Run tests
-        if: matrix.os == "windows-2022"
+        if: matrix.os == 'windows-2022'
         run: |
           call "${{ matrix.vcvars64 }}"
           ctest -V
