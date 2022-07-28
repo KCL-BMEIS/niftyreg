@@ -17,13 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Make directory structure
-        run: |
-          items=(*)
-          mkdir source
-          mv ${items[*]} source
-        shell: bash
-
       - name: Get CMake
         uses: lukka/get-cmake@latest
 
@@ -40,7 +33,7 @@ jobs:
                 -DUSE_SSE=ON \
                 -DUSE_OPENMP=${{ matrix.use_openmp }} \
                 -DBUILD_TESTING=ON \
-                ../source
+                ..
         shell: bash
 
       - name: Run tests
