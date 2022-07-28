@@ -75,16 +75,7 @@ jobs:
           mkdir build
           cd build
           call "${{ matrix.vcvars64 }}"
-          cmake -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} \
-                -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DBUILD_ALL_DEP=ON \
-                -DUSE_CUDA=${{ matrix.use_cuda }} \
-                -DUSE_OPENCL=${{ matrix.use_opencl }} \
-                -DUSE_SSE=ON \
-                -DUSE_OPENMP=${{ matrix.use_openmp }} \
-                -DBUILD_TESTING=ON \
-                ..
+          cmake -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} -DCMAKE_BUILD_TYPE=Release -DBUILD_ALL_DEP=ON -DUSE_CUDA=${{ matrix.use_cuda }} -DUSE_OPENCL=${{ matrix.use_opencl }} -DUSE_SSE=ON  -DUSE_OPENMP=${{ matrix.use_openmp }}  -DBUILD_TESTING=ON ..
         shell: cmd
 
       - name: Build NiftyReg
