@@ -1,4 +1,4 @@
-name: build-niftyreg
+name: build-and-test
 on: [push, pull_request]
 jobs:
   build:
