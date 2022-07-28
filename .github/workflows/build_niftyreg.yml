@@ -6,7 +6,7 @@ jobs:
     strategy: 
       max-parallel: 3
       matrix:
-        os: [ubuntu-20.03, macos-11, windows-2022]
+        os: [ubuntu-20.04, macos-11, windows-2022]
         include:
           - os: ubuntu-20.04
             c-compiler: "gcc"
@@ -42,14 +42,14 @@ jobs:
           sudo cmake --build build/ --target install
         shell: bash
 
-      - name: Install Catch2
+      - name: Install Catch2 (windows)
         if: matrix.os == 'windows-2022'
         run:  |
           call "${{ matrix.vcvars64 }}"
           git clone https://github.com/catchorg/Catch2.git
           cd Catch2
           cmake -Bbuild -H. -DBUILD_TESTING=OFF
-          sudo cmake --build build/ --target install
+          cmake --build build/ --target install
         shell: cmd
 
       - name: Configure NiftyReg
@@ -69,7 +69,7 @@ jobs:
                 ..
         shell: bash
 
-      - name: Configure NiftyReg
+      - name: Configure NiftyReg (windows)
         if: matrix.os == 'windows-2022'
         run: |
           mkdir build
@@ -92,19 +92,19 @@ jobs:
         run: make
         shell: bash
 
-      - name: Build NiftyReg
+      - name: Build NiftyReg (windows)
         if: matrix.os == 'windows-2022'
-        run: make
+        run: |
+          call "${{ matrix.vcvars64 }}"
+          make
         shell: cmd
 
       - name: Run tests
         if: matrix.os != 'windows-2022'
-        run: |
-          call "${{ matrix.vcvars64 }}"
-          ctest -V
+        run: ctest -V
         shell: bash
 
-      - name: Run tests
+      - name: Run tests (windows)
         if: matrix.os == 'windows-2022'
         run: |
           call "${{ matrix.vcvars64 }}"
