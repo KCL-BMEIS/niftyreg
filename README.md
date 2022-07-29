@@ -3,7 +3,9 @@
 # NiftyReg
 
 [![License](https://img.shields.io/github/license/KCL-BMEIS/NiftyReg)](https://github.com/KCL-BMEIS/niftyreg/blob/master/LICENSE.txt)
-[![GitHub Actions](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/build_and_test.yml/badge.svg?branch=master)](https://github.com/KCL-BMEIS/niftyreg/actions?query=branch%3Amaster)
+[![GitHub Actions](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/linux.yml/badge.svg?branch=master)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/linux.yml?query=branch%3Amaster)
+[![GitHub Actions](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/macos.yml?query=branch%3Amaster)
+[![GitHub Actions](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/windows.yml/badge.svg?branch=master)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/windows.yml?query=branch%3Amaster)
 
 
 
