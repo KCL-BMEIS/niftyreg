@@ -2,18 +2,16 @@ name: linux
 on: [push, pull_request]
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: [self-hosted, ubuntu-20.04, gpu]
     strategy: 
-      max-parallel: 1
+      max-parallel: 2
       matrix:
-        os: [ubuntu-20.04]
+        build_config: [Release, Debug]
         include:
-          - os: ubuntu-20.04
-            c-compiler: "gcc"
-            cxx-compiler: "g++"
-            use_cuda: "OFF"
-            use_opencl: "OFF"
-            use_openmp: "ON"
+          - build_config: Release
+            with_coverage: OFF
+          - build_config: Debug
+            with_coverage: ON
 
     steps:
       - uses: actions/checkout@v3
@@ -33,20 +31,21 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} \
-                -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
-                -DCMAKE_BUILD_TYPE=Release \
+          cmake -DCMAKE_CXX_COMPILER=g++ \
+                -DCMAKE_C_COMPILER=gcc \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build_config }} \
                 -DBUILD_ALL_DEP=ON \
-                -DUSE_CUDA=${{ matrix.use_cuda }} \
-                -DUSE_OPENCL=${{ matrix.use_opencl }} \
+                -DUSE_CUDA=OFF \
+                -DUSE_OPENCL=OFF \
                 -DUSE_SSE=ON \
-                -DUSE_OPENMP=${{ matrix.use_openmp }} \
+                -DUSE_OPENMP=ON \
                 -DBUILD_TESTING=ON \
+                -DWITH_COVERAGE=${{ matrix.with_coverage }} \
                 ..
         shell: bash
 
       - name: Build NiftyReg
-        run: cmake --build build --config Release
+        run: cmake --build build --config ${{ matrix.build_config }}
         shell: bash
 
       - name: Run tests
