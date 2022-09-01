@@ -6,7 +6,7 @@ jobs:
     strategy: 
       max-parallel: 2
       matrix:
-        build_config: [Release, Debug]
+        build_config: [Release]
         include:
           - build_config: Release
             with_coverage: OFF
@@ -14,17 +14,25 @@ jobs:
             with_coverage: ON
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Get CMake
-        uses: lukka/get-cmake@latest
+      - name: Get git and cmake
+        run: |
+          apt-get -qq update
+          apt-get install -qq -y --no-install-recommends git cmake gcc g++ make
+        shell: bash
 
       - name: Install Catch2
-        run:  |
-          git clone https://github.com/catchorg/Catch2.git
+        run: |
+          export GIT_SSL_NO_VERIFY=1
+          git clone --depth 1 https://github.com/catchorg/Catch2.git
           cd Catch2
           cmake -Bbuild -H. -DBUILD_TESTING=OFF
-          sudo cmake --build build/ --target install --config Release
+          cmake --build build/ --target install --config Release
+        shell: bash
+
+      - name: checkout the commited version of NiftyReg
+        run: |
+          export GIT_SSL_NO_VERIFY=1
+          git clone --depth 1 --branch  ${{ github.ref_name }} https://github.com/KCL-BMEIS/niftyreg.git
         shell: bash
 
       - name: Configure NiftyReg
@@ -41,7 +49,7 @@ jobs:
                 -DUSE_OPENMP=ON \
                 -DBUILD_TESTING=ON \
                 -DWITH_COVERAGE=${{ matrix.with_coverage }} \
-                ..
+                ../niftyreg
         shell: bash
 
       - name: Build NiftyReg
