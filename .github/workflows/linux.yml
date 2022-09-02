@@ -2,11 +2,11 @@ name: linux
 on: [push, pull_request]
 jobs:
   build:
-    runs-on: [self-hosted, ubuntu-20.04, gpu]
+    runs-on: [self-hosted, Linux, gpu]
     strategy: 
       max-parallel: 2
       matrix:
-        build_config: [Release]
+        build_config: [Release, Debug]
         include:
           - build_config: Release
             with_coverage: OFF
@@ -14,11 +14,11 @@ jobs:
             with_coverage: ON
 
     steps:
-      - name: Get git and cmake
-        run: |
-          apt-get -qq update
-          apt-get install -qq -y --no-install-recommends git cmake gcc g++ make
-        shell: bash
+      # - name: Get git and cmake
+      #   run: |
+      #     apt-get -qq update
+      #     apt-get install -qq -y --no-install-recommends git cmake gcc g++ make
+      #   shell: bash
 
       - name: Install Catch2
         run: |
