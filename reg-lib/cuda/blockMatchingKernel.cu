@@ -629,7 +629,7 @@ void block_matching_method_gpu(nifti_image *targetImage,
 #ifndef NDEBUG
     NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D);
         #else
-    NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+    NR_CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #endif
 
 	NR_CUDA_SAFE_CALL(cudaMemcpy((void * )definedBlock_h, (void * )definedBlock_d, sizeof(unsigned int), cudaMemcpyDeviceToHost));

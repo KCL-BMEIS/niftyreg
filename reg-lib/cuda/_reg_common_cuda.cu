@@ -511,7 +511,7 @@ int cudaCommon_transferFromDeviceToCpu(DTYPE *cpuPtr, DTYPE **cuPtr, const unsig
 {
 
 	NR_CUDA_SAFE_CALL(cudaMemcpy((void *)cpuPtr, (void *)*cuPtr, nElements*sizeof(DTYPE), cudaMemcpyDeviceToHost));
-	//NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+	//NR_CUDA_SAFE_CALL(cudaDeviceSynchronize());
 	return EXIT_SUCCESS;
 }
 template int cudaCommon_transferFromDeviceToCpu<float>(float *cpuPtr, float **cuPtr, const unsigned int nElements);

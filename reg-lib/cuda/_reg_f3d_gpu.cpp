@@ -115,7 +115,7 @@ reg_f3d_gpu::~reg_f3d_gpu()
       this->measure_lncc=NULL;
    }
 
-   NR_CUDA_SAFE_CALL(cudaThreadExit())
+   cudaDeviceReset();
 #ifndef NDEBUG
    printf("[NiftyReg DEBUG] reg_f3d_gpu destructor called\n");
 #endif
