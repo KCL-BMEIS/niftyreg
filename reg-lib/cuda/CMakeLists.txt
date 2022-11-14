@@ -87,6 +87,13 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CUDAResampleImageKernel.cpp
     ../AladinContent.cpp
     ../Platform.cpp
+    _reg_resampling_gpu.cu
+    _reg_blocksize_gpu.cu
+    _reg_tools_gpu.cu
+    _reg_localTransformation_gpu.cu
+    _reg_nmi_gpu.cu
+    _reg_ssd_gpu.cu
+    _reg_optimiser_gpu.cu
     )
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
 install(TARGETS ${NAME}
@@ -100,7 +107,7 @@ set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
 set(NAME _reg_cudainfo)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cpp ${NAME}.h)
-target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
+target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
 install(TARGETS ${NAME}
     RUNTIME DESTINATION lib
     LIBRARY DESTINATION lib

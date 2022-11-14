@@ -65,7 +65,7 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
     if(cudaCommon_allocateArrayToDevice(&this->bestDOF_gpu,
 									   (int)(this->GetVoxNumber()))){
         printf("[NiftyReg ERROR] Error when allocating the best control point array on the GPU.\n");
-        reg_exit(1);
+        reg_exit();
     }
 
 	this->StoreCurrentDOF();
@@ -165,12 +165,12 @@ void reg_conjugateGradient_gpu::Initialise(size_t nvox,
 	if(cudaCommon_allocateArrayToDevice<float4>(&this->array1,
 												(int)(this->GetVoxNumber()))){
         printf("[NiftyReg ERROR] Error when allocating the first conjugate gradient_gpu array on the GPU.\n");
-        reg_exit(1);
+        reg_exit();
     }
 	if(cudaCommon_allocateArrayToDevice<float4>(&this->array2,
 												(int)(this->GetVoxNumber()))){
         printf("[NiftyReg ERROR] Error when allocating the second conjugate gradient_gpu array on the GPU.\n");
-        reg_exit(1);
+        reg_exit();
     }
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_conjugateGradient_gpu::Initialise() called\n");
@@ -227,7 +227,7 @@ void reg_initialiseConjugateGradient_gpu(float4 **gradientArray_d,
                                          float4 **conjugateH_d,
                                          int nodeNumber)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
@@ -250,7 +250,7 @@ void reg_GetConjugateGradient_gpu(float4 **gradientArray_d,
                                   float4 **conjugateH_d,
                                   int nodeNumber)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
@@ -296,7 +296,7 @@ void reg_GetConjugateGradient_gpu(float4 **gradientArray_d,
 float reg_getMaximalLength_gpu(float4 **gradientArray_d,
                                int nodeNumber)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     // Copy constant memory value and bind texture
@@ -328,7 +328,7 @@ void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
                                         float currentLength)
 
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;

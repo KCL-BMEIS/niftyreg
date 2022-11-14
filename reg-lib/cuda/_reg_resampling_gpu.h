@@ -13,7 +13,8 @@
 #ifndef _REG_RESAMPLING_GPU_H
 #define _REG_RESAMPLING_GPU_H
 
-#include "_reg_common_gpu.h"
+#include "_reg_common_cuda.h"
+#include "_reg_blocksize_gpu.h"
 
 extern "C++"
 void reg_resampleImage_gpu(nifti_image *sourceImage,

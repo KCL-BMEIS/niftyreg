@@ -11,7 +11,8 @@
 #include "_reg_lncc.h"
 #include "_reg_dti.h"
 
-#include "_reg_common_gpu.h"
+#include "_reg_common_cuda.h"
+#include "_reg_kld.h"
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -60,7 +61,7 @@ public:
    reg_lncc_gpu()
    {
       fprintf(stderr,"[ERROR] CUDA CANNOT BE USED WITH LNCC YET\n");
-      reg_exit(1);
+      reg_exit();
    }
    /// @brief reg_lncc class destructor
    ~reg_lncc_gpu() {}
@@ -100,7 +101,7 @@ public:
    reg_kld_gpu()
    {
       fprintf(stderr,"[ERROR] CUDA CANNOT BE USED WITH KLD YET\n");
-      reg_exit(1);
+      reg_exit();
    }
    /// @brief reg_kld_gpu class destructor
    ~reg_kld_gpu() {}
@@ -140,7 +141,7 @@ public:
    reg_dti_gpu()
    {
       fprintf(stderr,"[ERROR] CUDA CANNOT BE USED WITH DTI YET\n");
-      reg_exit(1);
+      reg_exit();
    }
    /// @brief reg_dti_gpu class destructor
    ~reg_dti_gpu() {}

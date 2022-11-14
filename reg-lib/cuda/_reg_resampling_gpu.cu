@@ -26,7 +26,7 @@ void reg_resampleImage_gpu(nifti_image *floatingImage,
                            int activeVoxelNumber,
                            float paddingValue)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
@@ -103,7 +103,7 @@ void reg_getImageGradient_gpu(nifti_image *floatingImage,
                               int activeVoxelNumber,
                               float paddingValue)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);

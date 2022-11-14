@@ -1,4 +1,4 @@
-/** @file _reg_common_gpu.h
+/** @file _reg_common_cuda.h
  * @author Marc Modat
  * @date 25/03/2009.
  *  Copyright (c) 2009-2018, University College London
@@ -7,8 +7,8 @@
  * See the LICENSE.txt file in the nifty_reg root folder
  */
 
-#ifndef _REG_COMMON_GPU_H
-#define _REG_COMMON_GPU_H
+#ifndef _REG_COMMON_CUDA_H
+#define _REG_COMMON_CUDA_H
 
 #include "nifti1_io.h"
 #include "cuda_runtime.h"
@@ -170,7 +170,5 @@ extern "C++"
 template <class DTYPE>
 int cudaCommon_transferArrayFromDeviceToCpu(DTYPE *array_cpu, DTYPE **array_d, const unsigned int nElements);
 /* ******************************** */
-/* ******************************** */
-void showCUDACardInfo(void);
 /* ******************************** */
 #endif

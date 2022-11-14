@@ -17,6 +17,10 @@
 #include <float.h>
 //#include <libgen.h> //DOES NOT WORK ON WINDOWS !
 
+#ifdef _USE_CUDA
+#   include "_reg_f3d_gpu.h"
+#endif
+
 #ifdef _WIN32
 #   include <time.h>
 #endif
@@ -104,7 +108,7 @@ void Usage(char *exec)
    reg_print_info(exec, "\t--mindssc <offset>\tMIND-SCC and the offset to use to compute the descriptor");
    reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
-   reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
+   reg_print_info(exec, "\t* For the Kullback-Leibler divergence, reference and floating are expected to be probabilities");
    reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98% ile");
    reg_print_info(exec, "*** Options for setting the weights for each timepoint for each similarity");
    reg_print_info(exec, "*** Note, the options above should be used first and will set a default weight of 1");
@@ -132,13 +136,13 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space");
    reg_print_info(exec, "");
 
-//   reg_print_info(exec, "*** Platform options:");
+   reg_print_info(exec, "*** Platform options:");
 //#if defined(_USE_CUDA) && defined(_USE_OPENCL)
 //   reg_print_info(exec, "\t-platf <uint>\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
 //#else
-//#ifdef _USE_CUDA
-//   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 [0]");
-//#endif
+#ifdef _USE_CUDA
+   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 [0]");
+#endif
 //#ifdef _USE_OPENCL
 //   reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | OpenCL=2 [0]");
 //#endif
@@ -211,11 +215,6 @@ int main(int argc, char **argv)
       {
          printf("%s",xml_f3d);
          return EXIT_SUCCESS;
-      }
-      if(strcmp(argv[i], "-gpu")==0 || strcmp(argv[i], "--gpu")==0)
-      {
-         reg_print_msg_error("The reg_f3d GPU capability has been de-activated in the current release.");
-         return EXIT_FAILURE;
       }
       if(strcmp(argv[i], "-voff")==0)
       {
@@ -297,6 +296,9 @@ int main(int argc, char **argv)
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check the type of registration object to create
+#ifdef _USE_CUDA
+   CUcontext ctx;
+#endif // _USE_CUDA
    reg_f3d<float> *REG=NULL;
    float *referenceLandmark=NULL;
    float *floatingLandmark=NULL;
@@ -312,6 +314,17 @@ int main(int argc, char **argv)
          REG=new reg_f3d_sym<float>(referenceImage->nt,floatingImage->nt);
          break;
       }
+#ifdef _USE_CUDA
+      if (strcmp(argv[i], "-gpu") == 0 || strcmp(argv[i], "-mem") == 0) {
+         // Set up the cuda card and display some relevant information and check if the card is suitable
+         if (cudaCommon_setCUDACard(&ctx, true)) {
+            fprintf(stderr, "\n[NiftyReg CUDA ERROR] Error while detecting a CUDA card\n");
+            fprintf(stderr, "[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
+         } else
+            REG = new reg_f3d_gpu(referenceImage->nt, floatingImage->nt);
+         break;
+      }
+#endif // _USE_CUDA
    }
    if(REG==NULL)
       REG=new reg_f3d<float>(referenceImage->nt,floatingImage->nt);
@@ -927,6 +940,9 @@ int main(int argc, char **argv)
    free(referenceLandmark);
    free(floatingLandmark);
 
+#ifdef _USE_CUDA
+   cudaCommon_unsetCUDACard(&ctx);
+#endif
    // Erase the registration object
    delete REG;
 

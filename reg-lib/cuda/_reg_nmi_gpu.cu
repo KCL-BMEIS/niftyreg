@@ -76,21 +76,21 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImgPtr,
 	if(this->isSymmetric){
 		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
 		fprintf(stderr,"[NiftyReg ERROR] Symmetric scheme is not yet supported on the GPU\n");
-		reg_exit(1);
+		reg_exit();
 	}
 	// Check if the input images have multiple timepoints
 	if(this->referenceTimePoint>1 ||
        this->floatingImagePointer->nt>1){
 		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
 		fprintf(stderr,"[NiftyReg ERROR] This class can only be \n");
-		reg_exit(1);
+		reg_exit();
     }
     // Check that the input image are of type float
     if(this->referenceImagePointer->datatype!=NIFTI_TYPE_FLOAT32 ||
        this->warpedFloatingImagePointer->datatype!=NIFTI_TYPE_FLOAT32){
         fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
         fprintf(stderr,"[NiftyReg ERROR] This class can only be \n");
-        reg_exit(1);
+        reg_exit();
     }
 	// Bind the required pointers
 	this->referenceDevicePointer = *refDevicePtr;
@@ -105,13 +105,13 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImgPtr,
 			(&this->referenceDevicePointer, this->referenceImagePointer)){
 		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
 		printf("[NiftyReg ERROR] Error when transfering the reference image.\n");
-		reg_exit(1);
+		reg_exit();
 	}
 	if(cudaCommon_transferNiftiToArrayOnDevice<float>
 			(&this->floatingDevicePointer, this->floatingImagePointer)){
 		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
 		printf("[NiftyReg ERROR] Error when transfering the floating image.\n");
-		reg_exit(1);
+		reg_exit();
 	}
 	// Allocate the required joint histogram on the GPU
 	cudaMalloc(&this->forwardJointHistogramLog_device,
@@ -137,7 +137,7 @@ double reg_nmi_gpu::GetSimilarityMeasureValue()
     reg_getNMIValue<float>
             (this->referenceImagePointer,
 			 this->warpedFloatingImagePointer,
-             this->activeTimePoint,
+			 this->timePointWeight,
              this->referenceBinNumber,
              this->floatingBinNumber,
              this->totalBinNumber,
@@ -171,7 +171,7 @@ void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
 									  int refBinning,
 									  int floBinning)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
 	const int voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;

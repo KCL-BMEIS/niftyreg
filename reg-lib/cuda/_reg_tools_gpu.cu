@@ -13,7 +13,7 @@
 #ifndef _REG_TOOLS_GPU_CU
 #define _REG_TOOLS_GPU_CU
 
-#include "_reg_common_gpu.h"
+#include "_reg_common_cuda.h"
 #include "_reg_tools_gpu.h"
 #include "_reg_tools_kernels.cu"
 
@@ -26,7 +26,7 @@ void reg_voxelCentric2NodeCentric_gpu(nifti_image *targetImage,
                                       float4 **nodeNMIGradientArray_d,
                                       float weight)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
@@ -62,7 +62,7 @@ void reg_convertNMIGradientFromVoxelToRealSpace_gpu(	mat44 *sourceMatrix_xyz,
                             nifti_image *controlPointImage,
                             float4 **nodeNMIGradientArray_d)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
@@ -96,7 +96,7 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
                                 bool smoothXYZ[8])
 
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
 	const unsigned int voxelNumber = image->nx * image->ny * image->nz;
@@ -186,7 +186,7 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
                                         float4 **imageArray_d,
 										float *spacingVoxel)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     const int voxelNumber = image->nx * image->ny * image->nz;
@@ -263,7 +263,7 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
 /* *************************************************************** */
 void reg_multiplyValue_gpu(int num, float4 **array_d, float value)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
@@ -278,7 +278,7 @@ void reg_multiplyValue_gpu(int num, float4 **array_d, float value)
 /* *************************************************************** */
 void reg_addValue_gpu(int num, float4 **array_d, float value)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
@@ -293,7 +293,7 @@ void reg_addValue_gpu(int num, float4 **array_d, float value)
 /* *************************************************************** */
 void reg_multiplyArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
@@ -307,7 +307,7 @@ void reg_multiplyArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
 /* *************************************************************** */
 void reg_addArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
@@ -321,7 +321,7 @@ void reg_addArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
 /* *************************************************************** */
 void reg_fillMaskArray_gpu(int num, int **array1_d)
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
@@ -352,4 +352,3 @@ float reg_minReduction_gpu(float *array_d,int size)
 }
 /* *************************************************************** */
 #endif
-

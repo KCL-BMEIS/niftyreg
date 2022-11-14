@@ -19,7 +19,7 @@
 #include "_reg_nmi_gpu.h"
 #include "_reg_ssd_gpu.h"
 #include "_reg_tools_gpu.h"
-#include "_reg_common_gpu.h"
+#include "_reg_common_cuda.h"
 #include "_reg_optimiser_gpu.h"
 #include "_reg_f3d.h"
 
@@ -49,7 +49,6 @@ protected:
    reg_dti_gpu *measure_gpu_dti;
    reg_lncc_gpu *measure_gpu_lncc;
    reg_nmi_gpu *measure_gpu_nmi;
-   reg_multichannel_nmi_gpu *measure_gpu_multichannel_nmi;
 
    float InitialiseCurrentLevel();
    void ClearCurrentInputImage();
@@ -82,7 +81,6 @@ protected:
 public:
    void UseNMISetReferenceBinNumber(int,int);
    void UseNMISetFloatingBinNumber(int,int);
-   void UseMultiChannelNMI(int timepointNumber, int *timepoint);
    void UseSSD(int timepoint);
    void UseKLDivergence(int timepoint);
    void UseDTI(int timepoint[6]);

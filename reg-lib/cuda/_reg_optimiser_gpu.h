@@ -1,7 +1,7 @@
 #ifndef _REG_OPTIMISER_GPU_H
 #define _REG_OPTIMISER_GPU_H
 
-#include "_reg_common_gpu.h"
+#include "_reg_common_cuda.h"
 #include "_reg_optimiser.h"
 #include "_reg_tools_gpu.h"
 

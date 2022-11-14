@@ -32,6 +32,7 @@ public:
                                   nifti_image *warFloImgPtr,
                                   nifti_image *warFloGraPtr,
                                   nifti_image *forVoxBasedGraPtr,
+                                  nifti_image *localWeightSimPtr,
                                   cudaArray **refDevicePtr,
                                   cudaArray **floDevicePtr,
                                   int **refMskDevicePtr,

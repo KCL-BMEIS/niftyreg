@@ -34,6 +34,7 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImgPtr,
 									nifti_image *warFloImgPtr,
 									nifti_image *warFloGraPtr,
 									nifti_image *forVoxBasedGraPtr,
+									nifti_image *localWeightSimPtr,
 									cudaArray **refDevicePtr,
 									cudaArray **floDevicePtr,
 									int **refMskDevicePtr,
@@ -46,25 +47,26 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImgPtr,
 							   maskRefPtr,
 							   warFloImgPtr,
 							   warFloGraPtr,
-							   forVoxBasedGraPtr);
+							   forVoxBasedGraPtr,
+							   localWeightSimPtr);
 	// Check if a symmetric measure is required
 	if(this->isSymmetric){
 		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
 		fprintf(stderr,"[NiftyReg ERROR] Symmetric scheme is not yet supported on the GPU\n");
-		reg_exit(1);
+		reg_exit();
 	}
 	// Check that the input image are of type float
 	if(this->referenceImagePointer->datatype!=NIFTI_TYPE_FLOAT32 ||
 	   this->warpedFloatingImagePointer->datatype!=NIFTI_TYPE_FLOAT32){
 		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
 		fprintf(stderr,"[NiftyReg ERROR] The input images are expected to be float\n");
-		reg_exit(1);
+		reg_exit();
 	}
 	// Check that the input images have only one time point
 	if(this->referenceImagePointer->nt>1 || this->floatingImagePointer->nt>1){
 		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
 		fprintf(stderr,"[NiftyReg ERROR] Both input images should have only one time point\n");
-		reg_exit(1);
+		reg_exit();
 	}
 	// Bind the required pointers
 	this->referenceDevicePointer = *refDevicePtr;
@@ -86,7 +88,7 @@ float reg_getSSDValue_gpu(nifti_image *referenceImage,
 						  int activeVoxelNumber
 						  )
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
 	// Copy the constant memory variables
@@ -151,7 +153,7 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 									  int activeVoxelNumber
 									  )
 {
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
 	// Copy the constant memory variables

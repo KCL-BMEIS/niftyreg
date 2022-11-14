@@ -13,8 +13,8 @@
 #ifndef _REG_AFFINETRANSFORMATION_GPU_H
 #define _REG_AFFINETRANSFORMATION_GPU_H
 
-#include "_reg_common_gpu.h"
-#include "_reg_globalTransformation.h"
+#include "_reg_common_cuda.h"
+// #include "_reg_globalTransformation.h"
 
 extern "C++"
 void reg_affine_positionField_gpu(mat44 *,

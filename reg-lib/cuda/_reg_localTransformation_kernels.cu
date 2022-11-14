@@ -13,7 +13,7 @@
 #ifndef _reg_spline_KERNELS_CU
 #define _reg_spline_KERNELS_CU
 
-#include "_reg_common_gpu.h"
+#include "_reg_common_cuda.h"
 
 __device__ __constant__ int c_UseBSpline;
 __device__ __constant__ int c_VoxelNumber;

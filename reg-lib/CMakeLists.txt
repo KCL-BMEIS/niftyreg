@@ -212,6 +212,8 @@ set(_reg_f3d_libraries
   _reg_measure
   _reg_tools
   _reg_ReadWriteImage
+  ${NR_OPENCL_LIBRARIES}
+  ${NR_CUDA_LIBRARIES}
 )
 add_library(_reg_f3d ${NIFTYREG_LIBRARY_TYPE} ${_reg_f3d_files})
 target_link_libraries(_reg_f3d ${_reg_f3d_libraries})

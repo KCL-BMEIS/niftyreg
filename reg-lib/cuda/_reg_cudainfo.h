@@ -1,5 +1,5 @@
-#ifndef _REG_COMMON_GPU_H
-#define _REG_COMMON_GPU_H
+#ifndef _REG_CUDAINFO_H
+#define _REG_CUDAINFO_H
 
 void showCUDAInfo(void);
 
