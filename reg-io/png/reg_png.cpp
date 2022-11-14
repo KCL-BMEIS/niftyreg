@@ -21,7 +21,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
 {
    // We first read the png file
    FILE *pngFile=NULL;
-   pngFile = fopen (pngFileName, "r");
+   pngFile = fopen(pngFileName, "rb");
    if(pngFile==NULL)
    {
       char text[255];
@@ -32,10 +32,11 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    }
 
    uch sig[8];
-   if(!fread(sig, 1, 8, fopen (pngFileName, "r")))
+   if (!fread(sig, 1, 8, pngFile))
       reg_exit();
-   if(!png_check_sig(sig, 8))
+   if (!png_check_sig(sig, 8))
       reg_exit();
+   rewind(pngFile);
 
    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
    if (!png_ptr)
