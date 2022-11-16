@@ -26,7 +26,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
    this->inputControlPointGrid=NULL; // pointer to external
    this->controlPointGrid=NULL;
    this->bendingEnergyWeight=0.001;
-   this->linearEnergyWeight=0.01;
+   this->linearEnergyWeight=0.00;
    this->jacobianLogWeight=0.;
    this->jacobianLogApproximation=true;
    this->spacing[0]=-5;

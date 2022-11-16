@@ -65,12 +65,17 @@ protected:
 
    double ComputeJacobianBasedPenaltyTerm(int);
    double ComputeBendingEnergyPenaltyTerm();
+   double ComputeLinearEnergyPenaltyTerm();
+   double ComputeLandmarkDistancePenaltyTerm();
    void GetDeformationField();
    void WarpFloatingImage(int);
    void GetVoxelBasedGradient();
    void GetSimilarityMeasureGradient();
    void GetBendingEnergyGradient();
+   void GetLinearEnergyGradient();
    void GetJacobianBasedGradient();
+   void GetLandmarkDistanceGradient();
+   void SmoothGradient();
    void GetApproximatedGradient();
    void UpdateParameters(float);
    void SetOptimiser();

@@ -115,7 +115,6 @@ reg_f3d_gpu::~reg_f3d_gpu()
       this->measure_lncc=NULL;
    }
 
-   cudaDeviceReset();
 #ifndef NDEBUG
    printf("[NiftyReg DEBUG] reg_f3d_gpu destructor called\n");
 #endif
@@ -400,6 +399,28 @@ double reg_f3d_gpu::ComputeBendingEnergyPenaltyTerm()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+double reg_f3d_gpu::ComputeLinearEnergyPenaltyTerm() {
+   if (this->linearEnergyWeight <= 0)
+      return 0;
+
+   reg_print_fct_error("reg_f3d_gpu::ComputeLinearEnergyPenaltyTerm()");
+   reg_print_msg_error("Option not supported!");
+   reg_exit();
+   return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+double reg_f3d_gpu::ComputeLandmarkDistancePenaltyTerm() {
+   if (this->landmarkRegWeight <= 0)
+      return 0;
+
+   reg_print_fct_error("reg_f3d_gpu::ComputeLandmarkDistancePenaltyTerm()");
+   reg_print_msg_error("Option not supported!");
+   reg_exit();
+   return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::GetDeformationField()
 {
    if(this->controlPointGrid_gpu==NULL)
@@ -548,6 +569,16 @@ void reg_f3d_gpu::GetBendingEnergyGradient()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::GetLinearEnergyGradient() {
+   if (this->linearEnergyWeight <= 0)
+      return;
+
+   reg_print_fct_error("reg_f3d_gpu::GetLinearEnergyGradient()");
+   reg_print_msg_error("Option not supported!");
+   reg_exit();
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::GetJacobianBasedGradient()
 {
    if(this->jacobianLogWeight<=0) return;
@@ -562,9 +593,18 @@ void reg_f3d_gpu::GetJacobianBasedGradient()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::GetLandmarkDistanceGradient() {
+   if (this->landmarkRegWeight <= 0)
+      return;
+
+   reg_print_fct_error("reg_f3d_gpu::GetLandmarkDistanceGradient()");
+   reg_print_msg_error("Option not supported!");
+   reg_exit();
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::UpdateParameters(float scale)
 {
-
    float4 *currentDOF=reinterpret_cast<float4 *>(this->optimiser->GetCurrentDOF());
    float4 *bestDOF=reinterpret_cast<float4 *>(this->optimiser->GetBestDOF());
    float4 *gradient=reinterpret_cast<float4 *>(this->optimiser->GetGradient());
@@ -575,6 +615,15 @@ void reg_f3d_gpu::UpdateParameters(float scale)
                                       &gradient,
                                       scale);
    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::SmoothGradient() {
+   if (this->gradientSmoothingSigma != 0) {
+      reg_print_fct_error("reg_f3d_gpu::SmoothGradient()");
+      reg_print_msg_error("Option not supported!");
+      reg_exit();
+   }
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

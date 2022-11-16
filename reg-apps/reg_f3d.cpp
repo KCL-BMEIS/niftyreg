@@ -82,7 +82,7 @@ void Usage(char *exec)
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Regularisation options:");
    reg_print_info(exec, "\t-be <float>\t\tWeight of the bending energy (second derivative of the transformation) penalty term [0.001]");
-   reg_print_info(exec, "\t-le <float>\t\tWeight of first order penalty term (symmetric and anti-symmetric part of the Jacobian) [0.01]");
+   reg_print_info(exec, "\t-le <float>\t\tWeight of first order penalty term (symmetric and anti-symmetric part of the Jacobian) [0.00]");
    reg_print_info(exec, "\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]");
    reg_print_info(exec, "\t-noAppJL\t\tTo not approximate the JL value only at the control point position");
    reg_print_info(exec, "\t-land <float> <file>\tUse of a set of landmarks which distance should be minimised");
