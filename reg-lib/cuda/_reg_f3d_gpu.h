@@ -83,6 +83,8 @@ protected:
    float NormaliseGradient();
    void InitialiseSimilarity();
 
+   void fillImageData(nifti_image *image, float* memoryObject);
+
 public:
    void UseNMISetReferenceBinNumber(int,int);
    void UseNMISetFloatingBinNumber(int,int);
@@ -90,6 +92,7 @@ public:
    void UseKLDivergence(int timepoint);
    void UseDTI(int timepoint[6]);
    void UseLNCC(int timepoint, float stdDevKernel);
+   nifti_image** GetWarpedImage();
 
    reg_f3d_gpu(int refTimePoint,int floTimePoint);
    ~reg_f3d_gpu();

@@ -723,6 +723,66 @@ void reg_f3d_gpu::GetApproximatedGradient()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::fillImageData(nifti_image *image, float* memoryObject) {
+   size_t size = image->nvox;
+   float *buffer = (float*)malloc(size * sizeof(float));
+
+   if (buffer == NULL) {
+      reg_print_fct_error("\nERROR: Memory allocation did not complete successfully!");
+   }
+
+   cudaCommon_transferFromDeviceToCpu<float>(buffer, &memoryObject, size);
+
+   free(image->data);
+   image->datatype = NIFTI_TYPE_FLOAT32;
+   image->nbyper = sizeof(float);
+   image->data = (void*)malloc(image->nvox * image->nbyper);
+   float *dataT = static_cast<float*>(image->data);
+   for (size_t i = 0; i < size; ++i)
+      dataT[i] = static_cast<float>(buffer[i]);
+   free(buffer);
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+nifti_image** reg_f3d_gpu::GetWarpedImage() {
+   // The initial images are used
+   if (this->inputReference == NULL || this->inputFloating == NULL || this->controlPointGrid == NULL) {
+      reg_print_fct_error("reg_f3d_gpu::GetWarpedImage()");
+      reg_print_msg_error("The reference, floating and control point grid images have to be defined");
+      reg_exit();
+   }
+
+   this->currentReference = this->inputReference;
+   this->currentFloating = this->inputFloating;
+   this->currentMask = (int*)calloc(this->activeVoxelNumber[this->currentLevel], sizeof(int));
+
+   reg_tools_changeDatatype<float>(this->currentReference);
+   reg_tools_changeDatatype<float>(this->currentFloating);
+
+   this->AllocateWarped();
+   this->AllocateDeformationField();
+   this->InitialiseCurrentLevel();
+   this->WarpFloatingImage(3); // cubic spline interpolation
+   this->ClearDeformationField();
+
+   nifti_image **warpedImage = (nifti_image**)calloc(2, sizeof(nifti_image*));
+   warpedImage[0] = nifti_copy_nim_info(this->warped);
+   warpedImage[0]->cal_min = this->inputFloating->cal_min;
+   warpedImage[0]->cal_max = this->inputFloating->cal_max;
+   warpedImage[0]->scl_slope = this->inputFloating->scl_slope;
+   warpedImage[0]->scl_inter = this->inputFloating->scl_inter;
+   this->fillImageData(warpedImage[0], this->warped_gpu);
+   if (this->currentFloating->nt == 2)
+      this->fillImageData(warpedImage[1], this->warped2_gpu);
+
+   this->ClearWarped();
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_f3d_gpu::GetWarpedImage");
+#endif
+   return warpedImage;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 float reg_f3d_gpu::InitialiseCurrentLevel()
 {
    float maxStepSize=reg_f3d<float>::InitialiseCurrentLevel();
