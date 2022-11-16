@@ -209,11 +209,6 @@ reg_base<T>::~reg_base()
       delete []this->floatingThresholdLow;
       this->floatingThresholdLow=NULL;
    }
-   if(this->activeVoxelNumber!=NULL)
-   {
-      delete []this->activeVoxelNumber;
-      this->activeVoxelNumber=NULL;
-   }
    if(this->optimiser!=NULL)
    {
       delete this->optimiser;
@@ -1657,6 +1652,7 @@ void reg_base<T>::Run()
       // Update the number of level for the next level
       this->maxiterationNumber /= 2;
    } // level this->levelToPerform
+   this->currentLevel--;
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::Run");
