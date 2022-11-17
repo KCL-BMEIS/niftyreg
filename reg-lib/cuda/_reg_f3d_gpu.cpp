@@ -279,35 +279,23 @@ void reg_f3d_gpu::ClearTransformationGradient() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 double reg_f3d_gpu::ComputeJacobianBasedPenaltyTerm(int type) {
-    if (this->jacobianLogWeight <= 0) return 0.;
+    if (this->jacobianLogWeight <= 0) return 0;
 
-    double value;
-    if (type == 2) {
-        value = reg_spline_getJacobianPenaltyTerm_gpu(this->currentReference,
-                                                      this->controlPointGrid,
-                                                      &this->controlPointGrid_gpu,
-                                                      false);
-    } else {
-        value = reg_spline_getJacobianPenaltyTerm_gpu(this->currentReference,
-                                                      this->controlPointGrid,
-                                                      &this->controlPointGrid_gpu,
-                                                      this->jacobianLogApproximation);
-    }
+    bool approx = type == 2 ? false : this->jacobianLogApproximation;
+
+    double value = reg_spline_getJacobianPenaltyTerm_gpu(this->currentReference,
+                                                         this->controlPointGrid,
+                                                         &this->controlPointGrid_gpu,
+                                                         approx);
+
     unsigned int maxit = 5;
     if (type > 0) maxit = 20;
     unsigned int it = 0;
     while (value != value && it < maxit) {
-        if (type == 2) {
-            value = reg_spline_correctFolding_gpu(this->currentReference,
-                                                  this->controlPointGrid,
-                                                  &this->controlPointGrid_gpu,
-                                                  false);
-        } else {
-            value = reg_spline_correctFolding_gpu(this->currentReference,
-                                                  this->controlPointGrid,
-                                                  &this->controlPointGrid_gpu,
-                                                  this->jacobianLogApproximation);
-        }
+        value = reg_spline_correctFolding_gpu(this->currentReference,
+                                              this->controlPointGrid,
+                                              &this->controlPointGrid_gpu,
+                                              approx);
 #ifndef NDEBUG
         reg_print_msg_debug("Folding correction");
 #endif
