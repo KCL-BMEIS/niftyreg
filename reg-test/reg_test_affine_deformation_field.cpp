@@ -119,14 +119,14 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
     affine->m[0][3] = -0.5;
     affine->m[1][3] = 1.5;
     affine->m[2][3] = 0.75;
-    for (uint i=0; i<4; ++i){
-        for (uint j=0; j<4; ++j){
+    for (auto i=0; i<4; ++i){
+        for (auto j=0; j<4; ++j){
             affine->m[i][j] +=  (((float) rand() / (RAND_MAX))-.5)/10.;
         }
     }
     float affine_result_2x[4];
     float affine_result_2y[4];
-    for (uint i=0; i<4;++i){
+    for (auto i=0; i<4;++i){
         auto x = identity_result_2x[i];
         auto y = identity_result_2y[i];
         affine_result_2x[i] = affine->m[0][3] + affine->m[0][0]*x + affine->m[0][1]*y;
@@ -146,7 +146,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
     float affine_result_3x[8];
     float affine_result_3y[8];
     float affine_result_3z[8];
-    for (uint i=0; i<8;++i){
+    for (auto i=0; i<8;++i){
         auto x = identity_result_3x[i];
         auto y = identity_result_3y[i];
         auto z = identity_result_3z[i];
