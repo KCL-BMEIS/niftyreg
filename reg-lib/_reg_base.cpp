@@ -1652,6 +1652,7 @@ void reg_base<T>::Run()
       // Update the number of level for the next level
       this->maxiterationNumber /= 2;
    } // level this->levelToPerform
+   // Set this to the last value since it's used somewhere else
    this->currentLevel--;
 
 #ifndef NDEBUG

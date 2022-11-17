@@ -23,80 +23,79 @@
 #include "_reg_optimiser_gpu.h"
 #include "_reg_f3d.h"
 
-class reg_f3d_gpu : public reg_f3d<float>
-{
+class reg_f3d_gpu: public reg_f3d<float> {
 protected:
-   // cuda variables
-   cudaArray *currentReference_gpu;
-   cudaArray *currentFloating_gpu;
-   int *currentMask_gpu;
-   float *warped_gpu;
-   float4 *controlPointGrid_gpu;
-   float4 *deformationFieldImage_gpu;
-   float4 *warpedGradientImage_gpu;
-   float4 *voxelBasedMeasureGradientImage_gpu;
-   float4 *transformationGradient_gpu;
+    // cuda variables
+    cudaArray *currentReference_gpu;
+    cudaArray *currentFloating_gpu;
+    int *currentMask_gpu;
+    float *warped_gpu;
+    float4 *controlPointGrid_gpu;
+    float4 *deformationFieldImage_gpu;
+    float4 *warpedGradientImage_gpu;
+    float4 *voxelBasedMeasureGradientImage_gpu;
+    float4 *transformationGradient_gpu;
 
-   // cuda variable for multispectral registration
-   cudaArray *currentReference2_gpu;
-   cudaArray *currentFloating2_gpu;
-   float *warped2_gpu;
-   float4 *warpedGradientImage2_gpu;
+    // cuda variable for multispectral registration
+    cudaArray *currentReference2_gpu;
+    cudaArray *currentFloating2_gpu;
+    float *warped2_gpu;
+    float4 *warpedGradientImage2_gpu;
 
-   // Measure related variables
-   reg_ssd_gpu *measure_gpu_ssd;
-   reg_kld_gpu *measure_gpu_kld;
-   reg_dti_gpu *measure_gpu_dti;
-   reg_lncc_gpu *measure_gpu_lncc;
-   reg_nmi_gpu *measure_gpu_nmi;
+    // Measure related variables
+    reg_ssd_gpu *measure_gpu_ssd;
+    reg_kld_gpu *measure_gpu_kld;
+    reg_dti_gpu *measure_gpu_dti;
+    reg_lncc_gpu *measure_gpu_lncc;
+    reg_nmi_gpu *measure_gpu_nmi;
 
-   float InitialiseCurrentLevel();
-   void ClearCurrentInputImage();
-   void AllocateWarped();
-   void ClearWarped();
-   void AllocateDeformationField();
-   void ClearDeformationField();
-   void AllocateWarpedGradient();
-   void ClearWarpedGradient();
-   void AllocateVoxelBasedMeasureGradient();
-   void ClearVoxelBasedMeasureGradient();
-   void AllocateTransformationGradient();
-   void ClearTransformationGradient();
+    float InitialiseCurrentLevel();
+    void ClearCurrentInputImage();
+    void AllocateWarped();
+    void ClearWarped();
+    void AllocateDeformationField();
+    void ClearDeformationField();
+    void AllocateWarpedGradient();
+    void ClearWarpedGradient();
+    void AllocateVoxelBasedMeasureGradient();
+    void ClearVoxelBasedMeasureGradient();
+    void AllocateTransformationGradient();
+    void ClearTransformationGradient();
 
-   double ComputeJacobianBasedPenaltyTerm(int);
-   double ComputeBendingEnergyPenaltyTerm();
-   double ComputeLinearEnergyPenaltyTerm();
-   double ComputeLandmarkDistancePenaltyTerm();
-   void GetDeformationField();
-   void WarpFloatingImage(int);
-   void GetVoxelBasedGradient();
-   void GetSimilarityMeasureGradient();
-   void GetBendingEnergyGradient();
-   void GetLinearEnergyGradient();
-   void GetJacobianBasedGradient();
-   void GetLandmarkDistanceGradient();
-   void SmoothGradient();
-   void GetApproximatedGradient();
-   void UpdateParameters(float);
-   void SetOptimiser();
-   void SetGradientImageToZero();
-   float NormaliseGradient();
-   void InitialiseSimilarity();
+    double ComputeJacobianBasedPenaltyTerm(int);
+    double ComputeBendingEnergyPenaltyTerm();
+    double ComputeLinearEnergyPenaltyTerm();
+    double ComputeLandmarkDistancePenaltyTerm();
+    void GetDeformationField();
+    void WarpFloatingImage(int);
+    void GetVoxelBasedGradient();
+    void GetSimilarityMeasureGradient();
+    void GetBendingEnergyGradient();
+    void GetLinearEnergyGradient();
+    void GetJacobianBasedGradient();
+    void GetLandmarkDistanceGradient();
+    void SmoothGradient();
+    void GetApproximatedGradient();
+    void UpdateParameters(float);
+    void SetOptimiser();
+    void SetGradientImageToZero();
+    float NormaliseGradient();
+    void InitialiseSimilarity();
 
-   void fillImageData(nifti_image *image, float* memoryObject);
+    void fillImageData(nifti_image *image, float* memoryObject);
 
 public:
-   void UseNMISetReferenceBinNumber(int,int);
-   void UseNMISetFloatingBinNumber(int,int);
-   void UseSSD(int timepoint);
-   void UseKLDivergence(int timepoint);
-   void UseDTI(int timepoint[6]);
-   void UseLNCC(int timepoint, float stdDevKernel);
-   nifti_image** GetWarpedImage();
+    void UseNMISetReferenceBinNumber(int, int);
+    void UseNMISetFloatingBinNumber(int, int);
+    void UseSSD(int timepoint);
+    void UseKLDivergence(int timepoint);
+    void UseDTI(int timepoint[6]);
+    void UseLNCC(int timepoint, float stdDevKernel);
+    nifti_image** GetWarpedImage();
 
-   reg_f3d_gpu(int refTimePoint,int floTimePoint);
-   ~reg_f3d_gpu();
-   int CheckMemoryMB();
+    reg_f3d_gpu(int refTimePoint, int floTimePoint);
+    ~reg_f3d_gpu();
+    int CheckMemoryMB();
 };
 
 #include "_reg_f3d_gpu.cpp"
