@@ -199,9 +199,6 @@ add_subdirectory(cmake)
 #-----------------------------------------------------------------------------
 if(BUILD_TESTING)
   enable_testing()
-  include(${CMAKE_ROOT}/Modules/Dart.cmake)
-  set(TESTING_2D_FILE "" CACHE FILEPATH "2D nifti file used to generate testing data")
-  set(TESTING_3D_FILE "" CACHE FILEPATH "2D nifti file used to generate testing data")
   add_subdirectory(reg-test)
 endif(BUILD_TESTING)
 #-----------------------------------------------------------------------------
