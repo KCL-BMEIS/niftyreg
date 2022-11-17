@@ -359,7 +359,7 @@ double reg_f3d_gpu::ComputeLandmarkDistancePenaltyTerm() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::GetDeformationField() {
     if (this->controlPointGrid_gpu == NULL) {
-        reg_f3d<float>::GetDeformationField();
+        reg_f3d::GetDeformationField();
     } else {
         // Compute the deformation field
         reg_spline_getDeformationField_gpu(this->controlPointGrid,
@@ -417,6 +417,11 @@ void reg_f3d_gpu::SetGradientImageToZero() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::GetVoxelBasedGradient() {
+    // The voxel based gradient image is filled with zeros
+    cudaMemset(this->voxelBasedMeasureGradientImage_gpu, 0,
+               this->currentReference->nx * this->currentReference->ny * this->currentReference->nz *
+               sizeof(float4));
+
     // The intensity gradient is first computed
     reg_getImageGradient_gpu(this->currentFloating,
                              &this->currentFloating_gpu,
@@ -425,10 +430,6 @@ void reg_f3d_gpu::GetVoxelBasedGradient() {
                              this->activeVoxelNumber[this->currentLevel],
                              this->warpedPaddingValue);
 
-    // The voxel based gradient image is filled with zeros
-    cudaMemset(this->voxelBasedMeasureGradientImage_gpu, 0,
-               this->currentReference->nx * this->currentReference->ny * this->currentReference->nz *
-               sizeof(float4));
     // The gradient of the various measures of similarity are computed
     if (this->measure_gpu_nmi != NULL)
         this->measure_gpu_nmi->GetVoxelBasedSimilarityMeasureGradient();
@@ -811,6 +812,8 @@ float reg_f3d_gpu::InitialiseCurrentLevel() {
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::ClearCurrentInputImage() {
+    reg_f3d::ClearCurrentInputImage();
+
     if (cudaCommon_transferFromDeviceToNifti<float4>(this->controlPointGrid, &this->controlPointGrid_gpu)) {
         reg_print_fct_error("reg_f3d_gpu::ClearCurrentInputImage()");
         reg_print_msg_error("Error when transfering back the control point image");
@@ -832,9 +835,6 @@ void reg_f3d_gpu::ClearCurrentInputImage() {
         cudaCommon_free(&this->currentFloating2_gpu);
     this->currentFloating2_gpu = NULL;
 
-    this->currentReference = NULL;
-    this->currentMask = NULL;
-    this->currentFloating = NULL;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d_gpu::ClearCurrentInputImage");
 #endif
@@ -887,7 +887,8 @@ float reg_f3d_gpu::NormaliseGradient() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 int reg_f3d_gpu::CheckMemoryMB() {
-    if (!this->initialised) reg_f3d<float>::Initialise();
+    if (!this->initialised)
+        reg_f3d::Initialise();
 
     size_t referenceVoxelNumber = this->referencePyramid[this->levelToPerform - 1]->nx *
         this->referencePyramid[this->levelToPerform - 1]->ny *

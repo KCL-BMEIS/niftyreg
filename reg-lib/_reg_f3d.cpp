@@ -429,10 +429,9 @@ void reg_f3d<T>::GetDeformationField()
 template <class T>
 double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
 {
-   if(this->jacobianLogWeight<=0) return 0.;
+   if(this->jacobianLogWeight<=0) return 0;
 
-   double value=0.;
-
+   double value;
    if(type==2)
    {
       value = reg_spline_getJacobianPenaltyTerm(this->controlPointGrid,
@@ -489,14 +488,14 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::ComputeJacobianBasedPenaltyTerm");
 #endif
-   return (double)this->jacobianLogWeight * value;
+   return this->jacobianLogWeight * value;
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 {
-   if(this->bendingEnergyWeight<=0) return 0.;
+   if(this->bendingEnergyWeight<=0) return 0;
 
    double value = reg_spline_approxBendingEnergy(this->controlPointGrid);
 #ifndef NDEBUG
@@ -510,7 +509,7 @@ template <class T>
 double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
 {
    if(this->linearEnergyWeight<=0)
-      return 0.;
+      return 0;
 
    double value = reg_spline_approxLinearEnergy(this->controlPointGrid);
 
@@ -525,7 +524,7 @@ template <class T>
 double reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm()
 {
    if(this->landmarkRegWeight<=0)
-      return 0.;
+      return 0;
 
    double value = reg_spline_getLandmarkDistance(this->controlPointGrid,
                                                  this->landmarkRegNumber,
@@ -988,8 +987,8 @@ template <class T>
 void reg_f3d<T>::GetApproximatedGradient()
 {
    // Loop over every control point
-   T *gridPtr = static_cast<T *>(this->controlPointGrid->data);
-   T *gradPtr = static_cast<T *>(this->transformationGradient->data);
+   T *gridPtr = static_cast<T*>(this->controlPointGrid->data);
+   T *gradPtr = static_cast<T*>(this->transformationGradient->data);
    T eps = this->controlPointGrid->dx / 100.f;
    for(size_t i=0; i<this->controlPointGrid->nvox; ++i)
    {
@@ -1122,7 +1121,6 @@ void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize)
 template<class T>
 void reg_f3d<T>::GetObjectiveFunctionGradient()
 {
-
    if(!this->useApproxGradient)
    {
       // Compute the gradient of the similarity measure

@@ -678,7 +678,7 @@ template int cudaCommon_transferFromDeviceToNifti<float4>(nifti_image *, float4 
 /* ******************************** */
 void cudaCommon_free(cudaArray **cuArray_d)
 {
-		NR_CUDA_SAFE_CALL(cudaFreeArray(*cuArray_d));
+	NR_CUDA_SAFE_CALL(cudaFreeArray(*cuArray_d));
 	return;
 }
 /* ******************************** */
