@@ -564,94 +564,70 @@ void reg_f3d_gpu::SmoothGradient() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::GetApproximatedGradient() {
-    float4 *gridValue = NULL;
-    float4 *modifiedValue = NULL;
-    float4 *gradientValue = NULL;
+    float4 *gridValue, *currentValue, *gradientValue;
     cudaMallocHost(&gridValue, sizeof(float4));
-    cudaMallocHost(&modifiedValue, sizeof(float4));
+    cudaMallocHost(&currentValue, sizeof(float4));
     cudaMallocHost(&gradientValue, sizeof(float4));
 
-    float eps = this->controlPointGrid->dx / 1000.f;
+    float eps = this->controlPointGrid->dx / 100.f;
 
     for (size_t i = 0; i < this->optimiser->GetVoxNumber(); ++i) {
-        // Extract the current value
-        cudaMemcpy(gridValue,
-                   &this->controlPointGrid_gpu[i],
-                   sizeof(float4),
-                   cudaMemcpyDeviceToHost);
-        modifiedValue[0] = gridValue[0];
+        // Extract the grid value
+        cudaMemcpy(gridValue, &this->controlPointGrid_gpu[i], sizeof(float4), cudaMemcpyDeviceToHost);
+        cudaMemcpy(currentValue, &(reinterpret_cast<float4*>(this->optimiser->GetBestDOF()))[i], sizeof(float4), cudaMemcpyDeviceToHost);
+
         // -- X axis
-        // Modify the current value along the x axis
-        modifiedValue[0].x = gridValue[0].x + eps;
-        cudaMemcpy(&this->controlPointGrid_gpu[i],
-                   modifiedValue,
-                   sizeof(float4),
-                   cudaMemcpyHostToDevice);
+        // Modify the grid value along the x axis
+        gridValue->x = currentValue->x + eps;
+        cudaMemcpy(&this->controlPointGrid_gpu[i], gridValue, sizeof(float4), cudaMemcpyHostToDevice);
         // Evaluate the objective function value
-        gradientValue[0].x = this->GetObjectiveFunctionValue();
-        // Modify the current value along the x axis
-        modifiedValue[0].x = gridValue[0].x - eps;
-        cudaMemcpy(&this->controlPointGrid_gpu[i],
-                   modifiedValue,
-                   sizeof(float4),
-                   cudaMemcpyHostToDevice);
+        gradientValue->x = this->GetObjectiveFunctionValue();
+        // Modify the grid value along the x axis
+        gridValue->x = currentValue->x - eps;
+        cudaMemcpy(&this->controlPointGrid_gpu[i], gridValue, sizeof(float4), cudaMemcpyHostToDevice);
         // Evaluate the objective function value
-        gradientValue[0].x -= this->GetObjectiveFunctionValue();
-        gradientValue[0].x /= 2.f * eps;
-        modifiedValue[0].x = gridValue[0].x;
+        gradientValue->x -= this->GetObjectiveFunctionValue();
+        gradientValue->x /= 2.f * eps;
+        gridValue->x = currentValue->x;
+
         // -- Y axis
-        // Modify the current value along the y axis
-        modifiedValue[0].y = gridValue[0].y + eps;
-        cudaMemcpy(&this->controlPointGrid_gpu[i],
-                   modifiedValue,
-                   sizeof(float4),
-                   cudaMemcpyHostToDevice);
+        // Modify the grid value along the y axis
+        gridValue->y = currentValue->y + eps;
+        cudaMemcpy(&this->controlPointGrid_gpu[i], gridValue, sizeof(float4), cudaMemcpyHostToDevice);
         // Evaluate the objective function value
-        gradientValue[0].y = this->GetObjectiveFunctionValue();
-        // Modify the current value the y axis
-        modifiedValue[0].y = gridValue[0].y - eps;
-        cudaMemcpy(&this->controlPointGrid_gpu[i],
-                   modifiedValue,
-                   sizeof(float4),
-                   cudaMemcpyHostToDevice);
+        gradientValue->y = this->GetObjectiveFunctionValue();
+        // Modify the grid value the y axis
+        gridValue->y = currentValue->y - eps;
+        cudaMemcpy(&this->controlPointGrid_gpu[i], gridValue, sizeof(float4), cudaMemcpyHostToDevice);
         // Evaluate the objective function value
-        gradientValue[0].y -= this->GetObjectiveFunctionValue();
-        gradientValue[0].y /= 2.f * eps;
-        modifiedValue[0].y = gridValue[0].y;
+        gradientValue->y -= this->GetObjectiveFunctionValue();
+        gradientValue->y /= 2.f * eps;
+        gridValue->y = currentValue->y;
+
         if (this->optimiser->GetNDim() > 2) {
             // -- Z axis
-            // Modify the current value along the y axis
-            modifiedValue[0].z = gridValue[0].z + eps;
-            cudaMemcpy(&this->controlPointGrid_gpu[i],
-                       modifiedValue,
-                       sizeof(float4),
-                       cudaMemcpyHostToDevice);
+            // Modify the grid value along the y axis
+            gridValue->z = currentValue->z + eps;
+            cudaMemcpy(&this->controlPointGrid_gpu[i], gridValue, sizeof(float4), cudaMemcpyHostToDevice);
             // Evaluate the objective function value
-            gradientValue[0].z = this->GetObjectiveFunctionValue();
-            // Modify the current value the y axis
-            modifiedValue[0].z = gridValue[0].z - eps;
-            cudaMemcpy(&this->controlPointGrid_gpu[i],
-                       modifiedValue,
-                       sizeof(float4),
-                       cudaMemcpyHostToDevice);
+            gradientValue->z = this->GetObjectiveFunctionValue();
+            // Modify the grid value the y axis
+            gridValue->z = currentValue->z - eps;
+            cudaMemcpy(&this->controlPointGrid_gpu[i], gridValue, sizeof(float4), cudaMemcpyHostToDevice);
             // Evaluate the objective function value
-            gradientValue[0].z -= this->GetObjectiveFunctionValue();
-            gradientValue[0].z /= 2.f * eps;
+            gradientValue->z -= this->GetObjectiveFunctionValue();
+            gradientValue->z /= 2.f * eps;
         }
+
         // Restore the initial parametrisation
-        cudaMemcpy(&this->controlPointGrid_gpu[i],
-                   gridValue,
-                   sizeof(float4),
-                   cudaMemcpyHostToDevice);
+        cudaMemcpy(&this->controlPointGrid_gpu[i], gridValue, sizeof(float4), cudaMemcpyHostToDevice);
 
         // Save the assessed gradient
-        cudaMemcpy(&this->transformationGradient_gpu[i],
-                   gradientValue,
-                   sizeof(float4),
-                   cudaMemcpyHostToDevice);
+        cudaMemcpy(&this->transformationGradient_gpu[i], gradientValue, sizeof(float4), cudaMemcpyHostToDevice);
     }
+
     cudaFreeHost(gridValue);
-    cudaFreeHost(modifiedValue);
+    cudaFreeHost(currentValue);
     cudaFreeHost(gradientValue);
 
 #ifndef NDEBUG
