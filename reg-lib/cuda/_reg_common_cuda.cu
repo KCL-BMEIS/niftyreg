@@ -589,6 +589,25 @@ template int cudaCommon_transferFromDeviceToNifti<double>(nifti_image *, double 
 template int cudaCommon_transferFromDeviceToNifti<float4>(nifti_image *, float4 **); // for deformation field
 /* ******************************** */
 /* ******************************** */
+template<>
+int cudaCommon_transferFromDeviceToNifti(nifti_image *img, cudaArray **cuArray_d) {
+	if (img->datatype != NIFTI_TYPE_FLOAT32) {
+		reg_print_fct_error("cudaCommon_transferFromDeviceToNifti");
+		reg_print_msg_error("The image data type is not supported");
+		return EXIT_FAILURE;
+	}
+
+	cudaMemcpy3DParms copyParams = {0};
+	copyParams.extent = make_cudaExtent(img->dim[1], img->dim[2], img->dim[3]);
+	copyParams.srcArray = *cuArray_d;
+	copyParams.dstPtr = make_cudaPitchedPtr((void*)(img->data), copyParams.extent.width * sizeof(float),
+											copyParams.extent.width, copyParams.extent.height);
+	copyParams.kind = cudaMemcpyDeviceToHost;
+	NR_CUDA_SAFE_CALL(cudaMemcpy3D(&copyParams));
+	return EXIT_SUCCESS;
+}
+/* ******************************** */
+/* ******************************** */
 template <class DTYPE, class NIFTI_TYPE>
 int cudaCommon_transferFromDeviceToNifti1(nifti_image *img, DTYPE **array_d, DTYPE **array2_d)
 {
