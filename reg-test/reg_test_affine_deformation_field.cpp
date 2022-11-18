@@ -121,7 +121,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
     affine->m[2][3] = 0.75;
     for (auto i=0; i<4; ++i){
         for (auto j=0; j<4; ++j){
-            affine->m[i][j] +=  (((float) rand() / (RAND_MAX))-.5)/10.;
+            affine->m[i][j] +=  static_cast<float>((((float) rand() / (RAND_MAX))-.5)/10.);
         }
     }
     float affine_result_2x[4];

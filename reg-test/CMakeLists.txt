@@ -59,7 +59,7 @@ include(Catch)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 set(EXEC_LIST reg_test_affine_deformation_field)
-set(EXEC_LIST ${EXEC_LIST})
+set(EXEC_LIST reg_test_interpolation ${EXEC_LIST})
 
 
 foreach(EXEC ${EXEC_LIST})
