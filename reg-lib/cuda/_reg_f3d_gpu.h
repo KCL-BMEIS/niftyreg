@@ -82,8 +82,6 @@ protected:
     float NormaliseGradient();
     void InitialiseSimilarity();
 
-    void fillImageData(nifti_image *image, float* memoryObject);
-
 public:
     void UseNMISetReferenceBinNumber(int, int);
     void UseNMISetFloatingBinNumber(int, int);
