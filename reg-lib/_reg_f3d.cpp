@@ -244,15 +244,12 @@ void reg_f3d<T>::Initialise()
          gridSpacing[2] = spacingInMillimeter[2] * powf(2.0f, (float)(this->levelNumber-1));
 
       // Create and allocate the control point image
-      reg_createControlPointGrid<T>(&this->controlPointGrid,
-                                    this->referencePyramid[0],
-            gridSpacing);
+      reg_createControlPointGrid<T>(&this->controlPointGrid, this->referencePyramid[0], gridSpacing);
 
       // The control point position image is initialised with the affine transformation
       if(this->affineTransformation==NULL)
       {
-         memset(this->controlPointGrid->data,0,
-                this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
+         memset(this->controlPointGrid->data,0, this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
          reg_tools_multiplyValueToImage(this->controlPointGrid,this->controlPointGrid,0.f);
          reg_getDeformationFromDisplacement(this->controlPointGrid);
       }
@@ -262,8 +259,7 @@ void reg_f3d<T>::Initialise()
    {
       // The control point grid image is initialised with the provided grid
       this->controlPointGrid = nifti_copy_nim_info(this->inputControlPointGrid);
-      this->controlPointGrid->data = (void *)malloc( this->controlPointGrid->nvox *
-                                                     this->controlPointGrid->nbyper);
+      this->controlPointGrid->data = (void *)malloc(this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
       memcpy( this->controlPointGrid->data, this->inputControlPointGrid->data,
               this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
       // The final grid spacing is computed
@@ -285,12 +281,11 @@ void reg_f3d<T>::Initialise()
       text = stringFormat("\t* name: %s", this->inputReference->fname);
       reg_print_info(this->executableName, text.c_str());
       text = stringFormat("\t* image dimension: %i x %i x %i x %i",
-              this->inputReference->nx, this->inputReference->ny,
-              this->inputReference->nz, this->inputReference->nt);
+                          this->inputReference->nx, this->inputReference->ny,
+                          this->inputReference->nz, this->inputReference->nt);
       reg_print_info(this->executableName, text.c_str());
       text = stringFormat("\t* image spacing: %g x %g x %g mm",
-              this->inputReference->dx,
-              this->inputReference->dy, this->inputReference->dz);
+                          this->inputReference->dx, this->inputReference->dy, this->inputReference->dz);
       reg_print_info(this->executableName, text.c_str());
       for(int i=0; i<this->inputReference->nt; i++)
       {
@@ -313,12 +308,10 @@ void reg_f3d<T>::Initialise()
       text = stringFormat("\t* name: %s", this->inputFloating->fname);
       reg_print_info(this->executableName, text.c_str());
       text = stringFormat("\t* image dimension: %i x %i x %i x %i",
-              this->inputFloating->nx, this->inputFloating->ny,
-              this->inputFloating->nz, this->inputFloating->nt);
+                          this->inputFloating->nx, this->inputFloating->ny, this->inputFloating->nz, this->inputFloating->nt);
       reg_print_info(this->executableName, text.c_str());
-      text = stringFormat("\t* image spacing: %g x %g x %g mm",
-              this->inputFloating->dx,
-              this->inputFloating->dy, this->inputFloating->dz);
+      text = stringFormat("\t* image spacing: %g x %g x %g mm", this->inputFloating->dx,
+                          this->inputFloating->dy, this->inputFloating->dz);
       reg_print_info(this->executableName, text.c_str());
       for(int i=0; i<this->inputFloating->nt; i++)
       {
@@ -350,8 +343,7 @@ void reg_f3d<T>::Initialise()
       reg_print_info(this->executableName, text.c_str());
       reg_print_info(this->executableName, "");
 
-      text = stringFormat("Final spacing in mm: %g %g %g",
-              this->spacing[0], this->spacing[1], this->spacing[2]);
+      text = stringFormat("Final spacing in mm: %g %g %g", this->spacing[0], this->spacing[1], this->spacing[2]);
       reg_print_info(this->executableName, text.c_str());
       reg_print_info(this->executableName, "");
       if(this->measure_ssd!=NULL)
@@ -380,23 +372,22 @@ void reg_f3d<T>::Initialise()
          reg_print_info(this->executableName, "");
       }
       if((this->linearEnergyWeight)>0){
-         text = stringFormat("Linear energy penalty term weight: %g",
-                 this->linearEnergyWeight);
+         text = stringFormat("Linear energy penalty term weight: %g", this->linearEnergyWeight);
          reg_print_info(this->executableName, text.c_str());
          reg_print_info(this->executableName, "");
       }
       if(this->jacobianLogWeight>0){
          text = stringFormat("Jacobian-based penalty term weight: %g", this->jacobianLogWeight);
          reg_print_info(this->executableName, text.c_str());
-         if(this->jacobianLogApproximation){
+         if(this->jacobianLogApproximation) {
             reg_print_info(this->executableName, "\t* Jacobian-based penalty term is approximated");
+         } else {
+            reg_print_info(this->executableName, "\t* Jacobian-based penalty term is not approximated");
          }
-         else reg_print_info(this->executableName, "\t* Jacobian-based penalty term is not approximated");
          reg_print_info(this->executableName, "");
       }
       if((this->landmarkRegWeight)>0){
-         text = stringFormat("Landmark distance regularisation term weight: %g",
-                 this->landmarkRegWeight);
+         text = stringFormat("Landmark distance regularisation term weight: %g", this->landmarkRegWeight);
          reg_print_info(this->executableName, text.c_str());
          reg_print_info(this->executableName, "");
       }
