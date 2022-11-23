@@ -10,11 +10,9 @@
  *
  */
 
+#pragma once
+
 #include "_reg_f3d_sym.h"
-
-#ifndef _REG_F3D2_H
-#define _REG_F3D2_H
-
 
 /// @brief Fast Free Form Diffeomorphic Deformation registration class
 template <class T>
@@ -41,5 +39,3 @@ public:
    virtual void Initialise();
    virtual nifti_image **GetWarpedImage();
 };
-
-#endif

@@ -5,8 +5,7 @@
  * Also contains an interface class between reg_base and the measure class
  */
 
-#ifndef _REG_MEASURE_GPU_H
-#define _REG_MEASURE_GPU_H
+#pragma once
 
 #include "_reg_lncc.h"
 #include "_reg_dti.h"
@@ -158,4 +157,3 @@ public:
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-#endif // _REG_MEASURE_GPU_H

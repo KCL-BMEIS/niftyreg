@@ -12,8 +12,7 @@
  *
  */
 
-#ifndef _REG_READWRITEIMAGE_H
-#define _REG_READWRITEIMAGE_H
+#pragma once
 
 #include "nifti1_io.h"
 #include <string>
@@ -72,4 +71,3 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename);
   */
 void reg_io_diplayImageData(nifti_image *image);
 /* *************************************************************** */
-#endif

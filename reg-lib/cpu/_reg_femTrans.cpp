@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_FEMTRANS_CPP
-#define _REG_FEMTRANS_CPP
-
 #include "_reg_femTrans.h"
 
 float reg_getTetrahedronVolume(float *node1,float *node2,float *node3,float *node4)
@@ -257,5 +254,3 @@ void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
 
    return;
 }// reg_fem_voxelToNodeGradient
-
-#endif

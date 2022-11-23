@@ -11,8 +11,7 @@
  *
  */
 
-#ifndef _REG_TRANS_JAC_H
-#define _REG_TRANS_JAC_H
+#pragma once
 
 #include "_reg_localTrans.h"
 
@@ -154,6 +153,3 @@ extern "C++"
 int reg_spline_GetJacobianDetFromVelocityGrid(nifti_image *jacobianDetImage,
                                               nifti_image *velocityGridImage);
 /* *************************************************************** */
-
-
-#endif

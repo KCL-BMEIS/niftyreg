@@ -9,7 +9,7 @@
 
 #include "AladinContent.h"
 #ifdef _USE_CUDA
-#include "CUDAAladinContent.h"
+#include "CudaAladinContent.h"
 #endif
 #ifdef _USE_OPENCL
 #include "CLAladinContent.h"
@@ -83,8 +83,8 @@ void test(AladinContent *con, int platformCode) {
 
    Platform *platform = new Platform(platformCode);
 
-   Kernel *blockMatchingKernel = platform->createKernel(BlockMatchingKernel::getName(), con);
-   blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
+   Kernel *blockMatchingKernel = platform->CreateKernel(BlockMatchingKernel::GetName(), con);
+   blockMatchingKernel->castTo<BlockMatchingKernel>()->Calculate();
 
    delete blockMatchingKernel;
    delete platform;
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 
    // Read the input reference image
    nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
-   if (referenceImage == NULL){
+   if (referenceImage == nullptr){
       reg_print_msg_error("The input reference image could not be read");
       return EXIT_FAILURE;
    }
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 
    // Read the input floating image
    nifti_image *warpedImage = reg_io_ReadImageFile(inputWarpedImageName);
-   if (warpedImage == NULL){
+   if (warpedImage == nullptr){
       reg_print_msg_error("The input warped image could not be read");
       return EXIT_FAILURE;
    }
@@ -136,28 +136,28 @@ int main(int argc, char **argv)
    _reg_blockMatchingParam* blockMatchingParams;
 
    // Platforms
-   AladinContent *con = NULL;
+   AladinContent *con = nullptr;
    if (platformCode == NR_PLATFORM_CPU) {
-      con = new AladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+      con = new AladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    }
 #ifdef _USE_CUDA
    else if (platformCode == NR_PLATFORM_CUDA) {
-      con = new CudaAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+      con = new CudaAladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    }
 #endif
 #ifdef _USE_OPENCL
    else if (platformCode == NR_PLATFORM_CL) {
-      con = new ClAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+      con = new ClAladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    }
 #endif
    else {
       reg_print_msg_error("The platform code is not suppoted");
       return EXIT_FAILURE;
    }
-   con->setCurrentWarped(warpedImage);
-   //con->setCurrentWarped(referenceImage);
+   con->SetCurrentWarped(warpedImage);
+   //con->SetCurrentWarped(referenceImage);
    test(con, platformCode);
-   blockMatchingParams = con->getBlockMatchingParams();
+   blockMatchingParams = con->GetBlockMatchingParams();
 
 #ifndef NDEBUG
    std::cout << "blockMatchingParams->definedActiveBlock = " << blockMatchingParams->definedActiveBlockNumber << std::endl;
@@ -216,4 +216,3 @@ int main(int argc, char **argv)
 #endif
    return EXIT_SUCCESS;
 }
-

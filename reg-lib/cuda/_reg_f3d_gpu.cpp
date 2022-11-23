@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_F3D_GPU_CPP
-#define _REG_F3D_GPU_CPP
-
 #include "_reg_f3d_gpu.h"
 
  /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -20,26 +17,26 @@
 reg_f3d_gpu::reg_f3d_gpu(int refTimePoint, int floTimePoint)
     : reg_f3d<float>::reg_f3d(refTimePoint, floTimePoint) {
     this->executableName = (char *)"NiftyReg F3D GPU";
-    this->currentReference_gpu = NULL;
-    this->currentFloating_gpu = NULL;
-    this->currentMask_gpu = NULL;
-    this->warped_gpu = NULL;
-    this->controlPointGrid_gpu = NULL;
-    this->deformationFieldImage_gpu = NULL;
-    this->warpedGradientImage_gpu = NULL;
-    this->voxelBasedMeasureGradientImage_gpu = NULL;
-    this->transformationGradient_gpu = NULL;
+    this->currentReference_gpu = nullptr;
+    this->currentFloating_gpu = nullptr;
+    this->currentMask_gpu = nullptr;
+    this->warped_gpu = nullptr;
+    this->controlPointGrid_gpu = nullptr;
+    this->deformationFieldImage_gpu = nullptr;
+    this->warpedGradientImage_gpu = nullptr;
+    this->voxelBasedMeasureGradientImage_gpu = nullptr;
+    this->transformationGradient_gpu = nullptr;
 
-    this->measure_gpu_ssd = NULL;
-    this->measure_gpu_kld = NULL;
-    this->measure_gpu_dti = NULL;
-    this->measure_gpu_lncc = NULL;
-    this->measure_gpu_nmi = NULL;
+    this->measure_gpu_ssd = nullptr;
+    this->measure_gpu_kld = nullptr;
+    this->measure_gpu_dti = nullptr;
+    this->measure_gpu_lncc = nullptr;
+    this->measure_gpu_nmi = nullptr;
 
-    this->currentReference2_gpu = NULL;
-    this->currentFloating2_gpu = NULL;
-    this->warped2_gpu = NULL;
-    this->warpedGradientImage2_gpu = NULL;
+    this->currentReference2_gpu = nullptr;
+    this->currentFloating2_gpu = nullptr;
+    this->warped2_gpu = nullptr;
+    this->warpedGradientImage2_gpu = nullptr;
 
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d_gpu::reg_f3d_gpu");
@@ -48,63 +45,63 @@ reg_f3d_gpu::reg_f3d_gpu(int refTimePoint, int floTimePoint)
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 reg_f3d_gpu::~reg_f3d_gpu() {
-    if (this->currentReference_gpu != NULL)
+    if (this->currentReference_gpu != nullptr)
         cudaCommon_free(&this->currentReference_gpu);
-    if (this->currentFloating_gpu != NULL)
+    if (this->currentFloating_gpu != nullptr)
         cudaCommon_free(&this->currentFloating_gpu);
-    if (this->currentMask_gpu != NULL)
+    if (this->currentMask_gpu != nullptr)
         cudaCommon_free<int>(&this->currentMask_gpu);
-    if (this->warped_gpu != NULL)
+    if (this->warped_gpu != nullptr)
         cudaCommon_free<float>(&this->warped_gpu);
-    if (this->controlPointGrid_gpu != NULL)
+    if (this->controlPointGrid_gpu != nullptr)
         cudaCommon_free<float4>(&this->controlPointGrid_gpu);
-    if (this->deformationFieldImage_gpu != NULL)
+    if (this->deformationFieldImage_gpu != nullptr)
         cudaCommon_free<float4>(&this->deformationFieldImage_gpu);
-    if (this->warpedGradientImage_gpu != NULL)
+    if (this->warpedGradientImage_gpu != nullptr)
         cudaCommon_free<float4>(&this->warpedGradientImage_gpu);
-    if (this->voxelBasedMeasureGradientImage_gpu != NULL)
+    if (this->voxelBasedMeasureGradientImage_gpu != nullptr)
         cudaCommon_free<float4>(&this->voxelBasedMeasureGradientImage_gpu);
-    if (this->transformationGradient_gpu != NULL)
+    if (this->transformationGradient_gpu != nullptr)
         cudaCommon_free<float4>(&this->transformationGradient_gpu);
 
-    if (this->currentReference2_gpu != NULL)
+    if (this->currentReference2_gpu != nullptr)
         cudaCommon_free(&this->currentReference2_gpu);
-    if (this->currentFloating2_gpu != NULL)
+    if (this->currentFloating2_gpu != nullptr)
         cudaCommon_free(&this->currentFloating2_gpu);
-    if (this->warped2_gpu != NULL)
+    if (this->warped2_gpu != nullptr)
         cudaCommon_free<float>(&this->warped2_gpu);
-    if (this->warpedGradientImage2_gpu != NULL)
+    if (this->warpedGradientImage2_gpu != nullptr)
         cudaCommon_free<float4>(&this->warpedGradientImage2_gpu);
 
-    if (this->optimiser != NULL) {
+    if (this->optimiser != nullptr) {
         delete this->optimiser;
-        this->optimiser = NULL;
+        this->optimiser = nullptr;
     }
 
-    if (this->measure_gpu_nmi != NULL) {
+    if (this->measure_gpu_nmi != nullptr) {
         delete this->measure_gpu_nmi;
-        this->measure_gpu_nmi = NULL;
-        this->measure_nmi = NULL;
+        this->measure_gpu_nmi = nullptr;
+        this->measure_nmi = nullptr;
     }
-    if (this->measure_gpu_ssd != NULL) {
+    if (this->measure_gpu_ssd != nullptr) {
         delete this->measure_gpu_ssd;
-        this->measure_gpu_ssd = NULL;
-        this->measure_ssd = NULL;
+        this->measure_gpu_ssd = nullptr;
+        this->measure_ssd = nullptr;
     }
-    if (this->measure_gpu_kld != NULL) {
+    if (this->measure_gpu_kld != nullptr) {
         delete this->measure_gpu_kld;
-        this->measure_gpu_kld = NULL;
-        this->measure_kld = NULL;
+        this->measure_gpu_kld = nullptr;
+        this->measure_kld = nullptr;
     }
-    if (this->measure_gpu_dti != NULL) {
+    if (this->measure_gpu_dti != nullptr) {
         delete this->measure_gpu_dti;
-        this->measure_gpu_dti = NULL;
-        this->measure_dti = NULL;
+        this->measure_gpu_dti = nullptr;
+        this->measure_dti = nullptr;
     }
-    if (this->measure_gpu_lncc != NULL) {
+    if (this->measure_gpu_lncc != nullptr) {
         delete this->measure_gpu_lncc;
-        this->measure_gpu_lncc = NULL;
-        this->measure_lncc = NULL;
+        this->measure_gpu_lncc = nullptr;
+        this->measure_lncc = nullptr;
     }
 
 #ifndef NDEBUG
@@ -142,13 +139,13 @@ void reg_f3d_gpu::AllocateWarped() {
 void reg_f3d_gpu::ClearWarped() {
     reg_f3d::ClearWarped();
 
-    if (this->warped_gpu != NULL) {
+    if (this->warped_gpu != nullptr) {
         cudaCommon_free<float>(&this->warped_gpu);
-        this->warped_gpu = NULL;
+        this->warped_gpu = nullptr;
     }
-    if (this->warped2_gpu != NULL) {
+    if (this->warped2_gpu != nullptr) {
         cudaCommon_free<float>(&this->warped2_gpu);
-        this->warped2_gpu = NULL;
+        this->warped2_gpu = nullptr;
     }
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d_gpu::ClearWarped");
@@ -167,9 +164,9 @@ void reg_f3d_gpu::AllocateDeformationField() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::ClearDeformationField() {
-    if (this->deformationFieldImage_gpu != NULL) {
+    if (this->deformationFieldImage_gpu != nullptr) {
         cudaCommon_free<float4>(&this->deformationFieldImage_gpu);
-        this->deformationFieldImage_gpu = NULL;
+        this->deformationFieldImage_gpu = nullptr;
     }
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d_gpu::ClearDeformationField");
@@ -199,13 +196,13 @@ void reg_f3d_gpu::AllocateWarpedGradient() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::ClearWarpedGradient() {
-    if (this->warpedGradientImage_gpu != NULL) {
+    if (this->warpedGradientImage_gpu != nullptr) {
         cudaCommon_free<float4>(&this->warpedGradientImage_gpu);
-        this->warpedGradientImage_gpu = NULL;
+        this->warpedGradientImage_gpu = nullptr;
     }
-    if (this->warpedGradientImage2_gpu != NULL) {
+    if (this->warpedGradientImage2_gpu != nullptr) {
         cudaCommon_free<float4>(&this->warpedGradientImage2_gpu);
-        this->warpedGradientImage2_gpu = NULL;
+        this->warpedGradientImage2_gpu = nullptr;
     }
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d_gpu::ClearWarpedGradient");
@@ -227,9 +224,9 @@ void reg_f3d_gpu::AllocateVoxelBasedMeasureGradient() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::ClearVoxelBasedMeasureGradient() {
-    if (this->voxelBasedMeasureGradientImage_gpu != NULL) {
+    if (this->voxelBasedMeasureGradientImage_gpu != nullptr) {
         cudaCommon_free<float4>(&this->voxelBasedMeasureGradientImage_gpu);
-        this->voxelBasedMeasureGradientImage_gpu = NULL;
+        this->voxelBasedMeasureGradientImage_gpu = nullptr;
     }
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d_gpu::ClearVoxelBasedMeasureGradient");
@@ -251,9 +248,9 @@ void reg_f3d_gpu::AllocateTransformationGradient() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::ClearTransformationGradient() {
-    if (this->transformationGradient_gpu != NULL) {
+    if (this->transformationGradient_gpu != nullptr) {
         cudaCommon_free<float4>(&this->transformationGradient_gpu);
-        this->transformationGradient_gpu = NULL;
+        this->transformationGradient_gpu = nullptr;
     }
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d_gpu::ClearTransformationGradient");
@@ -309,7 +306,6 @@ double reg_f3d_gpu::ComputeJacobianBasedPenaltyTerm(int type) {
 double reg_f3d_gpu::ComputeBendingEnergyPenaltyTerm() {
     if (this->bendingEnergyWeight <= 0) return 0;
 
-    // CHECKED: Similar output
     double value = reg_spline_approxBendingEnergy_gpu(this->controlPointGrid,
                                                       &this->controlPointGrid_gpu);
 #ifndef NDEBUG
@@ -342,7 +338,7 @@ double reg_f3d_gpu::ComputeLandmarkDistancePenaltyTerm() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::GetDeformationField() {
-    if (this->controlPointGrid_gpu == NULL) {
+    if (this->controlPointGrid_gpu == nullptr) {
         reg_f3d::GetDeformationField();
     } else {
         // Compute the deformation field
@@ -415,19 +411,19 @@ void reg_f3d_gpu::GetVoxelBasedGradient() {
                              this->warpedPaddingValue);
 
     // The gradient of the various measures of similarity are computed
-    if (this->measure_gpu_nmi != NULL)
+    if (this->measure_gpu_nmi != nullptr)
         this->measure_gpu_nmi->GetVoxelBasedSimilarityMeasureGradient();
 
-    if (this->measure_gpu_ssd != NULL)
+    if (this->measure_gpu_ssd != nullptr)
         this->measure_gpu_ssd->GetVoxelBasedSimilarityMeasureGradient();
 
-    if (this->measure_gpu_kld != NULL)
+    if (this->measure_gpu_kld != nullptr)
         this->measure_gpu_kld->GetVoxelBasedSimilarityMeasureGradient();
 
-    if (this->measure_gpu_lncc != NULL)
+    if (this->measure_gpu_lncc != nullptr)
         this->measure_gpu_lncc->GetVoxelBasedSimilarityMeasureGradient();
 
-    if (this->measure_gpu_dti != NULL)
+    if (this->measure_gpu_dti != nullptr)
         this->measure_gpu_dti->GetVoxelBasedSimilarityMeasureGradient();
 
 #ifndef NDEBUG
@@ -457,7 +453,7 @@ void reg_f3d_gpu::GetSimilarityMeasureGradient() {
                                      this->similarityWeight);
 
     /* The similarity measure gradient is converted from voxel space to real space */
-    mat44 *floatingMatrix_xyz = NULL;
+    mat44 *floatingMatrix_xyz = nullptr;
     if (this->currentFloating->sform_code > 0)
         floatingMatrix_xyz = &(this->currentFloating->sto_xyz);
     else floatingMatrix_xyz = &(this->currentFloating->qto_xyz);
@@ -469,7 +465,7 @@ void reg_f3d_gpu::GetSimilarityMeasureGradient() {
         reg_gaussianSmoothing_gpu(this->controlPointGrid,
                                   &this->transformationGradient_gpu,
                                   this->gradientSmoothingSigma,
-                                  NULL);
+                                  nullptr);
     }
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d_gpu::GetSimilarityMeasureGradient");
@@ -622,7 +618,7 @@ void reg_f3d_gpu::GetApproximatedGradient() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 nifti_image** reg_f3d_gpu::GetWarpedImage() {
     // The initial images are used
-    if (this->inputReference == NULL || this->inputFloating == NULL || this->controlPointGrid == NULL) {
+    if (this->inputReference == nullptr || this->inputFloating == nullptr || this->controlPointGrid == nullptr) {
         reg_print_fct_error("reg_f3d_gpu::GetWarpedImage()");
         reg_print_msg_error("The reference, floating and control point grid images have to be defined");
         reg_exit();
@@ -666,8 +662,8 @@ nifti_image** reg_f3d_gpu::GetWarpedImage() {
 float reg_f3d_gpu::InitialiseCurrentLevel() {
     float maxStepSize = reg_f3d::InitialiseCurrentLevel();
 
-    if (this->currentReference_gpu != NULL) cudaCommon_free(&this->currentReference_gpu);
-    if (this->currentReference2_gpu != NULL) cudaCommon_free(&this->currentReference2_gpu);
+    if (this->currentReference_gpu != nullptr) cudaCommon_free(&this->currentReference_gpu);
+    if (this->currentReference2_gpu != nullptr) cudaCommon_free(&this->currentReference2_gpu);
     if (this->currentReference->nt == 1) {
         if (cudaCommon_allocateArrayToDevice<float>(&this->currentReference_gpu, this->currentReference->dim)) {
             reg_print_fct_error("reg_f3d_gpu::InitialiseCurrentLevel()");
@@ -694,8 +690,8 @@ float reg_f3d_gpu::InitialiseCurrentLevel() {
         }
     }
 
-    if (this->currentFloating_gpu != NULL) cudaCommon_free(&this->currentFloating_gpu);
-    if (this->currentFloating2_gpu != NULL) cudaCommon_free(&this->currentFloating2_gpu);
+    if (this->currentFloating_gpu != nullptr) cudaCommon_free(&this->currentFloating_gpu);
+    if (this->currentFloating2_gpu != nullptr) cudaCommon_free(&this->currentFloating2_gpu);
     if (this->currentReference->nt == 1) {
         if (cudaCommon_allocateArrayToDevice<float>(&this->currentFloating_gpu, this->currentFloating->dim)) {
             reg_print_fct_error("reg_f3d_gpu::InitialiseCurrentLevel()");
@@ -722,7 +718,7 @@ float reg_f3d_gpu::InitialiseCurrentLevel() {
         }
     }
 
-    if (this->controlPointGrid_gpu != NULL) cudaCommon_free<float4>(&this->controlPointGrid_gpu);
+    if (this->controlPointGrid_gpu != nullptr) cudaCommon_free<float4>(&this->controlPointGrid_gpu);
     if (cudaCommon_allocateArrayToDevice<float4>(&this->controlPointGrid_gpu, this->controlPointGrid->dim)) {
         reg_print_fct_error("reg_f3d_gpu::InitialiseCurrentLevel()");
         reg_print_msg_error("Error when allocating the control point image");
@@ -762,20 +758,20 @@ void reg_f3d_gpu::ClearCurrentInputImage() {
         reg_exit();
     }
     cudaCommon_free<float4>(&this->controlPointGrid_gpu);
-    this->controlPointGrid_gpu = NULL;
+    this->controlPointGrid_gpu = nullptr;
     cudaCommon_free(&this->currentReference_gpu);
-    this->currentReference_gpu = NULL;
+    this->currentReference_gpu = nullptr;
     cudaCommon_free(&this->currentFloating_gpu);
-    this->currentFloating_gpu = NULL;
+    this->currentFloating_gpu = nullptr;
     NR_CUDA_SAFE_CALL(cudaFree(this->currentMask_gpu));
-    this->currentMask_gpu = NULL;
+    this->currentMask_gpu = nullptr;
 
-    if (this->currentReference2_gpu != NULL)
+    if (this->currentReference2_gpu != nullptr)
         cudaCommon_free(&this->currentReference2_gpu);
-    this->currentReference2_gpu = NULL;
-    if (this->currentFloating2_gpu != NULL)
+    this->currentReference2_gpu = nullptr;
+    if (this->currentFloating2_gpu != nullptr)
         cudaCommon_free(&this->currentFloating2_gpu);
-    this->currentFloating2_gpu = NULL;
+    this->currentFloating2_gpu = nullptr;
 
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d_gpu::ClearCurrentInputImage");
@@ -794,7 +790,7 @@ void reg_f3d_gpu::SetOptimiser() {
                                 this->optimiseX,
                                 this->optimiseY,
                                 this->optimiseZ,
-                                this->maxiterationNumber,
+                                this->maxIterationNumber,
                                 0, // currentIterationNumber,
                                 this,
                                 reinterpret_cast<float*>(this->controlPointGrid_gpu),
@@ -898,7 +894,7 @@ int reg_f3d_gpu::CheckMemoryMB() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber) {
-    if (this->measure_gpu_nmi == NULL)
+    if (this->measure_gpu_nmi == nullptr)
         this->measure_gpu_nmi = new reg_nmi_gpu;
     this->measure_gpu_nmi->SetTimepointWeight(timepoint, 1.0);
     // I am here adding 4 to the specified bin number to accomodate for
@@ -910,7 +906,7 @@ void reg_f3d_gpu::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber) {
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber) {
-    if (this->measure_gpu_nmi == NULL)
+    if (this->measure_gpu_nmi == nullptr)
         this->measure_gpu_nmi = new reg_nmi_gpu;
     this->measure_gpu_nmi->SetTimepointWeight(timepoint, 1.0);
     // I am here adding 4 to the specified bin number to accomodate for
@@ -922,7 +918,7 @@ void reg_f3d_gpu::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber) {
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::UseSSD(int timepoint) {
-    if (this->measure_gpu_ssd == NULL)
+    if (this->measure_gpu_ssd == nullptr)
         this->measure_gpu_ssd = new reg_ssd_gpu;
     this->measure_gpu_ssd->SetTimepointWeight(timepoint, 1.0);
 #ifndef NDEBUG
@@ -931,7 +927,7 @@ void reg_f3d_gpu::UseSSD(int timepoint) {
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::UseKLDivergence(int timepoint) {
-    if (this->measure_gpu_kld == NULL)
+    if (this->measure_gpu_kld == nullptr)
         this->measure_gpu_kld = new reg_kld_gpu;
     this->measure_gpu_kld->SetTimepointWeight(timepoint, 1.0);
 #ifndef NDEBUG
@@ -940,7 +936,7 @@ void reg_f3d_gpu::UseKLDivergence(int timepoint) {
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::UseLNCC(int timepoint, float stddev) {
-    if (this->measure_gpu_lncc == NULL)
+    if (this->measure_gpu_lncc == nullptr)
         this->measure_gpu_lncc = new reg_lncc_gpu;
     this->measure_gpu_lncc->SetTimepointWeight(timepoint, 1.0);
     this->measure_gpu_lncc->SetKernelStandardDeviation(timepoint, stddev);
@@ -953,7 +949,7 @@ void reg_f3d_gpu::UseDTI(int timepoint[6]) {
     reg_print_msg_error("The use of DTI has been deactivated as it requires some refactoring");
     reg_exit();
 
-    // if(this->measure_gpu_dti==NULL)
+    // if(this->measure_gpu_dti==nullptr)
     //    this->measure_gpu_dti=new reg_dti_gpu;
     // for(int i=0; i<6; ++i)
     //    this->measure_gpu_dti->SetActiveTimepoint(timepoint[i]);
@@ -962,16 +958,16 @@ void reg_f3d_gpu::UseDTI(int timepoint[6]) {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::InitialiseSimilarity() {
     // SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
-    if (this->measure_gpu_nmi == NULL &&
-        this->measure_gpu_ssd == NULL &&
-        this->measure_gpu_dti == NULL &&
-        this->measure_gpu_kld == NULL &&
-        this->measure_gpu_lncc == NULL) {
+    if (this->measure_gpu_nmi == nullptr &&
+        this->measure_gpu_ssd == nullptr &&
+        this->measure_gpu_dti == nullptr &&
+        this->measure_gpu_kld == nullptr &&
+        this->measure_gpu_lncc == nullptr) {
         measure_gpu_nmi = new reg_nmi_gpu;
         for (int i = 0; i < this->inputReference->nt; ++i)
             measure_gpu_nmi->SetTimepointWeight(i, 1.0);
     }
-    if (this->measure_gpu_nmi != NULL) {
+    if (this->measure_gpu_nmi != nullptr) {
         this->measure_gpu_nmi->InitialiseMeasure(this->currentReference,
                                                  this->currentFloating,
                                                  this->currentMask,
@@ -988,7 +984,7 @@ void reg_f3d_gpu::InitialiseSimilarity() {
         this->measure_nmi = this->measure_gpu_nmi;
     }
 
-    if (this->measure_gpu_ssd != NULL) {
+    if (this->measure_gpu_ssd != nullptr) {
         this->measure_gpu_ssd->InitialiseMeasure(this->currentReference,
                                                  this->currentFloating,
                                                  this->currentMask,
@@ -1006,7 +1002,7 @@ void reg_f3d_gpu::InitialiseSimilarity() {
         this->measure_ssd = this->measure_gpu_ssd;
     }
 
-    if (this->measure_gpu_kld != NULL) {
+    if (this->measure_gpu_kld != nullptr) {
         this->measure_gpu_kld->InitialiseMeasure(this->currentReference,
                                                  this->currentFloating,
                                                  this->currentMask,
@@ -1023,7 +1019,7 @@ void reg_f3d_gpu::InitialiseSimilarity() {
         this->measure_kld = this->measure_gpu_kld;
     }
 
-    if (this->measure_gpu_lncc != NULL) {
+    if (this->measure_gpu_lncc != nullptr) {
         this->measure_gpu_lncc->InitialiseMeasure(this->currentReference,
                                                   this->currentFloating,
                                                   this->currentMask,
@@ -1040,7 +1036,7 @@ void reg_f3d_gpu::InitialiseSimilarity() {
         this->measure_lncc = this->measure_gpu_lncc;
     }
 
-    if (this->measure_gpu_dti != NULL) {
+    if (this->measure_gpu_dti != nullptr) {
         this->measure_gpu_dti->InitialiseMeasure(this->currentReference,
                                                  this->currentFloating,
                                                  this->currentMask,
@@ -1062,4 +1058,3 @@ void reg_f3d_gpu::InitialiseSimilarity() {
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-#endif

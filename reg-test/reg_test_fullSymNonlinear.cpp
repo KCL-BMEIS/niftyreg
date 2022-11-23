@@ -21,14 +21,14 @@ int main(int argc, char **argv)
 
    // Read the input reference image
    nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
-   if(referenceImage==NULL){
+   if(referenceImage==nullptr){
       reg_print_msg_error("The input reference image could not be read");
       return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(referenceImage);
    // Read the input reference image
    nifti_image *floatingImage = reg_io_ReadImageFile(inputFloImageName);
-   if(floatingImage==NULL){
+   if(floatingImage==nullptr){
       reg_print_msg_error("The input floating image could not be read");
       return EXIT_FAILURE;
    }
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
    reg_tool_ReadAffineFile(inputMatrix, inputMatFileName);
    // Read the input control point grid image
    nifti_image *inputControlPointGridImage = reg_io_ReadImageFile(inputControlPointGridFileName);
-   if(inputControlPointGridImage==NULL){
+   if(inputControlPointGridImage==nullptr){
       reg_print_msg_error("The input control point grid image could not be read");
       return EXIT_FAILURE;
    }
@@ -83,4 +83,3 @@ int main(int argc, char **argv)
 
    return EXIT_SUCCESS;
 }
-

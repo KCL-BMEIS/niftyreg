@@ -9,8 +9,7 @@
                 TIME_SERIES, NODE_INDEX, RGB_VECTOR, RGBA_VECTOR, SHAPE
  */
 
-#ifndef _NIFTI_HEADER_
-#define _NIFTI_HEADER_
+#pragma once
 
 /*****************************************************************************
       ** This file defines the "NIFTI-1" header format.               **
@@ -1504,5 +1503,3 @@ extern "C" {
 }
 #endif
 /*=================*/
-
-#endif /* _NIFTI_HEADER_ */

@@ -1,17 +1,14 @@
-#ifndef OPTIMISEKERNEL_H
-#define OPTIMISEKERNEL_H
+#pragma once
 
 #include "Kernel.h"
 
 class OptimiseKernel : public Kernel{
 public:
-    static std::string getName() {
+    static std::string GetName() {
         return "OptimiseKernel";
     }
     OptimiseKernel(std::string name) : Kernel(name) {
     }
     virtual ~OptimiseKernel(){}
-    virtual void calculate(bool affine) = 0;
+    virtual void Calculate(bool affine) = 0;
 };
-
-#endif // OPTIMISEKERNEL_H

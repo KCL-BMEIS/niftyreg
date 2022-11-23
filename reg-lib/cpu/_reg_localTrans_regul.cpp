@@ -1947,7 +1947,7 @@ double reg_spline_getLandmarkDistance_core(nifti_image *controlPointImage,
       gridRealToVox = &(controlPointImage->sto_ijk);
    DTYPE *gridPtrX = static_cast<DTYPE *>(controlPointImage->data);
    DTYPE *gridPtrY = &gridPtrX[controlPointNumber];
-   DTYPE *gridPtrZ=NULL;
+   DTYPE *gridPtrZ=nullptr;
    if(imageDim>2)
       gridPtrZ = &gridPtrY[controlPointNumber];
 
@@ -2080,8 +2080,8 @@ void reg_spline_getLandmarkDistanceGradient_core(nifti_image *controlPointImage,
    DTYPE *gradPtrX = static_cast<DTYPE *>(gradientImage->data);
    DTYPE *gridPtrY = &gridPtrX[controlPointNumber];
    DTYPE *gradPtrY = &gradPtrX[controlPointNumber];
-   DTYPE *gridPtrZ=NULL;
-   DTYPE *gradPtrZ=NULL;
+   DTYPE *gridPtrZ=nullptr;
+   DTYPE *gradPtrZ=nullptr;
    if(imageDim>2){
       gridPtrZ = &gridPtrY[controlPointNumber];
       gradPtrZ = &gradPtrY[controlPointNumber];

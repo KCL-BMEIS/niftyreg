@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_THINPLATESPLINE_H
-#define _REG_THINPLATESPLINE_H
+#pragma once
 
 #include "_reg_maths.h"
 
@@ -48,5 +47,3 @@ public:
 
 
 #include "_reg_thinPlateSpline.cpp"
-
-#endif // _REG_THINPLATESPLINE_H

@@ -368,8 +368,7 @@
  *       PNG Development Group
  */
 
-#ifndef PNG_H
-#define PNG_H
+#pragma once
 
 /* This is not the place to learn how to use libpng. The file libpng-manual.txt
  * describes how to use libpng, and the file example.c summarizes it
@@ -2663,4 +2662,3 @@ extern "C" {
 
 #endif /* PNG_VERSION_INFO_ONLY */
 /* Do not put anything past this line */
-#endif /* PNG_H */

@@ -1,6 +1,3 @@
-#ifndef _REG_CUDAINFO_H
-#define _REG_CUDAINFO_H
+#pragma once
 
 void showCUDAInfo(void);
-
-#endif

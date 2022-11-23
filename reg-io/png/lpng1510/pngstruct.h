@@ -18,8 +18,8 @@
  * It should NOT be accessed directly by an application.
  */
 
-#ifndef PNGSTRUCT_H
-#define PNGSTRUCT_H
+#pragma once
+
 /* zlib.h defines the structure z_stream, an instance of which is included
  * in this structure and is required for decompressing the LZ compressed
  * data in PNG files.
@@ -354,4 +354,3 @@ struct png_struct_def
    void (*read_filter[PNG_FILTER_VALUE_LAST-1])(png_row_infop row_info,
          png_bytep row, png_const_bytep prev_row);
 };
-#endif /* PNGSTRUCT_H */

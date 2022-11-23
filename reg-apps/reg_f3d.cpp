@@ -156,7 +156,7 @@ void Usage(char *exec)
    reg_print_info(exec, "");
    reg_print_info(exec, "*** OpenMP-related options:");
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
            defaultOpenMPValue, omp_get_num_procs());
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 #if defined (_OPENMP)
    // Set the default number of thread
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -255,14 +255,14 @@ int main(int argc, char **argv)
 
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Read the reference and floating image
-   nifti_image *referenceImage=NULL;
-   nifti_image *floatingImage=NULL;
+   nifti_image *referenceImage=nullptr;
+   nifti_image *floatingImage=nullptr;
    for(int i=1; i<argc; i++)
    {
       if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) || (strcmp(argv[i],"--ref")==0))
       {
          referenceImage=reg_io_ReadImageFile(argv[++i]);
-         if(referenceImage==NULL)
+         if(referenceImage==nullptr)
          {
             reg_print_msg_error("Error when reading the reference image:");
             reg_print_msg_error(argv[i-1]);
@@ -272,7 +272,7 @@ int main(int argc, char **argv)
       if((strcmp(argv[i],"-flo")==0) || (strcmp(argv[i],"-source")==0) || (strcmp(argv[i],"--flo")==0))
       {
          floatingImage=reg_io_ReadImageFile(argv[++i]);
-         if(floatingImage==NULL)
+         if(floatingImage==nullptr)
          {
             reg_print_msg_error("Error when reading the floating image:");
             reg_print_msg_error(argv[i-1]);
@@ -281,14 +281,14 @@ int main(int argc, char **argv)
       }
    }
    // Check that both reference and floating image have been defined
-   if(referenceImage==NULL)
+   if(referenceImage==nullptr)
    {
       reg_print_msg_error("Error. No reference image has been defined");
       PetitUsage((argv[0]));
       return EXIT_FAILURE;
    }
    // Read the floating image
-   if(floatingImage==NULL)
+   if(floatingImage==nullptr)
    {
       reg_print_msg_error("Error. No floating image has been defined");
       PetitUsage((argv[0]));
@@ -299,9 +299,9 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    CUcontext ctx;
 #endif // _USE_CUDA
-   reg_f3d<float> *REG=NULL;
-   float *referenceLandmark=NULL;
-   float *floatingLandmark=NULL;
+   reg_f3d<float> *REG=nullptr;
+   float *referenceLandmark=nullptr;
+   float *floatingLandmark=nullptr;
    for(int i=1; i<argc; i++)
    {
       if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0)
@@ -326,19 +326,19 @@ int main(int argc, char **argv)
       }
 #endif // _USE_CUDA
    }
-   if(REG==NULL)
+   if(REG==nullptr)
       REG=new reg_f3d<float>(referenceImage->nt,floatingImage->nt);
    REG->SetReferenceImage(referenceImage);
    REG->SetFloatingImage(floatingImage);
 
    // Create some pointers that could be used
    mat44 affineMatrix;
-   nifti_image *inputCCPImage=NULL;
-   nifti_image *referenceMaskImage=NULL;
-   nifti_image *floatingMaskImage=NULL;
-   nifti_image *refLocalWeightSim=NULL;
-   char *outputWarpedImageName=NULL;
-   char *outputCPPImageName=NULL;
+   nifti_image *inputCCPImage=nullptr;
+   nifti_image *referenceMaskImage=nullptr;
+   nifti_image *floatingMaskImage=nullptr;
+   nifti_image *refLocalWeightSim=nullptr;
+   char *outputWarpedImageName=nullptr;
+   char *outputCPPImageName=nullptr;
    bool useMeanLNCC=false;
    int refBinNumber=0;
    int floBinNumber=0;
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-incpp")==0 || (strcmp(argv[i],"--incpp")==0))
       {
          inputCCPImage=reg_io_ReadImageFile(argv[++i]);
-         if(inputCCPImage==NULL)
+         if(inputCCPImage==nullptr)
          {
             reg_print_msg_error("Error when reading the input control point grid image:");
             reg_print_msg_error(argv[i-1]);
@@ -392,7 +392,7 @@ int main(int argc, char **argv)
       else if((strcmp(argv[i],"-rmask")==0) || (strcmp(argv[i],"-tmask")==0) || (strcmp(argv[i],"--rmask")==0))
       {
          referenceMaskImage=reg_io_ReadImageFile(argv[++i]);
-         if(referenceMaskImage==NULL)
+         if(referenceMaskImage==nullptr)
          {
             reg_print_msg_error("Error when reading the reference mask image:");
             reg_print_msg_error(argv[i-1]);
@@ -744,7 +744,7 @@ int main(int argc, char **argv)
          switch(interp)
          {
          case 0:
-            REG->UseNeareatNeighborInterpolation();
+            REG->UseNearestNeighborInterpolation();
             break;
          case 1:
             REG->UseLinearInterpolation();
@@ -758,7 +758,7 @@ int main(int argc, char **argv)
               (strcmp(argv[i],"--fmask")==0) || (strcmp(argv[i],"--smask")==0))
       {
          floatingMaskImage=reg_io_ReadImageFile(argv[++i]);
-         if(floatingMaskImage==NULL)
+         if(floatingMaskImage==nullptr)
          {
             reg_print_msg_error("Error when reading the floating mask image:");
             reg_print_msg_error(argv[i-1]);
@@ -851,14 +851,14 @@ int main(int argc, char **argv)
 
    // Save the control point image
    nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
-   if(outputCPPImageName==NULL) outputCPPImageName=(char *)"outputCPP.nii";
+   if(outputCPPImageName==nullptr) outputCPPImageName=(char *)"outputCPP.nii";
    memset(outputControlPointGridImage->descrip, 0, 80);
    strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
    if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
       strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
    reg_io_WriteImageFile(outputControlPointGridImage,outputCPPImageName);
    nifti_image_free(outputControlPointGridImage);
-   outputControlPointGridImage=NULL;
+   outputControlPointGridImage=nullptr;
 
    // Save the backward control point image
    if(REG->GetSymmetricStatus())
@@ -887,12 +887,12 @@ int main(int argc, char **argv)
          strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
       reg_io_WriteImageFile(outputBackwardControlPointGridImage,b.c_str());
       nifti_image_free(outputBackwardControlPointGridImage);
-      outputBackwardControlPointGridImage=NULL;
+      outputBackwardControlPointGridImage=nullptr;
    }
 
    // Save the warped image(s)
    nifti_image **outputWarpedImage = REG->GetWarpedImage();
-   if(outputWarpedImageName==NULL)
+   if(outputWarpedImageName==nullptr)
       outputWarpedImageName=(char *)"outputResult.nii";
    memset(outputWarpedImage[0]->descrip, 0, 80);
    strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d)");
@@ -903,7 +903,7 @@ int main(int argc, char **argv)
    }
    if(REG->GetSymmetricStatus())
    {
-      if(outputWarpedImage[1]!=NULL)
+      if(outputWarpedImage[1]!=nullptr)
       {
          std::string b(outputWarpedImageName);
          if(b.find( ".nii.gz") != std::string::npos)
@@ -925,14 +925,14 @@ int main(int argc, char **argv)
       }
    }
    reg_io_WriteImageFile(outputWarpedImage[0],outputWarpedImageName);
-   if(outputWarpedImage[0]!=NULL)
+   if(outputWarpedImage[0]!=nullptr)
       nifti_image_free(outputWarpedImage[0]);
-   outputWarpedImage[0]=NULL;
-   if(outputWarpedImage[1]!=NULL)
+   outputWarpedImage[0]=nullptr;
+   if(outputWarpedImage[1]!=nullptr)
       nifti_image_free(outputWarpedImage[1]);
-   outputWarpedImage[1]=NULL;
+   outputWarpedImage[1]=nullptr;
    free(outputWarpedImage);
-   outputWarpedImage=NULL;
+   outputWarpedImage=nullptr;
    // Free the allocated landmarks if used
    free(referenceLandmark);
    free(floatingLandmark);
@@ -945,12 +945,12 @@ int main(int argc, char **argv)
 #endif
 
    // Clean the allocated images
-   if(refLocalWeightSim!=NULL) nifti_image_free(refLocalWeightSim);
-   if(referenceImage!=NULL) nifti_image_free(referenceImage);
-   if(floatingImage!=NULL) nifti_image_free(floatingImage);
-   if(inputCCPImage!=NULL) nifti_image_free(inputCCPImage);
-   if(referenceMaskImage!=NULL) nifti_image_free(referenceMaskImage);
-   if(floatingMaskImage!=NULL) nifti_image_free(floatingMaskImage);
+   if(refLocalWeightSim!=nullptr) nifti_image_free(refLocalWeightSim);
+   if(referenceImage!=nullptr) nifti_image_free(referenceImage);
+   if(floatingImage!=nullptr) nifti_image_free(floatingImage);
+   if(inputCCPImage!=nullptr) nifti_image_free(inputCCPImage);
+   if(referenceMaskImage!=nullptr) nifti_image_free(referenceMaskImage);
+   if(floatingMaskImage!=nullptr) nifti_image_free(floatingMaskImage);
 
 #ifdef NDEBUG
    if(verbose)

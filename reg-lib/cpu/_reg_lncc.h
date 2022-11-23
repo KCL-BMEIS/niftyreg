@@ -10,8 +10,7 @@
  * See the LICENSE.txt file in the nifty_reg root folder
  */
 
-#ifndef _REG_LNCC_H
-#define _REG_LNCC_H
+#pragma once
 
 #include "_reg_measure.h"
 
@@ -31,11 +30,11 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
-                          nifti_image *forwardLocalWeightPtr = NULL,
-                          int *maskFloPtr = NULL,
-                          nifti_image *warRefImgPtr = NULL,
-                          nifti_image *warRefGraPtr = NULL,
-                          nifti_image *bckVoxBasedGraPtr = NULL);
+                          nifti_image *forwardLocalWeightPtr = nullptr,
+                          int *maskFloPtr = nullptr,
+                          nifti_image *warRefImgPtr = nullptr,
+                          nifti_image *warRefGraPtr = nullptr,
+                          nifti_image *bckVoxBasedGraPtr = nullptr);
    /// @brief Returns the lncc value
    double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based lncc gradient
@@ -87,7 +86,7 @@ protected:
  * @param gaussianStandardDeviation Standard deviation of the Gaussian kernel
  * to use.
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to NULL, all voxels are considered
+ * should be considered. If set to nullptr, all voxels are considered
  * @return Returns the computed LNCC
  */
 extern "C++" template<class DTYPE>
@@ -112,7 +111,7 @@ double reg_getLNCCValue(nifti_image *referenceImage,
  *  @param gaussianStandardDeviation Standard deviation of the Gaussian kernel
  *  to use.
  *  @param mask Array that contains a mask to specify which voxel
- *  should be considered. If set to NULL, all voxels are considered
+ *  should be considered. If set to nullptr, all voxels are considered
  */
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
@@ -129,5 +128,3 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    int kernelType,
                                    int current_timepoint,
                            double timepoint_weight);
-#endif
-

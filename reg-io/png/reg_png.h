@@ -12,8 +12,7 @@
  *
  */
 
-#ifndef _REG_PNG_H
-#define _REG_PNG_H
+#pragma once
 
 #include "nifti1_io.h"
 #include "_reg_tools.h"
@@ -36,5 +35,3 @@ nifti_image *reg_io_readPNGfile(const char *filename, bool readData);
   */
 void reg_io_writePNGfile(nifti_image *image, const char *filename);
 /* *************************************************************** */
-
-#endif

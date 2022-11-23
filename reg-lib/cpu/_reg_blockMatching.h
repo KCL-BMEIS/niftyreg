@@ -12,8 +12,7 @@
  *
  */
 
-#ifndef __REG_BLOCKMATCHING_H__
-#define __REG_BLOCKMATCHING_H__
+#pragma once
 
 #include "_reg_maths.h"
 #include <vector>
@@ -123,4 +122,3 @@ void block_matching_method(nifti_image * referenceImage,
 void optimize(_reg_blockMatchingParam *params,
               mat44 * transformation_matrix,
               bool affine = true);
-#endif

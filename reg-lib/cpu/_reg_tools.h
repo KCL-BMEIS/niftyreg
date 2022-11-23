@@ -12,8 +12,7 @@
  *
  */
 
-#ifndef _REG_TOOLS_H
-#define _REG_TOOLS_H
+#pragma once
 
 #include <fstream>
 #include <map>
@@ -91,9 +90,9 @@ extern "C++"
 void reg_tools_kernelConvolution(nifti_image *image,
                                  float *sigma,
                                  int kernelType,
-                                 int *mask = NULL,
-                                 bool *timePoints = NULL,
-                                 bool *axis = NULL);
+                                 int *mask = nullptr,
+                                 bool *timePoints = nullptr,
+                                 bool *axis = nullptr);
 
 /* *************************************************************** */
 /** @brief Smooth a label image using a Gaussian kernel
@@ -110,8 +109,8 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
                                       float varianceX,
                                       float varianceY,
                                       float varianceZ,
-                                      int *mask=NULL,
-                                      bool *timePoint=NULL);
+                                      int *mask=nullptr,
+                                      bool *timePoint=nullptr);
 
 
 /* *************************************************************** */
@@ -464,4 +463,3 @@ void cPtrToMatmn(T** mat, T* cMat, unsigned int m, unsigned int n);
 /* *************************************************************** */
 void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int &x, int &y, int &z);
 /* *************************************************************** */
-#endif

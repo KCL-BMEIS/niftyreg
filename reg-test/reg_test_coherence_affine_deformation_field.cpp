@@ -9,7 +9,7 @@
 
 #include "AladinContent.h"
 #ifdef _USE_CUDA
-#include "CUDAAladinContent.h"
+#include "CudaAladinContent.h"
 #endif
 
 #ifdef _USE_OPENCL
@@ -23,8 +23,8 @@ void test(AladinContent *con, int platformCode) {
 
     Platform *platform = new Platform(platformCode);
 
-    Kernel *affineDeformKernel = platform->createKernel(AffineDeformationFieldKernel::getName(), con);
-    affineDeformKernel->castTo<AffineDeformationFieldKernel>()->calculate();
+    Kernel *affineDeformKernel = platform->CreateKernel(AffineDeformationFieldKernel::GetName(), con);
+    affineDeformKernel->castTo<AffineDeformationFieldKernel>()->Calculate();
 
     delete affineDeformKernel;
     delete platform;
@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 
     // Read the input reference image
     nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
-    if (referenceImage == NULL) {
+    if (referenceImage == nullptr) {
         reg_print_msg_error("The input reference image could not be read");
         return EXIT_FAILURE;
     }
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
     // Read the input deformation field image image
     nifti_image *inputDeformationField = reg_io_ReadImageFile(inputDefImageName);
-    if (inputDeformationField == NULL){
+    if (inputDeformationField == nullptr){
         reg_print_msg_error("The input deformation field image could not be read");
         return EXIT_FAILURE;
     }
@@ -75,16 +75,16 @@ int main(int argc, char **argv)
     test_field_gpu->data = (void *) malloc(test_field_gpu->nvox*test_field_gpu->nbyper);
 
     // Compute the affine deformation field
-    AladinContent *con_cpu = new AladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
-    AladinContent *con_gpu = NULL;
+    AladinContent *con_cpu = new AladinContent(referenceImage, nullptr, nullptr, inputMatrix, sizeof(float));
+    AladinContent *con_gpu = nullptr;
 #ifdef _USE_CUDA
     if (platformCode == NR_PLATFORM_CUDA) {
-        con_gpu = new CudaAladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+        con_gpu = new CudaAladinContent(referenceImage, nullptr, nullptr, inputMatrix, sizeof(float));
     }
 #endif
 #ifdef _USE_OPENCL
     if (platformCode == NR_PLATFORM_CL) {
-        con_gpu = new ClAladinContent(referenceImage, NULL, NULL, inputMatrix, sizeof(float));
+        con_gpu = new ClAladinContent(referenceImage, nullptr, nullptr, inputMatrix, sizeof(float));
     }
 #endif
     if(platformCode!=NR_PLATFORM_CUDA && platformCode!=NR_PLATFORM_CL){
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
        return EXIT_FAILURE;
     }
     //Check if the platform used is double capable
-    bool isDouble = con_gpu->isCurrentComputationDoubleCapable();
+    bool isDouble = con_gpu->IsCurrentComputationDoubleCapable();
     double proper_eps = EPS;
     if(isDouble == 0) {
         proper_eps = EPS_SINGLE;
@@ -101,17 +101,17 @@ int main(int argc, char **argv)
     //CPU or GPU code
     reg_tools_changeDatatype<float>(referenceImage);
     test(con_cpu, NR_PLATFORM_CPU);
-    test_field_cpu = con_cpu->getCurrentDeformationField();
+    test_field_cpu = con_cpu->GetCurrentDeformationField();
 
     test(con_gpu, NR_PLATFORM_CPU);
-    test_field_gpu = con_gpu->getCurrentDeformationField();
+    test_field_gpu = con_gpu->GetCurrentDeformationField();
 
     // Compute the difference between the computed and inputed deformation field
     nifti_image *diff_field = nifti_copy_nim_info(inputDeformationField);
     diff_field->data = (void *) malloc(diff_field->nvox*diff_field->nbyper);
     reg_tools_substractImageToImage(inputDeformationField, test_field_cpu, diff_field);
     reg_tools_abs_image(diff_field);
-    double max_difference = reg_tools_getMaxValue(diff_field, -1);
+    double max_difference = reg_tools_GetMaxValue(diff_field, -1);
 
     nifti_image_free(referenceImage);
     nifti_image_free(inputDeformationField);
@@ -132,5 +132,3 @@ int main(int argc, char **argv)
 
     return EXIT_SUCCESS;
 }
-
-

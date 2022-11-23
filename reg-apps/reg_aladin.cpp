@@ -98,7 +98,7 @@ void Usage(char *exec)
 //   reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
 #if defined (_OPENMP)
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
           defaultOpenMPValue, omp_get_num_procs());
@@ -129,25 +129,25 @@ int main(int argc, char **argv)
 
    int symFlag=1;
 
-   char *referenceImageName=NULL;
+   char *referenceImageName=nullptr;
    int referenceImageFlag=0;
 
-   char *floatingImageName=NULL;
+   char *floatingImageName=nullptr;
    int floatingImageFlag=0;
 
-   char *outputAffineName=NULL;
+   char *outputAffineName=nullptr;
    int outputAffineFlag=0;
 
-   char *inputAffineName=NULL;
+   char *inputAffineName=nullptr;
    int inputAffineFlag=0;
 
-   char *referenceMaskName=NULL;
+   char *referenceMaskName=nullptr;
    int referenceMaskFlag=0;
 
-   char *floatingMaskName=NULL;
+   char *floatingMaskName=nullptr;
    int floatingMaskFlag=0;
 
-   char *outputResultName=NULL;
+   char *outputResultName=nullptr;
    int outputResultFlag=0;
 
    int maxIter=5;
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
 #if defined (_OPENMP)
    // Set the default number of thread
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -445,7 +445,7 @@ int main(int argc, char **argv)
 
    /* Read the reference image and check its dimension */
    nifti_image *referenceHeader = reg_io_ReadImageFile(referenceImageName);
-   if(referenceHeader == NULL)
+   if(referenceHeader == nullptr)
    {
       sprintf(text,"Error when reading the reference image: %s", referenceImageName);
       reg_print_msg_error(text);
@@ -454,7 +454,7 @@ int main(int argc, char **argv)
 
    /* Read the floating image and check its dimension */
    nifti_image *floatingHeader = reg_io_ReadImageFile(floatingImageName);
-   if(floatingHeader == NULL)
+   if(floatingHeader == nullptr)
    {
       sprintf(text,"Error when reading the floating image: %s", floatingImageName);
       reg_print_msg_error(text);
@@ -462,8 +462,8 @@ int main(int argc, char **argv)
    }
 
    // Set the reference and floating images
-   nifti_image *isoRefImage=NULL;
-   nifti_image *isoFloImage=NULL;
+   nifti_image *isoRefImage=nullptr;
+   nifti_image *isoFloImage=nullptr;
    if(iso)
    {
       // make the images isotropic if required
@@ -479,12 +479,12 @@ int main(int argc, char **argv)
    }
 
    /* read the reference mask image */
-   nifti_image *referenceMaskImage=NULL;
-   nifti_image *isoRefMaskImage=NULL;
+   nifti_image *referenceMaskImage=nullptr;
+   nifti_image *isoRefMaskImage=nullptr;
    if(referenceMaskFlag)
    {
       referenceMaskImage = reg_io_ReadImageFile(referenceMaskName);
-      if(referenceMaskImage == NULL)
+      if(referenceMaskImage == nullptr)
       {
          sprintf(text,"Error when reading the reference mask image: %s", referenceMaskName);
          reg_print_msg_error(text);
@@ -508,12 +508,12 @@ int main(int argc, char **argv)
       else REG->SetInputMask(referenceMaskImage);
    }
    /* Read the floating mask image */
-   nifti_image *floatingMaskImage=NULL;
-   nifti_image *isoFloMaskImage=NULL;
+   nifti_image *floatingMaskImage=nullptr;
+   nifti_image *isoFloMaskImage=nullptr;
    if(floatingMaskFlag && symFlag)
    {
       floatingMaskImage = reg_io_ReadImageFile(floatingMaskName);
-      if(floatingMaskImage == NULL)
+      if(floatingMaskImage == nullptr)
       {
          sprintf(text,"Error when reading the floating mask image: %s", floatingMaskName);
          reg_print_msg_error(text);
@@ -550,9 +550,9 @@ int main(int argc, char **argv)
    REG->SetBlockPercentage(blockPercentage);
    REG->SetInlierLts(inlierLts);
    REG->SetInterpolation(interpolation);
-   REG->setCaptureRangeVox(captureRangeVox);
-   REG->setPlatformCode(platformFlag);
-   REG->setGpuIdx(gpuIdx);
+   REG->SetCaptureRangeVox(captureRangeVox);
+   REG->SetPlatformCode(platformFlag);
+   REG->SetGpuIdx(gpuIdx);
 
    if (referenceLowerThr != referenceUpperThr)
    {
@@ -618,17 +618,17 @@ int main(int argc, char **argv)
 
    nifti_image_free(referenceHeader);
    nifti_image_free(floatingHeader);
-   if(isoRefImage!=NULL)
+   if(isoRefImage!=nullptr)
       nifti_image_free(isoRefImage);
-   if(isoFloImage!=NULL)
+   if(isoFloImage!=nullptr)
       nifti_image_free(isoFloImage);
-   if(referenceMaskImage!=NULL)
+   if(referenceMaskImage!=nullptr)
       nifti_image_free(referenceMaskImage);
-   if(floatingMaskImage!=NULL)
+   if(floatingMaskImage!=nullptr)
       nifti_image_free(floatingMaskImage);
-   if(isoRefMaskImage!=NULL)
+   if(isoRefMaskImage!=nullptr)
       nifti_image_free(isoRefMaskImage);
-   if(isoFloMaskImage!=NULL)
+   if(isoFloMaskImage!=nullptr)
       nifti_image_free(isoFloMaskImage);
 
    delete REG;

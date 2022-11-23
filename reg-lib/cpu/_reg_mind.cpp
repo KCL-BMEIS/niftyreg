@@ -169,7 +169,7 @@ void GetMINDImageDesciptor_core(nifti_image* inputImage,
    nifti_image_free(diff_image);
    nifti_image_free(shiftedImage);
    nifti_image_free(meanImage);
-   currentInputImage->data=NULL;
+   currentInputImage->data=nullptr;
    nifti_image_free(currentInputImage);
 }
 /* *************************************************************** */
@@ -331,7 +331,7 @@ void GetMINDSSCImageDesciptor_core(nifti_image* inputImage,
    nifti_image_free(diff_image);
    nifti_image_free(shiftedImage);
    nifti_image_free(mean_img);
-   currentInputImage->data=NULL;
+   currentInputImage->data=nullptr;
    nifti_image_free(currentInputImage);
 }
 /* *************************************************************** */
@@ -369,10 +369,10 @@ reg_mind::reg_mind()
    : reg_ssd()
 {
    memset(this->timePointWeightDescriptor,0,255*sizeof(double) );
-   this->referenceImageDescriptor=NULL;
-   this->floatingImageDescriptor=NULL;
-   this->warpedFloatingImageDescriptor=NULL;
-   this->warpedReferenceImageDescriptor=NULL;
+   this->referenceImageDescriptor=nullptr;
+   this->floatingImageDescriptor=nullptr;
+   this->warpedFloatingImageDescriptor=nullptr;
+   this->warpedReferenceImageDescriptor=nullptr;
    this->mind_type=MIND_TYPE;
    this->descriptorOffset=1;
 #ifndef NDEBUG
@@ -391,21 +391,21 @@ int reg_mind::GetDescriptorOffset()
 }
 /* *************************************************************** */
 reg_mind::~reg_mind() {
-   if(this->referenceImageDescriptor != NULL)
+   if(this->referenceImageDescriptor != nullptr)
       nifti_image_free(this->referenceImageDescriptor);
-   this->referenceImageDescriptor = NULL;
+   this->referenceImageDescriptor = nullptr;
 
-   if(this->warpedFloatingImageDescriptor != NULL)
+   if(this->warpedFloatingImageDescriptor != nullptr)
       nifti_image_free(this->warpedFloatingImageDescriptor);
-   this->warpedFloatingImageDescriptor = NULL;
+   this->warpedFloatingImageDescriptor = nullptr;
 
-   if(this->floatingImageDescriptor != NULL)
+   if(this->floatingImageDescriptor != nullptr)
       nifti_image_free(this->floatingImageDescriptor);
-   this->floatingImageDescriptor = NULL;
+   this->floatingImageDescriptor = nullptr;
 
-   if(this->warpedReferenceImageDescriptor != NULL)
+   if(this->warpedReferenceImageDescriptor != nullptr)
       nifti_image_free(this->warpedReferenceImageDescriptor);
-   this->warpedReferenceImageDescriptor = NULL;
+   this->warpedReferenceImageDescriptor = nullptr;
 }
 /* *************************************************************** */
 void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
@@ -548,10 +548,10 @@ double reg_mind::GetSimilarityMeasureValue()
                   (this->referenceImageDescriptor,
                    this->warpedFloatingImageDescriptor,
                    this->timePointWeightDescriptor,
-                   NULL, // HERE TODO this->forwardJacDetImagePointer,
+                   nullptr, // HERE TODO this->forwardJacDetImagePointer,
                    combinedMask,
                    this->currentValue,
-                   NULL
+                   nullptr
                    );
             break;
          case NIFTI_TYPE_FLOAT64:
@@ -559,10 +559,10 @@ double reg_mind::GetSimilarityMeasureValue()
                   (this->referenceImageDescriptor,
                    this->warpedFloatingImageDescriptor,
                    this->timePointWeightDescriptor,
-                   NULL, // HERE TODO this->forwardJacDetImagePointer,
+                   nullptr, // HERE TODO this->forwardJacDetImagePointer,
                    combinedMask,
                    this->currentValue,
-                   NULL
+                   nullptr
                    );
             break;
          default:
@@ -614,10 +614,10 @@ double reg_mind::GetSimilarityMeasureValue()
                      (this->floatingImageDescriptor,
                       this->warpedReferenceImageDescriptor,
                       this->timePointWeightDescriptor,
-                      NULL, // HERE TODO this->backwardJacDetImagePointer,
+                      nullptr, // HERE TODO this->backwardJacDetImagePointer,
                       combinedMask,
                       this->currentValue,
-                      NULL
+                      nullptr
                       );
                break;
             case NIFTI_TYPE_FLOAT64:
@@ -625,10 +625,10 @@ double reg_mind::GetSimilarityMeasureValue()
                      (this->floatingImageDescriptor,
                       this->warpedReferenceImageDescriptor,
                       this->timePointWeightDescriptor,
-                      NULL, // HERE TODO this->backwardJacDetImagePointer,
+                      nullptr, // HERE TODO this->backwardJacDetImagePointer,
                       combinedMask,
                       this->currentValue,
-                      NULL
+                      nullptr
                       );
                break;
             default:
@@ -706,11 +706,11 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 this->warpedFloatingImageDescriptor,
                 this->warpedFloatingGradientImagePointer,
                 this->forwardVoxelBasedGradientImagePointer,
-                NULL, // no Jacobian required here,
+                nullptr, // no Jacobian required here,
                 combinedMask,
                 desc_index,
                 1.0, //all discriptors given weight of 1
-                NULL
+                nullptr
                 );
          break;
       case NIFTI_TYPE_FLOAT64:
@@ -719,11 +719,11 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 this->warpedFloatingImageDescriptor,
                 this->warpedFloatingGradientImagePointer,
                 this->forwardVoxelBasedGradientImagePointer,
-                NULL, // no Jacobian required here,
+                nullptr, // no Jacobian required here,
                 combinedMask,
                 desc_index,
                 1.0, //all discriptors given weight of 1
-                NULL
+                nullptr
                 );
          break;
       default:
@@ -785,11 +785,11 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                    this->warpedReferenceImageDescriptor,
                    this->warpedReferenceGradientImagePointer,
                    this->backwardVoxelBasedGradientImagePointer,
-                   NULL, // no Jacobian required here,
+                   nullptr, // no Jacobian required here,
                    combinedMask,
                    desc_index,
                    1.0, //all discriptors given weight of 1
-                   NULL
+                   nullptr
                    );
             break;
          case NIFTI_TYPE_FLOAT64:
@@ -798,11 +798,11 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                    this->warpedReferenceImageDescriptor,
                    this->warpedReferenceGradientImagePointer,
                    this->backwardVoxelBasedGradientImagePointer,
-                   NULL, // no Jacobian required here,
+                   nullptr, // no Jacobian required here,
                    combinedMask,
                    desc_index,
                    1.0, //all discriptors given weight of 1
-                   NULL
+                   nullptr
                    );
             break;
          default:

@@ -7,8 +7,7 @@
  * See the LICENSE.txt file in the nifty_reg root folder
  */
 
-#ifndef _REG_BLOCKSIZE_GPU_H
-#define _REG_BLOCKSIZE_GPU_H
+#pragma once
 
 #include "nifti1_io.h"
 #include "cuda_runtime.h"
@@ -168,7 +167,7 @@ public:
 class NiftyReg_CudaBlock
 {
 public:
-   static NiftyReg_CudaBlock100 * getInstance(int major)
+   static NiftyReg_CudaBlock100 * GetInstance(int major)
    {
      if (instance) return instance;
      else
@@ -193,5 +192,3 @@ private:
 };
 /* ******************************** */
 /* ******************************** */
-
-#endif

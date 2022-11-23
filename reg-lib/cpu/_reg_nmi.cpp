@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_NMI_CPP
-#define _REG_NMI_CPP
-
 #include "_reg_nmi.h"
 
 /* *************************************************************** */
@@ -20,12 +17,12 @@
 reg_nmi::reg_nmi()
    : reg_measure()
 {
-   this->forwardJointHistogramPro=NULL;
-   this->forwardJointHistogramLog=NULL;
-   this->forwardEntropyValues=NULL;
-   this->backwardJointHistogramPro=NULL;
-   this->backwardJointHistogramLog=NULL;
-   this->backwardEntropyValues=NULL;
+   this->forwardJointHistogramPro=nullptr;
+   this->forwardJointHistogramLog=nullptr;
+   this->forwardEntropyValues=nullptr;
+   this->backwardJointHistogramPro=nullptr;
+   this->backwardJointHistogramLog=nullptr;
+   this->backwardEntropyValues=nullptr;
 
    for(int i=0; i<255; ++i)
    {
@@ -50,74 +47,74 @@ void reg_nmi::ClearHistogram()
 {
    int timepoint=this->referenceTimePoint;
    // Free the joint histograms and the entropy arrays
-   if(this->forwardJointHistogramPro!=NULL)
+   if(this->forwardJointHistogramPro!=nullptr)
    {
       for(int i=0; i<timepoint; ++i)
       {
-         if(this->forwardJointHistogramPro[i]!=NULL)
+         if(this->forwardJointHistogramPro[i]!=nullptr)
             free(this->forwardJointHistogramPro[i]);
-         this->forwardJointHistogramPro[i]=NULL;
+         this->forwardJointHistogramPro[i]=nullptr;
       }
       free(this->forwardJointHistogramPro);
    }
-   this->forwardJointHistogramPro=NULL;
-   if(this->backwardJointHistogramPro!=NULL)
+   this->forwardJointHistogramPro=nullptr;
+   if(this->backwardJointHistogramPro!=nullptr)
    {
       for(int i=0; i<timepoint; ++i)
       {
-         if(this->backwardJointHistogramPro[i]!=NULL)
+         if(this->backwardJointHistogramPro[i]!=nullptr)
             free(this->backwardJointHistogramPro[i]);
-         this->backwardJointHistogramPro[i]=NULL;
+         this->backwardJointHistogramPro[i]=nullptr;
       }
       free(this->backwardJointHistogramPro);
    }
-   this->backwardJointHistogramPro=NULL;
+   this->backwardJointHistogramPro=nullptr;
 
-   if(this->forwardJointHistogramLog!=NULL)
+   if(this->forwardJointHistogramLog!=nullptr)
    {
       for(int i=0; i<timepoint; ++i)
       {
-         if(this->forwardJointHistogramLog[i]!=NULL)
+         if(this->forwardJointHistogramLog[i]!=nullptr)
             free(this->forwardJointHistogramLog[i]);
-         this->forwardJointHistogramLog[i]=NULL;
+         this->forwardJointHistogramLog[i]=nullptr;
       }
       free(this->forwardJointHistogramLog);
    }
-   this->forwardJointHistogramLog=NULL;
-   if(this->backwardJointHistogramLog!=NULL)
+   this->forwardJointHistogramLog=nullptr;
+   if(this->backwardJointHistogramLog!=nullptr)
    {
       for(int i=0; i<timepoint; ++i)
       {
-         if(this->backwardJointHistogramLog[i]!=NULL)
+         if(this->backwardJointHistogramLog[i]!=nullptr)
             free(this->backwardJointHistogramLog[i]);
-         this->backwardJointHistogramLog[i]=NULL;
+         this->backwardJointHistogramLog[i]=nullptr;
       }
       free(this->backwardJointHistogramLog);
    }
-   this->backwardJointHistogramLog=NULL;
+   this->backwardJointHistogramLog=nullptr;
 
-   if(this->forwardEntropyValues!=NULL)
+   if(this->forwardEntropyValues!=nullptr)
    {
       for(int i=0; i<timepoint; ++i)
       {
-         if(this->forwardEntropyValues[i]!=NULL)
+         if(this->forwardEntropyValues[i]!=nullptr)
             free(this->forwardEntropyValues[i]);
-         this->forwardEntropyValues[i]=NULL;
+         this->forwardEntropyValues[i]=nullptr;
       }
       free(this->forwardEntropyValues);
    }
-   this->forwardEntropyValues=NULL;
-   if(this->backwardEntropyValues!=NULL)
+   this->forwardEntropyValues=nullptr;
+   if(this->backwardEntropyValues!=nullptr)
    {
       for(int i=0; i<timepoint; ++i)
       {
-         if(this->backwardEntropyValues[i]!=NULL)
+         if(this->backwardEntropyValues[i]!=nullptr)
             free(this->backwardEntropyValues[i]);
-         this->backwardEntropyValues[i]=NULL;
+         this->backwardEntropyValues[i]=nullptr;
       }
       free(this->backwardEntropyValues);
    }
-   this->backwardEntropyValues=NULL;
+   this->backwardEntropyValues=nullptr;
 #ifndef NDEBUG
    reg_print_msg_debug("reg_nmi::ClearHistogram called");
 #endif
@@ -203,14 +200,14 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImgPtr,
       }
       else
       {
-         this->forwardJointHistogramLog[i]=NULL;
-         this->forwardJointHistogramPro[i]=NULL;
-         this->forwardEntropyValues[i]=NULL;
+         this->forwardJointHistogramLog[i]=nullptr;
+         this->forwardJointHistogramPro[i]=nullptr;
+         this->forwardEntropyValues[i]=nullptr;
          if(this->isSymmetric)
          {
-            this->backwardJointHistogramLog[i]=NULL;
-            this->backwardJointHistogramPro[i]=NULL;
-            this->backwardEntropyValues[i]=NULL;
+            this->backwardJointHistogramLog[i]=nullptr;
+            this->backwardJointHistogramPro[i]=nullptr;
+            this->backwardEntropyValues[i]=nullptr;
          }
       }
    }
@@ -977,5 +974,3 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-
-#endif // _REG_NMI

@@ -64,12 +64,12 @@
 #endif
 
 
-static png_structp png_ptr = NULL;
-static png_infop info_ptr = NULL;
+static png_structp png_ptr = nullptr;
+static png_infop info_ptr = nullptr;
 
 png_uint_32  width, height;
 int  bit_depth, color_type;
-uch  *image_data = NULL;
+uch  *image_data = nullptr;
 
 
 void readpng_version_info(void)
@@ -99,14 +99,14 @@ int readpng_init(FILE *infile, ulg *pWidth, ulg *pHeight)
 
    /* could pass pointers to user-defined error handlers instead of NULLs: */
 
-   png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+   png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
    if (!png_ptr)
       return 4;   /* out of memory */
 
    info_ptr = png_create_info_struct(png_ptr);
    if (!info_ptr)
    {
-      png_destroy_read_struct(&png_ptr, NULL, NULL);
+      png_destroy_read_struct(&png_ptr, nullptr, nullptr);
       return 4;   /* out of memory */
    }
 
@@ -121,7 +121,7 @@ int readpng_init(FILE *infile, ulg *pWidth, ulg *pHeight)
 
    if (setjmp(png_jmpbuf(png_ptr)))
    {
-      png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+      png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
       return 2;
    }
 
@@ -137,7 +137,7 @@ int readpng_init(FILE *infile, ulg *pWidth, ulg *pHeight)
     * compression_type and filter_type => NULLs] */
 
    png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type,
-                NULL, NULL, NULL);
+                nullptr, nullptr, nullptr);
    *pWidth = width;
    *pHeight = height;
 
@@ -163,7 +163,7 @@ int readpng_get_bgcolor(uch *red, uch *green, uch *blue)
 
    if (setjmp(png_jmpbuf(png_ptr)))
    {
-      png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+      png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
       return 2;
    }
 
@@ -215,7 +215,7 @@ uch *readpng_get_image(double display_exponent, int *pChannels, ulg *pRowbytes)
 {
    double  gamma;
    png_uint_32  i, rowbytes;
-   png_bytepp  row_pointers = NULL;
+   png_bytepp  row_pointers = nullptr;
 
 
    /* setjmp() must be called in every function that calls a PNG-reading
@@ -223,8 +223,8 @@ uch *readpng_get_image(double display_exponent, int *pChannels, ulg *pRowbytes)
 
    if (setjmp(png_jmpbuf(png_ptr)))
    {
-      png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-      return NULL;
+      png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
+      return nullptr;
    }
 
 
@@ -261,17 +261,17 @@ uch *readpng_get_image(double display_exponent, int *pChannels, ulg *pRowbytes)
    *pRowbytes = rowbytes = png_get_rowbytes(png_ptr, info_ptr);
    *pChannels = (int)png_get_channels(png_ptr, info_ptr);
 
-   if ((image_data = (uch *)malloc(rowbytes*height)) == NULL)
+   if ((image_data = (uch *)malloc(rowbytes*height)) == nullptr)
    {
-      png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-      return NULL;
+      png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
+      return nullptr;
    }
-   if ((row_pointers = (png_bytepp)malloc(height*sizeof(png_bytep))) == NULL)
+   if ((row_pointers = (png_bytepp)malloc(height*sizeof(png_bytep))) == nullptr)
    {
-      png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+      png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
       free(image_data);
-      image_data = NULL;
-      return NULL;
+      image_data = nullptr;
+      return nullptr;
    }
 
    Trace((stderr, "readpng_get_image:  channels = %d, rowbytes = %ld, height = %ld\n", *pChannels, rowbytes, height));
@@ -292,9 +292,9 @@ uch *readpng_get_image(double display_exponent, int *pChannels, ulg *pRowbytes)
     * post-IDAT text/time/etc. is desired) */
 
    free(row_pointers);
-   row_pointers = NULL;
+   row_pointers = nullptr;
 
-   png_read_end(png_ptr, NULL);
+   png_read_end(png_ptr, nullptr);
 
    return image_data;
 }
@@ -305,13 +305,13 @@ void readpng_cleanup(int free_image_data)
    if (free_image_data && image_data)
    {
       free(image_data);
-      image_data = NULL;
+      image_data = nullptr;
    }
 
    if (png_ptr && info_ptr)
    {
-      png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-      png_ptr = NULL;
-      info_ptr = NULL;
+      png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
+      png_ptr = nullptr;
+      info_ptr = nullptr;
    }
 }

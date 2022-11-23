@@ -149,8 +149,8 @@ int main(int argc, char **argv)
             gpuErrchk(cudaMalloc(&work_d, Lwork * sizeof(double)));
 
             // --- CUDA SVD execution
-            stat = cusolverDnDgesvd(solver_handle, 'A', 'A', m, n, inputSVDMatrix_d, m, Sigma_d, U_d, max_size, VT_d, min_size, work_d, Lwork, NULL, devInfo);
-            //stat = cusolverDnSgesvd(solver_handle, 'N', 'N', M, N, d_A, M, d_S, d_U, M, d_V, N, work, work_size, NULL, devInfo);
+            stat = cusolverDnDgesvd(solver_handle, 'A', 'A', m, n, inputSVDMatrix_d, m, Sigma_d, U_d, max_size, VT_d, min_size, work_d, Lwork, nullptr, devInfo);
+            //stat = cusolverDnSgesvd(solver_handle, 'N', 'N', M, N, d_A, M, d_S, d_U, M, d_V, N, work, work_size, nullptr, devInfo);
             cudaDeviceSynchronize();
 
             int devInfo_h = 0;

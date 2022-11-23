@@ -6,7 +6,7 @@
 #include "Platform.h"
 #include "AladinContent.h"
 #ifdef _USE_CUDA
-#include "CUDAAladinContent.h"
+#include "CudaAladinContent.h"
 #endif
 #ifdef _USE_OPENCL
 #include "CLAladinContent.h"
@@ -45,14 +45,14 @@ int main(int argc, char **argv)
 
     // Read the input reference image
     nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
-    if(referenceImage==NULL){
+    if(referenceImage==nullptr){
         reg_print_msg_error("The input reference image could not be read");
         return EXIT_FAILURE;
     }
     reg_tools_changeDatatype<float>(referenceImage);
     // Read the input deformation field image image
     nifti_image *inputDeformationField = reg_io_ReadImageFile(inputDefImageName);
-    if(inputDeformationField==NULL){
+    if(inputDeformationField==nullptr){
         reg_print_msg_error("The input deformation field image could not be read");
         return EXIT_FAILURE;
     }
@@ -76,34 +76,34 @@ int main(int argc, char **argv)
     int *tempMask = (int *)calloc(referenceImage->nvox, sizeof(int));
 
     // CPU platform
-    AladinContent *con_cpu = new AladinContent(NULL, referenceImage, NULL, sizeof(float));
-    con_cpu->setCurrentWarped(cpu_warped);
-    con_cpu->setCurrentDeformationField(inputDeformationField);
-    con_cpu->setCurrentReferenceMask(tempMask, cpu_warped->nvox);
+    AladinContent *con_cpu = new AladinContent(nullptr, referenceImage, nullptr, sizeof(float));
+    con_cpu->SetCurrentWarped(cpu_warped);
+    con_cpu->SetCurrentDeformationField(inputDeformationField);
+    con_cpu->SetCurrentReferenceMask(tempMask, cpu_warped->nvox);
     Platform *platform_cpu = new Platform(NR_PLATFORM_CPU);
-    Kernel *resampleImageKernel_cpu = platform_cpu->createKernel(ResampleImageKernel::getName(), con_cpu);
-    resampleImageKernel_cpu->castTo<ResampleImageKernel>()->calculate(interpolation,
+    Kernel *resampleImageKernel_cpu = platform_cpu->CreateKernel(ResampleImageKernel::GetName(), con_cpu);
+    resampleImageKernel_cpu->castTo<ResampleImageKernel>()->Calculate(interpolation,
                                                                       std::numeric_limits<float>::quiet_NaN());
     delete resampleImageKernel_cpu;
     delete platform_cpu;
-    cpu_warped = con_cpu->getCurrentWarped(referenceImage->datatype);
+    cpu_warped = con_cpu->GetCurrentWarped(referenceImage->datatype);
 
     // GPU platform
-    AladinContent *con_gpu = NULL;
+    AladinContent *con_gpu = nullptr;
 #ifdef _USE_CUDA
     if (platformCode == NR_PLATFORM_CUDA) {
-        con_gpu = new CudaAladinContent(NULL, referenceImage, NULL, sizeof(float));
+        con_gpu = new CudaAladinContent(nullptr, referenceImage, nullptr, sizeof(float));
     }
 #endif
 #ifdef _USE_OPENCL
     if (platformCode == NR_PLATFORM_CL) {
-        con_gpu = new ClAladinContent(NULL, referenceImage, NULL, sizeof(float));
+        con_gpu = new ClAladinContent(nullptr, referenceImage, nullptr, sizeof(float));
     }
 #endif
-    con_gpu->setCurrentWarped(gpu_warped);
-    con_gpu->setCurrentDeformationField(inputDeformationField);
-    con_gpu->setCurrentReferenceMask(tempMask, gpu_warped->nvox);
-    Platform *platform_gpu = NULL;
+    con_gpu->SetCurrentWarped(gpu_warped);
+    con_gpu->SetCurrentDeformationField(inputDeformationField);
+    con_gpu->SetCurrentReferenceMask(tempMask, gpu_warped->nvox);
+    Platform *platform_gpu = nullptr;
 #ifdef _USE_CUDA
     if (platformCode == NR_PLATFORM_CUDA)
        platform_gpu = new Platform(NR_PLATFORM_CUDA);
@@ -113,16 +113,16 @@ int main(int argc, char **argv)
        platform_gpu = new Platform(NR_PLATFORM_CL);
     }
 #endif
-    Kernel *resampleImageKernel_gpu = platform_gpu->createKernel(ResampleImageKernel::getName(), con_gpu);
-    resampleImageKernel_gpu->castTo<ResampleImageKernel>()->calculate(interpolation,
+    Kernel *resampleImageKernel_gpu = platform_gpu->CreateKernel(ResampleImageKernel::GetName(), con_gpu);
+    resampleImageKernel_gpu->castTo<ResampleImageKernel>()->Calculate(interpolation,
                                                                       std::numeric_limits<float>::quiet_NaN());
     delete resampleImageKernel_gpu;
     delete platform_gpu;
-    gpu_warped = con_gpu->getCurrentWarped(referenceImage->datatype);
+    gpu_warped = con_gpu->GetCurrentWarped(referenceImage->datatype);
 
     //Check if the platform used is double capable
     double proper_eps = EPS;
-    if(con_gpu->isCurrentComputationDoubleCapable() == 0) {
+    if(con_gpu->IsCurrentComputationDoubleCapable() == 0) {
         proper_eps = EPS_SINGLE;
     }
 
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
     // Compute the difference between the computed and inputed warped image
     reg_tools_substractImageToImage(cpu_warped, gpu_warped, diff_field);
     reg_tools_abs_image(diff_field);
-    double max_difference = reg_tools_getMaxValue(diff_field, -1);
+    double max_difference = reg_tools_GetMaxValue(diff_field, -1);
 
     // free the allocated images
     nifti_image_free(referenceImage);

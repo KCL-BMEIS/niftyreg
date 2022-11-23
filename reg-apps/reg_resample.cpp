@@ -71,7 +71,7 @@ void Usage(char *exec)
    printf("\t-voff\n\t\tTurns verbose off [on]\n");
 #if defined (_OPENMP)
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    printf("\t-omp <int>\n\t\tNumber of thread to use with OpenMP. [%i/%i]\n",
           defaultOpenMPValue, omp_get_num_procs());
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 #if defined (_OPENMP)
    // Set the default number of thread
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -254,7 +254,7 @@ int main(int argc, char **argv)
 
    /* Read the reference image */
    nifti_image *referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
-   if(referenceImage == NULL)
+   if(referenceImage == nullptr)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",
               param->referenceImageName);
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
 
    /* Read the floating image */
    nifti_image *floatingImage = reg_io_ReadImageFile(param->floatingImageName);
-   if(floatingImage == NULL)
+   if(floatingImage == nullptr)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n",
               param->floatingImageName);
@@ -291,7 +291,7 @@ int main(int argc, char **argv)
    /* *********************** */
    /* READ THE TRANSFORMATION */
    /* *********************** */
-   nifti_image *inputTransformationImage = NULL;
+   nifti_image *inputTransformationImage = nullptr;
    mat44 inputAffineTransformation;
    // Check if a transformation has been specified
    if(flag->inputTransFlag)
@@ -300,7 +300,7 @@ int main(int argc, char **argv)
       if(reg_isAnImageFileName(param->inputTransName))
       {
          inputTransformationImage=reg_io_ReadImageFile(param->inputTransName);
-         if(inputTransformationImage==NULL)
+         if(inputTransformationImage==nullptr)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the provided transformation: %s\n",
                     param->inputTransName);
@@ -336,7 +336,7 @@ int main(int argc, char **argv)
          deformationFieldImage->nt*deformationFieldImage->nu;
    deformationFieldImage->scl_slope=1.f;
    deformationFieldImage->scl_inter=0.f;
-   if(inputTransformationImage!=NULL)
+   if(inputTransformationImage!=nullptr)
    {
       deformationFieldImage->datatype = inputTransformationImage->datatype;
       deformationFieldImage->nbyper = inputTransformationImage->nbyper;
@@ -354,7 +354,7 @@ int main(int argc, char **argv)
    deformationFieldImage->intent_p1=DEF_FIELD;
 
    // Compute the transformation to apply
-   if(inputTransformationImage!=NULL)
+   if(inputTransformationImage!=nullptr)
    {
       switch(static_cast<int>(inputTransformationImage->intent_p1))
       {
@@ -362,7 +362,7 @@ int main(int argc, char **argv)
       case CUB_SPLINE_GRID:
          reg_spline_getDeformationField(inputTransformationImage,
                                         deformationFieldImage,
-                                        NULL,
+                                        nullptr,
                                         false,
                                         true);
          break;
@@ -376,7 +376,7 @@ int main(int argc, char **argv)
                    tempFlowField->nvox*tempFlowField->nbyper);
             reg_defField_compose(inputTransformationImage,
                                  tempFlowField,
-                                 NULL);
+                                 nullptr);
             tempFlowField->intent_p1=inputTransformationImage->intent_p1;
             tempFlowField->intent_p2=inputTransformationImage->intent_p2;
             reg_defField_getDeformationFieldFromFlowField(tempFlowField,
@@ -395,18 +395,18 @@ int main(int argc, char **argv)
       default:
          reg_defField_compose(inputTransformationImage,
                               deformationFieldImage,
-                              NULL);
+                              nullptr);
          break;
       }
       nifti_image_free(inputTransformationImage);
-      inputTransformationImage=NULL;
+      inputTransformationImage=nullptr;
    }
    else
    {
       reg_affine_getDeformationField(&inputAffineTransformation,
                                      deformationFieldImage,
                                      false,
-                                     NULL);
+                                     nullptr);
    }
 
 
@@ -474,7 +474,7 @@ int main(int argc, char **argv)
          reg_resampleImage(floatingImage,
                            warpedImage,
                            deformationFieldImage,
-                           NULL,
+                           nullptr,
                            param->interpolation,
                            std::numeric_limits<float>::quiet_NaN(),
                            timepoints,
@@ -495,7 +495,7 @@ int main(int argc, char **argv)
             reg_resampleImage_PSF(floatingImage,
                                   warpedImage,
                                   deformationFieldImage,
-                                  NULL,
+                                  nullptr,
                                   param->interpolation,
                                   param->paddingValue,
                                   jacobian,
@@ -510,7 +510,7 @@ int main(int argc, char **argv)
             reg_resampleImage(floatingImage,
                               warpedImage,
                               deformationFieldImage,
-                              NULL,
+                              nullptr,
                               param->interpolation,
                               param->paddingValue);
          }
@@ -607,7 +607,7 @@ int main(int argc, char **argv)
       reg_resampleImage(gridImage,
                         warpedImage,
                         deformationFieldImage,
-                        NULL,
+                        nullptr,
                         1, // linear interpolation
                         0);
       memset(warpedImage->descrip, 0, 80);

@@ -1,10 +1,8 @@
-#ifndef _REG_OPTIMISER_GPU_H
-#define _REG_OPTIMISER_GPU_H
+#pragma once
 
 #include "_reg_common_cuda.h"
 #include "_reg_optimiser.h"
 #include "_reg_tools_gpu.h"
-
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -48,10 +46,10 @@ public:
                            size_t start,
                            InterfaceOptimiser *o,
                            float *cppData,
-                           float *gradData=NULL,
+                           float *gradData=nullptr,
                            size_t a=0,
-                           float *b=NULL,
-                           float *c=NULL);
+                           float *b=nullptr,
+                           float *c=nullptr);
    virtual void Perturbation(float length);
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -80,10 +78,10 @@ public:
                            size_t start,
                            InterfaceOptimiser *o,
                            float *cppData,
-                           float *gradData=NULL,
+                           float *gradData=nullptr,
                            size_t a=0,
-                           float *b=NULL,
-                           float *c=NULL);
+                           float *b=nullptr,
+                           float *c=nullptr);
    virtual void Optimise(float maxLength,
                          float smallLength,
                          float &startLength);
@@ -124,5 +122,3 @@ void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
                                         float4 **bestControlPointPosition_d,
                                         float4 **gradientArray_d,
                                         float currentLength);
-
-#endif // _REG_OPTIMISER_GPU_H

@@ -16,7 +16,7 @@ int main(int argc, char **argv)
 
     // Read the input reference image
     nifti_image *referenceImage = reg_io_ReadImageFile(inputImageName);
-    if (referenceImage == NULL) {
+    if (referenceImage == nullptr) {
         reg_print_msg_error("The input reference image could not be read");
         return EXIT_FAILURE;
     }
@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 
     // Read the input reference image
     nifti_image *expectedFile = reg_io_ReadImageFile(expectedFileName);
-    if (expectedFile == NULL) {
+    if (expectedFile == nullptr) {
         reg_print_msg_error("The expected result image could not be read");
         return EXIT_FAILURE;
     }
@@ -61,4 +61,3 @@ int main(int argc, char **argv)
 
     return EXIT_SUCCESS;
 }
-

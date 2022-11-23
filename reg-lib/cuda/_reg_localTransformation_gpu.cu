@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _reg_spline_GPU_CU
-#define _reg_spline_GPU_CU
-
 #include "_reg_localTransformation_gpu.h"
 #include "_reg_localTransformation_kernels.cu"
 
@@ -27,7 +24,7 @@ void reg_spline_getDeformationField_gpu(nifti_image *controlPointImage,
 										bool bspline)
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	const int voxelNumber = reference->nx * reference->ny * reference->nz;
 	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
@@ -83,7 +80,7 @@ float reg_spline_approxBendingEnergy_gpu(nifti_image *controlPointImage,
 										  float4 **controlPointImageArray_d)
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -158,7 +155,7 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
 												float bendingEnergyWeight)
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -228,7 +225,7 @@ void reg_spline_ComputeApproxJacobianValues(nifti_image *controlPointImage,
 											 float **jacobianDet_d)
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	// Need to reorient the Jacobian matrix using the header information - real to voxel conversion
 	mat33 reorientation;
@@ -279,7 +276,7 @@ void reg_spline_ComputeJacobianValues(nifti_image *controlPointImage,
 									   float **jacobianDet_d)
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	// Need to reorient the Jacobian matrix using the header information - real to voxel conversion
 	mat33 reorientation;
@@ -344,7 +341,7 @@ double reg_spline_getJacobianPenaltyTerm_gpu(nifti_image *referenceImage,
 											 )
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	// The Jacobian matrices and determinants are computed
 	float *jacobianMatrices_d;
@@ -411,7 +408,7 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(nifti_image *referenceImage,
 												   bool approx)
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	// The Jacobian matrices and determinants are computed
 	float *jacobianMatrices_d;
@@ -530,7 +527,7 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 									  bool approx)
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	// The Jacobian matrices and determinants are computed
 	float *jacobianMatrices_d;
@@ -645,7 +642,7 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 void reg_getDeformationFromDisplacement_gpu( nifti_image *image, float4 **imageArray_d)
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	// Bind the qform or sform
 	mat44 temp_mat=image->qto_xyz;
@@ -675,7 +672,7 @@ void reg_getDeformationFromDisplacement_gpu( nifti_image *image, float4 **imageA
 void reg_getDisplacementFromDeformation_gpu( nifti_image *image, float4 **imageArray_d)
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	// Bind the qform or sform
 	mat44 temp_mat=image->qto_xyz;
@@ -710,12 +707,12 @@ void reg_getDeformationFieldFromVelocityGrid_gpu(nifti_image *cpp_h,
 	const int voxelNumber = def_h->nx * def_h->ny * def_h->nz;
 
 	// Create a mask array where no voxel are excluded
-	int *mask_gpu=NULL;
+	int *mask_gpu=nullptr;
 	NR_CUDA_SAFE_CALL(cudaMalloc(&mask_gpu, voxelNumber*sizeof(int)))
 	reg_fillMaskArray_gpu(voxelNumber,&mask_gpu);
 
 	// Define some variables for the deformation fields
-	float4 *tempDef_gpu=NULL;
+	float4 *tempDef_gpu=nullptr;
 	NR_CUDA_SAFE_CALL(cudaMalloc(&tempDef_gpu,voxelNumber*sizeof(float4)))
 
 	// The deformation field is computed
@@ -774,7 +771,7 @@ void reg_defField_compose_gpu(nifti_image *def,
 							  int activeVoxel)
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	const int voxelNumber=def->nx*def->ny*def->nz;
 
@@ -833,7 +830,7 @@ void reg_defField_getJacobianMatrix_gpu(nifti_image *deformationField,
 										float **jacobianMatrices_gpu)
 {
 	// Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	const int3 referenceDim=make_int3(deformationField->nx,deformationField->ny,deformationField->nz);
 	const float3 referenceSpacing=make_float3(deformationField->dx,deformationField->dy,deformationField->dz);
@@ -866,4 +863,3 @@ void reg_defField_getJacobianMatrix_gpu(nifti_image *deformationField,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-#endif

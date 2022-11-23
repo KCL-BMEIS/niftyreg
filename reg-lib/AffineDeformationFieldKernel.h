@@ -1,11 +1,10 @@
-#ifndef AFFINEDEFORMATIONFIELDKERNEL_H
-#define AFFINEDEFORMATIONFIELDKERNEL_H
+#pragma once
 
 #include "Kernel.h"
 
 class AffineDeformationFieldKernel : public Kernel {
 public:
-    static std::string getName() {
+    static std::string GetName() {
         return "AffineDeformationFieldKernel";
     }
 
@@ -13,7 +12,5 @@ public:
     }
 
     virtual ~AffineDeformationFieldKernel(){}
-    virtual void calculate(bool compose = false) = 0;
+    virtual void Calculate(bool compose = false) = 0;
 };
-
-#endif // AFFINEDEFORMATIONFIELDKERNEL_H

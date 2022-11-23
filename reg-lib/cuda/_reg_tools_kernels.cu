@@ -8,8 +8,6 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  */
 
-#ifndef _REG_TOOLS_KERNELS_CU
-#define _REG_TOOLS_KERNELS_CU
 /* *************************************************************** */
 __device__ __constant__ int c_NodeNumber;
 __device__ __constant__ int c_VoxelNumber;
@@ -286,6 +284,3 @@ __global__ void reg_fillMaskArray_kernel(int *array1_d)
 		array1_d[tid] = tid;
 }
 /* *************************************************************** */
-
-#endif
-

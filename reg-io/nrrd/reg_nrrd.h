@@ -12,8 +12,7 @@
  *
  */
 
-#ifndef _REG_NRRD_H
-#define _REG_NRRD_H
+#pragma once
 
 #include "nifti1_io.h"
 #include "NrrdIO.h"
@@ -48,6 +47,3 @@ Nrrd *reg_io_readNRRDfile(const char *filename);
  */
 void reg_io_writeNRRDfile(Nrrd *image, const char *filename);
 /* *************************************************************** */
-
-
-#endif

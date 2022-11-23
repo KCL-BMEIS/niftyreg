@@ -12,8 +12,7 @@
  *
  */
 
-#ifndef _REG_AFFINETRANS_H
-#define _REG_AFFINETRANS_H
+#pragma once
 
 #include "nifti1_io.h"
 #include "_reg_tools.h"
@@ -80,7 +79,7 @@ extern "C++"
 void reg_affine_getDeformationField(mat44 *affine,
                                     nifti_image *deformationField,
                                     bool compose=false,
-                                    int *mask = NULL);
+                                    int *mask = nullptr);
 /* *************************************************************** */
 void optimize_2D(float* referencePosition, float* warpedPosition,
     unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
@@ -98,4 +97,3 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
 /* *************************************************************** */
 void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);
 /* *************************************************************** */
-#endif

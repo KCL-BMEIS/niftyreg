@@ -11,8 +11,7 @@
  *
  */
 
-#ifndef _REG_SPLINE_H
-#define _REG_SPLINE_H
+#pragma once
 
 #include "_reg_tools.h"
 
@@ -130,5 +129,3 @@ void get_GridValues(int startX,
                     DTYPE *dispZ,
                     bool approx,
                     bool displacement);
-
-#endif

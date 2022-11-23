@@ -21,13 +21,13 @@ int main(int argc, char **argv)
 
     // Read the input reference image
     nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
-    if (referenceImage == NULL) {
+    if (referenceImage == nullptr) {
         reg_print_msg_error("The input reference image could not be read");
         return EXIT_FAILURE;
     }
     // Read the transformation file
     nifti_image *transImage = reg_io_ReadImageFile(inputTransFileName);
-    if (transImage == NULL) {
+    if (transImage == nullptr) {
         reg_print_msg_error("The transformation image could not be read");
         return EXIT_FAILURE;
     }
@@ -80,4 +80,3 @@ int main(int argc, char **argv)
 
     return EXIT_SUCCESS;
 }
-

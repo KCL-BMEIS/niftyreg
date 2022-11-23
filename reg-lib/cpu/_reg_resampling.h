@@ -11,8 +11,7 @@
  *
  */
 
-#ifndef _REG_RESAMPLING_H
-#define _REG_RESAMPLING_H
+#pragma once
 
 #include "nifti1_io.h"
 
@@ -26,7 +25,7 @@
  * @param warpedImage Warped image that is being generated
  * @param deformationField Vector field image that contains the dense correspondences
  * @param mask Array that contains information about the mask. Only voxel with mask value different
- * from zero are being considered. If NULL, all voxels are considered
+ * from zero are being considered. If nullptr, all voxels are considered
  * @param interp Interpolation type. 0, 1 or 3 correspond to nearest neighbor, linear or cubic
  * interpolation
  * @param paddingValue Value to be used for padding when the correspondences are outside of the
@@ -41,8 +40,8 @@ void reg_resampleImage(nifti_image *floatingImage,
                        int *mask,
                        int interp,
                        float paddingValue,
-                       bool *dti_timepoint = NULL,
-                       mat33 * jacMat = NULL);
+                       bool *dti_timepoint = nullptr,
+                       mat33 * jacMat = nullptr);
 extern "C++"
 void reg_resampleImage_PSF(nifti_image *floatingImage,
                            nifti_image *warpedImage,
@@ -69,9 +68,9 @@ void reg_getImageGradient(nifti_image *floatingImage,
                           int interp,
                           float paddingValue,
                           int active_timepoint,
-                          bool *dti_timepoint = NULL,
-                          mat33 *jacMat = NULL,
-                          nifti_image *warpedImage = NULL);
+                          bool *dti_timepoint = nullptr,
+                          mat33 *jacMat = nullptr,
+                          nifti_image *warpedImage = nullptr);
 
 extern "C++"
 void reg_getImageGradient_symDiff(nifti_image* inputImg,
@@ -81,5 +80,3 @@ void reg_getImageGradient_symDiff(nifti_image* inputImg,
                                   int timepoint);
 extern "C++"
 nifti_image *reg_makeIsotropic(nifti_image *, int);
-
-#endif

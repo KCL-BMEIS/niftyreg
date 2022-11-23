@@ -13,8 +13,7 @@
  *
  */
 
-#ifndef _REG_FEMTRANS_H
-#define _REG_FEMTRANS_H
+#pragma once
 
 #include "nifti1_io.h"
 #include <fstream>
@@ -71,4 +70,3 @@ void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
                                  float *femInterpolationWeight,
                                  unsigned int nodeNumber,
                                  float *femBasedGradient);
-#endif

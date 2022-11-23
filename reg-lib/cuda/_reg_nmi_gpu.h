@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_NMI_GPU_H
-#define _REG_NMI_GPU_H
+#pragma once
 
 #include "_reg_nmi.h"
 #include "_reg_measure_gpu.h"
@@ -103,5 +102,3 @@ void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
                                       double *entropies,
                                       int refBinning,
                                       int floBinning);
-
-#endif

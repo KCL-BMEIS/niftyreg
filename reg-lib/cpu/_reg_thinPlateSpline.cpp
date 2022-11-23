@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_THINPLATESPLINE_CPP
-#define _REG_THINPLATESPLINE_CPP
-
 #include "_reg_thinPlateSpline.h"
 
 /* *************************************************************** */
@@ -33,8 +30,8 @@ reg_tps<T>::reg_tps(size_t d, size_t n)
    }
    else
    {
-      this->positionZ=NULL;
-      this->coefficientZ=NULL;
+      this->positionZ=nullptr;
+      this->coefficientZ=nullptr;
    }
    this->initialised=false;
    this->approxInter=0.;
@@ -44,18 +41,18 @@ reg_tps<T>::reg_tps(size_t d, size_t n)
 template <class T>
 reg_tps<T>::~reg_tps()
 {
-   if(this->positionX!=NULL) free(this->positionX);
-   this->positionX=NULL;
-   if(this->positionY!=NULL) free(this->positionY);
-   this->positionY=NULL;
-   if(this->positionZ!=NULL) free(this->positionZ);
-   this->positionZ=NULL;
-   if(this->coefficientX!=NULL) free(this->coefficientX);
-   this->coefficientX=NULL;
-   if(this->coefficientY!=NULL) free(this->coefficientY);
-   this->coefficientY=NULL;
-   if(this->coefficientZ!=NULL) free(this->coefficientZ);
-   this->coefficientZ=NULL;
+   if(this->positionX!=nullptr) free(this->positionX);
+   this->positionX=nullptr;
+   if(this->positionY!=nullptr) free(this->positionY);
+   this->positionY=nullptr;
+   if(this->positionZ!=nullptr) free(this->positionZ);
+   this->positionZ=nullptr;
+   if(this->coefficientX!=nullptr) free(this->coefficientX);
+   this->coefficientX=nullptr;
+   if(this->coefficientY!=nullptr) free(this->coefficientY);
+   this->coefficientY=nullptr;
+   if(this->coefficientZ!=nullptr) free(this->coefficientZ);
+   this->coefficientZ=nullptr;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -145,7 +142,7 @@ void reg_tps<T>::InitialiseTPS()
 {
    size_t matrix_side=this->number + this->dim + 1;
    T *matrixL=(T *)calloc(matrix_side*matrix_side,sizeof(T));
-   if(matrixL==NULL)
+   if(matrixL==nullptr)
    {
       char text[255];
       sprintf(text,"Size should be %g GB (%i x %i)",
@@ -220,11 +217,11 @@ void reg_tps<T>::FillDeformationField(nifti_image *deformationField)
    size_t voxelNumber = deformationField->nx*deformationField->ny*deformationField->nz;
    T *defX=static_cast<T *>(deformationField->data);
    T *defY=&defX[voxelNumber];
-   T *defZ=NULL;
+   T *defZ=nullptr;
    if(this->dim==3)
       defZ=&defY[voxelNumber];
 
-   mat44 *voxel2realDF=NULL;
+   mat44 *voxel2realDF=nullptr;
    if(deformationField->sform_code>0)
       voxel2realDF=&(deformationField->sto_xyz);
    else voxel2realDF=&(deformationField->qto_xyz);
@@ -305,5 +302,3 @@ void reg_tps<T>::FillDeformationField(nifti_image *deformationField)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-
-#endif // _REG_THINPLATESPLINE_CPP

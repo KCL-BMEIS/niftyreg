@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_AFFINETRANSFORMATION_KERNELS_CU
-#define _REG_AFFINETRANSFORMATION_KERNELS_CU
-
 #include "_reg_common_cuda.h"
 
 /* *************************************************************** */
@@ -55,5 +52,3 @@ void reg_affine_deformationField_kernel(float4 *PositionFieldArray)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-
-#endif

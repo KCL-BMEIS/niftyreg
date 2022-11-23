@@ -230,7 +230,7 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
     */
     const char jobvt = 'A';
 
-    cusolverDnHandle_t gH = NULL;
+    cusolverDnHandle_t gH = nullptr;
     int Lwork;
     //device ptrs
     float *Work;
@@ -245,7 +245,7 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
     cudaMalloc(&rwork, Lwork * sizeof(float));
     cudaMalloc(&devInfo, sizeof(int));
 
-    checkCUSOLVERStatus(cusolverDnSgesvd(gH, jobu, jobvt, m, n, A_d, lda, S_d, U_d, ldu, VT_d, ldvt, Work, Lwork, NULL, devInfo), "cusolverDnSgesvd");
+    checkCUSOLVERStatus(cusolverDnSgesvd(gH, jobu, jobvt, m, n, A_d, lda, S_d, U_d, ldu, VT_d, ldvt, Work, Lwork, nullptr, devInfo), "cusolverDnSgesvd");
     checkCUSOLVERStatus(cusolverDnDestroy(gH), "cusolverDnDestroy");
 
     //free vars

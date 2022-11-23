@@ -68,7 +68,7 @@ void Usage(char *exec)
    printf("\n\t-out\t\tText file output where to store the value(s).\n\t\t\tThe stdout is used by default\n");
 #if defined (_OPENMP)
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    printf("\t-omp <int>\tNumber of thread to use with OpenMP. [%i/%i]\n",
           defaultOpenMPValue, omp_get_num_procs());
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 #if defined (_OPENMP)
    // Set the default number of thread
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
 
    /* Read the reference image */
    nifti_image *refImage = reg_io_ReadImageFile(param->refImageName);
-   if(refImage == NULL)
+   if(refImage == nullptr)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",
               param->refImageName);
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
 
    /* Read the floating image */
    nifti_image *floImage = reg_io_ReadImageFile(param->floImageName);
-   if(floImage == NULL)
+   if(floImage == nullptr)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n",
               param->floImageName);
@@ -235,11 +235,11 @@ int main(int argc, char **argv)
    reg_tools_changeDatatype<float>(floImage);
 
    /* Read and create the mask array */
-   int *refMask=NULL;
+   int *refMask=nullptr;
    int refMaskVoxNumber=refImage->nx*refImage->ny*refImage->nz;
    if(flag->refMaskImageFlag){
       nifti_image *refMaskImage = reg_io_ReadImageFile(param->refMaskImageName);
-      if(refMaskImage == NULL)
+      if(refMaskImage == nullptr)
       {
          fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference mask image: %s\n",
                  param->refMaskImageName);
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
                      param->paddingValue);
    nifti_image_free(defField);
 
-   FILE *outFile=NULL;
+   FILE *outFile=nullptr;
    if(flag->outFileFlag)
       outFile=fopen(param->outFileName, "w");
 
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
       warSTDValue /= (double)refMaskVoxNumber;
       measure /= sqrt(refSTDValue)*sqrt(warSTDValue)*
             (double)refMaskVoxNumber;
-      if(outFile!=NULL)
+      if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
       else printf("NCC: %g\n", measure);
    }
@@ -342,10 +342,10 @@ int main(int argc, char **argv)
                                     warpedFloImage,
                                     refMask,
                                     warpedFloImage,
-                                    NULL,
-                                    NULL);
+                                    nullptr,
+                                    nullptr);
       double measure=lncc_object->GetSimilarityMeasureValue();
-      if(outFile!=NULL)
+      if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
       else printf("LNCC: %g\n", measure);
       delete lncc_object;
@@ -359,10 +359,10 @@ int main(int argc, char **argv)
                                     warpedFloImage,
                                     refMask,
                                     warpedFloImage,
-                                    NULL,
-                                    NULL);
+                                    nullptr,
+                                    nullptr);
       double measure=nmi_object->GetSimilarityMeasureValue();
-      if(outFile!=NULL)
+      if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
       else printf("NMI: %g\n", measure);
       delete nmi_object;
@@ -376,11 +376,11 @@ int main(int argc, char **argv)
                                     warpedFloImage,
                                     refMask,
                                     warpedFloImage,
-                                    NULL,
-                                    NULL,
-                                    NULL);
+                                    nullptr,
+                                    nullptr,
+                                    nullptr);
       double measure=ssd_object->GetSimilarityMeasureValue();
-      if(outFile!=NULL)
+      if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
       else printf("SSD: %g\n", measure);
       delete ssd_object;
@@ -394,17 +394,17 @@ int main(int argc, char **argv)
                                     warpedFloImage,
                                     refMask,
                                     warpedFloImage,
-                                    NULL,
-                                    NULL);
+                                    nullptr,
+                                    nullptr);
       double measure=mind_object->GetSimilarityMeasureValue();
-      if(outFile!=NULL)
+      if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
       else printf("MIND: %g\n", measure);
       delete mind_object;
    }
 
    // Close the output file if required
-   if(outFile!=NULL)
+   if(outFile!=nullptr)
       fclose(outFile);
 
    // Free the allocated images

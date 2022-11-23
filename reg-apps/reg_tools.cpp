@@ -29,10 +29,10 @@ std::vector<float> splitFloatVector(char* input)
 {
     std::vector<float> floatVector;
     char* charArray = strtok(input, ",");
-    while (charArray != NULL)
+    while (charArray != nullptr)
     {
         floatVector.push_back(atof(charArray));
-        charArray = strtok(NULL, ",");
+        charArray = strtok(nullptr, ",");
     }
 
     return floatVector;
@@ -40,7 +40,7 @@ std::vector<float> splitFloatVector(char* input)
 
 int isNumeric (const char *s)
 {
-    if(s==NULL || *s=='\0' || isspace(*s))
+    if(s==nullptr || *s=='\0' || isspace(*s))
         return EXIT_SUCCESS;
     char * p;
     strtod (s, &p);
@@ -130,7 +130,7 @@ void Usage(char *exec)
     printf("\t-interp\t\t\tInterpolation order to use to warp the floating image\n");
 #if defined (_OPENMP)
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]\n",
           defaultOpenMPValue, omp_get_num_procs());
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 #if defined (_OPENMP)
     // Set the default number of thread
     int defaultOpenMPValue=omp_get_num_procs();
-    if(getenv("OMP_NUM_THREADS")!=NULL)
+    if(getenv("OMP_NUM_THREADS")!=nullptr)
         defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
     omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -464,7 +464,7 @@ int main(int argc, char **argv)
 
     /* Read the image */
     nifti_image *image = reg_io_ReadImageFile(param->inputImageName);
-    if(image == NULL)
+    if(image == nullptr)
     {
         fprintf(stderr,"** ERROR Error when reading the input image: %s\n",param->inputImageName);
         return EXIT_FAILURE;
@@ -524,24 +524,24 @@ int main(int argc, char **argv)
         bool boolX[3]= {1,0,0};
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) kernelSize[i]=param->smoothValueX;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,NULL,timePoint,boolX);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,nullptr,timePoint,boolX);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,NULL,timePoint,boolX);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,NULL,timePoint,boolX);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,nullptr,timePoint,boolX);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,nullptr,timePoint,boolX);
         bool boolY[3]= {0,1,0};
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) kernelSize[i]=param->smoothValueY;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,NULL,timePoint,boolY);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,nullptr,timePoint,boolY);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,NULL,timePoint,boolY);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,NULL,timePoint,boolY);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,nullptr,timePoint,boolY);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,nullptr,timePoint,boolY);
         bool boolZ[3]= {0,0,1};
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) kernelSize[i]=param->smoothValueZ;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,NULL,timePoint,boolZ);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,nullptr,timePoint,boolZ);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,NULL,timePoint,boolZ);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,NULL,timePoint,boolZ);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,nullptr,timePoint,boolZ);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,nullptr,timePoint,boolZ);
         delete []kernelSize;
         delete []timePoint;
         if(flag->outputImageFlag)
@@ -566,7 +566,7 @@ int main(int argc, char **argv)
         float varY=param->smoothValueY;
         float varZ=param->smoothValueZ;
 
-        reg_tools_labelKernelConvolution(smoothImg,varX,varY,varZ,NULL,timePoint);
+        reg_tools_labelKernelConvolution(smoothImg,varX,varY,varZ,nullptr,timePoint);
 
         delete []timePoint;
         if(flag->outputImageFlag)
@@ -579,18 +579,18 @@ int main(int argc, char **argv)
 
     if(flag->operationTypeFlag>-1)
     {
-        nifti_image *image2=NULL;
-        if(param->operationImageName!=NULL)
+        nifti_image *image2=nullptr;
+        if(param->operationImageName!=nullptr)
         {
             image2 = reg_io_ReadImageFile(param->operationImageName);
-            if(image2 == NULL)
+            if(image2 == nullptr)
             {
                 fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
                 return EXIT_FAILURE;
             }
         }
         // Images are converted to the higher datatype
-        if(image2!=NULL){
+        if(image2!=nullptr){
             switch(image->datatype>image2->datatype?image->datatype:image2->datatype)
             {
             case NIFTI_TYPE_UINT8:
@@ -634,7 +634,7 @@ int main(int argc, char **argv)
         nifti_image *outputImage = nifti_copy_nim_info(image);
         outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
 
-        if(image2!=NULL)
+        if(image2!=nullptr)
         {
             switch(flag->operationTypeFlag)
             {
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
         else reg_io_WriteImageFile(outputImage,"output.nii");
 
         nifti_image_free(outputImage);
-        if(image2!=NULL) nifti_image_free(image2);
+        if(image2!=nullptr) nifti_image_free(image2);
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
@@ -683,7 +683,7 @@ int main(int argc, char **argv)
     if(flag->rmsImageFlag)
     {
         nifti_image *image2 = reg_io_ReadImageFile(param->rmsImageName);
-        if(image2 == NULL)
+        if(image2 == nullptr)
         {
             fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->rmsImageName);
             return EXIT_FAILURE;
@@ -728,7 +728,7 @@ int main(int argc, char **argv)
     if(flag->nanMaskFlag)
     {
         nifti_image *maskImage = reg_io_ReadImageFile(param->operationImageName);
-        if(maskImage == NULL)
+        if(maskImage == nullptr)
         {
             fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
             return EXIT_FAILURE;
@@ -916,7 +916,7 @@ int main(int argc, char **argv)
             reg_resampleImage_PSF(image,
                                   newImg,
                                   def,
-                                  NULL,
+                                  nullptr,
                                   param->interpOrder,
                                   0.f,
                                   jacobian,
@@ -929,7 +929,7 @@ int main(int argc, char **argv)
             reg_resampleImage(image,
                               newImg,
                               def,
-                              NULL,
+                              nullptr,
                               param->interpOrder,
                               0.f);
 #ifndef NDEBUG
@@ -983,13 +983,13 @@ int main(int argc, char **argv)
         }
         // Free the scaled image
         nifti_image_free(scaledImage);
-        scaledImage=NULL;
+        scaledImage=nullptr;
         // Save the rgb image
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(outputImage,param->outputImageName);
         else reg_io_WriteImageFile(outputImage,"output.nii");
         nifti_image_free(outputImage);
-        outputImage=NULL;
+        outputImage=nullptr;
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->bsi2rgbFlag)
@@ -1031,7 +1031,7 @@ int main(int argc, char **argv)
             reg_io_WriteImageFile(outputImage,param->outputImageName);
         else reg_io_WriteImageFile(outputImage,"output.nii");
         nifti_image_free(outputImage);
-        outputImage=NULL;
+        outputImage=nullptr;
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->mindFlag)
@@ -1058,7 +1058,7 @@ int main(int argc, char **argv)
             reg_io_WriteImageFile(outputImage,param->outputImageName);
         else reg_io_WriteImageFile(outputImage,"output.nii");
         nifti_image_free(outputImage);
-        outputImage=NULL;
+        outputImage=nullptr;
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->mindSSCFlag)
@@ -1085,7 +1085,7 @@ int main(int argc, char **argv)
             reg_io_WriteImageFile(outputImage,param->outputImageName);
         else reg_io_WriteImageFile(outputImage,"output.nii");
         nifti_image_free(outputImage);
-        outputImage=NULL;
+        outputImage=nullptr;
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->testActiveBlocksFlag){
@@ -1189,7 +1189,7 @@ int main(int argc, char **argv)
             reg_io_WriteImageFile(outputImage,param->outputImageName);
         else reg_io_WriteImageFile(outputImage,"output.nii");
         nifti_image_free(outputImage);
-        outputImage=NULL;
+        outputImage=nullptr;
     }
 
     nifti_image_free(image);

@@ -1,25 +1,18 @@
-#ifndef KERNEL_H_
-#define KERNEL_H_
+#pragma once
 
 #include <iostream>
 #include <string>
 
 class Kernel {
 public:
+    Kernel(std::string nameIn) { name = nameIn; }
+    virtual ~Kernel() {}
 
+    std::string GetName() const;
 
-	Kernel(std::string nameIn){ name = nameIn; }
-	virtual ~Kernel(){}
+    template <class T>
+    T* castTo() { return dynamic_cast<T*>(this); }
 
-	std::string getName() const;
-	std::string name;
-
-	template <class T>
-	T* castTo() {
-		return dynamic_cast<T*>(this);
-	}
+private:
+    std::string name;
 };
-
-
-
-#endif /*KERNEL_H_*/

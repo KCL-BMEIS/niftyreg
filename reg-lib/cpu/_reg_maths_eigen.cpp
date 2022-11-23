@@ -81,7 +81,7 @@ template void svd<double>(double **in, size_t m, size_t n, double * w, double **
 */
 template<class T>
 void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
-   if (in == NULL) {
+   if (in == nullptr) {
       reg_print_fct_error("svd");
       reg_print_msg_error("The specified matrix is empty");
       reg_exit();

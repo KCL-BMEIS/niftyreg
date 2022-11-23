@@ -1,6 +1,4 @@
-//_reg_maths_eigen.h
-#ifndef _REG_MATHS_EIGEN_H
-#define _REG_MATHS_EIGEN_H
+#pragma once
 
 #include "nifti1_io.h"
 
@@ -47,5 +45,3 @@ mat44 reg_mat44_logm(const mat44 *mat);
 * framework
 */
 mat44 reg_mat44_avg2(mat44 const* A, mat44 const* b);
-
-#endif

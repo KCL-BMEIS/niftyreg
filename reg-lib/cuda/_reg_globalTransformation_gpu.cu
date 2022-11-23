@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_AFFINETRANSFORMATION_GPU_CU
-#define _REG_AFFINETRANSFORMATION_GPU_CU
-
 #include "_reg_globalTransformation_gpu.h"
 #include "_reg_globalTransformation_kernels.cu"
 
@@ -23,7 +20,7 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 					float4 **array_d)
 {
     // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     int3 imageSize = make_int3(targetImage->nx,targetImage->ny,targetImage->nz);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize,&imageSize,sizeof(int3)));
@@ -70,5 +67,3 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-
-#endif

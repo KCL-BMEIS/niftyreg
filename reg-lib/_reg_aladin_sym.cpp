@@ -1,6 +1,3 @@
-#ifndef _REG_ALADIN_SYM_CPP
-#define _REG_ALADIN_SYM_CPP
-
 #include "_reg_aladin_sym.h"
 #include "_reg_maths_eigen.h"
 
@@ -11,23 +8,23 @@ reg_aladin_sym<T>::reg_aladin_sym ()
 {
    this->executableName=(char*) "reg_aladin_sym";
 
-   this->InputFloatingMask=NULL;
-   this->FloatingMaskPyramid=NULL;
-   this->BackwardActiveVoxelNumber=NULL;
+   this->InputFloatingMask=nullptr;
+   this->FloatingMaskPyramid=nullptr;
+   this->BackwardActiveVoxelNumber=nullptr;
 
    this->BackwardTransformationMatrix=new mat44;
 
-   this->bAffineTransformation3DKernel = NULL;
-   this->bConvolutionKernel=NULL;
-   this->bBlockMatchingKernel=NULL;
-   this->bOptimiseKernel=NULL;
-   this->bResamplingKernel=NULL;
+   this->bAffineTransformation3DKernel = nullptr;
+   this->bConvolutionKernel=nullptr;
+   this->bBlockMatchingKernel=nullptr;
+   this->bOptimiseKernel=nullptr;
+   this->bResamplingKernel=nullptr;
 
-   this->backCon = NULL;
-   this->BackwardBlockMatchingParams=NULL;
+   this->backCon = nullptr;
+   this->BackwardBlockMatchingParams=nullptr;
 
-   this->FloatingUpperThreshold=std::numeric_limits<T>::max();
-   this->FloatingLowerThreshold=-std::numeric_limits<T>::max();
+   this->floatingUpperThreshold=std::numeric_limits<T>::max();
+   this->floatingLowerThreshold=-std::numeric_limits<T>::max();
 
 #ifndef NDEBUG
    reg_print_msg_debug("reg_aladin_sym constructor called");
@@ -38,27 +35,27 @@ reg_aladin_sym<T>::reg_aladin_sym ()
 template <class T>
 reg_aladin_sym<T>::~reg_aladin_sym()
 {
-   if(this->BackwardTransformationMatrix!=NULL)
+   if(this->BackwardTransformationMatrix!=nullptr)
       delete this->BackwardTransformationMatrix;
-   this->BackwardTransformationMatrix=NULL;
+   this->BackwardTransformationMatrix=nullptr;
 
-   if(this->FloatingMaskPyramid!=NULL)
+   if(this->FloatingMaskPyramid!=nullptr)
    {
-      for(unsigned int i=0; i<this->LevelsToPerform; ++i)
+      for(unsigned int i=0; i<this->levelsToPerform; ++i)
       {
-         if(this->FloatingMaskPyramid[i]!=NULL)
+         if(this->FloatingMaskPyramid[i]!=nullptr)
          {
-           if(this->FloatingMaskPyramid!=NULL)
+           if(this->FloatingMaskPyramid!=nullptr)
              free(this->FloatingMaskPyramid[i]);
-            this->FloatingMaskPyramid[i]=NULL;
+            this->FloatingMaskPyramid[i]=nullptr;
          }
       }
       free(this->FloatingMaskPyramid);
-      this->FloatingMaskPyramid=NULL;
+      this->FloatingMaskPyramid=nullptr;
    }
-   if(this->BackwardActiveVoxelNumber!=NULL)
+   if(this->BackwardActiveVoxelNumber!=nullptr)
      free(this->BackwardActiveVoxelNumber);
-   this->BackwardActiveVoxelNumber=NULL;
+   this->BackwardActiveVoxelNumber=nullptr;
 
 #ifndef NDEBUG
    reg_print_msg_debug("reg_aladin_sym destructor called");
@@ -80,40 +77,40 @@ void reg_aladin_sym<T>::InitialiseRegistration()
 #endif
 
    reg_aladin<T>::InitialiseRegistration();
-   this->FloatingMaskPyramid = (int **) malloc(this->LevelsToPerform*sizeof(int *));
-   this->BackwardActiveVoxelNumber= (int *)malloc(this->LevelsToPerform*sizeof(int));
-   if (this->InputFloatingMask!=NULL)
+   this->FloatingMaskPyramid = (int **) malloc(this->levelsToPerform*sizeof(int *));
+   this->BackwardActiveVoxelNumber= (int *)malloc(this->levelsToPerform*sizeof(int));
+   if (this->InputFloatingMask!=nullptr)
    {
       reg_createMaskPyramid<T>(this->InputFloatingMask,
                                this->FloatingMaskPyramid,
-                               this->NumberOfLevels,
-                               this->LevelsToPerform,
+                               this->numberOfLevels,
+                               this->levelsToPerform,
                                this->BackwardActiveVoxelNumber);
    }
    else
    {
-      for(unsigned int l=0; l<this->LevelsToPerform; ++l)
+      for(unsigned int l=0; l<this->levelsToPerform; ++l)
       {
-         this->BackwardActiveVoxelNumber[l]=this->FloatingPyramid[l]->nx*this->FloatingPyramid[l]->ny*this->FloatingPyramid[l]->nz;
+         this->BackwardActiveVoxelNumber[l]=this->floatingPyramid[l]->nx*this->floatingPyramid[l]->ny*this->floatingPyramid[l]->nz;
          this->FloatingMaskPyramid[l]=(int *)calloc(this->BackwardActiveVoxelNumber[l],sizeof(int));
       }
    }
 
    // CHECK THE THRESHOLD VALUES TO UPDATE THE MASK
-   if(this->FloatingUpperThreshold!=std::numeric_limits<T>::max())
+   if(this->floatingUpperThreshold!=std::numeric_limits<T>::max())
    {
-      for(unsigned int l=0; l<this->LevelsToPerform; ++l)
+      for(unsigned int l=0; l<this->levelsToPerform; ++l)
       {
-         T *refPtr = static_cast<T *>(this->FloatingPyramid[l]->data);
+         T *refPtr = static_cast<T *>(this->floatingPyramid[l]->data);
          int *mskPtr = this->FloatingMaskPyramid[l];
          size_t removedVoxel=0;
          for(size_t i=0;
-               i<(size_t)this->FloatingPyramid[l]->nx*this->FloatingPyramid[l]->ny*this->FloatingPyramid[l]->nz;
+               i<(size_t)this->floatingPyramid[l]->nx*this->floatingPyramid[l]->ny*this->floatingPyramid[l]->nz;
                ++i)
          {
             if(mskPtr[i]>-1)
             {
-               if(refPtr[i]>this->FloatingUpperThreshold)
+               if(refPtr[i]>this->floatingUpperThreshold)
                {
                   ++removedVoxel;
                   mskPtr[i]=-1;
@@ -123,20 +120,20 @@ void reg_aladin_sym<T>::InitialiseRegistration()
          this->BackwardActiveVoxelNumber[l] -= removedVoxel;
       }
    }
-   if(this->FloatingLowerThreshold!=-std::numeric_limits<T>::max())
+   if(this->floatingLowerThreshold!=-std::numeric_limits<T>::max())
    {
-      for(unsigned int l=0; l<this->LevelsToPerform; ++l)
+      for(unsigned int l=0; l<this->levelsToPerform; ++l)
       {
-         T *refPtr = static_cast<T *>(this->FloatingPyramid[l]->data);
+         T *refPtr = static_cast<T *>(this->floatingPyramid[l]->data);
          int *mskPtr = this->FloatingMaskPyramid[l];
          size_t removedVoxel=0;
          for(size_t i=0;
-               i<(size_t)this->FloatingPyramid[l]->nx*this->FloatingPyramid[l]->ny*this->FloatingPyramid[l]->nz;
+               i<(size_t)this->floatingPyramid[l]->nx*this->floatingPyramid[l]->ny*this->floatingPyramid[l]->nz;
                ++i)
          {
             if(mskPtr[i]>-1)
             {
-               if(refPtr[i]<this->FloatingLowerThreshold)
+               if(refPtr[i]<this->floatingLowerThreshold)
                {
                   ++removedVoxel;
                   mskPtr[i]=-1;
@@ -147,20 +144,20 @@ void reg_aladin_sym<T>::InitialiseRegistration()
       }
    }
 
-   if(this->AlignCentreMass==1 && this->InputTransformName==NULL)
+   if(this->alignCentreMass==1 && this->inputTransformName==nullptr)
    {
-      if(!this->InputReferenceMask && !this->InputFloatingMask){
+      if(!this->inputReferenceMask && !this->InputFloatingMask){
          reg_print_msg_error("The masks' centre of mass can only be used when two masks are specified");
          reg_exit();
       }
       float referenceCentre[3]={0,0,0};
       float referenceCount=0;
-      reg_tools_changeDatatype<float>(this->InputReferenceMask);
-      float *refMaskPtr=static_cast<float *>(this->InputReferenceMask->data);
+      reg_tools_changeDatatype<float>(this->inputReferenceMask);
+      float *refMaskPtr=static_cast<float *>(this->inputReferenceMask->data);
       size_t refIndex=0;
-      for(int z=0;z<this->InputReferenceMask->nz;++z){
-         for(int y=0;y<this->InputReferenceMask->ny;++y){
-            for(int x=0;x<this->InputReferenceMask->nx;++x){
+      for(int z=0;z<this->inputReferenceMask->nz;++z){
+         for(int y=0;y<this->inputReferenceMask->ny;++y){
+            for(int x=0;x<this->inputReferenceMask->nx;++x){
                if(refMaskPtr[refIndex]!=0.f){
                   referenceCentre[0]+=x;
                   referenceCentre[1]+=y;
@@ -175,8 +172,8 @@ void reg_aladin_sym<T>::InitialiseRegistration()
       referenceCentre[1]/=referenceCount;
       referenceCentre[2]/=referenceCount;
       float refCOG[3];
-      if(this->InputReference->sform_code>0)
-         reg_mat44_mul(&(this->InputReference->sto_xyz),referenceCentre,refCOG);
+      if(this->inputReference->sform_code>0)
+         reg_mat44_mul(&(this->inputReference->sto_xyz),referenceCentre,refCOG);
 
       float floatingCentre[3]={0,0,0};
       float floatingCount=0;
@@ -200,21 +197,21 @@ void reg_aladin_sym<T>::InitialiseRegistration()
       floatingCentre[1]/=floatingCount;
       floatingCentre[2]/=floatingCount;
       float floCOG[3];
-      if(this->InputFloating->sform_code>0)
-         reg_mat44_mul(&(this->InputFloating->sto_xyz),floatingCentre,floCOG);
-      reg_mat44_eye(this->TransformationMatrix);
-      this->TransformationMatrix->m[0][3]=floCOG[0]-refCOG[0];
-      this->TransformationMatrix->m[1][3]=floCOG[1]-refCOG[1];
-      this->TransformationMatrix->m[2][3]=floCOG[2]-refCOG[2];
+      if(this->inputFloating->sform_code>0)
+         reg_mat44_mul(&(this->inputFloating->sto_xyz),floatingCentre,floCOG);
+      reg_mat44_eye(this->transformationMatrix);
+      this->transformationMatrix->m[0][3]=floCOG[0]-refCOG[0];
+      this->transformationMatrix->m[1][3]=floCOG[1]-refCOG[1];
+      this->transformationMatrix->m[2][3]=floCOG[2]-refCOG[2];
    }
-   *(this->BackwardTransformationMatrix) = nifti_mat44_inverse(*(this->TransformationMatrix));
+   *(this->BackwardTransformationMatrix) = nifti_mat44_inverse(*(this->transformationMatrix));
 
 }
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::GetBackwardDeformationField()
 {
-   this->bAffineTransformation3DKernel->template castTo<AffineDeformationFieldKernel>()->calculate();
+   this->bAffineTransformation3DKernel->template castTo<AffineDeformationFieldKernel>()->Calculate();
 }
 /* *************************************************************** */
 template <class T>
@@ -222,7 +219,7 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp, float padding)
 {
    reg_aladin<T>::GetWarpedImage(interp, padding);
    this->GetBackwardDeformationField();
-   this->bResamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, padding);
+   this->bResamplingKernel->template castTo<ResampleImageKernel>()->Calculate(interp, padding);
 
 }
 /* *************************************************************** */
@@ -232,61 +229,61 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type){
   reg_aladin<T>::UpdateTransformationMatrix(type);
 
   // Update now the backward transformation matrix
-  this->bBlockMatchingKernel->template castTo<BlockMatchingKernel>()->calculate();
-  this->bOptimiseKernel->template castTo<OptimiseKernel>()->calculate(type);
+  this->bBlockMatchingKernel->template castTo<BlockMatchingKernel>()->Calculate();
+  this->bOptimiseKernel->template castTo<OptimiseKernel>()->Calculate(type);
 
 #ifndef NDEBUG
-   reg_mat44_disp(this->TransformationMatrix, (char *)"[NiftyReg DEBUG] pre-updated forward transformation matrix");
+   reg_mat44_disp(this->transformationMatrix, (char *)"[NiftyReg DEBUG] pre-updated forward transformation matrix");
    reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[NiftyReg DEBUG] pre-updated backward transformation matrix");
 #endif
    // Forward and backward matrix are inverted
-   mat44 fInverted = nifti_mat44_inverse(*(this->TransformationMatrix));
+   mat44 fInverted = nifti_mat44_inverse(*(this->transformationMatrix));
    mat44 bInverted = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
 
    // We average the forward and inverted backward matrix
-   *(this->TransformationMatrix)=reg_mat44_avg2(this->TransformationMatrix, &bInverted );
+   *(this->transformationMatrix)=reg_mat44_avg2(this->transformationMatrix, &bInverted );
    // We average the inverted forward and backward matrix
    *(this->BackwardTransformationMatrix)=reg_mat44_avg2(&fInverted, this->BackwardTransformationMatrix );
    for(int i=0;i<3;++i){
-      this->TransformationMatrix->m[3][i]=0.f;
+      this->transformationMatrix->m[3][i]=0.f;
       this->BackwardTransformationMatrix->m[3][i]=0.f;
    }
-   this->TransformationMatrix->m[3][3]=1.f;
+   this->transformationMatrix->m[3][3]=1.f;
    this->BackwardTransformationMatrix->m[3][3]=1.f;
 #ifndef NDEBUG
-   reg_mat44_disp(this->TransformationMatrix, (char *)"[NiftyReg DEBUG] updated forward transformation matrix");
+   reg_mat44_disp(this->transformationMatrix, (char *)"[NiftyReg DEBUG] updated forward transformation matrix");
    reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[NiftyReg DEBUG] updated backward transformation matrix");
 #endif
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::initAladinContent(nifti_image *ref,
+void reg_aladin_sym<T>::InitAladinContent(nifti_image *ref,
                         nifti_image *flo,
                         int *mask,
                         mat44 *transMat,
                         size_t bytes)
 {
-   reg_aladin<T>::initAladinContent(ref,
+   reg_aladin<T>::InitAladinContent(ref,
                                flo,
                                mask,
                                transMat,
                                bytes);
 
   if (this->platformCode == NR_PLATFORM_CPU)
-  this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
+  this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes);
 #ifdef _USE_CUDA
   else if (this->platformCode == NR_PLATFORM_CUDA)
-  this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
+  this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes);
 #endif
 #ifdef _USE_OPENCL
   else if (this->platformCode == NR_PLATFORM_CL)
-  this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes);
+  this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes);
 #endif
-  this->BackwardBlockMatchingParams = backCon->AladinContent::getBlockMatchingParams();
+  this->BackwardBlockMatchingParams = backCon->AladinContent::GetBlockMatchingParams();
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::initAladinContent(nifti_image *ref,
+void reg_aladin_sym<T>::InitAladinContent(nifti_image *ref,
                         nifti_image *flo,
                         int *mask,
                         mat44 *transMat,
@@ -295,7 +292,7 @@ void reg_aladin_sym<T>::initAladinContent(nifti_image *ref,
                         unsigned int inlierLts,
                         unsigned int blockStepSize)
 {
-    reg_aladin<T>::initAladinContent(ref,
+    reg_aladin<T>::InitAladinContent(ref,
                                flo,
                                mask,
                                transMat,
@@ -305,48 +302,48 @@ void reg_aladin_sym<T>::initAladinContent(nifti_image *ref,
                                blockStepSize);
 
   if (this->platformCode == NR_PLATFORM_CPU)
-  this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+  this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
   else if (this->platformCode == NR_PLATFORM_CUDA)
-  this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+  this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
   else if (this->platformCode == NR_PLATFORM_CL)
-  this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+  this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
-  this->BackwardBlockMatchingParams = backCon->AladinContent::getBlockMatchingParams();
+  this->BackwardBlockMatchingParams = backCon->AladinContent::GetBlockMatchingParams();
 }
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::ClearCurrentInputImage()
 {
    reg_aladin<T>::ClearCurrentInputImage();
-   if(this->FloatingMaskPyramid[this->CurrentLevel]!=NULL)
-      free(this->FloatingMaskPyramid[this->CurrentLevel]);
-   this->FloatingMaskPyramid[this->CurrentLevel]=NULL;
+   if(this->FloatingMaskPyramid[this->currentLevel]!=nullptr)
+      free(this->FloatingMaskPyramid[this->currentLevel]);
+   this->FloatingMaskPyramid[this->currentLevel]=nullptr;
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::createKernels()
+void reg_aladin_sym<T>::CreateKernels()
 {
-  reg_aladin<T>::createKernels();
-  this->bAffineTransformation3DKernel = this->platform->createKernel (AffineDeformationFieldKernel::getName(), this->backCon);
-  this->bBlockMatchingKernel = this->platform->createKernel(BlockMatchingKernel::getName(), this->backCon);
-  this->bResamplingKernel = this->platform->createKernel(ResampleImageKernel::getName(), this->backCon);
-  this->bOptimiseKernel = this->platform->createKernel(OptimiseKernel::getName(), this->backCon);
+  reg_aladin<T>::CreateKernels();
+  this->bAffineTransformation3DKernel = this->platform->CreateKernel (AffineDeformationFieldKernel::GetName(), this->backCon);
+  this->bBlockMatchingKernel = this->platform->CreateKernel(BlockMatchingKernel::GetName(), this->backCon);
+  this->bResamplingKernel = this->platform->CreateKernel(ResampleImageKernel::GetName(), this->backCon);
+  this->bOptimiseKernel = this->platform->CreateKernel(OptimiseKernel::GetName(), this->backCon);
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::clearAladinContent()
+void reg_aladin_sym<T>::ClearAladinContent()
 {
-  reg_aladin<T>::clearAladinContent();
+  reg_aladin<T>::ClearAladinContent();
   delete this->backCon;
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::clearKernels()
+void reg_aladin_sym<T>::ClearKernels()
 {
-  reg_aladin<T>::clearKernels();
+  reg_aladin<T>::ClearKernels();
   delete this->bResamplingKernel;
   delete this->bAffineTransformation3DKernel;
   delete this->bBlockMatchingKernel;
@@ -357,25 +354,25 @@ template <class T>
 void reg_aladin_sym<T>::DebugPrintLevelInfoStart()
 {
    char text[255];
-   sprintf(text, "Current level %i / %i", this->CurrentLevel+1, this->NumberOfLevels);
+   sprintf(text, "Current level %i / %i", this->currentLevel+1, this->numberOfLevels);
    reg_print_info(this->executableName,text);
    sprintf(text, "reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-           this->con->getCurrentReference()->nx,
-           this->con->getCurrentReference()->ny,
-           this->con->getCurrentReference()->nz,
-           this->con->getCurrentReference()->dx,
-           this->con->getCurrentReference()->dy,
-           this->con->getCurrentReference()->dz);
+           this->con->GetCurrentReference()->nx,
+           this->con->GetCurrentReference()->ny,
+           this->con->GetCurrentReference()->nz,
+           this->con->GetCurrentReference()->dx,
+           this->con->GetCurrentReference()->dy,
+           this->con->GetCurrentReference()->dz);
    reg_print_info(this->executableName,text);
    sprintf(text, "floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-           this->con->getCurrentFloating()->nx,
-           this->con->getCurrentFloating()->ny,
-           this->con->getCurrentFloating()->nz,
-           this->con->getCurrentFloating()->dx,
-           this->con->getCurrentFloating()->dy,
-           this->con->getCurrentFloating()->dz);
+           this->con->GetCurrentFloating()->nx,
+           this->con->GetCurrentFloating()->ny,
+           this->con->GetCurrentFloating()->nz,
+           this->con->GetCurrentFloating()->dx,
+           this->con->GetCurrentFloating()->dy,
+           this->con->GetCurrentFloating()->dz);
    reg_print_info(this->executableName,text);
-   if(this->con->getCurrentReference()->nz==1){
+   if(this->con->GetCurrentReference()->nz==1){
       reg_print_info(this->executableName, "Block size = [4 4 1]");
    }
    else reg_print_info(this->executableName, "Block size = [4 4 4]");
@@ -386,7 +383,7 @@ void reg_aladin_sym<T>::DebugPrintLevelInfoStart()
    sprintf(text, "Backward Block number = [%i %i %i]", this->BackwardBlockMatchingParams->blockNumber[0],
           this->BackwardBlockMatchingParams->blockNumber[1], this->BackwardBlockMatchingParams->blockNumber[2]);
    reg_print_info(this->executableName, text);
-   reg_mat44_disp(this->TransformationMatrix,
+   reg_mat44_disp(this->transformationMatrix,
                   (char *)"[reg_aladin_sym] Initial forward transformation matrix:");
    reg_mat44_disp(this->BackwardTransformationMatrix,
                   (char *)"[reg_aladin_sym] Initial backward transformation matrix:");
@@ -397,8 +394,7 @@ void reg_aladin_sym<T>::DebugPrintLevelInfoStart()
 template <class T>
 void reg_aladin_sym<T>::DebugPrintLevelInfoEnd()
 {
-   reg_mat44_disp(this->TransformationMatrix, (char *)"[reg_aladin_sym] Final forward transformation matrix:");
+   reg_mat44_disp(this->transformationMatrix, (char *)"[reg_aladin_sym] Final forward transformation matrix:");
    reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[reg_aladin_sym] Final backward transformation matrix:");
 }
 /* *************************************************************** */
-#endif //REG_ALADIN_SYM_CPP

@@ -12,8 +12,7 @@
  *
  */
 
-#ifndef _REG_MRF_H
-#define _REG_MRF_H
+#pragma once
 
 #include "_reg_measure.h"
 #include "_reg_localTrans_regul.h"
@@ -58,7 +57,7 @@ public:
    //
    void GetRegularisation();
    //
-   void getOptimalLabel();
+   void GetOptimalLabel();
    int* GetOptimalLabelPtr();
    //
    int* GetOrderedListPtr();
@@ -123,4 +122,3 @@ void dt1sq(float *val,int* ind,int len,float offset,int k,int* v,float* z,float*
 extern "C++"
 void dt3x(float* r,int* indr,int rl,float dx,float dy,float dz);
 /********************************************************************************************************/
-#endif // _REG_MRF_H

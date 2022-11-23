@@ -1,5 +1,4 @@
-#ifndef _ZNZLIB_H_
-#define _ZNZLIB_H_
+#pragma once
 
 /*
 znzlib.h  (zipped or non-zipped library)
@@ -120,5 +119,3 @@ extern "C" {
 }
 #endif
 /*=================*/
-
-#endif

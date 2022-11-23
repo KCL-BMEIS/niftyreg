@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_SSD_GPU_CU
-#define _REG_SSD_GPU_CU
-
 #include "_reg_ssd_gpu.h"
 #include "_reg_ssd_kernels.cu"
 
@@ -89,7 +86,7 @@ float reg_getSSDValue_gpu(nifti_image *referenceImage,
 						  )
 {
     // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	// Copy the constant memory variables
 	int3 referenceDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
@@ -154,7 +151,7 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 									  )
 {
     // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	// Copy the constant memory variables
 	int3 referenceDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
@@ -206,4 +203,3 @@ void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradient()
 }
 /* *************************************************************** */
 /* *************************************************************** */
-#endif

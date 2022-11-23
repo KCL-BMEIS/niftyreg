@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _reg_spline_KERNELS_CU
-#define _reg_spline_KERNELS_CU
-
 #include "_reg_common_cuda.h"
 
 __device__ __constant__ int c_UseBSpline;
@@ -2027,4 +2024,3 @@ __global__ void reg_defField_getJacobianMatrix3D_kernel(float *jacobianMatrices)
 /* *************************************************************** */
 /* *************************************************************** */
 /* *************************************************************** */
-#endif

@@ -1,6 +1,3 @@
-#ifndef _reg_optimiser_GPU_CU
-#define _reg_optimiser_GPU_CU
-
 #include "_reg_optimiser_gpu.h"
 #include "_reg_optimiser_kernels.cu"
 
@@ -9,9 +6,9 @@
 reg_optimiser_gpu::reg_optimiser_gpu()
     :reg_optimiser<float>::reg_optimiser()
 {
-    this->currentDOF_gpu=NULL;
-    this->bestDOF_gpu=NULL;
-    this->gradient_gpu=NULL;
+    this->currentDOF_gpu=nullptr;
+    this->bestDOF_gpu=nullptr;
+    this->gradient_gpu=nullptr;
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_optimiser_gpu::reg_optimiser_gpu() called\n");
@@ -21,9 +18,9 @@ reg_optimiser_gpu::reg_optimiser_gpu()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 reg_optimiser_gpu::~reg_optimiser_gpu()
 {
-    if(this->bestDOF_gpu!=NULL)
+    if(this->bestDOF_gpu!=nullptr)
         cudaCommon_free<float4>(&this->bestDOF_gpu);;
-    this->bestDOF_gpu=NULL;
+    this->bestDOF_gpu=nullptr;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_optimiser_gpu::~reg_optimiser_gpu() called\n");
 #endif
@@ -56,10 +53,10 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
 	// Arrays are converted from float to float4
     this->currentDOF_gpu=reinterpret_cast<float4 *>(cppData);
 
-    if(gradData!=NULL)
+    if(gradData!=nullptr)
         this->gradient_gpu=reinterpret_cast<float4 *>(gradData);
 
-    if(this->bestDOF_gpu!=NULL)
+    if(this->bestDOF_gpu!=nullptr)
         cudaCommon_free<float4>(&this->bestDOF_gpu);
 
     if(cudaCommon_allocateArrayToDevice(&this->bestDOF_gpu,
@@ -113,8 +110,8 @@ void reg_optimiser_gpu::Perturbation(float length)
 reg_conjugateGradient_gpu::reg_conjugateGradient_gpu()
     :reg_optimiser_gpu::reg_optimiser_gpu()
 {
-    this->array1=NULL;
-    this->array2=NULL;
+    this->array1=nullptr;
+    this->array2=nullptr;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_conjugateGradient_gpu::reg_conjugateGradient_gpu() called\n");
 #endif
@@ -123,13 +120,13 @@ reg_conjugateGradient_gpu::reg_conjugateGradient_gpu()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu()
 {
-    if(this->array1!=NULL)
+    if(this->array1!=nullptr)
         cudaCommon_free<float4>(&this->array1);
-    this->array1=NULL;
+    this->array1=nullptr;
 
-    if(this->array2!=NULL)
+    if(this->array2!=nullptr)
         cudaCommon_free<float4>(&this->array2);
-    this->array2=NULL;
+    this->array2=nullptr;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() called\n");
 #endif
@@ -228,7 +225,7 @@ void reg_initialiseConjugateGradient_gpu(float4 **gradientArray_d,
                                          int nodeNumber)
 {
     // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *gradientArray_d, nodeNumber*sizeof(float4)))
@@ -251,7 +248,7 @@ void reg_GetConjugateGradient_gpu(float4 **gradientArray_d,
                                   int nodeNumber)
 {
     // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, conjugateGTexture, *conjugateG_d, nodeNumber*sizeof(float4)))
@@ -297,13 +294,13 @@ float reg_getMaximalLength_gpu(float4 **gradientArray_d,
                                int nodeNumber)
 {
     // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     // Copy constant memory value and bind texture
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *gradientArray_d, nodeNumber*sizeof(float4)))
 
-    float *dist_d=NULL;
+    float *dist_d=nullptr;
     NR_CUDA_SAFE_CALL(cudaMalloc(&dist_d,nodeNumber*sizeof(float)))
 
     const unsigned int Grid_reg_getEuclideanDistance = (unsigned int)reg_ceil(sqrtf((float)nodeNumber/(float)NR_BLOCK->Block_reg_getEuclideanDistance));
@@ -329,7 +326,7 @@ void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
 
 {
     // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
@@ -355,5 +352,3 @@ void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
-#endif // _reg_optimiser_GPU_CU

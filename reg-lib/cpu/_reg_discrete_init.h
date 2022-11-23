@@ -12,8 +12,7 @@
  *
  */
 
-#ifndef _reg_discrete_init_H
-#define _reg_discrete_init_H
+#pragma once
 
 #include "_reg_measure.h"
 #include "_reg_optimiser.h"
@@ -47,7 +46,7 @@ private:
    void GetDiscretisedMeasure();
    void AddL2Penalisation(float);
    void GetRegularisedMeasure();
-   void getOptimalLabel();
+   void GetOptimalLabel();
    void UpdateTransformation();
 
    reg_measure *measure; ///< Measure of similarity object to use for the data term
@@ -76,4 +75,3 @@ private:
    float* l2_penalisation;
 };
 /********************************************************************************************************/
-#endif // _reg_discrete_init_H

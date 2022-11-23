@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_LOCALTRANSFORMATION_GPU_H
-#define _REG_LOCALTRANSFORMATION_GPU_H
+#pragma once
 
 #include "_reg_common_cuda.h"
 #include "_reg_maths.h"
@@ -83,4 +82,3 @@ extern "C++"
 void reg_defField_getJacobianMatrix_gpu(nifti_image *deformationField,
                                         float4 **deformationField_gpu,
                                         float **jacobianMatrices_gpu);
-#endif //_REG_LOCALTRANSFORMATION_GPU_H

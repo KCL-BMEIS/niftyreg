@@ -9,7 +9,7 @@
 
 #include "AladinContent.h"
 #ifdef _USE_CUDA
-#include "CUDAAladinContent.h"
+#include "CudaAladinContent.h"
 #endif
 #ifdef _USE_OPENCL
 #include "CLAladinContent.h"
@@ -66,7 +66,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
             nullptr)
     );
     // Identity use case - 3D
-    // Test order [0,0,0] [1,0,0] [0,1,0] [1,1,0],[0,0,1] [1,0,1] [0,1,1] [1,1,1] 
+    // Test order [0,0,0] [1,0,0] [0,1,0] [1,1,0],[0,0,1] [1,0,1] [0,1,1] [1,1,1]
     float identity_result_3x[8] = {0, 1, 0, 1, 0, 1, 0, 1};
     float identity_result_3y[8] = {0, 0, 1, 1, 0, 0, 1, 1};
     float identity_result_3z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
@@ -98,7 +98,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
     );
 
     // Translation - 3D
-    // Test order [0,0,0] [1,0,0] [0,1,0] [1,1,0],[0,0,1] [1,0,1] [0,1,1] [1,1,1] 
+    // Test order [0,0,0] [1,0,0] [0,1,0] [1,1,0],[0,0,1] [1,0,1] [0,1,1] [1,1,1]
     float translation_result_3x[8] = {-0.5, .5, -0.5, .5, -0.5, .5, -0.5, .5};
     float translation_result_3y[8] = {1.5, 1.5, 2.5, 2.5, 1.5, 1.5, 2.5, 2.5};
     float translation_result_3z[8] = {.75, .75, .75, .75, 1.75, 1.75, 1.75, 1.75};
@@ -111,7 +111,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
             translation_result_3z)
     );
 
-    
+
     // Full affine - 2D
     // Test order [0,0] [1,0] [0,1] [1,1]
     auto *affine = new mat44;
@@ -131,7 +131,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         auto y = identity_result_2y[i];
         affine_result_2x[i] = affine->m[0][3] + affine->m[0][0]*x + affine->m[0][1]*y;
         affine_result_2y[i] = affine->m[1][3] + affine->m[1][0]*x + affine->m[1][1]*y;
-        
+
     }
     test_use_cases.emplace_back(test_data(
             "full affine 2D",
@@ -155,7 +155,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         affine_result_3y[i] = affine->m[1][3] +
             affine->m[1][0]*x + affine->m[1][1]*y + affine->m[1][2]*z;
         affine_result_3z[i] = affine->m[2][3] +
-            affine->m[2][0]*x + affine->m[2][1]*y + affine->m[2][2]*z;        
+            affine->m[2][0]*x + affine->m[2][1]*y + affine->m[2][2]*z;
     }
     test_use_cases.emplace_back(test_data(
             "affine 3D",
@@ -176,7 +176,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         float *test_res_x;
         float *test_res_y;
         float *test_res_z;
-        std::tie(test_name, reference, test_mat, test_res_x, test_res_y, test_res_z) = 
+        std::tie(test_name, reference, test_mat, test_res_x, test_res_y, test_res_z) =
             test_use_case;
 
         // Accumate all required contents with a vector
@@ -222,12 +222,12 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
             SECTION(test_name + " " + desc){
                 // Initialise the platform to run current content and retrieve deformation field
                 auto *platform = new Platform(plat_value);
-                Kernel *affineDeformKernel = platform->createKernel(
-                        AffineDeformationFieldKernel::getName(),
+                Kernel *affineDeformKernel = platform->CreateKernel(
+                        AffineDeformationFieldKernel::GetName(),
                         con);
-                affineDeformKernel->castTo<AffineDeformationFieldKernel>()->calculate();
+                affineDeformKernel->castTo<AffineDeformationFieldKernel>()->Calculate();
                 nifti_image *defField =
-                        con->getCurrentDeformationField();
+                        con->GetCurrentDeformationField();
 
                 // Check all values
                 auto *defFieldPtrX = static_cast<float *>(defField->data);

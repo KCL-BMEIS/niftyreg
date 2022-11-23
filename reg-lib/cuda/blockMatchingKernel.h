@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_BLOCKMATCHING_GPU_H
-#define _REG_BLOCKMATCHING_GPU_H
+#pragma once
 
 #include "_reg_common_cuda.h"
 #include "_reg_blockMatching.h"
@@ -26,7 +25,3 @@
 
 extern "C++"
 void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d, float** targetMat_d);
-
-
-#endif
-

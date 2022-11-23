@@ -22,19 +22,19 @@ int main(int argc, char **argv)
 
     // Read the input reference image
     nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
-    if (referenceImage == NULL) {
+    if (referenceImage == nullptr) {
         reg_print_msg_error("The input reference image could not be read");
         return EXIT_FAILURE;
     }
     nifti_image *cppImage = reg_io_ReadImageFile(inputCPPFileName);
-    if (cppImage == NULL) {
+    if (cppImage == nullptr) {
         reg_print_msg_error("The control point grid image could not be read");
         return EXIT_FAILURE;
     }
 
     // Read the input deformation field image image
     nifti_image *expectedDefField = reg_io_ReadImageFile(inputDefImageName);
-    if (expectedDefField == NULL){
+    if (expectedDefField == nullptr){
         reg_print_msg_error("The input deformation field image could not be read");
         return EXIT_FAILURE;
     }
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
        // Compute the deformation field throught composition
        reg_spline_getDeformationField(cppImage,
                                       test_field,
-                                      NULL,
+                                      nullptr,
                                       true,
                                       true);
     }
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
        // Compute the deformation field from scratch
        reg_spline_getDeformationField(cppImage,
                                       test_field,
-                                      NULL,
+                                      nullptr,
                                       false,
                                       true);
     }
@@ -104,4 +104,3 @@ int main(int argc, char **argv)
     // return on a successful test
     return EXIT_SUCCESS;
 }
-

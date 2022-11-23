@@ -9,9 +9,6 @@
  *
  */
 
-#ifndef _REG_BLOCKMATCHING_GPU_CU
-#define _REG_BLOCKMATCHING_GPU_CU
-
 #include "blockMatchingKernel.h"
 
 #include "_reg_ReadWriteImage.h"
@@ -643,4 +640,3 @@ void block_matching_method_gpu(nifti_image *targetImage,
 
 }
 /* *************************************************************** */
-#endif //_REG_BLOCKMATCHING_GPU_CU

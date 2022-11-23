@@ -14,7 +14,7 @@ int main(int argc, char **argv)
     char *inputImageName = argv[1];
     // Read the input image
     nifti_image *inputImage = reg_io_ReadImageFile(inputImageName);
-    if (inputImage == NULL) {
+    if (inputImage == nullptr) {
         reg_print_msg_error("The input image could not be read");
         return EXIT_FAILURE;
     }
@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     char *expectedImageName = argv[2];
     // Read the expected image
     nifti_image *expectedImage = reg_io_ReadImageFile(expectedImageName);
-    if (expectedImage == NULL) {
+    if (expectedImage == nullptr) {
         reg_print_msg_error("The expected image could not be read");
         return EXIT_FAILURE;
     }
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
     tempGradImage->data=(void *)malloc(tempGradImage->nvox*tempGradImage->nbyper);
 
     // Declare a deformation field image
-    nifti_image *defFieldImage = NULL;
+    nifti_image *defFieldImage = nullptr;
     // Allocate a deformation field image if required
     if(usedMethod > 0)
     {
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
     }
 
     // Free the allocated arrays and images
-    if(defFieldImage!=NULL)
+    if(defFieldImage!=nullptr)
         nifti_image_free(defFieldImage);
     nifti_image_free(tempGradImage);
     free(mask);

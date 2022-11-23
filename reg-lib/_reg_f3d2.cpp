@@ -10,10 +10,6 @@
  *
  */
 
-
-#ifndef _REG_F3D2_CPP
-#define _REG_F3D2_CPP
-
 #include "_reg_f3d2.h"
 
 /* *************************************************************** */
@@ -92,7 +88,7 @@ void reg_f3d2<T>::GetDeformationField()
    // By default the number of steps is automatically updated
    bool updateStepNumber=true;
    // The provided step number is used for the final resampling
-   if(this->optimiser==NULL)
+   if(this->optimiser==nullptr)
       updateStepNumber=false;
 #ifndef NDEBUG
    char text[255];
@@ -185,8 +181,8 @@ void reg_f3d2<T>::ExponentiateGradient()
          tempDef);
 
    // Remove the affine component
-   nifti_image *affine_disp=NULL;
-   if(this->affineTransformation!=NULL){
+   nifti_image *affine_disp=nullptr;
+   if(this->affineTransformation!=nullptr){
       affine_disp=nifti_copy_nim_info(this->deformationFieldImage);
       affine_disp->data=(void *)malloc(affine_disp->nvox*affine_disp->nbyper);
       mat44 backwardAffineTransformation=nifti_mat44_inverse(*this->affineTransformation);
@@ -201,7 +197,7 @@ void reg_f3d2<T>::ExponentiateGradient()
    tempGrad->data=(void *)malloc(tempGrad->nvox*tempGrad->nbyper);
    for(int i=0; i<(int)fabsf(this->backwardControlPointGrid->intent_p2); ++i)
    {
-      if(affine_disp!=NULL)
+      if(affine_disp!=nullptr)
          reg_tools_substractImageToImage(tempDef[i],
                                          affine_disp,
                                          tempDef[i]);
@@ -219,17 +215,17 @@ void reg_f3d2<T>::ExponentiateGradient()
    for(int i=0; i<=(int)fabsf(this->backwardControlPointGrid->intent_p2); ++i)
    {
       nifti_image_free(tempDef[i]);
-      tempDef[i]=NULL;
+      tempDef[i]=nullptr;
    }
    free(tempDef);
-   tempDef=NULL;
+   tempDef=nullptr;
    // Free the temporary gradient image
    nifti_image_free(tempGrad);
-   tempGrad=NULL;
+   tempGrad=nullptr;
    // Free the temporary affine displacement field
-   if(affine_disp!=NULL)
+   if(affine_disp!=nullptr)
       nifti_image_free(affine_disp);
-   affine_disp=NULL;
+   affine_disp=nullptr;
    // Normalise the forward gradient
    reg_tools_divideValueToImage(this->voxelBasedMeasureGradient, // in
                                 this->voxelBasedMeasureGradient, // out
@@ -255,7 +251,7 @@ void reg_f3d2<T>::ExponentiateGradient()
          tempDef);
 
    // Remove the affine component
-   if(this->affineTransformation!=NULL){
+   if(this->affineTransformation!=nullptr){
       affine_disp=nifti_copy_nim_info(this->backwardDeformationFieldImage);
       affine_disp->data=(void *)malloc(affine_disp->nvox*affine_disp->nbyper);
       reg_affine_getDeformationField(this->affineTransformation,
@@ -265,7 +261,7 @@ void reg_f3d2<T>::ExponentiateGradient()
 
    for(int i=0; i<(int)fabsf(this->controlPointGrid->intent_p2); ++i)
    {
-      if(affine_disp!=NULL)
+      if(affine_disp!=nullptr)
          reg_tools_substractImageToImage(tempDef[i],
                                          affine_disp,
                                          tempDef[i]);
@@ -283,17 +279,17 @@ void reg_f3d2<T>::ExponentiateGradient()
    for(int i=0; i<=(int)fabsf(this->controlPointGrid->intent_p2); ++i)
    {
       nifti_image_free(tempDef[i]);
-      tempDef[i]=NULL;
+      tempDef[i]=nullptr;
    }
    free(tempDef);
-   tempDef=NULL;
+   tempDef=nullptr;
    // Free the temporary gradient image
    nifti_image_free(tempGrad);
-   tempGrad=NULL;
+   tempGrad=nullptr;
    // Free the temporary affine displacement field
-   if(affine_disp!=NULL)
+   if(affine_disp!=nullptr)
       nifti_image_free(affine_disp);
-   affine_disp=NULL;
+   affine_disp=nullptr;
    // Normalise the backward gradient
    reg_tools_divideValueToImage(this->backwardVoxelBasedMeasureGradientImage, // in
                                 this->backwardVoxelBasedMeasureGradientImage, // out
@@ -346,7 +342,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
    }
    // Clean the temporary nifti_images
    nifti_image_free(forwardScaledGradient);
-   forwardScaledGradient=NULL;
+   forwardScaledGradient=nullptr;
 
    /************************/
    /**** Backward update ***/
@@ -385,7 +381,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
    }
    // Clean the temporary nifti_images
    nifti_image_free(backwardScaledGradient);
-   backwardScaledGradient=NULL;
+   backwardScaledGradient=nullptr;
 
    /****************************/
    /******** Symmetrise ********/
@@ -423,9 +419,9 @@ void reg_f3d2<T>::UpdateParameters(float scale)
                                   0.5f); // *(0.5)
    // Clean the temporary allocated velocity fields
    nifti_image_free(warpedForwardTrans);
-   warpedForwardTrans=NULL;
+   warpedForwardTrans=nullptr;
    nifti_image_free(warpedBackwardTrans);
-   warpedBackwardTrans=NULL;
+   warpedBackwardTrans=nullptr;
 
    // Convert the velocity field from displacement to deformation
    reg_getDeformationFromDisplacement(this->controlPointGrid);
@@ -439,10 +435,10 @@ template<class T>
 nifti_image **reg_f3d2<T>::GetWarpedImage()
 {
    // The initial images are used
-   if(this->inputReference==NULL ||
-         this->inputFloating==NULL ||
-         this->controlPointGrid==NULL ||
-         this->backwardControlPointGrid==NULL)
+   if(this->inputReference==nullptr ||
+         this->inputFloating==nullptr ||
+         this->controlPointGrid==nullptr ||
+         this->backwardControlPointGrid==nullptr)
    {
       reg_print_fct_error("reg_f3d2<T>::GetWarpedImage()");
       reg_print_msg_error("The reference, floating and control point grid images have to be defined");
@@ -453,8 +449,8 @@ nifti_image **reg_f3d2<T>::GetWarpedImage()
    reg_f3d2<T>::currentReference = this->inputReference;
    reg_f3d2<T>::currentFloating = this->inputFloating;
    // No mask is used to perform the final resampling
-   reg_f3d2<T>::currentMask = NULL;
-   reg_f3d2<T>::currentFloatingMask = NULL;
+   reg_f3d2<T>::currentMask = nullptr;
+   reg_f3d2<T>::currentFloatingMask = nullptr;
 
    // Allocate the forward and backward warped images
    reg_f3d2<T>::AllocateWarped();
@@ -495,4 +491,3 @@ nifti_image **reg_f3d2<T>::GetWarpedImage()
 /* *************************************************************** */
 /* *************************************************************** */
 template class reg_f3d2<float>;
-#endif

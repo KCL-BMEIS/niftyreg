@@ -100,34 +100,34 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
 /*****************************************************/
 reg_discrete_init::~reg_discrete_init()
 {
-   if(this->discretised_measures!=NULL)
+   if(this->discretised_measures!=nullptr)
       free(this->discretised_measures);
-   this->discretised_measures=NULL;
+   this->discretised_measures=nullptr;
 
-   if(this->regularised_measures!=NULL)
+   if(this->regularised_measures!=nullptr)
       free(this->regularised_measures);
-   this->regularised_measures=NULL;
+   this->regularised_measures=nullptr;
 
-   if(this->l2_penalisation!=NULL)
+   if(this->l2_penalisation!=nullptr)
       free(this->l2_penalisation);
-   this->l2_penalisation=NULL;
+   this->l2_penalisation=nullptr;
 
-   if(this->optimal_label_index!=NULL)
+   if(this->optimal_label_index!=nullptr)
       free(this->optimal_label_index);
-   this->optimal_label_index=NULL;
+   this->optimal_label_index=nullptr;
 
    for(int i=0; i<this->image_dim; ++i){
-      if(this->discrete_values_mm[i]!=NULL)
+      if(this->discrete_values_mm[i]!=nullptr)
          free(this->discrete_values_mm[i]);
-      this->discrete_values_mm[i]=NULL;
+      this->discrete_values_mm[i]=nullptr;
    }
-   if(this->discrete_values_mm!=NULL)
+   if(this->discrete_values_mm!=nullptr)
       free(this->discrete_values_mm);
-   this->discrete_values_mm=NULL;
+   this->discrete_values_mm=nullptr;
 
-   if(this->input_transformation!=NULL)
+   if(this->input_transformation!=nullptr)
       nifti_image_free(this->input_transformation);
-   this->input_transformation=NULL;
+   this->input_transformation=nullptr;
 }
 /*****************************************************/
 /*****************************************************/
@@ -143,7 +143,7 @@ void reg_discrete_init::GetDiscretisedMeasure()
 }
 /*****************************************************/
 /*****************************************************/
-void reg_discrete_init::getOptimalLabel()
+void reg_discrete_init::GetOptimalLabel()
 {
    this->regularisation_convergence=0;
    size_t opt_label = 0;
@@ -393,13 +393,13 @@ void reg_discrete_init::Run()
           this->discretised_measures,
           this->label_nD_num*this->node_number*sizeof(float));
    // Extract the best label
-   this->getOptimalLabel();
+   this->GetOptimalLabel();
    // Update the control point positions
    this->UpdateTransformation();
    // Run the regularisation optimisation
    for(int i=0; i< this->reg_max_it; ++i){
       this->GetRegularisedMeasure();
-      this->getOptimalLabel();
+      this->GetOptimalLabel();
       this->UpdateTransformation();
       sprintf(text, "Regularisation %i/%i - BE=%.2f - [%2.2f%%]",
              i+1, this->reg_max_it,

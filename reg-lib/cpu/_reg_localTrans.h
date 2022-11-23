@@ -14,8 +14,7 @@
  * Marcel van Herk (CMIC / NKI / AVL)
  */
 
-#ifndef _REG_TRANS_H
-#define _REG_TRANS_H
+#pragma once
 
 #include "float.h"
 #include "_reg_globalTrans.h"
@@ -65,7 +64,7 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
 extern "C++"
 void reg_spline_getDeformationField(nifti_image *controlPointGridImage,
                                     nifti_image *deformationField,
-                                    int *mask = NULL,
+                                    int *mask = nullptr,
                                     bool composition = false,
                                     bool bspline = true,
                                     bool force_no_lut = false);
@@ -87,7 +86,7 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                                   nifti_image *voxelImage,
                                   float weight,
                                   bool update,
-                                  mat44 *voxelToMillimeter = NULL
+                                  mat44 *voxelToMillimeter = nullptr
       );
 /* *************************************************************** */
 /** @brief Refine a grid of control points
@@ -98,7 +97,7 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
  */
 extern "C++"
 void reg_spline_refineControlPointGrid(nifti_image *controlPointGridImage,
-                                       nifti_image *referenceImage = NULL
+                                       nifti_image *referenceImage = nullptr
       );
 /* *************************************************************** */
 /** @brief This function compose the a first control point image with a second one:
@@ -213,4 +212,3 @@ void compute_BCH_update(nifti_image *img1,
 extern "C++"
 void reg_spline_GetDeconvolvedCoefficents(nifti_image *img);
 /* *************************************************************** */
-#endif

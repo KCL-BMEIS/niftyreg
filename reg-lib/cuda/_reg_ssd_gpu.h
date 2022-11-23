@@ -10,12 +10,12 @@
  *
  */
 
-#ifndef _REG_SSD_GPU_H
-#define _REG_SSD_GPU_H
+#pragma once
 
 #include "_reg_tools_gpu.h"
 #include "_reg_measure_gpu.h"
 #include "_reg_ssd.h"
+
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /// @brief SSD measure of similarity class on the device
@@ -67,4 +67,3 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
                                       int **mask_d,
                                       int activeVoxelNumber
                                      );
-#endif

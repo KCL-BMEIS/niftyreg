@@ -5,8 +5,7 @@
  * Also contains an interface class between reg_base and the measure class
  */
 
-#ifndef _REG_MEASURE_H
-#define _REG_MEASURE_H
+#pragma once
 
 #include "_reg_tools.h"
 #include <time.h>
@@ -23,11 +22,11 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
-                          nifti_image *localWeightSimPtr = NULL,
-                          int *maskFloPtr = NULL,
-                          nifti_image *warRefImgPtr = NULL,
-                          nifti_image *warRefGraPtr = NULL,
-                          nifti_image *bckVoxBasedGraPtr = NULL)
+                          nifti_image *localWeightSimPtr = nullptr,
+                          int *maskFloPtr = nullptr,
+                          nifti_image *warRefImgPtr = nullptr,
+                          nifti_image *warRefGraPtr = nullptr,
+                          nifti_image *bckVoxBasedGraPtr = nullptr)
    {
       this->isSymmetric=false;
       this->referenceImagePointer=refImgPtr;
@@ -38,7 +37,7 @@ public:
       this->warpedFloatingGradientImagePointer=warFloGraPtr;
       this->forwardVoxelBasedGradientImagePointer=forVoxBasedGraPtr;
       this->forwardLocalWeightSimImagePointer=localWeightSimPtr;
-      if(maskFloPtr != NULL && warRefImgPtr!=NULL && warRefGraPtr!=NULL && bckVoxBasedGraPtr!=NULL) {
+      if(maskFloPtr != nullptr && warRefImgPtr!=nullptr && warRefGraPtr!=nullptr && bckVoxBasedGraPtr!=nullptr) {
          this->isSymmetric=true;
          this->floatingMaskPointer=maskFloPtr;
          this->warpedReferenceImagePointer=warRefImgPtr;
@@ -46,10 +45,10 @@ public:
          this->backwardVoxelBasedGradientImagePointer=bckVoxBasedGraPtr;
       }
       else {
-          this->floatingMaskPointer=NULL;
-          this->warpedReferenceImagePointer=NULL;
-          this->warpedReferenceGradientImagePointer=NULL;
-          this->backwardVoxelBasedGradientImagePointer=NULL;
+          this->floatingMaskPointer=nullptr;
+          this->warpedReferenceImagePointer=nullptr;
+          this->warpedReferenceGradientImagePointer=nullptr;
+          this->backwardVoxelBasedGradientImagePointer=nullptr;
       }
 #ifndef NDEBUG
       printf("[NiftyReg DEBUG] reg_measure::InitialiseMeasure()\n");
@@ -115,4 +114,3 @@ protected:
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-#endif // _REG_MEASURE_H

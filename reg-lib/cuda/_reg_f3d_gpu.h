@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_F3D_GPU_H
-#define _REG_F3D_GPU_H
+#pragma once
 
 #include "_reg_resampling_gpu.h"
 #include "_reg_globalTransformation_gpu.h"
@@ -97,5 +96,3 @@ public:
 };
 
 #include "_reg_f3d_gpu.cpp"
-
-#endif

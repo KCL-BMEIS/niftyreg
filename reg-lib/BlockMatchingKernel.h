@@ -1,18 +1,15 @@
-#ifndef BLOCKMATCHINGKERNEL_H
-#define BLOCKMATCHINGKERNEL_H
+#pragma once
 
 #include "Kernel.h"
 
 class BlockMatchingKernel : public Kernel {
 public:
-    static std::string getName() {
+    static std::string GetName() {
         return "blockMatchingKernel";
     }
     BlockMatchingKernel(std::string name) : Kernel(name) {
 
     }
     virtual ~BlockMatchingKernel(){}
-    virtual void calculate() = 0;
+    virtual void Calculate() = 0;
 };
-
-#endif // BLOCKMATCHINGKERNEL_H

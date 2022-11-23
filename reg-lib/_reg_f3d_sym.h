@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_F3D_SYM_H
-#define _REG_F3D_SYM_H
+#pragma once
 
 #include "_reg_f3d.h"
 
@@ -103,5 +102,3 @@ public:
       return true;
    }
 };
-
-#endif

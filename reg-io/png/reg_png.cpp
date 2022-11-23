@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_PNG_CPP
-#define _REG_PNG_CPP
-
 #include "reg_png.h"
 #include "readpng.h"
 
@@ -20,9 +17,9 @@
 nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
 {
    // We first read the png file
-   FILE *pngFile=NULL;
+   FILE *pngFile=nullptr;
    pngFile = fopen(pngFileName, "rb");
-   if(pngFile==NULL)
+   if(pngFile==nullptr)
    {
       char text[255];
       sprintf(text, "Can not open the png file %s", pngFileName);
@@ -38,7 +35,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
       reg_exit();
    rewind(pngFile);
 
-   png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+   png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
    if (!png_ptr)
    {
       reg_print_fct_error("reg_io_readPNGfile");
@@ -49,7 +46,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    png_infop info_ptr = png_create_info_struct(png_ptr);
    if (!info_ptr)
    {
-      png_destroy_read_struct(&png_ptr, NULL, NULL);
+      png_destroy_read_struct(&png_ptr, nullptr, nullptr);
       reg_print_fct_error("reg_io_readPNGfile");
       reg_print_msg_error("Error when reading the png file - out of memory");
       reg_exit();
@@ -61,7 +58,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    png_uint_32 Width, Height;
    int bit_depth, color_type;
    png_get_IHDR(png_ptr, info_ptr, &Width, &Height, &bit_depth,
-                &color_type, NULL, NULL, NULL);
+                &color_type, nullptr, nullptr, nullptr);
 
    int Channels;
    ulg rowbytes;
@@ -100,12 +97,12 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    }
 
    int dim[8]= {2,static_cast<int>(Width),static_cast<int>(Height),1,1,1,1,1};
-   nifti_image *niiImage=NULL;
+   nifti_image *niiImage=nullptr;
    if(readData)
    {
 
       uch *image_data;
-      if ((image_data = (uch *)malloc(Width*Height*Channels*sizeof(uch))) == NULL)
+      if ((image_data = (uch *)malloc(Width*Height*Channels*sizeof(uch))) == nullptr)
          reg_exit();
 
       for (png_uint_32 i=0; i<Height; ++i)
@@ -114,7 +111,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
       }
 
       png_read_image(png_ptr, row_pointers);
-      png_read_end(png_ptr, NULL);
+      png_read_end(png_ptr, nullptr);
 
       niiImage=nifti_make_new_nim(dim,NIFTI_TYPE_UINT8,true);
       uch *niiPtr=static_cast<uch *>(niiImage->data);
@@ -152,7 +149,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
       niiImage=nifti_make_new_nim(dim,NIFTI_TYPE_UINT8,false);
    }
    delete []row_pointers;
-   png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+   png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
    fclose (pngFile);
 
    nifti_set_filenames(niiImage, pngFileName,0,0);
@@ -208,15 +205,15 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
       reg_exit();
    }
    // The png file structures are created
-   png_structp png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-   if (png_ptr==NULL)
+   png_structp png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+   if (png_ptr==nullptr)
    {
       reg_print_fct_error("reg_io_writePNGfile");
       reg_print_msg_error("The png pointer could not be created");
       reg_exit();
    }
    png_infop info_ptr = png_create_info_struct (png_ptr);
-   if(info_ptr==NULL)
+   if(info_ptr==nullptr)
    {
       reg_print_fct_error("reg_io_writePNGfile");
       reg_print_msg_error("The png structure could not be created");
@@ -248,7 +245,7 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
    // Write the image data to the file
    png_init_io (png_ptr, fp);
    png_set_rows (png_ptr, info_ptr, row_pointers);
-   png_write_png (png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
+   png_write_png (png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, nullptr);
    // Free the allocated png arrays
    for(int y=0; y<image->ny; ++y)
       png_free(png_ptr, row_pointers[y]);
@@ -258,4 +255,3 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
    fclose (fp);
 }
 /* *************************************************************** */
-#endif

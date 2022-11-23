@@ -19,8 +19,7 @@
  * and png_info.
  */
 
-#ifndef PNGCONF_H
-#define PNGCONF_H
+#pragma once
 
 #ifndef PNG_BUILDING_SYMBOL_TABLE
 /* PNG_NO_LIMITS_H may be used to turn off the use of the standard C
@@ -593,5 +592,3 @@ typedef png_size_t    png_alloc_size_t;
 #    endif
 #  endif
 #endif
-
-#endif /* PNGCONF_H */

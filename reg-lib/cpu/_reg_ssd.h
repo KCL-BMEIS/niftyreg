@@ -12,8 +12,7 @@
  *
  */
 
-#ifndef _REG_SSD_H
-#define _REG_SSD_H
+#pragma once
 
 #include "_reg_measure.h"
 
@@ -33,10 +32,10 @@ public:
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
                           nifti_image *localWeightSimPtr,
-                          int *maskFloPtr = NULL,
-                          nifti_image *warRefImgPtr = NULL,
-                          nifti_image *warRefGraPtr = NULL,
-                          nifti_image *bckVoxBasedGraPtr = NULL);
+                          int *maskFloPtr = nullptr,
+                          nifti_image *warRefImgPtr = nullptr,
+                          nifti_image *warRefGraPtr = nullptr,
+                          nifti_image *bckVoxBasedGraPtr = nullptr);
 
    /// @brief Define if the specified time point should be normalised
    void SetNormaliseTimepoint(int timepoint, bool normalise);
@@ -66,9 +65,9 @@ private:
  * @param jacobianDeterminantImage Image that contains the Jacobian
  * determinant of a transformation at every voxel position. This
  * image is used to modulate the SSD. The argument is ignored if the
- * pointer is set to NULL
+ * pointer is set to nullptr
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to NULL, all voxels are considered
+ * should be considered. If set to nullptr, all voxels are considered
  * @return Returns the computed sum squared difference
  */
 extern "C++" template <class DTYPE>
@@ -91,9 +90,9 @@ double reg_getSSDValue(nifti_image *referenceImage,
  * @param jacobianDeterminantImage Image that contains the Jacobian
  * determinant of a transformation at every voxel position. This
  * image is used to modulate the SSD. The argument is ignored if the
- * pointer is set to NULL
+ * pointer is set to nullptr
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to NULL, all voxels are considered
+ * should be considered. If set to nullptr, all voxels are considered
  */
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
@@ -106,4 +105,3 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   double timepoint_weight,
                                   nifti_image *localWeightImage
                                  );
-#endif

@@ -10,9 +10,6 @@
  * See the LICENSE.txt file in the nifty_reg root folder
  */
 
-#ifndef _REG_LNCC_CPP
-#define _REG_LNCC_CPP
-
 #include "_reg_lncc.h"
 
 /* *************************************************************** */
@@ -20,19 +17,19 @@
 reg_lncc::reg_lncc()
    : reg_measure()
 {
-   this->forwardCorrelationImage=NULL;
-   this->referenceMeanImage=NULL;
-   this->referenceSdevImage=NULL;
-   this->warpedFloatingMeanImage=NULL;
-   this->warpedFloatingSdevImage=NULL;
-   this->forwardMask = NULL;
+   this->forwardCorrelationImage=nullptr;
+   this->referenceMeanImage=nullptr;
+   this->referenceSdevImage=nullptr;
+   this->warpedFloatingMeanImage=nullptr;
+   this->warpedFloatingSdevImage=nullptr;
+   this->forwardMask = nullptr;
 
-   this->backwardCorrelationImage=NULL;
-   this->floatingMeanImage=NULL;
-   this->floatingSdevImage=NULL;
-   this->warpedReferenceMeanImage=NULL;
-   this->warpedReferenceSdevImage=NULL;
-   this->backwardMask = NULL;
+   this->backwardCorrelationImage=nullptr;
+   this->floatingMeanImage=nullptr;
+   this->floatingSdevImage=nullptr;
+   this->warpedReferenceMeanImage=nullptr;
+   this->warpedReferenceSdevImage=nullptr;
+   this->backwardMask = nullptr;
 
    // Gaussian kernel is used by default
    this->kernelType=GAUSSIAN_KERNEL;
@@ -47,43 +44,43 @@ reg_lncc::reg_lncc()
 /* *************************************************************** */
 reg_lncc::~reg_lncc()
 {
-   if(this->forwardCorrelationImage!=NULL)
+   if(this->forwardCorrelationImage!=nullptr)
       nifti_image_free(this->forwardCorrelationImage);
-   this->forwardCorrelationImage=NULL;
-   if(this->referenceMeanImage!=NULL)
+   this->forwardCorrelationImage=nullptr;
+   if(this->referenceMeanImage!=nullptr)
       nifti_image_free(this->referenceMeanImage);
-   this->referenceMeanImage=NULL;
-   if(this->referenceSdevImage!=NULL)
+   this->referenceMeanImage=nullptr;
+   if(this->referenceSdevImage!=nullptr)
       nifti_image_free(this->referenceSdevImage);
-   this->referenceSdevImage=NULL;
-   if(this->warpedFloatingMeanImage!=NULL)
+   this->referenceSdevImage=nullptr;
+   if(this->warpedFloatingMeanImage!=nullptr)
       nifti_image_free(this->warpedFloatingMeanImage);
-   this->warpedFloatingMeanImage=NULL;
-   if(this->warpedFloatingSdevImage!=NULL)
+   this->warpedFloatingMeanImage=nullptr;
+   if(this->warpedFloatingSdevImage!=nullptr)
       nifti_image_free(this->warpedFloatingSdevImage);
-   this->warpedFloatingSdevImage=NULL;
-   if(this->forwardMask!=NULL)
+   this->warpedFloatingSdevImage=nullptr;
+   if(this->forwardMask!=nullptr)
       free(this->forwardMask);
-   this->forwardMask=NULL;
+   this->forwardMask=nullptr;
 
-   if(this->backwardCorrelationImage!=NULL)
+   if(this->backwardCorrelationImage!=nullptr)
       nifti_image_free(this->backwardCorrelationImage);
-   this->backwardCorrelationImage=NULL;
-   if(this->floatingMeanImage!=NULL)
+   this->backwardCorrelationImage=nullptr;
+   if(this->floatingMeanImage!=nullptr)
       nifti_image_free(this->floatingMeanImage);
-   this->floatingMeanImage=NULL;
-   if(this->floatingSdevImage!=NULL)
+   this->floatingMeanImage=nullptr;
+   if(this->floatingSdevImage!=nullptr)
       nifti_image_free(this->floatingSdevImage);
-   this->floatingSdevImage=NULL;
-   if(this->warpedReferenceMeanImage!=NULL)
+   this->floatingSdevImage=nullptr;
+   if(this->warpedReferenceMeanImage!=nullptr)
       nifti_image_free(this->warpedReferenceMeanImage);
-   this->warpedReferenceMeanImage=NULL;
-   if(this->warpedReferenceSdevImage!=NULL)
+   this->warpedReferenceMeanImage=nullptr;
+   if(this->warpedReferenceSdevImage!=nullptr)
       nifti_image_free(this->warpedReferenceSdevImage);
-   this->warpedReferenceSdevImage=NULL;
-   if(this->backwardMask!=NULL)
+   this->warpedReferenceSdevImage=nullptr;
+   if(this->backwardMask!=nullptr)
       free(this->backwardMask);
-   this->backwardMask=NULL;
+   this->backwardMask=nullptr;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -194,42 +191,42 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImgPtr,
    }
 
    // Check that no images are already allocated
-   if(this->forwardCorrelationImage!=NULL)
+   if(this->forwardCorrelationImage!=nullptr)
       nifti_image_free(this->forwardCorrelationImage);
-   this->forwardCorrelationImage=NULL;
-   if(this->referenceMeanImage!=NULL)
+   this->forwardCorrelationImage=nullptr;
+   if(this->referenceMeanImage!=nullptr)
       nifti_image_free(this->referenceMeanImage);
-   this->referenceMeanImage=NULL;
-   if(this->referenceSdevImage!=NULL)
+   this->referenceMeanImage=nullptr;
+   if(this->referenceSdevImage!=nullptr)
       nifti_image_free(this->referenceSdevImage);
-   this->referenceSdevImage=NULL;
-   if(this->warpedFloatingMeanImage!=NULL)
+   this->referenceSdevImage=nullptr;
+   if(this->warpedFloatingMeanImage!=nullptr)
       nifti_image_free(this->warpedFloatingMeanImage);
-   this->warpedFloatingMeanImage=NULL;
-   if(this->warpedFloatingSdevImage!=NULL)
+   this->warpedFloatingMeanImage=nullptr;
+   if(this->warpedFloatingSdevImage!=nullptr)
       nifti_image_free(this->warpedFloatingSdevImage);
-   this->warpedFloatingSdevImage=NULL;
-   if(this->backwardCorrelationImage!=NULL)
+   this->warpedFloatingSdevImage=nullptr;
+   if(this->backwardCorrelationImage!=nullptr)
       nifti_image_free(this->backwardCorrelationImage);
-   this->backwardCorrelationImage=NULL;
-   if(this->floatingMeanImage!=NULL)
+   this->backwardCorrelationImage=nullptr;
+   if(this->floatingMeanImage!=nullptr)
       nifti_image_free(this->floatingMeanImage);
-   this->floatingMeanImage=NULL;
-   if(this->floatingSdevImage!=NULL)
+   this->floatingMeanImage=nullptr;
+   if(this->floatingSdevImage!=nullptr)
       nifti_image_free(this->floatingSdevImage);
-   this->floatingSdevImage=NULL;
-   if(this->warpedReferenceMeanImage!=NULL)
+   this->floatingSdevImage=nullptr;
+   if(this->warpedReferenceMeanImage!=nullptr)
       nifti_image_free(this->warpedReferenceMeanImage);
-   this->warpedReferenceMeanImage=NULL;
-   if(this->warpedReferenceSdevImage!=NULL)
+   this->warpedReferenceMeanImage=nullptr;
+   if(this->warpedReferenceSdevImage!=nullptr)
       nifti_image_free(this->warpedReferenceSdevImage);
-   this->warpedReferenceSdevImage=NULL;
-   if(this->forwardMask!=NULL)
+   this->warpedReferenceSdevImage=nullptr;
+   if(this->forwardMask!=nullptr)
       free(this->forwardMask);
-   this->forwardMask=NULL;
-   if(this->backwardMask!=NULL)
+   this->forwardMask=nullptr;
+   if(this->backwardMask!=nullptr)
       free(this->backwardMask);
-   this->backwardMask=NULL;
+   this->backwardMask=nullptr;
 
    //
    size_t voxelNumber = (size_t)this->referenceImagePointer->nx *
@@ -622,14 +619,14 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
    reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, kernelType, combinedMask);
    DTYPE *measureGradPtrX = static_cast<DTYPE *>(measureGradientImage->data);
    DTYPE *measureGradPtrY = &measureGradPtrX[voxelNumber];
-   DTYPE *measureGradPtrZ = NULL;
+   DTYPE *measureGradPtrZ = nullptr;
    if(referenceImage->nz>1)
       measureGradPtrZ = &measureGradPtrY[voxelNumber];
 
    // Create pointers to the spatial gradient of the warped image
    DTYPE *warpGradPtrX = static_cast<DTYPE *>(warImgGradient->data);
    DTYPE *warpGradPtrY = &warpGradPtrX[voxelNumber];
-   DTYPE *warpGradPtrZ = NULL;
+   DTYPE *warpGradPtrZ = nullptr;
    if(referenceImage->nz>1)
       warpGradPtrZ=&warpGradPtrY[voxelNumber];
 
@@ -653,7 +650,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
        common *= adjusted_weight;
          measureGradPtrX[voxel] -= warpGradPtrX[voxel] * common;
          measureGradPtrY[voxel] -= warpGradPtrY[voxel] * common;
-         if(warpGradPtrZ!=NULL)
+         if(warpGradPtrZ!=nullptr)
             measureGradPtrZ[voxel] -= warpGradPtrZ[voxel] * common;
       }
    }
@@ -817,5 +814,3 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-#endif
-

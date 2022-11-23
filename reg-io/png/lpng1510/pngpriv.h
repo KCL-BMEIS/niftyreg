@@ -22,8 +22,7 @@
  * they should be well aware of the issues that may arise from doing so.
  */
 
-#ifndef PNGPRIV_H
-#define PNGPRIV_H
+#pragma once
 
 /* Feature Test Macros.  The following are defined here to ensure that correctly
  * implemented libraries reveal the APIs libpng needs to build and hide those
@@ -1673,5 +1672,3 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* PNGPRIV_H */

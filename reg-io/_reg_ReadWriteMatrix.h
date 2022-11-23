@@ -12,9 +12,7 @@
  *
  */
 
-
-#ifndef _REG_READWRITEMATRIX_H
-#define _REG_READWRITEMATRIX_H
+#pragma once
 
 #include "nifti1_io.h"
 //STD
@@ -102,6 +100,3 @@ void reg_tool_WriteMatrixFile(char *filename,
                               T **mat,
                               size_t nbLine,
                               size_t nbColumn);
-
-#endif // _REG_READWRITEMATRIX_H
-

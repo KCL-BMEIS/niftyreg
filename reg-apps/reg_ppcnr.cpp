@@ -380,7 +380,7 @@ int main(int argc, char **argv)
    }
 
    nifti_image *image = nifti_image_read(param->sourceImageName,true);
-   if(image == NULL)
+   if(image == nullptr)
    {
       fprintf(stderr,"* ERROR Error when reading image: %s\n",param->sourceImageName);
       return EXIT_FAILURE;
@@ -388,11 +388,11 @@ int main(int argc, char **argv)
    reg_tools_changeDatatype<PrecisionTYPE>(image); // FIX DATA TYPE - DOES THIS WORK?
 
    // --- 2) READ/SET IMAGE MASK (4D VOLUME, [NS, SS]) ---
-   nifti_image *mask=NULL;
+   nifti_image *mask=nullptr;
    if(flag->pmask)
    {
       mask = nifti_image_read(param->pcaMaskName,true);
-      if(mask == NULL)
+      if(mask == nullptr)
       {
          fprintf(stderr,"* ERROR Error when reading image: %s\n",param->pcaMaskName);
          return EXIT_FAILURE;
@@ -729,7 +729,7 @@ int main(int argc, char **argv)
          {
             d[k]=d[i];
             d[i]=p;
-            if(z != NULL)
+            if(z != nullptr)
                for(int j=0; j<n; j++)
                {
                   p=z[j+n*i];

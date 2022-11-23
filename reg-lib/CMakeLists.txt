@@ -144,18 +144,18 @@ set(_reg_aladin_files
   Platform.cpp
   Platform.h
   Kernel.h
-  cpu/CPUAffineDeformationFieldKernel.h
-  cpu/CPUAffineDeformationFieldKernel.cpp
-  cpu/CPUBlockMatchingKernel.h
-  cpu/CPUBlockMatchingKernel.cpp
-  cpu/CPUConvolutionKernel.h
-  cpu/CPUConvolutionKernel.cpp
-  cpu/CPUOptimiseKernel.h
-  cpu/CPUOptimiseKernel.cpp
-  cpu/CPUResampleImageKernel.h
-  cpu/CPUResampleImageKernel.cpp
-  cpu/CPUKernelFactory.cpp
-  cpu/CPUKernelFactory.h
+  cpu/CpuAffineDeformationFieldKernel.h
+  cpu/CpuAffineDeformationFieldKernel.cpp
+  cpu/CpuBlockMatchingKernel.h
+  cpu/CpuBlockMatchingKernel.cpp
+  cpu/CpuConvolutionKernel.h
+  cpu/CpuConvolutionKernel.cpp
+  cpu/CpuOptimiseKernel.h
+  cpu/CpuOptimiseKernel.cpp
+  cpu/CpuResampleImageKernel.h
+  cpu/CpuResampleImageKernel.cpp
+  cpu/CpuKernelFactory.cpp
+  cpu/CpuKernelFactory.h
 )
 set(_reg_aladin_libraries
   _reg_localTrans
@@ -185,12 +185,12 @@ install(FILES
         ConvolutionKernel.h
         OptimiseKernel.h
         ResampleImageKernel.h
-        cpu/CPUAffineDeformationFieldKernel.h
-        cpu/CPUBlockMatchingKernel.h
-        cpu/CPUConvolutionKernel.h
-        cpu/CPUOptimiseKernel.h
-        cpu/CPUResampleImageKernel.h
-        KernelFactory.h cpu/CPUKernelFactory.h DESTINATION include)
+        cpu/CpuAffineDeformationFieldKernel.h
+        cpu/CpuBlockMatchingKernel.h
+        cpu/CpuConvolutionKernel.h
+        cpu/CpuOptimiseKernel.h
+        cpu/CpuResampleImageKernel.h
+        KernelFactory.h cpu/CpuKernelFactory.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_aladin")
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

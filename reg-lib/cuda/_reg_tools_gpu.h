@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_TOOLS_GPU_H
-#define _REG_TOOLS_GPU_H
+#pragma once
 
 #include "_reg_common_cuda.h"
 #include "_reg_tools.h"
@@ -84,5 +83,3 @@ float reg_minReduction_gpu(float *array_d,
                            int size);
 /* ******************************** */
 /* ******************************** */
-
-#endif

@@ -11,8 +11,7 @@
  *
  */
 
-#ifndef _REG_TRANS_REG_H
-#define _REG_TRANS_REG_H
+#pragma once
 
 #include "_reg_splineBasis.h"
 
@@ -157,4 +156,3 @@ void reg_spline_approxLinearPairwiseGradient(nifti_image *controlPointGridImage,
 extern "C++"
 double reg_spline_approxLinearPairwise(nifti_image *controlPointGridImage);
 /* *************************************************************** */
-#endif

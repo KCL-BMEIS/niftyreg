@@ -9,7 +9,7 @@
 
 #include "AladinContent.h"
 #ifdef _USE_CUDA
-#include "CUDAAladinContent.h"
+#include "CudaAladinContent.h"
 #endif
 #ifdef _USE_OPENCL
 #include "CLAladinContent.h"
@@ -93,8 +93,8 @@ void test(AladinContent *con, int platformCode) {
 
    Platform *platform = new Platform(platformCode);
 
-   Kernel *blockMatchingKernel = platform->createKernel(BlockMatchingKernel::getName(), con);
-   blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
+   Kernel *blockMatchingKernel = platform->CreateKernel(BlockMatchingKernel::GetName(), con);
+   blockMatchingKernel->castTo<BlockMatchingKernel>()->Calculate();
 
    delete blockMatchingKernel;
    delete platform;
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 
    // Read the input reference image
    nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
-   if (referenceImage == NULL){
+   if (referenceImage == nullptr){
       reg_print_msg_error("The input reference image could not be read");
       return EXIT_FAILURE;
    }
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 
    // Read the input floating image
    nifti_image *warpedImage = reg_io_ReadImageFile(inputWarpedImageName);
-   if (warpedImage == NULL){
+   if (warpedImage == nullptr){
       reg_print_msg_error("The input warped image could not be read");
       return EXIT_FAILURE;
    }
@@ -152,12 +152,12 @@ int main(int argc, char **argv)
    for (size_t i = 0; i < referenceImage->nvox; ++i) mask[i] = i;
 
    // CPU Platform
-   _reg_blockMatchingParam* blockMatchingParams_cpu = NULL;
-   AladinContent *con_cpu = NULL;
-   con_cpu = new AladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
-   con_cpu->setCurrentWarped(warpedImage);
+   _reg_blockMatchingParam* blockMatchingParams_cpu = nullptr;
+   AladinContent *con_cpu = nullptr;
+   con_cpu = new AladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
+   con_cpu->SetCurrentWarped(warpedImage);
    test(con_cpu, NR_PLATFORM_CPU);
-   blockMatchingParams_cpu = con_cpu->getBlockMatchingParams();
+   blockMatchingParams_cpu = con_cpu->GetBlockMatchingParams();
 
 #ifndef NDEBUG
    std::cout << "blockMatchingParams_cpu->activeBlockNumber = " << blockMatchingParams_cpu->activeBlockNumber << std::endl;
@@ -165,21 +165,21 @@ int main(int argc, char **argv)
 #endif
 
    // GPU Platform
-   AladinContent *con_gpu = NULL;
-   _reg_blockMatchingParam* blockMatchingParams_gpu = NULL;
+   AladinContent *con_gpu = nullptr;
+   _reg_blockMatchingParam* blockMatchingParams_gpu = nullptr;
 #ifdef _USE_CUDA
    if (platformCode == NR_PLATFORM_CUDA) {
-      con_gpu = new CudaAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+      con_gpu = new CudaAladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    }
 #endif
 #ifdef _USE_OPENCL
    if (platformCode == NR_PLATFORM_CL) {
-      con_gpu = new ClAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
+      con_gpu = new ClAladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    }
 #endif
-   con_gpu->setCurrentWarped(warpedImage);
+   con_gpu->SetCurrentWarped(warpedImage);
    test(con_gpu, platformCode);
-   blockMatchingParams_gpu = con_gpu->getBlockMatchingParams();
+   blockMatchingParams_gpu = con_gpu->GetBlockMatchingParams();
 
 #ifndef NDEBUG
    std::cout << "blockMatchingParams_gpu->activeBlockNumber = " << blockMatchingParams_gpu->activeBlockNumber << std::endl;
@@ -235,4 +235,3 @@ int main(int argc, char **argv)
 
    return EXIT_SUCCESS;
 }
-

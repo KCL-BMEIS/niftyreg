@@ -10,11 +10,11 @@
  *
  */
 
-#ifndef _REG_SSD_KERNELS_CU
-#define _REG_SSD_KERNELS_CU
+#pragma once
 
 #include "_reg_ssd_gpu.h"
 #include "_reg_ssd_kernels.cu"
+
 /* *************************************************************** */
 texture<float, 3, cudaReadModeElementType> referenceTexture;
 texture<float, 1, cudaReadModeElementType> warpedTexture;
@@ -147,5 +147,3 @@ __global__ void reg_getSSDGradient3D_kernel(float4 *ssdGradient)
     }
 }
 /* *************************************************************** */
-#endif
-

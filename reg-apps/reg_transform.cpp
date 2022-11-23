@@ -143,7 +143,7 @@ void Usage(char *exec)
    printf("\t\tfilename4 - Output affine transformation file name\n\n");
 #if defined (_OPENMP)
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    printf("\t-omp <int>\n\t\tNumber of thread to use with OpenMP. [%i/%i]\n",
           defaultOpenMPValue, omp_get_num_procs());
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 #if defined (_OPENMP)
    // Set the default number of thread
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -322,15 +322,15 @@ int main(int argc, char **argv)
    if(flag->outputDefFlag || flag->outputDispFlag || flag->outputFlowFlag)
    {
       // Create some variables
-      mat44 *affineTransformation=NULL;
-      nifti_image *referenceImage=NULL;
-      nifti_image *inputTransformationImage=NULL;
-      nifti_image *outputTransformationImage=NULL;
+      mat44 *affineTransformation=nullptr;
+      nifti_image *referenceImage=nullptr;
+      nifti_image *inputTransformationImage=nullptr;
+      nifti_image *outputTransformationImage=nullptr;
       // First check if the input filename is an image
       if(reg_isAnImageFileName(param->inputTransName))
       {
          inputTransformationImage=reg_io_ReadImageFile(param->inputTransName);
-         if(inputTransformationImage==NULL)
+         if(inputTransformationImage==nullptr)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the provided transformation: %s\n",
                     param->inputTransName);
@@ -349,7 +349,7 @@ int main(int argc, char **argv)
                return EXIT_FAILURE;
             }
             referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
-            if(referenceImage==NULL)
+            if(referenceImage==nullptr)
             {
                fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                        param->referenceImageName);
@@ -370,7 +370,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
          }
          referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
-         if(referenceImage==NULL)
+         if(referenceImage==nullptr)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                     param->referenceImageName);
@@ -378,7 +378,7 @@ int main(int argc, char **argv)
          }
       }
       // Create a dense field
-      if(affineTransformation!=NULL ||
+      if(affineTransformation!=nullptr ||
             inputTransformationImage->intent_p1==LIN_SPLINE_GRID ||
             inputTransformationImage->intent_p1==CUB_SPLINE_GRID ||
             inputTransformationImage->intent_p1==SPLINE_VEL_GRID)
@@ -410,7 +410,7 @@ int main(int argc, char **argv)
       // Create a flow field image
       if(flag->outputFlowFlag)
       {
-         if(affineTransformation!=NULL)
+         if(affineTransformation!=nullptr)
          {
             fprintf(stderr,"[NiftyReg ERROR] A flow field transformation can not be generated from an affine transformation\n");
             return EXIT_FAILURE;
@@ -469,7 +469,7 @@ int main(int argc, char **argv)
       // Create a deformation or displacement field
       else if(flag->outputDefFlag || flag->outputDispFlag)
       {
-         if(affineTransformation!=NULL)
+         if(affineTransformation!=nullptr)
          {
             reg_affine_getDeformationField(affineTransformation,outputTransformationImage);
          }
@@ -504,7 +504,7 @@ int main(int argc, char **argv)
                // The spline transformation is composed with the identity field
                reg_spline_getDeformationField(inputTransformationImage,
                                               outputTransformationImage,
-                                              NULL, // no mask
+                                              nullptr, // no mask
                                               true, // composition is used,
                                               true // b-spline are used
                                              );
@@ -566,10 +566,10 @@ int main(int argc, char **argv)
          break;
       }
       // Free the allocated images and arrays
-      if(affineTransformation!=NULL) free(affineTransformation);
-      if(referenceImage!=NULL) nifti_image_free(referenceImage);
-      if(inputTransformationImage!=NULL) nifti_image_free(inputTransformationImage);
-      if(outputTransformationImage!=NULL) nifti_image_free(outputTransformationImage);
+      if(affineTransformation!=nullptr) free(affineTransformation);
+      if(referenceImage!=nullptr) nifti_image_free(referenceImage);
+      if(inputTransformationImage!=nullptr) nifti_image_free(inputTransformationImage);
+      if(outputTransformationImage!=nullptr) nifti_image_free(outputTransformationImage);
    }
 
    /* ************************************ */
@@ -579,14 +579,14 @@ int main(int argc, char **argv)
    {
       printf("[NiftyReg] Starting the composition of two transformations\n");
       // Create some variables
-      mat44 *affine1Trans=NULL;
-      mat44 *affine2Trans=NULL;
-      nifti_image *referenceImage=NULL;
-      nifti_image *referenceImage2=NULL;
-      nifti_image *input1TransImage=NULL;
-      nifti_image *input2TransImage=NULL;
-      nifti_image *output1TransImage=NULL;
-      nifti_image *output2TransImage=NULL;
+      mat44 *affine1Trans=nullptr;
+      mat44 *affine2Trans=nullptr;
+      nifti_image *referenceImage=nullptr;
+      nifti_image *referenceImage2=nullptr;
+      nifti_image *input1TransImage=nullptr;
+      nifti_image *input2TransImage=nullptr;
+      nifti_image *output1TransImage=nullptr;
+      nifti_image *output2TransImage=nullptr;
       // Read the first transformation
       if(!reg_isAnImageFileName(param->inputTransName))
       {
@@ -598,7 +598,7 @@ int main(int argc, char **argv)
       else
       {
          input1TransImage = reg_io_ReadImageFile(param->inputTransName);
-         if(input1TransImage==NULL)
+         if(input1TransImage==nullptr)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the transformation image: %s\n",
                     param->inputTransName);
@@ -614,7 +614,7 @@ int main(int argc, char **argv)
       else
       {
          input2TransImage = reg_io_ReadImageFile(param->input2TransName);
-         if(input2TransImage==NULL)
+         if(input2TransImage==nullptr)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the transformation image: %s\n",
                     param->input2TransName);
@@ -622,7 +622,7 @@ int main(int argc, char **argv)
          }
       }
       // Check if the two input transformations are affine transformation
-      if(affine1Trans!=NULL && affine2Trans!=NULL)
+      if(affine1Trans!=nullptr && affine2Trans!=nullptr)
       {
          printf("[NiftyReg] Transformation 2 is an affine parametrisation:\n[NiftyReg] %s\n",
                 param->input2TransName);
@@ -632,7 +632,7 @@ int main(int argc, char **argv)
       else
       {
          // Check if the reference image is required
-         if(affine1Trans!=NULL)
+         if(affine1Trans!=nullptr)
          {
             if(!flag->referenceImageFlag)
             {
@@ -642,7 +642,7 @@ int main(int argc, char **argv)
                return EXIT_FAILURE;
             }
             referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
-            if(referenceImage==NULL)
+            if(referenceImage==nullptr)
             {
                fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                        param->referenceImageName);
@@ -661,7 +661,7 @@ int main(int argc, char **argv)
                return EXIT_FAILURE;
             }
             referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
-            if(referenceImage==NULL)
+            if(referenceImage==nullptr)
             {
                fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                        param->referenceImageName);
@@ -672,7 +672,7 @@ int main(int argc, char **argv)
          if(flag->referenceImage2Flag==true)
          {
             referenceImage2=reg_io_ReadImageHeader(param->referenceImage2Name);
-            if(referenceImage2==NULL)
+            if(referenceImage2==nullptr)
             {
                fprintf(stderr, "[NiftyReg ERROR] Error when reading the second reference image: %s\n",
                        param->referenceImage2Name);
@@ -680,7 +680,7 @@ int main(int argc, char **argv)
             }
          }
          // Generate the first deformation field
-         if(referenceImage!=NULL)
+         if(referenceImage!=nullptr)
          {
             // The field is created using the reference image space
             output1TransImage=nifti_copy_nim_info(referenceImage);
@@ -711,7 +711,7 @@ int main(int argc, char **argv)
          output1TransImage->intent_p1=DEF_FIELD;
          output1TransImage->data=(void *)calloc
                                  (output1TransImage->nvox,output1TransImage->nbyper);
-         if(affine1Trans!=NULL)
+         if(affine1Trans!=nullptr)
          {
             reg_affine_getDeformationField(affine1Trans,output1TransImage);
          }
@@ -726,7 +726,7 @@ int main(int argc, char **argv)
                reg_getDeformationFromDisplacement(output1TransImage);
                reg_spline_getDeformationField(input1TransImage,
                                               output1TransImage,
-                                              NULL,
+                                              nullptr,
                                               true,
                                               true);
                break;
@@ -773,7 +773,7 @@ int main(int argc, char **argv)
                        param->input2TransName);
                return EXIT_FAILURE;
             }
-         if(affine2Trans!=NULL)
+         if(affine2Trans!=nullptr)
          {
             printf("[NiftyReg] Transformation 2 is an affine parametrisation:\n[NiftyReg] %s\n",
                    param->input2TransName);
@@ -786,7 +786,7 @@ int main(int argc, char **argv)
             output2TransImage->data=(void *)calloc
                                     (output2TransImage->nvox,output2TransImage->nbyper);
             reg_affine_getDeformationField(affine2Trans,output2TransImage);
-            reg_defField_compose(output2TransImage,output1TransImage,NULL);
+            reg_defField_compose(output2TransImage,output1TransImage,nullptr);
          }
          else
          {
@@ -798,7 +798,7 @@ int main(int argc, char **argv)
                       input2TransImage->fname);
                reg_spline_getDeformationField(input2TransImage,
                                               output1TransImage,
-                                              NULL,
+                                              nullptr,
                                               true, // composition
                                               true // b-spline
                                              );
@@ -806,17 +806,17 @@ int main(int argc, char **argv)
             case DEF_FIELD:
                printf("[NiftyReg] Transformation 2 is a deformation field:\n[NiftyReg] %s\n",
                       input2TransImage->fname);
-               reg_defField_compose(input2TransImage,output1TransImage,NULL);
+               reg_defField_compose(input2TransImage,output1TransImage,nullptr);
                break;
             case DISP_FIELD:
                printf("[NiftyReg] Transformation 2 is a displacement field:\n[NiftyReg] %s\n",
                       input2TransImage->fname);
                reg_getDeformationFromDisplacement(input2TransImage);
-               reg_defField_compose(input2TransImage,output1TransImage,NULL);
+               reg_defField_compose(input2TransImage,output1TransImage,nullptr);
                break;
             case SPLINE_VEL_GRID:
                // The field is created using the second reference image space
-               if(referenceImage2!=NULL)
+               if(referenceImage2!=nullptr)
                {
                   output2TransImage=nifti_copy_nim_info(referenceImage2);
                   output2TransImage->scl_slope=1.f;
@@ -844,7 +844,7 @@ int main(int argc, char **argv)
                      output2TransImage,
                      false // the number of step is not automatically updated
                                                              );
-               reg_defField_compose(output2TransImage,output1TransImage,NULL);
+               reg_defField_compose(output2TransImage,output1TransImage,nullptr);
                break;
             case DEF_VEL_FIELD:
                printf("[NiftyReg] Transformation 2 is a deformation field velocity:\n[NiftyReg] %s\n",
@@ -857,7 +857,7 @@ int main(int argc, char **argv)
                      output2TransImage,
                      false // the number of step is not automatically updated
                                                             );
-               reg_defField_compose(output2TransImage,output1TransImage,NULL);
+               reg_defField_compose(output2TransImage,output1TransImage,nullptr);
                break;
             case DISP_VEL_FIELD:
                printf("[NiftyReg] Transformation 2 is a displacement field velocity:\n[NiftyReg] %s\n",
@@ -871,7 +871,7 @@ int main(int argc, char **argv)
                      output2TransImage,
                      false // the number of step is not automatically updated
                                                             );
-               reg_defField_compose(output2TransImage,output1TransImage,NULL);
+               reg_defField_compose(output2TransImage,output1TransImage,nullptr);
                break;
             default:
                fprintf(stderr,"[NiftyReg ERROR] The specified second input transformation type is not recognised: %s\n",
@@ -887,14 +887,14 @@ int main(int argc, char **argv)
                 param->outputTransName);
       }
       // Free allocated object
-      if(affine1Trans!=NULL) free(affine1Trans);
-      if(affine2Trans!=NULL) free(affine2Trans);
-      if(referenceImage!=NULL) nifti_image_free(referenceImage);
-      if(referenceImage2!=NULL) nifti_image_free(referenceImage2);
-      if(input1TransImage!=NULL) nifti_image_free(input1TransImage);
-      if(input2TransImage!=NULL) nifti_image_free(input2TransImage);
-      if(output1TransImage!=NULL) nifti_image_free(output1TransImage);
-      if(output2TransImage!=NULL) nifti_image_free(output2TransImage);
+      if(affine1Trans!=nullptr) free(affine1Trans);
+      if(affine2Trans!=nullptr) free(affine2Trans);
+      if(referenceImage!=nullptr) nifti_image_free(referenceImage);
+      if(referenceImage2!=nullptr) nifti_image_free(referenceImage2);
+      if(input1TransImage!=nullptr) nifti_image_free(input1TransImage);
+      if(input2TransImage!=nullptr) nifti_image_free(input2TransImage);
+      if(output1TransImage!=nullptr) nifti_image_free(output1TransImage);
+      if(output2TransImage!=nullptr) nifti_image_free(output2TransImage);
    }
 
 
@@ -904,15 +904,15 @@ int main(int argc, char **argv)
    if(flag->outputLandFlag)
    {
       // Create some variables
-      mat44 *affineTransformation=NULL;
-      nifti_image *referenceImage=NULL;
-      nifti_image *inputTransformationImage=NULL;
-      nifti_image *deformationFieldImage=NULL;
+      mat44 *affineTransformation=nullptr;
+      nifti_image *referenceImage=nullptr;
+      nifti_image *inputTransformationImage=nullptr;
+      nifti_image *deformationFieldImage=nullptr;
       // First check if the input filename is an image
       if(reg_isAnImageFileName(param->inputTransName))
       {
          inputTransformationImage=reg_io_ReadImageFile(param->inputTransName);
-         if(inputTransformationImage==NULL)
+         if(inputTransformationImage==nullptr)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the provided transformation: %s\n",
                     param->inputTransName);
@@ -931,7 +931,7 @@ int main(int argc, char **argv)
                return EXIT_FAILURE;
             }
             referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
-            if(referenceImage==NULL)
+            if(referenceImage==nullptr)
             {
                fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                        param->referenceImageName);
@@ -952,7 +952,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
          }
          referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
-         if(referenceImage==NULL)
+         if(referenceImage==nullptr)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                     param->referenceImageName);
@@ -960,7 +960,7 @@ int main(int argc, char **argv)
          }
       }
       // Create a dense field
-      if(affineTransformation!=NULL ||
+      if(affineTransformation!=nullptr ||
          inputTransformationImage->intent_p1==LIN_SPLINE_GRID ||
          inputTransformationImage->intent_p1==CUB_SPLINE_GRID ||
          inputTransformationImage->intent_p1==SPLINE_VEL_GRID)
@@ -990,7 +990,7 @@ int main(int argc, char **argv)
       deformationFieldImage->data=(void *)malloc
             (deformationFieldImage->nvox*deformationFieldImage->nbyper);
       // Fill the deformation field
-      if(affineTransformation!=NULL)
+      if(affineTransformation!=nullptr)
       {
          reg_affine_getDeformationField(affineTransformation,deformationFieldImage);
       }
@@ -1025,7 +1025,7 @@ int main(int argc, char **argv)
             // The spline transformation is composed with the identity field
             reg_spline_getDeformationField(inputTransformationImage,
                                            deformationFieldImage,
-                                           NULL, // no mask
+                                           nullptr, // no mask
                                            true, // composition is used,
                                            true // b-spline are used
                                            );
@@ -1067,13 +1067,13 @@ int main(int argc, char **argv)
       deformationFieldImage->intent_p1=DEF_FIELD;
       deformationFieldImage->intent_p2=0;
       // Free all allocated input
-      if(affineTransformation!=NULL){
+      if(affineTransformation!=nullptr){
          free(affineTransformation);
       }
-      if(referenceImage!=NULL){
+      if(referenceImage!=nullptr){
          nifti_image_free(referenceImage);
       }
-      if(inputTransformationImage!=NULL){
+      if(inputTransformationImage!=nullptr){
          nifti_image_free(inputTransformationImage);
       }
       // Read the landmark file
@@ -1113,7 +1113,7 @@ int main(int argc, char **argv)
          }
          reg_defField_compose(deformationFieldImage,
                               landmarkImage,
-                              NULL);
+                              nullptr);
          for(size_t i=0;i<n;++i){
             allLandmarks[l][i]=landmarkImagePtr[i];
          }
@@ -1127,10 +1127,10 @@ int main(int argc, char **argv)
       for(size_t l=0; l<landmarkNumber; ++l)
          free(allLandmarks[l]);
       free(allLandmarks);
-      if(deformationFieldImage!=NULL){
+      if(deformationFieldImage!=nullptr){
          nifti_image_free(deformationFieldImage);
       }
-      if(landmarkImage!=NULL){
+      if(landmarkImage!=nullptr){
          nifti_image_free(landmarkImage);
       }
    }
@@ -1141,7 +1141,7 @@ int main(int argc, char **argv)
    {
       // Read the input image
       nifti_image *image = reg_io_ReadImageFile(param->inputTransName);
-      if(image==NULL)
+      if(image==nullptr)
       {
          fprintf(stderr,"[NiftyReg ERROR] Error when reading the input image: %s\n",
                  param->inputTransName);
@@ -1178,8 +1178,8 @@ int main(int argc, char **argv)
    if(flag->halfTransFlag)
    {
       // Read the input transformation
-      mat44 *affineTrans=NULL;
-      nifti_image *inputTransImage=NULL;
+      mat44 *affineTrans=nullptr;
+      nifti_image *inputTransImage=nullptr;
       if(!reg_isAnImageFileName(param->inputTransName))
       {
          // An affine transformation is considered
@@ -1196,7 +1196,7 @@ int main(int argc, char **argv)
       {
          // A non-rigid parametrisation is considered
          inputTransImage = reg_io_ReadImageFile(param->inputTransName);
-         if(inputTransImage==NULL)
+         if(inputTransImage==nullptr)
          {
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the input image: %s\n",
                     param->inputTransName);
@@ -1245,7 +1245,7 @@ int main(int argc, char **argv)
          reg_io_WriteImageFile(inputTransImage,param->outputTransName);
       }
       // Clear the allocated arrays
-      if(affineTrans!=NULL) free(affineTrans);
+      if(affineTrans!=nullptr) free(affineTrans);
    }
    /* ******************************************** */
    // Invert the provided non-rigid transformation //
@@ -1254,7 +1254,7 @@ int main(int argc, char **argv)
    {
       // Read the provided transformation
       nifti_image *inputTransImage = reg_io_ReadImageFile(param->inputTransName);
-      if(inputTransImage==NULL)
+      if(inputTransImage==nullptr)
       {
          fprintf(stderr,"[NiftyReg ERROR] Error when reading the input image: %s\n",
                  param->inputTransName);
@@ -1262,7 +1262,7 @@ int main(int argc, char **argv)
       }
       // Read the provided floating space image
       nifti_image *floatingImage = reg_io_ReadImageFile(param->input2TransName);
-      if(floatingImage==NULL)
+      if(floatingImage==nullptr)
       {
          fprintf(stderr,"[NiftyReg ERROR] Error when reading the input image: %s\n",
                  param->input2TransName);
@@ -1282,7 +1282,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
          }
          nifti_image *referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
-         if(referenceImage==NULL)
+         if(referenceImage==nullptr)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the reference image: %s\n",
                     param->referenceImageName);
@@ -1314,7 +1314,7 @@ int main(int argc, char **argv)
                inputTransImage->intent_p1==CUB_SPLINE_GRID)
             reg_spline_getDeformationField(inputTransImage,
                                            tempField,
-                                           NULL,
+                                           nullptr,
                                            false,
                                            true);
          else
@@ -1324,7 +1324,7 @@ int main(int argc, char **argv)
          nifti_image_free(referenceImage);
          nifti_image_free(inputTransImage);
          inputTransImage=tempField;
-         tempField=NULL;
+         tempField=nullptr;
       }
      // Create a field to store the transformation
      nifti_image *outputTransImage = nifti_copy_nim_info(floatingImage);

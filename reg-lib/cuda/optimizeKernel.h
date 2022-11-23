@@ -1,5 +1,4 @@
-#ifndef _REG_OPTIMIZE_GPU_H
-#define _REG_OPTIMIZE_GPU_H
+#pragma once
 
 #include "nifti1_io.h"
 
@@ -29,4 +28,3 @@ void downloadMat44(mat44 *lastTransformation, float* transform_d);
 extern "C++"
 void uploadMat44(mat44 lastTransformation, float* transform_d);
 */
-#endif

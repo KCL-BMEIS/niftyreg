@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_RESAMPLING_CPP
-#define _REG_RESAMPLING_CPP
-
 #include "_reg_resampling.h"
 #include "_reg_maths.h"
 #include "_reg_maths_eigen.h"
@@ -216,7 +213,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                                        int *mask,
                                        mat33 *jacMat,
                                        int *dtIndicies,
-                                       nifti_image *warpedImage = NULL)
+                                       nifti_image *warpedImage = nullptr)
 {
     // If we have some valid diffusion tensor indicies, we need to exponentiate the previously logged tensor components
     // we also need to reorient the tensors based on the local transformation Jacobians
@@ -230,7 +227,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
         size_t voxelNumber = (size_t)inputImage->nx*inputImage->ny*inputImage->nz;
 #endif
         DTYPE *warpVox,*warpedXX,*warpedXY,*warpedXZ,*warpedYY,*warpedYZ,*warpedZZ;
-        if(warpedImage!=NULL)
+        if(warpedImage!=nullptr)
         {
             warpVox = static_cast<DTYPE *>(warpedImage->data);
             // CAUTION: Here the tensor is assumed to be encoding in lower triangular order
@@ -291,7 +288,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                     inputTensor[tid].m[2][1] = inputTensor[tid].m[1][2];
                     inputTensor[tid].m[2][2] = static_cast<double>(inputIntensityZZ[warpedIndex]);
                     // Exponentiate the warped tensor
-                    if(warpedImage==NULL)
+                    if(warpedImage==nullptr)
                     {
                         reg_mat33_expm(&inputTensor[tid]);
                         testSum=0;
@@ -742,7 +739,7 @@ void reg_resampleImage2(nifti_image *floatingImage,
                         mat33 * jacMat)
 {
     // The floating image data is copied in case one deal with DTI
-    void *originalFloatingData=NULL;
+    void *originalFloatingData=nullptr;
     // The DTI are logged
     reg_dti_resampling_preprocessing<FloatingTYPE>(floatingImage,
                                                    &originalFloatingData,
@@ -768,11 +765,11 @@ void reg_resampleImage2(nifti_image *floatingImage,
                                                 interp);
     }
     // The temporary logged floating array is deleted and the original restored
-    if(originalFloatingData!=NULL)
+    if(originalFloatingData!=nullptr)
     {
         free(floatingImage->data);
         floatingImage->data=originalFloatingData;
-        originalFloatingData=NULL;
+        originalFloatingData=nullptr;
     }
 
     // The interpolated tensors are reoriented and exponentiated
@@ -808,9 +805,9 @@ void reg_resampleImage(nifti_image *floatingImage,
     // Define the DTI indices if required
     int dtIndicies[6];
     for(int i=0; i<6; ++i) dtIndicies[i]=-1;
-    if(dti_timepoint!=NULL)
+    if(dti_timepoint!=nullptr)
     {
-        if(jacMat==NULL)
+        if(jacMat==nullptr)
         {
             reg_print_fct_error("reg_resampleImage");
             reg_print_msg_error("DTI resampling: No Jacobian matrix array has been provided");
@@ -832,7 +829,7 @@ void reg_resampleImage(nifti_image *floatingImage,
 
     // a mask array is created if no mask is specified
     bool MrPropreRules = false;
-    if(mask==NULL)
+    if(mask==nullptr)
     {
         // voxels in the background are set to negative value so 0 corresponds to active voxel
         mask=(int *)calloc(warpedImage->nx*warpedImage->ny*warpedImage->nz,sizeof(int));
@@ -1024,7 +1021,7 @@ void reg_resampleImage(nifti_image *floatingImage,
     if(MrPropreRules==true)
     {
         free(mask);
-        mask=NULL;
+        mask=nullptr;
     }
 }
 /* *************************************************************** */
@@ -1842,7 +1839,7 @@ void reg_resampleImage_PSF(nifti_image *floatingImage,
 
     // a mask array is created if no mask is specified
     bool MrPropreRules = false;
-    if(mask==NULL)
+    if(mask==nullptr)
     {
         // voxels in the background are set to negative value so 0 corresponds to active voxel
         mask=(int *)calloc(warpedImage->nx*warpedImage->ny*warpedImage->nz,sizeof(int));
@@ -2034,7 +2031,7 @@ void reg_resampleImage_PSF(nifti_image *floatingImage,
     if(MrPropreRules==true)
     {
         free(mask);
-        mask=NULL;
+        mask=nullptr;
     }
 }
 /* *************************************************************** */
@@ -3159,11 +3156,11 @@ void reg_getImageGradient3(nifti_image *floatingImage,
                            int active_timepoint,
                            int *dtIndicies,
                            mat33 *jacMat,
-                           nifti_image *warpedImage = NULL
+                           nifti_image *warpedImage = nullptr
         )
 {
     // The floating image data is copied in case one deal with DTI
-    void *originalFloatingData=NULL;
+    void *originalFloatingData=nullptr;
     // The DTI are logged
     reg_dti_resampling_preprocessing<FloatingTYPE>(floatingImage,
                                                    &originalFloatingData,
@@ -3216,11 +3213,11 @@ void reg_getImageGradient3(nifti_image *floatingImage,
         }
     }
     // The temporary logged floating array is deleted
-    if(originalFloatingData!=NULL)
+    if(originalFloatingData!=nullptr)
     {
         free(floatingImage->data);
         floatingImage->data=originalFloatingData;
-        originalFloatingData=NULL;
+        originalFloatingData=nullptr;
     }
     // The interpolated tensors are reoriented and exponentiated
     reg_dti_resampling_postprocessing<FloatingTYPE>(warImgGradient,
@@ -3329,7 +3326,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
 {
     // a mask array is created if no mask is specified
     bool MrPropreRule=false;
-    if(mask==NULL)
+    if(mask==nullptr)
     {
         // voxels in the backgreg_round are set to -1 so 0 will do the job here
         mask=(int *)calloc(deformationField->nx*deformationField->ny*deformationField->nz,sizeof(int));
@@ -3339,10 +3336,10 @@ void reg_getImageGradient(nifti_image *floatingImage,
     // Define the DTI indices if required
     int dtIndicies[6];
     for(int i=0; i<6; ++i) dtIndicies[i]=-1;
-    if(dti_timepoint!=NULL)
+    if(dti_timepoint!=nullptr)
     {
 
-        if(jacMat==NULL)
+        if(jacMat==nullptr)
         {
             reg_print_fct_error("reg_getImageGradient");
             reg_print_msg_error("DTI resampling: No Jacobian matrix array has been provided");
@@ -3400,7 +3397,7 @@ void reg_getImageGradient_symDiff_core(nifti_image *img,
 
     DTYPE *gradPtrX = static_cast<DTYPE *>(gradImg->data);
     DTYPE *gradPtrY = &gradPtrX[voxelNumber];
-    DTYPE *gradPtrZ = NULL;
+    DTYPE *gradPtrZ = nullptr;
     if(dimImg==3)
         gradPtrZ = &gradPtrY[voxelNumber];
 
@@ -3429,7 +3426,7 @@ void reg_getImageGradient_symDiff_core(nifti_image *img,
                     if(y>0) pre = currentImgPtr[voxIndex-img->nx];
                     valY =  (post - pre) / 2.f;
 
-                    if(gradPtrZ!=NULL){
+                    if(gradPtrZ!=nullptr){
                         pre = post = padding_value;
                         if(z<img->nz-1) post = currentImgPtr[voxIndex+img->nx*img->ny];
                         if(z>0) pre = currentImgPtr[voxIndex-img->nx*img->ny];
@@ -3438,7 +3435,7 @@ void reg_getImageGradient_symDiff_core(nifti_image *img,
                 }
                 gradPtrX[voxIndex] = valX==valX?valX:0;
                 gradPtrY[voxIndex] = valY==valY?valY:0;
-                if(gradPtrZ!=NULL)
+                if(gradPtrZ!=nullptr)
                     gradPtrZ[voxIndex] = valZ==valZ?valZ:0;
                 ++voxIndex;
             } // x
@@ -3565,12 +3562,10 @@ nifti_image *reg_makeIsotropic(nifti_image *img,
     // Fill the deformation field with an identity transformation
     reg_getDeformationFromDisplacement(def);
     // resample the original image into the space of the new image
-    reg_resampleImage(img,newImg,def,NULL,inter,0.f);
+    reg_resampleImage(img,newImg,def,nullptr,inter,0.f);
     nifti_set_filenames(newImg,"tempIsotropicImage",0,0);
     nifti_image_free(def);
     return newImg;
 }
 /* *************************************************************** */
 /* *************************************************************** */
-
-#endif

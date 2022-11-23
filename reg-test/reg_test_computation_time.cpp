@@ -28,13 +28,13 @@ int main(int argc, char **argv)
 
     // Read the input reference image
     nifti_image *inputImageOne = reg_io_ReadImageFile(inputImageOneName);
-    if (inputImageOne == NULL) {
+    if (inputImageOne == nullptr) {
         reg_print_msg_error("The first input image could not be read");
         return EXIT_FAILURE;
     }
     reg_tools_changeDatatype<float>(inputImageOne);
     nifti_image *inputImageTwo = reg_io_ReadImageFile(inputImageTwoName);
-    if (inputImageTwo == NULL) {
+    if (inputImageTwo == nullptr) {
         reg_print_msg_error("The second input image could not be read");
         return EXIT_FAILURE;
     }
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 
 
     // Generate a control point grids
-    nifti_image *splineGridOne = NULL;
+    nifti_image *splineGridOne = nullptr;
     float spacing[3] = {
         inputImageOne->dx * 5.f,
         inputImageOne->dz * 5.f,
@@ -335,8 +335,8 @@ int main(int argc, char **argv)
        reg_tools_kernelConvolution(defFieldThr,
                                    currentNodeSpacing,
                                    kernel_type,
-                                   NULL, // mask
-                                   NULL, // all volumes are considered as active
+                                   nullptr, // mask
+                                   nullptr, // all volumes are considered as active
                                    activeAxis
                                    );
        // Convolution along the y axis
@@ -346,8 +346,8 @@ int main(int argc, char **argv)
        reg_tools_kernelConvolution(defFieldThr,
                                    currentNodeSpacing,
                                    kernel_type,
-                                   NULL, // mask
-                                   NULL, // all volumes are considered as active
+                                   nullptr, // mask
+                                   nullptr, // all volumes are considered as active
                                    activeAxis
                                    );
        // Convolution along the z axis if required
@@ -359,8 +359,8 @@ int main(int argc, char **argv)
           reg_tools_kernelConvolution(defFieldThr,
                                       currentNodeSpacing,
                                       kernel_type,
-                                      NULL, // mask
-                                      NULL, // all volumes are considered as active
+                                      nullptr, // mask
+                                      nullptr, // all volumes are considered as active
                                       activeAxis
                                       );
        }
@@ -396,4 +396,3 @@ int main(int argc, char **argv)
 
     return EXIT_SUCCESS;
 }
-

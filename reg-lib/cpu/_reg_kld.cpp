@@ -98,17 +98,17 @@ double reg_getKLDivergence(nifti_image *referenceImage,
 
    DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);
    DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
-   int *maskPtr=NULL;
+   int *maskPtr=nullptr;
    bool MrClean=false;
-   if(mask==NULL)
+   if(mask==nullptr)
    {
       maskPtr=(int *)calloc(voxelNumber,sizeof(int));
       MrClean=true;
    }
    else maskPtr = &mask[0];
 
-   DTYPE *jacPtr=NULL;
-   if(jacobianDetImg!=NULL)
+   DTYPE *jacPtr=nullptr;
+   if(jacobianDetImg!=nullptr)
       jacPtr=static_cast<DTYPE *>(jacobianDetImg->data);
    double measure = 0., measure_tp = 0., num = 0., tempRefValue, tempWarValue, tempValue;
 
@@ -136,7 +136,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
                if(tempValue==tempValue &&
                      tempValue!=std::numeric_limits<double>::infinity())
                {
-                  if(jacobianDetImg==NULL)
+                  if(jacobianDetImg==nullptr)
                   {
                      measure_tp -= tempValue;
                      num++;
@@ -177,7 +177,7 @@ double reg_kld::GetSimilarityMeasureValue()
             (this->referenceImagePointer,
              this->warpedFloatingImagePointer,
              this->timePointWeight,
-             NULL, // HERE TODO this->forwardJacDetImagePointer,
+             nullptr, // HERE TODO this->forwardJacDetImagePointer,
              this->referenceMaskPointer
              );
       break;
@@ -186,7 +186,7 @@ double reg_kld::GetSimilarityMeasureValue()
             (this->referenceImagePointer,
              this->warpedFloatingImagePointer,
              this->timePointWeight,
-             NULL, // HERE TODO this->forwardJacDetImagePointer,
+             nullptr, // HERE TODO this->forwardJacDetImagePointer,
              this->referenceMaskPointer
              );
       break;
@@ -213,7 +213,7 @@ double reg_kld::GetSimilarityMeasureValue()
                (this->floatingImagePointer,
                 this->warpedReferenceImagePointer,
                 this->timePointWeight,
-                NULL, // HERE TODO this->backwardJacDetImagePointer,
+                nullptr, // HERE TODO this->backwardJacDetImagePointer,
                 this->floatingMaskPointer
                 );
          break;
@@ -222,7 +222,7 @@ double reg_kld::GetSimilarityMeasureValue()
                (this->floatingImagePointer,
                 this->warpedReferenceImagePointer,
                 this->timePointWeight,
-                NULL, // HERE TODO this->backwardJacDetImagePointer,
+                nullptr, // HERE TODO this->backwardJacDetImagePointer,
                 this->floatingMaskPointer
                 );
          break;
@@ -258,31 +258,31 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
    DTYPE *warImagePtr=static_cast<DTYPE *>(warpedImage->data);
    DTYPE *currentRefPtr = &refImagePtr[current_timepoint*voxelNumber];
    DTYPE *currentWarPtr = &warImagePtr[current_timepoint*voxelNumber];
-   int *maskPtr=NULL;
+   int *maskPtr=nullptr;
    bool MrClean=false;
-   if(mask==NULL)
+   if(mask==nullptr)
    {
       maskPtr=(int *)calloc(voxelNumber,sizeof(int));
       MrClean=true;
    }
    else maskPtr = &mask[0];
 
-   DTYPE *jacPtr=NULL;
-   if(jacobianDetImg!=NULL)
+   DTYPE *jacPtr=nullptr;
+   if(jacobianDetImg!=nullptr)
       jacPtr=static_cast<DTYPE *>(jacobianDetImg->data);
    double tempValue, tempGradX, tempGradY, tempGradZ, tempRefValue, tempWarValue;
 
    // Create pointers to the spatial gradient of the current warped volume
    DTYPE *currentGradPtrX=static_cast<DTYPE *>(warpedImageGradient->data);
    DTYPE *currentGradPtrY=&currentGradPtrX[voxelNumber];
-   DTYPE *currentGradPtrZ=NULL;
+   DTYPE *currentGradPtrZ=nullptr;
    if(referenceImage->nz>1)
       currentGradPtrZ=&currentGradPtrY[voxelNumber];
 
    // Create pointers to the kld gradient image
    DTYPE *measureGradPtrX = static_cast<DTYPE *>(measureGradient->data);
    DTYPE *measureGradPtrY = &measureGradPtrX[voxelNumber];
-   DTYPE *measureGradPtrZ = NULL;
+   DTYPE *measureGradPtrZ = nullptr;
    if(referenceImage->nz>1)
       measureGradPtrZ = &measureGradPtrY[voxelNumber];
 
@@ -325,7 +325,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
             tempValue *= adjusted_weight;
 
             // Jacobian modulation if the Jacobian determinant image is defined
-            if(jacobianDetImg!=NULL)
+            if(jacobianDetImg!=nullptr)
                tempValue *= jacPtr[voxel];
 
             // Ensure that gradient of the warpedImage image along x-axis is not NaN
@@ -386,7 +386,7 @@ void reg_kld::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
              this->warpedFloatingImagePointer,
              this->warpedFloatingGradientImagePointer,
              this->forwardVoxelBasedGradientImagePointer,
-             NULL, // HERE TODO this->forwardJacDetImagePointer,
+             nullptr, // HERE TODO this->forwardJacDetImagePointer,
              this->referenceMaskPointer,
              current_timepoint,
           this->timePointWeight[current_timepoint]
@@ -398,7 +398,7 @@ void reg_kld::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
              this->warpedFloatingImagePointer,
              this->warpedFloatingGradientImagePointer,
              this->forwardVoxelBasedGradientImagePointer,
-             NULL, // HERE TODO this->forwardJacDetImagePointer,
+             nullptr, // HERE TODO this->forwardJacDetImagePointer,
              this->referenceMaskPointer,
           current_timepoint,
           this->timePointWeight[current_timepoint]
@@ -431,7 +431,7 @@ void reg_kld::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 this->warpedReferenceImagePointer,
                 this->warpedReferenceGradientImagePointer,
                 this->backwardVoxelBasedGradientImagePointer,
-                NULL, // HERE TODO this->backwardJacDetImagePointer,
+                nullptr, // HERE TODO this->backwardJacDetImagePointer,
                 this->floatingMaskPointer,
             current_timepoint,
             this->timePointWeight[current_timepoint]
@@ -443,7 +443,7 @@ void reg_kld::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
                 this->warpedReferenceImagePointer,
                 this->warpedReferenceGradientImagePointer,
                 this->backwardVoxelBasedGradientImagePointer,
-                NULL, // HERE TODO this->backwardJacDetImagePointer,
+                nullptr, // HERE TODO this->backwardJacDetImagePointer,
                 this->floatingMaskPointer,
             current_timepoint,
             this->timePointWeight[current_timepoint]

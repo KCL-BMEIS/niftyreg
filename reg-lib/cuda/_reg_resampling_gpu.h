@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_RESAMPLING_GPU_H
-#define _REG_RESAMPLING_GPU_H
+#pragma once
 
 #include "_reg_common_cuda.h"
 #include "_reg_blocksize_gpu.h"
@@ -32,4 +31,3 @@ void reg_getImageGradient_gpu(nifti_image *sourceImage,
                               float4 **resultGradientArray_d,
                               int activeVoxelNumber,
                               float paddingValue);
-#endif

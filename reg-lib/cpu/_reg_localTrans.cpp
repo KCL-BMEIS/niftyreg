@@ -151,12 +151,12 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
                                           float *spacing)
 {
    // Delete the grid if they are already initialised
-   if(*forwardGridImage!=NULL)
+   if(*forwardGridImage!=nullptr)
       nifti_image_free(*forwardGridImage);
-   *forwardGridImage=NULL;
-   if(*backwardGridImage!=NULL)
+   *forwardGridImage=nullptr;
+   if(*backwardGridImage!=nullptr)
       nifti_image_free(*backwardGridImage);
-   *backwardGridImage=NULL;
+   *backwardGridImage=nullptr;
    // We specified a space which is in-between both input images
    // // Get the reference image space
    mat44 referenceImageSpace = referenceImage->qto_xyz;
@@ -174,7 +174,7 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
 #endif
    // Check if an affine transformation is specified
    mat44 halfForwardAffine, halfBackwardAffine;
-   if(forwardAffineTrans!=NULL)
+   if(forwardAffineTrans!=nullptr)
    {
       // Compute half of the affine transformation - ref to flo
       halfForwardAffine = reg_mat44_logm(forwardAffineTrans);
@@ -371,9 +371,9 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
    // Set the affine matrices
    mat44 identity;
    reg_mat44_eye(&identity);
-   if((*forwardGridImage)->ext_list!=NULL)
+   if((*forwardGridImage)->ext_list!=nullptr)
       free((*forwardGridImage)->ext_list);
-   if((*backwardGridImage)->ext_list!=NULL)
+   if((*backwardGridImage)->ext_list!=nullptr)
       free((*backwardGridImage)->ext_list);
    (*forwardGridImage)->num_ext=0;
    (*backwardGridImage)->num_ext=0;
@@ -1642,7 +1642,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
 #endif
 
    bool MrPropre=false;
-   if(mask==NULL)
+   if(mask==nullptr)
    {
       // Active voxel are all superior to -1, 0 thus will do !
       MrPropre=true;
@@ -1652,7 +1652,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
    // Check if an affine initialisation is required
    if(splineControlPoint->num_ext>0)
    {
-      if(splineControlPoint->ext_list[0].edata!=NULL)
+      if(splineControlPoint->ext_list[0].edata!=nullptr)
       {
          reg_affine_getDeformationField(reinterpret_cast<mat44 *>(splineControlPoint->ext_list[0].edata),
                deformationField,
@@ -1723,7 +1723,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
 
    if(splineControlPoint->num_ext>1)
    {
-      if(splineControlPoint->ext_list[1].edata!=NULL)
+      if(splineControlPoint->ext_list[1].edata!=nullptr)
       {
          reg_affine_getDeformationField(reinterpret_cast<mat44 *>(splineControlPoint->ext_list[1].edata),
                deformationField,
@@ -1734,7 +1734,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
    if(MrPropre==true)
    {
       free(mask);
-      mask=NULL;
+      mask=nullptr;
    }
 
    return;
@@ -1753,11 +1753,11 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
    size_t voxelNumber = (size_t)voxelImage->nx*voxelImage->ny*voxelImage->nz;
    DTYPE *nodePtrX = static_cast<DTYPE *>(nodeImage->data);
    DTYPE *nodePtrY = &nodePtrX[nodeNumber];
-   DTYPE *nodePtrZ = NULL;
+   DTYPE *nodePtrZ = nullptr;
 
    DTYPE *voxelPtrX = static_cast<DTYPE *>(voxelImage->data);
    DTYPE *voxelPtrY = &voxelPtrX[voxelNumber];
-   DTYPE *voxelPtrZ = NULL;
+   DTYPE *voxelPtrZ = nullptr;
 
    if(nodeImage->nz>1)
    {
@@ -1774,7 +1774,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
    // Affine transformation between the grid and the reference image
    if(nodeImage->num_ext>0)
    {
-      if(nodeImage->ext_list[0].edata!=NULL)
+      if(nodeImage->ext_list[0].edata!=nullptr)
       {
          mat44 temp=*(reinterpret_cast<mat44 *>(nodeImage->ext_list[0].edata));
          temp=nifti_mat44_inverse(temp);
@@ -1790,12 +1790,12 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
    mat33 reorientation;
    // Voxel to millimeter contains the orientation of the image that is used
    // to compute the spatial gradient (floating image)
-   if(voxelToMillimeter!=NULL)
+   if(voxelToMillimeter!=nullptr)
    {
       reorientation=reg_mat44_to_mat33(voxelToMillimeter);
       if(nodeImage->num_ext>0)
       {
-         if(nodeImage->ext_list[0].edata!=NULL)
+         if(nodeImage->ext_list[0].edata!=nullptr)
          {
             mat33 temp = reg_mat44_to_mat33(reinterpret_cast<mat44 *>(nodeImage->ext_list[0].edata));
             temp=nifti_mat33_inverse(temp);
@@ -1843,7 +1843,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
             basisX[0]=static_cast<DTYPE>(1) - basisX[1];
             basisY[1]=voxelCoord[1]-static_cast<DTYPE>(pre[1]);
             basisY[0]=static_cast<DTYPE>(1) - basisY[1];
-            if(voxelPtrZ!=NULL)
+            if(voxelPtrZ!=nullptr)
             {
                basisZ[1]=voxelCoord[2]-static_cast<DTYPE>(pre[2]);
                basisZ[0]=static_cast<DTYPE>(1) - basisZ[1];
@@ -1867,10 +1867,10 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                               size_t index=(indexZ*voxelImage->ny+indexY) *
                                     voxelImage->nx+indexX;
                               DTYPE linearWeight = basisX[a] * basisY[b];
-                              if(voxelPtrZ!=NULL) linearWeight *= basisZ[c];
+                              if(voxelPtrZ!=nullptr) linearWeight *= basisZ[c];
                               interpolatedValue[0] += linearWeight * voxelPtrX[index];
                               interpolatedValue[1] += linearWeight * voxelPtrY[index];
-                              if(voxelPtrZ!=NULL)
+                              if(voxelPtrZ!=nullptr)
                                  interpolatedValue[2] += linearWeight * voxelPtrZ[index];
                            }
                         }
@@ -1887,7 +1887,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                   reorientation.m[0][1] * interpolatedValue[0] +
                   reorientation.m[1][1] * interpolatedValue[1] +
                   reorientation.m[2][1] * interpolatedValue[2] ;
-            if(voxelPtrZ!=NULL)
+            if(voxelPtrZ!=nullptr)
                reorientedValue[2] =
                      reorientation.m[0][2] * interpolatedValue[0] +
                      reorientation.m[1][2] * interpolatedValue[1] +
@@ -1896,19 +1896,19 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
             {
                *nodePtrX += reorientedValue[0]*static_cast<DTYPE>(weight);
                *nodePtrY += reorientedValue[1]*static_cast<DTYPE>(weight);
-               if(voxelPtrZ!=NULL)
+               if(voxelPtrZ!=nullptr)
                   *nodePtrZ += reorientedValue[2]*static_cast<DTYPE>(weight);
             }
             else
             {
                *nodePtrX = reorientedValue[0]*static_cast<DTYPE>(weight);
                *nodePtrY = reorientedValue[1]*static_cast<DTYPE>(weight);
-               if(voxelPtrZ!=NULL)
+               if(voxelPtrZ!=nullptr)
                   *nodePtrZ = reorientedValue[2]*static_cast<DTYPE>(weight);
             }
             ++nodePtrX;
             ++nodePtrY;
-            if(voxelPtrZ!=NULL)
+            if(voxelPtrZ!=nullptr)
                ++nodePtrZ;
          } // loop over
       } // loop over y
@@ -1972,7 +1972,7 @@ void reg_spline_refineControlPointGrid2D(nifti_image *splineControlPoint,
    SplineTYPE *oldGrid = (SplineTYPE *)malloc(splineControlPoint->nvox*splineControlPoint->nbyper);
    SplineTYPE *gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
    memcpy(oldGrid, gridPtrX, splineControlPoint->nvox*splineControlPoint->nbyper);
-   if(splineControlPoint->data!=NULL) free(splineControlPoint->data);
+   if(splineControlPoint->data!=nullptr) free(splineControlPoint->data);
    int oldDim[4];
    oldDim[0]=splineControlPoint->dim[0];
    oldDim[1]=splineControlPoint->dim[1];
@@ -1982,7 +1982,7 @@ void reg_spline_refineControlPointGrid2D(nifti_image *splineControlPoint,
    splineControlPoint->dx = splineControlPoint->pixdim[1] = splineControlPoint->dx / 2.0f;
    splineControlPoint->dy = splineControlPoint->pixdim[2] = splineControlPoint->dy / 2.0f;
    splineControlPoint->dz = 1.0f;
-   if(referenceImage!=NULL)
+   if(referenceImage!=nullptr)
    {
       splineControlPoint->dim[1]=splineControlPoint->nx=static_cast<int>(reg_ceil(referenceImage->nx*referenceImage->dx/splineControlPoint->dx)+3.f);
       splineControlPoint->dim[2]=splineControlPoint->ny=static_cast<int>(reg_ceil(referenceImage->ny*referenceImage->dy/splineControlPoint->dy)+3.f);
@@ -2080,7 +2080,7 @@ void reg_spline_refineControlPointGrid3D(nifti_image *splineControlPoint, nifti_
    SplineTYPE *oldGrid = (SplineTYPE *)malloc(splineControlPoint->nvox*splineControlPoint->nbyper);
    SplineTYPE *gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
    memcpy(oldGrid, gridPtrX, splineControlPoint->nvox*splineControlPoint->nbyper);
-   if(splineControlPoint->data!=NULL) free(splineControlPoint->data);
+   if(splineControlPoint->data!=nullptr) free(splineControlPoint->data);
    int oldDim[4];
    oldDim[0]=splineControlPoint->dim[0];
    oldDim[1]=splineControlPoint->dim[1];
@@ -2091,7 +2091,7 @@ void reg_spline_refineControlPointGrid3D(nifti_image *splineControlPoint, nifti_
    splineControlPoint->dy = splineControlPoint->pixdim[2] = splineControlPoint->dy / 2.0f;
    splineControlPoint->dz = splineControlPoint->pixdim[3] = splineControlPoint->dz / 2.0f;
 
-   if(referenceImage!=NULL)
+   if(referenceImage!=nullptr)
    {
       splineControlPoint->dim[1]=splineControlPoint->nx=static_cast<int>(reg_ceil(referenceImage->nx*referenceImage->dx/splineControlPoint->dx)+3.f);
       splineControlPoint->dim[2]=splineControlPoint->ny=static_cast<int>(reg_ceil(referenceImage->ny*referenceImage->dy/splineControlPoint->dy)+3.f);
@@ -2447,7 +2447,7 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
          reg_exit();
       }
    }
-   if(referenceImage!=NULL)
+   if(referenceImage!=nullptr)
    {
       // Compute the new control point header
       // The qform (and sform) are set for the control point position image
@@ -2568,8 +2568,8 @@ void reg_defField_compose2D(nifti_image *deformationField,
    DTYPE *resPtrX = static_cast<DTYPE *>(dfToUpdate->data);
    DTYPE *resPtrY = &resPtrX[warVoxelNumber];
 
-   mat44 *df_real2Voxel=NULL;
-   mat44 *df_voxel2Real=NULL;
+   mat44 *df_real2Voxel=nullptr;
+   mat44 *df_voxel2Real=nullptr;
    if(deformationField->sform_code>0)
    {
       df_real2Voxel=&(dfToUpdate->sto_ijk);
@@ -2682,7 +2682,7 @@ void reg_defField_compose3D(nifti_image *deformationField,
 #else
    mat44 df_real2Voxel __attribute__((aligned(16)));
 #endif
-   mat44 *df_voxel2Real=NULL;
+   mat44 *df_voxel2Real=nullptr;
    if(deformationField->sform_code>0)
    {
       df_real2Voxel=deformationField->sto_ijk;
@@ -2809,7 +2809,7 @@ void reg_defField_compose(nifti_image *deformationField,
    }
 
    bool freeMask=false;
-   if(mask==NULL)
+   if(mask==nullptr)
    {
       mask=(int *)calloc(dfToUpdate->nx*
                          dfToUpdate->ny*
@@ -3517,8 +3517,8 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
    size_t coord;
 
    // read the xyz/ijk sform or qform, as appropriate
-   mat44 *matrix_real_to_voxel1=NULL;
-   mat44 *matrix_voxel_to_real2=NULL;
+   mat44 *matrix_real_to_voxel1=nullptr;
+   mat44 *matrix_voxel_to_real2=nullptr;
    if(grid1->sform_code>0)
       matrix_real_to_voxel1=&(grid1->sto_ijk);
    else matrix_real_to_voxel1=&(grid1->qto_ijk);
@@ -3703,8 +3703,8 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
    DTYPE xVoxel, yVoxel, zVoxel;
 
    // read the xyz/ijk sform or qform, as appropriate
-   mat44 *matrix_real_to_voxel1=NULL;
-   mat44 *matrix_voxel_to_real2=NULL;
+   mat44 *matrix_real_to_voxel1=nullptr;
+   mat44 *matrix_voxel_to_real2=nullptr;
    if(grid1->sform_code>0)
       matrix_real_to_voxel1=&(grid1->sto_ijk);
    else matrix_real_to_voxel1=&(grid1->qto_ijk);
@@ -3992,7 +3992,7 @@ void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
    // The initial flow field is generated using cubic B-Spline interpolation/approximation
    reg_spline_getDeformationField(velocityFieldGrid,
                                   flowField,
-                                  NULL, // mask
+                                  nullptr, // mask
                                   true, //composition
                                   true // bspline
                                   );
@@ -4013,10 +4013,10 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
    }
 
    // Remove the affine component from the flow field
-   nifti_image *affineOnly=NULL;
+   nifti_image *affineOnly=nullptr;
    if(flowFieldImage->num_ext>0)
    {
-      if(flowFieldImage->ext_list[0].edata!=NULL)
+      if(flowFieldImage->ext_list[0].edata!=nullptr)
       {
          // Create a field that contains the affine component only
          affineOnly = nifti_copy_nim_info(deformationFieldImage);
@@ -4095,7 +4095,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
       // The deformation field is applied to itself
       reg_defField_compose(deformationFieldImage,
                            flowFieldImage,
-                           NULL);
+                           nullptr);
       // The computed scaled deformation field is copied over
       memcpy(deformationFieldImage->data, flowFieldImage->data,
              deformationFieldImage->nvox*deformationFieldImage->nbyper);
@@ -4106,12 +4106,12 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
 #endif
    }
    // The affine conponent of the transformation is restored
-   if(affineOnly!=NULL)
+   if(affineOnly!=nullptr)
    {
       reg_getDisplacementFromDeformation(deformationFieldImage);
       reg_tools_addImageToImage(deformationFieldImage,affineOnly,deformationFieldImage);
       nifti_image_free(affineOnly);
-      affineOnly=NULL;
+      affineOnly=nullptr;
    }
    deformationFieldImage->intent_p1=DEF_FIELD;
    deformationFieldImage->intent_p2=0;
@@ -4137,7 +4137,7 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
       // Use the spline approximation to generate the deformation field
       reg_spline_getDeformationField(velocityFieldGrid,
                                      deformationFieldImage,
-                                     NULL,
+                                     nullptr,
                                      false, // composition
                                      true // bspline
                                      );
@@ -4191,17 +4191,17 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
       strcpy(flowFieldImage->intent_name,"NREG_TRANS");
       flowFieldImage->intent_p1=DEF_VEL_FIELD;
       flowFieldImage->intent_p2=velocityFieldGrid->intent_p2;
-      if(velocityFieldGrid->num_ext>0 && flowFieldImage->ext_list==NULL)
+      if(velocityFieldGrid->num_ext>0 && flowFieldImage->ext_list==nullptr)
          nifti_copy_extensions(flowFieldImage, velocityFieldGrid);
 
       // Generate the velocity field
       reg_spline_getFlowFieldFromVelocityGrid(velocityFieldGrid,
                                               flowFieldImage);
       // Remove the affine component from the flow field
-      nifti_image *affineOnly=NULL;
+      nifti_image *affineOnly=nullptr;
       if(flowFieldImage->num_ext>0)
       {
-         if(flowFieldImage->ext_list[0].edata!=NULL)
+         if(flowFieldImage->ext_list[0].edata!=nullptr)
          {
             // Create a field that contains the affine component only
             affineOnly = nifti_copy_nim_info(deformationFieldImage[0]);
@@ -4232,7 +4232,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
 
       // Clear the allocated flow field
       nifti_image_free(flowFieldImage);
-      flowFieldImage=NULL;
+      flowFieldImage=nullptr;
 
       // Conversion from displacement to deformation
       reg_getDeformationFromDisplacement(deformationFieldImage[0]);
@@ -4246,7 +4246,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
          // The deformation field is applied to itself
          reg_defField_compose(deformationFieldImage[i], // to apply
                               deformationFieldImage[i+1], // to update
-               NULL);
+               nullptr);
    #ifndef NDEBUG
          char text[255];
          sprintf(text, "Squaring (composition) step %u/%u", i+1, squaringNumber);
@@ -4254,7 +4254,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
    #endif
       }
       // The affine conponent of the transformation is restored
-      if(affineOnly!=NULL)
+      if(affineOnly!=nullptr)
       {
          for(unsigned short i=0; i<=squaringNumber; ++i){
             reg_getDisplacementFromDeformation(deformationFieldImage[i]);
@@ -4263,7 +4263,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
             deformationFieldImage[i]->intent_p2=0;
          }
          nifti_image_free(affineOnly);
-         affineOnly=NULL;
+         affineOnly=nullptr;
       }
       // If required an affine component is composed
       if(velocityFieldGrid->num_ext>1)
@@ -4648,7 +4648,7 @@ void reg_spline_GetDeconvolvedCoefficents_core(nifti_image *img)
             restoreLine<double>(start,end,increment,coeffPtr,values);
          }
          delete[] values;
-         values=NULL;
+         values=nullptr;
 
          // Along the Y axis
          number = img->ny;
@@ -4663,7 +4663,7 @@ void reg_spline_GetDeconvolvedCoefficents_core(nifti_image *img)
             restoreLine<double>(start,end,increment,coeffPtr,values);
          }
          delete[] values;
-         values=NULL;
+         values=nullptr;
 
          // Along the Z axis
          if(img->nz>1)
@@ -4680,7 +4680,7 @@ void reg_spline_GetDeconvolvedCoefficents_core(nifti_image *img)
                restoreLine<double>(start,end,increment,coeffPtr,values);
             }
             delete[] values;
-            values=NULL;
+            values=nullptr;
          }
       }//t
    }//u

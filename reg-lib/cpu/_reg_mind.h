@@ -9,8 +9,8 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */
-#ifndef _REG_MIND_H
-#define _REG_MIND_H
+
+#pragma once
 
 #include "_reg_ssd.h"
 //#include "ConvolutionKernel.h"
@@ -38,11 +38,11 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
-                          nifti_image *forwardLocalWeightPtr = NULL,
-                          int *maskFloPtr = NULL,
-                          nifti_image *warRefImgPtr = NULL,
-                          nifti_image *warRefGraPtr = NULL,
-                          nifti_image *bckVoxBasedGraPtr = NULL);
+                          nifti_image *forwardLocalWeightPtr = nullptr,
+                          int *maskFloPtr = nullptr,
+                          nifti_image *warRefImgPtr = nullptr,
+                          nifti_image *warRefGraPtr = nullptr,
+                          nifti_image *bckVoxBasedGraPtr = nullptr);
    /// @brief Returns the mind based measure of similarity value
    virtual double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based gradient
@@ -88,4 +88,3 @@ void GetMINDSSCImageDesciptor(nifti_image* inputImgPtr,
                               int *mask,
                               int descriptorOffset,
                               int current_timepoint);
-#endif

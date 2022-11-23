@@ -11,9 +11,6 @@
  *
  */
 
-#ifndef _REG_TOOLS_CPP
-#define _REG_TOOLS_CPP
-
 #include <cmath>
 #include "_reg_tools.h"
 
@@ -1253,8 +1250,8 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                   size_t realIndex;
                   float *kernelPtr, kernelValue;
                   double densitySum, intensitySum;
-                  DTYPE *currentIntensityPtr=NULL;
-                  float *currentDensityPtr = NULL;
+                  DTYPE *currentIntensityPtr=nullptr;
+                  float *currentDensityPtr = nullptr;
                   DTYPE bufferIntensity[2048];
                   float bufferDensity[2048];
                   double bufferIntensitycur=0;
@@ -1475,16 +1472,16 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
    DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
 
    bool * activeTimePoint = (bool *)calloc(image->nt*image->nu,sizeof(bool));
-   // Check if input time points and masks are NULL
-   if(timePoint==NULL)
+   // Check if input time points and masks are nullptr
+   if(timePoint==nullptr)
    {
       // All time points are considered as active
       for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=true;
    }
    else for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=timePoint[i];
 
-   int *currentMask=NULL;
-   if(mask==NULL)
+   int *currentMask=nullptr;
+   if(mask==nullptr)
    {
       currentMask=(int *)calloc(image->nx*image->ny*image->nz,sizeof(int));
    }
@@ -1696,22 +1693,22 @@ void reg_tools_kernelConvolution(nifti_image *image,
 
    bool *axisToSmooth = new bool[3];
    bool *activeTimePoint = new bool[image->nt*image->nu];
-   if(axis==NULL)
+   if(axis==nullptr)
    {
       // All axis are smoothed by default
       for(int i=0; i<3; i++) axisToSmooth[i]=true;
    }
    else for(int i=0; i<3; i++) axisToSmooth[i]=axis[i];
 
-   if(timePoint==NULL)
+   if(timePoint==nullptr)
    {
       // All time points are considered as active
       for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=true;
    }
    else for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=timePoint[i];
 
-   int *currentMask=NULL;
-   if(mask==NULL)
+   int *currentMask=nullptr;
+   if(mask==nullptr)
    {
       currentMask=(int *)calloc(image->nx*image->ny*image->nz,sizeof(int));
    }
@@ -1731,7 +1728,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
       reg_exit();
    }
 
-   if(mask==NULL) free(currentMask);
+   if(mask==nullptr) free(currentMask);
    delete []axisToSmooth;
    delete []activeTimePoint;
 }
@@ -2079,10 +2076,10 @@ double reg_tools_getMeanRMS2(nifti_image *imageA, nifti_image *imageB)
 {
    ATYPE *imageAPtrX = static_cast<ATYPE *>(imageA->data);
    BTYPE *imageBPtrX = static_cast<BTYPE *>(imageB->data);
-   ATYPE *imageAPtrY=NULL;
-   BTYPE *imageBPtrY=NULL;
-   ATYPE *imageAPtrZ=NULL;
-   BTYPE *imageBPtrZ=NULL;
+   ATYPE *imageAPtrY=nullptr;
+   BTYPE *imageBPtrY=nullptr;
+   ATYPE *imageAPtrZ=nullptr;
+   BTYPE *imageBPtrZ=nullptr;
    if(imageA->dim[5]>1)
    {
       imageAPtrY = &imageAPtrX[imageA->nx*imageA->ny*imageA->nz];
@@ -2646,7 +2643,7 @@ void reg_flippAxis_type(int nx,
                         )
 {
    // Allocate the outputArray if it is not allocated yet
-   if(outputArray==NULL)
+   if(outputArray==nullptr)
       outputArray=(void *)malloc(nx*ny*nz*nt*nu*nv*nw*sizeof(DTYPE));
 
    // Parse the cmd to check which axis have to be flipped
@@ -3318,4 +3315,3 @@ void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int &x
     z = index;
 }
 /* *************************************************************** */
-#endif

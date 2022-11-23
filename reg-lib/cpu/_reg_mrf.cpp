@@ -12,9 +12,9 @@ reg_mrf::reg_mrf(int _discrete_radius,
                  int _img_dim,
                  size_t _node_number)
 {
-    this->measure = NULL;
-    this->referenceImage = NULL;
-    this->controlPointImage = NULL;
+    this->measure = nullptr;
+    this->referenceImage = nullptr;
+    this->controlPointImage = nullptr;
     this->discrete_radius = _discrete_radius;
     this->discrete_increment = _discrete_increment;
     this->regularisation_weight = _reg_weight;
@@ -124,42 +124,42 @@ reg_mrf::reg_mrf(reg_measure *_measure,
 /*****************************************************/
 reg_mrf::~reg_mrf()
 {
-   if(this->discretised_measures!=NULL)
+   if(this->discretised_measures!=nullptr)
       free(this->discretised_measures);
-   this->discretised_measures=NULL;
+   this->discretised_measures=nullptr;
 
-   if(this->orderedList!=NULL)
+   if(this->orderedList!=nullptr)
       free(this->orderedList);
-   this->orderedList=NULL;
+   this->orderedList=nullptr;
 
-   if(this->parentsList!=NULL)
+   if(this->parentsList!=nullptr)
       free(this->parentsList);
-   this->parentsList=NULL;
+   this->parentsList=nullptr;
 
-   if(this->edgeWeight!=NULL)
+   if(this->edgeWeight!=nullptr)
       free(this->edgeWeight);
-   this->edgeWeight=NULL;
+   this->edgeWeight=nullptr;
 
-   if(this->regularised_cost!=NULL)
+   if(this->regularised_cost!=nullptr)
       free(this->regularised_cost);
-   this->regularised_cost=NULL;
+   this->regularised_cost=nullptr;
 
-   if(this->optimal_label_index!=NULL)
+   if(this->optimal_label_index!=nullptr)
       free(this->optimal_label_index);
-   this->optimal_label_index=NULL;
+   this->optimal_label_index=nullptr;
 
    for(int i=0; i<this->image_dim; ++i){
-      if(this->discrete_values_mm[i]!=NULL)
+      if(this->discrete_values_mm[i]!=nullptr)
          free(this->discrete_values_mm[i]);
-      this->discrete_values_mm[i]=NULL;
+      this->discrete_values_mm[i]=nullptr;
    }
-   if(this->discrete_values_mm!=NULL)
+   if(this->discrete_values_mm!=nullptr)
       free(this->discrete_values_mm);
-   this->discrete_values_mm=NULL;
+   this->discrete_values_mm=nullptr;
 
-   if(this->input_transformation!=NULL)
+   if(this->input_transformation!=nullptr)
       nifti_image_free(this->input_transformation);
-   this->input_transformation=NULL;
+   this->input_transformation=nullptr;
 }
 /*****************************************************/
 void reg_mrf::Initialise()
@@ -282,7 +282,7 @@ for(int i=0;i<32388174;i++){
 #endif
 }
 /*****************************************************/
-void reg_mrf::getOptimalLabel()
+void reg_mrf::GetOptimalLabel()
 {
    for(size_t node=0; node<this->node_number; ++node) {
       this->optimal_label_index[node]=
@@ -335,7 +335,7 @@ void reg_mrf::Run()
        this->GetRegularisation();
        // Extract the best label
        //memcpy(this->regularised_cost, this->discretised_measures, this->node_number*this->label_nD_num*sizeof(float));
-       this->getOptimalLabel();
+       this->GetOptimalLabel();
        // Update the control point positions
        this->UpdateNodePositions();
    //}

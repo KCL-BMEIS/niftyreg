@@ -12,8 +12,7 @@
  *
  */
 
-#ifndef _REG_DTI_H
-#define _REG_DTI_H
+#pragma once
 
 //#include "_reg_measure.h"
 #include "_reg_ssd.h" // HERE
@@ -33,11 +32,11 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
-                          nifti_image *forwardLocalWeightPtr = NULL,
-                          int *maskFloPtr = NULL,
-                          nifti_image *warRefImgPtr = NULL,
-                          nifti_image *warRefGraPtr = NULL,
-                          nifti_image *bckVoxBasedGraPtr = NULL);
+                          nifti_image *forwardLocalWeightPtr = nullptr,
+                          int *maskFloPtr = nullptr,
+                          nifti_image *warRefImgPtr = nullptr,
+                          nifti_image *warRefGraPtr = nullptr,
+                          nifti_image *bckVoxBasedGraPtr = nullptr);
 //    /// @brief Returns the value
    virtual double GetSimilarityMeasureValue();
 //    /// @brief Compute the voxel based gradient for DTI images
@@ -55,7 +54,7 @@ protected:
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to NULL, all voxels are considered
+ * should be considered. If set to nullptr, all voxels are considered
  * @return Returns an L2 measure of the distance between the anisotropic components of the diffusion tensors
  */
 extern "C++" template <class DTYPE>
@@ -74,7 +73,7 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
  * @param maxSD Input scalar that contain the difference value between
  * the highest and the lowest intensity.
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to NULL, all voxels are considered
+ * should be considered. If set to nullptr, all voxels are considered
  */
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
@@ -83,4 +82,3 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
       nifti_image *dtiMeasureGradientImage,
       int *mask,
       unsigned int * dtIndicies);
-#endif

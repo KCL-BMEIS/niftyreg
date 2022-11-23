@@ -10,7 +10,7 @@
 
 #include "AladinContent.h"
 #ifdef _USE_CUDA
-#include "CUDAAladinContent.h"
+#include "CudaAladinContent.h"
 #endif
 #ifdef _USE_OPENCL
 #include "CLAladinContent.h"
@@ -37,8 +37,8 @@ void test(AladinContent *con, int platformCode, bool isAffine) {
 
    Platform *platform = new Platform(platformCode);
 
-   Kernel *optimiseKernel = platform->createKernel(OptimiseKernel::getName(), con);
-   optimiseKernel->castTo<OptimiseKernel>()->calculate(isAffine);
+   Kernel *optimiseKernel = platform->CreateKernel(OptimiseKernel::GetName(), con);
+   optimiseKernel->castTo<OptimiseKernel>()->Calculate(isAffine);
 
    delete optimiseKernel;
    delete platform;
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
    mat44 *expectedLSMatrix = reg_tool_ReadMat44File(expectedLTSMatrixFilename);
    ////////////////////////
    // Platforms
-   AladinContent *con = NULL;
+   AladinContent *con = nullptr;
    if (platformCode == NR_PLATFORM_CPU) {
       con = new AladinContent();
    }
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 
    mat44* test_LTS = (mat44 *)malloc(sizeof(mat44));
    reg_mat44_eye(test_LTS);
-   con->setTransformationMatrix(test_LTS);
+   con->SetTransformationMatrix(test_LTS);
 
    //2-D
    if (n1 == 2) {
@@ -151,21 +151,21 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
 
-   con->setBlockMatchingParams(blockMatchingParams);
+   con->SetBlockMatchingParams(blockMatchingParams);
    test(con, platformCode, isAffine);
 
 #ifndef NDEBUG
    if (n1 == 2)
-      reg_mat44_disp(con->getTransformationMatrix(), (char *) "test_optimize_2D");
-   else reg_mat44_disp(con->getTransformationMatrix(), (char *) "test_optimize_3D");
+      reg_mat44_disp(con->GetTransformationMatrix(), (char *) "test_optimize_2D");
+   else reg_mat44_disp(con->GetTransformationMatrix(), (char *) "test_optimize_3D");
 #endif
 
    if (n1 == 2){
-      if (check_matrix_difference(*expectedLSMatrix, *con->getTransformationMatrix(), (char *) "LTS matrices 2D affine - rigid", max_difference))
+      if (check_matrix_difference(*expectedLSMatrix, *con->GetTransformationMatrix(), (char *) "LTS matrices 2D affine - rigid", max_difference))
          return EXIT_FAILURE;
    }
    else{
-      if (check_matrix_difference(*expectedLSMatrix, *con->getTransformationMatrix(), (char *) "LTS matrices 3D affine - rigid", max_difference))
+      if (check_matrix_difference(*expectedLSMatrix, *con->GetTransformationMatrix(), (char *) "LTS matrices 3D affine - rigid", max_difference))
          return EXIT_FAILURE;
    }
 
@@ -182,4 +182,3 @@ int main(int argc, char **argv)
 #endif
    return EXIT_SUCCESS;
 }
-

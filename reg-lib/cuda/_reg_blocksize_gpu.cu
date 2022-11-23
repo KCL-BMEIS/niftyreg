@@ -7,14 +7,11 @@
  * See the LICENSE.txt file in the nifty_reg root folder
  */
 
-#ifndef _REG_BLOCKSIZE_GPU_CU
-#define _REG_BLOCKSIZE_GPU_CU
-
 #include "_reg_blocksize_gpu.h"
 
 /* ******************************** */
 /* ******************************** */
-NiftyReg_CudaBlock100 * NiftyReg_CudaBlock::instance = NULL;
+NiftyReg_CudaBlock100 * NiftyReg_CudaBlock::instance = nullptr;
 /* ******************************** */
 /* ******************************** */
 NiftyReg_CudaBlock100::NiftyReg_CudaBlock100()
@@ -223,5 +220,3 @@ NiftyReg_CudaBlock300::NiftyReg_CudaBlock300()
     printf("[NiftyReg DEBUG] NiftyReg_CudaBlock300 constructor called\n");
 #endif
 }
-
-#endif

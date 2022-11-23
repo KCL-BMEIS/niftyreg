@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_ALADIN_SYM_H
-#define _REG_ALADIN_SYM_H
+#pragma once
 
 #include "_reg_aladin.h"
 
@@ -23,12 +22,12 @@ private:
   AladinContent *backCon;
   Kernel *bAffineTransformation3DKernel, *bConvolutionKernel, *bBlockMatchingKernel, *bOptimiseKernel, *bResamplingKernel;
 
-  virtual void initAladinContent(nifti_image *ref,
+  virtual void InitAladinContent(nifti_image *ref,
                                  nifti_image *flo,
                                  int *mask,
                                  mat44 *transMat,
                                  size_t bytes);
-  virtual void initAladinContent(nifti_image *ref,
+  virtual void InitAladinContent(nifti_image *ref,
                                  nifti_image *flo,
                                  int *mask,
                                  mat44 *transMat,
@@ -36,9 +35,9 @@ private:
                                  unsigned int blockPercentage,
                                  unsigned int inlierLts,
                                  unsigned int blockStepSize);
-  virtual void clearAladinContent();
-  virtual void createKernels();
-  virtual void clearKernels();
+  virtual void ClearAladinContent();
+  virtual void CreateKernels();
+  virtual void ClearKernels();
 
 protected:
   nifti_image *InputFloatingMask;
@@ -65,5 +64,3 @@ public:
 };
 
 #include "_reg_aladin_sym.cpp"
-
-#endif // _REG_ALADIN_SYM_H

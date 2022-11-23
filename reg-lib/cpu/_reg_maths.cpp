@@ -1,6 +1,3 @@
-#ifndef _REG_MATHS_CPP
-#define _REG_MATHS_CPP
-
 #include "_reg_maths.h"
 //STD
 #include <map>
@@ -84,7 +81,7 @@ void reg_matrixInvertMultiply(T *mat,
                               T *vec)
 {
     // Perform the LU decomposition if necessary
-    if (index == NULL)
+    if (index == nullptr)
         reg_LUdecomposition(mat, dim, index);
 
     int ii = 0;
@@ -132,7 +129,7 @@ void reg_matrixMultiply(T *mat1,
     }
     size_t resDim[2] = {dim1[0], dim2[1]};
     // Allocate the result matrix
-    if (res != NULL)
+    if (res != nullptr)
         free(res);
     res = (T *)calloc(resDim[0] * resDim[1], sizeof(T));
     // Multiply both matrices
@@ -990,4 +987,3 @@ T pythag(T a, T b)
     else
         return (absb == 0.0f ? 0.0f : (T)(absb * sqrt(1.0f + SQR(absa / absb))));
 }
-#endif // _REG_MATHS_CPP

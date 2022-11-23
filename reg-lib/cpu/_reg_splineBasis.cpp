@@ -11,9 +11,6 @@
  *
  */
 
-#ifndef _REG_SPLINE_CPP
-#define _REG_SPLINE_CPP
-
 #include "_reg_splineBasis.h"
 
 /* *************************************************************** */
@@ -625,9 +622,9 @@ void get_GridValues(int startX,
 
    size_t index;
    size_t coord=0;
-   DTYPE *xxPtr=NULL, *yyPtr=NULL;
+   DTYPE *xxPtr=nullptr, *yyPtr=nullptr;
 
-   mat44 *voxel2realMatrix=NULL;
+   mat44 *voxel2realMatrix=nullptr;
    if(splineControlPoint->sform_code>0)
       voxel2realMatrix=&(splineControlPoint->sto_xyz);
    else voxel2realMatrix=&(splineControlPoint->qto_xyz);
@@ -690,10 +687,10 @@ void get_GridValues(int startX,
 
    size_t index;
    size_t coord=0;
-   DTYPE *xPtr=NULL, *yPtr=NULL, *zPtr=NULL;
-   DTYPE *xxPtr=NULL, *yyPtr=NULL, *zzPtr=NULL;
+   DTYPE *xPtr=nullptr, *yPtr=nullptr, *zPtr=nullptr;
+   DTYPE *xxPtr=nullptr, *yyPtr=nullptr, *zzPtr=nullptr;
 
-   mat44 *voxel2realMatrix=NULL;
+   mat44 *voxel2realMatrix=nullptr;
    if(splineControlPoint->sform_code>0)
       voxel2realMatrix=&(splineControlPoint->sto_xyz);
    else voxel2realMatrix=&(splineControlPoint->qto_xyz);
@@ -753,5 +750,3 @@ template void get_GridValues<double>(int, int, int, nifti_image *,
 double *, double *, double *, double *, double *, double *, bool, bool);
 /* *************************************************************** */
 /* *************************************************************** */
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef PLATFORM_H_
-#define PLATFORM_H_
+#pragma once
 
 #include <map>
 #include <string>
@@ -15,24 +14,20 @@ class AladinContent;
 
 class Platform {
 public:
-	Platform(int platformCode);
-	virtual ~Platform();
+    Platform(int platformCode);
+    virtual ~Platform();
 
-    Kernel *createKernel(const std::string& name, AladinContent *con) const;
-    std::string getName();
+    Kernel* CreateKernel(const std::string& name, AladinContent *con) const;
+    std::string GetName();
 
-    int getPlatformCode();
-    //void setPlatformCode(const int platformCodeIn);
-    void setGpuIdx(unsigned gpuIdxIn);
-    unsigned getGpuIdx();
+    int GetPlatformCode();
+    //void SetPlatformCode(const int platformCodeIn);
+    void SetGpuIdx(unsigned gpuIdxIn);
+    unsigned GetGpuIdx();
 
 private:
-    KernelFactory* factory;
+    KernelFactory *factory;
     std::string platformName;
     int platformCode;
     unsigned gpuIdx;
 };
-
-
-
-#endif //PLATFORM_H_

@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_MUTUALINFORMATION_kernels_CU
-#define _REG_MUTUALINFORMATION_kernels_CU
-
 #include <stdio.h>
 
 #define COEFF_L 0.16666666f
@@ -585,5 +582,3 @@ __global__ void reg_marginaliseResultXY_kernel(float *babyHisto)
         babyHisto[tid]=sum;
     }
 }
-
-#endif

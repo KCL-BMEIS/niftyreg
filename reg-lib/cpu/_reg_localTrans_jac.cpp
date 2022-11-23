@@ -60,14 +60,14 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
                                   bool approximation,
                                   bool useHeaderInformation)
 {
-   if(JacobianMatrices==NULL && JacobianDeterminants==NULL)
+   if(JacobianMatrices==nullptr && JacobianDeterminants==nullptr)
    {
       reg_print_fct_error("reg_spline_jacobian3D");
-      reg_print_msg_error("Both output pointers are NULL");
+      reg_print_msg_error("Both output pointers are nullptr");
       reg_print_msg_error("Nothing to be done");
       reg_exit();
    }
-   if(referenceImage==NULL && approximation==false)
+   if(referenceImage==nullptr && approximation==false)
    {
       reg_print_fct_error("reg_spline_jacobian3D");
       reg_print_msg_error("The reference image is required to compute the Jacobian at voxel position");
@@ -114,9 +114,9 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
                jacobianMatrix.m[2][2] = (coeffPtrZ[index+splineControlPoint->nx*splineControlPoint->ny] - coeffPtrZ[index-splineControlPoint->nx*splineControlPoint->ny])/2.;
 
                jacobianMatrix=nifti_mat33_mul(reorientation,jacobianMatrix);
-               if(JacobianMatrices!=NULL)
+               if(JacobianMatrices!=nullptr)
                   JacobianMatrices[index]=jacobianMatrix;
-               if(JacobianDeterminants!=NULL)
+               if(JacobianDeterminants!=nullptr)
                   JacobianDeterminants[index] =
                         static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
                ++index;
@@ -195,9 +195,9 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
                   // reorient the matrix
                   jacobianMatrix=nifti_mat33_mul(reorientation,
                                                  jacobianMatrix);
-                  if(JacobianMatrices!=NULL)
+                  if(JacobianMatrices!=nullptr)
                      JacobianMatrices[index]=jacobianMatrix;
-                  if(JacobianDeterminants!=NULL)
+                  if(JacobianDeterminants!=nullptr)
                      JacobianDeterminants[index] =
                            static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
                   ++index;
@@ -239,9 +239,9 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
                   jacobianMatrix=nifti_mat33_mul(reorientation,
                                                  jacobianMatrix);
 
-                  if(JacobianMatrices!=NULL)
+                  if(JacobianMatrices!=nullptr)
                      JacobianMatrices[index]=jacobianMatrix;
-                  if(JacobianDeterminants!=NULL)
+                  if(JacobianDeterminants!=nullptr)
                      JacobianDeterminants[index] =
                            static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
                   ++index;
@@ -262,14 +262,14 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
                            bool approximation,
                            bool useHeaderInformation)
 {
-   if(JacobianMatrices==NULL && JacobianDeterminants==NULL)
+   if(JacobianMatrices==nullptr && JacobianDeterminants==nullptr)
    {
       reg_print_fct_error("reg_spline_jacobian2D");
-      reg_print_msg_error("Both output pointers are NULL");
+      reg_print_msg_error("Both output pointers are nullptr");
       reg_print_msg_error("Nothing to be done");
       reg_exit();
    }
-   if(referenceImage==NULL && approximation==false)
+   if(referenceImage==nullptr && approximation==false)
    {
       reg_print_fct_error("reg_spline_jacobian2D");
       reg_print_msg_error("The reference image is required to compute the Jacobian at voxel position");
@@ -345,9 +345,9 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
                jacobianMatrix.m[1][1] += basisY[incr0]*coeffY[incr0];
             }
             jacobianMatrix=nifti_mat33_mul(reorientation,jacobianMatrix);
-            if(JacobianMatrices!=NULL)
+            if(JacobianMatrices!=nullptr)
                JacobianMatrices[voxelIndex]=jacobianMatrix;
-            if(JacobianDeterminants!=NULL)
+            if(JacobianDeterminants!=nullptr)
                JacobianDeterminants[voxelIndex] =
                      static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
             ++voxelIndex;
@@ -452,9 +452,9 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
                // reorient the matrix
                jacobianMatrix=nifti_mat33_mul(reorientation,
                                               jacobianMatrix);
-               if(JacobianMatrices!=NULL)
+               if(JacobianMatrices!=nullptr)
                   JacobianMatrices[voxelIndex]=jacobianMatrix;
-               if(JacobianDeterminants!=NULL)
+               if(JacobianDeterminants!=nullptr)
                   JacobianDeterminants[voxelIndex] =
                         static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
                ++voxelIndex;
@@ -525,9 +525,9 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
                }
                jacobianMatrix=nifti_mat33_mul(reorientation,
                                               jacobianMatrix);
-               if(JacobianMatrices!=NULL)
+               if(JacobianMatrices!=nullptr)
                   JacobianMatrices[voxelIndex]=jacobianMatrix;
-               if(JacobianDeterminants!=NULL)
+               if(JacobianDeterminants!=nullptr)
                   JacobianDeterminants[voxelIndex] =
                         static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
                ++voxelIndex;
@@ -546,14 +546,14 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                            bool approximation,
                            bool useHeaderInformation)
 {
-   if(JacobianMatrices==NULL && JacobianDeterminants==NULL)
+   if(JacobianMatrices==nullptr && JacobianDeterminants==nullptr)
    {
       reg_print_fct_error("reg_spline_jacobian3D");
-      reg_print_msg_error("Both output pointers are NULL");
+      reg_print_msg_error("Both output pointers are nullptr");
       reg_print_msg_error("Nothing to be done");
       reg_exit();
    }
-   if(referenceImage==NULL && approximation==false)
+   if(referenceImage==nullptr && approximation==false)
    {
       reg_print_fct_error("reg_spline_jacobian3D");
       reg_print_msg_error("The reference image is required to compute the Jacobian at voxel position");
@@ -652,9 +652,9 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                   jacobianMatrix.m[2][2] += basisZ[incr0]*coeffZ[incr0];
                }
                jacobianMatrix=nifti_mat33_mul(reorientation,jacobianMatrix);
-               if(JacobianMatrices!=NULL)
+               if(JacobianMatrices!=nullptr)
                   JacobianMatrices[voxelIndex]=jacobianMatrix;
-               if(JacobianDeterminants!=NULL)
+               if(JacobianDeterminants!=nullptr)
                   JacobianDeterminants[voxelIndex] =
                         static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
                ++voxelIndex;
@@ -991,9 +991,9 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                   // reorient the matrix
                   jacobianMatrix=nifti_mat33_mul(reorientation,
                                                  jacobianMatrix);
-                  if(JacobianMatrices!=NULL)
+                  if(JacobianMatrices!=nullptr)
                      JacobianMatrices[voxelIndex]=jacobianMatrix;
-                  if(JacobianDeterminants!=NULL)
+                  if(JacobianDeterminants!=nullptr)
                      JacobianDeterminants[voxelIndex] =
                            static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
                   ++voxelIndex;
@@ -1218,9 +1218,9 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
 #endif
                   jacobianMatrix=nifti_mat33_mul(reorientation,
                                                  jacobianMatrix);
-                  if(JacobianMatrices!=NULL)
+                  if(JacobianMatrices!=nullptr)
                      JacobianMatrices[voxelIndex]=jacobianMatrix;
-                  if(JacobianDeterminants!=NULL)
+                  if(JacobianDeterminants!=nullptr)
                      JacobianDeterminants[voxelIndex] =
                            static_cast<DTYPE>(nifti_mat33_determ(jacobianMatrix));
                   ++voxelIndex;
@@ -1261,7 +1261,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
       case NIFTI_TYPE_FLOAT32:
          reg_cubic_spline_jacobian2D<float>(splineControlPoint,
                                       referenceImage,
-                                      NULL,
+                                      nullptr,
                                       static_cast<float *>(JacobianDetermiantArray),
                                       approximation,
                                       useHeaderInformation);
@@ -1269,7 +1269,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
       case NIFTI_TYPE_FLOAT64:
          reg_cubic_spline_jacobian2D<double>(splineControlPoint,
                                        referenceImage,
-                                       NULL,
+                                       nullptr,
                                        static_cast<double *>(JacobianDetermiantArray),
                                        approximation,
                                        useHeaderInformation);
@@ -1287,7 +1287,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
       case NIFTI_TYPE_FLOAT32:
          reg_cubic_spline_jacobian3D<float>(splineControlPoint,
                                       referenceImage,
-                                      NULL,
+                                      nullptr,
                                       static_cast<float *>(JacobianDetermiantArray),
                                       approximation,
                                       useHeaderInformation);
@@ -1295,7 +1295,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
       case NIFTI_TYPE_FLOAT64:
          reg_cubic_spline_jacobian3D<double>(splineControlPoint,
                                        referenceImage,
-                                       NULL,
+                                       nullptr,
                                        static_cast<double *>(JacobianDetermiantArray),
                                        approximation,
                                        useHeaderInformation);
@@ -1342,7 +1342,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
    // The allocated array is free'ed
    if(JacobianDetermiantArray)
       free(JacobianDetermiantArray);
-   JacobianDetermiantArray=NULL;
+   JacobianDetermiantArray=nullptr;
    // The penalty term value is normalised and returned
    return penaltySum/(double)detNumber;
 }
@@ -2548,7 +2548,7 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
          case NIFTI_TYPE_FLOAT32:
             reg_linear_spline_jacobian3D<float>(splineControlPoint,
                                                jacobianImage,
-                                               NULL,
+                                               nullptr,
                                                static_cast<float *>(jacobianImage->data),
                                                false,
                                                true);
@@ -2556,7 +2556,7 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
          case NIFTI_TYPE_FLOAT64:
             reg_linear_spline_jacobian3D<double>(splineControlPoint,
                                                 jacobianImage,
-                                                NULL,
+                                                nullptr,
                                                 static_cast<double *>(jacobianImage->data),
                                                 false,
                                                 true);
@@ -2577,7 +2577,7 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
          case NIFTI_TYPE_FLOAT32:
             reg_cubic_spline_jacobian2D<float>(splineControlPoint,
                                                jacobianImage,
-                                               NULL,
+                                               nullptr,
                                                static_cast<float *>(jacobianImage->data),
                                                false,
                                                true);
@@ -2585,7 +2585,7 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
          case NIFTI_TYPE_FLOAT64:
             reg_cubic_spline_jacobian2D<double>(splineControlPoint,
                                                 jacobianImage,
-                                                NULL,
+                                                nullptr,
                                                 static_cast<double *>(jacobianImage->data),
                                                 false,
                                                 true);
@@ -2603,7 +2603,7 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
          case NIFTI_TYPE_FLOAT32:
             reg_cubic_spline_jacobian3D<float>(splineControlPoint,
                                                jacobianImage,
-                                               NULL,
+                                               nullptr,
                                                static_cast<float *>(jacobianImage->data),
                                                false,
                                                true);
@@ -2611,7 +2611,7 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
          case NIFTI_TYPE_FLOAT64:
             reg_cubic_spline_jacobian3D<double>(splineControlPoint,
                                                 jacobianImage,
-                                                NULL,
+                                                nullptr,
                                                 static_cast<double *>(jacobianImage->data),
                                                 false,
                                                 true);
@@ -2638,7 +2638,7 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
          reg_cubic_spline_jacobian2D<float>(splineControlPoint,
                                       referenceImage,
                                       jacobianMatrices,
-                                      NULL,
+                                      nullptr,
                                       false,
                                       true);
          break;
@@ -2646,7 +2646,7 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
          reg_cubic_spline_jacobian2D<double>(splineControlPoint,
                                        referenceImage,
                                        jacobianMatrices,
-                                       NULL,
+                                       nullptr,
                                        false,
                                        true);
          break;
@@ -2664,7 +2664,7 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
          reg_cubic_spline_jacobian3D<float>(splineControlPoint,
                                       referenceImage,
                                       jacobianMatrices,
-                                      NULL,
+                                      nullptr,
                                       false,
                                       true);
          break;
@@ -2672,7 +2672,7 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
          reg_cubic_spline_jacobian3D<double>(splineControlPoint,
                                        referenceImage,
                                        jacobianMatrices,
-                                       NULL,
+                                       nullptr,
                                        false,
                                        true);
          break;
@@ -2692,8 +2692,8 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
 {
    size_t voxelNumber=deformationField->nx*deformationField->ny;
 
-   DTYPE *jacDetPtr=NULL;
-   if(jacobianDeterminant!=NULL)
+   DTYPE *jacDetPtr=nullptr;
+   if(jacobianDeterminant!=nullptr)
       jacDetPtr=static_cast<DTYPE *>(jacobianDeterminant->data);
 
    float spacing[3];
@@ -2765,9 +2765,9 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
          jacobianMatrix.m[1][1] /= spacing[1];
 
          // Update the output arrays if required
-         if(jacobianDeterminant!=NULL)
+         if(jacobianDeterminant!=nullptr)
             jacDetPtr[currentIndex] = nifti_mat33_determ(jacobianMatrix);
-         if(jacobianMatrices!=NULL)
+         if(jacobianMatrices!=nullptr)
             jacobianMatrices[currentIndex]=jacobianMatrix;
          // Increment the pointer
          currentIndex++;
@@ -2785,9 +2785,9 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
          if(y==deformationField->ny-1) index -= deformationField->nx;
          if(currentIndex!=index)
          {
-            if(jacobianDeterminant!=NULL)
+            if(jacobianDeterminant!=nullptr)
                jacDetPtr[currentIndex] = jacDetPtr[index];
-            if(jacobianMatrices!=NULL)
+            if(jacobianMatrices!=nullptr)
                jacobianMatrices[currentIndex] = jacobianMatrices[index];
          }
          ++currentIndex;
@@ -2802,8 +2802,8 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
 {
    size_t voxelNumber=deformationField->nx*deformationField->ny*deformationField->nz;
 
-   DTYPE *jacDetPtr=NULL;
-   if(jacobianDeterminant!=NULL)
+   DTYPE *jacDetPtr=nullptr;
+   if(jacobianDeterminant!=nullptr)
       jacDetPtr=static_cast<DTYPE *>(jacobianDeterminant->data);
 
    float spacing[3];
@@ -2896,9 +2896,9 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
             jacobianMatrix.m[2][2] /= spacing[2];
 
             // Update the output arrays if required
-            if(jacobianDeterminant!=NULL)
+            if(jacobianDeterminant!=nullptr)
                jacDetPtr[currentIndex] = nifti_mat33_determ(jacobianMatrix);
-            if(jacobianMatrices!=NULL)
+            if(jacobianMatrices!=nullptr)
                jacobianMatrices[currentIndex]=jacobianMatrix;
             // Increment the pointer
             currentIndex++;
@@ -2919,9 +2919,9 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
             if(z==deformationField->nz-1) index -= deformationField->nx*deformationField->ny;
             if(currentIndex!=index)
             {
-               if(jacobianDeterminant!=NULL)
+               if(jacobianDeterminant!=nullptr)
                   jacDetPtr[currentIndex] = jacDetPtr[index];
-               if(jacobianMatrices!=NULL)
+               if(jacobianMatrices!=nullptr)
                   jacobianMatrices[currentIndex] = jacobianMatrices[index];
             }
             ++currentIndex;
@@ -2943,13 +2943,13 @@ void reg_defField_getJacobianMap(nifti_image *deformationField,
    {
    case NIFTI_TYPE_FLOAT32:
       if(deformationField->nz>1)
-         reg_defField_getJacobianMap3D<float>(deformationField,jacobianImage,NULL);
-      else reg_defField_getJacobianMap2D<float>(deformationField,jacobianImage,NULL);
+         reg_defField_getJacobianMap3D<float>(deformationField,jacobianImage,nullptr);
+      else reg_defField_getJacobianMap2D<float>(deformationField,jacobianImage,nullptr);
       break;
    case NIFTI_TYPE_FLOAT64:
       if(deformationField->nz>1)
-         reg_defField_getJacobianMap3D<double>(deformationField,jacobianImage,NULL);
-      else reg_defField_getJacobianMap2D<double>(deformationField,jacobianImage,NULL);
+         reg_defField_getJacobianMap3D<double>(deformationField,jacobianImage,nullptr);
+      else reg_defField_getJacobianMap2D<double>(deformationField,jacobianImage,nullptr);
       break;
    default:
       reg_print_fct_error("reg_defField_getJacobianMap");
@@ -2966,13 +2966,13 @@ void reg_defField_getJacobianMatrix(nifti_image *deformationField,
    {
    case NIFTI_TYPE_FLOAT32:
       if(deformationField->nz>1)
-         reg_defField_getJacobianMap3D<float>(deformationField,NULL,jacobianMatrices);
-      else reg_defField_getJacobianMap2D<float>(deformationField,NULL,jacobianMatrices);
+         reg_defField_getJacobianMap3D<float>(deformationField,nullptr,jacobianMatrices);
+      else reg_defField_getJacobianMap2D<float>(deformationField,nullptr,jacobianMatrices);
       break;
    case NIFTI_TYPE_FLOAT64:
       if(deformationField->nz>1)
-         reg_defField_getJacobianMap3D<double>(deformationField,NULL,jacobianMatrices);
-      else reg_defField_getJacobianMap2D<double>(deformationField,NULL,jacobianMatrices);
+         reg_defField_getJacobianMap3D<double>(deformationField,nullptr,jacobianMatrices);
+      else reg_defField_getJacobianMap2D<double>(deformationField,nullptr,jacobianMatrices);
       break;
    default:
       reg_print_fct_error("reg_defField_getJacobianMatrix");
@@ -2995,7 +2995,7 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
    // Remove the affine component from the flow field
    if(flowFieldImage->num_ext>0)
    {
-      if(flowFieldImage->ext_list[0].edata!=NULL)
+      if(flowFieldImage->ext_list[0].edata!=nullptr)
       {
          // Create a field that contains the affine component only
          reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata),
@@ -3031,7 +3031,7 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
    reg_mat33_eye(&affineMatrix);
    if(flowFieldImage->num_ext>0)
    {
-      if(flowFieldImage->ext_list[0].edata!=NULL)
+      if(flowFieldImage->ext_list[0].edata!=nullptr)
       {
          affineMatrix = reg_mat44_to_mat33(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata));
       }
@@ -3057,7 +3057,7 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
       // The deformation field is applied to itself
       reg_defField_compose(defFieldImage,
                            flowFieldImage,
-                           NULL);
+                           nullptr);
       // The computed scaled deformation field is copied over
       memcpy(defFieldImage->data, flowFieldImage->data,
              defFieldImage->nvox*defFieldImage->nbyper);
@@ -3072,7 +3072,7 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
    // The second half of the affine is added if required
    if(flowFieldImage->num_ext>1)
    {
-      if(flowFieldImage->ext_list[1].edata!=NULL)
+      if(flowFieldImage->ext_list[1].edata!=nullptr)
       {
          affineMatrix = reg_mat44_to_mat33(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[1].edata));
       }

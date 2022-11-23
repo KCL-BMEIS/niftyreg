@@ -1,6 +1,3 @@
-#ifndef _REG_OPTIMISER_KERNELS_CU
-#define _REG_OPTIMISER_KERNELS_CU
-
 __device__ __constant__ int c_NodeNumber;
 __device__ __constant__ float c_ScalingFactor;
 
@@ -83,5 +80,3 @@ __global__ void reg_updateControlPointPosition_kernel(float4 *controlPointImageA
     }
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
-#endif // _REG_OPTIMISER_KERNELS_CU

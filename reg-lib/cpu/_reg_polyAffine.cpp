@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_POLYAFFINE_CPP
-#define _REG_POLYAFFINE_CPP
-
 #include "_reg_polyAffine.h"
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -137,5 +134,3 @@ void reg_polyAffine<T>::ClearTransformationGradient()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
-#endif // _REG_POLYAFFINE_CPP

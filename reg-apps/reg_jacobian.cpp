@@ -119,7 +119,7 @@ void Usage(char *exec)
    printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
 #if defined (_OPENMP)
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    printf("\t-omp <int>\n\t\tNumber of thread to use with OpenMP. [%i/%i]\n",
           defaultOpenMPValue, omp_get_num_procs());
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
 #if defined (_OPENMP)
    // Set the default number of thread
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -228,7 +228,7 @@ int main(int argc, char **argv)
    /* ******************* */
    /* READ TRANSFORMATION */
    /* ******************* */
-   nifti_image *inputTransformation=NULL;
+   nifti_image *inputTransformation=nullptr;
    if(flag->inputTransFlag)
    {
       // Check of the input transformation is an affine
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
       }
 
       inputTransformation = reg_io_ReadImageFile(param->inputTransName);
-      if(inputTransformation == NULL)
+      if(inputTransformation == nullptr)
       {
          fprintf(stderr,"** ERROR Error when reading the transformation image: %s\n",param->inputTransName);
          return EXIT_FAILURE;
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
    /* COMPUTE JACOBIAN MAT OR DET */
    /* *************************** */
    // Create a deformation field if needed
-   nifti_image *referenceImage=NULL;
+   nifti_image *referenceImage=nullptr;
    if(inputTransformation->intent_p1==LIN_SPLINE_GRID ||
          inputTransformation->intent_p1==CUB_SPLINE_GRID ||
          inputTransformation->intent_p1==SPLINE_VEL_GRID){
@@ -266,7 +266,7 @@ int main(int argc, char **argv)
       }
       // Read the reference image
       referenceImage = reg_io_ReadImageHeader(param->refImageName);
-      if(referenceImage == NULL)
+      if(referenceImage == nullptr)
       {
          reg_print_msg_error("Error when reading the reference image.");
          reg_exit();
@@ -276,10 +276,10 @@ int main(int argc, char **argv)
    if(flag->outputJacDetFlag || flag->outputLogDetFlag){
       // Compute the map of Jacobian determinant
       // Create the Jacobian image
-      nifti_image *jacobianImage=NULL;
-      if(referenceImage!=NULL){
+      nifti_image *jacobianImage=nullptr;
+      if(referenceImage!=nullptr){
          jacobianImage=nifti_copy_nim_info(referenceImage);
-         nifti_image_free(referenceImage);referenceImage=NULL;
+         nifti_image_free(referenceImage);referenceImage=nullptr;
       }
       else jacobianImage=nifti_copy_nim_info(inputTransformation);
       jacobianImage->ndim=jacobianImage->dim[0]=jacobianImage->nz>1?3:2;
@@ -327,14 +327,14 @@ int main(int argc, char **argv)
          }
          reg_io_WriteImageFile(jacobianImage,param->outputLogDetName);
       }
-      nifti_image_free(jacobianImage);jacobianImage=NULL;
+      nifti_image_free(jacobianImage);jacobianImage=nullptr;
    }
    if(flag->outputJacMatFlag){
 
-      nifti_image *jacobianImage=NULL;
-      if(referenceImage!=NULL){
+      nifti_image *jacobianImage=nullptr;
+      if(referenceImage!=nullptr){
          jacobianImage=nifti_copy_nim_info(referenceImage);
-         nifti_image_free(referenceImage);referenceImage=NULL;
+         nifti_image_free(referenceImage);referenceImage=nullptr;
       }
       else jacobianImage=nifti_copy_nim_info(inputTransformation);
       jacobianImage->ndim=jacobianImage->dim[0]=5;
@@ -379,13 +379,13 @@ int main(int argc, char **argv)
          reg_jacobian_convertMat33ToNii<double>(jacobianMatriceArray,jacobianImage);
          break;
       }
-      free(jacobianMatriceArray);jacobianMatriceArray=NULL;
+      free(jacobianMatriceArray);jacobianMatriceArray=nullptr;
       reg_io_WriteImageFile(jacobianImage,param->outputJacMatName);
-      nifti_image_free(jacobianImage);jacobianImage=NULL;
+      nifti_image_free(jacobianImage);jacobianImage=nullptr;
    }
 
    // Free the allocated image
-   nifti_image_free(inputTransformation);inputTransformation=NULL;
+   nifti_image_free(inputTransformation);inputTransformation=nullptr;
 
    return EXIT_SUCCESS;
 }

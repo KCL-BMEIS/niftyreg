@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_KLDIV_H
-#define _REG_KLDIV_H
+#pragma once
 
 #include "_reg_measure.h"
 
@@ -28,11 +27,11 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
-                          nifti_image *forwardLocalWeightPtr = NULL,
-                          int *maskFloPtr = NULL,
-                          nifti_image *warRefImgPtr = NULL,
-                          nifti_image *warRefGraPtr = NULL,
-                          nifti_image *bckVoxBasedGraPtr = NULL);
+                          nifti_image *forwardLocalWeightPtr = nullptr,
+                          int *maskFloPtr = nullptr,
+                          nifti_image *warRefImgPtr = nullptr,
+                          nifti_image *warRefGraPtr = nullptr,
+                          nifti_image *bckVoxBasedGraPtr = nullptr);
    /// @brief Returns the kld value
    virtual double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based kld gradient
@@ -49,9 +48,9 @@ public:
  * @param jacobianDeterminantImage Image that contains the Jacobian
  * determinant of a transformation at every voxel position. This
  * image is used to modulate the KLD. The argument is ignored if the
- * pointer is set to NULL
+ * pointer is set to nullptr
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to NULL, all voxels are considered
+ * should be considered. If set to nullptr, all voxels are considered
  * @return Returns the computed sum squared difference
  */
 extern "C++" template <class DTYPE>
@@ -72,9 +71,9 @@ double reg_getKLDivergence(nifti_image *reference,
  * @param jacobianDeterminantImage Image that contains the Jacobian
  * determinant of a transformation at every voxel position. This
  * image is used to modulate the KLD. The argument is ignored if the
- * pointer is set to NULL
+ * pointer is set to nullptr
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to NULL, all voxels are considered
+ * should be considered. If set to nullptr, all voxels are considered
  */
 extern "C++" template <class DTYPE>
 void reg_getKLDivergenceVoxelBasedGradient(nifti_image *reference,
@@ -86,5 +85,3 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *reference,
                                            int current_timepoint,
                                  double timepoint_weight);
 /* *************************************************************** */
-
-#endif

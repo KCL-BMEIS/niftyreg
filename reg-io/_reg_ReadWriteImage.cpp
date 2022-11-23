@@ -9,9 +9,6 @@
  *
  */
 
-#ifndef _REG_READWRITEIMAGE_CPP
-#define _REG_READWRITEIMAGE_CPP
-
 #include "_reg_ReadWriteImage.h"
 #include "_reg_tools.h"
 #include "_reg_stringFormat.h"
@@ -72,7 +69,7 @@ nifti_image *reg_io_ReadImageFile(const char *filename)
    int fileFormat=reg_io_checkFileFormat(filename);
 
    // Create the nifti image pointer
-   nifti_image *image=NULL;
+   nifti_image *image=nullptr;
 
    // Read the image and convert it to nifti format if required
    switch(fileFormat)
@@ -106,7 +103,7 @@ nifti_image *reg_io_ReadImageHeader(const char *filename)
    int fileFormat=reg_io_checkFileFormat(filename);
 
    // Create the nifti image pointer
-   nifti_image *image=NULL;
+   nifti_image *image=nullptr;
 
    // Read the image and convert it to nifti format if required
    switch(fileFormat)
@@ -243,4 +240,3 @@ void reg_io_diplayImageData(nifti_image *image)
    return;
 }
 /* *************************************************************** */
-#endif

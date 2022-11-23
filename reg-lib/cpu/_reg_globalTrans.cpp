@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_AFFINETRANS_CPP
-#define _REG_AFFINETRANS_CPP
-
 #include "_reg_globalTrans.h"
 #include "_reg_maths.h"
 #include "_reg_maths_eigen.h"
@@ -154,7 +151,7 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
                                     int *mask)
 {
    int *tempMask=mask;
-   if(mask==NULL)
+   if(mask==nullptr)
    {
       tempMask=(int *)calloc(deformationField->nx*
                              deformationField->ny*
@@ -193,7 +190,7 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
          reg_exit();
       }
    }
-   if(mask==NULL)
+   if(mask==nullptr)
       free(tempMask);
 }
 /* *************************************************************** */
@@ -844,4 +841,3 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
    delete [] newWarpedPosition;
 }
 /* *************************************************************** */
-#endif

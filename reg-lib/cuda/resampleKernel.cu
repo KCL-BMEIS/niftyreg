@@ -391,7 +391,7 @@ void launchResample(nifti_image *floatingImage,
 						  float **sourceIJKMatrix_d) {
 
 	// Define the DTI indices if required
-	if(dti_timepoint!=NULL || jacMat!=NULL){
+	if(dti_timepoint!=nullptr || jacMat!=nullptr){
 		reg_print_fct_error("launchResample");
 		reg_print_msg_error("The DTI resampling has not yet been implemented with the CUDA platform. Exit.");
 		reg_exit();

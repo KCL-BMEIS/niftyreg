@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_RESAMPLING_KERNELS_CU
-#define _REG_RESAMPLING_KERNELS_CU
-
 texture<float, 3, cudaReadModeElementType> floatingTexture;
 texture<float4, 1, cudaReadModeElementType> floatingMatrixTexture;
 texture<float4, 1, cudaReadModeElementType> deformationFieldTexture;
@@ -227,4 +224,3 @@ __global__ void reg_getImageGradient3D_kernel(float4 *gradientArray)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-#endif

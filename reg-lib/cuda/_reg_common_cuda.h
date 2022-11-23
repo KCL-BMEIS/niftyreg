@@ -7,8 +7,7 @@
  * See the LICENSE.txt file in the nifty_reg root folder
  */
 
-#ifndef _REG_COMMON_CUDA_H
-#define _REG_COMMON_CUDA_H
+#pragma once
 
 #include "nifti1_io.h"
 #include "cuda_runtime.h"
@@ -171,4 +170,3 @@ template <class DTYPE>
 int cudaCommon_transferArrayFromDeviceToCpu(DTYPE *array_cpu, DTYPE **array_d, const unsigned int nElements);
 /* ******************************** */
 /* ******************************** */
-#endif

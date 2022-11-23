@@ -26,7 +26,7 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
 
    int unusableBlock = 0;
    size_t index;
-   DTYPE *referenceValues = NULL;
+   DTYPE *referenceValues = nullptr;
    if (referenceImage->nz > 1) {
       referenceValues = (DTYPE *)malloc(BLOCK_3D_SIZE * sizeof(DTYPE));
    }
@@ -187,18 +187,18 @@ void initialise_block_matching_method(nifti_image * reference,
                                       int stepSize_block,
                                       int *mask,
                                       bool runningOnGPU) {
-   if (params->totalBlock != NULL) {
+   if (params->totalBlock != nullptr) {
       free(params->totalBlock);
-      params->totalBlock = NULL;
+      params->totalBlock = nullptr;
    }
 
-   if (params->referencePosition != NULL) {
+   if (params->referencePosition != nullptr) {
       free(params->referencePosition);
-      params->referencePosition = NULL;
+      params->referencePosition = nullptr;
    }
-   if (params->warpedPosition != NULL) {
+   if (params->warpedPosition != nullptr) {
       free(params->warpedPosition);
-      params->warpedPosition = NULL;
+      params->warpedPosition = nullptr;
    }
 
    params->voxelCaptureRange = 3;
@@ -716,24 +716,24 @@ void optimize(_reg_blockMatchingParam *params,
    //    mat44 inverseMatrix = nifti_mat44_inverse(*transformation_matrix);
    if (params->blockNumber[2] == 1)  // 2D images
    {
-      //First let's check if we have enough correpondance points to estimate a transfomation
+      //First let's check if we have enough correspondence points to estimate a transformation
       if(affine) {
-         //3 = minimum number of corespondances needed
+         //3 = minimum number of correspondences needed
          if(params->definedActiveBlockNumber < 6)
          {
             char text[255];
-            sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
+            sprintf(text, "%i correspondences between blocks were found", params->definedActiveBlockNumber);
             reg_print_msg_error(text);
-            reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate an affine transfomation");
+            reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate an affine transformation");
             reg_exit();
          }
       } else {
          if(params->definedActiveBlockNumber < 4)
          {
             char text[255];
-            sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
+            sprintf(text, "%i correspondences between blocks were found", params->definedActiveBlockNumber);
             reg_print_msg_error(text);
-            reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate a rigid transfomation");
+            reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate a rigid transformation");
             reg_exit();
          }
       }
@@ -748,7 +748,7 @@ void optimize(_reg_blockMatchingParam *params,
          in[0] = params->warpedPosition[index];
          in[1] = params->warpedPosition[index + 1];
          //Can have undefined = NaN in the warped image now -
-         //to not loose the correspondance - so check that:
+         //to not loose the correspondence - so check that:
          if(in[0] == in[0]){
             reg_mat33_mul(transformation_matrix, in, out);
 
@@ -766,24 +766,24 @@ void optimize(_reg_blockMatchingParam *params,
    }
    else  // 3D images
    {
-      //First let's check if we have enough correpondance points to estimate a transfomation
+      //First let's check if we have enough correspondence points to estimate a transformation
       if(affine) {
-         //4 = minimum number of corespondances needed
+         //4 = minimum number of correspondences needed
          if(params->definedActiveBlockNumber < 8)
          {
             char text[255];
-            sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
+            sprintf(text, "%i correspondences between blocks were found", params->definedActiveBlockNumber);
             reg_print_msg_error(text);
-            reg_print_msg_error("Not enough correspondances were found - it is impossible to estimate an affine tranfomation");
+            reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate an affine transformation");
             reg_exit();
          }
       } else {
          if(params->definedActiveBlockNumber < 4)
          {
             char text[255];
-            sprintf(text, "%i correspondances between blocks were found", params->definedActiveBlockNumber);
+            sprintf(text, "%i correspondences between blocks were found", params->definedActiveBlockNumber);
             reg_print_msg_error(text);
-            reg_print_msg_error("Not enough correspondances were found - it is impossible to estimate a rigid tranfomation");
+            reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate a rigid transformation");
             reg_exit();
          }
       }
@@ -799,7 +799,7 @@ void optimize(_reg_blockMatchingParam *params,
          in[1] = params->warpedPosition[index + 1];
          in[2] = params->warpedPosition[index + 2];
          //Can have undefined = NaN in the warped image now -
-         //to not loose the correspondance - so check that:
+         //to not loose the correspondence - so check that:
          if(in[0] == in[0]){
             reg_mat44_mul(transformation_matrix, in, out);
 

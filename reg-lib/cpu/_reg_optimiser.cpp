@@ -3,9 +3,6 @@
  * @date 20/07/2012
  */
 
-#ifndef _REG_OPTIMISER_CPP
-#define _REG_OPTIMISER_CPP
-
 #include "_reg_optimiser.h"
 
 /* *************************************************************** */
@@ -19,18 +16,18 @@ reg_optimiser<T>::reg_optimiser()
    this->optimiseX=true;
    this->optimiseY=true;
    this->optimiseZ=true;
-   this->currentDOF=NULL;
-   this->currentDOF_b=NULL;
-   this->bestDOF=NULL;
-   this->bestDOF_b=NULL;
+   this->currentDOF=nullptr;
+   this->currentDOF_b=nullptr;
+   this->bestDOF=nullptr;
+   this->bestDOF_b=nullptr;
    this->backward=false;
-   this->gradient=NULL;
+   this->gradient=nullptr;
    this->currentIterationNumber=0;
    this->currentObjFunctionValue=0.0;
    this->maxIterationNumber=0.0;
    this->bestObjFunctionValue=0.0;
-   this->objFunc=NULL;
-   this->gradient_b=NULL;
+   this->objFunc=nullptr;
+   this->gradient_b=nullptr;
 
 #ifndef NDEBUG
    reg_print_msg_debug("reg_optimiser<T>::reg_optimiser() called");
@@ -41,12 +38,12 @@ reg_optimiser<T>::reg_optimiser()
 template <class T>
 reg_optimiser<T>::~reg_optimiser()
 {
-   if(this->bestDOF!=NULL)
+   if(this->bestDOF!=nullptr)
       free(this->bestDOF);
-   this->bestDOF=NULL;
-   if(this->bestDOF_b!=NULL)
+   this->bestDOF=nullptr;
+   if(this->bestDOF_b!=nullptr)
       free(this->bestDOF_b);
-   this->bestDOF_b=NULL;
+   this->bestDOF_b=nullptr;
 #ifndef NDEBUG
    reg_print_msg_debug("reg_optimiser<T>::~reg_optimiser() called");
 #endif
@@ -77,23 +74,23 @@ void reg_optimiser<T>::Initialise(size_t nvox,
    this->maxIterationNumber=maxit;
    this->currentIterationNumber=start;
    this->currentDOF=cppData;
-   if(this->bestDOF!=NULL) free(this->bestDOF);
+   if(this->bestDOF!=nullptr) free(this->bestDOF);
    this->bestDOF=(T *)malloc(this->dofNumber*sizeof(T));
    memcpy(this->bestDOF,this->currentDOF,this->dofNumber*sizeof(T));
-   if( gradData!=NULL)
+   if( gradData!=nullptr)
       this->gradient=gradData;
 
    if(nvox_b>0)
       this->dofNumber_b=nvox_b;
-   if(cppData_b!=NULL)
+   if(cppData_b!=nullptr)
    {
       this->currentDOF_b=cppData_b;
       this->backward=true;
-      if(this->bestDOF_b!=NULL) free(this->bestDOF_b);
+      if(this->bestDOF_b!=nullptr) free(this->bestDOF_b);
       this->bestDOF_b=(T *)malloc(this->dofNumber_b*sizeof(T));
       memcpy(this->bestDOF_b,this->currentDOF_b,this->dofNumber_b*sizeof(T));
    }
-   if(gradData_b!=NULL)
+   if(gradData_b!=nullptr)
       this->gradient_b=gradData_b;
 
    this->objFunc=obj;
@@ -112,7 +109,7 @@ void reg_optimiser<T>::RestoreBestDOF()
    // restore forward transformation
    memcpy(this->currentDOF,this->bestDOF,this->dofNumber*sizeof(T));
    // restore backward transformation if required
-   if(this->currentDOF_b!=NULL && this->bestDOF_b!=NULL && this->dofNumber_b>0)
+   if(this->currentDOF_b!=nullptr && this->bestDOF_b!=nullptr && this->dofNumber_b>0)
       memcpy(this->currentDOF_b,this->bestDOF_b,this->dofNumber_b*sizeof(T));
 }
 /* *************************************************************** */
@@ -123,7 +120,7 @@ void reg_optimiser<T>::StoreCurrentDOF()
    // save forward transformation
    memcpy(this->bestDOF,this->currentDOF,this->dofNumber*sizeof(T));
    // save backward transformation if required
-   if(this->currentDOF_b!=NULL && this->bestDOF_b!=NULL && this->dofNumber_b>0)
+   if(this->currentDOF_b!=nullptr && this->bestDOF_b!=nullptr && this->dofNumber_b>0)
       memcpy(this->bestDOF_b,this->currentDOF_b,this->dofNumber_b*sizeof(T));
 }
 /* *************************************************************** */
@@ -132,7 +129,7 @@ template <class T>
 void reg_optimiser<T>::Perturbation(float length)
 {
    // initialise the randomiser
-   srand(time(NULL));
+   srand(time(nullptr));
    // Reset the number of iteration
    this->currentIterationNumber=0;
    // Create some perturbation for degree of freedom
@@ -232,10 +229,10 @@ template <class T>
 reg_conjugateGradient<T>::reg_conjugateGradient()
    :reg_optimiser<T>::reg_optimiser()
 {
-   this->array1=NULL;
-   this->array2=NULL;
-   this->array1_b=NULL;
-   this->array2_b=NULL;
+   this->array1=nullptr;
+   this->array2=nullptr;
+   this->array1_b=nullptr;
+   this->array2_b=nullptr;
 
 #ifndef NDEBUG
    reg_print_msg_debug("reg_conjugateGradient<T>::reg_conjugateGradient() called");
@@ -246,21 +243,21 @@ reg_conjugateGradient<T>::reg_conjugateGradient()
 template <class T>
 reg_conjugateGradient<T>::~reg_conjugateGradient()
 {
-   if(this->array1!=NULL)
+   if(this->array1!=nullptr)
       free(this->array1);
-   this->array1=NULL;
+   this->array1=nullptr;
 
-   if(this->array2!=NULL)
+   if(this->array2!=nullptr)
       free(this->array2);
-   this->array2=NULL;
+   this->array2=nullptr;
 
-   if(this->array1_b!=NULL)
+   if(this->array1_b!=nullptr)
       free(this->array1_b);
-   this->array1_b=NULL;
+   this->array1_b=nullptr;
 
-   if(this->array2_b!=NULL)
+   if(this->array2_b!=nullptr)
       free(this->array2_b);
-   this->array2_b=NULL;
+   this->array2_b=nullptr;
 
 #ifndef NDEBUG
    reg_print_msg_debug("reg_conjugateGradient<T>::~reg_conjugateGradient() called");
@@ -299,15 +296,15 @@ void reg_conjugateGradient<T>::Initialise(size_t nvox,
                                 gradData_b
                                );
    this->firstcall=true;
-   if(this->array1!=NULL) free(this->array1);
-   if(this->array2!=NULL) free(this->array2);
+   if(this->array1!=nullptr) free(this->array1);
+   if(this->array2!=nullptr) free(this->array2);
    this->array1=(T *)malloc(this->dofNumber*sizeof(T));
    this->array2=(T *)malloc(this->dofNumber*sizeof(T));
 
-   if(cppData_b!=NULL && gradData_b!=NULL && nvox_b>0)
+   if(cppData_b!=nullptr && gradData_b!=nullptr && nvox_b>0)
    {
-      if(this->array1_b!=NULL) free(this->array1_b);
-      if(this->array2_b!=NULL) free(this->array2_b);
+      if(this->array1_b!=nullptr) free(this->array1_b);
+      if(this->array2_b!=nullptr) free(this->array2_b);
       this->array1_b=(T *)malloc(this->dofNumber_b*sizeof(T));
       this->array2_b=(T *)malloc(this->dofNumber_b*sizeof(T));
    }
@@ -469,37 +466,37 @@ reg_lbfgs<T>::reg_lbfgs()
    :reg_optimiser<T>::reg_optimiser()
 {
    this->stepToKeep=5;
-   this->oldDOF=NULL;
-   this->oldGrad=NULL;
-   this->diffDOF=NULL;
-   this->diffGrad=NULL;
+   this->oldDOF=nullptr;
+   this->oldGrad=nullptr;
+   this->diffDOF=nullptr;
+   this->diffGrad=nullptr;
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 reg_lbfgs<T>::~reg_lbfgs()
 {
-   if(this->oldDOF!=NULL)
+   if(this->oldDOF!=nullptr)
       free(this->oldDOF);
-   this->oldDOF=NULL;
-   if(this->oldGrad!=NULL)
+   this->oldDOF=nullptr;
+   if(this->oldGrad!=nullptr)
       free(this->oldGrad);
-   this->oldGrad=NULL;
+   this->oldGrad=nullptr;
    for(size_t i=0; i<this->stepToKeep; ++i)
    {
-      if(this->diffDOF[i]!=NULL)
+      if(this->diffDOF[i]!=nullptr)
          free(this->diffDOF[i]);
-      this->diffDOF[i]=NULL;
-      if(this->diffGrad[i]!=NULL)
+      this->diffDOF[i]=nullptr;
+      if(this->diffGrad[i]!=nullptr)
          free(this->diffGrad[i]);
-      this->diffGrad[i]=NULL;
+      this->diffGrad[i]=nullptr;
    }
-   if(this->diffDOF!=NULL)
+   if(this->diffDOF!=nullptr)
       free(this->diffDOF);
-   this->diffDOF=NULL;
-   if(this->diffGrad!=NULL)
+   this->diffDOF=nullptr;
+   if(this->diffGrad!=nullptr)
       free(this->diffGrad);
-   this->diffGrad=NULL;
+   this->diffGrad=nullptr;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -538,7 +535,7 @@ void reg_lbfgs<T>::Initialise(size_t nvox,
    {
       this->diffDOF[i]=(T *)malloc(this->dofNumber*sizeof(T));
       this->diffGrad[i]=(T *)malloc(this->dofNumber*sizeof(T));
-      if(this->diffDOF[i]==NULL || this->diffGrad[i]==NULL)
+      if(this->diffDOF[i]==nullptr || this->diffGrad[i]==nullptr)
       {
          reg_print_fct_error("reg_lbfgs<T>::Initialise");
          reg_print_msg_error("Out of memory");
@@ -547,7 +544,7 @@ void reg_lbfgs<T>::Initialise(size_t nvox,
    }
    this->oldDOF=(T *)malloc(this->dofNumber*sizeof(T));
    this->oldGrad=(T *)malloc(this->dofNumber*sizeof(T));
-   if(this->oldDOF==NULL || this->oldGrad==NULL)
+   if(this->oldDOF==nullptr || this->oldGrad==nullptr)
    {
       reg_print_fct_error("reg_lbfgs<T>::Initialise");
       reg_print_msg_error("Out of memory");
@@ -579,4 +576,3 @@ void reg_lbfgs<T>::Optimise(T maxLength,
 //template class reg_optimiser<float>;
 //template class reg_conjugateGradient<float>;
 //template class reg_lbfgs<float>;
-#endif // _REG_OPTIMISER_CPP

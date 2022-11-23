@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 
    /* Read the reference image */
    nifti_image *refImage = reg_io_ReadImageFile(inputRefImageName);
-   if(refImage == NULL)
+   if(refImage == nullptr)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",
               inputRefImageName);
@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 
    /* Read the warped image */
    nifti_image *warImage = reg_io_ReadImageFile(inputWarImageName);
-   if(warImage == NULL)
+   if(warImage == nullptr)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n",
               inputWarImageName);
@@ -79,9 +79,9 @@ int main(int argc, char **argv)
                                         warImage,
                                         mask_image,
                                         warImage,
-                                        NULL,
-                                        NULL,
-                                        NULL);
+                                        nullptr,
+                                        nullptr,
+                                        nullptr);
       double measure=measure_object->GetSimilarityMeasureValue();
 
 #ifndef NDEBUG
@@ -110,8 +110,8 @@ int main(int argc, char **argv)
                                         warImage,
                                         mask_image,
                                         warImage,
-                                        NULL,
-                                        NULL);
+                                        nullptr,
+                                        nullptr);
       double measure=measure_object->GetSimilarityMeasureValue();
 #ifndef NDEBUG
       printf("reg_test_measure: MIND value %iD = %.7g\n",

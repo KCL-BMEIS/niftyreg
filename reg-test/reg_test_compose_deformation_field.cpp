@@ -17,12 +17,12 @@ int main(int argc, char **argv)
 
    // Read the input deformation field image image
    nifti_image *inputDeformationField = reg_io_ReadImageFile(inputDefFieldImageName);
-   if(inputDeformationField==NULL){
+   if(inputDeformationField==nullptr){
       reg_print_msg_error("The input deformation field image could not be read");
       return EXIT_FAILURE;
    }
    nifti_image *inputComFieldImage = reg_io_ReadImageFile(inputComFieldImageName);
-   if(inputComFieldImage==NULL){
+   if(inputComFieldImage==nullptr){
       reg_print_msg_error("The input composed deformation field image could not be read");
       return EXIT_FAILURE;
    }
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
    // Compute the non-linear deformation field
    reg_defField_compose(inputDeformationField,
                         test_field,
-                        NULL);
+                        nullptr);
 
    // Compute the difference between the computed and inputed deformation field
    reg_tools_substractImageToImage(inputComFieldImage,test_field,test_field);

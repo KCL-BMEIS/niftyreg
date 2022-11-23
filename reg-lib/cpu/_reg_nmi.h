@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_MUTUALINFORMATION_H
-#define _REG_MUTUALINFORMATION_H
+#pragma once
 
 #include "_reg_measure.h"
 #include <vector>
@@ -33,11 +32,11 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
-                          nifti_image *forwardLocalWeightPtr = NULL,
-                          int *maskFloPtr = NULL,
-                          nifti_image *warRefImgPtr = NULL,
-                          nifti_image *warRefGraPtr = NULL,
-                          nifti_image *bckVoxBasedGraPtr = NULL);
+                          nifti_image *forwardLocalWeightPtr = nullptr,
+                          int *maskFloPtr = nullptr,
+                          nifti_image *warRefImgPtr = nullptr,
+                          nifti_image *warRefGraPtr = nullptr,
+                          nifti_image *bckVoxBasedGraPtr = nullptr);
    /// @brief Returns the nmi value
    double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based nmi gradient
@@ -330,5 +329,3 @@ void reg_getVoxelBasedMultiChannelNMIGradient3D(nifti_image *referenceImages,
       bool approx);
 /* *************************************************************** */
 /* *************************************************************** */
-
-#endif

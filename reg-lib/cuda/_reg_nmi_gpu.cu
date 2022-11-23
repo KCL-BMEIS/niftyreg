@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_NMI_GPU_CU
-#define _REG_NMI_GPU_CU
-
 #include "_reg_nmi.h"
 #include "_reg_nmi_gpu.h"
 #include "_reg_nmi_kernels.cu"
@@ -22,8 +19,8 @@
 reg_nmi_gpu::reg_nmi_gpu():
 	reg_nmi::reg_nmi()
 {
-	this->forwardJointHistogramLog_device=NULL;
-//	this->backwardJointHistogramLog_device=NULL;
+	this->forwardJointHistogramLog_device=nullptr;
+//	this->backwardJointHistogramLog_device=nullptr;
 
 #ifndef NDEBUG
 		printf("[NiftyReg DEBUG] reg_nmi_gpu constructor called\n");
@@ -41,10 +38,10 @@ reg_nmi_gpu::~reg_nmi_gpu()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_nmi_gpu::ClearHistogram()
 {
-	if(this->forwardJointHistogramLog_device!=NULL){
+	if(this->forwardJointHistogramLog_device!=nullptr){
 		cudaFree(this->forwardJointHistogramLog_device);
 	}
-	this->forwardJointHistogramLog_device=NULL;
+	this->forwardJointHistogramLog_device=nullptr;
 #ifndef NDEBUG
 		printf("[NiftyReg DEBUG] reg_nmi_gpu::ClearHistogram() called\n");
 #endif
@@ -172,7 +169,7 @@ void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
 									  int floBinning)
 {
     // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	const int voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
 	const int3 imageSize=make_int3(referenceImage->nx,referenceImage->ny,referenceImage->nz);
@@ -258,5 +255,3 @@ void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
-#endif

@@ -3,8 +3,7 @@
  * @date 20/07/2012
  */
 
-#ifndef _REG_OPTIMISER_H
-#define _REG_OPTIMISER_H
+#pragma once
 
 #include "_reg_maths.h"
 #include <stdlib.h>
@@ -157,10 +156,10 @@ public:
                            size_t start,
                            InterfaceOptimiser *o,
                            T *cppData,
-                           T *gradData=NULL,
+                           T *gradData=nullptr,
                            size_t nvox_b=0,
-                           T *cppData_b=NULL,
-                           T *gradData_b=NULL);
+                           T *cppData_b=nullptr,
+                           T *gradData_b=nullptr);
    virtual void Optimise(T maxLength,
                          T smallLength,
                          T &startLength);
@@ -197,11 +196,11 @@ public:
                            size_t maxit,
                            size_t start,
                            InterfaceOptimiser *o,
-                           T *cppData=NULL,
-                           T *gradData=NULL,
+                           T *cppData=nullptr,
+                           T *gradData=nullptr,
                            size_t nvox_b=0,
-                           T *cppData_b=NULL,
-                           T *gradData_b=NULL);
+                           T *cppData_b=nullptr,
+                           T *gradData_b=nullptr);
    virtual void Optimise(T maxLength,
                          T smallLength,
                          T &startLength);
@@ -236,11 +235,11 @@ public:
                            size_t maxit,
                            size_t start,
                            InterfaceOptimiser *o,
-                           T *cppData=NULL,
-                           T *gradData=NULL,
+                           T *cppData=nullptr,
+                           T *gradData=nullptr,
                            size_t nvox_b=0,
-                           T *cppData_b=NULL,
-                           T *gradData_b=NULL);
+                           T *cppData_b=nullptr,
+                           T *gradData_b=nullptr);
    virtual void Optimise(T maxLength,
                          T smallLength,
                          T &startLength);
@@ -249,5 +248,3 @@ public:
 /* *************************************************************** */
 /* *************************************************************** */
 #include "_reg_optimiser.cpp"
-
-#endif // _REG_OPTIMISER_H

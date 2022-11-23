@@ -2,13 +2,13 @@
 
 void showCLInfo(void)
 {
-   CLContextSingletton *sContext = &CLContextSingletton::Instance();
-   cl_uint numPlatforms = sContext->getNumPlatforms();
+   ClContextSingleton *sContext = &ClContextSingleton::Instance();
+   cl_uint numPlatforms = sContext->GetNumPlatforms();
 
    for (cl_uint i = 0; i < numPlatforms; i++)
    {
-      cl_uint numDevices = sContext->getNumDevices();
-      cl_device_id * devices = sContext->getDevices();
+      cl_uint numDevices = sContext->GetNumDevices();
+      cl_device_id * devices = sContext->GetDevices();
       printf("-----------------------------------\n");
       printf("[NiftyReg OPENCL] %i device(s) detected\n", numDevices);
       printf("-----------------------------------\n");

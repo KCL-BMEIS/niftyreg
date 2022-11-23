@@ -10,8 +10,7 @@
  *
  */
 
-#ifndef _REG_POLYAFFINE_H
-#define _REG_POLYAFFINE_H
+#pragma once
 
 #include "_reg_base.h"
 
@@ -40,5 +39,3 @@ public:
 };
 
 #include "_reg_polyAffine.cpp"
-
-#endif // _REG_POLYAFFINE_H

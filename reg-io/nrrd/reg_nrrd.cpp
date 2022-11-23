@@ -10,9 +10,6 @@
  *
  */
 
-#ifndef _REG_NRRD_CPP
-#define _REG_NRRD_CPP
-
 #include "reg_nrrd.h"
 
 /* *************************************************************** */
@@ -24,7 +21,7 @@ void reg_convertVectorField_nifti_to_nrrd(nifti_image *niiImage,
 
    DTYPE *inPtrX=static_cast<DTYPE *>(niiImage->data);
    DTYPE *inPtrY=&inPtrX[voxNumber];
-   DTYPE *inPtrZ=NULL;
+   DTYPE *inPtrZ=nullptr;
 
    DTYPE *outPtr=static_cast<DTYPE *>(nrrdImage->data);
 
@@ -60,7 +57,7 @@ void reg_convertVectorField_nrrd_to_nifti(Nrrd *nrrdImage,
 
    DTYPE *inPtrX=static_cast<DTYPE *>(niiImage->data);
    DTYPE *inPtrY=&inPtrX[voxNumber];
-   DTYPE *inPtrZ=NULL;
+   DTYPE *inPtrZ=nullptr;
 
    if(nrrdImage->axis[0].size==3)
    {
@@ -111,7 +108,7 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
    }
 
    // The nifti_image pointer is created
-   nifti_image *niiImage=NULL;
+   nifti_image *niiImage=nullptr;
 
    // The nifti image is generated based on the nrrd image datatype
    switch(nrrdImage->type)
@@ -279,7 +276,7 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
    }
 
    // Set the space unit if it is defined
-   if(nrrdImage->spaceUnits[1]!=NULL)
+   if(nrrdImage->spaceUnits[1]!=nullptr)
    {
       if(strcmp(nrrdImage->spaceUnits[1],"m")==0)
          niiImage->xyz_units=NIFTI_UNITS_METER;
@@ -292,7 +289,7 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
    // Set the time unit if it is defined
    if(nrrdImage->axis[3].size>1)
    {
-      if(nrrdImage->spaceUnits[4]!=NULL)
+      if(nrrdImage->spaceUnits[4]!=nullptr)
       {
          if(strcmp(nrrdImage->spaceUnits[4],"sec"))
             niiImage->time_units=NIFTI_UNITS_SEC;
@@ -327,7 +324,7 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
       niiImage->intent_code=NIFTI_INTENT_VECTOR;
 
       // Check if the image is a stationary field from NiftyReg
-      if(nrrdImage->axis[0].label!=NULL)
+      if(nrrdImage->axis[0].label!=nullptr)
       {
          std::string str=nrrdImage->axis[0].label;
          size_t it;
@@ -486,7 +483,7 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
    for(int i=0; i<NRRD_SPACE_DIM_MAX; i++)
    {
       airFree(nrrdImage->spaceUnits[i]);
-      nrrdImage->spaceUnits[i] = NULL;
+      nrrdImage->spaceUnits[i] = nullptr;
    }
    switch(niiImage->xyz_units)
    {
@@ -567,7 +564,7 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
       nrrdImage->axis[0].spaceDirection[1]=std::numeric_limits<double>::quiet_NaN();
       nrrdImage->axis[0].spaceDirection[2]=std::numeric_limits<double>::quiet_NaN();
       nrrdImage->axis[0].kind=nrrdKindVector;
-      nrrdImage->spaceUnits[0]=NULL;
+      nrrdImage->spaceUnits[0]=nullptr;
 
       nrrdImage->dim=niiImage->nu+1;
 
@@ -578,7 +575,7 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
          char temp[64];
          sprintf(temp,"NREG_VEL_STEP %f",niiImage->intent_p1);
          std::string str=temp;
-         if(nrrdImage->axis[0].label!=NULL) free(nrrdImage->axis[0].label);
+         if(nrrdImage->axis[0].label!=nullptr) free(nrrdImage->axis[0].label);
          nrrdImage->axis[0].label=(char *)malloc(str.length()*sizeof(char));
          strcpy(nrrdImage->axis[0].label,str.c_str());
 
@@ -586,7 +583,7 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
       else if(strcmp(niiImage->intent_name,"NREG_CPP_FILE")==0)
       {
          std::string str="NREG_CPP_FILE";
-         if(nrrdImage->axis[0].label!=NULL) free(nrrdImage->axis[0].label);
+         if(nrrdImage->axis[0].label!=nullptr) free(nrrdImage->axis[0].label);
          nrrdImage->axis[0].label=(char *)malloc(str.length()*sizeof(char));
          strcpy(nrrdImage->axis[0].label, str.c_str());
       }
@@ -607,7 +604,7 @@ Nrrd *reg_io_readNRRDfile(const char *filename)
    char *err;
 
    /* read in the nrrd from file */
-   if (nrrdLoad(nrrdImage, filename, NULL))
+   if (nrrdLoad(nrrdImage, filename, nullptr))
    {
       err = biffGetDone(NRRD);
       char text[255];
@@ -649,4 +646,3 @@ void reg_io_writeNRRDfile(Nrrd *image, const char *filename)
    return;
 }
 /* *************************************************************** */
-#endif

@@ -11,8 +11,8 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */
-#ifndef _REG_MATHS_H
-#define _REG_MATHS_H
+
+#pragma once
 
 #include <limits>
 #include <stdio.h>
@@ -286,4 +286,3 @@ double get_square_distance3D(float * first_point3D, float * second_point3D);
 /* *************************************************************** */
 double get_square_distance2D(float * first_point2D, float * second_point2D);
 /* *************************************************************** */
-#endif // _REG_MATHS_H

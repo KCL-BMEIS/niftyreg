@@ -9,9 +9,6 @@
  *
  */
 
-#ifndef _REG_COMMON_CUDA_CU
-#define _REG_COMMON_CUDA_CU
-
 #include "_reg_common_cuda.h"
 #include "_reg_tools.h"
 #include "_reg_blocksize_gpu.h"
@@ -75,7 +72,7 @@ int cudaCommon_setCUDACard(CUcontext *ctx, bool verbose) {
 			printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n",
 				   deviceProp.multiProcessorCount);
 		}
-		NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(deviceProp.major);
+		NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(deviceProp.major);
 	}
 	return EXIT_SUCCESS;
 }
@@ -637,8 +634,8 @@ int cudaCommon_transferFromDeviceToNifti(nifti_image *img, DTYPE **array_d, DTYP
 			return EXIT_FAILURE;
 		}
 		const int voxelNumber = img->nx*img->ny*img->nz;
-		float4 *array_h=NULL;
-		float4 *array2_h=NULL;
+		float4 *array_h=nullptr;
+		float4 *array2_h=nullptr;
 		NR_CUDA_SAFE_CALL(cudaMallocHost(&array_h, voxelNumber*sizeof(float4)));
 		NR_CUDA_SAFE_CALL(cudaMallocHost(&array2_h, voxelNumber*sizeof(float4)));
 		NR_CUDA_SAFE_CALL(cudaMemcpy((void *)array_h, (const void *)*array_d, voxelNumber*sizeof(float4), cudaMemcpyDeviceToHost));
@@ -767,5 +764,3 @@ int cudaCommon_transferArrayFromDeviceToCpu(DTYPE *array_cpu, DTYPE **array_d, c
 template int cudaCommon_transferArrayFromDeviceToCpu<int>(int *array_cpu, int **array_d, const unsigned int nElements);
 template int cudaCommon_transferArrayFromDeviceToCpu<float>(float *array_cpu, float **array_d, const unsigned int nElements);
 template int cudaCommon_transferArrayFromDeviceToCpu<double>(double *array_cpu, double **array_d, const unsigned int nElements);
-
-#endif

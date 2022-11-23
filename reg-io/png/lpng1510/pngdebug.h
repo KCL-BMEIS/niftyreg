@@ -32,8 +32,7 @@
  *            to the message.
  *   arg: 0 to 2 arguments for printf(3) style substitution in message.
  */
-#ifndef PNGDEBUG_H
-#define PNGDEBUG_H
+#pragma once
 /* These settings control the formatting of messages in png.c and pngerror.c */
 /* Moved to pngdebug.h at 1.5.0 */
 #  ifndef PNG_LITERAL_SHARP
@@ -154,4 +153,3 @@
 #ifndef png_debug2
 #  define png_debug2(l, m, p1, p2) ((void)0)
 #endif
-#endif /* PNGDEBUG_H */

@@ -117,7 +117,7 @@ mat44 compute_average_matrices(size_t matrixNumber,
                                float lts_inlier=1.f)
 {
    // Read all input images
-   mat44 *matrices=NULL;
+   mat44 *matrices=nullptr;
    matrices = (mat44 *)malloc(matrixNumber*sizeof(mat44));
    for(size_t m=0; m<matrixNumber; ++m)
       reg_tool_ReadAffineFile(&matrices[m],inputAffName[m]);
@@ -231,7 +231,7 @@ mat44 compute_average_matrices(size_t matrixNumber,
    // Free the allocated array
    free(matrixWeight);
    free(matrixIndexSorted);
-   if(matrices!=NULL) free(matrices);
+   if(matrices!=nullptr) free(matrices);
    return average_matrix;
 }
 
@@ -247,7 +247,7 @@ mat44 compute_affine_demean(size_t matrixNumber,
       reg_tool_ReadAffineFile(&current_affine,inputAffName[m]);
       // extract the rigid matrix from the affine
       float qb,qc,qd,qx,qy,qz,qfac;
-      nifti_mat44_to_quatern(current_affine,&qb,&qc,&qd,&qx,&qy,&qz,NULL,NULL,NULL,&qfac);
+      nifti_mat44_to_quatern(current_affine,&qb,&qc,&qd,&qx,&qy,&qz,nullptr,nullptr,nullptr,&qfac);
       tempMatrix=nifti_quatern_to_mat44(qb,qc,qd,qx,qy,qz,1.f,1.f,1.f,qfac);
       // remove the rigid componenent from the affine matrix
       tempMatrix=nifti_mat44_inverse(tempMatrix);
@@ -268,7 +268,7 @@ mat44 compute_affine_demean(size_t matrixNumber,
 int compute_nrr_demean(nifti_image *demean_field,
                        size_t transformationNumber,
                        char **inputNRRName,
-                       char **inputAffName=NULL)
+                       char **inputAffName=nullptr)
 {
    // Set the demean field to zero
    reg_tools_multiplyValueToImage(demean_field,demean_field,0.f);
@@ -290,15 +290,15 @@ int compute_nrr_demean(nifti_image *demean_field,
       case DISP_FIELD:
          reg_getDeformationFromDisplacement(transformation);
       case DEF_FIELD:
-         reg_defField_compose(transformation,deformationField,NULL);
+         reg_defField_compose(transformation,deformationField,nullptr);
          break;
       case CUB_SPLINE_GRID:
-         reg_spline_getDeformationField(transformation,deformationField,NULL,true,true);
+         reg_spline_getDeformationField(transformation,deformationField,nullptr,true,true);
          break;
       case DISP_VEL_FIELD:
          reg_getDeformationFromDisplacement(transformation);
       case DEF_VEL_FIELD:
-         reg_defField_compose(transformation,deformationField,NULL);
+         reg_defField_compose(transformation,deformationField,nullptr);
          break;
       case SPLINE_VEL_GRID:
          reg_spline_getFlowFieldFromVelocityGrid(transformation,deformationField);
@@ -309,7 +309,7 @@ int compute_nrr_demean(nifti_image *demean_field,
          return EXIT_FAILURE;
       }
       // The affine component is removed
-      if(inputAffName!=NULL || transformation->num_ext>0){
+      if(inputAffName!=nullptr || transformation->num_ext>0){
          mat44 affineTransformation;
          if(transformation->num_ext>0)
          {
@@ -351,21 +351,21 @@ int compute_nrr_demean(nifti_image *demean_field,
 int compute_average_image(nifti_image *averageImage,
                           size_t imageNumber,
                           char **inputImageName,
-                          char **inputAffName=NULL,
-                          char **inputNRRName=NULL,
+                          char **inputAffName=nullptr,
+                          char **inputNRRName=nullptr,
                           bool demean=false,
                           int interpolation_order=3)
 {
    // Compute the matrix required for demeaning if required
    mat44 demeanMatrix;
-   nifti_image *demeanField = NULL;
-   if(demean && inputAffName!=NULL && inputNRRName==NULL){
+   nifti_image *demeanField = nullptr;
+   if(demean && inputAffName!=nullptr && inputNRRName==nullptr){
       demeanMatrix = compute_affine_demean(imageNumber, inputAffName);
 #ifndef NDEBUG
       reg_print_msg_debug("Matrix to use for demeaning computed");
 #endif
    }
-   if(demean && inputNRRName!=NULL){
+   if(demean && inputNRRName!=nullptr){
       demeanField=nifti_copy_nim_info(averageImage);
       demeanField->ndim=demeanField->dim[0]=5;
       demeanField->nt=demeanField->dim[4]=1;
@@ -416,16 +416,16 @@ int compute_average_image(nifti_image *averageImage,
       // Set the transformation to identity
       reg_getDeformationFromDisplacement(deformationField);
       // Compute the transformation if required
-      if(inputNRRName!=NULL){
+      if(inputNRRName!=nullptr){
          nifti_image *current_transformation = reg_io_ReadImageFile(inputNRRName[i]);
          switch(static_cast<int>(current_transformation->intent_p1)){
          case DISP_FIELD:
             reg_getDeformationFromDisplacement(current_transformation);
          case DEF_FIELD:
-            reg_defField_compose(current_transformation, deformationField, NULL);
+            reg_defField_compose(current_transformation, deformationField, nullptr);
             break;
          case CUB_SPLINE_GRID:
-            reg_spline_getDeformationField(current_transformation, deformationField, NULL, true, true);
+            reg_spline_getDeformationField(current_transformation, deformationField, nullptr, true, true);
             break;
          case SPLINE_VEL_GRID:
             if(current_transformation->num_ext>0)
@@ -435,13 +435,13 @@ int compute_average_image(nifti_image *averageImage,
          case DISP_VEL_FIELD:
             reg_getDeformationFromDisplacement(current_transformation);
          case DEF_VEL_FIELD:
-            reg_defField_compose(current_transformation,deformationField,NULL);
+            reg_defField_compose(current_transformation,deformationField,nullptr);
             break;
          default: reg_print_msg_error("Unsupported transformation type")
                   reg_exit();
          }
          nifti_image_free(current_transformation);
-         if(demeanField!=NULL){
+         if(demeanField!=nullptr){
             if(deformationField->intent_p1==DEF_VEL_FIELD){
                reg_tools_substractImageToImage(deformationField,demeanField,deformationField);
                nifti_image *tempDef = nifti_copy_nim_info(deformationField);
@@ -460,10 +460,10 @@ int compute_average_image(nifti_image *averageImage,
 #endif
          }
       }
-      else if(inputAffName!=NULL){
+      else if(inputAffName!=nullptr){
          mat44 current_affine;
          reg_tool_ReadAffineFile(&current_affine,inputAffName[i]);
-         if(demean && inputAffName!=NULL && inputNRRName==NULL){
+         if(demean && inputAffName!=nullptr && inputNRRName==nullptr){
             current_affine = demeanMatrix * current_affine;
 #ifndef NDEBUG
       reg_print_msg_debug("Input affine transformation has been demeaned");
@@ -483,7 +483,7 @@ int compute_average_image(nifti_image *averageImage,
       reg_resampleImage(current_input_image,
                         warpedImage,
                         deformationField,
-                        NULL,
+                        nullptr,
                         interpolation_order,
                         std::numeric_limits<float>::quiet_NaN());
       nifti_image_free(deformationField);
@@ -493,7 +493,7 @@ int compute_average_image(nifti_image *averageImage,
       nifti_image_free(warpedImage);
    }
    // Clear the allocated demeanField if needed
-   if(demeanField!=NULL) nifti_image_free(demeanField);
+   if(demeanField!=nullptr) nifti_image_free(demeanField);
    // Normalised the average image
    reg_tools_divideImageToImage(averageImage,definedValue, averageImage);
    nifti_image_free(definedValue);
@@ -511,7 +511,7 @@ int main(int argc, char **argv)
 #if defined (_OPENMP)
    // Set the default number of thread
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -548,12 +548,12 @@ int main(int argc, char **argv)
    }
 
    // Check if a command text file is provided
-   char **pointer_to_command = NULL;
+   char **pointer_to_command = nullptr;
    int arg_num_command = 0;
    if(strcmp(argv[1],"--cmd_file")==0 && argc==3){
       char buffer[512];
       FILE *cmd_file = fopen(argv[2], "r+");
-      if(cmd_file==NULL){
+      if(cmd_file==nullptr){
          reg_print_msg_error("Error when reading the provided command line file:");
          reg_print_msg_error(argv[2]);
          reg_exit();
@@ -638,7 +638,7 @@ int main(int argc, char **argv)
    int operation;
    bool use_demean=false;
    size_t image_number=0;
-   char *referenceImageName=NULL;
+   char *referenceImageName=nullptr;
 
    // Set the name of the file to output
    char *outputName = pointer_to_command[1];
@@ -696,9 +696,9 @@ int main(int argc, char **argv)
    }
 
    // Parse the input data
-   char **input_image_names = NULL;
-   char **input_affine_names = NULL;
-   char **input_nonrigid_names = NULL;
+   char **input_image_names = nullptr;
+   char **input_affine_names = nullptr;
+   char **input_nonrigid_names = nullptr;
    if(operation!=AVG_INPUT || trans_is_affine==false){
       input_image_names = (char **)malloc(image_number*sizeof(char *));
    }
@@ -743,7 +743,7 @@ int main(int argc, char **argv)
    }
 
    mat44 avg_output_matrix;
-   nifti_image *avg_output_image=NULL;
+   nifti_image *avg_output_image=nullptr;
 
    // Go over the different operations
    if(operation==AVG_INPUT && trans_is_affine==true){
@@ -756,7 +756,7 @@ int main(int argc, char **argv)
    }
    else{
       // Allocate the average warped image
-      if(referenceImageName==NULL)
+      if(referenceImageName==nullptr)
          referenceImageName=input_image_names[0];
       avg_output_image = reg_io_ReadImageFile(referenceImageName);
       // clean the data and reallocate them
@@ -781,7 +781,7 @@ int main(int argc, char **argv)
                             interpolation_order);
    }
    // Save the output
-   if(avg_output_image==NULL)
+   if(avg_output_image==nullptr)
       reg_tool_WriteAffineFile(&avg_output_matrix, outputName);
    else reg_io_WriteImageFile(avg_output_image, outputName);
 
@@ -791,15 +791,15 @@ int main(int argc, char **argv)
          free(pointer_to_command[i]);
       free(pointer_to_command);
    }
-   if(avg_output_image!=NULL)
+   if(avg_output_image!=nullptr)
       nifti_image_free(avg_output_image);
-   if(input_image_names!=NULL){
+   if(input_image_names!=nullptr){
       free(input_image_names);
    }
-   if(input_affine_names!=NULL){
+   if(input_affine_names!=nullptr){
       free(input_affine_names);
    }
-   if(input_nonrigid_names!=NULL){
+   if(input_nonrigid_names!=nullptr){
       free(input_nonrigid_names);
    }
 
