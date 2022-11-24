@@ -139,16 +139,16 @@ TEST_CASE("Resampling", "[resampling]") {
             "CUDA",
             NR_PLATFORM_CUDA));
 #endif
-#ifdef _USE_OPENCL
-        listContent.push_back(content_desc(
-            new ClAladinContent(
-                reference,
-                reference,
-                nullptr,
-                sizeof(float)),
-            "OpenCL",
-            NR_PLATFORM_CL));
-#endif
+//#ifdef _USE_OPENCL
+//        listContent.push_back(content_desc(
+//            new ClAladinContent(
+//                reference,
+//                reference,
+//                nullptr,
+//                sizeof(float)),
+//            "OpenCL",
+//            NR_PLATFORM_CL));
+//#endif
         // Loop over all possibles contents for each test
         for (auto&& content : listContent) {
 
