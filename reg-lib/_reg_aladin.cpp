@@ -486,25 +486,6 @@ void reg_aladin<T>::InitAladinContent(nifti_image *ref,
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::InitAladinContent(nifti_image *ref,
-                                      nifti_image *flo,
-                                      int *mask,
-                                      mat44 *transMat,
-                                      size_t bytes) {
-    if (this->platformCode == NR_PLATFORM_CPU)
-        this->con = new AladinContent(ref, flo, mask, transMat, bytes);
-#ifdef _USE_CUDA
-    else if (platformCode == NR_PLATFORM_CUDA)
-        this->con = new CudaAladinContent(ref, flo, mask, transMat, bytes);
-#endif
-#ifdef _USE_OPENCL
-    else if (platformCode == NR_PLATFORM_CL)
-        this->con = new ClAladinContent(ref, flo, mask, transMat, bytes);
-#endif
-    this->blockMatchingParams = this->con->AladinContent::GetBlockMatchingParams();
-}
-/* *************************************************************** */
-template<class T>
 void reg_aladin<T>::ClearAladinContent() {
     delete this->con;
 }

@@ -4,13 +4,13 @@
 #include "AladinContent.h"
 #include <string>
 
-class CpuAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
+class CpuAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:
-        CpuAffineDeformationFieldKernel(AladinContent *con, std::string nameIn);
+    CpuAffineDeformationFieldKernel(Content *conIn);
+    void Calculate(bool compose = false);
 
-        void Calculate(bool compose = false);
-
-        mat44 *affineTransformation;
-        nifti_image *deformationFieldImage;
-        int *mask;
+private:
+    mat44 *affineTransformation;
+    nifti_image *deformationFieldImage;
+    int *mask;
 };

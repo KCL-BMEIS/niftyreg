@@ -6,11 +6,11 @@
 #include "CpuOptimiseKernel.h"
 #include "AladinContent.h"
 
-Kernel* CpuKernelFactory::ProduceKernel(std::string name, AladinContent *con) const {
-	if (name == AffineDeformationFieldKernel::GetName()) return new CpuAffineDeformationFieldKernel(con, name);
-	else if (name == ConvolutionKernel::GetName()) return new CpuConvolutionKernel(name);
-	else if (name == BlockMatchingKernel::GetName()) return new CpuBlockMatchingKernel(con, name);
-	else if (name == ResampleImageKernel::GetName()) return new CpuResampleImageKernel(con, name);
-	else if (name == OptimiseKernel::GetName()) return new CpuOptimiseKernel(con, name);
+Kernel* CpuKernelFactory::ProduceKernel(std::string name, Content *con) const {
+	if (name == AffineDeformationFieldKernel::GetName()) return new CpuAffineDeformationFieldKernel(con);
+	else if (name == ConvolutionKernel::GetName()) return new CpuConvolutionKernel();
+	else if (name == BlockMatchingKernel::GetName()) return new CpuBlockMatchingKernel(con);
+	else if (name == ResampleImageKernel::GetName()) return new CpuResampleImageKernel(con);
+	else if (name == OptimiseKernel::GetName()) return new CpuOptimiseKernel(con);
 	else return nullptr;
 }

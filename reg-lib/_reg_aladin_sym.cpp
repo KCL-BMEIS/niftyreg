@@ -261,32 +261,6 @@ void reg_aladin_sym<T>::InitAladinContent(nifti_image *ref,
                         nifti_image *flo,
                         int *mask,
                         mat44 *transMat,
-                        size_t bytes)
-{
-   reg_aladin<T>::InitAladinContent(ref,
-                               flo,
-                               mask,
-                               transMat,
-                               bytes);
-
-  if (this->platformCode == NR_PLATFORM_CPU)
-  this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes);
-#ifdef _USE_CUDA
-  else if (this->platformCode == NR_PLATFORM_CUDA)
-  this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes);
-#endif
-#ifdef _USE_OPENCL
-  else if (this->platformCode == NR_PLATFORM_CL)
-  this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes);
-#endif
-  this->BackwardBlockMatchingParams = backCon->AladinContent::GetBlockMatchingParams();
-}
-/* *************************************************************** */
-template <class T>
-void reg_aladin_sym<T>::InitAladinContent(nifti_image *ref,
-                        nifti_image *flo,
-                        int *mask,
-                        mat44 *transMat,
                         size_t bytes,
                         unsigned int blockPercentage,
                         unsigned int inlierLts,

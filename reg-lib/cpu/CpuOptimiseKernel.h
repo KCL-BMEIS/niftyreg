@@ -5,13 +5,12 @@
 #include "nifti1_io.h"
 #include "AladinContent.h"
 
-class CpuOptimiseKernel : public OptimiseKernel {
+class CpuOptimiseKernel: public OptimiseKernel {
 public:
-    CpuOptimiseKernel(AladinContent *con, std::string name);
-
-    _reg_blockMatchingParam *blockMatchingParams;
-    mat44 *transformationMatrix;
-
+    CpuOptimiseKernel(Content *con);
     void Calculate(bool affine);
 
+private:
+    _reg_blockMatchingParam *blockMatchingParams;
+    mat44 *transformationMatrix;
 };

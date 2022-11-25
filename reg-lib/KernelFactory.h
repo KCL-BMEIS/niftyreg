@@ -1,9 +1,10 @@
 #pragma once
 
-#include "AladinContent.h"
+#include "Kernel.h"
+#include "Content.h"
 
 class KernelFactory {
 public:
-    virtual Kernel* ProduceKernel(std::string name, AladinContent* con) const = 0;
+    virtual Kernel* ProduceKernel(std::string name, Content *con) const = 0;
     virtual ~KernelFactory() {}
 };

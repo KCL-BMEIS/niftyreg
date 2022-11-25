@@ -34,7 +34,7 @@ Platform::Platform(int platformCode) {
 #endif
 }
 /* *************************************************************** */
-Kernel* Platform::CreateKernel(const string& name, AladinContent *con) const {
+Kernel* Platform::CreateKernel(const string& name, Content *con) const {
     return this->factory->ProduceKernel(name, con);
 }
 /* *************************************************************** */

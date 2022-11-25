@@ -10,14 +10,14 @@
 
 class Kernel;
 class KernelFactory;
-class AladinContent;
+class Content;
 
 class Platform {
 public:
     Platform(int platformCode);
     virtual ~Platform();
 
-    Kernel* CreateKernel(const std::string& name, AladinContent *con) const;
+    Kernel* CreateKernel(const std::string& name, Content *con) const;
     std::string GetName();
 
     int GetPlatformCode();

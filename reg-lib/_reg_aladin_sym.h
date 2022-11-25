@@ -26,15 +26,10 @@ private:
                                  nifti_image *flo,
                                  int *mask,
                                  mat44 *transMat,
-                                 size_t bytes);
-  virtual void InitAladinContent(nifti_image *ref,
-                                 nifti_image *flo,
-                                 int *mask,
-                                 mat44 *transMat,
                                  size_t bytes,
-                                 unsigned int blockPercentage,
-                                 unsigned int inlierLts,
-                                 unsigned int blockStepSize);
+                                 unsigned int blockPercentage = 0,
+                                 unsigned int inlierLts = 0,
+                                 unsigned int blockStepSize = 0);
   virtual void ClearAladinContent();
   virtual void CreateKernels();
   virtual void ClearKernels();

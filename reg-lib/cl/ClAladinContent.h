@@ -12,36 +12,19 @@
 class ClAladinContent: public AladinContent {
 public:
     //constructors
-    ClAladinContent();
     ClAladinContent(nifti_image *currentReferenceIn,
                     nifti_image *currentFloatingIn,
-                    int *currentReferenceMaskIn,
-                    size_t byte,
-                    const unsigned int blockPercentage,
-                    const unsigned int inlierLts,
-                    int blockStep);
-    ClAladinContent(nifti_image *currentReferenceIn,
-                    nifti_image *currentFloatingIn,
-                    int *currentReferenceMaskIn,
-                    size_t byte);
-    ClAladinContent(nifti_image *currentReferenceIn,
-                    nifti_image *currentFloatingIn,
-                    int *currentReferenceMaskIn,
-                    mat44 *transMat,
-                    size_t byte,
-                    const unsigned int blockPercentage,
-                    const unsigned int inlierLts,
-                    int blockStep);
-    ClAladinContent(nifti_image *currentReferenceIn,
-                    nifti_image *currentFloatingIn,
-                    int *currentReferenceMaskIn,
-                    mat44 *transMat,
-                    size_t byte);
+                    int *currentReferenceMaskIn = nullptr,
+                    mat44 *transformationMatrixIn = nullptr,
+                    size_t bytesIn = sizeof(float),
+                    const unsigned int percentageOfBlocks = 0,
+                    const unsigned int inlierLts = 0,
+                    int blockStepSize = 0);
     ~ClAladinContent();
 
-    bool IsCurrentComputationDoubleCapable();
+    bool IsCurrentComputationDoubleCapable() override;
 
-    //opencl getters
+    // OpenCL getters
     cl_mem GetReferenceImageArrayClmem();
     cl_mem GetFloatingImageArrayClmem();
     cl_mem GetWarpedImageClmem();
@@ -55,18 +38,17 @@ public:
     int* GetReferenceDims();
     int* GetFloatingDims();
 
-    //cpu getters with data downloaded from device
-    _reg_blockMatchingParam* GetBlockMatchingParams();
-    nifti_image* GetCurrentDeformationField();
-    nifti_image* GetCurrentWarped(int typ);
+    // CPU getters with data downloaded from device
+    _reg_blockMatchingParam* GetBlockMatchingParams() override;
+    nifti_image* GetCurrentDeformationField() override;
+    nifti_image* GetCurrentWarped(int typ) override;
 
-    //setters
-    void SetTransformationMatrix(mat44 *transformationMatrixIn);
-    void SetCurrentWarped(nifti_image *warpedImageIn);
-    void SetCurrentDeformationField(nifti_image *currentDeformationFieldIn);
-    void SetCurrentReferenceMask(int *maskIn, size_t size);
-    void SetBlockMatchingParams(_reg_blockMatchingParam* bmp);
-
+    // Setters
+    void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
+    void SetCurrentWarped(nifti_image *warpedImageIn) override;
+    void SetCurrentDeformationField(nifti_image *currentDeformationFieldIn) override;
+    void SetCurrentReferenceMask(int *currentReferenceMaskIn) override;
+    void SetBlockMatchingParams(_reg_blockMatchingParam* bmp) override;
 
 private:
     void InitVars();

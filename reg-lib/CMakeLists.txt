@@ -139,6 +139,8 @@ set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_femTrans")
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
 set(_reg_aladin_files
+  Content.cpp
+  Content.h
   AladinContent.cpp
   AladinContent.h
   Platform.cpp
@@ -196,16 +198,34 @@ set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_aladin")
 #-----------------------------------------------------------------------------
 ## BUILD THE F3D LIBRARY
 set(_reg_f3d_files
-    _reg_base.h
-    _reg_base.cpp
-    _reg_f3d.h
-    _reg_f3d.cpp
-    _reg_f3d2.h
-    _reg_f3d2.cpp
-    _reg_f3d_sym.h
-    _reg_f3d_sym.cpp
+  Content.cpp
+  Content.h
+  Platform.cpp
+  Platform.h
+  Kernel.h
+  _reg_base.h
+  _reg_base.cpp
+  _reg_f3d.h
+  _reg_f3d.cpp
+  _reg_f3d2.h
+  _reg_f3d2.cpp
+  _reg_f3d_sym.h
+  _reg_f3d_sym.cpp
+  cpu/CpuAffineDeformationFieldKernel.h
+  cpu/CpuAffineDeformationFieldKernel.cpp
+  cpu/CpuBlockMatchingKernel.h
+  cpu/CpuBlockMatchingKernel.cpp
+  cpu/CpuConvolutionKernel.h
+  cpu/CpuConvolutionKernel.cpp
+  cpu/CpuOptimiseKernel.h
+  cpu/CpuOptimiseKernel.cpp
+  cpu/CpuResampleImageKernel.h
+  cpu/CpuResampleImageKernel.cpp
+  cpu/CpuKernelFactory.h
+  cpu/CpuKernelFactory.cpp
 )
 set(_reg_f3d_libraries
+  _reg_blockMatching
   _reg_localTrans
   _reg_globalTrans
   _reg_resampling

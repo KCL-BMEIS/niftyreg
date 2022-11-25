@@ -1,14 +1,9 @@
 #include "ClOptimiseKernel.h"
 
 /* *************************************************************** */
-ClOptimiseKernel::ClOptimiseKernel(AladinContent *conIn, std::string name) : OptimiseKernel(name) {
+ClOptimiseKernel::ClOptimiseKernel(Content *conIn) : OptimiseKernel() {
     //populate the CLAladinContent object ptr
-    con = static_cast<ClAladinContent*>(conIn);
-
-    //get opencl context params
-    sContext = &ClContextSingleton::Instance();
-    /*clContext = sContext->GetContext();*/
-    /*commandQueue = sContext->GetCommandQueue();*/
+    ClAladinContent *con = static_cast<ClAladinContent*>(conIn);
 
     //get necessary cpu ptrs
     transformationMatrix = con->AladinContent::GetTransformationMatrix();
@@ -16,10 +11,6 @@ ClOptimiseKernel::ClOptimiseKernel(AladinContent *conIn, std::string name) : Opt
 }
 /* *************************************************************** */
 void ClOptimiseKernel::Calculate(bool affine) {
-    //cpu atm
-    this->blockMatchingParams = con->GetBlockMatchingParams();
-    optimize(this->blockMatchingParams, this->transformationMatrix, affine);
+    optimize(blockMatchingParams, transformationMatrix, affine);
 }
-/* *************************************************************** */
-ClOptimiseKernel::~ClOptimiseKernel() {}
 /* *************************************************************** */

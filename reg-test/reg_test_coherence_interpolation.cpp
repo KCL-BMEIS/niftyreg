@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     AladinContent *con_cpu = new AladinContent(nullptr, referenceImage, nullptr, sizeof(float));
     con_cpu->SetCurrentWarped(cpu_warped);
     con_cpu->SetCurrentDeformationField(inputDeformationField);
-    con_cpu->SetCurrentReferenceMask(tempMask, cpu_warped->nvox);
+    con_cpu->SetCurrentReferenceMask(tempMask);
     Platform *platform_cpu = new Platform(NR_PLATFORM_CPU);
     Kernel *resampleImageKernel_cpu = platform_cpu->CreateKernel(ResampleImageKernel::GetName(), con_cpu);
     resampleImageKernel_cpu->castTo<ResampleImageKernel>()->Calculate(interpolation,
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 #endif
     con_gpu->SetCurrentWarped(gpu_warped);
     con_gpu->SetCurrentDeformationField(inputDeformationField);
-    con_gpu->SetCurrentReferenceMask(tempMask, gpu_warped->nvox);
+    con_gpu->SetCurrentReferenceMask(tempMask);
     Platform *platform_gpu = nullptr;
 #ifdef _USE_CUDA
     if (platformCode == NR_PLATFORM_CUDA)

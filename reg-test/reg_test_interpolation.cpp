@@ -111,33 +111,21 @@ TEST_CASE("Resampling", "[resampling]") {
         float *test_res;
         std::tie(test_name, reference, def_field, test_res) = test_use_case;
 
-        // Accumate all required contents with a vector
+        // Accumulate all required contents with a vector
         std::vector<content_desc> listContent;
         listContent.push_back(content_desc(
-            new AladinContent(
-                reference,
-                reference,
-                nullptr,
-                sizeof(float)),
+            new AladinContent(reference, reference),
             "CPU",
             NR_PLATFORM_CPU));
 #ifdef _USE_CUDA
         listContent.push_back(content_desc(
-            new CudaAladinContent(
-                reference,
-                reference,
-                nullptr,
-                sizeof(float)),
+            new CudaAladinContent(reference, reference),
             "CUDA",
             NR_PLATFORM_CUDA));
 #endif
 #ifdef _USE_OPENCL
         listContent.push_back(content_desc(
-            new ClAladinContent(
-                reference,
-                reference,
-                nullptr,
-                sizeof(float)),
+            new ClAladinContent(reference, reference),
             "OpenCL",
             NR_PLATFORM_CL));
 #endif
@@ -157,7 +145,7 @@ TEST_CASE("Resampling", "[resampling]") {
                 con->SetCurrentDeformationField(def_field);
                 // Set an empty mask to consider all voxels
                 int *tempMask = (int*)calloc(reference->nvox, sizeof(int));
-                con->SetCurrentReferenceMask(tempMask, warped->nvox);
+                con->SetCurrentReferenceMask(tempMask);
                 // Initialise the platform to run current content and retrieve deformation field
                 auto *platform = new Platform(plat_value);
                 Kernel *resampleKernel = platform->CreateKernel(ResampleImageKernel::GetName(), con);

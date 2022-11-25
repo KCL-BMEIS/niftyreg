@@ -3,11 +3,10 @@
 #include "OptimiseKernel.h"
 #include "CudaAladinContent.h"
 
-//kernel functions for numerical optimisation
-class CudaOptimiseKernel: public OptimiseKernel
-{
+// Kernel functions for numerical optimisation
+class CudaOptimiseKernel: public OptimiseKernel {
 public:
-    CudaOptimiseKernel(AladinContent *conIn, std::string name);
+    CudaOptimiseKernel(Content *conIn);
     void Calculate(bool affine);
 
 private:
@@ -21,5 +20,4 @@ private:
 //    float *VT_d; // Removed until CUDA SVD is added back
 //    float *lengths_d; // Removed until CUDA SVD is added back
 //    float *newWarpedPos_d; // Removed until CUDA SVD is added back
-
 };

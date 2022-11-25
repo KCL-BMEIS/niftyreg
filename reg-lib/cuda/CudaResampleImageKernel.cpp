@@ -2,10 +2,8 @@
 #include "resampleKernel.h"
 
 /* *************************************************************** */
-CudaResampleImageKernel::CudaResampleImageKernel(AladinContent *conIn, std::string name) :
-        ResampleImageKernel(name)
-{
-    con = static_cast<CudaAladinContent*>(conIn);
+CudaResampleImageKernel::CudaResampleImageKernel(Content *conIn) : ResampleImageKernel() {
+    CudaAladinContent *con = static_cast<CudaAladinContent*>(conIn);
 
     floatingImage = con->AladinContent::GetCurrentFloating();
     warpedImage = con->AladinContent::GetCurrentWarped();
@@ -31,20 +29,19 @@ CudaResampleImageKernel::CudaResampleImageKernel(AladinContent *conIn, std::stri
 }
 /* *************************************************************** */
 void CudaResampleImageKernel::Calculate(int interp,
-                                                     float paddingValue,
-                                                     bool *dti_timepoint,
-                                                     mat33 * jacMat)
-{
-    launchResample(this->floatingImage,
-                        this->warpedImage,
-                        interp,
-                        paddingValue,
-                        dti_timepoint,
-                        jacMat,
-                        &this->floatingImageArray_d,
-                        &this->warpedImageArray_d,
-                        &this->deformationFieldImageArray_d,
-                        &this->mask_d,
-                        &this->floIJKMat_d);
+                                        float paddingValue,
+                                        bool *dti_timepoint,
+                                        mat33 * jacMat) {
+    launchResample(floatingImage,
+                   warpedImage,
+                   interp,
+                   paddingValue,
+                   dti_timepoint,
+                   jacMat,
+                   &floatingImageArray_d,
+                   &warpedImageArray_d,
+                   &deformationFieldImageArray_d,
+                   &mask_d,
+                   &floIJKMat_d);
 }
 /* *************************************************************** */

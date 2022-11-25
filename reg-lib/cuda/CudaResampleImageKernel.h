@@ -8,11 +8,12 @@
  * */
 class CudaResampleImageKernel: public ResampleImageKernel {
 public:
-    CudaResampleImageKernel(AladinContent *conIn, std::string name);
+    CudaResampleImageKernel(Content *conIn);
     void Calculate(int interp,
-                        float paddingValue,
-                        bool *dti_timepoint = nullptr,
-                        mat33 *jacMat = nullptr);
+                   float paddingValue,
+                   bool *dti_timepoint = nullptr,
+                   mat33 *jacMat = nullptr);
+
 private:
     nifti_image *floatingImage;
     nifti_image *warpedImage;
@@ -23,7 +24,4 @@ private:
     float* warpedImageArray_d;
     float* deformationFieldImageArray_d;
     int *mask_d;
-
-    //CudaContextSingleton *cudaSContext;
-    CudaAladinContent *con;
 };

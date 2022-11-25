@@ -6,11 +6,11 @@
 #include "CudaOptimiseKernel.h"
 #include "AladinContent.h"
 
-Kernel* CudaKernelFactory::ProduceKernel(std::string name, AladinContent *con) const {
-    if (name == AffineDeformationFieldKernel::GetName()) return new CudaAffineDeformationFieldKernel(con, name);
-    else if (name == ConvolutionKernel::GetName()) return new CudaConvolutionKernel(name);
-    else if (name == BlockMatchingKernel::GetName()) return new CudaBlockMatchingKernel(con, name);
-    else if (name == ResampleImageKernel::GetName()) return new CudaResampleImageKernel(con, name);
-    else if (name == OptimiseKernel::GetName()) return new CudaOptimiseKernel(con, name);
+Kernel* CudaKernelFactory::ProduceKernel(std::string name, Content *con) const {
+    if (name == AffineDeformationFieldKernel::GetName()) return new CudaAffineDeformationFieldKernel(con);
+    else if (name == ConvolutionKernel::GetName()) return new CudaConvolutionKernel();
+    else if (name == BlockMatchingKernel::GetName()) return new CudaBlockMatchingKernel(con);
+    else if (name == ResampleImageKernel::GetName()) return new CudaResampleImageKernel(con);
+    else if (name == OptimiseKernel::GetName()) return new CudaOptimiseKernel(con);
     else return nullptr;
 }

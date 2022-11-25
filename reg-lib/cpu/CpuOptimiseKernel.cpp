@@ -1,10 +1,13 @@
 #include "CpuOptimiseKernel.h"
 
-CpuOptimiseKernel::CpuOptimiseKernel(AladinContent *con, std::string name) : OptimiseKernel(name) {
+/* *************************************************************** */
+CpuOptimiseKernel::CpuOptimiseKernel(Content *conIn) : OptimiseKernel() {
+    AladinContent *con = static_cast<AladinContent*>(conIn);
     transformationMatrix = con->GetTransformationMatrix();
     blockMatchingParams = con->GetBlockMatchingParams();
 }
-
+/* *************************************************************** */
 void CpuOptimiseKernel::Calculate(bool affine) {
-    optimize(this->blockMatchingParams, this->transformationMatrix, affine);
+    optimize(blockMatchingParams, transformationMatrix, affine);
 }
+/* *************************************************************** */
