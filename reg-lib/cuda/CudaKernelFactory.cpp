@@ -6,7 +6,7 @@
 #include "CudaOptimiseKernel.h"
 #include "AladinContent.h"
 
-Kernel* CudaKernelFactory::ProduceKernel(std::string name, Content *con) const {
+Kernel* CudaKernelFactory::Produce(std::string name, Content *con) const {
     if (name == AffineDeformationFieldKernel::GetName()) return new CudaAffineDeformationFieldKernel(con);
     else if (name == ConvolutionKernel::GetName()) return new CudaConvolutionKernel();
     else if (name == BlockMatchingKernel::GetName()) return new CudaBlockMatchingKernel(con);

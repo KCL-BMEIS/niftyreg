@@ -4,5 +4,5 @@
 
 class ClKernelFactory: public KernelFactory {
 public:
-   Kernel* ProduceKernel(std::string name, Content *con) const;
+   Kernel* Produce(std::string name, Content *con) const;
 };

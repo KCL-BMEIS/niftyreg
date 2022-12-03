@@ -39,31 +39,31 @@ Kernel* Platform::CreateKernel(const string& name, Content *con) const {
 }
 /* *************************************************************** */
 std::string Platform::GetName() {
-    return this->platformName;
+    return platformName;
 }
 /* *************************************************************** */
 unsigned Platform::GetGpuIdx() {
-    return this->gpuIdx;
+    return gpuIdx;
 }
 /* *************************************************************** */
 void Platform::SetGpuIdx(unsigned gpuIdxIn) {
-    if (this->platformCode == NR_PLATFORM_CPU) {
-        this->gpuIdx = 999;
+    if (platformCode == NR_PLATFORM_CPU) {
+        gpuIdx = 999;
     }
 #ifdef _USE_CUDA
-    else if (this->platformCode == NR_PLATFORM_CUDA) {
+    else if (platformCode == NR_PLATFORM_CUDA) {
         CudaContextSingleton *cudaContext = &CudaContextSingleton::Instance();
         if (gpuIdxIn != 999) {
-            this->gpuIdx = gpuIdxIn;
+            gpuIdx = gpuIdxIn;
             cudaContext->SetCudaIdx(gpuIdxIn);
         }
     }
 #endif
 #ifdef _USE_OPENCL
-    else if (this->platformCode == NR_PLATFORM_CL) {
+    else if (platformCode == NR_PLATFORM_CL) {
         ClContextSingleton *sContext = &ClContextSingleton::Instance();
         if (gpuIdxIn != 999) {
-            this->gpuIdx = gpuIdxIn;
+            gpuIdx = gpuIdxIn;
             sContext->SetClIdx(gpuIdxIn);
         }
 
@@ -81,7 +81,7 @@ void Platform::SetGpuIdx(unsigned gpuIdxIn) {
 }
 /* *************************************************************** */
 int Platform::GetPlatformCode() {
-    return this->platformCode;
+    return platformCode;
 }
 /* *************************************************************** */
 //void Platform::SetPlatformCode(const int platformCodeIn) {

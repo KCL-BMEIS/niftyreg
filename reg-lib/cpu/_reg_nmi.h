@@ -78,7 +78,7 @@ protected:
    double **backwardJointHistogramLog;
    double **backwardEntropyValues;
 
-   void ClearHistogram();
+   void DeallocateHistogram();
 };
 /* *************************************************************** */
 /* *************************************************************** */
@@ -102,7 +102,7 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                                     unsigned short *floatingBinNumber,
                                     double **jointHistogramLog,
                                     double **entropyValues,
-                                    nifti_image *warImgGradient,
+                                    nifti_image *warpedGradient,
                                     nifti_image *nmiGradientImage,
                                     int *referenceMask,
                                     int current_timepoint,
@@ -116,7 +116,7 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                                     unsigned short *floatingBinNumber,
                                     double **jointHistogramLog,
                                     double **entropyValues,
-                                    nifti_image *warImgGradient,
+                                    nifti_image *warpedGradient,
                                     nifti_image *nmiGradientImage,
                                     int *referenceMask,
                                     int current_timepoint,

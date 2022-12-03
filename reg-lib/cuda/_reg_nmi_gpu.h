@@ -48,7 +48,7 @@ public:
 protected:
    float *forwardJointHistogramLog_device;
 //	float **backwardJointHistogramLog_device;
-   void ClearHistogram();
+   void DeallocateHistogram();
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -92,12 +92,12 @@ public:
 
 extern "C++"
 void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
-                                      cudaArray **referenceImageArray_d,
-                                      float **warpedImageArray_d,
-                                      float4 **resultGradientArray_d,
-                                      float **logJointHistogram_d,
-                                      float4 **voxelNMIGradientArray_d,
-                                      int **targetMask_d,
+                                      cudaArray *referenceImageArray_d,
+                                      float *warpedImageArray_d,
+                                      float4 *resultGradientArray_d,
+                                      float *logJointHistogram_d,
+                                      float4 *voxelNMIGradientArray_d,
+                                      int *targetMask_d,
                                       int activeVoxelNumber,
                                       double *entropies,
                                       int refBinning,

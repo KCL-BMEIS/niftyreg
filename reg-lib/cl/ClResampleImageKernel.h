@@ -18,9 +18,9 @@ private:
     cl_kernel kernel;
     cl_context clContext;
     cl_program program;
-    cl_mem clCurrentFloating;
-    cl_mem clCurrentDeformationField;
-    cl_mem clCurrentWarped;
+    cl_mem clFloating;
+    cl_mem clDeformationField;
+    cl_mem clWarped;
     cl_mem clMask;
     cl_mem floMat;
 };

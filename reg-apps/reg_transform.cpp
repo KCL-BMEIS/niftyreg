@@ -669,7 +669,7 @@ int main(int argc, char **argv)
             }
          }
          // Read the second reference image if specified
-         if(flag->referenceImage2Flag==true)
+         if(flag->referenceImage2Flag)
          {
             referenceImage2=reg_io_ReadImageHeader(param->referenceImage2Name);
             if(referenceImage2==nullptr)
@@ -1244,7 +1244,7 @@ int main(int argc, char **argv)
          // Save the image
          reg_io_WriteImageFile(inputTransImage,param->outputTransName);
       }
-      // Clear the allocated arrays
+      // Deallocate the allocated arrays
       if(affineTrans!=nullptr) free(affineTrans);
    }
    /* ******************************************** */

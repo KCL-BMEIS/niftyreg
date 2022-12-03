@@ -408,7 +408,7 @@ void reg_aladin<T>::InitialiseRegistration() {
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::ClearCurrentInputImage() {
+void reg_aladin<T>::DeallocateCurrentInputImage() {
     nifti_image_free(this->referencePyramid[this->currentLevel]);
     this->referencePyramid[this->currentLevel] = nullptr;
 
@@ -433,7 +433,7 @@ void reg_aladin<T>::CreateKernels() {
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::ClearKernels() {
+void reg_aladin<T>::DeallocateKernels() {
     delete this->affineTransformation3DKernel;
     delete this->resamplingKernel;
     if (this->blockMatchingKernel != nullptr)
@@ -486,7 +486,7 @@ void reg_aladin<T>::InitAladinContent(nifti_image *ref,
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::ClearAladinContent() {
+void reg_aladin<T>::DeinitAladinContent() {
     delete this->con;
 }
 /* *************************************************************** */
@@ -532,14 +532,14 @@ void reg_aladin<T>::Run() {
 #endif
 
 #ifndef NDEBUG
-        if (this->con->GetCurrentReference()->sform_code > 0)
-            reg_mat44_disp(&this->con->GetCurrentReference()->sto_xyz, (char *)"[NiftyReg DEBUG] Reference image matrix (sform sto_xyz)");
+        if (this->con->GetReference()->sform_code > 0)
+            reg_mat44_disp(&this->con->GetReference()->sto_xyz, (char *)"[NiftyReg DEBUG] Reference image matrix (sform sto_xyz)");
         else
-            reg_mat44_disp(&this->con->GetCurrentReference()->qto_xyz, (char *)"[NiftyReg DEBUG] Reference image matrix (qform qto_xyz)");
-        if (this->con->GetCurrentFloating()->sform_code > 0)
-            reg_mat44_disp(&this->con->GetCurrentFloating()->sto_xyz, (char *)"[NiftyReg DEBUG] Floating image matrix (sform sto_xyz)");
+            reg_mat44_disp(&this->con->GetReference()->qto_xyz, (char *)"[NiftyReg DEBUG] Reference image matrix (qform qto_xyz)");
+        if (this->con->GetFloating()->sform_code > 0)
+            reg_mat44_disp(&this->con->GetFloating()->sto_xyz, (char *)"[NiftyReg DEBUG] Floating image matrix (sform sto_xyz)");
         else
-            reg_mat44_disp(&this->con->GetCurrentFloating()->qto_xyz, (char *)"[NiftyReg DEBUG] Floating image matrix (qform qto_xyz)");
+            reg_mat44_disp(&this->con->GetFloating()->qto_xyz, (char *)"[NiftyReg DEBUG] Floating image matrix (qform qto_xyz)");
 #endif
 
         /* ****************** */
@@ -557,9 +557,9 @@ void reg_aladin<T>::Run() {
             ResolveMatrix(maxNumberOfIterationToPerform, AFFINE);
 
         // SOME CLEANING IS PERFORMED
-        this->ClearKernels();
-        this->ClearAladinContent();
-        this->ClearCurrentInputImage();
+        this->DeallocateKernels();
+        this->DeinitAladinContent();
+        this->DeallocateCurrentInputImage();
 
 #ifdef NDEBUG
         if (this->verbose) {
@@ -599,19 +599,19 @@ nifti_image* reg_aladin<T>::GetFinalWarpedImage() {
     reg_aladin<T>::CreateKernels();
 
     reg_aladin<T>::GetWarpedImage(3, this->warpedPaddingValue); // cubic spline interpolation
-    nifti_image *currentWarped = this->con->GetCurrentWarped(floatingType);
+    nifti_image *warped = this->con->GetWarped(floatingType);
 
     free(mask);
-    nifti_image *resultImage = nifti_copy_nim_info(currentWarped);
+    nifti_image *resultImage = nifti_copy_nim_info(warped);
     resultImage->cal_min = this->inputFloating->cal_min;
     resultImage->cal_max = this->inputFloating->cal_max;
     resultImage->scl_slope = this->inputFloating->scl_slope;
     resultImage->scl_inter = this->inputFloating->scl_inter;
     resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
-    memcpy(resultImage->data, currentWarped->data, resultImage->nvox * resultImage->nbyper);
+    memcpy(resultImage->data, warped->data, resultImage->nvox * resultImage->nbyper);
 
-    reg_aladin<T>::ClearKernels();
-    reg_aladin<T>::ClearAladinContent();
+    reg_aladin<T>::DeallocateKernels();
+    reg_aladin<T>::DeinitAladinContent();
     return resultImage;
 }
 /* *************************************************************** */
@@ -622,22 +622,22 @@ void reg_aladin<T>::DebugPrintLevelInfoStart() {
     sprintf(text, "Current level %i / %i", this->currentLevel + 1, this->numberOfLevels);
     reg_print_info(this->executableName, text);
     sprintf(text, "reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-            this->con->GetCurrentReference()->nx,
-            this->con->GetCurrentReference()->ny,
-            this->con->GetCurrentReference()->nz,
-            this->con->GetCurrentReference()->dx,
-            this->con->GetCurrentReference()->dy,
-            this->con->GetCurrentReference()->dz);
+            this->con->GetReference()->nx,
+            this->con->GetReference()->ny,
+            this->con->GetReference()->nz,
+            this->con->GetReference()->dx,
+            this->con->GetReference()->dy,
+            this->con->GetReference()->dz);
     reg_print_info(this->executableName, text);
     sprintf(text, "floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-            this->con->GetCurrentFloating()->nx,
-            this->con->GetCurrentFloating()->ny,
-            this->con->GetCurrentFloating()->nz,
-            this->con->GetCurrentFloating()->dx,
-            this->con->GetCurrentFloating()->dy,
-            this->con->GetCurrentFloating()->dz);
+            this->con->GetFloating()->nx,
+            this->con->GetFloating()->ny,
+            this->con->GetFloating()->nz,
+            this->con->GetFloating()->dx,
+            this->con->GetFloating()->dy,
+            this->con->GetFloating()->dz);
     reg_print_info(this->executableName, text);
-    if (this->con->GetCurrentReference()->nz == 1) {
+    if (this->con->GetReference()->nz == 1) {
         reg_print_info(this->executableName, "Block size = [4 4 1]");
     } else reg_print_info(this->executableName, "Block size = [4 4 4]");
     reg_print_info(this->executableName, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");

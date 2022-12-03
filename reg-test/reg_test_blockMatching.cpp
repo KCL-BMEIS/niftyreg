@@ -154,8 +154,8 @@ int main(int argc, char **argv)
       reg_print_msg_error("The platform code is not suppoted");
       return EXIT_FAILURE;
    }
-   con->SetCurrentWarped(warpedImage);
-   //con->SetCurrentWarped(referenceImage);
+   con->SetWarped(warpedImage);
+   //con->SetWarped(referenceImage);
    test(con, platformCode);
    blockMatchingParams = con->GetBlockMatchingParams();
 

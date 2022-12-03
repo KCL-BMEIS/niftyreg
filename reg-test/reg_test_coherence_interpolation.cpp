@@ -77,16 +77,16 @@ int main(int argc, char **argv)
 
     // CPU platform
     AladinContent *con_cpu = new AladinContent(nullptr, referenceImage, nullptr, sizeof(float));
-    con_cpu->SetCurrentWarped(cpu_warped);
-    con_cpu->SetCurrentDeformationField(inputDeformationField);
-    con_cpu->SetCurrentReferenceMask(tempMask);
+    con_cpu->SetWarped(cpu_warped);
+    con_cpu->SetDeformationField(inputDeformationField);
+    con_cpu->SetReferenceMask(tempMask);
     Platform *platform_cpu = new Platform(NR_PLATFORM_CPU);
     Kernel *resampleImageKernel_cpu = platform_cpu->CreateKernel(ResampleImageKernel::GetName(), con_cpu);
     resampleImageKernel_cpu->castTo<ResampleImageKernel>()->Calculate(interpolation,
                                                                       std::numeric_limits<float>::quiet_NaN());
     delete resampleImageKernel_cpu;
     delete platform_cpu;
-    cpu_warped = con_cpu->GetCurrentWarped(referenceImage->datatype);
+    cpu_warped = con_cpu->GetWarped(referenceImage->datatype);
 
     // GPU platform
     AladinContent *con_gpu = nullptr;
@@ -100,9 +100,9 @@ int main(int argc, char **argv)
         con_gpu = new ClAladinContent(nullptr, referenceImage, nullptr, sizeof(float));
     }
 #endif
-    con_gpu->SetCurrentWarped(gpu_warped);
-    con_gpu->SetCurrentDeformationField(inputDeformationField);
-    con_gpu->SetCurrentReferenceMask(tempMask);
+    con_gpu->SetWarped(gpu_warped);
+    con_gpu->SetDeformationField(inputDeformationField);
+    con_gpu->SetReferenceMask(tempMask);
     Platform *platform_gpu = nullptr;
 #ifdef _USE_CUDA
     if (platformCode == NR_PLATFORM_CUDA)
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
                                                                       std::numeric_limits<float>::quiet_NaN());
     delete resampleImageKernel_gpu;
     delete platform_gpu;
-    gpu_warped = con_gpu->GetCurrentWarped(referenceImage->datatype);
+    gpu_warped = con_gpu->GetWarped(referenceImage->datatype);
 
     //Check if the platform used is double capable
     double proper_eps = EPS;

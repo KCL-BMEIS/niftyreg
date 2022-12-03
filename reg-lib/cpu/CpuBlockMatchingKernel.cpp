@@ -3,10 +3,10 @@
 /* *************************************************************** */
 CpuBlockMatchingKernel::CpuBlockMatchingKernel(Content *conIn) : BlockMatchingKernel() {
     AladinContent *con = static_cast<AladinContent*>(conIn);
-    reference = con->GetCurrentReference();
-    warped = con->GetCurrentWarped();
+    reference = con->GetReference();
+    warped = con->GetWarped();
     params = con->GetBlockMatchingParams();
-    mask = con->GetCurrentReferenceMask();
+    mask = con->GetReferenceMask();
 }
 /* *************************************************************** */
 void CpuBlockMatchingKernel::Calculate() {

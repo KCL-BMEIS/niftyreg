@@ -6,7 +6,7 @@ CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Content *conI
    CudaAladinContent *con = static_cast<CudaAladinContent*>(conIn);
 
    //get necessary cpu ptrs
-   this->deformationFieldImage = con->AladinContent::GetCurrentDeformationField();
+   this->deformationFieldImage = con->AladinContent::GetDeformationField();
    this->affineTransformation = con->AladinContent::GetTransformationMatrix();
 
    //get necessary cuda ptrs

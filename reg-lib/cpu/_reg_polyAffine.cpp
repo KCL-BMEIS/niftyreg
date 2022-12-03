@@ -128,7 +128,7 @@ void reg_polyAffine<T>::AllocateTransformationGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_polyAffine<T>::ClearTransformationGradient()
+void reg_polyAffine<T>::DeallocateTransformationGradient()
 {
 
 }

@@ -155,7 +155,7 @@ int main(int argc, char **argv)
    _reg_blockMatchingParam* blockMatchingParams_cpu = nullptr;
    AladinContent *con_cpu = nullptr;
    con_cpu = new AladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
-   con_cpu->SetCurrentWarped(warpedImage);
+   con_cpu->SetWarped(warpedImage);
    test(con_cpu, NR_PLATFORM_CPU);
    blockMatchingParams_cpu = con_cpu->GetBlockMatchingParams();
 
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
       con_gpu = new ClAladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    }
 #endif
-   con_gpu->SetCurrentWarped(warpedImage);
+   con_gpu->SetWarped(warpedImage);
    test(con_gpu, platformCode);
    blockMatchingParams_gpu = con_gpu->GetBlockMatchingParams();
 

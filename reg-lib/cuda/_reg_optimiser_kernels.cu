@@ -6,7 +6,7 @@ texture<float4, 1, cudaReadModeElementType> conjugateGTexture;
 texture<float4, 1, cudaReadModeElementType> conjugateHTexture;
 texture<float4, 1, cudaReadModeElementType> controlPointTexture;
 
-__global__ void reg_initialiseConjugateGradient_kernel(	float4 *conjugateG_d)
+__global__ void reg_initialiseConjugateGradient_kernel(float4 *conjugateG_d)
 {
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid < c_NodeNumber){
@@ -31,9 +31,9 @@ __global__ void reg_GetConjugateGradient1_kernel(float2 *sum)
     }
 }
 
-__global__ void reg_GetConjugateGradient2_kernel(	float4 *nodeNMIGradientArray_d,
-                                                        float4 *conjugateG_d,
-                                                        float4 *conjugateH_d)
+__global__ void reg_GetConjugateGradient2_kernel(float4 *nodeNMIGradientArray_d,
+                                                 float4 *conjugateG_d,
+                                                 float4 *conjugateH_d)
 {
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid < c_NodeNumber){

@@ -137,7 +137,7 @@ void reg_optimiser<T>::Perturbation(float length)
    {
       this->currentDOF[i]=this->bestDOF[i] + length * (float)(rand() - RAND_MAX/2) / ((float)RAND_MAX/2.0f);
    }
-   if(this->backward==true)
+   if(this->backward)
    {
       for(size_t i=0; i<this->dofNumber_b; ++i)
       {
@@ -337,7 +337,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
    T *array1Ptr_b = this->array1_b;
    T *array2Ptr_b = this->array2_b;
 
-   if(this->firstcall==true)
+   if(this->firstcall)
    {
 #ifndef NDEBUG
       reg_print_msg_debug("Conjugate gradient initialisation");

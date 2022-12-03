@@ -31,7 +31,7 @@ protected:
    void PrintCurrentObjFunctionValue(T);
    void PrintInitialObjFunctionValue();
    void AllocateTransformationGradient();
-   void ClearTransformationGradient();
+   void DeallocateTransformationGradient();
 
 public:
    reg_polyAffine(int refTimePoint,int floTimePoint);

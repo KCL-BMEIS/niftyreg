@@ -30,20 +30,20 @@ reg_nmi_gpu::reg_nmi_gpu():
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 reg_nmi_gpu::~reg_nmi_gpu()
 {
-	this->ClearHistogram();
+	this->DeallocateHistogram();
 #ifndef NDEBUG
 		printf("[NiftyReg DEBUG] reg_nmi_gpu destructor called\n");
 #endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_nmi_gpu::ClearHistogram()
+void reg_nmi_gpu::DeallocateHistogram()
 {
 	if(this->forwardJointHistogramLog_device!=nullptr){
 		cudaFree(this->forwardJointHistogramLog_device);
 	}
 	this->forwardJointHistogramLog_device=nullptr;
 #ifndef NDEBUG
-		printf("[NiftyReg DEBUG] reg_nmi_gpu::ClearHistogram() called\n");
+		printf("[NiftyReg DEBUG] reg_nmi_gpu::DeallocateHistogram() called\n");
 #endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -62,7 +62,7 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImgPtr,
                                     float4 **warFloGradDevicePtr,
                                     float4 **forVoxBasedGraDevicePtr)
 {
-	this->ClearHistogram();
+	this->DeallocateHistogram();
     reg_nmi::InitialiseMeasure(refImgPtr,
                                floImgPtr,
                                maskRefPtr,
@@ -157,18 +157,18 @@ double reg_nmi_gpu::GetSimilarityMeasureValue()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /// Called when we only have one target and one source image
 void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
-									  cudaArray **referenceImageArray_d,
-									  float **warpedImageArray_d,
-									  float4 **warpedGradientArray_d,
-									  float **logJointHistogram_d,
-									  float4 **voxelNMIGradientArray_d,
-									  int **mask_d,
+									  cudaArray *referenceImageArray_d,
+									  float *warpedImageArray_d,
+									  float4 *warpedGradientArray_d,
+									  float *logJointHistogram_d,
+									  float4 *voxelNMIGradientArray_d,
+									  int *mask_d,
 									  int activeVoxelNumber,
 									  double *entropies,
 									  int refBinning,
 									  int floBinning)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	const int voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
@@ -186,7 +186,7 @@ void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NMI,&NMI,sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
 
-    // Texture bindingcurrentFloating
+    // Texture binding floating
     //Bind target image array to a 3D texture
 	firstreferenceImageTexture.normalized = true;
 	firstreferenceImageTexture.filterMode = cudaFilterModeLinear;
@@ -194,19 +194,19 @@ void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
 	firstreferenceImageTexture.addressMode[1] = cudaAddressModeWrap;
 	firstreferenceImageTexture.addressMode[2] = cudaAddressModeWrap;
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
-	NR_CUDA_SAFE_CALL(cudaBindTextureToArray(firstreferenceImageTexture, *referenceImageArray_d, channelDesc))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstwarpedImageTexture, *warpedImageArray_d, voxelNumber*sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstwarpedImageGradientTexture, *warpedGradientArray_d, voxelNumber*sizeof(float4)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaMemset(*voxelNMIGradientArray_d, 0, voxelNumber*sizeof(float4)));
+	NR_CUDA_SAFE_CALL(cudaBindTextureToArray(firstreferenceImageTexture, referenceImageArray_d, channelDesc))
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstwarpedImageTexture, warpedImageArray_d, voxelNumber*sizeof(float)));
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstwarpedImageGradientTexture, warpedGradientArray_d, voxelNumber*sizeof(float4)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, logJointHistogram_d, binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, mask_d, activeVoxelNumber*sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemset(voxelNMIGradientArray_d, 0, voxelNumber*sizeof(float4)));
 
 	if(referenceImage->nz>1){
 		const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW3D =
             (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW3D));
         dim3 B1(NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW3D,1,1);
 		dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW3D,Grid_reg_getVoxelBasedNMIGradientUsingPW3D,1);
-		reg_getVoxelBasedNMIGradientUsingPW3D_kernel <<< G1, B1 >>> (*voxelNMIGradientArray_d);
+		reg_getVoxelBasedNMIGradientUsingPW3D_kernel <<< G1, B1 >>> (voxelNMIGradientArray_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1)
 	}
 	else{
@@ -214,7 +214,7 @@ void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
             (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW2D));
         dim3 B1(NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW2D,1,1);
 		dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW2D,Grid_reg_getVoxelBasedNMIGradientUsingPW2D,1);
-		reg_getVoxelBasedNMIGradientUsingPW2D_kernel <<< G1, B1 >>> (*voxelNMIGradientArray_d);
+		reg_getVoxelBasedNMIGradientUsingPW2D_kernel <<< G1, B1 >>> (voxelNMIGradientArray_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1)
 	}
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstreferenceImageTexture));
@@ -239,12 +239,12 @@ void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient()
 
     // THe gradient of the NMI is computed on the GPU
     reg_getVoxelBasedNMIGradient_gpu(this->referenceImagePointer,
-									 &this->referenceDevicePointer,
-									 &this->warpedFloatingDevicePointer,
-									 &this->warpedFloatingGradientDevicePointer,
-									 &this->forwardJointHistogramLog_device,
-									 &this->forwardVoxelBasedGradientDevicePointer,
-									 &this->referenceMaskDevicePointer,
+									 this->referenceDevicePointer,
+									 this->warpedFloatingDevicePointer,
+									 this->warpedFloatingGradientDevicePointer,
+									 this->forwardJointHistogramLog_device,
+									 this->forwardVoxelBasedGradientDevicePointer,
+									 this->referenceMaskDevicePointer,
                                      this->activeVoxeNumber,
 									 this->forwardEntropyValues[0],
 									 this->referenceBinNumber[0],

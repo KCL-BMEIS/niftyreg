@@ -109,7 +109,7 @@ protected:
     bool TestMatrixConvergence(mat44 *mat);
 
     virtual void InitialiseRegistration();
-    virtual void ClearCurrentInputImage();
+    virtual void DeallocateCurrentInputImage();
 
     virtual void GetDeformationField();
     virtual void GetWarpedImage(int, float padding);
@@ -127,9 +127,9 @@ protected:
                                    unsigned int blockPercentage = 0,
                                    unsigned int inlierLts = 0,
                                    unsigned int blockStepSize = 0);
-    virtual void ClearAladinContent();
+    virtual void DeinitAladinContent();
     virtual void CreateKernels();
-    virtual void ClearKernels();
+    virtual void DeallocateKernels();
 
 public:
     reg_aladin();

@@ -17,9 +17,9 @@
 /* *************************************************************** */
 void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 					nifti_image *targetImage,
-					float4 **array_d)
+					float4 *array_d)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     int3 imageSize = make_int3(targetImage->nx,targetImage->ny,targetImage->nz);
@@ -55,7 +55,7 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
     dim3 B1(NR_BLOCK->Block_reg_affine_deformationField,1,1);
         dim3 G1(Grid_reg_affine_deformationField,Grid_reg_affine_deformationField,1);
 
-    reg_affine_deformationField_kernel <<< G1, B1 >>> (*array_d);
+    reg_affine_deformationField_kernel <<< G1, B1 >>> (array_d);
         NR_CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #ifndef NDEBUG
     printf("[NiftyReg CUDA DEBUG] reg_affine_deformationField_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",

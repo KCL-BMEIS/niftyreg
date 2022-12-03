@@ -1731,7 +1731,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
                mask);
       }
    }
-   if(MrPropre==true)
+   if(MrPropre)
    {
       free(mask);
       mask=nullptr;
@@ -2851,7 +2851,7 @@ void reg_defField_compose(nifti_image *deformationField,
       }
    }
 
-   if(freeMask==true) free(mask);
+   if(freeMask) free(mask);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -4164,7 +4164,7 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                                     updateStepNumber);
       // Update the number of step required. No action otherwise
       velocityFieldGrid->intent_p2=flowField->intent_p2;
-      // Clear the allocated flow field
+      // Deallocate the allocated flow field
       nifti_image_free(flowField);
    }
    else
@@ -4230,7 +4230,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
                                       deformationFieldImage[0],
                                       scalingValue); // (/scalingValue)
 
-      // Clear the allocated flow field
+      // Deallocate the allocated flow field
       nifti_image_free(flowFieldImage);
       flowFieldImage=nullptr;
 

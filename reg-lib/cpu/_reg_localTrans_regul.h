@@ -145,7 +145,7 @@ void reg_spline_getLandmarkDistanceGradient(nifti_image *controlPointImage,
 /** @brief Compute and return a pairwise energy.
  * @param controlPointGridImage Image that contains the transformation
  * parametrisation
- * @return The normalised pariwise energy. Normalised by the number of voxel
+ * @return The normalised pairwise energy. Normalised by the number of voxel
  */
 extern "C++"
 void reg_spline_approxLinearPairwiseGradient(nifti_image *controlPointGridImage,

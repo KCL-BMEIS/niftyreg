@@ -30,9 +30,9 @@ private:
                                  unsigned int blockPercentage = 0,
                                  unsigned int inlierLts = 0,
                                  unsigned int blockStepSize = 0);
-  virtual void ClearAladinContent();
+  virtual void DeinitAladinContent();
   virtual void CreateKernels();
-  virtual void ClearKernels();
+  virtual void DeallocateKernels();
 
 protected:
   nifti_image *InputFloatingMask;
@@ -43,7 +43,7 @@ protected:
 
   mat44 *BackwardTransformationMatrix;
 
-  virtual void ClearCurrentInputImage();
+  virtual void DeallocateCurrentInputImage();
   virtual void GetBackwardDeformationField();
   virtual void UpdateTransformationMatrix(int);
 

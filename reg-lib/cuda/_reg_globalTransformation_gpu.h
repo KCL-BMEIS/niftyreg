@@ -18,4 +18,4 @@
 extern "C++"
 void reg_affine_positionField_gpu(mat44 *,
                                   nifti_image *,
-                                  float4 **);
+                                  float4 *);

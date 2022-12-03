@@ -682,7 +682,7 @@ void get_GridValues(int startX,
                     bool displacement)
 {
    int range=4;
-   if(approx==true)
+   if(approx)
       range=3;
 
    size_t index;

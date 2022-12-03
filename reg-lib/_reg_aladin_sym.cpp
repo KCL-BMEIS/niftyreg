@@ -289,9 +289,9 @@ void reg_aladin_sym<T>::InitAladinContent(nifti_image *ref,
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::ClearCurrentInputImage()
+void reg_aladin_sym<T>::DeallocateCurrentInputImage()
 {
-   reg_aladin<T>::ClearCurrentInputImage();
+   reg_aladin<T>::DeallocateCurrentInputImage();
    if(this->FloatingMaskPyramid[this->currentLevel]!=nullptr)
       free(this->FloatingMaskPyramid[this->currentLevel]);
    this->FloatingMaskPyramid[this->currentLevel]=nullptr;
@@ -308,16 +308,16 @@ void reg_aladin_sym<T>::CreateKernels()
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::ClearAladinContent()
+void reg_aladin_sym<T>::DeinitAladinContent()
 {
-  reg_aladin<T>::ClearAladinContent();
+  reg_aladin<T>::DeinitAladinContent();
   delete this->backCon;
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::ClearKernels()
+void reg_aladin_sym<T>::DeallocateKernels()
 {
-  reg_aladin<T>::ClearKernels();
+  reg_aladin<T>::DeallocateKernels();
   delete this->bResamplingKernel;
   delete this->bAffineTransformation3DKernel;
   delete this->bBlockMatchingKernel;
@@ -331,22 +331,22 @@ void reg_aladin_sym<T>::DebugPrintLevelInfoStart()
    sprintf(text, "Current level %i / %i", this->currentLevel+1, this->numberOfLevels);
    reg_print_info(this->executableName,text);
    sprintf(text, "reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-           this->con->GetCurrentReference()->nx,
-           this->con->GetCurrentReference()->ny,
-           this->con->GetCurrentReference()->nz,
-           this->con->GetCurrentReference()->dx,
-           this->con->GetCurrentReference()->dy,
-           this->con->GetCurrentReference()->dz);
+           this->con->GetReference()->nx,
+           this->con->GetReference()->ny,
+           this->con->GetReference()->nz,
+           this->con->GetReference()->dx,
+           this->con->GetReference()->dy,
+           this->con->GetReference()->dz);
    reg_print_info(this->executableName,text);
    sprintf(text, "floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-           this->con->GetCurrentFloating()->nx,
-           this->con->GetCurrentFloating()->ny,
-           this->con->GetCurrentFloating()->nz,
-           this->con->GetCurrentFloating()->dx,
-           this->con->GetCurrentFloating()->dy,
-           this->con->GetCurrentFloating()->dz);
+           this->con->GetFloating()->nx,
+           this->con->GetFloating()->ny,
+           this->con->GetFloating()->nz,
+           this->con->GetFloating()->dx,
+           this->con->GetFloating()->dy,
+           this->con->GetFloating()->dz);
    reg_print_info(this->executableName,text);
-   if(this->con->GetCurrentReference()->nz==1){
+   if(this->con->GetReference()->nz==1){
       reg_print_info(this->executableName, "Block size = [4 4 1]");
    }
    else reg_print_info(this->executableName, "Block size = [4 4 4]");

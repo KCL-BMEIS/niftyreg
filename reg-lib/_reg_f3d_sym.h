@@ -24,7 +24,7 @@ protected:
 
    nifti_image *floatingMaskImage;
    int **floatingMaskPyramid;
-   int *currentFloatingMask;
+   int *floatingMask;
    int *backwardActiveVoxelNumber;
 
    nifti_image *backwardControlPointGrid;
@@ -45,17 +45,17 @@ protected:
    double bestIC;
 
    virtual void AllocateWarped();
-   virtual void ClearWarped();
+   virtual void DeallocateWarped();
    virtual void AllocateDeformationField();
-   virtual void ClearDeformationField();
+   virtual void DeallocateDeformationField();
    virtual void AllocateWarpedGradient();
-   virtual void ClearWarpedGradient();
+   virtual void DeallocateWarpedGradient();
    virtual void AllocateVoxelBasedMeasureGradient();
-   virtual void ClearVoxelBasedMeasureGradient();
+   virtual void DeallocateVoxelBasedMeasureGradient();
    virtual void AllocateTransformationGradient();
-   virtual void ClearTransformationGradient();
+   virtual void DeallocateTransformationGradient();
    virtual T InitialiseCurrentLevel();
-   virtual void ClearCurrentInputImage();
+   virtual void DeallocateCurrentInputImage();
 
    virtual double ComputeBendingEnergyPenaltyTerm();
    virtual double ComputeLinearEnergyPenaltyTerm();

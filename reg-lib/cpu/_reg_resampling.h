@@ -55,14 +55,14 @@ void reg_resampleImage_PSF(nifti_image *floatingImage,
 
 extern "C++"
 void reg_resampleGradient(nifti_image *gradientImage,
-                          nifti_image *warImgGradient,
+                          nifti_image *warpedGradient,
                           nifti_image *deformationField,
                           int interp,
                           float paddingValue);
 
 extern "C++"
 void reg_getImageGradient(nifti_image *floatingImage,
-                          nifti_image *warImgGradient,
+                          nifti_image *warpedGradient,
                           nifti_image *deformationField,
                           int *mask,
                           int interp,

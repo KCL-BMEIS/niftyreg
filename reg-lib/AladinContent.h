@@ -11,9 +11,9 @@
 
 class AladinContent: public Content {
 public:
-    AladinContent(nifti_image *currentReferenceIn,
-                  nifti_image *currentFloatingIn,
-                  int *currentReferenceMaskIn = nullptr,
+    AladinContent(nifti_image *referenceIn,
+                  nifti_image *floatingIn,
+                  int *referenceMaskIn = nullptr,
                   mat44 *transformationMatrixIn = nullptr,
                   size_t bytesIn = sizeof(float),
                   const unsigned int percentageOfBlocks = 0,

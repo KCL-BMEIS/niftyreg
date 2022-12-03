@@ -446,11 +446,11 @@ nifti_image **reg_f3d2<T>::GetWarpedImage()
    }
 
    // Set the input images
-   reg_f3d2<T>::currentReference = this->inputReference;
-   reg_f3d2<T>::currentFloating = this->inputFloating;
+   reg_f3d2<T>::reference = this->inputReference;
+   reg_f3d2<T>::floating = this->inputFloating;
    // No mask is used to perform the final resampling
    reg_f3d2<T>::currentMask = nullptr;
-   reg_f3d2<T>::currentFloatingMask = nullptr;
+   reg_f3d2<T>::floatingMask = nullptr;
 
    // Allocate the forward and backward warped images
    reg_f3d2<T>::AllocateWarped();
@@ -460,8 +460,8 @@ nifti_image **reg_f3d2<T>::GetWarpedImage()
    // Warp the floating images into the reference spaces using a cubic spline interpolation
    reg_f3d2<T>::WarpFloatingImage(3); // cubic spline interpolation
 
-   // Clear the deformation field
-   reg_f3d2<T>::ClearDeformationField();
+   // Deallocate the deformation field
+   reg_f3d2<T>::DeallocateDeformationField();
 
    // Allocate and save the forward transformation warped image
    nifti_image **warpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
@@ -482,8 +482,8 @@ nifti_image **reg_f3d2<T>::GetWarpedImage()
    warpedImage[1]->data=(void *)malloc(warpedImage[1]->nvox*warpedImage[1]->nbyper);
    memcpy(warpedImage[1]->data, this->backwardWarped->data, warpedImage[1]->nvox*warpedImage[1]->nbyper);
 
-   // Clear the warped images
-   reg_f3d2<T>::ClearWarped();
+   // Deallocate the warped images
+   reg_f3d2<T>::DeallocateWarped();
 
    // Return the two final warped images
    return warpedImage;

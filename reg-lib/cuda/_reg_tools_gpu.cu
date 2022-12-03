@@ -19,11 +19,11 @@
 /* *************************************************************** */
 void reg_voxelCentric2NodeCentric_gpu(nifti_image *targetImage,
                                       nifti_image *controlPointImage,
-                                      float4 **voxelNMIGradientArray_d,
-                                      float4 **nodeNMIGradientArray_d,
+                                      float4 *voxelNMIGradientArray_d,
+                                      float4 *nodeNMIGradientArray_d,
                                       float weight)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
@@ -43,23 +43,23 @@ void reg_voxelCentric2NodeCentric_gpu(nifti_image *targetImage,
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNodeRatio,&voxelNodeRatio_h,sizeof(float3)))
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&weight,sizeof(float)))
 
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *voxelNMIGradientArray_d, voxelNumber*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, voxelNMIGradientArray_d, voxelNumber*sizeof(float4)))
 
     const unsigned int Grid_reg_voxelCentric2NodeCentric = (unsigned int)ceil(sqrtf((float)nodeNumber/(float)NR_BLOCK->Block_reg_voxelCentric2NodeCentric));
     dim3 B1(NR_BLOCK->Block_reg_voxelCentric2NodeCentric,1,1);
 	dim3 G1(Grid_reg_voxelCentric2NodeCentric,Grid_reg_voxelCentric2NodeCentric,1);
-    reg_voxelCentric2NodeCentric_kernel <<< G1, B1 >>> (*nodeNMIGradientArray_d);
+    reg_voxelCentric2NodeCentric_kernel <<< G1, B1 >>> (nodeNMIGradientArray_d);
 	NR_CUDA_CHECK_KERNEL(G1,B1)
 
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_convertNMIGradientFromVoxelToRealSpace_gpu(	mat44 *sourceMatrix_xyz,
-                            nifti_image *controlPointImage,
-                            float4 **nodeNMIGradientArray_d)
+void reg_convertNMIGradientFromVoxelToRealSpace_gpu(mat44 *sourceMatrix_xyz,
+                                                    nifti_image *controlPointImage,
+                                                    float4 *nodeNMIGradientArray_d)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
@@ -80,7 +80,7 @@ void reg_convertNMIGradientFromVoxelToRealSpace_gpu(	mat44 *sourceMatrix_xyz,
     dim3 G1(Grid_reg_convertNMIGradientFromVoxelToRealSpace,Grid_reg_convertNMIGradientFromVoxelToRealSpace,1);
     dim3 B1(NR_BLOCK->Block_reg_convertNMIGradientFromVoxelToRealSpace,1,1);
 
-    _reg_convertNMIGradientFromVoxelToRealSpace_kernel <<< G1, B1 >>> (*nodeNMIGradientArray_d);
+    _reg_convertNMIGradientFromVoxelToRealSpace_kernel <<< G1, B1 >>> (nodeNMIGradientArray_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(matrixTexture))
     NR_CUDA_SAFE_CALL(cudaFree(matrix_d))
@@ -88,12 +88,12 @@ void reg_convertNMIGradientFromVoxelToRealSpace_gpu(	mat44 *sourceMatrix_xyz,
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_gaussianSmoothing_gpu( nifti_image *image,
-                                float4 **imageArray_d,
+                                float4 *imageArray_d,
                                 float sigma,
                                 bool smoothXYZ[8])
 
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	const unsigned int voxelNumber = image->nx * image->ny * image->nz;
@@ -111,7 +111,7 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
     }
 
 	for(int n=1; n<4; n++){
-		if(axisToSmooth[n]==true && image->dim[n]>1){
+		if(axisToSmooth[n] && image->dim[n]>1){
             float currentSigma;
             if(sigma>0) currentSigma=sigma/image->pixdim[n];
             else currentSigma=fabs(sigma); // voxel based if negative value
@@ -139,7 +139,7 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
                 NR_CUDA_SAFE_CALL(cudaMalloc(&smoothedImage,voxelNumber*sizeof(float4)))
 
                 NR_CUDA_SAFE_CALL(cudaBindTexture(0, convolutionKernelTexture, kernel_d, kernelSize*sizeof(float)))
-                NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *imageArray_d, voxelNumber*sizeof(float4)))
+                NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, imageArray_d, voxelNumber*sizeof(float4)))
 
 				unsigned int Grid_reg_ApplyConvolutionWindow;
                 dim3 B,G;
@@ -172,7 +172,7 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
                 NR_CUDA_SAFE_CALL(cudaUnbindTexture(convolutionKernelTexture))
                 NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
                 NR_CUDA_SAFE_CALL(cudaFree(kernel_d))
-                NR_CUDA_SAFE_CALL(cudaMemcpy(*imageArray_d, smoothedImage, voxelNumber*sizeof(float4), cudaMemcpyDeviceToDevice))
+                NR_CUDA_SAFE_CALL(cudaMemcpy(imageArray_d, smoothedImage, voxelNumber*sizeof(float4), cudaMemcpyDeviceToDevice))
                 NR_CUDA_SAFE_CALL(cudaFree(smoothedImage))
             }
 		}
@@ -180,10 +180,10 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
 }
 /* *************************************************************** */
 void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
-                                        float4 **imageArray_d,
+                                        float4 *imageArray_d,
 										float *spacingVoxel)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     const int voxelNumber = image->nx * image->ny * image->nz;
@@ -219,7 +219,7 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
             float4 *smoothedImage_d;
             NR_CUDA_SAFE_CALL(cudaMalloc(&smoothedImage_d,voxelNumber*sizeof(float4)))
 
-            NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *imageArray_d, voxelNumber*sizeof(float4)))
+            NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, imageArray_d, voxelNumber*sizeof(float4)))
 
             unsigned int Grid_reg_ApplyConvolutionWindow;
             dim3 B,G;
@@ -252,15 +252,15 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
             NR_CUDA_SAFE_CALL(cudaUnbindTexture(convolutionKernelTexture))
             NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
             NR_CUDA_SAFE_CALL(cudaFree(kernel_d))
-            NR_CUDA_SAFE_CALL(cudaMemcpy(*imageArray_d, smoothedImage_d, voxelNumber*sizeof(float4), cudaMemcpyDeviceToDevice))
+            NR_CUDA_SAFE_CALL(cudaMemcpy(imageArray_d, smoothedImage_d, voxelNumber*sizeof(float4), cudaMemcpyDeviceToDevice))
             NR_CUDA_SAFE_CALL(cudaFree(smoothedImage_d))
         }
     }
 }
 /* *************************************************************** */
-void reg_multiplyValue_gpu(int num, float4 **array_d, float value)
+void reg_multiplyValue_gpu(int num, float4 *array_d, float value)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
@@ -269,13 +269,13 @@ void reg_multiplyValue_gpu(int num, float4 **array_d, float value)
     const unsigned int Grid_reg_multiplyValues = (unsigned int)ceil(sqrtf((float)num/(float)NR_BLOCK->Block_reg_arithmetic));
     dim3 G=dim3(Grid_reg_multiplyValues,Grid_reg_multiplyValues,1);
     dim3 B=dim3(NR_BLOCK->Block_reg_arithmetic,1,1);
-    reg_multiplyValue_kernel_float4<<<G,B>>>(*array_d);
+    reg_multiplyValue_kernel_float4<<<G,B>>>(array_d);
     NR_CUDA_CHECK_KERNEL(G,B)
 }
 /* *************************************************************** */
-void reg_addValue_gpu(int num, float4 **array_d, float value)
+void reg_addValue_gpu(int num, float4 *array_d, float value)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
@@ -284,13 +284,13 @@ void reg_addValue_gpu(int num, float4 **array_d, float value)
     const unsigned int Grid_reg_addValues = (unsigned int)ceil(sqrtf((float)num/(float)NR_BLOCK->Block_reg_arithmetic));
     dim3 G=dim3(Grid_reg_addValues,Grid_reg_addValues,1);
     dim3 B=dim3(NR_BLOCK->Block_reg_arithmetic,1,1);
-    reg_addValue_kernel_float4<<<G,B>>>(*array_d);
+    reg_addValue_kernel_float4<<<G,B>>>(array_d);
     NR_CUDA_CHECK_KERNEL(G,B)
 }
 /* *************************************************************** */
-void reg_multiplyArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
+void reg_multiplyArrays_gpu(int num, float4 *array1_d, float4 *array2_d)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
@@ -298,13 +298,13 @@ void reg_multiplyArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
     const unsigned int Grid_reg_multiplyArrays = (unsigned int)ceil(sqrtf((float)num/(float)NR_BLOCK->Block_reg_arithmetic));
     dim3 G=dim3(Grid_reg_multiplyArrays,Grid_reg_multiplyArrays,1);
     dim3 B=dim3(NR_BLOCK->Block_reg_arithmetic,1,1);
-    reg_multiplyArrays_kernel_float4<<<G,B>>>(*array1_d,*array2_d);
+    reg_multiplyArrays_kernel_float4<<<G,B>>>(array1_d,array2_d);
     NR_CUDA_CHECK_KERNEL(G,B)
 }
 /* *************************************************************** */
-void reg_addArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
+void reg_addArrays_gpu(int num, float4 *array1_d, float4 *array2_d)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
@@ -312,13 +312,13 @@ void reg_addArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
     const unsigned int Grid_reg_addArrays = (unsigned int)ceil(sqrtf((float)num/(float)NR_BLOCK->Block_reg_arithmetic));
     dim3 G=dim3(Grid_reg_addArrays,Grid_reg_addArrays,1);
     dim3 B=dim3(NR_BLOCK->Block_reg_arithmetic,1,1);
-    reg_addArrays_kernel_float4<<<G,B>>>(*array1_d,*array2_d);
+    reg_addArrays_kernel_float4<<<G,B>>>(array1_d,array2_d);
     NR_CUDA_CHECK_KERNEL(G,B)
 }
 /* *************************************************************** */
-void reg_fillMaskArray_gpu(int num, int **array1_d)
+void reg_fillMaskArray_gpu(int num, int *array1_d)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
@@ -326,7 +326,7 @@ void reg_fillMaskArray_gpu(int num, int **array1_d)
     const unsigned int Grid_reg_fillMaskArray = (unsigned int)ceil(sqrtf((float)num/(float)NR_BLOCK->Block_reg_arithmetic));
     dim3 G=dim3(Grid_reg_fillMaskArray,Grid_reg_fillMaskArray,1);
     dim3 B=dim3(NR_BLOCK->Block_reg_arithmetic,1,1);
-    reg_fillMaskArray_kernel<<<G,B>>>(*array1_d);
+    reg_fillMaskArray_kernel<<<G,B>>>(array1_d);
     NR_CUDA_CHECK_KERNEL(G,B)
 }
 /* *************************************************************** */

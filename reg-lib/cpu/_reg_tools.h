@@ -444,7 +444,7 @@ extern "C++"
 void reg_tools_abs_image(nifti_image *img);
 /* *************************************************************** */
 extern "C++"
-void mat44ToCptr(mat44 mat, float* cMat);
+void mat44ToCptr(const mat44& mat, float* cMat);
 /* *************************************************************** */
 extern "C++"
 void cPtrToMat44(mat44 *mat, float* cMat);

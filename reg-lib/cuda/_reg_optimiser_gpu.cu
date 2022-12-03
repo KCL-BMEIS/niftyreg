@@ -19,7 +19,7 @@ reg_optimiser_gpu::reg_optimiser_gpu()
 reg_optimiser_gpu::~reg_optimiser_gpu()
 {
     if(this->bestDOF_gpu!=nullptr)
-        cudaCommon_free<float4>(&this->bestDOF_gpu);;
+        cudaCommon_free(&this->bestDOF_gpu);;
     this->bestDOF_gpu=nullptr;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_optimiser_gpu::~reg_optimiser_gpu() called\n");
@@ -57,7 +57,7 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
         this->gradient_gpu=reinterpret_cast<float4 *>(gradData);
 
     if(this->bestDOF_gpu!=nullptr)
-        cudaCommon_free<float4>(&this->bestDOF_gpu);
+        cudaCommon_free(&this->bestDOF_gpu);
 
     if(cudaCommon_allocateArrayToDevice(&this->bestDOF_gpu,
 									   (int)(this->GetVoxNumber()))){
@@ -121,11 +121,11 @@ reg_conjugateGradient_gpu::reg_conjugateGradient_gpu()
 reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu()
 {
     if(this->array1!=nullptr)
-        cudaCommon_free<float4>(&this->array1);
+        cudaCommon_free(&this->array1);
     this->array1=nullptr;
 
     if(this->array2!=nullptr)
-        cudaCommon_free<float4>(&this->array2);
+        cudaCommon_free(&this->array2);
     this->array2=nullptr;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() called\n");
@@ -177,17 +177,17 @@ void reg_conjugateGradient_gpu::Initialise(size_t nvox,
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_conjugateGradient_gpu::UpdateGradientValues()
 {
-    if(this->firstcall==true){
-        reg_initialiseConjugateGradient_gpu(&(this->gradient_gpu),
-                                            &(this->array1),
-                                            &(this->array2),
+    if(this->firstcall){
+        reg_initialiseConjugateGradient_gpu(this->gradient_gpu,
+                                            this->array1,
+                                            this->array2,
                                             (int)(this->GetVoxNumber()));
         this->firstcall=false;
     }
     else{
-        reg_GetConjugateGradient_gpu(&this->gradient_gpu,
-                                     &this->array1,
-                                     &this->array2,
+        reg_GetConjugateGradient_gpu(this->gradient_gpu,
+                                     this->array1,
+                                     this->array2,
                                      (int)(this->GetVoxNumber()));
     }
     return;
@@ -219,41 +219,41 @@ void reg_conjugateGradient_gpu::reg_test_optimiser()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_initialiseConjugateGradient_gpu(float4 **gradientArray_d,
-                                         float4 **conjugateG_d,
-                                         float4 **conjugateH_d,
+void reg_initialiseConjugateGradient_gpu(float4 *gradientArray_d,
+                                         float4 *conjugateG_d,
+                                         float4 *conjugateH_d,
                                          int nodeNumber)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *gradientArray_d, nodeNumber*sizeof(float4)))
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, gradientArray_d, nodeNumber*sizeof(float4)))
 
     const unsigned int Grid_reg_initialiseConjugateGradient =
     (unsigned int)reg_ceil(sqrtf((float)nodeNumber/(float)NR_BLOCK->Block_reg_initialiseConjugateGradient));
     dim3 G1(Grid_reg_initialiseConjugateGradient,Grid_reg_initialiseConjugateGradient,1);
     dim3 B1(NR_BLOCK->Block_reg_initialiseConjugateGradient,1,1);
 
-    reg_initialiseConjugateGradient_kernel <<< G1, B1 >>> (*conjugateG_d);
+    reg_initialiseConjugateGradient_kernel <<< G1, B1 >>> (conjugateG_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
-    NR_CUDA_SAFE_CALL(cudaMemcpy(*conjugateH_d, *conjugateG_d, nodeNumber*sizeof(float4), cudaMemcpyDeviceToDevice))
+    NR_CUDA_SAFE_CALL(cudaMemcpy(conjugateH_d, conjugateG_d, nodeNumber*sizeof(float4), cudaMemcpyDeviceToDevice))
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_GetConjugateGradient_gpu(float4 **gradientArray_d,
-                                  float4 **conjugateG_d,
-                                  float4 **conjugateH_d,
+void reg_GetConjugateGradient_gpu(float4 *gradientArray_d,
+                                  float4 *conjugateG_d,
+                                  float4 *conjugateH_d,
                                   int nodeNumber)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, conjugateGTexture, *conjugateG_d, nodeNumber*sizeof(float4)))
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, conjugateHTexture, *conjugateH_d, nodeNumber*sizeof(float4)))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *gradientArray_d, nodeNumber*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, conjugateGTexture, conjugateG_d, nodeNumber*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, conjugateHTexture, conjugateH_d, nodeNumber*sizeof(float4)))
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, gradientArray_d, nodeNumber*sizeof(float4)))
 
     // gam = sum((grad+g)*grad)/sum(HxG);
     const unsigned int Grid_reg_GetConjugateGradient1 = (unsigned int)reg_ceil(sqrtf((float)nodeNumber/(float)NR_BLOCK->Block_reg_GetConjugateGradient1));
@@ -280,7 +280,7 @@ void reg_GetConjugateGradient_gpu(float4 **gradientArray_d,
     const unsigned int Grid_reg_GetConjugateGradient2 = (unsigned int)reg_ceil(sqrtf((float)nodeNumber/(float)NR_BLOCK->Block_reg_GetConjugateGradient2));
     dim3 B2(NR_BLOCK->Block_reg_GetConjugateGradient2,1,1);
     dim3 G2(Grid_reg_GetConjugateGradient2,Grid_reg_GetConjugateGradient2,1);
-	reg_GetConjugateGradient2_kernel <<< G2, B2 >>> (*gradientArray_d, *conjugateG_d, *conjugateH_d);
+	reg_GetConjugateGradient2_kernel <<< G2, B2 >>> (gradientArray_d, conjugateG_d, conjugateH_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
 
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(conjugateGTexture))
@@ -290,15 +290,14 @@ void reg_GetConjugateGradient_gpu(float4 **gradientArray_d,
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-float reg_getMaximalLength_gpu(float4 **gradientArray_d,
-                               int nodeNumber)
+float reg_getMaximalLength_gpu(float4 *gradientArray_d, int nodeNumber)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     // Copy constant memory value and bind texture
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *gradientArray_d, nodeNumber*sizeof(float4)))
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, gradientArray_d, nodeNumber*sizeof(float4)))
 
     float *dist_d=nullptr;
     NR_CUDA_SAFE_CALL(cudaMalloc(&dist_d,nodeNumber*sizeof(float)))
@@ -319,29 +318,27 @@ float reg_getMaximalLength_gpu(float4 **gradientArray_d,
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
-                                        float4 **controlPointImageArray_d,
-                                        float4 **bestControlPointPosition_d,
-										float4 **gradientArray_d,
+                                        float4 *controlPointImageArray_d,
+                                        float4 *bestControlPointPosition_d,
+										float4 *gradientArray_d,
                                         float currentLength)
 
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ScalingFactor,&currentLength,sizeof(float)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber, &nodeNumber, sizeof(int)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ScalingFactor, &currentLength, sizeof(float)))
 
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, controlPointTexture, *bestControlPointPosition_d,
-									  nodeNumber*sizeof(float4)))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *gradientArray_d,
-									  nodeNumber*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, controlPointTexture, bestControlPointPosition_d, nodeNumber * sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, gradientArray_d, nodeNumber * sizeof(float4)))
 
     const unsigned int Grid_reg_updateControlPointPosition =
             (unsigned int)reg_ceil(sqrtf((float)nodeNumber/(float)NR_BLOCK->Block_reg_updateControlPointPosition));
     dim3 B1(NR_BLOCK->Block_reg_updateControlPointPosition,1,1);
     dim3 G1(Grid_reg_updateControlPointPosition,Grid_reg_updateControlPointPosition,1);
-    reg_updateControlPointPosition_kernel <<< G1, B1 >>> (*controlPointImageArray_d);
+    reg_updateControlPointPosition_kernel <<< G1, B1 >>> (controlPointImageArray_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
 	// Unbind the textures
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture))

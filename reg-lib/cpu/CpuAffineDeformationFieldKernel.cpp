@@ -4,9 +4,9 @@
 /* *************************************************************** */
 CpuAffineDeformationFieldKernel::CpuAffineDeformationFieldKernel(Content *conIn) : AffineDeformationFieldKernel() {
     AladinContent *con = static_cast<AladinContent*>(conIn);
-    deformationFieldImage = con->GetCurrentDeformationField();
+    deformationFieldImage = con->GetDeformationField();
     affineTransformation = con->GetTransformationMatrix();
-    mask = con->GetCurrentReferenceMask();
+    mask = con->GetReferenceMask();
 }
 /* *************************************************************** */
 void CpuAffineDeformationFieldKernel::Calculate(bool compose) {

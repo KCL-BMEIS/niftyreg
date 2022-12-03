@@ -1767,8 +1767,8 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
    for(int i=1; i<4; i++)
    {
       oldDim[i]=image->dim[i];
-      if(image->dim[i]>1 && downsampleAxis[i]==true) image->dim[i]=static_cast<int>(reg_ceil(image->dim[i]/2.0));
-      if(image->pixdim[i]>0 && downsampleAxis[i]==true) image->pixdim[i]=image->pixdim[i]*2.0f;
+      if(image->dim[i]>1 && downsampleAxis[i]) image->dim[i]=static_cast<int>(reg_ceil(image->dim[i]/2.0));
+      if(image->pixdim[i]>0 && downsampleAxis[i]) image->pixdim[i]=image->pixdim[i]*2.0f;
    }
    image->nx=image->dim[1];
    image->ny=image->dim[2];
@@ -3049,17 +3049,17 @@ void reg_setGradientToZero_core(nifti_image *image,
 {
    size_t voxel_number = (size_t)image->nx*image->ny*image->nz;
    DTYPE *ptr = static_cast<DTYPE *>(image->data);
-   if(x_axis==true){
+   if(x_axis){
       for(size_t i=0; i<voxel_number; ++i)
          *ptr++=0;
    }
    else ptr += voxel_number;
-   if(y_axis==true){
+   if(y_axis){
       for(size_t i=0; i<voxel_number; ++i)
          *ptr++=0;
    }
    else ptr += voxel_number;
-   if(z_axis==true && image->nu>2){
+   if(z_axis && image->nu>2){
       for(size_t i=0; i<voxel_number; ++i)
          *ptr++=0;
    }
@@ -3232,7 +3232,7 @@ void reg_tools_abs_image(nifti_image *img)
    }
 }
 /* *************************************************************** */
-void mat44ToCptr(mat44 mat, float* cMat)
+void mat44ToCptr(const mat44& mat, float* cMat)
 {
 	for (int i = 0; i < 4; i++)
 	{

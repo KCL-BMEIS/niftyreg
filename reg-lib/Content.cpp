@@ -1,89 +1,91 @@
 #include "Content.h"
-#include "_reg_maths.h"
 
 /* *************************************************************** */
-Content::Content(nifti_image *currentReferenceIn,
-                 nifti_image *currentFloatingIn,
-                 int *currentReferenceMaskIn,
+Content::Content(nifti_image *referenceIn,
+                 nifti_image *floatingIn,
+                 int *referenceMaskIn,
                  mat44 *transformationMatrixIn,
                  size_t bytesIn) :
-    currentReference(currentReferenceIn),
-    currentFloating(currentFloatingIn),
-    currentReferenceMask(currentReferenceMaskIn),
+    reference(referenceIn),
+    floating(floatingIn),
+    referenceMask(referenceMaskIn),
     transformationMatrix(transformationMatrixIn) {
-    if (!currentReferenceIn || !currentFloatingIn) {
+    if (!referenceIn || !floatingIn) {
         reg_print_fct_error("Content::Content()");
-        reg_print_msg_error("currentReferenceIn or currentFloatingIn can't be nullptr");
+        reg_print_msg_error("referenceIn or floatingIn can't be nullptr");
         reg_exit();
     }
-    AllocateWarpedImage();
+    AllocateWarped();
     AllocateDeformationField(bytesIn);
-    if (currentReferenceMask == nullptr)
-        currentReferenceMask = (int*)calloc(currentReference->nvox, sizeof(int));
+    if (!referenceMask)
+        referenceMask = (int*)calloc(reference->nvox, sizeof(int));
 }
 /* *************************************************************** */
 Content::~Content() {
-    ClearWarpedImage();
-    ClearDeformationField();
+    DeallocateWarped();
+    DeallocateDeformationField();
+    // free(referenceMask); // TODO Fix this with smart pointers
 }
 /* *************************************************************** */
-void Content::AllocateWarpedImage() {
-    currentWarped = nifti_copy_nim_info(currentReference);
-    currentWarped->dim[0] = currentWarped->ndim = currentFloating->ndim;
-    currentWarped->dim[4] = currentWarped->nt = currentFloating->nt;
-    currentWarped->pixdim[4] = currentWarped->dt = 1.0;
-    currentWarped->nvox = (size_t)(currentWarped->nx * currentWarped->ny * currentWarped->nz * currentWarped->nt);
-    currentWarped->datatype = currentFloating->datatype;
-    currentWarped->nbyper = currentFloating->nbyper;
-    currentWarped->data = (void*)calloc(currentWarped->nvox, currentWarped->nbyper);
+void Content::AllocateWarped() {
+    warped = nifti_copy_nim_info(reference);
+    warped->dim[0] = warped->ndim = floating->ndim;
+    warped->dim[4] = warped->nt = floating->nt;
+    warped->pixdim[4] = warped->dt = 1.0;
+    warped->nvox = (size_t)(warped->nx * warped->ny * warped->nz * warped->nt);
+    warped->datatype = floating->datatype;
+    warped->nbyper = floating->nbyper;
+    warped->data = (void*)calloc(warped->nvox, warped->nbyper);
 }
 /* *************************************************************** */
-void Content::ClearWarpedImage() {
-    if (currentWarped)
-        nifti_image_free(currentWarped);
-    currentWarped = nullptr;
+void Content::DeallocateWarped() {
+    if (warped) {
+        nifti_image_free(warped);
+        warped = nullptr;
+    }
 }
 /* *************************************************************** */
 void Content::AllocateDeformationField(size_t bytes) {
-    currentDeformationField = nifti_copy_nim_info(currentReference);
-    currentDeformationField->dim[0] = currentDeformationField->ndim = 5;
-    if (currentReference->dim[0] == 2)
-        currentDeformationField->dim[3] = currentDeformationField->nz = 1;
-    currentDeformationField->dim[4] = currentDeformationField->nt = 1;
-    currentDeformationField->pixdim[4] = currentDeformationField->dt = 1;
-    if (currentReference->nz == 1)
-        currentDeformationField->dim[5] = currentDeformationField->nu = 2;
+    deformationField = nifti_copy_nim_info(reference);
+    deformationField->dim[0] = deformationField->ndim = 5;
+    if (reference->dim[0] == 2)
+        deformationField->dim[3] = deformationField->nz = 1;
+    deformationField->dim[4] = deformationField->nt = 1;
+    deformationField->pixdim[4] = deformationField->dt = 1;
+    if (reference->nz == 1)
+        deformationField->dim[5] = deformationField->nu = 2;
     else
-        currentDeformationField->dim[5] = currentDeformationField->nu = 3;
-    currentDeformationField->pixdim[5] = currentDeformationField->du = 1;
-    currentDeformationField->dim[6] = currentDeformationField->nv = 1;
-    currentDeformationField->pixdim[6] = currentDeformationField->dv = 1;
-    currentDeformationField->dim[7] = currentDeformationField->nw = 1;
-    currentDeformationField->pixdim[7] = currentDeformationField->dw = 1;
-    currentDeformationField->nvox = (size_t)(currentDeformationField->nx * currentDeformationField->ny * currentDeformationField->nz *
-                                             currentDeformationField->nt * currentDeformationField->nu);
-    currentDeformationField->nbyper = (int)bytes;
+        deformationField->dim[5] = deformationField->nu = 3;
+    deformationField->pixdim[5] = deformationField->du = 1;
+    deformationField->dim[6] = deformationField->nv = 1;
+    deformationField->pixdim[6] = deformationField->dv = 1;
+    deformationField->dim[7] = deformationField->nw = 1;
+    deformationField->pixdim[7] = deformationField->dw = 1;
+    deformationField->nvox = (size_t)(deformationField->nx * deformationField->ny * deformationField->nz *
+                                             deformationField->nt * deformationField->nu);
+    deformationField->nbyper = (int)bytes;
     if (bytes == 4)
-        currentDeformationField->datatype = NIFTI_TYPE_FLOAT32;
+        deformationField->datatype = NIFTI_TYPE_FLOAT32;
     else if (bytes == 8)
-        currentDeformationField->datatype = NIFTI_TYPE_FLOAT64;
+        deformationField->datatype = NIFTI_TYPE_FLOAT64;
     else {
         reg_print_fct_error("Content::AllocateDeformationField()");
         reg_print_msg_error("Only float or double are expected for the deformation field");
         reg_exit();
     }
-    currentDeformationField->intent_code = NIFTI_INTENT_VECTOR;
-    memset(currentDeformationField->intent_name, 0, sizeof(currentDeformationField->intent_name));
-    strcpy(currentDeformationField->intent_name, "NREG_TRANS");
-    currentDeformationField->intent_p1 = DEF_FIELD;
-    currentDeformationField->scl_slope = 1;
-    currentDeformationField->scl_inter = 0;
-    currentDeformationField->data = (void*)calloc(currentDeformationField->nvox, currentDeformationField->nbyper);
+    deformationField->intent_code = NIFTI_INTENT_VECTOR;
+    memset(deformationField->intent_name, 0, sizeof(deformationField->intent_name));
+    strcpy(deformationField->intent_name, "NREG_TRANS");
+    deformationField->intent_p1 = DEF_FIELD;
+    deformationField->scl_slope = 1;
+    deformationField->scl_inter = 0;
+    deformationField->data = (void*)calloc(deformationField->nvox, deformationField->nbyper);
 }
 /* *************************************************************** */
-void Content::ClearDeformationField() {
-    if (currentDeformationField)
-        nifti_image_free(currentDeformationField);
-    currentDeformationField = nullptr;
+void Content::DeallocateDeformationField() {
+    if (deformationField) {
+        nifti_image_free(deformationField);
+        deformationField = nullptr;
+    }
 }
 /* *************************************************************** */

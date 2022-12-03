@@ -492,7 +492,7 @@ int compute_average_image(nifti_image *averageImage,
       remove_nan_and_add(averageImage, warpedImage, definedValue);
       nifti_image_free(warpedImage);
    }
-   // Clear the allocated demeanField if needed
+   // Deallocate the allocated demeanField if needed
    if(demeanField!=nullptr) nifti_image_free(demeanField);
    // Normalised the average image
    reg_tools_divideImageToImage(averageImage,definedValue, averageImage);
@@ -702,7 +702,7 @@ int main(int argc, char **argv)
    if(operation!=AVG_INPUT || trans_is_affine==false){
       input_image_names = (char **)malloc(image_number*sizeof(char *));
    }
-   if((operation==AVG_INPUT && trans_is_affine==true) || trans_is_affine || operation==AVG_IMG_TRANS_NOAFF){
+   if((operation==AVG_INPUT && trans_is_affine) || trans_is_affine || operation==AVG_IMG_TRANS_NOAFF){
       input_affine_names = (char **)malloc(image_number*sizeof(char *));
    }
    if((operation==AVG_IMG_TRANS && trans_is_affine==false) || operation==AVG_IMG_TRANS_NOAFF){
@@ -746,7 +746,7 @@ int main(int argc, char **argv)
    nifti_image *avg_output_image=nullptr;
 
    // Go over the different operations
-   if(operation==AVG_INPUT && trans_is_affine==true){
+   if(operation==AVG_INPUT && trans_is_affine){
       // compute the average matrix from the input provided
       avg_output_matrix = compute_average_matrices(image_number, input_affine_names);
    }

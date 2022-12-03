@@ -38,7 +38,7 @@ int cudaCommon_setCUDACard(CUcontext *ctx, bool verbose) {
 	}
 	NR_CUDA_SAFE_CALL(cudaSetDevice(max_gflops_device));
 	NR_CUDA_SAFE_CALL(cuCtxCreate(ctx, CU_CTX_SCHED_SPIN, max_gflops_device))
-		NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device));
+	NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device));
 
 	if (deviceProp.major < 1) {
 		fprintf(stderr, "[NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
@@ -72,7 +72,7 @@ int cudaCommon_setCUDACard(CUcontext *ctx, bool verbose) {
 			printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n",
 				   deviceProp.multiProcessorCount);
 		}
-		NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(deviceProp.major);
+		NiftyReg_CudaBlock::GetInstance(deviceProp.major);
 	}
 	return EXIT_SUCCESS;
 }

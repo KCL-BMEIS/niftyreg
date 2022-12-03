@@ -4,17 +4,17 @@
 #include <algorithm>
 
 /* *************************************************************** */
-CudaAladinContent::CudaAladinContent(nifti_image *currentReferenceIn,
-                                     nifti_image *currentFloatingIn,
-                                     int *currentReferenceMaskIn,
+CudaAladinContent::CudaAladinContent(nifti_image *referenceIn,
+                                     nifti_image *floatingIn,
+                                     int *referenceMaskIn,
                                      mat44 *transformationMatrixIn,
                                      size_t bytesIn,
                                      const unsigned int percentageOfBlocks,
                                      const unsigned int inlierLts,
                                      int blockStepSize) :
-    AladinContent(currentReferenceIn,
-                  currentFloatingIn,
-                  currentReferenceMaskIn,
+    AladinContent(referenceIn,
+                  floatingIn,
+                  referenceMaskIn,
                   transformationMatrixIn,
                   sizeof(float), // forcing float for CUDA
                   percentageOfBlocks,
@@ -43,16 +43,13 @@ void CudaAladinContent::InitVars() {
     mask_d = nullptr;
     floIJKMat_d = nullptr;
 
-    if (currentReference != nullptr && currentReference->nbyper != NIFTI_TYPE_FLOAT32)
-        reg_tools_changeDatatype<float>(currentReference);
-    if (currentFloating != nullptr && currentFloating->nbyper != NIFTI_TYPE_FLOAT32) {
-        reg_tools_changeDatatype<float>(currentFloating);
-        if (currentWarped != nullptr)
-            reg_tools_changeDatatype<float>(currentWarped);
+    if (reference != nullptr && reference->nbyper != NIFTI_TYPE_FLOAT32)
+        reg_tools_changeDatatype<float>(reference);
+    if (floating != nullptr && floating->nbyper != NIFTI_TYPE_FLOAT32) {
+        reg_tools_changeDatatype<float>(floating);
+        if (warped != nullptr)
+            reg_tools_changeDatatype<float>(warped);
     }
-
-    cudaSContext = &CudaContextSingleton::Instance();
-    cudaContext = cudaSContext->GetContext();
 
     //numBlocks = (blockMatchingParams->activeBlock != nullptr) ? blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2] : 0;
 }
@@ -67,37 +64,37 @@ void CudaAladinContent::AllocateCuPtrs() {
 
         free(tmpMat_h);
     }
-    if (currentReferenceMask != nullptr) {
-        cudaCommon_allocateArrayToDevice<int>(&mask_d, currentReference->nvox);
-        cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, currentReferenceMask, currentReference->nvox);
+    if (referenceMask != nullptr) {
+        cudaCommon_allocateArrayToDevice<int>(&mask_d, reference->nvox);
+        cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, referenceMask, reference->nvox);
     }
-    if (currentReference != nullptr) {
-        cudaCommon_allocateArrayToDevice<float>(&referenceImageArray_d, currentReference->nvox);
+    if (reference != nullptr) {
+        cudaCommon_allocateArrayToDevice<float>(&referenceImageArray_d, reference->nvox);
         cudaCommon_allocateArrayToDevice<float>(&referenceMat_d, sizeof(mat44) / sizeof(float));
 
-        cudaCommon_transferFromDeviceToNiftiSimple<float>(&referenceImageArray_d, currentReference);
+        cudaCommon_transferFromDeviceToNiftiSimple<float>(&referenceImageArray_d, reference);
 
         float* targetMat = (float *)malloc(sizeof(mat44)); //freed
-        mat44ToCptr(*GetXYZMatrix(currentReference), targetMat);
+        mat44ToCptr(*GetXYZMatrix(*reference), targetMat);
         cudaCommon_transferFromDeviceToNiftiSimple1<float>(&referenceMat_d, targetMat, sizeof(mat44) / sizeof(float));
         free(targetMat);
     }
-    if (currentWarped != nullptr) {
-        cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, currentWarped->nvox);
-        cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, currentWarped);
+    if (warped != nullptr) {
+        cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, warped->nvox);
+        cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, warped);
     }
-    if (currentDeformationField != nullptr) {
-        cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, currentDeformationField->nvox);
-        cudaCommon_transferFromDeviceToNiftiSimple<float>(&deformationFieldArray_d, currentDeformationField);
+    if (deformationField != nullptr) {
+        cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, deformationField->nvox);
+        cudaCommon_transferFromDeviceToNiftiSimple<float>(&deformationFieldArray_d, deformationField);
     }
-    if (currentFloating != nullptr) {
-        cudaCommon_allocateArrayToDevice<float>(&floatingImageArray_d, currentFloating->nvox);
+    if (floating != nullptr) {
+        cudaCommon_allocateArrayToDevice<float>(&floatingImageArray_d, floating->nvox);
         cudaCommon_allocateArrayToDevice<float>(&floIJKMat_d, sizeof(mat44) / sizeof(float));
 
-        cudaCommon_transferFromDeviceToNiftiSimple<float>(&floatingImageArray_d, currentFloating);
+        cudaCommon_transferFromDeviceToNiftiSimple<float>(&floatingImageArray_d, floating);
 
         float *sourceIJKMatrix_h = (float*)malloc(sizeof(mat44));
-        mat44ToCptr(*GetIJKMatrix(currentFloating), sourceIJKMatrix_h);
+        mat44ToCptr(*GetIJKMatrix(*floating), sourceIJKMatrix_h);
         NR_CUDA_SAFE_CALL(cudaMemcpy(floIJKMat_d, sourceIJKMatrix_h, sizeof(mat44), cudaMemcpyHostToDevice));
         free(sourceIJKMatrix_h);
     }
@@ -138,14 +135,14 @@ void CudaAladinContent::AllocateCuPtrs() {
     }
 }
 /* *************************************************************** */
-nifti_image* CudaAladinContent::GetCurrentWarped(int type) {
-    DownloadImage(currentWarped, warpedImageArray_d, type);
-    return currentWarped;
+nifti_image* CudaAladinContent::GetWarped(int datatype, int index) {
+    DownloadImage(warped, warpedImageArray_d, datatype);
+    return warped;
 }
 /* *************************************************************** */
-nifti_image* CudaAladinContent::GetCurrentDeformationField() {
-    cudaCommon_transferFromDeviceToCpu<float>((float*)currentDeformationField->data, &deformationFieldArray_d, currentDeformationField->nvox);
-    return currentDeformationField;
+nifti_image* CudaAladinContent::GetDeformationField() {
+    cudaCommon_transferFromDeviceToCpu<float>((float*)deformationField->data, &deformationFieldArray_d, deformationField->nvox);
+    return deformationField;
 }
 /* *************************************************************** */
 _reg_blockMatchingParam* CudaAladinContent::GetBlockMatchingParams() {
@@ -156,7 +153,7 @@ _reg_blockMatchingParam* CudaAladinContent::GetBlockMatchingParams() {
 /* *************************************************************** */
 void CudaAladinContent::SetTransformationMatrix(mat44 *transformationMatrixIn) {
     if (transformationMatrix != nullptr)
-        cudaCommon_free<float>(&transformationMatrix_d);
+        cudaCommon_free(&transformationMatrix_d);
 
     AladinContent::SetTransformationMatrix(transformationMatrixIn);
     float *tmpMat_h = (float*)malloc(sizeof(mat44));
@@ -167,49 +164,49 @@ void CudaAladinContent::SetTransformationMatrix(mat44 *transformationMatrixIn) {
     free(tmpMat_h);
 }
 /* *************************************************************** */
-void CudaAladinContent::SetCurrentDeformationField(nifti_image *currentDeformationFieldIn) {
-    if (currentDeformationField != nullptr)
-        cudaCommon_free<float>(&deformationFieldArray_d);
-    AladinContent::SetCurrentDeformationField(currentDeformationFieldIn);
+void CudaAladinContent::SetDeformationField(nifti_image *deformationFieldIn) {
+    if (deformationField != nullptr)
+        cudaCommon_free(&deformationFieldArray_d);
+    AladinContent::SetDeformationField(deformationFieldIn);
 
-    cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, currentDeformationField->nvox);
-    cudaCommon_transferFromDeviceToNiftiSimple<float>(&deformationFieldArray_d, currentDeformationField);
+    cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, deformationField->nvox);
+    cudaCommon_transferFromDeviceToNiftiSimple<float>(&deformationFieldArray_d, deformationField);
 }
 /* *************************************************************** */
-void CudaAladinContent::SetCurrentReferenceMask(int *currentReferenceMaskIn) {
-    if (currentReferenceMask != nullptr)
-        cudaCommon_free<int>(&mask_d);
-    AladinContent::SetCurrentReferenceMask(currentReferenceMaskIn);
-    cudaCommon_allocateArrayToDevice<int>(&mask_d, currentReference->nvox);
-    cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, currentReferenceMaskIn, currentReference->nvox);
+void CudaAladinContent::SetReferenceMask(int *referenceMaskIn) {
+    if (referenceMask != nullptr)
+        cudaCommon_free(&mask_d);
+    AladinContent::SetReferenceMask(referenceMaskIn);
+    cudaCommon_allocateArrayToDevice<int>(&mask_d, reference->nvox);
+    cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, referenceMaskIn, reference->nvox);
 }
 /* *************************************************************** */
-void CudaAladinContent::SetCurrentWarped(nifti_image *currentWarped) {
-    if (currentWarped != nullptr)
-        cudaCommon_free<float>(&warpedImageArray_d);
-    AladinContent::SetCurrentWarped(currentWarped);
-    reg_tools_changeDatatype<float>(currentWarped);
+void CudaAladinContent::SetWarped(nifti_image *warped) {
+    if (warped != nullptr)
+        cudaCommon_free(&warpedImageArray_d);
+    AladinContent::SetWarped(warped);
+    reg_tools_changeDatatype<float>(warped);
 
-    cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, currentWarped->nvox);
-    cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, currentWarped);
+    cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, warped->nvox);
+    cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, warped);
 }
 /* *************************************************************** */
 void CudaAladinContent::SetBlockMatchingParams(_reg_blockMatchingParam* bmp) {
     AladinContent::SetBlockMatchingParams(bmp);
     if (blockMatchingParams->referencePosition != nullptr) {
-        cudaCommon_free<float>(&referencePosition_d);
+        cudaCommon_free(&referencePosition_d);
         //referencePosition
         cudaCommon_allocateArrayToDevice<float>(&referencePosition_d, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
         cudaCommon_transferArrayFromCpuToDevice<float>(&referencePosition_d, blockMatchingParams->referencePosition, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
     }
     if (blockMatchingParams->warpedPosition != nullptr) {
-        cudaCommon_free<float>(&warpedPosition_d);
+        cudaCommon_free(&warpedPosition_d);
         //warpedPosition
         cudaCommon_allocateArrayToDevice<float>(&warpedPosition_d, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
         cudaCommon_transferArrayFromCpuToDevice<float>(&warpedPosition_d, blockMatchingParams->warpedPosition, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
     }
     if (blockMatchingParams->totalBlock != nullptr) {
-        cudaCommon_free<int>(&totalBlock_d);
+        cudaCommon_free(&totalBlock_d);
         //activeBlock
         cudaCommon_allocateArrayToDevice<int>(&totalBlock_d, blockMatchingParams->totalBlockNumber);
         cudaCommon_transferArrayFromCpuToDevice<int>(&totalBlock_d, blockMatchingParams->totalBlock, blockMatchingParams->totalBlockNumber);
@@ -264,9 +261,7 @@ DataType CudaAladinContent::FillWarpedImageData(float intensity, int datatype) {
 }
 /* *************************************************************** */
 template<class T>
-void CudaAladinContent::FillImageData(nifti_image *image,
-                                      float *memoryObject,
-                                      int type) {
+void CudaAladinContent::FillImageData(nifti_image *image, float *memoryObject, int type) {
     size_t size = image->nvox;
     float *buffer = (float*)malloc(size * sizeof(float));
 
@@ -275,16 +270,14 @@ void CudaAladinContent::FillImageData(nifti_image *image,
     free(image->data);
     image->datatype = type;
     image->nbyper = sizeof(T);
-    image->data = (void *)malloc(image->nvox * image->nbyper);
+    image->data = (void*)malloc(image->nvox * image->nbyper);
     T* dataT = static_cast<T*>(image->data);
     for (size_t i = 0; i < size; ++i)
         dataT[i] = FillWarpedImageData<T>(buffer[i], type);
     free(buffer);
 }
 /* *************************************************************** */
-void CudaAladinContent::DownloadImage(nifti_image *image,
-                                      float* memoryObject,
-                                      int datatype) {
+void CudaAladinContent::DownloadImage(nifti_image *image, float *memoryObject, int datatype) {
     switch (datatype) {
     case NIFTI_TYPE_FLOAT32:
         FillImageData<float>(image, memoryObject, datatype);
@@ -412,43 +405,43 @@ int* CudaAladinContent::GetFloatingDims() {
 /* *************************************************************** */
 void CudaAladinContent::FreeCuPtrs() {
     if (transformationMatrix != nullptr)
-        cudaCommon_free<float>(&transformationMatrix_d);
+        cudaCommon_free(&transformationMatrix_d);
 
-    if (currentReference != nullptr) {
-        cudaCommon_free<float>(&referenceImageArray_d);
-        cudaCommon_free<float>(&referenceMat_d);
+    if (reference != nullptr) {
+        cudaCommon_free(&referenceImageArray_d);
+        cudaCommon_free(&referenceMat_d);
     }
 
-    if (currentFloating != nullptr) {
-        cudaCommon_free<float>(&floatingImageArray_d);
-        cudaCommon_free<float>(&floIJKMat_d);
+    if (floating != nullptr) {
+        cudaCommon_free(&floatingImageArray_d);
+        cudaCommon_free(&floIJKMat_d);
     }
 
-    if (currentWarped != nullptr)
-        cudaCommon_free<float>(&warpedImageArray_d);
+    if (warped != nullptr)
+        cudaCommon_free(&warpedImageArray_d);
 
-    if (currentDeformationField != nullptr)
-        cudaCommon_free<float>(&deformationFieldArray_d);
+    if (deformationField != nullptr)
+        cudaCommon_free(&deformationFieldArray_d);
 
-    if (currentReferenceMask != nullptr)
-        cudaCommon_free<int>(&mask_d);
+    if (referenceMask != nullptr)
+        cudaCommon_free(&mask_d);
 
     if (blockMatchingParams != nullptr) {
-        cudaCommon_free<int>(&totalBlock_d);
-        cudaCommon_free<float>(&referencePosition_d);
-        cudaCommon_free<float>(&warpedPosition_d);
+        cudaCommon_free(&totalBlock_d);
+        cudaCommon_free(&referencePosition_d);
+        cudaCommon_free(&warpedPosition_d);
         /*
-        cudaCommon_free<float>(&AR_d);
-        cudaCommon_free<float>(&U_d);
-        cudaCommon_free<float>(&VT_d);
-        cudaCommon_free<float>(&Sigma_d);
-        cudaCommon_free<float>(&lengths_d);
-        cudaCommon_free<float>(&newWarpedPos_d);
+        cudaCommon_free(&AR_d);
+        cudaCommon_free(&U_d);
+        cudaCommon_free(&VT_d);
+        cudaCommon_free(&Sigma_d);
+        cudaCommon_free(&lengths_d);
+        cudaCommon_free(&newWarpedPos_d);
         */
     }
 }
 /* *************************************************************** */
 bool CudaAladinContent::IsCurrentComputationDoubleCapable() {
-    return cudaSContext->GetIsCardDoubleCapable();
+    return CudaContextSingleton::Instance().GetIsCardDoubleCapable();
 }
 /* *************************************************************** */

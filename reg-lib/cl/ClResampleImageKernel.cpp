@@ -42,14 +42,14 @@ ClResampleImageKernel::ClResampleImageKernel(Content *conIn) : ResampleImageKern
     program = sContext->CreateProgram(clKernelPath.c_str());
 
     //get cpu ptrs
-    floatingImage = con->AladinContent::GetCurrentFloating();
-    warpedImage = con->AladinContent::GetCurrentWarped();
-    mask = con->AladinContent::GetCurrentReferenceMask();
+    floatingImage = con->AladinContent::GetFloating();
+    warpedImage = con->AladinContent::GetWarped();
+    mask = con->AladinContent::GetReferenceMask();
 
     //get cl ptrs
-    clCurrentFloating = con->GetFloatingImageArrayClmem();
-    clCurrentDeformationField = con->GetDeformationFieldArrayClmem();
-    clCurrentWarped = con->GetWarpedImageClmem();
+    clFloating = con->GetFloatingImageArrayClmem();
+    clDeformationField = con->GetDeformationFieldArrayClmem();
+    clWarped = con->GetWarpedImageClmem();
     clMask = con->GetMaskClmem();
     floMat = con->GetFloMatClmem();
 
@@ -104,11 +104,11 @@ void ClResampleImageKernel::Calculate(int interp,
 
     int datatype = this->floatingImage->datatype;
 
-    errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->clCurrentFloating);
+    errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->clFloating);
     sContext->checkErrNum(errNum, "Error setting interp kernel arguments 0.");
-    errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clCurrentDeformationField);
+    errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clDeformationField);
     sContext->checkErrNum(errNum, "Error setting interp kernel arguments 1.");
-    errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clCurrentWarped);
+    errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clWarped);
     sContext->checkErrNum(errNum, "Error setting interp kernel arguments 2.");
     errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->clMask);
     sContext->checkErrNum(errNum, "Error setting interp kernel arguments 3.");

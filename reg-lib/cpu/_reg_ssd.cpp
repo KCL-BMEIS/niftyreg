@@ -292,7 +292,7 @@ double reg_ssd::GetSimilarityMeasureValue()
 template <class DTYPE>
 void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *warpedImage,
-                                  nifti_image *warImgGradient,
+                                  nifti_image *warpedGradient,
                                   nifti_image *measureGradientImage,
                                   nifti_image *jacobianDetImage,
                                   int *mask,
@@ -321,7 +321,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
    DTYPE *currentWarPtr=&warImagePtr[current_timepoint*voxelNumber];
 
    // Pointers to the spatial gradient of the warped image
-   DTYPE *spatialGradPtrX = static_cast<DTYPE *>(warImgGradient->data);
+   DTYPE *spatialGradPtrX = static_cast<DTYPE *>(warpedGradient->data);
    DTYPE *spatialGradPtrY = &spatialGradPtrX[voxelNumber];
    DTYPE *spatialGradPtrZ = nullptr;
    if(referenceImage->nz>1)

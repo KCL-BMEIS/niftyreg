@@ -12,9 +12,9 @@
 class ClAladinContent: public AladinContent {
 public:
     //constructors
-    ClAladinContent(nifti_image *currentReferenceIn,
-                    nifti_image *currentFloatingIn,
-                    int *currentReferenceMaskIn = nullptr,
+    ClAladinContent(nifti_image *referenceIn,
+                    nifti_image *floatingIn,
+                    int *referenceMaskIn = nullptr,
                     mat44 *transformationMatrixIn = nullptr,
                     size_t bytesIn = sizeof(float),
                     const unsigned int percentageOfBlocks = 0,
@@ -40,14 +40,14 @@ public:
 
     // CPU getters with data downloaded from device
     _reg_blockMatchingParam* GetBlockMatchingParams() override;
-    nifti_image* GetCurrentDeformationField() override;
-    nifti_image* GetCurrentWarped(int typ) override;
+    nifti_image* GetDeformationField() override;
+    nifti_image* GetWarped(int datatype, int index = 0) override;
 
     // Setters
     void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
-    void SetCurrentWarped(nifti_image *warpedImageIn) override;
-    void SetCurrentDeformationField(nifti_image *currentDeformationFieldIn) override;
-    void SetCurrentReferenceMask(int *currentReferenceMaskIn) override;
+    void SetWarped(nifti_image *warpedImageIn) override;
+    void SetDeformationField(nifti_image *deformationFieldIn) override;
+    void SetReferenceMask(int *referenceMaskIn) override;
     void SetBlockMatchingParams(_reg_blockMatchingParam* bmp) override;
 
 private:

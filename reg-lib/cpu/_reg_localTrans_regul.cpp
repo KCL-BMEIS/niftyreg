@@ -2192,7 +2192,7 @@ void reg_spline_getLandmarkDistanceGradient(nifti_image *controlPointImage,
                                             float weight)
 {
    if(controlPointImage->intent_p1!=CUB_SPLINE_GRID){
-      reg_print_fct_error("reg_spline_getLandmarkDistance");
+      reg_print_fct_error("reg_spline_getLandmarkDistanceGradient");
       reg_print_msg_error("This function is only implemented for control point grid within an Euclidean setting for now");
       reg_exit();
    }

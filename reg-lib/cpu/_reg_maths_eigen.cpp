@@ -298,7 +298,7 @@ void reg_mat33_logm(mat33 *in_tensor)
    // is a general eigensolver and the logarithm function should
    // suceed unless convergence just isn't happening.
    det = tensor.determinant();
-   if(all_zeros==true || det == 0){
+   if(all_zeros || det == 0){
       reg_mat33_to_nan(in_tensor);
       return;
    }

@@ -231,7 +231,7 @@ double reg_dti::GetSimilarityMeasureValue()
 template <class DTYPE>
 void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
       nifti_image *warpedImage,
-      nifti_image *warImgGradient,
+      nifti_image *warpedGradient,
       nifti_image *dtiMeasureGradientImage,
       int *mask,
       unsigned int * dtIndicies)
@@ -266,8 +266,8 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
    // THE FOLLOWING IS WRONG
    reg_print_msg_error("ERROR IN THE DTI GRADIENT COMPUTATION - TO FIX");
    reg_exit();
-   unsigned int gradientVoxels = warImgGradient->nu*voxelNumber;
-   DTYPE *firstGradVox = static_cast<DTYPE *>(warImgGradient->data);
+   unsigned int gradientVoxels = warpedGradient->nu*voxelNumber;
+   DTYPE *firstGradVox = static_cast<DTYPE *>(warpedGradient->data);
    DTYPE *spatialGradXX = &firstGradVox[gradientVoxels*dtIndicies[0]];
    DTYPE *spatialGradXY = &firstGradVox[gradientVoxels*dtIndicies[1]];
    DTYPE *spatialGradYY = &firstGradVox[gradientVoxels*dtIndicies[2]];

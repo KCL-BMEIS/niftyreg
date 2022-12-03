@@ -212,7 +212,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
                 auto *platform = new Platform(plat_value);
                 Kernel *affineDeformKernel = platform->CreateKernel(AffineDeformationFieldKernel::GetName(), con);
                 affineDeformKernel->castTo<AffineDeformationFieldKernel>()->Calculate();
-                nifti_image *defField = con->GetCurrentDeformationField();
+                nifti_image *defField = con->GetDeformationField();
 
                 // Check all values
                 auto *defFieldPtrX = static_cast<float *>(defField->data);

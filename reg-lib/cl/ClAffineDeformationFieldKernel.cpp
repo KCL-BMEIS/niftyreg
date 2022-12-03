@@ -43,9 +43,9 @@ ClAffineDeformationFieldKernel::ClAffineDeformationFieldKernel(Content *conIn) :
     program = sContext->CreateProgram(clKernelPath.c_str());
 
     //get cpu ptrs
-    deformationFieldImage = con->AladinContent::GetCurrentDeformationField();
+    deformationFieldImage = con->AladinContent::GetDeformationField();
     affineTransformation = con->AladinContent::GetTransformationMatrix();
-    referenceMatrix = AladinContent::GetXYZMatrix(deformationFieldImage);
+    referenceMatrix = AladinContent::GetXYZMatrix(*deformationFieldImage);
 
     cl_int errNum;
     // Create OpenCL kernel
@@ -99,8 +99,7 @@ void ClAffineDeformationFieldKernel::Calculate(bool compose) {
     const size_t globalWorkSize[dims] = {xBlocks * xThreads, yBlocks * yThreads, zBlocks * zThreads};
     const size_t localWorkSize[dims] = {xThreads, yThreads, zThreads};
 
-    mat44 transformationMatrix = (compose == true) ?
-        *affineTransformation : reg_mat44_mul(affineTransformation, referenceMatrix);
+    mat44 transformationMatrix = compose ? *affineTransformation : reg_mat44_mul(affineTransformation, referenceMatrix);
 
     float* trans = (float *)malloc(16 * sizeof(float));
     mat44ToCptr(transformationMatrix, trans);

@@ -173,7 +173,7 @@ int main(int argc, char **argv)
    bool iso=false;
    bool verbose=true;
    int captureRangeVox = 3;
-   unsigned int platformFlag = NR_PLATFORM_CPU;
+   int platformFlag = NR_PLATFORM_CPU;
    unsigned gpuIdx = 999;
 
 #if defined (_OPENMP)

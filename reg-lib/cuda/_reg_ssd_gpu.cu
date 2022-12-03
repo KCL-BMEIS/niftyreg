@@ -85,7 +85,7 @@ float reg_getSSDValue_gpu(nifti_image *referenceImage,
 						  int activeVoxelNumber
 						  )
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	// Copy the constant memory variables
@@ -141,16 +141,15 @@ double reg_ssd_gpu::GetSimilarityMeasureValue()
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
-									  cudaArray **reference_d,
-									  float **warped_d,
-									  float4 **spaGradient_d,
-									  float4 **ssdGradient_d,
+									  cudaArray *reference_d,
+									  float *warped_d,
+									  float4 *spaGradient_d,
+									  float4 *ssdGradient_d,
 									  float maxSD,
-									  int **mask_d,
-									  int activeVoxelNumber
-									  )
+									  int *mask_d,
+									  int activeVoxelNumber)
 {
-    // Get the BlockSize - The values have been set in _reg_common_cuda.h - cudaCommon_setCUDACard
+    // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
 	// Copy the constant memory variables
@@ -166,19 +165,19 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 	referenceTexture.addressMode[1] = cudaAddressModeWrap;
 	referenceTexture.addressMode[2] = cudaAddressModeWrap;
 	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
-	NR_CUDA_SAFE_CALL(cudaBindTextureToArray(referenceTexture, *reference_d, channelDesc))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, warpedTexture, *warped_d, voxelNumber*sizeof(float)))
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, spaGradientTexture, *spaGradient_d, voxelNumber*sizeof(float4)))
+	NR_CUDA_SAFE_CALL(cudaBindTextureToArray(referenceTexture, reference_d, channelDesc))
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, warpedTexture, warped_d, voxelNumber*sizeof(float)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, mask_d, activeVoxelNumber*sizeof(int)))
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, spaGradientTexture, spaGradient_d, voxelNumber*sizeof(float4)))
 	// Set the gradient image to zero
-	NR_CUDA_SAFE_CALL(cudaMemset(*ssdGradient_d,0,voxelNumber*sizeof(float4)))
+	NR_CUDA_SAFE_CALL(cudaMemset(ssdGradient_d,0,voxelNumber*sizeof(float4)))
 	const unsigned int Grid_reg_getSSDGradient =
             (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)NR_BLOCK->Block_reg_getSSDGradient));
     dim3 B1(NR_BLOCK->Block_reg_getSSDGradient,1,1);
 	dim3 G1(Grid_reg_getSSDGradient,Grid_reg_getSSDGradient,1);
 	if(referenceDim.z>1)
-		reg_getSSDGradient3D_kernel <<< G1, B1 >>> (*ssdGradient_d);
-	else reg_getSSDGradient2D_kernel <<< G1, B1 >>> (*ssdGradient_d);
+		reg_getSSDGradient3D_kernel <<< G1, B1 >>> (ssdGradient_d);
+	else reg_getSSDGradient2D_kernel <<< G1, B1 >>> (ssdGradient_d);
 	NR_CUDA_CHECK_KERNEL(G1,B1)
 	// Unbind the textures
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(referenceTexture))
@@ -191,12 +190,12 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradient()
 {
 	reg_getVoxelBasedSSDGradient_gpu(this->referenceImagePointer,
-									 &this->referenceDevicePointer,
-									 &this->warpedFloatingDevicePointer,
-									 &this->warpedFloatingGradientDevicePointer,
-									 &this->forwardVoxelBasedGradientDevicePointer,
+									 this->referenceDevicePointer,
+									 this->warpedFloatingDevicePointer,
+									 this->warpedFloatingGradientDevicePointer,
+									 this->forwardVoxelBasedGradientDevicePointer,
                                      1.0f,
-									 &this->referenceMaskDevicePointer,
+									 this->referenceMaskDevicePointer,
 									 this->activeVoxeNumber
 									 );
 	return;

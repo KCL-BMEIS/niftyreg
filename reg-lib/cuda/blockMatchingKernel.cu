@@ -177,21 +177,21 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 					const unsigned int sharedIndex = ( y + idy ) * 12 + x + idx;
 					const float rWarpedValue = sWarpedValues[sharedIndex];
 					const bool overlap = isfinite(rWarpedValue) && finiteReference;
-					const unsigned int currentWarpedSize = __syncthreads_count(overlap);
+					const unsigned int warpedSize = __syncthreads_count(overlap);
 
-                    if (currentWarpedSize > 8) {
+                    if (warpedSize > 8) {
                         //the reference values must remain intact at each loop, so please do not touch this!
 						float newreferenceTemp = referenceTemp;
 						float newreferenceVar = referenceVar;
-						if (currentWarpedSize != referenceSize){
+						if (warpedSize != referenceSize){
 							const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
-							const float newReferenceMean = __fdividef(blockReduce2DSum(newReferenceValue, tid), currentWarpedSize);
+							const float newReferenceMean = __fdividef(blockReduce2DSum(newReferenceValue, tid), warpedSize);
 							newreferenceTemp = overlap ? newReferenceValue - newReferenceMean : 0.0f;
 							newreferenceVar = blockReduce2DSum(newreferenceTemp * newreferenceTemp, tid);
 						}
 
 						const float rChecked = overlap ? rWarpedValue : 0.0f;
-						const float warpedMean = __fdividef(blockReduce2DSum(rChecked, tid), currentWarpedSize);
+						const float warpedMean = __fdividef(blockReduce2DSum(rChecked, tid), warpedSize);
 						const float warpedTemp = overlap ? rChecked - warpedMean : 0.0f;
 						const float warpedVar = blockReduce2DSum(warpedTemp * warpedTemp, tid);
 
@@ -329,17 +329,17 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                   const float rWarpedValue = sWarpedValues[sharedIndex];
                   const bool overlap = isfinite(rWarpedValue) && finiteReference;
                   tempVal = REDUCE_TEST(sData, overlap ? 1.0f : 0.0f, tid);
-                  const uint2 currentWarpedSize = make_uint2((uint)tempVal.x, (uint)tempVal.y);
+                  const uint2 warpedSize = make_uint2((uint)tempVal.x, (uint)tempVal.y);
 
-                  if (currentWarpedSize.x > 32 || currentWarpedSize.y > 32) {
+                  if (warpedSize.x > 32 || warpedSize.y > 32) {
 
                      float newreferenceTemp = referenceTemp;
                      float2 newreferenceVar = referenceVar;
-                     if (currentWarpedSize.x!=referenceSize.x || currentWarpedSize.y!=referenceSize.y){
+                     if (warpedSize.x!=referenceSize.x || warpedSize.y!=referenceSize.y){
                         const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
                         float2 newReferenceMean = REDUCE_TEST(sData, newReferenceValue, tid);
-                        newReferenceMean.x /= (float)currentWarpedSize.x;
-                        newReferenceMean.y /= (float)currentWarpedSize.y;
+                        newReferenceMean.x /= (float)warpedSize.x;
+                        newReferenceMean.y /= (float)warpedSize.y;
                         if(tid>63)
                            referenceTemp = overlap ? newReferenceValue - newReferenceMean.y : 0.f;
                         else referenceTemp = overlap ? newReferenceValue - newReferenceMean.x : 0.f;
@@ -347,8 +347,8 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                      }
                      const float rChecked = overlap ? rWarpedValue : 0.0f;
                      float2 warpedMean = REDUCE_TEST(sData, rChecked, tid);
-                     warpedMean.x /= (float)currentWarpedSize.x;
-                     warpedMean.y /= (float)currentWarpedSize.y;
+                     warpedMean.x /= (float)warpedSize.x;
+                     warpedMean.y /= (float)warpedSize.y;
                      float warpedTemp;
                      if(tid>63)
                         warpedTemp = overlap ? rChecked - warpedMean.y : 0.f;
@@ -356,7 +356,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                      const float2 warpedVar = REDUCE_TEST(sData, warpedTemp*warpedTemp, tid);
                      const float2 sumTargetResult = REDUCE_TEST(sData, newreferenceTemp*warpedTemp, tid);
 
-                     if (tid==0 && currentWarpedSize.x > 32 ){
+                     if (tid==0 && warpedSize.x > 32 ){
                         const float localCC = fabs(sumTargetResult.x *
                                                    rsqrtf(newreferenceVar.x * warpedVar.x));
                         if(localCC > bestValue.x) {
@@ -366,7 +366,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                            bestDisp[0][2] = z - 4.f;
                         }
                      }
-                     if (tid==64 && currentWarpedSize.y > 32 ){
+                     if (tid==64 && warpedSize.y > 32 ){
                         const float localCC = fabs(sumTargetResult.y *
                                                    rsqrtf(newreferenceVar.y * warpedVar.y));
                         if(localCC > bestValue.y) {
@@ -500,22 +500,22 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 						const unsigned int sharedIndex = ( (z+idz) * 12 + y + idy ) * 12 + x + idx;
 						const float rWarpedValue = sWarpedValues[sharedIndex];
 						const bool overlap = isfinite(rWarpedValue) && finiteReference;
-						const unsigned int currentWarpedSize = __syncthreads_count(overlap);
+						const unsigned int warpedSize = __syncthreads_count(overlap);
 
-						if (currentWarpedSize > 32) {
+						if (warpedSize > 32) {
 
 							//the target values must remain intact at each loop, so please do not touch this!
 							float newreferenceTemp = referenceTemp;
 							float newreferenceVar = referenceVar;
-							if (currentWarpedSize != referenceSize){
+							if (warpedSize != referenceSize){
 								const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
-								const float newReferenceMean = __fdividef(blockReduceSum(newReferenceValue, tid), currentWarpedSize);
+								const float newReferenceMean = __fdividef(blockReduceSum(newReferenceValue, tid), warpedSize);
 								newreferenceTemp = overlap ? newReferenceValue - newReferenceMean : 0.0f;
 								newreferenceVar = blockReduceSum(newreferenceTemp * newreferenceTemp, tid);
 							}
 
 							const float rChecked = overlap ? rWarpedValue : 0.0f;
-							const float warpedMean = __fdividef(blockReduceSum(rChecked, tid), currentWarpedSize);
+							const float warpedMean = __fdividef(blockReduceSum(rChecked, tid), warpedSize);
 							const float warpedTemp = overlap ? rChecked - warpedMean : 0.0f;
 							const float warpedVar = blockReduceSum(warpedTemp * warpedTemp, tid);
 

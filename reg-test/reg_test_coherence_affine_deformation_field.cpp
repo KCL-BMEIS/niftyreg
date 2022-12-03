@@ -101,12 +101,12 @@ int main(int argc, char **argv)
     //CPU or GPU code
     reg_tools_changeDatatype<float>(referenceImage);
     test(con_cpu, NR_PLATFORM_CPU);
-    test_field_cpu = con_cpu->GetCurrentDeformationField();
+    test_field_cpu = con_cpu->GetDeformationField();
 
     test(con_gpu, NR_PLATFORM_CPU);
-    test_field_gpu = con_gpu->GetCurrentDeformationField();
+    test_field_gpu = con_gpu->GetDeformationField();
 
-    // Compute the difference between the computed and inputed deformation field
+    // Compute the difference between the computed and inputted deformation field
     nifti_image *diff_field = nifti_copy_nim_info(inputDeformationField);
     diff_field->data = (void *) malloc(diff_field->nvox*diff_field->nbyper);
     reg_tools_substractImageToImage(inputDeformationField, test_field_cpu, diff_field);

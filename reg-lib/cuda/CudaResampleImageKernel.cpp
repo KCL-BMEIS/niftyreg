@@ -5,8 +5,8 @@
 CudaResampleImageKernel::CudaResampleImageKernel(Content *conIn) : ResampleImageKernel() {
     CudaAladinContent *con = static_cast<CudaAladinContent*>(conIn);
 
-    floatingImage = con->AladinContent::GetCurrentFloating();
-    warpedImage = con->AladinContent::GetCurrentWarped();
+    floatingImage = con->AladinContent::GetFloating();
+    warpedImage = con->AladinContent::GetWarped();
 
     //cuda ptrs
     floatingImageArray_d = con->GetFloatingImageArray_d();

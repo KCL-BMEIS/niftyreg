@@ -34,7 +34,7 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
    else referenceMatrix=&(deformationFieldImage->qto_xyz);
 
    mat44 transformationMatrix;
-   if(composition==true)
+   if(composition)
       transformationMatrix = *affineTransformation;
    else transformationMatrix = reg_mat44_mul(affineTransformation, referenceMatrix);
 
@@ -61,7 +61,7 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
          voxel[0]=(double)x;
          if(mask[index]>-1)
          {
-            if(composition==true)
+            if(composition)
             {
                voxel[0] = (double) deformationFieldPtrX[index];
                voxel[1] = (double) deformationFieldPtrY[index];
@@ -97,7 +97,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
    else referenceMatrix=&(deformationFieldImage->qto_xyz);
 
    mat44 transformationMatrix;
-   if(composition==true)
+   if(composition)
       transformationMatrix = *affineTransformation;
    else transformationMatrix = reg_mat44_mul(affineTransformation, referenceMatrix);
 
@@ -126,7 +126,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
             voxel[0]=(double) x;
             if(mask[index]>-1)
             {
-               if(composition==true)
+               if(composition)
                {
                   voxel[0]= (double) deformationFieldPtrX[index];
                   voxel[1]= (double) deformationFieldPtrY[index];

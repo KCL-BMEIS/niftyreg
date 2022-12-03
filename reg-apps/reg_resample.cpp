@@ -455,7 +455,7 @@ int main(int argc, char **argv)
             warpedImage->dim[3] * warpedImage->dim[4] * warpedImage->dim[5];
       warpedImage->data = (void *)calloc(warpedImage->nvox, warpedImage->nbyper);
 
-      if((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor==true)
+      if((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor)
       {
 #ifndef NDEBUG
          reg_print_msg_debug("DTI-based resampling\n");

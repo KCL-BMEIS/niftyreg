@@ -59,11 +59,10 @@ float reg_getSSDValue_gpu(nifti_image *referenceImage,
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 extern "C++"
 void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
-                                      cudaArray **reference_d,
-                                      float **warped_d,
-                                      float4 **spaGradient_d,
-                                      float4 **ssdGradient_d,
+                                      cudaArray *reference_d,
+                                      float *warped_d,
+                                      float4 *spaGradient_d,
+                                      float4 *ssdGradient_d,
                                       float maxSD,
-                                      int **mask_d,
-                                      int activeVoxelNumber
-                                     );
+                                      int *mask_d,
+                                      int activeVoxelNumber);

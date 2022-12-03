@@ -4,10 +4,10 @@
 /* *************************************************************** */
 CpuResampleImageKernel::CpuResampleImageKernel(Content *conIn) : ResampleImageKernel() {
     AladinContent *con = static_cast<AladinContent*>(conIn);
-    floatingImage = con->GetCurrentFloating();
-    warpedImage = con->GetCurrentWarped();
-    deformationField = con->GetCurrentDeformationField();
-    mask = con->GetCurrentReferenceMask();
+    floatingImage = con->GetFloating();
+    warpedImage = con->GetWarped();
+    deformationField = con->GetDeformationField();
+    mask = con->GetReferenceMask();
 }
 /* *************************************************************** */
 void CpuResampleImageKernel::Calculate(int interp,

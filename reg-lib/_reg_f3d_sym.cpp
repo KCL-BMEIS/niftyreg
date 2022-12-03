@@ -31,7 +31,7 @@ reg_f3d_sym<T>::reg_f3d_sym(int refTimePoint,int floTimePoint)
    this->backwardLogJointHistogram=nullptr;
 
    this->floatingMaskImage=nullptr;
-   this->currentFloatingMask=nullptr;
+   this->floatingMask=nullptr;
    this->floatingMaskPyramid=nullptr;
    this->backwardActiveVoxelNumber=nullptr;
 
@@ -117,7 +117,7 @@ template <class T>
 T reg_f3d_sym<T>::InitialiseCurrentLevel()
 {
    // Refine the control point grids if required
-   if(this->gridRefinement==true)
+   if(this->gridRefinement)
    {
       if(this->currentLevel==0){
          this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelNumber-1));
@@ -136,23 +136,23 @@ T reg_f3d_sym<T>::InitialiseCurrentLevel()
    if(this->usePyramid)
    {
       this->currentMask = this->maskPyramid[this->currentLevel];
-      this->currentFloatingMask = this->floatingMaskPyramid[this->currentLevel];
+      this->floatingMask = this->floatingMaskPyramid[this->currentLevel];
    }
    else
    {
       this->currentMask = this->maskPyramid[0];
-      this->currentFloatingMask = this->floatingMaskPyramid[0];
+      this->floatingMask = this->floatingMaskPyramid[0];
    }
 
    // Define the initial step size for the gradient ascent optimisation
-   T maxStepSize = this->currentReference->dx;
-   maxStepSize = this->currentReference->dy>maxStepSize?this->currentReference->dy:maxStepSize;
-   maxStepSize = this->currentFloating->dx>maxStepSize?this->currentFloating->dx:maxStepSize;
-   maxStepSize = this->currentFloating->dy>maxStepSize?this->currentFloating->dy:maxStepSize;
-   if(this->currentReference->ndim>2)
+   T maxStepSize = this->reference->dx;
+   maxStepSize = this->reference->dy>maxStepSize?this->reference->dy:maxStepSize;
+   maxStepSize = this->floating->dx>maxStepSize?this->floating->dx:maxStepSize;
+   maxStepSize = this->floating->dy>maxStepSize?this->floating->dy:maxStepSize;
+   if(this->reference->ndim>2)
    {
-      maxStepSize = (this->currentReference->dz>maxStepSize)?this->currentReference->dz:maxStepSize;
-      maxStepSize = (this->currentFloating->dz>maxStepSize)?this->currentFloating->dz:maxStepSize;
+      maxStepSize = (this->reference->dz>maxStepSize)?this->reference->dz:maxStepSize;
+      maxStepSize = (this->floating->dz>maxStepSize)?this->floating->dz:maxStepSize;
    }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::InitialiseCurrentLevel");
@@ -161,11 +161,11 @@ T reg_f3d_sym<T>::InitialiseCurrentLevel()
 }
 /* *************************************************************** */
 template <class T>
-void reg_f3d_sym<T>::ClearCurrentInputImage()
+void reg_f3d_sym<T>::DeallocateCurrentInputImage()
 {
-   reg_f3d<T>::ClearCurrentInputImage();
+   reg_f3d<T>::DeallocateCurrentInputImage();
 #ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d_sym<T>::ClearCurrentInputImage");
+   reg_print_fct_debug("reg_f3d_sym<T>::DeallocateCurrentInputImage");
 #endif
    return;
 }
@@ -174,26 +174,26 @@ void reg_f3d_sym<T>::ClearCurrentInputImage()
 template <class T>
 void reg_f3d_sym<T>::AllocateWarped()
 {
-   this->ClearWarped();
+   this->DeallocateWarped();
 
    reg_f3d<T>::AllocateWarped();
-   if(this->currentFloating==nullptr)
+   if(this->floating==nullptr)
    {
       reg_print_fct_error("reg_f3d_sym<T>::AllocateWarped()");
       reg_print_msg_error("The floating image is not defined");
       reg_exit();
    }
-   this->backwardWarped = nifti_copy_nim_info(this->currentFloating);
-   this->backwardWarped->dim[0]=this->backwardWarped->ndim=this->currentReference->ndim;
-   this->backwardWarped->dim[4]=this->backwardWarped->nt=this->currentReference->nt;
+   this->backwardWarped = nifti_copy_nim_info(this->floating);
+   this->backwardWarped->dim[0]=this->backwardWarped->ndim=this->reference->ndim;
+   this->backwardWarped->dim[4]=this->backwardWarped->nt=this->reference->nt;
    this->backwardWarped->pixdim[4]=this->backwardWarped->dt=1.0;
    this->backwardWarped->nvox =
          (size_t)this->backwardWarped->nx *
          (size_t)this->backwardWarped->ny *
          (size_t)this->backwardWarped->nz *
          (size_t)this->backwardWarped->nt;
-   this->backwardWarped->datatype = this->currentReference->datatype;
-   this->backwardWarped->nbyper = this->currentReference->nbyper;
+   this->backwardWarped->datatype = this->reference->datatype;
+   this->backwardWarped->nbyper = this->reference->nbyper;
    this->backwardWarped->data = (void *)calloc(this->backwardWarped->nvox, this->backwardWarped->nbyper);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::AllocateWarped");
@@ -202,16 +202,16 @@ void reg_f3d_sym<T>::AllocateWarped()
 }
 /* *************************************************************** */
 template <class T>
-void reg_f3d_sym<T>::ClearWarped()
+void reg_f3d_sym<T>::DeallocateWarped()
 {
-   reg_f3d<T>::ClearWarped();
+   reg_f3d<T>::DeallocateWarped();
    if(this->backwardWarped!=nullptr)
    {
       nifti_image_free(this->backwardWarped);
       this->backwardWarped=nullptr;
    }
 #ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d_sym<T>::ClearWarped");
+   reg_print_fct_debug("reg_f3d_sym<T>::DeallocateWarped");
 #endif
    return;
 }
@@ -220,10 +220,10 @@ void reg_f3d_sym<T>::ClearWarped()
 template <class T>
 void reg_f3d_sym<T>::AllocateDeformationField()
 {
-   this->ClearDeformationField();
+   this->DeallocateDeformationField();
 
    reg_f3d<T>::AllocateDeformationField();
-   if(this->currentFloating==nullptr)
+   if(this->floating==nullptr)
    {
       reg_print_fct_error("reg_f3d_sym<T>::AllocateDeformationField()");
       reg_print_msg_error("The floating image is not defined");
@@ -235,14 +235,14 @@ void reg_f3d_sym<T>::AllocateDeformationField()
       reg_print_msg_error("The backward control point image is not defined");
       reg_exit();
    }
-   this->backwardDeformationFieldImage = nifti_copy_nim_info(this->currentFloating);
+   this->backwardDeformationFieldImage = nifti_copy_nim_info(this->floating);
    this->backwardDeformationFieldImage->dim[0]=this->backwardDeformationFieldImage->ndim=5;
-   this->backwardDeformationFieldImage->dim[1]=this->backwardDeformationFieldImage->nx=this->currentFloating->nx;
-   this->backwardDeformationFieldImage->dim[2]=this->backwardDeformationFieldImage->ny=this->currentFloating->ny;
-   this->backwardDeformationFieldImage->dim[3]=this->backwardDeformationFieldImage->nz=this->currentFloating->nz;
+   this->backwardDeformationFieldImage->dim[1]=this->backwardDeformationFieldImage->nx=this->floating->nx;
+   this->backwardDeformationFieldImage->dim[2]=this->backwardDeformationFieldImage->ny=this->floating->ny;
+   this->backwardDeformationFieldImage->dim[3]=this->backwardDeformationFieldImage->nz=this->floating->nz;
    this->backwardDeformationFieldImage->dim[4]=this->backwardDeformationFieldImage->nt=1;
    this->backwardDeformationFieldImage->pixdim[4]=this->backwardDeformationFieldImage->dt=1.0;
-   if(this->currentFloating->nz==1)
+   if(this->floating->nz==1)
       this->backwardDeformationFieldImage->dim[5]=this->backwardDeformationFieldImage->nu=2;
    else this->backwardDeformationFieldImage->dim[5]=this->backwardDeformationFieldImage->nu=3;
    this->backwardDeformationFieldImage->pixdim[5]=this->backwardDeformationFieldImage->du=1.0;
@@ -281,9 +281,9 @@ void reg_f3d_sym<T>::AllocateDeformationField()
 }
 /* *************************************************************** */
 template <class T>
-void reg_f3d_sym<T>::ClearDeformationField()
+void reg_f3d_sym<T>::DeallocateDeformationField()
 {
-   reg_f3d<T>::ClearDeformationField();
+   reg_f3d<T>::DeallocateDeformationField();
    if(this->backwardDeformationFieldImage!=nullptr)
    {
       nifti_image_free(this->backwardDeformationFieldImage);
@@ -295,7 +295,7 @@ void reg_f3d_sym<T>::ClearDeformationField()
       this->backwardJacobianMatrix=nullptr;
    }
 #ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d_sym<T>::ClearDeformationField");
+   reg_print_fct_debug("reg_f3d_sym<T>::DeallocateDeformationField");
 #endif
    return;
 }
@@ -304,7 +304,7 @@ void reg_f3d_sym<T>::ClearDeformationField()
 template <class T>
 void reg_f3d_sym<T>::AllocateWarpedGradient()
 {
-   this->ClearWarpedGradient();
+   this->DeallocateWarpedGradient();
 
    reg_f3d<T>::AllocateWarpedGradient();
    if(this->backwardDeformationFieldImage==nullptr)
@@ -323,16 +323,16 @@ void reg_f3d_sym<T>::AllocateWarpedGradient()
 }
 /* *************************************************************** */
 template <class T>
-void reg_f3d_sym<T>::ClearWarpedGradient()
+void reg_f3d_sym<T>::DeallocateWarpedGradient()
 {
-   reg_f3d<T>::ClearWarpedGradient();
+   reg_f3d<T>::DeallocateWarpedGradient();
    if(this->backwardWarpedGradientImage!=nullptr)
    {
       nifti_image_free(this->backwardWarpedGradientImage);
       this->backwardWarpedGradientImage=nullptr;
    }
 #ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d_sym<T>::ClearWarpedGradient");
+   reg_print_fct_debug("reg_f3d_sym<T>::DeallocateWarpedGradient");
 #endif
    return;
 }
@@ -341,7 +341,7 @@ void reg_f3d_sym<T>::ClearWarpedGradient()
 template <class T>
 void reg_f3d_sym<T>::AllocateVoxelBasedMeasureGradient()
 {
-   this->ClearVoxelBasedMeasureGradient();
+   this->DeallocateVoxelBasedMeasureGradient();
 
    reg_f3d<T>::AllocateVoxelBasedMeasureGradient();
    if(this->backwardDeformationFieldImage==nullptr)
@@ -361,16 +361,16 @@ void reg_f3d_sym<T>::AllocateVoxelBasedMeasureGradient()
 }
 /* *************************************************************** */
 template <class T>
-void reg_f3d_sym<T>::ClearVoxelBasedMeasureGradient()
+void reg_f3d_sym<T>::DeallocateVoxelBasedMeasureGradient()
 {
-   reg_f3d<T>::ClearVoxelBasedMeasureGradient();
+   reg_f3d<T>::DeallocateVoxelBasedMeasureGradient();
    if(this->backwardVoxelBasedMeasureGradientImage!=nullptr)
    {
       nifti_image_free(this->backwardVoxelBasedMeasureGradientImage);
       this->backwardVoxelBasedMeasureGradientImage=nullptr;
    }
 #ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d_sym<T>::ClearVoxelBasedMeasureGradient");
+   reg_print_fct_debug("reg_f3d_sym<T>::DeallocateVoxelBasedMeasureGradient");
 #endif
    return;
 }
@@ -379,7 +379,7 @@ void reg_f3d_sym<T>::ClearVoxelBasedMeasureGradient()
 template <class T>
 void reg_f3d_sym<T>::AllocateTransformationGradient()
 {
-   this->ClearTransformationGradient();
+   this->DeallocateTransformationGradient();
 
    reg_f3d<T>::AllocateTransformationGradient();
    if(this->backwardControlPointGrid==nullptr)
@@ -399,14 +399,14 @@ void reg_f3d_sym<T>::AllocateTransformationGradient()
 }
 /* *************************************************************** */
 template <class T>
-void reg_f3d_sym<T>::ClearTransformationGradient()
+void reg_f3d_sym<T>::DeallocateTransformationGradient()
 {
-   reg_f3d<T>::ClearTransformationGradient();
+   reg_f3d<T>::DeallocateTransformationGradient();
    if(this->backwardTransformationGradient!=nullptr)
       nifti_image_free(this->backwardTransformationGradient);
    this->backwardTransformationGradient=nullptr;
 #ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d_sym<T>::ClearTransformationGradient");
+   reg_print_fct_debug("reg_f3d_sym<T>::DeallocateTransformationGradient");
 #endif
    return;
 }
@@ -588,7 +588,7 @@ void reg_f3d_sym<T>::GetDeformationField()
                                   );
    reg_spline_getDeformationField(this->backwardControlPointGrid,
                                   this->backwardDeformationFieldImage,
-                                  this->currentFloatingMask,
+                                  this->floatingMask,
                                   false, //composition
                                   true // bspline
                                   );
@@ -608,7 +608,7 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
    // Resample the floating image
    if(this->measure_dti==nullptr)
    {
-      reg_resampleImage(this->currentFloating,
+      reg_resampleImage(this->floating,
                         this->warped,
                         this->deformationFieldImage,
                         this->currentMask,
@@ -620,7 +620,7 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
       reg_defField_getJacobianMatrix(this->deformationFieldImage,
                                      this->forwardJacobianMatrix);
       /*DTI needs fixing!
-     reg_resampleImage(this->currentFloating,
+     reg_resampleImage(this->floating,
                         this->warped,
                         this->deformationFieldImage,
                         this->currentMask,
@@ -633,10 +633,10 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
    // Resample the reference image
    if(this->measure_dti==nullptr)
    {
-      reg_resampleImage(this->currentReference, // input image
+      reg_resampleImage(this->reference, // input image
                         this->backwardWarped, // warped input image
                         this->backwardDeformationFieldImage, // deformation field
-                        this->currentFloatingMask, // mask
+                        this->floatingMask, // mask
                         inter, // interpolation type
                         this->warpedPaddingValue); // padding value
    }
@@ -645,10 +645,10 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
       reg_defField_getJacobianMatrix(this->backwardDeformationFieldImage,
                                      this->backwardJacobianMatrix);
      /* DTI needs fixing
-    reg_resampleImage(this->currentReference, // input image
+    reg_resampleImage(this->reference, // input image
                         this->backwardWarped, // warped input image
                         this->backwardDeformationFieldImage, // deformation field
-                        this->currentFloatingMask, // mask
+                        this->floatingMask, // mask
                         inter, // interpolation type
                         this->warpedPaddingValue, // padding value
                         this->measure_dti->GetActiveTimepoints(),
@@ -673,13 +673,13 @@ double reg_f3d_sym<T>::ComputeJacobianBasedPenaltyTerm(int type)
    if(type==2)
    {
       backwardPenaltyTerm = reg_spline_getJacobianPenaltyTerm(this->backwardControlPointGrid,
-                                                              this->currentFloating,
+                                                              this->floating,
                                                               false);
    }
    else
    {
       backwardPenaltyTerm = reg_spline_getJacobianPenaltyTerm(this->backwardControlPointGrid,
-                                                              this->currentFloating,
+                                                              this->floating,
                                                               this->jacobianLogApproximation);
    }
    unsigned int maxit=5;
@@ -690,13 +690,13 @@ double reg_f3d_sym<T>::ComputeJacobianBasedPenaltyTerm(int type)
       if(type==2)
       {
          backwardPenaltyTerm = reg_spline_correctFolding(this->backwardControlPointGrid,
-                                                         this->currentFloating,
+                                                         this->floating,
                                                          false);
       }
       else
       {
          backwardPenaltyTerm = reg_spline_correctFolding(this->backwardControlPointGrid,
-                                                         this->currentFloating,
+                                                         this->floating,
                                                          this->jacobianLogApproximation);
       }
 #ifndef NDEBUG
@@ -799,8 +799,8 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                   0.f);
    // The intensity gradient is first computed
    //    if(this->measure_dti!=nullptr){
-   //        reg_getImageGradient(this->currentFloating,
-   //                             this->warImgGradient,
+   //        reg_getImageGradient(this->floating,
+   //                             this->warpedGradient,
    //                             this->deformationFieldImage,
    //                             this->currentMask,
    //                             this->interpolation,
@@ -809,10 +809,10 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
    //                             this->forwardJacobianMatrix,
    //                             this->warped);
 
-   //        reg_getImageGradient(this->currentReference,
+   //        reg_getImageGradient(this->reference,
    //                             this->backwardWarpedGradientImage,
    //                             this->backwardDeformationFieldImage,
-   //                             this->currentFloatingMask,
+   //                             this->floatingMask,
    //                             this->interpolation,
    //                             this->warpedPaddingValue,
    //                             this->measure_dti->GetActiveTimepoints(),
@@ -825,19 +825,19 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
    //    }
 
 
-   for(int t=0; t<this->currentReference->nt; ++t){
-      reg_getImageGradient(this->currentFloating,
-                           this->warImgGradient,
+   for(int t=0; t<this->reference->nt; ++t){
+      reg_getImageGradient(this->floating,
+                           this->warpedGradient,
                            this->deformationFieldImage,
                            this->currentMask,
                            this->interpolation,
                            this->warpedPaddingValue,
                            t);
 
-      reg_getImageGradient(this->currentReference,
+      reg_getImageGradient(this->reference,
                            this->backwardWarpedGradientImage,
                            this->backwardDeformationFieldImage,
-                           this->currentFloatingMask,
+                           this->floatingMask,
                            this->interpolation,
                            this->warpedPaddingValue,
                            t);
@@ -913,9 +913,9 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
    }
    // The backward node based sim measure gradient is extracted
    mat44 reorientation;
-   if(this->currentReference->sform_code>0)
-      reorientation = this->currentReference->sto_ijk;
-   else reorientation = this->currentReference->qto_ijk;
+   if(this->reference->sform_code>0)
+      reorientation = this->reference->sto_ijk;
+   else reorientation = this->reference->qto_ijk;
    reg_voxelCentric2NodeCentric(this->backwardTransformationGradient,
                                 this->backwardVoxelBasedMeasureGradientImage,
                                 this->similarityWeight,
@@ -937,7 +937,7 @@ void reg_f3d_sym<T>::GetJacobianBasedGradient()
    reg_f3d<T>::GetJacobianBasedGradient();
 
    reg_spline_getJacobianPenaltyTermGradient(this->backwardControlPointGrid,
-                                             this->currentFloating,
+                                             this->floating,
                                              this->backwardTransformationGradient,
                                              this->jacobianLogWeight,
                                              this->jacobianLogApproximation);
@@ -1042,7 +1042,7 @@ void reg_f3d_sym<T>::GetApproximatedGradient()
    // Loop over every control points
    T *gridPtr = static_cast<T *>(this->backwardControlPointGrid->data);
    T *gradPtr = static_cast<T *>(this->backwardTransformationGradient->data);
-   T eps = this->currentFloating->dx/1000.f;
+   T eps = this->floating->dx/1000.f;
    for(size_t i=0; i<this->backwardControlPointGrid->nvox; i++)
    {
       T currentValue = this->optimiser->GetBestDOF_b()[i];
@@ -1078,11 +1078,11 @@ T reg_f3d_sym<T>::NormaliseGradient()
       for(size_t i=0; i<voxNumber; i++)
       {
          T valX=0,valY=0,valZ=0;
-         if(this->optimiseX==true)
+         if(this->optimiseX)
             valX = *bckPtrX++;
-         if(this->optimiseY==true)
+         if(this->optimiseY)
             valY = *bckPtrY++;
-         if(this->optimiseZ==true)
+         if(this->optimiseZ)
             valZ = *bckPtrZ++;
          T length = (T)(sqrt(valX*valX + valY*valY + valZ*valZ));
          maxGradValue = (length>maxGradValue)?length:maxGradValue;
@@ -1093,9 +1093,9 @@ T reg_f3d_sym<T>::NormaliseGradient()
       for(size_t i=0; i<voxNumber; i++)
       {
          T valX=0,valY=0;
-         if(this->optimiseX==true)
+         if(this->optimiseX)
             valX = *bckPtrX++;
-         if(this->optimiseY==true)
+         if(this->optimiseY)
             valY = *bckPtrY++;
          T length = (T)(sqrt(valX*valX + valY*valY));
          maxGradValue = (length>maxGradValue)?length:maxGradValue;
@@ -1222,7 +1222,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyErrorField(bool forceAll)
                                   );
    reg_spline_getDeformationField(this->controlPointGrid,
                                   this->backwardDeformationFieldImage,
-                                  this->currentFloatingMask,
+                                  this->floatingMask,
                                   true, // composition
                                   true // use B-Spline
                                   );
@@ -1283,7 +1283,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
       T *dispPtrZ=&dispPtrY[voxelNumber];
       for(size_t i=0; i<voxelNumber; ++i)
       {
-         if(this->currentFloatingMask[i]>-1)
+         if(this->floatingMask[i]>-1)
          {
             double dist=reg_pow2(dispPtrX[i]) + reg_pow2(dispPtrY[i]) + reg_pow2(dispPtrZ[i]);
             berror += dist;
@@ -1294,7 +1294,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
    {
       for(size_t i=0; i<voxelNumber; ++i)
       {
-         if(this->currentFloatingMask[i]>-1)
+         if(this->floatingMask[i]>-1)
          {
             double dist=reg_pow2(dispPtrX[i]) + reg_pow2(dispPtrY[i]);
             berror += dist;
@@ -1350,7 +1350,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
    defPtrZ=&defPtrY[backwardVoxelNumber];
    for(size_t i=0; i<backwardVoxelNumber; ++i)
    {
-      if(this->currentFloatingMask[i]<0)
+      if(this->floatingMask[i]<0)
       {
          defPtrX[i]=0;
          defPtrY[i]=0;
@@ -1463,9 +1463,9 @@ void reg_f3d_sym<T>::UpdateParameters(float scale)
    T *gradient_b=this->optimiser->GetGradient_b();
 
    // Update the control point position
-   if(this->optimiser->GetOptimiseX()==true &&
-         this->optimiser->GetOptimiseY()==true &&
-         this->optimiser->GetOptimiseZ()==true)
+   if(this->optimiser->GetOptimiseX() &&
+         this->optimiser->GetOptimiseY() &&
+         this->optimiser->GetOptimiseZ())
    {
       // Update the values for all axis displacement
       for(size_t i=0; i<this->optimiser->GetDOFNumber_b(); ++i)
@@ -1477,7 +1477,7 @@ void reg_f3d_sym<T>::UpdateParameters(float scale)
    {
       size_t voxNumber_b = this->optimiser->GetVoxNumber_b();
       // Update the values for the x-axis displacement
-      if(this->optimiser->GetOptimiseX()==true)
+      if(this->optimiser->GetOptimiseX())
       {
          for(size_t i=0; i<voxNumber_b; ++i)
          {
@@ -1485,7 +1485,7 @@ void reg_f3d_sym<T>::UpdateParameters(float scale)
          }
       }
       // Update the values for the y-axis displacement
-      if(this->optimiser->GetOptimiseY()==true)
+      if(this->optimiser->GetOptimiseY())
       {
          T *currentDOFY_b=&currentDOF_b[voxNumber_b];
          T *bestDOFY_b=&bestDOF_b[voxNumber_b];
@@ -1496,7 +1496,7 @@ void reg_f3d_sym<T>::UpdateParameters(float scale)
          }
       }
       // Update the values for the z-axis displacement
-      if(this->optimiser->GetOptimiseZ()==true && this->optimiser->GetNDim()>2)
+      if(this->optimiser->GetOptimiseZ() && this->optimiser->GetNDim()>2)
       {
          T *currentDOFZ_b=&currentDOF_b[2*voxNumber_b];
          T *bestDOFZ_b=&bestDOF_b[2*voxNumber_b];
@@ -1649,98 +1649,98 @@ void reg_f3d_sym<T>::InitialiseSimilarity()
          this->measure_nmi->SetTimepointWeight(i,1.0);
    }
    if(this->measure_nmi!=nullptr)
-      this->measure_nmi->InitialiseMeasure(this->currentReference,
-                                           this->currentFloating,
+      this->measure_nmi->InitialiseMeasure(this->reference,
+                                           this->floating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warImgGradient,
+                                           this->warpedGradient,
                                            this->voxelBasedMeasureGradient,
                                            this->localWeightSimCurrent,
-                                           this->currentFloatingMask,
+                                           this->floatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
                                            this->backwardVoxelBasedMeasureGradientImage
                                            );
 
    if(this->measure_ssd!=nullptr)
-      this->measure_ssd->InitialiseMeasure(this->currentReference,
-                                           this->currentFloating,
+      this->measure_ssd->InitialiseMeasure(this->reference,
+                                           this->floating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warImgGradient,
+                                           this->warpedGradient,
                                            this->voxelBasedMeasureGradient,
                                            this->localWeightSimCurrent,
-                                           this->currentFloatingMask,
+                                           this->floatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
                                            this->backwardVoxelBasedMeasureGradientImage
                                            );
 
    if(this->measure_kld!=nullptr)
-      this->measure_kld->InitialiseMeasure(this->currentReference,
-                                           this->currentFloating,
+      this->measure_kld->InitialiseMeasure(this->reference,
+                                           this->floating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warImgGradient,
+                                           this->warpedGradient,
                                            this->voxelBasedMeasureGradient,
                                            this->localWeightSimCurrent,
-                                           this->currentFloatingMask,
+                                           this->floatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
                                            this->backwardVoxelBasedMeasureGradientImage
                                            );
 
    if(this->measure_lncc!=nullptr)
-      this->measure_lncc->InitialiseMeasure(this->currentReference,
-                                            this->currentFloating,
+      this->measure_lncc->InitialiseMeasure(this->reference,
+                                            this->floating,
                                             this->currentMask,
                                             this->warped,
-                                            this->warImgGradient,
+                                            this->warpedGradient,
                                             this->voxelBasedMeasureGradient,
                                             this->localWeightSimCurrent,
-                                            this->currentFloatingMask,
+                                            this->floatingMask,
                                             this->backwardWarped,
                                             this->backwardWarpedGradientImage,
                                             this->backwardVoxelBasedMeasureGradientImage
                                             );
 
    if(this->measure_dti!=nullptr)
-      this->measure_dti->InitialiseMeasure(this->currentReference,
-                                           this->currentFloating,
+      this->measure_dti->InitialiseMeasure(this->reference,
+                                           this->floating,
                                            this->currentMask,
                                            this->warped,
-                                           this->warImgGradient,
+                                           this->warpedGradient,
                                            this->voxelBasedMeasureGradient,
                                            this->localWeightSimCurrent,
-                                           this->currentFloatingMask,
+                                           this->floatingMask,
                                            this->backwardWarped,
                                            this->backwardWarpedGradientImage,
                                            this->backwardVoxelBasedMeasureGradientImage
                                            );
 
    if(this->measure_mind!=nullptr)
-      this->measure_mind->InitialiseMeasure(this->currentReference,
-                                            this->currentFloating,
+      this->measure_mind->InitialiseMeasure(this->reference,
+                                            this->floating,
                                             this->currentMask,
                                             this->warped,
-                                            this->warImgGradient,
+                                            this->warpedGradient,
                                             this->voxelBasedMeasureGradient,
                                             this->localWeightSimCurrent,
-                                            this->currentFloatingMask,
+                                            this->floatingMask,
                                             this->backwardWarped,
                                             this->backwardWarpedGradientImage,
                                             this->backwardVoxelBasedMeasureGradientImage
                                             );
 
    if(this->measure_mindssc!=nullptr)
-      this->measure_mindssc->InitialiseMeasure(this->currentReference,
-                                               this->currentFloating,
+      this->measure_mindssc->InitialiseMeasure(this->reference,
+                                               this->floating,
                                                this->currentMask,
                                                this->warped,
-                                               this->warImgGradient,
+                                               this->warpedGradient,
                                                this->voxelBasedMeasureGradient,
                                                this->localWeightSimCurrent,
-                                               this->currentFloatingMask,
+                                               this->floatingMask,
                                                this->backwardWarped,
                                                this->backwardWarpedGradientImage,
                                                this->backwardVoxelBasedMeasureGradientImage
@@ -1766,17 +1766,17 @@ nifti_image **reg_f3d_sym<T>::GetWarpedImage()
       reg_exit();
    }
 
-   reg_f3d_sym<T>::currentReference = this->inputReference;
-   reg_f3d_sym<T>::currentFloating = this->inputFloating;
+   reg_f3d_sym<T>::reference = this->inputReference;
+   reg_f3d_sym<T>::floating = this->inputFloating;
    reg_f3d_sym<T>::currentMask = nullptr;
-   reg_f3d_sym<T>::currentFloatingMask = nullptr;
+   reg_f3d_sym<T>::floatingMask = nullptr;
 
    reg_f3d_sym<T>::AllocateWarped();
    reg_f3d_sym<T>::AllocateDeformationField();
 
    reg_f3d_sym<T>::WarpFloatingImage(3); // cubic spline interpolation
 
-   reg_f3d_sym<T>::ClearDeformationField();
+   reg_f3d_sym<T>::DeallocateDeformationField();
 
    nifti_image **warpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
    warpedImage[0] = nifti_copy_nim_info(this->warped);
@@ -1795,7 +1795,7 @@ nifti_image **reg_f3d_sym<T>::GetWarpedImage()
    warpedImage[1]->data=(void *)malloc(warpedImage[1]->nvox*warpedImage[1]->nbyper);
    memcpy(warpedImage[1]->data, this->backwardWarped->data, warpedImage[1]->nvox*warpedImage[1]->nbyper);
 
-   reg_f3d_sym<T>::ClearWarped();
+   reg_f3d_sym<T>::DeallocateWarped();
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::GetWarpedImage");
 #endif

@@ -11,11 +11,10 @@
 
 /* ******************************** */
 /* ******************************** */
-NiftyReg_CudaBlock100 * NiftyReg_CudaBlock::instance = nullptr;
+NiftyReg_CudaBlock100 *NiftyReg_CudaBlock::instance = nullptr;
 /* ******************************** */
 /* ******************************** */
-NiftyReg_CudaBlock100::NiftyReg_CudaBlock100()
-{
+NiftyReg_CudaBlock100::NiftyReg_CudaBlock100() {
     Block_target_block = 512; // 15 reg - 32 smem - 24 cmem
     Block_result_block = 384; // 21 reg - 11048 smem - 24 cmem
     /* _reg_mutualinformation_gpu */
@@ -83,8 +82,7 @@ NiftyReg_CudaBlock100::NiftyReg_CudaBlock100()
 #endif
 }
 /* ******************************** */
-NiftyReg_CudaBlock200::NiftyReg_CudaBlock200()
-{
+NiftyReg_CudaBlock200::NiftyReg_CudaBlock200() {
 //    Block_target_block = ; //
 //    Block_result_block = ; //
 //    /* _reg_mutualinformation_gpu */
@@ -152,8 +150,7 @@ NiftyReg_CudaBlock200::NiftyReg_CudaBlock200()
 #endif
 }
 /* ******************************** */
-NiftyReg_CudaBlock300::NiftyReg_CudaBlock300()
-{
+NiftyReg_CudaBlock300::NiftyReg_CudaBlock300() {
     Block_target_block = 640; // 45 reg
     Block_result_block = 640; // 47 reg - ????? smem
     /* _reg_mutualinformation_gpu */

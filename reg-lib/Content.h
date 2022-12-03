@@ -1,61 +1,60 @@
 #pragma once
 
-#include "nifti1_io.h"
+#include "_reg_maths.h"
 
 class Content {
 public:
     Content() = delete; // Can't be initialised without reference and floating images
-    Content(nifti_image *currentReferenceIn,
-            nifti_image *currentFloatingIn,
-            int *currentReferenceMaskIn = nullptr,
+    Content(nifti_image *referenceIn,
+            nifti_image *floatingIn,
+            int *referenceMaskIn = nullptr,
             mat44 *transformationMatrixIn = nullptr,
             size_t bytesIn = sizeof(float));
     virtual ~Content();
 
+    virtual bool IsCurrentComputationDoubleCapable() { return true; }
+
     // Getters
-    virtual nifti_image* GetCurrentDeformationField() { return currentDeformationField; }
-    virtual nifti_image* GetCurrentReference() { return currentReference; }
-    virtual nifti_image* GetCurrentFloating() { return currentFloating; }
-    virtual nifti_image* GetCurrentWarped(int = 0) { return currentWarped; }
-    virtual int* GetCurrentReferenceMask() { return currentReferenceMask; }
+    virtual nifti_image* GetReference() { return reference; }
+    virtual nifti_image* GetFloating() { return floating; }
+    virtual nifti_image* GetDeformationField() { return deformationField; }
+    virtual int* GetReferenceMask() { return referenceMask; }
     virtual mat44* GetTransformationMatrix() { return transformationMatrix; }
+    virtual nifti_image* GetWarped(int datatype = 0, int index = 0) { return warped; }
 
     // Setters
+    virtual void SetDeformationField(nifti_image *deformationFieldIn) {
+        deformationField = deformationFieldIn;
+    }
+    virtual void SetReferenceMask(int *referenceMaskIn) {
+        referenceMask = referenceMaskIn;
+    }
     virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) {
         transformationMatrix = transformationMatrixIn;
     }
-    virtual void SetCurrentDeformationField(nifti_image *currentDeformationFieldIn) {
-        ClearDeformationField();
-        currentDeformationField = currentDeformationFieldIn;
-    }
-    virtual void SetCurrentWarped(nifti_image *currentWarpedImageIn) {
-        ClearWarpedImage();
-        currentWarped = currentWarpedImageIn;
-    }
-    virtual void SetCurrentReferenceMask(int *currentReferenceMaskIn) {
-        free(currentReferenceMask);
-        currentReferenceMask = currentReferenceMaskIn;
+    virtual void SetWarped(nifti_image *warpedIn) {
+        warped = warpedIn;
     }
 
-    virtual bool IsCurrentComputationDoubleCapable() { return true; }
-
-    static mat44* GetXYZMatrix(nifti_image *image) {
-        return image->sform_code > 0 ? &image->sto_xyz : &image->qto_xyz;
+    // Auxiliary methods
+    static mat44* GetXYZMatrix(nifti_image& image) {
+        return image.sform_code > 0 ? &image.sto_xyz : &image.qto_xyz;
     }
-    static mat44* GetIJKMatrix(nifti_image *image) {
-        return image->sform_code > 0 ? &image->sto_ijk : &image->qto_ijk;
+    static mat44* GetIJKMatrix(nifti_image& image) {
+        return image.sform_code > 0 ? &image.sto_ijk : &image.qto_ijk;
     }
 
 protected:
-    virtual void AllocateWarpedImage();
-    virtual void ClearWarpedImage();
-    virtual void AllocateDeformationField(size_t bytes);
-    virtual void ClearDeformationField();
-
-    nifti_image *currentReference;
-    nifti_image *currentFloating;
-    int *currentReferenceMask;
-    nifti_image *currentDeformationField;
-    nifti_image *currentWarped;
+    nifti_image *reference;
+    nifti_image *floating;
+    nifti_image *deformationField;
+    int *referenceMask;
     mat44 *transformationMatrix;
+    nifti_image *warped;
+
+private:
+    void AllocateWarped();
+    void DeallocateWarped();
+    void AllocateDeformationField(size_t bytes);
+    void DeallocateDeformationField();
 };

@@ -140,12 +140,12 @@ TEST_CASE("Resampling", "[resampling]") {
                 // Create and set a warped image to host the computation
                 nifti_image *warped = nifti_copy_nim_info(reference);
                 warped->data = (void*)malloc(warped->nvox * warped->nbyper);
-                con->SetCurrentWarped(warped);
+                con->SetWarped(warped);
                 // Set the deformation field
-                con->SetCurrentDeformationField(def_field);
+                con->SetDeformationField(def_field);
                 // Set an empty mask to consider all voxels
                 int *tempMask = (int*)calloc(reference->nvox, sizeof(int));
-                con->SetCurrentReferenceMask(tempMask);
+                con->SetReferenceMask(tempMask);
                 // Initialise the platform to run current content and retrieve deformation field
                 auto *platform = new Platform(plat_value);
                 Kernel *resampleKernel = platform->CreateKernel(ResampleImageKernel::GetName(), con);
@@ -153,7 +153,7 @@ TEST_CASE("Resampling", "[resampling]") {
                 std::list<int> interp = {0, 1, 3};
                 for (auto it : interp) {
                     resampleKernel->castTo<ResampleImageKernel>()->Calculate(it, 0);
-                    warped = con->GetCurrentWarped(reference->datatype);
+                    warped = con->GetWarped(reference->datatype);
 
                     // Check all values
                     auto *warpedPtr = static_cast<float*>(warped->data);

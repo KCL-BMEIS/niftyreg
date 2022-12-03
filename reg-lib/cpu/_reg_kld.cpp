@@ -152,7 +152,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
        measure += measure_tp * timePointWeight[time] / num;
       }
    }
-   if(MrClean==true) free(maskPtr);
+   if(MrClean) free(maskPtr);
    return measure;
 }
 template double reg_getKLDivergence<float>
@@ -352,7 +352,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
          }
       }
    }
-   if(MrClean==true) free(maskPtr);
+   if(MrClean) free(maskPtr);
 }
 template void reg_getKLDivergenceVoxelBasedGradient<float>
 (nifti_image *,nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, int, double);

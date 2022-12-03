@@ -25,8 +25,8 @@
 class reg_f3d_gpu: public reg_f3d<float> {
 protected:
     // cuda variables
-    cudaArray *currentReference_gpu;
-    cudaArray *currentFloating_gpu;
+    cudaArray *reference_gpu;
+    cudaArray *floating_gpu;
     int *currentMask_gpu;
     float *warped_gpu;
     float4 *controlPointGrid_gpu;
@@ -36,8 +36,8 @@ protected:
     float4 *transformationGradient_gpu;
 
     // cuda variable for multispectral registration
-    cudaArray *currentReference2_gpu;
-    cudaArray *currentFloating2_gpu;
+    cudaArray *reference2_gpu;
+    cudaArray *floating2_gpu;
     float *warped2_gpu;
     float4 *warpedGradientImage2_gpu;
 
@@ -49,17 +49,17 @@ protected:
     reg_nmi_gpu *measure_gpu_nmi;
 
     float InitialiseCurrentLevel();
-    void ClearCurrentInputImage();
+    void DeallocateCurrentInputImage();
     void AllocateWarped();
-    void ClearWarped();
+    void DeallocateWarped();
     void AllocateDeformationField();
-    void ClearDeformationField();
+    void DeallocateDeformationField();
     void AllocateWarpedGradient();
-    void ClearWarpedGradient();
+    void DeallocateWarpedGradient();
     void AllocateVoxelBasedMeasureGradient();
-    void ClearVoxelBasedMeasureGradient();
+    void DeallocateVoxelBasedMeasureGradient();
     void AllocateTransformationGradient();
-    void ClearTransformationGradient();
+    void DeallocateTransformationGradient();
 
     double ComputeJacobianBasedPenaltyTerm(int);
     double ComputeBendingEnergyPenaltyTerm();
@@ -77,7 +77,7 @@ protected:
     void GetApproximatedGradient();
     void UpdateParameters(float);
     void SetOptimiser();
-    void SetGradientImageToZero();
+    // void SetGradientImageToZero();
     float NormaliseGradient();
     void InitialiseSimilarity();
 

@@ -199,24 +199,24 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 					// Check if the warped and reference are defined
 					const bool overlap = isfinite(rWarpedValue) && finiteReference;
 					// Compute the number of defined value in the block
-					const unsigned int currentWarpedSize = REDUCE2D(sData, overlap ? 1.0f : 0.0f, tid);
+					const unsigned int warpedSize = REDUCE2D(sData, overlap ? 1.0f : 0.0f, tid);
 
 					// Subsequent computation is performed if the more than half the voxel are defined
-					if (currentWarpedSize > 8){
+					if (warpedSize > 8){
 
 						// Store the reference variance and reference difference to the mean
 						float newReferenceTemp = referenceTemp;
 						float newReferenceVar = referenceVar;
 						// If the defined voxels are different the reference mean and variance are recomputed
-						if (currentWarpedSize != referenceSize){
+						if (warpedSize != referenceSize){
 							const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
-							const float newReferenceMean = REDUCE2D(sData, newReferenceValue, tid) / (float)currentWarpedSize;
+							const float newReferenceMean = REDUCE2D(sData, newReferenceValue, tid) / (float)warpedSize;
 							newReferenceTemp = overlap ? newReferenceValue - newReferenceMean : 0.0f;
 							newReferenceVar = REDUCE2D(sData, newReferenceTemp*newReferenceTemp, tid);
 						}
 
 						const float rChecked = overlap ? rWarpedValue : 0.0f;
-						const float warpedMean = REDUCE2D(sData, rChecked, tid) / (float)currentWarpedSize;
+						const float warpedMean = REDUCE2D(sData, rChecked, tid) / (float)warpedSize;
 						const float warpedTemp = overlap ? rWarpedValue - warpedMean : 0.0f;
 						const float warpedVar = REDUCE2D(sData, warpedTemp*warpedTemp, tid);
 
@@ -362,24 +362,24 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 						// Check if the warped and reference are defined
 						const bool overlap = isfinite(rWarpedValue) && finiteReference;
 						// Compute the number of defined value in the block
-						const unsigned int currentWarpedSize = REDUCE(sData, overlap ? 1.0f : 0.0f, tid);
+						const unsigned int warpedSize = REDUCE(sData, overlap ? 1.0f : 0.0f, tid);
 
 						// Subsequent computation is performed if the more than half the voxel are defined
-						if (currentWarpedSize > 32){
+						if (warpedSize > 32){
 
 							// Store the reference variance and reference difference to the mean
 							float newReferenceTemp = referenceTemp;
 							float newReferenceVar = referenceVar;
 							// If the defined voxels are different the reference mean and variance are recomputed
-							if (currentWarpedSize != referenceSize){
+							if (warpedSize != referenceSize){
 								const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
-								const float newReferenceMean = REDUCE(sData, newReferenceValue, tid) / currentWarpedSize;
+								const float newReferenceMean = REDUCE(sData, newReferenceValue, tid) / warpedSize;
 								newReferenceTemp = overlap ? newReferenceValue - newReferenceMean : 0.0f;
 								newReferenceVar = REDUCE(sData, newReferenceTemp*newReferenceTemp, tid);
 							}
 
 							const float rChecked = overlap ? rWarpedValue : 0.0f;
-							const float warpedMean = REDUCE(sData, rChecked, tid) / currentWarpedSize;
+							const float warpedMean = REDUCE(sData, rChecked, tid) / warpedSize;
 							const float warpedTemp = overlap ? rWarpedValue - warpedMean : 0.0f;
 							const float warpedVar = REDUCE(sData, warpedTemp*warpedTemp, tid);
 

@@ -522,7 +522,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    int *combinedMask,
                                    float *kernelStandardDeviation,
                                    nifti_image *correlationImage,
-                                   nifti_image *warImgGradient,
+                                   nifti_image *warpedGradient,
                                    nifti_image *measureGradientImage,
                                    int kernelType,
                                    int current_timepoint,
@@ -624,7 +624,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
       measureGradPtrZ = &measureGradPtrY[voxelNumber];
 
    // Create pointers to the spatial gradient of the warped image
-   DTYPE *warpGradPtrX = static_cast<DTYPE *>(warImgGradient->data);
+   DTYPE *warpGradPtrX = static_cast<DTYPE *>(warpedGradient->data);
    DTYPE *warpGradPtrY = &warpGradPtrX[voxelNumber];
    DTYPE *warpGradPtrZ = nullptr;
    if(referenceImage->nz>1)

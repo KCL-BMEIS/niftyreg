@@ -3,26 +3,26 @@
 using namespace std;
 
 /* *************************************************************** */
-AladinContent::AladinContent(nifti_image *currentReferenceIn,
-                             nifti_image *currentFloatingIn,
-                             int *currentReferenceMaskIn,
+AladinContent::AladinContent(nifti_image *referenceIn,
+                             nifti_image *floatingIn,
+                             int *referenceMaskIn,
                              mat44 *transformationMatrixIn,
                              size_t bytesIn,
                              const unsigned int currentPercentageOfBlockToUseIn,
                              const unsigned int inlierLtsIn,
                              int stepSizeBlockIn) :
-    Content(currentReferenceIn, currentFloatingIn, currentReferenceMaskIn, transformationMatrixIn, bytesIn),
+    Content(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, bytesIn),
     currentPercentageOfBlockToUse(currentPercentageOfBlockToUseIn),
     inlierLts(inlierLtsIn),
     stepSizeBlock(stepSizeBlockIn) {
     if (currentPercentageOfBlockToUseIn || inlierLtsIn || stepSizeBlockIn) {
         blockMatchingParams = new _reg_blockMatchingParam();
-        initialise_block_matching_method(currentReference,
+        initialise_block_matching_method(reference,
                                          blockMatchingParams,
                                          currentPercentageOfBlockToUse,
                                          inlierLts,
                                          stepSizeBlock,
-                                         currentReferenceMask,
+                                         referenceMask,
                                          false);
     } else {
         blockMatchingParams = nullptr;
