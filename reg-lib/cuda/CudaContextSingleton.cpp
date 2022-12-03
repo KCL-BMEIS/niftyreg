@@ -1,5 +1,6 @@
 #include "CudaContextSingleton.h"
 #include "_reg_common_cuda.h"
+#include "_reg_blocksize_gpu.h"
 
 /* *************************************************************** */
 CudaContextSingleton::CudaContextSingleton() {
@@ -25,8 +26,7 @@ void CudaContextSingleton::SetCudaIdx(unsigned int cudaIdxIn) {
         reg_exit();
     }
     this->cudaIdx = cudaIdxIn;
-    NR_CUDA_SAFE_CALL(cudaSetDevice(this->cudaIdx));
-    NR_CUDA_SAFE_CALL(cuCtxCreate(&this->cudaContext, CU_CTX_SCHED_SPIN, this->cudaIdx))
+    PickCard(this->cudaIdx);
 }
 /* *************************************************************** */
 CUcontext CudaContextSingleton::GetContext() {
@@ -37,10 +37,9 @@ void CudaContextSingleton::PickCard(unsigned deviceId = 999) {
     struct cudaDeviceProp deviceProp;
     if (deviceId < this->numDevices) {
         this->cudaIdx = deviceId;
-        //
         NR_CUDA_SAFE_CALL(cudaSetDevice(this->cudaIdx));
         NR_CUDA_SAFE_CALL(cuCtxCreate(&this->cudaContext, CU_CTX_SCHED_SPIN, this->cudaIdx));
-        //
+
         cudaGetDeviceProperties(&deviceProp, this->cudaIdx);
         if (deviceProp.major > 1) {
             this->isCardDoubleCapable = true;
@@ -49,7 +48,7 @@ void CudaContextSingleton::PickCard(unsigned deviceId = 999) {
         } else {
             this->isCardDoubleCapable = false;
         }
-        //
+        NiftyReg_CudaBlock::GetInstance(deviceProp.major);
         return;
     }
 
@@ -67,8 +66,8 @@ void CudaContextSingleton::PickCard(unsigned deviceId = 999) {
         ++current_device;
     }
     NR_CUDA_SAFE_CALL(cudaSetDevice(max_gflops_device));
-    NR_CUDA_SAFE_CALL(cuCtxCreate(&this->cudaContext, CU_CTX_SCHED_SPIN, max_gflops_device))
-        NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device));
+    NR_CUDA_SAFE_CALL(cuCtxCreate(&this->cudaContext, CU_CTX_SCHED_SPIN, max_gflops_device));
+    NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device));
 
     if (deviceProp.major < 1) {
         reg_print_msg_error("[NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
@@ -85,25 +84,16 @@ void CudaContextSingleton::PickCard(unsigned deviceId = 999) {
             reg_exit();
         }
 #ifndef NDEBUG
-        printf("[NiftyReg CUDA] The following device is used: %s\n",
-               deviceProp.name);
+        printf("[NiftyReg CUDA] The following device is used: %s\n", deviceProp.name);
         printf("[NiftyReg CUDA] It has %lu Mb free out of %lu Mb\n",
-               (unsigned long int)(free / (1024 * 1024)),
-               (unsigned long int)(total / (1024 * 1024)));
-        printf("[NiftyReg CUDA] Card compute capability: %i.%i\n",
-               deviceProp.major,
-               deviceProp.minor);
-        printf("[NiftyReg CUDA] Shared memory size in bytes: %zu\n",
-               deviceProp.sharedMemPerBlock);
-        printf("[NiftyReg CUDA] CUDA version %i\n",
-               CUDART_VERSION);
-        printf("[NiftyReg CUDA] Card clock rate: %i MHz\n",
-               deviceProp.clockRate / 1000);
-        printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n",
-               deviceProp.multiProcessorCount);
+               (unsigned long)(free / (1024 * 1024)), (unsigned long)(total / (1024 * 1024)));
+        printf("[NiftyReg CUDA] Card compute capability: %i.%i\n", deviceProp.major, deviceProp.minor);
+        printf("[NiftyReg CUDA] Shared memory size in bytes: %zu\n", deviceProp.sharedMemPerBlock);
+        printf("[NiftyReg CUDA] CUDA version %i\n", CUDART_VERSION);
+        printf("[NiftyReg CUDA] Card clock rate: %i MHz\n", deviceProp.clockRate / 1000);
+        printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n", deviceProp.multiProcessorCount);
 #endif
         this->cudaIdx = max_gflops_device;
-        //
         cudaGetDeviceProperties(&deviceProp, this->cudaIdx);
         if (deviceProp.major > 1) {
             this->isCardDoubleCapable = true;
@@ -112,7 +102,7 @@ void CudaContextSingleton::PickCard(unsigned deviceId = 999) {
         } else {
             this->isCardDoubleCapable = false;
         }
-        //
+        NiftyReg_CudaBlock::GetInstance(deviceProp.major);
     }
 }
 /* *************************************************************** */
