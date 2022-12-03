@@ -1,41 +1,36 @@
 #include "Platform.h"
-#include "AladinContent.h"
-#include "KernelFactory.h"
-#include "CpuKernelFactory.h"
-#ifdef _USE_CUDA
-#include "CudaKernelFactory.h"
-#include "CudaContextSingleton.h"
-#endif
-#ifdef _USE_OPENCL
-#include "ClKernelFactory.h"
-#include "ClContextSingleton.h"
-#endif
-
-using namespace std;
 
 /* *************************************************************** */
-Platform::Platform(int platformCode) {
-    this->platformCode = platformCode;
+Platform::Platform(int platformCodeIn) {
+    platformCode = platformCodeIn;
     if (platformCode == NR_PLATFORM_CPU) {
-        this->factory = new CpuKernelFactory();
-        this->platformName = "cpu_platform";
+        kernelFactory = new CpuKernelFactory();
+        computeFactory = new ComputeFactory();
+        platformName = "cpu_platform";
     }
 #ifdef _USE_CUDA
     else if (platformCode == NR_PLATFORM_CUDA) {
-        this->factory = new CudaKernelFactory();
-        this->platformName = "cuda_platform";
+        kernelFactory = new CudaKernelFactory();
+        computeFactory = new CudaComputeFactory();
+        platformName = "cuda_platform";
     }
 #endif
 #ifdef _USE_OPENCL
     else if (platformCode == NR_PLATFORM_CL) {
-        this->factory = new ClKernelFactory();
-        this->platformName = "cl_platform";
+        kernelFactory = new ClKernelFactory();
+        computeFactory = new ClComputeFactory();
+        platformName = "cl_platform";
     }
 #endif
 }
 /* *************************************************************** */
-Kernel* Platform::CreateKernel(const string& name, Content *con) const {
-    return this->factory->ProduceKernel(name, con);
+Compute* Platform::CreateCompute(Content *con) const {
+    return computeFactory->Produce(con);
+}
+/* *************************************************************** */
+Kernel* Platform::CreateKernel(const std::string& name, Content *con) const {
+    return kernelFactory->Produce(name, con);
+}
 }
 /* *************************************************************** */
 std::string Platform::GetName() {
@@ -85,10 +80,11 @@ int Platform::GetPlatformCode() {
 }
 /* *************************************************************** */
 //void Platform::SetPlatformCode(const int platformCodeIn) {
-//    this->platformCode = platformCodeIn;
+//    platformCode = platformCodeIn;
 //}
 /* *************************************************************** */
 Platform::~Platform() {
-    delete this->factory;
+    delete kernelFactory;
+    delete computeFactory;
 }
 /* *************************************************************** */

@@ -74,6 +74,7 @@ set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
 set(NAME _reg_cuda_kernels)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
+    CudaCompute.cpp
     CudaContextSingleton.cpp
     CudaAladinContent.cpp
     CudaKernelFactory.cpp

@@ -21,6 +21,7 @@ include_directories(${OpenCL_INCLUDE_DIRS})
 # Build the _reg_opencl_kernels library
 set(NAME _reg_opencl_kernels)
 add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
+  ClCompute.cpp
   ClContextSingleton.cpp
   CLAladinContent.cpp
   ClKernelFactory.cpp
@@ -40,7 +41,7 @@ install(TARGETS ${NAME}
 )
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
-install(FILES ClContextSingleton.h CLAladinContent.h ClKernelFactory.h
+install(FILES ClCompute.h ClContextSingleton.h CLAladinContent.h ClKernelFactory.h
         ClAffineDeformationFieldKernel.h
         ClBlockMatchingKernel.h
         ClConvolutionKernel.h

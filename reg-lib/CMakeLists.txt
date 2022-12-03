@@ -139,13 +139,14 @@ set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_femTrans")
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
 set(_reg_aladin_files
-  Content.cpp
-  Content.h
   AladinContent.cpp
   AladinContent.h
+  Compute.cpp
+  Compute.h
+  Content.cpp
+  Content.h
   Platform.cpp
   Platform.h
-  Kernel.h
   cpu/CpuAffineDeformationFieldKernel.h
   cpu/CpuAffineDeformationFieldKernel.cpp
   cpu/CpuBlockMatchingKernel.h
@@ -181,10 +182,12 @@ install(FILES _reg_aladin.h _reg_aladin_sym.h DESTINATION include)
 install(FILES _reg_aladin.cpp _reg_aladin_sym.cpp DESTINATION include)
 install(FILES AladinContent.h Platform.h  DESTINATION include)
 install(FILES
-        Kernel.h
         AffineDeformationFieldKernel.h
         BlockMatchingKernel.h
+        Compute.h
+        ComputeFactory.h
         ConvolutionKernel.h
+        Kernel.h
         OptimiseKernel.h
         ResampleImageKernel.h
         cpu/CpuAffineDeformationFieldKernel.h
@@ -198,11 +201,12 @@ set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_aladin")
 #-----------------------------------------------------------------------------
 ## BUILD THE F3D LIBRARY
 set(_reg_f3d_files
+  Compute.cpp
+  Compute.h
   Content.cpp
   Content.h
   Platform.cpp
   Platform.h
-  Kernel.h
   _reg_base.h
   _reg_base.cpp
   _reg_f3d.h

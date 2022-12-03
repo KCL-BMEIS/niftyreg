@@ -1,22 +1,33 @@
 #pragma once
 
-#include <map>
-#include <string>
-#include <vector>
+#include "F3dContent.h"
+#include "KernelFactory.h"
+#include "CpuKernelFactory.h"
+#include "ComputeFactory.h"
+#include "_reg_optimiser.h"
+#ifdef _USE_CUDA
+#include "CudaF3dContent.h"
+#include "CudaKernelFactory.h"
+#include "CudaComputeFactory.h"
+#include "CudaContextSingleton.h"
+#include "_reg_optimiser_gpu.h"
+#endif
+#ifdef _USE_OPENCL
+#include "ClKernelFactory.h"
+#include "ClComputeFactory.h"
+#include "ClContextSingleton.h"
+#endif
 
 #define NR_PLATFORM_CPU  0
 #define NR_PLATFORM_CUDA 1
 #define NR_PLATFORM_CL   2
 
-class Kernel;
-class KernelFactory;
-class Content;
-
 class Platform {
 public:
-    Platform(int platformCode);
+    Platform(int platformCodeIn);
     virtual ~Platform();
 
+    Compute* CreateCompute(Content *con) const;
     Kernel* CreateKernel(const std::string& name, Content *con) const;
     std::string GetName();
 
@@ -26,7 +37,8 @@ public:
     unsigned GetGpuIdx();
 
 private:
-    KernelFactory *factory;
+    KernelFactory *kernelFactory;
+    ComputeFactory *computeFactory;
     std::string platformName;
     int platformCode;
     unsigned gpuIdx;
