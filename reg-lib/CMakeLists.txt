@@ -205,6 +205,8 @@ set(_reg_f3d_files
   Compute.h
   Content.cpp
   Content.h
+  F3dContent.cpp
+  F3dContent.h
   Platform.cpp
   Platform.h
   _reg_base.h
@@ -246,8 +248,8 @@ install(TARGETS _reg_f3d
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(FILES _reg_base.h DESTINATION include)
-install(FILES _reg_f3d.h DESTINATION include)
+install(FILES _reg_base.h Content.h DESTINATION include)
+install(FILES _reg_f3d.h F3dContent.h DESTINATION include)
 install(FILES _reg_f3d2.h DESTINATION include)
 install(FILES _reg_f3d_sym.h DESTINATION include)
 install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
