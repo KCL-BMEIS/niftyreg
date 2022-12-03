@@ -26,7 +26,7 @@ protected:
     bool jacobianLogApproximation;
     T spacing[3];
 
-    nifti_image *transformationGradient;
+    // nifti_image *transformationGradient;
     bool gridRefinement;
 
     double currentWJac;
@@ -36,9 +36,9 @@ protected:
     double bestWBE;
     double bestWLE;
 
-    virtual void AllocateTransformationGradient();
-    virtual void ClearTransformationGradient();
-    virtual T InitialiseCurrentLevel();
+    // virtual void AllocateTransformationGradient() override;
+    // virtual void DeallocateTransformationGradient() override;
+    virtual T InitialiseCurrentLevel(nifti_image *reference) override;
 
     virtual double ComputeBendingEnergyPenaltyTerm();
     virtual double ComputeLinearEnergyPenaltyTerm();
@@ -49,25 +49,25 @@ protected:
     virtual void GetLinearEnergyGradient();
     virtual void GetJacobianBasedGradient();
     virtual void GetLandmarkDistanceGradient();
-    virtual void SetGradientImageToZero();
-    virtual T NormaliseGradient();
-    virtual void SmoothGradient();
-    virtual void GetObjectiveFunctionGradient();
-    virtual void GetApproximatedGradient();
+    // virtual void SetGradientImageToZero() override;
+    virtual T NormaliseGradient() override;
+    virtual void SmoothGradient() override;
+    virtual void GetObjectiveFunctionGradient() override;
+    virtual void GetApproximatedGradient() override;
     void GetSimilarityMeasureGradient();
 
-    virtual void GetDeformationField();
-    virtual void DisplayCurrentLevelParameters();
+    virtual void GetDeformationField() override;
+    virtual void DisplayCurrentLevelParameters() override;
 
-    virtual double GetObjectiveFunctionValue();
-    virtual void UpdateBestObjFunctionValue();
-    virtual void UpdateParameters(float);
-    virtual void SetOptimiser();
+    virtual double GetObjectiveFunctionValue() override;
+    virtual void UpdateBestObjFunctionValue() override;
+    virtual void UpdateParameters(float) override;
+    virtual void SetOptimiser() override;
 
-    virtual void PrintInitialObjFunctionValue();
-    virtual void PrintCurrentObjFunctionValue(T);
+    virtual void PrintInitialObjFunctionValue() override;
+    virtual void PrintCurrentObjFunctionValue(T) override;
 
-    virtual void CorrectTransformation();
+    virtual void CorrectTransformation() override;
 
     void (*funcProgressCallback)(float pcntProgress, void *params);
     void *paramsProgressCallback;
@@ -101,11 +101,10 @@ public:
     // f3d_gpu specific option
     virtual int CheckMemoryMB() { return EXIT_SUCCESS; }
 
-    virtual void CheckParameters();
-    virtual void Initialise();
+    virtual void CheckParameters() override;
+    virtual void Initialise() override;
+    virtual void InitContent(nifti_image *reference, nifti_image *floating, int *mask) override;
+    virtual void DeinitContent() override;
     virtual nifti_image* GetControlPointPositionImage();
-    virtual nifti_image** GetWarpedImage();
-
-    // Function used for testing
-    virtual void reg_test_setControlPointGrid(nifti_image *cpp) { controlPointGrid = cpp; }
+    virtual nifti_image** GetWarpedImage() override;
 };

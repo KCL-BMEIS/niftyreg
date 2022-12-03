@@ -28,16 +28,22 @@
 #include "_reg_stringFormat.h"
 #include "_reg_optimiser.h"
 #include "float.h"
-//#include "Platform.h"
+#include "Platform.h"
 
-/// @brief Base registration class
+ /// @brief Base registration class
 template <class T>
 class reg_base: public InterfaceOptimiser {
 protected:
-   // Platform !!!
-//   Platform *platform;
-//   int platformCode;
-//   unsigned gpuIdx;
+    // Platform
+    Platform *platform;
+    int platformCode;
+    unsigned gpuIdx;
+
+    // Content
+    Content *con = nullptr;
+
+    // Compute
+    Compute *compute = nullptr;
 
     // Optimiser related variables
     reg_optimiser<T> *optimiser;
@@ -48,7 +54,7 @@ protected:
     bool optimiseZ;
 
     // Optimiser related function
-    virtual void SetOptimiser();
+    virtual void SetOptimiser() = 0;
 
     // Measure related variables
     reg_ssd *measure_ssd;
@@ -59,7 +65,7 @@ protected:
     reg_mind *measure_mind;
     reg_mindssc *measure_mindssc;
     nifti_image *localWeightSimInput;
-    nifti_image *localWeightSimCurrent;
+    // nifti_image *localWeightSimCurrent;
 
     char *executableName;
     int referenceTimePoint;
@@ -76,7 +82,7 @@ protected:
     float *floatingThresholdUp;
     float *floatingThresholdLow;
     bool robustRange;
-    T warpedPaddingValue;
+    float warpedPaddingValue;
     unsigned int levelNumber;
     unsigned int levelToPerform;
     T gradientSmoothingSigma;
@@ -93,13 +99,13 @@ protected:
     nifti_image **floatingPyramid;
     int **maskPyramid;
     int *activeVoxelNumber;
-    nifti_image *currentReference;
-    nifti_image *currentFloating;
-    int *currentMask;
-    nifti_image *warped;
-    nifti_image *deformationFieldImage;
-    nifti_image *warImgGradient;
-    nifti_image *voxelBasedMeasureGradient;
+    // nifti_image *reference;
+    // nifti_image *floating;
+    // int *currentMask;
+    // nifti_image *warped;
+    // nifti_image *deformationFieldImage;
+    // nifti_image *warpedGradient;
+    // nifti_image *voxelBasedMeasureGradient;
     unsigned int currentLevel;
 
     mat33 *forwardJacobianMatrix;
@@ -115,53 +121,52 @@ protected:
     float *landmarkReference;
     float *landmarkFloating;
 
-    virtual void AllocateWarped();
-    virtual void ClearWarped();
-    virtual void AllocateDeformationField();
-    virtual void ClearDeformationField();
-    virtual void AllocateWarpedGradient();
-    virtual void ClearWarpedGradient();
-    virtual void AllocateVoxelBasedMeasureGradient();
-    virtual void ClearVoxelBasedMeasureGradient();
-    virtual T InitialiseCurrentLevel() { return 0; }
-    virtual void ClearCurrentInputImage();
+    // virtual void AllocateWarped();
+    // virtual void DeallocateWarped();
+    // virtual void AllocateDeformationField();
+    // virtual void DeallocateDeformationField();
+    // virtual void AllocateWarpedGradient();
+    // virtual void DeallocateWarpedGradient();
+    // virtual void AllocateVoxelBasedMeasureGradient();
+    // virtual void DeallocateVoxelBasedMeasureGradient();
+    // virtual void DeallocateCurrentInputImage();
 
     virtual void WarpFloatingImage(int);
     virtual double ComputeSimilarityMeasure();
     virtual void GetVoxelBasedGradient();
-    virtual void SmoothGradient() {}
     virtual void InitialiseSimilarity();
 
     // Virtual empty functions that have to be filled
-    virtual void GetDeformationField() {}
-    virtual void SetGradientImageToZero() {}
-    virtual void GetApproximatedGradient() {}
-    virtual double GetObjectiveFunctionValue() { return std::numeric_limits<float>::quiet_NaN(); }
-    virtual void UpdateParameters(float) {}
-    virtual T NormaliseGradient() { return std::numeric_limits<float>::quiet_NaN(); }
-    virtual void GetSimilarityMeasureGradient() {}
-    virtual void GetObjectiveFunctionGradient() {}
-    virtual void DisplayCurrentLevelParameters() {}
-    virtual void UpdateBestObjFunctionValue() {}
-    virtual void PrintCurrentObjFunctionValue(T) {}
-    virtual void PrintInitialObjFunctionValue() {}
-    virtual void AllocateTransformationGradient() {}
-    virtual void ClearTransformationGradient() {}
-    virtual void CorrectTransformation() {}
+    virtual T InitialiseCurrentLevel(nifti_image *reference) = 0;
+    virtual void SmoothGradient() = 0;
+    virtual void GetDeformationField() = 0;
+    // virtual void SetGradientImageToZero() = 0;
+    virtual void GetApproximatedGradient() = 0;
+    virtual double GetObjectiveFunctionValue() = 0;
+    virtual void UpdateParameters(float) = 0;
+    virtual T NormaliseGradient() = 0;
+    virtual void GetSimilarityMeasureGradient() = 0;
+    virtual void GetObjectiveFunctionGradient() = 0;
+    virtual void DisplayCurrentLevelParameters() = 0;
+    virtual void UpdateBestObjFunctionValue() = 0;
+    virtual void PrintCurrentObjFunctionValue(T) = 0;
+    virtual void PrintInitialObjFunctionValue() = 0;
+    // virtual void AllocateTransformationGradient() = 0;
+    // virtual void DeallocateTransformationGradient() = 0;
+    virtual void CorrectTransformation() = 0;
 
     void (*funcProgressCallback)(float pcntProgress, void *params);
     void* paramsProgressCallback;
 
 public:
-
-   //PLATFORM
-//   void setPlaform(Platform* inputPlatform);
-//   Platform* getPlaform();
-//   void setPlatformCode(int inputPlatformCode);
-//   void setGpuIdx(unsigned inputGPUIdx);
-
     reg_base(int refTimePoint, int floTimePoint);
     virtual ~reg_base();
+
+    // Platform
+    Platform* GetPlatform();
+    void SetPlatformCode(const int platformCodeIn) { platformCode = platformCodeIn; }
+    void SetGpuIdx(unsigned gpuIdxIn) { gpuIdx = gpuIdxIn; }
+
     // Optimisation related functions
     void SetMaximalIterationNumber(unsigned int);
     void NoOptimisationAlongX() { optimiseX = false; }
@@ -204,7 +209,7 @@ public:
     void SetFloatingThresholdLow(unsigned int, T);
     void UseRobustRange();
     void DoNotUseRobustRange();
-    void SetWarpedPaddingValue(T);
+    void SetWarpedPaddingValue(float);
     void SetLevelNumber(unsigned int);
     void SetLevelToPerform(unsigned int);
     void PrintOutInformation();
@@ -218,8 +223,10 @@ public:
     virtual void CheckParameters();
     void Run();
     virtual void Initialise();
-    nifti_image** GetWarpedImage() { return nullptr; } // Need to be filled
-    virtual char* GetExecutableName() { return this->executableName; }
+    virtual void InitContent(nifti_image *reference, nifti_image *floating, int *mask) = 0;
+    virtual void DeinitContent() = 0;
+    virtual nifti_image** GetWarpedImage() = 0;
+    virtual char* GetExecutableName() { return executableName; }
     virtual bool GetSymmetricStatus() { return false; }
 
     // Function required for the NiftyReg plugin in NiftyView

@@ -29,6 +29,15 @@ public:
 
     Compute* CreateCompute(Content *con) const;
     Kernel* CreateKernel(const std::string& name, Content *con) const;
+    template<typename Type>
+    reg_optimiser<Type>* CreateOptimiser(F3dContent *con,
+                                         InterfaceOptimiser *opt,
+                                         size_t maxIterationNumber,
+                                         bool useConjGradient,
+                                         bool optimiseX,
+                                         bool optimiseY,
+                                         bool optimiseZ);
+
     std::string GetName();
 
     int GetPlatformCode();

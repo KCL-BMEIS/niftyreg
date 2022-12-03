@@ -31,7 +31,47 @@ Compute* Platform::CreateCompute(Content *con) const {
 Kernel* Platform::CreateKernel(const std::string& name, Content *con) const {
     return kernelFactory->Produce(name, con);
 }
+/* *************************************************************** */
+template<typename Type>
+reg_optimiser<Type>* Platform::CreateOptimiser(F3dContent *con,
+                                               InterfaceOptimiser *opt,
+                                               size_t maxIterationNumber,
+                                               bool useConjGradient,
+                                               bool optimiseX,
+                                               bool optimiseY,
+                                               bool optimiseZ) {
+    reg_optimiser<Type> *optimiser;
+    nifti_image *controlPointGrid = con->F3dContent::GetControlPointGrid();
+    Type *controlPointGridData, *transformationGradientData;
+
+    if (platformCode == NR_PLATFORM_CPU) {
+        optimiser = useConjGradient ? new reg_conjugateGradient<Type>() : new reg_optimiser<Type>();
+        controlPointGridData = (Type*)controlPointGrid->data;
+        transformationGradientData = (Type*)con->F3dContent::GetTransformationGradient()->data;
+    }
+#ifdef _USE_CUDA
+    else if (platformCode == NR_PLATFORM_CUDA) {
+        optimiser = dynamic_cast<reg_optimiser<Type>*>(useConjGradient ? new reg_conjugateGradient_gpu() : new reg_optimiser_gpu());
+        controlPointGridData = (Type*)dynamic_cast<CudaF3dContent*>(con)->GetControlPointGridCuda();
+        transformationGradientData = (Type*)dynamic_cast<CudaF3dContent*>(con)->GetTransformationGradientCuda();
+    }
+#endif
+
+    optimiser->Initialise(controlPointGrid->nvox,
+                          controlPointGrid->nz > 1 ? 3 : 2,
+                          optimiseX,
+                          optimiseY,
+                          optimiseZ,
+                          maxIterationNumber,
+                          0, // currentIterationNumber,
+                          opt,
+                          controlPointGridData,
+                          transformationGradientData);
+
+    return optimiser;
 }
+template reg_optimiser<float>* Platform::CreateOptimiser(F3dContent*, InterfaceOptimiser*, size_t, bool, bool, bool, bool);
+template reg_optimiser<double>* Platform::CreateOptimiser(F3dContent*, InterfaceOptimiser*, size_t, bool, bool, bool, bool);
 /* *************************************************************** */
 std::string Platform::GetName() {
     return platformName;
