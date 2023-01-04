@@ -7,6 +7,9 @@ else("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATC
  mark_as_advanced(CLEAR CMAKE_BACKWARDS_COMPATIBILITY)
 endif("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^3\\.2\\.2$")
 #-----------------------------------------------------------------------------
+# Set C++ standard version
+set(CMAKE_CXX_STANDARD 17)
+#-----------------------------------------------------------------------------
 if(APPLE)
   set(CMAKE_MACOSX_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 endif(APPLE)
