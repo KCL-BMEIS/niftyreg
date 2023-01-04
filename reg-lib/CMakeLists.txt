@@ -26,9 +26,7 @@ install(TARGETS _reg_maths
 install(FILES cpu/_reg_maths.h cpu/_reg_maths_eigen.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_maths")
 #-----------------------------------------------------------------------------
-add_library(_reg_tools ${NIFTYREG_LIBRARY_TYPE}
-  cpu/_reg_tools.cpp
-)
+add_library(_reg_tools ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_tools.cpp)
 target_link_libraries(_reg_tools
   _reg_maths
   reg_nifti
@@ -41,13 +39,8 @@ install(TARGETS _reg_tools
 install(FILES cpu/_reg_tools.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_tools")
 #-----------------------------------------------------------------------------
-add_library(_reg_globalTrans
-  ${NIFTYREG_LIBRARY_TYPE}
-  cpu/_reg_globalTrans.cpp
-)
-target_link_libraries(_reg_globalTrans
-  _reg_tools
-)
+add_library(_reg_globalTrans ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_globalTrans.cpp)
+target_link_libraries(_reg_globalTrans _reg_tools)
 install(TARGETS _reg_globalTrans
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
@@ -56,8 +49,7 @@ install(TARGETS _reg_globalTrans
 install(FILES cpu/_reg_globalTrans.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_globalTrans")
 #-----------------------------------------------------------------------------
-add_library(_reg_localTrans
-  ${NIFTYREG_LIBRARY_TYPE}
+add_library(_reg_localTrans ${NIFTYREG_LIBRARY_TYPE}
   cpu/_reg_splineBasis.h
   cpu/_reg_splineBasis.cpp
   cpu/_reg_localTrans.h
@@ -101,68 +93,120 @@ install(TARGETS _reg_measure
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_measure.h cpu/_reg_nmi.h cpu/_reg_ssd.h cpu/_reg_kld.h cpu/_reg_lncc.h cpu/_reg_dti.h cpu/_reg_mind.h DESTINATION include)
+install(FILES
+  cpu/_reg_measure.h
+  cpu/_reg_nmi.h
+  cpu/_reg_ssd.h
+  cpu/_reg_kld.h
+  cpu/_reg_lncc.h
+  cpu/_reg_dti.h
+  cpu/_reg_mind.h DESTINATION include
+)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_measure")
 #-----------------------------------------------------------------------------
 add_library(_reg_resampling ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_resampling.cpp)
-target_link_libraries(_reg_resampling _reg_globalTrans
-)
+target_link_libraries(_reg_resampling _reg_globalTrans)
 install(TARGETS _reg_resampling
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
-  )
+)
 install(FILES cpu/_reg_resampling.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_resampling")
 #-----------------------------------------------------------------------------
 add_library(_reg_blockMatching ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_blockMatching.cpp)
-target_link_libraries(_reg_blockMatching _reg_globalTrans
-)
+target_link_libraries(_reg_blockMatching _reg_globalTrans)
 install(TARGETS _reg_blockMatching
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
-  )
+)
 install(FILES cpu/_reg_blockMatching.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_blockMatching")
 #-----------------------------------------------------------------------------
 add_library(_reg_femTrans ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_femTrans.cpp)
-target_link_libraries(_reg_femTrans _reg_globalTrans
-)
+target_link_libraries(_reg_femTrans _reg_globalTrans)
 install(TARGETS _reg_femTrans
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
-  )
+)
 install(FILES cpu/_reg_femTrans.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_femTrans")
 #-----------------------------------------------------------------------------
-## BUILD THE ALADIN LIBRARY
-set(_reg_aladin_files
-  AladinContent.cpp
-  AladinContent.h
+add_library(_reg_compute ${NIFTYREG_LIBRARY_TYPE}
   Compute.cpp
   Compute.h
+  AladinContent.cpp
+  AladinContent.h
   Content.cpp
   Content.h
+  F3dContent.cpp
+  F3dContent.h
   Platform.cpp
   Platform.h
-  cpu/CpuAffineDeformationFieldKernel.h
-  cpu/CpuAffineDeformationFieldKernel.cpp
-  cpu/CpuBlockMatchingKernel.h
-  cpu/CpuBlockMatchingKernel.cpp
-  cpu/CpuConvolutionKernel.h
-  cpu/CpuConvolutionKernel.cpp
-  cpu/CpuOptimiseKernel.h
-  cpu/CpuOptimiseKernel.cpp
-  cpu/CpuResampleImageKernel.h
-  cpu/CpuResampleImageKernel.cpp
+)
+install(TARGETS _reg_compute
+  RUNTIME DESTINATION lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+install(FILES
+  Compute.h
+  ComputeFactory.h
+  AladinContent.h
+  Content.h
+  F3dContent.h
+  Platform.h DESTINATION include
+)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_compute")
+#-----------------------------------------------------------------------------
+add_library(_reg_kernels ${NIFTYREG_LIBRARY_TYPE}
   cpu/CpuKernelFactory.cpp
   cpu/CpuKernelFactory.h
+  cpu/CpuAffineDeformationFieldKernel.cpp
+  cpu/CpuAffineDeformationFieldKernel.h
+  cpu/CpuBlockMatchingKernel.cpp
+  cpu/CpuBlockMatchingKernel.h
+  cpu/CpuConvolutionKernel.cpp
+  cpu/CpuConvolutionKernel.h
+  cpu/CpuOptimiseKernel.cpp
+  cpu/CpuOptimiseKernel.h
+  cpu/CpuResampleImageKernel.cpp
+  cpu/CpuResampleImageKernel.h
 )
-set(_reg_aladin_libraries
-  _reg_localTrans
+target_link_libraries(_reg_kernels
   _reg_blockMatching
+)
+install(TARGETS _reg_kernels
+  RUNTIME DESTINATION lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+install(FILES
+  KernelFactory.h
+  AffineDeformationFieldKernel.h
+  BlockMatchingKernel.h
+  ConvolutionKernel.h
+  Kernel.h
+  OptimiseKernel.h
+  ResampleImageKernel.h
+  cpu/CpuKernelFactory.h
+  cpu/CpuAffineDeformationFieldKernel.h
+  cpu/CpuBlockMatchingKernel.h
+  cpu/CpuConvolutionKernel.h
+  cpu/CpuOptimiseKernel.h
+  cpu/CpuResampleImageKernel.h DESTINATION include
+)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_kernels")
+#-----------------------------------------------------------------------------
+## BUILD THE ALADIN LIBRARY
+add_library(_reg_aladin ${NIFTYREG_LIBRARY_TYPE} _reg_aladin.cpp _reg_aladin_sym.cpp)
+target_link_libraries(_reg_aladin
+  _reg_blockMatching
+  _reg_compute
+  _reg_kernels
+  _reg_localTrans
   _reg_resampling
   _reg_globalTrans
   _reg_tools
@@ -170,68 +214,34 @@ set(_reg_aladin_libraries
   ${NR_OPENCL_LIBRARIES}
   ${NR_CUDA_LIBRARIES}
 )
-add_library(_reg_aladin ${NIFTYREG_LIBRARY_TYPE} ${_reg_aladin_files})
-target_link_libraries(_reg_aladin ${_reg_aladin_libraries})
 install(TARGETS _reg_aladin
   RUNTIME DESTINATION lib
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
-  )
-install(FILES cpu/_reg_macros.h DESTINATION include)
-install(FILES _reg_aladin.h _reg_aladin_sym.h DESTINATION include)
-install(FILES _reg_aladin.cpp _reg_aladin_sym.cpp DESTINATION include)
-install(FILES AladinContent.h Platform.h  DESTINATION include)
+)
 install(FILES
-        AffineDeformationFieldKernel.h
-        BlockMatchingKernel.h
-        Compute.h
-        ComputeFactory.h
-        ConvolutionKernel.h
-        Kernel.h
-        OptimiseKernel.h
-        ResampleImageKernel.h
-        cpu/CpuAffineDeformationFieldKernel.h
-        cpu/CpuBlockMatchingKernel.h
-        cpu/CpuConvolutionKernel.h
-        cpu/CpuOptimiseKernel.h
-        cpu/CpuResampleImageKernel.h
-        KernelFactory.h cpu/CpuKernelFactory.h DESTINATION include)
+  _reg_aladin.h
+  _reg_aladin_sym.h
+  cpu/_reg_macros.h DESTINATION include
+)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_aladin")
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE F3D LIBRARY
 set(_reg_f3d_files
-  Compute.cpp
-  Compute.h
-  Content.cpp
-  Content.h
-  F3dContent.cpp
-  F3dContent.h
-  Platform.cpp
-  Platform.h
-  _reg_base.h
   _reg_base.cpp
-  _reg_f3d.h
+  _reg_base.h
   _reg_f3d.cpp
-  # _reg_f3d2.h
+  _reg_f3d.h
   # _reg_f3d2.cpp
-  # _reg_f3d_sym.h
+  # _reg_f3d2.h
   # _reg_f3d_sym.cpp
-  cpu/CpuAffineDeformationFieldKernel.h
-  cpu/CpuAffineDeformationFieldKernel.cpp
-  cpu/CpuBlockMatchingKernel.h
-  cpu/CpuBlockMatchingKernel.cpp
-  cpu/CpuConvolutionKernel.h
-  cpu/CpuConvolutionKernel.cpp
-  cpu/CpuOptimiseKernel.h
-  cpu/CpuOptimiseKernel.cpp
-  cpu/CpuResampleImageKernel.h
-  cpu/CpuResampleImageKernel.cpp
-  cpu/CpuKernelFactory.h
-  cpu/CpuKernelFactory.cpp
+  # _reg_f3d_sym.h
 )
 set(_reg_f3d_libraries
   _reg_blockMatching
+  _reg_compute
+  _reg_kernels
   _reg_localTrans
   _reg_globalTrans
   _reg_resampling
@@ -247,12 +257,15 @@ install(TARGETS _reg_f3d
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
-  )
-install(FILES _reg_base.h Content.h DESTINATION include)
-install(FILES _reg_f3d.h F3dContent.h DESTINATION include)
-install(FILES _reg_f3d2.h DESTINATION include)
-install(FILES _reg_f3d_sym.h DESTINATION include)
-install(FILES cpu/_reg_optimiser.cpp cpu/_reg_optimiser.h DESTINATION include)
+)
+install(FILES
+  _reg_base.h
+  _reg_f3d.h
+  _reg_f3d2.h
+  _reg_f3d_sym.h
+  cpu/_reg_optimiser.cpp
+  cpu/_reg_optimiser.h DESTINATION include
+)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_f3d")
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

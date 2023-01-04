@@ -15,7 +15,7 @@
 
  /* *************************************************************** */
  /* *************************************************************** */
-template <class T>
+template<class T>
 reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     platform = nullptr;
     platformCode = NR_PLATFORM_CPU;
@@ -98,7 +98,7 @@ reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
 #endif
 }
 /* *************************************************************** */
-template <class T>
+template<class T>
 reg_base<T>::~reg_base() {
     // DeallocateWarped();
     // DeallocateWarpedGradient();
@@ -290,7 +290,7 @@ void reg_base<T>::SetFloatingThresholdLow(unsigned int i, T t) {
 #endif
 }
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_base<T>::UseRobustRange() {
     robustRange = true;
 #ifndef NDEBUG
@@ -298,7 +298,7 @@ void reg_base<T>::UseRobustRange() {
 #endif
 }
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_base<T>::DoNotUseRobustRange() {
     robustRange = false;
 #ifndef NDEBUG
@@ -430,7 +430,7 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
 }
 /* *************************************************************** */
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_base<T>::DeallocateCurrentInputImage() {
 //     reference = nullptr;
 //     currentMask = nullptr;
@@ -444,7 +444,7 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
 // }
 /* *************************************************************** */
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_base<T>::AllocateWarped() {
 //     if (reference == nullptr) {
 //         reg_print_fct_error("reg_base::AllocateWarped()");
@@ -467,7 +467,7 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
 // #endif
 // }
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_base<T>::DeallocateWarped() {
 //     if (warped != nullptr)
 //         nifti_image_free(warped);
@@ -478,7 +478,7 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
 // }
 /* *************************************************************** */
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_base<T>::AllocateDeformationField() {
 //     if (reference == nullptr) {
 //         reg_print_fct_error("reg_base::AllocateDeformationField()");
@@ -528,7 +528,7 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
 // #endif
 // }
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_base<T>::DeallocateDeformationField() {
 //     if (deformationFieldImage != nullptr) {
 //         nifti_image_free(deformationFieldImage);
@@ -542,7 +542,7 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
 // #endif
 // }
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_base<T>::AllocateWarpedGradient() {
 //     if (deformationFieldImage == nullptr) {
 //         reg_print_fct_error("reg_base::AllocateWarpedGradient()");
@@ -558,7 +558,7 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
 // #endif
 // }
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_base<T>::DeallocateWarpedGradient() {
 //     if (warpedGradient != nullptr) {
 //         nifti_image_free(warpedGradient);
@@ -569,7 +569,7 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
 // #endif
 // }
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_base<T>::AllocateVoxelBasedMeasureGradient() {
 //     if (deformationFieldImage == nullptr) {
 //         reg_print_fct_error("reg_base::AllocateVoxelBasedMeasureGradient()");
@@ -585,7 +585,7 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
 // #endif
 // }
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_base<T>::DeallocateVoxelBasedMeasureGradient() {
 //     if (voxelBasedMeasureGradient != nullptr) {
 //         nifti_image_free(voxelBasedMeasureGradient);
@@ -958,7 +958,7 @@ void reg_base<T>::Initialise() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 double reg_base<T>::ComputeSimilarityMeasure() {
     double measure = 0;
     if (measure_nmi != nullptr)
@@ -989,7 +989,7 @@ double reg_base<T>::ComputeSimilarityMeasure() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_base<T>::GetVoxelBasedGradient() {
     // The voxel based gradient image is filled with zeros
     // TODO Temporarily call F3dContent. This function will be moved to reg_f3d.
@@ -1221,7 +1221,7 @@ void reg_base<T>::SetLocalWeightSim(nifti_image *i) {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_base<T>::WarpFloatingImage(int inter) {
     // Compute the deformation field
     GetDeformationField();
@@ -1247,7 +1247,7 @@ void reg_base<T>::WarpFloatingImage(int inter) {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_base<T>::Run() {
 #ifndef NDEBUG
     char text[255];

@@ -2,21 +2,8 @@
 
 #include "F3dContent.h"
 #include "KernelFactory.h"
-#include "CpuKernelFactory.h"
 #include "ComputeFactory.h"
 #include "_reg_optimiser.h"
-#ifdef _USE_CUDA
-#include "CudaF3dContent.h"
-#include "CudaKernelFactory.h"
-#include "CudaComputeFactory.h"
-#include "CudaContextSingleton.h"
-#include "_reg_optimiser_gpu.h"
-#endif
-#ifdef _USE_OPENCL
-#include "ClKernelFactory.h"
-#include "ClComputeFactory.h"
-#include "ClContextSingleton.h"
-#endif
 
 #define NR_PLATFORM_CPU  0
 #define NR_PLATFORM_CUDA 1

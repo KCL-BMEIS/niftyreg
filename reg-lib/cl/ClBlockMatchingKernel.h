@@ -1,7 +1,7 @@
 #pragma once
 
 #include "BlockMatchingKernel.h"
-#include "CLAladinContent.h"
+#include "ClAladinContent.h"
 
 class ClBlockMatchingKernel: public BlockMatchingKernel {
 public:

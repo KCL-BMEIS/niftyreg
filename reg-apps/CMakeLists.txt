@@ -49,7 +49,7 @@ set(MODULE_LIST
   reg_jacobian
   reg_aladin
   reg_f3d
-  )
+)
 #-----------------------------------------------------------------------------
 if(USE_CUDA OR USE_OPENCL)
   set(gpuinfo_libraries "")
@@ -69,7 +69,7 @@ foreach(MODULE_NAME ${MODULE_LIST})
         RUNTIME DESTINATION bin COMPONENT Runtime
         LIBRARY DESTINATION lib COMPONENT Runtime
         ARCHIVE DESTINATION lib COMPONENT Runtime
-        )
+    )
 endforeach(MODULE_NAME)
 #-----------------------------------------------------------------------------
 install(PROGRAMS groupwise_niftyreg_params.sh DESTINATION bin COMPONENT Runtime)

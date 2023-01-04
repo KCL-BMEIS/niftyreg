@@ -1,7 +1,7 @@
 #pragma once
 
 #include "OptimiseKernel.h"
-#include "CLAladinContent.h"
+#include "ClAladinContent.h"
 
 class ClOptimiseKernel: public OptimiseKernel {
 public:

@@ -68,7 +68,7 @@ install(TARGETS ${NAME}
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
-    )
+)
 install(FILES ${NAME}.h DESTINATION include/cuda)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
@@ -89,7 +89,6 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaOptimiseKernel.cpp
     CudaResampleImageKernel.cpp
     ../AladinContent.cpp
-    ../Platform.cpp
     _reg_resampling_gpu.cu
     _reg_blocksize_gpu.cu
     _reg_tools_gpu.cu
@@ -97,13 +96,13 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     _reg_nmi_gpu.cu
     _reg_ssd_gpu.cu
     _reg_optimiser_gpu.cu
-    )
+)
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
 install(TARGETS ${NAME}
     RUNTIME DESTINATION lib
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
-    )
+)
 install(FILES blockMatchingKernel.h CudaCompute.h CudaContent.h CudaF3dContent.h CudaContextSingleton.h CudaAladinContent.h DESTINATION include/cuda)
 install(FILES CudaKernelFactory.h affineDeformationKernel.h resampleKernel.h optimizeKernel.h CudaAffineDeformationFieldKernel.h CudaBlockMatchingKernel.h CudaConvolutionKernel.h CudaOptimiseKernel.h CudaResampleImageKernel.h DESTINATION include/cuda)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
@@ -115,7 +114,7 @@ install(TARGETS ${NAME}
     RUNTIME DESTINATION lib
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
-    )
+)
 install(FILES ${NAME}.h DESTINATION include/cuda)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------

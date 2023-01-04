@@ -9,7 +9,7 @@
 #include "CudaAladinContent.h"
 #endif
 #ifdef _USE_OPENCL
-#include "CLAladinContent.h"
+#include "ClAladinContent.h"
 #endif
 #define EPS 0.000001
 #define EPS_SINGLE 0.0001

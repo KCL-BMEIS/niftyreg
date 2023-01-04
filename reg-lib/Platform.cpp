@@ -1,4 +1,17 @@
 #include "Platform.h"
+#include "CpuKernelFactory.h"
+#ifdef _USE_CUDA
+#include "CudaKernelFactory.h"
+#include "CudaF3dContent.h"
+#include "CudaComputeFactory.h"
+#include "CudaContextSingleton.h"
+#include "_reg_optimiser_gpu.h"
+#endif
+#ifdef _USE_OPENCL
+#include "ClKernelFactory.h"
+#include "ClComputeFactory.h"
+#include "ClContextSingleton.h"
+#endif
 
 /* *************************************************************** */
 Platform::Platform(int platformCodeIn) {

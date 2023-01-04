@@ -1,21 +1,4 @@
-#include "_reg_ReadWriteMatrix.h"
 #include "_reg_aladin.h"
-#include "_reg_stringFormat.h"
-#include "Platform.h"
-#include "AffineDeformationFieldKernel.h"
-#include "ResampleImageKernel.h"
-#include "BlockMatchingKernel.h"
-#include "OptimiseKernel.h"
-#include "ConvolutionKernel.h"
-#include "AladinContent.h"
-
-#ifdef _USE_CUDA
-#include "CudaAladinContent.h"
-#endif
-#ifdef _USE_OPENCL
-#include "CLAladinContent.h"
-#include "InfoDevice.h"
-#endif
 
 /* *************************************************************** */
 template<class T>
@@ -652,3 +635,4 @@ void reg_aladin<T>::DebugPrintLevelInfoEnd() {
     reg_mat44_disp(this->transformationMatrix, (char *)"[reg_aladin] Final transformation matrix:");
 }
 /* *************************************************************** */
+template class reg_aladin<float>;

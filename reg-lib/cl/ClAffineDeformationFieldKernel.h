@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AffineDeformationFieldKernel.h"
-#include "CLAladinContent.h"
+#include "ClAladinContent.h"
 
 class ClAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:

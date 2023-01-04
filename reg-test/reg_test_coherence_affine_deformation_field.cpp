@@ -13,7 +13,7 @@
 #endif
 
 #ifdef _USE_OPENCL
-#include "CLAladinContent.h"
+#include "ClAladinContent.h"
 #endif
 
 #define EPS 0.000001

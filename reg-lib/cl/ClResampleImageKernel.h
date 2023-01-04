@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ResampleImageKernel.h"
-#include "CLAladinContent.h"
+#include "ClAladinContent.h"
 
 class ClResampleImageKernel: public ResampleImageKernel {
 public:

@@ -29,7 +29,6 @@ reg_aladin_sym<T>::reg_aladin_sym ()
 #ifndef NDEBUG
    reg_print_msg_debug("reg_aladin_sym constructor called");
 #endif
-
 }
 /* *************************************************************** */
 template <class T>
@@ -372,3 +371,4 @@ void reg_aladin_sym<T>::DebugPrintLevelInfoEnd()
    reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[reg_aladin_sym] Final backward transformation matrix:");
 }
 /* *************************************************************** */
+template class reg_aladin_sym<float>;

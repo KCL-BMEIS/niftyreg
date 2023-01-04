@@ -16,8 +16,7 @@
 
 /// @brief Symmetric Block matching registration class
 template <class T>
-class reg_aladin_sym : public reg_aladin<T>
-{
+class reg_aladin_sym : public reg_aladin<T> {
 private:
   AladinContent *backCon;
   Kernel *bAffineTransformation3DKernel, *bConvolutionKernel, *bBlockMatchingKernel, *bOptimiseKernel, *bResamplingKernel;
@@ -55,7 +54,5 @@ protected:
 public:
   reg_aladin_sym();
   virtual ~reg_aladin_sym();
-  virtual void SetInputFloatingMask(nifti_image *);
+  virtual void SetInputFloatingMask(nifti_image*);
 };
-
-#include "_reg_aladin_sym.cpp"

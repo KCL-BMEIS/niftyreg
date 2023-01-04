@@ -23,12 +23,23 @@
 #include "_reg_nmi.h"
 #include "_reg_ssd.h"
 #include "_reg_tools.h"
-#include "float.h"
-#include <limits>
+#include "_reg_ReadWriteMatrix.h"
+#include "_reg_stringFormat.h"
+#include "Platform.h"
+#include "AffineDeformationFieldKernel.h"
+#include "ResampleImageKernel.h"
+#include "BlockMatchingKernel.h"
+#include "OptimiseKernel.h"
+#include "ConvolutionKernel.h"
+#include "AladinContent.h"
 
-class AladinContent;
-class Platform;
-class Kernel;
+#ifdef _USE_CUDA
+#include "CudaAladinContent.h"
+#endif
+#ifdef _USE_OPENCL
+#include "ClAladinContent.h"
+#include "InfoDevice.h"
+#endif
 
 /**
  * @brief Block matching registration class
@@ -158,8 +169,8 @@ public:
     }
 
     void SetInputTransform(const char *filename);
-    mat44* GetInputTransform() {
-        return this->InputTransform;
+    char* GetInputTransform() {
+        return this->inputTransformName;
     }
 
     mat44* GetTransformationMatrix() {
@@ -263,8 +274,5 @@ public:
 private:
     Kernel *affineTransformation3DKernel, *blockMatchingKernel;
     Kernel *optimiseKernel, *resamplingKernel;
-    void ResolveMatrix(unsigned int iterations,
-                       const unsigned int optimizationFlag);
+    void ResolveMatrix(unsigned int iterations, const unsigned int optimizationFlag);
 };
-
-#include "_reg_aladin.cpp"

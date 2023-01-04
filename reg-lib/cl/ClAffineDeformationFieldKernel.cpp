@@ -4,7 +4,7 @@
 
 /* *************************************************************** */
 ClAffineDeformationFieldKernel::ClAffineDeformationFieldKernel(Content *conIn) : AffineDeformationFieldKernel() {
-    //populate the CLAladinContent object ptr
+    //populate the ClAladinContent object ptr
     ClAladinContent *con = static_cast<ClAladinContent*>(conIn);
 
     //path to kernel files

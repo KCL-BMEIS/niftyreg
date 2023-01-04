@@ -19,11 +19,11 @@
 
  /* *************************************************************** */
  /* *************************************************************** */
-template <class T>
+template<class T>
 reg_f3d<T>::reg_f3d(int refTimePoint, int floTimePoint)
     : reg_base<T>::reg_base(refTimePoint, floTimePoint) {
 
-    executableName = (char *)"NiftyReg F3D";
+    this->executableName = (char*)"NiftyReg F3D";
     inputControlPointGrid = nullptr; // pointer to external
     controlPointGrid = nullptr;
     bendingEnergyWeight = 0.001;
@@ -33,8 +33,8 @@ reg_f3d<T>::reg_f3d(int refTimePoint, int floTimePoint)
     spacing[0] = -5;
     spacing[1] = std::numeric_limits<T>::quiet_NaN();
     spacing[2] = std::numeric_limits<T>::quiet_NaN();
-    useConjGradient = true;
-    useApproxGradient = false;
+    this->useConjGradient = true;
+    this->useApproxGradient = false;
 
     // approxParzenWindow=true;
 
@@ -48,7 +48,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint, int floTimePoint)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 reg_f3d<T>::~reg_f3d() {
     // DeallocateTransformationGradient();
     if (controlPointGrid != nullptr) {
@@ -117,7 +117,7 @@ void reg_f3d<T>::SetSpacing(unsigned int i, T s) {
 #endif
 }
 /* *************************************************************** */
-template <class T>
+template<class T>
 T reg_f3d<T>::InitialiseCurrentLevel(nifti_image *reference) {
     // Set the initial step size for the gradient ascent
     T maxStepSize = reference->dx > reference->dy ? reference->dx : reference->dy;
@@ -126,9 +126,9 @@ T reg_f3d<T>::InitialiseCurrentLevel(nifti_image *reference) {
 
     // Refine the control point grid if required
     if (gridRefinement) {
-        if (currentLevel == 0) {
-            bendingEnergyWeight = bendingEnergyWeight / static_cast<T>(powf(16.0f, levelNumber - 1));
-            linearEnergyWeight = linearEnergyWeight / static_cast<T>(powf(3.0f, levelNumber - 1));
+        if (this->currentLevel == 0) {
+            bendingEnergyWeight = bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelNumber - 1));
+            linearEnergyWeight = linearEnergyWeight / static_cast<T>(powf(3.0f, this->levelNumber - 1));
         } else {
             bendingEnergyWeight = bendingEnergyWeight * static_cast<T>(16);
             linearEnergyWeight = linearEnergyWeight * static_cast<T>(3);
@@ -142,7 +142,7 @@ T reg_f3d<T>::InitialiseCurrentLevel(nifti_image *reference) {
     return maxStepSize;
 }
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_f3d<T>::AllocateTransformationGradient() {
 //     if (controlPointGrid == nullptr) {
 //         reg_print_fct_error("reg_f3d<T>::AllocateTransformationGradient()");
@@ -158,7 +158,7 @@ T reg_f3d<T>::InitialiseCurrentLevel(nifti_image *reference) {
 // #endif
 // }
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_f3d<T>::DeallocateTransformationGradient() {
 //     if (transformationGradient != nullptr) {
 //         nifti_image_free(transformationGradient);
@@ -173,20 +173,19 @@ template<class T>
 void reg_f3d<T>::CheckParameters() {
     reg_base<T>::CheckParameters();
     // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
-    if (strcmp(executableName, "NiftyReg F3D") == 0 ||
-        strcmp(executableName, "NiftyReg F3D GPU") == 0) {
+    if (strcmp(this->executableName, "NiftyReg F3D") == 0 ||
+        strcmp(this->executableName, "NiftyReg F3D GPU") == 0) {
         T penaltySum = bendingEnergyWeight +
             linearEnergyWeight +
             jacobianLogWeight +
-            landmarkRegWeight;
+            this->landmarkRegWeight;
         if (penaltySum >= 1.0) {
-            similarityWeight = 0;
-            similarityWeight /= penaltySum;
+            this->similarityWeight = 0;
             bendingEnergyWeight /= penaltySum;
             linearEnergyWeight /= penaltySum;
             jacobianLogWeight /= penaltySum;
-            landmarkRegWeight /= penaltySum;
-        } else similarityWeight = 1.0 - penaltySum;
+            this->landmarkRegWeight /= penaltySum;
+        } else this->similarityWeight = 1.0 - penaltySum;
     }
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::CheckParameters");
@@ -196,7 +195,7 @@ void reg_f3d<T>::CheckParameters() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::Initialise() {
-    if (initialised) return;
+    if (this->initialised) return;
 
     reg_base<T>::Initialise();
 
@@ -209,27 +208,27 @@ void reg_f3d<T>::Initialise() {
 
         /* Convert the spacing from voxel to mm if necessary */
         float spacingInMillimeter[3] = {spacing[0], spacing[1], spacing[2]};
-        if (spacingInMillimeter[0] < 0) spacingInMillimeter[0] *= -1.0f * inputReference->dx;
-        if (spacingInMillimeter[1] < 0) spacingInMillimeter[1] *= -1.0f * inputReference->dy;
-        if (spacingInMillimeter[2] < 0) spacingInMillimeter[2] *= -1.0f * inputReference->dz;
+        if (spacingInMillimeter[0] < 0) spacingInMillimeter[0] *= -1.0f * this->inputReference->dx;
+        if (spacingInMillimeter[1] < 0) spacingInMillimeter[1] *= -1.0f * this->inputReference->dy;
+        if (spacingInMillimeter[2] < 0) spacingInMillimeter[2] *= -1.0f * this->inputReference->dz;
 
         // Define the spacing for the first level
         float gridSpacing[3];
-        gridSpacing[0] = spacingInMillimeter[0] * powf(2.0f, (float)(levelNumber - 1));
-        gridSpacing[1] = spacingInMillimeter[1] * powf(2.0f, (float)(levelNumber - 1));
+        gridSpacing[0] = spacingInMillimeter[0] * powf(2.0f, (float)(this->levelNumber - 1));
+        gridSpacing[1] = spacingInMillimeter[1] * powf(2.0f, (float)(this->levelNumber - 1));
         gridSpacing[2] = 1.0f;
-        if (referencePyramid[0]->nz > 1)
-            gridSpacing[2] = spacingInMillimeter[2] * powf(2.0f, (float)(levelNumber - 1));
+        if (this->referencePyramid[0]->nz > 1)
+            gridSpacing[2] = spacingInMillimeter[2] * powf(2.0f, (float)(this->levelNumber - 1));
 
         // Create and allocate the control point image
-        reg_createControlPointGrid<T>(&controlPointGrid, referencePyramid[0], gridSpacing);
+        reg_createControlPointGrid<T>(&controlPointGrid, this->referencePyramid[0], gridSpacing);
 
         // The control point position image is initialised with the affine transformation
-        if (affineTransformation == nullptr) {
+        if (this->affineTransformation == nullptr) {
             memset(controlPointGrid->data, 0, controlPointGrid->nvox * controlPointGrid->nbyper);
             reg_tools_multiplyValueToImage(controlPointGrid, controlPointGrid, 0.f);
             reg_getDeformationFromDisplacement(controlPointGrid);
-        } else reg_affine_getDeformationField(affineTransformation, controlPointGrid);
+        } else reg_affine_getDeformationField(this->affineTransformation, controlPointGrid);
     } else {
         // The control point grid image is initialised with the provided grid
         controlPointGrid = nifti_copy_nim_info(inputControlPointGrid);
@@ -237,186 +236,187 @@ void reg_f3d<T>::Initialise() {
         memcpy(controlPointGrid->data, inputControlPointGrid->data,
                controlPointGrid->nvox * controlPointGrid->nbyper);
         // The final grid spacing is computed
-        spacing[0] = controlPointGrid->dx / powf(2.0f, (float)(levelNumber - 1));
-        spacing[1] = controlPointGrid->dy / powf(2.0f, (float)(levelNumber - 1));
+        spacing[0] = controlPointGrid->dx / powf(2.0f, (float)(this->levelNumber - 1));
+        spacing[1] = controlPointGrid->dy / powf(2.0f, (float)(this->levelNumber - 1));
         if (controlPointGrid->nz > 1)
-            spacing[2] = controlPointGrid->dz / powf(2.0f, (float)(levelNumber - 1));
+            spacing[2] = controlPointGrid->dz / powf(2.0f, (float)(this->levelNumber - 1));
     }
 #ifdef NDEBUG
-    if (verbose) {
+    if (this->verbose) {
 #endif
         std::string text;
         // Print out some global information about the registration
-        reg_print_info(executableName, "***********************************************************");
-        reg_print_info(executableName, "INPUT PARAMETERS");
-        reg_print_info(executableName, "***********************************************************");
-        reg_print_info(executableName, "Reference image:");
-        text = stringFormat("\t* name: %s", inputReference->fname);
-        reg_print_info(executableName, text.c_str());
+        reg_print_info(this->executableName, "***********************************************************");
+        reg_print_info(this->executableName, "INPUT PARAMETERS");
+        reg_print_info(this->executableName, "***********************************************************");
+        reg_print_info(this->executableName, "Reference image:");
+        text = stringFormat("\t* name: %s", this->inputReference->fname);
+        reg_print_info(this->executableName, text.c_str());
         text = stringFormat("\t* image dimension: %i x %i x %i x %i",
-                            inputReference->nx, inputReference->ny,
-                            inputReference->nz, inputReference->nt);
-        reg_print_info(executableName, text.c_str());
+                            this->inputReference->nx, this->inputReference->ny,
+                            this->inputReference->nz, this->inputReference->nt);
+        reg_print_info(this->executableName, text.c_str());
         text = stringFormat("\t* image spacing: %g x %g x %g mm",
-                            inputReference->dx, inputReference->dy, inputReference->dz);
-        reg_print_info(executableName, text.c_str());
-        for (int i = 0; i < inputReference->nt; i++) {
+                            this->inputReference->dx, this->inputReference->dy, this->inputReference->dz);
+        reg_print_info(this->executableName, text.c_str());
+        for (int i = 0; i < this->inputReference->nt; i++) {
             text = stringFormat("\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
-                                i, inputReference->nt - 1, referenceThresholdLow[i], referenceThresholdUp[i]);
-            reg_print_info(executableName, text.c_str());
-            if (measure_nmi != nullptr) {
-                if (measure_nmi->GetTimepointsWeights()[i] > 0.0) {
-                    text = stringFormat("\t* binnining size for timepoint %i/%i: %i",
-                                        i, inputFloating->nt - 1, measure_nmi->GetReferenceBinNumber()[i] - 4);
-                    reg_print_info(executableName, text.c_str());
-                }
-            }
-        }
-        text = stringFormat("\t* gaussian smoothing sigma: %g", referenceSmoothingSigma);
-        reg_print_info(executableName, text.c_str());
-        reg_print_info(executableName, "");
-        reg_print_info(executableName, "Floating image:");
-        reg_print_info(executableName, text.c_str());
-        text = stringFormat("\t* name: %s", inputFloating->fname);
-        reg_print_info(executableName, text.c_str());
-        text = stringFormat("\t* image dimension: %i x %i x %i x %i",
-                            inputFloating->nx, inputFloating->ny, inputFloating->nz, inputFloating->nt);
-        reg_print_info(executableName, text.c_str());
-        text = stringFormat("\t* image spacing: %g x %g x %g mm", inputFloating->dx,
-                            inputFloating->dy, inputFloating->dz);
-        reg_print_info(executableName, text.c_str());
-        for (int i = 0; i < inputFloating->nt; i++) {
-            text = stringFormat("\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
-                                i, inputFloating->nt - 1, floatingThresholdLow[i], floatingThresholdUp[i]);
-            reg_print_info(executableName, text.c_str());
-            if (measure_nmi != nullptr) {
-                if (measure_nmi->GetTimepointsWeights()[i] > 0.0) {
+                                i, this->inputReference->nt - 1, this->referenceThresholdLow[i], this->referenceThresholdUp[i]);
+            reg_print_info(this->executableName, text.c_str());
+            if (this->measure_nmi != nullptr) {
+                if (this->measure_nmi->GetTimepointsWeights()[i] > 0.0) {
                     text = stringFormat("\t* binning size for timepoint %i/%i: %i",
-                                        i, inputFloating->nt - 1, measure_nmi->GetFloatingBinNumber()[i] - 4);
-                    reg_print_info(executableName, text.c_str());
+                                        i, this->inputFloating->nt - 1, this->measure_nmi->GetReferenceBinNumber()[i] - 4);
+                    reg_print_info(this->executableName, text.c_str());
                 }
             }
         }
-        text = stringFormat("\t* gaussian smoothing sigma: %g", floatingSmoothingSigma);
-        reg_print_info(executableName, text.c_str());
-        reg_print_info(executableName, "");
-        text = stringFormat("Warped image padding value: %g", warpedPaddingValue);
-        reg_print_info(executableName, text.c_str());
-        reg_print_info(executableName, "");
-        text = stringFormat("Level number: %i", levelNumber);
-        reg_print_info(executableName, text.c_str());
-        if (levelNumber != levelToPerform) {
-            text = stringFormat("\t* Level to perform: %i", levelToPerform);
-            reg_print_info(executableName, text.c_str());
+        text = stringFormat("\t* gaussian smoothing sigma: %g", this->referenceSmoothingSigma);
+        reg_print_info(this->executableName, text.c_str());
+        reg_print_info(this->executableName, "");
+        reg_print_info(this->executableName, "Floating image:");
+        reg_print_info(this->executableName, text.c_str());
+        text = stringFormat("\t* name: %s", this->inputFloating->fname);
+        reg_print_info(this->executableName, text.c_str());
+        text = stringFormat("\t* image dimension: %i x %i x %i x %i",
+                            this->inputFloating->nx, this->inputFloating->ny,
+                            this->inputFloating->nz, this->inputFloating->nt);
+        reg_print_info(this->executableName, text.c_str());
+        text = stringFormat("\t* image spacing: %g x %g x %g mm", this->inputFloating->dx,
+                            this->inputFloating->dy, this->inputFloating->dz);
+        reg_print_info(this->executableName, text.c_str());
+        for (int i = 0; i < this->inputFloating->nt; i++) {
+            text = stringFormat("\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
+                                i, this->inputFloating->nt - 1, this->floatingThresholdLow[i], this->floatingThresholdUp[i]);
+            reg_print_info(this->executableName, text.c_str());
+            if (this->measure_nmi != nullptr) {
+                if (this->measure_nmi->GetTimepointsWeights()[i] > 0.0) {
+                    text = stringFormat("\t* binning size for timepoint %i/%i: %i",
+                                        i, this->inputFloating->nt - 1, this->measure_nmi->GetFloatingBinNumber()[i] - 4);
+                    reg_print_info(this->executableName, text.c_str());
+                }
+            }
         }
-        reg_print_info(executableName, "");
-        text = stringFormat("Maximum iteration number during the last level: %i", (int)maxIterationNumber);
-        reg_print_info(executableName, text.c_str());
-        reg_print_info(executableName, "");
+        text = stringFormat("\t* gaussian smoothing sigma: %g", this->floatingSmoothingSigma);
+        reg_print_info(this->executableName, text.c_str());
+        reg_print_info(this->executableName, "");
+        text = stringFormat("Warped image padding value: %g", this->warpedPaddingValue);
+        reg_print_info(this->executableName, text.c_str());
+        reg_print_info(this->executableName, "");
+        text = stringFormat("Level number: %i", this->levelNumber);
+        reg_print_info(this->executableName, text.c_str());
+        if (this->levelNumber != this->levelToPerform) {
+            text = stringFormat("\t* Level to perform: %i", this->levelToPerform);
+            reg_print_info(this->executableName, text.c_str());
+        }
+        reg_print_info(this->executableName, "");
+        text = stringFormat("Maximum iteration number during the last level: %i", (int)this->maxIterationNumber);
+        reg_print_info(this->executableName, text.c_str());
+        reg_print_info(this->executableName, "");
 
         text = stringFormat("Final spacing in mm: %g %g %g", spacing[0], spacing[1], spacing[2]);
-        reg_print_info(executableName, text.c_str());
-        reg_print_info(executableName, "");
-        if (measure_ssd != nullptr)
-            reg_print_info(executableName, "The SSD is used as a similarity measure.");
-        if (measure_kld != nullptr)
-            reg_print_info(executableName, "The KL divergence is used as a similarity measure.");
-        if (measure_lncc != nullptr)
-            reg_print_info(executableName, "The LNCC is used as a similarity measure.");
-        if (measure_dti != nullptr)
-            reg_print_info(executableName, "A DTI based measure is used as a similarity measure.");
-        if (measure_mind != nullptr)
-            reg_print_info(executableName, "MIND is used as a similarity measure.");
-        if (measure_mindssc != nullptr)
-            reg_print_info(executableName, "MINDSSC is used as a similarity measure.");
-        if (measure_nmi != nullptr || (measure_dti == nullptr && measure_kld == nullptr &&
-                                       measure_lncc == nullptr && measure_nmi == nullptr &&
-                                       measure_ssd == nullptr && measure_mind == nullptr &&
-                                       measure_mindssc == nullptr))
-            reg_print_info(executableName, "The NMI is used as a similarity measure.");
-        text = stringFormat("Similarity measure term weight: %g", similarityWeight);
-        reg_print_info(executableName, text.c_str());
-        reg_print_info(executableName, "");
+        reg_print_info(this->executableName, text.c_str());
+        reg_print_info(this->executableName, "");
+        if (this->measure_ssd != nullptr)
+            reg_print_info(this->executableName, "The SSD is used as a similarity measure.");
+        if (this->measure_kld != nullptr)
+            reg_print_info(this->executableName, "The KL divergence is used as a similarity measure.");
+        if (this->measure_lncc != nullptr)
+            reg_print_info(this->executableName, "The LNCC is used as a similarity measure.");
+        if (this->measure_dti != nullptr)
+            reg_print_info(this->executableName, "A DTI based measure is used as a similarity measure.");
+        if (this->measure_mind != nullptr)
+            reg_print_info(this->executableName, "MIND is used as a similarity measure.");
+        if (this->measure_mindssc != nullptr)
+            reg_print_info(this->executableName, "MINDSSC is used as a similarity measure.");
+        if (this->measure_nmi != nullptr || (this->measure_dti == nullptr && this->measure_kld == nullptr &&
+                                             this->measure_lncc == nullptr && this->measure_nmi == nullptr &&
+                                             this->measure_ssd == nullptr && this->measure_mind == nullptr &&
+                                             this->measure_mindssc == nullptr))
+            reg_print_info(this->executableName, "The NMI is used as a similarity measure.");
+        text = stringFormat("Similarity measure term weight: %g", this->similarityWeight);
+        reg_print_info(this->executableName, text.c_str());
+        reg_print_info(this->executableName, "");
         if (bendingEnergyWeight > 0) {
             text = stringFormat("Bending energy penalty term weight: %g", bendingEnergyWeight);
-            reg_print_info(executableName, text.c_str());
-            reg_print_info(executableName, "");
+            reg_print_info(this->executableName, text.c_str());
+            reg_print_info(this->executableName, "");
         }
         if ((linearEnergyWeight) > 0) {
             text = stringFormat("Linear energy penalty term weight: %g", linearEnergyWeight);
-            reg_print_info(executableName, text.c_str());
-            reg_print_info(executableName, "");
+            reg_print_info(this->executableName, text.c_str());
+            reg_print_info(this->executableName, "");
         }
         if (jacobianLogWeight > 0) {
             text = stringFormat("Jacobian-based penalty term weight: %g", jacobianLogWeight);
-            reg_print_info(executableName, text.c_str());
+            reg_print_info(this->executableName, text.c_str());
             if (jacobianLogApproximation) {
-                reg_print_info(executableName, "\t* Jacobian-based penalty term is approximated");
+                reg_print_info(this->executableName, "\t* Jacobian-based penalty term is approximated");
             } else {
-                reg_print_info(executableName, "\t* Jacobian-based penalty term is not approximated");
+                reg_print_info(this->executableName, "\t* Jacobian-based penalty term is not approximated");
             }
-            reg_print_info(executableName, "");
+            reg_print_info(this->executableName, "");
         }
-        if ((landmarkRegWeight) > 0) {
-            text = stringFormat("Landmark distance regularisation term weight: %g", landmarkRegWeight);
-            reg_print_info(executableName, text.c_str());
-            reg_print_info(executableName, "");
+        if (this->landmarkRegWeight > 0) {
+            text = stringFormat("Landmark distance regularisation term weight: %g", this->landmarkRegWeight);
+            reg_print_info(this->executableName, text.c_str());
+            reg_print_info(this->executableName, "");
         }
 #ifdef NDEBUG
     }
 #endif
 
-    initialised = true;
+    this->initialised = true;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::Initialise");
 #endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
-    if (platformCode == NR_PLATFORM_CPU)
-        con = new F3dContent(reference, floating, controlPointGrid, localWeightSimInput, mask, affineTransformation, sizeof(T));
+    if (this->platformCode == NR_PLATFORM_CPU)
+        this->con = new F3dContent(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
 #ifdef _USE_CUDA
-    else if (platformCode == NR_PLATFORM_CUDA)
-        con = new CudaF3dContent(reference, floating, controlPointGrid, localWeightSimInput, mask, affineTransformation, sizeof(T));
+    else if (this->platformCode == NR_PLATFORM_CUDA)
+        this->con = new CudaF3dContent(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
 #endif
-    compute = platform->CreateCompute(con);
+    this->compute = this->platform->CreateCompute(this->con);
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::DeinitContent() {
-    delete compute;
-    compute = nullptr;
-    delete con;
-    con = nullptr;
+    delete this->compute;
+    this->compute = nullptr;
+    delete this->con;
+    this->con = nullptr;
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::GetDeformationField() {
-    compute->GetDeformationField(false, // Composition
-                                 true); // bspline
+    this->compute->GetDeformationField(false, // Composition
+                                       true); // bspline
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetDeformationField");
 #endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type) {
     if (jacobianLogWeight <= 0) return 0;
 
     bool approx = type == 2 ? false : jacobianLogApproximation;
 
-    double value = compute->GetJacobianPenaltyTerm(approx);
+    double value = this->compute->GetJacobianPenaltyTerm(approx);
 
     unsigned int maxit = 5;
     if (type > 0) maxit = 20;
     unsigned int it = 0;
     while (value != value && it < maxit) {
-        value = compute->CorrectFolding(approx);
+        value = this->compute->CorrectFolding(approx);
 #ifndef NDEBUG
         reg_print_msg_debug("Folding correction");
 #endif
@@ -424,7 +424,7 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type) {
     }
     if (type > 0) {
         if (value != value) {
-            optimiser->RestoreBestDOF();
+            this->optimiser->RestoreBestDOF();
             reg_print_fct_warn("reg_f3d<T>::ComputeJacobianBasedPenaltyTerm()");
             reg_print_msg_warn("The folding correction scheme failed");
         } else {
@@ -444,11 +444,11 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type) {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm() {
     if (bendingEnergyWeight <= 0) return 0;
 
-    double value = compute->ApproxBendingEnergy();
+    double value = this->compute->ApproxBendingEnergy();
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::ComputeBendingEnergyPenaltyTerm");
 #endif
@@ -456,12 +456,12 @@ double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm() {
     if (linearEnergyWeight <= 0)
         return 0;
 
-    double value = compute->ApproxLinearEnergy();
+    double value = this->compute->ApproxLinearEnergy();
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::ComputeLinearEnergyPenaltyTerm");
 #endif
@@ -469,24 +469,26 @@ double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 double reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm() {
-    if (landmarkRegWeight <= 0)
+    if (this->landmarkRegWeight <= 0)
         return 0;
 
-    double value = compute->GetLandmarkDistance(landmarkRegNumber, landmarkReference, landmarkFloating);
+    double value = this->compute->GetLandmarkDistance(this->landmarkRegNumber,
+                                                      this->landmarkReference,
+                                                      this->landmarkFloating);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm");
 #endif
-    return landmarkRegWeight * value;
+    return this->landmarkRegWeight * value;
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::GetSimilarityMeasureGradient() {
-    GetVoxelBasedGradient();
+    this->GetVoxelBasedGradient();
 
-    nifti_image *voxelBasedMeasureGradient = dynamic_cast<F3dContent*>(con)->GetVoxelBasedMeasureGradient();
+    nifti_image *voxelBasedMeasureGradient = dynamic_cast<F3dContent*>(this->con)->GetVoxelBasedMeasureGradient();
     const int kernel_type = CUBIC_SPLINE_KERNEL;
     // The voxel based NMI gradient is convolved with a spline kernel
     // Convolution along the x axis
@@ -523,10 +525,10 @@ void reg_f3d<T>::GetSimilarityMeasureGradient() {
     }
 
     // Update the changes of voxelBasedMeasureGradient
-    dynamic_cast<F3dContent*>(con)->SetVoxelBasedMeasureGradient(voxelBasedMeasureGradient);
+    dynamic_cast<F3dContent*>(this->con)->SetVoxelBasedMeasureGradient(voxelBasedMeasureGradient);
 
     // The node based NMI gradient is extracted
-    compute->VoxelCentricToNodeCentric(similarityWeight);
+    this->compute->VoxelCentricToNodeCentric(this->similarityWeight);
 
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetSimilarityMeasureGradient");
@@ -534,54 +536,54 @@ void reg_f3d<T>::GetSimilarityMeasureGradient() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::GetBendingEnergyGradient() {
     if (bendingEnergyWeight <= 0) return;
 
-    compute->ApproxBendingEnergyGradient(bendingEnergyWeight);
+    this->compute->ApproxBendingEnergyGradient(bendingEnergyWeight);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetBendingEnergyGradient");
 #endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::GetLinearEnergyGradient() {
     if (linearEnergyWeight <= 0) return;
 
-    compute->ApproxLinearEnergyGradient(linearEnergyWeight);
+    this->compute->ApproxLinearEnergyGradient(linearEnergyWeight);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetLinearEnergyGradient");
 #endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::GetJacobianBasedGradient() {
     if (jacobianLogWeight <= 0) return;
 
-    compute->JacobianPenaltyTermGradient(jacobianLogWeight, jacobianLogApproximation);
+    this->compute->JacobianPenaltyTermGradient(jacobianLogWeight, jacobianLogApproximation);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetJacobianBasedGradient");
 #endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::GetLandmarkDistanceGradient() {
-    if (landmarkRegWeight <= 0) return;
+    if (this->landmarkRegWeight <= 0) return;
 
-    compute->LandmarkDistanceGradient(landmarkRegNumber,
-                                      landmarkReference,
-                                      landmarkFloating,
-                                      landmarkRegWeight);
+    this->compute->LandmarkDistanceGradient(this->landmarkRegNumber,
+                                            this->landmarkReference,
+                                            this->landmarkFloating,
+                                            this->landmarkRegWeight);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetLandmarkDistanceGradient");
 #endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
-// template <class T>
+// template<class T>
 // void reg_f3d<T>::SetGradientImageToZero() {
 //     T* nodeGradPtr = static_cast<T*>(transformationGradient->data);
 //     for (size_t i = 0; i < transformationGradient->nvox; ++i)
@@ -592,15 +594,15 @@ void reg_f3d<T>::GetLandmarkDistanceGradient() {
 // }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 T reg_f3d<T>::NormaliseGradient() {
     // First compute the gradient max length for normalisation purpose
-    T maxGradLength = (T)compute->GetMaximalLength(optimiseX, optimiseY, optimiseZ);
+    T maxGradLength = (T)this->compute->GetMaximalLength(this->optimiseX, this->optimiseY, this->optimiseZ);
 
-    if (strcmp(executableName, "NiftyReg F3D") == 0) {
+    if (strcmp(this->executableName, "NiftyReg F3D") == 0) {
         // The gradient is normalised if we are running f3d
         // It will be normalised later when running f3d_sym or f3d2
-        compute->NormaliseGradient(maxGradLength);
+        this->compute->NormaliseGradient(maxGradLength);
 #ifndef NDEBUG
         char text[255];
         sprintf(text, "Objective function gradient maximal length: %g", maxGradLength);
@@ -616,37 +618,37 @@ T reg_f3d<T>::NormaliseGradient() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::DisplayCurrentLevelParameters() {
 #ifdef NDEBUG
-    if (verbose) {
+    if (this->verbose) {
 #endif
-        nifti_image *reference = con->Content::GetReference();
-        nifti_image *floating = con->Content::GetFloating();
+        nifti_image *reference = this->con->Content::GetReference();
+        nifti_image *floating = this->con->Content::GetFloating();
         char text[255];
-        sprintf(text, "Current level: %i / %i", currentLevel + 1, levelNumber);
-        reg_print_info(executableName, text);
-        sprintf(text, "Maximum iteration number: %i", (int)maxIterationNumber);
-        reg_print_info(executableName, text);
-        reg_print_info(executableName, "Current reference image");
+        sprintf(text, "Current level: %i / %i", this->currentLevel + 1, this->levelNumber);
+        reg_print_info(this->executableName, text);
+        sprintf(text, "Maximum iteration number: %i", (int)this->maxIterationNumber);
+        reg_print_info(this->executableName, text);
+        reg_print_info(this->executableName, "Current reference image");
         sprintf(text, "\t* image dimension: %i x %i x %i x %i", reference->nx, reference->ny, reference->nz, reference->nt);
-        reg_print_info(executableName, text);
+        reg_print_info(this->executableName, text);
         sprintf(text, "\t* image spacing: %g x %g x %g mm", reference->dx, reference->dy, reference->dz);
-        reg_print_info(executableName, text);
-        reg_print_info(executableName, "Current floating image");
+        reg_print_info(this->executableName, text);
+        reg_print_info(this->executableName, "Current floating image");
         sprintf(text, "\t* image dimension: %i x %i x %i x %i", floating->nx, floating->ny, floating->nz, floating->nt);
-        reg_print_info(executableName, text);
+        reg_print_info(this->executableName, text);
         sprintf(text, "\t* image spacing: %g x %g x %g mm", floating->dx, floating->dy, floating->dz);
-        reg_print_info(executableName, text);
-        reg_print_info(executableName, "Current control point image");
+        reg_print_info(this->executableName, text);
+        reg_print_info(this->executableName, "Current control point image");
         sprintf(text, "\t* image dimension: %i x %i x %i",
                 controlPointGrid->nx, controlPointGrid->ny,
                 controlPointGrid->nz);
-        reg_print_info(executableName, text);
+        reg_print_info(this->executableName, text);
         sprintf(text, "\t* image spacing: %g x %g x %g mm",
                 controlPointGrid->dx, controlPointGrid->dy,
                 controlPointGrid->dz);
-        reg_print_info(executableName, text);
+        reg_print_info(this->executableName, text);
 #ifdef NDEBUG
     }
 #endif
@@ -670,7 +672,7 @@ void reg_f3d<T>::DisplayCurrentLevelParameters() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 double reg_f3d<T>::GetObjectiveFunctionValue() {
     currentWJac = ComputeJacobianBasedPenaltyTerm(1); // 20 iterations
 
@@ -678,18 +680,18 @@ double reg_f3d<T>::GetObjectiveFunctionValue() {
 
     currentWLE = ComputeLinearEnergyPenaltyTerm();
 
-    currentWLand = ComputeLandmarkDistancePenaltyTerm();
+    this->currentWLand = ComputeLandmarkDistancePenaltyTerm();
 
     // Compute initial similarity measure
-    currentWMeasure = 0.0;
-    if (similarityWeight > 0) {
-        WarpFloatingImage(interpolation);
-        currentWMeasure = ComputeSimilarityMeasure();
+    this->currentWMeasure = 0.0;
+    if (this->similarityWeight > 0) {
+        this->WarpFloatingImage(this->interpolation);
+        this->currentWMeasure = this->ComputeSimilarityMeasure();
     }
 #ifndef NDEBUG
     char text[255];
     sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wJac) %g | (wLan) %g",
-            currentWMeasure, currentWBE, currentWLE, currentWJac, currentWLand);
+            this->currentWMeasure, currentWBE, currentWLE, currentWJac, this->currentWLand);
     reg_print_msg_debug(text);
 #endif
 
@@ -698,45 +700,47 @@ double reg_f3d<T>::GetObjectiveFunctionValue() {
 #endif
     // Store the global objective function value
 
-    return currentWMeasure - currentWBE - currentWLE - currentWJac - currentWLand;
+    return this->currentWMeasure - currentWBE - currentWLE - currentWJac - this->currentWLand;
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::UpdateParameters(float scale) {
-    T *currentDOF = optimiser->GetCurrentDOF();
-    T *bestDOF = optimiser->GetBestDOF();
-    T *gradient = optimiser->GetGradient();
-
-    compute->UpdateControlPointPosition(currentDOF, bestDOF, gradient, scale, optimiseX, optimiseY, optimiseZ);
+    this->compute->UpdateControlPointPosition(this->optimiser->GetCurrentDOF(),
+                                              this->optimiser->GetBestDOF(),
+                                              this->optimiser->GetGradient(),
+                                              scale,
+                                              this->optimiseX,
+                                              this->optimiseY,
+                                              this->optimiseZ);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::UpdateParameters");
 #endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::SetOptimiser() {
-    optimiser = platform->CreateOptimiser<T>(dynamic_cast<F3dContent*>(con),
-                                             this,
-                                             maxIterationNumber,
-                                             useConjGradient,
-                                             optimiseX,
-                                             optimiseY,
-                                             optimiseZ);
+    this->optimiser = this->platform->template CreateOptimiser<T>(dynamic_cast<F3dContent*>(this->con),
+                                                                  this,
+                                                                  this->maxIterationNumber,
+                                                                  this->useConjGradient,
+                                                                  this->optimiseX,
+                                                                  this->optimiseY,
+                                                                  this->optimiseZ);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::SetOptimiser");
 #endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::SmoothGradient() {
     // TODO Implement this for CUDA
     // Use CPU temporarily
     // The gradient is smoothed using a Gaussian kernel if it is required
-    if (gradientSmoothingSigma != 0) {
-        float kernel = fabs(gradientSmoothingSigma);
+    if (this->gradientSmoothingSigma != 0) {
+        float kernel = fabs(this->gradientSmoothingSigma);
         F3dContent *con = dynamic_cast<F3dContent*>(this->con);
         reg_tools_kernelConvolution(con->GetTransformationGradient(), &kernel, GAUSSIAN_KERNEL);
         // Update the changes of transformationGradient
@@ -748,7 +752,7 @@ void reg_f3d<T>::SmoothGradient() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class T>
+template<class T>
 void reg_f3d<T>::GetApproximatedGradient() {
     // TODO Implement this for CUDA
     // Use CPU temporarily
@@ -761,7 +765,7 @@ void reg_f3d<T>::GetApproximatedGradient() {
     T *gradPtr = static_cast<T*>(transformationGradient->data);
     T eps = controlPointGrid->dx / 100.f;
     for (size_t i = 0; i < controlPointGrid->nvox; ++i) {
-        T currentValue = optimiser->GetBestDOF()[i];
+        T currentValue = this->optimiser->GetBestDOF()[i];
         gridPtr[i] = currentValue + eps;
         // Update the changes. Bad hack, fix that!
         con->SetControlPointGrid(controlPointGrid);
@@ -787,24 +791,24 @@ void reg_f3d<T>::GetApproximatedGradient() {
 template<class T>
 nifti_image** reg_f3d<T>::GetWarpedImage() {
     // The initial images are used
-    if (!inputReference || !inputFloating || !controlPointGrid) {
+    if (!this->inputReference || !this->inputFloating || !controlPointGrid) {
         reg_print_fct_error("reg_f3d<T>::GetWarpedImage()");
         reg_print_msg_error("The reference, floating and control point grid images have to be defined");
         reg_exit();
     }
 
-    const int datatype = inputFloating->datatype;
+    const int datatype = this->inputFloating->datatype;
 
-    InitContent(inputReference, inputFloating, nullptr);
+    InitContent(this->inputReference, this->inputFloating, nullptr);
 
-    WarpFloatingImage(3); // cubic spline interpolation
+    this->WarpFloatingImage(3); // cubic spline interpolation
 
     nifti_image **warpedImage = (nifti_image**)calloc(2, sizeof(nifti_image*));
-    warpedImage[0] = con->GetWarped(datatype, 0);
-    if (inputFloating->nt == 2)
-        warpedImage[1] = con->GetWarped(datatype, 1);
+    warpedImage[0] = this->con->GetWarped(datatype, 0);
+    if (this->inputFloating->nt == 2)
+        warpedImage[1] = this->con->GetWarped(datatype, 1);
 
-    con->SetWarped(nullptr); // Prevent deallocating of warpedImage
+    this->con->SetWarped(nullptr); // Prevent deallocating of warpedImage
     DeinitContent();
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetWarpedImage");
@@ -828,11 +832,11 @@ nifti_image* reg_f3d<T>::GetControlPointPositionImage() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::UpdateBestObjFunctionValue() {
-    bestWMeasure = currentWMeasure;
+    this->bestWMeasure = this->currentWMeasure;
     bestWBE = currentWBE;
     bestWLE = currentWLE;
     bestWJac = currentWJac;
-    bestWLand = currentWLand;
+    this->bestWLand = this->currentWLand;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::UpdateBestObjFunctionValue");
 #endif
@@ -841,14 +845,14 @@ void reg_f3d<T>::UpdateBestObjFunctionValue() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::PrintInitialObjFunctionValue() {
-    if (!verbose) return;
+    if (!this->verbose) return;
 
-    double bestValue = optimiser->GetBestObjFunctionValue();
+    double bestValue = this->optimiser->GetBestObjFunctionValue();
 
     char text[255];
     sprintf(text, "Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wJAC)%g - (wLAN)%g",
-            bestValue, bestWMeasure, bestWBE, bestWLE, bestWJac, bestWLand);
-    reg_print_info(executableName, text);
+            bestValue, this->bestWMeasure, bestWBE, bestWLE, bestWJac, this->bestWLand);
+    reg_print_info(this->executableName, text);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::PrintInitialObjFunctionValue");
 #endif
@@ -857,23 +861,23 @@ void reg_f3d<T>::PrintInitialObjFunctionValue() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize) {
-    if (!verbose) return;
+    if (!this->verbose) return;
 
     char text[255];
     sprintf(text, "[%i] Current objective function: %g",
-            (int)optimiser->GetCurrentIterationNumber(),
-            optimiser->GetBestObjFunctionValue());
-    sprintf(text + strlen(text), " = (wSIM)%g", bestWMeasure);
+            (int)this->optimiser->GetCurrentIterationNumber(),
+            this->optimiser->GetBestObjFunctionValue());
+    sprintf(text + strlen(text), " = (wSIM)%g", this->bestWMeasure);
     if (bendingEnergyWeight > 0)
         sprintf(text + strlen(text), " - (wBE)%.2e", bestWBE);
     if (linearEnergyWeight > 0)
         sprintf(text + strlen(text), " - (wLE)%.2e", bestWLE);
     if (jacobianLogWeight > 0)
         sprintf(text + strlen(text), " - (wJAC)%.2e", bestWJac);
-    if (landmarkRegWeight > 0)
-        sprintf(text + strlen(text), " - (wLAN)%.2e", bestWLand);
+    if (this->landmarkRegWeight > 0)
+        sprintf(text + strlen(text), " - (wLAN)%.2e", this->bestWLand);
     sprintf(text + strlen(text), " [+ %g mm]", currentSize);
-    reg_print_info(executableName, text);
+    reg_print_info(this->executableName, text);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::PrintCurrentObjFunctionValue");
 #endif
@@ -882,13 +886,13 @@ void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize) {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::GetObjectiveFunctionGradient() {
-    if (!useApproxGradient) {
+    if (!this->useApproxGradient) {
         // Compute the gradient of the similarity measure
-        if (similarityWeight > 0) {
-            WarpFloatingImage(interpolation);
+        if (this->similarityWeight > 0) {
+            this->WarpFloatingImage(this->interpolation);
             GetSimilarityMeasureGradient();
         } else {
-            dynamic_cast<F3dContent*>(con)->ZeroTransformationGradient();
+            dynamic_cast<F3dContent*>(this->con)->ZeroTransformationGradient();
         }
         // Compute the penalty term gradients if required
         GetBendingEnergyGradient();
@@ -899,7 +903,7 @@ void reg_f3d<T>::GetObjectiveFunctionGradient() {
         GetApproximatedGradient();
     }
 
-    optimiser->IncrementCurrentIterationNumber();
+    this->optimiser->IncrementCurrentIterationNumber();
 
     // Smooth the gradient if require
     SmoothGradient();
@@ -919,5 +923,4 @@ void reg_f3d<T>::CorrectTransformation() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-
 template class reg_f3d<float>;

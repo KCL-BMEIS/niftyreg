@@ -108,7 +108,7 @@ void reg_intensityRescale_core(nifti_image *image,
    DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
    unsigned int voxelNumber = image->nx*image->ny*image->nz;
 
-   // The rescasling is done for each volume independtly
+   // The rescaling is done for each volume independently
    DTYPE *volumePtr = &imagePtr[timePoint*voxelNumber];
    DTYPE currentMin=0;
    DTYPE currentMax=0;

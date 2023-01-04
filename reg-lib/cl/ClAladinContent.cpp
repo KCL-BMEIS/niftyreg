@@ -1,4 +1,4 @@
-#include "CLAladinContent.h"
+#include "ClAladinContent.h"
 #include "_reg_tools.h"
 
 /* *************************************************************** */

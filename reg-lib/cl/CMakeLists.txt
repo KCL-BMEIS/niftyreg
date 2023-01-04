@@ -23,7 +23,7 @@ set(NAME _reg_opencl_kernels)
 add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
   ClCompute.cpp
   ClContextSingleton.cpp
-  CLAladinContent.cpp
+  ClAladinContent.cpp
   ClKernelFactory.cpp
   ClAffineDeformationFieldKernel.cpp
   ClBlockMatchingKernel.cpp
@@ -31,7 +31,6 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
   ClOptimiseKernel.cpp
   ClResampleImageKernel.cpp
   ../AladinContent.cpp
-  ../Platform.cpp
 )
 target_link_libraries(${NAME} ${OpenCL_LIBRARIES})
 install(TARGETS ${NAME}
@@ -41,14 +40,20 @@ install(TARGETS ${NAME}
 )
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
-install(FILES ClCompute.h ClContextSingleton.h CLAladinContent.h ClKernelFactory.h
-        ClAffineDeformationFieldKernel.h
-        ClBlockMatchingKernel.h
-        ClConvolutionKernel.h
-        ClOptimiseKernel.h
-        ClResampleImageKernel.h
-        DESTINATION include/cl)
-install(FILES resampleKernel.cl affineDeformationKernel.cl blockMatchingKernel.cl DESTINATION include/cl)
+install(FILES
+  ClCompute.h
+  ClContextSingleton.h
+  ClAladinContent.h
+  ClKernelFactory.h
+  ClAffineDeformationFieldKernel.h
+  ClBlockMatchingKernel.h
+  ClConvolutionKernel.h
+  ClOptimiseKernel.h
+  ClResampleImageKernel.h
+  resampleKernel.cl
+  affineDeformationKernel.cl
+  blockMatchingKernel.cl DESTINATION include/cl
+)
 #-----------------------------------------------------------------------------
 set(NAME _reg_openclinfo)
 add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cpp ${NAME}.h InfoDevice.h ClContextSingleton.cpp)
