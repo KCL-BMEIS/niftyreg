@@ -97,7 +97,7 @@ int main(int argc, char **argv)
    ////////////////////////
    float max_difference = 0;
    unsigned int num_points = m1;
-   //I think it is a bit durty... what I am going to do
+   //I think it is a bit dirty what I am going to do
    _reg_blockMatchingParam* blockMatchingParams = new _reg_blockMatchingParam();
 
    blockMatchingParams->blockNumber[0] = 1;

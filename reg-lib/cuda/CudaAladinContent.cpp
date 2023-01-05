@@ -135,8 +135,8 @@ void CudaAladinContent::AllocateCuPtrs() {
     }
 }
 /* *************************************************************** */
-nifti_image* CudaAladinContent::GetWarped(int datatype, int index) {
-    DownloadImage(warped, warpedImageArray_d, datatype);
+nifti_image* CudaAladinContent::GetWarped(int index) {
+    DownloadImage(warped, warpedImageArray_d, warped->datatype);
     return warped;
 }
 /* *************************************************************** */

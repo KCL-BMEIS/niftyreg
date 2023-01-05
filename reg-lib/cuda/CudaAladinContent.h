@@ -45,7 +45,7 @@ public:
     // CPU getters with data downloaded from device
     _reg_blockMatchingParam* GetBlockMatchingParams() override;
     nifti_image* GetDeformationField() override;
-    nifti_image* GetWarped(int datatype, int index = 0) override;
+    nifti_image* GetWarped(int index = 0) override;
 
     // Setters
     void SetTransformationMatrix(mat44 *transformationMatrixIn) override;

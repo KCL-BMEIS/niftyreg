@@ -153,7 +153,7 @@ TEST_CASE("Resampling", "[resampling]") {
                 std::list<int> interp = {0, 1, 3};
                 for (auto it : interp) {
                     resampleKernel->castTo<ResampleImageKernel>()->Calculate(it, 0);
-                    warped = con->GetWarped(reference->datatype);
+                    warped = con->GetWarped();
 
                     // Check all values
                     auto *warpedPtr = static_cast<float*>(warped->data);

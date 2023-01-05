@@ -563,7 +563,6 @@ void reg_aladin<T>::Run() {
 /* *************************************************************** */
 template<class T>
 nifti_image* reg_aladin<T>::GetFinalWarpedImage() {
-    int floatingType = this->inputFloating->datatype; //t_dev ask before touching this!
     // The initial images are used
     if (this->inputReference == nullptr || this->inputFloating == nullptr || this->transformationMatrix == nullptr) {
         reg_print_fct_error("reg_aladin::GetFinalWarpedImage()");
@@ -582,7 +581,7 @@ nifti_image* reg_aladin<T>::GetFinalWarpedImage() {
     reg_aladin<T>::CreateKernels();
 
     reg_aladin<T>::GetWarpedImage(3, this->warpedPaddingValue); // cubic spline interpolation
-    nifti_image *warped = this->con->GetWarped(floatingType);
+    nifti_image *warped = this->con->GetWarped();
 
     free(mask);
     nifti_image *resultImage = nifti_copy_nim_info(warped);

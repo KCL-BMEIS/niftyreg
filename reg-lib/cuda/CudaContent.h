@@ -19,7 +19,7 @@ public:
 
     // Getters
     virtual nifti_image* GetDeformationField() override;
-    virtual nifti_image* GetWarped(int datatype = 0, int index = 0) override;
+    virtual nifti_image* GetWarped(int index = 0) override;
     virtual cudaArray** GetReferenceCuda() { return referenceCuda; }
     virtual cudaArray** GetFloatingCuda() { return floatingCuda; }
     virtual float4* GetDeformationFieldCuda() { return deformationFieldCuda; }

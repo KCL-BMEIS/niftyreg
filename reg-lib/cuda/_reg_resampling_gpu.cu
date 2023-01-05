@@ -45,7 +45,7 @@ void reg_resampleImage_gpu(nifti_image *floatingImage,
     //Bind deformationField to texture
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, deformationFieldTexture, deformationFieldImageArray_d, activeVoxelNumber*sizeof(float4)))
 
-    //Bind deformationField to texture
+    //Bind mask to texture
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, mask_d, activeVoxelNumber*sizeof(int)))
 
     // Bind the real to voxel matrix to texture

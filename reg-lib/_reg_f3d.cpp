@@ -797,16 +797,14 @@ nifti_image** reg_f3d<T>::GetWarpedImage() {
         reg_exit();
     }
 
-    const int datatype = this->inputFloating->datatype;
-
     InitContent(this->inputReference, this->inputFloating, nullptr);
 
     this->WarpFloatingImage(3); // cubic spline interpolation
 
     nifti_image **warpedImage = (nifti_image**)calloc(2, sizeof(nifti_image*));
-    warpedImage[0] = this->con->GetWarped(datatype, 0);
+    warpedImage[0] = this->con->GetWarped(0);
     if (this->inputFloating->nt == 2)
-        warpedImage[1] = this->con->GetWarped(datatype, 1);
+        warpedImage[1] = this->con->GetWarped(1);
 
     this->con->SetWarped(nullptr); // Prevent deallocating of warpedImage
     DeinitContent();

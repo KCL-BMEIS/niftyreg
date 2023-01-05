@@ -143,8 +143,8 @@ void CudaContent::SetTransformationMatrix(mat44 *transformationMatrixIn) {
     free(transformationMatrixCptr);
 }
 /* *************************************************************** */
-nifti_image* CudaContent::GetWarped(int datatype, int index) {
-    DownloadImage(warped, warpedCuda[index], datatype);
+nifti_image* CudaContent::GetWarped(int index) {
+    DownloadImage(warped, warpedCuda[index], warped->datatype);
     return warped;
 }
 /* *************************************************************** */

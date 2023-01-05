@@ -111,8 +111,8 @@ void ClAladinContent::AllocateClPtrs() {
     }
 }
 /* *************************************************************** */
-nifti_image* ClAladinContent::GetWarped(int datatype, int index) {
-    DownloadImage(warped, warpedImageClmem, datatype);
+nifti_image* ClAladinContent::GetWarped(int index) {
+    DownloadImage(warped, warpedImageClmem, warped->datatype);
     return warped;
 }
 /* *************************************************************** */

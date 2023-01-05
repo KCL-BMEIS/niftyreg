@@ -86,7 +86,7 @@ int main(int argc, char **argv)
                                                                       std::numeric_limits<float>::quiet_NaN());
     delete resampleImageKernel_cpu;
     delete platform_cpu;
-    cpu_warped = con_cpu->GetWarped(referenceImage->datatype);
+    cpu_warped = con_cpu->GetWarped();
 
     // GPU platform
     AladinContent *con_gpu = nullptr;
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
                                                                       std::numeric_limits<float>::quiet_NaN());
     delete resampleImageKernel_gpu;
     delete platform_gpu;
-    gpu_warped = con_gpu->GetWarped(referenceImage->datatype);
+    gpu_warped = con_gpu->GetWarped();
 
     //Check if the platform used is double capable
     double proper_eps = EPS;
