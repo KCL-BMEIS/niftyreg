@@ -1363,9 +1363,9 @@ void reg_base<T>::Run() {
         CorrectTransformation();
 
         // Some cleaning is performed
-        DeinitContent();
         delete optimiser;
         optimiser = nullptr;
+        DeinitContent();
         // if (localWeightSimCurrent) {
         //     nifti_image_free(localWeightSimCurrent);
         //     localWeightSimCurrent = nullptr;

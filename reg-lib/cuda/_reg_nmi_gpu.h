@@ -24,6 +24,9 @@ class reg_nmi_gpu : public reg_nmi , public reg_measure_gpu
 public:
    /// @brief reg_nmi class constructor
    reg_nmi_gpu();
+   /// @brief reg_nmi class destructor
+   virtual ~reg_nmi_gpu();
+
    /// @brief Initialise the reg_nmi_gpu object
    void InitialiseMeasure(nifti_image *refImgPtr,
                           nifti_image *floImgPtr,
@@ -38,12 +41,10 @@ public:
                           float *warFloDevicePtr,
                           float4 *warFloGradDevicePtr,
                           float4 *forVoxBasedGraDevicePtr);
-   /// @brief Returns the nmi valu
-   double GetSimilarityMeasureValue();
+   /// @brief Returns the nmi value
+   virtual double GetSimilarityMeasureValue() override;
    /// @brief Compute the voxel based nmi gradient
-   void GetVoxelBasedSimilarityMeasureGradient();
-   /// @brief reg_nmi class destructor
-   ~reg_nmi_gpu();
+   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
 
 protected:
    float *forwardJointHistogramLog_device;
@@ -74,18 +75,12 @@ public:
    }
    /// @brief reg_nmi class constructor
    reg_multichannel_nmi_gpu() {}
-   /// @brief Returns the nmi value
-   double GetSimilarityMeasureValue()
-   {
-      return 0.;
-   }
-   /// @brief Compute the voxel based nmi gradient
-   void GetVoxelBasedSimilarityMeasureGradient()
-   {
-      ;
-   }
    /// @brief reg_nmi class destructor
-   ~reg_multichannel_nmi_gpu() {}
+   virtual ~reg_multichannel_nmi_gpu() {}
+   /// @brief Returns the nmi value
+   virtual double GetSimilarityMeasureValue() override { return 0; }
+   /// @brief Compute the voxel based nmi gradient
+   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {}
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

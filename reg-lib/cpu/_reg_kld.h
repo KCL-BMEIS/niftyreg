@@ -20,6 +20,9 @@ class reg_kld : public reg_measure
 public:
    /// @brief reg_kld class constructor
    reg_kld();
+   /// @brief reg_kld class destructor
+   virtual ~reg_kld() {}
+
    /// @brief Initialise the reg_kld object
    void InitialiseMeasure(nifti_image *refImgPtr,
                           nifti_image *floImgPtr,
@@ -33,11 +36,9 @@ public:
                           nifti_image *warRefGraPtr = nullptr,
                           nifti_image *bckVoxBasedGraPtr = nullptr);
    /// @brief Returns the kld value
-   virtual double GetSimilarityMeasureValue();
+   virtual double GetSimilarityMeasureValue() override;
    /// @brief Compute the voxel based kld gradient
-   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
-   /// @brief reg_kld class destructor
-   ~reg_kld() {}
+   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
 };
 /* *************************************************************** */
 

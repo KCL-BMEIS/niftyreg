@@ -29,29 +29,31 @@
 class reg_mind : public reg_ssd
 {
 public:
-   /// @brief reg_mind class constructor
-   reg_mind();
-   /// @brief Initialise the reg_mind object
-   void InitialiseMeasure(nifti_image *refImgPtr,
-                          nifti_image *floImgPtr,
-                          int *maskRefPtr,
-                          nifti_image *warFloImgPtr,
-                          nifti_image *warFloGraPtr,
-                          nifti_image *forVoxBasedGraPtr,
-                          nifti_image *forwardLocalWeightPtr = nullptr,
-                          int *maskFloPtr = nullptr,
-                          nifti_image *warRefImgPtr = nullptr,
-                          nifti_image *warRefGraPtr = nullptr,
-                          nifti_image *bckVoxBasedGraPtr = nullptr);
-   /// @brief Returns the mind based measure of similarity value
-   virtual double GetSimilarityMeasureValue();
-   /// @brief Compute the voxel based gradient
-   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
-   /// @brief
-   void SetDescriptorOffset(int);
-   int GetDescriptorOffset();
-   /// @brief Measure class desstructor
-   ~reg_mind();
+    /// @brief reg_mind class constructor
+    reg_mind();
+    /// @brief Measure class destructor
+    virtual ~reg_mind();
+
+    /// @brief Initialise the reg_mind object
+    void InitialiseMeasure(nifti_image *refImgPtr,
+                           nifti_image *floImgPtr,
+                           int *maskRefPtr,
+                           nifti_image *warFloImgPtr,
+                           nifti_image *warFloGraPtr,
+                           nifti_image *forVoxBasedGraPtr,
+                           nifti_image *forwardLocalWeightPtr = nullptr,
+                           int *maskFloPtr = nullptr,
+                           nifti_image *warRefImgPtr = nullptr,
+                           nifti_image *warRefGraPtr = nullptr,
+                           nifti_image *bckVoxBasedGraPtr = nullptr);
+
+    /// @brief Returns the mind based measure of similarity value
+    virtual double GetSimilarityMeasureValue() override;
+    /// @brief Compute the voxel based gradient
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+
+    virtual void SetDescriptorOffset(int);
+    virtual int GetDescriptorOffset();
 
 protected:
    nifti_image *referenceImageDescriptor;
@@ -69,10 +71,10 @@ protected:
 class reg_mindssc : public reg_mind
 {
 public:
-   /// @brief reg_mind class constructor
-   reg_mindssc();
-   /// @brief Measure class desstructor
-   ~reg_mindssc();
+    /// @brief reg_mind class constructor
+    reg_mindssc();
+    /// @brief Measure class destructor
+    virtual ~reg_mindssc();
 };
 /* *************************************************************** */
 

@@ -60,7 +60,7 @@ void CudaContent::DeallocateImages() {
 }
 /* *************************************************************** */
 void CudaContent::AllocateDeformationField() {
-    NR_CUDA_SAFE_CALL(cudaMalloc(&deformationFieldCuda, deformationField->nvox * sizeof(float4)));
+    cudaCommon_allocateArrayToDevice(&deformationFieldCuda, deformationField->dim);
 }
 /* *************************************************************** */
 void CudaContent::DeallocateDeformationField() {
@@ -121,9 +121,17 @@ void CudaContent::SetReferenceMask(int *referenceMaskIn) {
 
     if (!referenceMask) return;
 
-    NR_CUDA_SAFE_CALL(cudaMalloc(&referenceMaskCuda, reference->nvox * sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaMemcpy(referenceMaskCuda, referenceMask,
-                                 reference->nvox * sizeof(int), cudaMemcpyHostToDevice));
+    int *targetMask;
+    NR_CUDA_SAFE_CALL(cudaMallocHost(&targetMask, reference->nvox * sizeof(int)));
+    int *targetMaskPtr = targetMask;
+    for (int i = 0; i < reference->nvox; i++) {
+        if (referenceMask[i] != -1)
+            *targetMaskPtr++ = i;
+    }
+
+    cudaCommon_allocateArrayToDevice(&referenceMaskCuda, reference->nvox);
+    NR_CUDA_SAFE_CALL(cudaMemcpy(referenceMaskCuda, targetMask, reference->nvox * sizeof(int),  cudaMemcpyHostToDevice));
+    NR_CUDA_SAFE_CALL(cudaFreeHost(targetMask));
 }
 /* *************************************************************** */
 void CudaContent::SetTransformationMatrix(mat44 *transformationMatrixIn) {
@@ -138,7 +146,7 @@ void CudaContent::SetTransformationMatrix(mat44 *transformationMatrixIn) {
 
     float *transformationMatrixCptr = (float*)malloc(sizeof(mat44));
     mat44ToCptr(*transformationMatrix, transformationMatrixCptr);
-    cudaCommon_allocateArrayToDevice(&transformationMatrixCuda, sizeof(mat44) / sizeof(float));
+    NR_CUDA_SAFE_CALL(cudaMalloc(&transformationMatrixCuda, sizeof(mat44)));
     NR_CUDA_SAFE_CALL(cudaMemcpy(transformationMatrixCuda, transformationMatrixCptr, sizeof(mat44), cudaMemcpyHostToDevice));
     free(transformationMatrixCptr);
 }

@@ -17,21 +17,21 @@ protected:
 
 public:
     reg_optimiser_gpu();
-    ~reg_optimiser_gpu();
+    virtual ~reg_optimiser_gpu();
 
     // Float4 are casted to float for compatibility with the cpu class
-    virtual float* GetCurrentDOF() {
-        return reinterpret_cast<float *>(this->currentDOF_gpu);
+    virtual float* GetCurrentDOF() override {
+        return reinterpret_cast<float*>(this->currentDOF_gpu);
     }
-    virtual float* GetBestDOF() {
-        return reinterpret_cast<float *>(this->bestDOF_gpu);
+    virtual float* GetBestDOF() override {
+        return reinterpret_cast<float*>(this->bestDOF_gpu);
     }
-    virtual float* GetGradient() {
-        return reinterpret_cast<float *>(this->gradient_gpu);
+    virtual float* GetGradient() override {
+        return reinterpret_cast<float*>(this->gradient_gpu);
     }
 
-    virtual void RestoreBestDOF();
-    virtual void StoreCurrentDOF();
+    virtual void RestoreBestDOF() override;
+    virtual void StoreCurrentDOF() override;
 
     virtual void Initialise(size_t nvox,
                             int dim,
@@ -45,8 +45,8 @@ public:
                             float *gradData = nullptr,
                             size_t a = 0,
                             float *b = nullptr,
-                            float *c = nullptr);
-    virtual void Perturbation(float length);
+                            float *c = nullptr) override;
+    virtual void Perturbation(float length) override;
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -62,7 +62,7 @@ protected:
 
 public:
     reg_conjugateGradient_gpu();
-    ~reg_conjugateGradient_gpu();
+    virtual ~reg_conjugateGradient_gpu();
 
     virtual void Initialise(size_t nvox,
                             int dim,
@@ -76,14 +76,14 @@ public:
                             float *gradData = nullptr,
                             size_t a = 0,
                             float *b = nullptr,
-                            float *c = nullptr);
+                            float *c = nullptr) override;
     virtual void Optimise(float maxLength,
                           float smallLength,
-                          float &startLength);
-    virtual void Perturbation(float length);
+                          float &startLength) override;
+    virtual void Perturbation(float length) override;
 
     // Function used for testing
-    virtual void reg_test_optimiser();
+    virtual void reg_test_optimiser() override;
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

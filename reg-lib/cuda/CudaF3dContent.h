@@ -26,11 +26,11 @@ public:
     virtual float4* GetVoxelBasedMeasureGradientCuda() { return voxelBasedMeasureGradientCuda; }
     virtual float4** GetWarpedGradientCuda() { return warpedGradientCuda; }
 
-    // Setters
-    virtual void SetControlPointGrid(nifti_image *controlPointGridIn) override;
-    virtual void SetTransformationGradient(nifti_image *transformationGradientIn) override;
-    virtual void SetVoxelBasedMeasureGradient(nifti_image *voxelBasedMeasureGradientIn) override;
-    virtual void SetWarpedGradient(nifti_image *warpedGradientIn) override;
+    // Methods for transferring data from nifti to device
+    virtual void UpdateControlPointGrid() override;
+    virtual void UpdateTransformationGradient() override;
+    virtual void UpdateVoxelBasedMeasureGradient() override;
+    virtual void UpdateWarpedGradient() override;
 
     // Auxiliary methods
     virtual void ZeroTransformationGradient() override;
@@ -43,6 +43,8 @@ protected:
     float4 *warpedGradientCuda[2] = {nullptr};
 
 private:
+    void AllocateControlPointGrid();
+    void DeallocateControlPointGrid();
     void AllocateWarpedGradient();
     void DeallocateWarpedGradient();
     void AllocateTransformationGradient();

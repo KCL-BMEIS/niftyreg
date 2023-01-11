@@ -24,48 +24,47 @@
 class reg_nmi : public reg_measure
 {
 public:
-   /// @brief reg_nmi class constructor
-   reg_nmi();
-   void InitialiseMeasure(nifti_image *refImgPtr,
-                          nifti_image *floImgPtr,
-                          int *maskRefPtr,
-                          nifti_image *warFloImgPtr,
-                          nifti_image *warFloGraPtr,
-                          nifti_image *forVoxBasedGraPtr,
-                          nifti_image *forwardLocalWeightPtr = nullptr,
-                          int *maskFloPtr = nullptr,
-                          nifti_image *warRefImgPtr = nullptr,
-                          nifti_image *warRefGraPtr = nullptr,
-                          nifti_image *bckVoxBasedGraPtr = nullptr);
-   /// @brief Returns the nmi value
-   double GetSimilarityMeasureValue();
-   /// @brief Compute the voxel based nmi gradient
-   void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
-   void SetRefAndFloatBinNumbers(unsigned short refBinNumber,
-                                 unsigned short floBinNumber,
-                                 int timepoint)
-   {
-      this->referenceBinNumber[timepoint] = refBinNumber;
-      this->floatingBinNumber[timepoint] = floBinNumber;
-   }
-   void SetReferenceBinNumber(int b, int t)
-   {
-      this->referenceBinNumber[t]=b;
-   }
-   void SetFloatingBinNumber(int b, int t)
-   {
-      this->floatingBinNumber[t]=b;
-   }
-   unsigned short *GetReferenceBinNumber()
-   {
-      return this->referenceBinNumber;
-   }
-   unsigned short *GetFloatingBinNumber()
-   {
-      return this->floatingBinNumber;
-   }
-   /// @brief reg_nmi class destructor
-   ~reg_nmi();
+    /// @brief reg_nmi class constructor
+    reg_nmi();
+    /// @brief reg_nmi class destructor
+    virtual ~reg_nmi();
+
+    void InitialiseMeasure(nifti_image *refImgPtr,
+                           nifti_image *floImgPtr,
+                           int *maskRefPtr,
+                           nifti_image *warFloImgPtr,
+                           nifti_image *warFloGraPtr,
+                           nifti_image *forVoxBasedGraPtr,
+                           nifti_image *forwardLocalWeightPtr = nullptr,
+                           int *maskFloPtr = nullptr,
+                           nifti_image *warRefImgPtr = nullptr,
+                           nifti_image *warRefGraPtr = nullptr,
+                           nifti_image *bckVoxBasedGraPtr = nullptr);
+
+    /// @brief Returns the nmi value
+    virtual double GetSimilarityMeasureValue() override;
+
+    /// @brief Compute the voxel based nmi gradient
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+
+    virtual void SetRefAndFloatBinNumbers(unsigned short refBinNumber,
+                                          unsigned short floBinNumber,
+                                          int timepoint) {
+        this->referenceBinNumber[timepoint] = refBinNumber;
+        this->floatingBinNumber[timepoint] = floBinNumber;
+    }
+    virtual void SetReferenceBinNumber(int b, int t) {
+        this->referenceBinNumber[t] = b;
+    }
+    virtual void SetFloatingBinNumber(int b, int t) {
+        this->floatingBinNumber[t] = b;
+    }
+    virtual unsigned short* GetReferenceBinNumber() {
+        return this->referenceBinNumber;
+    }
+    virtual unsigned short* GetFloatingBinNumber() {
+        return this->floatingBinNumber;
+    }
 
 protected:
    unsigned short referenceBinNumber[255];
@@ -262,23 +261,22 @@ inline int previous(int current, int num_dims)
 class reg_multichannel_nmi : public reg_measure
 {
 public:
-   /// @brief reg_nmi class constructor
-   reg_multichannel_nmi() {}
-   /// @brief Returns the nmi value
-   double GetSimilarityMeasureValue()
-   {
-      return 0.;
-   }
-   /// @brief Compute the voxel based nmi gradient
-   void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
-   {
-      // Check if the specified time point exists and is active
-      reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
-      if(this->timePointWeight[current_timepoint]==0.0)
-         return;;
-   }
-   /// @brief reg_nmi class destructor
-   ~reg_multichannel_nmi() {}
+    /// @brief reg_nmi class constructor
+    reg_multichannel_nmi() {}
+    /// @brief reg_nmi class destructor
+    virtual ~reg_multichannel_nmi() {}
+
+    /// @brief Returns the nmi value
+    virtual double GetSimilarityMeasureValue() override { return 0; }
+
+    /// @brief Compute the voxel based nmi gradient
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {
+        // Check if the specified time point exists and is active
+        reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
+        if (this->timePointWeight[current_timepoint] == 0)
+            return;
+    }
+
 protected:
    unsigned short referenceBinNumber[255];
    unsigned short floatingBinNumber[255];

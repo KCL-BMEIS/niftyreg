@@ -24,8 +24,8 @@ class reg_measure_gpu
 protected:
    /// @brief Measure class constructor
    reg_measure_gpu() {}
-   /// @brief Measure class desstructor
-   ~reg_measure_gpu() {}
+   /// @brief Measure class destructor
+   virtual ~reg_measure_gpu() {}
 
    cudaArray *referenceDevicePointer;
    cudaArray *floatingDevicePointer;
@@ -63,17 +63,11 @@ public:
       reg_exit();
    }
    /// @brief reg_lncc class destructor
-   ~reg_lncc_gpu() {}
+   virtual ~reg_lncc_gpu() {}
    /// @brief Returns the lncc value
-   double GetSimilarityMeasureValue()
-   {
-      return 0.;
-   }
+   virtual double GetSimilarityMeasureValue() override { return 0; }
    /// @brief Compute the voxel based lncc gradient
-   void GetVoxelBasedSimilarityMeasureGradient()
-   {
-      ;
-   }
+   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {}
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -103,17 +97,11 @@ public:
       reg_exit();
    }
    /// @brief reg_kld_gpu class destructor
-   ~reg_kld_gpu() {}
+   virtual ~reg_kld_gpu() {}
    /// @brief Returns the kld value
-   double GetSimilarityMeasureValue()
-   {
-      return 0.;
-   }
+   virtual double GetSimilarityMeasureValue() override { return 0; }
    /// @brief Compute the voxel based kld gradient
-   void GetVoxelBasedSimilarityMeasureGradient()
-   {
-      ;
-   }
+   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {}
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -143,17 +131,11 @@ public:
       reg_exit();
    }
    /// @brief reg_dti_gpu class destructor
-   ~reg_dti_gpu() {}
+   virtual ~reg_dti_gpu() {}
    /// @brief Returns the dti value
-   double GetSimilarityMeasureValue()
-   {
-      return 0.;
-   }
+   virtual double GetSimilarityMeasureValue() override { return 0; }
    /// @brief Compute the voxel based dti gradient
-   void GetVoxelBasedSimilarityMeasureGradient()
-   {
-      ;
-   }
+   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {}
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

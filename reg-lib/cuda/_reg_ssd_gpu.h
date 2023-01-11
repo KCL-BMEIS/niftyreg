@@ -22,29 +22,29 @@
 class reg_ssd_gpu : public reg_ssd , public reg_measure_gpu
 {
 public:
-   /// @brief reg_ssd class constructor
-   reg_ssd_gpu();
-   /// @brief Initialise the reg_ssd object
-   virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                  nifti_image *floImgPtr,
-                                  int *maskRefPtr,
-                                  int activeVoxNum,
-                                  nifti_image *warFloImgPtr,
-                                  nifti_image *warFloGraPtr,
-                                  nifti_image *forVoxBasedGraPtr,
-                                  nifti_image *localWeightSimPtr,
-                                  cudaArray *refDevicePtr,
-                                  cudaArray *floDevicePtr,
-                                  int *refMskDevicePtr,
-                                  float *warFloDevicePtr,
-                                  float4 *warFloGradDevicePtr,
-                                  float4 *forVoxBasedGraDevicePtr);
-   /// @brief Returns the ssd value
-   double GetSimilarityMeasureValue();
-   /// @brief Compute the voxel based ssd gradient
-   void GetVoxelBasedSimilarityMeasureGradient();
-   /// @brief Measure class desstructor
-   ~reg_ssd_gpu() {}
+    /// @brief reg_ssd class constructor
+    reg_ssd_gpu();
+    /// @brief Measure class destructor
+    virtual ~reg_ssd_gpu() {}
+    /// @brief Initialise the reg_ssd object
+    void InitialiseMeasure(nifti_image *refImgPtr,
+                           nifti_image *floImgPtr,
+                           int *maskRefPtr,
+                           int activeVoxNum,
+                           nifti_image *warFloImgPtr,
+                           nifti_image *warFloGraPtr,
+                           nifti_image *forVoxBasedGraPtr,
+                           nifti_image *localWeightSimPtr,
+                           cudaArray *refDevicePtr,
+                           cudaArray *floDevicePtr,
+                           int *refMskDevicePtr,
+                           float *warFloDevicePtr,
+                           float4 *warFloGradDevicePtr,
+                           float4 *forVoxBasedGraDevicePtr);
+    /// @brief Returns the ssd value
+    virtual double GetSimilarityMeasureValue() override;
+    /// @brief Compute the voxel based ssd gradient
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

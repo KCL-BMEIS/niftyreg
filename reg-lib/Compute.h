@@ -22,8 +22,8 @@ public:
     virtual void UpdateControlPointPosition(float *currentDOF, float *bestDOF, float *gradient, float scale, bool optimiseX, bool optimiseY, bool optimiseZ);
     virtual void GetImageGradient(int interpolation, float paddingValue, int activeTimepoint);
     virtual void VoxelCentricToNodeCentric(float weight);
-    virtual double GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ);
-    virtual void NormaliseGradient(double maxGradLength);
+    virtual double GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ);
+    virtual void NormaliseGradient(size_t nodeNumber, double maxGradLength);
 
 protected:
     Content *con;

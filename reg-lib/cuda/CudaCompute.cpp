@@ -66,8 +66,7 @@ void CudaCompute::ApproxLinearEnergyGradient(float weight) {
     // Use CPU temporarily
     Compute::ApproxLinearEnergyGradient(weight);
     // Transfer the data back to the CUDA device
-    CudaF3dContent *con = dynamic_cast<CudaF3dContent*>(this->con);
-    con->SetTransformationGradient(con->F3dContent::GetTransformationGradient());
+    dynamic_cast<CudaF3dContent*>(con)->UpdateTransformationGradient();
 }
 /* *************************************************************** */
 double CudaCompute::GetLandmarkDistance(size_t landmarkNumber, float *landmarkReference, float *landmarkFloating) {
@@ -81,8 +80,7 @@ void CudaCompute::LandmarkDistanceGradient(size_t landmarkNumber, float *landmar
     // Use CPU temporarily
     Compute::LandmarkDistanceGradient(landmarkNumber, landmarkReference, landmarkFloating, weight);
     // Transfer the data back to the CUDA device
-    CudaF3dContent *con = dynamic_cast<CudaF3dContent*>(this->con);
-    con->SetTransformationGradient(con->F3dContent::GetTransformationGradient());
+    dynamic_cast<CudaF3dContent*>(con)->UpdateTransformationGradient();
 }
 /* *************************************************************** */
 void CudaCompute::GetDeformationField(bool composition, bool bspline) {
@@ -124,19 +122,13 @@ void CudaCompute::VoxelCentricToNodeCentric(float weight) {
                                      weight);
 }
 /* *************************************************************** */
-double CudaCompute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ) {
+double CudaCompute::GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ) {
     // TODO Fix reg_getMaximalLength_gpu to accept optimiseX, optimiseY, optimiseZ
-    CudaF3dContent *con = dynamic_cast<CudaF3dContent*>(this->con);
-    nifti_image *transformationGradient = con->F3dContent::GetTransformationGradient();
-    int nodeNumber = transformationGradient->nvox / transformationGradient->ndim;
-    return reg_getMaximalLength_gpu(con->GetTransformationGradientCuda(), nodeNumber);
+    return reg_getMaximalLength_gpu(dynamic_cast<CudaF3dContent*>(con)->GetTransformationGradientCuda(), nodeNumber);
 }
 /* *************************************************************** */
-void CudaCompute::NormaliseGradient(double maxGradLength) {
+void CudaCompute::NormaliseGradient(size_t nodeNumber, double maxGradLength) {
     // TODO Fix reg_multiplyValue_gpu to accept optimiseX, optimiseY, optimiseZ
-    CudaF3dContent *con = dynamic_cast<CudaF3dContent*>(this->con);
-    nifti_image *transformationGradient = con->F3dContent::GetTransformationGradient();
-    int nodeNumber = transformationGradient->nvox / transformationGradient->ndim;
-    reg_multiplyValue_gpu(nodeNumber, con->GetTransformationGradientCuda(), 1 / (float)maxGradLength);
+    reg_multiplyValue_gpu(nodeNumber, dynamic_cast<CudaF3dContent*>(con)->GetTransformationGradientCuda(), 1 / (float)maxGradLength);
 }
 /* *************************************************************** */

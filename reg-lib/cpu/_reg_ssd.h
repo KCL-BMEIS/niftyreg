@@ -22,34 +22,35 @@
 class reg_ssd : public reg_measure
 {
 public:
-   /// @brief reg_ssd class constructor
-   reg_ssd();
-   /// @brief Initialise the reg_ssd object
-   void InitialiseMeasure(nifti_image *refImgPtr,
-                          nifti_image *floImgPtr,
-                          int *maskRefPtr,
-                          nifti_image *warFloImgPtr,
-                          nifti_image *warFloGraPtr,
-                          nifti_image *forVoxBasedGraPtr,
-                          nifti_image *localWeightSimPtr,
-                          int *maskFloPtr = nullptr,
-                          nifti_image *warRefImgPtr = nullptr,
-                          nifti_image *warRefGraPtr = nullptr,
-                          nifti_image *bckVoxBasedGraPtr = nullptr);
+    /// @brief reg_ssd class constructor
+    reg_ssd();
+    /// @brief reg_ssd class destructor
+    virtual ~reg_ssd() {}
 
-   /// @brief Define if the specified time point should be normalised
-   void SetNormaliseTimepoint(int timepoint, bool normalise);
-   /// @brief Returns the ssd value
-   virtual double GetSimilarityMeasureValue();
-   /// @brief Compute the voxel based ssd gradient
-   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
-   /// @brief Here
-   virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
-                                    float *discretisedValue,
-                                    int discretise_radius,
-                                    int discretise_step);
-   /// @brief reg_ssd class desstructor
-   ~reg_ssd() {}
+    /// @brief Initialise the reg_ssd object
+    void InitialiseMeasure(nifti_image *refImgPtr,
+                           nifti_image *floImgPtr,
+                           int *maskRefPtr,
+                           nifti_image *warFloImgPtr,
+                           nifti_image *warFloGraPtr,
+                           nifti_image *forVoxBasedGraPtr,
+                           nifti_image *localWeightSimPtr,
+                           int *maskFloPtr = nullptr,
+                           nifti_image *warRefImgPtr = nullptr,
+                           nifti_image *warRefGraPtr = nullptr,
+                           nifti_image *bckVoxBasedGraPtr = nullptr);
+
+    /// @brief Define if the specified time point should be normalised
+    void SetNormaliseTimepoint(int timepoint, bool normalise);
+    /// @brief Returns the ssd value
+    virtual double GetSimilarityMeasureValue() override;
+    /// @brief Compute the voxel based ssd gradient
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+    /// @brief Here
+    virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
+                                     float *discretisedValue,
+                                     int discretise_radius,
+                                     int discretise_step);
 protected:
    float currentValue[255];
 

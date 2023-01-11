@@ -23,26 +23,28 @@
 class reg_dti : public reg_measure
 {
 public:
-   /// @brief reg_dti class constructor
-   reg_dti();
-//    /// @brief Initialise the reg_dti object
-   void InitialiseMeasure(nifti_image *refImgPtr,
-                          nifti_image *floImgPtr,
-                          int *maskRefPtr,
-                          nifti_image *warFloImgPtr,
-                          nifti_image *warFloGraPtr,
-                          nifti_image *forVoxBasedGraPtr,
-                          nifti_image *forwardLocalWeightPtr = nullptr,
-                          int *maskFloPtr = nullptr,
-                          nifti_image *warRefImgPtr = nullptr,
-                          nifti_image *warRefGraPtr = nullptr,
-                          nifti_image *bckVoxBasedGraPtr = nullptr);
-//    /// @brief Returns the value
-   virtual double GetSimilarityMeasureValue();
-//    /// @brief Compute the voxel based gradient for DTI images
-   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
-   /// @brief reg_dti class destructor
-   ~reg_dti() {}
+    /// @brief reg_dti class constructor
+    reg_dti();
+    /// @brief reg_dti class destructor
+    virtual ~reg_dti() {}
+
+    /// @brief Initialise the reg_dti object
+    void InitialiseMeasure(nifti_image *refImgPtr,
+                           nifti_image *floImgPtr,
+                           int *maskRefPtr,
+                           nifti_image *warFloImgPtr,
+                           nifti_image *warFloGraPtr,
+                           nifti_image *forVoxBasedGraPtr,
+                           nifti_image *forwardLocalWeightPtr = nullptr,
+                           int *maskFloPtr = nullptr,
+                           nifti_image *warRefImgPtr = nullptr,
+                           nifti_image *warRefGraPtr = nullptr,
+                           nifti_image *bckVoxBasedGraPtr = nullptr);
+    /// @brief Returns the value
+    virtual double GetSimilarityMeasureValue() override;
+    /// @brief Compute the voxel based gradient for DTI images
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+
 protected:
    // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ
    unsigned int dtIndicies[6];

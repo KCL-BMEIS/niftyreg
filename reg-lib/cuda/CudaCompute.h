@@ -20,6 +20,6 @@ public:
     virtual void UpdateControlPointPosition(float *currentDOF, float *bestDOF, float *gradient, float scale, bool optimiseX, bool optimiseY, bool optimiseZ) override;
     virtual void GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) override;
     virtual void VoxelCentricToNodeCentric(float weight) override;
-    virtual double GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ) override;
-    virtual void NormaliseGradient(double maxGradLength) override;
+    virtual double GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ) override;
+    virtual void NormaliseGradient(size_t nodeNumber, double maxGradLength) override;
 };

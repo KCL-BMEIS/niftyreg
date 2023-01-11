@@ -21,19 +21,11 @@ public:
     virtual nifti_image* GetVoxelBasedMeasureGradient() { return voxelBasedMeasureGradient; }
     virtual nifti_image* GetWarpedGradient() { return warpedGradient; }
 
-    // Setters
-    virtual void SetControlPointGrid(nifti_image *controlPointGridIn) {
-        controlPointGrid = controlPointGridIn;
-    }
-    virtual void SetTransformationGradient(nifti_image *transformationGradientIn) {
-        transformationGradient = transformationGradientIn;
-    }
-    virtual void SetVoxelBasedMeasureGradient(nifti_image *voxelBasedMeasureGradientIn) {
-        voxelBasedMeasureGradient = voxelBasedMeasureGradientIn;
-    }
-    virtual void SetWarpedGradient(nifti_image *warpedGradientIn) {
-        warpedGradient = warpedGradientIn;
-    }
+    // Methods for transferring data from nifti to device
+    virtual void UpdateControlPointGrid() {}
+    virtual void UpdateTransformationGradient() {}
+    virtual void UpdateVoxelBasedMeasureGradient() {}
+    virtual void UpdateWarpedGradient() {}
 
     // Auxiliary methods
     virtual void ZeroTransformationGradient();

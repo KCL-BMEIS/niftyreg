@@ -141,7 +141,7 @@ void Compute::VoxelCentricToNodeCentric(float weight) {
                                  reorientation);
 }
 /* *************************************************************** */
-double Compute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ) {
+double Compute::GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ) {
     // TODO Fix reg_getMaximalLength to accept optimiseX, optimiseY, optimiseZ
     nifti_image *transformationGradient = dynamic_cast<F3dContent*>(con)->GetTransformationGradient();
     switch (transformationGradient->datatype) {
@@ -155,7 +155,7 @@ double Compute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ)
     return 0;
 }
 /* *************************************************************** */
-void Compute::NormaliseGradient(double maxGradLength) {
+void Compute::NormaliseGradient(size_t nodeNumber, double maxGradLength) {
     // TODO Fix reg_tools_multiplyValueToImage to accept optimiseX, optimiseY, optimiseZ
     nifti_image *transformationGradient = dynamic_cast<F3dContent*>(con)->GetTransformationGradient();
     reg_tools_multiplyValueToImage(transformationGradient, transformationGradient, 1 / (float)maxGradLength);

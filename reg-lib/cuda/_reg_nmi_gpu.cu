@@ -222,7 +222,7 @@ void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient()
+void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 {
     // The latest joint histogram is transfered onto the GPU
     float *temp=(float *)malloc(this->totalBinNumber[0]*sizeof(float));

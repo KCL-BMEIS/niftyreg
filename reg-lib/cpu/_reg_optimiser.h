@@ -25,10 +25,10 @@ public:
    virtual void UpdateBestObjFunctionValue() = 0;
 
 protected:
-   /// @brief Interface constructor
-   InterfaceOptimiser() {}
-   /// @brief Interface destructor
-   ~InterfaceOptimiser() {}
+    /// @brief Interface constructor
+    InterfaceOptimiser() {}
+    /// @brief Interface destructor
+    virtual ~InterfaceOptimiser() {}
 };
 /* *************************************************************** */
 /* *************************************************************** */
@@ -186,28 +186,28 @@ protected:
    void UpdateGradientValues(); /// @brief Update the gradient array
 
 public:
-   reg_conjugateGradient();
-   ~reg_conjugateGradient();
-   virtual void Initialise(size_t nvox,
-                           int dim,
-                           bool optX,
-                           bool optY,
-                           bool optZ,
-                           size_t maxit,
-                           size_t start,
-                           InterfaceOptimiser *o,
-                           T *cppData=nullptr,
-                           T *gradData=nullptr,
-                           size_t nvox_b=0,
-                           T *cppData_b=nullptr,
-                           T *gradData_b=nullptr);
-   virtual void Optimise(T maxLength,
-                         T smallLength,
-                         T &startLength);
-   virtual void Perturbation(float length);
+    reg_conjugateGradient();
+    virtual ~reg_conjugateGradient();
+    virtual void Initialise(size_t nvox,
+                            int dim,
+                            bool optX,
+                            bool optY,
+                            bool optZ,
+                            size_t maxit,
+                            size_t start,
+                            InterfaceOptimiser *o,
+                            T *cppData = nullptr,
+                            T *gradData = nullptr,
+                            size_t nvox_b = 0,
+                            T *cppData_b = nullptr,
+                            T *gradData_b = nullptr) override;
+    virtual void Optimise(T maxLength,
+                          T smallLength,
+                          T &startLength) override;
+    virtual void Perturbation(float length) override;
 
-   // Function used for testing
-   virtual void reg_test_optimiser();
+    // Function used for testing
+    virtual void reg_test_optimiser() override;
 };
 /* *************************************************************** */
 /* *************************************************************** */
@@ -225,25 +225,25 @@ protected:
    T **diffGrad;
 
 public:
-   reg_lbfgs();
-   ~reg_lbfgs();
-   virtual void Initialise(size_t nvox,
-                           int dim,
-                           bool optX,
-                           bool optY,
-                           bool optZ,
-                           size_t maxit,
-                           size_t start,
-                           InterfaceOptimiser *o,
-                           T *cppData=nullptr,
-                           T *gradData=nullptr,
-                           size_t nvox_b=0,
-                           T *cppData_b=nullptr,
-                           T *gradData_b=nullptr);
-   virtual void Optimise(T maxLength,
-                         T smallLength,
-                         T &startLength);
-   virtual void UpdateGradientValues();
+    reg_lbfgs();
+    virtual ~reg_lbfgs();
+    virtual void Initialise(size_t nvox,
+                            int dim,
+                            bool optX,
+                            bool optY,
+                            bool optZ,
+                            size_t maxit,
+                            size_t start,
+                            InterfaceOptimiser *o,
+                            T *cppData = nullptr,
+                            T *gradData = nullptr,
+                            size_t nvox_b = 0,
+                            T *cppData_b = nullptr,
+                            T *gradData_b = nullptr) override;
+    virtual void Optimise(T maxLength,
+                          T smallLength,
+                          T &startLength) override;
+    virtual void UpdateGradientValues() override;
 };
 /* *************************************************************** */
 /* *************************************************************** */

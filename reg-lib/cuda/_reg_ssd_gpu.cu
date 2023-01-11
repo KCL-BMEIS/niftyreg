@@ -187,7 +187,7 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradient()
+void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 {
 	reg_getVoxelBasedSSDGradient_gpu(this->referenceImagePointer,
 									 this->referenceDevicePointer,

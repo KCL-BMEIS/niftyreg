@@ -525,7 +525,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient() {
     }
 
     // Update the changes of voxelBasedMeasureGradient
-    dynamic_cast<F3dContent*>(this->con)->SetVoxelBasedMeasureGradient(voxelBasedMeasureGradient);
+    dynamic_cast<F3dContent*>(this->con)->UpdateVoxelBasedMeasureGradient();
 
     // The node based NMI gradient is extracted
     this->compute->VoxelCentricToNodeCentric(this->similarityWeight);
@@ -597,12 +597,12 @@ void reg_f3d<T>::GetLandmarkDistanceGradient() {
 template<class T>
 T reg_f3d<T>::NormaliseGradient() {
     // First compute the gradient max length for normalisation purpose
-    T maxGradLength = (T)this->compute->GetMaximalLength(this->optimiseX, this->optimiseY, this->optimiseZ);
+    T maxGradLength = (T)this->compute->GetMaximalLength(this->optimiser->GetVoxNumber(), this->optimiseX, this->optimiseY, this->optimiseZ);
 
     if (strcmp(this->executableName, "NiftyReg F3D") == 0) {
         // The gradient is normalised if we are running f3d
         // It will be normalised later when running f3d_sym or f3d2
-        this->compute->NormaliseGradient(maxGradLength);
+        this->compute->NormaliseGradient(this->optimiser->GetVoxNumber(), maxGradLength);
 #ifndef NDEBUG
         char text[255];
         sprintf(text, "Objective function gradient maximal length: %g", maxGradLength);
@@ -641,13 +641,9 @@ void reg_f3d<T>::DisplayCurrentLevelParameters() {
         sprintf(text, "\t* image spacing: %g x %g x %g mm", floating->dx, floating->dy, floating->dz);
         reg_print_info(this->executableName, text);
         reg_print_info(this->executableName, "Current control point image");
-        sprintf(text, "\t* image dimension: %i x %i x %i",
-                controlPointGrid->nx, controlPointGrid->ny,
-                controlPointGrid->nz);
+        sprintf(text, "\t* image dimension: %i x %i x %i", controlPointGrid->nx, controlPointGrid->ny, controlPointGrid->nz);
         reg_print_info(this->executableName, text);
-        sprintf(text, "\t* image spacing: %g x %g x %g mm",
-                controlPointGrid->dx, controlPointGrid->dy,
-                controlPointGrid->dz);
+        sprintf(text, "\t* image spacing: %g x %g x %g mm", controlPointGrid->dx, controlPointGrid->dy, controlPointGrid->dz);
         reg_print_info(this->executableName, text);
 #ifdef NDEBUG
     }
@@ -744,7 +740,7 @@ void reg_f3d<T>::SmoothGradient() {
         F3dContent *con = dynamic_cast<F3dContent*>(this->con);
         reg_tools_kernelConvolution(con->GetTransformationGradient(), &kernel, GAUSSIAN_KERNEL);
         // Update the changes of transformationGradient
-        con->SetTransformationGradient(con->F3dContent::GetTransformationGradient());
+        con->UpdateTransformationGradient();
     }
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::SmoothGradient");
@@ -768,20 +764,20 @@ void reg_f3d<T>::GetApproximatedGradient() {
         T currentValue = this->optimiser->GetBestDOF()[i];
         gridPtr[i] = currentValue + eps;
         // Update the changes. Bad hack, fix that!
-        con->SetControlPointGrid(controlPointGrid);
+        con->UpdateControlPointGrid();
         double valPlus = GetObjectiveFunctionValue();
         gridPtr[i] = currentValue - eps;
         // Update the changes. Bad hack, fix that!
-        con->SetControlPointGrid(controlPointGrid);
+        con->UpdateControlPointGrid();
         double valMinus = GetObjectiveFunctionValue();
         gridPtr[i] = currentValue;
         // Update the changes. Bad hack, fix that!
-        con->SetControlPointGrid(controlPointGrid);
+        con->UpdateControlPointGrid();
         gradPtr[i] = -(T)((valPlus - valMinus) / (2.0 * eps));
     }
 
     // Update the changes
-    con->SetTransformationGradient(transformationGradient);
+    con->UpdateTransformationGradient();
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetApproximatedGradient");
 #endif
@@ -797,6 +793,7 @@ nifti_image** reg_f3d<T>::GetWarpedImage() {
         reg_exit();
     }
 
+    InitialiseCurrentLevel(this->inputReference);
     InitContent(this->inputReference, this->inputFloating, nullptr);
 
     this->WarpFloatingImage(3); // cubic spline interpolation

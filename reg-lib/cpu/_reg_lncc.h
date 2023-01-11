@@ -19,36 +19,36 @@
 class reg_lncc : public reg_measure
 {
 public:
-   /// @brief reg_lncc class constructor
-   reg_lncc();
-   /// @brief reg_lncc class destructor
-   ~reg_lncc();
-   /// @brief Initialise the reg_lncc object
-   void InitialiseMeasure(nifti_image *refImgPtr,
-                          nifti_image *floImgPtr,
-                          int *maskRefPtr,
-                          nifti_image *warFloImgPtr,
-                          nifti_image *warFloGraPtr,
-                          nifti_image *forVoxBasedGraPtr,
-                          nifti_image *forwardLocalWeightPtr = nullptr,
-                          int *maskFloPtr = nullptr,
-                          nifti_image *warRefImgPtr = nullptr,
-                          nifti_image *warRefGraPtr = nullptr,
-                          nifti_image *bckVoxBasedGraPtr = nullptr);
-   /// @brief Returns the lncc value
-   double GetSimilarityMeasureValue();
-   /// @brief Compute the voxel based lncc gradient
-   void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
-   /// @brief Stuff
-   void SetKernelStandardDeviation(int t, float stddev)
-   {
-      this->kernelStandardDeviation[t]=stddev;
-   }
-   /// @brief Stuff
-   void SetKernelType(int t)
-   {
-      this->kernelType=t;
-   }
+    /// @brief reg_lncc class constructor
+    reg_lncc();
+    /// @brief reg_lncc class destructor
+    virtual ~reg_lncc();
+
+    /// @brief Initialise the reg_lncc object
+    void InitialiseMeasure(nifti_image *refImgPtr,
+                           nifti_image *floImgPtr,
+                           int *maskRefPtr,
+                           nifti_image *warFloImgPtr,
+                           nifti_image *warFloGraPtr,
+                           nifti_image *forVoxBasedGraPtr,
+                           nifti_image *forwardLocalWeightPtr = nullptr,
+                           int *maskFloPtr = nullptr,
+                           nifti_image *warRefImgPtr = nullptr,
+                           nifti_image *warRefGraPtr = nullptr,
+                           nifti_image *bckVoxBasedGraPtr = nullptr);
+    /// @brief Returns the lncc value
+    virtual double GetSimilarityMeasureValue() override;
+    /// @brief Compute the voxel based lncc gradient
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+    /// @brief Stuff
+    virtual void SetKernelStandardDeviation(int t, float stddev) {
+        this->kernelStandardDeviation[t] = stddev;
+    }
+    /// @brief Stuff
+    virtual void SetKernelType(int t) {
+        this->kernelType = t;
+    }
+
 protected:
    float kernelStandardDeviation[255];
    nifti_image *forwardCorrelationImage;

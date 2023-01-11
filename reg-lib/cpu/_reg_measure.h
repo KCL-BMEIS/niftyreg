@@ -65,22 +65,21 @@ public:
       }
    }
    /// @brief Here
-   virtual void GetDiscretisedValue(nifti_image *, float *, int , int) {}
-   void SetTimepointWeight(int timepoint, double weight)
-   {
-      this->timePointWeight[timepoint]=weight;
+   virtual void GetDiscretisedValue(nifti_image *, float *, int, int) {}
+
+   virtual void SetTimepointWeight(int timepoint, double weight) {
+      this->timePointWeight[timepoint] = weight;
    }
-   double *GetTimepointsWeights(void)
-   {
+
+   virtual double* GetTimepointsWeights(void) {
       return this->timePointWeight;
    }
-/************************************************************************/
-   nifti_image* GetReferenceImage(void)
-   {
+
+   virtual nifti_image* GetReferenceImage(void) {
       return this->referenceImagePointer;
    }
-   int* GetReferenceMask(void)
-   {
+
+   virtual int* GetReferenceMask(void) {
       return this->referenceMaskPointer;
    }
 /************************************************************************/
