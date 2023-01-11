@@ -36,7 +36,7 @@ class reg_base: public InterfaceOptimiser {
 protected:
     // Platform
     Platform *platform;
-    int platformCode;
+    PlatformType platformType;
     unsigned gpuIdx;
 
     // Content
@@ -164,7 +164,7 @@ public:
 
     // Platform
     Platform* GetPlatform();
-    void SetPlatformCode(const int platformCodeIn) { platformCode = platformCodeIn; }
+    void SetPlatformType(const PlatformType& platformTypeIn) { platformType = platformTypeIn; }
     void SetGpuIdx(unsigned gpuIdxIn) { gpuIdx = gpuIdxIn; }
 
     // Optimisation related functions

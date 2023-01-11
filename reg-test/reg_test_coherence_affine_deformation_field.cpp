@@ -19,9 +19,9 @@
 #define EPS 0.000001
 #define EPS_SINGLE 0.0001
 
-void test(AladinContent *con, int platformCode) {
+void test(AladinContent *con, int platformType) {
 
-    Platform *platform = new Platform(platformCode);
+    Platform *platform = new Platform(platformType);
 
     Kernel *affineDeformKernel = platform->CreateKernel(AffineDeformationFieldKernel::GetName(), con);
     affineDeformKernel->castTo<AffineDeformationFieldKernel>()->Calculate();
@@ -33,14 +33,14 @@ void test(AladinContent *con, int platformCode) {
 int main(int argc, char **argv)
 {
     if (argc != 5) {
-        fprintf(stderr, "Usage: %s <refImage> <inputMatrix> <expectedField> <platformCode>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <refImage> <inputMatrix> <expectedField> <platformType>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     char *inputRefImageName = argv[1];
     char *inputMatFileName = argv[2];
     char *inputDefImageName = argv[3];
-    int platformCode = atoi(argv[4]);
+    PlatformType platformType{atoi(argv[4])};
 
     // Read the input reference image
     nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
@@ -78,16 +78,16 @@ int main(int argc, char **argv)
     AladinContent *con_cpu = new AladinContent(referenceImage, nullptr, nullptr, inputMatrix, sizeof(float));
     AladinContent *con_gpu = nullptr;
 #ifdef _USE_CUDA
-    if (platformCode == NR_PLATFORM_CUDA) {
+    if (platformType == PlatformType::Cuda) {
         con_gpu = new CudaAladinContent(referenceImage, nullptr, nullptr, inputMatrix, sizeof(float));
     }
 #endif
 #ifdef _USE_OPENCL
-    if (platformCode == NR_PLATFORM_CL) {
+    if (platformType == PlatformType::OpenCl) {
         con_gpu = new ClAladinContent(referenceImage, nullptr, nullptr, inputMatrix, sizeof(float));
     }
 #endif
-    if(platformCode!=NR_PLATFORM_CUDA && platformCode!=NR_PLATFORM_CL){
+    if(platformType!=PlatformType::Cuda && platformType!=PlatformType::OpenCl){
        reg_print_msg_error("Unexpected platform code");
        return EXIT_FAILURE;
     }
@@ -100,10 +100,10 @@ int main(int argc, char **argv)
 
     //CPU or GPU code
     reg_tools_changeDatatype<float>(referenceImage);
-    test(con_cpu, NR_PLATFORM_CPU);
+    test(con_cpu, PlatformType::Cpu);
     test_field_cpu = con_cpu->GetDeformationField();
 
-    test(con_gpu, NR_PLATFORM_CPU);
+    test(con_gpu, PlatformType::Cpu);
     test_field_gpu = con_gpu->GetDeformationField();
 
     // Compute the difference between the computed and inputted deformation field

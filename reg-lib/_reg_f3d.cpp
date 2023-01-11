@@ -375,10 +375,10 @@ void reg_f3d<T>::Initialise() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
-    if (this->platformCode == NR_PLATFORM_CPU)
+    if (this->platformType == PlatformType::Cpu)
         this->con = new F3dContent(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
 #ifdef _USE_CUDA
-    else if (this->platformCode == NR_PLATFORM_CUDA)
+    else if (this->platformType == PlatformType::Cuda)
         this->con = new CudaF3dContent(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
 #endif
     this->compute = this->platform->CreateCompute(this->con);

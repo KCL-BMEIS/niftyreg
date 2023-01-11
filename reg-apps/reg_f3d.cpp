@@ -281,7 +281,7 @@ int main(int argc, char **argv) {
     reg_f3d<float> *reg = nullptr;
     float *referenceLandmark = nullptr;
     float *floatingLandmark = nullptr;
-    int platformFlag = NR_PLATFORM_CPU;
+    PlatformType platformType(PlatformType::Cpu);
     unsigned gpuIdx = 999;
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-vel") == 0 || strcmp(argv[i], "--vel") == 0) {
@@ -292,26 +292,26 @@ int main(int argc, char **argv) {
             // reg = new reg_f3d_sym<float>(referenceImage->nt, floatingImage->nt);
             break;
         } else if (strcmp(argv[i], "-platf") == 0 || strcmp(argv[i], "--platf") == 0) {
-            int value = atoi(argv[++i]);
-            if (value < NR_PLATFORM_CPU || value > NR_PLATFORM_CL) {
+            PlatformType value{atoi(argv[++i])};
+            if (int(value) < int(PlatformType::Cpu) || int(value) > int(PlatformType::OpenCl)) {
                 reg_print_msg_error("The platform argument is expected to be 0, 1 or 2 | 0=CPU, 1=CUDA 2=OPENCL");
                 return EXIT_FAILURE;
             }
 #ifndef _USE_CUDA
-            if (value == NR_PLATFORM_CUDA) {
+            if (value == PlatformType::Cuda) {
                 reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
                 reg_print_msg_warn("The CPU platform is used");
-                value = 0;
+                value = PlatformType::Cpu;
             }
 #endif
 #ifndef _USE_OPENCL
-            if (value == NR_PLATFORM_CL) {
+            if (value == PlatformType::OpenCl) {
                 reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
                 reg_print_msg_warn("The CPU platform is used");
-                value = 0;
+                value = PlatformType::Cpu;
             }
 #endif
-            platformFlag = value;
+            platformType = value;
         } else if (strcmp(argv[i], "-gpuid") == 0 || strcmp(argv[i], "--gpuid") == 0) {
             gpuIdx = unsigned(atoi(argv[++i]));
         }
@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
         reg = new reg_f3d<float>(referenceImage->nt, floatingImage->nt);
     reg->SetReferenceImage(referenceImage);
     reg->SetFloatingImage(floatingImage);
-    reg->SetPlatformCode(platformFlag);
+    reg->SetPlatformType(platformType);
     reg->SetGpuIdx(gpuIdx);
 
     // Create some pointers that could be used

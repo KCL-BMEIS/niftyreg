@@ -18,7 +18,7 @@
 template<class T>
 reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     platform = nullptr;
-    platformCode = NR_PLATFORM_CPU;
+    platformType = PlatformType::Cpu;
     gpuIdx = 999;
 
     optimiser = nullptr;
@@ -841,7 +841,7 @@ void reg_base<T>::Initialise() {
 
     CheckParameters();
 
-    platform = new Platform(platformCode);
+    platform = new Platform(platformType);
     platform->SetGpuIdx(gpuIdx);
 
     // CREATE THE PYRAMID IMAGES

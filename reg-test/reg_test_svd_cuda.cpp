@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     char *expectedUMatrixFilename = argv[2];
     char *expectedSMatrixFilename = argv[3];
     char *expectedVMatrixFilename = argv[4];
-    int platformCode = atoi(argv[5]);
+    PlatformType platformType{atoi(argv[5])};
 
     std::pair<size_t, size_t> inputMatrixSize = reg_tool_sizeInputMatrixFile(inputSVDMatrixFilename);
     size_t m = inputMatrixSize.first;
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
         double *test_SVect = (double*)malloc(min_size*sizeof(double));
         //SVD
 #ifdef _USE_CUDA
-        if(platformCode != 1) {
+        if(platformType != PlatformType::Cuda) {
 #endif
             //svd<float>(inputSVDMatrix, m, n, test_SVect, test_VMatrix);
             //U

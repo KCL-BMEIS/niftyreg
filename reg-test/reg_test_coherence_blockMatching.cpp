@@ -89,9 +89,9 @@ void check_matching_difference(int dim,
    }
 }
 
-void test(AladinContent *con, int platformCode) {
+void test(AladinContent *con, int platformType) {
 
-   Platform *platform = new Platform(platformCode);
+   Platform *platform = new Platform(platformType);
 
    Kernel *blockMatchingKernel = platform->CreateKernel(BlockMatchingKernel::GetName(), con);
    blockMatchingKernel->castTo<BlockMatchingKernel>()->Calculate();
@@ -104,27 +104,27 @@ int main(int argc, char **argv)
 {
 
    if (argc != 4) {
-      fprintf(stderr, "Usage: %s <refImage> <warpedImage> <platformCode>\n", argv[0]);
+      fprintf(stderr, "Usage: %s <refImage> <warpedImage> <platformType>\n", argv[0]);
       return EXIT_FAILURE;
    }
 
    char *inputRefImageName = argv[1];
    char *inputWarpedImageName = argv[2];
-   int   platformCode = atoi(argv[3]);
+   PlatformType platformType{atoi(argv[3])};
 #ifndef _USE_CUDA
-   if(platformCode == NR_PLATFORM_CUDA){
+   if(platformType == PlatformType::Cuda){
       reg_print_msg_error("NiftyReg has not been compiled with CUDA");
       return EXIT_FAILURE;
    }
 #endif
 #ifndef _USE_OPENCL
-   if(platformCode == NR_PLATFORM_CL){
+   if(platformType == PlatformType::OpenCl){
       reg_print_msg_error("NiftyReg has not been compiled with OpenCL");
       return EXIT_FAILURE;
    }
 #endif
 
-   if(platformCode!=NR_PLATFORM_CUDA && platformCode!=NR_PLATFORM_CL){
+   if(platformType!=PlatformType::Cuda && platformType!=PlatformType::OpenCl){
       reg_print_msg_error("Unexpected platform code");
       return EXIT_FAILURE;
    }
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
    AladinContent *con_cpu = nullptr;
    con_cpu = new AladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    con_cpu->SetWarped(warpedImage);
-   test(con_cpu, NR_PLATFORM_CPU);
+   test(con_cpu, PlatformType::Cpu);
    blockMatchingParams_cpu = con_cpu->GetBlockMatchingParams();
 
 #ifndef NDEBUG
@@ -168,17 +168,17 @@ int main(int argc, char **argv)
    AladinContent *con_gpu = nullptr;
    _reg_blockMatchingParam* blockMatchingParams_gpu = nullptr;
 #ifdef _USE_CUDA
-   if (platformCode == NR_PLATFORM_CUDA) {
+   if (platformType == PlatformType::Cuda) {
       con_gpu = new CudaAladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    }
 #endif
 #ifdef _USE_OPENCL
-   if (platformCode == NR_PLATFORM_CL) {
+   if (platformType == PlatformType::OpenCl) {
       con_gpu = new ClAladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    }
 #endif
    con_gpu->SetWarped(warpedImage);
-   test(con_gpu, platformCode);
+   test(con_gpu, platformType);
    blockMatchingParams_gpu = con_gpu->GetBlockMatchingParams();
 
 #ifndef NDEBUG

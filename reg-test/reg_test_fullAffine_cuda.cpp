@@ -40,7 +40,7 @@ int main(int argc, char **argv)
    reg_aladin_sym<float> *affine=new reg_aladin_sym<float>();
    affine->SetInputReference(referenceImage);
    affine->SetInputFloating(floatingImage);
-   affine->SetPlatformCode(NR_PLATFORM_CUDA);
+   affine->SetPlatformType(PlatformType::Cuda);
    affine->Run();
    mat44 differenceMatrix = *inputMatrix - *(affine->GetTransformationMatrix());
 

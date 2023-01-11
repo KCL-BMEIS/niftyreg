@@ -5,13 +5,11 @@
 #include "ComputeFactory.h"
 #include "_reg_optimiser.h"
 
-#define NR_PLATFORM_CPU  0
-#define NR_PLATFORM_CUDA 1
-#define NR_PLATFORM_CL   2
+enum class PlatformType { Cpu, Cuda, OpenCl };
 
 class Platform {
 public:
-    Platform(int platformCodeIn);
+    Platform(const PlatformType& platformTypeIn);
     virtual ~Platform();
 
     Compute* CreateCompute(Content *con) const;
@@ -27,8 +25,8 @@ public:
 
     std::string GetName();
 
-    int GetPlatformCode();
-    //void SetPlatformCode(const int platformCodeIn);
+    PlatformType GetPlatformType();
+    //void SetPlatformType(const PlatformType& platformTypeIn);
     void SetGpuIdx(unsigned gpuIdxIn);
     unsigned GetGpuIdx();
 
@@ -36,6 +34,6 @@ private:
     KernelFactory *kernelFactory;
     ComputeFactory *computeFactory;
     std::string platformName;
-    int platformCode;
+    PlatformType platformType;
     unsigned gpuIdx;
 };

@@ -29,7 +29,7 @@
 
 
 typedef std::tuple<std::string, nifti_image*, nifti_image*, float*> test_data;
-typedef std::tuple<AladinContent*, std::string, int> content_desc;
+typedef std::tuple<AladinContent*, std::string, PlatformType> content_desc;
 
 TEST_CASE("Resampling", "[resampling]") {
     // Create a reference 2D image
@@ -116,24 +116,24 @@ TEST_CASE("Resampling", "[resampling]") {
         listContent.push_back(content_desc(
             new AladinContent(reference, reference),
             "CPU",
-            NR_PLATFORM_CPU));
+            PlatformType::Cpu));
 #ifdef _USE_CUDA
         listContent.push_back(content_desc(
             new CudaAladinContent(reference, reference),
             "CUDA",
-            NR_PLATFORM_CUDA));
+            PlatformType::Cuda));
 #endif
 #ifdef _USE_OPENCL
         // listContent.push_back(content_desc(
         //     new ClAladinContent(reference, reference),
         //     "OpenCL",
-        //     NR_PLATFORM_CL));
+        //     PlatformType::OpenCl));
 #endif
         // Loop over all possibles contents for each test
         for (auto&& content : listContent) {
             AladinContent *con;
             std::string desc;
-            int plat_value;
+            PlatformType plat_value;
             std::tie(con, desc, plat_value) = content;
 
             SECTION(test_name + " " + desc) {

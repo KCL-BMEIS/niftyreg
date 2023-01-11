@@ -79,9 +79,9 @@ void check_matching_difference(int dim,
    }
 }
 
-void test(AladinContent *con, int platformCode) {
+void test(AladinContent *con, PlatformType platformType) {
 
-   Platform *platform = new Platform(platformCode);
+   Platform *platform = new Platform(platformType);
 
    Kernel *blockMatchingKernel = platform->CreateKernel(BlockMatchingKernel::GetName(), con);
    blockMatchingKernel->castTo<BlockMatchingKernel>()->Calculate();
@@ -94,14 +94,14 @@ int main(int argc, char **argv)
 {
 
    if (argc != 5) {
-      fprintf(stderr, "Usage: %s <refImage> <warpedImage> <expectedBlockMatchingMatrix> <platformCode>\n", argv[0]);
+      fprintf(stderr, "Usage: %s <refImage> <warpedImage> <expectedBlockMatchingMatrix> <platformType>\n", argv[0]);
       return EXIT_FAILURE;
    }
 
    char *inputRefImageName = argv[1];
    char *inputWarpedImageName = argv[2];
-   char* expectedBlockMatchingMatrixName = argv[3];
-   int   platformCode = atoi(argv[4]);
+   char *expectedBlockMatchingMatrixName = argv[3];
+   PlatformType platformType{atoi(argv[4])};
 
    // Read the input reference image
    nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
@@ -137,16 +137,16 @@ int main(int argc, char **argv)
 
    // Platforms
    AladinContent *con = nullptr;
-   if (platformCode == NR_PLATFORM_CPU) {
+   if (platformType == PlatformType::Cpu) {
       con = new AladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    }
 #ifdef _USE_CUDA
-   else if (platformCode == NR_PLATFORM_CUDA) {
+   else if (platformType == PlatformType::Cuda) {
       con = new CudaAladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    }
 #endif
 #ifdef _USE_OPENCL
-   else if (platformCode == NR_PLATFORM_CL) {
+   else if (platformType == PlatformType::OpenCl) {
       con = new ClAladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
    }
 #endif
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
    }
    con->SetWarped(warpedImage);
    //con->SetWarped(referenceImage);
-   test(con, platformCode);
+   test(con, platformType);
    blockMatchingParams = con->GetBlockMatchingParams();
 
 #ifndef NDEBUG

@@ -28,7 +28,7 @@
 
 
 typedef std::tuple<std::string, nifti_image*, mat44*, float*, float*, float*> test_data;
-typedef std::tuple<AladinContent*, std::string, int> content_desc;
+typedef std::tuple<AladinContent*, std::string, PlatformType> content_desc;
 
 TEST_CASE("Affine deformation field", "[AffineDefField]") {
     // Create a reference 2D image
@@ -168,7 +168,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         float *test_res_z;
         std::tie(test_name, reference, test_mat, test_res_x, test_res_y, test_res_z) = test_use_case;
 
-        // Accumate all required contents with a vector
+        // Accumulate all required contents with a vector
         std::vector<content_desc> listContent;
         listContent.push_back(content_desc(
             new AladinContent(
@@ -178,7 +178,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
                 test_mat,
                 sizeof(float)),
             "CPU",
-            0));
+            PlatformType::Cpu));
 #ifdef _USE_CUDA
         listContent.push_back(content_desc(
             new CudaAladinContent(
@@ -188,7 +188,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
                 test_mat,
                 sizeof(float)),
             "CUDA",
-            1));
+            PlatformType::Cuda));
 #endif
 #ifdef _USE_OPENCL
         listContent.push_back(content_desc(
@@ -199,13 +199,13 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
                 test_mat,
                 sizeof(float)),
             "OpenCL",
-            2));
+            PlatformType::OpenCl));
 #endif
         // Loop over all possibles contents for each test
         for (auto &&content : listContent) {
             AladinContent *con;
             std::string desc;
-            int plat_value;
+            PlatformType plat_value;
             std::tie(con, desc, plat_value) = content;
             SECTION(test_name + " " + desc) {
                 // Initialise the platform to run current content and retrieve deformation field

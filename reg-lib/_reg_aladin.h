@@ -114,7 +114,7 @@ protected:
     float warpedPaddingValue;
 
     Platform *platform;
-    int platformCode;
+    PlatformType platformType;
     unsigned gpuIdx;
 
     bool TestMatrixConvergence(mat44 *mat);
@@ -178,8 +178,8 @@ public:
     }
     nifti_image* GetFinalWarpedImage();
 
-    void SetPlatformCode(const int platformCodeIn) {
-        this->platformCode = platformCodeIn;
+    void SetPlatformType(const PlatformType& platformTypeIn) {
+        this->platformType = platformTypeIn;
     }
     void SetGpuIdx(unsigned gpuIdxIn) {
         this->gpuIdx = gpuIdxIn;

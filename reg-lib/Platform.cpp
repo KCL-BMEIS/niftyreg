@@ -14,22 +14,22 @@
 #endif
 
 /* *************************************************************** */
-Platform::Platform(int platformCodeIn) {
-    platformCode = platformCodeIn;
-    if (platformCode == NR_PLATFORM_CPU) {
+Platform::Platform(const PlatformType& platformTypeIn) {
+    platformType = platformTypeIn;
+    if (platformType == PlatformType::Cpu) {
         kernelFactory = new CpuKernelFactory();
         computeFactory = new ComputeFactory();
         platformName = "cpu_platform";
     }
 #ifdef _USE_CUDA
-    else if (platformCode == NR_PLATFORM_CUDA) {
+    else if (platformType == PlatformType::Cuda) {
         kernelFactory = new CudaKernelFactory();
         computeFactory = new CudaComputeFactory();
         platformName = "cuda_platform";
     }
 #endif
 #ifdef _USE_OPENCL
-    else if (platformCode == NR_PLATFORM_CL) {
+    else if (platformType == PlatformType::OpenCl) {
         kernelFactory = new ClKernelFactory();
         computeFactory = new ClComputeFactory();
         platformName = "cl_platform";
@@ -57,13 +57,13 @@ reg_optimiser<Type>* Platform::CreateOptimiser(F3dContent *con,
     nifti_image *controlPointGrid = con->F3dContent::GetControlPointGrid();
     Type *controlPointGridData, *transformationGradientData;
 
-    if (platformCode == NR_PLATFORM_CPU) {
+    if (platformType == PlatformType::Cpu) {
         optimiser = useConjGradient ? new reg_conjugateGradient<Type>() : new reg_optimiser<Type>();
         controlPointGridData = (Type*)controlPointGrid->data;
         transformationGradientData = (Type*)con->F3dContent::GetTransformationGradient()->data;
     }
 #ifdef _USE_CUDA
-    else if (platformCode == NR_PLATFORM_CUDA) {
+    else if (platformType == PlatformType::Cuda) {
         optimiser = dynamic_cast<reg_optimiser<Type>*>(useConjGradient ? new reg_conjugateGradient_gpu() : new reg_optimiser_gpu());
         controlPointGridData = (Type*)dynamic_cast<CudaF3dContent*>(con)->GetControlPointGridCuda();
         transformationGradientData = (Type*)dynamic_cast<CudaF3dContent*>(con)->GetTransformationGradientCuda();
@@ -95,11 +95,11 @@ unsigned Platform::GetGpuIdx() {
 }
 /* *************************************************************** */
 void Platform::SetGpuIdx(unsigned gpuIdxIn) {
-    if (platformCode == NR_PLATFORM_CPU) {
+    if (platformType == PlatformType::Cpu) {
         gpuIdx = 999;
     }
 #ifdef _USE_CUDA
-    else if (platformCode == NR_PLATFORM_CUDA) {
+    else if (platformType == PlatformType::Cuda) {
         CudaContextSingleton *cudaContext = &CudaContextSingleton::Instance();
         if (gpuIdxIn != 999) {
             gpuIdx = gpuIdxIn;
@@ -108,7 +108,7 @@ void Platform::SetGpuIdx(unsigned gpuIdxIn) {
     }
 #endif
 #ifdef _USE_OPENCL
-    else if (platformCode == NR_PLATFORM_CL) {
+    else if (platformType == PlatformType::OpenCl) {
         ClContextSingleton *sContext = &ClContextSingleton::Instance();
         if (gpuIdxIn != 999) {
             gpuIdx = gpuIdxIn;
@@ -128,12 +128,12 @@ void Platform::SetGpuIdx(unsigned gpuIdxIn) {
 #endif
 }
 /* *************************************************************** */
-int Platform::GetPlatformCode() {
-    return platformCode;
+PlatformType Platform::GetPlatformType() {
+    return platformType;
 }
 /* *************************************************************** */
-//void Platform::SetPlatformCode(const int platformCodeIn) {
-//    platformCode = platformCodeIn;
+//void Platform::SetPlatformType(const PlatformType& platformTypeIn) {
+//    platformType = platformTypeIn;
 //}
 /* *************************************************************** */
 Platform::~Platform() {

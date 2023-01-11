@@ -274,14 +274,14 @@ void reg_aladin_sym<T>::InitAladinContent(nifti_image *ref,
                                inlierLts,
                                blockStepSize);
 
-  if (this->platformCode == NR_PLATFORM_CPU)
+  if (this->platformType == PlatformType::Cpu)
   this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
-  else if (this->platformCode == NR_PLATFORM_CUDA)
+  else if (this->platformType == PlatformType::Cuda)
   this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
-  else if (this->platformCode == NR_PLATFORM_CL)
+  else if (this->platformType == PlatformType::OpenCl)
   this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
   this->BackwardBlockMatchingParams = backCon->AladinContent::GetBlockMatchingParams();

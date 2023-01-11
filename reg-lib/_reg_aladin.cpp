@@ -57,7 +57,7 @@ reg_aladin<T>::reg_aladin() {
     this->funcProgressCallback = nullptr;
     this->paramsProgressCallback = nullptr;
 
-    this->platformCode = NR_PLATFORM_CPU;
+    this->platformType = PlatformType::Cpu;
     this->currentLevel = 0;
     this->gpuIdx = 999;
 
@@ -224,7 +224,7 @@ void reg_aladin<T>::InitialiseRegistration() {
     reg_print_fct_debug("reg_aladin::InitialiseRegistration()");
 #endif
 
-    this->platform = new Platform(this->platformCode);
+    this->platform = new Platform(this->platformType);
     this->platform->SetGpuIdx(this->gpuIdx);
 
     this->Print();
@@ -455,14 +455,14 @@ void reg_aladin<T>::InitAladinContent(nifti_image *ref,
                                       unsigned int blockPercentage,
                                       unsigned int inlierLts,
                                       unsigned int blockStepSize) {
-    if (this->platformCode == NR_PLATFORM_CPU)
+    if (this->platformType == PlatformType::Cpu)
         this->con = new AladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
-    else if (platformCode == NR_PLATFORM_CUDA)
+    else if (platformType == PlatformType::Cuda)
         this->con = new CudaAladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
-    else if (platformCode == NR_PLATFORM_CL)
+    else if (platformType == PlatformType::OpenCl)
         this->con = new ClAladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
     this->blockMatchingParams = this->con->AladinContent::GetBlockMatchingParams();

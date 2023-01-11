@@ -18,27 +18,27 @@ int main(int argc, char **argv)
 {
     if(argc!=5)
     {
-        fprintf(stderr, "Usage: %s <refImage> <inputDefField> <order> <platformCode>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <refImage> <inputDefField> <order> <platformType>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     char *inputRefImageName=argv[1];
     char *inputDefImageName=argv[2];
     int interpolation=atoi(argv[3]);
-    int platformCode = atoi(argv[4]);
+    PlatformType platformType{atoi(argv[4])};
 #ifndef _USE_CUDA
-   if(platformCode == NR_PLATFORM_CUDA){
+   if(platformType == PlatformType::Cuda){
       reg_print_msg_error("NiftyReg has not been compiled with CUDA");
       return EXIT_FAILURE;
    }
 #endif
 #ifndef _USE_OPENCL
-   if(platformCode == NR_PLATFORM_CL){
+   if(platformType == PlatformType::OpenCl){
       reg_print_msg_error("NiftyReg has not been compiled with OpenCL");
       return EXIT_FAILURE;
    }
 #endif
-   if(platformCode!=NR_PLATFORM_CUDA && platformCode!=NR_PLATFORM_CL){
+   if(platformType!=PlatformType::Cuda && platformType!=PlatformType::OpenCl){
       reg_print_msg_error("Unexpected platform code");
       return EXIT_FAILURE;
    }
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     con_cpu->SetWarped(cpu_warped);
     con_cpu->SetDeformationField(inputDeformationField);
     con_cpu->SetReferenceMask(tempMask);
-    Platform *platform_cpu = new Platform(NR_PLATFORM_CPU);
+    Platform *platform_cpu = new Platform(PlatformType::Cpu);
     Kernel *resampleImageKernel_cpu = platform_cpu->CreateKernel(ResampleImageKernel::GetName(), con_cpu);
     resampleImageKernel_cpu->castTo<ResampleImageKernel>()->Calculate(interpolation,
                                                                       std::numeric_limits<float>::quiet_NaN());
@@ -91,12 +91,12 @@ int main(int argc, char **argv)
     // GPU platform
     AladinContent *con_gpu = nullptr;
 #ifdef _USE_CUDA
-    if (platformCode == NR_PLATFORM_CUDA) {
+    if (platformType == PlatformType::Cuda) {
         con_gpu = new CudaAladinContent(nullptr, referenceImage, nullptr, sizeof(float));
     }
 #endif
 #ifdef _USE_OPENCL
-    if (platformCode == NR_PLATFORM_CL) {
+    if (platformType == PlatformType::OpenCl) {
         con_gpu = new ClAladinContent(nullptr, referenceImage, nullptr, sizeof(float));
     }
 #endif
@@ -105,12 +105,12 @@ int main(int argc, char **argv)
     con_gpu->SetReferenceMask(tempMask);
     Platform *platform_gpu = nullptr;
 #ifdef _USE_CUDA
-    if (platformCode == NR_PLATFORM_CUDA)
-       platform_gpu = new Platform(NR_PLATFORM_CUDA);
+    if (platformType == PlatformType::Cuda)
+       platform_gpu = new Platform(PlatformType::Cuda);
 #endif
 #ifdef _USE_OPENCL
-    if (platformCode == NR_PLATFORM_CL) {
-       platform_gpu = new Platform(NR_PLATFORM_CL);
+    if (platformType == PlatformType::OpenCl) {
+       platform_gpu = new Platform(PlatformType::OpenCl);
     }
 #endif
     Kernel *resampleImageKernel_gpu = platform_gpu->CreateKernel(ResampleImageKernel::GetName(), con_gpu);

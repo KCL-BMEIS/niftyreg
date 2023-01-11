@@ -10,7 +10,7 @@
 int main(int argc, char **argv)
 {
     if (argc != 6) {
-        fprintf(stderr, "Usage: %s <refImage> <inputGrid> <expectedField> <useComp> <platformCode>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <refImage> <inputGrid> <expectedField> <useComp> <platformType>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -18,7 +18,7 @@ int main(int argc, char **argv)
     char *inputCPPFileName = argv[2];
     char *inputDefImageName = argv[3];
     bool useComposition = atoi(argv[4]);
-//    int platformCode = atoi(argv[5]);
+    // PlatformType platformType{atoi(argv[5])};
 
     // Read the input reference image
     nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);

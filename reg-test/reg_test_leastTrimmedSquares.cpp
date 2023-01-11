@@ -33,9 +33,9 @@ int check_matrix_difference(mat44 matrix1, mat44 matrix2, char *name, float &max
    }
    return EXIT_SUCCESS;
 }
-void test(AladinContent *con, int platformCode, bool isAffine) {
+void test(AladinContent *con, PlatformType platformType, bool isAffine) {
 
-   Platform *platform = new Platform(platformCode);
+   Platform *platform = new Platform(platformType);
 
    Kernel *optimiseKernel = platform->CreateKernel(OptimiseKernel::GetName(), con);
    optimiseKernel->castTo<OptimiseKernel>()->Calculate(isAffine);
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 {
 
    if (argc != 7) {
-      fprintf(stderr, "Usage: %s <inputPoints1> <inputPoints2> <percentToKeep> <isAffine> <expectedLTSMatrix> <platformCode> \n", argv[0]);
+      fprintf(stderr, "Usage: %s <inputPoints1> <inputPoints2> <percentToKeep> <isAffine> <expectedLTSMatrix> <platformType> \n", argv[0]);
       return EXIT_FAILURE;
    }
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
    unsigned int percentToKeep = atoi(argv[3]);
    bool isAffine = atoi(argv[4]);
    char *expectedLTSMatrixFilename = argv[5];
-   int platformCode = atoi(argv[6]);
+   PlatformType platformType{atoi(argv[6])};
 
    std::pair<size_t, size_t> inputMatrix1Size = reg_tool_sizeInputMatrixFile(inputMatrix1Filename);
    size_t m1 = inputMatrix1Size.first;
@@ -77,16 +77,16 @@ int main(int argc, char **argv)
    ////////////////////////
    // Platforms
    AladinContent *con = nullptr;
-   if (platformCode == NR_PLATFORM_CPU) {
+   if (platformType == PlatformType::Cpu) {
       con = new AladinContent();
    }
 #ifdef _USE_CUDA
-   else if (platformCode == NR_PLATFORM_CUDA) {
+   else if (platformType == PlatformType::Cuda) {
       con = new CudaAladinContent();
    }
 #endif
 #ifdef _USE_OPENCL
-   else if (platformCode == NR_PLATFORM_CL) {
+   else if (platformType == PlatformType::OpenCl) {
       con = new ClAladinContent();
    }
 #endif
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
    }
 
    con->SetBlockMatchingParams(blockMatchingParams);
-   test(con, platformCode, isAffine);
+   test(con, platformType, isAffine);
 
 #ifndef NDEBUG
    if (n1 == 2)
