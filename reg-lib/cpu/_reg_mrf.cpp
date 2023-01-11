@@ -417,7 +417,7 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
                         }
                      } else {
                         for(t=0; t<refImage->nt; ++t){
-                           refBlockValue[blockIndex] = 0.0;
+                           refBlockValue[blockIndex] = 0;
                            blockIndex++;
                         }
                      }
@@ -477,7 +477,7 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
                                  }
                               }else {
                                  for(t=0; t<refImage->nt; ++t){
-                                    neighbourBlockValue[blockIndex] = 0.0;
+                                    neighbourBlockValue[blockIndex] = 0;
                                     blockIndex++;
                                  } //t
                               }
@@ -521,7 +521,7 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
 
                      edgeWeightMatrix[cpx+cpy*controlPointGridImage->nx+
                            cpz*controlPointGridImage->nx*controlPointGridImage->ny+
-                           ngh_index*node_number]=0.0;
+                           ngh_index*node_number]=0;
                      //DEBUG
                      //index_neighbours[cpx+cpy*m1+
                      //        cpz*m1*n1+
@@ -530,7 +530,7 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
                      //        (cpz+dz[ngh_index])*m1*n1;
                      //edgeWeightMatrix[cpx+cpy*m1+
                      //        cpz*m1*n1+
-                     //        ngh_index*num_vertices]=0.0;
+                     //        ngh_index*num_vertices]=0;
                      //DEBUG
                   }
                }
@@ -740,7 +740,7 @@ void reg_mrf::GetRegularisation()
    for(size_t i=0;i<this->node_number*this->label_nD_num;i++){
       //matrix = discretisedValue (first dimension displacement label, second dim. control point)
       this->regularised_cost[i]=this->discretised_measures[i];
-      message[i]=0.0;
+      message[i]=0;
    }
 
    for(int i=0;i<this->label_nD_num;i++){

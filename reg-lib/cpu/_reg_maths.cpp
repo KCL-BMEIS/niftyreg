@@ -137,7 +137,7 @@ void reg_matrixMultiply(T *mat1,
     {
         for (size_t i = 0; i < resDim[0]; ++i)
         {
-            double sum = 0.0;
+            double sum = 0;
             for (size_t k = 0; k < dim1[1]; ++k)
             {
                 sum += mat1[k * dim1[0] + i] * mat2[j * dim2[0] + k];
@@ -715,7 +715,7 @@ void reg_mat33_diagonalize(mat33 const* A, mat33 * Q, mat33 * D)
     const int maxsteps = 24;  // certainly wont need that many.
     int k0, k1, k2;
     float o[3], m[3];
-    float q[4] = { 0.0, 0.0, 0.0, 1.0 };
+    float q[4] = { 0, 0, 0, 1 };
     float jr[4];
     float sqw, sqx, sqy, sqz;
     float tmp1, tmp2, mq;
@@ -774,12 +774,12 @@ void reg_mat33_diagonalize(mat33 const* A, mat33 * Q, mat33 * D)
         k0 = (m[0] > m[1] && m[0] > m[2]) ? 0 : (m[1] > m[2]) ? 1 : 2; // index of largest element of offdiag
         k1 = (k0 + 1) % 3;
         k2 = (k0 + 2) % 3;
-        if (o[k0] == 0.0)
+        if (o[k0] == 0)
         {
             break;                          // diagonal already
         }
         thet = (D->m[k2][k2] - D->m[k1][k1]) / (2.0*o[k0]);
-        sgn = (thet > 0.0) ? 1.0 : -1.0;
+        sgn = (thet > 0) ? 1 : -1;
         thet *= sgn;                      // make it positive
         t = sgn / (thet + ((thet < 1.E6) ? sqrt(thet*thet + 1.0) : thet)); // sign(T)/(|T|+sqrt(T^2+1))
         c = 1.0 / sqrt(t*t + 1.0);        //  c= 1/(t^2+1) , t=s/c
@@ -787,7 +787,7 @@ void reg_mat33_diagonalize(mat33 const* A, mat33 * Q, mat33 * D)
         {
             break;                          // no room for improvement - reached machine precision.
         }
-        jr[0] = jr[1] = jr[2] = jr[3] = 0.0;
+        jr[0] = jr[1] = jr[2] = jr[3] = 0;
         jr[k0] = sgn*sqrt((1.0 - c) / 2.0);    // using 1/2 angle identity sin(a/2) = sqrt((1-cos(a))/2)
         jr[k0] *= -1.0;                     // since our quat-to-matrix convention was for v*M instead of M*v
         jr[3] = sqrt(1.0f - jr[k0] * jr[k0]);
@@ -863,8 +863,8 @@ void reg_mat44_eye(mat44 *mat)
 /* *************************************************************** */
 float reg_mat44_norm_inf(mat44 const* mat)
 {
-    float maxval = 0.0;
-    float newval = 0.0;
+    float maxval = 0;
+    float newval = 0;
     for (int i = 0; i < 4; i++)
     {
         for (int j = 0; j < 4; j++)

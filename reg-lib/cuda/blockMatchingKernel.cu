@@ -163,7 +163,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
 
         float bestDisplacement[2] = {nanf("sNaN"), 0.0f};
-        float bestCC = 0.0;
+        float bestCC = 0;
 
 		if (referenceSize > 8) {
 			//the target values must remain constant throughout the block matching process
@@ -196,7 +196,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 						const float warpedVar = blockReduce2DSum(warpedTemp * warpedTemp, tid);
 
 						const float sumTargetResult = blockReduce2DSum((newreferenceTemp)* (warpedTemp), tid);
-                        const float localCC = (newreferenceVar * warpedVar) > 0.0 ? fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar)) : 0.0;
+                        const float localCC = (newreferenceVar * warpedVar) > 0 ? fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar)) : 0;
 
                         if (tid == 0 && localCC > bestCC) {
                             bestCC = localCC + 1.0e-7f;
@@ -520,7 +520,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 							const float warpedVar = blockReduceSum(warpedTemp * warpedTemp, tid);
 
 							const float sumTargetResult = blockReduceSum((newreferenceTemp)* (warpedTemp), tid);
-                            const float localCC = (newreferenceVar * warpedVar) > 0.0 ? fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar)) : 0.0;
+                            const float localCC = (newreferenceVar * warpedVar) > 0 ? fabs((sumTargetResult) / sqrt(newreferenceVar * warpedVar)) : 0;
 
                             if (tid == 0 && localCC > bestCC) {
                                 bestCC = localCC + 1.0e-7f;

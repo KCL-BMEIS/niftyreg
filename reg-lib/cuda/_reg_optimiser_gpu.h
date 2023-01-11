@@ -7,7 +7,7 @@
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /** @class reg_optimiser_gpu
- * @brief Standard gradient acent optimisation for GPU
+ * @brief Standard gradient ascent optimisation for GPU
  */
 class reg_optimiser_gpu: public reg_optimiser<float> {
 protected:
@@ -51,7 +51,7 @@ public:
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /** @class reg_conjugateGradient_gpu
- * @brief Conjugate gradient acent optimisation for GPU
+ * @brief Conjugate gradient ascent optimisation for GPU
  */
 class reg_conjugateGradient_gpu: public reg_optimiser_gpu {
 protected:

@@ -19,8 +19,7 @@
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /// @brief NMI measure of similarity class - GPU based
-class reg_nmi_gpu : public reg_nmi , public reg_measure_gpu
-{
+class reg_nmi_gpu: public reg_nmi, public reg_measure_gpu {
 public:
    /// @brief reg_nmi class constructor
    reg_nmi_gpu();
@@ -48,14 +47,13 @@ public:
 
 protected:
    float *forwardJointHistogramLog_device;
-//	float **backwardJointHistogramLog_device;
+	// float **backwardJointHistogramLog_device;
    void DeallocateHistogram();
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/// @brief NMI measure of similarity classe
-class reg_multichannel_nmi_gpu : public reg_multichannel_nmi , public reg_measure_gpu
-{
+/// @brief NMI measure of similarity class
+class reg_multichannel_nmi_gpu: public reg_multichannel_nmi, public reg_measure_gpu {
 public:
    void InitialiseMeasure(nifti_image *refImgPtr,
                           nifti_image *floImgPtr,
@@ -69,10 +67,7 @@ public:
                           int *refMskDevicePtr,
                           float *warFloDevicePtr,
                           float4 *warFloGradDevicePtr,
-                          float4 *forVoxBasedGraDevicePtr)
-   {
-      ;
-   }
+                          float4 *forVoxBasedGraDevicePtr) {}
    /// @brief reg_nmi class constructor
    reg_multichannel_nmi_gpu() {}
    /// @brief reg_nmi class destructor
@@ -84,7 +79,6 @@ public:
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
 extern "C++"
 void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
                                       cudaArray *referenceImageArray_d,

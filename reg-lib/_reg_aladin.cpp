@@ -43,8 +43,8 @@ reg_aladin<T>::reg_aladin() {
 
     this->interpolation = 1;
 
-    this->floatingSigma = 0.0;
-    this->referenceSigma = 0.0;
+    this->floatingSigma = 0;
+    this->referenceSigma = 0;
 
     this->referenceUpperThreshold = std::numeric_limits<T>::max();
     this->referenceLowerThreshold = -std::numeric_limits<T>::max();
@@ -261,7 +261,7 @@ void reg_aladin<T>::InitialiseRegistration() {
     Kernel *convolutionKernel = this->platform->CreateKernel(ConvolutionKernel::GetName(), nullptr);
     // SMOOTH THE INPUT IMAGES IF REQUIRED
     for (unsigned int l = 0; l < this->levelsToPerform; l++) {
-        if (this->referenceSigma != 0.0) {
+        if (this->referenceSigma != 0) {
             // Only the first image is smoothed
             bool *active = new bool[this->referencePyramid[l]->nt];
             float *sigma = new float[this->referencePyramid[l]->nt];
@@ -273,7 +273,7 @@ void reg_aladin<T>::InitialiseRegistration() {
             delete[] active;
             delete[] sigma;
         }
-        if (this->floatingSigma != 0.0) {
+        if (this->floatingSigma != 0) {
             // Only the first image is smoothed
             bool *active = new bool[this->floatingPyramid[l]->nt];
             float *sigma = new float[this->floatingPyramid[l]->nt];
@@ -309,9 +309,9 @@ void reg_aladin<T>::InitialiseRegistration() {
     } else { // No input affine transformation
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                this->transformationMatrix->m[i][j] = 0.0;
+                this->transformationMatrix->m[i][j] = 0;
             }
-            this->transformationMatrix->m[i][i] = 1.0;
+            this->transformationMatrix->m[i][i] = 1;
         }
         if (this->alignCentre && this->alignCentreMass == 0) {
             const mat44 *floatingMatrix = (this->inputFloating->sform_code > 0) ? &(this->inputFloating->sto_xyz) : &(this->inputFloating->qto_xyz);

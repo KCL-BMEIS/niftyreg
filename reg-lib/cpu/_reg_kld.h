@@ -14,9 +14,8 @@
 
 #include "_reg_measure.h"
 
-/* *************************************************************** */
-class reg_kld : public reg_measure
-{
+ /* *************************************************************** */
+class reg_kld: public reg_measure {
 public:
    /// @brief reg_kld class constructor
    reg_kld();
@@ -84,5 +83,5 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *reference,
                                            nifti_image *jacobianDeterminantImage,
                                            int *mask,
                                            int current_timepoint,
-                                 double timepoint_weight);
+                                           double timepoint_weight);
 /* *************************************************************** */

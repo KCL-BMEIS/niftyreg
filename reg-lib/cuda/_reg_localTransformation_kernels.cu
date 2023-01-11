@@ -1970,15 +1970,15 @@ __global__ void reg_defField_getJacobianMatrix3D_kernel(float *jacobianMatrices)
 		   y==imageSize.y-1 ||
 		   z==imageSize.z-1 ){
 			int index=tid*9;
-			jacobianMatrices[index++]=1.0;
-			jacobianMatrices[index++]=0.0;
-			jacobianMatrices[index++]=0.0;
-			jacobianMatrices[index++]=0.0;
-			jacobianMatrices[index++]=1.0;
-			jacobianMatrices[index++]=0.0;
-			jacobianMatrices[index++]=0.0;
-			jacobianMatrices[index++]=0.0;
-			jacobianMatrices[index]=1.0;
+			jacobianMatrices[index++]=1;
+			jacobianMatrices[index++]=0;
+			jacobianMatrices[index++]=0;
+			jacobianMatrices[index++]=0;
+			jacobianMatrices[index++]=1;
+			jacobianMatrices[index++]=0;
+			jacobianMatrices[index++]=0;
+			jacobianMatrices[index++]=0;
+			jacobianMatrices[index]=1;
 			return;
 		}
 

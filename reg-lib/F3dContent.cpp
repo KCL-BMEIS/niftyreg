@@ -9,7 +9,7 @@ F3dContent::F3dContent(nifti_image *referenceIn,
                        nifti_image *localWeightSimIn,
                        int *referenceMaskIn,
                        mat44 *transformationMatrixIn,
-                       size_t bytesIn) :
+                       size_t bytesIn):
     Content(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, bytesIn),
     controlPointGrid(controlPointGridIn) {
     if (!controlPointGridIn) {

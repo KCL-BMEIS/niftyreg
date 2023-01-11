@@ -409,7 +409,7 @@ int main(int argc, char **argv)
       PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
       for(size_t i=0; i<mask->nvox; i++) intensityPtrM[i]=1.0;
    }
-   PrecisionTYPE masksum=0.0;
+   PrecisionTYPE masksum=0;
    PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
    for(size_t i=0; i<mask->nvox; i++)
    {
@@ -581,12 +581,12 @@ int main(int argc, char **argv)
       for (i=n-1; i>0; i--)
       {
          l=i-1;
-         h=scale=0.0;
+         h=scale=0;
          if(l>0)
          {
             for(k=0; k<i; k++)
                scale+=std::abs(z[i+n*k]);
-            if (scale==0.0)
+            if (scale==0)
                e[i]=z[i+n*l];
             else
             {
@@ -596,15 +596,15 @@ int main(int argc, char **argv)
                   h+=z[i+n*k]*z[i+n*k];
                }
                f=z[i+n*l];
-               g=(f>=0.0 ? -sqrt(h) : sqrt(h));
+               g=(f>=0 ? -sqrt(h) : sqrt(h));
                e[i]=scale*g;
                h-=f*g;
                z[i+n*l]=f-g;
-               f=0.0;
+               f=0;
                for (j=0; j<i; j++)
                {
                   z[j+n*i]=z[i+n*j]/h;
-                  g=0.0;
+                  g=0;
                   for (k=0; k<j+1; k++)
                      g+=z[j+n*k]*z[i+n*k];
                   for (k=j+1; k<i; k++)
@@ -626,15 +626,15 @@ int main(int argc, char **argv)
             e[i]=z[i+n*l];
          d[i]=h;
       }
-      d[0]=0.0;
-      e[0]=0.0;
+      d[0]=0;
+      e[0]=0;
       for (i=0; i<n; i++)
       {
-         if(d[i]!=0.0)
+         if(d[i]!=0)
          {
             for (j=0; j<i; j++)
             {
-               g=0.0;
+               g=0;
                for (k=0; k<i; k++)
                   g+=z[i+n*k]*z[k+n*j];
                for (k=0; k<i; k++)
@@ -643,7 +643,7 @@ int main(int argc, char **argv)
          }
          d[i]=z[i+n*i];
          z[i+n*i]=1.0;
-         for (j=0; j<i; j++) z[j+n*i]=z[i+n*j]=0.0;
+         for (j=0; j<i; j++) z[j+n*i]=z[i+n*j]=0;
       }
 
       printf("Image Means=[%g",Mean[0]);
@@ -666,7 +666,7 @@ int main(int argc, char **argv)
       int m,iter;
       float s,r,p,dd,c,b;
       for (i=1; i<n; i++) e[i-1]=e[i];
-      e[n-1]=0.0;
+      e[n-1]=0;
       for (l=0; l<n; l++)
       {
          iter=0;
@@ -684,7 +684,7 @@ int main(int argc, char **argv)
                r=sqrt(g*g+1.0);
                g=d[m]-d[l]+e[l]/(g+std::abs(r)*g/std::abs(g));
                s=c=1.0;
-               p=0.0;
+               p=0;
                for (i=m-1; i>=l; i--)
                {
                   f=s*e[i];
@@ -693,7 +693,7 @@ int main(int argc, char **argv)
                   if(r<EPS)
                   {
                      d[i+1]-=p;
-                     e[m]=0.0;
+                     e[m]=0;
                      break;
                   }
                   s=f/r;
@@ -712,7 +712,7 @@ int main(int argc, char **argv)
                if(r<EPS && i>=l) continue;
                d[l]-=p;
                e[l]=g;
-               e[m]=0.0;
+               e[m]=0;
             }
             // printf("Iterations=%i\n",iter);
          }
@@ -796,7 +796,7 @@ int main(int argc, char **argv)
          {
             for(int t=0; t<image->nt; t++)
             {
-               dotty=0.0;
+               dotty=0;
                sum=0;
                for(int tt=max(t-param->locality,0); tt<=min(t+param->locality,image->nt); tt++)
                {
@@ -827,7 +827,7 @@ int main(int argc, char **argv)
          {
             for(int c=0; c<prinCompNumber; c++) // Add up component contributions
             {
-               dotty=0.0;
+               dotty=0;
                for(int t=0; t<image->nt; t++) // 1) Multiply each element by eigenvector and add (I.e. dot product)
                {
                   dotty += intensityPtr1[t*voxelNumber+i] * z[t+image->nt*c];

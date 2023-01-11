@@ -4,7 +4,7 @@
 
 class ClCompute: public Compute {
 public:
-    ClCompute(Content *con) : Compute(con) {}
+    ClCompute(Content *con): Compute(con) {}
 
     virtual void ResampleImage(int inter, float paddingValue) override;
 };

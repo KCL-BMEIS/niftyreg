@@ -297,12 +297,12 @@ void reg_discrete_init::GetRegularisedMeasure()
             splineCoeffY[13] = 0.f;
             splineCoeffZ[13] = 0.f;
             // Compute the second derivative without the central control point
-            float XX_x=0.0, YY_x=0.0, ZZ_x=0.0;
-            float XY_x=0.0, YZ_x=0.0, XZ_x=0.0;
-            float XX_y=0.0, YY_y=0.0, ZZ_y=0.0;
-            float XY_y=0.0, YZ_y=0.0, XZ_y=0.0;
-            float XX_z=0.0, YY_z=0.0, ZZ_z=0.0;
-            float XY_z=0.0, YZ_z=0.0, XZ_z=0.0;
+            float XX_x=0, YY_x=0, ZZ_x=0;
+            float XY_x=0, YZ_x=0, XZ_x=0;
+            float XX_y=0, YY_y=0, ZZ_y=0;
+            float XY_y=0, YZ_y=0, XZ_y=0;
+            float XX_z=0, YY_z=0, ZZ_z=0;
+            float XY_z=0, YZ_z=0, XZ_z=0;
             for(i=0; i<27; i++){
                XX_x += basisXX[i]*splineCoeffX[i];
                YY_x += basisYY[i]*splineCoeffX[i];

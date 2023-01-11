@@ -7,7 +7,7 @@ CudaF3dContent::CudaF3dContent(nifti_image *referenceIn,
                                nifti_image *localWeightSimIn,
                                int *referenceMaskIn,
                                mat44 *transformationMatrixIn,
-                               size_t bytesIn) :
+                               size_t bytesIn):
     F3dContent(referenceIn, floatingIn, controlPointGridIn, localWeightSimIn, referenceMaskIn, transformationMatrixIn, sizeof(float)),
     CudaContent(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, sizeof(float)),
     Content(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, sizeof(float)) {

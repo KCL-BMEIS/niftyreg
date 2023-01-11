@@ -221,7 +221,7 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 						const float warpedVar = REDUCE2D(sData, warpedTemp*warpedTemp, tid);
 
 						const float sumReferenceWarped = REDUCE2D(sData, (newReferenceTemp)*(warpedTemp), tid);
-                                                const float localCC = (newReferenceVar * warpedVar) > 0.0 ? fabs(sumReferenceWarped / sqrt(newReferenceVar*warpedVar)) : 0.0;
+                                                const float localCC = (newReferenceVar * warpedVar) > 0 ? fabs(sumReferenceWarped / sqrt(newReferenceVar*warpedVar)) : 0;
 
                   // Only the first thread of the block can update the final value
                   if (tid == 0 && localCC > bestCC) {
@@ -384,7 +384,7 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 							const float warpedVar = REDUCE(sData, warpedTemp*warpedTemp, tid);
 
 							const float sumReferenceWarped = REDUCE(sData, (newReferenceTemp)*(warpedTemp), tid);
-                                                        const float localCC = (newReferenceVar * warpedVar) > 0.0 ? fabs((sumReferenceWarped) / sqrt(newReferenceVar*warpedVar)) : 0.0;
+                                                        const float localCC = (newReferenceVar * warpedVar) > 0 ? fabs((sumReferenceWarped) / sqrt(newReferenceVar*warpedVar)) : 0;
 
 							// Only the first thread of the block can update the final value
                                                         if (tid == 0 && localCC > bestCC) {

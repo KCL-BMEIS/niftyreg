@@ -19,8 +19,7 @@
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /// @brief SSD measure of similarity class on the device
-class reg_ssd_gpu : public reg_ssd , public reg_measure_gpu
-{
+class reg_ssd_gpu: public reg_ssd, public reg_measure_gpu {
 public:
     /// @brief reg_ssd class constructor
     reg_ssd_gpu();
@@ -53,8 +52,7 @@ float reg_getSSDValue_gpu(nifti_image *referenceImage,
                           cudaArray **reference_d,
                           float **warped_d,
                           int **mask_d,
-                          int activeVoxelNumber
-                         );
+                          int activeVoxelNumber);
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 extern "C++"

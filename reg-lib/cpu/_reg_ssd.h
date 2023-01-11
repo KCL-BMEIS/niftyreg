@@ -18,9 +18,8 @@
 
 /* *************************************************************** */
 /* *************************************************************** */
-/// @brief SSD measure of similarity classe
-class reg_ssd : public reg_measure
-{
+/// @brief SSD measure of similarity class
+class reg_ssd: public reg_measure {
 public:
     /// @brief reg_ssd class constructor
     reg_ssd();
@@ -52,14 +51,14 @@ public:
                                      int discretise_radius,
                                      int discretise_step);
 protected:
-   float currentValue[255];
+    float currentValue[255];
 
 private:
-   bool normaliseTimePoint[255];
+    bool normaliseTimePoint[255];
 };
 /* *************************************************************** */
 
-/** @brief Copmutes and returns the SSD between two input images
+/** @brief Computes and returns the SSD between two input images
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
  * @param activeTimePoint Specified which time point volumes have to be considered
@@ -73,20 +72,19 @@ private:
  */
 extern "C++" template <class DTYPE>
 double reg_getSSDValue(nifti_image *referenceImage,
-							  nifti_image *warpedImage,
-							  double *timePointWeight,
-							  nifti_image *jacobianDeterminantImage,
-							  int *mask,
-							  float *currentValue,
-							  nifti_image *localWeightImage
-							 );
+                       nifti_image *warpedImage,
+                       double *timePointWeight,
+                       nifti_image *jacobianDeterminantImage,
+                       int *mask,
+                       float *currentValue,
+                       nifti_image *localWeightImage);
 
 /** @brief Compute a voxel based gradient of the sum squared difference.
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
  * @param activeTimePoint Specified which time point volumes have to be considered
  * @param warpedImageGradient Spatial gradient of the input warped image
- * @param ssdGradientImage Output image htat will be updated with the
+ * @param ssdGradientImage Output image that will be updated with the
  * value of the SSD gradient
  * @param jacobianDeterminantImage Image that contains the Jacobian
  * determinant of a transformation at every voxel position. This
@@ -104,5 +102,4 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   int *mask,
                                   int current_timepoint,
                                   double timepoint_weight,
-                                  nifti_image *localWeightImage
-                                 );
+                                  nifti_image *localWeightImage);

@@ -161,8 +161,8 @@ int main(int argc, char **argv)
    int alignCentre=1;
    int alignCentreOfMass=0;
    int interpolation=1;
-   float floatingSigma=0.0;
-   float referenceSigma=0.0;
+   float floatingSigma=0;
+   float referenceSigma=0;
 
    float referenceLowerThr=-std::numeric_limits<PrecisionTYPE>::max();
    float referenceUpperThr=std::numeric_limits<PrecisionTYPE>::max();

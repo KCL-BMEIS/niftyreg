@@ -197,11 +197,11 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
 void estimate_rigid_transformation2D(float** points1, float** points2, int num_points, mat44 * transformation)
 {
 
-   double centroid_reference[2] = { 0.0 };
-   double centroid_warped[2] = { 0.0 };
+   double centroid_reference[2] = { 0 };
+   double centroid_warped[2] = { 0 };
 
-   float centroid_referenceFloat[2] = { 0.0 };
-   float centroid_warpedFloat[2] = { 0.0 };
+   float centroid_referenceFloat[2] = { 0 };
+   float centroid_warpedFloat[2] = { 0 };
 
    for (int j = 0; j < num_points; ++j) {
       centroid_reference[0] += (double) points1[j][0];
@@ -249,7 +249,7 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
    float det = reg_matrix2DDet<float>(r, 2, 2);
 
    // Take care of possible reflection
-   if (det < 0.0) {
+   if (det < 0) {
       v[0][1] = -v[0][1];
       v[1][1] = -v[1][1];
       reg_matrix2DMultiply<float>(v, 2, 2, ut, 2, 2, r, false);
@@ -316,11 +316,11 @@ void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, m
 void estimate_rigid_transformation3D(float** points1, float** points2, int num_points, mat44 * transformation)
 {
 
-   double centroid_reference[3] = { 0.0 };
-   double centroid_warped[3] = { 0.0 };
+   double centroid_reference[3] = { 0 };
+   double centroid_warped[3] = { 0 };
 
-   float centroid_referenceFloat[3] = { 0.0 };
-   float centroid_warpedFloat[3] = { 0.0 };
+   float centroid_referenceFloat[3] = { 0 };
+   float centroid_warpedFloat[3] = { 0 };
 
 
    for (int j = 0; j < num_points; ++j)
@@ -380,7 +380,7 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
    float det = reg_matrix2DDet<float>(r, 3, 3);
 
    // Take care of possible reflection
-   if (det < 0.0) {
+   if (det < 0) {
       v[0][2] = -v[0][2];
       v[1][2] = -v[1][2];
       v[2][2] = -v[2][2];
@@ -694,14 +694,14 @@ void optimize_2D(float* referencePosition, float* warpedPosition,
    std::multimap<double, _reg_sorted_point2D> queue;
    std::vector<_reg_sorted_point2D> top_points;
 
-   double distance = 0.0;
+   double distance = 0;
    double lastDistance = std::numeric_limits<double>::max();
    unsigned long i;
 
    // The initial vector with all the input points
    for (unsigned j = 0; j < num_equations; j += 2)
    {
-      top_points.push_back(_reg_sorted_point2D(&referencePosition[j], &warpedPosition[j], 0.0));
+      top_points.push_back(_reg_sorted_point2D(&referencePosition[j], &warpedPosition[j], 0));
    }
    if (affine) {
       estimate_affine_transformation2D(top_points, final);
@@ -731,7 +731,7 @@ void optimize_2D(float* referencePosition, float* warpedPosition,
                                                              _reg_sorted_point2D(&referencePosition[j], &warpedPosition[j], distance)));
       }
 
-      distance = 0.0;
+      distance = 0;
       i = 0;
       top_points.clear();
 
@@ -776,7 +776,7 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
    // Keep a sorted list of the distance measure
    std::multimap<double, _reg_sorted_point3D> queue;
    std::vector<_reg_sorted_point3D> top_points;
-   double distance = 0.0;
+   double distance = 0;
    double lastDistance = std::numeric_limits<double>::max();
    unsigned long i;
 
@@ -784,7 +784,7 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
    for (unsigned j = 0; j < num_equations; j+=3) {
       top_points.push_back(_reg_sorted_point3D(&referencePosition[j],
                                                &warpedPosition[j],
-                                               0.0));
+                                               0));
    }
    if (affine) {
       estimate_affine_transformation3D(top_points, final);
@@ -814,7 +814,7 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
                                                                distance)));
       }
 
-      distance = 0.0;
+      distance = 0;
       i = 0;
       top_points.clear();
       for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin();it != queue.end(); ++it, ++i)

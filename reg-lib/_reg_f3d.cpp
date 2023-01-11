@@ -264,7 +264,7 @@ void reg_f3d<T>::Initialise() {
                                 i, this->inputReference->nt - 1, this->referenceThresholdLow[i], this->referenceThresholdUp[i]);
             reg_print_info(this->executableName, text.c_str());
             if (this->measure_nmi != nullptr) {
-                if (this->measure_nmi->GetTimepointsWeights()[i] > 0.0) {
+                if (this->measure_nmi->GetTimepointsWeights()[i] > 0) {
                     text = stringFormat("\t* binning size for timepoint %i/%i: %i",
                                         i, this->inputFloating->nt - 1, this->measure_nmi->GetReferenceBinNumber()[i] - 4);
                     reg_print_info(this->executableName, text.c_str());
@@ -290,7 +290,7 @@ void reg_f3d<T>::Initialise() {
                                 i, this->inputFloating->nt - 1, this->floatingThresholdLow[i], this->floatingThresholdUp[i]);
             reg_print_info(this->executableName, text.c_str());
             if (this->measure_nmi != nullptr) {
-                if (this->measure_nmi->GetTimepointsWeights()[i] > 0.0) {
+                if (this->measure_nmi->GetTimepointsWeights()[i] > 0) {
                     text = stringFormat("\t* binning size for timepoint %i/%i: %i",
                                         i, this->inputFloating->nt - 1, this->measure_nmi->GetFloatingBinNumber()[i] - 4);
                     reg_print_info(this->executableName, text.c_str());
@@ -679,7 +679,7 @@ double reg_f3d<T>::GetObjectiveFunctionValue() {
     this->currentWLand = ComputeLandmarkDistancePenaltyTerm();
 
     // Compute initial similarity measure
-    this->currentWMeasure = 0.0;
+    this->currentWMeasure = 0;
     if (this->similarityWeight > 0) {
         this->WarpFloatingImage(this->interpolation);
         this->currentWMeasure = this->ComputeSimilarityMeasure();

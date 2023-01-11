@@ -14,11 +14,9 @@
 
 /* *************************************************************** */
 /* *************************************************************** */
-reg_kld::reg_kld()
-   : reg_measure()
-{
+reg_kld::reg_kld(): reg_measure() {
 #ifndef NDEBUG
-   reg_print_msg_debug("reg_kld constructor called");
+    reg_print_msg_debug("reg_kld constructor called");
 #endif
 }
 /* *************************************************************** */
@@ -33,50 +31,47 @@ void reg_kld::InitialiseMeasure(nifti_image *refImgPtr,
                                 int *maskFloPtr,
                                 nifti_image *warRefImgPtr,
                                 nifti_image *warRefGraPtr,
-                                nifti_image *bckVoxBasedGraPtr)
-{
-   // Set the pointers using the parent class function
-   reg_measure::InitialiseMeasure(refImgPtr,
-                                  floImgPtr,
-                                  maskRefPtr,
-                                  warFloImgPtr,
-                                  warFloGraPtr,
-                                  forVoxBasedGraPtr,
-                                  forwardLocalWeightPtr,
-                                  maskFloPtr,
-                                  warRefImgPtr,
-                                  warRefGraPtr,
-                                  bckVoxBasedGraPtr);
+                                nifti_image *bckVoxBasedGraPtr) {
+    // Set the pointers using the parent class function
+    reg_measure::InitialiseMeasure(refImgPtr,
+                                   floImgPtr,
+                                   maskRefPtr,
+                                   warFloImgPtr,
+                                   warFloGraPtr,
+                                   forVoxBasedGraPtr,
+                                   forwardLocalWeightPtr,
+                                   maskFloPtr,
+                                   warRefImgPtr,
+                                   warRefGraPtr,
+                                   bckVoxBasedGraPtr);
 
-   // Check that the input images have the same number of time point
-   if(this->referenceImagePointer->nt != this->floatingImagePointer->nt)
-   {
-      reg_print_fct_error("reg_kld::InitialiseMeasure");
-      reg_print_msg_error("This number of time point should be the same for both input images");
-      reg_exit();
-   }
-   // Input images are expected to be bounded between 0 and 1 as they
-   // are meant to be probabilities
-   for(int t=0; t<this->referenceImagePointer->nt; ++t){
-      if(this->timePointWeight[t]>0){
-         float min_ref = reg_tools_getMinValue(this->referenceImagePointer, t);
-         float max_ref = reg_tools_getMaxValue(this->referenceImagePointer, t);
-         float min_flo = reg_tools_getMinValue(this->floatingImagePointer, t);
-         float max_flo = reg_tools_getMaxValue(this->floatingImagePointer, t);
-         if(min_ref<0.f || min_flo<0.f || max_ref>1.f || max_flo>1.f){
-            reg_print_msg_error("The input images are expected to be probabilities to use the kld measure");
-            reg_exit();
-         }
-      }
-   }
+    // Check that the input images have the same number of time point
+    if (this->referenceImagePointer->nt != this->floatingImagePointer->nt) {
+        reg_print_fct_error("reg_kld::InitialiseMeasure");
+        reg_print_msg_error("This number of time point should be the same for both input images");
+        reg_exit();
+    }
+    // Input images are expected to be bounded between 0 and 1 as they
+    // are meant to be probabilities
+    for (int t = 0; t < this->referenceImagePointer->nt; ++t) {
+        if (this->timePointWeight[t] > 0) {
+            float min_ref = reg_tools_getMinValue(this->referenceImagePointer, t);
+            float max_ref = reg_tools_getMaxValue(this->referenceImagePointer, t);
+            float min_flo = reg_tools_getMinValue(this->floatingImagePointer, t);
+            float max_flo = reg_tools_getMaxValue(this->floatingImagePointer, t);
+            if (min_ref < 0.f || min_flo < 0.f || max_ref>1.f || max_flo>1.f) {
+                reg_print_msg_error("The input images are expected to be probabilities to use the kld measure");
+                reg_exit();
+            }
+        }
+    }
 #ifndef NDEBUG
-   char text[255];
-   reg_print_msg_debug("reg_kld::InitialiseMeasure().");
-   for(int i=0; i<this->referenceImagePointer->nt; ++i)
-   {
-      sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
-      reg_print_msg_debug(text);
-   }
+    char text[255];
+    reg_print_msg_debug("reg_kld::InitialiseMeasure().");
+    for (int i = 0; i < this->referenceImagePointer->nt; ++i) {
+        sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
+        reg_print_msg_debug(text);
+    }
 #endif
 }
 /* *************************************************************** */
@@ -86,153 +81,127 @@ double reg_getKLDivergence(nifti_image *referenceImage,
                            nifti_image *warpedImage,
                            double *timePointWeight,
                            nifti_image *jacobianDetImg,
-                           int *mask)
-{
+                           int *mask) {
 #ifdef _WIN32
-   long voxel;
-   long voxelNumber = (long)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    long voxel;
+    long voxelNumber = long(referenceImage->nx * referenceImage->ny * referenceImage->nz);
 #else
-   size_t voxel;
-   size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    size_t voxel;
+    size_t voxelNumber = size_t(referenceImage->nx * referenceImage->ny * referenceImage->nz);
 #endif
 
-   DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);
-   DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
-   int *maskPtr=nullptr;
-   bool MrClean=false;
-   if(mask==nullptr)
-   {
-      maskPtr=(int *)calloc(voxelNumber,sizeof(int));
-      MrClean=true;
-   }
-   else maskPtr = &mask[0];
+    DTYPE *refPtr = static_cast<DTYPE*>(referenceImage->data);
+    DTYPE *warPtr = static_cast<DTYPE*>(warpedImage->data);
+    int *maskPtr = nullptr;
+    bool MrClean = false;
+    if (mask == nullptr) {
+        maskPtr = (int*)calloc(voxelNumber, sizeof(int));
+        MrClean = true;
+    } else maskPtr = &mask[0];
 
-   DTYPE *jacPtr=nullptr;
-   if(jacobianDetImg!=nullptr)
-      jacPtr=static_cast<DTYPE *>(jacobianDetImg->data);
-   double measure = 0., measure_tp = 0., num = 0., tempRefValue, tempWarValue, tempValue;
+    DTYPE *jacPtr = nullptr;
+    if (jacobianDetImg != nullptr)
+        jacPtr = static_cast<DTYPE*>(jacobianDetImg->data);
+    double measure = 0, measure_tp = 0, num = 0, tempRefValue, tempWarValue, tempValue;
 
-   for(int time=0; time<referenceImage->nt; ++time)
-   {
-      if(timePointWeight[time]>0)
-      {
-         DTYPE *currentRefPtr=&refPtr[time*voxelNumber];
-         DTYPE *currentWarPtr=&warPtr[time*voxelNumber];
+    for (int time = 0; time < referenceImage->nt; ++time) {
+        if (timePointWeight[time] > 0) {
+            DTYPE *currentRefPtr = &refPtr[time * voxelNumber];
+            DTYPE *currentWarPtr = &warPtr[time * voxelNumber];
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(voxelNumber,currentRefPtr, currentWarPtr, \
-   maskPtr, jacobianDetImg, jacPtr) \
-   private(voxel, tempRefValue, tempWarValue, tempValue) \
-   reduction(+:measure_tp) \
-   reduction(+:num)
+    shared(voxelNumber,currentRefPtr, currentWarPtr, \
+    maskPtr, jacobianDetImg, jacPtr) \
+    private(voxel, tempRefValue, tempWarValue, tempValue) \
+    reduction(+:measure_tp) \
+    reduction(+:num)
 #endif
-         for(voxel=0; voxel<voxelNumber; ++voxel)
-         {
-            if(maskPtr[voxel]>-1)
-            {
-               tempRefValue = currentRefPtr[voxel]+1e-16;
-               tempWarValue = currentWarPtr[voxel]+1e-16;
-               tempValue=tempRefValue*log(tempRefValue/tempWarValue);
-               if(tempValue==tempValue &&
-                     tempValue!=std::numeric_limits<double>::infinity())
-               {
-                  if(jacobianDetImg==nullptr)
-                  {
-                     measure_tp -= tempValue;
-                     num++;
-                  }
-                  else
-                  {
-                     measure_tp -= tempValue * jacPtr[voxel];
-                     num+=jacPtr[voxel];
-                  }
-               }
+            for (voxel = 0; voxel < voxelNumber; ++voxel) {
+                if (maskPtr[voxel] > -1) {
+                    tempRefValue = currentRefPtr[voxel] + 1e-16;
+                    tempWarValue = currentWarPtr[voxel] + 1e-16;
+                    tempValue = tempRefValue * log(tempRefValue / tempWarValue);
+                    if (tempValue == tempValue &&
+                        tempValue != std::numeric_limits<double>::infinity()) {
+                        if (jacobianDetImg == nullptr) {
+                            measure_tp -= tempValue;
+                            num++;
+                        } else {
+                            measure_tp -= tempValue * jacPtr[voxel];
+                            num += jacPtr[voxel];
+                        }
+                    }
+                }
             }
-         }
-       measure += measure_tp * timePointWeight[time] / num;
-      }
-   }
-   if(MrClean) free(maskPtr);
-   return measure;
+            measure += measure_tp * timePointWeight[time] / num;
+        }
+    }
+    if (MrClean) free(maskPtr);
+    return measure;
 }
-template double reg_getKLDivergence<float>
-(nifti_image *,nifti_image *,double *,nifti_image *,int *);
-template double reg_getKLDivergence<double>
-(nifti_image *,nifti_image *,double *,nifti_image *,int *);
+template double reg_getKLDivergence<float>(nifti_image*, nifti_image*, double*, nifti_image*, int*);
+template double reg_getKLDivergence<double>(nifti_image*, nifti_image*, double*, nifti_image*, int*);
 /* *************************************************************** */
-double reg_kld::GetSimilarityMeasureValue()
-{
-   // Check that all the specified image are of the same datatype
-   if(this->warpedFloatingImagePointer->datatype != this->referenceImagePointer->datatype)
-   {
-      reg_print_fct_error("reg_kld::GetSimilarityMeasureValue");
-      reg_print_msg_error("Both input images are exepected to have the same type");
-      reg_exit();
-   }
-   double KLDValue;
-   switch(this->referenceImagePointer->datatype)
-   {
-   case NIFTI_TYPE_FLOAT32:
-      KLDValue = reg_getKLDivergence<float>
-            (this->referenceImagePointer,
-             this->warpedFloatingImagePointer,
-             this->timePointWeight,
-             nullptr, // HERE TODO this->forwardJacDetImagePointer,
-             this->referenceMaskPointer
-             );
-      break;
-   case NIFTI_TYPE_FLOAT64:
-      KLDValue = reg_getKLDivergence<double>
-            (this->referenceImagePointer,
-             this->warpedFloatingImagePointer,
-             this->timePointWeight,
-             nullptr, // HERE TODO this->forwardJacDetImagePointer,
-             this->referenceMaskPointer
-             );
-      break;
-   default:
-      reg_print_fct_error("reg_kld::GetSimilarityMeasureValue");
-      reg_print_msg_error("Warped pixel type unsupported");
-      reg_exit();
-   }
+/* *************************************************************** */
+double reg_kld::GetSimilarityMeasureValue() {
+    // Check that all the specified image are of the same datatype
+    if (this->warpedFloatingImagePointer->datatype != this->referenceImagePointer->datatype) {
+        reg_print_fct_error("reg_kld::GetSimilarityMeasureValue");
+        reg_print_msg_error("Both input images are expected to have the same type");
+        reg_exit();
+    }
+    double KLDValue;
+    switch (this->referenceImagePointer->datatype) {
+    case NIFTI_TYPE_FLOAT32:
+        KLDValue = reg_getKLDivergence<float>(this->referenceImagePointer,
+                                              this->warpedFloatingImagePointer,
+                                              this->timePointWeight,
+                                              nullptr, // TODO this->forwardJacDetImagePointer,
+                                              this->referenceMaskPointer);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        KLDValue = reg_getKLDivergence<double>(this->referenceImagePointer,
+                                               this->warpedFloatingImagePointer,
+                                               this->timePointWeight,
+                                               nullptr, // TODO this->forwardJacDetImagePointer,
+                                               this->referenceMaskPointer);
+        break;
+    default:
+        reg_print_fct_error("reg_kld::GetSimilarityMeasureValue");
+        reg_print_msg_error("Warped pixel type unsupported");
+        reg_exit();
+    }
 
-   // Backward computation
-   if(this->isSymmetric)
-   {
-      // Check that all the specified image are of the same datatype
-      if(this->warpedReferenceImagePointer->datatype != this->floatingImagePointer->datatype)
-      {
-         reg_print_fct_error("reg_kld::GetSimilarityMeasureValue");
-         reg_print_msg_error("Both input images are exepected to have the same type");
-         reg_exit();
-      }
-      switch(this->floatingImagePointer->datatype)
-      {
-      case NIFTI_TYPE_FLOAT32:
-         KLDValue += reg_getKLDivergence<float>
-               (this->floatingImagePointer,
-                this->warpedReferenceImagePointer,
-                this->timePointWeight,
-                nullptr, // HERE TODO this->backwardJacDetImagePointer,
-                this->floatingMaskPointer
-                );
-         break;
-      case NIFTI_TYPE_FLOAT64:
-         KLDValue += reg_getKLDivergence<double>
-               (this->floatingImagePointer,
-                this->warpedReferenceImagePointer,
-                this->timePointWeight,
-                nullptr, // HERE TODO this->backwardJacDetImagePointer,
-                this->floatingMaskPointer
-                );
-         break;
-      default:
-         reg_print_fct_error("reg_kld::GetSimilarityMeasureValue");
-         reg_print_msg_error("Warped pixel type unsupported");
-         reg_exit();
-      }
-   }
-   return KLDValue;
+    // Backward computation
+    if (this->isSymmetric) {
+        // Check that all the specified image are of the same datatype
+        if (this->warpedReferenceImagePointer->datatype != this->floatingImagePointer->datatype) {
+            reg_print_fct_error("reg_kld::GetSimilarityMeasureValue");
+            reg_print_msg_error("Both input images are expected to have the same type");
+            reg_exit();
+        }
+        switch (this->floatingImagePointer->datatype) {
+        case NIFTI_TYPE_FLOAT32:
+            KLDValue += reg_getKLDivergence<float>(this->floatingImagePointer,
+                                                   this->warpedReferenceImagePointer,
+                                                   this->timePointWeight,
+                                                   nullptr, // TODO this->backwardJacDetImagePointer,
+                                                   this->floatingMaskPointer);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            KLDValue += reg_getKLDivergence<double>(this->floatingImagePointer,
+                                                    this->warpedReferenceImagePointer,
+                                                    this->timePointWeight,
+                                                    nullptr, // TODO this->backwardJacDetImagePointer,
+                                                    this->floatingMaskPointer);
+            break;
+        default:
+            reg_print_fct_error("reg_kld::GetSimilarityMeasureValue");
+            reg_print_msg_error("Warped pixel type unsupported");
+            reg_exit();
+        }
+    }
+    return KLDValue;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -244,217 +213,193 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
                                            nifti_image *jacobianDetImg,
                                            int *mask,
                                            int current_timepoint,
-                                 double timepoint_weight)
-{
+                                           double timepoint_weight) {
 #ifdef _WIN32
-   long voxel;
-   long voxelNumber = (long)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    long voxel;
+    long voxelNumber = long(referenceImage->nx * referenceImage->ny * referenceImage->nz);
 #else
-   size_t  voxel;
-   size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    size_t voxel;
+    size_t voxelNumber = size_t(referenceImage->nx * referenceImage->ny * referenceImage->nz);
 #endif
 
-   DTYPE *refImagePtr=static_cast<DTYPE *>(referenceImage->data);
-   DTYPE *warImagePtr=static_cast<DTYPE *>(warpedImage->data);
-   DTYPE *currentRefPtr = &refImagePtr[current_timepoint*voxelNumber];
-   DTYPE *currentWarPtr = &warImagePtr[current_timepoint*voxelNumber];
-   int *maskPtr=nullptr;
-   bool MrClean=false;
-   if(mask==nullptr)
-   {
-      maskPtr=(int *)calloc(voxelNumber,sizeof(int));
-      MrClean=true;
-   }
-   else maskPtr = &mask[0];
+    DTYPE *refImagePtr = static_cast<DTYPE*>(referenceImage->data);
+    DTYPE *warImagePtr = static_cast<DTYPE*>(warpedImage->data);
+    DTYPE *currentRefPtr = &refImagePtr[current_timepoint * voxelNumber];
+    DTYPE *currentWarPtr = &warImagePtr[current_timepoint * voxelNumber];
+    int *maskPtr = nullptr;
+    bool MrClean = false;
+    if (mask == nullptr) {
+        maskPtr = (int*)calloc(voxelNumber, sizeof(int));
+        MrClean = true;
+    } else maskPtr = &mask[0];
 
-   DTYPE *jacPtr=nullptr;
-   if(jacobianDetImg!=nullptr)
-      jacPtr=static_cast<DTYPE *>(jacobianDetImg->data);
-   double tempValue, tempGradX, tempGradY, tempGradZ, tempRefValue, tempWarValue;
+    DTYPE *jacPtr = nullptr;
+    if (jacobianDetImg != nullptr)
+        jacPtr = static_cast<DTYPE*>(jacobianDetImg->data);
+    double tempValue, tempGradX, tempGradY, tempGradZ, tempRefValue, tempWarValue;
 
-   // Create pointers to the spatial gradient of the current warped volume
-   DTYPE *currentGradPtrX=static_cast<DTYPE *>(warpedImageGradient->data);
-   DTYPE *currentGradPtrY=&currentGradPtrX[voxelNumber];
-   DTYPE *currentGradPtrZ=nullptr;
-   if(referenceImage->nz>1)
-      currentGradPtrZ=&currentGradPtrY[voxelNumber];
+    // Create pointers to the spatial gradient of the current warped volume
+    DTYPE *currentGradPtrX = static_cast<DTYPE*>(warpedImageGradient->data);
+    DTYPE *currentGradPtrY = &currentGradPtrX[voxelNumber];
+    DTYPE *currentGradPtrZ = nullptr;
+    if (referenceImage->nz > 1)
+        currentGradPtrZ = &currentGradPtrY[voxelNumber];
 
-   // Create pointers to the kld gradient image
-   DTYPE *measureGradPtrX = static_cast<DTYPE *>(measureGradient->data);
-   DTYPE *measureGradPtrY = &measureGradPtrX[voxelNumber];
-   DTYPE *measureGradPtrZ = nullptr;
-   if(referenceImage->nz>1)
-      measureGradPtrZ = &measureGradPtrY[voxelNumber];
+    // Create pointers to the kld gradient image
+    DTYPE *measureGradPtrX = static_cast<DTYPE*>(measureGradient->data);
+    DTYPE *measureGradPtrY = &measureGradPtrX[voxelNumber];
+    DTYPE *measureGradPtrZ = nullptr;
+    if (referenceImage->nz > 1)
+        measureGradPtrZ = &measureGradPtrY[voxelNumber];
 
-   // find number of active voxels and correct weight
-   double activeVoxel_num = 0.0;
-   for (voxel = 0; voxel < voxelNumber; voxel++)
-   {
-      if (mask[voxel]>-1)
-      {
-         if (currentRefPtr[voxel] == currentRefPtr[voxel] && currentWarPtr[voxel] == currentWarPtr[voxel])
-            activeVoxel_num += 1.0;
-      }
-   }
-   double adjusted_weight = timepoint_weight / activeVoxel_num;
+    // find number of active voxels and correct weight
+    double activeVoxel_num = 0;
+    for (voxel = 0; voxel < voxelNumber; voxel++) {
+        if (mask[voxel] > -1) {
+            if (currentRefPtr[voxel] == currentRefPtr[voxel] && currentWarPtr[voxel] == currentWarPtr[voxel])
+                activeVoxel_num += 1.0;
+        }
+    }
+    double adjusted_weight = timepoint_weight / activeVoxel_num;
 
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(voxelNumber,currentRefPtr, currentWarPtr, \
-   maskPtr, jacobianDetImg, jacPtr, referenceImage, \
-   measureGradPtrX, measureGradPtrY, measureGradPtrZ, \
-   currentGradPtrX, currentGradPtrY, currentGradPtrZ, adjusted_weight) \
-   private(voxel, tempValue, tempGradX, tempGradY, tempGradZ, \
-   tempRefValue, tempWarValue)
+    shared(voxelNumber,currentRefPtr, currentWarPtr, \
+    maskPtr, jacobianDetImg, jacPtr, referenceImage, \
+    measureGradPtrX, measureGradPtrY, measureGradPtrZ, \
+    currentGradPtrX, currentGradPtrY, currentGradPtrZ, adjusted_weight) \
+    private(voxel, tempValue, tempGradX, tempGradY, tempGradZ, \
+    tempRefValue, tempWarValue)
 #endif
-   for(voxel=0; voxel<voxelNumber; ++voxel)
-   {
-      // Check if the current voxel is in the mask
-      if(maskPtr[voxel]>-1)
-      {
-         // Read referenceImage and warpedImage probabilities and compute the ratio
-         tempRefValue = currentRefPtr[voxel]+1e-16;
-         tempWarValue = currentWarPtr[voxel]+1e-16;
-         tempValue=(currentRefPtr[voxel]+1e-16)/(currentWarPtr[voxel]+1e-16);
-         // Check if the intensity ratio is defined and different from zero
-         if(tempValue==tempValue &&
-               tempValue!=std::numeric_limits<double>::infinity() &&
-               tempValue>0)
-         {
-            tempValue = tempRefValue / tempWarValue;
-            tempValue *= adjusted_weight;
+    for (voxel = 0; voxel < voxelNumber; ++voxel) {
+        // Check if the current voxel is in the mask
+        if (maskPtr[voxel] > -1) {
+            // Read referenceImage and warpedImage probabilities and compute the ratio
+            tempRefValue = currentRefPtr[voxel] + 1e-16;
+            tempWarValue = currentWarPtr[voxel] + 1e-16;
+            tempValue = (currentRefPtr[voxel] + 1e-16) / (currentWarPtr[voxel] + 1e-16);
+            // Check if the intensity ratio is defined and different from zero
+            if (tempValue == tempValue &&
+                tempValue != std::numeric_limits<double>::infinity() &&
+                tempValue > 0) {
+                tempValue = tempRefValue / tempWarValue;
+                tempValue *= adjusted_weight;
 
-            // Jacobian modulation if the Jacobian determinant image is defined
-            if(jacobianDetImg!=nullptr)
-               tempValue *= jacPtr[voxel];
+                // Jacobian modulation if the Jacobian determinant image is defined
+                if (jacobianDetImg != nullptr)
+                    tempValue *= jacPtr[voxel];
 
-            // Ensure that gradient of the warpedImage image along x-axis is not NaN
-            tempGradX=currentGradPtrX[voxel];
-            if(tempGradX==tempGradX)
-               // Update the gradient along the x-axis
-               measureGradPtrX[voxel] -= (DTYPE)(tempValue * tempGradX);
+                // Ensure that gradient of the warpedImage image along x-axis is not NaN
+                tempGradX = currentGradPtrX[voxel];
+                if (tempGradX == tempGradX)
+                    // Update the gradient along the x-axis
+                    measureGradPtrX[voxel] -= (DTYPE)(tempValue * tempGradX);
 
-            // Ensure that gradient of the warpedImage image along y-axis is not NaN
-            tempGradY=currentGradPtrY[voxel];
-            if(tempGradY==tempGradY)
-               // Update the gradient along the y-axis
-               measureGradPtrY[voxel] -= (DTYPE)(tempValue * tempGradY);
+                // Ensure that gradient of the warpedImage image along y-axis is not NaN
+                tempGradY = currentGradPtrY[voxel];
+                if (tempGradY == tempGradY)
+                    // Update the gradient along the y-axis
+                    measureGradPtrY[voxel] -= (DTYPE)(tempValue * tempGradY);
 
-            // Check if the current images are 3D
-            if(referenceImage->nz>1)
-            {
-               // Ensure that gradient of the warpedImage image along z-axis is not NaN
-               tempGradZ=currentGradPtrZ[voxel];
-               if(tempGradZ==tempGradZ)
-                  // Update the gradient along the z-axis
-                  measureGradPtrZ[voxel] -= (DTYPE)(tempValue * tempGradZ);
+                // Check if the current images are 3D
+                if (referenceImage->nz > 1) {
+                    // Ensure that gradient of the warpedImage image along z-axis is not NaN
+                    tempGradZ = currentGradPtrZ[voxel];
+                    if (tempGradZ == tempGradZ)
+                        // Update the gradient along the z-axis
+                        measureGradPtrZ[voxel] -= (DTYPE)(tempValue * tempGradZ);
+                }
             }
-         }
-      }
-   }
-   if(MrClean) free(maskPtr);
+        }
+    }
+    if (MrClean) free(maskPtr);
 }
 template void reg_getKLDivergenceVoxelBasedGradient<float>
-(nifti_image *,nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, int, double);
+(nifti_image*, nifti_image*, nifti_image*, nifti_image*, nifti_image*, int*, int, double);
 template void reg_getKLDivergenceVoxelBasedGradient<double>
-(nifti_image *,nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, int, double);
+(nifti_image*, nifti_image*, nifti_image*, nifti_image*, nifti_image*, int*, int, double);
 /* *************************************************************** */
-void reg_kld::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
-{
-   // Check if the specified time point exists and is active
-   reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
-   if(this->timePointWeight[current_timepoint]==0.0)
-      return;
+/* *************************************************************** */
+void reg_kld::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) {
+    // Check if the specified time point exists and is active
+    reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
+    if (this->timePointWeight[current_timepoint] == 0)
+        return;
 
-   // Check if all required input images are of the same data type
-   int dtype = this->referenceImagePointer->datatype;
-   if(this->warpedFloatingImagePointer->datatype != dtype ||
-         this->warpedFloatingGradientImagePointer->datatype != dtype ||
-         this->forwardVoxelBasedGradientImagePointer->datatype != dtype
-         )
-   {
-      reg_print_fct_error("reg_kld::GetVoxelBasedSimilarityMeasureGradient");
-      reg_print_msg_error("Input images are exepected to be of the same type");
-      reg_exit();
-   }
-   // Compute the gradient of the kld for the forward transformation
-   switch(dtype)
-   {
-   case NIFTI_TYPE_FLOAT32:
-      reg_getKLDivergenceVoxelBasedGradient<float>
-            (this->referenceImagePointer,
-             this->warpedFloatingImagePointer,
-             this->warpedFloatingGradientImagePointer,
-             this->forwardVoxelBasedGradientImagePointer,
-             nullptr, // HERE TODO this->forwardJacDetImagePointer,
-             this->referenceMaskPointer,
-             current_timepoint,
-          this->timePointWeight[current_timepoint]
-             );
-      break;
-   case NIFTI_TYPE_FLOAT64:
-      reg_getKLDivergenceVoxelBasedGradient<double>
-            (this->referenceImagePointer,
-             this->warpedFloatingImagePointer,
-             this->warpedFloatingGradientImagePointer,
-             this->forwardVoxelBasedGradientImagePointer,
-             nullptr, // HERE TODO this->forwardJacDetImagePointer,
-             this->referenceMaskPointer,
-          current_timepoint,
-          this->timePointWeight[current_timepoint]
-             );
-      break;
-   default:
-      reg_print_fct_error("reg_kld::GetVoxelBasedSimilarityMeasureGradient");
-      reg_print_msg_error("Unsupported datatype");
-      reg_exit();
-   }
-   // Compute the gradient of the kld for the backward transformation
-   if(this->isSymmetric)
-   {
-      dtype = this->floatingImagePointer->datatype;
-      if(this->warpedReferenceImagePointer->datatype != dtype ||
+    // Check if all required input images are of the same data type
+    int dtype = this->referenceImagePointer->datatype;
+    if (this->warpedFloatingImagePointer->datatype != dtype ||
+        this->warpedFloatingGradientImagePointer->datatype != dtype ||
+        this->forwardVoxelBasedGradientImagePointer->datatype != dtype) {
+        reg_print_fct_error("reg_kld::GetVoxelBasedSimilarityMeasureGradient");
+        reg_print_msg_error("Input images are expected to be of the same type");
+        reg_exit();
+    }
+    // Compute the gradient of the kld for the forward transformation
+    switch (dtype) {
+    case NIFTI_TYPE_FLOAT32:
+        reg_getKLDivergenceVoxelBasedGradient<float>(this->referenceImagePointer,
+                                                     this->warpedFloatingImagePointer,
+                                                     this->warpedFloatingGradientImagePointer,
+                                                     this->forwardVoxelBasedGradientImagePointer,
+                                                     nullptr, // TODO this->forwardJacDetImagePointer,
+                                                     this->referenceMaskPointer,
+                                                     current_timepoint,
+                                                     this->timePointWeight[current_timepoint]);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_getKLDivergenceVoxelBasedGradient<double>(this->referenceImagePointer,
+                                                      this->warpedFloatingImagePointer,
+                                                      this->warpedFloatingGradientImagePointer,
+                                                      this->forwardVoxelBasedGradientImagePointer,
+                                                      nullptr, // TODO this->forwardJacDetImagePointer,
+                                                      this->referenceMaskPointer,
+                                                      current_timepoint,
+                                                      this->timePointWeight[current_timepoint]);
+        break;
+    default:
+        reg_print_fct_error("reg_kld::GetVoxelBasedSimilarityMeasureGradient");
+        reg_print_msg_error("Unsupported datatype");
+        reg_exit();
+    }
+    // Compute the gradient of the kld for the backward transformation
+    if (this->isSymmetric) {
+        dtype = this->floatingImagePointer->datatype;
+        if (this->warpedReferenceImagePointer->datatype != dtype ||
             this->warpedReferenceGradientImagePointer->datatype != dtype ||
-            this->backwardVoxelBasedGradientImagePointer->datatype != dtype
-            )
-      {
-         reg_print_fct_error("reg_kld::GetVoxelBasedSimilarityMeasureGradient");
-         reg_print_msg_error("Input images are exepected to be of the same type");
-         reg_exit();
-      }
-      // Compute the gradient of the nmi for the backward transformation
-      switch(dtype)
-      {
-      case NIFTI_TYPE_FLOAT32:
-         reg_getKLDivergenceVoxelBasedGradient<float>
-               (this->floatingImagePointer,
-                this->warpedReferenceImagePointer,
-                this->warpedReferenceGradientImagePointer,
-                this->backwardVoxelBasedGradientImagePointer,
-                nullptr, // HERE TODO this->backwardJacDetImagePointer,
-                this->floatingMaskPointer,
-            current_timepoint,
-            this->timePointWeight[current_timepoint]
-                );
-         break;
-      case NIFTI_TYPE_FLOAT64:
-         reg_getKLDivergenceVoxelBasedGradient<double>
-               (this->floatingImagePointer,
-                this->warpedReferenceImagePointer,
-                this->warpedReferenceGradientImagePointer,
-                this->backwardVoxelBasedGradientImagePointer,
-                nullptr, // HERE TODO this->backwardJacDetImagePointer,
-                this->floatingMaskPointer,
-            current_timepoint,
-            this->timePointWeight[current_timepoint]
-                );
-         break;
-      default:
-         reg_print_fct_error("reg_kld::GetVoxelBasedSimilarityMeasureGradient");
-         reg_print_msg_error("Unsupported datatype");
-         reg_exit();
-      }
-   }
+            this->backwardVoxelBasedGradientImagePointer->datatype != dtype) {
+            reg_print_fct_error("reg_kld::GetVoxelBasedSimilarityMeasureGradient");
+            reg_print_msg_error("Input images are expected to be of the same type");
+            reg_exit();
+        }
+        // Compute the gradient of the nmi for the backward transformation
+        switch (dtype) {
+        case NIFTI_TYPE_FLOAT32:
+            reg_getKLDivergenceVoxelBasedGradient<float>(this->floatingImagePointer,
+                                                         this->warpedReferenceImagePointer,
+                                                         this->warpedReferenceGradientImagePointer,
+                                                         this->backwardVoxelBasedGradientImagePointer,
+                                                         nullptr, // TODO this->backwardJacDetImagePointer,
+                                                         this->floatingMaskPointer,
+                                                         current_timepoint,
+                                                         this->timePointWeight[current_timepoint]);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_getKLDivergenceVoxelBasedGradient<double>(this->floatingImagePointer,
+                                                          this->warpedReferenceImagePointer,
+                                                          this->warpedReferenceGradientImagePointer,
+                                                          this->backwardVoxelBasedGradientImagePointer,
+                                                          nullptr, // TODO this->backwardJacDetImagePointer,
+                                                          this->floatingMaskPointer,
+                                                          current_timepoint,
+                                                          this->timePointWeight[current_timepoint]);
+            break;
+        default:
+            reg_print_fct_error("reg_kld::GetVoxelBasedSimilarityMeasureGradient");
+            reg_print_msg_error("Unsupported datatype");
+            reg_exit();
+        }
+    }
 }
 /* *************************************************************** */
 /* *************************************************************** */

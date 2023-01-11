@@ -21,13 +21,13 @@
 /* *************************************************************** */
 void interpWindowedSincKernel(double relative, double *basis)
 {
-    if(relative<0.0) relative=0.0; //reg_rounding error
+    if(relative<0) relative=0; //reg_rounding error
     int j=0;
     double sum=0.;
     for(int i=-SINC_KERNEL_RADIUS; i<SINC_KERNEL_RADIUS; ++i)
     {
         double x=relative-static_cast<double>(i);
-        if(x==0.0)
+        if(x==0)
             basis[j]=1.0;
         else if(fabs(x)>=static_cast<double>(SINC_KERNEL_RADIUS))
             basis[j]=0;
@@ -49,7 +49,7 @@ void interpWindowedSincKernel(double relative, double *basis)
 /* *************************************************************** */
 double interpWindowedSincKernel_Samp(double x, double kernelsize)
 {
-    if(x==0.0)
+    if(x==0)
         return 1.0;
     else if(fabs(x)>=static_cast<double>(kernelsize))
         return 0;
@@ -65,7 +65,7 @@ double interpWindowedSincKernel_Samp(double x, double kernelsize)
 /* *************************************************************** */
 void interpCubicSplineKernel(double relative, double *basis)
 {
-    if(relative<0.0) relative=0.0; //reg_rounding error
+    if(relative<0) relative=0; //reg_rounding error
     double FF= relative*relative;
     basis[0] = (relative * ((2.0-relative)*relative - 1.0))/2.0;
     basis[1] = (FF * (3.0*relative-5.0) + 2.0)/2.0;
@@ -76,7 +76,7 @@ void interpCubicSplineKernel(double relative, double *basis)
 void interpCubicSplineKernel(double relative, double *basis, double *derivative)
 {
     interpCubicSplineKernel(relative,basis);
-    if(relative<0.0) relative=0.0; //reg_rounding error
+    if(relative<0) relative=0; //reg_rounding error
     double FF= relative*relative;
     derivative[0] = (4.0*relative - 3.0*FF - 1.0)/2.0;
     derivative[1] = (9.0*relative - 10.0) * relative/2.0;
@@ -87,7 +87,7 @@ void interpCubicSplineKernel(double relative, double *basis, double *derivative)
 /* *************************************************************** */
 void interpLinearKernel(double relative, double *basis)
 {
-    if(relative<0.0) relative=0.0; //reg_rounding error
+    if(relative<0) relative=0; //reg_rounding error
     basis[1]=relative;
     basis[0]=1.0-relative;
 }
@@ -95,14 +95,14 @@ void interpLinearKernel(double relative, double *basis)
 void interpLinearKernel(double relative, double *basis, double *derivative)
 {
     interpLinearKernel(relative,basis);
-    derivative[1]=1.0;
-    derivative[0]=0.0;
+    derivative[1]=1;
+    derivative[0]=0;
 }
 /* *************************************************************** */
 /* *************************************************************** */
 void interpNearestNeighKernel(double relative, double *basis)
 {
-    if(relative<0.0) relative=0.0; //reg_rounding error
+    if(relative<0) relative=0; //reg_rounding error
     basis[0]=basis[1]=0;
     if(relative>=0.5)
         basis[1]=1;
@@ -465,7 +465,7 @@ void ResampleImage3D(nifti_image *floatingImage,
                 previous[1]-=kernel_offset;
                 previous[2]-=kernel_offset;
 
-                intensity=0.0;
+                intensity=0;
                 if(-1<(previous[0]) && (previous[0]+kernel_size-1)<floatingImage->nx &&
                    -1<(previous[1]) && (previous[1]+kernel_size-1)<floatingImage->ny &&
                    -1<(previous[2]) && (previous[2]+kernel_size-1)<floatingImage->nz){
@@ -473,12 +473,12 @@ void ResampleImage3D(nifti_image *floatingImage,
                    {
                       Z= previous[2]+c;
                       zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-                      yTempNewValue=0.0;
+                      yTempNewValue=0;
                       for(b=0; b<kernel_size; b++)
                       {
                          Y= previous[1]+b;
                          xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                         xTempNewValue=0.0;
+                         xTempNewValue=0;
                          for(a=0; a<kernel_size; a++)
                          {
                             xTempNewValue +=  static_cast<double>(*xyzPointer++) * xBasis[a];
@@ -493,12 +493,12 @@ void ResampleImage3D(nifti_image *floatingImage,
                    {
                       Z= previous[2]+c;
                       zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-                      yTempNewValue=0.0;
+                      yTempNewValue=0;
                       for(b=0; b<kernel_size; b++)
                       {
                          Y= previous[1]+b;
                          xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                         xTempNewValue=0.0;
+                         xTempNewValue=0;
                          for(a=0; a<kernel_size; a++)
                          {
                             if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
@@ -628,8 +628,8 @@ void ResampleImage2D(nifti_image *floatingImage,
         FloatingTYPE *xyzPointer;
         double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], relative[2];
         double xTempNewValue, intensity;
-        float world[3] = {0.0, 0.0, 0.0};
-        float position[3] = {0.0, 0.0, 0.0};
+        float world[3] = {0, 0, 0};
+        float position[3] = {0, 0, 0};
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
@@ -662,12 +662,12 @@ void ResampleImage2D(nifti_image *floatingImage,
                 previous[0]-=kernel_offset;
                 previous[1]-=kernel_offset;
 
-                intensity=0.0;
+                intensity=0;
                 for(b=0; b<kernel_size; b++)
                 {
                     Y= previous[1]+b;
                     xyzPointer = &floatingIntensity[Y*floatingImage->nx+previous[0]];
-                    xTempNewValue=0.0;
+                    xTempNewValue=0;
                     for(a=0; a<kernel_size; a++)
                     {
                         if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
@@ -1235,17 +1235,17 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
                                     previous[1]-=kernel_offset;
                                     previous[2]-=kernel_offset;
 
-                                    psfIntensity=0.0;
+                                    psfIntensity=0;
                                     for(c=0; c<kernel_size; c++)
                                     {
                                         Z= previous[2]+c;
                                         zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-                                        yTempNewValue=0.0;
+                                        yTempNewValue=0;
                                         for(b=0; b<kernel_size; b++)
                                         {
                                             Y= previous[1]+b;
                                             xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                                            xTempNewValue=0.0;
+                                            xTempNewValue=0;
                                             for(a=0; a<kernel_size; a++)
                                             {
                                                 if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
@@ -1666,17 +1666,17 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
                                         previous[1]-=kernel_offset;
                                         previous[2]-=kernel_offset;
 
-                                        psfIntensity=0.0;
+                                        psfIntensity=0;
                                         for(int c=0; c<kernel_size; c++)
                                         {
                                             Z= previous[2]+c;
                                             zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-                                            yTempNewValue=0.0;
+                                            yTempNewValue=0;
                                             for(int b=0; b<kernel_size; b++)
                                             {
                                                 Y= previous[1]+b;
                                                 xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                                                xTempNewValue=0.0;
+                                                xTempNewValue=0;
                                                 for(int a=0; a<kernel_size; a++)
                                                 {
                                                     if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
@@ -2587,9 +2587,9 @@ void TrilinearImageGradient(nifti_image *floatingImage,
     for(index=0; index<referenceVoxelNumber; index++)
     {
 
-        grad[0]=0.0;
-        grad[1]=0.0;
-        grad[2]=0.0;
+        grad[0]=0;
+        grad[1]=0;
+        grad[2]=0;
 
         if(maskPtr[index]>-1)
         {
@@ -2625,17 +2625,17 @@ void TrilinearImageGradient(nifti_image *floatingImage,
                     if(Z>-1 && Z<floatingImage->nz)
                     {
                         zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-                        xxTempNewValue=0.0;
-                        yyTempNewValue=0.0;
-                        zzTempNewValue=0.0;
+                        xxTempNewValue=0;
+                        yyTempNewValue=0;
+                        zzTempNewValue=0;
                         for(b=0; b<2; b++)
                         {
                             Y=previous[1]+b;
                             if(Y>-1 && Y<floatingImage->ny)
                             {
                                 xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                                xTempNewValue=0.0;
-                                yTempNewValue=0.0;
+                                xTempNewValue=0;
+                                yTempNewValue=0;
                                 for(a=0; a<2; a++)
                                 {
                                     X=previous[0]+a;
@@ -2683,15 +2683,15 @@ void TrilinearImageGradient(nifti_image *floatingImage,
                 {
                     Z=previous[2]+c;
                     zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-                    xxTempNewValue=0.0;
-                    yyTempNewValue=0.0;
-                    zzTempNewValue=0.0;
+                    xxTempNewValue=0;
+                    yyTempNewValue=0;
+                    zzTempNewValue=0;
                     for(b=0; b<2; b++)
                     {
                         Y=previous[1]+b;
                         xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                        xTempNewValue=0.0;
-                        yTempNewValue=0.0;
+                        xTempNewValue=0;
+                        yTempNewValue=0;
                         for(a=0; a<2; a++)
                         {
                             X=previous[0]+a;
@@ -2783,8 +2783,8 @@ void BilinearImageGradient(nifti_image *floatingImage,
     for(index=0; index<referenceVoxelNumber; index++)
     {
 
-        grad[0]=0.0;
-        grad[1]=0.0;
+        grad[0]=0;
+        grad[1]=0;
 
         if(maskPtr[index]>-1)
         {
@@ -2816,8 +2816,8 @@ void BilinearImageGradient(nifti_image *floatingImage,
                 if(Y>-1 && Y<floatingImage->ny)
                 {
                     xyPointer = &floatingIntensity[Y*floatingImage->nx+previous[0]];
-                    xTempNewValue=0.0;
-                    yTempNewValue=0.0;
+                    xTempNewValue=0;
+                    yTempNewValue=0;
                     for(a=0; a<2; a++)
                     {
                         X= previous[0]+a;
@@ -2915,9 +2915,9 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
     for(index=0; index<referenceVoxelNumber; index++)
     {
 
-        grad[0]=0.0;
-        grad[1]=0.0;
-        grad[2]=0.0;
+        grad[0]=0;
+        grad[1]=0;
+        grad[2]=0;
 
         if((*maskPtr++)>-1)
         {
@@ -2955,9 +2955,9 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
                 if(-1<Z && Z<floatingImage->nz)
                 {
                     zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-                    xxTempNewValue=0.0;
-                    yyTempNewValue=0.0;
-                    zzTempNewValue=0.0;
+                    xxTempNewValue=0;
+                    yyTempNewValue=0;
+                    zzTempNewValue=0;
                     for(b=0; b<4; b++)
                     {
                         Y= previous[1]+b;
@@ -2965,8 +2965,8 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
                         if(-1<Y && Y<floatingImage->ny)
                         {
                             xyzPointer = &yzPointer[previous[0]];
-                            xTempNewValue=0.0;
-                            yTempNewValue=0.0;
+                            xTempNewValue=0;
+                            yTempNewValue=0;
                             for(a=0; a<4; a++)
                             {
                                 if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx)
@@ -3005,9 +3005,9 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
                 }
             } // c
 
-            grad[0]=grad[0]==grad[0]?grad[0]:0.0;
-            grad[1]=grad[1]==grad[1]?grad[1]:0.0;
-            grad[2]=grad[2]==grad[2]?grad[2]:0.0;
+            grad[0]=grad[0]==grad[0]?grad[0]:0;
+            grad[1]=grad[1]==grad[1]?grad[1]:0;
+            grad[2]=grad[2]==grad[2]?grad[2]:0;
         } // outside of the mask
 
         warpedGradientPtrX[index] = (GradientTYPE)grad[0];
@@ -3075,8 +3075,8 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
     for(index=0; index<referenceVoxelNumber; index++)
     {
 
-        grad[0]=0.0;
-        grad[1]=0.0;
+        grad[0]=0;
+        grad[1]=0;
 
         if(maskPtr[index]>-1)
         {
@@ -3110,8 +3110,8 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
                 if(-1<Y && Y<floatingImage->ny)
                 {
                     xyPointer = &yPointer[previous[0]];
-                    xTempNewValue=0.0;
-                    yTempNewValue=0.0;
+                    xTempNewValue=0;
+                    yTempNewValue=0;
                     for(a=0; a<4; a++)
                     {
                         if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx)
@@ -3137,8 +3137,8 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
                 }
             } // b
 
-            grad[0]=grad[0]==grad[0]?grad[0]:0.0;
-            grad[1]=grad[1]==grad[1]?grad[1]:0.0;
+            grad[0]=grad[0]==grad[0]?grad[0]:0;
+            grad[1]=grad[1]==grad[1]?grad[1]:0;
         } // outside of the mask
 
         warpedGradientPtrX[index] = (GradientTYPE)grad[0];

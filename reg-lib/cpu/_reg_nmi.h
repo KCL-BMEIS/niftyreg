@@ -1,5 +1,5 @@
 /*
- *  _reg_mutualinformation.h
+ *  _reg_nmi.h
  *
  *
  *  Created by Marc Modat on 25/03/2009.
@@ -20,9 +20,8 @@
 
 /* *************************************************************** */
 /* *************************************************************** */
-/// @brief NMI measure of similarity classe
-class reg_nmi : public reg_measure
-{
+/// @brief NMI measure of similarity class
+class reg_nmi: public reg_measure {
 public:
     /// @brief reg_nmi class constructor
     reg_nmi();
@@ -67,17 +66,17 @@ public:
     }
 
 protected:
-   unsigned short referenceBinNumber[255];
-   unsigned short floatingBinNumber[255];
-   unsigned short totalBinNumber[255];
-   double **forwardJointHistogramPro;
-   double **forwardJointHistogramLog;
-   double **forwardEntropyValues;
-   double **backwardJointHistogramPro;
-   double **backwardJointHistogramLog;
-   double **backwardEntropyValues;
+    unsigned short referenceBinNumber[255];
+    unsigned short floatingBinNumber[255];
+    unsigned short totalBinNumber[255];
+    double **forwardJointHistogramPro;
+    double **forwardJointHistogramLog;
+    double **forwardEntropyValues;
+    double **backwardJointHistogramPro;
+    double **backwardJointHistogramLog;
+    double **backwardEntropyValues;
 
-   void DeallocateHistogram();
+    void DeallocateHistogram();
 };
 /* *************************************************************** */
 /* *************************************************************** */
@@ -92,7 +91,7 @@ void reg_getNMIValue(nifti_image *referenceImage,
                      double **jointhistogramPro,
                      double **entropyValues,
                      int *referenceMask
-                    );
+);
 /* *************************************************************** */
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
@@ -106,7 +105,7 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                                     int *referenceMask,
                                     int current_timepoint,
                                     double timepoint_weight
-                                   );
+);
 /* *************************************************************** */
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
@@ -120,38 +119,34 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                                     int *referenceMask,
                                     int current_timepoint,
                                     double timepoint_weight
-                                   );
+);
 /* *************************************************************** */
 /* *************************************************************** */
 // Simple class to dynamically manage an array of pointers
 // Needed for multi channel NMI
 template<class DataTYPE>
-class SafeArray
-{
+class SafeArray {
 public:
-   /// Constructor
-   SafeArray(int items)
-   {
-      data = new DataTYPE[items];
-   }
+    /// Constructor
+    SafeArray(int items) {
+        data = new DataTYPE[items];
+    }
 
-   /// Destructor
-   ~SafeArray()
-   {
-      delete[] data;
-   }
+    /// Destructor
+    ~SafeArray() {
+        delete[] data;
+    }
 
-   /// Implicit conversion
-   operator DataTYPE *()
-   {
-      return data;
-   }
+    /// Implicit conversion
+    operator DataTYPE *() {
+        return data;
+    }
 
 private:
-   void operator=(const SafeArray &) {};
-   SafeArray(const SafeArray &) {};
+    void operator=(const SafeArray &) {};
+    SafeArray(const SafeArray &) {};
 
-   DataTYPE *data;
+    DataTYPE *data;
 };
 
 //-----------------------------------------------------------------------------
@@ -161,105 +156,92 @@ private:
 // 'end' values are like the STL ranges, where they signify one past the last value.
 //-----------------------------------------------------------------------------
 template<typename T>
-class Multi_Loop
-{
+class Multi_Loop {
 public:
-   /// Add a for loop to the list
-   void Add(T begin_value, T end_value)
-   {
-      begin.push_back(begin_value);
-      end.push_back(end_value);
-   }
+    /// Add a for loop to the list
+    void Add(T begin_value, T end_value) {
+        begin.push_back(begin_value);
+        end.push_back(end_value);
+    }
 
-   // Initialises the loops before use.
-   void Initialise()
-   {
-      current.resize(Count());
-      std::copy(begin.begin(), begin.end(), current.begin());
-   }
+    // Initialises the loops before use.
+    void Initialise() {
+        current.resize(Count());
+        std::copy(begin.begin(), begin.end(), current.begin());
+    }
 
-   /// Gets the index or iterator for the specified loop.
-   T Index(int index) const
-   {
-      return (current[index]);
-   }
+    /// Gets the index or iterator for the specified loop.
+    T Index(int index) const {
+        return (current[index]);
+    }
 
-   /// Gets the index or iterator for the specified loop.
-   const T &operator [](int index) const
-   {
-      return (current[index]);
-   }
+    /// Gets the index or iterator for the specified loop.
+    const T &operator [](int index) const {
+        return (current[index]);
+    }
 
-   /// Tests to see if the loops continue.
-   bool Continue() const
-   {
-      return (current[0] != end[0]);
-   }
+    /// Tests to see if the loops continue.
+    bool Continue() const {
+        return (current[0] != end[0]);
+    }
 
-   /// Compute the next set of indexes or iterators in the sequence.
-   void Next()
-   {
-      int position = begin.size() - 1;
-      bool finished = false;
+    /// Compute the next set of indexes or iterators in the sequence.
+    void Next() {
+        int position = begin.size() - 1;
+        bool finished = false;
 
-      while (!finished)
-      {
-         ++current[position];
-         // Finished incrementing?
-         if ((current[position] != end[position]) || (position == 0))
-         {
-            finished = true;
-         }
-         else
-         {
-            // Reset this index, and move on to the previous one.
-            current[position] = begin[position];
-            --position;
-         }
-      }
-   }
+        while (!finished) {
+            ++current[position];
+            // Finished incrementing?
+            if ((current[position] != end[position]) || (position == 0)) {
+                finished = true;
+            } else {
+                // Reset this index, and move on to the previous one.
+                current[position] = begin[position];
+                --position;
+            }
+        }
+    }
 
-   /// Returns the number of 'for' loops added.
-   int Count() const
-   {
-      return (static_cast<int>(begin.size()));
-   }
+    /// Returns the number of 'for' loops added.
+    int Count() const {
+        return (static_cast<int>(begin.size()));
+    }
 
 private:
-   std::vector<T> begin;   // Start for each loop.
-   std::vector<T> end;     // End for each loop.
-   std::vector<T> current; // Current position of each loop
+    std::vector<T> begin;   // Start for each loop.
+    std::vector<T> end;     // End for each loop.
+    std::vector<T> current; // Current position of each loop
 };
 
 /// Some methods that will be needed for generating the multi-channel histogram
 /// Needed for multi channel NMI
-inline int calculate_product(int dim, int *dimensions)
-{
-   int product = 1;
-   for(int i = 0; i < dim; ++i) product *= dimensions[i];
+inline int calculate_product(int dim, int *dimensions) {
+    int product = 1;
+    for (int i = 0; i < dim; ++i)
+        product *= dimensions[i];
 
-   return product;
+    return product;
 }
 
-inline int calculate_index(int num_dims, int *dimensions, int *indices)
-{
-   int index = 0;
-   for(int i = 0; i < num_dims; ++i) index += indices[i] * calculate_product(i, dimensions);
+inline int calculate_index(int num_dims, int *dimensions, int *indices) {
+    int index = 0;
+    for (int i = 0; i < num_dims; ++i)
+        index += indices[i] * calculate_product(i, dimensions);
 
-   return index;
+    return index;
 }
 
-inline int previous(int current, int num_dims)
-{
-   if(current > 0) return current - 1;
+inline int previous(int current, int num_dims) {
+    if (current > 0)
+        return current - 1;
 
-   return num_dims - 1;
+    return num_dims - 1;
 }
 /* *************************************************************** */
 /* *************************************************************** */
-/// @brief NMI measure of similarity classe
-class reg_multichannel_nmi : public reg_measure
-{
+/// @brief NMI measure of similarity class
+class reg_multichannel_nmi: public reg_measure {
 public:
     /// @brief reg_nmi class constructor
     reg_multichannel_nmi() {}
@@ -278,15 +260,15 @@ public:
     }
 
 protected:
-   unsigned short referenceBinNumber[255];
-   unsigned short floatingBinNumber[255];
-   unsigned short totalBinNumber[255];
-   double *forwardJointHistogramProp;
-   double *forwardJointHistogramLog;
-   double *forwardEntropyValues;
-   double *backwardJointHistogramProp;
-   double *backwardJointHistogramLog;
-   double *backwardEntropyValues;
+    unsigned short referenceBinNumber[255];
+    unsigned short floatingBinNumber[255];
+    unsigned short totalBinNumber[255];
+    double *forwardJointHistogramProp;
+    double *forwardJointHistogramLog;
+    double *forwardEntropyValues;
+    double *backwardJointHistogramProp;
+    double *backwardJointHistogramLog;
+    double *backwardEntropyValues;
 };
 /* *************************************************************** */
 /// Multi channel NMI version - Entropy
@@ -304,26 +286,26 @@ void reg_getMultiChannelNMIValue(nifti_image *referenceImages,
 /// Multi channel NMI version - Gradient
 extern "C++"
 void reg_getVoxelBasedMultiChannelNMIGradient2D(nifti_image *referenceImages,
-      nifti_image *warpedImages,
-      nifti_image *warpedImageGradient,
-      unsigned int *reference_bins,
-      unsigned int *warped_bins,
-      double *logJointHistogram,
-      double *entropies,
-      nifti_image *nmiGradientImage,
-      int *mask,
-      bool approx);
+                                                nifti_image *warpedImages,
+                                                nifti_image *warpedImageGradient,
+                                                unsigned int *reference_bins,
+                                                unsigned int *warped_bins,
+                                                double *logJointHistogram,
+                                                double *entropies,
+                                                nifti_image *nmiGradientImage,
+                                                int *mask,
+                                                bool approx);
 /// Multi channel NMI version - Gradient
 extern "C++"
 void reg_getVoxelBasedMultiChannelNMIGradient3D(nifti_image *referenceImages,
-      nifti_image *warpedImages,
-      nifti_image *warpedImageGradient,
-      unsigned int *reference_bins,
-      unsigned int *warped_bins,
-      double *logJointHistogram,
-      double *entropies,
-      nifti_image *nmiGradientImage,
-      int *mask,
-      bool approx);
+                                                nifti_image *warpedImages,
+                                                nifti_image *warpedImageGradient,
+                                                unsigned int *reference_bins,
+                                                unsigned int *warped_bins,
+                                                double *logJointHistogram,
+                                                double *entropies,
+                                                nifti_image *nmiGradientImage,
+                                                int *mask,
+                                                bool approx);
 /* *************************************************************** */
 /* *************************************************************** */

@@ -116,7 +116,7 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
    DTYPE *referenceIntensityYZ = &firstRefVox[voxelNumber*dtIndicies[4]];
    DTYPE *referenceIntensityZZ = &firstRefVox[voxelNumber*dtIndicies[5]];
 
-   double DTI_cost=0.0, n=0.0;
+   double DTI_cost=0, n=0;
    const double twoThirds = (2.0/3.0);
    DTYPE rXX, rXY, rYY, rXZ, rYZ, rZZ;
 #if defined (_OPENMP)
@@ -162,7 +162,7 @@ double reg_dti::GetSimilarityMeasureValue()
    if(this->warpedFloatingImagePointer->datatype != this->referenceImagePointer->datatype)
    {
       reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
-      reg_print_msg_error("Both input images are exepected to have the same type");
+      reg_print_msg_error("Both input images are expected to have the same type");
       reg_exit();
    }
    double DTIMeasureValue;
@@ -197,7 +197,7 @@ double reg_dti::GetSimilarityMeasureValue()
       if(this->warpedReferenceImagePointer->datatype != this->floatingImagePointer->datatype)
       {
          reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
-         reg_print_msg_error("Both input images are exepected to have the same type");
+         reg_print_msg_error("Both input images are expected to have the same type");
          reg_exit();
       }
       switch(this->floatingImagePointer->datatype)
@@ -337,7 +337,7 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 {
    // Check if the specified time point exists and is active
    reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
-   if(this->timePointWeight[current_timepoint]==0.0)
+   if(this->timePointWeight[current_timepoint]==0)
       return;
 
    // Check if all required input images are of the same data type
@@ -348,7 +348,7 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
      )
    {
       reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
-      reg_print_msg_error("Input images are exepected to be of the same type");
+      reg_print_msg_error("Input images are expected to be of the same type");
       reg_exit();
    }
    // Compute the gradient of the ssd for the forward transformation
@@ -389,7 +389,7 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
         )
       {
          reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
-         reg_print_msg_error("Input images are exepected to be of the same type");
+         reg_print_msg_error("Input images are expected to be of the same type");
          reg_exit();
       }
       // Compute the gradient of the nmi for the backward transformation

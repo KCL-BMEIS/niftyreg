@@ -28,7 +28,7 @@ double reg_spline_approxBendingEnergyValue2D(nifti_image *splineControlPoint)
    DTYPE basisXX[9], basisYY[9], basisXY[9];
    set_second_order_bspline_basis_values(basisXX, basisYY, basisXY);
 
-   double constraintValue=0.0;
+   double constraintValue=0;
 
    DTYPE splineCoeffX, splineCoeffY;
    DTYPE XX_x, YY_x, XY_x;
@@ -47,8 +47,8 @@ double reg_spline_approxBendingEnergyValue2D(nifti_image *splineControlPoint)
    {
       for(x=1; x<splineControlPoint->nx-1; ++x)
       {
-         XX_x=0.0, YY_x=0.0, XY_x=0.0;
-         XX_y=0.0, YY_y=0.0, XY_y=0.0;
+         XX_x=0, YY_x=0, XY_x=0;
+         XX_y=0, YY_y=0, XY_y=0;
 
          i=0;
          for(b=-1; b<2; b++){
@@ -91,7 +91,7 @@ double reg_spline_approxBendingEnergyValue3D(nifti_image *splineControlPoint)
    DTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
    set_second_order_bspline_basis_values(basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ);
 
-   double constraintValue=0.0;
+   double constraintValue=0;
 
    DTYPE splineCoeffX, splineCoeffY, splineCoeffZ;
    DTYPE XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x;
@@ -113,12 +113,12 @@ double reg_spline_approxBendingEnergyValue3D(nifti_image *splineControlPoint)
       {
          for(x=1; x<splineControlPoint->nx-1; ++x)
          {
-            XX_x=0.0, YY_x=0.0, ZZ_x=0.0;
-            XY_x=0.0, YZ_x=0.0, XZ_x=0.0;
-            XX_y=0.0, YY_y=0.0, ZZ_y=0.0;
-            XY_y=0.0, YZ_y=0.0, XZ_y=0.0;
-            XX_z=0.0, YY_z=0.0, ZZ_z=0.0;
-            XY_z=0.0, YZ_z=0.0, XZ_z=0.0;
+            XX_x=0, YY_x=0, ZZ_x=0;
+            XY_x=0, YZ_x=0, XZ_x=0;
+            XX_y=0, YY_y=0, ZZ_y=0;
+            XY_y=0, YZ_y=0, XZ_y=0;
+            XX_z=0, YY_z=0, ZZ_z=0;
+            XY_z=0, YZ_z=0, XZ_z=0;
 
             i=0;
             for(c=-1; c<2; c++){
@@ -236,8 +236,8 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
       derivativeValuesPtr = &derivativeValues[6*y*splineControlPoint->nx];
       for(x=0; x<splineControlPoint->nx; x++)
       {
-         XX_x=0.0, YY_x=0.0, XY_x=0.0;
-         XX_y=0.0, YY_y=0.0, XY_y=0.0;
+         XX_x=0, YY_x=0, XY_x=0;
+         XX_y=0, YY_y=0, XY_y=0;
 
          i=0;
          for(b=-1; b<2; b++){
@@ -283,7 +283,7 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
       index=y*splineControlPoint->nx;
       for(x=0; x<splineControlPoint->nx; x++)
       {
-         gradientValue[0]=gradientValue[1]=0.0;
+         gradientValue[0]=gradientValue[1]=0;
          a=0;
          for(Y=y-1; Y<y+2; Y++)
          {
@@ -358,12 +358,12 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
       {
          for(x=0; x<splineControlPoint->nx; x++)
          {
-            XX_x=0.0, YY_x=0.0, ZZ_x=0.0;
-            XY_x=0.0, YZ_x=0.0, XZ_x=0.0;
-            XX_y=0.0, YY_y=0.0, ZZ_y=0.0;
-            XY_y=0.0, YZ_y=0.0, XZ_y=0.0;
-            XX_z=0.0, YY_z=0.0, ZZ_z=0.0;
-            XY_z=0.0, YZ_z=0.0, XZ_z=0.0;
+            XX_x=0, YY_x=0, ZZ_x=0;
+            XY_x=0, YZ_x=0, XZ_x=0;
+            XX_y=0, YY_y=0, ZZ_y=0;
+            XY_y=0, YZ_y=0, XZ_y=0;
+            XX_z=0, YY_z=0, ZZ_z=0;
+            XY_z=0, YZ_z=0, XZ_z=0;
 
             i=0;
             for(c=-1; c<2; c++){
@@ -441,7 +441,7 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
       {
          for(x=0; x<splineControlPoint->nx; x++)
          {
-            gradientValue[0]=gradientValue[1]=gradientValue[2]=0.0;
+            gradientValue[0]=gradientValue[1]=gradientValue[2]=0;
             a=0;
             for(Z=z-1; Z<z+2; Z++)
             {
@@ -786,14 +786,14 @@ double reg_spline_linearEnergyValue2D(nifti_image *referenceImage,
 
       yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
       basis=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
-      if(basis<0.0) basis=0.0; //rounding error
+      if(basis<0) basis=0; //rounding error
       get_BSplineBasisValues<DTYPE>(basis, basisY, firstY);
 
       for(x=0; x<referenceImage->nx; ++x){
 
          xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
          basis=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
-         if(basis<0.0) basis=0.0; //rounding error
+         if(basis<0) basis=0; //rounding error
          get_BSplineBasisValues<DTYPE>(basis, basisX, firstX);
 
          memset(&matrix, 0, sizeof(mat33));
@@ -876,21 +876,21 @@ double reg_spline_linearEnergyValue3D(nifti_image *referenceImage,
 
       zPre=static_cast<int>(static_cast<DTYPE>(z)/gridVoxelSpacing[2]);
       basis=static_cast<DTYPE>(z)/gridVoxelSpacing[2]-static_cast<DTYPE>(zPre);
-      if(basis<0.0) basis=0.0; //rounding error
+      if(basis<0) basis=0; //rounding error
       get_BSplineBasisValues<DTYPE>(basis, basisZ, firstZ);
 
       for(y=0; y<referenceImage->ny; ++y){
 
          yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
          basis=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
-         if(basis<0.0) basis=0.0; //rounding error
+         if(basis<0) basis=0; //rounding error
          get_BSplineBasisValues<DTYPE>(basis, basisY, firstY);
 
          for(x=0; x<referenceImage->nx; ++x){
 
             xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
             basis=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
-            if(basis<0.0) basis=0.0; //rounding error
+            if(basis<0) basis=0; //rounding error
             get_BSplineBasisValues<DTYPE>(basis, basisX, firstX);
 
             memset(&matrix, 0, sizeof(mat33));
@@ -1021,14 +1021,14 @@ void reg_spline_linearEnergyGradient2D(nifti_image *referenceImage,
 
       yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
       basis=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
-      if(basis<0.0) basis=0.0; //rounding error
+      if(basis<0) basis=0; //rounding error
       get_BSplineBasisValues<DTYPE>(basis, basisY, firstY);
 
       for(x=0; x<referenceImage->nx; ++x){
 
          xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
          basis=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
-         if(basis<0.0) basis=0.0; //rounding error
+         if(basis<0) basis=0; //rounding error
          get_BSplineBasisValues<DTYPE>(basis, basisX, firstX);
 
          memset(&matrix, 0, sizeof(mat33));
@@ -1127,21 +1127,21 @@ void reg_spline_linearEnergyGradient3D(nifti_image *referenceImage,
 
       zPre=static_cast<int>(static_cast<DTYPE>(z)/gridVoxelSpacing[2]);
       basis=static_cast<DTYPE>(z)/gridVoxelSpacing[2]-static_cast<DTYPE>(zPre);
-      if(basis<0.0) basis=0.0; //rounding error
+      if(basis<0) basis=0; //rounding error
       get_BSplineBasisValues<DTYPE>(basis, basisZ, firstZ);
 
       for(y=0; y<referenceImage->ny; ++y){
 
          yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
          basis=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
-         if(basis<0.0) basis=0.0; //rounding error
+         if(basis<0) basis=0; //rounding error
          get_BSplineBasisValues<DTYPE>(basis, basisY, firstY);
 
          for(x=0; x<referenceImage->nx; ++x){
 
             xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
             basis=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
-            if(basis<0.0) basis=0.0; //rounding error
+            if(basis<0) basis=0; //rounding error
             get_BSplineBasisValues<DTYPE>(basis, basisX, firstX);
 
             memset(&matrix, 0, sizeof(mat33));

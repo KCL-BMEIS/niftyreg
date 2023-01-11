@@ -737,7 +737,7 @@ int main(int argc, char **argv) {
     // Save the warped image(s)
     nifti_image **outputWarpedImage = reg->GetWarpedImage();
     if (outputWarpedImageName == nullptr)
-        outputWarpedImageName = (char *)"outputResult.nii";
+        outputWarpedImageName = (char*)"outputResult.nii";
     memset(outputWarpedImage[0]->descrip, 0, 80);
     strcpy(outputWarpedImage[0]->descrip, "Warped image using NiftyReg (reg_f3d)");
     if (strcmp("NiftyReg F3D2", reg->GetExecutableName()) == 0) {

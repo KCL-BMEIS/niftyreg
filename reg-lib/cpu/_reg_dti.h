@@ -1,5 +1,5 @@
 /**
- * @file _reg_ssd.h
+ * @file _reg_dti.h
  * @brief File that contains sum squared difference related function
  * @author Marc Modat
  * @date 19/05/2009
@@ -14,14 +14,12 @@
 
 #pragma once
 
-//#include "_reg_measure.h"
-#include "_reg_ssd.h" // HERE
+#include "_reg_ssd.h"
 
 /* *************************************************************** */
 /* *************************************************************** */
 /// @brief DTI related measure of similarity class
-class reg_dti : public reg_measure
-{
+class reg_dti: public reg_measure {
 public:
     /// @brief reg_dti class constructor
     reg_dti();
@@ -46,9 +44,9 @@ public:
     virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
 
 protected:
-   // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ
-   unsigned int dtIndicies[6];
-   float currentValue;
+    // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ
+    unsigned int dtIndicies[6];
+    float currentValue;
 };
 /* *************************************************************** */
 
@@ -63,8 +61,7 @@ extern "C++" template <class DTYPE>
 double reg_getDTIMeasureValue(nifti_image *referenceImage,
                               nifti_image *warpedImage,
                               int *mask,
-                              unsigned int * dtIndicies
-                             );
+                              unsigned int *dtIndicies);
 
 /** @brief Compute a voxel based gradient of the sum squared difference.
  * @param referenceImage First input image to use to compute the metric
@@ -79,8 +76,8 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
  */
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
-      nifti_image *warpedImage,
-      nifti_image *warpedGradient,
-      nifti_image *dtiMeasureGradientImage,
-      int *mask,
-      unsigned int * dtIndicies);
+                                         nifti_image *warpedImage,
+                                         nifti_image *warpedGradient,
+                                         nifti_image *dtiMeasureGradientImage,
+                                         int *mask,
+                                         unsigned int *dtIndicies);

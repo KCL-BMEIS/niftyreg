@@ -393,7 +393,7 @@ PrecisionTYPE reg_getMaximalLength2D(nifti_image *image)
    DTYPE *dataPtrX = static_cast<DTYPE *>(image->data);
    DTYPE *dataPtrY = &dataPtrX[image->nx*image->ny*image->nz];
 
-   PrecisionTYPE max=0.0;
+   PrecisionTYPE max=0;
 
    for(int i=0; i<image->nx*image->ny*image->nz; i++)
    {
@@ -412,7 +412,7 @@ PrecisionTYPE reg_getMaximalLength3D(nifti_image *image)
    DTYPE *dataPtrY = &dataPtrX[image->nx*image->ny*image->nz];
    DTYPE *dataPtrZ = &dataPtrY[image->nx*image->ny*image->nz];
 
-   PrecisionTYPE max=0.0;
+   PrecisionTYPE max=0;
 
    for(int i=0; i<image->nx*image->ny*image->nz; i++)
    {
@@ -1332,8 +1332,8 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                            // Set the current values to zero
                            // Increment the current value by performing the weighted sum
 #ifdef _USE_SSE
-                           intensity_sum_sse.m = _mm_set_ps1(0.0);
-                           density_sum_sse.m = _mm_set_ps1(0.0);
+                           intensity_sum_sse.m = _mm_set_ps1(0);
+                           density_sum_sse.m = _mm_set_ps1(0);
                            k=shiftPre;
                            while(k<shiftPst-3)
                            {
@@ -3099,7 +3099,7 @@ double reg_test_compare_arrays(DTYPE *ptrA,
                               DTYPE *ptrB,
                               size_t nvox)
 {
-   double maxDifference=0.0;
+   double maxDifference=0;
 
    for(size_t i=0; i<nvox; ++i)
    {

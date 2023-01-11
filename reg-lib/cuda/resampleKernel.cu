@@ -55,8 +55,8 @@ __device__ __inline__ int cuda_reg_floor(double a)
 template<class FieldTYPE>
 __device__ __inline__ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
 {
-    if (ratio < 0.0)
-        ratio = 0.0; //reg_rounding error
+    if (ratio < 0)
+        ratio = 0; //reg_rounding error
     double FF = (double) ratio * ratio;
     basis[0] = (FieldTYPE) ((ratio * (((double)2.0 - ratio) * ratio - (double)1.0)) / (double)2.0);
     basis[1] = (FieldTYPE) ((FF * ((double)3.0 * ratio - 5.0) + 2.0) / (double)2.0);
@@ -78,13 +78,13 @@ void reg_mat44_eye(float *mat) {
 /* *************************************************************** */
 __inline__ __device__ void interpWindowedSincKernel(double relative, double *basis)
 {
-	if (relative < 0.0)
-		relative = 0.0; //reg_rounding error
+	if (relative < 0)
+		relative = 0; //reg_rounding error
 	int j = 0;
 	double sum = 0.;
 	for (int i = -SINC_KERNEL_RADIUS; i < SINC_KERNEL_RADIUS; ++i) {
 		double x = relative - (double) (i);
-		if (x == 0.0)
+		if (x == 0)
 			basis[j] = 1.0;
 		else if (abs(x) >= (double) (SINC_KERNEL_RADIUS))
 			basis[j] = 0;
@@ -101,8 +101,8 @@ __inline__ __device__ void interpWindowedSincKernel(double relative, double *bas
 /* *************************************************************** */
 __inline__ __device__ void interpCubicSplineKernel(double relative, double *basis)
 {
-	if (relative < 0.0)
-		relative = 0.0; //reg_rounding error
+	if (relative < 0)
+		relative = 0; //reg_rounding error
 	double FF = relative * relative;
 	basis[0] = (relative * ((2.0 - relative) * relative - 1.0)) / 2.0;
 	basis[1] = (FF * (3.0 * relative - 5.0) + 2.0) / 2.0;
@@ -112,17 +112,17 @@ __inline__ __device__ void interpCubicSplineKernel(double relative, double *basi
 /* *************************************************************** */
 __inline__ __device__ void interpLinearKernel(double relative, double *basis)
 {
-	if (relative < 0.0)
-		relative = 0.0; //reg_rounding error
+	if (relative < 0)
+		relative = 0; //reg_rounding error
 	basis[1] = relative;
 	basis[0] = 1.0 - relative;
 }
 /* *************************************************************** */
 __inline__ __device__ void interpNearestNeighKernel(double relative, double *basis)
 {
-	if (relative < 0.0)
-		relative = 0.0; //reg_rounding error
-	basis[0] = basis[1] = 0.0;
+	if (relative < 0)
+		relative = 0; //reg_rounding error
+	basis[0] = basis[1] = 0;
     if (relative >= 0.5)
 		basis[1] = 1;
 	else
@@ -138,12 +138,12 @@ __inline__ __device__ double interpLoop2D(float* floatingIntensity,
     float paddingValue,
     unsigned int kernel_size)
 {
-    double intensity = (double)(0.0);
+    double intensity = 0;
 
         for (int b = 0; b < kernel_size; b++) {
             int Y = previous[1] + b;
             bool yInBounds = -1 < Y && Y < fi_xyz.y;
-            double xTempNewValue = 0.0;
+            double xTempNewValue = 0;
 
             for (int a = 0; a < kernel_size; a++) {
                 int X = previous[0] + a;
@@ -167,15 +167,15 @@ __inline__ __device__ double interpLoop3D(float* floatingIntensity,
                                           float paddingValue,
                                           unsigned int kernel_size)
 {
-	double intensity = (double)(0.0);
+	double intensity = 0;
 	for (int c = 0; c < kernel_size; c++) {
 		int Z = previous[2] + c;
 		bool zInBounds = -1 < Z && Z < fi_xyz.z;
-		double yTempNewValue = 0.0;
+		double yTempNewValue = 0;
 		for (int b = 0; b < kernel_size; b++) {
 			int Y = previous[1] + b;
 			bool yInBounds = -1 < Y && Y < fi_xyz.y;
-			double xTempNewValue = 0.0;
+			double xTempNewValue = 0;
 			for (int a = 0; a < kernel_size; a++) {
 				int X = previous[0] + a;
 				bool xInBounds = -1 < X && X < fi_xyz.x;

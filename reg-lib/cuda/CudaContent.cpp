@@ -5,7 +5,7 @@ CudaContent::CudaContent(nifti_image *referenceIn,
                          nifti_image *floatingIn,
                          int *referenceMaskIn,
                          mat44 *transformationMatrixIn,
-                         size_t bytesIn) :
+                         size_t bytesIn):
     Content(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, sizeof(float)) {
     AllocateImages();
     AllocateWarped();

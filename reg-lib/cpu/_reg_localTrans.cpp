@@ -486,22 +486,22 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
                   // The spline coefficients are computed
                   xPre=(int)reg_floor(voxel[0]);
                   xBasis[1]=voxel[0]-static_cast<DTYPE>(xPre);
-                  if(xBasis[1]<0.0) xBasis[1]=0.0; //rounding error
+                  if(xBasis[1]<0) xBasis[1]=0; //rounding error
                   xBasis[0]=1.-xBasis[1];
 
                   yPre=(int)reg_floor(voxel[1]);
                   yBasis[1]=voxel[1]-static_cast<DTYPE>(yPre);
-                  if(yBasis[1]<0.0) yBasis[1]=0.0; //rounding error
+                  if(yBasis[1]<0) yBasis[1]=0; //rounding error
                   yBasis[0]=1.-yBasis[1];
 
                   zPre=(int)reg_floor(voxel[2]);
                   zBasis[1]=voxel[2]-static_cast<DTYPE>(zPre);
-                  if(zBasis[1]<0.0) zBasis[1]=0.0; //rounding error
+                  if(zBasis[1]<0) zBasis[1]=0; //rounding error
                   zBasis[0]=1.-zBasis[1];
 
-                  real[0]=0.0;
-                  real[1]=0.0;
-                  real[2]=0.0;
+                  real[0]=0;
+                  real[1]=0;
+                  real[2]=0;
                   for(c=0; c<2; c++){
                      for(b=0; b<2; b++){
                         for(a=0; a<2; a++){
@@ -541,7 +541,7 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
          zPre=static_cast<int>(static_cast<DTYPE>(z)/gridVoxelSpacing[2]);
          zBasis[1]=static_cast<DTYPE>(z)/gridVoxelSpacing[2]-static_cast<DTYPE>(zPre);
-         if(zBasis[1]<0.0) zBasis[1]=0.0; //rounding error
+         if(zBasis[1]<0) zBasis[1]=0; //rounding error
          zBasis[0]=1.-zBasis[1];
          zPre++;
 
@@ -550,26 +550,26 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
             yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
             yBasis[1]=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
-            if(yBasis[1]<0.0) yBasis[1]=0.0; //rounding error
+            if(yBasis[1]<0) yBasis[1]=0; //rounding error
             yBasis[0]=1.-yBasis[1];
             yPre++;
 
             for(x=0; x<deformationField->nx; x++)
             {
-               real[0]=0.0;
-               real[1]=0.0;
-               real[2]=0.0;
+               real[0]=0;
+               real[1]=0;
+               real[2]=0;
 
                if(mask[index]>-1)
                {
                   xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
                   xBasis[1]=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
-                  if(xBasis[1]<0.0) xBasis[1]=0.0; //rounding error
+                  if(xBasis[1]<0) xBasis[1]=0; //rounding error
                   xBasis[0]=1.-xBasis[1];
                   xPre++;
-                  real[0]=0.0;
-                  real[1]=0.0;
-                  real[2]=0.0;
+                  real[0]=0;
+                  real[1]=0;
+                  real[2]=0;
                   for(c=0; c<2; c++){
                      for(b=0; b<2; b++){
                         for(a=0; a<2; a++){
@@ -702,14 +702,14 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
             xPre=(int)reg_floor(xVoxel);
             basis=xVoxel-(DTYPE)xPre;
             --xPre;
-            if(basis<0.0) basis=0.0; //rounding error
+            if(basis<0) basis=0; //rounding error
             if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
             else get_SplineBasisValues<DTYPE>(basis, temp);
 
             yPre=(int)reg_floor(yVoxel);
             basis=yVoxel-(DTYPE)yPre;
             --yPre;
-            if(basis<0.0) basis=0.0; //rounding error
+            if(basis<0) basis=0; //rounding error
             if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
             else get_SplineBasisValues<DTYPE>(basis, yBasis);
 
@@ -747,8 +747,8 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                   oldXpre=xPre;
                   oldYpre=yPre;
                }
-               xReal=0.0;
-               yReal=0.0;
+               xReal=0;
+               yReal=0;
 
                if(mask[index]>-1)
                {
@@ -762,8 +762,8 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                      }
                   }
 
-                  tempX =  _mm_set_ps1(0.0);
-                  tempY =  _mm_set_ps1(0.0);
+                  tempX =  _mm_set_ps1(0);
+                  tempY =  _mm_set_ps1(0);
                   //addition and multiplication of the 16 basis value and CP position for each axis
                   for(a=0; a<4; a++)
                   {
@@ -821,7 +821,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
 
          yPre=(int)((DTYPE)y/gridVoxelSpacing[1]);
          basis=(DTYPE)y/gridVoxelSpacing[1]-(DTYPE)yPre;
-         if(basis<0.0) basis=0.0; //rounding error
+         if(basis<0) basis=0; //rounding error
          if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
          else get_SplineBasisValues<DTYPE>(basis, yBasis);
 
@@ -830,7 +830,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
 
             xPre=(int)((DTYPE)x/gridVoxelSpacing[0]);
             basis=(DTYPE)x/gridVoxelSpacing[0]-(DTYPE)xPre;
-            if(basis<0.0) basis=0.0; //rounding error
+            if(basis<0) basis=0; //rounding error
             if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
             else get_SplineBasisValues<DTYPE>(basis, temp);
 #if _USE_SSE
@@ -883,14 +883,14 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                oldYpre=yPre;
             }
 
-            xReal=0.0;
-            yReal=0.0;
+            xReal=0;
+            yReal=0;
 
             if(mask[index]>-1)
             {
 #if _USE_SSE
-               tempX =  _mm_set_ps1(0.0);
-               tempY =  _mm_set_ps1(0.0);
+               tempX =  _mm_set_ps1(0);
+               tempY =  _mm_set_ps1(0);
                //addition and multiplication of the 64 basis value and CP displacement for each axis
                for(a=0; a<4; a++)
                {
@@ -1079,21 +1079,21 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                   xPre=(int)reg_floor(voxel[0]);
                   basis=voxel[0]-static_cast<DTYPE>(xPre);
                   --xPre;
-                  if(basis<0.0) basis=0.0; //rounding error
+                  if(basis<0) basis=0; //rounding error
                   if(bspline) get_BSplineBasisValues<DTYPE>(basis, xBasis);
                   else get_SplineBasisValues<DTYPE>(basis, xBasis);
 
                   yPre=(int)reg_floor(voxel[1]);
                   basis=voxel[1]-static_cast<DTYPE>(yPre);
                   --yPre;
-                  if(basis<0.0) basis=0.0; //rounding error
+                  if(basis<0) basis=0; //rounding error
                   if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
                   else get_SplineBasisValues<DTYPE>(basis, yBasis);
 
                   zPre=(int)reg_floor(voxel[2]);
                   basis=voxel[2]-static_cast<DTYPE>(zPre);
                   --zPre;
-                  if(basis<0.0) basis=0.0; //rounding error
+                  if(basis<0) basis=0; //rounding error
                   if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
                   else get_SplineBasisValues<DTYPE>(basis, zBasis);
 
@@ -1135,9 +1135,9 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                   }
 
 #if _USE_SSE
-                  tempX =  _mm_set_ps1(0.0);
-                  tempY =  _mm_set_ps1(0.0);
-                  tempZ =  _mm_set_ps1(0.0);
+                  tempX =  _mm_set_ps1(0);
+                  tempY =  _mm_set_ps1(0);
+                  tempZ =  _mm_set_ps1(0);
                   val.f[0] = xBasis[0];
                   val.f[1] = xBasis[1];
                   val.f[2] = xBasis[2];
@@ -1167,9 +1167,9 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                   val.m = tempZ;
                   real[2] = val.f[0]+val.f[1]+val.f[2]+val.f[3];
 #else
-                  real[0]=0.0;
-                  real[1]=0.0;
-                  real[2]=0.0;
+                  real[0]=0;
+                  real[1]=0;
+                  real[2]=0;
                   coord=0;
                   for(c=0; c<4; c++)
                   {
@@ -1384,9 +1384,9 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                           x = xPre*5+a;
                                           if(x<deformationField->nx && mask[index]>-1){
 #if _USE_SSE
-                                              tempX =  _mm_set_ps1(0.0);
-                                              tempY =  _mm_set_ps1(0.0);
-                                              tempZ =  _mm_set_ps1(0.0);
+                                              tempX =  _mm_set_ps1(0);
+                                              tempY =  _mm_set_ps1(0);
+                                              tempZ =  _mm_set_ps1(0);
                                               for(coord=0;coord<16;++coord){
                                                   val.m = _mm_set_ps(coefficients[coeff_index+3],
                                                         coefficients[coeff_index+2],
@@ -1474,7 +1474,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
               zPre=static_cast<int>(static_cast<DTYPE>(z)/gridVoxelSpacing[2]);
               basis=static_cast<DTYPE>(z)/gridVoxelSpacing[2]-static_cast<DTYPE>(zPre);
-              if(basis<0.0) basis=0.0; //rounding error
+              if(basis<0) basis=0; //rounding error
               if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
               else get_SplineBasisValues<DTYPE>(basis, zBasis);
 
@@ -1483,7 +1483,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
                   yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
                   basis=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
-                  if(basis<0.0) basis=0.0; //rounding error
+                  if(basis<0) basis=0; //rounding error
                   if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
                   else get_SplineBasisValues<DTYPE>(basis, temp);
 #if _USE_SSE
@@ -1513,7 +1513,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
                       xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
                       basis=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
-                      if(basis<0.0) basis=0.0; //rounding error
+                      if(basis<0) basis=0; //rounding error
                       if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
                       else get_SplineBasisValues<DTYPE>(basis, temp);
 #if _USE_SSE
@@ -1572,16 +1572,16 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                       }
                       oldBasis=basis;
 
-                      real[0]=0.0;
-                      real[1]=0.0;
-                      real[2]=0.0;
+                      real[0]=0;
+                      real[1]=0;
+                      real[2]=0;
 
                       if(mask[index]>-1)
                       {
 #if _USE_SSE
-                          tempX =  _mm_set_ps1(0.0);
-                          tempY =  _mm_set_ps1(0.0);
-                          tempZ =  _mm_set_ps1(0.0);
+                          tempX =  _mm_set_ps1(0);
+                          tempY =  _mm_set_ps1(0);
+                          tempZ =  _mm_set_ps1(0);
                           //addition and multiplication of the 64 basis value and CP displacement for each axis
                           for(a=0; a<16; a++)
                           {
@@ -1952,7 +1952,7 @@ template<class SplineTYPE>
 SplineTYPE GetValue(SplineTYPE *array, int *dim, int x, int y, int z)
 {
    if(x<0 || x>= dim[1] || y<0 || y>= dim[2] || z<0 || z>= dim[3])
-      return 0.0;
+      return 0;
    return array[(z*dim[2]+y)*dim[1]+x];
 }
 /* *************************************************************** */
@@ -3058,7 +3058,7 @@ nmsimplex_move_corner (const double coeff, nmsimplex_state_t *state,
 
    for (j = 0; j < (size_t)state->nvec; j++)
    {
-      mp = 0.0;
+      mp = 0;
       for (i = 0; i < (size_t)state->nsimplex; i++)
       {
          if (i != corner)
@@ -3124,7 +3124,7 @@ nmsimplex_calc_center (const nmsimplex_state_t *state, double *mp)
 
    for (j = 0; j < (size_t)state->nvec; j++)
    {
-      val = 0.0;
+      val = 0;
       for (i = 0; i < (size_t)state->nsimplex; i++)
       {
          val += x1[i*state->nvec + j];
@@ -3149,7 +3149,7 @@ nmsimplex_size (nmsimplex_state_t *state)
 
    size_t i, j;
 
-   double t, ss = 0.0;
+   double t, ss = 0;
 
    /* Calculate middle point */
    nmsimplex_calc_center (state, mp);
@@ -3560,14 +3560,14 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
          int xPre=(int)(reg_floor(xVoxel));
          basis=(DTYPE)xVoxel-(DTYPE)xPre;
          xPre--;
-         if(basis<0.0) basis=0.0; //rounding error
+         if(basis<0) basis=0; //rounding error
          if(bspline) get_BSplineBasisValues<DTYPE>(basis, xBasis);
          else get_SplineBasisValues<DTYPE>(basis, xBasis);
 
          int yPre=(int)(reg_floor(yVoxel));
          basis=(DTYPE)yVoxel-(DTYPE)yPre;
          yPre--;
-         if(basis<0.0) basis=0.0; //rounding error
+         if(basis<0) basis=0; //rounding error
          if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
          else get_SplineBasisValues<DTYPE>(basis, yBasis);
 
@@ -3582,8 +3582,8 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
                                false, // no approximation
                                displacement1 // displacement field?
                                );
-         xReal=0.0;
-         yReal=0.0;
+         xReal=0;
+         yReal=0;
  #if _USE_SSE
          coord=0;
          for(unsigned int b=0; b<4; b++)
@@ -3594,8 +3594,8 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
             }
          }
 
-         __m128 tempX =  _mm_set_ps1(0.0);
-         __m128 tempY =  _mm_set_ps1(0.0);
+         __m128 tempX =  _mm_set_ps1(0);
+         __m128 tempY =  _mm_set_ps1(0);
          __m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
          __m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
          __m128 *ptrBasis   = (__m128 *) &xyBasis[0];
@@ -3788,19 +3788,19 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
             // The spline coefficients are computed
             xPre=(int)(reg_floor(xVoxel));
             basis=(DTYPE)xVoxel-(DTYPE)xPre;
-            if(basis<0.0) basis=0.0; //rounding error
+            if(basis<0) basis=0; //rounding error
             if(bspline) get_BSplineBasisValues<DTYPE>(basis, xBasis);
             else get_SplineBasisValues<DTYPE>(basis, xBasis);
 
             yPre=(int)(reg_floor(yVoxel));
             basis=(DTYPE)yVoxel-(DTYPE)yPre;
-            if(basis<0.0) basis=0.0; //rounding error
+            if(basis<0) basis=0; //rounding error
             if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
             else get_SplineBasisValues<DTYPE>(basis, yBasis);
 
             zPre=(int)(reg_floor(zVoxel));
             basis=(DTYPE)zVoxel-(DTYPE)zPre;
-            if(basis<0.0) basis=0.0; //rounding error
+            if(basis<0) basis=0; //rounding error
             if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
             else get_SplineBasisValues<DTYPE>(basis, zBasis);
 
@@ -3828,9 +3828,9 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
                yPreOld=yPre;
                zPreOld=zPre;
             }
-            xReal=0.0;
-            yReal=0.0;
-            zReal=0.0;
+            xReal=0;
+            yReal=0;
+            zReal=0;
  #if _USE_SSE
             val.f[0] = xBasis[0];
             val.f[1] = xBasis[1];
@@ -3838,9 +3838,9 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
             val.f[3] = xBasis[3];
             _xBasis_sse = val.m;
 
-            tempX =  _mm_set_ps1(0.0);
-            tempY =  _mm_set_ps1(0.0);
-            tempZ =  _mm_set_ps1(0.0);
+            tempX =  _mm_set_ps1(0);
+            tempY =  _mm_set_ps1(0);
+            tempZ =  _mm_set_ps1(0);
             ptrX = (__m128 *) &xControlPointCoordinates[0];
             ptrY = (__m128 *) &yControlPointCoordinates[0];
             ptrZ = (__m128 *) &zControlPointCoordinates[0];
@@ -4593,7 +4593,7 @@ void intensitiesToSplineCoefficients(DTYPE *values, int number)
    DTYPE pole = sqrt(3.0) - 2.0;
    DTYPE currentPole = pole;
    DTYPE currentOpposite = pow(pole,(DTYPE)(2.0*(DTYPE)number-1.0));
-   DTYPE sum=0.0;
+   DTYPE sum=0;
    for(int i=1; i<number; i++)
    {
       sum += (currentPole - currentOpposite) * values[i];

@@ -329,7 +329,7 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                else
                   referenceIndex += BLOCK_WIDTH;
             }
-            bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0.0;
+            bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0;
             bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
             bestDisplacement[1] = 0.f;
             bestDisplacement[2] = 0.f;
@@ -365,9 +365,9 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                      else
                         warpedIndex += BLOCK_WIDTH;
                   }
-                  referenceMean = 0.0;
-                  warpedMean = 0.0;
-                  voxelNumber = 0.0;
+                  referenceMean = 0;
+                  warpedMean = 0;
+                  voxelNumber = 0;
                   for (int a = 0; a < BLOCK_2D_SIZE; a++) {
                      if (referenceOverlap[a] && warpedOverlap[a]) {
                         referenceMean += referenceValues[a];
@@ -380,9 +380,9 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                      referenceMean /= voxelNumber;
                      warpedMean /= voxelNumber;
 
-                     referenceVar = 0.0;
-                     warpedVar = 0.0;
-                     localCC = 0.0;
+                     referenceVar = 0;
+                     warpedVar = 0;
+                     localCC = 0;
 
                      for (int a = 0; a < BLOCK_2D_SIZE; a++) {
                         if (referenceOverlap[a] && warpedOverlap[a]) {
@@ -394,7 +394,7 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                         }
                      }
 
-                     localCC = (referenceVar * warpedVar) > 0.0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0.0;
+                     localCC = (referenceVar * warpedVar) > 0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
                      //localCC = fabs(localCC / sqrt(referenceVar * warpedVar));
 
                      if (localCC > bestCC) {
@@ -549,7 +549,7 @@ void block_matching_method3D(nifti_image * reference,
                   else
                      referenceIndex += BLOCK_WIDTH * BLOCK_WIDTH;
                }
-               bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0.0; //only when misaligned images are registered
+               bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0; //only when misaligned images are registered
                bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
                bestDisplacement[1] = 0.f;
                bestDisplacement[2] = 0.f;
@@ -596,9 +596,9 @@ void block_matching_method3D(nifti_image * reference,
                            else
                               warpedIndex += BLOCK_WIDTH * BLOCK_WIDTH;
                         }
-                        referenceMean = 0.0;
-                        warpedMean = 0.0;
-                        voxelNumber = 0.0;
+                        referenceMean = 0;
+                        warpedMean = 0;
+                        voxelNumber = 0;
                         for (int a = 0; a < BLOCK_3D_SIZE; a++) {
                            if (referenceOverlap[tid][a] && warpedOverlap[tid][a]) {
                               referenceMean += referenceValues[tid][a];
@@ -611,9 +611,9 @@ void block_matching_method3D(nifti_image * reference,
                            referenceMean /= voxelNumber;
                            warpedMean /= voxelNumber;
 
-                           referenceVar = 0.0;
-                           warpedVar = 0.0;
-                           localCC = 0.0;
+                           referenceVar = 0;
+                           warpedVar = 0;
+                           localCC = 0;
 
                            for (int a = 0; a < BLOCK_3D_SIZE; a++) {
                               if (referenceOverlap[tid][a] && warpedOverlap[tid][a]) {
@@ -624,7 +624,7 @@ void block_matching_method3D(nifti_image * reference,
                                  localCC += (referenceTemp)* (warpedTemp);
                               }
                            }
-                           localCC = (referenceVar * warpedVar) > 0.0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0.0;
+                           localCC = (referenceVar * warpedVar) > 0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
 
                            if (localCC > bestCC) {
                               bestCC = localCC + 1.0e-7f;

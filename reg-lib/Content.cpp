@@ -5,7 +5,7 @@ Content::Content(nifti_image *referenceIn,
                  nifti_image *floatingIn,
                  int *referenceMaskIn,
                  mat44 *transformationMatrixIn,
-                 size_t bytesIn) :
+                 size_t bytesIn):
     reference(referenceIn),
     floating(floatingIn),
     referenceMask(referenceMaskIn),
@@ -32,7 +32,7 @@ void Content::AllocateWarped() {
     warped->dim[0] = warped->ndim = floating->ndim;
     warped->dim[4] = warped->nt = floating->nt;
     warped->pixdim[4] = warped->dt = 1.0;
-    warped->nvox = (size_t)(warped->nx * warped->ny * warped->nz * warped->nt);
+    warped->nvox = size_t(warped->nx * warped->ny * warped->nz * warped->nt);
     warped->datatype = floating->datatype;
     warped->nbyper = floating->nbyper;
     warped->data = (void*)calloc(warped->nvox, warped->nbyper);
@@ -61,8 +61,8 @@ void Content::AllocateDeformationField(size_t bytes) {
     deformationField->pixdim[6] = deformationField->dv = 1;
     deformationField->dim[7] = deformationField->nw = 1;
     deformationField->pixdim[7] = deformationField->dw = 1;
-    deformationField->nvox = (size_t)(deformationField->nx * deformationField->ny * deformationField->nz *
-                                             deformationField->nt * deformationField->nu);
+    deformationField->nvox = size_t(deformationField->nx * deformationField->ny * deformationField->nz *
+                                    deformationField->nt * deformationField->nu);
     deformationField->nbyper = (int)bytes;
     if (bytes == 4)
         deformationField->datatype = NIFTI_TYPE_FLOAT32;

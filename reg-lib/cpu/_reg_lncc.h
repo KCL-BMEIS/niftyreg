@@ -14,10 +14,9 @@
 
 #include "_reg_measure.h"
 
-/* *************************************************************** */
-/* *************************************************************** */
-class reg_lncc : public reg_measure
-{
+ /* *************************************************************** */
+ /* *************************************************************** */
+class reg_lncc: public reg_measure {
 public:
     /// @brief reg_lncc class constructor
     reg_lncc();
@@ -50,33 +49,33 @@ public:
     }
 
 protected:
-   float kernelStandardDeviation[255];
-   nifti_image *forwardCorrelationImage;
-   nifti_image *referenceMeanImage;
-   nifti_image *referenceSdevImage;
-   nifti_image *warpedFloatingMeanImage;
-   nifti_image *warpedFloatingSdevImage;
-   int *forwardMask;
+    float kernelStandardDeviation[255];
+    nifti_image *forwardCorrelationImage;
+    nifti_image *referenceMeanImage;
+    nifti_image *referenceSdevImage;
+    nifti_image *warpedFloatingMeanImage;
+    nifti_image *warpedFloatingSdevImage;
+    int *forwardMask;
 
-   nifti_image *backwardCorrelationImage;
-   nifti_image *floatingMeanImage;
-   nifti_image *floatingSdevImage;
-   nifti_image *warpedReferenceMeanImage;
-   nifti_image *warpedReferenceSdevImage;
-   int *backwardMask;
+    nifti_image *backwardCorrelationImage;
+    nifti_image *floatingMeanImage;
+    nifti_image *floatingSdevImage;
+    nifti_image *warpedReferenceMeanImage;
+    nifti_image *warpedReferenceSdevImage;
+    int *backwardMask;
 
-   int kernelType;
+    int kernelType;
 
-   template <class DTYPE>
-   void UpdateLocalStatImages(nifti_image *refImage,
-                              nifti_image *warImage,
-                              nifti_image *meanRefImage,
-                              nifti_image *meanWarImage,
-                              nifti_image *stdDevRefImage,
-                              nifti_image *stdDevWarImage,
-                              int *refMask,
-                              int *mask,
-                              int current_timepoint);
+    template <class DTYPE>
+    void UpdateLocalStatImages(nifti_image *refImage,
+                               nifti_image *warImage,
+                               nifti_image *meanRefImage,
+                               nifti_image *meanWarImage,
+                               nifti_image *stdDevRefImage,
+                               nifti_image *stdDevWarImage,
+                               int *refMask,
+                               int *mask,
+                               int current_timepoint);
 };
 /* *************************************************************** */
 /* *************************************************************** */
@@ -127,4 +126,4 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    nifti_image *lnccGradientImage,
                                    int kernelType,
                                    int current_timepoint,
-                           double timepoint_weight);
+                                   double timepoint_weight);

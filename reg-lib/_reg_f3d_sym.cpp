@@ -1603,7 +1603,7 @@ double reg_f3d_sym<T>::GetObjectiveFunctionValue()
    this->currentWLand = this->ComputeLandmarkDistancePenaltyTerm();
 
    // Compute initial similarity measure
-   this->currentWMeasure = 0.0;
+   this->currentWMeasure = 0;
    if(this->similarityWeight>0)
    {
       this->WarpFloatingImage(this->interpolation);

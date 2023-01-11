@@ -13,12 +13,8 @@
 #pragma once
 
 #include "_reg_ssd.h"
-//#include "ConvolutionKernel.h"
-//#include "Platform.h"
-#include <math.h>
 #include "_reg_globalTrans.h"
 #include "_reg_resampling.h"
-#include <algorithm>
 
 #define MIND_TYPE 0
 #define MINDSSC_TYPE 1
@@ -26,8 +22,7 @@
 /* *************************************************************** */
 /* *************************************************************** */
 /// @brief MIND measure of similarity class
-class reg_mind : public reg_ssd
-{
+class reg_mind: public reg_ssd {
 public:
     /// @brief reg_mind class constructor
     reg_mind();
@@ -56,20 +51,19 @@ public:
     virtual int GetDescriptorOffset();
 
 protected:
-   nifti_image *referenceImageDescriptor;
-   nifti_image *floatingImageDescriptor;
-   nifti_image *warpedReferenceImageDescriptor;
-   nifti_image *warpedFloatingImageDescriptor;
-   double timePointWeightDescriptor[255];
+    nifti_image *referenceImageDescriptor;
+    nifti_image *floatingImageDescriptor;
+    nifti_image *warpedReferenceImageDescriptor;
+    nifti_image *warpedFloatingImageDescriptor;
+    double timePointWeightDescriptor[255] = {0};
 
-   int descriptorOffset;
-   int mind_type;
-   int discriptor_number;
+    int descriptorOffset;
+    int mind_type;
+    int descriptor_number;
 };
 /* *************************************************************** */
 /// @brief MIND-SSC measure of similarity class
-class reg_mindssc : public reg_mind
-{
+class reg_mindssc: public reg_mind {
 public:
     /// @brief reg_mind class constructor
     reg_mindssc();
@@ -79,14 +73,14 @@ public:
 /* *************************************************************** */
 
 extern "C++"
-void GetMINDImageDesciptor(nifti_image* inputImgPtr,
-                           nifti_image* MINDImgPtr,
+void GetMINDImageDescriptor(nifti_image *inputImgPtr,
+                           nifti_image *MINDImgPtr,
                            int *mask,
                            int descriptorOffset,
                            int current_timepoint);
 extern "C++"
-void GetMINDSSCImageDesciptor(nifti_image* inputImgPtr,
-                              nifti_image* MINDSSCImgPtr,
+void GetMINDSSCImageDescriptor(nifti_image *inputImgPtr,
+                              nifti_image *MINDSSCImgPtr,
                               int *mask,
                               int descriptorOffset,
                               int current_timepoint);

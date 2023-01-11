@@ -48,7 +48,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
         {
             for(int j=0; j<4; j++)
             {
-                absoluteReference.m[i][j]=absoluteFloating.m[i][j]=0.0;
+                absoluteReference.m[i][j]=absoluteFloating.m[i][j]=0;
             }
         }
         //If the reference sform is defined, it is used; qform otherwise;

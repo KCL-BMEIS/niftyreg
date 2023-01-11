@@ -13,8 +13,8 @@
 #include "_reg_base.h"
 #include "F3dContent.h" // TODO Temporary fix! Remove this line!
 
- /* *************************************************************** */
- /* *************************************************************** */
+/* *************************************************************** */
+/* *************************************************************** */
 template<class T>
 reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     platform = nullptr;
@@ -661,7 +661,7 @@ void reg_base<T>::CheckParameters() {
         double *nmiWeights = nullptr, *ssdWeights = nullptr, *kldWeights = nullptr, *lnccWeights = nullptr;
         if (measure_nmi != nullptr) {
             nmiWeights = measure_nmi->GetTimepointsWeights();
-            simWeightSum = 0.0;
+            simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
                 if (nmiWeights[n] < 0) {
                     char text[255];
@@ -674,14 +674,14 @@ void reg_base<T>::CheckParameters() {
                 simWeightSum += nmiWeights[n];
                 totWeightSum += nmiWeights[n];
             }
-            if (simWeightSum == 0.0) {
+            if (simWeightSum == 0) {
                 reg_print_fct_warn("reg_base::CheckParameters()");
                 reg_print_msg_warn("The NMI similarity measure has a weight of 0 for all channels so will be ignored");
             }
         }
         if (measure_ssd != nullptr) {
             ssdWeights = measure_ssd->GetTimepointsWeights();
-            simWeightSum = 0.0;
+            simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
                 if (ssdWeights[n] < 0) {
                     char text[255];
@@ -694,14 +694,14 @@ void reg_base<T>::CheckParameters() {
                 simWeightSum += ssdWeights[n];
                 totWeightSum += ssdWeights[n];
             }
-            if (simWeightSum == 0.0) {
+            if (simWeightSum == 0) {
                 reg_print_fct_warn("reg_base::CheckParameters()");
                 reg_print_msg_warn("The SSD similarity measure has a weight of 0 for all channels so will be ignored");
             }
         }
         if (measure_kld != nullptr) {
             kldWeights = measure_kld->GetTimepointsWeights();
-            simWeightSum = 0.0;
+            simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
                 if (kldWeights[n] < 0) {
                     char text[255];
@@ -714,14 +714,14 @@ void reg_base<T>::CheckParameters() {
                 simWeightSum += kldWeights[n];
                 totWeightSum += kldWeights[n];
             }
-            if (simWeightSum == 0.0) {
+            if (simWeightSum == 0) {
                 reg_print_fct_warn("reg_base::CheckParameters()");
                 reg_print_msg_warn("The KLD similarity measure has a weight of 0 for all channels so will be ignored");
             }
         }
         if (measure_lncc != nullptr) {
             lnccWeights = measure_lncc->GetTimepointsWeights();
-            simWeightSum = 0.0;
+            simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
                 if (lnccWeights[n] < 0) {
                     char text[255];
@@ -734,7 +734,7 @@ void reg_base<T>::CheckParameters() {
                 simWeightSum += lnccWeights[n];
                 totWeightSum += lnccWeights[n];
             }
-            if (simWeightSum == 0.0) {
+            if (simWeightSum == 0) {
                 reg_print_fct_warn("reg_base::CheckParameters()");
                 reg_print_msg_warn("The LNCC similarity measure has a weight of 0 for all channels so will be ignored");
             }
@@ -844,7 +844,7 @@ void reg_base<T>::Initialise() {
     platform = new Platform(platformCode);
     platform->SetGpuIdx(gpuIdx);
 
-    // CREATE THE PYRAMIDE IMAGES
+    // CREATE THE PYRAMID IMAGES
     if (usePyramid) {
         referencePyramid = (nifti_image**)malloc(levelToPerform * sizeof(nifti_image*));
         floatingPyramid = (nifti_image**)malloc(levelToPerform * sizeof(nifti_image*));
@@ -920,7 +920,7 @@ void reg_base<T>::Initialise() {
 
     // SMOOTH THE INPUT IMAGES IF REQUIRED
     for (unsigned int l = 0; l < levelToPerform; l++) {
-        if (referenceSmoothingSigma != 0.0) {
+        if (referenceSmoothingSigma != 0) {
             bool *active = new bool[referencePyramid[l]->nt];
             float *sigma = new float[referencePyramid[l]->nt];
             active[0] = true;
@@ -931,7 +931,7 @@ void reg_base<T>::Initialise() {
             delete[]active;
             delete[]sigma;
         }
-        if (floatingSmoothingSigma != 0.0) {
+        if (floatingSmoothingSigma != 0) {
             // Only the first image is smoothed
             bool *active = new bool[floatingPyramid[l]->nt];
             float *sigma = new float[floatingPyramid[l]->nt];
@@ -985,7 +985,7 @@ double reg_base<T>::ComputeSimilarityMeasure() {
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::ComputeSimilarityMeasure");
 #endif
-    return double(similarityWeight) * measure;
+    return similarityWeight * measure;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1304,7 +1304,7 @@ void reg_base<T>::Run() {
         // Initialise the measures of similarity
         InitialiseSimilarity();
 
-        // initialise the optimiser
+        // Initialise the optimiser
         SetOptimiser();
 
         // Loop over the number of perturbation to do

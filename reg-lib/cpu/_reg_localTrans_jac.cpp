@@ -477,7 +477,7 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
 
             pre[1]=(int)((DTYPE)y/gridVoxelSpacing[1]);
             basis=(DTYPE)y/gridVoxelSpacing[1]-(DTYPE)pre[1];
-            if(basis<0.0) basis=0.0; //rounding error
+            if(basis<0) basis=0; //rounding error
             get_BSplineBasisValues<DTYPE>(basis, yBasis, yFirst);
 
             for(x=0; x<referenceImage->nx; x++)
@@ -485,7 +485,7 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
 
                pre[0]=(int)((DTYPE)x/gridVoxelSpacing[0]);
                basis=(DTYPE)x/gridVoxelSpacing[0]-(DTYPE)pre[0];
-               if(basis<0.0) basis=0.0; //rounding error
+               if(basis<0) basis=0; //rounding error
                get_BSplineBasisValues<DTYPE>(basis, xBasis, xFirst);
 
                coord=0;
@@ -929,15 +929,15 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                   }
                   // Compute the Jacobian matrix
 #if _USE_SSE
-                  tempX_x =  _mm_set_ps1(0.0);
-                  tempX_y =  _mm_set_ps1(0.0);
-                  tempX_z =  _mm_set_ps1(0.0);
-                  tempY_x =  _mm_set_ps1(0.0);
-                  tempY_y =  _mm_set_ps1(0.0);
-                  tempY_z =  _mm_set_ps1(0.0);
-                  tempZ_x =  _mm_set_ps1(0.0);
-                  tempZ_y =  _mm_set_ps1(0.0);
-                  tempZ_z =  _mm_set_ps1(0.0);
+                  tempX_x =  _mm_set_ps1(0);
+                  tempX_y =  _mm_set_ps1(0);
+                  tempX_z =  _mm_set_ps1(0);
+                  tempY_x =  _mm_set_ps1(0);
+                  tempY_y =  _mm_set_ps1(0);
+                  tempY_z =  _mm_set_ps1(0);
+                  tempZ_x =  _mm_set_ps1(0);
+                  tempZ_y =  _mm_set_ps1(0);
+                  tempZ_z =  _mm_set_ps1(0);
                   //addition and multiplication of the 16 basis value and CP position for each axis
                   for(incr0=0; incr0<16; ++incr0)
                   {
@@ -1036,7 +1036,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
 
             pre[2]=(int)((DTYPE)z/gridVoxelSpacing[2]);
             basis=(DTYPE)z/gridVoxelSpacing[2]-(DTYPE)pre[2];
-            if(basis<0.0) basis=0.0; //rounding error
+            if(basis<0) basis=0; //rounding error
             get_BSplineBasisValues<DTYPE>(basis, zBasis, zFirst);
 
             for(y=0; y<referenceImage->ny; y++)
@@ -1044,7 +1044,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
 
                pre[1]=(int)((DTYPE)y/gridVoxelSpacing[1]);
                basis=(DTYPE)y/gridVoxelSpacing[1]-(DTYPE)pre[1];
-               if(basis<0.0) basis=0.0; //rounding error
+               if(basis<0) basis=0; //rounding error
                get_BSplineBasisValues<DTYPE>(basis, yBasis, yFirst);
 
 #if _USE_SSE
@@ -1084,7 +1084,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
 
                   pre[0]=(int)((DTYPE)x/gridVoxelSpacing[0]);
                   basis=(DTYPE)x/gridVoxelSpacing[0]-(DTYPE)pre[0];
-                  if(basis<0.0) basis=0.0; //rounding error
+                  if(basis<0) basis=0; //rounding error
                   get_BSplineBasisValues<DTYPE>(basis, xBasis, xFirst);
 
 #if _USE_SSE
@@ -1157,15 +1157,15 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                      oldPre[2]=pre[2];
                   }
 #if _USE_SSE
-                  tempX_x =  _mm_set_ps1(0.0);
-                  tempX_y =  _mm_set_ps1(0.0);
-                  tempX_z =  _mm_set_ps1(0.0);
-                  tempY_x =  _mm_set_ps1(0.0);
-                  tempY_y =  _mm_set_ps1(0.0);
-                  tempY_z =  _mm_set_ps1(0.0);
-                  tempZ_x =  _mm_set_ps1(0.0);
-                  tempZ_y =  _mm_set_ps1(0.0);
-                  tempZ_z =  _mm_set_ps1(0.0);
+                  tempX_x =  _mm_set_ps1(0);
+                  tempX_y =  _mm_set_ps1(0);
+                  tempX_z =  _mm_set_ps1(0);
+                  tempY_x =  _mm_set_ps1(0);
+                  tempY_y =  _mm_set_ps1(0);
+                  tempY_z =  _mm_set_ps1(0);
+                  tempZ_x =  _mm_set_ps1(0);
+                  tempZ_y =  _mm_set_ps1(0);
+                  tempZ_z =  _mm_set_ps1(0);
                   //addition and multiplication of the 16 basis value and CP position for each axis
                   for(incr0=0; incr0<16; ++incr0)
                   {
@@ -1447,7 +1447,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
                               (splineControlPoint->nx-2)+pixelX-1;
                         detJac = (double)jacobianDeterminant[jacIndex];
 
-                        if(detJac>0.0)
+                        if(detJac>0)
                         {
                            jacobianMatrix = jacobianMatrices[jacIndex];
 #ifdef _USE_SQUARE_LOG_JAC
@@ -1545,7 +1545,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
                            basis=(DTYPE)pixelX/gridVoxelSpacing[0]-(DTYPE)xPre;
                            get_BSplineBasisValue<DTYPE>(basis,x-xPre,xBasis,xFirst);
 
-                           if(detJac>0.0 && (xBasis!=0 ||xFirst!=0))
+                           if(detJac>0 && (xBasis!=0 ||xFirst!=0))
                            {
 
                               jacobianMatrix = jacobianMatrices[jacIndex];
@@ -1699,7 +1699,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
                                        (splineControlPoint->nx-2)+pixelX-1;
                                  detJac = (double)jacobianDeterminant[jacIndex];
 
-                                 if(detJac>0.0)
+                                 if(detJac>0)
                                  {
                                     jacobianMatrix = jacobianMatrices[jacIndex];
 #ifdef _USE_SQUARE_LOG_JAC
@@ -1819,7 +1819,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
                                     basis=(DTYPE)pixelX/gridVoxelSpacing[0]-(DTYPE)xPre;
                                     get_BSplineBasisValue<DTYPE>(basis,x-xPre,xBasis,xFirst);
 
-                                    if(detJac>0.0 && (xBasis!=0 ||xFirst!=0))
+                                    if(detJac>0 && (xBasis!=0 ||xFirst!=0))
                                     {
 
                                        jacobianMatrix = jacobianMatrices[jacIndex];
@@ -2047,7 +2047,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
                               (splineControlPoint->nx-2)+pixelX-1;
                         detJac = jacobianDeterminant[jacIndex];
 
-                        if(detJac<=0.0)
+                        if(detJac<=0)
                         {
                            get_BSplineBasisValue<DTYPE>(0, y-pixelY+1, yBasis, yFirst);
                            get_BSplineBasisValue<DTYPE>(0, x-pixelX+1, xBasis, xFirst);
@@ -2063,7 +2063,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
                                                             basisValues[0],
                                  basisValues[1],
                                  foldingCorrection);
-                        } // detJac<0.0
+                        } // detJac<0
                      } // if x
                   }// x
                }// if y
@@ -2077,7 +2077,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
                norm = (DTYPE)(5.0 * sqrt(gradient[0]*gradient[0]
                      + gradient[1]*gradient[1]));
 
-               if(norm>(DTYPE)0.0)
+               if(norm>(DTYPE)0)
                {
                   id = y*splineControlPoint->nx+x;
                   controlPointPtrX[id] += (DTYPE)(gradient[0]/norm);
@@ -2140,7 +2140,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
                            jacIndex = pixelY*referenceImage->nx+pixelX;
                            detJac = jacobianDeterminant[jacIndex];
 
-                           if(detJac<=0.0)
+                           if(detJac<=0)
                            {
 
                               jacobianMatrix = jacobianMatrices[jacIndex];
@@ -2162,7 +2162,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
                                                                basisValues[0],
                                     basisValues[1],
                                     foldingCorrection);
-                           } // detJac<0.0
+                           } // detJac<0
                         } // if x
                      }// x
                   }// if y
@@ -2177,7 +2177,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
                   norm = (DTYPE)(5.0 * sqrt(gradient[0]*gradient[0] +
                         gradient[1]*gradient[1]));
 
-                  if(norm>0.0)
+                  if(norm>0)
                   {
                      id = y*splineControlPoint->nx+x;
                      controlPointPtrX[id] += (DTYPE)(gradient[0]/norm);
@@ -2305,7 +2305,7 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
                                        (splineControlPoint->nx-2)+pixelX-1;
                                  detJac = jacobianDeterminant[jacIndex];
 
-                                 if(detJac<=0.0)
+                                 if(detJac<=0)
                                  {
                                     get_BSplineBasisValue<DTYPE>(0, z-pixelZ+1, zBasis, zFirst);
                                     get_BSplineBasisValue<DTYPE>(0, y-pixelY+1, yBasis, yFirst);
@@ -2324,7 +2324,7 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
                                           basisValues[1],
                                           basisValues[2],
                                           foldingCorrection);
-                                 } // detJac<0.0
+                                 } // detJac<0
                               } // if x
                            }// x
                         }// if y
@@ -2346,7 +2346,7 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
                         + gradient[1]*gradient[1]
                         + gradient[2]*gradient[2]));
 
-                  if(norm>(DTYPE)0.0)
+                  if(norm>(DTYPE)0)
                   {
                      id = (z*splineControlPoint->ny+y)*splineControlPoint->nx+x;
                      controlPointPtrX[id] += (DTYPE)(gradient[0]/norm);
@@ -2418,7 +2418,7 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
                                     jacIndex = (pixelZ*referenceImage->ny+pixelY)*referenceImage->nx+pixelX;
                                     detJac = jacobianDeterminant[jacIndex];
 
-                                    if(detJac<=0.0)
+                                    if(detJac<=0)
                                     {
 
                                        jacobianMatrix = jacobianMatrices[jacIndex];
@@ -2446,7 +2446,7 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
                                              basisValues[1],
                                              basisValues[2],
                                              foldingCorrection);
-                                    } // detJac<0.0
+                                    } // detJac<0
                                  } // if x
                               }// x
                            }// if y
@@ -2469,7 +2469,7 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
                            gradient[1]*gradient[1] +
                            gradient[2]*gradient[2]));
 
-                     if(norm>0.0)
+                     if(norm>0)
                      {
                         id = (z*splineControlPoint->ny+y)*splineControlPoint->nx+x;
                         controlPointPtrX[id] += (DTYPE)(gradient[0]/norm);
@@ -2714,7 +2714,7 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
    DTYPE *deformationPtrX = static_cast<DTYPE *>(deformationField->data);
    DTYPE *deformationPtrY = &deformationPtrX[voxelNumber];
 
-   DTYPE basis[2]= {1.0,0.0};
+   DTYPE basis[2]= {1.0,0};
    DTYPE first[2]= {-1.0,1.0};
    DTYPE firstX, firstY, defX, defY;
 
@@ -2826,7 +2826,7 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
    DTYPE *deformationPtrY = &deformationPtrX[voxelNumber];
    DTYPE *deformationPtrZ = &deformationPtrY[voxelNumber];
 
-   DTYPE basis[2]= {1.0,0.0};
+   DTYPE basis[2]= {1.0,0};
    DTYPE first[2]= {-1.0,1.0};
    DTYPE firstX, firstY, firstZ, defX, defY, defZ;
 
