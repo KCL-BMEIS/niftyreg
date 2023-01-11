@@ -16,11 +16,11 @@ reg_optimiser_gpu::reg_optimiser_gpu()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-reg_optimiser_gpu::~reg_optimiser_gpu()
-{
-    if(this->bestDOF_gpu!=nullptr)
-        cudaCommon_free(&this->bestDOF_gpu);;
-    this->bestDOF_gpu=nullptr;
+reg_optimiser_gpu::~reg_optimiser_gpu() {
+    if (this->bestDOF_gpu != nullptr) {
+        cudaCommon_free(this->bestDOF_gpu);
+        this->bestDOF_gpu = nullptr;
+    }
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_optimiser_gpu::~reg_optimiser_gpu() called\n");
 #endif
@@ -56,8 +56,8 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
     if(gradData!=nullptr)
         this->gradient_gpu=reinterpret_cast<float4 *>(gradData);
 
-    if(this->bestDOF_gpu!=nullptr)
-        cudaCommon_free(&this->bestDOF_gpu);
+    if (this->bestDOF_gpu != nullptr)
+        cudaCommon_free(this->bestDOF_gpu);
 
     if(cudaCommon_allocateArrayToDevice(&this->bestDOF_gpu,
 									   (int)(this->GetVoxNumber()))){
@@ -118,15 +118,16 @@ reg_conjugateGradient_gpu::reg_conjugateGradient_gpu()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu()
-{
-    if(this->array1!=nullptr)
-        cudaCommon_free(&this->array1);
-    this->array1=nullptr;
+reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() {
+    if (this->array1 != nullptr) {
+        cudaCommon_free(this->array1);
+        this->array1 = nullptr;
+    }
 
-    if(this->array2!=nullptr)
-        cudaCommon_free(&this->array2);
-    this->array2=nullptr;
+    if (this->array2 != nullptr) {
+        cudaCommon_free(this->array2);
+        this->array2 = nullptr;
+    }
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() called\n");
 #endif

@@ -33,12 +33,12 @@ public:
                                   nifti_image *warFloGraPtr,
                                   nifti_image *forVoxBasedGraPtr,
                                   nifti_image *localWeightSimPtr,
-                                  cudaArray **refDevicePtr,
-                                  cudaArray **floDevicePtr,
-                                  int **refMskDevicePtr,
-                                  float **warFloDevicePtr,
-                                  float4 **warFloGradDevicePtr,
-                                  float4 **forVoxBasedGraDevicePtr);
+                                  cudaArray *refDevicePtr,
+                                  cudaArray *floDevicePtr,
+                                  int *refMskDevicePtr,
+                                  float *warFloDevicePtr,
+                                  float4 *warFloGradDevicePtr,
+                                  float4 *forVoxBasedGraDevicePtr);
    /// @brief Returns the ssd value
    double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based ssd gradient

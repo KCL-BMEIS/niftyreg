@@ -47,12 +47,12 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
-                          cudaArray **refDevicePtr,
-                          cudaArray **floDevicePtr,
-                          int **refMskDevicePtr,
-                          float **warFloDevicePtr,
-                          float4 **warFloGradDevicePtr,
-                          float4 **forVoxBasedGraDevicePtr)
+                          cudaArray *refDevicePtr,
+                          cudaArray *floDevicePtr,
+                          int *refMskDevicePtr,
+                          float *warFloDevicePtr,
+                          float4 *warFloGradDevicePtr,
+                          float4 *forVoxBasedGraDevicePtr)
    {
       ;
    }
@@ -87,12 +87,12 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
-                          cudaArray **refDevicePtr,
-                          cudaArray **floDevicePtr,
-                          int **refMskDevicePtr,
-                          float **warFloDevicePtr,
-                          float4 **warFloGradDevicePtr,
-                          float4 **forVoxBasedGraDevicePtr)
+                          cudaArray *refDevicePtr,
+                          cudaArray *floDevicePtr,
+                          int *refMskDevicePtr,
+                          float *warFloDevicePtr,
+                          float4 *warFloGradDevicePtr,
+                          float4 *forVoxBasedGraDevicePtr)
    {
       ;
    }
@@ -127,12 +127,12 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
-                          cudaArray **refDevicePtr,
-                          cudaArray **floDevicePtr,
-                          int **refMskDevicePtr,
-                          float **warFloDevicePtr,
-                          float4 **warFloGradDevicePtr,
-                          float4 **forVoxBasedGraDevicePtr)
+                          cudaArray *refDevicePtr,
+                          cudaArray *floDevicePtr,
+                          int *refMskDevicePtr,
+                          float *warFloDevicePtr,
+                          float4 *warFloGradDevicePtr,
+                          float4 *forVoxBasedGraDevicePtr)
    {
       ;
    }

@@ -33,11 +33,11 @@ void CudaF3dContent::AllocateWarpedGradient() {
 /* *************************************************************** */
 void CudaF3dContent::DeallocateWarpedGradient() {
     if (warpedGradientCuda[0] != nullptr) {
-        cudaCommon_free(&warpedGradientCuda[0]);
+        cudaCommon_free(warpedGradientCuda[0]);
         warpedGradientCuda[0] = nullptr;
     }
     if (warpedGradientCuda[1] != nullptr) {
-        cudaCommon_free(&warpedGradientCuda[1]);
+        cudaCommon_free(warpedGradientCuda[1]);
         warpedGradientCuda[1] = nullptr;
     }
 }
@@ -48,7 +48,7 @@ void CudaF3dContent::AllocateTransformationGradient() {
 /* *************************************************************** */
 void CudaF3dContent::DeallocateTransformationGradient() {
     if (transformationGradientCuda) {
-        cudaCommon_free(&transformationGradientCuda);
+        cudaCommon_free(transformationGradientCuda);
         transformationGradientCuda = nullptr;
     }
 }
@@ -59,13 +59,13 @@ void CudaF3dContent::AllocateVoxelBasedMeasureGradient() {
 /* *************************************************************** */
 void CudaF3dContent::DeallocateVoxelBasedMeasureGradient() {
     if (voxelBasedMeasureGradientCuda) {
-        cudaCommon_free(&voxelBasedMeasureGradientCuda);
+        cudaCommon_free(voxelBasedMeasureGradientCuda);
         voxelBasedMeasureGradientCuda = nullptr;
     }
 }
 /* *************************************************************** */
 nifti_image* CudaF3dContent::GetControlPointGrid() {
-    cudaCommon_transferFromDeviceToNifti(controlPointGrid, &controlPointGridCuda);
+    cudaCommon_transferFromDeviceToNifti(controlPointGrid, controlPointGridCuda);
     return controlPointGrid;
 }
 /* *************************************************************** */
@@ -73,18 +73,18 @@ void CudaF3dContent::SetControlPointGrid(nifti_image *controlPointGridIn) {
     F3dContent::SetControlPointGrid(controlPointGridIn);
 
     if (controlPointGridCuda) {
-        cudaCommon_free(&controlPointGridCuda);
+        cudaCommon_free(controlPointGridCuda);
         controlPointGridCuda = nullptr;
     }
 
     if (!controlPointGrid) return;
 
     cudaCommon_allocateArrayToDevice(&controlPointGridCuda, controlPointGrid->dim);
-    cudaCommon_transferNiftiToArrayOnDevice(&controlPointGridCuda, controlPointGrid);
+    cudaCommon_transferNiftiToArrayOnDevice(controlPointGridCuda, controlPointGrid);
 }
 /* *************************************************************** */
 nifti_image* CudaF3dContent::GetTransformationGradient() {
-    cudaCommon_transferFromDeviceToNifti(transformationGradient, &transformationGradientCuda);
+    cudaCommon_transferFromDeviceToNifti(transformationGradient, transformationGradientCuda);
     return transformationGradient;
 }
 /* *************************************************************** */
@@ -94,11 +94,11 @@ void CudaF3dContent::SetTransformationGradient(nifti_image *transformationGradie
     if (!transformationGradient) return;
 
     AllocateTransformationGradient();
-    cudaCommon_transferNiftiToArrayOnDevice(&transformationGradientCuda, transformationGradient);
+    cudaCommon_transferNiftiToArrayOnDevice(transformationGradientCuda, transformationGradient);
 }
 /* *************************************************************** */
 nifti_image* CudaF3dContent::GetVoxelBasedMeasureGradient() {
-    cudaCommon_transferFromDeviceToNifti(voxelBasedMeasureGradient, &voxelBasedMeasureGradientCuda);
+    cudaCommon_transferFromDeviceToNifti(voxelBasedMeasureGradient, voxelBasedMeasureGradientCuda);
     return voxelBasedMeasureGradient;
 }
 /* *************************************************************** */
@@ -108,11 +108,11 @@ void CudaF3dContent::SetVoxelBasedMeasureGradient(nifti_image *voxelBasedMeasure
     if (!voxelBasedMeasureGradient) return;
 
     AllocateVoxelBasedMeasureGradient();
-    cudaCommon_transferNiftiToArrayOnDevice(&voxelBasedMeasureGradientCuda, voxelBasedMeasureGradient);
+    cudaCommon_transferNiftiToArrayOnDevice(voxelBasedMeasureGradientCuda, voxelBasedMeasureGradient);
 }
 /* *************************************************************** */
 nifti_image* CudaF3dContent::GetWarpedGradient() {
-    cudaCommon_transferFromDeviceToNifti(warpedGradient, &warpedGradientCuda[0]);
+    cudaCommon_transferFromDeviceToNifti(warpedGradient, warpedGradientCuda[0]);
     return warpedGradient;
 }
 /* *************************************************************** */
@@ -122,9 +122,9 @@ void CudaF3dContent::SetWarpedGradient(nifti_image *warpedGradientIn) {
     if (!warpedGradient) return;
 
     AllocateWarpedGradient();
-    cudaCommon_transferNiftiToArrayOnDevice(&warpedGradientCuda[0], warpedGradient);
+    cudaCommon_transferNiftiToArrayOnDevice(warpedGradientCuda[0], warpedGradient);
     if (warpedGradientCuda[1])
-        cudaCommon_transferNiftiToArrayOnDevice(&warpedGradientCuda[1], warpedGradient);
+        cudaCommon_transferNiftiToArrayOnDevice(warpedGradientCuda[1], warpedGradient);
 }
 /* *************************************************************** */
 void CudaF3dContent::ZeroTransformationGradient() {

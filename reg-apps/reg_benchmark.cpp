@@ -187,9 +187,9 @@ int main(int argc, char **argv)
    if(runGPU)
    {
       if(cudaCommon_allocateArrayToDevice<float>(&targetImageArray_d, targetImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float>(&targetImageArray_d, targetImage)) return 1;
+      if(cudaCommon_transferNiftiToArrayOnDevice<float>(targetImageArray_d, targetImage)) return 1;
       if(cudaCommon_allocateArrayToDevice<float>(&sourceImageArray_d, sourceImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float>(&sourceImageArray_d,sourceImage)) return 1;
+      if(cudaCommon_transferNiftiToArrayOnDevice<float>(sourceImageArray_d,sourceImage)) return 1;
       CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, targetImage->nvox*sizeof(int)));
       CUDA_SAFE_CALL(cudaMemcpy(targetMask_d, maskImage, targetImage->nvox*sizeof(int), cudaMemcpyHostToDevice));
       CUDA_SAFE_CALL(cudaMalloc((void **)&deformationFieldImageArray_d, targetImage->nvox*sizeof(float4)));
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
    if(runGPU)
    {
       if(cudaCommon_allocateArrayToDevice<float4>(&controlPointImageArray_d, controlPointImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&controlPointImageArray_d,controlPointImage)) return 1;
+      if(cudaCommon_transferNiftiToArrayOnDevice<float4>(controlPointImageArray_d,controlPointImage)) return 1;
    }
 #endif
    {
@@ -331,7 +331,7 @@ int main(int argc, char **argv)
    if(runGPU)
    {
       if(cudaCommon_allocateArrayToDevice<float4>(&velocityFieldImageArray_d, velocityFieldImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&velocityFieldImageArray_d,velocityFieldImage)) return 1;
+      if(cudaCommon_transferNiftiToArrayOnDevice<float4>(velocityFieldImageArray_d,velocityFieldImage)) return 1;
    }
 #endif
    {
@@ -472,7 +472,7 @@ int main(int argc, char **argv)
          fprintf(outputFile, "GPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          printf("Spatial gradient ratio - %g time(s)\n", (float)cpuTime/(float)gpuTime);
          fprintf(outputFile, "Spatial gradient ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
-         cudaCommon_free( &sourceImageArray_d );
+         cudaCommon_free(sourceImageArray_d);
       }
 #endif
       printf("Spatial gradient done\n\n");
@@ -482,7 +482,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free( (void **)&deformationFieldImageArray_d );
+      cudaCommon_free(deformationFieldImageArray_d);
    }
 #endif
 
@@ -566,7 +566,7 @@ int main(int argc, char **argv)
          fprintf(outputFile, "GPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          printf("Voxel-based NMI gradient ratio - %g time(s)\n", (float)cpuTime/(float)gpuTime);
          fprintf(outputFile, "Voxel-based NMI gradient ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
-         cudaCommon_free((void **)&logJointHistogram_d);
+         cudaCommon_free(logJointHistogram_d);
       }
       CUDA_SAFE_CALL(cudaFree(targetMask_d));
 #endif
@@ -576,7 +576,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free((void **)&resultGradientArray_d);
+      cudaCommon_free(resultGradientArray_d);
    }
 #endif
 
@@ -638,8 +638,8 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free((void **)&voxelNMIGradientArray_d);
-      cudaCommon_free((void **)&nodeNMIGradientArray_d);
+      cudaCommon_free(voxelNMIGradientArray_d);
+      cudaCommon_free(nodeNMIGradientArray_d);
    }
 #endif
 
@@ -796,7 +796,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free( (void **)&controlPointImageArray_d );
+      cudaCommon_free(controlPointImageArray_d );
    }
 #endif
 
@@ -862,9 +862,9 @@ int main(int argc, char **argv)
          fprintf(outputFile, "GPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
          printf("Block-Matching ratio - %g time(s)\n", (float)cpuTime/(float)gpuTime);
          fprintf(outputFile, "Block-Matching ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
-         cudaCommon_free((void **)&targetPosition_d);
-         cudaCommon_free((void **)&resultPosition_d);
-         cudaCommon_free((void **)&activeBlock_d);
+         cudaCommon_free(targetPosition_d);
+         cudaCommon_free(resultPosition_d);
+         cudaCommon_free(activeBlock_d);
       }
 #endif
       printf("Block-matching done\n");
@@ -887,8 +887,8 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free( (void **)&targetImageArray_d );
-      cudaCommon_free( (void **)&resultImageArray_d );
+      cudaCommon_free(targetImageArray_d);
+      cudaCommon_free(resultImageArray_d);
    }
 #endif
 

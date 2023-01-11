@@ -32,12 +32,12 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImgPtr,
 									nifti_image *warFloGraPtr,
 									nifti_image *forVoxBasedGraPtr,
 									nifti_image *localWeightSimPtr,
-									cudaArray **refDevicePtr,
-									cudaArray **floDevicePtr,
-									int **refMskDevicePtr,
-									float **warFloDevicePtr,
-									float4 **warFloGradDevicePtr,
-									float4 **forVoxBasedGraDevicePtr)
+									cudaArray *refDevicePtr,
+									cudaArray *floDevicePtr,
+									int *refMskDevicePtr,
+									float *warFloDevicePtr,
+									float4 *warFloGradDevicePtr,
+									float4 *forVoxBasedGraDevicePtr)
 {
 	reg_ssd::InitialiseMeasure(refImgPtr,
 							   floImgPtr,
@@ -66,13 +66,13 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImgPtr,
 		reg_exit();
 	}
 	// Bind the required pointers
-	this->referenceDevicePointer = *refDevicePtr;
-	this->floatingDevicePointer = *floDevicePtr;
-	this->referenceMaskDevicePointer = *refMskDevicePtr;
+	this->referenceDevicePointer = refDevicePtr;
+	this->floatingDevicePointer = floDevicePtr;
+	this->referenceMaskDevicePointer = refMskDevicePtr;
 	this->activeVoxeNumber=activeVoxNum;
-	this->warpedFloatingDevicePointer = *warFloDevicePtr;
-	this->warpedFloatingGradientDevicePointer = *warFloGradDevicePtr;
-	this->forwardVoxelBasedGradientDevicePointer = *forVoxBasedGraDevicePtr;
+	this->warpedFloatingDevicePointer = warFloDevicePtr;
+	this->warpedFloatingGradientDevicePointer = warFloGradDevicePtr;
+	this->forwardVoxelBasedGradientDevicePointer = forVoxBasedGraDevicePtr;
 #ifndef NDEBUG
 		printf("[NiftyReg DEBUG] reg_ssd_gpu::InitialiseMeasure()\n");
 #endif

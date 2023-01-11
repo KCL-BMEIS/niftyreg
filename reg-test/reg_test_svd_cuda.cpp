@@ -178,7 +178,7 @@ int main(int argc, char **argv)
     /*
             //RETRIEVE THE RESULTS FROM THE GPU
             float **test_UMatrixCUDA = reg_matrix2DAllocate<float>(m, m);
-            cudaCommon_transferArrayFromDeviceToCpu<float>(test_SVect, &Sigma_d, min_size);
+            cudaCommon_transferArrayFromDeviceToCpu<float>(test_SVect, Sigma_d, min_size);
             cudaCommon_transferFromDeviceTo2DMatrixCpu<float>(VT_d, test_VMatrix, min_size, min_size);
             test_VMatrix = reg_matrix2DTranspose<float>(test_VMatrix, min_size, min_size);
             cudaCommon_transferFromDeviceTo2DMatrixCpu<float>(U_d, test_UMatrixCUDA, m, m);

@@ -32,13 +32,13 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
-                          cudaArray **refDevicePtr,
-                          cudaArray **floDevicePtr,
-                          int **refMskDevicePtr,
-                          float **warFloDevicePtr,
-                          float4 **warFloGradDevicePtr,
-                          float4 **forVoxBasedGraDevicePtr);
-   /// @brief Returns the nmi value
+                          cudaArray *refDevicePtr,
+                          cudaArray *floDevicePtr,
+                          int *refMskDevicePtr,
+                          float *warFloDevicePtr,
+                          float4 *warFloGradDevicePtr,
+                          float4 *forVoxBasedGraDevicePtr);
+   /// @brief Returns the nmi valu
    double GetSimilarityMeasureValue();
    /// @brief Compute the voxel based nmi gradient
    void GetVoxelBasedSimilarityMeasureGradient();
@@ -63,12 +63,12 @@ public:
                           nifti_image *warFloImgPtr,
                           nifti_image *warFloGraPtr,
                           nifti_image *forVoxBasedGraPtr,
-                          cudaArray **refDevicePtr,
-                          cudaArray **floDevicePtr,
-                          int **refMskDevicePtr,
-                          float **warFloDevicePtr,
-                          float4 **warFloGradDevicePtr,
-                          float4 **forVoxBasedGraDevicePtr)
+                          cudaArray *refDevicePtr,
+                          cudaArray *floDevicePtr,
+                          int *refMskDevicePtr,
+                          float *warFloDevicePtr,
+                          float4 *warFloGradDevicePtr,
+                          float4 *forVoxBasedGraDevicePtr)
    {
       ;
    }

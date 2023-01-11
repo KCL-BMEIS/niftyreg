@@ -29,32 +29,32 @@ void CudaContent::AllocateImages() {
         reg_tools_changeDatatype<float>(floating);
     if (reference->nt == 1) {
         cudaCommon_allocateArrayToDevice<float>(&referenceCuda[0], reference->dim);
-        cudaCommon_transferNiftiToArrayOnDevice<float>(&referenceCuda[0], reference);
+        cudaCommon_transferNiftiToArrayOnDevice<float>(referenceCuda[0], reference);
         cudaCommon_allocateArrayToDevice<float>(&floatingCuda[0], floating->dim);
-        cudaCommon_transferNiftiToArrayOnDevice<float>(&floatingCuda[0], floating);
+        cudaCommon_transferNiftiToArrayOnDevice<float>(floatingCuda[0], floating);
     } else if (reference->nt == 2) {
         cudaCommon_allocateArrayToDevice<float>(&referenceCuda[0], &referenceCuda[1], reference->dim);
-        cudaCommon_transferNiftiToArrayOnDevice<float>(&referenceCuda[0], &referenceCuda[1], reference);
+        cudaCommon_transferNiftiToArrayOnDevice<float>(referenceCuda[0], referenceCuda[1], reference);
         cudaCommon_allocateArrayToDevice<float>(&floatingCuda[0], &floatingCuda[1], floating->dim);
-        cudaCommon_transferNiftiToArrayOnDevice<float>(&floatingCuda[0], &floatingCuda[1], floating);
+        cudaCommon_transferNiftiToArrayOnDevice<float>(floatingCuda[0], floatingCuda[1], floating);
     }
 }
 /* *************************************************************** */
 void CudaContent::DeallocateImages() {
     if (referenceCuda[0]) {
-        cudaCommon_free(&referenceCuda[0]);
+        cudaCommon_free(referenceCuda[0]);
         referenceCuda[0] = nullptr;
     }
     if (referenceCuda[1]) {
-        cudaCommon_free(&referenceCuda[1]);
+        cudaCommon_free(referenceCuda[1]);
         referenceCuda[1] = nullptr;
     }
     if (floatingCuda[0]) {
-        cudaCommon_free(&floatingCuda[0]);
+        cudaCommon_free(floatingCuda[0]);
         floatingCuda[0] = nullptr;
     }
     if (floatingCuda[1]) {
-        cudaCommon_free(&floatingCuda[1]);
+        cudaCommon_free(floatingCuda[1]);
         floatingCuda[1] = nullptr;
     }
 }
@@ -65,7 +65,7 @@ void CudaContent::AllocateDeformationField() {
 /* *************************************************************** */
 void CudaContent::DeallocateDeformationField() {
     if (deformationFieldCuda) {
-        cudaCommon_free(&deformationFieldCuda);
+        cudaCommon_free(deformationFieldCuda);
         deformationFieldCuda = nullptr;
     }
 }
@@ -84,11 +84,11 @@ void CudaContent::AllocateWarped() {
 /* *************************************************************** */
 void CudaContent::DeallocateWarped() {
     if (warpedCuda[0]) {
-        cudaCommon_free(&warpedCuda[0]);
+        cudaCommon_free(warpedCuda[0]);
         warpedCuda[0] = nullptr;
     }
     if (warpedCuda[1]) {
-        cudaCommon_free(&warpedCuda[1]);
+        cudaCommon_free(warpedCuda[1]);
         warpedCuda[1] = nullptr;
     }
 }
@@ -98,7 +98,7 @@ bool CudaContent::IsCurrentComputationDoubleCapable() {
 }
 /* *************************************************************** */
 nifti_image* CudaContent::GetDeformationField() {
-    cudaCommon_transferFromDeviceToNifti(deformationField, &deformationFieldCuda);
+    cudaCommon_transferFromDeviceToNifti(deformationField, deformationFieldCuda);
     return deformationField;
 }
 /* *************************************************************** */
@@ -108,14 +108,14 @@ void CudaContent::SetDeformationField(nifti_image *deformationFieldIn) {
     if (!deformationField) return;
 
     AllocateDeformationField();
-    cudaCommon_transferNiftiToArrayOnDevice(&deformationFieldCuda, deformationField);
+    cudaCommon_transferNiftiToArrayOnDevice(deformationFieldCuda, deformationField);
 }
 /* *************************************************************** */
 void CudaContent::SetReferenceMask(int *referenceMaskIn) {
     Content::SetReferenceMask(referenceMaskIn);
 
     if (referenceMaskCuda) {
-        cudaCommon_free(&referenceMaskCuda);
+        cudaCommon_free(referenceMaskCuda);
         referenceMaskCuda = nullptr;
     }
 
@@ -130,7 +130,7 @@ void CudaContent::SetTransformationMatrix(mat44 *transformationMatrixIn) {
     Content::SetTransformationMatrix(transformationMatrixIn);
 
     if (transformationMatrixCuda) {
-        cudaCommon_free(&transformationMatrixCuda);
+        cudaCommon_free(transformationMatrixCuda);
         transformationMatrixCuda = nullptr;
     }
 
@@ -155,9 +155,9 @@ void CudaContent::SetWarped(nifti_image *warpedIn) {
 
     reg_tools_changeDatatype<float>(warped);
     AllocateWarped();
-    cudaCommon_transferNiftiToArrayOnDevice(&warpedCuda[0], warped);
+    cudaCommon_transferNiftiToArrayOnDevice(warpedCuda[0], warped);
     if (warpedCuda[1])
-        cudaCommon_transferNiftiToArrayOnDevice(&warpedCuda[1], warped);
+        cudaCommon_transferNiftiToArrayOnDevice(warpedCuda[1], warped);
 }
 /* *************************************************************** */
 template<class DataType>
@@ -192,7 +192,7 @@ void CudaContent::FillImageData(nifti_image *image, float *memoryObject, int dat
     size_t size = image->nvox;
     float *buffer = (float*)malloc(size * sizeof(float));
 
-    cudaCommon_transferFromDeviceToCpu(buffer, &memoryObject, size);
+    cudaCommon_transferFromDeviceToCpu(buffer, memoryObject, size);
 
     free(image->data);
     image->datatype = datatype;

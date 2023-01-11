@@ -55,12 +55,12 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImgPtr,
                                     nifti_image *warFloImgPtr,
                                     nifti_image *warFloGraPtr,
 									nifti_image *forVoxBasedGraPtr,
-									cudaArray **refDevicePtr,
-									cudaArray **floDevicePtr,
-                                    int **refMskDevicePtr,
-                                    float **warFloDevicePtr,
-                                    float4 **warFloGradDevicePtr,
-                                    float4 **forVoxBasedGraDevicePtr)
+									cudaArray *refDevicePtr,
+									cudaArray *floDevicePtr,
+                                    int *refMskDevicePtr,
+                                    float *warFloDevicePtr,
+                                    float4 *warFloGradDevicePtr,
+                                    float4 *forVoxBasedGraDevicePtr)
 {
 	this->DeallocateHistogram();
     reg_nmi::InitialiseMeasure(refImgPtr,
@@ -89,30 +89,27 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImgPtr,
         fprintf(stderr,"[NiftyReg ERROR] This class can only be \n");
         reg_exit();
     }
-	// Bind the required pointers
-	this->referenceDevicePointer = *refDevicePtr;
-	this->floatingDevicePointer = *floDevicePtr;
-    this->referenceMaskDevicePointer = *refMskDevicePtr;
-	this->activeVoxeNumber = activeVoxNum;
-    this->warpedFloatingDevicePointer = *warFloDevicePtr;
-    this->warpedFloatingGradientDevicePointer = *warFloGradDevicePtr;
-    this->forwardVoxelBasedGradientDevicePointer = *forVoxBasedGraDevicePtr;
-	// The reference and floating images have to be updated on the device
-	if(cudaCommon_transferNiftiToArrayOnDevice<float>
-			(&this->referenceDevicePointer, this->referenceImagePointer)){
-		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-		printf("[NiftyReg ERROR] Error when transfering the reference image.\n");
-		reg_exit();
-	}
-	if(cudaCommon_transferNiftiToArrayOnDevice<float>
-			(&this->floatingDevicePointer, this->floatingImagePointer)){
-		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-		printf("[NiftyReg ERROR] Error when transfering the floating image.\n");
-		reg_exit();
-	}
-	// Allocate the required joint histogram on the GPU
-	cudaMalloc(&this->forwardJointHistogramLog_device,
-			   this->totalBinNumber[0]*sizeof(float));
+    // Bind the required pointers
+    this->referenceDevicePointer = refDevicePtr;
+    this->floatingDevicePointer = floDevicePtr;
+    this->referenceMaskDevicePointer = refMskDevicePtr;
+    this->activeVoxeNumber = activeVoxNum;
+    this->warpedFloatingDevicePointer = warFloDevicePtr;
+    this->warpedFloatingGradientDevicePointer = warFloGradDevicePtr;
+    this->forwardVoxelBasedGradientDevicePointer = forVoxBasedGraDevicePtr;
+    // The reference and floating images have to be updated on the device
+    if (cudaCommon_transferNiftiToArrayOnDevice<float>(this->referenceDevicePointer, this->referenceImagePointer)) {
+        fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
+        printf("[NiftyReg ERROR] Error when transfering the reference image.\n");
+        reg_exit();
+    }
+    if (cudaCommon_transferNiftiToArrayOnDevice<float>(this->floatingDevicePointer, this->floatingImagePointer)) {
+        fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
+        printf("[NiftyReg ERROR] Error when transfering the floating image.\n");
+        reg_exit();
+    }
+    // Allocate the required joint histogram on the GPU
+    cudaMalloc(&this->forwardJointHistogramLog_device, this->totalBinNumber[0] * sizeof(float));
 
 #ifndef NDEBUG
 		printf("[NiftyReg DEBUG] reg_nmi_gpu::InitialiseMeasure called\n");
