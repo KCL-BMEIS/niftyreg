@@ -4,7 +4,7 @@
 
 class CudaCompute: public Compute {
 public:
-    CudaCompute(Content *con): Compute(con) {}
+    CudaCompute(Content& con): Compute(con) {}
 
     virtual void ResampleImage(int inter, float paddingValue) override;
     virtual double GetJacobianPenaltyTerm(bool approx) override;

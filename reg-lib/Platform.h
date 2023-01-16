@@ -13,16 +13,16 @@ public:
     Platform(const PlatformType& platformTypeIn);
     virtual ~Platform();
 
-    Compute* CreateCompute(Content *con) const;
+    Compute* CreateCompute(Content& con) const;
     Kernel* CreateKernel(const std::string& name, Content *con) const;
     template<typename Type>
-    reg_optimiser<Type>* CreateOptimiser(F3dContent *con,
-                                         InterfaceOptimiser *opt,
+    reg_optimiser<Type>* CreateOptimiser(F3dContent& con,
+                                         InterfaceOptimiser& opt,
                                          size_t maxIterationNumber,
                                          bool useConjGradient,
                                          bool optimiseX,
                                          bool optimiseY,
-                                         bool optimiseZ);
+                                         bool optimiseZ) const;
     Measure* CreateMeasure();
 
     std::string GetName();

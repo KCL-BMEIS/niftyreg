@@ -4,6 +4,6 @@
 
 class ComputeFactory {
 public:
-    virtual Compute* Produce(Content *con) { return new Compute(con); }
     virtual ~ComputeFactory() {}
+    virtual Compute* Produce(Content& con) { return new Compute(con); }
 };

@@ -5,5 +5,5 @@
 
 class CudaComputeFactory: public ComputeFactory {
 public:
-    virtual Compute* Produce(Content *con) override { return new CudaCompute(con); }
+    virtual Compute* Produce(Content& con) override { return new CudaCompute(con); }
 };

@@ -381,7 +381,7 @@ void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int 
     else if (this->platformType == PlatformType::Cuda)
         this->con = new CudaF3dContent(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
 #endif
-    this->compute = this->platform->CreateCompute(this->con);
+    this->compute = this->platform->CreateCompute(*this->con);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -717,8 +717,8 @@ void reg_f3d<T>::UpdateParameters(float scale) {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::SetOptimiser() {
-    this->optimiser = this->platform->template CreateOptimiser<T>(dynamic_cast<F3dContent*>(this->con),
-                                                                  this,
+    this->optimiser = this->platform->template CreateOptimiser<T>(*dynamic_cast<F3dContent*>(this->con),
+                                                                  *this,
                                                                   this->maxIterationNumber,
                                                                   this->useConjGradient,
                                                                   this->optimiseX,

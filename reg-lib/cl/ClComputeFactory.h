@@ -5,5 +5,5 @@
 
 class ClComputeFactory: public ComputeFactory {
 public:
-    virtual Compute* Produce(Content *con) override { return new ClCompute(con); }
+    virtual Compute* Produce(Content& con) override { return new ClCompute(con); }
 };

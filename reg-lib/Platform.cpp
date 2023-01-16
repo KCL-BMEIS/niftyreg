@@ -40,7 +40,7 @@ Platform::Platform(const PlatformType& platformTypeIn) {
 #endif
 }
 /* *************************************************************** */
-Compute* Platform::CreateCompute(Content *con) const {
+Compute* Platform::CreateCompute(Content& con) const {
     return computeFactory->Produce(con);
 }
 /* *************************************************************** */
@@ -49,27 +49,27 @@ Kernel* Platform::CreateKernel(const std::string& name, Content *con) const {
 }
 /* *************************************************************** */
 template<typename Type>
-reg_optimiser<Type>* Platform::CreateOptimiser(F3dContent *con,
-                                               InterfaceOptimiser *opt,
+reg_optimiser<Type>* Platform::CreateOptimiser(F3dContent& con,
+                                               InterfaceOptimiser& opt,
                                                size_t maxIterationNumber,
                                                bool useConjGradient,
                                                bool optimiseX,
                                                bool optimiseY,
-                                               bool optimiseZ) {
+                                               bool optimiseZ) const {
     reg_optimiser<Type> *optimiser;
-    nifti_image *controlPointGrid = con->F3dContent::GetControlPointGrid();
+    nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
     Type *controlPointGridData, *transformationGradientData;
 
     if (platformType == PlatformType::Cpu) {
         optimiser = useConjGradient ? new reg_conjugateGradient<Type>() : new reg_optimiser<Type>();
         controlPointGridData = (Type*)controlPointGrid->data;
-        transformationGradientData = (Type*)con->F3dContent::GetTransformationGradient()->data;
+        transformationGradientData = (Type*)con.F3dContent::GetTransformationGradient()->data;
     }
 #ifdef _USE_CUDA
     else if (platformType == PlatformType::Cuda) {
         optimiser = dynamic_cast<reg_optimiser<Type>*>(useConjGradient ? new reg_conjugateGradient_gpu() : new reg_optimiser_gpu());
-        controlPointGridData = (Type*)dynamic_cast<CudaF3dContent*>(con)->GetControlPointGridCuda();
-        transformationGradientData = (Type*)dynamic_cast<CudaF3dContent*>(con)->GetTransformationGradientCuda();
+        controlPointGridData = (Type*)dynamic_cast<CudaF3dContent&>(con).GetControlPointGridCuda();
+        transformationGradientData = (Type*)dynamic_cast<CudaF3dContent&>(con).GetTransformationGradientCuda();
     }
 #endif
 
@@ -80,14 +80,14 @@ reg_optimiser<Type>* Platform::CreateOptimiser(F3dContent *con,
                           optimiseZ,
                           maxIterationNumber,
                           0, // currentIterationNumber,
-                          opt,
+                          &opt,
                           controlPointGridData,
                           transformationGradientData);
 
     return optimiser;
 }
-template reg_optimiser<float>* Platform::CreateOptimiser(F3dContent*, InterfaceOptimiser*, size_t, bool, bool, bool, bool);
-template reg_optimiser<double>* Platform::CreateOptimiser(F3dContent*, InterfaceOptimiser*, size_t, bool, bool, bool, bool);
+template reg_optimiser<float>* Platform::CreateOptimiser(F3dContent&, InterfaceOptimiser&, size_t, bool, bool, bool, bool) const;
+template reg_optimiser<double>* Platform::CreateOptimiser(F3dContent&, InterfaceOptimiser&, size_t, bool, bool, bool, bool) const;
 /* *************************************************************** */
 Measure* Platform::CreateMeasure() {
     return measureFactory->Produce();
