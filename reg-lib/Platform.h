@@ -3,6 +3,7 @@
 #include "F3dContent.h"
 #include "KernelFactory.h"
 #include "ComputeFactory.h"
+#include "MeasureFactory.h"
 #include "_reg_optimiser.h"
 
 enum class PlatformType { Cpu, Cuda, OpenCl };
@@ -22,17 +23,18 @@ public:
                                          bool optimiseX,
                                          bool optimiseY,
                                          bool optimiseZ);
+    Measure* CreateMeasure();
 
     std::string GetName();
-
     PlatformType GetPlatformType();
     //void SetPlatformType(const PlatformType& platformTypeIn);
     void SetGpuIdx(unsigned gpuIdxIn);
     unsigned GetGpuIdx();
 
 private:
-    KernelFactory *kernelFactory;
-    ComputeFactory *computeFactory;
+    KernelFactory *kernelFactory = nullptr;
+    ComputeFactory *computeFactory = nullptr;
+    MeasureFactory *measureFactory = nullptr;
     std::string platformName;
     PlatformType platformType;
     unsigned gpuIdx;

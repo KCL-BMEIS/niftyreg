@@ -145,7 +145,10 @@ add_library(_reg_compute ${NIFTYREG_LIBRARY_TYPE}
   F3dContent.h
   Platform.cpp
   Platform.h
+  Measure.cpp
+  Measure.h
 )
+target_link_libraries(_reg_compute _reg_measure)
 install(TARGETS _reg_compute
   RUNTIME DESTINATION lib
   LIBRARY DESTINATION lib
@@ -157,7 +160,8 @@ install(FILES
   AladinContent.h
   Content.h
   F3dContent.h
-  Platform.h DESTINATION include
+  Platform.h
+  Measure.h DESTINATION include
 )
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_compute")
 #-----------------------------------------------------------------------------

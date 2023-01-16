@@ -11,7 +11,6 @@
  */
 
 #include "_reg_base.h"
-#include "F3dContent.h" // TODO Temporary fix! Remove this line!
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -629,15 +628,9 @@ void reg_base<T>::CheckParameters() {
         levelToPerform = levelNumber;
 
     // SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
-    if (measure_nmi == nullptr &&
-        measure_ssd == nullptr &&
-        measure_dti == nullptr &&
-        measure_lncc == nullptr &&
-        measure_lncc == nullptr &&
-        measure_kld == nullptr &&
-        measure_mind == nullptr &&
-        measure_mindssc == nullptr) {
-        measure_nmi = new reg_nmi;
+    if (!measure_nmi && !measure_ssd && !measure_dti && !measure_lncc &&
+        !measure_kld && !measure_mind && !measure_mindssc) {
+        measure_nmi = dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi));
         for (int i = 0; i < inputReference->nt; ++i)
             measure_nmi->SetTimepointWeight(i, 1.0);
     }
@@ -765,70 +758,29 @@ void reg_base<T>::CheckParameters() {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::InitialiseSimilarity() {
-    // TODO Update this section to handle CUDA
     // TODO Move this function to reg_f3d
-    if (measure_nmi != nullptr)
-        measure_nmi->InitialiseMeasure(con->GetReference(),
-                                       con->GetFloating(),
-                                       con->GetReferenceMask(),
-                                       con->GetWarped(),
-                                       dynamic_cast<F3dContent*>(con)->GetWarpedGradient(),
-                                       dynamic_cast<F3dContent*>(con)->GetVoxelBasedMeasureGradient(),
-                                       dynamic_cast<F3dContent*>(con)->GetLocalWeightSim());
+    F3dContent& con = *dynamic_cast<F3dContent*>(this->con);
 
-    if (measure_ssd != nullptr)
-        measure_ssd->InitialiseMeasure(con->GetReference(),
-                                       con->GetFloating(),
-                                       con->GetReferenceMask(),
-                                       con->GetWarped(),
-                                       dynamic_cast<F3dContent*>(con)->GetWarpedGradient(),
-                                       dynamic_cast<F3dContent*>(con)->GetVoxelBasedMeasureGradient(),
-                                       dynamic_cast<F3dContent*>(con)->GetLocalWeightSim());
+    if (measure_nmi)
+        measure->Initialise(*measure_nmi, con);
 
-    if (measure_kld != nullptr)
-        measure_kld->InitialiseMeasure(con->GetReference(),
-                                       con->GetFloating(),
-                                       con->GetReferenceMask(),
-                                       con->GetWarped(),
-                                       dynamic_cast<F3dContent*>(con)->GetWarpedGradient(),
-                                       dynamic_cast<F3dContent*>(con)->GetVoxelBasedMeasureGradient(),
-                                       dynamic_cast<F3dContent*>(con)->GetLocalWeightSim());
+    if (measure_ssd)
+        measure->Initialise(*measure_ssd, con);
 
-    if (measure_lncc != nullptr)
-        measure_lncc->InitialiseMeasure(con->GetReference(),
-                                        con->GetFloating(),
-                                        con->GetReferenceMask(),
-                                        con->GetWarped(),
-                                        dynamic_cast<F3dContent*>(con)->GetWarpedGradient(),
-                                        dynamic_cast<F3dContent*>(con)->GetVoxelBasedMeasureGradient(),
-                                        dynamic_cast<F3dContent*>(con)->GetLocalWeightSim());
+    if (measure_kld)
+        measure->Initialise(*measure_kld, con);
 
-    if (measure_dti != nullptr)
-        measure_dti->InitialiseMeasure(con->GetReference(),
-                                       con->GetFloating(),
-                                       con->GetReferenceMask(),
-                                       con->GetWarped(),
-                                       dynamic_cast<F3dContent*>(con)->GetWarpedGradient(),
-                                       dynamic_cast<F3dContent*>(con)->GetVoxelBasedMeasureGradient(),
-                                       dynamic_cast<F3dContent*>(con)->GetLocalWeightSim());
+    if (measure_lncc)
+        measure->Initialise(*measure_lncc, con);
 
-    if (measure_mind != nullptr)
-        measure_mind->InitialiseMeasure(con->GetReference(),
-                                        con->GetFloating(),
-                                        con->GetReferenceMask(),
-                                        con->GetWarped(),
-                                        dynamic_cast<F3dContent*>(con)->GetWarpedGradient(),
-                                        dynamic_cast<F3dContent*>(con)->GetVoxelBasedMeasureGradient(),
-                                        dynamic_cast<F3dContent*>(con)->GetLocalWeightSim());
+    if (measure_dti)
+        measure->Initialise(*measure_dti, con);
 
-    if (measure_mindssc != nullptr)
-        measure_mindssc->InitialiseMeasure(con->GetReference(),
-                                           con->GetFloating(),
-                                           con->GetReferenceMask(),
-                                           con->GetWarped(),
-                                           dynamic_cast<F3dContent*>(con)->GetWarpedGradient(),
-                                           dynamic_cast<F3dContent*>(con)->GetVoxelBasedMeasureGradient(),
-                                           dynamic_cast<F3dContent*>(con)->GetLocalWeightSim());
+    if (measure_mind)
+        measure->Initialise(*measure_mind, con);
+
+    if (measure_mindssc)
+        measure->Initialise(*measure_mindssc, con);
 
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::InitialiseSimilarity");
@@ -839,10 +791,11 @@ template<class T>
 void reg_base<T>::Initialise() {
     if (initialised) return;
 
-    CheckParameters();
-
     platform = new Platform(platformType);
     platform->SetGpuIdx(gpuIdx);
+    measure = platform->CreateMeasure();
+
+    CheckParameters();
 
     // CREATE THE PYRAMID IMAGES
     if (usePyramid) {
@@ -1051,7 +1004,7 @@ void reg_base<T>::GetVoxelBasedGradient() {
 //void reg_base<T>::ApproximateParzenWindow()
 //{
 //    if(measure_nmi==nullptr)
-//        measure_nmi=new reg_nmi;
+//        measure_nmi = dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi));
 //    measure_nmi=approxParzenWindow = true;
 //}
 ///* *************************************************************** */
@@ -1059,7 +1012,7 @@ void reg_base<T>::GetVoxelBasedGradient() {
 //void reg_base<T>::DoNotApproximateParzenWindow()
 //{
 //    if(measure_nmi==nullptr)
-//        measure_nmi=new reg_nmi;
+//        measure_nmi = dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi));
 //    measure_nmi=approxParzenWindow = false;
 //}
 /* *************************************************************** */
@@ -1067,7 +1020,7 @@ void reg_base<T>::GetVoxelBasedGradient() {
 template<class T>
 void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber) {
     if (measure_nmi == nullptr)
-        measure_nmi = new reg_nmi;
+        measure_nmi = dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi));
     measure_nmi->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
     // I am here adding 4 to the specified bin number to accommodate for
     // the spline support
@@ -1080,7 +1033,7 @@ void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber) {
 template<class T>
 void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber) {
     if (measure_nmi == nullptr)
-        measure_nmi = new reg_nmi;
+        measure_nmi = dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi));
     measure_nmi->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
     // I am here adding 4 to the specified bin number to accommodate for
     // the spline support
@@ -1093,7 +1046,7 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber) {
 template<class T>
 void reg_base<T>::UseSSD(int timepoint, bool normalise) {
     if (measure_ssd == nullptr)
-        measure_ssd = new reg_ssd();
+        measure_ssd = dynamic_cast<reg_ssd*>(measure->Create(MeasureType::Ssd));
     measure_ssd->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
     measure_ssd->SetNormaliseTimepoint(timepoint, normalise);
 #ifndef NDEBUG
@@ -1104,7 +1057,7 @@ void reg_base<T>::UseSSD(int timepoint, bool normalise) {
 template<class T>
 void reg_base<T>::UseMIND(int timepoint, int offset) {
     if (measure_mind == nullptr)
-        measure_mind = new reg_mind;
+        measure_mind = dynamic_cast<reg_mind*>(measure->Create(MeasureType::Mind));
     measure_mind->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
     measure_mind->SetDescriptorOffset(offset);
 #ifndef NDEBUG
@@ -1115,7 +1068,7 @@ void reg_base<T>::UseMIND(int timepoint, int offset) {
 template<class T>
 void reg_base<T>::UseMINDSSC(int timepoint, int offset) {
     if (measure_mindssc == nullptr)
-        measure_mindssc = new reg_mindssc;
+        measure_mindssc = dynamic_cast<reg_mindssc*>(measure->Create(MeasureType::Mindssc));
     measure_mindssc->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
     measure_mindssc->SetDescriptorOffset(offset);
 #ifndef NDEBUG
@@ -1126,7 +1079,7 @@ void reg_base<T>::UseMINDSSC(int timepoint, int offset) {
 template<class T>
 void reg_base<T>::UseKLDivergence(int timepoint) {
     if (measure_kld == nullptr)
-        measure_kld = new reg_kld;
+        measure_kld = dynamic_cast<reg_kld*>(measure->Create(MeasureType::Kld));
     measure_kld->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::UseKLDivergence");
@@ -1136,7 +1089,7 @@ void reg_base<T>::UseKLDivergence(int timepoint) {
 template<class T>
 void reg_base<T>::UseLNCC(int timepoint, float stddev) {
     if (measure_lncc == nullptr)
-        measure_lncc = new reg_lncc;
+        measure_lncc = dynamic_cast<reg_lncc*>(measure->Create(MeasureType::Lncc));
     measure_lncc->SetKernelStandardDeviation(timepoint, stddev);
     measure_lncc->SetTimepointWeight(timepoint, 1.0); // weight initially set to default value of 1.0
 #ifndef NDEBUG
@@ -1163,7 +1116,7 @@ void reg_base<T>::UseDTI(bool *timepoint) {
     reg_exit();
 
     if (measure_dti == nullptr)
-        measure_dti = new reg_dti;
+        measure_dti = dynamic_cast<reg_dti*>(measure->Create(MeasureType::Dti));
     for (int i = 0; i < inputReference->nt; ++i) {
         if (timepoint[i])
             measure_dti->SetTimepointWeight(i, 1.0);  // weight set to 1.0 to indicate timepoint is active

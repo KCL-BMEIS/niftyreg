@@ -74,12 +74,13 @@ set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
 set(NAME _reg_cuda_kernels)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
+    CudaAladinContent.cpp
     CudaCompute.cpp
     CudaContent.cpp
-    CudaF3dContent.cpp
     CudaContextSingleton.cpp
-    CudaAladinContent.cpp
+    CudaF3dContent.cpp
     CudaKernelFactory.cpp
+    CudaMeasure.cpp
     affineDeformationKernel.cu
     blockMatchingKernel.cu
     resampleKernel.cu
@@ -103,7 +104,7 @@ install(TARGETS ${NAME}
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )
-install(FILES blockMatchingKernel.h CudaCompute.h CudaContent.h CudaF3dContent.h CudaContextSingleton.h CudaAladinContent.h DESTINATION include/cuda)
+install(FILES blockMatchingKernel.h CudaCompute.h CudaContent.h CudaF3dContent.h CudaMeasure.h CudaContextSingleton.h CudaAladinContent.h DESTINATION include/cuda)
 install(FILES CudaKernelFactory.h affineDeformationKernel.h resampleKernel.h optimizeKernel.h CudaAffineDeformationFieldKernel.h CudaBlockMatchingKernel.h CudaConvolutionKernel.h CudaOptimiseKernel.h CudaResampleImageKernel.h DESTINATION include/cuda)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------

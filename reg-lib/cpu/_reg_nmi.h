@@ -28,21 +28,19 @@ public:
     /// @brief reg_nmi class destructor
     virtual ~reg_nmi();
 
-    void InitialiseMeasure(nifti_image *refImgPtr,
-                           nifti_image *floImgPtr,
-                           int *maskRefPtr,
-                           nifti_image *warFloImgPtr,
-                           nifti_image *warFloGraPtr,
-                           nifti_image *forVoxBasedGraPtr,
-                           nifti_image *forwardLocalWeightPtr = nullptr,
-                           int *maskFloPtr = nullptr,
-                           nifti_image *warRefImgPtr = nullptr,
-                           nifti_image *warRefGraPtr = nullptr,
-                           nifti_image *bckVoxBasedGraPtr = nullptr);
-
+    virtual void InitialiseMeasure(nifti_image *refImgPtr,
+                                   nifti_image *floImgPtr,
+                                   int *maskRefPtr,
+                                   nifti_image *warFloImgPtr,
+                                   nifti_image *warFloGraPtr,
+                                   nifti_image *forVoxBasedGraPtr,
+                                   nifti_image *localWeightSimPtr = nullptr,
+                                   int *maskFloPtr = nullptr,
+                                   nifti_image *warRefImgPtr = nullptr,
+                                   nifti_image *warRefGraPtr = nullptr,
+                                   nifti_image *bckVoxBasedGraPtr = nullptr) override;
     /// @brief Returns the nmi value
     virtual double GetSimilarityMeasureValue() override;
-
     /// @brief Compute the voxel based nmi gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
 

@@ -14,30 +14,30 @@
 
 #include "_reg_measure.h"
 
- /* *************************************************************** */
+/* *************************************************************** */
 class reg_kld: public reg_measure {
 public:
-   /// @brief reg_kld class constructor
-   reg_kld();
-   /// @brief reg_kld class destructor
-   virtual ~reg_kld() {}
+    /// @brief reg_kld class constructor
+    reg_kld();
+    /// @brief reg_kld class destructor
+    virtual ~reg_kld() {}
 
-   /// @brief Initialise the reg_kld object
-   void InitialiseMeasure(nifti_image *refImgPtr,
-                          nifti_image *floImgPtr,
-                          int *maskRefPtr,
-                          nifti_image *warFloImgPtr,
-                          nifti_image *warFloGraPtr,
-                          nifti_image *forVoxBasedGraPtr,
-                          nifti_image *forwardLocalWeightPtr = nullptr,
-                          int *maskFloPtr = nullptr,
-                          nifti_image *warRefImgPtr = nullptr,
-                          nifti_image *warRefGraPtr = nullptr,
-                          nifti_image *bckVoxBasedGraPtr = nullptr);
-   /// @brief Returns the kld value
-   virtual double GetSimilarityMeasureValue() override;
-   /// @brief Compute the voxel based kld gradient
-   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+    /// @brief Initialise the reg_kld object
+    virtual void InitialiseMeasure(nifti_image *refImgPtr,
+                                   nifti_image *floImgPtr,
+                                   int *maskRefPtr,
+                                   nifti_image *warFloImgPtr,
+                                   nifti_image *warFloGraPtr,
+                                   nifti_image *forVoxBasedGraPtr,
+                                   nifti_image *localWeightSimPtr = nullptr,
+                                   int *maskFloPtr = nullptr,
+                                   nifti_image *warRefImgPtr = nullptr,
+                                   nifti_image *warRefGraPtr = nullptr,
+                                   nifti_image *bckVoxBasedGraPtr = nullptr) override;
+    /// @brief Returns the kld value
+    virtual double GetSimilarityMeasureValue() override;
+    /// @brief Compute the voxel based kld gradient
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
 };
 /* *************************************************************** */
 
@@ -66,7 +66,7 @@ double reg_getKLDivergence(nifti_image *reference,
  * @param warped Second input image to use to compute the metric
  * @param activeTimePoint Specified which time point volumes have to be considered
  * @param warpedGradient Spatial gradient of the input result image
- * @param KLdivGradient Output image htat will be updated with the
+ * @param KLdivGradient Output image that will be updated with the
  * value of the KLD gradient
  * @param jacobianDeterminantImage Image that contains the Jacobian
  * determinant of a transformation at every voxel position. This

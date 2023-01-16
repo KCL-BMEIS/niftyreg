@@ -27,17 +27,17 @@ public:
     virtual ~reg_dti() {}
 
     /// @brief Initialise the reg_dti object
-    void InitialiseMeasure(nifti_image *refImgPtr,
-                           nifti_image *floImgPtr,
-                           int *maskRefPtr,
-                           nifti_image *warFloImgPtr,
-                           nifti_image *warFloGraPtr,
-                           nifti_image *forVoxBasedGraPtr,
-                           nifti_image *forwardLocalWeightPtr = nullptr,
-                           int *maskFloPtr = nullptr,
-                           nifti_image *warRefImgPtr = nullptr,
-                           nifti_image *warRefGraPtr = nullptr,
-                           nifti_image *bckVoxBasedGraPtr = nullptr);
+    virtual void InitialiseMeasure(nifti_image *refImgPtr,
+                                   nifti_image *floImgPtr,
+                                   int *maskRefPtr,
+                                   nifti_image *warFloImgPtr,
+                                   nifti_image *warFloGraPtr,
+                                   nifti_image *forVoxBasedGraPtr,
+                                   nifti_image *localWeightSimPtr = nullptr,
+                                   int *maskFloPtr = nullptr,
+                                   nifti_image *warRefImgPtr = nullptr,
+                                   nifti_image *warRefGraPtr = nullptr,
+                                   nifti_image *bckVoxBasedGraPtr = nullptr) override;
     /// @brief Returns the value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based gradient for DTI images

@@ -5,6 +5,7 @@
 #include "CudaF3dContent.h"
 #include "CudaComputeFactory.h"
 #include "CudaContextSingleton.h"
+#include "CudaMeasureFactory.h"
 #include "_reg_optimiser_gpu.h"
 #endif
 #ifdef _USE_OPENCL
@@ -19,12 +20,14 @@ Platform::Platform(const PlatformType& platformTypeIn) {
     if (platformType == PlatformType::Cpu) {
         kernelFactory = new CpuKernelFactory();
         computeFactory = new ComputeFactory();
+        measureFactory = new MeasureFactory();
         platformName = "cpu_platform";
     }
 #ifdef _USE_CUDA
     else if (platformType == PlatformType::Cuda) {
         kernelFactory = new CudaKernelFactory();
         computeFactory = new CudaComputeFactory();
+        measureFactory = new CudaMeasureFactory();
         platformName = "cuda_platform";
     }
 #endif
@@ -85,6 +88,10 @@ reg_optimiser<Type>* Platform::CreateOptimiser(F3dContent *con,
 }
 template reg_optimiser<float>* Platform::CreateOptimiser(F3dContent*, InterfaceOptimiser*, size_t, bool, bool, bool, bool);
 template reg_optimiser<double>* Platform::CreateOptimiser(F3dContent*, InterfaceOptimiser*, size_t, bool, bool, bool, bool);
+/* *************************************************************** */
+Measure* Platform::CreateMeasure() {
+    return measureFactory->Produce();
+}
 /* *************************************************************** */
 std::string Platform::GetName() {
     return platformName;

@@ -25,21 +25,22 @@ public:
     reg_ssd_gpu();
     /// @brief Measure class destructor
     virtual ~reg_ssd_gpu() {}
+
     /// @brief Initialise the reg_ssd object
-    void InitialiseMeasure(nifti_image *refImgPtr,
-                           nifti_image *floImgPtr,
-                           int *maskRefPtr,
-                           int activeVoxNum,
-                           nifti_image *warFloImgPtr,
-                           nifti_image *warFloGraPtr,
-                           nifti_image *forVoxBasedGraPtr,
-                           nifti_image *localWeightSimPtr,
-                           cudaArray *refDevicePtr,
-                           cudaArray *floDevicePtr,
-                           int *refMskDevicePtr,
-                           float *warFloDevicePtr,
-                           float4 *warFloGradDevicePtr,
-                           float4 *forVoxBasedGraDevicePtr);
+    virtual void InitialiseMeasure(nifti_image *refImgPtr,
+                                   nifti_image *floImgPtr,
+                                   int *maskRefPtr,
+                                   int activeVoxNum,
+                                   nifti_image *warFloImgPtr,
+                                   nifti_image *warFloGraPtr,
+                                   nifti_image *forVoxBasedGraPtr,
+                                   nifti_image *localWeightSimPtr,
+                                   cudaArray *refDevicePtr,
+                                   cudaArray *floDevicePtr,
+                                   int *refMskDevicePtr,
+                                   float *warFloDevicePtr,
+                                   float4 *warFloGradDevicePtr,
+                                   float4 *forVoxBasedGraDevicePtr) override;
     /// @brief Returns the ssd value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based ssd gradient

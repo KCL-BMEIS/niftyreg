@@ -45,6 +45,9 @@ protected:
     // Compute
     Compute *compute = nullptr;
 
+    // Measure
+    Measure *measure = nullptr;
+
     // Optimiser related variables
     reg_optimiser<T> *optimiser;
     size_t maxIterationNumber;

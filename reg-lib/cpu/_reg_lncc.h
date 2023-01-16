@@ -24,17 +24,17 @@ public:
     virtual ~reg_lncc();
 
     /// @brief Initialise the reg_lncc object
-    void InitialiseMeasure(nifti_image *refImgPtr,
-                           nifti_image *floImgPtr,
-                           int *maskRefPtr,
-                           nifti_image *warFloImgPtr,
-                           nifti_image *warFloGraPtr,
-                           nifti_image *forVoxBasedGraPtr,
-                           nifti_image *forwardLocalWeightPtr = nullptr,
-                           int *maskFloPtr = nullptr,
-                           nifti_image *warRefImgPtr = nullptr,
-                           nifti_image *warRefGraPtr = nullptr,
-                           nifti_image *bckVoxBasedGraPtr = nullptr);
+    virtual void InitialiseMeasure(nifti_image *refImgPtr,
+                                   nifti_image *floImgPtr,
+                                   int *maskRefPtr,
+                                   nifti_image *warFloImgPtr,
+                                   nifti_image *warFloGraPtr,
+                                   nifti_image *forVoxBasedGraPtr,
+                                   nifti_image *localWeightSimPtr = nullptr,
+                                   int *maskFloPtr = nullptr,
+                                   nifti_image *warRefImgPtr = nullptr,
+                                   nifti_image *warRefGraPtr = nullptr,
+                                   nifti_image *bckVoxBasedGraPtr = nullptr) override;
     /// @brief Returns the lncc value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based lncc gradient

@@ -27,18 +27,17 @@ public:
     virtual ~reg_ssd() {}
 
     /// @brief Initialise the reg_ssd object
-    void InitialiseMeasure(nifti_image *refImgPtr,
-                           nifti_image *floImgPtr,
-                           int *maskRefPtr,
-                           nifti_image *warFloImgPtr,
-                           nifti_image *warFloGraPtr,
-                           nifti_image *forVoxBasedGraPtr,
-                           nifti_image *localWeightSimPtr,
-                           int *maskFloPtr = nullptr,
-                           nifti_image *warRefImgPtr = nullptr,
-                           nifti_image *warRefGraPtr = nullptr,
-                           nifti_image *bckVoxBasedGraPtr = nullptr);
-
+    virtual void InitialiseMeasure(nifti_image *refImgPtr,
+                                   nifti_image *floImgPtr,
+                                   int *maskRefPtr,
+                                   nifti_image *warFloImgPtr,
+                                   nifti_image *warFloGraPtr,
+                                   nifti_image *forVoxBasedGraPtr,
+                                   nifti_image *localWeightSimPtr = nullptr,
+                                   int *maskFloPtr = nullptr,
+                                   nifti_image *warRefImgPtr = nullptr,
+                                   nifti_image *warRefGraPtr = nullptr,
+                                   nifti_image *bckVoxBasedGraPtr = nullptr) override;
     /// @brief Define if the specified time point should be normalised
     void SetNormaliseTimepoint(int timepoint, bool normalise);
     /// @brief Returns the ssd value

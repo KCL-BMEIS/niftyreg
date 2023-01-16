@@ -30,23 +30,21 @@ public:
     virtual ~reg_mind();
 
     /// @brief Initialise the reg_mind object
-    void InitialiseMeasure(nifti_image *refImgPtr,
+    virtual void InitialiseMeasure(nifti_image *refImgPtr,
                            nifti_image *floImgPtr,
                            int *maskRefPtr,
                            nifti_image *warFloImgPtr,
                            nifti_image *warFloGraPtr,
                            nifti_image *forVoxBasedGraPtr,
-                           nifti_image *forwardLocalWeightPtr = nullptr,
+                           nifti_image *localWeightSimPtr = nullptr,
                            int *maskFloPtr = nullptr,
                            nifti_image *warRefImgPtr = nullptr,
                            nifti_image *warRefGraPtr = nullptr,
-                           nifti_image *bckVoxBasedGraPtr = nullptr);
-
+                           nifti_image *bckVoxBasedGraPtr = nullptr) override;
     /// @brief Returns the mind based measure of similarity value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
-
     virtual void SetDescriptorOffset(int);
     virtual int GetDescriptorOffset();
 
