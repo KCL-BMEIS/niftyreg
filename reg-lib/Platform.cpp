@@ -89,15 +89,15 @@ reg_optimiser<Type>* Platform::CreateOptimiser(F3dContent& con,
 template reg_optimiser<float>* Platform::CreateOptimiser(F3dContent&, InterfaceOptimiser&, size_t, bool, bool, bool, bool) const;
 template reg_optimiser<double>* Platform::CreateOptimiser(F3dContent&, InterfaceOptimiser&, size_t, bool, bool, bool, bool) const;
 /* *************************************************************** */
-Measure* Platform::CreateMeasure() {
+Measure* Platform::CreateMeasure() const {
     return measureFactory->Produce();
 }
 /* *************************************************************** */
-std::string Platform::GetName() {
+std::string Platform::GetName() const {
     return platformName;
 }
 /* *************************************************************** */
-unsigned Platform::GetGpuIdx() {
+unsigned int Platform::GetGpuIdx() const {
     return gpuIdx;
 }
 /* *************************************************************** */
@@ -135,13 +135,9 @@ void Platform::SetGpuIdx(unsigned gpuIdxIn) {
 #endif
 }
 /* *************************************************************** */
-PlatformType Platform::GetPlatformType() {
+PlatformType Platform::GetPlatformType() const {
     return platformType;
 }
-/* *************************************************************** */
-//void Platform::SetPlatformType(const PlatformType& platformTypeIn) {
-//    platformType = platformTypeIn;
-//}
 /* *************************************************************** */
 Platform::~Platform() {
     delete kernelFactory;

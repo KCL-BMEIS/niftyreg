@@ -84,7 +84,7 @@ void Usage(char *exec) {
     reg_print_info(exec, "\t-noAppJL\t\tTo not approximate the JL value only at the control point position");
     reg_print_info(exec, "\t-land <float> <file>\tUse of a set of landmarks which distance should be minimised");
     reg_print_info(exec, "\t\t\t\tThe first argument corresponds to the weight given to this regularisation (between 0 and 1)");
-    reg_print_info(exec, "\t\t\t\tThe second argument corresponds to a text file containing the landmark positions in millimeter as");
+    reg_print_info(exec, "\t\t\t\tThe second argument corresponds to a text file containing the landmark positions in millimetre as");
     reg_print_info(exec, "\t\t\t\t<refX> <refY> <refZ> <floX> <floY> <floZ>\\n for 3D images and");
     reg_print_info(exec, "\t\t\t\t<refX> <refY> <floX> <floY>\\n for 2D images");
     reg_print_info(exec, "");

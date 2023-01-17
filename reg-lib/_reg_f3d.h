@@ -26,7 +26,6 @@ protected:
     bool jacobianLogApproximation;
     T spacing[3];
 
-    // nifti_image *transformationGradient;
     bool gridRefinement;
 
     double currentWJac;
@@ -36,8 +35,6 @@ protected:
     double bestWBE;
     double bestWLE;
 
-    // virtual void AllocateTransformationGradient() override;
-    // virtual void DeallocateTransformationGradient() override;
     virtual T InitialiseCurrentLevel(nifti_image *reference) override;
 
     virtual double ComputeBendingEnergyPenaltyTerm();
@@ -49,7 +46,6 @@ protected:
     virtual void GetLinearEnergyGradient();
     virtual void GetJacobianBasedGradient();
     virtual void GetLandmarkDistanceGradient();
-    // virtual void SetGradientImageToZero() override;
     virtual T NormaliseGradient() override;
     virtual void SmoothGradient() override;
     virtual void GetObjectiveFunctionGradient() override;

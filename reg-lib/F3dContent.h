@@ -8,7 +8,7 @@ public:
     F3dContent(nifti_image *referenceIn,
                nifti_image *floatingIn,
                nifti_image *controlPointGridIn,
-               nifti_image *localWeightSimIn,
+               nifti_image *localWeightSimIn = nullptr,
                int *referenceMaskIn = nullptr,
                mat44 *transformationMatrixIn = nullptr,
                size_t bytesIn = sizeof(float));

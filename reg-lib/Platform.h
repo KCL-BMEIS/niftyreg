@@ -23,13 +23,12 @@ public:
                                          bool optimiseX,
                                          bool optimiseY,
                                          bool optimiseZ) const;
-    Measure* CreateMeasure();
+    Measure* CreateMeasure() const;
 
-    std::string GetName();
-    PlatformType GetPlatformType();
-    //void SetPlatformType(const PlatformType& platformTypeIn);
+    std::string GetName() const;
+    PlatformType GetPlatformType() const;
     void SetGpuIdx(unsigned gpuIdxIn);
-    unsigned GetGpuIdx();
+    unsigned int GetGpuIdx() const;
 
 private:
     KernelFactory *kernelFactory = nullptr;

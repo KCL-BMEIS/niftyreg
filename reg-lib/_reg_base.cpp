@@ -37,7 +37,6 @@ reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     measure_mind = nullptr;
     measure_mindssc = nullptr;
     localWeightSimInput = nullptr;
-    // localWeightSimCurrent = nullptr;
 
     similarityWeight = 0; // automatically set depending of the penalty term weights
 
@@ -77,13 +76,6 @@ reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     floatingPyramid = nullptr;
     maskPyramid = nullptr;
     activeVoxelNumber = nullptr;
-    // reference = nullptr;
-    // floating = nullptr;
-    // currentMask = nullptr;
-    // warped = nullptr;
-    // deformationFieldImage = nullptr;
-    // warpedGradient = nullptr;
-    // voxelBasedMeasureGradient = nullptr;
 
     interpolation = 1;
 
@@ -99,20 +91,16 @@ reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
 /* *************************************************************** */
 template<class T>
 reg_base<T>::~reg_base() {
-    // DeallocateWarped();
-    // DeallocateWarpedGradient();
-    // DeallocateDeformationField();
-    // DeallocateVoxelBasedMeasureGradient();
-    if (referencePyramid != nullptr) {
+    if (referencePyramid) {
         if (usePyramid) {
             for (unsigned int i = 0; i < levelToPerform; i++) {
-                if (referencePyramid[i] != nullptr) {
+                if (referencePyramid[i]) {
                     nifti_image_free(referencePyramid[i]);
                     referencePyramid[i] = nullptr;
                 }
             }
         } else {
-            if (referencePyramid[0] != nullptr) {
+            if (referencePyramid[0]) {
                 nifti_image_free(referencePyramid[0]);
                 referencePyramid[0] = nullptr;
             }
@@ -120,16 +108,16 @@ reg_base<T>::~reg_base() {
         free(referencePyramid);
         referencePyramid = nullptr;
     }
-    if (maskPyramid != nullptr) {
+    if (maskPyramid) {
         if (usePyramid) {
             for (unsigned int i = 0; i < levelToPerform; i++) {
-                if (maskPyramid[i] != nullptr) {
+                if (maskPyramid[i]) {
                     free(maskPyramid[i]);
                     maskPyramid[i] = nullptr;
                 }
             }
         } else {
-            if (maskPyramid[0] != nullptr) {
+            if (maskPyramid[0]) {
                 free(maskPyramid[0]);
                 maskPyramid[0] = nullptr;
             }
@@ -137,16 +125,16 @@ reg_base<T>::~reg_base() {
         free(maskPyramid);
         maskPyramid = nullptr;
     }
-    if (floatingPyramid != nullptr) {
+    if (floatingPyramid) {
         if (usePyramid) {
             for (unsigned int i = 0; i < levelToPerform; i++) {
-                if (floatingPyramid[i] != nullptr) {
+                if (floatingPyramid[i]) {
                     nifti_image_free(floatingPyramid[i]);
                     floatingPyramid[i] = nullptr;
                 }
             }
         } else {
-            if (floatingPyramid[0] != nullptr) {
+            if (floatingPyramid[0]) {
                 nifti_image_free(floatingPyramid[0]);
                 floatingPyramid[0] = nullptr;
             }
@@ -154,46 +142,47 @@ reg_base<T>::~reg_base() {
         free(floatingPyramid);
         floatingPyramid = nullptr;
     }
-    if (activeVoxelNumber != nullptr) {
+    if (activeVoxelNumber) {
         free(activeVoxelNumber);
         activeVoxelNumber = nullptr;
     }
-    if (referenceThresholdUp != nullptr) {
+    if (referenceThresholdUp) {
         delete[]referenceThresholdUp;
         referenceThresholdUp = nullptr;
     }
-    if (referenceThresholdLow != nullptr) {
+    if (referenceThresholdLow) {
         delete[]referenceThresholdLow;
         referenceThresholdLow = nullptr;
     }
-    if (floatingThresholdUp != nullptr) {
+    if (floatingThresholdUp) {
         delete[]floatingThresholdUp;
         floatingThresholdUp = nullptr;
     }
-    if (floatingThresholdLow != nullptr) {
+    if (floatingThresholdLow) {
         delete[]floatingThresholdLow;
         floatingThresholdLow = nullptr;
     }
-    if (optimiser != nullptr) {
+    if (optimiser) {
         delete optimiser;
         optimiser = nullptr;
     }
 
-    if (measure_nmi != nullptr)
+    if (measure_nmi)
         delete measure_nmi;
-    if (measure_ssd != nullptr)
+    if (measure_ssd)
         delete measure_ssd;
-    if (measure_kld != nullptr)
+    if (measure_kld)
         delete measure_kld;
-    if (measure_dti != nullptr)
+    if (measure_dti)
         delete measure_dti;
-    if (measure_lncc != nullptr)
+    if (measure_lncc)
         delete measure_lncc;
-    if (measure_mind != nullptr)
+    if (measure_mind)
         delete measure_mind;
-    if (measure_mindssc != nullptr)
+    if (measure_mindssc)
         delete measure_mindssc;
 
+    delete measure;
     delete platform;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::~reg_base");
@@ -428,189 +417,22 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
-// template<class T>
-// void reg_base<T>::DeallocateCurrentInputImage() {
-//     reference = nullptr;
-//     currentMask = nullptr;
-//     floating = nullptr;
-//     if (localWeightSimCurrent != nullptr)
-//         nifti_image_free(localWeightSimCurrent);
-//     localWeightSimCurrent = nullptr;
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_base<T>::DeallocateCurrentInputImage");
-// #endif
-// }
-/* *************************************************************** */
-/* *************************************************************** */
-// template<class T>
-// void reg_base<T>::AllocateWarped() {
-//     if (reference == nullptr) {
-//         reg_print_fct_error("reg_base::AllocateWarped()");
-//         reg_print_msg_error("The reference image is not defined");
-//         reg_exit();
-//     }
-//     reg_base<T>::DeallocateWarped();
-//     warped = nifti_copy_nim_info(reference);
-//     warped->dim[0] = warped->ndim = floating->ndim;
-//     warped->dim[4] = warped->nt = floating->nt;
-//     warped->pixdim[4] = warped->dt = 1;
-//     warped->nvox = (size_t)(warped->nx * warped->ny * warped->nz * warped->nt);
-//     warped->scl_slope = 1;
-//     warped->scl_inter = 0;
-//     warped->datatype = floating->datatype;
-//     warped->nbyper = floating->nbyper;
-//     warped->data = (void*)calloc(warped->nvox, warped->nbyper);
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_base<T>::AllocateWarped");
-// #endif
-// }
-/* *************************************************************** */
-// template<class T>
-// void reg_base<T>::DeallocateWarped() {
-//     if (warped != nullptr)
-//         nifti_image_free(warped);
-//     warped = nullptr;
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_base<T>::DeallocateWarped");
-// #endif
-// }
-/* *************************************************************** */
-/* *************************************************************** */
-// template<class T>
-// void reg_base<T>::AllocateDeformationField() {
-//     if (reference == nullptr) {
-//         reg_print_fct_error("reg_base::AllocateDeformationField()");
-//         reg_print_msg_error("The reference image is not defined");
-//         reg_exit();
-//     }
-//     reg_base<T>::DeallocateDeformationField();
-//     deformationFieldImage = nifti_copy_nim_info(reference);
-//     deformationFieldImage->dim[0] = deformationFieldImage->ndim = 5;
-//     // deformationFieldImage->dim[1] = deformationFieldImage->nx;
-//     // deformationFieldImage->dim[2] = deformationFieldImage->ny;
-//     // deformationFieldImage->dim[3] = deformationFieldImage->nz;
-//     deformationFieldImage->dim[4] = deformationFieldImage->nt = 1;
-//     deformationFieldImage->pixdim[4] = deformationFieldImage->dt = 1.0;
-//     if (reference->nz == 1)
-//         deformationFieldImage->dim[5] = deformationFieldImage->nu = 2;
-//     else deformationFieldImage->dim[5] = deformationFieldImage->nu = 3;
-//     deformationFieldImage->pixdim[5] = deformationFieldImage->du = 1.0;
-//     deformationFieldImage->dim[6] = deformationFieldImage->nv = 1;
-//     deformationFieldImage->pixdim[6] = deformationFieldImage->dv = 1.0;
-//     deformationFieldImage->dim[7] = deformationFieldImage->nw = 1;
-//     deformationFieldImage->pixdim[7] = deformationFieldImage->dw = 1.0;
-//     deformationFieldImage->nvox =
-//         (size_t)deformationFieldImage->nx *
-//         (size_t)deformationFieldImage->ny *
-//         (size_t)deformationFieldImage->nz *
-//         (size_t)deformationFieldImage->nt *
-//         (size_t)deformationFieldImage->nu;
-//     deformationFieldImage->nbyper = sizeof(T);
-//     if (sizeof(T) == sizeof(float))
-//         deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
-//     else deformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
-//     deformationFieldImage->data = (void*)calloc(deformationFieldImage->nvox,
-//                                                 deformationFieldImage->nbyper);
-//     deformationFieldImage->intent_code = NIFTI_INTENT_VECTOR;
-//     memset(deformationFieldImage->intent_name, 0, 16);
-//     strcpy(deformationFieldImage->intent_name, "NREG_TRANS");
-//     deformationFieldImage->intent_p1 = DEF_FIELD;
-//     deformationFieldImage->scl_slope = 1;
-//     deformationFieldImage->scl_inter = 0;
-
-//     if (measure_dti != nullptr)
-//         forwardJacobianMatrix = (mat33*)malloc(deformationFieldImage->nx * deformationFieldImage->ny *
-//                                                deformationFieldImage->nz * sizeof(mat33));
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_base<T>::AllocateDeformationField");
-// #endif
-// }
-/* *************************************************************** */
-// template<class T>
-// void reg_base<T>::DeallocateDeformationField() {
-//     if (deformationFieldImage != nullptr) {
-//         nifti_image_free(deformationFieldImage);
-//         deformationFieldImage = nullptr;
-//     }
-//     if (forwardJacobianMatrix != nullptr)
-//         free(forwardJacobianMatrix);
-//     forwardJacobianMatrix = nullptr;
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_base<T>::DeallocateDeformationField");
-// #endif
-// }
-/* *************************************************************** */
-// template<class T>
-// void reg_base<T>::AllocateWarpedGradient() {
-//     if (deformationFieldImage == nullptr) {
-//         reg_print_fct_error("reg_base::AllocateWarpedGradient()");
-//         reg_print_msg_error("The deformation field image is not defined");
-//         reg_exit();
-//     }
-//     reg_base<T>::DeallocateWarpedGradient();
-//     warpedGradient = nifti_copy_nim_info(deformationFieldImage);
-//     warpedGradient->data = (void*)calloc(warpedGradient->nvox,
-//                                          warpedGradient->nbyper);
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_base<T>::AllocateWarpedGradient");
-// #endif
-// }
-/* *************************************************************** */
-// template<class T>
-// void reg_base<T>::DeallocateWarpedGradient() {
-//     if (warpedGradient != nullptr) {
-//         nifti_image_free(warpedGradient);
-//         warpedGradient = nullptr;
-//     }
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_base<T>::DeallocateWarpedGradient");
-// #endif
-// }
-/* *************************************************************** */
-// template<class T>
-// void reg_base<T>::AllocateVoxelBasedMeasureGradient() {
-//     if (deformationFieldImage == nullptr) {
-//         reg_print_fct_error("reg_base::AllocateVoxelBasedMeasureGradient()");
-//         reg_print_msg_error("The deformation field image is not defined");
-//         reg_exit();
-//     }
-//     reg_base<T>::DeallocateVoxelBasedMeasureGradient();
-//     voxelBasedMeasureGradient = nifti_copy_nim_info(deformationFieldImage);
-//     voxelBasedMeasureGradient->data = (void*)calloc(voxelBasedMeasureGradient->nvox,
-//                                                     voxelBasedMeasureGradient->nbyper);
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_base<T>::AllocateVoxelBasedMeasureGradient");
-// #endif
-// }
-/* *************************************************************** */
-// template<class T>
-// void reg_base<T>::DeallocateVoxelBasedMeasureGradient() {
-//     if (voxelBasedMeasureGradient != nullptr) {
-//         nifti_image_free(voxelBasedMeasureGradient);
-//         voxelBasedMeasureGradient = nullptr;
-//     }
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_base<T>::DeallocateVoxelBasedMeasureGradient");
-// #endif
-// }
-/* *************************************************************** */
 template<class T>
 void reg_base<T>::CheckParameters() {
     // CHECK THAT BOTH INPUT IMAGES ARE DEFINED
-    if (inputReference == nullptr) {
+    if (!inputReference) {
         reg_print_fct_error("reg_base::CheckParameters()");
         reg_print_msg_error("The reference image is not defined");
         reg_exit();
     }
-    if (inputFloating == nullptr) {
+    if (!inputFloating) {
         reg_print_fct_error("reg_base::CheckParameters()");
         reg_print_msg_error("The floating image is not defined");
         reg_exit();
     }
 
     // CHECK THE MASK DIMENSION IF IT IS DEFINED
-    if (maskImage != nullptr) {
+    if (maskImage) {
         if (inputReference->nx != maskImage->nx ||
             inputReference->ny != maskImage->ny ||
             inputReference->nz != maskImage->nz) {
@@ -642,8 +464,8 @@ void reg_base<T>::CheckParameters() {
     //
     // NOTE - DTI currently ignored as needs fixing
     //
-    // tests ignored if using MIND or MINDSSD as they are not implemented for multi-channel or weighting
-    if (measure_mind == nullptr && measure_mindssc == nullptr) {
+    // tests ignored if using MIND or MINDSSC as they are not implemented for multi-channel or weighting
+    if (!measure_mind && !measure_mindssc) {
         if (inputFloating->nt != inputReference->nt) {
             reg_print_fct_error("reg_base::CheckParameters()");
             reg_print_msg_error("The reference and floating images have different numbers of channels (timepoints)");
@@ -652,7 +474,7 @@ void reg_base<T>::CheckParameters() {
         double *chanWeightSum = new double[inputReference->nt]();
         double simWeightSum, totWeightSum = 0.;
         double *nmiWeights = nullptr, *ssdWeights = nullptr, *kldWeights = nullptr, *lnccWeights = nullptr;
-        if (measure_nmi != nullptr) {
+        if (measure_nmi) {
             nmiWeights = measure_nmi->GetTimepointsWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
@@ -672,7 +494,7 @@ void reg_base<T>::CheckParameters() {
                 reg_print_msg_warn("The NMI similarity measure has a weight of 0 for all channels so will be ignored");
             }
         }
-        if (measure_ssd != nullptr) {
+        if (measure_ssd) {
             ssdWeights = measure_ssd->GetTimepointsWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
@@ -692,7 +514,7 @@ void reg_base<T>::CheckParameters() {
                 reg_print_msg_warn("The SSD similarity measure has a weight of 0 for all channels so will be ignored");
             }
         }
-        if (measure_kld != nullptr) {
+        if (measure_kld) {
             kldWeights = measure_kld->GetTimepointsWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
@@ -712,7 +534,7 @@ void reg_base<T>::CheckParameters() {
                 reg_print_msg_warn("The KLD similarity measure has a weight of 0 for all channels so will be ignored");
             }
         }
-        if (measure_lncc != nullptr) {
+        if (measure_lncc) {
             lnccWeights = measure_lncc->GetTimepointsWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
@@ -739,13 +561,13 @@ void reg_base<T>::CheckParameters() {
                 reg_print_fct_warn("reg_base::CheckParameters()");
                 reg_print_msg_warn(text);
             }
-            if (measure_nmi != nullptr)
+            if (measure_nmi)
                 measure_nmi->SetTimepointWeight(n, nmiWeights[n] / totWeightSum);
-            if (measure_ssd != nullptr)
+            if (measure_ssd)
                 measure_ssd->SetTimepointWeight(n, ssdWeights[n] / totWeightSum);
-            if (measure_kld != nullptr)
+            if (measure_kld)
                 measure_kld->SetTimepointWeight(n, kldWeights[n] / totWeightSum);
-            if (measure_lncc != nullptr)
+            if (measure_lncc)
                 measure_lncc->SetTimepointWeight(n, lnccWeights[n] / totWeightSum);
         }
         delete[] chanWeightSum;
@@ -814,7 +636,7 @@ void reg_base<T>::Initialise() {
     if (robustRange) {
         // Create a copy of the reference image to extract the robust range
         nifti_image *temp_reference = nifti_copy_nim_info(inputReference);
-        temp_reference->data = (void*)malloc(temp_reference->nvox * temp_reference->nbyper);
+        temp_reference->data = malloc(temp_reference->nvox * temp_reference->nbyper);
         memcpy(temp_reference->data, inputReference->data, temp_reference->nvox * temp_reference->nbyper);
         reg_tools_changeDatatype<T>(temp_reference);
         // Extract the robust range of the reference image
@@ -830,7 +652,7 @@ void reg_base<T>::Initialise() {
 
         // Create a copy of the floating image to extract the robust range
         nifti_image *temp_floating = nifti_copy_nim_info(inputFloating);
-        temp_floating->data = (void*)malloc(temp_floating->nvox * temp_floating->nbyper);
+        temp_floating->data = malloc(temp_floating->nvox * temp_floating->nbyper);
         memcpy(temp_floating->data, inputFloating->data, temp_floating->nvox * temp_floating->nbyper);
         reg_tools_changeDatatype<T>(temp_floating);
         // Extract the robust range of the floating image
@@ -849,7 +671,7 @@ void reg_base<T>::Initialise() {
     if (usePyramid) {
         reg_createImagePyramid<T>(inputReference, referencePyramid, levelNumber, levelToPerform);
         reg_createImagePyramid<T>(inputFloating, floatingPyramid, levelNumber, levelToPerform);
-        if (maskImage != nullptr)
+        if (maskImage)
             reg_createMaskPyramid<T>(maskImage, maskPyramid, levelNumber, levelToPerform, activeVoxelNumber);
         else {
             for (unsigned int l = 0; l < levelToPerform; ++l) {
@@ -860,7 +682,7 @@ void reg_base<T>::Initialise() {
     } else {
         reg_createImagePyramid<T>(inputReference, referencePyramid, 1, 1);
         reg_createImagePyramid<T>(inputFloating, floatingPyramid, 1, 1);
-        if (maskImage != nullptr)
+        if (maskImage)
             reg_createMaskPyramid<T>(maskImage, maskPyramid, 1, 1, activeVoxelNumber);
         else {
             activeVoxelNumber[0] = referencePyramid[0]->nx * referencePyramid[0]->ny * referencePyramid[0]->nz;
@@ -914,25 +736,25 @@ void reg_base<T>::Initialise() {
 template<class T>
 double reg_base<T>::ComputeSimilarityMeasure() {
     double measure = 0;
-    if (measure_nmi != nullptr)
+    if (measure_nmi)
         measure += measure_nmi->GetSimilarityMeasureValue();
 
-    if (measure_ssd != nullptr)
+    if (measure_ssd)
         measure += measure_ssd->GetSimilarityMeasureValue();
 
-    if (measure_kld != nullptr)
+    if (measure_kld)
         measure += measure_kld->GetSimilarityMeasureValue();
 
-    if (measure_lncc != nullptr)
+    if (measure_lncc)
         measure += measure_lncc->GetSimilarityMeasureValue();
 
-    if (measure_dti != nullptr)
+    if (measure_dti)
         measure += measure_dti->GetSimilarityMeasureValue();
 
-    if (measure_mind != nullptr)
+    if (measure_mind)
         measure += measure_mind->GetSimilarityMeasureValue();
 
-    if (measure_mindssc != nullptr)
+    if (measure_mindssc)
         measure += measure_mindssc->GetSimilarityMeasureValue();
 
 #ifndef NDEBUG
@@ -975,22 +797,22 @@ void reg_base<T>::GetVoxelBasedGradient() {
         compute->GetImageGradient(interpolation, warpedPaddingValue, t);
 
         // The gradient of the various measures of similarity are computed
-        if (measure_nmi != nullptr)
+        if (measure_nmi)
             measure_nmi->GetVoxelBasedSimilarityMeasureGradient(t);
 
-        if (measure_ssd != nullptr)
+        if (measure_ssd)
             measure_ssd->GetVoxelBasedSimilarityMeasureGradient(t);
 
-        if (measure_kld != nullptr)
+        if (measure_kld)
             measure_kld->GetVoxelBasedSimilarityMeasureGradient(t);
 
-        if (measure_lncc != nullptr)
+        if (measure_lncc)
             measure_lncc->GetVoxelBasedSimilarityMeasureGradient(t);
 
-        if (measure_mind != nullptr)
+        if (measure_mind)
             measure_mind->GetVoxelBasedSimilarityMeasureGradient(t);
 
-        if (measure_mindssc != nullptr)
+        if (measure_mindssc)
             measure_mindssc->GetVoxelBasedSimilarityMeasureGradient(t);
     }
 
@@ -999,11 +821,10 @@ void reg_base<T>::GetVoxelBasedGradient() {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 //template<class T>
 //void reg_base<T>::ApproximateParzenWindow()
 //{
-//    if(measure_nmi==nullptr)
+//    if(!measure_nmi)
 //        measure_nmi = dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi));
 //    measure_nmi=approxParzenWindow = true;
 //}
@@ -1011,15 +832,14 @@ void reg_base<T>::GetVoxelBasedGradient() {
 //template<class T>
 //void reg_base<T>::DoNotApproximateParzenWindow()
 //{
-//    if(measure_nmi==nullptr)
+//    if(!measure_nmi)
 //        measure_nmi = dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi));
 //    measure_nmi=approxParzenWindow = false;
 //}
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber) {
-    if (measure_nmi == nullptr)
+    if (!measure_nmi)
         measure_nmi = dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi));
     measure_nmi->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
     // I am here adding 4 to the specified bin number to accommodate for
@@ -1032,7 +852,7 @@ void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber) {
-    if (measure_nmi == nullptr)
+    if (!measure_nmi)
         measure_nmi = dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi));
     measure_nmi->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
     // I am here adding 4 to the specified bin number to accommodate for
@@ -1045,7 +865,7 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseSSD(int timepoint, bool normalise) {
-    if (measure_ssd == nullptr)
+    if (!measure_ssd)
         measure_ssd = dynamic_cast<reg_ssd*>(measure->Create(MeasureType::Ssd));
     measure_ssd->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
     measure_ssd->SetNormaliseTimepoint(timepoint, normalise);
@@ -1056,7 +876,7 @@ void reg_base<T>::UseSSD(int timepoint, bool normalise) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseMIND(int timepoint, int offset) {
-    if (measure_mind == nullptr)
+    if (!measure_mind)
         measure_mind = dynamic_cast<reg_mind*>(measure->Create(MeasureType::Mind));
     measure_mind->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
     measure_mind->SetDescriptorOffset(offset);
@@ -1067,7 +887,7 @@ void reg_base<T>::UseMIND(int timepoint, int offset) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseMINDSSC(int timepoint, int offset) {
-    if (measure_mindssc == nullptr)
+    if (!measure_mindssc)
         measure_mindssc = dynamic_cast<reg_mindssc*>(measure->Create(MeasureType::Mindssc));
     measure_mindssc->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
     measure_mindssc->SetDescriptorOffset(offset);
@@ -1078,7 +898,7 @@ void reg_base<T>::UseMINDSSC(int timepoint, int offset) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseKLDivergence(int timepoint) {
-    if (measure_kld == nullptr)
+    if (!measure_kld)
         measure_kld = dynamic_cast<reg_kld*>(measure->Create(MeasureType::Kld));
     measure_kld->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
 #ifndef NDEBUG
@@ -1088,7 +908,7 @@ void reg_base<T>::UseKLDivergence(int timepoint) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseLNCC(int timepoint, float stddev) {
-    if (measure_lncc == nullptr)
+    if (!measure_lncc)
         measure_lncc = dynamic_cast<reg_lncc*>(measure->Create(MeasureType::Lncc));
     measure_lncc->SetKernelStandardDeviation(timepoint, stddev);
     measure_lncc->SetTimepointWeight(timepoint, 1.0); // weight initially set to default value of 1.0
@@ -1099,7 +919,7 @@ void reg_base<T>::UseLNCC(int timepoint, float stddev) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLNCCKernelType(int type) {
-    if (measure_lncc == nullptr) {
+    if (!measure_lncc) {
         reg_print_fct_error("reg_base<T>::SetLNCCKernelType");
         reg_print_msg_error("The LNCC object has to be created first");
         reg_exit();
@@ -1115,7 +935,7 @@ void reg_base<T>::UseDTI(bool *timepoint) {
     reg_print_msg_error("The use of DTI has been deactivated as it requires some refactoring");
     reg_exit();
 
-    if (measure_dti == nullptr)
+    if (!measure_dti)
         measure_dti = dynamic_cast<reg_dti*>(measure->Create(MeasureType::Dti));
     for (int i = 0; i < inputReference->nt; ++i) {
         if (timepoint[i])
@@ -1128,7 +948,7 @@ void reg_base<T>::UseDTI(bool *timepoint) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetNMIWeight(int timepoint, double weight) {
-    if (measure_nmi == nullptr) {
+    if (!measure_nmi) {
         reg_print_fct_error("reg_base<T>::SetNMIWeight");
         reg_print_msg_error("The NMI object has to be created before the timepoint weights can be set");
         reg_exit();
@@ -1138,7 +958,7 @@ void reg_base<T>::SetNMIWeight(int timepoint, double weight) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLNCCWeight(int timepoint, double weight) {
-    if (measure_lncc == nullptr) {
+    if (!measure_lncc) {
         reg_print_fct_error("reg_base<T>::SetLNCCWeight");
         reg_print_msg_error("The LNCC object has to be created before the timepoint weights can be set");
         reg_exit();
@@ -1148,7 +968,7 @@ void reg_base<T>::SetLNCCWeight(int timepoint, double weight) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetSSDWeight(int timepoint, double weight) {
-    if (measure_ssd == nullptr) {
+    if (!measure_ssd) {
         reg_print_fct_error("reg_base<T>::SetSSDWeight");
         reg_print_msg_error("The SSD object has to be created before the timepoint weights can be set");
         reg_exit();
@@ -1158,7 +978,7 @@ void reg_base<T>::SetSSDWeight(int timepoint, double weight) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetKLDWeight(int timepoint, double weight) {
-    if (measure_kld == nullptr) {
+    if (!measure_kld) {
         reg_print_fct_error("reg_base<T>::SetKLDWeight");
         reg_print_msg_error("The KLD object has to be created before the timepoint weights can be set");
         reg_exit();
@@ -1166,20 +986,18 @@ void reg_base<T>::SetKLDWeight(int timepoint, double weight) {
     measure_kld->SetTimepointWeight(timepoint, weight);
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLocalWeightSim(nifti_image *i) {
     localWeightSimInput = i;
     reg_tools_changeDatatype<T>(localWeightSimInput);
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_base<T>::WarpFloatingImage(int inter) {
     // Compute the deformation field
     GetDeformationField();
 
-    if (measure_dti == nullptr) {
+    if (!measure_dti) {
         // Resample the floating image
         compute->ResampleImage(inter, warpedPaddingValue);
     } else {
@@ -1236,19 +1054,10 @@ void reg_base<T>::Run() {
             mask = maskPyramid[0];
         }
 
-        // Allocate image that depends on the reference image
-        // AllocateWarped();
-        // AllocateDeformationField();
-        // AllocateWarpedGradient();
-
         // The grid is refined if necessary
         T maxStepSize = InitialiseCurrentLevel(reference);
         T currentSize = maxStepSize;
         T smallestSize = maxStepSize / (T)100.0;
-
-        // Allocate image that are required to compute the gradient
-        // AllocateVoxelBasedMeasureGradient();
-        // AllocateTransformationGradient();
 
         InitContent(reference, floating, mask);
 
@@ -1267,11 +1076,7 @@ void reg_base<T>::Run() {
             PrintInitialObjFunctionValue();
 
             // Iterate until convergence or until the max number of iteration is reach
-            while (true) {
-
-                if (currentSize == 0)
-                    break;
-
+            while (currentSize) {
                 if (optimiser->GetCurrentIterationNumber() >= optimiser->GetMaxIterationNumber()) {
                     reg_print_msg_warn("The current level reached the maximum number of iteration");
                     break;
@@ -1319,16 +1124,6 @@ void reg_base<T>::Run() {
         delete optimiser;
         optimiser = nullptr;
         DeinitContent();
-        // if (localWeightSimCurrent) {
-        //     nifti_image_free(localWeightSimCurrent);
-        //     localWeightSimCurrent = nullptr;
-        // }
-        // DeallocateCurrentInputImage();
-        // DeallocateWarped();
-        // DeallocateDeformationField();
-        // DeallocateWarpedGradient();
-        // DeallocateVoxelBasedMeasureGradient();
-        // DeallocateTransformationGradient();
         if (usePyramid) {
             nifti_image_free(referencePyramid[currentLevel]);
             referencePyramid[currentLevel] = nullptr;

@@ -18,28 +18,22 @@
 #endif
 
  /* *************************************************************** */
- /* *************************************************************** */
 template<class T>
-reg_f3d<T>::reg_f3d(int refTimePoint, int floTimePoint)
-    : reg_base<T>::reg_base(refTimePoint, floTimePoint) {
+reg_f3d<T>::reg_f3d(int refTimePoint, int floTimePoint):
+    reg_base<T>::reg_base(refTimePoint, floTimePoint) {
 
     this->executableName = (char*)"NiftyReg F3D";
     inputControlPointGrid = nullptr; // pointer to external
     controlPointGrid = nullptr;
     bendingEnergyWeight = 0.001;
     linearEnergyWeight = 0.00;
-    jacobianLogWeight = 0.;
+    jacobianLogWeight = 0;
     jacobianLogApproximation = true;
     spacing[0] = -5;
     spacing[1] = std::numeric_limits<T>::quiet_NaN();
     spacing[2] = std::numeric_limits<T>::quiet_NaN();
     this->useConjGradient = true;
     this->useApproxGradient = false;
-
-    // approxParzenWindow=true;
-
-    // transformationGradient = nullptr;
-
     gridRefinement = true;
 
 #ifndef NDEBUG
@@ -47,11 +41,9 @@ reg_f3d<T>::reg_f3d(int refTimePoint, int floTimePoint)
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 reg_f3d<T>::~reg_f3d() {
-    // DeallocateTransformationGradient();
-    if (controlPointGrid != nullptr) {
+    if (controlPointGrid) {
         nifti_image_free(controlPointGrid);
         controlPointGrid = nullptr;
     }
@@ -59,7 +51,6 @@ reg_f3d<T>::~reg_f3d() {
     reg_print_fct_debug("reg_f3d<T>::~reg_f3d");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::SetControlPointGridImage(nifti_image *cp) {
@@ -142,39 +133,11 @@ T reg_f3d<T>::InitialiseCurrentLevel(nifti_image *reference) {
     return maxStepSize;
 }
 /* *************************************************************** */
-// template<class T>
-// void reg_f3d<T>::AllocateTransformationGradient() {
-//     if (controlPointGrid == nullptr) {
-//         reg_print_fct_error("reg_f3d<T>::AllocateTransformationGradient()");
-//         reg_print_msg_error("The control point image is not defined");
-//         reg_exit();
-//     }
-//     reg_f3d<T>::DeallocateTransformationGradient();
-//     transformationGradient = nifti_copy_nim_info(controlPointGrid);
-//     transformationGradient->data = (void*)calloc(transformationGradient->nvox,
-//                                                        transformationGradient->nbyper);
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_f3d<T>::AllocateTransformationGradient");
-// #endif
-// }
-/* *************************************************************** */
-// template<class T>
-// void reg_f3d<T>::DeallocateTransformationGradient() {
-//     if (transformationGradient != nullptr) {
-//         nifti_image_free(transformationGradient);
-//         transformationGradient = nullptr;
-//     }
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_f3d<T>::DeallocateTransformationGradient");
-// #endif
-// }
-/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::CheckParameters() {
     reg_base<T>::CheckParameters();
     // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
-    if (strcmp(this->executableName, "NiftyReg F3D") == 0 ||
-        strcmp(this->executableName, "NiftyReg F3D GPU") == 0) {
+    if (strcmp(this->executableName, "NiftyReg F3D") == 0) {
         T penaltySum = bendingEnergyWeight +
             linearEnergyWeight +
             jacobianLogWeight +
@@ -192,7 +155,6 @@ void reg_f3d<T>::CheckParameters() {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::Initialise() {
     if (this->initialised) return;
@@ -200,7 +162,7 @@ void reg_f3d<T>::Initialise() {
     reg_base<T>::Initialise();
 
     // DETERMINE THE GRID SPACING AND CREATE THE GRID
-    if (inputControlPointGrid == nullptr) {
+    if (!inputControlPointGrid) {
         // Set the spacing along y and z if undefined. Their values are set to match
         // the spacing along the x axis
         if (spacing[1] != spacing[1]) spacing[1] = spacing[0];
@@ -224,7 +186,7 @@ void reg_f3d<T>::Initialise() {
         reg_createControlPointGrid<T>(&controlPointGrid, this->referencePyramid[0], gridSpacing);
 
         // The control point position image is initialised with the affine transformation
-        if (this->affineTransformation == nullptr) {
+        if (!this->affineTransformation) {
             memset(controlPointGrid->data, 0, controlPointGrid->nvox * controlPointGrid->nbyper);
             reg_tools_multiplyValueToImage(controlPointGrid, controlPointGrid, 0.f);
             reg_getDeformationFromDisplacement(controlPointGrid);
@@ -263,7 +225,7 @@ void reg_f3d<T>::Initialise() {
             text = stringFormat("\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
                                 i, this->inputReference->nt - 1, this->referenceThresholdLow[i], this->referenceThresholdUp[i]);
             reg_print_info(this->executableName, text.c_str());
-            if (this->measure_nmi != nullptr) {
+            if (this->measure_nmi) {
                 if (this->measure_nmi->GetTimepointsWeights()[i] > 0) {
                     text = stringFormat("\t* binning size for timepoint %i/%i: %i",
                                         i, this->inputFloating->nt - 1, this->measure_nmi->GetReferenceBinNumber()[i] - 4);
@@ -289,7 +251,7 @@ void reg_f3d<T>::Initialise() {
             text = stringFormat("\t* intensity threshold for timepoint %i/%i: [%.2g %.2g]",
                                 i, this->inputFloating->nt - 1, this->floatingThresholdLow[i], this->floatingThresholdUp[i]);
             reg_print_info(this->executableName, text.c_str());
-            if (this->measure_nmi != nullptr) {
+            if (this->measure_nmi) {
                 if (this->measure_nmi->GetTimepointsWeights()[i] > 0) {
                     text = stringFormat("\t* binning size for timepoint %i/%i: %i",
                                         i, this->inputFloating->nt - 1, this->measure_nmi->GetFloatingBinNumber()[i] - 4);
@@ -317,22 +279,20 @@ void reg_f3d<T>::Initialise() {
         text = stringFormat("Final spacing in mm: %g %g %g", spacing[0], spacing[1], spacing[2]);
         reg_print_info(this->executableName, text.c_str());
         reg_print_info(this->executableName, "");
-        if (this->measure_ssd != nullptr)
+        if (this->measure_ssd)
             reg_print_info(this->executableName, "The SSD is used as a similarity measure.");
-        if (this->measure_kld != nullptr)
+        if (this->measure_kld)
             reg_print_info(this->executableName, "The KL divergence is used as a similarity measure.");
-        if (this->measure_lncc != nullptr)
+        if (this->measure_lncc)
             reg_print_info(this->executableName, "The LNCC is used as a similarity measure.");
-        if (this->measure_dti != nullptr)
+        if (this->measure_dti)
             reg_print_info(this->executableName, "A DTI based measure is used as a similarity measure.");
-        if (this->measure_mind != nullptr)
+        if (this->measure_mind)
             reg_print_info(this->executableName, "MIND is used as a similarity measure.");
-        if (this->measure_mindssc != nullptr)
+        if (this->measure_mindssc)
             reg_print_info(this->executableName, "MINDSSC is used as a similarity measure.");
-        if (this->measure_nmi != nullptr || (this->measure_dti == nullptr && this->measure_kld == nullptr &&
-                                             this->measure_lncc == nullptr && this->measure_nmi == nullptr &&
-                                             this->measure_ssd == nullptr && this->measure_mind == nullptr &&
-                                             this->measure_mindssc == nullptr))
+        if (this->measure_nmi || (!this->measure_dti && !this->measure_kld && !this->measure_lncc &&
+                                  !this->measure_nmi && !this->measure_ssd && !this->measure_mind && !this->measure_mindssc))
             reg_print_info(this->executableName, "The NMI is used as a similarity measure.");
         text = stringFormat("Similarity measure term weight: %g", this->similarityWeight);
         reg_print_info(this->executableName, text.c_str());
@@ -372,7 +332,6 @@ void reg_f3d<T>::Initialise() {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
     if (this->platformType == PlatformType::Cpu)
@@ -384,7 +343,6 @@ void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int 
     this->compute = this->platform->CreateCompute(*this->con);
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::DeinitContent() {
     delete this->compute;
@@ -392,7 +350,6 @@ void reg_f3d<T>::DeinitContent() {
     delete this->con;
     this->con = nullptr;
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::GetDeformationField() {
@@ -402,7 +359,6 @@ void reg_f3d<T>::GetDeformationField() {
     reg_print_fct_debug("reg_f3d<T>::GetDeformationField");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type) {
@@ -443,7 +399,6 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type) {
     return jacobianLogWeight * value;
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm() {
     if (bendingEnergyWeight <= 0) return 0;
@@ -455,11 +410,9 @@ double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm() {
     return bendingEnergyWeight * value;
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm() {
-    if (linearEnergyWeight <= 0)
-        return 0;
+    if (linearEnergyWeight <= 0) return 0;
 
     double value = this->compute->ApproxLinearEnergy();
 #ifndef NDEBUG
@@ -468,11 +421,9 @@ double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm() {
     return linearEnergyWeight * value;
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 double reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm() {
-    if (this->landmarkRegWeight <= 0)
-        return 0;
+    if (this->landmarkRegWeight <= 0) return 0;
 
     double value = this->compute->GetLandmarkDistance(this->landmarkRegNumber,
                                                       this->landmarkReference,
@@ -483,9 +434,10 @@ double reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm() {
     return this->landmarkRegWeight * value;
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::GetSimilarityMeasureGradient() {
+    // TODO Implement this for CUDA
+    // Use CPU temporarily
     this->GetVoxelBasedGradient();
 
     nifti_image *voxelBasedMeasureGradient = dynamic_cast<F3dContent*>(this->con)->GetVoxelBasedMeasureGradient();
@@ -524,7 +476,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient() {
                                     activeAxis);
     }
 
-    // Update the changes of voxelBasedMeasureGradient
+    // Update the changes for GPU
     dynamic_cast<F3dContent*>(this->con)->UpdateVoxelBasedMeasureGradient();
 
     // The node based NMI gradient is extracted
@@ -534,7 +486,6 @@ void reg_f3d<T>::GetSimilarityMeasureGradient() {
     reg_print_fct_debug("reg_f3d<T>::GetSimilarityMeasureGradient");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::GetBendingEnergyGradient() {
@@ -546,7 +497,6 @@ void reg_f3d<T>::GetBendingEnergyGradient() {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::GetLinearEnergyGradient() {
     if (linearEnergyWeight <= 0) return;
@@ -557,7 +507,6 @@ void reg_f3d<T>::GetLinearEnergyGradient() {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::GetJacobianBasedGradient() {
     if (jacobianLogWeight <= 0) return;
@@ -567,7 +516,6 @@ void reg_f3d<T>::GetJacobianBasedGradient() {
     reg_print_fct_debug("reg_f3d<T>::GetJacobianBasedGradient");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::GetLandmarkDistanceGradient() {
@@ -581,18 +529,6 @@ void reg_f3d<T>::GetLandmarkDistanceGradient() {
     reg_print_fct_debug("reg_f3d<T>::GetLandmarkDistanceGradient");
 #endif
 }
-/* *************************************************************** */
-/* *************************************************************** */
-// template<class T>
-// void reg_f3d<T>::SetGradientImageToZero() {
-//     T* nodeGradPtr = static_cast<T*>(transformationGradient->data);
-//     for (size_t i = 0; i < transformationGradient->nvox; ++i)
-//         *nodeGradPtr++ = 0;
-// #ifndef NDEBUG
-//     reg_print_fct_debug("reg_f3d<T>::SetGradientImageToZero");
-// #endif
-// }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 T reg_f3d<T>::NormaliseGradient() {
@@ -616,7 +552,6 @@ T reg_f3d<T>::NormaliseGradient() {
     // Returns the largest gradient distance
     return maxGradLength;
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::DisplayCurrentLevelParameters() {
@@ -667,7 +602,6 @@ void reg_f3d<T>::DisplayCurrentLevelParameters() {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 double reg_f3d<T>::GetObjectiveFunctionValue() {
     currentWJac = ComputeJacobianBasedPenaltyTerm(1); // 20 iterations
@@ -699,7 +633,6 @@ double reg_f3d<T>::GetObjectiveFunctionValue() {
     return this->currentWMeasure - currentWBE - currentWLE - currentWJac - this->currentWLand;
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::UpdateParameters(float scale) {
     this->compute->UpdateControlPointPosition(this->optimiser->GetCurrentDOF(),
@@ -713,7 +646,6 @@ void reg_f3d<T>::UpdateParameters(float scale) {
     reg_print_fct_debug("reg_f3d<T>::UpdateParameters");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::SetOptimiser() {
@@ -729,7 +661,6 @@ void reg_f3d<T>::SetOptimiser() {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::SmoothGradient() {
     // TODO Implement this for CUDA
@@ -739,14 +670,13 @@ void reg_f3d<T>::SmoothGradient() {
         float kernel = fabs(this->gradientSmoothingSigma);
         F3dContent *con = dynamic_cast<F3dContent*>(this->con);
         reg_tools_kernelConvolution(con->GetTransformationGradient(), &kernel, GAUSSIAN_KERNEL);
-        // Update the changes of transformationGradient
+        // Update the changes for GPU
         con->UpdateTransformationGradient();
     }
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::SmoothGradient");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::GetApproximatedGradient() {
@@ -763,26 +693,25 @@ void reg_f3d<T>::GetApproximatedGradient() {
     for (size_t i = 0; i < controlPointGrid->nvox; ++i) {
         T currentValue = this->optimiser->GetBestDOF()[i];
         gridPtr[i] = currentValue + eps;
-        // Update the changes. Bad hack, fix that!
+        // Update the changes for GPU
         con->UpdateControlPointGrid();
         double valPlus = GetObjectiveFunctionValue();
         gridPtr[i] = currentValue - eps;
-        // Update the changes. Bad hack, fix that!
+        // Update the changes for GPU
         con->UpdateControlPointGrid();
         double valMinus = GetObjectiveFunctionValue();
         gridPtr[i] = currentValue;
-        // Update the changes. Bad hack, fix that!
+        // Update the changes for GPU
         con->UpdateControlPointGrid();
         gradPtr[i] = -(T)((valPlus - valMinus) / (2.0 * eps));
     }
 
-    // Update the changes
+    // Update the changes for GPU
     con->UpdateTransformationGradient();
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetApproximatedGradient");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 nifti_image** reg_f3d<T>::GetWarpedImage() {
@@ -811,7 +740,6 @@ nifti_image** reg_f3d<T>::GetWarpedImage() {
     return warpedImage;
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 nifti_image* reg_f3d<T>::GetControlPointPositionImage() {
     nifti_image *returnedControlPointGrid = nifti_copy_nim_info(controlPointGrid);
@@ -824,7 +752,6 @@ nifti_image* reg_f3d<T>::GetControlPointPositionImage() {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::UpdateBestObjFunctionValue() {
     this->bestWMeasure = this->currentWMeasure;
@@ -836,7 +763,6 @@ void reg_f3d<T>::UpdateBestObjFunctionValue() {
     reg_print_fct_debug("reg_f3d<T>::UpdateBestObjFunctionValue");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::PrintInitialObjFunctionValue() {
@@ -852,7 +778,6 @@ void reg_f3d<T>::PrintInitialObjFunctionValue() {
     reg_print_fct_debug("reg_f3d<T>::PrintInitialObjFunctionValue");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize) {
@@ -877,7 +802,6 @@ void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize) {
     reg_print_fct_debug("reg_f3d<T>::PrintCurrentObjFunctionValue");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::GetObjectiveFunctionGradient() {
@@ -907,7 +831,6 @@ void reg_f3d<T>::GetObjectiveFunctionGradient() {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_f3d<T>::CorrectTransformation() {
     if (jacobianLogWeight > 0 && jacobianLogApproximation)
@@ -916,6 +839,5 @@ void reg_f3d<T>::CorrectTransformation() {
     reg_print_fct_debug("reg_f3d<T>::CorrectTransformation");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template class reg_f3d<float>;
