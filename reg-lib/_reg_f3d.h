@@ -50,7 +50,7 @@ protected:
     virtual void SmoothGradient() override;
     virtual void GetObjectiveFunctionGradient() override;
     virtual void GetApproximatedGradient() override;
-    void GetSimilarityMeasureGradient();
+    virtual void GetSimilarityMeasureGradient() override;
 
     virtual void GetDeformationField() override;
     virtual void DisplayCurrentLevelParameters() override;
@@ -72,30 +72,22 @@ public:
     reg_f3d(int refTimePoint, int floTimePoint);
     virtual ~reg_f3d();
 
-    void SetControlPointGridImage(nifti_image*);
-    void SetBendingEnergyWeight(T);
-    void SetLinearEnergyWeight(T);
-    void SetJacobianLogWeight(T);
-    void ApproximateJacobianLog();
-    void DoNotApproximateJacobianLog();
-    void SetSpacing(unsigned int, T);
+    virtual void SetControlPointGridImage(nifti_image*);
+    virtual void SetBendingEnergyWeight(T);
+    virtual void SetLinearEnergyWeight(T);
+    virtual void SetJacobianLogWeight(T);
+    virtual void ApproximateJacobianLog();
+    virtual void DoNotApproximateJacobianLog();
+    virtual void SetSpacing(unsigned int, T);
+    virtual void NoGridRefinement() { gridRefinement = false; }
 
-    void NoGridRefinement() { gridRefinement = false; }
     // F3D2 specific options
-    virtual void SetCompositionStepNumber(int) {}
-    virtual void ApproximateComposition() {}
-    virtual void UseSimilaritySymmetry() {}
     virtual void UseBCHUpdate(int) {}
     virtual void UseGradientCumulativeExp() {}
     virtual void DoNotUseGradientCumulativeExp() {}
-
-    // f3d_sym specific options
     virtual void SetFloatingMask(nifti_image*) {}
     virtual void SetInverseConsistencyWeight(T) {}
-    virtual nifti_image *GetBackwardControlPointPositionImage() { return nullptr; }
-
-    // f3d_gpu specific option
-    virtual int CheckMemoryMB() { return EXIT_SUCCESS; }
+    virtual nifti_image* GetBackwardControlPointPositionImage() { return nullptr; }
 
     virtual void CheckParameters() override;
     virtual void Initialise() override;
