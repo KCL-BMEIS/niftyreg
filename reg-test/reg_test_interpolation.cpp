@@ -90,7 +90,7 @@ TEST_CASE("Resampling", "[resampling]") {
     id_field_3D->ndim = id_field_3D->dim[0] = 5;
     id_field_3D->nu = id_field_3D->dim[5] = 3;
     id_field_3D->nvox = id_field_3D->nx * id_field_3D->ny * id_field_3D->nz * id_field_3D->nu;
-    id_field_3D->data = (void*)calloc(id_field_3D->nvox, id_field_3D->nbyper);
+    id_field_3D->data = calloc(id_field_3D->nvox, id_field_3D->nbyper);
     reg_getDeformationFromDisplacement(id_field_3D);
     float res3[8];
     memcpy(res3, reference3D->data, reference3D->nvox * sizeof(float));
@@ -139,7 +139,7 @@ TEST_CASE("Resampling", "[resampling]") {
             SECTION(test_name + " " + desc) {
                 // Create and set a warped image to host the computation
                 nifti_image *warped = nifti_copy_nim_info(reference);
-                warped->data = (void*)malloc(warped->nvox * warped->nbyper);
+                warped->data = malloc(warped->nvox * warped->nbyper);
                 con->SetWarped(warped);
                 // Set the deformation field
                 con->SetDeformationField(def_field);

@@ -205,7 +205,7 @@ void CudaContent::FillImageData(nifti_image *image, float *memoryObject, int dat
     free(image->data);
     image->datatype = datatype;
     image->nbyper = sizeof(DataType);
-    image->data = (void*)malloc(size * image->nbyper);
+    image->data = malloc(size * image->nbyper);
     DataType* data = static_cast<DataType*>(image->data);
     for (size_t i = 0; i < size; ++i)
         data[i] = CastImageData<DataType>(buffer[i], datatype);

@@ -12,8 +12,9 @@
 #include "nifti1_io.h"
 #include "cuda_runtime.h"
 #include "cuda.h"
+#include "_reg_maths.h"
 
- /* ******************************** */
+/* ******************************** */
 #ifndef __VECTOR_TYPES_H__
 #define __VECTOR_TYPES_H__
 struct __attribute__((aligned(4))) float4 {

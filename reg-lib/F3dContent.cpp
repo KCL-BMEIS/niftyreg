@@ -38,7 +38,7 @@ void F3dContent::AllocateLocalWeightSim(nifti_image *localWeightSimIn) {
     localWeightSim->dim[5] = localWeightSim->nu = localWeightSimIn->dim[5];
     localWeightSim->nvox = size_t(localWeightSim->nx * localWeightSim->ny * localWeightSim->nz *
                                   localWeightSim->nt * localWeightSim->nu);
-    localWeightSim->data = (void*)malloc(localWeightSim->nvox * localWeightSim->nbyper);
+    localWeightSim->data = malloc(localWeightSim->nvox * localWeightSim->nbyper);
     F3dContent::ZeroVoxelBasedMeasureGradient();
     reg_getDeformationFromDisplacement(voxelBasedMeasureGradient);
     reg_resampleImage(localWeightSimIn, localWeightSim, voxelBasedMeasureGradient, nullptr, 1, 0);
@@ -53,7 +53,7 @@ void F3dContent::DeallocateLocalWeightSim() {
 /* *************************************************************** */
 void F3dContent::AllocateWarpedGradient() {
     warpedGradient = nifti_copy_nim_info(deformationField);
-    warpedGradient->data = (void*)calloc(warpedGradient->nvox, warpedGradient->nbyper);
+    warpedGradient->data = calloc(warpedGradient->nvox, warpedGradient->nbyper);
 }
 /* *************************************************************** */
 void F3dContent::DeallocateWarpedGradient() {
@@ -65,7 +65,7 @@ void F3dContent::DeallocateWarpedGradient() {
 /* *************************************************************** */
 void F3dContent::AllocateTransformationGradient() {
     transformationGradient = nifti_copy_nim_info(controlPointGrid);
-    transformationGradient->data = (void*)calloc(transformationGradient->nvox, transformationGradient->nbyper);
+    transformationGradient->data = calloc(transformationGradient->nvox, transformationGradient->nbyper);
 }
 /* *************************************************************** */
 void F3dContent::DeallocateTransformationGradient() {
@@ -77,7 +77,7 @@ void F3dContent::DeallocateTransformationGradient() {
 /* *************************************************************** */
 void F3dContent::AllocateVoxelBasedMeasureGradient() {
     voxelBasedMeasureGradient = nifti_copy_nim_info(deformationField);
-    voxelBasedMeasureGradient->data = (void*)calloc(voxelBasedMeasureGradient->nvox, voxelBasedMeasureGradient->nbyper);
+    voxelBasedMeasureGradient->data = calloc(voxelBasedMeasureGradient->nvox, voxelBasedMeasureGradient->nbyper);
 }
 /* *************************************************************** */
 void F3dContent::DeallocateVoxelBasedMeasureGradient() {

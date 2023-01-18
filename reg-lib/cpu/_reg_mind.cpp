@@ -91,16 +91,16 @@ void GetMINDImageDescriptor_core(nifti_image* inputImage,
 
     // Allocate an image to store the mean image
     nifti_image *meanImage = nifti_copy_nim_info(currentInputImage);
-    meanImage->data = (void*)calloc(meanImage->nvox, meanImage->nbyper);
+    meanImage->data = calloc(meanImage->nvox, meanImage->nbyper);
     DTYPE* meanImgDataPtr = static_cast<DTYPE*>(meanImage->data);
 
     // Allocate an image to store the shifted image
     nifti_image *shiftedImage = nifti_copy_nim_info(currentInputImage);
-    shiftedImage->data = (void*)malloc(shiftedImage->nvox * shiftedImage->nbyper);
+    shiftedImage->data = malloc(shiftedImage->nvox * shiftedImage->nbyper);
 
     // Allocation of the difference image
     nifti_image *diff_image = nifti_copy_nim_info(currentInputImage);
-    diff_image->data = (void*)malloc(diff_image->nvox * diff_image->nbyper);
+    diff_image->data = malloc(diff_image->nvox * diff_image->nbyper);
 
     // Define the sigma for the convolution
     float sigma = -0.5;// negative value denotes voxel width
@@ -225,12 +225,12 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
 
     // Allocate an image to store the mean image
     nifti_image *mean_img = nifti_copy_nim_info(currentInputImage);
-    mean_img->data = (void*)calloc(mean_img->nvox, mean_img->nbyper);
+    mean_img->data = calloc(mean_img->nvox, mean_img->nbyper);
     DTYPE* meanImgDataPtr = static_cast<DTYPE*>(mean_img->data);
 
     // Allocate an image to store the warped image
     nifti_image *shiftedImage = nifti_copy_nim_info(currentInputImage);
-    shiftedImage->data = (void*)malloc(shiftedImage->nvox * shiftedImage->nbyper);
+    shiftedImage->data = malloc(shiftedImage->nvox * shiftedImage->nbyper);
 
     // Define the sigma for the convolution
     float sigma = -0.5;// negative value denotes voxel width
@@ -244,11 +244,11 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
     //std::vector<nifti_image *> vectNiftiImage;
     //for(int i=0;i<samplingNbr;i++) {
     nifti_image *diff_image = nifti_copy_nim_info(currentInputImage);
-    diff_image->data = (void*)malloc(diff_image->nvox * diff_image->nbyper);
+    diff_image->data = malloc(diff_image->nvox * diff_image->nbyper);
     int *mask_diff_image = (int*)calloc(diff_image->nvox, sizeof(int));
 
     nifti_image *diff_imageShifted = nifti_copy_nim_info(currentInputImage);
-    diff_imageShifted->data = (void*)malloc(diff_imageShifted->nvox * diff_imageShifted->nbyper);
+    diff_imageShifted->data = malloc(diff_imageShifted->nvox * diff_imageShifted->nbyper);
 
     int RSampling3D_x[6] = {+descriptorOffset, +descriptorOffset, -descriptorOffset, +0, +descriptorOffset, +0};
     int RSampling3D_y[6] = {+descriptorOffset, -descriptorOffset, +0, -descriptorOffset, +0, +descriptorOffset};
@@ -433,8 +433,8 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
         this->referenceImageDescriptor->ny *
         this->referenceImageDescriptor->nz *
         this->referenceImageDescriptor->nt;
-    this->referenceImageDescriptor->data = (void*)malloc(this->referenceImageDescriptor->nvox *
-                                                         this->referenceImageDescriptor->nbyper);
+    this->referenceImageDescriptor->data = malloc(this->referenceImageDescriptor->nvox *
+                                                  this->referenceImageDescriptor->nbyper);
     // Initialise the warped floating descriptor
     this->warpedFloatingImageDescriptor = nifti_copy_nim_info(this->referenceImagePointer);
     this->warpedFloatingImageDescriptor->dim[0] = this->warpedFloatingImageDescriptor->ndim = 4;
@@ -443,8 +443,8 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
         this->warpedFloatingImageDescriptor->ny *
         this->warpedFloatingImageDescriptor->nz *
         this->warpedFloatingImageDescriptor->nt;
-    this->warpedFloatingImageDescriptor->data = (void*)malloc(this->warpedFloatingImageDescriptor->nvox *
-                                                              this->warpedFloatingImageDescriptor->nbyper);
+    this->warpedFloatingImageDescriptor->data = malloc(this->warpedFloatingImageDescriptor->nvox *
+                                                       this->warpedFloatingImageDescriptor->nbyper);
 
     if (this->isSymmetric) {
         if (this->floatingImagePointer->nt > 1 || this->warpedReferenceImagePointer->nt > 1) {
@@ -459,8 +459,8 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
             this->floatingImageDescriptor->ny *
             this->floatingImageDescriptor->nz *
             this->floatingImageDescriptor->nt;
-        this->floatingImageDescriptor->data = (void*)malloc(this->floatingImageDescriptor->nvox *
-                                                            this->floatingImageDescriptor->nbyper);
+        this->floatingImageDescriptor->data = malloc(this->floatingImageDescriptor->nvox *
+                                                     this->floatingImageDescriptor->nbyper);
         // Initialise the warped floating descriptor
         this->warpedReferenceImageDescriptor = nifti_copy_nim_info(this->floatingImagePointer);
         this->warpedReferenceImageDescriptor->dim[0] = this->warpedReferenceImageDescriptor->ndim = 4;
@@ -469,8 +469,8 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
             this->warpedReferenceImageDescriptor->ny *
             this->warpedReferenceImageDescriptor->nz *
             this->warpedReferenceImageDescriptor->nt;
-        this->warpedReferenceImageDescriptor->data = (void*)malloc(this->warpedReferenceImageDescriptor->nvox *
-                                                                   this->warpedReferenceImageDescriptor->nbyper);
+        this->warpedReferenceImageDescriptor->data = malloc(this->warpedReferenceImageDescriptor->nvox *
+                                                            this->warpedReferenceImageDescriptor->nbyper);
     }
 
     for (int i = 0; i < referenceImageDescriptor->nt; ++i) {

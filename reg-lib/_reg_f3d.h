@@ -25,9 +25,7 @@ protected:
     T jacobianLogWeight;
     bool jacobianLogApproximation;
     T spacing[3];
-
     bool gridRefinement;
-
     double currentWJac;
     double currentWBE;
     double currentWLE;
@@ -36,41 +34,40 @@ protected:
     double bestWLE;
 
     virtual T InitialiseCurrentLevel(nifti_image *reference) override;
-
-    virtual double ComputeBendingEnergyPenaltyTerm();
-    virtual double ComputeLinearEnergyPenaltyTerm();
-    virtual double ComputeJacobianBasedPenaltyTerm(int);
-    virtual double ComputeLandmarkDistancePenaltyTerm();
-
-    virtual void GetBendingEnergyGradient();
-    virtual void GetLinearEnergyGradient();
-    virtual void GetJacobianBasedGradient();
-    virtual void GetLandmarkDistanceGradient();
     virtual T NormaliseGradient() override;
     virtual void SmoothGradient() override;
     virtual void GetObjectiveFunctionGradient() override;
     virtual void GetApproximatedGradient() override;
     virtual void GetSimilarityMeasureGradient() override;
-
     virtual void GetDeformationField() override;
     virtual void DisplayCurrentLevelParameters() override;
-
     virtual double GetObjectiveFunctionValue() override;
     virtual void UpdateBestObjFunctionValue() override;
     virtual void UpdateParameters(float) override;
     virtual void SetOptimiser() override;
-
     virtual void PrintInitialObjFunctionValue() override;
     virtual void PrintCurrentObjFunctionValue(T) override;
-
     virtual void CorrectTransformation() override;
+    virtual void CheckParameters() override;
+    virtual void Initialise() override;
+    virtual void InitContent(nifti_image *reference, nifti_image *floating, int *mask) override;
+    virtual void DeinitContent() override;
 
-    void (*funcProgressCallback)(float pcntProgress, void *params);
-    void *paramsProgressCallback;
+    virtual double ComputeBendingEnergyPenaltyTerm();
+    virtual double ComputeLinearEnergyPenaltyTerm();
+    virtual double ComputeJacobianBasedPenaltyTerm(int);
+    virtual double ComputeLandmarkDistancePenaltyTerm();
+    virtual void GetBendingEnergyGradient();
+    virtual void GetLinearEnergyGradient();
+    virtual void GetJacobianBasedGradient();
+    virtual void GetLandmarkDistanceGradient();
 
 public:
     reg_f3d(int refTimePoint, int floTimePoint);
     virtual ~reg_f3d();
+
+    virtual nifti_image* GetControlPointPositionImage();
+    virtual nifti_image** GetWarpedImage() override;
 
     virtual void SetControlPointGridImage(nifti_image*);
     virtual void SetBendingEnergyWeight(T);
@@ -82,17 +79,10 @@ public:
     virtual void NoGridRefinement() { gridRefinement = false; }
 
     // F3D2 specific options
+    virtual nifti_image* GetBackwardControlPointPositionImage() { return nullptr; }
     virtual void UseBCHUpdate(int) {}
     virtual void UseGradientCumulativeExp() {}
     virtual void DoNotUseGradientCumulativeExp() {}
     virtual void SetFloatingMask(nifti_image*) {}
     virtual void SetInverseConsistencyWeight(T) {}
-    virtual nifti_image* GetBackwardControlPointPositionImage() { return nullptr; }
-
-    virtual void CheckParameters() override;
-    virtual void Initialise() override;
-    virtual void InitContent(nifti_image *reference, nifti_image *floating, int *mask) override;
-    virtual void DeinitContent() override;
-    virtual nifti_image* GetControlPointPositionImage();
-    virtual nifti_image** GetWarpedImage() override;
 };

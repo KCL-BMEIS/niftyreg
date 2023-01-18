@@ -270,7 +270,7 @@ void CudaAladinContent::FillImageData(nifti_image *image, float *memoryObject, i
     free(image->data);
     image->datatype = type;
     image->nbyper = sizeof(T);
-    image->data = (void*)malloc(image->nvox * image->nbyper);
+    image->data = malloc(image->nvox * image->nbyper);
     T* dataT = static_cast<T*>(image->data);
     for (size_t i = 0; i < size; ++i)
         dataT[i] = FillWarpedImageData<T>(buffer[i], type);

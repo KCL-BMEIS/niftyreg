@@ -18,24 +18,22 @@
 #include <map>
 #include "_reg_maths.h"
 
-typedef enum
-{
-   MEAN_KERNEL,
-   LINEAR_KERNEL,
-   GAUSSIAN_KERNEL,
-   CUBIC_SPLINE_KERNEL
+typedef enum {
+    MEAN_KERNEL,
+    LINEAR_KERNEL,
+    GAUSSIAN_KERNEL,
+    CUBIC_SPLINE_KERNEL
 } NREG_CONV_KERNEL_TYPE;
 
 /* *************************************************************** */
 /** @brief This function check some header parameters and correct them in
- * case of error. For example no dimension is lower than one. The scl_sclope
+ * case of error. For example no dimension is lower than one. The scl_slope
  * can not be equal to zero. The qto_xyz and qto_ijk are populated if
  * both qform_code and sform_code are set to zero.
  * @param image Input image to check and correct if necessary
  */
 extern "C++"
 void reg_checkAndCorrectDimension(nifti_image *image);
-
 /* *************************************************************** */
 /** @brief Check if the specified filename corresponds to an image.
  * @param name Input filename
@@ -44,10 +42,9 @@ void reg_checkAndCorrectDimension(nifti_image *image);
  */
 extern "C++"
 bool reg_isAnImageFileName(char *name);
-
 /* *************************************************************** */
 /** @brief Rescale an input image between two user-defined values.
- * Some threshold can also be applied concurrenlty
+ * Some threshold can also be applied concurrently
  * @param image Image to be rescaled
  * @param newMin Intensity lower bound after rescaling
  * @param newMax Intensity higher bound after rescaling
@@ -58,10 +55,7 @@ extern "C++"
 void reg_intensityRescale(nifti_image *image,
                           int timepoint,
                           float newMin,
-                          float newMax
-                         );
-
-
+                          float newMax);
 /* *************************************************************** */
 /** @brief Set the scl_slope to 1 and the scl_inter to 0 and rescale
  * the intensity values
@@ -69,7 +63,6 @@ void reg_intensityRescale(nifti_image *image,
  */
 extern "C++"
 void reg_tools_removeSCLInfo(nifti_image *img);
-
 /* *************************************************************** */
 /** @brief reg_getRealImageSpacing
  * @param image image
@@ -93,14 +86,13 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                  int *mask = nullptr,
                                  bool *timePoints = nullptr,
                                  bool *axis = nullptr);
-
 /* *************************************************************** */
 /** @brief Smooth a label image using a Gaussian kernel
  * @param image Image to be smoothed
  * @param varianceX The variance of the Gaussian kernel in X
  * @param varianceY The variance of the Gaussian kernel in Y
  * @param varianceZ The variance of the Gaussian kernel in Z
- * @param mask An integer mask over which the Gaussian smoothing should occour
+ * @param mask An integer mask over which the Gaussian smoothing should occur
  * @param timePoint Boolean array to specify which timepoints have to be
  * smoothed.
  */
@@ -109,10 +101,8 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
                                       float varianceX,
                                       float varianceY,
                                       float varianceZ,
-                                      int *mask=nullptr,
-                                      bool *timePoint=nullptr);
-
-
+                                      int *mask = nullptr,
+                                      bool *timePoint = nullptr);
 /* *************************************************************** */
 /** @brief Downsample an image by a ratio of two
  * @param image Image to be downsampled
@@ -125,8 +115,7 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
 extern "C++" template <class PrecisionTYPE>
 void reg_downsampleImage(nifti_image *image,
                          int type,
-                         bool *axis
-                        );
+                         bool *axis);
 /* *************************************************************** */
 /** @brief Returns the maximal euclidean distance from a
  * deformation field image
@@ -142,7 +131,7 @@ PrecisionTYPE reg_getMaximalLength(nifti_image *image);
  */
 extern "C++" template <class NewTYPE>
 void reg_tools_changeDatatype(nifti_image *image,
-                              int type=-1);
+                              int type = -1);
 /* *************************************************************** */
 /** @brief Add two images.
  * @param img1 First image to consider
@@ -187,7 +176,6 @@ extern "C++"
 void reg_tools_divideImageToImage(nifti_image *img1,
                                   nifti_image *img2,
                                   nifti_image *out);
-
 /* *************************************************************** */
 /** @brief Add a scalar to all image intensity
  * @param img1 Input image
@@ -228,7 +216,6 @@ extern "C++"
 void reg_tools_divideValueToImage(nifti_image *img1,
                                   nifti_image *out,
                                   float val);
-
 /* *************************************************************** */
 /** @brief Binarise an input image. All values different
  * from 0 are set to 1, 0 otherwise.
@@ -236,7 +223,6 @@ void reg_tools_divideValueToImage(nifti_image *img1,
  */
 extern "C++"
 void reg_tools_binarise_image(nifti_image *img);
-
 /* *************************************************************** */
 /** @brief Binarise an input image. The binarisation is
  * performed according to a threshold value that is
@@ -249,7 +235,6 @@ void reg_tools_binarise_image(nifti_image *img);
 extern "C++"
 void reg_tools_binarise_image(nifti_image *img,
                               float thr);
-
 /* *************************************************************** */
 /** @brief Convert a binary image into an array of int.
  * This is used to define a mask within the registration
@@ -264,14 +249,13 @@ void reg_tools_binarise_image(nifti_image *img,
 extern "C++"
 void reg_tools_binaryImage2int(nifti_image *img,
                                int *array,
-                               int &activeVoxelNumber);
-
+                               int& activeVoxelNumber);
 /* *************************************************************** */
 /** @brief Compute the mean root mean squared error between
  * two vector images
  * @param imgA Input vector image
  * @param imgB Input vector image
- * @return Mean rsoot mean squared error values returned
+ * @return Mean root mean squared error values returned
  */
 extern "C++"
 double reg_tools_getMeanRMS(nifti_image *imgA,
@@ -295,8 +279,7 @@ int reg_tools_nanMask_image(nifti_image *img,
  * @param mask Input mask which is updated in place
  */
 extern "C++"
-int reg_tools_removeNanFromMask(nifti_image *image,
-                                int *mask);
+int reg_tools_removeNanFromMask(nifti_image *image, int *mask);
 /* *************************************************************** */
 /** @brief Get the minimal value of an image
  * @param img Input image
@@ -338,7 +321,7 @@ float reg_tools_getSTDValue(nifti_image *img);
  * the registration.
  */
 extern "C++" template<class DTYPE>
-int reg_createImagePyramid(nifti_image * input,
+int reg_createImagePyramid(nifti_image *input,
                            nifti_image **pyramid,
                            unsigned int levelNumber,
                            unsigned int levelToPerform);
@@ -374,8 +357,7 @@ int reg_createMaskPyramid(nifti_image *input,
 extern "C++" template<class T>
 void reg_thresholdImage(nifti_image *image,
                         T lowThr,
-                        T upThr
-                       );
+                        T upThr);
 /* *************************************************************** */
 /** @brief This function flipp the specified axis
  * @param image Input image to be flipped
@@ -387,8 +369,7 @@ void reg_thresholdImage(nifti_image *image,
 extern "C++"
 void reg_flippAxis(nifti_image *image,
                    void *array,
-                   std::string cmd
-                  );
+                   std::string cmd);
 /* *************************************************************** */
 /** @brief This function converts an image containing deformation
  * field into a displacement field
@@ -416,9 +397,9 @@ int reg_getDeformationFromDisplacement(nifti_image *image);
  */
 extern "C++"
 void reg_setGradientToZero(nifti_image *image,
-                          bool x_axis,
-                          bool y_axis,
-                          bool z_axis);
+                           bool x_axis,
+                           bool y_axis,
+                           bool z_axis);
 /* *************************************************************** */
 /* *************************************************************** */
 /** @brief The functions returns the largest ratio between two arrays
@@ -427,8 +408,8 @@ void reg_setGradientToZero(nifti_image *image,
  */
 extern "C++" template<class DTYPE>
 double reg_test_compare_arrays(DTYPE *ptrA,
-                              DTYPE *ptrB,
-                              size_t nvox);
+                               DTYPE *ptrB,
+                               size_t nvox);
 /* *************************************************************** */
 /** @brief The functions returns the largest ratio between input image intensities
  * The returned value is the largest value computed as ((A/B)-1)
@@ -436,7 +417,7 @@ double reg_test_compare_arrays(DTYPE *ptrA,
  */
 extern "C++"
 double reg_test_compare_images(nifti_image *imgA,
-                              nifti_image *imgB);
+                               nifti_image *imgB);
 /* *************************************************************** */
 /** @brief The absolute operator is applied to the input image
  */
@@ -444,22 +425,22 @@ extern "C++"
 void reg_tools_abs_image(nifti_image *img);
 /* *************************************************************** */
 extern "C++"
-void mat44ToCptr(const mat44& mat, float* cMat);
+void mat44ToCptr(const mat44& mat, float *cMat);
 /* *************************************************************** */
 extern "C++"
-void cPtrToMat44(mat44 *mat, float* cMat);
+void cPtrToMat44(mat44 *mat, float *cMat);
 /* *************************************************************** */
 extern "C++"
-void mat33ToCptr(mat33* mat, float* cMat, const unsigned int numMats);
+void mat33ToCptr(mat33 *mat, float *cMat, const unsigned int numMats);
 /* *************************************************************** */
 extern "C++"
-void cPtrToMat33(mat33 *mat, float* cMat);
+void cPtrToMat33(mat33 *mat, float *cMat);
 /* *************************************************************** */
 extern "C++" template<typename T>
-void matmnToCptr(T** mat, T* cMat, unsigned int m, unsigned int n);
+void matmnToCptr(T **mat, T *cMat, unsigned int m, unsigned int n);
 /* *************************************************************** */
 extern "C++" template<typename T>
-void cPtrToMatmn(T** mat, T* cMat, unsigned int m, unsigned int n);
+void cPtrToMatmn(T **mat, T *cMat, unsigned int m, unsigned int n);
 /* *************************************************************** */
 void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int &x, int &y, int &z);
 /* *************************************************************** */

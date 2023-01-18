@@ -27,7 +27,6 @@
 #include "_reg_ReadWriteImage.h"
 #include "_reg_stringFormat.h"
 #include "_reg_optimiser.h"
-#include "float.h"
 #include "Platform.h"
 
 /// @brief Base registration class
@@ -48,7 +47,7 @@ protected:
     // Measure
     Measure *measure = nullptr;
 
-    // Optimiser related variables
+    // Optimiser-related variables
     reg_optimiser<T> *optimiser;
     size_t maxIterationNumber;
     size_t perturbationNumber;
@@ -56,10 +55,7 @@ protected:
     bool optimiseY;
     bool optimiseZ;
 
-    // Optimiser related function
-    virtual void SetOptimiser() = 0;
-
-    // Measure related variables
+    // Measure-related variables
     reg_ssd *measure_ssd;
     reg_kld *measure_kld;
     reg_dti *measure_dti;
@@ -68,7 +64,6 @@ protected:
     reg_mind *measure_mind;
     reg_mindssc *measure_mindssc;
     nifti_image *localWeightSimInput;
-    // nifti_image *localWeightSimCurrent;
 
     char *executableName;
     int referenceTimePoint;
@@ -102,16 +97,7 @@ protected:
     nifti_image **floatingPyramid;
     int **maskPyramid;
     int *activeVoxelNumber;
-    // nifti_image *reference;
-    // nifti_image *floating;
-    // int *currentMask;
-    // nifti_image *warped;
-    // nifti_image *deformationFieldImage;
-    // nifti_image *warpedGradient;
-    // nifti_image *voxelBasedMeasureGradient;
     unsigned int currentLevel;
-
-    mat33 *forwardJacobianMatrix;
 
     double bestWMeasure;
     double currentWMeasure;
@@ -124,26 +110,22 @@ protected:
     float *landmarkReference;
     float *landmarkFloating;
 
-    // virtual void AllocateWarped();
-    // virtual void DeallocateWarped();
-    // virtual void AllocateDeformationField();
-    // virtual void DeallocateDeformationField();
-    // virtual void AllocateWarpedGradient();
-    // virtual void DeallocateWarpedGradient();
-    // virtual void AllocateVoxelBasedMeasureGradient();
-    // virtual void DeallocateVoxelBasedMeasureGradient();
-    // virtual void DeallocateCurrentInputImage();
+    // For the NiftyReg plugin in NiftyView
+    void (*funcProgressCallback)(float pcntProgress, void *params);
+    void* paramsProgressCallback;
 
     virtual void WarpFloatingImage(int);
     virtual double ComputeSimilarityMeasure();
     virtual void GetVoxelBasedGradient();
     virtual void InitialiseSimilarity();
+    virtual void CheckParameters();
+    virtual void Initialise();
 
-    // Virtual empty functions that have to be filled
+    // Pure virtual functions
+    virtual void SetOptimiser() = 0;
     virtual T InitialiseCurrentLevel(nifti_image *reference) = 0;
     virtual void SmoothGradient() = 0;
     virtual void GetDeformationField() = 0;
-    // virtual void SetGradientImageToZero() = 0;
     virtual void GetApproximatedGradient() = 0;
     virtual double GetObjectiveFunctionValue() = 0;
     virtual void UpdateParameters(float) = 0;
@@ -154,35 +136,36 @@ protected:
     virtual void UpdateBestObjFunctionValue() = 0;
     virtual void PrintCurrentObjFunctionValue(T) = 0;
     virtual void PrintInitialObjFunctionValue() = 0;
-    // virtual void AllocateTransformationGradient() = 0;
-    // virtual void DeallocateTransformationGradient() = 0;
     virtual void CorrectTransformation() = 0;
-
-    void (*funcProgressCallback)(float pcntProgress, void *params);
-    void* paramsProgressCallback;
+    virtual void InitContent(nifti_image *reference, nifti_image *floating, int *mask) = 0;
+    virtual void DeinitContent() = 0;
 
 public:
     reg_base(int refTimePoint, int floTimePoint);
     virtual ~reg_base();
 
-    // Platform
-    Platform* GetPlatform();
-    void SetPlatformType(const PlatformType& platformTypeIn) { platformType = platformTypeIn; }
-    void SetGpuIdx(unsigned gpuIdxIn) { gpuIdx = gpuIdxIn; }
+    virtual void Run();
+    virtual nifti_image** GetWarpedImage() = 0;
+    virtual char* GetExecutableName() { return executableName; }
+    virtual bool GetSymmetricStatus() { return false; }
 
-    // Optimisation related functions
-    void SetMaximalIterationNumber(unsigned int);
-    void NoOptimisationAlongX() { optimiseX = false; }
-    void NoOptimisationAlongY() { optimiseY = false; }
-    void NoOptimisationAlongZ() { optimiseZ = false; }
-    void SetPerturbationNumber(size_t v) { perturbationNumber = v; }
-    void UseConjugateGradient();
-    void DoNotUseConjugateGradient();
-    void UseApproximatedGradient();
-    void DoNotUseApproximatedGradient();
-    // Measure of similarity related functions
- //    void ApproximateParzenWindow();
- //    void DoNotApproximateParzenWindow();
+    // Platform
+    virtual void SetPlatformType(const PlatformType& platformTypeIn) { platformType = platformTypeIn; }
+    virtual void SetGpuIdx(unsigned gpuIdxIn) { gpuIdx = gpuIdxIn; }
+
+    // Optimisation-related functions
+    virtual void SetMaximalIterationNumber(unsigned int);
+    virtual void NoOptimisationAlongX() { optimiseX = false; }
+    virtual void NoOptimisationAlongY() { optimiseY = false; }
+    virtual void NoOptimisationAlongZ() { optimiseZ = false; }
+    virtual void SetPerturbationNumber(size_t v) { perturbationNumber = v; }
+    virtual void UseConjugateGradient();
+    virtual void DoNotUseConjugateGradient();
+    virtual void UseApproximatedGradient();
+    virtual void DoNotUseApproximatedGradient();
+    // Measure of similarity-related functions
+    // virtual void ApproximateParzenWindow();
+    // virtual void DoNotApproximateParzenWindow();
     virtual void UseNMISetReferenceBinNumber(int, int);
     virtual void UseNMISetFloatingBinNumber(int, int);
     virtual void UseSSD(int timepoint, bool normalize);
@@ -192,53 +175,44 @@ public:
     virtual void UseDTI(bool *timepoint);
     virtual void UseLNCC(int timepoint, float stdDevKernel);
     virtual void SetLNCCKernelType(int type);
-    void SetLocalWeightSim(nifti_image*);
+    virtual void SetLocalWeightSim(nifti_image*);
 
-    void SetNMIWeight(int, double);
-    void SetSSDWeight(int, double);
-    void SetKLDWeight(int, double);
-    void SetLNCCWeight(int, double);
+    virtual void SetNMIWeight(int, double);
+    virtual void SetSSDWeight(int, double);
+    virtual void SetKLDWeight(int, double);
+    virtual void SetLNCCWeight(int, double);
 
-    void SetReferenceImage(nifti_image*);
-    void SetFloatingImage(nifti_image*);
-    void SetReferenceMask(nifti_image*);
-    void SetAffineTransformation(mat44*);
-    void SetReferenceSmoothingSigma(T);
-    void SetFloatingSmoothingSigma(T);
-    void SetGradientSmoothingSigma(T);
-    void SetReferenceThresholdUp(unsigned int, T);
-    void SetReferenceThresholdLow(unsigned int, T);
-    void SetFloatingThresholdUp(unsigned int, T);
-    void SetFloatingThresholdLow(unsigned int, T);
-    void UseRobustRange();
-    void DoNotUseRobustRange();
-    void SetWarpedPaddingValue(float);
-    void SetLevelNumber(unsigned int);
-    void SetLevelToPerform(unsigned int);
-    void PrintOutInformation();
-    void DoNotPrintOutInformation();
-    void DoNotUsePyramidalApproach();
-    void UseNearestNeighborInterpolation();
-    void UseLinearInterpolation();
-    void UseCubicSplineInterpolation();
-    void SetLandmarkRegularisationParam(size_t, float*, float*, float);
+    virtual void SetReferenceImage(nifti_image*);
+    virtual void SetFloatingImage(nifti_image*);
+    virtual void SetReferenceMask(nifti_image*);
+    virtual void SetAffineTransformation(mat44*);
+    virtual void SetReferenceSmoothingSigma(T);
+    virtual void SetFloatingSmoothingSigma(T);
+    virtual void SetGradientSmoothingSigma(T);
+    virtual void SetReferenceThresholdUp(unsigned int, T);
+    virtual void SetReferenceThresholdLow(unsigned int, T);
+    virtual void SetFloatingThresholdUp(unsigned int, T);
+    virtual void SetFloatingThresholdLow(unsigned int, T);
+    virtual void UseRobustRange();
+    virtual void DoNotUseRobustRange();
+    virtual void SetWarpedPaddingValue(float);
+    virtual void SetLevelNumber(unsigned int);
+    virtual void SetLevelToPerform(unsigned int);
+    virtual void PrintOutInformation();
+    virtual void DoNotPrintOutInformation();
+    virtual void DoNotUsePyramidalApproach();
+    virtual void UseNearestNeighborInterpolation();
+    virtual void UseLinearInterpolation();
+    virtual void UseCubicSplineInterpolation();
+    virtual void SetLandmarkRegularisationParam(size_t, float*, float*, float);
 
-    virtual void CheckParameters();
-    void Run();
-    virtual void Initialise();
-    virtual void InitContent(nifti_image *reference, nifti_image *floating, int *mask) = 0;
-    virtual void DeinitContent() = 0;
-    virtual nifti_image** GetWarpedImage() = 0;
-    virtual char* GetExecutableName() { return executableName; }
-    virtual bool GetSymmetricStatus() { return false; }
-
-    // Function required for the NiftyReg plugin in NiftyView
-    void SetProgressCallbackFunction(void (*funcProgCallback)(float pcntProgress, void *params),
-                                     void *paramsProgCallback) {
+    // For the NiftyReg plugin in NiftyView
+    virtual void SetProgressCallbackFunction(void (*funcProgCallback)(float pcntProgress, void *params),
+                                             void *paramsProgCallback) {
         funcProgressCallback = funcProgCallback;
         paramsProgressCallback = paramsProgCallback;
     }
 
-    // Function used for testing
+    // For testing
     virtual void reg_test_setOptimiser(reg_optimiser<T> *opt) { optimiser = opt; }
 };

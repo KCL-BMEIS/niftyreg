@@ -13,7 +13,6 @@
 #include "_reg_base.h"
 
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     platform = nullptr;
@@ -69,7 +68,6 @@ reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     gradientSmoothingSigma = 0;
     verbose = true;
     usePyramid = true;
-    forwardJacobianMatrix = nullptr;
 
     initialised = false;
     referencePyramid = nullptr;
@@ -188,7 +186,6 @@ reg_base<T>::~reg_base() {
     reg_print_fct_debug("reg_base<T>::~reg_base");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceImage(nifti_image *r) {
@@ -732,7 +729,6 @@ void reg_base<T>::Initialise() {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 double reg_base<T>::ComputeSimilarityMeasure() {
     double measure = 0;
@@ -763,11 +759,10 @@ double reg_base<T>::ComputeSimilarityMeasure() {
     return similarityWeight * measure;
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_base<T>::GetVoxelBasedGradient() {
     // The voxel based gradient image is filled with zeros
-    // TODO Temporarily call F3dContent. This function will be moved to reg_f3d.
+    // TODO Temporarily call F3dContent. This function will be moved to reg_f3d
     dynamic_cast<F3dContent*>(con)->ZeroVoxelBasedMeasureGradient();
 
     // The intensity gradient is first computed
@@ -1017,7 +1012,6 @@ void reg_base<T>::WarpFloatingImage(int inter) {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class T>
 void reg_base<T>::Run() {
 #ifndef NDEBUG
@@ -1156,6 +1150,5 @@ void reg_base<T>::Run() {
     reg_print_fct_debug("reg_base<T>::Run");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template class reg_base<float>;

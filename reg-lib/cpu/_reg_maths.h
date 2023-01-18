@@ -19,8 +19,8 @@
 #include <math.h>
 #include <iostream>
 #include <vector>
-#include "nifti1_io.h"
 #include <stdexcept>
+#include "nifti1_io.h"
 
 #if defined (_OPENMP)
 #include <omp.h>

@@ -35,7 +35,7 @@ void Content::AllocateWarped() {
     warped->nvox = size_t(warped->nx * warped->ny * warped->nz * warped->nt);
     warped->datatype = floating->datatype;
     warped->nbyper = floating->nbyper;
-    warped->data = (void*)calloc(warped->nvox, warped->nbyper);
+    warped->data = calloc(warped->nvox, warped->nbyper);
 }
 /* *************************************************************** */
 void Content::DeallocateWarped() {
@@ -79,7 +79,7 @@ void Content::AllocateDeformationField(size_t bytes) {
     deformationField->intent_p1 = DEF_FIELD;
     deformationField->scl_slope = 1;
     deformationField->scl_inter = 0;
-    deformationField->data = (void*)calloc(deformationField->nvox, deformationField->nbyper);
+    deformationField->data = calloc(deformationField->nvox, deformationField->nbyper);
 }
 /* *************************************************************** */
 void Content::DeallocateDeformationField() {

@@ -45,12 +45,12 @@ public:
     }
 
 protected:
-    nifti_image *reference;
-    nifti_image *floating;
-    nifti_image *deformationField;
-    int *referenceMask;
-    mat44 *transformationMatrix;
-    nifti_image *warped;
+    nifti_image *reference = nullptr;
+    nifti_image *floating = nullptr;
+    nifti_image *deformationField = nullptr;
+    int *referenceMask = nullptr;
+    mat44 *transformationMatrix = nullptr;
+    nifti_image *warped = nullptr;
 
 private:
     void AllocateWarped();

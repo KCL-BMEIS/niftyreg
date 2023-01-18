@@ -6,7 +6,6 @@ class Compute {
 public:
     Compute() = delete;
     Compute(Content& conIn): con(conIn) {}
-    virtual ~Compute() {}
 
     virtual void ResampleImage(int inter, float paddingValue);
     virtual double GetJacobianPenaltyTerm(bool approx);

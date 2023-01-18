@@ -32,7 +32,7 @@ public:
     virtual void ZeroVoxelBasedMeasureGradient();
 
 protected:
-    nifti_image *controlPointGrid;
+    nifti_image *controlPointGrid = nullptr;
     nifti_image *localWeightSim = nullptr;
     nifti_image *transformationGradient = nullptr;
     nifti_image *voxelBasedMeasureGradient = nullptr;

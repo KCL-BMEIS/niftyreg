@@ -113,13 +113,13 @@ T reg_f3d<T>::InitialiseCurrentLevel(nifti_image *reference) {
     // Set the initial step size for the gradient ascent
     T maxStepSize = reference->dx > reference->dy ? reference->dx : reference->dy;
     if (reference->ndim > 2)
-        maxStepSize = (reference->dz > maxStepSize) ? reference->dz : maxStepSize;
+        maxStepSize = reference->dz > maxStepSize ? reference->dz : maxStepSize;
 
     // Refine the control point grid if required
     if (gridRefinement) {
         if (this->currentLevel == 0) {
-            bendingEnergyWeight = bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelNumber - 1));
-            linearEnergyWeight = linearEnergyWeight / static_cast<T>(powf(3.0f, this->levelNumber - 1));
+            bendingEnergyWeight = bendingEnergyWeight / static_cast<T>(powf(16, this->levelNumber - 1));
+            linearEnergyWeight = linearEnergyWeight / static_cast<T>(powf(3, this->levelNumber - 1));
         } else {
             bendingEnergyWeight = bendingEnergyWeight * static_cast<T>(16);
             linearEnergyWeight = linearEnergyWeight * static_cast<T>(3);
@@ -138,17 +138,14 @@ void reg_f3d<T>::CheckParameters() {
     reg_base<T>::CheckParameters();
     // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
     if (strcmp(this->executableName, "NiftyReg F3D") == 0) {
-        T penaltySum = bendingEnergyWeight +
-            linearEnergyWeight +
-            jacobianLogWeight +
-            this->landmarkRegWeight;
-        if (penaltySum >= 1.0) {
+        T penaltySum = bendingEnergyWeight + linearEnergyWeight + jacobianLogWeight + this->landmarkRegWeight;
+        if (penaltySum >= 1) {
             this->similarityWeight = 0;
             bendingEnergyWeight /= penaltySum;
             linearEnergyWeight /= penaltySum;
             jacobianLogWeight /= penaltySum;
             this->landmarkRegWeight /= penaltySum;
-        } else this->similarityWeight = 1.0 - penaltySum;
+        } else this->similarityWeight = 1 - penaltySum;
     }
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::CheckParameters");
@@ -170,17 +167,17 @@ void reg_f3d<T>::Initialise() {
 
         /* Convert the spacing from voxel to mm if necessary */
         float spacingInMillimeter[3] = {spacing[0], spacing[1], spacing[2]};
-        if (spacingInMillimeter[0] < 0) spacingInMillimeter[0] *= -1.0f * this->inputReference->dx;
-        if (spacingInMillimeter[1] < 0) spacingInMillimeter[1] *= -1.0f * this->inputReference->dy;
-        if (spacingInMillimeter[2] < 0) spacingInMillimeter[2] *= -1.0f * this->inputReference->dz;
+        if (spacingInMillimeter[0] < 0) spacingInMillimeter[0] *= -this->inputReference->dx;
+        if (spacingInMillimeter[1] < 0) spacingInMillimeter[1] *= -this->inputReference->dy;
+        if (spacingInMillimeter[2] < 0) spacingInMillimeter[2] *= -this->inputReference->dz;
 
         // Define the spacing for the first level
         float gridSpacing[3];
-        gridSpacing[0] = spacingInMillimeter[0] * powf(2.0f, (float)(this->levelNumber - 1));
-        gridSpacing[1] = spacingInMillimeter[1] * powf(2.0f, (float)(this->levelNumber - 1));
-        gridSpacing[2] = 1.0f;
+        gridSpacing[0] = spacingInMillimeter[0] * powf(2, this->levelNumber - 1);
+        gridSpacing[1] = spacingInMillimeter[1] * powf(2, this->levelNumber - 1);
+        gridSpacing[2] = 1;
         if (this->referencePyramid[0]->nz > 1)
-            gridSpacing[2] = spacingInMillimeter[2] * powf(2.0f, (float)(this->levelNumber - 1));
+            gridSpacing[2] = spacingInMillimeter[2] * powf(2, this->levelNumber - 1);
 
         // Create and allocate the control point image
         reg_createControlPointGrid<T>(&controlPointGrid, this->referencePyramid[0], gridSpacing);
@@ -194,14 +191,14 @@ void reg_f3d<T>::Initialise() {
     } else {
         // The control point grid image is initialised with the provided grid
         controlPointGrid = nifti_copy_nim_info(inputControlPointGrid);
-        controlPointGrid->data = (void *)malloc(controlPointGrid->nvox * controlPointGrid->nbyper);
+        controlPointGrid->data = malloc(controlPointGrid->nvox * controlPointGrid->nbyper);
         memcpy(controlPointGrid->data, inputControlPointGrid->data,
                controlPointGrid->nvox * controlPointGrid->nbyper);
         // The final grid spacing is computed
-        spacing[0] = controlPointGrid->dx / powf(2.0f, (float)(this->levelNumber - 1));
-        spacing[1] = controlPointGrid->dy / powf(2.0f, (float)(this->levelNumber - 1));
+        spacing[0] = controlPointGrid->dx / powf(2, this->levelNumber - 1);
+        spacing[1] = controlPointGrid->dy / powf(2, this->levelNumber - 1);
         if (controlPointGrid->nz > 1)
-            spacing[2] = controlPointGrid->dz / powf(2.0f, (float)(this->levelNumber - 1));
+            spacing[2] = controlPointGrid->dz / powf(2, this->levelNumber - 1);
     }
 #ifdef NDEBUG
     if (this->verbose) {
@@ -743,7 +740,7 @@ nifti_image** reg_f3d<T>::GetWarpedImage() {
 template<class T>
 nifti_image* reg_f3d<T>::GetControlPointPositionImage() {
     nifti_image *returnedControlPointGrid = nifti_copy_nim_info(controlPointGrid);
-    returnedControlPointGrid->data = (void*)malloc(returnedControlPointGrid->nvox * returnedControlPointGrid->nbyper);
+    returnedControlPointGrid->data = malloc(returnedControlPointGrid->nvox * returnedControlPointGrid->nbyper);
     memcpy(returnedControlPointGrid->data, controlPointGrid->data,
            returnedControlPointGrid->nvox * returnedControlPointGrid->nbyper);
     return returnedControlPointGrid;
