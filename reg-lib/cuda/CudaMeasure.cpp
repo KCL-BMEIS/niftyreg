@@ -39,11 +39,11 @@ void CudaMeasure::Initialise(reg_measure& measure, F3dContent& con) {
                                   cudaCon->F3dContent::GetWarpedGradient(),
                                   cudaCon->F3dContent::GetVoxelBasedMeasureGradient(),
                                   cudaCon->F3dContent::GetLocalWeightSim(),
-                                  cudaCon->GetReferenceCuda()[0],
-                                  cudaCon->GetFloatingCuda()[0],
+                                  cudaCon->GetReferenceCuda(),
+                                  cudaCon->GetFloatingCuda(),
                                   cudaCon->GetReferenceMaskCuda(),
-                                  cudaCon->GetWarpedCuda()[0],
-                                  cudaCon->GetWarpedGradientCuda()[0],
+                                  cudaCon->GetWarpedCuda(),
+                                  cudaCon->GetWarpedGradientCuda(),
                                   cudaCon->GetVoxelBasedMeasureGradientCuda());
 }
 /* *************************************************************** */

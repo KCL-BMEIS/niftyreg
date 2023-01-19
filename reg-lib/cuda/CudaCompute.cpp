@@ -8,8 +8,8 @@
 void CudaCompute::ResampleImage(int inter, float paddingValue) {
     CudaContent& con = dynamic_cast<CudaContent&>(this->con);
     reg_resampleImage_gpu(con.Content::GetFloating(),
-                          con.GetWarpedCuda()[0],
-                          con.GetFloatingCuda()[0],
+                          con.GetWarpedCuda(),
+                          con.GetFloatingCuda(),
                           con.GetDeformationFieldCuda(),
                           con.GetReferenceMaskCuda(),
                           con.Content::GetReference()->nvox,
@@ -106,9 +106,9 @@ void CudaCompute::UpdateControlPointPosition(float *currentDOF, float *bestDOF, 
 void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     reg_getImageGradient_gpu(con.F3dContent::GetFloating(),
-                             con.GetFloatingCuda()[0],
+                             con.GetFloatingCuda(),
                              con.GetDeformationFieldCuda(),
-                             con.GetWarpedGradientCuda()[0],
+                             con.GetWarpedGradientCuda(),
                              con.F3dContent::GetReference()->nvox,
                              paddingValue);
 }

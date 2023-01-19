@@ -20,7 +20,7 @@ public:
     virtual nifti_image* GetDeformationField() { return deformationField; }
     virtual int* GetReferenceMask() { return referenceMask; }
     virtual mat44* GetTransformationMatrix() { return transformationMatrix; }
-    virtual nifti_image* GetWarped(int index = 0) { return warped; }
+    virtual nifti_image* GetWarped() { return warped; }
 
     // Setters
     virtual void SetDeformationField(nifti_image *deformationFieldIn) {

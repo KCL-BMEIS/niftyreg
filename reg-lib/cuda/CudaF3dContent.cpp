@@ -38,20 +38,13 @@ void CudaF3dContent::DeallocateControlPointGrid() {
 }
 /* *************************************************************** */
 void CudaF3dContent::AllocateWarpedGradient() {
-    if (floating->nt >= 1)
-        cudaCommon_allocateArrayToDevice(&warpedGradientCuda[0], warpedGradient->dim);
-    if (floating->nt == 2)
-        cudaCommon_allocateArrayToDevice(&warpedGradientCuda[1], warpedGradient->dim);
+    cudaCommon_allocateArrayToDevice(&warpedGradientCuda, warpedGradient->dim);
 }
 /* *************************************************************** */
 void CudaF3dContent::DeallocateWarpedGradient() {
-    if (warpedGradientCuda[0] != nullptr) {
-        cudaCommon_free(warpedGradientCuda[0]);
-        warpedGradientCuda[0] = nullptr;
-    }
-    if (warpedGradientCuda[1] != nullptr) {
-        cudaCommon_free(warpedGradientCuda[1]);
-        warpedGradientCuda[1] = nullptr;
+    if (warpedGradientCuda != nullptr) {
+        cudaCommon_free(warpedGradientCuda);
+        warpedGradientCuda = nullptr;
     }
 }
 /* *************************************************************** */
@@ -105,14 +98,12 @@ void CudaF3dContent::UpdateVoxelBasedMeasureGradient() {
 }
 /* *************************************************************** */
 nifti_image* CudaF3dContent::GetWarpedGradient() {
-    cudaCommon_transferFromDeviceToNifti(warpedGradient, warpedGradientCuda[0]);
+    cudaCommon_transferFromDeviceToNifti(warpedGradient, warpedGradientCuda);
     return warpedGradient;
 }
 /* *************************************************************** */
 void CudaF3dContent::UpdateWarpedGradient() {
-    cudaCommon_transferNiftiToArrayOnDevice(warpedGradientCuda[0], warpedGradient);
-    if (warpedGradientCuda[1])
-        cudaCommon_transferNiftiToArrayOnDevice(warpedGradientCuda[1], warpedGradient);
+    cudaCommon_transferNiftiToArrayOnDevice(warpedGradientCuda, warpedGradient);
 }
 /* *************************************************************** */
 void CudaF3dContent::ZeroTransformationGradient() {

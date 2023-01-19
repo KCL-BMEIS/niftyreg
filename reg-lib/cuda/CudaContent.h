@@ -19,13 +19,13 @@ public:
 
     // Getters
     virtual nifti_image* GetDeformationField() override;
-    virtual nifti_image* GetWarped(int index = 0) override;
-    virtual cudaArray** GetReferenceCuda() { return referenceCuda; }
-    virtual cudaArray** GetFloatingCuda() { return floatingCuda; }
+    virtual nifti_image* GetWarped() override;
+    virtual cudaArray* GetReferenceCuda() { return referenceCuda; }
+    virtual cudaArray* GetFloatingCuda() { return floatingCuda; }
     virtual float4* GetDeformationFieldCuda() { return deformationFieldCuda; }
     virtual int* GetReferenceMaskCuda() { return referenceMaskCuda; }
     virtual float* GetTransformationMatrixCuda() { return transformationMatrixCuda; }
-    virtual float** GetWarpedCuda() { return warpedCuda; }
+    virtual float* GetWarpedCuda() { return warpedCuda; }
 
     // Setters
     virtual void SetDeformationField(nifti_image *deformationFieldIn) override;
@@ -34,12 +34,12 @@ public:
     virtual void SetWarped(nifti_image *warpedIn) override;
 
 protected:
-    cudaArray *referenceCuda[2] = {nullptr};
-    cudaArray *floatingCuda[2] = {nullptr};
+    cudaArray *referenceCuda = nullptr;
+    cudaArray *floatingCuda = nullptr;
     float4 *deformationFieldCuda = nullptr;
     int *referenceMaskCuda = nullptr;
     float *transformationMatrixCuda = nullptr;
-    float *warpedCuda[2] = {nullptr};
+    float *warpedCuda = nullptr;
 
 private:
     void AllocateImages();

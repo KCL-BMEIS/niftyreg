@@ -24,7 +24,7 @@ public:
     virtual float4* GetControlPointGridCuda() { return controlPointGridCuda; }
     virtual float4* GetTransformationGradientCuda() { return transformationGradientCuda; }
     virtual float4* GetVoxelBasedMeasureGradientCuda() { return voxelBasedMeasureGradientCuda; }
-    virtual float4** GetWarpedGradientCuda() { return warpedGradientCuda; }
+    virtual float4* GetWarpedGradientCuda() { return warpedGradientCuda; }
 
     // Methods for transferring data from nifti to device
     virtual void UpdateControlPointGrid() override;
@@ -40,7 +40,7 @@ protected:
     float4 *controlPointGridCuda = nullptr;
     float4 *transformationGradientCuda = nullptr;
     float4 *voxelBasedMeasureGradientCuda = nullptr;
-    float4 *warpedGradientCuda[2] = {nullptr};
+    float4 *warpedGradientCuda = nullptr;
 
 private:
     void AllocateControlPointGrid();
