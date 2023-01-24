@@ -677,34 +677,7 @@ void reg_f3d<T>::SmoothGradient() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::GetApproximatedGradient() {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
-    F3dContent *con = dynamic_cast<F3dContent*>(this->con);
-    nifti_image *controlPointGrid = con->GetControlPointGrid();
-    nifti_image *transformationGradient = con->GetTransformationGradient();
-
-    // Loop over every control point
-    T *gridPtr = static_cast<T*>(controlPointGrid->data);
-    T *gradPtr = static_cast<T*>(transformationGradient->data);
-    T eps = controlPointGrid->dx / 100.f;
-    for (size_t i = 0; i < controlPointGrid->nvox; ++i) {
-        T currentValue = this->optimiser->GetBestDOF()[i];
-        gridPtr[i] = currentValue + eps;
-        // Update the changes for GPU
-        con->UpdateControlPointGrid();
-        double valPlus = GetObjectiveFunctionValue();
-        gridPtr[i] = currentValue - eps;
-        // Update the changes for GPU
-        con->UpdateControlPointGrid();
-        double valMinus = GetObjectiveFunctionValue();
-        gridPtr[i] = currentValue;
-        // Update the changes for GPU
-        con->UpdateControlPointGrid();
-        gradPtr[i] = -(T)((valPlus - valMinus) / (2.0 * eps));
-    }
-
-    // Update the changes for GPU
-    con->UpdateTransformationGradient();
+    this->compute->GetApproximatedGradient(*this);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetApproximatedGradient");
 #endif

@@ -132,3 +132,9 @@ void CudaCompute::NormaliseGradient(size_t nodeNumber, double maxGradLength) {
     reg_multiplyValue_gpu(nodeNumber, dynamic_cast<CudaF3dContent&>(con).GetTransformationGradientCuda(), 1 / (float)maxGradLength);
 }
 /* *************************************************************** */
+void CudaCompute::GetApproximatedGradient(InterfaceOptimiser& opt) {
+    // TODO Implement this for CUDA
+    // Use CPU temporarily
+    Compute::GetApproximatedGradient(opt);
+}
+/* *************************************************************** */

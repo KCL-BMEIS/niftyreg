@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Content.h"
+#include "_reg_optimiser.h"
 
 class Compute {
 public:
@@ -23,7 +24,11 @@ public:
     virtual void VoxelCentricToNodeCentric(float weight);
     virtual double GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ);
     virtual void NormaliseGradient(size_t nodeNumber, double maxGradLength);
+    virtual void GetApproximatedGradient(InterfaceOptimiser& opt);
 
 protected:
     Content& con;
+
+private:
+    template<typename Type> void GetApproximatedGradient(InterfaceOptimiser&);
 };

@@ -22,4 +22,5 @@ public:
     virtual void VoxelCentricToNodeCentric(float weight) override;
     virtual double GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ) override;
     virtual void NormaliseGradient(size_t nodeNumber, double maxGradLength) override;
+    virtual void GetApproximatedGradient(InterfaceOptimiser& opt) override;
 };

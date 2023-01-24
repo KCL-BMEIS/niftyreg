@@ -159,3 +159,43 @@ void Compute::NormaliseGradient(size_t nodeNumber, double maxGradLength) {
     reg_tools_multiplyValueToImage(transformationGradient, transformationGradient, 1 / (float)maxGradLength);
 }
 /* *************************************************************** */
+template<typename Type>
+void Compute::GetApproximatedGradient(InterfaceOptimiser& opt) {
+    F3dContent& con = dynamic_cast<F3dContent&>(this->con);
+    nifti_image *controlPointGrid = con.GetControlPointGrid();
+    nifti_image *transformationGradient = con.GetTransformationGradient();
+
+    // Loop over every control point
+    Type *gridPtr = static_cast<Type*>(controlPointGrid->data);
+    Type *gradPtr = static_cast<Type*>(transformationGradient->data);
+    const Type eps = controlPointGrid->dx / Type(100);
+    for (size_t i = 0; i < controlPointGrid->nvox; ++i) {
+        const Type currentValue = gridPtr[i];
+        gridPtr[i] = currentValue + eps;
+        // Update the changes for GPU
+        con.UpdateControlPointGrid();
+        double valPlus = opt.GetObjectiveFunctionValue();
+        gridPtr[i] = currentValue - eps;
+        // Update the changes for GPU
+        con.UpdateControlPointGrid();
+        double valMinus = opt.GetObjectiveFunctionValue();
+        gridPtr[i] = currentValue;
+        gradPtr[i] = -Type((valPlus - valMinus) / (2 * eps));
+    }
+
+    // Update the changes for GPU
+    con.UpdateControlPointGrid();
+    con.UpdateTransformationGradient();
+}
+/* *************************************************************** */
+void Compute::GetApproximatedGradient(InterfaceOptimiser& opt) {
+    switch (dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid()->datatype) {
+    case NIFTI_TYPE_FLOAT32:
+        GetApproximatedGradient<float>(opt);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        GetApproximatedGradient<double>(opt);
+        break;
+    }
+}
+/* *************************************************************** */
