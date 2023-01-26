@@ -145,7 +145,7 @@ int main(int argc, char **argv)
     free(mask);
 
     //Compute the difference between the computed and expected image
-    reg_tools_substractImageToImage(gradientImage, expectedImage, expectedImage);
+    reg_tools_subtractImageFromImage(gradientImage, expectedImage, expectedImage);
 
     // Extract the maximal absolute value
     reg_tools_abs_image(expectedImage);

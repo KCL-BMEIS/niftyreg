@@ -81,7 +81,7 @@ void average_norm_intensity(nifti_image *image)
    reg_heapSort(rankedIntensities,static_cast<int>(image->nvox));
    PrecisionTYPE lowerValue=rankedIntensities[static_cast<unsigned int>(static_cast<float>(image->nvox)*0.03f)];
    PrecisionTYPE higherValue=rankedIntensities[static_cast<unsigned int>(static_cast<float>(image->nvox)*0.97f)];
-   reg_tools_substractValueToImage(image,image,lowerValue);
+   reg_tools_subtractValueFromImage(image,image,lowerValue);
    reg_tools_multiplyValueToImage(image,image,255.f/(higherValue-lowerValue));
    free(rankedIntensities);
    return;
@@ -329,7 +329,7 @@ int compute_nrr_demean(nifti_image *demean_field,
          tempField->scl_slope=1.f;
          tempField->scl_inter=0.f;
          reg_affine_getDeformationField(&affineTransformation, tempField);
-         reg_tools_substractImageToImage(deformationField,tempField,deformationField);
+         reg_tools_subtractImageFromImage(deformationField,tempField,deformationField);
          nifti_image_free(tempField);
          if(deformationField->intent_p1==DEF_FIELD)
             deformationField->intent_p1=DISP_FIELD;
@@ -443,7 +443,7 @@ int compute_average_image(nifti_image *averageImage,
          nifti_image_free(current_transformation);
          if(demeanField!=nullptr){
             if(deformationField->intent_p1==DEF_VEL_FIELD){
-               reg_tools_substractImageToImage(deformationField,demeanField,deformationField);
+               reg_tools_subtractImageFromImage(deformationField,demeanField,deformationField);
                nifti_image *tempDef = nifti_copy_nim_info(deformationField);
                tempDef->data = (void *)malloc(tempDef->nvox*tempDef->nbyper);
                memcpy(tempDef->data,deformationField->data,tempDef->nvox*tempDef->nbyper);
@@ -454,7 +454,7 @@ int compute_average_image(nifti_image *averageImage,
                nifti_free_extensions(deformationField);
                nifti_image_free(tempDef);
             }
-            else reg_tools_substractImageToImage(deformationField,demeanField,deformationField);
+            else reg_tools_subtractImageFromImage(deformationField,demeanField,deformationField);
 #ifndef NDEBUG
             reg_print_msg_debug("Input non-linear transformation has been demeaned");
 #endif

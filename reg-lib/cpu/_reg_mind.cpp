@@ -114,7 +114,7 @@ void GetMINDImageDescriptor_core(nifti_image* inputImage,
     for (int i = 0; i < samplingNbr; i++) {
         ShiftImage<DTYPE>(currentInputImage, shiftedImage, maskPtr,
                           RSampling3D_x[i], RSampling3D_y[i], RSampling3D_z[i]);
-        reg_tools_substractImageToImage(currentInputImage, shiftedImage, diff_image);
+        reg_tools_subtractImageFromImage(currentInputImage, shiftedImage, diff_image);
         reg_tools_multiplyImageToImage(diff_image, diff_image, diff_image);
         reg_tools_kernelConvolution(diff_image, &sigma, GAUSSIAN_KERNEL, maskPtr);
         reg_tools_addImageToImage(meanImage, diff_image, meanImage);
@@ -262,7 +262,7 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
     for (int i = 0; i < samplingNbr; i++) {
         ShiftImage<DTYPE>(currentInputImage, shiftedImage, maskPtr,
                           RSampling3D_x[i], RSampling3D_y[i], RSampling3D_z[i]);
-        reg_tools_substractImageToImage(currentInputImage, shiftedImage, diff_image);
+        reg_tools_subtractImageFromImage(currentInputImage, shiftedImage, diff_image);
         reg_tools_multiplyImageToImage(diff_image, diff_image, diff_image);
         reg_tools_kernelConvolution(diff_image, &sigma, GAUSSIAN_KERNEL, maskPtr);
 

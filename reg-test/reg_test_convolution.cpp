@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     // Compute the difference between the computed and expected deformation fields
     nifti_image *diff_file = nifti_copy_nim_info(expectedFile);
     diff_file->data = (void *) malloc(diff_file->nvox*diff_file->nbyper);
-    reg_tools_substractImageToImage(expectedFile, referenceImage, diff_file);
+    reg_tools_subtractImageFromImage(expectedFile, referenceImage, diff_file);
     reg_tools_abs_image(diff_file);
     double max_difference = reg_tools_getMaxValue(diff_file, -1);
 

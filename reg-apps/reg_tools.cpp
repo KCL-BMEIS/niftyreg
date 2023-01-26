@@ -503,7 +503,7 @@ int main(int argc, char **argv)
         reg_heapSort(static_cast<float *>(normImage->data), normImage->nvox);
         float minValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(03*(int)normImage->nvox/100))];
         float maxValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(97*(int)normImage->nvox/100))];
-        reg_tools_substractValueToImage(image,normImage,minValue);
+        reg_tools_subtractValueFromImage(image,normImage,minValue);
         reg_tools_divideValueToImage(normImage,normImage,maxValue-minValue);
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(normImage, param->outputImageName);
@@ -642,7 +642,7 @@ int main(int argc, char **argv)
                 reg_tools_addImageToImage(image, image2, outputImage);
                 break;
             case 1:
-                reg_tools_substractImageToImage(image, image2, outputImage);
+                reg_tools_subtractImageFromImage(image, image2, outputImage);
                 break;
             case 2:
                 reg_tools_multiplyImageToImage(image, image2, outputImage);
@@ -660,7 +660,7 @@ int main(int argc, char **argv)
                 reg_tools_addValueToImage(image, outputImage, param->operationValue);
                 break;
             case 1:
-                reg_tools_substractValueToImage(image, outputImage, param->operationValue);
+                reg_tools_subtractValueFromImage(image, outputImage, param->operationValue);
                 break;
             case 2:
                 reg_tools_multiplyValueToImage(image, outputImage, param->operationValue);
@@ -956,7 +956,7 @@ int main(int argc, char **argv)
         // Rescale the input image
         float min_value = reg_tools_getMinValue(image, -1);
         float max_value = reg_tools_getMaxValue(image, -1);
-        reg_tools_substractValueToImage(image, scaledImage, min_value);
+        reg_tools_subtractValueFromImage(image, scaledImage, min_value);
         reg_tools_multiplyValueToImage(scaledImage, scaledImage, 255.f/(max_value-min_value));
         // Create the rgb image
         nifti_image *outputImage = nifti_copy_nim_info(image);

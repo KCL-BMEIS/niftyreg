@@ -57,7 +57,7 @@ int main(int argc, char **argv)
                                   true);
 
    // Compute the difference between the computed and inputed deformation field
-   reg_tools_substractImageToImage(inputDeformationField,test_field,test_field);
+   reg_tools_subtractImageFromImage(inputDeformationField,test_field,test_field);
    reg_tools_abs_image(test_field);
    double max_difference=reg_tools_getMaxValue(test_field);
 

@@ -41,7 +41,7 @@ void reg_checkAndCorrectDimension(nifti_image *image);
  * false otherwise.
  */
 extern "C++"
-bool reg_isAnImageFileName(char *name);
+bool reg_isAnImageFileName(const char *name);
 /* *************************************************************** */
 /** @brief Rescale an input image between two user-defined values.
  * Some threshold can also be applied concurrently
@@ -124,7 +124,7 @@ void reg_downsampleImage(nifti_image *image,
  * euclidean distance
  */
 extern "C++" template <class PrecisionTYPE>
-PrecisionTYPE reg_getMaximalLength(nifti_image *image);
+PrecisionTYPE reg_getMaximalLength(const nifti_image *image);
 /* *************************************************************** */
 /** @brief Change the datatype of a nifti image
  * @param image Image to be updated.
@@ -140,20 +140,20 @@ void reg_tools_changeDatatype(nifti_image *image,
  * between the first and second image.
  */
 extern "C++"
-void reg_tools_addImageToImage(nifti_image *img1,
-                               nifti_image *img2,
+void reg_tools_addImageToImage(const nifti_image *img1,
+                               const nifti_image *img2,
                                nifti_image *out);
 /* *************************************************************** */
-/** @brief Substract two images.
+/** @brief Subtract two images.
  * @param img1 First image to consider
  * @param img2 Second image to consider
  * @param out Result image that contains the result of the operation
  * between the first and second image.
  */
 extern "C++"
-void reg_tools_substractImageToImage(nifti_image *img1,
-                                     nifti_image *img2,
-                                     nifti_image *out);
+void reg_tools_subtractImageFromImage(const nifti_image *img1,
+                                      const nifti_image *img2,
+                                      nifti_image *out);
 /* *************************************************************** */
 /** @brief Multiply two images.
  * @param img1 First image to consider
@@ -162,8 +162,8 @@ void reg_tools_substractImageToImage(nifti_image *img1,
  * between the first and second image.
  */
 extern "C++"
-void reg_tools_multiplyImageToImage(nifti_image *img1,
-                                    nifti_image *img2,
+void reg_tools_multiplyImageToImage(const nifti_image *img1,
+                                    const nifti_image *img2,
                                     nifti_image *out);
 /* *************************************************************** */
 /** @brief Divide two images.
@@ -173,47 +173,47 @@ void reg_tools_multiplyImageToImage(nifti_image *img1,
  * between the first and second image.
  */
 extern "C++"
-void reg_tools_divideImageToImage(nifti_image *img1,
-                                  nifti_image *img2,
+void reg_tools_divideImageToImage(const nifti_image *img1,
+                                  const nifti_image *img2,
                                   nifti_image *out);
 /* *************************************************************** */
 /** @brief Add a scalar to all image intensity
- * @param img1 Input image
+ * @param img Input image
  * @param out Result image that contains the result of the operation.
  * @param val Value to be added to input image
  */
 extern "C++"
-void reg_tools_addValueToImage(nifti_image *img1,
+void reg_tools_addValueToImage(const nifti_image *img,
                                nifti_image *out,
                                float val);
 /* *************************************************************** */
-/** @brief Substract a scalar to all image intensity
- * @param img1 Input image
+/** @brief Subtract a scalar from all image intensity
+ * @param img Input image
  * @param out Result image that contains the result of the operation.
- * @param val Value to be substracted to input image
+ * @param val Value to be subtracted from input image
  */
 extern "C++"
-void reg_tools_substractValueToImage(nifti_image *img1,
-                                     nifti_image *out,
-                                     float val);
+void reg_tools_subtractValueFromImage(const nifti_image *img,
+                                      nifti_image *out,
+                                      float val);
 /* *************************************************************** */
 /** @brief Multiply a scalar to all image intensity
- * @param img1 Input image
+ * @param img Input image
  * @param out Result image that contains the result of the operation.
  * @param val Value to be multiplied to input image
  */
 extern "C++"
-void reg_tools_multiplyValueToImage(nifti_image *img1,
+void reg_tools_multiplyValueToImage(const nifti_image *img,
                                     nifti_image *out,
                                     float val);
 /* *************************************************************** */
-/** @brief Mivide a scalar to all image intensity
- * @param img1 Input image
+/** @brief Divide a scalar to all image intensity
+ * @param img Input image
  * @param out Result image that contains the result of the operation.
  * @param val Value to be divided to input image
  */
 extern "C++"
-void reg_tools_divideValueToImage(nifti_image *img1,
+void reg_tools_divideValueToImage(const nifti_image *img,
                                   nifti_image *out,
                                   float val);
 /* *************************************************************** */
@@ -247,7 +247,7 @@ void reg_tools_binarise_image(nifti_image *img,
  * mask
  */
 extern "C++"
-void reg_tools_binaryImage2int(nifti_image *img,
+void reg_tools_binaryImage2int(const nifti_image *img,
                                int *array,
                                int& activeVoxelNumber);
 /* *************************************************************** */
@@ -258,19 +258,19 @@ void reg_tools_binaryImage2int(nifti_image *img,
  * @return Mean root mean squared error values returned
  */
 extern "C++"
-double reg_tools_getMeanRMS(nifti_image *imgA,
-                            nifti_image *imgB);
+double reg_tools_getMeanRMS(const nifti_image *imgA,
+                            const nifti_image *imgB);
 /* *************************************************************** */
 /** @brief Set all voxels from an image to NaN if the voxel
- * bellong to the mask
+ * belong to the mask
  * @param img Input image to be masked with NaN value
  * @param mask Input mask that defines which voxels
  * have to be set to NaN
  * @param res Output image
  */
 extern "C++"
-int reg_tools_nanMask_image(nifti_image *img,
-                            nifti_image *mask,
+int reg_tools_nanMask_image(const nifti_image *img,
+                            const nifti_image *mask,
                             nifti_image *res);
 /* *************************************************************** */
 /** @brief Set all the voxel with NaN value in the input image to
@@ -279,7 +279,7 @@ int reg_tools_nanMask_image(nifti_image *img,
  * @param mask Input mask which is updated in place
  */
 extern "C++"
-int reg_tools_removeNanFromMask(nifti_image *image, int *mask);
+int reg_tools_removeNanFromMask(const nifti_image *image, int *mask);
 /* *************************************************************** */
 /** @brief Get the minimal value of an image
  * @param img Input image
@@ -287,7 +287,7 @@ int reg_tools_removeNanFromMask(nifti_image *image, int *mask);
  * @return min value
  */
 extern "C++"
-float reg_tools_getMinValue(nifti_image *img, int timepoint);
+float reg_tools_getMinValue(const nifti_image *img, int timepoint);
 /* *************************************************************** */
 /** @brief Get the maximal value of an image
  * @param img Input image
@@ -295,21 +295,21 @@ float reg_tools_getMinValue(nifti_image *img, int timepoint);
  * @return max value
  */
 extern "C++"
-float reg_tools_getMaxValue(nifti_image *img, int timepoint);
+float reg_tools_getMaxValue(const nifti_image *img, int timepoint);
 /* *************************************************************** */
 /** @brief Get the mean value of an image
  * @param img Input image
  * @return mean value
  */
 extern "C++"
-float reg_tools_getMeanValue(nifti_image *img);
+float reg_tools_getMeanValue(const nifti_image *img);
 /* *************************************************************** */
 /** @brief Get the std value of an image
  * @param img Input image
  * @return std value
  */
 extern "C++"
-float reg_tools_getSTDValue(nifti_image *img);
+float reg_tools_getSTDValue(const nifti_image *img);
 /* *************************************************************** */
 /** @brief Generate a pyramid from an input image.
  * @param input Input image to be downsampled to create the pyramid
@@ -321,7 +321,7 @@ float reg_tools_getSTDValue(nifti_image *img);
  * the registration.
  */
 extern "C++" template<class DTYPE>
-int reg_createImagePyramid(nifti_image *input,
+int reg_createImagePyramid(const nifti_image *input,
                            nifti_image **pyramid,
                            unsigned int levelNumber,
                            unsigned int levelToPerform);
@@ -338,7 +338,7 @@ int reg_createImagePyramid(nifti_image *input,
  * voxel for each level of the pyramid
  */
 extern "C++" template<class DTYPE>
-int reg_createMaskPyramid(nifti_image *input,
+int reg_createMaskPyramid(const nifti_image *input,
                           int **pyramid,
                           unsigned int levelNumber,
                           unsigned int levelToPerform,
@@ -359,7 +359,7 @@ void reg_thresholdImage(nifti_image *image,
                         T lowThr,
                         T upThr);
 /* *************************************************************** */
-/** @brief This function flipp the specified axis
+/** @brief This function flip the specified axis
  * @param image Input image to be flipped
  * @param array Array that will contain the flipped
  * input image->data array
@@ -367,9 +367,9 @@ void reg_thresholdImage(nifti_image *image,
  * to flip (xyztuvw)
  */
 extern "C++"
-void reg_flippAxis(nifti_image *image,
-                   void *array,
-                   std::string cmd);
+void reg_flipAxis(const nifti_image *image,
+                  void **outputArray,
+                  const std::string& cmd);
 /* *************************************************************** */
 /** @brief This function converts an image containing deformation
  * field into a displacement field
@@ -391,15 +391,15 @@ int reg_getDeformationFromDisplacement(nifti_image *image);
 /* *************************************************************** */
 /** @brief Set the gradient value along specified direction to zero
  * @param image Input Image that will be modified
- * @param x_axis Boolean to specified if the x-axis has to be zeroed
- * @param y_axis Boolean to specified if the y-axis has to be zeroed
- * @param z_axis Boolean to specified if the z-axis has to be zeroed
+ * @param xAxis Boolean to specified if the x-axis has to be zeroed
+ * @param yAxis Boolean to specified if the y-axis has to be zeroed
+ * @param zAxis Boolean to specified if the z-axis has to be zeroed
  */
 extern "C++"
 void reg_setGradientToZero(nifti_image *image,
-                           bool x_axis,
-                           bool y_axis,
-                           bool z_axis);
+                           bool xAxis,
+                           bool yAxis,
+                           bool zAxis);
 /* *************************************************************** */
 /* *************************************************************** */
 /** @brief The functions returns the largest ratio between two arrays
@@ -407,8 +407,8 @@ void reg_setGradientToZero(nifti_image *image,
  * If A or B are zeros then the (A-B) value is returned.
  */
 extern "C++" template<class DTYPE>
-double reg_test_compare_arrays(DTYPE *ptrA,
-                               DTYPE *ptrB,
+double reg_test_compare_arrays(const DTYPE *ptrA,
+                               const DTYPE *ptrB,
                                size_t nvox);
 /* *************************************************************** */
 /** @brief The functions returns the largest ratio between input image intensities
@@ -416,8 +416,8 @@ double reg_test_compare_arrays(DTYPE *ptrA,
  * If A or B are zeros then the (A-B) value is returned.
  */
 extern "C++"
-double reg_test_compare_images(nifti_image *imgA,
-                               nifti_image *imgB);
+double reg_test_compare_images(const nifti_image *imgA,
+                               const nifti_image *imgB);
 /* *************************************************************** */
 /** @brief The absolute operator is applied to the input image
  */
@@ -428,19 +428,19 @@ extern "C++"
 void mat44ToCptr(const mat44& mat, float *cMat);
 /* *************************************************************** */
 extern "C++"
-void cPtrToMat44(mat44 *mat, float *cMat);
+void cPtrToMat44(mat44 *mat, const float *cMat);
 /* *************************************************************** */
 extern "C++"
-void mat33ToCptr(mat33 *mat, float *cMat, const unsigned int numMats);
+void mat33ToCptr(const mat33 *mat, float *cMat, const unsigned int numMats);
 /* *************************************************************** */
 extern "C++"
-void cPtrToMat33(mat33 *mat, float *cMat);
+void cPtrToMat33(mat33 *mat, const float *cMat);
 /* *************************************************************** */
 extern "C++" template<typename T>
-void matmnToCptr(T **mat, T *cMat, unsigned int m, unsigned int n);
+void matmnToCptr(const T **mat, T *cMat, unsigned int m, unsigned int n);
 /* *************************************************************** */
 extern "C++" template<typename T>
-void cPtrToMatmn(T **mat, T *cMat, unsigned int m, unsigned int n);
+void cPtrToMatmn(T **mat, const T *cMat, unsigned int m, unsigned int n);
 /* *************************************************************** */
-void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int &x, int &y, int &z);
+void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x, int& y, int& z);
 /* *************************************************************** */

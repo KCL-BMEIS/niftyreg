@@ -3001,7 +3001,7 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
          reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata),
                defFieldImage,
                false);
-         reg_tools_substractImageToImage(flowFieldImage,defFieldImage,flowFieldImage);
+         reg_tools_subtractImageFromImage(flowFieldImage,defFieldImage,flowFieldImage);
       }
    }
    else reg_getDisplacementFromDeformation(flowFieldImage);

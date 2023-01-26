@@ -62,7 +62,7 @@ int main(int argc, char **argv)
    }
 
    // Compute the difference between the computed and inputed deformation field
-   reg_tools_substractImageToImage(inputControlPointGridImage,
+   reg_tools_subtractImageFromImage(inputControlPointGridImage,
                                    nonlinear->GetControlPointPositionImage(),
                                    inputControlPointGridImage);
    reg_tools_abs_image(inputControlPointGridImage);

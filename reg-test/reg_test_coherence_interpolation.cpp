@@ -131,7 +131,7 @@ int main(int argc, char **argv)
     diff_field->data = (void *)malloc(diff_field->nvox*diff_field->nbyper);
 
     // Compute the difference between the computed and inputed warped image
-    reg_tools_substractImageToImage(cpu_warped, gpu_warped, diff_field);
+    reg_tools_subtractImageFromImage(cpu_warped, gpu_warped, diff_field);
     reg_tools_abs_image(diff_field);
     double max_difference = reg_tools_GetMaxValue(diff_field, -1);
 

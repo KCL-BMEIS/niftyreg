@@ -53,7 +53,7 @@ int main(int argc, char **argv)
     //
     //Compute the difference between the computed and expected image
     //
-    reg_tools_substractImageToImage(MINDSSC_img, expectedImage, expectedImage);
+    reg_tools_subtractImageFromImage(MINDSSC_img, expectedImage, expectedImage);
     reg_tools_abs_image(expectedImage);
     double max_difference = reg_tools_getMaxValue(expectedImage, -1);
 

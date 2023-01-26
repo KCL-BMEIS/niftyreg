@@ -4024,7 +4024,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
          reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata),
                affineOnly,
                false);
-         reg_tools_substractImageToImage(flowFieldImage,affineOnly,flowFieldImage);
+         reg_tools_subtractImageFromImage(flowFieldImage,affineOnly,flowFieldImage);
       }
    }
    else reg_getDisplacementFromDeformation(flowFieldImage);
@@ -4209,7 +4209,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
             reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata),
                   affineOnly,
                   false);
-            reg_tools_substractImageToImage(flowFieldImage,affineOnly,flowFieldImage);
+            reg_tools_subtractImageFromImage(flowFieldImage,affineOnly,flowFieldImage);
          }
       }
       else reg_getDisplacementFromDeformation(flowFieldImage);
