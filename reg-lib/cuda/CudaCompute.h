@@ -19,8 +19,14 @@ public:
     virtual void GetDeformationField(bool composition, bool bspline) override;
     virtual void UpdateControlPointPosition(float *currentDOF, float *bestDOF, float *gradient, float scale, bool optimiseX, bool optimiseY, bool optimiseZ) override;
     virtual void GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) override;
-    virtual void VoxelCentricToNodeCentric(float weight) override;
     virtual double GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ) override;
     virtual void NormaliseGradient(size_t nodeNumber, double maxGradLength) override;
+    virtual void SmoothGradient(float sigma) override;
     virtual void GetApproximatedGradient(InterfaceOptimiser& opt) override;
+    virtual void GetDefFieldFromVelocityGrid(bool updateStepNumber) override;
+    virtual void ConvolveVoxelBasedMeasureGradient(float weight) override;
+    virtual void ExponentiateGradient(Content& conBw) override;
+    virtual void UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ) override;
+    virtual void BchUpdate(float scale, int bchUpdateValue) override;
+    virtual void SymmetriseVelocityFields(Content& conBw) override;
 };

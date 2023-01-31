@@ -237,8 +237,8 @@ set(_reg_f3d_files
   _reg_base.h
   _reg_f3d.cpp
   _reg_f3d.h
-  # _reg_f3d2.cpp
-  # _reg_f3d2.h
+  _reg_f3d2.cpp
+  _reg_f3d2.h
 )
 set(_reg_f3d_libraries
   _reg_blockMatching

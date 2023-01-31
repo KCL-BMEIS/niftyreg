@@ -31,7 +31,7 @@ void Content::AllocateWarped() {
     warped = nifti_copy_nim_info(reference);
     warped->dim[0] = warped->ndim = floating->ndim;
     warped->dim[4] = warped->nt = floating->nt;
-    warped->pixdim[4] = warped->dt = 1.0;
+    warped->pixdim[4] = warped->dt = 1;
     warped->nvox = size_t(warped->nx * warped->ny * warped->nz * warped->nt);
     warped->datatype = floating->datatype;
     warped->nbyper = floating->nbyper;

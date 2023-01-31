@@ -26,7 +26,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint, int floTimePoint):
     inputControlPointGrid = nullptr; // pointer to external
     controlPointGrid = nullptr;
     bendingEnergyWeight = 0.001;
-    linearEnergyWeight = 0.00;
+    linearEnergyWeight = 0.01;
     jacobianLogWeight = 0;
     jacobianLogApproximation = true;
     spacing[0] = -5;
@@ -109,7 +109,32 @@ void reg_f3d<T>::SetSpacing(unsigned int i, T s) {
 }
 /* *************************************************************** */
 template<class T>
-T reg_f3d<T>::InitialiseCurrentLevel(int currentLevel, nifti_image *reference) {
+void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
+    if (this->platformType == PlatformType::Cpu)
+        this->con = new F3dContent(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
+#ifdef _USE_CUDA
+    else if (this->platformType == PlatformType::Cuda)
+        this->con = new CudaF3dContent(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
+#endif
+    this->compute = this->platform->CreateCompute(*this->con);
+}
+/* *************************************************************** */
+template<class T>
+T reg_f3d<T>::InitCurrentLevel(int currentLevel) {
+    // Set the current input images
+    nifti_image *reference, *floating;
+    int *mask;
+    if (currentLevel < 0) {
+        reference = this->inputReference;
+        floating = this->inputFloating;
+        mask = nullptr;
+    } else {
+        const int index = this->usePyramid ? currentLevel : 0;
+        reference = this->referencePyramid[index];
+        floating = this->floatingPyramid[index];
+        mask = this->maskPyramid[index];
+    }
+
     // Set the initial step size for the gradient ascent
     T maxStepSize = reference->dx > reference->dy ? reference->dx : reference->dy;
     if (reference->ndim > 2)
@@ -121,16 +146,27 @@ T reg_f3d<T>::InitialiseCurrentLevel(int currentLevel, nifti_image *reference) {
             bendingEnergyWeight = bendingEnergyWeight / static_cast<T>(powf(16, this->levelNumber - 1));
             linearEnergyWeight = linearEnergyWeight / static_cast<T>(powf(3, this->levelNumber - 1));
         } else {
-            bendingEnergyWeight = bendingEnergyWeight * static_cast<T>(16);
-            linearEnergyWeight = linearEnergyWeight * static_cast<T>(3);
+            bendingEnergyWeight = bendingEnergyWeight * 16;
+            linearEnergyWeight = linearEnergyWeight * 3;
             reg_spline_refineControlPointGrid(controlPointGrid, reference);
         }
     }
 
+    InitContent(reference, floating, mask);
+
 #ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d<T>::InitialiseCurrentLevel");
+    reg_print_fct_debug("reg_f3d<T>::InitCurrentLevel");
 #endif
     return maxStepSize;
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d<T>::DeinitCurrentLevel(int currentLevel) {
+    reg_base<T>::DeinitCurrentLevel(currentLevel);
+    delete this->compute;
+    this->compute = nullptr;
+    delete this->con;
+    this->con = nullptr;
 }
 /* *************************************************************** */
 template<class T>
@@ -330,25 +366,6 @@ void reg_f3d<T>::Initialise() {
 }
 /* *************************************************************** */
 template<class T>
-void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
-    if (this->platformType == PlatformType::Cpu)
-        this->con = new F3dContent(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
-#ifdef _USE_CUDA
-    else if (this->platformType == PlatformType::Cuda)
-        this->con = new CudaF3dContent(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
-#endif
-    this->compute = this->platform->CreateCompute(*this->con);
-}
-/* *************************************************************** */
-template<class T>
-void reg_f3d<T>::DeinitContent() {
-    delete this->compute;
-    this->compute = nullptr;
-    delete this->con;
-    this->con = nullptr;
-}
-/* *************************************************************** */
-template<class T>
 void reg_f3d<T>::GetDeformationField() {
     this->compute->GetDeformationField(false, // Composition
                                        true); // bspline
@@ -433,51 +450,11 @@ double reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::GetSimilarityMeasureGradient() {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
     this->GetVoxelBasedGradient();
 
-    nifti_image *voxelBasedMeasureGradient = dynamic_cast<F3dContent*>(this->con)->GetVoxelBasedMeasureGradient();
-    const int kernel_type = CUBIC_SPLINE_KERNEL;
-    // The voxel based NMI gradient is convolved with a spline kernel
-    // Convolution along the x axis
-    float currentNodeSpacing[3];
-    currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dx;
-    bool activeAxis[3] = {1, 0, 0};
-    reg_tools_kernelConvolution(voxelBasedMeasureGradient,
-                                currentNodeSpacing,
-                                kernel_type,
-                                nullptr, // mask
-                                nullptr, // all volumes are considered as active
-                                activeAxis);
-    // Convolution along the y axis
-    currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dy;
-    activeAxis[0] = 0;
-    activeAxis[1] = 1;
-    reg_tools_kernelConvolution(voxelBasedMeasureGradient,
-                                currentNodeSpacing,
-                                kernel_type,
-                                nullptr, // mask
-                                nullptr, // all volumes are considered as active
-                                activeAxis);
-    // Convolution along the z axis if required
-    if (voxelBasedMeasureGradient->nz > 1) {
-        currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dz;
-        activeAxis[1] = 0;
-        activeAxis[2] = 1;
-        reg_tools_kernelConvolution(voxelBasedMeasureGradient,
-                                    currentNodeSpacing,
-                                    kernel_type,
-                                    nullptr, // mask
-                                    nullptr, // all volumes are considered as active
-                                    activeAxis);
-    }
-
-    // Update the changes for GPU
-    dynamic_cast<F3dContent*>(this->con)->UpdateVoxelBasedMeasureGradient();
-
-    // The node based NMI gradient is extracted
-    this->compute->VoxelCentricToNodeCentric(this->similarityWeight);
+    // The voxel-based NMI gradient is convolved with a spline kernel
+    // And the node-based NMI gradient is extracted
+    this->compute->ConvolveVoxelBasedMeasureGradient(this->similarityWeight);
 
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetSimilarityMeasureGradient");
@@ -534,7 +511,7 @@ T reg_f3d<T>::NormaliseGradient() {
 
     if (strcmp(this->executableName, "NiftyReg F3D") == 0) {
         // The gradient is normalised if we are running f3d
-        // It will be normalised later when running f3d_sym or f3d2
+        // It will be normalised later when running f3d2
         this->compute->NormaliseGradient(this->optimiser->GetVoxNumber(), maxGradLength);
 #ifndef NDEBUG
         char text[255];
@@ -660,16 +637,8 @@ void reg_f3d<T>::SetOptimiser() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::SmoothGradient() {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
     // The gradient is smoothed using a Gaussian kernel if it is required
-    if (this->gradientSmoothingSigma != 0) {
-        float kernel = fabs(this->gradientSmoothingSigma);
-        F3dContent *con = dynamic_cast<F3dContent*>(this->con);
-        reg_tools_kernelConvolution(con->GetTransformationGradient(), &kernel, GAUSSIAN_KERNEL);
-        // Update the changes for GPU
-        con->UpdateTransformationGradient();
-    }
+    this->compute->SmoothGradient(this->gradientSmoothingSigma);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::SmoothGradient");
 #endif
@@ -692,8 +661,7 @@ nifti_image** reg_f3d<T>::GetWarpedImage() {
         reg_exit();
     }
 
-    InitialiseCurrentLevel(-1, this->inputReference);
-    InitContent(this->inputReference, this->inputFloating, nullptr);
+    InitCurrentLevel(-1);
 
     this->WarpFloatingImage(3); // cubic spline interpolation
 
@@ -701,7 +669,7 @@ nifti_image** reg_f3d<T>::GetWarpedImage() {
     warpedImage[0] = this->con->GetWarped();
 
     this->con->SetWarped(nullptr); // Prevent deallocating of warpedImage
-    DeinitContent();
+    DeinitCurrentLevel(-1);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetWarpedImage");
 #endif

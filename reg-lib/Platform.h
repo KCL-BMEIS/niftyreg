@@ -22,7 +22,8 @@ public:
                                          bool useConjGradient,
                                          bool optimiseX,
                                          bool optimiseY,
-                                         bool optimiseZ) const;
+                                         bool optimiseZ,
+                                         F3dContent *conBw = nullptr) const;
     Measure* CreateMeasure() const;
 
     std::string GetName() const;

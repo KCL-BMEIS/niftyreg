@@ -12,10 +12,10 @@
 
 #include "_reg_ReadWriteImage.h"
 #include "_reg_ReadWriteMatrix.h"
-#include "_reg_f3d.h"
+#include "_reg_f3d2.h"
 #include "reg_f3d.h"
 #include <float.h>
- //#include <libgen.h> //DOES NOT WORK ON WINDOWS !
+// #include <libgen.h> //DOES NOT WORK ON WINDOWS !
 
 #ifdef _WIN32
 #   include <time.h>
@@ -51,7 +51,7 @@ void Usage(char *exec) {
     reg_print_info(exec, "***************");
     reg_print_info(exec, "*** Initial transformation options (One option will be considered):");
     reg_print_info(exec, "\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=Floating)");
-    reg_print_info(exec, "\t-incpp <filename>\tFilename ofloatf control point grid input");
+    reg_print_info(exec, "\t-incpp <filename>\tFilename of the control point grid input");
     reg_print_info(exec, "\t\t\t\tThe coarse spacing is defined by this file.");
     reg_print_info(exec, "");
     reg_print_info(exec, "*** Output options:");
@@ -116,8 +116,7 @@ void Usage(char *exec) {
     reg_print_info(exec, "\t-kldw <tp> <float>\tKLD Weight. Weight to use for the KLD similarity measure for the specified timepoint");
     reg_print_info(exec, "\t-wSim <filename>\tWeight to apply to the measure of similarity at each voxel position");
 
-
-    //   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
+    // reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
     reg_print_info(exec, "");
     reg_print_info(exec, "*** Optimisation options:");
     reg_print_info(exec, "\t-maxit <int>\t\tMaximal number of iteration at the final level [150]");
@@ -133,8 +132,8 @@ void Usage(char *exec) {
     reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space");
     reg_print_info(exec, "");
 
-    reg_print_info(exec, "*** Platform options:");
 #if defined(_USE_CUDA) && defined(_USE_OPENCL)
+    reg_print_info(exec, "*** Platform options:");
     reg_print_info(exec, "\t-platf <uint>\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
 #else
 #ifdef _USE_CUDA
@@ -149,7 +148,7 @@ void Usage(char *exec) {
     reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
 #endif
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
     reg_print_info(exec, "");
     reg_print_info(exec, "*** OpenMP-related options:");
     int defaultOpenMPValue = omp_get_num_procs();
@@ -285,16 +284,11 @@ int main(int argc, char **argv) {
     unsigned gpuIdx = 999;
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-vel") == 0 || strcmp(argv[i], "--vel") == 0) {
-            // reg = new reg_f3d2<float>(referenceImage->nt, floatingImage->nt);
-            break;
-        }
-        if (strcmp(argv[i], "-sym") == 0 || strcmp(argv[i], "--sym") == 0) {
-            // reg = new reg_f3d_sym<float>(referenceImage->nt, floatingImage->nt);
-            break;
+            reg = new reg_f3d2<float>(referenceImage->nt, floatingImage->nt);
         } else if (strcmp(argv[i], "-platf") == 0 || strcmp(argv[i], "--platf") == 0) {
             PlatformType value{atoi(argv[++i])};
-            if (int(value) < int(PlatformType::Cpu) || int(value) > int(PlatformType::OpenCl)) {
-                reg_print_msg_error("The platform argument is expected to be 0, 1 or 2 | 0=CPU, 1=CUDA 2=OPENCL");
+            if (int(value) < int(PlatformType::Cpu) || int(value) > int(PlatformType::Cuda)) {
+                reg_print_msg_error("The platform argument is expected to be 0 or 1 | 0=CPU 1=CUDA");
                 return EXIT_FAILURE;
             }
 #ifndef _USE_CUDA
@@ -663,7 +657,7 @@ int main(int argc, char **argv) {
                  strcmp(argv[i], "-Version") != 0 && strcmp(argv[i], "-V") != 0 &&
                  strcmp(argv[i], "-v") != 0 && strcmp(argv[i], "--v") != 0 &&
                  strcmp(argv[i], "-platf") != 0 && strcmp(argv[i], "--platf") != 0 &&
-                 strcmp(argv[i], "-vel") != 0 && strcmp(argv[i], "-sym") != 0) {
+                 strcmp(argv[i], "-vel") != 0) {
             reg_print_msg_error("\tParameter unknown:");
             reg_print_msg_error(argv[i]);
             PetitUsage((argv[0]));

@@ -23,18 +23,10 @@ public:
     virtual nifti_image* GetWarped() { return warped; }
 
     // Setters
-    virtual void SetDeformationField(nifti_image *deformationFieldIn) {
-        deformationField = deformationFieldIn;
-    }
-    virtual void SetReferenceMask(int *referenceMaskIn) {
-        referenceMask = referenceMaskIn;
-    }
-    virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) {
-        transformationMatrix = transformationMatrixIn;
-    }
-    virtual void SetWarped(nifti_image *warpedIn) {
-        warped = warpedIn;
-    }
+    virtual void SetDeformationField(nifti_image *deformationFieldIn) { deformationField = deformationFieldIn; }
+    virtual void SetReferenceMask(int *referenceMaskIn) { referenceMask = referenceMaskIn; }
+    virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) { transformationMatrix = transformationMatrixIn; }
+    virtual void SetWarped(nifti_image *warpedIn) { warped = warpedIn; }
 
     // Auxiliary methods
     static mat44* GetXYZMatrix(nifti_image& image) {

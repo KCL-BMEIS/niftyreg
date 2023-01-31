@@ -29,13 +29,17 @@ reg_measure* Measure::Create(const MeasureType& measureType) {
     return nullptr;
 }
 /* *************************************************************** */
-void Measure::Initialise(reg_measure& measure, F3dContent& con) {
+void Measure::Initialise(reg_measure& measure, F3dContent& con, F3dContent *conBw) {
     measure.InitialiseMeasure(con.GetReference(),
                               con.GetFloating(),
                               con.GetReferenceMask(),
                               con.GetWarped(),
                               con.GetWarpedGradient(),
                               con.GetVoxelBasedMeasureGradient(),
-                              con.GetLocalWeightSim());
+                              con.GetLocalWeightSim(),
+                              conBw ? conBw->GetReferenceMask() : nullptr,
+                              conBw ? conBw->GetWarped() : nullptr,
+                              conBw ? conBw->GetWarpedGradient() : nullptr,
+                              conBw ? conBw->GetVoxelBasedMeasureGradient() : nullptr);
 }
 /* *************************************************************** */

@@ -21,14 +21,23 @@ public:
     virtual void GetDeformationField(bool composition, bool bspline);
     virtual void UpdateControlPointPosition(float *currentDOF, float *bestDOF, float *gradient, float scale, bool optimiseX, bool optimiseY, bool optimiseZ);
     virtual void GetImageGradient(int interpolation, float paddingValue, int activeTimepoint);
-    virtual void VoxelCentricToNodeCentric(float weight);
     virtual double GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ);
     virtual void NormaliseGradient(size_t nodeNumber, double maxGradLength);
+    virtual void SmoothGradient(float sigma);
     virtual void GetApproximatedGradient(InterfaceOptimiser& opt);
+    virtual void GetDefFieldFromVelocityGrid(bool updateStepNumber);
+    virtual void ConvolveVoxelBasedMeasureGradient(float weight);
+    virtual void ExponentiateGradient(Content& conBw);
+    virtual void UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ);
+    virtual void BchUpdate(float scale, int bchUpdateValue);
+    virtual void SymmetriseVelocityFields(Content& conBw);
 
 protected:
     Content& con;
 
+    void ConvolveImage(nifti_image*);
+
 private:
     template<typename Type> void GetApproximatedGradient(InterfaceOptimiser&);
+    nifti_image* ScaleGradient(const nifti_image&, float);
 };

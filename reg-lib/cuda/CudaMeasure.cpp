@@ -28,22 +28,23 @@ reg_measure* CudaMeasure::Create(const MeasureType& measureType) {
     return nullptr;
 }
 /* *************************************************************** */
-void CudaMeasure::Initialise(reg_measure& measure, F3dContent& con) {
-    reg_measure_gpu *measureGpu = dynamic_cast<reg_measure_gpu*>(&measure);
-    CudaF3dContent *cudaCon = dynamic_cast<CudaF3dContent*>(&con);
-    measureGpu->InitialiseMeasure(cudaCon->Content::GetReference(),
-                                  cudaCon->Content::GetFloating(),
-                                  cudaCon->Content::GetReferenceMask(),
-                                  cudaCon->Content::GetReference()->nvox,
-                                  cudaCon->Content::GetWarped(),
-                                  cudaCon->F3dContent::GetWarpedGradient(),
-                                  cudaCon->F3dContent::GetVoxelBasedMeasureGradient(),
-                                  cudaCon->F3dContent::GetLocalWeightSim(),
-                                  cudaCon->GetReferenceCuda(),
-                                  cudaCon->GetFloatingCuda(),
-                                  cudaCon->GetReferenceMaskCuda(),
-                                  cudaCon->GetWarpedCuda(),
-                                  cudaCon->GetWarpedGradientCuda(),
-                                  cudaCon->GetVoxelBasedMeasureGradientCuda());
+void CudaMeasure::Initialise(reg_measure& measure, F3dContent& con, F3dContent *conBw) {
+    // TODO Implement symmetric scheme for CUDA measure types
+    reg_measure_gpu& measureGpu = dynamic_cast<reg_measure_gpu&>(measure);
+    CudaF3dContent& cudaCon = dynamic_cast<CudaF3dContent&>(con);
+    measureGpu.InitialiseMeasure(cudaCon.Content::GetReference(),
+                                 cudaCon.Content::GetFloating(),
+                                 cudaCon.Content::GetReferenceMask(),
+                                 cudaCon.Content::GetReference()->nvox,
+                                 cudaCon.Content::GetWarped(),
+                                 cudaCon.F3dContent::GetWarpedGradient(),
+                                 cudaCon.F3dContent::GetVoxelBasedMeasureGradient(),
+                                 cudaCon.F3dContent::GetLocalWeightSim(),
+                                 cudaCon.GetReferenceCuda(),
+                                 cudaCon.GetFloatingCuda(),
+                                 cudaCon.GetReferenceMaskCuda(),
+                                 cudaCon.GetWarpedCuda(),
+                                 cudaCon.GetWarpedGradientCuda(),
+                                 cudaCon.GetVoxelBasedMeasureGradientCuda());
 }
 /* *************************************************************** */

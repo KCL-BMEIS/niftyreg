@@ -122,7 +122,8 @@ protected:
 
     // Pure virtual functions
     virtual void SetOptimiser() = 0;
-    virtual T InitialiseCurrentLevel(int currentLevel, nifti_image *reference) = 0;
+    virtual T InitCurrentLevel(int) = 0;
+    virtual void DeinitCurrentLevel(int);
     virtual void SmoothGradient() = 0;
     virtual void GetDeformationField() = 0;
     virtual void GetApproximatedGradient() = 0;
@@ -131,13 +132,11 @@ protected:
     virtual T NormaliseGradient() = 0;
     virtual void GetSimilarityMeasureGradient() = 0;
     virtual void GetObjectiveFunctionGradient() = 0;
-    virtual void DisplayCurrentLevelParameters(int currentLevel) = 0;
+    virtual void DisplayCurrentLevelParameters(int) = 0;
     virtual void UpdateBestObjFunctionValue() = 0;
     virtual void PrintCurrentObjFunctionValue(T) = 0;
     virtual void PrintInitialObjFunctionValue() = 0;
     virtual void CorrectTransformation() = 0;
-    virtual void InitContent(nifti_image *reference, nifti_image *floating, int *mask) = 0;
-    virtual void DeinitContent() = 0;
 
 public:
     reg_base(int refTimePoint, int floTimePoint);
@@ -167,12 +166,12 @@ public:
     // virtual void DoNotApproximateParzenWindow();
     virtual void UseNMISetReferenceBinNumber(int, int);
     virtual void UseNMISetFloatingBinNumber(int, int);
-    virtual void UseSSD(int timepoint, bool normalize);
-    virtual void UseMIND(int timepoint, int offset);
-    virtual void UseMINDSSC(int timepoint, int offset);
-    virtual void UseKLDivergence(int timepoint);
-    virtual void UseDTI(bool *timepoint);
-    virtual void UseLNCC(int timepoint, float stdDevKernel);
+    virtual void UseSSD(int, bool);
+    virtual void UseMIND(int, int);
+    virtual void UseMINDSSC(int, int);
+    virtual void UseKLDivergence(int);
+    virtual void UseDTI(bool*);
+    virtual void UseLNCC(int, float);
     virtual void SetLNCCKernelType(int type);
     virtual void SetLocalWeightSim(nifti_image*);
 

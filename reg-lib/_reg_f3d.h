@@ -33,14 +33,16 @@ protected:
     double bestWBE;
     double bestWLE;
 
-    virtual T InitialiseCurrentLevel(int currentLevel, nifti_image *reference) override;
+    void InitContent(nifti_image*, nifti_image*, int*);
+    virtual T InitCurrentLevel(int) override;
+    virtual void DeinitCurrentLevel(int) override;
     virtual T NormaliseGradient() override;
     virtual void SmoothGradient() override;
     virtual void GetObjectiveFunctionGradient() override;
     virtual void GetApproximatedGradient() override;
     virtual void GetSimilarityMeasureGradient() override;
     virtual void GetDeformationField() override;
-    virtual void DisplayCurrentLevelParameters(int currentLevel) override;
+    virtual void DisplayCurrentLevelParameters(int) override;
     virtual double GetObjectiveFunctionValue() override;
     virtual void UpdateBestObjFunctionValue() override;
     virtual void UpdateParameters(float) override;
@@ -50,8 +52,6 @@ protected:
     virtual void CorrectTransformation() override;
     virtual void CheckParameters() override;
     virtual void Initialise() override;
-    virtual void InitContent(nifti_image *reference, nifti_image *floating, int *mask) override;
-    virtual void DeinitContent() override;
 
     virtual double ComputeBendingEnergyPenaltyTerm();
     virtual double ComputeLinearEnergyPenaltyTerm();

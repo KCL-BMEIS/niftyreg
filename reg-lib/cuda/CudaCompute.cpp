@@ -84,6 +84,7 @@ void CudaCompute::LandmarkDistanceGradient(size_t landmarkNumber, float *landmar
 }
 /* *************************************************************** */
 void CudaCompute::GetDeformationField(bool composition, bool bspline) {
+    // TODO Fix reg_spline_getDeformationField_gpu to accept composition
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     reg_spline_getDeformationField_gpu(con.F3dContent::GetControlPointGrid(),
                                        con.F3dContent::GetReference(),
@@ -104,6 +105,7 @@ void CudaCompute::UpdateControlPointPosition(float *currentDOF, float *bestDOF, 
 }
 /* *************************************************************** */
 void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) {
+    // TODO Fix reg_getImageGradient_gpu to accept interpolation and activeTimepoint
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     reg_getImageGradient_gpu(con.F3dContent::GetFloating(),
                              con.GetFloatingCuda(),
@@ -111,15 +113,6 @@ void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int ac
                              con.GetWarpedGradientCuda(),
                              con.F3dContent::GetReference()->nvox,
                              paddingValue);
-}
-/* *************************************************************** */
-void CudaCompute::VoxelCentricToNodeCentric(float weight) {
-    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    reg_voxelCentric2NodeCentric_gpu(con.F3dContent::GetWarped(),
-                                     con.F3dContent::GetControlPointGrid(),
-                                     con.GetVoxelBasedMeasureGradientCuda(),
-                                     con.GetTransformationGradientCuda(),
-                                     weight);
 }
 /* *************************************************************** */
 double CudaCompute::GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ) {
@@ -132,9 +125,79 @@ void CudaCompute::NormaliseGradient(size_t nodeNumber, double maxGradLength) {
     reg_multiplyValue_gpu(nodeNumber, dynamic_cast<CudaF3dContent&>(con).GetTransformationGradientCuda(), 1 / (float)maxGradLength);
 }
 /* *************************************************************** */
+void CudaCompute::SmoothGradient(float sigma) {
+    // TODO Implement this for CUDA
+    // Use CPU temporarily
+    if (sigma != 0) {
+        Compute::SmoothGradient(sigma);
+        // Update the changes for GPU
+        dynamic_cast<CudaF3dContent&>(con).UpdateTransformationGradient();
+    }
+}
+/* *************************************************************** */
 void CudaCompute::GetApproximatedGradient(InterfaceOptimiser& opt) {
     // TODO Implement this for CUDA
     // Use CPU temporarily
     Compute::GetApproximatedGradient(opt);
+}
+/* *************************************************************** */
+void CudaCompute::GetDefFieldFromVelocityGrid(bool updateStepNumber) {
+    // TODO Implement this for CUDA
+    // Use CPU temporarily
+    Compute::GetDefFieldFromVelocityGrid(updateStepNumber);
+    // Transfer the data back to the CUDA device
+    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
+    // TODO update only the required ones
+    con.UpdateControlPointGrid();
+    con.SetDeformationField(con.F3dContent::GetDeformationField());
+}
+/* *************************************************************** */
+void CudaCompute::ConvolveVoxelBasedMeasureGradient(float weight) {
+    // TODO Implement this for CUDA
+    // Use CPU temporarily
+    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
+    Compute::ConvolveImage(con.GetVoxelBasedMeasureGradient());
+    // Transfer the data back to the CUDA device
+    con.UpdateVoxelBasedMeasureGradient();
+
+    // The node-based NMI gradient is extracted
+    reg_voxelCentric2NodeCentric_gpu(con.F3dContent::GetWarped(),
+                                     con.F3dContent::GetControlPointGrid(),
+                                     con.GetVoxelBasedMeasureGradientCuda(),
+                                     con.GetTransformationGradientCuda(),
+                                     weight);
+}
+/* *************************************************************** */
+void CudaCompute::ExponentiateGradient(Content& conBwIn) {
+    // TODO Implement this for CUDA
+    // Use CPU temporarily
+    Compute::ExponentiateGradient(conBwIn);
+    // Transfer the data back to the CUDA device
+    dynamic_cast<CudaF3dContent&>(con).UpdateVoxelBasedMeasureGradient();
+}
+/* *************************************************************** */
+void CudaCompute::UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ) {
+    // TODO Implement this for CUDA
+    // Use CPU temporarily
+    Compute::UpdateVelocityField(scale, optimiseX, optimiseY, optimiseZ);
+    // Transfer the data back to the CUDA device
+    dynamic_cast<CudaF3dContent&>(con).UpdateControlPointGrid();
+}
+/* *************************************************************** */
+void CudaCompute::BchUpdate(float scale, int bchUpdateValue) {
+    // TODO Implement this for CUDA
+    // Use CPU temporarily
+    Compute::BchUpdate(scale, bchUpdateValue);
+    // Transfer the data back to the CUDA device
+    dynamic_cast<CudaF3dContent&>(con).UpdateControlPointGrid();
+}
+/* *************************************************************** */
+void CudaCompute::SymmetriseVelocityFields(Content& conBwIn) {
+    // TODO Implement this for CUDA
+    // Use CPU temporarily
+    Compute::SymmetriseVelocityFields(conBwIn);
+    // Transfer the data back to the CUDA device
+    dynamic_cast<CudaF3dContent&>(con).UpdateControlPointGrid();
+    dynamic_cast<CudaF3dContent&>(conBwIn).UpdateControlPointGrid();
 }
 /* *************************************************************** */

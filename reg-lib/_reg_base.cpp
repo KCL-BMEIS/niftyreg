@@ -1013,6 +1013,29 @@ void reg_base<T>::WarpFloatingImage(int inter) {
 }
 /* *************************************************************** */
 template<class T>
+void reg_base<T>::DeinitCurrentLevel(int currentLevel) {
+    delete optimiser;
+    optimiser = nullptr;
+    if (currentLevel >= 0) {
+        if (usePyramid) {
+            nifti_image_free(referencePyramid[currentLevel]);
+            referencePyramid[currentLevel] = nullptr;
+            nifti_image_free(floatingPyramid[currentLevel]);
+            floatingPyramid[currentLevel] = nullptr;
+            free(maskPyramid[currentLevel]);
+            maskPyramid[currentLevel] = nullptr;
+        } else if (currentLevel == levelToPerform - 1) {
+            nifti_image_free(referencePyramid[0]);
+            referencePyramid[0] = nullptr;
+            nifti_image_free(floatingPyramid[0]);
+            floatingPyramid[0] = nullptr;
+            free(maskPyramid[0]);
+            maskPyramid[0] = nullptr;
+        }
+    }
+}
+/* *************************************************************** */
+template<class T>
 void reg_base<T>::Run() {
 #ifndef NDEBUG
     char text[255];
@@ -1034,26 +1057,10 @@ void reg_base<T>::Run() {
 
     // Loop over the different resolution level to perform
     for (int currentLevel = 0; currentLevel < levelToPerform; currentLevel++) {
-        // Set the current input images
-        nifti_image *reference;
-        nifti_image *floating;
-        int *mask;
-        if (usePyramid) {
-            reference = referencePyramid[currentLevel];
-            floating = floatingPyramid[currentLevel];
-            mask = maskPyramid[currentLevel];
-        } else {
-            reference = referencePyramid[0];
-            floating = floatingPyramid[0];
-            mask = maskPyramid[0];
-        }
-
         // The grid is refined if necessary
-        T maxStepSize = InitialiseCurrentLevel(currentLevel, reference);
+        T maxStepSize = InitCurrentLevel(currentLevel);
         T currentSize = maxStepSize;
         T smallestSize = maxStepSize / (T)100.0;
-
-        InitContent(reference, floating, mask);
 
         DisplayCurrentLevelParameters(currentLevel);
 
@@ -1115,24 +1122,7 @@ void reg_base<T>::Run() {
         CorrectTransformation();
 
         // Some cleaning is performed
-        delete optimiser;
-        optimiser = nullptr;
-        DeinitContent();
-        if (usePyramid) {
-            nifti_image_free(referencePyramid[currentLevel]);
-            referencePyramid[currentLevel] = nullptr;
-            nifti_image_free(floatingPyramid[currentLevel]);
-            floatingPyramid[currentLevel] = nullptr;
-            free(maskPyramid[currentLevel]);
-            maskPyramid[currentLevel] = nullptr;
-        } else if (currentLevel == levelToPerform - 1) {
-            nifti_image_free(referencePyramid[0]);
-            referencePyramid[0] = nullptr;
-            nifti_image_free(floatingPyramid[0]);
-            floatingPyramid[0] = nullptr;
-            free(maskPyramid[0]);
-            maskPyramid[0] = nullptr;
-        }
+        DeinitCurrentLevel(currentLevel);
 
 #ifdef NDEBUG
         if (verbose) {
