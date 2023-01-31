@@ -1033,7 +1033,7 @@ void reg_base<T>::Run() {
     maxIterationNumber = maxIterationNumber * pow(2, levelToPerform - 1);
 
     // Loop over the different resolution level to perform
-    for (currentLevel = 0; currentLevel < levelToPerform; currentLevel++) {
+    for (int currentLevel = 0; currentLevel < levelToPerform; currentLevel++) {
         // Set the current input images
         nifti_image *reference;
         nifti_image *floating;
@@ -1049,13 +1049,13 @@ void reg_base<T>::Run() {
         }
 
         // The grid is refined if necessary
-        T maxStepSize = InitialiseCurrentLevel(reference);
+        T maxStepSize = InitialiseCurrentLevel(currentLevel, reference);
         T currentSize = maxStepSize;
         T smallestSize = maxStepSize / (T)100.0;
 
         InitContent(reference, floating, mask);
 
-        DisplayCurrentLevelParameters();
+        DisplayCurrentLevelParameters(currentLevel);
 
         // Initialise the measures of similarity
         InitialiseSimilarity();

@@ -109,7 +109,7 @@ void reg_f3d<T>::SetSpacing(unsigned int i, T s) {
 }
 /* *************************************************************** */
 template<class T>
-T reg_f3d<T>::InitialiseCurrentLevel(nifti_image *reference) {
+T reg_f3d<T>::InitialiseCurrentLevel(int currentLevel, nifti_image *reference) {
     // Set the initial step size for the gradient ascent
     T maxStepSize = reference->dx > reference->dy ? reference->dx : reference->dy;
     if (reference->ndim > 2)
@@ -117,7 +117,7 @@ T reg_f3d<T>::InitialiseCurrentLevel(nifti_image *reference) {
 
     // Refine the control point grid if required
     if (gridRefinement) {
-        if (this->currentLevel == 0) {
+        if (currentLevel == 0) {
             bendingEnergyWeight = bendingEnergyWeight / static_cast<T>(powf(16, this->levelNumber - 1));
             linearEnergyWeight = linearEnergyWeight / static_cast<T>(powf(3, this->levelNumber - 1));
         } else {
@@ -551,14 +551,14 @@ T reg_f3d<T>::NormaliseGradient() {
 }
 /* *************************************************************** */
 template<class T>
-void reg_f3d<T>::DisplayCurrentLevelParameters() {
+void reg_f3d<T>::DisplayCurrentLevelParameters(int currentLevel) {
 #ifdef NDEBUG
     if (this->verbose) {
 #endif
         nifti_image *reference = this->con->Content::GetReference();
         nifti_image *floating = this->con->Content::GetFloating();
         char text[255];
-        sprintf(text, "Current level: %i / %i", this->currentLevel + 1, this->levelNumber);
+        sprintf(text, "Current level: %i / %i", currentLevel + 1, this->levelNumber);
         reg_print_info(this->executableName, text);
         sprintf(text, "Maximum iteration number: %i", (int)this->maxIterationNumber);
         reg_print_info(this->executableName, text);
@@ -692,7 +692,7 @@ nifti_image** reg_f3d<T>::GetWarpedImage() {
         reg_exit();
     }
 
-    InitialiseCurrentLevel(this->inputReference);
+    InitialiseCurrentLevel(-1, this->inputReference);
     InitContent(this->inputReference, this->inputFloating, nullptr);
 
     this->WarpFloatingImage(3); // cubic spline interpolation

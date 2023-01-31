@@ -97,7 +97,6 @@ protected:
     nifti_image **floatingPyramid;
     int **maskPyramid;
     int *activeVoxelNumber;
-    unsigned int currentLevel;
 
     double bestWMeasure;
     double currentWMeasure;
@@ -123,7 +122,7 @@ protected:
 
     // Pure virtual functions
     virtual void SetOptimiser() = 0;
-    virtual T InitialiseCurrentLevel(nifti_image *reference) = 0;
+    virtual T InitialiseCurrentLevel(int currentLevel, nifti_image *reference) = 0;
     virtual void SmoothGradient() = 0;
     virtual void GetDeformationField() = 0;
     virtual void GetApproximatedGradient() = 0;
@@ -132,7 +131,7 @@ protected:
     virtual T NormaliseGradient() = 0;
     virtual void GetSimilarityMeasureGradient() = 0;
     virtual void GetObjectiveFunctionGradient() = 0;
-    virtual void DisplayCurrentLevelParameters() = 0;
+    virtual void DisplayCurrentLevelParameters(int currentLevel) = 0;
     virtual void UpdateBestObjFunctionValue() = 0;
     virtual void PrintCurrentObjFunctionValue(T) = 0;
     virtual void PrintInitialObjFunctionValue() = 0;
