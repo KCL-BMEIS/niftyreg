@@ -21,7 +21,6 @@ protected:
     nifti_image *floatingMaskImage;
     int **floatingMaskPyramid;
     nifti_image *controlPointGridBw;
-    int *activeVoxelNumberBw;
     mat44 *affineTransformationBw;
     T inverseConsistencyWeight;
     bool bchUpdate;

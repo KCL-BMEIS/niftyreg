@@ -245,7 +245,7 @@ int main(int argc, char **argv)
                  param->refMaskImageName);
          return EXIT_FAILURE;
       }
-      reg_createMaskPyramid<float>(refMaskImage, &refMask, 1, 1, &refMaskVoxNumber);
+      reg_createMaskPyramid<float>(refMaskImage, &refMask, 1, 1);
    }
    else{
       refMask = (int *)calloc(refMaskVoxNumber,sizeof(int));

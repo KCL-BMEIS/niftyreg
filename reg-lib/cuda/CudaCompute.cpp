@@ -12,7 +12,7 @@ void CudaCompute::ResampleImage(int inter, float paddingValue) {
                           con.GetFloatingCuda(),
                           con.GetDeformationFieldCuda(),
                           con.GetReferenceMaskCuda(),
-                          con.Content::GetReference()->nvox,
+                          con.GetActiveVoxelNumber(),
                           paddingValue);
 }
 /* *************************************************************** */
@@ -91,7 +91,7 @@ void CudaCompute::GetDeformationField(bool composition, bool bspline) {
                                        con.GetControlPointGridCuda(),
                                        con.GetDeformationFieldCuda(),
                                        con.GetReferenceMaskCuda(),
-                                       con.F3dContent::GetReference()->nvox,
+                                       con.GetActiveVoxelNumber(),
                                        bspline);
 }
 /* *************************************************************** */
@@ -111,7 +111,7 @@ void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int ac
                              con.GetFloatingCuda(),
                              con.GetDeformationFieldCuda(),
                              con.GetWarpedGradientCuda(),
-                             con.F3dContent::GetReference()->nvox,
+                             con.GetActiveVoxelNumber(),
                              paddingValue);
 }
 /* *************************************************************** */

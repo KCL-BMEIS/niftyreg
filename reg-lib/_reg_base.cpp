@@ -73,7 +73,6 @@ reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     referencePyramid = nullptr;
     floatingPyramid = nullptr;
     maskPyramid = nullptr;
-    activeVoxelNumber = nullptr;
 
     interpolation = 1;
 
@@ -139,10 +138,6 @@ reg_base<T>::~reg_base() {
         }
         free(floatingPyramid);
         floatingPyramid = nullptr;
-    }
-    if (activeVoxelNumber) {
-        free(activeVoxelNumber);
-        activeVoxelNumber = nullptr;
     }
     if (referenceThresholdUp) {
         delete[]referenceThresholdUp;
@@ -621,12 +616,10 @@ void reg_base<T>::Initialise() {
         referencePyramid = (nifti_image**)malloc(levelToPerform * sizeof(nifti_image*));
         floatingPyramid = (nifti_image**)malloc(levelToPerform * sizeof(nifti_image*));
         maskPyramid = (int**)malloc(levelToPerform * sizeof(int*));
-        activeVoxelNumber = (int*)malloc(levelToPerform * sizeof(int));
     } else {
         referencePyramid = (nifti_image**)malloc(sizeof(nifti_image*));
         floatingPyramid = (nifti_image**)malloc(sizeof(nifti_image*));
         maskPyramid = (int**)malloc(sizeof(int*));
-        activeVoxelNumber = (int*)malloc(sizeof(int));
     }
 
     // Update the input images threshold if required
@@ -669,21 +662,21 @@ void reg_base<T>::Initialise() {
         reg_createImagePyramid<T>(inputReference, referencePyramid, levelNumber, levelToPerform);
         reg_createImagePyramid<T>(inputFloating, floatingPyramid, levelNumber, levelToPerform);
         if (maskImage)
-            reg_createMaskPyramid<T>(maskImage, maskPyramid, levelNumber, levelToPerform, activeVoxelNumber);
+            reg_createMaskPyramid<T>(maskImage, maskPyramid, levelNumber, levelToPerform);
         else {
             for (unsigned int l = 0; l < levelToPerform; ++l) {
-                activeVoxelNumber[l] = referencePyramid[l]->nx * referencePyramid[l]->ny * referencePyramid[l]->nz;
-                maskPyramid[l] = (int*)calloc(activeVoxelNumber[l], sizeof(int));
+                const size_t voxelNumber = referencePyramid[l]->nx * referencePyramid[l]->ny * referencePyramid[l]->nz;
+                maskPyramid[l] = (int*)calloc(voxelNumber, sizeof(int));
             }
         }
     } else {
         reg_createImagePyramid<T>(inputReference, referencePyramid, 1, 1);
         reg_createImagePyramid<T>(inputFloating, floatingPyramid, 1, 1);
         if (maskImage)
-            reg_createMaskPyramid<T>(maskImage, maskPyramid, 1, 1, activeVoxelNumber);
+            reg_createMaskPyramid<T>(maskImage, maskPyramid, 1, 1);
         else {
-            activeVoxelNumber[0] = referencePyramid[0]->nx * referencePyramid[0]->ny * referencePyramid[0]->nz;
-            maskPyramid[0] = (int*)calloc(activeVoxelNumber[0], sizeof(int));
+            const size_t voxelNumber = referencePyramid[0]->nx * referencePyramid[0]->ny * referencePyramid[0]->nz;
+            maskPyramid[0] = (int*)calloc(voxelNumber, sizeof(int));
         }
     }
 

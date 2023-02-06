@@ -1776,45 +1776,37 @@ void reg_tools_binarise_image(nifti_image *image, float threshold) {
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_tools_binaryImage2int1(const nifti_image *image, int *array, int& activeVoxelNumber) {
-    // Active voxel are different from -1
-    activeVoxelNumber = 0;
+void reg_tools_binaryImage2int1(const nifti_image *image, int *array) {
     const DTYPE *dataPtr = static_cast<DTYPE*>(image->data);
-    for (int i = 0; i < image->nx * image->ny * image->nz; i++) {
-        if (*dataPtr++ != 0) {
-            array[i] = 1;
-            activeVoxelNumber++;
-        } else {
-            array[i] = -1;
-        }
-    }
+    for (size_t i = 0; i < image->nx * image->ny * image->nz; i++)
+        array[i] = dataPtr[i] != 0 ? 1 : -1;
 }
 /* *************************************************************** */
-void reg_tools_binaryImage2int(const nifti_image *image, int *array, int& activeVoxelNumber) {
+void reg_tools_binaryImage2int(const nifti_image *image, int *array) {
     switch (image->datatype) {
     case NIFTI_TYPE_UINT8:
-        reg_tools_binaryImage2int1<unsigned char>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<unsigned char>(image, array);
         break;
     case NIFTI_TYPE_INT8:
-        reg_tools_binaryImage2int1<char>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<char>(image, array);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_tools_binaryImage2int1<unsigned short>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<unsigned short>(image, array);
         break;
     case NIFTI_TYPE_INT16:
-        reg_tools_binaryImage2int1<short>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<short>(image, array);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_binaryImage2int1<unsigned int>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<unsigned int>(image, array);
         break;
     case NIFTI_TYPE_INT32:
-        reg_tools_binaryImage2int1<int>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<int>(image, array);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_tools_binaryImage2int1<float>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<float>(image, array);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_tools_binaryImage2int1<double>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<double>(image, array);
         break;
     default:
         reg_print_fct_error("reg_tools_binaryImage2int");
@@ -1952,7 +1944,7 @@ template int reg_createImagePyramid<float>(const nifti_image*, nifti_image**, un
 template int reg_createImagePyramid<double>(const nifti_image*, nifti_image**, unsigned int, unsigned int);
 /* *************************************************************** */
 template <class DTYPE>
-int reg_createMaskPyramid(const nifti_image *inputMaskImage, int **maskPyramid, unsigned int levelNumber, unsigned int levelToPerform, int *activeVoxelNumber) {
+int reg_createMaskPyramid(const nifti_image *inputMaskImage, int **maskPyramid, unsigned int levelNumber, unsigned int levelToPerform) {
     // FINEST LEVEL OF REGISTRATION
     nifti_image **tempMaskImagePyramid = (nifti_image **)malloc(levelToPerform * sizeof(nifti_image *));
     tempMaskImagePyramid[levelToPerform - 1] = nifti_copy_nim_info(inputMaskImage);
@@ -1971,16 +1963,14 @@ int reg_createMaskPyramid(const nifti_image *inputMaskImage, int **maskPyramid, 
         if ((tempMaskImagePyramid[levelToPerform - 1]->nz / 2) < 32) downsampleAxis[3] = false;
         reg_downsampleImage<DTYPE>(tempMaskImagePyramid[levelToPerform - 1], 0, downsampleAxis);
     }
-    activeVoxelNumber[levelToPerform - 1] = (tempMaskImagePyramid[levelToPerform - 1]->nx *
-                                             tempMaskImagePyramid[levelToPerform - 1]->ny *
-                                             tempMaskImagePyramid[levelToPerform - 1]->nz);
-    maskPyramid[levelToPerform - 1] = (int*)malloc(activeVoxelNumber[levelToPerform - 1] * sizeof(int));
-    reg_tools_binaryImage2int(tempMaskImagePyramid[levelToPerform - 1],
-                              maskPyramid[levelToPerform - 1],
-                              activeVoxelNumber[levelToPerform - 1]);
+    size_t voxelNumber = (tempMaskImagePyramid[levelToPerform - 1]->nx *
+                          tempMaskImagePyramid[levelToPerform - 1]->ny *
+                          tempMaskImagePyramid[levelToPerform - 1]->nz);
+    maskPyramid[levelToPerform - 1] = (int*)malloc(voxelNumber * sizeof(int));
+    reg_tools_binaryImage2int(tempMaskImagePyramid[levelToPerform - 1], maskPyramid[levelToPerform - 1]);
 
     // Images for each subsequent levels are allocated and downsampled if appropriate
-    for (int l = levelToPerform - 2; l >= 0; l--) {
+    for (int l = (int)levelToPerform - 2; l >= 0; l--) {
         // Allocation of the reference image
         tempMaskImagePyramid[l] = nifti_copy_nim_info(tempMaskImagePyramid[l + 1]);
         tempMaskImagePyramid[l]->data = calloc(tempMaskImagePyramid[l]->nvox, tempMaskImagePyramid[l]->nbyper);
@@ -1994,19 +1984,17 @@ int reg_createMaskPyramid(const nifti_image *inputMaskImage, int **maskPyramid, 
         if ((tempMaskImagePyramid[l]->nz / 2) < 32) downsampleAxis[3] = false;
         reg_downsampleImage<DTYPE>(tempMaskImagePyramid[l], 0, downsampleAxis);
 
-        activeVoxelNumber[l] = tempMaskImagePyramid[l]->nx *
-            tempMaskImagePyramid[l]->ny *
-            tempMaskImagePyramid[l]->nz;
-        maskPyramid[l] = (int*)malloc(activeVoxelNumber[l] * sizeof(int));
-        reg_tools_binaryImage2int(tempMaskImagePyramid[l], maskPyramid[l], activeVoxelNumber[l]);
+        voxelNumber = tempMaskImagePyramid[l]->nx * tempMaskImagePyramid[l]->ny * tempMaskImagePyramid[l]->nz;
+        maskPyramid[l] = (int*)malloc(voxelNumber * sizeof(int));
+        reg_tools_binaryImage2int(tempMaskImagePyramid[l], maskPyramid[l]);
     }
     for (unsigned int l = 0; l < levelToPerform; ++l)
         nifti_image_free(tempMaskImagePyramid[l]);
     free(tempMaskImagePyramid);
     return EXIT_SUCCESS;
 }
-template int reg_createMaskPyramid<float>(const nifti_image*, int**, unsigned int, unsigned int, int*);
-template int reg_createMaskPyramid<double>(const nifti_image*, int**, unsigned int, unsigned int, int*);
+template int reg_createMaskPyramid<float>(const nifti_image*, int**, unsigned int, unsigned int);
+template int reg_createMaskPyramid<double>(const nifti_image*, int**, unsigned int, unsigned int);
 /* *************************************************************** */
 template <class TYPE1, class TYPE2>
 int reg_tools_nanMask_image2(const nifti_image *image, const nifti_image *maskImage, nifti_image *outputImage) {

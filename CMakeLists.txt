@@ -73,7 +73,7 @@ option(USE_OPENCL "To use the OpenCL platform" OFF)
 option(USE_OPENMP "To use openMP for multi-CPU processing" ON)
 option(USE_SSE "To enable SEE computation in some case" ON)
 #-----------------------------------------------------------------------------
-option(USE_THROW_EXCEP "To throw exeception rather than exit" OFF)
+option(USE_THROW_EXCEP "To throw exception rather than exit" OFF)
 mark_as_advanced(USE_THROW_EXCEP)
 #-----------------------------------------------------------------------------
 option(USE_NRRD "To use the NRRD file format" OFF)

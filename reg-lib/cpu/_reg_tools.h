@@ -242,14 +242,10 @@ void reg_tools_binarise_image(nifti_image *img,
  * @param img Input image
  * @param array The data array from the input nifti image
  * is binarised and stored in this array.
- * @param activeVoxelNumber This reference is updated
- * with the number of voxel that are included into the
- * mask
  */
 extern "C++"
 void reg_tools_binaryImage2int(const nifti_image *img,
-                               int *array,
-                               int& activeVoxelNumber);
+                               int *array);
 /* *************************************************************** */
 /** @brief Compute the mean root mean squared error between
  * two vector images
@@ -334,15 +330,12 @@ int reg_createImagePyramid(const nifti_image *input,
  * 1 level corresponds to the original image resolution.
  * @param levelToPerform Number to level that will be perform during
  * the registration.
- * @param activeVoxelNumber Array that contains the number of active
- * voxel for each level of the pyramid
  */
 extern "C++" template<class DTYPE>
 int reg_createMaskPyramid(const nifti_image *input,
                           int **pyramid,
                           unsigned int levelNumber,
-                          unsigned int levelToPerform,
-                          int *activeVoxelNumber);
+                          unsigned int levelToPerform);
 /* *************************************************************** */
 /** @brief this function will threshold an image to the values provided,
  * set the scl_slope and sct_inter of the image to 1 and 0

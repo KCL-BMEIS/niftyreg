@@ -35,7 +35,7 @@ void CudaMeasure::Initialise(reg_measure& measure, F3dContent& con, F3dContent *
     measureGpu.InitialiseMeasure(cudaCon.Content::GetReference(),
                                  cudaCon.Content::GetFloating(),
                                  cudaCon.Content::GetReferenceMask(),
-                                 cudaCon.Content::GetReference()->nvox,
+                                 cudaCon.GetActiveVoxelNumber(),
                                  cudaCon.Content::GetWarped(),
                                  cudaCon.F3dContent::GetWarpedGradient(),
                                  cudaCon.F3dContent::GetVoxelBasedMeasureGradient(),

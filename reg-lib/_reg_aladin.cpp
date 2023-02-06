@@ -10,7 +10,6 @@ reg_aladin<T>::reg_aladin() {
     this->referencePyramid = nullptr;
     this->floatingPyramid = nullptr;
     this->referenceMaskPyramid = nullptr;
-    this->activeVoxelNumber = nullptr;
 
     this->transformationMatrix = new mat44;
     this->inputTransformName = nullptr;
@@ -99,8 +98,6 @@ reg_aladin<T>::~reg_aladin() {
         free(this->referenceMaskPyramid);
         this->referenceMaskPyramid = nullptr;
     }
-    if (this->activeVoxelNumber != nullptr)
-        free(this->activeVoxelNumber);
     if (this->platform != nullptr)
         delete this->platform;
 #ifndef NDEBUG
@@ -233,7 +230,6 @@ void reg_aladin<T>::InitialiseRegistration() {
     this->referencePyramid = (nifti_image **)malloc(this->levelsToPerform * sizeof(nifti_image *));
     this->floatingPyramid = (nifti_image **)malloc(this->levelsToPerform * sizeof(nifti_image *));
     this->referenceMaskPyramid = (int **)malloc(this->levelsToPerform * sizeof(int *));
-    this->activeVoxelNumber = (int *)malloc(this->levelsToPerform * sizeof(int));
 
     // FINEST LEVEL OF REGISTRATION
     reg_createImagePyramid<T>(this->inputReference,
@@ -249,12 +245,11 @@ void reg_aladin<T>::InitialiseRegistration() {
         reg_createMaskPyramid<T>(this->inputReferenceMask,
                                  this->referenceMaskPyramid,
                                  this->numberOfLevels,
-                                 this->levelsToPerform,
-                                 this->activeVoxelNumber);
+                                 this->levelsToPerform);
     else {
         for (unsigned int l = 0; l < this->levelsToPerform; ++l) {
-            this->activeVoxelNumber[l] = this->referencePyramid[l]->nx * this->referencePyramid[l]->ny * this->referencePyramid[l]->nz;
-            this->referenceMaskPyramid[l] = (int *)calloc(activeVoxelNumber[l], sizeof(int));
+            const size_t voxelNumber = this->referencePyramid[l]->nx * this->referencePyramid[l]->ny * this->referencePyramid[l]->nz;
+            this->referenceMaskPyramid[l] = (int *)calloc(voxelNumber, sizeof(int));
         }
     }
 

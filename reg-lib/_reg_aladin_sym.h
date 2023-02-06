@@ -36,7 +36,6 @@ private:
 protected:
   nifti_image *InputFloatingMask;
   int **FloatingMaskPyramid;
-  int *BackwardActiveVoxelNumber;
 
   _reg_blockMatchingParam *BackwardBlockMatchingParams;
 

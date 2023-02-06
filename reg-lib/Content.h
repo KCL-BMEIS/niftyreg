@@ -15,6 +15,7 @@ public:
     virtual bool IsCurrentComputationDoubleCapable() { return true; }
 
     // Getters
+    virtual size_t GetActiveVoxelNumber() { return activeVoxelNumber; }
     virtual nifti_image* GetReference() { return reference; }
     virtual nifti_image* GetFloating() { return floating; }
     virtual nifti_image* GetDeformationField() { return deformationField; }
@@ -37,6 +38,7 @@ public:
     }
 
 protected:
+    size_t activeVoxelNumber = 0;
     nifti_image *reference = nullptr;
     nifti_image *floating = nullptr;
     nifti_image *deformationField = nullptr;

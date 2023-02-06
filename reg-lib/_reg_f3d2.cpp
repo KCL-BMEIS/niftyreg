@@ -25,7 +25,6 @@ reg_f3d2<T>::reg_f3d2(int refTimePoint, int floTimePoint):
     controlPointGridBw = nullptr;
     floatingMaskImage = nullptr;
     floatingMaskPyramid = nullptr;
-    activeVoxelNumberBw = nullptr;
     affineTransformationBw = nullptr;
     inverseConsistencyWeight = 0;
     bchUpdate = false;
@@ -60,11 +59,6 @@ reg_f3d2<T>::~reg_f3d2() {
         }
         free(floatingMaskPyramid);
         floatingMaskPyramid = nullptr;
-    }
-
-    if (activeVoxelNumberBw) {
-        free(activeVoxelNumberBw);
-        activeVoxelNumberBw = nullptr;
     }
 
     if (affineTransformationBw) {
@@ -789,31 +783,25 @@ void reg_f3d2<T>::Initialise() {
     // Set the floating mask image pyramid
     if (this->usePyramid) {
         floatingMaskPyramid = (int**)malloc(this->levelToPerform * sizeof(int*));
-        activeVoxelNumberBw = (int*)malloc(this->levelToPerform * sizeof(int));
     } else {
         floatingMaskPyramid = (int**)malloc(sizeof(int*));
-        activeVoxelNumberBw = (int*)malloc(sizeof(int));
     }
 
     if (this->usePyramid) {
         if (floatingMaskImage) {
-            reg_createMaskPyramid<T>(floatingMaskImage,
-                                     floatingMaskPyramid,
-                                     this->levelNumber,
-                                     this->levelToPerform,
-                                     activeVoxelNumberBw);
+            reg_createMaskPyramid<T>(floatingMaskImage, floatingMaskPyramid, this->levelNumber, this->levelToPerform);
         } else {
             for (unsigned int l = 0; l < this->levelToPerform; ++l) {
-                activeVoxelNumberBw[l] = this->floatingPyramid[l]->nx * this->floatingPyramid[l]->ny * this->floatingPyramid[l]->nz;
-                floatingMaskPyramid[l] = (int*)calloc(activeVoxelNumberBw[l], sizeof(int));
+                const size_t voxelNumberBw = this->floatingPyramid[l]->nx * this->floatingPyramid[l]->ny * this->floatingPyramid[l]->nz;
+                floatingMaskPyramid[l] = (int*)calloc(voxelNumberBw, sizeof(int));
             }
         }
     } else {  // no pyramid
         if (floatingMaskImage)
-            reg_createMaskPyramid<T>(floatingMaskImage, floatingMaskPyramid, 1, 1, activeVoxelNumberBw);
+            reg_createMaskPyramid<T>(floatingMaskImage, floatingMaskPyramid, 1, 1);
         else {
-            activeVoxelNumberBw[0] = this->floatingPyramid[0]->nx * this->floatingPyramid[0]->ny * this->floatingPyramid[0]->nz;
-            floatingMaskPyramid[0] = (int*)calloc(activeVoxelNumberBw[0], sizeof(int));
+            const size_t voxelNumberBw = this->floatingPyramid[0]->nx * this->floatingPyramid[0]->ny * this->floatingPyramid[0]->nz;
+            floatingMaskPyramid[0] = (int*)calloc(voxelNumberBw, sizeof(int));
         }
     }
 

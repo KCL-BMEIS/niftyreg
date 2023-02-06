@@ -96,7 +96,6 @@ protected:
     nifti_image **referencePyramid;
     nifti_image **floatingPyramid;
     int **maskPyramid;
-    int *activeVoxelNumber;
 
     double bestWMeasure;
     double currentWMeasure;

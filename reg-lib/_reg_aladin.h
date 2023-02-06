@@ -77,7 +77,6 @@ protected:
     nifti_image **referencePyramid;
     nifti_image **floatingPyramid;
     int **referenceMaskPyramid;
-    int *activeVoxelNumber; ///TODO Needs to be removed
 
     char *inputTransformName;
     mat44 *transformationMatrix;

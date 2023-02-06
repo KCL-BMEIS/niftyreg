@@ -95,15 +95,18 @@ void CudaContent::SetReferenceMask(int *referenceMaskIn) {
     if (!referenceMask) return;
 
     int *targetMask;
-    NR_CUDA_SAFE_CALL(cudaMallocHost(&targetMask, reference->nvox * sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMallocHost(&targetMask, reference->nvox * sizeof(*targetMask)));
     int *targetMaskPtr = targetMask;
-    for (int i = 0; i < reference->nvox; i++) {
-        if (referenceMask[i] != -1)
+    activeVoxelNumber = 0;
+    for (size_t i = 0; i < reference->nvox; i++) {
+        if (referenceMask[i] != -1) {
             *targetMaskPtr++ = i;
+            activeVoxelNumber++;
+        }
     }
 
-    cudaCommon_allocateArrayToDevice(&referenceMaskCuda, reference->nvox);
-    NR_CUDA_SAFE_CALL(cudaMemcpy(referenceMaskCuda, targetMask, reference->nvox * sizeof(int),  cudaMemcpyHostToDevice));
+    cudaCommon_allocateArrayToDevice(&referenceMaskCuda, activeVoxelNumber);
+    NR_CUDA_SAFE_CALL(cudaMemcpy(referenceMaskCuda, targetMask, activeVoxelNumber * sizeof(*targetMask), cudaMemcpyHostToDevice));
     NR_CUDA_SAFE_CALL(cudaFreeHost(targetMask));
 }
 /* *************************************************************** */

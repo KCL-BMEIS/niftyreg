@@ -17,8 +17,9 @@ Content::Content(nifti_image *referenceIn,
     }
     AllocateWarped();
     AllocateDeformationField(bytesIn);
+    activeVoxelNumber = reference->nvox;
     if (!referenceMask)
-        referenceMask = (int*)calloc(reference->nvox, sizeof(int));
+        referenceMask = (int*)calloc(activeVoxelNumber, sizeof(int));
 }
 /* *************************************************************** */
 Content::~Content() {

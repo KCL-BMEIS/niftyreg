@@ -10,7 +10,6 @@ reg_aladin_sym<T>::reg_aladin_sym ()
 
    this->InputFloatingMask=nullptr;
    this->FloatingMaskPyramid=nullptr;
-   this->BackwardActiveVoxelNumber=nullptr;
 
    this->BackwardTransformationMatrix=new mat44;
 
@@ -52,9 +51,6 @@ reg_aladin_sym<T>::~reg_aladin_sym()
       free(this->FloatingMaskPyramid);
       this->FloatingMaskPyramid=nullptr;
    }
-   if(this->BackwardActiveVoxelNumber!=nullptr)
-     free(this->BackwardActiveVoxelNumber);
-   this->BackwardActiveVoxelNumber=nullptr;
 
 #ifndef NDEBUG
    reg_print_msg_debug("reg_aladin_sym destructor called");
@@ -77,21 +73,19 @@ void reg_aladin_sym<T>::InitialiseRegistration()
 
    reg_aladin<T>::InitialiseRegistration();
    this->FloatingMaskPyramid = (int **) malloc(this->levelsToPerform*sizeof(int *));
-   this->BackwardActiveVoxelNumber= (int *)malloc(this->levelsToPerform*sizeof(int));
    if (this->InputFloatingMask!=nullptr)
    {
       reg_createMaskPyramid<T>(this->InputFloatingMask,
                                this->FloatingMaskPyramid,
                                this->numberOfLevels,
-                               this->levelsToPerform,
-                               this->BackwardActiveVoxelNumber);
+                               this->levelsToPerform);
    }
    else
    {
       for(unsigned int l=0; l<this->levelsToPerform; ++l)
       {
-         this->BackwardActiveVoxelNumber[l]=this->floatingPyramid[l]->nx*this->floatingPyramid[l]->ny*this->floatingPyramid[l]->nz;
-         this->FloatingMaskPyramid[l]=(int *)calloc(this->BackwardActiveVoxelNumber[l],sizeof(int));
+         const size_t voxelNumberBw = this->floatingPyramid[l]->nx * this->floatingPyramid[l]->ny * this->floatingPyramid[l]->nz;
+         this->FloatingMaskPyramid[l]=(int *)calloc(voxelNumberBw,sizeof(int));
       }
    }
 
@@ -116,7 +110,6 @@ void reg_aladin_sym<T>::InitialiseRegistration()
                }
             }
          }
-         this->BackwardActiveVoxelNumber[l] -= removedVoxel;
       }
    }
    if(this->floatingLowerThreshold!=-std::numeric_limits<T>::max())
@@ -139,7 +132,6 @@ void reg_aladin_sym<T>::InitialiseRegistration()
                }
             }
          }
-         this->BackwardActiveVoxelNumber[l] -= removedVoxel;
       }
    }
 
