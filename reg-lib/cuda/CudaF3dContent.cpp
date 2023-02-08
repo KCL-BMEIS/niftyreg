@@ -107,14 +107,10 @@ void CudaF3dContent::UpdateWarpedGradient() {
 }
 /* *************************************************************** */
 void CudaF3dContent::ZeroTransformationGradient() {
-    cudaMemset(transformationGradientCuda, 0,
-               transformationGradient->nx * transformationGradient->ny * transformationGradient->nz *
-               sizeof(float4));
+    cudaMemset(transformationGradientCuda, 0, CalcVoxelNumber(*transformationGradient) * sizeof(float4));
 }
 /* *************************************************************** */
 void CudaF3dContent::ZeroVoxelBasedMeasureGradient() {
-    cudaMemset(voxelBasedMeasureGradientCuda, 0,
-               voxelBasedMeasureGradient->nx * voxelBasedMeasureGradient->ny * voxelBasedMeasureGradient->nz *
-               sizeof(float4));
+    cudaMemset(voxelBasedMeasureGradientCuda, 0, CalcVoxelNumber(*voxelBasedMeasureGradient) * sizeof(float4));
 }
 /* *************************************************************** */

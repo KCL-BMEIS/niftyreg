@@ -216,9 +216,10 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
 
                 // Check all values
                 auto *defFieldPtrX = static_cast<float *>(defField->data);
-                auto *defFieldPtrY = &defFieldPtrX[defField->nx * defField->ny * defField->nz];
-                auto *defFieldPtrZ = &defFieldPtrY[defField->nx * defField->ny * defField->nz];
-                for (int i = 0; i < defField->nx * defField->ny * defField->nz; ++i) {
+                const size_t voxelNumber = CalcVoxelNumber(*defField);
+                auto *defFieldPtrY = &defFieldPtrX[voxelNumber];
+                auto *defFieldPtrZ = &defFieldPtrY[voxelNumber];
+                for (size_t i = 0; i < voxelNumber; ++i) {
                     REQUIRE(fabs(defFieldPtrX[i] - test_res_x[i]) < EPS_SINGLE);
                     REQUIRE(fabs(defFieldPtrY[i] - test_res_y[i]) < EPS_SINGLE);
                     if (test_res_z != nullptr) {

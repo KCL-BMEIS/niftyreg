@@ -181,7 +181,6 @@ template <class DTYPE>
 void reg_io_diplayImageData1(nifti_image *image)
 {
     reg_print_msg_debug("image values:");
-    size_t voxelNumber = (size_t)image->nx * image->ny * image->nz;
     DTYPE *data = static_cast<DTYPE *>(image->data);
     std::string text;
 
@@ -195,7 +194,7 @@ void reg_io_diplayImageData1(nifti_image *image)
              text = stringFormat("[%d - %d - %d] = [", x, y, z);
              for(int tu=0;tu<image->nt*image->nu; ++tu){
                 text = stringFormat("%s%g ", text.c_str(),
-                    static_cast<double>(data[voxelIndex + tu*voxelNumber]));
+                    static_cast<double>(data[voxelIndex + tu*CalcVoxelNumber(*image)]));
              }
              text = stringFormat("%s]", text.c_str());
              reg_print_msg_debug(text.c_str());

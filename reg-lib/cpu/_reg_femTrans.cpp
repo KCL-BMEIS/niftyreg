@@ -11,6 +11,7 @@
  */
 
 #include "_reg_femTrans.h"
+#include "_reg_tools.h"
 
 float reg_getTetrahedronVolume(float *node1,float *node2,float *node3,float *node4)
 {
@@ -38,7 +39,7 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
                                      )
 {
    // Set all the closest nodes and coefficients to zero
-   for(int i=0; i<4*deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz; ++i)
+   for (int i = 0; i < 4 * CalcVoxelNumber(*deformationFieldImage); ++i)
    {
       closestNodes[i]=0;
       femInterpolationWeight[i]=0.f;
@@ -148,14 +149,13 @@ void reg_fem_getDeformationField(float *nodePositions,
                                 )
 {
 #ifdef _WIN32
-   long voxel;
-   long voxelNumber=(long)deformationFieldImage->nx*
-      deformationFieldImage->ny*deformationFieldImage->nz;
+    long voxel;
+    const long voxelNumber = (long)CalcVoxelNumber(*deformationFieldImage);
 #else
-   size_t voxel;
-   size_t voxelNumber=(size_t)deformationFieldImage->nx*
-      deformationFieldImage->ny*deformationFieldImage->nz;
+    size_t voxel;
+    const size_t voxelNumber = CalcVoxelNumber(*deformationFieldImage);
 #endif
+
    float *defPtrX = static_cast<float *>(deformationFieldImage->data);
    float *defPtrY = &defPtrX[voxelNumber];
    float *defPtrZ = &defPtrY[voxelNumber];
@@ -215,9 +215,7 @@ void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
                                  unsigned int nodeNumber,
                                  float *femBasedGradient)
 {
-   unsigned int voxelNumber = voxelBasedGradient->nx *
-                              voxelBasedGradient->ny *
-                              voxelBasedGradient->nz;
+   const size_t voxelNumber = CalcVoxelNumber(*voxelBasedGradient);
    float *voxGradPtrX = static_cast<float *>(voxelBasedGradient->data);
    float *voxGradPtrY = &voxGradPtrX[voxelNumber];
    float *voxGradPtrZ = &voxGradPtrY[voxelNumber];
@@ -225,10 +223,10 @@ void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
    for(unsigned int node=0; node<3*nodeNumber; ++node)
       femBasedGradient[node]=0.f;
 
-   unsigned int currentNodes[4], voxel;
+   unsigned int currentNodes[4];
    float currentGradient[3];
    float coefficients[4];
-   for(voxel=0; voxel<voxelNumber; ++voxel)
+   for(size_t voxel=0; voxel<voxelNumber; ++voxel)
    {
       currentNodes[0]=closestNodes[4*voxel];
       currentNodes[1]=closestNodes[4*voxel+1];

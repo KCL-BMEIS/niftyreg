@@ -84,8 +84,8 @@ float reg_getSSDValue_gpu(nifti_image *referenceImage,
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     // Copy the constant memory variables
-    int3 referenceDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
-    int voxelNumber = referenceImage->nx * referenceImage->ny * referenceImage->nz;
+    const int3 referenceDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
+    const int voxelNumber = CalcVoxelNumber(*referenceImage);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim, &referenceDim, sizeof(int3)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber, &activeVoxelNumber, sizeof(int)));
     // Bind the required textures
@@ -145,8 +145,8 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
     // Copy the constant memory variables
-    int3 referenceDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
-    int voxelNumber = referenceImage->nx * referenceImage->ny * referenceImage->nz;
+    const int3 referenceDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
+    const int voxelNumber = CalcVoxelNumber(*referenceImage);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim, &referenceDim, sizeof(int3)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber, &activeVoxelNumber, sizeof(int)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NormalisationNumber, &maxSD, sizeof(float)));

@@ -81,7 +81,7 @@ void ClResampleImageKernel::Calculate(int interp,
     }
     sContext->checkErrNum(errNum, "Error setting kernel ResampleImage.");
 
-    long targetVoxelNumber = (long)this->warpedImage->nx * this->warpedImage->ny * this->warpedImage->nz;
+    const size_t targetVoxelNumber = CalcVoxelNumber(*this->warpedImage);
     const unsigned int maxThreads = sContext->GetMaxThreads();
     const unsigned int maxBlocks = sContext->GetMaxBlocks();
 
@@ -95,7 +95,7 @@ void ClResampleImageKernel::Calculate(int interp,
     //    int numMats = 0; //needs to be a parameter
     //    float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
 
-    cl_long2 voxelNumber = {{(cl_long)warpedImage->nx * warpedImage->ny * warpedImage->nz, (cl_long)this->floatingImage->nx * floatingImage->ny * this->floatingImage->nz}};
+    cl_long2 voxelNumber = {{(cl_long)CalcVoxelNumber(*warpedImage), (cl_long)CalcVoxelNumber(*this->floatingImage)}};
     cl_uint3 fi_xyz = {{(cl_uint)floatingImage->nx, (cl_uint)floatingImage->ny, (cl_uint)floatingImage->nz}};
     cl_uint2 wi_tu = {{(cl_uint)warpedImage->nt, (cl_uint)warpedImage->nu}};
 

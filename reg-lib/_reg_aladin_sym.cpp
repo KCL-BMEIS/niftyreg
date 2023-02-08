@@ -84,7 +84,7 @@ void reg_aladin_sym<T>::InitialiseRegistration()
    {
       for(unsigned int l=0; l<this->levelsToPerform; ++l)
       {
-         const size_t voxelNumberBw = this->floatingPyramid[l]->nx * this->floatingPyramid[l]->ny * this->floatingPyramid[l]->nz;
+         const size_t voxelNumberBw = CalcVoxelNumber(*this->floatingPyramid[l]);
          this->FloatingMaskPyramid[l]=(int *)calloc(voxelNumberBw,sizeof(int));
       }
    }
@@ -96,19 +96,10 @@ void reg_aladin_sym<T>::InitialiseRegistration()
       {
          T *refPtr = static_cast<T *>(this->floatingPyramid[l]->data);
          int *mskPtr = this->FloatingMaskPyramid[l];
-         size_t removedVoxel=0;
-         for(size_t i=0;
-               i<(size_t)this->floatingPyramid[l]->nx*this->floatingPyramid[l]->ny*this->floatingPyramid[l]->nz;
-               ++i)
+         for(size_t i=0; i < CalcVoxelNumber(*this->floatingPyramid[l]); ++i)
          {
-            if(mskPtr[i]>-1)
-            {
-               if(refPtr[i]>this->floatingUpperThreshold)
-               {
-                  ++removedVoxel;
-                  mskPtr[i]=-1;
-               }
-            }
+            if (mskPtr[i] > -1 && refPtr[i] > this->floatingUpperThreshold)
+               mskPtr[i] = -1;
          }
       }
    }
@@ -118,19 +109,10 @@ void reg_aladin_sym<T>::InitialiseRegistration()
       {
          T *refPtr = static_cast<T *>(this->floatingPyramid[l]->data);
          int *mskPtr = this->FloatingMaskPyramid[l];
-         size_t removedVoxel=0;
-         for(size_t i=0;
-               i<(size_t)this->floatingPyramid[l]->nx*this->floatingPyramid[l]->ny*this->floatingPyramid[l]->nz;
-               ++i)
+         for (size_t i = 0; i < CalcVoxelNumber(*this->floatingPyramid[l]); ++i)
          {
-            if(mskPtr[i]>-1)
-            {
-               if(refPtr[i]<this->floatingLowerThreshold)
-               {
-                  ++removedVoxel;
-                  mskPtr[i]=-1;
-               }
-            }
+            if (mskPtr[i] > -1 && refPtr[i] < this->floatingLowerThreshold)
+               mskPtr[i] = -1;
          }
       }
    }

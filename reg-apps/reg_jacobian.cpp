@@ -52,7 +52,7 @@ void reg_jacobian_computeLog(nifti_image *image)
 template <class DTYPE>
 void reg_jacobian_convertMat33ToNii(mat33 *array, nifti_image *image)
 {
-   size_t voxelNumber=image->nx*image->ny*image->nz;
+   const size_t voxelNumber=CalcVoxelNumber(*image);
    DTYPE *ptrXX=static_cast<DTYPE *>(image->data);
    if(image->nz>1)
    {
@@ -285,8 +285,7 @@ int main(int argc, char **argv)
       jacobianImage->ndim=jacobianImage->dim[0]=jacobianImage->nz>1?3:2;
       jacobianImage->nu=jacobianImage->dim[5]=1;
       jacobianImage->nt=jacobianImage->dim[4]=1;
-      jacobianImage->nvox=(size_t)jacobianImage->nx *jacobianImage->ny*
-            jacobianImage->nz*jacobianImage->nt*jacobianImage->nu;
+      jacobianImage->nvox=CalcVoxelNumber(*jacobianImage, jacobianImage->ndim);
       jacobianImage->datatype = inputTransformation->datatype;
       jacobianImage->nbyper = inputTransformation->nbyper;
       jacobianImage->cal_min=0;
@@ -340,8 +339,7 @@ int main(int argc, char **argv)
       jacobianImage->ndim=jacobianImage->dim[0]=5;
       jacobianImage->nu=jacobianImage->dim[5]=jacobianImage->nz>1?9:4;
       jacobianImage->nt=jacobianImage->dim[4]=1;
-      jacobianImage->nvox=(size_t)jacobianImage->nx *jacobianImage->ny*
-            jacobianImage->nz*jacobianImage->nt*jacobianImage->nu;
+      jacobianImage->nvox=CalcVoxelNumber(*jacobianImage, jacobianImage->ndim);
       jacobianImage->datatype = inputTransformation->datatype;
       jacobianImage->nbyper = inputTransformation->nbyper;
       jacobianImage->cal_min=0;
@@ -350,7 +348,7 @@ int main(int argc, char **argv)
       jacobianImage->scl_inter = 0.0f;
       jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
 
-      mat33 *jacobianMatriceArray=(mat33 *)malloc(jacobianImage->nx*jacobianImage->ny*jacobianImage->nz*sizeof(mat33));
+      mat33 *jacobianMatriceArray = (mat33 *)malloc(CalcVoxelNumber(*jacobianImage) * sizeof(mat33));
       // Compute the map of Jacobian matrices
       switch((int)inputTransformation->intent_p1){
       case DISP_FIELD:

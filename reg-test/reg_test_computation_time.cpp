@@ -60,8 +60,7 @@ int main(int argc, char **argv)
     defFieldOne->ndim=defFieldOne->dim[0]=5;
     defFieldOne->nt=defFieldOne->dim[4]=1;
     defFieldOne->nu=defFieldOne->dim[5]=defFieldOne->nz>1?3:2;
-    defFieldOne->nvox = (size_t)defFieldOne->nx * defFieldOne->ny *
-            defFieldOne->nz * defFieldOne->nu;
+    defFieldOne->nvox = CalcVoxelNumber(*defFieldOne, defFieldOne->ndim);
     defFieldOne->data = (void *)malloc(defFieldOne->nvox*defFieldOne->nbyper);
     nifti_image *defFieldTwo=nifti_copy_nim_info(defFieldOne);
     defFieldTwo->data = (void *)malloc(defFieldTwo->nvox*defFieldTwo->nbyper);

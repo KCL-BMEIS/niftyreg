@@ -72,7 +72,7 @@ TEST_CASE("Resampling", "[resampling]") {
     nifti_image *id_field_2D = nifti_copy_nim_info(reference2D);
     id_field_2D->ndim = id_field_2D->dim[0] = 5;
     id_field_2D->nu = id_field_2D->dim[5] = 2;
-    id_field_2D->nvox = id_field_2D->nx * id_field_2D->ny * id_field_2D->nu;
+    id_field_2D->nvox = CalcVoxelNumber(*id_field_2D, id_field_2D->ndim);
     id_field_2D->data = (void *)calloc(id_field_2D->nvox, id_field_2D->nbyper);
     reg_getDeformationFromDisplacement(id_field_2D);
     float res2[4];
@@ -89,7 +89,7 @@ TEST_CASE("Resampling", "[resampling]") {
     nifti_image *id_field_3D = nifti_copy_nim_info(reference3D);
     id_field_3D->ndim = id_field_3D->dim[0] = 5;
     id_field_3D->nu = id_field_3D->dim[5] = 3;
-    id_field_3D->nvox = id_field_3D->nx * id_field_3D->ny * id_field_3D->nz * id_field_3D->nu;
+    id_field_3D->nvox = CalcVoxelNumber(*id_field_3D, id_field_3D->ndim);
     id_field_3D->data = calloc(id_field_3D->nvox, id_field_3D->nbyper);
     reg_getDeformationFromDisplacement(id_field_3D);
     float res3[8];
@@ -157,7 +157,7 @@ TEST_CASE("Resampling", "[resampling]") {
 
                     // Check all values
                     auto *warpedPtr = static_cast<float*>(warped->data);
-                    for (int i = 0; i < warped->nx * warped->ny * warped->nz; ++i) {
+                    for (size_t i = 0; i < CalcVoxelNumber(*warped); ++i) {
                         std::cout << i << " " << static_cast<float*>(reference->data)[i] << " " << warpedPtr[i] << " " << test_res[i] << std::endl;
                         REQUIRE(fabs(warpedPtr[i] - test_res[i]) < EPS_SINGLE);
                     }

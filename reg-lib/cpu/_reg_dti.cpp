@@ -90,12 +90,10 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
 {
 #ifdef _WIN32
    long voxel;
-   long voxelNumber = (long)referenceImage->nx*
-                        referenceImage->ny*referenceImage->nz;
+   const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
 #else
    size_t voxel;
-   size_t voxelNumber = (size_t)referenceImage->nx*
-                        referenceImage->ny*referenceImage->nz;
+   const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
 
    /* As the tensor has 6 unique components that we need to worry about, read them out
@@ -238,11 +236,11 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
 {
    // Create pointers to the reference and warped images
 #ifdef _WIN32
-   long voxel;
-   long voxelNumber = (long)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    long voxel;
+    const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
 #else
-   size_t voxel;
-   size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    size_t voxel;
+    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
 
    /* As the tensor has 6 unique components that we need to worry about, read them out

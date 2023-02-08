@@ -105,8 +105,7 @@ void ClAladinContent::AllocateClPtrs() {
     }
     if (referenceMask != nullptr && reference != nullptr) {
         maskClmem = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   reference->nx * reference->ny * reference->nz * sizeof(int),
-                                   referenceMask, &errNum);
+                                   CalcVoxelNumber(*reference) * sizeof(int), referenceMask, &errNum);
         sContext->checkErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (clCreateBuffer): ");
     }
 }

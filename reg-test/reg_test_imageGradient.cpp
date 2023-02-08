@@ -41,8 +41,7 @@ int main(int argc, char **argv)
     nifti_image *gradientImage = nifti_copy_nim_info(inputImage);
     gradientImage->dim[0]=gradientImage->ndim=5;
     gradientImage->dim[5]=gradientImage->nu=dim;
-    gradientImage->nvox = (size_t)gradientImage->nx*gradientImage->ny*
-                      gradientImage->nz*gradientImage->nt*gradientImage->nu;
+    gradientImage->nvox = CalcVoxelNumber(*gradientImage, gradientImage->ndim);
     gradientImage->nbyper=sizeof(float);
     gradientImage->datatype=NIFTI_TYPE_FLOAT32;
     gradientImage->data=(void *)malloc(gradientImage->nvox*gradientImage->nbyper);
@@ -50,8 +49,7 @@ int main(int argc, char **argv)
     // Allocate a temporary file to compute the gradient's timepoint one at the time
     nifti_image *tempGradImage = nifti_copy_nim_info(gradientImage);
     tempGradImage->dim[4]=tempGradImage->nt=1;
-    tempGradImage->nvox = (size_t)tempGradImage->nx*tempGradImage->ny*
-                      tempGradImage->nz*tempGradImage->nt*tempGradImage->nu;
+    tempGradImage->nvox = CalcVoxelNumber(*tempGradImage, tempGradImage->ndim);
     tempGradImage->data=(void *)malloc(tempGradImage->nvox*tempGradImage->nbyper);
 
     // Declare a deformation field image
@@ -63,8 +61,7 @@ int main(int argc, char **argv)
         defFieldImage->dim[0]=defFieldImage->ndim=5;
         defFieldImage->dim[4]=defFieldImage->nt=1;
         defFieldImage->dim[5]=defFieldImage->nu=dim;
-        defFieldImage->nvox = (size_t)defFieldImage->nx*defFieldImage->ny *
-                                 defFieldImage->nz*defFieldImage->nu;
+        defFieldImage->nvox = CalcVoxelNumber(*defFieldImage, defFieldImage->ndim);
         defFieldImage->nbyper=sizeof(float);
         defFieldImage->datatype=NIFTI_TYPE_FLOAT32;
         defFieldImage->intent_code=NIFTI_INTENT_VECTOR;

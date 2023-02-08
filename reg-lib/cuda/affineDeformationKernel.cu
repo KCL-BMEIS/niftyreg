@@ -88,7 +88,7 @@ void launchAffine(mat44 *affineTransformation,
    free(trans);
 
    uint3 dims_d = make_uint3(deformationField->nx, deformationField->ny, deformationField->nz);
-   affineKernel << <G1_b, B1_b >> >(*trans_d, *def_d, *mask_d, dims_d, deformationField->nx* deformationField->ny* deformationField->nz, compose);
+   affineKernel << <G1_b, B1_b >> >(*trans_d, *def_d, *mask_d, dims_d, CalcVoxelNumber(*deformationField), compose);
 
 #ifndef NDEBUG
    NR_CUDA_CHECK_KERNEL(G1_b, B1_b)

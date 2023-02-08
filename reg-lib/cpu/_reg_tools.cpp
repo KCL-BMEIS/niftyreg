@@ -96,7 +96,7 @@ void reg_intensityRescale_core(nifti_image *image,
                                float newMin,
                                float newMax) {
     DTYPE *imagePtr = static_cast<DTYPE*>(image->data);
-    unsigned int voxelNumber = image->nx * image->ny * image->nz;
+    const size_t voxelNumber = CalcVoxelNumber(*image);
 
     // The rescaling is done for each volume independently
     DTYPE *volumePtr = &imagePtr[timePoint * voxelNumber];
@@ -139,7 +139,7 @@ void reg_intensityRescale_core(nifti_image *image,
 
     // Extract the minimal and maximal values from the current volume
     if (image->scl_slope == 0) image->scl_slope = 1.0f;
-    for (unsigned int index = 0; index < voxelNumber; index++) {
+    for (size_t index = 0; index < voxelNumber; index++) {
         DTYPE value = (DTYPE)(*volumePtr++ * image->scl_slope + image->scl_inter);
         if (value == value) {
             currentMin = (currentMin < value) ? currentMin : value;
@@ -159,7 +159,7 @@ void reg_intensityRescale_core(nifti_image *image,
     volumePtr = &imagePtr[timePoint * voxelNumber];
 
     // Iterates over all voxels in the current volume
-    for (unsigned int index = 0; index < voxelNumber; index++) {
+    for (size_t index = 0; index < voxelNumber; index++) {
         double value = (double)*volumePtr * image->scl_slope + image->scl_inter;
         // Check if the value is defined
         if (value == value) {
@@ -346,10 +346,11 @@ template void reg_thresholdImage<double>(nifti_image*, double, double);
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
 PrecisionTYPE reg_getMaximalLength2D(const nifti_image *image) {
+    const size_t voxelNumber = CalcVoxelNumber(*image);
     const DTYPE *dataPtrX = static_cast<DTYPE*>(image->data);
-    const DTYPE *dataPtrY = &dataPtrX[image->nx * image->ny * image->nz];
+    const DTYPE *dataPtrY = &dataPtrX[voxelNumber];
     PrecisionTYPE max = 0;
-    for (int i = 0; i < image->nx * image->ny * image->nz; i++) {
+    for (size_t i = 0; i < voxelNumber; i++) {
         PrecisionTYPE valX = (PrecisionTYPE)(*dataPtrX++);
         PrecisionTYPE valY = (PrecisionTYPE)(*dataPtrY++);
         PrecisionTYPE length = (PrecisionTYPE)(sqrt(valX * valX + valY * valY));
@@ -360,11 +361,12 @@ PrecisionTYPE reg_getMaximalLength2D(const nifti_image *image) {
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
 PrecisionTYPE reg_getMaximalLength3D(const nifti_image *image) {
+    const size_t voxelNumber = CalcVoxelNumber(*image);
     const DTYPE *dataPtrX = static_cast<DTYPE*>(image->data);
-    const DTYPE *dataPtrY = &dataPtrX[image->nx * image->ny * image->nz];
-    const DTYPE *dataPtrZ = &dataPtrY[image->nx * image->ny * image->nz];
+    const DTYPE *dataPtrY = &dataPtrX[voxelNumber];
+    const DTYPE *dataPtrZ = &dataPtrY[voxelNumber];
     PrecisionTYPE max = 0;
-    for (int i = 0; i < image->nx * image->ny * image->nz; i++) {
+    for (int i = 0; i < voxelNumber; i++) {
         PrecisionTYPE valX = (PrecisionTYPE)(*dataPtrX++);
         PrecisionTYPE valY = (PrecisionTYPE)(*dataPtrY++);
         PrecisionTYPE valZ = (PrecisionTYPE)(*dataPtrZ++);
@@ -996,10 +998,10 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
     }
 #ifdef WIN32
     long index;
-    const long voxelNumber = long(image->nx * image->ny * image->nz);
+    const long voxelNumber = (long)CalcVoxelNumber(*image);
 #else
     size_t index;
-    const size_t voxelNumber = size_t(image->nx * image->ny * image->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*image);
 #endif
     DTYPE *imagePtr = static_cast<DTYPE*>(image->data);
     int imageDim[3] = {image->nx, image->ny, image->nz};
@@ -1294,23 +1296,24 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
     }
 #ifdef WIN32
     long index;
-    const long voxelNumber = long(image->nx * image->ny * image->nz);
+    const long voxelNumber = (long)CalcVoxelNumber(*image);
 #else
     size_t index;
-    const size_t voxelNumber = size_t(image->nx * image->ny * image->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*image);
 #endif
     DTYPE *imagePtr = static_cast<DTYPE*>(image->data);
 
-    bool *activeTimePoint = (bool*)calloc(image->nt * image->nu, sizeof(bool));
+    const int activeTimePointNumber = image->nt * image->nu;
+    bool *activeTimePoint = (bool*)calloc(activeTimePointNumber, sizeof(bool));
     // Check if input time points and masks are nullptr
     if (timePoint == nullptr) {
         // All time points are considered as active
-        for (int i = 0; i < image->nt * image->nu; i++) activeTimePoint[i] = true;
-    } else for (int i = 0; i < image->nt * image->nu; i++) activeTimePoint[i] = timePoint[i];
+        for (int i = 0; i < activeTimePointNumber; i++) activeTimePoint[i] = true;
+    } else for (int i = 0; i < activeTimePointNumber; i++) activeTimePoint[i] = timePoint[i];
 
     int *currentMask = nullptr;
     if (mask == nullptr) {
-        currentMask = (int*)calloc(image->nx * image->ny * image->nz, sizeof(int));
+        currentMask = (int*)calloc(voxelNumber, sizeof(int));
     } else currentMask = mask;
 
 
@@ -1322,7 +1325,7 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
     typedef typename std::map<DTYPE, float>::iterator DataPointMapIt;
 
     // Loop over the dimension higher than 3
-    for (int t = 0; t < image->nt * image->nu; t++) {
+    for (int t = 0; t < activeTimePointNumber; t++) {
         if (activeTimePoint[t]) {
             DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
             for (index = 0; index < voxelNumber; index++) {
@@ -1486,7 +1489,8 @@ void reg_tools_kernelConvolution(nifti_image *image,
     if (image->nu <= 0) image->nu = image->dim[5] = 1;
 
     bool *axisToSmooth = new bool[3];
-    bool *activeTimePoint = new bool[image->nt * image->nu];
+    const int activeTimePointNumber = image->nt * image->nu;
+    bool *activeTimePoint = new bool[activeTimePointNumber];
     if (axis == nullptr) {
         // All axis are smoothed by default
         for (int i = 0; i < 3; i++) axisToSmooth[i] = true;
@@ -1494,12 +1498,12 @@ void reg_tools_kernelConvolution(nifti_image *image,
 
     if (timePoint == nullptr) {
         // All time points are considered as active
-        for (int i = 0; i < image->nt * image->nu; i++) activeTimePoint[i] = true;
-    } else for (int i = 0; i < image->nt * image->nu; i++) activeTimePoint[i] = timePoint[i];
+        for (int i = 0; i < activeTimePointNumber; i++) activeTimePoint[i] = true;
+    } else for (int i = 0; i < activeTimePointNumber; i++) activeTimePoint[i] = timePoint[i];
 
     int *currentMask = nullptr;
     if (mask == nullptr) {
-        currentMask = (int*)calloc(image->nx * image->ny * image->nz, sizeof(int));
+        currentMask = (int*)calloc(CalcVoxelNumber(*image), sizeof(int));
     } else currentMask = mask;
 
     switch (image->datatype) {
@@ -1598,14 +1602,7 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis) {
     image->sto_ijk = nifti_mat44_inverse(image->sto_xyz);
 
     // Reallocate the image
-    image->nvox =
-        (size_t)image->nx *
-        (size_t)image->ny *
-        (size_t)image->nz *
-        (size_t)image->nt *
-        (size_t)image->nu *
-        (size_t)image->nv *
-        (size_t)image->nw;
+    image->nvox = CalcVoxelNumber(*image, 7);
     image->data = calloc(image->nvox, image->nbyper);
     imagePtr = static_cast<ImageTYPE*>(image->data);
 
@@ -1778,7 +1775,7 @@ void reg_tools_binarise_image(nifti_image *image, float threshold) {
 template <class DTYPE>
 void reg_tools_binaryImage2int1(const nifti_image *image, int *array) {
     const DTYPE *dataPtr = static_cast<DTYPE*>(image->data);
-    for (size_t i = 0; i < image->nx * image->ny * image->nz; i++)
+    for (size_t i = 0; i < CalcVoxelNumber(*image); i++)
         array[i] = dataPtr[i] != 0 ? 1 : -1;
 }
 /* *************************************************************** */
@@ -1817,6 +1814,7 @@ void reg_tools_binaryImage2int(const nifti_image *image, int *array) {
 /* *************************************************************** */
 template <class ATYPE, class BTYPE>
 double reg_tools_getMeanRMS2(const nifti_image *imageA, const nifti_image *imageB) {
+    const size_t voxelNumber = CalcVoxelNumber(*imageA);
     const ATYPE *imageAPtrX = static_cast<ATYPE*>(imageA->data);
     const BTYPE *imageBPtrX = static_cast<BTYPE*>(imageB->data);
     const ATYPE *imageAPtrY = nullptr;
@@ -1824,17 +1822,17 @@ double reg_tools_getMeanRMS2(const nifti_image *imageA, const nifti_image *image
     const ATYPE *imageAPtrZ = nullptr;
     const BTYPE *imageBPtrZ = nullptr;
     if (imageA->dim[5] > 1) {
-        imageAPtrY = &imageAPtrX[imageA->nx * imageA->ny * imageA->nz];
-        imageBPtrY = &imageBPtrX[imageA->nx * imageA->ny * imageA->nz];
+        imageAPtrY = &imageAPtrX[voxelNumber];
+        imageBPtrY = &imageBPtrX[voxelNumber];
     }
     if (imageA->dim[5] > 2) {
-        imageAPtrZ = &imageAPtrY[imageA->nx * imageA->ny * imageA->nz];
-        imageBPtrZ = &imageBPtrY[imageA->nx * imageA->ny * imageA->nz];
+        imageAPtrZ = &imageAPtrY[voxelNumber];
+        imageBPtrZ = &imageBPtrY[voxelNumber];
     }
     double sum = 0;
     double rms;
     double diff;
-    for (int i = 0; i < imageA->nx * imageA->ny * imageA->nz; i++) {
+    for (size_t i = 0; i < voxelNumber; i++) {
         diff = (double)*imageAPtrX++ - (double)*imageBPtrX++;
         rms = diff * diff;
         if (imageA->dim[5] > 1) {
@@ -1848,7 +1846,7 @@ double reg_tools_getMeanRMS2(const nifti_image *imageA, const nifti_image *image
         if (rms == rms)
             sum += sqrt(rms);
     }
-    return sum / double(imageA->nx * imageA->ny * imageA->nz);
+    return sum / static_cast<double>(voxelNumber);
 }
 /* *************************************************************** */
 template <class ATYPE>
@@ -1963,9 +1961,7 @@ int reg_createMaskPyramid(const nifti_image *inputMaskImage, int **maskPyramid, 
         if ((tempMaskImagePyramid[levelToPerform - 1]->nz / 2) < 32) downsampleAxis[3] = false;
         reg_downsampleImage<DTYPE>(tempMaskImagePyramid[levelToPerform - 1], 0, downsampleAxis);
     }
-    size_t voxelNumber = (tempMaskImagePyramid[levelToPerform - 1]->nx *
-                          tempMaskImagePyramid[levelToPerform - 1]->ny *
-                          tempMaskImagePyramid[levelToPerform - 1]->nz);
+    size_t voxelNumber = CalcVoxelNumber(*tempMaskImagePyramid[levelToPerform - 1]);
     maskPyramid[levelToPerform - 1] = (int*)malloc(voxelNumber * sizeof(int));
     reg_tools_binaryImage2int(tempMaskImagePyramid[levelToPerform - 1], maskPyramid[levelToPerform - 1]);
 
@@ -1984,7 +1980,7 @@ int reg_createMaskPyramid(const nifti_image *inputMaskImage, int **maskPyramid, 
         if ((tempMaskImagePyramid[l]->nz / 2) < 32) downsampleAxis[3] = false;
         reg_downsampleImage<DTYPE>(tempMaskImagePyramid[l], 0, downsampleAxis);
 
-        voxelNumber = tempMaskImagePyramid[l]->nx * tempMaskImagePyramid[l]->ny * tempMaskImagePyramid[l]->nz;
+        voxelNumber = CalcVoxelNumber(*tempMaskImagePyramid[l]);
         maskPyramid[l] = (int*)malloc(voxelNumber * sizeof(int));
         reg_tools_binaryImage2int(tempMaskImagePyramid[l], maskPyramid[l]);
     }
@@ -2077,7 +2073,7 @@ int reg_tools_nanMask_image(const nifti_image *image, const nifti_image *maskIma
 /* *************************************************************** */
 template <class TYPE>
 int reg_tools_removeNanFromMask_core(const nifti_image *image, int *mask) {
-    const size_t voxelNumber = size_t(image->nx * image->ny * image->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*image);
     const TYPE *imagePtr = static_cast<TYPE*>(image->data);
     for (int t = 0; t < image->nt; ++t) {
         for (size_t i = 0; i < voxelNumber; ++i) {
@@ -2109,7 +2105,7 @@ DTYPE reg_tools_getMinMaxValue_core(const nifti_image *image, int timepoint, boo
 
     const DTYPE *imgPtr = static_cast<DTYPE*>(image->data);
     DTYPE retValue = calcMin ? std::numeric_limits<DTYPE>::max() : std::numeric_limits<DTYPE>::min();
-    const size_t voxelNumber = size_t(image->nx * image->ny * image->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*image);
     const float sclSlope = image->scl_slope == 0 ? 1 : image->scl_slope;
 
     for (int time = 0; time < image->nt; ++time) {
@@ -2366,7 +2362,7 @@ void reg_flipAxis(const nifti_image *image, void **outputArray, const std::strin
 template<class DTYPE>
 void reg_getDisplacementFromDeformation_2D(nifti_image *field) {
     DTYPE *ptrX = static_cast<DTYPE*>(field->data);
-    DTYPE *ptrY = &ptrX[field->nx * field->ny];
+    DTYPE *ptrY = &ptrX[CalcVoxelNumber(*field, 2)];
 
     mat44 matrix;
     if (field->sform_code > 0)
@@ -2401,9 +2397,10 @@ void reg_getDisplacementFromDeformation_2D(nifti_image *field) {
 /* *************************************************************** */
 template<class DTYPE>
 void reg_getDisplacementFromDeformation_3D(nifti_image *field) {
+    const size_t voxelNumber = CalcVoxelNumber(*field);
     DTYPE *ptrX = static_cast<DTYPE*>(field->data);
-    DTYPE *ptrY = &ptrX[field->nx * field->ny * field->nz];
-    DTYPE *ptrZ = &ptrY[field->nx * field->ny * field->nz];
+    DTYPE *ptrY = &ptrX[voxelNumber];
+    DTYPE *ptrZ = &ptrY[voxelNumber];
 
     mat44 matrix;
     if (field->sform_code > 0)
@@ -2491,7 +2488,7 @@ int reg_getDisplacementFromDeformation(nifti_image *field) {
 template<class DTYPE>
 void reg_getDeformationFromDisplacement_2D(nifti_image *field) {
     DTYPE *ptrX = static_cast<DTYPE*>(field->data);
-    DTYPE *ptrY = &ptrX[field->nx * field->ny];
+    DTYPE *ptrY = &ptrX[CalcVoxelNumber(*field, 2)];
 
     mat44 matrix;
     if (field->sform_code > 0)
@@ -2527,9 +2524,10 @@ void reg_getDeformationFromDisplacement_2D(nifti_image *field) {
 /* *************************************************************** */
 template<class DTYPE>
 void reg_getDeformationFromDisplacement_3D(nifti_image *field) {
+    const size_t voxelNumber = CalcVoxelNumber(*field);
     DTYPE *ptrX = static_cast<DTYPE*>(field->data);
-    DTYPE *ptrY = &ptrX[field->nx * field->ny * field->nz];
-    DTYPE *ptrZ = &ptrY[field->nx * field->ny * field->nz];
+    DTYPE *ptrY = &ptrX[voxelNumber];
+    DTYPE *ptrZ = &ptrY[voxelNumber];
 
     mat44 matrix;
     if (field->sform_code > 0)
@@ -2619,7 +2617,7 @@ void reg_setGradientToZero_core(nifti_image *image,
                                 bool xAxis,
                                 bool yAxis,
                                 bool zAxis) {
-    size_t voxelNumber = size_t(image->nx * image->ny * image->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*image);
     DTYPE *ptr = static_cast<DTYPE*>(image->data);
     if (xAxis) {
         for (size_t i = 0; i < voxelNumber; ++i)
@@ -2842,3 +2840,17 @@ void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x
     z = index;
 }
 /* *************************************************************** */
+size_t CalcVoxelNumber(const nifti_image& image, const int& dimCount) {
+    size_t voxelNumber = static_cast<size_t>(std::abs(image.nx)) * static_cast<size_t>(std::abs(image.ny));
+    if (dimCount > 2)
+        voxelNumber *= static_cast<size_t>(std::abs(image.nz));
+    if (dimCount > 3)
+        voxelNumber *= static_cast<size_t>(std::abs(image.nt));
+    if (dimCount > 4)
+        voxelNumber *= static_cast<size_t>(std::abs(image.nu));
+    if (dimCount > 5)
+        voxelNumber *= static_cast<size_t>(std::abs(image.nv));
+    if (dimCount > 6)
+        voxelNumber *= static_cast<size_t>(std::abs(image.nw));
+    return voxelNumber;
+}

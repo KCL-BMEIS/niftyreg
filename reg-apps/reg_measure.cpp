@@ -236,7 +236,7 @@ int main(int argc, char **argv)
 
    /* Read and create the mask array */
    int *refMask=nullptr;
-   int refMaskVoxNumber=refImage->nx*refImage->ny*refImage->nz;
+   size_t refMaskVoxNumber = CalcVoxelNumber(*refImage);
    if(flag->refMaskImageFlag){
       nifti_image *refMaskImage = reg_io_ReadImageFile(param->refMaskImageName);
       if(refMaskImage == nullptr)
@@ -249,7 +249,7 @@ int main(int argc, char **argv)
    }
    else{
       refMask = (int *)calloc(refMaskVoxNumber,sizeof(int));
-      for(int i=0;i<refMaskVoxNumber;++i) refMask[i]=i;
+      for(size_t i=0;i<refMaskVoxNumber;++i) refMask[i]=i;
    }
 
    /* Create the warped floating image */
@@ -257,8 +257,7 @@ int main(int argc, char **argv)
    warpedFloImage->ndim=warpedFloImage->dim[0]=floImage->ndim;
    warpedFloImage->nt=warpedFloImage->dim[4]=floImage->nt;
    warpedFloImage->nu=warpedFloImage->dim[5]=floImage->nu;
-   warpedFloImage->nvox=(size_t)warpedFloImage->nx * warpedFloImage->ny *
-         warpedFloImage->nz * warpedFloImage->nt * warpedFloImage->nu;
+   warpedFloImage->nvox=CalcVoxelNumber(*warpedFloImage, warpedFloImage->ndim);
    warpedFloImage->cal_min=floImage->cal_min;
    warpedFloImage->cal_max=floImage->cal_max;
    warpedFloImage->scl_inter=floImage->scl_inter;
@@ -272,8 +271,7 @@ int main(int argc, char **argv)
    defField->ndim=defField->dim[0]=5;
    defField->nt=defField->dim[4]=1;
    defField->nu=defField->dim[5]=refImage->nz>1?3:2;
-   defField->nvox=(size_t)defField->nx * defField->ny *
-         defField->nz * defField->nt * defField->nu;
+   defField->nvox=CalcVoxelNumber(*defField, defField->ndim);
    defField->datatype=NIFTI_TYPE_FLOAT32;
    defField->nbyper=sizeof(float);
    defField->data=(void *)calloc(defField->nvox,defField->nbyper);

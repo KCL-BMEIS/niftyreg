@@ -61,23 +61,23 @@ int cudaCommon_transferNiftiToArrayOnDevice(DTYPE *array_d, nifti_image *img) {
             return EXIT_FAILURE;
         }
         float *niftiImgValues = static_cast<float*>(img->data);
-        float4 *array_h = (float4*)calloc(img->nx * img->ny * img->nz, sizeof(float4));
-        const int voxelNumber = img->nx * img->ny * img->nz;
-        for (int i = 0; i < voxelNumber; i++)
+        const size_t voxelNumber = CalcVoxelNumber(*img);
+        float4 *array_h = (float4*)calloc(voxelNumber, sizeof(float4));
+        for (size_t i = 0; i < voxelNumber; i++)
             array_h[i].x = *niftiImgValues++;
         if (img->dim[5] >= 2) {
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].y = *niftiImgValues++;
         }
         if (img->dim[5] >= 3) {
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].z = *niftiImgValues++;
         }
         if (img->dim[5] >= 4) {
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].w = *niftiImgValues++;
         }
-        NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, array_h, img->nx * img->ny * img->nz * sizeof(float4), cudaMemcpyHostToDevice));
+        NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, array_h, voxelNumber * sizeof(float4), cudaMemcpyHostToDevice));
         free(array_h);
     } else { // All these else could be removed but the nvcc compiler would warn for unreachable statement
         switch (img->datatype) {
@@ -121,33 +121,33 @@ int cudaCommon_transferNiftiToArrayOnDevice(DTYPE *array_d, DTYPE *array2_d, nif
             return EXIT_FAILURE;
         }
         float *niftiImgValues = static_cast<float *>(img->data);
-        float4 *array_h = (float4*)calloc(img->nx * img->ny * img->nz, sizeof(float4));
-        float4 *array2_h = (float4*)calloc(img->nx * img->ny * img->nz, sizeof(float4));
-        const int voxelNumber = img->nx * img->ny * img->nz;
-        for (int i = 0; i < voxelNumber; i++)
+        const size_t voxelNumber = CalcVoxelNumber(*img);
+        float4 *array_h = (float4*)calloc(voxelNumber, sizeof(float4));
+        float4 *array2_h = (float4*)calloc(voxelNumber, sizeof(float4));
+        for (size_t i = 0; i < voxelNumber; i++)
             array_h[i].x = *niftiImgValues++;
-        for (int i = 0; i < voxelNumber; i++)
+        for (size_t i = 0; i < voxelNumber; i++)
             array2_h[i].x = *niftiImgValues++;
         if (img->dim[5] >= 2) {
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].y = *niftiImgValues++;
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array2_h[i].y = *niftiImgValues++;
         }
         if (img->dim[5] >= 3) {
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].z = *niftiImgValues++;
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array2_h[i].z = *niftiImgValues++;
         }
         if (img->dim[5] >= 4) {
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].w = *niftiImgValues++;
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array2_h[i].w = *niftiImgValues++;
         }
-        NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, array_h, img->nx * img->ny * img->nz * sizeof(float4), cudaMemcpyHostToDevice));
-        NR_CUDA_SAFE_CALL(cudaMemcpy(array2_d, array2_h, img->nx * img->ny * img->nz * sizeof(float4), cudaMemcpyHostToDevice));
+        NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, array_h, voxelNumber * sizeof(float4), cudaMemcpyHostToDevice));
+        NR_CUDA_SAFE_CALL(cudaMemcpy(array2_d, array2_h, voxelNumber * sizeof(float4), cudaMemcpyHostToDevice));
         free(array_h);
         free(array2_h);
     } else { // All these else could be removed but the nvcc compiler would warn for unreachable statement
@@ -197,20 +197,21 @@ int cudaCommon_transferNiftiToArrayOnDevice(cudaArray *cuArray_d, nifti_image *i
             return EXIT_FAILURE;
         }
         float *niftiImgValues = static_cast<float *>(img->data);
-        float4 *array_h = (float4*)calloc(img->nx * img->ny * img->nz, sizeof(float4));
+        const size_t voxelNumber = CalcVoxelNumber(*img);
+        float4 *array_h = (float4*)calloc(voxelNumber, sizeof(float4));
 
-        for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+        for (size_t i = 0; i < voxelNumber; i++)
             array_h[i].x = *niftiImgValues++;
         if (img->dim[5] >= 2) {
-            for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].y = *niftiImgValues++;
         }
         if (img->dim[5] >= 3) {
-            for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].z = *niftiImgValues++;
         }
         if (img->dim[5] == 3) {
-            for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].w = *niftiImgValues++;
         }
         cudaMemcpy3DParms copyParams; memset(&copyParams, 0, sizeof(copyParams));
@@ -280,32 +281,33 @@ int cudaCommon_transferNiftiToArrayOnDevice(cudaArray *cuArray_d, cudaArray *cuA
             return EXIT_FAILURE;
         }
         float *niftiImgValues = static_cast<float*>(img->data);
-        float4 *array_h = (float4*)calloc(img->nx * img->ny * img->nz, sizeof(float4));
-        float4 *array2_h = (float4*)calloc(img->nx * img->ny * img->nz, sizeof(float4));
+        const size_t voxelNumber = CalcVoxelNumber(*img);
+        float4 *array_h = (float4*)calloc(voxelNumber, sizeof(float4));
+        float4 *array2_h = (float4*)calloc(voxelNumber, sizeof(float4));
 
-        for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+        for (size_t i = 0; i < voxelNumber; i++)
             array_h[i].x = *niftiImgValues++;
-        for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+        for (size_t i = 0; i < voxelNumber; i++)
             array2_h[i].x = *niftiImgValues++;
 
         if (img->dim[5] >= 2) {
-            for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].y = *niftiImgValues++;
-            for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array2_h[i].y = *niftiImgValues++;
         }
 
         if (img->dim[5] >= 3) {
-            for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].z = *niftiImgValues++;
-            for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array2_h[i].z = *niftiImgValues++;
         }
 
         if (img->dim[5] == 3) {
-            for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array_h[i].w = *niftiImgValues++;
-            for (int i = 0; i < img->nx * img->ny * img->nz; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 array2_h[i].w = *niftiImgValues++;
         }
 
@@ -432,25 +434,25 @@ int cudaCommon_transferFromDeviceToNifti(nifti_image *img, DTYPE *array_d) {
             reg_print_msg_error("The nifti image is not a 5D volume");
             return EXIT_FAILURE;
         }
-        const int voxelNumber = img->nx * img->ny * img->nz;
 
         float4 *array_h;
+        const size_t voxelNumber = CalcVoxelNumber(*img);
         NR_CUDA_SAFE_CALL(cudaMallocHost(&array_h, voxelNumber * sizeof(float4)));
         NR_CUDA_SAFE_CALL(cudaMemcpy((void*)array_h, (const void*)array_d, voxelNumber * sizeof(float4), cudaMemcpyDeviceToHost));
         float *niftiImgValues = static_cast<float*>(img->data);
 
-        for (int i = 0; i < voxelNumber; i++)
+        for (size_t i = 0; i < voxelNumber; i++)
             *niftiImgValues++ = array_h[i].x;
         if (img->dim[5] >= 2) {
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 *niftiImgValues++ = array_h[i].y;
         }
         if (img->dim[5] >= 3) {
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 *niftiImgValues++ = array_h[i].z;
         }
         if (img->dim[5] >= 4) {
-            for (int i = 0; i < voxelNumber; i++)
+            for (size_t i = 0; i < voxelNumber; i++)
                 *niftiImgValues++ = array_h[i].w;
         }
         NR_CUDA_SAFE_CALL(cudaFreeHost(array_h));
@@ -496,7 +498,7 @@ int cudaCommon_transferFromDeviceToNifti1(nifti_image *img, DTYPE *array_d, DTYP
         reg_print_msg_error("The host and device arrays are of different types");
         return EXIT_FAILURE;
     } else {
-        unsigned int voxelNumber = img->nx * img->ny * img->nz;
+        const size_t voxelNumber = CalcVoxelNumber(*img);
         NIFTI_TYPE *array_h = static_cast<NIFTI_TYPE*>(img->data);
         NIFTI_TYPE *array2_h = &array_h[voxelNumber];
         NR_CUDA_SAFE_CALL(cudaMemcpy((void*)array_h, (void*)array_d, voxelNumber * sizeof(DTYPE), cudaMemcpyDeviceToHost));
@@ -514,7 +516,7 @@ int cudaCommon_transferFromDeviceToNifti(nifti_image *img, DTYPE *array_d, DTYPE
             reg_print_msg_error("The nifti image is not a 5D volume");
             return EXIT_FAILURE;
         }
-        const int voxelNumber = img->nx * img->ny * img->nz;
+        const size_t voxelNumber = CalcVoxelNumber(*img);
         float4 *array_h = nullptr;
         float4 *array2_h = nullptr;
         NR_CUDA_SAFE_CALL(cudaMallocHost(&array_h, voxelNumber * sizeof(float4)));
@@ -522,33 +524,33 @@ int cudaCommon_transferFromDeviceToNifti(nifti_image *img, DTYPE *array_d, DTYPE
         NR_CUDA_SAFE_CALL(cudaMemcpy((void*)array_h, (const void*)array_d, voxelNumber * sizeof(float4), cudaMemcpyDeviceToHost));
         NR_CUDA_SAFE_CALL(cudaMemcpy((void*)array2_h, (const void*)array2_d, voxelNumber * sizeof(float4), cudaMemcpyDeviceToHost));
         float *niftiImgValues = static_cast<float *>(img->data);
-        for (int i = 0; i < voxelNumber; i++) {
+        for (size_t i = 0; i < voxelNumber; i++) {
             *niftiImgValues++ = array_h[i].x;
         }
-        for (int i = 0; i < voxelNumber; i++) {
+        for (size_t i = 0; i < voxelNumber; i++) {
             *niftiImgValues++ = array2_h[i].x;
         }
         if (img->dim[5] >= 2) {
-            for (int i = 0; i < voxelNumber; i++) {
+            for (size_t i = 0; i < voxelNumber; i++) {
                 *niftiImgValues++ = array_h[i].y;
             }
-            for (int i = 0; i < voxelNumber; i++) {
+            for (size_t i = 0; i < voxelNumber; i++) {
                 *niftiImgValues++ = array2_h[i].y;
             }
         }
         if (img->dim[5] >= 3) {
-            for (int i = 0; i < voxelNumber; i++) {
+            for (size_t i = 0; i < voxelNumber; i++) {
                 *niftiImgValues++ = array_h[i].z;
             }
-            for (int i = 0; i < voxelNumber; i++) {
+            for (size_t i = 0; i < voxelNumber; i++) {
                 *niftiImgValues++ = array2_h[i].z;
             }
         }
         if (img->dim[5] >= 4) {
-            for (int i = 0; i < voxelNumber; i++) {
+            for (size_t i = 0; i < voxelNumber; i++) {
                 *niftiImgValues++ = array_h[i].w;
             }
-            for (int i = 0; i < voxelNumber; i++) {
+            for (size_t i = 0; i < voxelNumber; i++) {
                 *niftiImgValues++ = array2_h[i].w;
             }
         }

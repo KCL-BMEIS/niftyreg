@@ -22,7 +22,7 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
                                    bool composition,
                                    int *mask)
 {
-   size_t voxelNumber=deformationFieldImage->nx*deformationFieldImage->ny;
+   const size_t voxelNumber = CalcVoxelNumber(*deformationFieldImage, 2);
    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationFieldImage->data);
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
 
@@ -84,7 +84,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
                                    bool composition,
                                    int *mask)
 {
-   size_t voxelNumber=deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz;
+   const size_t voxelNumber=CalcVoxelNumber(*deformationFieldImage);
    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationFieldImage->data);
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber];
@@ -153,10 +153,7 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
    int *tempMask=mask;
    if(mask==nullptr)
    {
-      tempMask=(int *)calloc(deformationField->nx*
-                             deformationField->ny*
-                             deformationField->nz,
-                             sizeof(int));
+      tempMask = (int *)calloc(CalcVoxelNumber(*deformationField), sizeof(int));
    }
    if(deformationField->nz==1)
    {

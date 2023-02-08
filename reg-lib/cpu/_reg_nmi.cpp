@@ -236,7 +236,7 @@ void reg_getNMIValue(nifti_image *referenceImage,
     DTYPE *refImagePtr = static_cast<DTYPE*>(referenceImage->data);
     DTYPE *warImagePtr = static_cast<DTYPE*>(warpedImage->data);
     // Useful variable
-    size_t voxelNumber = size_t(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
     // Iterate over all active time points
     for (int t = 0; t < referenceImage->nt; ++t) {
         if (timePointWeight[t] > 0) {
@@ -491,7 +491,7 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
         reg_print_msg_error("The specified active timepoint is not defined in the ref/war images");
         reg_exit();
     }
-    size_t voxelNumber = size_t(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 
     // Pointers to the image data
     DTYPE *refImagePtr = static_cast<DTYPE*>(referenceImage->data);
@@ -585,10 +585,10 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
 
 #ifdef WIN32
     long i;
-    long voxelNumber = long(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
 #else
     size_t i;
-    size_t voxelNumber = size_t(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
     // Pointers to the image data
     DTYPE *refImagePtr = static_cast<DTYPE*>(referenceImage->data);

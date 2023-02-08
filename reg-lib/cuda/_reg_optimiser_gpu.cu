@@ -298,7 +298,7 @@ void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
     // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
-    const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
+    const int nodeNumber = CalcVoxelNumber(*controlPointImage);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber, &nodeNumber, sizeof(int)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ScalingFactor, &currentLength, sizeof(float)));
 

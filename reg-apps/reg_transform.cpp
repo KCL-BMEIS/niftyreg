@@ -388,9 +388,7 @@ int main(int argc, char **argv)
          outputTransformationImage->ndim=outputTransformationImage->dim[0]=5;
          outputTransformationImage->nt=outputTransformationImage->dim[4]=1;
          outputTransformationImage->nu=outputTransformationImage->dim[5]=outputTransformationImage->nz>1?3:2;
-         outputTransformationImage->nvox=(size_t)outputTransformationImage->nx *
-                                         outputTransformationImage->ny * outputTransformationImage->nz *
-                                         outputTransformationImage->nt * outputTransformationImage->nu;
+         outputTransformationImage->nvox=CalcVoxelNumber(*outputTransformationImage, outputTransformationImage->ndim);
          outputTransformationImage->nbyper=sizeof(float);
          outputTransformationImage->datatype=NIFTI_TYPE_FLOAT32;
          outputTransformationImage->intent_code=NIFTI_INTENT_VECTOR;
@@ -687,9 +685,7 @@ int main(int argc, char **argv)
             output1TransImage->ndim=output1TransImage->dim[0]=5;
             output1TransImage->nt=output1TransImage->dim[4]=1;
             output1TransImage->nu=output1TransImage->dim[5]=output1TransImage->nz>1?3:2;
-            output1TransImage->nvox=(size_t)output1TransImage->nx *
-                                    output1TransImage->ny * output1TransImage->nz *
-                                    output1TransImage->nt * output1TransImage->nu;
+            output1TransImage->nvox=CalcVoxelNumber(*output1TransImage, output1TransImage->ndim);
             output1TransImage->scl_slope=1.f;
             output1TransImage->scl_inter=0.f;
             if(referenceImage->datatype!=NIFTI_TYPE_FLOAT32)
@@ -831,9 +827,7 @@ int main(int argc, char **argv)
                output2TransImage->ndim=output2TransImage->dim[0]=5;
                output2TransImage->nt=output2TransImage->dim[4]=1;
                output2TransImage->nu=output2TransImage->dim[5]=output2TransImage->nz>1?3:2;
-               output2TransImage->nvox=(size_t)output2TransImage->nx *
-                                       output2TransImage->ny * output2TransImage->nz *
-                                       output2TransImage->nt * output2TransImage->nu;
+               output2TransImage->nvox=CalcVoxelNumber(*output2TransImage, output2TransImage->ndim);
                output2TransImage->nbyper=output1TransImage->nbyper;
                output2TransImage->datatype=output1TransImage->datatype;
                output2TransImage->data=(void *)calloc
@@ -970,9 +964,7 @@ int main(int argc, char **argv)
          deformationFieldImage->ndim=deformationFieldImage->dim[0]=5;
          deformationFieldImage->nt=deformationFieldImage->dim[4]=1;
          deformationFieldImage->nu=deformationFieldImage->dim[5]=deformationFieldImage->nz>1?3:2;
-         deformationFieldImage->nvox=(size_t)deformationFieldImage->nx *
-               deformationFieldImage->ny * deformationFieldImage->nz *
-               deformationFieldImage->nt * deformationFieldImage->nu;
+         deformationFieldImage->nvox=CalcVoxelNumber(*deformationFieldImage, deformationFieldImage->ndim);
          deformationFieldImage->nbyper=sizeof(float);
          deformationFieldImage->datatype=NIFTI_TYPE_FLOAT32;
          deformationFieldImage->intent_code=NIFTI_INTENT_VECTOR;
@@ -1102,9 +1094,7 @@ int main(int argc, char **argv)
       landmarkImage->nx=landmarkImage->dim[1]=1;
       landmarkImage->ny=landmarkImage->dim[2]=1;
       landmarkImage->nz=landmarkImage->dim[3]=1;
-      landmarkImage->nvox=(size_t)landmarkImage->nx *
-            landmarkImage->ny * landmarkImage->nz *
-            landmarkImage->nt * landmarkImage->nu;
+      landmarkImage->nvox=CalcVoxelNumber(*landmarkImage, landmarkImage->ndim);
       landmarkImage->data=(void *)malloc(landmarkImage->nvox*landmarkImage->nbyper);
       float *landmarkImagePtr = static_cast<float *>(landmarkImage->data);
       for(size_t l=0, index=0;l<landmarkNumber;++l){
@@ -1293,8 +1283,7 @@ int main(int argc, char **argv)
          tempField->ndim=tempField->dim[0]=5;
          tempField->nt=tempField->dim[4]=1;
          tempField->nu=tempField->dim[5]=tempField->nz>1?3:2;
-         tempField->nvox=(size_t)tempField->nx * tempField->ny * tempField->nz *
-                         tempField->nt * tempField->nu;
+         tempField->nvox=CalcVoxelNumber(*tempField, tempField->ndim);
          tempField->nbyper=inputTransImage->nbyper;
          tempField->datatype=inputTransImage->datatype;
          tempField->intent_code=NIFTI_INTENT_VECTOR;
@@ -1331,9 +1320,7 @@ int main(int argc, char **argv)
      outputTransImage->ndim = outputTransImage->dim[0] = 5;
      outputTransImage->nt = outputTransImage->dim[4] = 1;
      outputTransImage->nu = outputTransImage->dim[5] = outputTransImage->nz>1 ? 3 : 2;
-     outputTransImage->nvox = (size_t)outputTransImage->nx *
-        outputTransImage->ny * outputTransImage->nz *
-        outputTransImage->nt * outputTransImage->nu;
+     outputTransImage->nvox = CalcVoxelNumber(*outputTransImage, outputTransImage->ndim);
      outputTransImage->nbyper = inputTransImage->nbyper;
      outputTransImage->datatype = inputTransImage->datatype;
      outputTransImage->intent_code = NIFTI_INTENT_VECTOR;

@@ -156,7 +156,7 @@ void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
     // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
-    const int voxelNumber = referenceImage->nx * referenceImage->ny * referenceImage->nz;
+    const int voxelNumber = CalcVoxelNumber(*referenceImage);
     const int3 imageSize = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const int binNumber = refBinning * floBinning + refBinning + floBinning;
     const float normalisedJE = (float)(entropies[2] * entropies[3]);

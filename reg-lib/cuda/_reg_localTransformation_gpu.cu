@@ -26,8 +26,8 @@ void reg_spline_getDeformationField_gpu(nifti_image *controlPointImage,
 	// Get the BlockSize - The values have been set in CudaContextSingleton
 	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
-	const int voxelNumber = reference->nx * reference->ny * reference->nz;
-	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
+	const int voxelNumber = CalcVoxelNumber(*reference);
+	const int controlPointNumber = CalcVoxelNumber(*controlPointImage);
 	const int3 referenceImageDim = make_int3(reference->nx, reference->ny, reference->nz);
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
 	const int useBSpline = static_cast<int>(bspline);
@@ -79,7 +79,7 @@ float reg_spline_approxBendingEnergy_gpu(nifti_image *controlPointImage, float4 
 	// Get the BlockSize - The values have been set in CudaContextSingleton
 	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
-	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
+	const int controlPointNumber = CalcVoxelNumber(*controlPointImage);
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
 	const int controlPointGridMem = controlPointNumber*sizeof(float4);
 
@@ -154,7 +154,7 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
 	// Get the BlockSize - The values have been set in CudaContextSingleton
 	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
-	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
+	const int controlPointNumber = CalcVoxelNumber(*controlPointImage);
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
 	const int controlPointGridMem = controlPointNumber*sizeof(float4);
 
@@ -237,7 +237,7 @@ void reg_spline_ComputeApproxJacobianValues(nifti_image *controlPointImage,
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)))
 
 	// Bind some variables
-	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
+	const int controlPointNumber = CalcVoxelNumber(*controlPointImage);
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
 	const float3 controlPointSpacing = make_float3(controlPointImage->dx,controlPointImage->dy,controlPointImage->dz);
 	const int controlPointGridMem = controlPointNumber*sizeof(float4);
@@ -288,8 +288,8 @@ void reg_spline_ComputeJacobianValues(nifti_image *controlPointImage,
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)))
 
 	// Bind some variables
-	const int voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
-	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
+	const int voxelNumber = CalcVoxelNumber(*referenceImage);
+	const int controlPointNumber = CalcVoxelNumber(*controlPointImage);
 	const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
 	const float3 controlPointSpacing = make_float3(controlPointImage->dx,controlPointImage->dy,controlPointImage->dz);
@@ -345,7 +345,7 @@ double reg_spline_getJacobianPenaltyTerm_gpu(nifti_image *referenceImage,
 	int jacNumber;
 	double jacSum;
 	if(approx){
-		jacNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
+		jacNumber = CalcVoxelNumber(*controlPointImage);
 		jacSum = (controlPointImage->nx-2)*(controlPointImage->ny-2);
 		if(controlPointImage->nz>1){
 			jacSum *= controlPointImage->nz-2;
@@ -363,7 +363,7 @@ double reg_spline_getJacobianPenaltyTerm_gpu(nifti_image *referenceImage,
 											   jacobianDet_d);
 	}
 	else{
-		jacNumber=referenceImage->nx*referenceImage->ny*referenceImage->nz;
+		jacNumber = CalcVoxelNumber(*referenceImage);
 		jacSum=jacNumber;
 		if(controlPointImage->nz>1){
 			// Allocate array for 3x3 matrices
@@ -411,7 +411,7 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(nifti_image *referenceImage,
 	float *jacobianDet_d;
 	int jacNumber;
 	if(approx){
-		jacNumber=controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
+		jacNumber=CalcVoxelNumber(*controlPointImage);
 		if(controlPointImage->nz>1)
 			NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatrices_d,9*jacNumber*sizeof(float)))
 		else NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatrices_d,4*jacNumber*sizeof(float)))
@@ -422,7 +422,7 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(nifti_image *referenceImage,
 												jacobianDet_d);
 	}
 	else{
-		jacNumber=referenceImage->nx*referenceImage->ny*referenceImage->nz;
+		jacNumber=CalcVoxelNumber(*referenceImage);
 		if(controlPointImage->nz>1)
 			NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatrices_d,9*jacNumber*sizeof(float)))
 		else NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatrices_d,4*jacNumber*sizeof(float)))
@@ -455,7 +455,7 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(nifti_image *referenceImage,
 										   4*jacNumber*sizeof(float)))
 
 	// Bind some variables
-	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
+	const int controlPointNumber = CalcVoxelNumber(*controlPointImage);
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
 	const float3 controlPointSpacing = make_float3(controlPointImage->dx,controlPointImage->dy,controlPointImage->dz);
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointNumber,&controlPointNumber,sizeof(int)))
@@ -485,7 +485,7 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(nifti_image *referenceImage,
 		}
 	}
 	else{
-		const int voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
+		const int voxelNumber = CalcVoxelNumber(*referenceImage);
 		const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
 		const float3 controlPointVoxelSpacing = make_float3(
 				controlPointImage->dx / referenceImage->dx,
@@ -531,7 +531,7 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 	int jacNumber;
 	double jacSum;
 	if(approx){
-		jacNumber=controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
+		jacNumber=CalcVoxelNumber(*controlPointImage);
 		jacSum = (controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2);
 		NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatrices_d,9*jacNumber*sizeof(float)))
 		NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDet_d,jacNumber*sizeof(float)))
@@ -541,7 +541,7 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 												jacobianDet_d);
 	}
 	else{
-		jacSum=jacNumber=referenceImage->nx*referenceImage->ny*referenceImage->nz;
+		jacSum=jacNumber=CalcVoxelNumber(*referenceImage);
 		NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatrices_d,9*jacNumber*sizeof(float)))
 		NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDet_d,jacNumber*sizeof(float)))
 		reg_spline_ComputeJacobianValues(controlPointImage,
@@ -596,7 +596,7 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 									  9*jacNumber*sizeof(float)))
 
 	// Bind some variables
-	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
+	const int controlPointNumber = CalcVoxelNumber(*controlPointImage);
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
 	const float3 controlPointSpacing = make_float3(controlPointImage->dx,controlPointImage->dy,controlPointImage->dz);
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointNumber,&controlPointNumber,sizeof(int)))
@@ -611,7 +611,7 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 		NR_CUDA_CHECK_KERNEL(G1,B1)
 	}
 	else{
-		const int voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
+		const int voxelNumber = CalcVoxelNumber(*referenceImage);
 		const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
 		const float3 controlPointVoxelSpacing = make_float3(
 				controlPointImage->dx / referenceImage->dx,
@@ -650,7 +650,7 @@ void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageArr
 	temp=make_float4(temp_mat.m[2][0],temp_mat.m[2][1],temp_mat.m[2][2],temp_mat.m[2][3]);
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2b,&temp,sizeof(float4)))
 
-	const int voxelNumber=image->nx*image->ny*image->nz;
+	const int voxelNumber = CalcVoxelNumber(*image);
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)))
 
 	const int3 imageDim=make_int3(image->nx,image->ny,image->nz);
@@ -680,7 +680,7 @@ void reg_getDisplacementFromDeformation_gpu(nifti_image *image, float4 *imageArr
 	temp=make_float4(temp_mat.m[2][0],temp_mat.m[2][1],temp_mat.m[2][2],temp_mat.m[2][3]);
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2b,&temp,sizeof(float4)))
 
-	const int voxelNumber=image->nx*image->ny*image->nz;
+	const int voxelNumber = CalcVoxelNumber(*image);
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)))
 
 	const int3 imageDim=make_int3(image->nx,image->ny,image->nz);
@@ -700,7 +700,7 @@ void reg_getDeformationFieldFromVelocityGrid_gpu(nifti_image *cpp_h,
 												 float4 *cpp_gpu,
 												 float4 *def_gpu)
 {
-	const int voxelNumber = def_h->nx * def_h->ny * def_h->nz;
+	const int voxelNumber = CalcVoxelNumber(*def_h);
 
 	// Create a mask array where no voxel are excluded
 	int *mask_gpu=nullptr;
@@ -769,7 +769,7 @@ void reg_defField_compose_gpu(nifti_image *def,
 	// Get the BlockSize - The values have been set in CudaContextSingleton
 	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
-	const int voxelNumber=def->nx*def->ny*def->nz;
+	const int voxelNumber = CalcVoxelNumber(*def);
 
 	// Bind the qform or sform
 	mat44 temp_mat=def->qto_ijk;

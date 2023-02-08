@@ -71,11 +71,11 @@ void GetMINDImageDescriptor_core(nifti_image* inputImage,
                                 int descriptorOffset,
                                 int current_timepoint) {
 #ifdef WIN32
-    long voxelNumber = long(inputImage->nx * inputImage->ny * inputImage->nz);
     long voxelIndex;
+    const long voxelNumber = (long)CalcVoxelNumber(*inputImage);
 #else
-    size_t voxelNumber = size_t(inputImage->nx * inputImage->ny * inputImage->nz);
     size_t voxelIndex;
+    const size_t voxelNumber = CalcVoxelNumber(*inputImage);
 #endif
 
     // Create a pointer to the descriptor image
@@ -203,13 +203,12 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
                                    int *maskPtr,
                                    int descriptorOffset,
                                    int current_timepoint) {
-
 #ifdef WIN32
-    long voxelNumber = long(inputImage->nx * inputImage->ny * inputImage->nz);
     long voxelIndex;
+    const long voxelNumber = (long)CalcVoxelNumber(*inputImage);
 #else
-    size_t voxelNumber = size_t(inputImage->nx * inputImage->ny * inputImage->nz);
     size_t voxelIndex;
+    const size_t voxelNumber = CalcVoxelNumber(*inputImage);
 #endif
 
     // Create a pointer to the descriptor image
@@ -429,20 +428,14 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
     this->referenceImageDescriptor = nifti_copy_nim_info(this->referenceImagePointer);
     this->referenceImageDescriptor->dim[0] = this->referenceImageDescriptor->ndim = 4;
     this->referenceImageDescriptor->dim[4] = this->referenceImageDescriptor->nt = this->descriptor_number;
-    this->referenceImageDescriptor->nvox = (size_t)this->referenceImageDescriptor->nx *
-        this->referenceImageDescriptor->ny *
-        this->referenceImageDescriptor->nz *
-        this->referenceImageDescriptor->nt;
-    this->referenceImageDescriptor->data = malloc(this->referenceImageDescriptor->nvox *
-                                                  this->referenceImageDescriptor->nbyper);
+    this->referenceImageDescriptor->nvox = CalcVoxelNumber(*this->referenceImageDescriptor, this->referenceImageDescriptor->ndim);
+    this->referenceImageDescriptor->data = malloc(this->referenceImageDescriptor->nvox * this->referenceImageDescriptor->nbyper);
     // Initialise the warped floating descriptor
     this->warpedFloatingImageDescriptor = nifti_copy_nim_info(this->referenceImagePointer);
     this->warpedFloatingImageDescriptor->dim[0] = this->warpedFloatingImageDescriptor->ndim = 4;
     this->warpedFloatingImageDescriptor->dim[4] = this->warpedFloatingImageDescriptor->nt = this->descriptor_number;
-    this->warpedFloatingImageDescriptor->nvox = (size_t)this->warpedFloatingImageDescriptor->nx *
-        this->warpedFloatingImageDescriptor->ny *
-        this->warpedFloatingImageDescriptor->nz *
-        this->warpedFloatingImageDescriptor->nt;
+    this->warpedFloatingImageDescriptor->nvox = CalcVoxelNumber(*this->warpedFloatingImageDescriptor,
+                                                                this->warpedFloatingImageDescriptor->ndim);
     this->warpedFloatingImageDescriptor->data = malloc(this->warpedFloatingImageDescriptor->nvox *
                                                        this->warpedFloatingImageDescriptor->nbyper);
 
@@ -455,20 +448,16 @@ void reg_mind::InitialiseMeasure(nifti_image *refImgPtr,
         this->floatingImageDescriptor = nifti_copy_nim_info(this->floatingImagePointer);
         this->floatingImageDescriptor->dim[0] = this->floatingImageDescriptor->ndim = 4;
         this->floatingImageDescriptor->dim[4] = this->floatingImageDescriptor->nt = this->descriptor_number;
-        this->floatingImageDescriptor->nvox = (size_t)this->floatingImageDescriptor->nx *
-            this->floatingImageDescriptor->ny *
-            this->floatingImageDescriptor->nz *
-            this->floatingImageDescriptor->nt;
+        this->floatingImageDescriptor->nvox = CalcVoxelNumber(*this->floatingImageDescriptor,
+                                                              this->floatingImageDescriptor->ndim);
         this->floatingImageDescriptor->data = malloc(this->floatingImageDescriptor->nvox *
                                                      this->floatingImageDescriptor->nbyper);
         // Initialise the warped floating descriptor
         this->warpedReferenceImageDescriptor = nifti_copy_nim_info(this->floatingImagePointer);
         this->warpedReferenceImageDescriptor->dim[0] = this->warpedReferenceImageDescriptor->ndim = 4;
         this->warpedReferenceImageDescriptor->dim[4] = this->warpedReferenceImageDescriptor->nt = this->descriptor_number;
-        this->warpedReferenceImageDescriptor->nvox = (size_t)this->warpedReferenceImageDescriptor->nx *
-            this->warpedReferenceImageDescriptor->ny *
-            this->warpedReferenceImageDescriptor->nz *
-            this->warpedReferenceImageDescriptor->nt;
+        this->warpedReferenceImageDescriptor->nvox = CalcVoxelNumber(*this->warpedReferenceImageDescriptor,
+                                                                     this->warpedReferenceImageDescriptor->ndim);
         this->warpedReferenceImageDescriptor->data = malloc(this->warpedReferenceImageDescriptor->nvox *
                                                             this->warpedReferenceImageDescriptor->nbyper);
     }
@@ -492,8 +481,7 @@ double reg_mind::GetSimilarityMeasureValue() {
     double MINDValue = 0.;
     for (int t = 0; t < this->referenceImagePointer->nt; ++t) {
         if (this->timePointWeight[t] > 0) {
-            size_t voxelNumber = (size_t)referenceImagePointer->nx *
-                referenceImagePointer->ny * referenceImagePointer->nz;
+            size_t voxelNumber = CalcVoxelNumber(*referenceImagePointer);
             int *combinedMask = (int*)malloc(voxelNumber * sizeof(int));
             memcpy(combinedMask, this->referenceMaskPointer, voxelNumber * sizeof(int));
             reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
@@ -551,8 +539,7 @@ double reg_mind::GetSimilarityMeasureValue() {
 
             // Backward computation
             if (this->isSymmetric) {
-                voxelNumber = (size_t)floatingImagePointer->nx *
-                    floatingImagePointer->ny * floatingImagePointer->nz;
+                voxelNumber = CalcVoxelNumber(*floatingImagePointer);
                 combinedMask = (int*)malloc(voxelNumber * sizeof(int));
                 memcpy(combinedMask, this->floatingMaskPointer, voxelNumber * sizeof(int));
                 reg_tools_removeNanFromMask(this->floatingImagePointer, combinedMask);
@@ -620,9 +607,7 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) {
         return;
 
     // Create a combined mask to ignore masked and undefined values
-    size_t voxelNumber = (size_t)this->referenceImagePointer->nx *
-        this->referenceImagePointer->ny *
-        this->referenceImagePointer->nz;
+    size_t voxelNumber = CalcVoxelNumber(*this->referenceImagePointer);
     int *combinedMask = (int*)malloc(voxelNumber * sizeof(int));
     memcpy(combinedMask, this->referenceMaskPointer, voxelNumber * sizeof(int));
     reg_tools_removeNanFromMask(this->referenceImagePointer, combinedMask);
@@ -699,8 +684,7 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) {
 
     // Compute the gradient of the ssd for the backward transformation
     if (this->isSymmetric) {
-        voxelNumber = (size_t)floatingImagePointer->nx *
-            floatingImagePointer->ny * floatingImagePointer->nz;
+        voxelNumber = CalcVoxelNumber(*floatingImagePointer);
         combinedMask = (int*)malloc(voxelNumber * sizeof(int));
         memcpy(combinedMask, this->floatingMaskPointer, voxelNumber * sizeof(int));
         reg_tools_removeNanFromMask(this->floatingImagePointer, combinedMask);

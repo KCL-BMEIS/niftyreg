@@ -84,10 +84,10 @@ double reg_getKLDivergence(nifti_image *referenceImage,
                            int *mask) {
 #ifdef _WIN32
     long voxel;
-    long voxelNumber = long(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
 #else
     size_t voxel;
-    size_t voxelNumber = size_t(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
 
     DTYPE *refPtr = static_cast<DTYPE*>(referenceImage->data);
@@ -216,10 +216,10 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
                                            double timepoint_weight) {
 #ifdef _WIN32
     long voxel;
-    long voxelNumber = long(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
 #else
     size_t voxel;
-    size_t voxelNumber = size_t(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
 
     DTYPE *refImagePtr = static_cast<DTYPE*>(referenceImage->data);

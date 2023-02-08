@@ -75,8 +75,7 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
 
    }
    // Create some pointers towards to control point grid image data
-   size_t nodeNumber = (size_t)splineControlPoint->nx *
-         splineControlPoint->ny * splineControlPoint->nz;
+   const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
    DTYPE *coeffPtrX = static_cast<DTYPE *>(splineControlPoint->data);
    DTYPE *coeffPtrY = &coeffPtrX[nodeNumber];
    DTYPE *coeffPtrZ = &coeffPtrY[nodeNumber];
@@ -134,7 +133,7 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
       if(splineControlPoint->num_ext>0)
          useHeaderInformation=true;
 
-      // Allocate variables that are used in both scenarii
+      // Allocate variables that are used in both scenario
       DTYPE gridVoxelSpacing[3]=
       {
          splineControlPoint->dx / referenceImage->dx,
@@ -145,7 +144,7 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
 
       if(useHeaderInformation)
       {
-         // The reference image is not necessarly aligned with the grid
+         // The reference image is not necessarily aligned with the grid
          mat44 transformation;
          // reference: voxel to mm
          if(referenceImage->sform_code>0)
@@ -277,8 +276,7 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
 
    }
    // Create some pointers towards to control point grid image data
-   size_t nodeNumber = (size_t)splineControlPoint->nx *
-         splineControlPoint->ny;
+   const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint, 2);
    DTYPE *coeffPtrX = static_cast<DTYPE *>(splineControlPoint->data);
    DTYPE *coeffPtrY = &coeffPtrX[nodeNumber];
 
@@ -561,8 +559,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
 
    }
    // Create some pointers towards to control point grid image data
-   size_t nodeNumber = (size_t)splineControlPoint->nx *
-         splineControlPoint->ny * splineControlPoint->nz;
+   const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
    DTYPE *coeffPtrX = static_cast<DTYPE *>(splineControlPoint->data);
    DTYPE *coeffPtrY = &coeffPtrX[nodeNumber];
    DTYPE *coeffPtrZ = &coeffPtrY[nodeNumber];
@@ -1248,8 +1245,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
       if(splineControlPoint->nz>1)
          detNumber *= (size_t)(splineControlPoint->nz-2);
    }
-   else detNumber = (size_t)referenceImage->nx *
-         referenceImage->ny * referenceImage->nz;
+   else detNumber = CalcVoxelNumber(*referenceImage);
 
    void *JacobianDetermiantArray=(void *)malloc(detNumber*splineControlPoint->nbyper);
 
@@ -1360,8 +1356,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
    if(approximation)
       arraySize = (size_t)(splineControlPoint->nx-2) *
             (splineControlPoint->ny-2);
-   else arraySize = (size_t)referenceImage->nx *
-         referenceImage->ny;
+   else arraySize = CalcVoxelNumber(*referenceImage, 2);
    // Allocate arrays to store determinants and matrices
    mat33 *jacobianMatrices=(mat33 *)malloc(arraySize * sizeof(mat33));
    DTYPE *jacobianDeterminant=(DTYPE *)malloc(arraySize * sizeof(DTYPE));
@@ -1376,7 +1371,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
 
    // The gradient are now computed for every control point
    DTYPE *gradientImagePtrX = static_cast<DTYPE *>(gradientImage->data);
-   DTYPE *gradientImagePtrY = &gradientImagePtrX[gradientImage->nx*gradientImage->ny];
+   DTYPE *gradientImagePtrY = &gradientImagePtrX[CalcVoxelNumber(*gradientImage, 2)];
 
    // Matrices to be used to convert the gradient from voxel to mm
    mat33 jacobianMatrix, reorientation;
@@ -1387,7 +1382,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
    // Ratio to be used for normalisation
    size_t jacobianNumber;
    if(approximation)
-      jacobianNumber = splineControlPoint->nx * splineControlPoint->ny;
+      jacobianNumber = CalcVoxelNumber(*splineControlPoint, 2);
    else jacobianNumber = arraySize;
    DTYPE ratio[2] =
    {
@@ -1599,8 +1594,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
    if(approximation)
       arraySize = (size_t)(splineControlPoint->nx-2) *
             (splineControlPoint->ny-2) * (splineControlPoint->nz-2);
-   else arraySize = (size_t)referenceImage->nx *
-         referenceImage->ny*referenceImage->nz;
+   else arraySize = CalcVoxelNumber(*referenceImage);
    // Allocate arrays to store determinants and matrices
    mat33 *jacobianMatrices=(mat33 *)malloc(arraySize * sizeof(mat33));
    DTYPE *jacobianDeterminant=(DTYPE *)malloc(arraySize * sizeof(DTYPE));
@@ -1614,9 +1608,10 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
                                 useHeaderInformation);
 
    // The gradient are now computed for every control point
+   const size_t voxelNumber = CalcVoxelNumber(*gradientImage);
    DTYPE *gradientImagePtrX = static_cast<DTYPE *>(gradientImage->data);
-   DTYPE *gradientImagePtrY = &gradientImagePtrX[gradientImage->nx*gradientImage->ny*gradientImage->nz];
-   DTYPE *gradientImagePtrZ = &gradientImagePtrY[gradientImage->nx*gradientImage->ny*gradientImage->nz];
+   DTYPE *gradientImagePtrY = &gradientImagePtrX[voxelNumber];
+   DTYPE *gradientImagePtrZ = &gradientImagePtrY[voxelNumber];
 
    // Matrices to be used to convert the gradient from voxel to mm
    mat33 jacobianMatrix, reorientation;
@@ -1627,7 +1622,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
    // Ratio to be used for normalisation
    size_t jacobianNumber;
    if(approximation)
-      jacobianNumber = splineControlPoint->nx * splineControlPoint->ny * splineControlPoint->nz;
+      jacobianNumber = CalcVoxelNumber(*splineControlPoint);
    else jacobianNumber = arraySize;
    DTYPE ratio[3] =
    {
@@ -1954,13 +1949,13 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
    long jacobianNumber;
    if(approximation)
       jacobianNumber = (long)(splineControlPoint->nx-2)*(splineControlPoint->ny-2);
-   else jacobianNumber = (long)referenceImage->nx*referenceImage->ny;
+   else jacobianNumber = (long)CalcVoxelNumber(*referenceImage, 2);
 #else
    size_t i;
    size_t jacobianNumber;
    if(approximation)
       jacobianNumber = (size_t)(splineControlPoint->nx-2)*(splineControlPoint->ny-2);
-   else jacobianNumber = (size_t)referenceImage->nx*referenceImage->ny;
+   else jacobianNumber = CalcVoxelNumber(*referenceImage, 2);
 #endif
    mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber*sizeof(mat33));
    DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber*sizeof(DTYPE));
@@ -2001,8 +1996,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
       reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_xyz);
    else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_xyz);
 
-   size_t nodeNumber = (size_t)splineControlPoint->nx *
-         splineControlPoint->ny * splineControlPoint->nz;
+   const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
    DTYPE *controlPointPtrY = &controlPointPtrX[nodeNumber];
 
@@ -2204,13 +2198,13 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
    long jacobianNumber;
    if(approximation)
       jacobianNumber = (long)(splineControlPoint->nx-2)*(splineControlPoint->ny-2)*(splineControlPoint->nz-2);
-   else jacobianNumber = (long)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+   else jacobianNumber = (long)CalcVoxelNumber(*referenceImage);
 #else
    size_t i;
    size_t jacobianNumber;
    if(approximation)
       jacobianNumber = (size_t)(splineControlPoint->nx-2)*(splineControlPoint->ny-2)*(splineControlPoint->nz-2);
-   else jacobianNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+   else jacobianNumber = CalcVoxelNumber(*referenceImage);
 #endif
    mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber*sizeof(mat33));
    DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber*sizeof(DTYPE));
@@ -2251,8 +2245,7 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
       reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_xyz);
    else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_xyz);
 
-   size_t nodeNumber = (size_t)splineControlPoint->nx *
-         splineControlPoint->ny * splineControlPoint->nz;
+   const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
    DTYPE *controlPointPtrY = &controlPointPtrX[nodeNumber];
    DTYPE *controlPointPtrZ = &controlPointPtrY[nodeNumber];
@@ -2690,7 +2683,7 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
                                    nifti_image *jacobianDeterminant,
                                    mat33 *jacobianMatrices)
 {
-   size_t voxelNumber=deformationField->nx*deformationField->ny;
+   const size_t voxelNumber = CalcVoxelNumber(*deformationField, 2);
 
    DTYPE *jacDetPtr=nullptr;
    if(jacobianDeterminant!=nullptr)
@@ -2800,7 +2793,7 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
                                    nifti_image *jacobianDeterminant,
                                    mat33 *jacobianMatrices)
 {
-   size_t voxelNumber=deformationField->nx*deformationField->ny*deformationField->nz;
+   const size_t voxelNumber = CalcVoxelNumber(*deformationField);
 
    DTYPE *jacDetPtr=nullptr;
    if(jacobianDeterminant!=nullptr)
@@ -3037,8 +3030,7 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
       }
       else reg_exit();
    }
-   size_t voxelNumber = (size_t)flowFieldImage->nx *
-         flowFieldImage->ny * flowFieldImage->nz ;
+   const size_t voxelNumber = CalcVoxelNumber(*flowFieldImage);
    for(size_t i=0; i<voxelNumber; ++i)
       jacobianMatrices[i]=affineMatrix;
 
@@ -3088,7 +3080,7 @@ void reg_getDetArrayFromMatArray(nifti_image *jacobianDetImage,
                                  mat33 *jacobianMatrices
                                  )
 {
-   size_t voxelNumber=jacobianDetImage->nx*jacobianDetImage->ny*jacobianDetImage->nz;
+   const size_t voxelNumber = CalcVoxelNumber(*jacobianDetImage);
    DTYPE *jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
    if(jacobianDetImage->nz>1){
        for(size_t voxel=0; voxel<voxelNumber; ++voxel)
@@ -3137,8 +3129,7 @@ int reg_spline_GetJacobianMatFromVelocityGrid(mat33* jacobianMatrices,
    flowFieldImage->ndim=flowFieldImage->dim[0]=5;
    flowFieldImage->nt=flowFieldImage->dim[4]=1;
    flowFieldImage->nu=flowFieldImage->dim[5]=referenceImage->nz>1?3:2;
-   flowFieldImage->nvox=(size_t)flowFieldImage->nx*flowFieldImage->ny*
-         flowFieldImage->nz*flowFieldImage->nt*flowFieldImage->nu;
+   flowFieldImage->nvox = CalcVoxelNumber(*flowFieldImage, flowFieldImage->ndim);
    flowFieldImage->data=(void *)malloc(flowFieldImage->nvox*flowFieldImage->nbyper);
 
    // The velocity grid image is first converted into a flow field
@@ -3157,7 +3148,7 @@ int reg_defField_GetJacobianDetFromFlowField(nifti_image* jacobianDetImage,
                                              )
 {
    // create an array of mat33
-   size_t voxelNumber=jacobianDetImage->nx*jacobianDetImage->ny*jacobianDetImage->nz;
+   const size_t voxelNumber = CalcVoxelNumber(*jacobianDetImage);
    mat33 *jacobianMatrices=(mat33 *)malloc(voxelNumber*sizeof(mat33));
 
    // Compute the Jacobian matrice array
@@ -3195,8 +3186,7 @@ int reg_spline_GetJacobianDetFromVelocityGrid(nifti_image* jacobianDetImage,
    flowFieldImage->ndim=flowFieldImage->dim[0]=5;
    flowFieldImage->nt=flowFieldImage->dim[4]=1;
    flowFieldImage->nu=flowFieldImage->dim[5]=jacobianDetImage->nz>1?3:2;
-   flowFieldImage->nvox=(size_t)flowFieldImage->nx*flowFieldImage->ny*
-         flowFieldImage->nz*flowFieldImage->nt*flowFieldImage->nu;
+   flowFieldImage->nvox = CalcVoxelNumber(*flowFieldImage, flowFieldImage->ndim);
    flowFieldImage->data=(void *)malloc(flowFieldImage->nvox*flowFieldImage->nbyper);
 
    // The velocity grid image is first converted into a flow field

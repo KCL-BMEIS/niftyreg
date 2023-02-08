@@ -431,13 +431,15 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
 {
    int coord;
 
+   const size_t splineControlPointVoxelNumber = CalcVoxelNumber(*splineControlPoint);
    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-   DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-   DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+   DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPointVoxelNumber];
+   DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPointVoxelNumber];
 
+   const size_t deformationFieldVoxelNumber = CalcVoxelNumber(*deformationField);
    DTYPE *fieldPtrX=static_cast<DTYPE *>(deformationField->data);
-   DTYPE *fieldPtrY=&fieldPtrX[deformationField->nx*deformationField->ny*deformationField->nz];
-   DTYPE *fieldPtrZ=&fieldPtrY[deformationField->nx*deformationField->ny*deformationField->nz];
+   DTYPE *fieldPtrY=&fieldPtrX[deformationFieldVoxelNumber];
+   DTYPE *fieldPtrZ=&fieldPtrY[deformationFieldVoxelNumber];
 
    int x, y, z, a, b, c, xPre, yPre, zPre, index;
    DTYPE xBasis[2], yBasis[2], zBasis[2], real[3];
@@ -657,10 +659,10 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
 
 
    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-   DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
+   DTYPE *controlPointPtrY = &controlPointPtrX[CalcVoxelNumber(*splineControlPoint, 2)];
 
    DTYPE *fieldPtrX=static_cast<DTYPE *>(deformationField->data);
-   DTYPE *fieldPtrY=&fieldPtrX[deformationField->nx*deformationField->ny*deformationField->nz];
+   DTYPE *fieldPtrY = &fieldPtrX[CalcVoxelNumber(*deformationField)];
 
    DTYPE gridVoxelSpacing[2];
    gridVoxelSpacing[0] = splineControlPoint->dx / deformationField->dx;
@@ -983,13 +985,15 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
    int coord;
 #endif // _USE_SSE
 
+   const size_t splineControlPointVoxelNumber = CalcVoxelNumber(*splineControlPoint);
    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-   DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-   DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+   DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPointVoxelNumber];
+   DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPointVoxelNumber];
 
+   const size_t deformationFieldVoxelNumber = CalcVoxelNumber(*deformationField);
    DTYPE *fieldPtrX=static_cast<DTYPE *>(deformationField->data);
-   DTYPE *fieldPtrY=&fieldPtrX[deformationField->nx*deformationField->ny*deformationField->nz];
-   DTYPE *fieldPtrZ=&fieldPtrY[deformationField->nx*deformationField->ny*deformationField->nz];
+   DTYPE *fieldPtrY=&fieldPtrX[deformationFieldVoxelNumber];
+   DTYPE *fieldPtrZ=&fieldPtrY[deformationFieldVoxelNumber];
 
    DTYPE basis, oldBasis=(DTYPE)(1.1);
 
@@ -1646,7 +1650,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
    {
       // Active voxel are all superior to -1, 0 thus will do !
       MrPropre=true;
-      mask=(int *)calloc(deformationField->nx*deformationField->ny*deformationField->nz, sizeof(int));
+      mask = (int *)calloc(CalcVoxelNumber(*deformationField), sizeof(int));
    }
 
    // Check if an affine initialisation is required
@@ -1749,8 +1753,8 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                                        mat44 *voxelToMillimeter
                                        )
 {
-   size_t nodeNumber = (size_t)nodeImage->nx*nodeImage->ny*nodeImage->nz;
-   size_t voxelNumber = (size_t)voxelImage->nx*voxelImage->ny*voxelImage->nz;
+   const size_t nodeNumber = CalcVoxelNumber(*nodeImage);
+   const size_t voxelNumber = CalcVoxelNumber(*voxelImage);
    DTYPE *nodePtrX = static_cast<DTYPE *>(nodeImage->data);
    DTYPE *nodePtrY = &nodePtrX[nodeNumber];
    DTYPE *nodePtrZ = nullptr;
@@ -1994,16 +1998,10 @@ void reg_spline_refineControlPointGrid2D(nifti_image *splineControlPoint,
    }
    splineControlPoint->dim[3]=splineControlPoint->nz=1;
 
-   splineControlPoint->nvox =
-         (size_t)splineControlPoint->nx*
-         (size_t)splineControlPoint->ny*
-         (size_t)splineControlPoint->nz*
-         (size_t)splineControlPoint->nt*
-         (size_t)splineControlPoint->nu;
-
+   splineControlPoint->nvox = CalcVoxelNumber(*splineControlPoint, splineControlPoint->ndim);
    splineControlPoint->data = (void *)calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
    gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
-   SplineTYPE *gridPtrY = &gridPtrX[splineControlPoint->nx*splineControlPoint->ny];
+   SplineTYPE *gridPtrY = &gridPtrX[CalcVoxelNumber(*splineControlPoint, 2)];
    SplineTYPE *oldGridPtrX = &oldGrid[0];
    SplineTYPE *oldGridPtrY = &oldGridPtrX[oldDim[1]*oldDim[2]];
 
@@ -2103,21 +2101,16 @@ void reg_spline_refineControlPointGrid3D(nifti_image *splineControlPoint, nifti_
       splineControlPoint->dim[2]=splineControlPoint->ny=(oldDim[2]-3)*2+3;
       splineControlPoint->dim[3]=splineControlPoint->nz=(oldDim[3]-3)*2+3;
    }
-   splineControlPoint->nvox =
-         (size_t)splineControlPoint->nx*
-         (size_t)splineControlPoint->ny*
-         (size_t)splineControlPoint->nz*
-         (size_t)splineControlPoint->nt*
-         (size_t)splineControlPoint->nu;
+   splineControlPoint->nvox = CalcVoxelNumber(*splineControlPoint, splineControlPoint->ndim);
    splineControlPoint->data = (void *)calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
 
+   const size_t splineControlPointVoxelNumber = CalcVoxelNumber(*splineControlPoint);
    gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
-   SplineTYPE *gridPtrY = &gridPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-   SplineTYPE *gridPtrZ = &gridPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+   SplineTYPE *gridPtrY = &gridPtrX[splineControlPointVoxelNumber];
+   SplineTYPE *gridPtrZ = &gridPtrY[splineControlPointVoxelNumber];
    SplineTYPE *oldGridPtrX = &oldGrid[0];
    SplineTYPE *oldGridPtrY = &oldGridPtrX[oldDim[1]*oldDim[2]*oldDim[3]];
    SplineTYPE *oldGridPtrZ = &oldGridPtrY[oldDim[1]*oldDim[2]*oldDim[3]];
-
 
    for(int z=0; z<oldDim[3]; z++)
    {
@@ -2554,13 +2547,13 @@ void reg_defField_compose2D(nifti_image *deformationField,
                             nifti_image *dfToUpdate,
                             int *mask)
 {
-   size_t DFVoxelNumber=(size_t)deformationField->nx*deformationField->ny;
+   const size_t DFVoxelNumber = CalcVoxelNumber(*deformationField, 2);
 #ifdef _WIN32
    long i;
-   long warVoxelNumber=(size_t)dfToUpdate->nx*dfToUpdate->ny;
+   const long warVoxelNumber = (long)CalcVoxelNumber(*dfToUpdate, 2);
 #else
    size_t i;
-   size_t warVoxelNumber=(size_t)dfToUpdate->nx*dfToUpdate->ny;
+   const size_t warVoxelNumber = CalcVoxelNumber(*dfToUpdate, 2);
 #endif
    DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);
    DTYPE *defPtrY = &defPtrX[DFVoxelNumber];
@@ -2661,12 +2654,10 @@ void reg_defField_compose3D(nifti_image *deformationField,
    const size_t DFVoxelNumber=(size_t)DefFieldDim[0]*DefFieldDim[1]*DefFieldDim[2];
 #ifdef _WIN32
    long i;
-   long warVoxelNumber=(size_t)dfToUpdate->nx*
-         dfToUpdate->ny*dfToUpdate->nz;
+   const long warVoxelNumber = (long)CalcVoxelNumber(*dfToUpdate);
 #else
    size_t i;
-   size_t warVoxelNumber=(size_t)dfToUpdate->nx*
-         dfToUpdate->ny*dfToUpdate->nz;
+   const size_t warVoxelNumber = CalcVoxelNumber(*dfToUpdate);
 #endif
 
    DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);
@@ -2811,10 +2802,7 @@ void reg_defField_compose(nifti_image *deformationField,
    bool freeMask=false;
    if(mask==nullptr)
    {
-      mask=(int *)calloc(dfToUpdate->nx*
-                         dfToUpdate->ny*
-                         dfToUpdate->nz,
-                         sizeof(int));
+      mask = (int *)calloc(CalcVoxelNumber(*dfToUpdate), sizeof(int));
       freeMask=true;
    }
 
@@ -3352,9 +3340,7 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
                           nifti_image *outputDeformationField,
                           float tolerance)
 {
-   int outputVoxelNumber = outputDeformationField->nx *
-         outputDeformationField->ny *
-         outputDeformationField->nz;
+   const size_t outputVoxelNumber = CalcVoxelNumber(*outputDeformationField);
 
    mat44 *OutXYZMatrix;
    if(outputDeformationField->sform_code>0)
@@ -3487,10 +3473,10 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
  #endif // _USE_SSE
 
    DTYPE *outCPPPtrX = static_cast<DTYPE *>(grid2->data);
-   DTYPE *outCPPPtrY = &outCPPPtrX[grid2->nx*grid2->ny];
+   DTYPE *outCPPPtrY = &outCPPPtrX[CalcVoxelNumber(*grid2, 2)];
 
    DTYPE *controlPointPtrX = static_cast<DTYPE *>(grid1->data);
-   DTYPE *controlPointPtrY = &controlPointPtrX[grid1->nx*grid1->ny];
+   DTYPE *controlPointPtrY = &controlPointPtrX[CalcVoxelNumber(*grid1, 2)];
 
    DTYPE basis;
 
@@ -3670,13 +3656,15 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
    DTYPE tempValue;
  #endif
 
+   const size_t grid2VoxelNumber = CalcVoxelNumber(*grid2);
    DTYPE *outCPPPtrX = static_cast<DTYPE *>(grid2->data);
-   DTYPE *outCPPPtrY = &outCPPPtrX[grid2->nx*grid2->ny*grid2->nz];
-   DTYPE *outCPPPtrZ = &outCPPPtrY[grid2->nx*grid2->ny*grid2->nz];
+   DTYPE *outCPPPtrY = &outCPPPtrX[grid2VoxelNumber];
+   DTYPE *outCPPPtrZ = &outCPPPtrY[grid2VoxelNumber];
 
+   const size_t grid1VoxelNumber = CalcVoxelNumber(*grid1);
    DTYPE *controlPointPtrX = static_cast<DTYPE *>(grid1->data);
-   DTYPE *controlPointPtrY = &controlPointPtrX[grid1->nx*grid1->ny*grid1->nz];
-   DTYPE *controlPointPtrZ = &controlPointPtrY[grid1->nx*grid1->ny*grid1->nz];
+   DTYPE *controlPointPtrY = &controlPointPtrX[grid1VoxelNumber];
+   DTYPE *controlPointPtrZ = &controlPointPtrY[grid1VoxelNumber];
 
    DTYPE basis;
 
@@ -4295,9 +4283,9 @@ void compute_lie_bracket(nifti_image *img1,
    reg_print_msg_error("The compute_lie_bracket function needs updating");
    reg_exit();
  #ifdef _WIN32
-   long voxNumber=(long)img1->nx*img1->ny*img1->nz;
+   long voxNumber=(long)CalcVoxelNumber(*img1);
  #else
-   size_t voxNumber=(size_t)img1->nx*img1->ny*img1->nz;
+   size_t voxNumber=CalcVoxelNumber(*img1);
  #endif
    // Lie bracket using Jacobian for testing
    if(use_jac)

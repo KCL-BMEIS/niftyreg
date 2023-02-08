@@ -248,7 +248,7 @@ void reg_aladin<T>::InitialiseRegistration() {
                                  this->levelsToPerform);
     else {
         for (unsigned int l = 0; l < this->levelsToPerform; ++l) {
-            const size_t voxelNumber = this->referencePyramid[l]->nx * this->referencePyramid[l]->ny * this->referencePyramid[l]->nz;
+            const size_t voxelNumber = CalcVoxelNumber(*this->referencePyramid[l]);
             this->referenceMaskPyramid[l] = (int *)calloc(voxelNumber, sizeof(int));
         }
     }
@@ -565,8 +565,7 @@ nifti_image* reg_aladin<T>::GetFinalWarpedImage() {
         reg_exit();
     }
 
-    int *mask = (int *)calloc(this->inputReference->nx * this->inputReference->ny * this->inputReference->nz,
-                              sizeof(int));
+    int *mask = (int *)calloc(CalcVoxelNumber(*this->inputReference), sizeof(int));
 
     reg_aladin<T>::InitAladinContent(this->inputReference,
                                      this->inputFloating,

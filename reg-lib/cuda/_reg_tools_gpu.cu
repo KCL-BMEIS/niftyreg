@@ -26,8 +26,8 @@ void reg_voxelCentric2NodeCentric_gpu(nifti_image *targetImage,
     // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
-    const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
-    const int voxelNumber = targetImage->nx * targetImage->ny * targetImage->nz;
+    const int nodeNumber = CalcVoxelNumber(*controlPointImage);
+    const int voxelNumber = CalcVoxelNumber(*targetImage);
     const int3 targetImageDim = make_int3(targetImage->nx, targetImage->ny, targetImage->nz);
     const int3 gridSize = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
 	float3 voxelNodeRatio_h = make_float3(
@@ -62,7 +62,7 @@ void reg_convertNMIGradientFromVoxelToRealSpace_gpu(mat44 *sourceMatrix_xyz,
     // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
-    const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
+    const int nodeNumber = CalcVoxelNumber(*controlPointImage);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
 
     float4 *matrix_h;NR_CUDA_SAFE_CALL(cudaMallocHost(&matrix_h, 3*sizeof(float4)))
@@ -96,11 +96,11 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
     // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
-	const unsigned int voxelNumber = image->nx * image->ny * image->nz;
+    const int voxelNumber = CalcVoxelNumber(*image);
     const int3 imageDim = make_int3(image->nx, image->ny, image->nz);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageDim, &imageDim,sizeof(int3)))
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber, &voxelNumber,sizeof(int3)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber, &voxelNumber,sizeof(int)))
 
     bool axisToSmooth[8];
     if(smoothXYZ==nullptr){
@@ -186,7 +186,7 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
     // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
-    const int voxelNumber = image->nx * image->ny * image->nz;
+    const int voxelNumber = CalcVoxelNumber(*image);
     const int3 imageDim = make_int3(image->nx, image->ny, image->nz);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageDim, &imageDim,sizeof(int3)))

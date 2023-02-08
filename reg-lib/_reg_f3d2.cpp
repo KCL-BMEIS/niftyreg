@@ -792,7 +792,7 @@ void reg_f3d2<T>::Initialise() {
             reg_createMaskPyramid<T>(floatingMaskImage, floatingMaskPyramid, this->levelNumber, this->levelToPerform);
         } else {
             for (unsigned int l = 0; l < this->levelToPerform; ++l) {
-                const size_t voxelNumberBw = this->floatingPyramid[l]->nx * this->floatingPyramid[l]->ny * this->floatingPyramid[l]->nz;
+                const size_t voxelNumberBw = CalcVoxelNumber(*this->floatingPyramid[l]);
                 floatingMaskPyramid[l] = (int*)calloc(voxelNumberBw, sizeof(int));
             }
         }
@@ -800,7 +800,7 @@ void reg_f3d2<T>::Initialise() {
         if (floatingMaskImage)
             reg_createMaskPyramid<T>(floatingMaskImage, floatingMaskPyramid, 1, 1);
         else {
-            const size_t voxelNumberBw = this->floatingPyramid[0]->nx * this->floatingPyramid[0]->ny * this->floatingPyramid[0]->nz;
+            const size_t voxelNumberBw = CalcVoxelNumber(*this->floatingPyramid[0]);
             floatingMaskPyramid[0] = (int*)calloc(voxelNumberBw, sizeof(int));
         }
     }

@@ -130,10 +130,10 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 
 #ifdef WIN32
         long floatingIndex;
-        long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+        const long floatingVoxelNumber = (long)CalcVoxelNumber(*floatingImage);
 #else
         size_t floatingIndex;
-        size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+        const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
 #endif
 
         *originalFloatingData=(void *)malloc(floatingImage->nvox*sizeof(DTYPE));
@@ -221,10 +221,10 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
     {
 #ifdef WIN32
         long warpedIndex;
-        long voxelNumber = (long)inputImage->nx*inputImage->ny*inputImage->nz;
+        const long voxelNumber = (long)CalcVoxelNumber(*inputImage);
 #else
         size_t warpedIndex;
-        size_t voxelNumber = (size_t)inputImage->nx*inputImage->ny*inputImage->nz;
+        const size_t voxelNumber = CalcVoxelNumber(*inputImage);
 #endif
         DTYPE *warpVox,*warpedXX,*warpedXY,*warpedXZ,*warpedYY,*warpedYZ,*warpedZZ;
         if(warpedImage!=nullptr)
@@ -363,12 +363,12 @@ void ResampleImage3D(nifti_image *floatingImage,
 {
 #ifdef _WIN32
     long  index;
-    long warpedVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    const long warpedVoxelNumber = (long)CalcVoxelNumber(*warpedImage);
+    const long floatingVoxelNumber = (long)CalcVoxelNumber(*floatingImage);
 #else
     size_t  index;
-    size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    const size_t warpedVoxelNumber = CalcVoxelNumber(*warpedImage);
+    const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
 #endif
     FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
     FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
@@ -567,12 +567,12 @@ void ResampleImage2D(nifti_image *floatingImage,
 {
 #ifdef _WIN32
     long  index;
-    long warpedVoxelNumber = (long)warpedImage->nx*warpedImage->ny;
-    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
+    const long warpedVoxelNumber = (long)CalcVoxelNumber(*warpedImage, 2);
+    const long floatingVoxelNumber = (long)CalcVoxelNumber(*floatingImage, 2);
 #else
     size_t  index;
-    size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny;
-    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
+    const size_t warpedVoxelNumber = CalcVoxelNumber(*warpedImage, 2);
+    const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage, 2);
 #endif
     FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
     FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
@@ -832,7 +832,7 @@ void reg_resampleImage(nifti_image *floatingImage,
     if(mask==nullptr)
     {
         // voxels in the background are set to negative value so 0 corresponds to active voxel
-        mask=(int *)calloc(warpedImage->nx*warpedImage->ny*warpedImage->nz,sizeof(int));
+        mask = (int *)calloc(CalcVoxelNumber(*warpedImage), sizeof(int));
         MrPropreRules = true;
     }
 
@@ -1036,16 +1036,16 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
 {
 #ifdef _WIN32
     long index;
-    long warpedVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    long warpedPlaneNumber = (long)warpedImage->nx*warpedImage->ny;
-    long warpedLineNumber = (long)warpedImage->nx;
-    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    const long warpedVoxelNumber = (long)CalcVoxelNumber(*warpedImage);
+    const long warpedPlaneNumber = (long)CalcVoxelNumber(*warpedImage, 2);
+    const long warpedLineNumber = (long)warpedImage->nx;
+    const long floatingVoxelNumber = (long)CalcVoxelNumber(*floatingImage);
 #else
     size_t index;
-    size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    size_t warpedPlaneNumber = (size_t)warpedImage->nx*warpedImage->ny;
-    size_t warpedLineNumber = (size_t)warpedImage->nx;
-    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    const size_t warpedVoxelNumber = CalcVoxelNumber(*warpedImage);
+    const size_t warpedPlaneNumber = CalcVoxelNumber(*warpedImage, 2);
+    const size_t warpedLineNumber = (size_t)warpedImage->nx;
+    const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
 #endif
     FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
     FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
@@ -1331,16 +1331,16 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
 {
 #ifdef _WIN32
     long index;
-    long warpedVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    long warpedPlaneNumber = (long)warpedImage->nx*warpedImage->ny;
-    long warpedLineNumber = (long)warpedImage->nx;
-    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    const long warpedVoxelNumber = (long)CalcVoxelNumber(*warpedImage);
+    const long warpedPlaneNumber = (long)CalcVoxelNumber(*warpedImage, 2);
+    const long warpedLineNumber = (long)warpedImage->nx;
+    const long floatingVoxelNumber = (long)CalcVoxelNumber(*floatingImage);
 #else
     size_t index;
-    size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    size_t warpedPlaneNumber = (size_t)warpedImage->nx*warpedImage->ny;
-    size_t warpedLineNumber = (size_t)warpedImage->nx;
-    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    const size_t warpedVoxelNumber = CalcVoxelNumber(*warpedImage);
+    const size_t warpedPlaneNumber = CalcVoxelNumber(*warpedImage, 2);
+    const size_t warpedLineNumber = (size_t)warpedImage->nx;
+    const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
 #endif
     FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
     FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
@@ -1842,7 +1842,7 @@ void reg_resampleImage_PSF(nifti_image *floatingImage,
     if(mask==nullptr)
     {
         // voxels in the background are set to negative value so 0 corresponds to active voxel
-        mask=(int *)calloc(warpedImage->nx*warpedImage->ny*warpedImage->nz,sizeof(int));
+        mask = (int *)calloc(CalcVoxelNumber(*warpedImage), sizeof(int));
         MrPropreRules = true;
     }
 
@@ -2042,14 +2042,14 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
                                   nifti_image *deformationField,
                                   float paddingValue)
 {
-    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
-    size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+    const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
+    const size_t warpedVoxelNumber = CalcVoxelNumber(*warpedImage);
     DTYPE *floatingIntensityX = static_cast<DTYPE *>(floatingImage->data);
     DTYPE *floatingIntensityY = &floatingIntensityX[floatingVoxelNumber];
     DTYPE *warpedIntensityX = static_cast<DTYPE *>(warpedImage->data);
     DTYPE *warpedIntensityY = &warpedIntensityX[warpedVoxelNumber];
     DTYPE *deformationFieldPtrX = static_cast<DTYPE *>(deformationField->data);
-    DTYPE *deformationFieldPtrY = &deformationFieldPtrX[deformationField->nx*deformationField->ny*deformationField->nz];
+    DTYPE *deformationFieldPtrY = &deformationFieldPtrX[CalcVoxelNumber(*deformationField)];
 
     // Extract the relevant affine matrix
     mat44 *floating_mm_to_voxel = &floatingImage->qto_ijk;
@@ -2223,8 +2223,9 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
                                    nifti_image *deformationField,
                                    float paddingValue)
 {
-    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
-    size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+    const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
+    const size_t warpedVoxelNumber = CalcVoxelNumber(*warpedImage);
+    const size_t deformationFieldVoxelNumber = CalcVoxelNumber(*deformationField);
     DTYPE *floatingIntensityX = static_cast<DTYPE *>(floatingImage->data);
     DTYPE *floatingIntensityY = &floatingIntensityX[floatingVoxelNumber];
     DTYPE *floatingIntensityZ = &floatingIntensityY[floatingVoxelNumber];
@@ -2232,8 +2233,8 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
     DTYPE *warpedIntensityY = &warpedIntensityX[warpedVoxelNumber];
     DTYPE *warpedIntensityZ = &warpedIntensityY[warpedVoxelNumber];
     DTYPE *deformationFieldPtrX = static_cast<DTYPE *>(deformationField->data);
-    DTYPE *deformationFieldPtrY = &deformationFieldPtrX[deformationField->nx*deformationField->ny*deformationField->nz];
-    DTYPE *deformationFieldPtrZ = &deformationFieldPtrY[deformationField->nx*deformationField->ny*deformationField->nz];
+    DTYPE *deformationFieldPtrY = &deformationFieldPtrX[deformationFieldVoxelNumber];
+    DTYPE *deformationFieldPtrZ = &deformationFieldPtrY[deformationFieldVoxelNumber];
 
     // Extract the relevant affine matrix
     mat44 *floating_mm_to_voxel = &floatingImage->qto_ijk;
@@ -2537,12 +2538,12 @@ void TrilinearImageGradient(nifti_image *floatingImage,
     }
 #ifdef _WIN32
     long index;
-    long referenceVoxelNumber = (long)warpedGradient->nx*warpedGradient->ny*warpedGradient->nz;
-    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    const long referenceVoxelNumber = (long)CalcVoxelNumber(*warpedGradient);
+    const long floatingVoxelNumber = (long)CalcVoxelNumber(*floatingImage);
 #else
     size_t index;
-    size_t referenceVoxelNumber = (size_t)warpedGradient->nx*warpedGradient->ny*warpedGradient->nz;
-    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    const size_t referenceVoxelNumber = CalcVoxelNumber(*warpedGradient);
+    const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
 #endif
     FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
     FloatingTYPE *floatingIntensity = &floatingIntensityPtr[active_timepoint*floatingVoxelNumber];
@@ -2733,12 +2734,12 @@ void BilinearImageGradient(nifti_image *floatingImage,
     }
 #ifdef _WIN32
     long index;
-    long referenceVoxelNumber = (long)warpedGradient->nx*warpedGradient->ny;
-    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
+    const long referenceVoxelNumber = (long)CalcVoxelNumber(*warpedGradient, 2);
+    const long floatingVoxelNumber = (long)CalcVoxelNumber(*floatingImage, 2);
 #else
     size_t index;
-    size_t referenceVoxelNumber = (size_t)warpedGradient->nx*warpedGradient->ny;
-    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
+    const size_t referenceVoxelNumber = CalcVoxelNumber(*warpedGradient, 2);
+    const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage, 2);
 #endif
 
     FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
@@ -2867,12 +2868,12 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
     }
 #ifdef _WIN32
     long index;
-    long referenceVoxelNumber = (long)warpedGradient->nx*warpedGradient->ny*warpedGradient->nz;
-    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    const long referenceVoxelNumber = (long)CalcVoxelNumber(*warpedGradient);
+    const long floatingVoxelNumber = (long)CalcVoxelNumber(*floatingImage);
 #else
     size_t index;
-    size_t referenceVoxelNumber = (size_t)warpedGradient->nx*warpedGradient->ny*warpedGradient->nz;
-    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    const size_t referenceVoxelNumber = CalcVoxelNumber(*warpedGradient);
+    const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
 #endif
     FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
     FloatingTYPE *floatingIntensity = &floatingIntensityPtr[active_timepoint*floatingVoxelNumber];
@@ -3031,12 +3032,12 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
     }
 #ifdef _WIN32
     long index;
-    long referenceVoxelNumber = (long)warpedGradient->nx*warpedGradient->ny;
-    long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
+    const long referenceVoxelNumber = (long)CalcVoxelNumber(*warpedGradient, 2);
+    const long floatingVoxelNumber = (long)CalcVoxelNumber(*floatingImage, 2);
 #else
     size_t index;
-    size_t referenceVoxelNumber = (size_t)warpedGradient->nx*warpedGradient->ny;
-    size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
+    const size_t referenceVoxelNumber = CalcVoxelNumber(*warpedGradient, 2);
+    const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage, 2);
 #endif
     FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
     FloatingTYPE *floatingIntensity = &floatingIntensityPtr[active_timepoint*floatingVoxelNumber];
@@ -3329,7 +3330,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
     if(mask==nullptr)
     {
         // voxels in the backgreg_round are set to -1 so 0 will do the job here
-        mask=(int *)calloc(deformationField->nx*deformationField->ny*deformationField->nz,sizeof(int));
+        mask = (int *)calloc(CalcVoxelNumber(*deformationField), sizeof(int));
         MrPropreRule=true;
     }
 
@@ -3386,8 +3387,7 @@ void reg_getImageGradient_symDiff_core(nifti_image *img,
                                        float padding_value,
                                        int timepoint)
 {
-    size_t voxIndex, voxelNumber = (size_t)img->nx *
-            img->ny * img->nz;
+    const size_t voxelNumber = CalcVoxelNumber(*img);
 
     int dimImg = img->nz > 1 ? 3 : 2;
     int x, y, z;
@@ -3407,10 +3407,10 @@ void reg_getImageGradient_symDiff_core(nifti_image *img,
 #pragma omp parallel for default(none) \
     shared(img, currentImgPtr, mask, \
     gradPtrX, gradPtrY, gradPtrZ, padding_value) \
-    private(x, y, z, voxIndex, pre, post, valX, valY, valZ)
+    private(x, y, z, pre, post, valX, valY, valZ)
 #endif
     for(z=0; z<img->nz; ++z){
-        voxIndex=z*img->nx*img->ny;
+        size_t voxIndex=z*img->nx*img->ny;
         for(y=0; y<img->ny; ++y){
             for(x=0; x<img->nx; ++x){
                 valX = valY = valZ = 0;
@@ -3550,12 +3550,7 @@ nifti_image *reg_makeIsotropic(nifti_image *img,
     def->pixdim[6]=def->dv=1.0;
     def->dim[7]=def->nw=1;
     def->pixdim[7]=def->dw=1.0;
-    def->nvox =
-            (size_t)def->nx *
-            (size_t)def->ny *
-            (size_t)def->nz *
-            (size_t)def->nt *
-            (size_t)def->nu;
+    def->nvox = CalcVoxelNumber(*def, def->ndim);
     def->nbyper = sizeof(float);
     def->datatype = NIFTI_TYPE_FLOAT32;
     def->data = (void *)calloc(def->nvox,def->nbyper);

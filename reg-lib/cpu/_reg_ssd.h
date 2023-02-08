@@ -48,7 +48,7 @@ public:
     virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
                                      float *discretisedValue,
                                      int discretise_radius,
-                                     int discretise_step);
+                                     int discretise_step) override;
 protected:
     float currentValue[255];
 

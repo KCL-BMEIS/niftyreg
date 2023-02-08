@@ -36,8 +36,7 @@ void F3dContent::AllocateLocalWeightSim(nifti_image *localWeightSimIn) {
     localWeightSim->dim[0] = localWeightSim->ndim = localWeightSimIn->dim[0];
     localWeightSim->dim[4] = localWeightSim->nt = localWeightSimIn->dim[4];
     localWeightSim->dim[5] = localWeightSim->nu = localWeightSimIn->dim[5];
-    localWeightSim->nvox = size_t(localWeightSim->nx * localWeightSim->ny * localWeightSim->nz *
-                                  localWeightSim->nt * localWeightSim->nu);
+    localWeightSim->nvox = CalcVoxelNumber(*localWeightSim, localWeightSim->ndim);
     localWeightSim->data = malloc(localWeightSim->nvox * localWeightSim->nbyper);
     F3dContent::ZeroVoxelBasedMeasureGradient();
     reg_getDeformationFromDisplacement(voxelBasedMeasureGradient);

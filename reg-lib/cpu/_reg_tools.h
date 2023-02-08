@@ -437,3 +437,10 @@ void cPtrToMatmn(T **mat, const T *cMat, unsigned int m, unsigned int n);
 /* *************************************************************** */
 void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x, int& y, int& z);
 /* *************************************************************** */
+/** @brief Calculates the number of voxels in the image
+ * @param image Input image
+ * @param dimCount Number of dimensions to consider
+ * @return The number of voxels in the image
+ */
+size_t CalcVoxelNumber(const nifti_image& image, const int& dimCount = 3);
+/* *************************************************************** */

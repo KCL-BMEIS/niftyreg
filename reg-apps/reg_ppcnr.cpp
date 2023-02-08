@@ -191,7 +191,7 @@ int main(int argc, char **argv)
          nifti_image_free(source);
          makesource->ndim=makesource->dim[0] = 4;
          makesource->nt = makesource->dim[4] = atoi(argv[++i]);
-         makesource->nvox=makesource->nx*makesource->nz*makesource->ny*makesource->nt;
+         makesource->nvox = CalcVoxelNumber(*makesource->nx, makesource->ndim);
          makesource->data = (void *)malloc(makesource->nvox * makesource->nbyper);
          char *temp_data = reinterpret_cast<char *>(makesource->data);
          for(int ii=0; ii<makesource->nt; ii++) // fill with file data
@@ -214,8 +214,8 @@ int main(int argc, char **argv)
          nifti_image *makesource = nifti_copy_nim_info(source);
          makesource->ndim=makesource->dim[0] = 3;
          makesource->nt = makesource->dim[4] = 1;
-         makesource->nvox=makesource->nx*makesource->ny*makesource->nz;
-         makesource->data = (void *)malloc(makesource->nvox * makesource->nbyper);
+         makesource->nvox = CalcVoxelNumber(*makesource, makesource->ndim);
+         makesource->data = malloc(makesource->nvox * makesource->nbyper);
          char *temp_data = reinterpret_cast<char *>(source->data);
          for(int ii=0; ii<source->nt; ii++) // fill with file data
          {
@@ -404,8 +404,8 @@ int main(int argc, char **argv)
       mask = nifti_copy_nim_info(image);
       mask->ndim=mask->dim[0]=3;
       mask->nt=mask->dim[4]=1;
-      mask->nvox=mask->nx*mask->ny*mask->nz;
-      mask->data = (void *)malloc(mask->nvox*mask->nbyper);
+      mask->nvox = CalcVoxelNumber(*mask, mask->ndim);
+      mask->data = malloc(mask->nvox*mask->nbyper);
       PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
       for(size_t i=0; i<mask->nvox; i++) intensityPtrM[i]=1.0;
    }
@@ -863,7 +863,7 @@ int main(int argc, char **argv)
             nifti_image *stores = nifti_copy_nim_info(images);
             stores->ndim=stores->dim[0]=3;
             stores->nt=stores->dim[4]=1;
-            stores->nvox=stores->nx*stores->ny*stores->nz;
+            stores->nvox = CalcVoxelNumber(*stores, stores->ndim);
             stores->data = (void *)calloc(stores->nvox,images->nbyper);
 
             nifti_image *storet = nifti_copy_nim_info(stores);

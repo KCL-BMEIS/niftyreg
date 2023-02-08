@@ -665,7 +665,7 @@ void reg_base<T>::Initialise() {
             reg_createMaskPyramid<T>(maskImage, maskPyramid, levelNumber, levelToPerform);
         else {
             for (unsigned int l = 0; l < levelToPerform; ++l) {
-                const size_t voxelNumber = referencePyramid[l]->nx * referencePyramid[l]->ny * referencePyramid[l]->nz;
+                const size_t voxelNumber = CalcVoxelNumber(*referencePyramid[l]);
                 maskPyramid[l] = (int*)calloc(voxelNumber, sizeof(int));
             }
         }
@@ -675,7 +675,7 @@ void reg_base<T>::Initialise() {
         if (maskImage)
             reg_createMaskPyramid<T>(maskImage, maskPyramid, 1, 1);
         else {
-            const size_t voxelNumber = referencePyramid[0]->nx * referencePyramid[0]->ny * referencePyramid[0]->nz;
+            const size_t voxelNumber = CalcVoxelNumber(*referencePyramid[0]);
             maskPyramid[0] = (int*)calloc(voxelNumber, sizeof(int));
         }
     }

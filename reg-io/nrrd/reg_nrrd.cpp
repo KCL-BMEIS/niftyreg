@@ -17,7 +17,7 @@ template <class DTYPE>
 void reg_convertVectorField_nifti_to_nrrd(nifti_image *niiImage,
       Nrrd *nrrdImage)
 {
-   size_t voxNumber = niiImage->nx*niiImage->ny*niiImage->nz;
+   const size_t voxNumber = CalcVoxelNumber(*niiImage);
 
    DTYPE *inPtrX=static_cast<DTYPE *>(niiImage->data);
    DTYPE *inPtrY=&inPtrX[voxNumber];

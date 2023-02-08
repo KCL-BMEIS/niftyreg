@@ -111,10 +111,10 @@ double reg_getSSDValue(nifti_image *referenceImage,
                        nifti_image *localWeightSimImage) {
 #ifdef _WIN32
     long voxel;
-    long voxelNumber = long(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
 #else
     size_t voxel;
-    size_t voxelNumber = size_t(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
     // Create pointers to the reference and warped image data
     DTYPE *referencePtr = static_cast<DTYPE*>(referenceImage->data);
@@ -273,10 +273,10 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
     // Create pointers to the reference and warped images
 #ifdef _WIN32
     long voxel;
-    long voxelNumber = long(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
 #else
     size_t voxel;
-    size_t voxelNumber = size_t(referenceImage->nx * referenceImage->ny * referenceImage->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
     // Pointers to the image data
     DTYPE *refImagePtr = static_cast<DTYPE *>(referenceImage->data);
@@ -489,7 +489,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
     float *refBlockValue = (float*)malloc(voxelBlockNumber * sizeof(float));
 
     // Pointers to the input image
-    size_t voxelNumber = size_t(refImage->nx * refImage->ny * refImage->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*refImage);
     DTYPE *refImgPtr = static_cast<DTYPE*>(refImage->data);
     DTYPE *warImgPtr = static_cast<DTYPE*>(warImage->data);
 
@@ -640,7 +640,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
     free(paddedWarImgPtr);
     free(refBlockValue);
     // Deal with the labels that contains NaN values
-    for (int node = 0; node < controlPointGridImage->nx * controlPointGridImage->ny * controlPointGridImage->nz; ++node) {
+    for (size_t node = 0; node < CalcVoxelNumber(*controlPointGridImage); ++node) {
         int definedValueNumber = 0;
         float *discretisedValuePtr = &discretisedValue[node * label_nD_number];
         float meanValue = 0;
@@ -733,7 +733,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
     int currentControlPoint = 0;
 
     // Pointers to the input image
-    size_t voxelNumber = size_t(refImage->nx * refImage->ny * refImage->nz);
+    const size_t voxelNumber = CalcVoxelNumber(*refImage);
     DTYPE *refImgPtr = static_cast<DTYPE*>(refImage->data);
     DTYPE *warImgPtr = static_cast<DTYPE*>(warImage->data);
 
@@ -882,7 +882,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
     free(refBlockValue);
 
     // Deal with the labels that contains NaN values
-    for (int node = 0; node < controlPointGridImage->nx * controlPointGridImage->ny * controlPointGridImage->nz; ++node) {
+    for (size_t node = 0; node < CalcVoxelNumber(*controlPointGridImage); ++node) {
         int definedValueNumber = 0;
         float *discretisedValuePtr = &discretisedValue[node * label_nD_number];
         float meanValue = 0;
