@@ -6,16 +6,7 @@
 
 #include "BlockMatchingKernel.h"
 #include "Platform.h"
-
 #include "AladinContent.h"
-#ifdef _USE_CUDA
-#include "CudaAladinContent.h"
-#endif
-#ifdef _USE_OPENCL
-#include "ClAladinContent.h"
-#endif
-
-#include <algorithm>
 
 #define EPS 0.000001
 
@@ -24,214 +15,178 @@ void check_matching_difference(int dim,
                                float* cpuWarPos,
                                float* gpuRefPos,
                                float* gpuWarPos,
-                               float &max_difference)
-{
-   bool cpu_finite = cpuWarPos[0]==cpuWarPos[0] ? true : false;
-   bool gpu_finite = gpuWarPos[0]==gpuWarPos[0] ? true : false;
+                               float &max_difference) {
+    bool cpu_finite = cpuWarPos[0] == cpuWarPos[0] ? true : false;
+    bool gpu_finite = gpuWarPos[0] == gpuWarPos[0] ? true : false;
 
-   if(!cpu_finite && !gpu_finite) return;
+    if (!cpu_finite && !gpu_finite) return;
 
-   if(cpu_finite!=gpu_finite){
-      max_difference = std::numeric_limits<float>::max();
-      return;
-   }
+    if (cpu_finite != gpu_finite) {
+        max_difference = std::numeric_limits<float>::max();
+        return;
+    }
 
-   float difference;
-   for (int i = 0; i < dim; ++i) {
-      difference = fabsf(cpuRefPos[i] - gpuRefPos[i]);
-      max_difference = std::max(difference, max_difference);
-      if (difference > EPS){
+    float difference;
+    for (int i = 0; i < dim; ++i) {
+        difference = fabsf(cpuRefPos[i] - gpuRefPos[i]);
+        max_difference = std::max(difference, max_difference);
+        if (difference > EPS) {
 #ifndef NDEBUG
-         fprintf(stderr, "reg_test_blockMatching reference position failed %g>%g\n", difference, EPS);
-         if(dim==2){
-            fprintf(stderr, "Reference. CPU [%g %g] GPU [%g %g]\n",
-                    cpuRefPos[0], cpuRefPos[1],
-                  gpuRefPos[0], gpuRefPos[1]);
-            fprintf(stderr, "Warped. CPU [%g %g] GPU [%g %g]\n",
-                    cpuWarPos[0], cpuWarPos[1],
-                  gpuWarPos[0], gpuWarPos[1]);
-         }
-         else{
-            fprintf(stderr, "Reference. CPU [%g %g %g] GPU [%g %g %g]\n",
-                    cpuRefPos[0], cpuRefPos[1], cpuRefPos[2],
-                  gpuRefPos[0], gpuRefPos[1], gpuRefPos[2]);
-            fprintf(stderr, "Warped. CPU [%g %g %g] GPU [%g %g %g]\n",
-                    cpuWarPos[0], cpuWarPos[1], cpuWarPos[2],
-                  gpuWarPos[0], gpuWarPos[1], gpuWarPos[2]);
-         }
-         reg_exit();
+            fprintf(stderr, "reg_test_blockMatching reference position failed %g>%g\n", difference, EPS);
+            if (dim == 2) {
+                fprintf(stderr, "Reference. CPU [%g %g] GPU [%g %g]\n",
+                        cpuRefPos[0], cpuRefPos[1],
+                        gpuRefPos[0], gpuRefPos[1]);
+                fprintf(stderr, "Warped. CPU [%g %g] GPU [%g %g]\n",
+                        cpuWarPos[0], cpuWarPos[1],
+                        gpuWarPos[0], gpuWarPos[1]);
+            } else {
+                fprintf(stderr, "Reference. CPU [%g %g %g] GPU [%g %g %g]\n",
+                        cpuRefPos[0], cpuRefPos[1], cpuRefPos[2],
+                        gpuRefPos[0], gpuRefPos[1], gpuRefPos[2]);
+                fprintf(stderr, "Warped. CPU [%g %g %g] GPU [%g %g %g]\n",
+                        cpuWarPos[0], cpuWarPos[1], cpuWarPos[2],
+                        gpuWarPos[0], gpuWarPos[1], gpuWarPos[2]);
+            }
+            reg_exit();
 #endif
-      }
-      difference = fabsf(cpuWarPos[i] - gpuWarPos[i]);
-      max_difference = std::max(difference, max_difference);
-      if (difference > EPS){
+        }
+        difference = fabsf(cpuWarPos[i] - gpuWarPos[i]);
+        max_difference = std::max(difference, max_difference);
+        if (difference > EPS) {
 #ifndef NDEBUG
-         fprintf(stderr, "reg_test_blockMatching warped position failed %g>%g\n", difference, EPS);
-         if(dim==2){
-            fprintf(stderr, "Reference. CPU [%g %g] GPU [%g %g]\n",
-                    cpuRefPos[0], cpuRefPos[1],
-                  gpuRefPos[0], gpuRefPos[1]);
-            fprintf(stderr, "Warped. CPU [%g %g] GPU [%g %g]\n",
-                    cpuWarPos[0], cpuWarPos[1],
-                  gpuWarPos[0], gpuWarPos[1]);
-         }
-         else{
-            fprintf(stderr, "Reference. CPU [%g %g %g] GPU [%g %g %g]\n",
-                    cpuRefPos[0], cpuRefPos[1], cpuRefPos[2],
-                  gpuRefPos[0], gpuRefPos[1], gpuRefPos[2]);
-            fprintf(stderr, "Warped. CPU [%g %g %g] GPU [%g %g %g]\n",
-                    cpuWarPos[0], cpuWarPos[1], cpuWarPos[2],
-                  gpuWarPos[0], gpuWarPos[1], gpuWarPos[2]);
-         }
-         reg_exit();
+            fprintf(stderr, "reg_test_blockMatching warped position failed %g>%g\n", difference, EPS);
+            if (dim == 2) {
+                fprintf(stderr, "Reference. CPU [%g %g] GPU [%g %g]\n",
+                        cpuRefPos[0], cpuRefPos[1],
+                        gpuRefPos[0], gpuRefPos[1]);
+                fprintf(stderr, "Warped. CPU [%g %g] GPU [%g %g]\n",
+                        cpuWarPos[0], cpuWarPos[1],
+                        gpuWarPos[0], gpuWarPos[1]);
+            } else {
+                fprintf(stderr, "Reference. CPU [%g %g %g] GPU [%g %g %g]\n",
+                        cpuRefPos[0], cpuRefPos[1], cpuRefPos[2],
+                        gpuRefPos[0], gpuRefPos[1], gpuRefPos[2]);
+                fprintf(stderr, "Warped. CPU [%g %g %g] GPU [%g %g %g]\n",
+                        cpuWarPos[0], cpuWarPos[1], cpuWarPos[2],
+                        gpuWarPos[0], gpuWarPos[1], gpuWarPos[2]);
+            }
+            reg_exit();
 #endif
-      }
-   }
+        }
+    }
 }
 
-void test(AladinContent *con, int platformType) {
-
-   Platform *platform = new Platform(platformType);
-
-   Kernel *blockMatchingKernel = platform->CreateKernel(BlockMatchingKernel::GetName(), con);
-   blockMatchingKernel->castTo<BlockMatchingKernel>()->Calculate();
-
-   delete blockMatchingKernel;
-   delete platform;
+void test(AladinContent *con, Platform *platform) {
+    std::unique_ptr<Kernel> blockMatchingKernel{ platform->CreateKernel(BlockMatchingKernel::GetName(), con) };
+    blockMatchingKernel->castTo<BlockMatchingKernel>()->Calculate();
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s <refImage> <warpedImage> <platformType>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
-   if (argc != 4) {
-      fprintf(stderr, "Usage: %s <refImage> <warpedImage> <platformType>\n", argv[0]);
-      return EXIT_FAILURE;
-   }
+    char *inputRefImageName = argv[1];
+    char *inputWarpedImageName = argv[2];
+    PlatformType platformType{ atoi(argv[3]) };
 
-   char *inputRefImageName = argv[1];
-   char *inputWarpedImageName = argv[2];
-   PlatformType platformType{atoi(argv[3])};
-#ifndef _USE_CUDA
-   if(platformType == PlatformType::Cuda){
-      reg_print_msg_error("NiftyReg has not been compiled with CUDA");
-      return EXIT_FAILURE;
-   }
-#endif
-#ifndef _USE_OPENCL
-   if(platformType == PlatformType::OpenCl){
-      reg_print_msg_error("NiftyReg has not been compiled with OpenCL");
-      return EXIT_FAILURE;
-   }
-#endif
+    if (platformType != PlatformType::Cuda && platformType != PlatformType::OpenCl) {
+        reg_print_msg_error("Unexpected platform code");
+        return EXIT_FAILURE;
+    }
 
-   if(platformType!=PlatformType::Cuda && platformType!=PlatformType::OpenCl){
-      reg_print_msg_error("Unexpected platform code");
-      return EXIT_FAILURE;
-   }
+    // Read the input reference image
+    nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
+    if (referenceImage == nullptr) {
+        reg_print_msg_error("The input reference image could not be read");
+        return EXIT_FAILURE;
+    }
+    reg_tools_changeDatatype<float>(referenceImage);
+    //dim
+    int imgDim = referenceImage->dim[0];
 
-   // Read the input reference image
-   nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
-   if (referenceImage == nullptr){
-      reg_print_msg_error("The input reference image could not be read");
-      return EXIT_FAILURE;
-   }
-   reg_tools_changeDatatype<float>(referenceImage);
-   //dim
-   int imgDim = referenceImage->dim[0];
+    // Read the input floating image
+    nifti_image *warpedImage = reg_io_ReadImageFile(inputWarpedImageName);
+    if (warpedImage == nullptr) {
+        reg_print_msg_error("The input warped image could not be read");
+        return EXIT_FAILURE;
+    }
+    reg_tools_changeDatatype<float>(warpedImage);
 
-   // Read the input floating image
-   nifti_image *warpedImage = reg_io_ReadImageFile(inputWarpedImageName);
-   if (warpedImage == nullptr){
-      reg_print_msg_error("The input warped image could not be read");
-      return EXIT_FAILURE;
-   }
-   reg_tools_changeDatatype<float>(warpedImage);
+    // Create a mask
+    int *mask = (int *)malloc(referenceImage->nvox * sizeof(int));
+    for (size_t i = 0; i < referenceImage->nvox; ++i) mask[i] = i;
 
-   // Create a mask
-   int *mask = (int *)malloc(referenceImage->nvox*sizeof(int));
-   for (size_t i = 0; i < referenceImage->nvox; ++i) mask[i] = i;
-
-   // CPU Platform
-   _reg_blockMatchingParam* blockMatchingParams_cpu = nullptr;
-   AladinContent *con_cpu = nullptr;
-   con_cpu = new AladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
-   con_cpu->SetWarped(warpedImage);
-   test(con_cpu, PlatformType::Cpu);
-   blockMatchingParams_cpu = con_cpu->GetBlockMatchingParams();
+    // CPU Platform
+    std::unique_ptr<Platform> platformCpu{ new Platform(PlatformType::Cpu) };
+    std::unique_ptr<AladinContent> conCpu{ new AladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1) };
+    conCpu->SetWarped(warpedImage);
+    test(conCpu.get(), platformCpu.get());
+    _reg_blockMatchingParam *blockMatchingParams_cpu = conCpu->GetBlockMatchingParams();
 
 #ifndef NDEBUG
-   std::cout << "blockMatchingParams_cpu->activeBlockNumber = " << blockMatchingParams_cpu->activeBlockNumber << std::endl;
-   std::cout << "blockMatchingParams_cpu->definedActiveBlockNumber = " << blockMatchingParams_cpu->definedActiveBlockNumber << std::endl;
+    std::cout << "blockMatchingParams_cpu->activeBlockNumber = " << blockMatchingParams_cpu->activeBlockNumber << std::endl;
+    std::cout << "blockMatchingParams_cpu->definedActiveBlockNumber = " << blockMatchingParams_cpu->definedActiveBlockNumber << std::endl;
 #endif
 
-   // GPU Platform
-   AladinContent *con_gpu = nullptr;
-   _reg_blockMatchingParam* blockMatchingParams_gpu = nullptr;
-#ifdef _USE_CUDA
-   if (platformType == PlatformType::Cuda) {
-      con_gpu = new CudaAladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
-   }
-#endif
-#ifdef _USE_OPENCL
-   if (platformType == PlatformType::OpenCl) {
-      con_gpu = new ClAladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1);
-   }
-#endif
-   con_gpu->SetWarped(warpedImage);
-   test(con_gpu, platformType);
-   blockMatchingParams_gpu = con_gpu->GetBlockMatchingParams();
+    // GPU Platform
+    std::unique_ptr<Platform> platformGpu{ new Platform(platformType) };
+    std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platformGpu->CreateContentCreator(ContentType::Aladin)) };
+    std::unique_ptr<AladinContent> conGpu{ contentCreator->Create(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1) };
+    conGpu->SetWarped(warpedImage);
+    test(conGpu.get(), platformGpu.get());
+    _reg_blockMatchingParam *blockMatchingParams_gpu = conGpu->GetBlockMatchingParams();
 
 #ifndef NDEBUG
-   std::cout << "blockMatchingParams_gpu->activeBlockNumber = " << blockMatchingParams_gpu->activeBlockNumber << std::endl;
-   std::cout << "blockMatchingParams_gpu->definedActiveBlockNumber = " << blockMatchingParams_gpu->definedActiveBlockNumber << std::endl;
+    std::cout << "blockMatchingParams_gpu->activeBlockNumber = " << blockMatchingParams_gpu->activeBlockNumber << std::endl;
+    std::cout << "blockMatchingParams_gpu->definedActiveBlockNumber = " << blockMatchingParams_gpu->definedActiveBlockNumber << std::endl;
 #endif
 
-   float max_difference = 0;
+    float max_difference = 0;
 
-   if(blockMatchingParams_cpu->definedActiveBlockNumber != blockMatchingParams_gpu->definedActiveBlockNumber){
-      reg_print_msg_error("The number of defined active blockNumber blocks vary accros platforms");
-      char out_text[255];
-      sprintf(out_text, "activeBlockNumber CPU: %i", blockMatchingParams_cpu->activeBlockNumber);
-      reg_print_msg_error(out_text);
-      sprintf(out_text, "activeBlockNumber GPU: %i", blockMatchingParams_gpu->activeBlockNumber);
-      reg_print_msg_error(out_text);
-      sprintf(out_text, "definedActiveBlockNumber CPU: %i", blockMatchingParams_cpu->definedActiveBlockNumber);
-      reg_print_msg_error(out_text);
-      sprintf(out_text, "definedActiveBlockNumber CPU: %i", blockMatchingParams_gpu->definedActiveBlockNumber);
-      reg_print_msg_error(out_text);
-      return EXIT_FAILURE;
-   }
+    if (blockMatchingParams_cpu->definedActiveBlockNumber != blockMatchingParams_gpu->definedActiveBlockNumber) {
+        reg_print_msg_error("The number of defined active blockNumber blocks vary accros platforms");
+        char out_text[255];
+        sprintf(out_text, "activeBlockNumber CPU: %i", blockMatchingParams_cpu->activeBlockNumber);
+        reg_print_msg_error(out_text);
+        sprintf(out_text, "activeBlockNumber GPU: %i", blockMatchingParams_gpu->activeBlockNumber);
+        reg_print_msg_error(out_text);
+        sprintf(out_text, "definedActiveBlockNumber CPU: %i", blockMatchingParams_cpu->definedActiveBlockNumber);
+        reg_print_msg_error(out_text);
+        sprintf(out_text, "definedActiveBlockNumber CPU: %i", blockMatchingParams_gpu->definedActiveBlockNumber);
+        reg_print_msg_error(out_text);
+        return EXIT_FAILURE;
+    }
 
-   for(int i=0; i<blockMatchingParams_cpu->activeBlockNumber*imgDim; i+=imgDim){
-      check_matching_difference(imgDim,
-                                &blockMatchingParams_cpu->referencePosition[i],
-                                &blockMatchingParams_cpu->warpedPosition[i],
-                                &blockMatchingParams_gpu->referencePosition[i],
-                                &blockMatchingParams_gpu->warpedPosition[i],
-                                max_difference);
-   }
-   size_t test_cpu=0, test_gpu=0;
-   for(int i=0; i<blockMatchingParams_cpu->activeBlockNumber*imgDim; i+=imgDim){
-       test_cpu = (blockMatchingParams_cpu->warpedPosition[i]==blockMatchingParams_cpu->warpedPosition[i])?test_cpu+1:test_cpu;
-       test_gpu = (blockMatchingParams_gpu->warpedPosition[i]==blockMatchingParams_gpu->warpedPosition[i])?test_gpu+1:test_gpu;
-   }
-   printf("CPU: %zu - GPU: %zu\n", test_cpu, test_gpu);
+    for (int i = 0; i < blockMatchingParams_cpu->activeBlockNumber * imgDim; i += imgDim) {
+        check_matching_difference(imgDim,
+                                  &blockMatchingParams_cpu->referencePosition[i],
+                                  &blockMatchingParams_cpu->warpedPosition[i],
+                                  &blockMatchingParams_gpu->referencePosition[i],
+                                  &blockMatchingParams_gpu->warpedPosition[i],
+                                  max_difference);
+    }
+    size_t test_cpu = 0, test_gpu = 0;
+    for (int i = 0; i < blockMatchingParams_cpu->activeBlockNumber * imgDim; i += imgDim) {
+        test_cpu = (blockMatchingParams_cpu->warpedPosition[i] == blockMatchingParams_cpu->warpedPosition[i]) ? test_cpu + 1 : test_cpu;
+        test_gpu = (blockMatchingParams_gpu->warpedPosition[i] == blockMatchingParams_gpu->warpedPosition[i]) ? test_gpu + 1 : test_gpu;
+    }
+    printf("CPU: %zu - GPU: %zu\n", test_cpu, test_gpu);
 
-   delete con_gpu;
-   //delete con_cpu;
-   free(mask);
-   nifti_image_free(referenceImage);
+    free(mask);
+    nifti_image_free(referenceImage);
 
-   if(max_difference>EPS){
+    if (max_difference > EPS) {
 #ifndef NDEBUG
-      fprintf(stdout, "reg_test_blockMatching failed: %g (>%g)\n", max_difference, EPS);
+        fprintf(stdout, "reg_test_blockMatching failed: %g (>%g)\n", max_difference, EPS);
 #endif
-      return EXIT_FAILURE;
-   }
+        return EXIT_FAILURE;
+    }
 #ifndef NDEBUG
-   printf("All good (%g<%g)\n", max_difference, EPS);
+    printf("All good (%g<%g)\n", max_difference, EPS);
 #endif
 
-
-   return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }

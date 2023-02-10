@@ -33,7 +33,7 @@ typedef std::tuple<AladinContent*, std::string, PlatformType> content_desc;
 
 TEST_CASE("Resampling", "[resampling]") {
     // Create a reference 2D image
-    int dim[8] = {2, 2, 2, 1, 1, 1, 1, 1};
+    int dim[8] = { 2, 2, 2, 1, 1, 1, 1, 1 };
     nifti_image *reference2D = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
     reg_checkAndCorrectDimension(reference2D);
 
@@ -150,7 +150,7 @@ TEST_CASE("Resampling", "[resampling]") {
                 auto *platform = new Platform(plat_value);
                 Kernel *resampleKernel = platform->CreateKernel(ResampleImageKernel::GetName(), con);
                 // args = interpolation and padding
-                std::list<int> interp = {0, 1, 3};
+                std::list<int> interp = { 0, 1, 3 };
                 for (auto it : interp) {
                     resampleKernel->castTo<ResampleImageKernel>()->Calculate(it, 0);
                     warped = con->GetWarped();

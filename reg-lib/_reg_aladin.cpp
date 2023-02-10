@@ -450,16 +450,8 @@ void reg_aladin<T>::InitAladinContent(nifti_image *ref,
                                       unsigned int blockPercentage,
                                       unsigned int inlierLts,
                                       unsigned int blockStepSize) {
-    if (this->platformType == PlatformType::Cpu)
-        this->con = new AladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
-#ifdef _USE_CUDA
-    else if (platformType == PlatformType::Cuda)
-        this->con = new CudaAladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
-#endif
-#ifdef _USE_OPENCL
-    else if (platformType == PlatformType::OpenCl)
-        this->con = new ClAladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
-#endif
+    std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(this->platform->CreateContentCreator(ContentType::Aladin)) };
+    this->con = contentCreator->Create(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
     this->blockMatchingParams = this->con->AladinContent::GetBlockMatchingParams();
 }
 /* *************************************************************** */

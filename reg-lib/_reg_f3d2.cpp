@@ -13,10 +13,6 @@
 #include "_reg_f3d2.h"
 #include "F3dContent.h"
 
-#ifdef _USE_CUDA
-#include "CudaF3dContent.h"
-#endif
-
 /* *************************************************************** */
 template <class T>
 reg_f3d2<T>::reg_f3d2(int refTimePoint, int floTimePoint):
@@ -88,12 +84,8 @@ void reg_f3d2<T>::SetInverseConsistencyWeight(T w) {
 /* *************************************************************** */
 template<class T>
 void reg_f3d2<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
-    if (this->platformType == PlatformType::Cpu)
-        conBw = new F3dContent(floating, reference, controlPointGridBw, nullptr, mask, affineTransformationBw, sizeof(T));
-#ifdef _USE_CUDA
-    else if (this->platformType == PlatformType::Cuda)
-        conBw = new CudaF3dContent(floating, reference, controlPointGridBw, nullptr, mask, affineTransformationBw, sizeof(T));
-#endif
+    std::unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d)) };
+    conBw = contentCreator->Create(floating, reference, controlPointGridBw, nullptr, mask, affineTransformationBw, sizeof(T));
     computeBw = this->platform->CreateCompute(*conBw);
 }
 /* *************************************************************** */

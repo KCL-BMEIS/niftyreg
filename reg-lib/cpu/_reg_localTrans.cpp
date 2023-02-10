@@ -720,7 +720,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                   yVoxel>=0 && yVoxel<=deformationField->ny-1)
             {
 
-               // The control point postions are extracted
+               // The control point positions are extracted
                if(oldXpre!=xPre || oldYpre!=yPre)
                {
 #ifdef _USE_SSE
@@ -899,7 +899,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                   tempX = _mm_add_ps(_mm_mul_ps(xyBasis.m[a], xControlPointCoordinates.m[a]), tempX );
                   tempY = _mm_add_ps(_mm_mul_ps(xyBasis.m[a], yControlPointCoordinates.m[a]), tempY );
                }
-               //the values stored in SSE variables are transfered to normal float
+               //the values stored in SSE variables are transferred to normal float
                val.m=tempX;
                xReal=val.f[0]+val.f[1]+val.f[2]+val.f[3];
                val.m=tempY;

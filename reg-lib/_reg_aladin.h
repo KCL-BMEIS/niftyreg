@@ -33,14 +33,6 @@
 #include "ConvolutionKernel.h"
 #include "AladinContent.h"
 
-#ifdef _USE_CUDA
-#include "CudaAladinContent.h"
-#endif
-#ifdef _USE_OPENCL
-#include "ClAladinContent.h"
-#include "InfoDevice.h"
-#endif
-
 /**
  * @brief Block matching registration class
  *

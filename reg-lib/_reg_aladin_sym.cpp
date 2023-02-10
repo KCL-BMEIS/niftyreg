@@ -239,26 +239,18 @@ void reg_aladin_sym<T>::InitAladinContent(nifti_image *ref,
                         unsigned int inlierLts,
                         unsigned int blockStepSize)
 {
-    reg_aladin<T>::InitAladinContent(ref,
-                               flo,
-                               mask,
-                               transMat,
-                               bytes,
-                               blockPercentage,
-                               inlierLts,
-                               blockStepSize);
+   reg_aladin<T>::InitAladinContent(ref,
+                              flo,
+                              mask,
+                              transMat,
+                              bytes,
+                              blockPercentage,
+                              inlierLts,
+                              blockStepSize);
 
-  if (this->platformType == PlatformType::Cpu)
-  this->backCon = new AladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
-#ifdef _USE_CUDA
-  else if (this->platformType == PlatformType::Cuda)
-  this->backCon = new CudaAladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
-#endif
-#ifdef _USE_OPENCL
-  else if (this->platformType == PlatformType::OpenCl)
-  this->backCon = new ClAladinContent(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
-#endif
-  this->BackwardBlockMatchingParams = backCon->AladinContent::GetBlockMatchingParams();
+   std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(this->platform->CreateContentCreator(ContentType::Aladin)) };
+   this->backCon = contentCreator->Create(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+   this->BackwardBlockMatchingParams = backCon->AladinContent::GetBlockMatchingParams();
 }
 /* *************************************************************** */
 template <class T>

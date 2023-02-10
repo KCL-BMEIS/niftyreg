@@ -16,6 +16,7 @@
 
 #include <fstream>
 #include <map>
+#include <memory>
 #include "_reg_maths.h"
 
 typedef enum {

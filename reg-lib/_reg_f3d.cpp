@@ -13,11 +13,7 @@
 #include "_reg_f3d.h"
 #include "F3dContent.h"
 
-#ifdef _USE_CUDA
-#include "CudaF3dContent.h"
-#endif
-
- /* *************************************************************** */
+/* *************************************************************** */
 template<class T>
 reg_f3d<T>::reg_f3d(int refTimePoint, int floTimePoint):
     reg_base<T>::reg_base(refTimePoint, floTimePoint) {
@@ -110,12 +106,8 @@ void reg_f3d<T>::SetSpacing(unsigned int i, T s) {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
-    if (this->platformType == PlatformType::Cpu)
-        this->con = new F3dContent(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
-#ifdef _USE_CUDA
-    else if (this->platformType == PlatformType::Cuda)
-        this->con = new CudaF3dContent(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
-#endif
+    std::unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d)) };
+    this->con = contentCreator->Create(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
     this->compute = this->platform->CreateCompute(*this->con);
 }
 /* *************************************************************** */
