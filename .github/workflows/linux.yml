@@ -2,7 +2,7 @@ name: linux
 on: [push, pull_request]
 jobs:
   build:
-    runs-on: [self-hosted, Linux, gpu]
+    runs-on: [self-hosted, cme, gpu]
     strategy: 
       max-parallel: 2
       matrix:
