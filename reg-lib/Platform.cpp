@@ -24,7 +24,7 @@ Platform::Platform(const PlatformType& platformTypeIn) {
         contentCreatorFactory = new ContentCreatorFactory();
         kernelFactory = new CpuKernelFactory();
         measureFactory = new MeasureFactory();
-        platformName = "cpu_platform";
+        platformName = "CPU";
     }
 #ifdef _USE_CUDA
     else if (platformType == PlatformType::Cuda) {
@@ -32,7 +32,7 @@ Platform::Platform(const PlatformType& platformTypeIn) {
         contentCreatorFactory = new CudaContentCreatorFactory();
         kernelFactory = new CudaKernelFactory();
         measureFactory = new CudaMeasureFactory();
-        platformName = "cuda_platform";
+        platformName = "CUDA";
     }
 #endif
 #ifdef _USE_OPENCL
@@ -40,7 +40,7 @@ Platform::Platform(const PlatformType& platformTypeIn) {
         computeFactory = new ClComputeFactory();
         contentCreatorFactory = new ClContentCreatorFactory();
         kernelFactory = new ClKernelFactory();
-        platformName = "cl_platform";
+        platformName = "OpenCL";
     }
 #endif
     else {

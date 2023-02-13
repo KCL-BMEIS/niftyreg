@@ -10,6 +10,9 @@
  *
  */
 
+// OpenCL isn't supported!
+#undef _USE_OPENCL
+
 #include "_reg_ReadWriteImage.h"
 #include "_reg_ReadWriteMatrix.h"
 #include "_reg_f3d2.h"
@@ -21,9 +24,6 @@
 #   include <time.h>
 #endif
 
-// OpenCL isn't supported!
-#undef _USE_OPENCL
-
 void PetitUsage(char *exec) {
     char text[255];
     reg_print_msg_error("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
@@ -34,6 +34,7 @@ void PetitUsage(char *exec) {
     reg_print_msg_error("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
     return;
 }
+
 void Usage(char *exec) {
     char text[255];
     reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
@@ -132,21 +133,22 @@ void Usage(char *exec) {
     reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space");
     reg_print_info(exec, "");
 
-#if defined(_USE_CUDA) && defined(_USE_OPENCL)
-    reg_print_info(exec, "*** Platform options:");
-    reg_print_info(exec, "\t-platf <uint>\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
-#else
-#ifdef _USE_CUDA
-    reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 [0]");
-#endif
-#ifdef _USE_OPENCL
-    reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | OpenCL=2 [0]");
-#endif
-#endif
-#if defined(_USE_CUDA) || defined(_USE_OPENCL)
-    reg_print_info(exec, "\t-gpuid <uint>\t\tChoose a custom gpu.");
-    reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
-#endif
+    if (Platform::IsCudaEnabled() || Platform::IsOpenClEnabled()) {
+        reg_print_info(exec, "*** Platform options:");
+        std::string platform = "\t-platf <uint>\t\tChoose platform: CPU=0 | ";
+        if (Platform::IsCudaEnabled()) {
+            platform += "Cuda=1";
+            if (Platform::IsOpenClEnabled())
+                platform += " | ";
+        }
+        if (Platform::IsOpenClEnabled())
+            platform += "OpenCL=2";
+        platform += " [0]";
+        reg_print_info(exec, platform.c_str());
+
+        reg_print_info(exec, "\t-gpuid <uint>\t\tChoose a custom gpu.");
+        reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
+    }
 
 #ifdef _OPENMP
     reg_print_info(exec, "");
@@ -286,25 +288,21 @@ int main(int argc, char **argv) {
         if (strcmp(argv[i], "-vel") == 0 || strcmp(argv[i], "--vel") == 0) {
             reg = new reg_f3d2<float>(referenceImage->nt, floatingImage->nt);
         } else if (strcmp(argv[i], "-platf") == 0 || strcmp(argv[i], "--platf") == 0) {
-            PlatformType value{atoi(argv[++i])};
-            if (int(value) < int(PlatformType::Cpu) || int(value) > int(PlatformType::Cuda)) {
+            PlatformType value{ atoi(argv[++i]) };
+            if (value < PlatformType::Cpu || value > PlatformType::Cuda) {
                 reg_print_msg_error("The platform argument is expected to be 0 or 1 | 0=CPU 1=CUDA");
                 return EXIT_FAILURE;
             }
-#ifndef _USE_CUDA
-            if (value == PlatformType::Cuda) {
+            if (value == PlatformType::Cuda && !Platform::IsCudaEnabled()) {
                 reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
                 reg_print_msg_warn("The CPU platform is used");
                 value = PlatformType::Cpu;
             }
-#endif
-#ifndef _USE_OPENCL
-            if (value == PlatformType::OpenCl) {
+            if (value == PlatformType::OpenCl && !Platform::IsOpenClEnabled()) {
                 reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
                 reg_print_msg_warn("The CPU platform is used");
                 value = PlatformType::Cpu;
             }
-#endif
             platformType = value;
         } else if (strcmp(argv[i], "-gpuid") == 0 || strcmp(argv[i], "--gpuid") == 0) {
             gpuIdx = unsigned(atoi(argv[++i]));

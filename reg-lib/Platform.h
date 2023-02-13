@@ -8,6 +8,15 @@
 #include "_reg_optimiser.h"
 
 enum class PlatformType { Cpu, Cuda, OpenCl };
+constexpr PlatformType PlatformTypes[] = {
+    PlatformType::Cpu,
+#ifdef _USE_CUDA
+    PlatformType::Cuda,
+#endif
+#ifdef _USE_OPENCL
+    PlatformType::OpenCl
+#endif
+};
 
 class Platform {
 public:
@@ -32,6 +41,19 @@ public:
                                          bool optimiseY,
                                          bool optimiseZ,
                                          F3dContent *conBw = nullptr) const;
+
+    static constexpr bool IsCudaEnabled() {
+#ifdef _USE_CUDA
+        return true;
+#endif
+        return false;
+    }
+    static constexpr bool IsOpenClEnabled() {
+#ifdef _USE_OPENCL
+        return true;
+#endif
+        return false;
+    }
 
 private:
     ComputeFactory *computeFactory = nullptr;
