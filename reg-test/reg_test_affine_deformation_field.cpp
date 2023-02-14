@@ -21,7 +21,7 @@
 
 
 typedef std::tuple<std::string, nifti_image*, mat44*, float*, float*, float*> TestData;
-typedef std::tuple<std::unique_ptr<AladinContent>, std::unique_ptr<Platform>> ContentDesc;
+typedef std::tuple<unique_ptr<AladinContent>, unique_ptr<Platform>> ContentDesc;
 
 TEST_CASE("Affine deformation field", "[AffineDefField]") {
     // Create a reference 2D image
@@ -158,9 +158,9 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         // Accumulate all required contents with a vector
         std::vector<ContentDesc> contentDescs;
         for (auto&& platformType : PlatformTypes) {
-            std::unique_ptr<Platform> platform{ new Platform(platformType) };
-            std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };
-            std::unique_ptr<AladinContent> content{ contentCreator->Create(reference, reference, nullptr, testMat, sizeof(float)) };
+            unique_ptr<Platform> platform{ new Platform(platformType) };
+            unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };
+            unique_ptr<AladinContent> content{ contentCreator->Create(reference, reference, nullptr, testMat, sizeof(float)) };
             contentDescs.push_back(ContentDesc(std::move(content), std::move(platform)));
         }
         // Loop over all possibles contents for each test
@@ -168,7 +168,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
             auto&& [content, platform] = contentDesc;
             SECTION(testName + " " + platform->GetName()) {
                 // Initialise the platform to run current content and retrieve deformation field
-                std::unique_ptr<Kernel> affineDeformKernel{ platform->CreateKernel(AffineDeformationFieldKernel::GetName(), content.get()) };
+                unique_ptr<Kernel> affineDeformKernel{ platform->CreateKernel(AffineDeformationFieldKernel::GetName(), content.get()) };
                 affineDeformKernel->castTo<AffineDeformationFieldKernel>()->Calculate();
                 nifti_image *defField = content->GetDeformationField();
 

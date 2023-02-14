@@ -68,7 +68,7 @@ void check_matching_difference(int dim,
 }
 
 void test(AladinContent *con, Platform *platform) {
-    std::unique_ptr<Kernel> blockMatchingKernel{ platform->CreateKernel(BlockMatchingKernel::GetName(), con) };
+    unique_ptr<Kernel> blockMatchingKernel{ platform->CreateKernel(BlockMatchingKernel::GetName(), con) };
     blockMatchingKernel->castTo<BlockMatchingKernel>()->Calculate();
 }
 
@@ -117,9 +117,9 @@ int main(int argc, char **argv) {
     _reg_blockMatchingParam* blockMatchingParams;
 
     // Platforms
-    std::unique_ptr<Platform> platform{ new Platform(platformType) };
-    std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };
-    std::unique_ptr<AladinContent> con{ contentCreator->Create(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1) };
+    unique_ptr<Platform> platform{ new Platform(platformType) };
+    unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };
+    unique_ptr<AladinContent> con{ contentCreator->Create(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1) };
     con->SetWarped(warpedImage);
     //con->SetWarped(referenceImage);
     test(con.get(), platform.get());

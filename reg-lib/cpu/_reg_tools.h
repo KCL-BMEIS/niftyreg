@@ -19,6 +19,8 @@
 #include <memory>
 #include "_reg_maths.h"
 
+using std::unique_ptr;
+
 typedef enum {
     MEAN_KERNEL,
     LINEAR_KERNEL,

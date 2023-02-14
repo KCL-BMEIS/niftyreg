@@ -1999,7 +1999,7 @@ void reg_spline_refineControlPointGrid2D(nifti_image *splineControlPoint,
    splineControlPoint->dim[3]=splineControlPoint->nz=1;
 
    splineControlPoint->nvox = CalcVoxelNumber(*splineControlPoint, splineControlPoint->ndim);
-   splineControlPoint->data = (void *)calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
+   splineControlPoint->data = calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
    gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
    SplineTYPE *gridPtrY = &gridPtrX[CalcVoxelNumber(*splineControlPoint, 2)];
    SplineTYPE *oldGridPtrX = &oldGrid[0];
@@ -2102,7 +2102,7 @@ void reg_spline_refineControlPointGrid3D(nifti_image *splineControlPoint, nifti_
       splineControlPoint->dim[3]=splineControlPoint->nz=(oldDim[3]-3)*2+3;
    }
    splineControlPoint->nvox = CalcVoxelNumber(*splineControlPoint, splineControlPoint->ndim);
-   splineControlPoint->data = (void *)calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
+   splineControlPoint->data = calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
 
    const size_t splineControlPointVoxelNumber = CalcVoxelNumber(*splineControlPoint);
    gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
@@ -3406,7 +3406,7 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
             pars[2] += delta[2];
             // end added
 
-            optimize(cost_function, pars, (void *)&dat, tolerance);
+            optimize(cost_function, pars, &dat, tolerance);
             // output = (warp-1)(input);
 
             outData[0]        = pars[0];
@@ -4008,7 +4008,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
       {
          // Create a field that contains the affine component only
          affineOnly = nifti_copy_nim_info(deformationFieldImage);
-         affineOnly->data = (void *)calloc(affineOnly->nvox,affineOnly->nbyper);
+         affineOnly->data = calloc(affineOnly->nvox,affineOnly->nbyper);
          reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata),
                affineOnly,
                false);
@@ -4134,7 +4134,7 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
    {
       // Create an image to store the flow field
       nifti_image *flowField = nifti_copy_nim_info(deformationFieldImage);
-      flowField->data = (void *)calloc(flowField->nvox,flowField->nbyper);
+      flowField->data = calloc(flowField->nvox,flowField->nbyper);
       flowField->intent_code=NIFTI_INTENT_VECTOR;
       memset(flowField->intent_name, 0, 16);
       strcpy(flowField->intent_name,"NREG_TRANS");
@@ -4173,7 +4173,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
    {
       // Create an image to store the flow field
       nifti_image *flowFieldImage = nifti_copy_nim_info(deformationFieldImage[0]);
-      flowFieldImage->data = (void *)calloc(flowFieldImage->nvox,flowFieldImage->nbyper);
+      flowFieldImage->data = calloc(flowFieldImage->nvox,flowFieldImage->nbyper);
       flowFieldImage->intent_code=NIFTI_INTENT_VECTOR;
       memset(flowFieldImage->intent_name, 0, 16);
       strcpy(flowFieldImage->intent_name,"NREG_TRANS");
@@ -4193,7 +4193,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
          {
             // Create a field that contains the affine component only
             affineOnly = nifti_copy_nim_info(deformationFieldImage[0]);
-            affineOnly->data = (void *)calloc(affineOnly->nvox,affineOnly->nbyper);
+            affineOnly->data = calloc(affineOnly->nvox,affineOnly->nbyper);
             reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata),
                   affineOnly,
                   false);
@@ -4370,8 +4370,8 @@ void compute_lie_bracket(nifti_image *img1,
    nifti_image *one_two = nifti_copy_nim_info(img2);
    nifti_image *two_one = nifti_copy_nim_info(img1);
    // Set the temporary images to zero displacement
-   one_two->data=(void *)calloc(one_two->nvox, one_two->nbyper);
-   two_one->data=(void *)calloc(two_one->nvox, two_one->nbyper);
+   one_two->data=calloc(one_two->nvox, one_two->nbyper);
+   two_one->data=calloc(two_one->nvox, two_one->nbyper);
    // Compute the displacement from img1
    reg_spline_cppComposition(img1,
                              two_one,
@@ -4465,7 +4465,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
 
       // r <- 2 + 1 + 0.5[2,1]
       nifti_image *lie_bracket_img2_img1=nifti_copy_nim_info(img1);
-      lie_bracket_img2_img1->data=(void *)malloc(lie_bracket_img2_img1->nvox*lie_bracket_img2_img1->nbyper);
+      lie_bracket_img2_img1->data=malloc(lie_bracket_img2_img1->nvox*lie_bracket_img2_img1->nbyper);
       compute_lie_bracket<DTYPE>(img2, img1, lie_bracket_img2_img1, use_jac);
       DTYPE *lie_bracket_img2_img1Ptr=static_cast<DTYPE *>(lie_bracket_img2_img1->data);
  #if defined (_OPENMP)
@@ -4480,7 +4480,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
       {
          // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12
          nifti_image *lie_bracket_img2_lie1=nifti_copy_nim_info(lie_bracket_img2_img1);
-         lie_bracket_img2_lie1->data=(void *)malloc(lie_bracket_img2_lie1->nvox*lie_bracket_img2_lie1->nbyper);
+         lie_bracket_img2_lie1->data=malloc(lie_bracket_img2_lie1->nvox*lie_bracket_img2_lie1->nbyper);
          compute_lie_bracket<DTYPE>(img2, lie_bracket_img2_img1, lie_bracket_img2_lie1, use_jac);
          DTYPE *lie_bracket_img2_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img2_lie1->data);
  #if defined (_OPENMP)
@@ -4495,7 +4495,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
          {
             // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12 - [1,[2,1]]/12
             nifti_image *lie_bracket_img1_lie1=nifti_copy_nim_info(lie_bracket_img2_img1);
-            lie_bracket_img1_lie1->data=(void *)malloc(lie_bracket_img1_lie1->nvox*lie_bracket_img1_lie1->nbyper);
+            lie_bracket_img1_lie1->data=malloc(lie_bracket_img1_lie1->nvox*lie_bracket_img1_lie1->nbyper);
             compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_img1, lie_bracket_img1_lie1, use_jac);
             DTYPE *lie_bracket_img1_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie1->data);
  #if defined (_OPENMP)
@@ -4511,7 +4511,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
             {
                // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12 - [1,[2,1]]/12 - [1,[2,[2,1]]]/24
                nifti_image *lie_bracket_img1_lie2=nifti_copy_nim_info(lie_bracket_img2_lie1);
-               lie_bracket_img1_lie2->data=(void *)malloc(lie_bracket_img1_lie2->nvox*lie_bracket_img1_lie2->nbyper);
+               lie_bracket_img1_lie2->data=malloc(lie_bracket_img1_lie2->nvox*lie_bracket_img1_lie2->nbyper);
                compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_lie1, lie_bracket_img1_lie2, use_jac);
                DTYPE *lie_bracket_img1_lie2Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie2->data);
  #if defined (_OPENMP)

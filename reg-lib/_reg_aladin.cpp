@@ -450,7 +450,7 @@ void reg_aladin<T>::InitAladinContent(nifti_image *ref,
                                       unsigned int blockPercentage,
                                       unsigned int inlierLts,
                                       unsigned int blockStepSize) {
-    std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(this->platform->CreateContentCreator(ContentType::Aladin)) };
+    unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(this->platform->CreateContentCreator(ContentType::Aladin)) };
     this->con = contentCreator->Create(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
     this->blockMatchingParams = this->con->AladinContent::GetBlockMatchingParams();
 }
@@ -575,7 +575,7 @@ nifti_image* reg_aladin<T>::GetFinalWarpedImage() {
     resultImage->cal_max = this->inputFloating->cal_max;
     resultImage->scl_slope = this->inputFloating->scl_slope;
     resultImage->scl_inter = this->inputFloating->scl_inter;
-    resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
+    resultImage->data = malloc(resultImage->nvox * resultImage->nbyper);
     memcpy(resultImage->data, warped->data, resultImage->nvox * resultImage->nbyper);
 
     reg_aladin<T>::DeallocateKernels();

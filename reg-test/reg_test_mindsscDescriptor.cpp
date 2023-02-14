@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     MINDSSC_img->ndim = MINDSSC_img->dim[0] = 4;
     MINDSSC_img->nt = MINDSSC_img->dim[4] = lengthDescritor;
     MINDSSC_img->nvox = MINDSSC_img->nvox*lengthDescritor;
-    MINDSSC_img->data=(void *)calloc(MINDSSC_img->nvox,MINDSSC_img->nbyper);
+    MINDSSC_img->data=calloc(MINDSSC_img->nvox,MINDSSC_img->nbyper);
 
     // Compute the MIND descriptor
     int *mask = (int *)calloc(inputImage->nvox, sizeof(int));

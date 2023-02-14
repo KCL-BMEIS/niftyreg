@@ -24,7 +24,7 @@
 
 
 typedef std::tuple<std::string, nifti_image*, nifti_image*, int, float*> TestData;
-typedef std::tuple<std::unique_ptr<AladinContent>, std::unique_ptr<Platform>> ContentDesc;
+typedef std::tuple<unique_ptr<AladinContent>, unique_ptr<Platform>> ContentDesc;
 
 template <typename T>
 void interpCubicSplineKernel(T relative, T (&basis)[4]) {
@@ -214,9 +214,9 @@ TEST_CASE("Resampling", "[resampling]") {
         // Accumulate all required contents with a vector
         std::vector<ContentDesc> contentDescs;
         for (auto&& platformType : PlatformTypes) {
-            std::unique_ptr<Platform> platform{ new Platform(platformType) };
-            std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };
-            std::unique_ptr<AladinContent> content{ contentCreator->Create(reference, reference) };
+            unique_ptr<Platform> platform{ new Platform(platformType) };
+            unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };
+            unique_ptr<AladinContent> content{ contentCreator->Create(reference, reference) };
             contentDescs.push_back(ContentDesc(std::move(content), std::move(platform)));
         }
 
@@ -237,7 +237,7 @@ TEST_CASE("Resampling", "[resampling]") {
                 // Set the deformation field
                 content->SetDeformationField(defField);
                 // Initialise the platform to run current content and retrieve deformation field
-                std::unique_ptr<Kernel> resampleKernel{ platform->CreateKernel(ResampleImageKernel::GetName(), content.get()) };
+                unique_ptr<Kernel> resampleKernel{ platform->CreateKernel(ResampleImageKernel::GetName(), content.get()) };
                 // args = interpolation and padding
 
                 resampleKernel->castTo<ResampleImageKernel>()->Calculate(interp, 0);

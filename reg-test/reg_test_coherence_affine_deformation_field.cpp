@@ -54,17 +54,17 @@ int main(int argc, char **argv) {
 
     // Create a deformation field
     nifti_image *test_field_cpu = nifti_copy_nim_info(inputDeformationField);
-    test_field_cpu->data = (void *)malloc(test_field_cpu->nvox * test_field_cpu->nbyper);
+    test_field_cpu->data = malloc(test_field_cpu->nvox * test_field_cpu->nbyper);
 
     nifti_image *test_field_gpu = nifti_copy_nim_info(inputDeformationField);
-    test_field_gpu->data = (void *)malloc(test_field_gpu->nvox * test_field_gpu->nbyper);
+    test_field_gpu->data = malloc(test_field_gpu->nvox * test_field_gpu->nbyper);
 
     // Compute the affine deformation field
-    std::unique_ptr<Platform> platformCpu{ new Platform(PlatformType::Cpu) };
-    std::unique_ptr<AladinContent> conCpu{ new AladinContent(referenceImage, nullptr, nullptr, inputMatrix, sizeof(float)) };
-    std::unique_ptr<Platform> platformGpu{ new Platform(platformType) };
-    std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platformGpu->CreateContentCreator(ContentType::Aladin)) };
-    std::unique_ptr<AladinContent> conGpu{ contentCreator->Create(referenceImage, nullptr, nullptr, inputMatrix, sizeof(float)) };
+    unique_ptr<Platform> platformCpu{ new Platform(PlatformType::Cpu) };
+    unique_ptr<AladinContent> conCpu{ new AladinContent(referenceImage, nullptr, nullptr, inputMatrix, sizeof(float)) };
+    unique_ptr<Platform> platformGpu{ new Platform(platformType) };
+    unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platformGpu->CreateContentCreator(ContentType::Aladin)) };
+    unique_ptr<AladinContent> conGpu{ contentCreator->Create(referenceImage, nullptr, nullptr, inputMatrix, sizeof(float)) };
 
     //Check if the platform used is double capable
     bool isDouble = conGpu->IsCurrentComputationDoubleCapable();
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 
     // Compute the difference between the computed and inputted deformation field
     nifti_image *diff_field = nifti_copy_nim_info(inputDeformationField);
-    diff_field->data = (void *)malloc(diff_field->nvox * diff_field->nbyper);
+    diff_field->data = malloc(diff_field->nvox * diff_field->nbyper);
     reg_tools_subtractImageFromImage(inputDeformationField, test_field_cpu, diff_field);
     reg_tools_abs_image(diff_field);
     double max_difference = reg_tools_GetMaxValue(diff_field, -1);

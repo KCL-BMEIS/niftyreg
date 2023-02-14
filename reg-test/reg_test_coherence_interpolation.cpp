@@ -58,25 +58,25 @@ int main(int argc, char **argv) {
     int *tempMask = (int *)calloc(referenceImage->nvox, sizeof(int));
 
     // CPU platform
-    std::unique_ptr<Platform> platformCpu{ new Platform(PlatformType::Cpu) };
-    std::unique_ptr<AladinContent> conCpu{ new AladinContent(nullptr, referenceImage, nullptr, sizeof(float)) };
+    unique_ptr<Platform> platformCpu{ new Platform(PlatformType::Cpu) };
+    unique_ptr<AladinContent> conCpu{ new AladinContent(nullptr, referenceImage, nullptr, sizeof(float)) };
     conCpu->SetWarped(cpuWarped);
     conCpu->SetDeformationField(inputDeformationField);
     conCpu->SetReferenceMask(tempMask);
-    std::unique_ptr<Kernel> resampleImageKernel_cpu{ platformCpu->CreateKernel(ResampleImageKernel::GetName(), conCpu) };
+    unique_ptr<Kernel> resampleImageKernel_cpu{ platformCpu->CreateKernel(ResampleImageKernel::GetName(), conCpu) };
     resampleImageKernel_cpu->castTo<ResampleImageKernel>()->Calculate(interpolation,
                                                                       std::numeric_limits<float>::quiet_NaN());
     cpuWarped = conCpu->GetWarped();
 
     // GPU platform
-    std::unique_ptr<Platform> platformGpu{ new Platform(platformType) };
-    std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platformGpu->CreateContentCreator(ContentType::Aladin)) };
-    std::unique_ptr<AladinContent> conGpu{ contentCreator->Create(nullptr, referenceImage, nullptr, sizeof(float)) };
+    unique_ptr<Platform> platformGpu{ new Platform(platformType) };
+    unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platformGpu->CreateContentCreator(ContentType::Aladin)) };
+    unique_ptr<AladinContent> conGpu{ contentCreator->Create(nullptr, referenceImage, nullptr, sizeof(float)) };
     conGpu->SetWarped(gpuWarped);
     conGpu->SetDeformationField(inputDeformationField);
     conGpu->SetReferenceMask(tempMask);
 
-    std::unique_ptr<Kernel> resampleImageKernel_gpu{ platformGpu->CreateKernel(ResampleImageKernel::GetName(), conGpu) };
+    unique_ptr<Kernel> resampleImageKernel_gpu{ platformGpu->CreateKernel(ResampleImageKernel::GetName(), conGpu) };
     resampleImageKernel_gpu->castTo<ResampleImageKernel>()->Calculate(interpolation,
                                                                       std::numeric_limits<float>::quiet_NaN());
     gpuWarped = conGpu->GetWarped();
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
 
     // Compute the difference between the warped images
     nifti_image *diff_field = nifti_copy_nim_info(referenceImage);
-    diff_field->data = (void *)malloc(diff_field->nvox * diff_field->nbyper);
+    diff_field->data = malloc(diff_field->nvox * diff_field->nbyper);
 
     // Compute the difference between the computed and inputted warped image
     reg_tools_subtractImageFromImage(cpuWarped, gpuWarped, diff_field);

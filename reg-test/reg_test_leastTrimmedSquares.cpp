@@ -25,7 +25,7 @@ int check_matrix_difference(mat44 matrix1, mat44 matrix2, char *name, float &max
 }
 
 void test(AladinContent *con, Platform *platform, bool isAffine) {
-    std::unique_ptr<Kernel> optimiseKernel{ platform->CreateKernel(OptimiseKernel::GetName(), con) };
+    unique_ptr<Kernel> optimiseKernel{ platform->CreateKernel(OptimiseKernel::GetName(), con) };
     optimiseKernel->castTo<OptimiseKernel>()->Calculate(isAffine);
 }
 
@@ -59,9 +59,9 @@ int main(int argc, char **argv) {
     mat44 *expectedLSMatrix = reg_tool_ReadMat44File(expectedLTSMatrixFilename);
 
     // Platform
-    std::unique_ptr<Platform> platform{ new Platform(platformType) };
-    std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };
-    std::unique_ptr<AladinContent> con{ contentCreator->Create() };
+    unique_ptr<Platform> platform{ new Platform(platformType) };
+    unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };
+    unique_ptr<AladinContent> con{ contentCreator->Create() };
 
     float max_difference = 0;
     unsigned int num_points = m1;

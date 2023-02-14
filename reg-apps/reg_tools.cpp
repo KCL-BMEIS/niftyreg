@@ -498,7 +498,7 @@ int main(int argc, char **argv)
     {
         reg_tools_changeDatatype<float>(image);
         nifti_image *normImage = nifti_copy_nim_info(image);
-        normImage->data = (void *)malloc(normImage->nvox * normImage->nbyper);
+        normImage->data = malloc(normImage->nvox * normImage->nbyper);
         memcpy(normImage->data, image->data, normImage->nvox*normImage->nbyper);
         reg_heapSort(static_cast<float *>(normImage->data), normImage->nvox);
         float minValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(03*(int)normImage->nvox/100))];
@@ -516,7 +516,7 @@ int main(int argc, char **argv)
     if(flag->smoothGaussianFlag || flag->smoothSplineFlag || flag->smoothMeanFlag)
     {
         nifti_image *smoothImg = nifti_copy_nim_info(image);
-        smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
+        smoothImg->data = malloc(smoothImg->nvox * smoothImg->nbyper);
         memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
         float *kernelSize = new float[smoothImg->nt*smoothImg->nu];
         bool *timePoint = new bool[smoothImg->nt*smoothImg->nu];
@@ -556,7 +556,7 @@ int main(int argc, char **argv)
     if(flag->smoothLabFlag)
     {
         nifti_image *smoothImg = nifti_copy_nim_info(image);
-        smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
+        smoothImg->data = malloc(smoothImg->nvox * smoothImg->nbyper);
         memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
 
         bool *timePoint = new bool[smoothImg->nt*smoothImg->nu];
@@ -632,7 +632,7 @@ int main(int argc, char **argv)
         }
 
         nifti_image *outputImage = nifti_copy_nim_info(image);
-        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
+        outputImage->data = malloc(outputImage->nvox * outputImage->nbyper);
 
         if(image2!=nullptr)
         {
@@ -735,7 +735,7 @@ int main(int argc, char **argv)
         }
 
         nifti_image *outputImage = nifti_copy_nim_info(image);
-        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
+        outputImage->data = malloc(outputImage->nvox * outputImage->nbyper);
 
         reg_tools_nanMask_image(image,maskImage,outputImage);
 
@@ -894,7 +894,7 @@ int main(int argc, char **argv)
         def->nvox = CalcVoxelNumber(*def, def->ndim);
         def->nbyper = sizeof(float);
         def->datatype = NIFTI_TYPE_FLOAT32;
-        def->data = (void *)calloc(def->nvox,def->nbyper);
+        def->data = calloc(def->nvox,def->nbyper);
         // Fill the deformation field with an identity transformation
         reg_getDeformationFromDisplacement(def);
         // Allocate and compute the Jacobian matrices
@@ -949,7 +949,7 @@ int main(int argc, char **argv)
             reg_tools_changeDatatype<float>(image);
         // Create a temporary scaled image
         nifti_image *scaledImage = nifti_copy_nim_info(image);
-        scaledImage->data = (void *)malloc(scaledImage->nvox * scaledImage->nbyper);
+        scaledImage->data = malloc(scaledImage->nvox * scaledImage->nbyper);
         // Rescale the input image
         float min_value = reg_tools_getMinValue(image, -1);
         float max_value = reg_tools_getMaxValue(image, -1);
@@ -962,7 +962,7 @@ int main(int argc, char **argv)
         outputImage->nvox = CalcVoxelNumber(*outputImage, outputImage->ndim);
         outputImage->datatype = NIFTI_TYPE_RGB24;
         outputImage->nbyper = 3 * sizeof(unsigned char);
-        outputImage->data = (void *)malloc(outputImage->nbyper*outputImage->nvox);
+        outputImage->data = malloc(outputImage->nbyper*outputImage->nvox);
         // Convert the image
         float *inPtr = static_cast<float *>(scaledImage->data);
         unsigned char *outPtr = static_cast<unsigned char *>(outputImage->data);
@@ -1004,7 +1004,7 @@ int main(int argc, char **argv)
         outputImage->scl_inter = 0.f;
         outputImage->cal_min = 0.f;
         outputImage->cal_max = 255.f;
-        outputImage->data = (void *)malloc(outputImage->nbyper*outputImage->nvox);
+        outputImage->data = malloc(outputImage->nbyper*outputImage->nvox);
         // Convert the image
         float *inPtr = static_cast<float *>(image->data);
         unsigned char *outPtr = static_cast<unsigned char *>(outputImage->data);
@@ -1043,7 +1043,7 @@ int main(int argc, char **argv)
         outputImage->dim[0]=outputImage->ndim=4;
         outputImage->dim[4]=outputImage->nt=image->nz>1?6:4;
         outputImage->nvox=(size_t)image->nvox*outputImage->nt;
-        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
+        outputImage->data = malloc(outputImage->nvox * outputImage->nbyper);
         // Compute the MIND descriptor
         int *mask = (int *)calloc(image->nvox, sizeof(int));
         GetMINDImageDescriptor(image, outputImage, mask, 1, 0);
@@ -1070,7 +1070,7 @@ int main(int argc, char **argv)
         outputImage->dim[0]=outputImage->ndim=4;
         outputImage->dim[4]=outputImage->nt=image->nz>1?12:4;
         outputImage->nvox=(size_t)image->nvox*outputImage->nt;
-        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
+        outputImage->data = malloc(outputImage->nvox * outputImage->nbyper);
         // Compute the MIND-SSC descriptor
         int *mask = (int *)calloc(image->nvox, sizeof(int));
         GetMINDSSCImageDescriptor(image, outputImage, mask, 1, 0);
@@ -1108,7 +1108,7 @@ int main(int argc, char **argv)
         outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
         outputImage->nvox = CalcVoxelNumber(*outputImage, outputImage->ndim);
         outputImage->cal_min=0;
-        outputImage->data = (void *)calloc(outputImage->nbyper, outputImage->nvox);
+        outputImage->data = calloc(outputImage->nbyper, outputImage->nvox);
         float *inPtr = static_cast<float *>(image->data);
         float *outPtr = static_cast<float *>(outputImage->data);
         // Iterate through the blocks

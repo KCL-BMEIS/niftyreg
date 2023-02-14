@@ -1634,7 +1634,7 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis) {
                     position[1] = (int)reg_round(real[0] * real2Voxel_qform.m[1][0] + real[1] * real2Voxel_qform.m[1][1] + real[2] * real2Voxel_qform.m[1][2] + real2Voxel_qform.m[1][3]);
                     position[2] = (int)reg_round(real[0] * real2Voxel_qform.m[2][0] + real[1] * real2Voxel_qform.m[2][1] + real[2] * real2Voxel_qform.m[2][2] + real2Voxel_qform.m[2][3]);
                     if (oldDim[3] == 1) position[2] = 0;
-                    // Nearest neighboor is used as downsampling ratio is constant
+                    // Nearest neighbour is used as downsampling ratio is constant
                     intensity = std::numeric_limits<ImageTYPE>::quiet_NaN();
                     if (-1 < position[0] && position[0] < oldDim[1] &&
                         -1 < position[1] && position[1] < oldDim[2] &&

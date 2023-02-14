@@ -44,13 +44,13 @@ int main(int argc, char **argv)
     gradientImage->nvox = CalcVoxelNumber(*gradientImage, gradientImage->ndim);
     gradientImage->nbyper=sizeof(float);
     gradientImage->datatype=NIFTI_TYPE_FLOAT32;
-    gradientImage->data=(void *)malloc(gradientImage->nvox*gradientImage->nbyper);
+    gradientImage->data=malloc(gradientImage->nvox*gradientImage->nbyper);
 
     // Allocate a temporary file to compute the gradient's timepoint one at the time
     nifti_image *tempGradImage = nifti_copy_nim_info(gradientImage);
     tempGradImage->dim[4]=tempGradImage->nt=1;
     tempGradImage->nvox = CalcVoxelNumber(*tempGradImage, tempGradImage->ndim);
-    tempGradImage->data=(void *)malloc(tempGradImage->nvox*tempGradImage->nbyper);
+    tempGradImage->data=malloc(tempGradImage->nvox*tempGradImage->nbyper);
 
     // Declare a deformation field image
     nifti_image *defFieldImage = nullptr;
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
         strcpy(defFieldImage->intent_name,"NREG_TRANS");
         defFieldImage->intent_p1=DISP_FIELD;
         // Set the deformation field to identity
-        defFieldImage->data = (void *)calloc(defFieldImage->nvox, defFieldImage->nbyper);
+        defFieldImage->data = calloc(defFieldImage->nvox, defFieldImage->nbyper);
         reg_getDeformationFromDisplacement(defFieldImage);
     }
 

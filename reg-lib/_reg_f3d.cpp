@@ -106,7 +106,7 @@ void reg_f3d<T>::SetSpacing(unsigned int i, T s) {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
-    std::unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d)) };
+    unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d)) };
     this->con = contentCreator->Create(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
     this->compute = this->platform->CreateCompute(*this->con);
 }

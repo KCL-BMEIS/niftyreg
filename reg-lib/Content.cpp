@@ -54,10 +54,7 @@ void Content::AllocateDeformationField(size_t bytes) {
         deformationField->dim[3] = deformationField->nz = 1;
     deformationField->dim[4] = deformationField->nt = 1;
     deformationField->pixdim[4] = deformationField->dt = 1;
-    if (reference->nz == 1)
-        deformationField->dim[5] = deformationField->nu = 2;
-    else
-        deformationField->dim[5] = deformationField->nu = 3;
+    deformationField->dim[5] = deformationField->nu = reference->nz > 1 ? 3 : 2;
     deformationField->pixdim[5] = deformationField->du = 1;
     deformationField->dim[6] = deformationField->nv = 1;
     deformationField->pixdim[6] = deformationField->dv = 1;

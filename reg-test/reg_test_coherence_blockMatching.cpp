@@ -78,7 +78,7 @@ void check_matching_difference(int dim,
 }
 
 void test(AladinContent *con, Platform *platform) {
-    std::unique_ptr<Kernel> blockMatchingKernel{ platform->CreateKernel(BlockMatchingKernel::GetName(), con) };
+    unique_ptr<Kernel> blockMatchingKernel{ platform->CreateKernel(BlockMatchingKernel::GetName(), con) };
     blockMatchingKernel->castTo<BlockMatchingKernel>()->Calculate();
 }
 
@@ -120,8 +120,8 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < referenceImage->nvox; ++i) mask[i] = i;
 
     // CPU Platform
-    std::unique_ptr<Platform> platformCpu{ new Platform(PlatformType::Cpu) };
-    std::unique_ptr<AladinContent> conCpu{ new AladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1) };
+    unique_ptr<Platform> platformCpu{ new Platform(PlatformType::Cpu) };
+    unique_ptr<AladinContent> conCpu{ new AladinContent(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1) };
     conCpu->SetWarped(warpedImage);
     test(conCpu.get(), platformCpu.get());
     _reg_blockMatchingParam *blockMatchingParams_cpu = conCpu->GetBlockMatchingParams();
@@ -132,9 +132,9 @@ int main(int argc, char **argv) {
 #endif
 
     // GPU Platform
-    std::unique_ptr<Platform> platformGpu{ new Platform(platformType) };
-    std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platformGpu->CreateContentCreator(ContentType::Aladin)) };
-    std::unique_ptr<AladinContent> conGpu{ contentCreator->Create(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1) };
+    unique_ptr<Platform> platformGpu{ new Platform(platformType) };
+    unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platformGpu->CreateContentCreator(ContentType::Aladin)) };
+    unique_ptr<AladinContent> conGpu{ contentCreator->Create(referenceImage, nullptr, mask, sizeof(float), 100, 100, 1) };
     conGpu->SetWarped(warpedImage);
     test(conGpu.get(), platformGpu.get());
     _reg_blockMatchingParam *blockMatchingParams_gpu = conGpu->GetBlockMatchingParams();

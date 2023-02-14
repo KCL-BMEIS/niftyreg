@@ -344,7 +344,7 @@ int main(int argc, char **argv)
       deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
       deformationFieldImage->nbyper = sizeof(float);
    }
-   deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
+   deformationFieldImage->data = calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
 
    // Initialise the deformation field with an identity transformation
    reg_tools_multiplyValueToImage(deformationFieldImage,deformationFieldImage,0.f);
@@ -369,7 +369,7 @@ int main(int argc, char **argv)
       case DEF_VEL_FIELD:
          {
             nifti_image *tempFlowField = nifti_copy_nim_info(deformationFieldImage);
-            tempFlowField->data = (void *)malloc(tempFlowField->nvox*tempFlowField->nbyper);
+            tempFlowField->data = malloc(tempFlowField->nvox*tempFlowField->nbyper);
             memcpy(tempFlowField->data,deformationFieldImage->data,
                    tempFlowField->nvox*tempFlowField->nbyper);
             reg_defField_compose(inputTransformationImage,
@@ -451,7 +451,7 @@ int main(int argc, char **argv)
       warpedImage->nbyper = floatingImage->nbyper;
       warpedImage->nvox = (size_t)warpedImage->dim[1] * warpedImage->dim[2] *
             warpedImage->dim[3] * warpedImage->dim[4] * warpedImage->dim[5];
-      warpedImage->data = (void *)calloc(warpedImage->nvox, warpedImage->nbyper);
+      warpedImage->data = calloc(warpedImage->nvox, warpedImage->nbyper);
 
       if((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor)
       {
@@ -536,7 +536,7 @@ int main(int argc, char **argv)
       gridImage->nvox = CalcVoxelNumber(*gridImage, gridImage->ndim);
       gridImage->datatype = NIFTI_TYPE_UINT8;
       gridImage->nbyper = sizeof(unsigned char);
-      gridImage->data = (void *)calloc(gridImage->nvox, gridImage->nbyper);
+      gridImage->data = calloc(gridImage->nvox, gridImage->nbyper);
       unsigned char *gridImageValuePtr = static_cast<unsigned char *>(gridImage->data);
       for(int z=0; z<gridImage->nz; z++)
       {
@@ -590,8 +590,7 @@ int main(int argc, char **argv)
       warpedImage->dim[5]=warpedImage->nu=1;
       warpedImage->datatype =NIFTI_TYPE_UINT8;
       warpedImage->nbyper = sizeof(unsigned char);
-      warpedImage->data = (void *)calloc(warpedImage->nvox,
-                                         warpedImage->nbyper);
+      warpedImage->data = calloc(warpedImage->nvox, warpedImage->nbyper);
       reg_resampleImage(gridImage,
                         warpedImage,
                         deformationFieldImage,

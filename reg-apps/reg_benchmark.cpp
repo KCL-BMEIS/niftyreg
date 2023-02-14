@@ -163,21 +163,21 @@ int main(int argc, char **argv)
    nifti_image *velocityFieldImage = nifti_copy_nim_info(controlPointImage);
    velocityFieldImage->datatype = NIFTI_TYPE_FLOAT32;
    velocityFieldImage->nbyper = sizeof(float);
-   velocityFieldImage->data = (void *)calloc(velocityFieldImage->nvox, velocityFieldImage->nbyper);
+   velocityFieldImage->data = calloc(velocityFieldImage->nvox, velocityFieldImage->nbyper);
 
    // Different gradient images
    nifti_image *resultGradientImage = nifti_copy_nim_info(deformationFieldImage);
    resultGradientImage->datatype = NIFTI_TYPE_FLOAT32;
    resultGradientImage->nbyper = sizeof(float);
-   resultGradientImage->data = (void *)calloc(resultGradientImage->nvox, resultGradientImage->nbyper);
+   resultGradientImage->data = calloc(resultGradientImage->nvox, resultGradientImage->nbyper);
    nifti_image *voxelNMIGradientImage = nifti_copy_nim_info(deformationFieldImage);
    voxelNMIGradientImage->datatype = NIFTI_TYPE_FLOAT32;
    voxelNMIGradientImage->nbyper = sizeof(float);
-   voxelNMIGradientImage->data = (void *)calloc(voxelNMIGradientImage->nvox, voxelNMIGradientImage->nbyper);
+   voxelNMIGradientImage->data = calloc(voxelNMIGradientImage->nvox, voxelNMIGradientImage->nbyper);
    nifti_image *nodeNMIGradientImage = nifti_copy_nim_info(controlPointImage);
    nodeNMIGradientImage->datatype = NIFTI_TYPE_FLOAT32;
    nodeNMIGradientImage->nbyper = sizeof(float);
-   nodeNMIGradientImage->data = (void *)calloc(nodeNMIGradientImage->nvox, nodeNMIGradientImage->nbyper);
+   nodeNMIGradientImage->data = calloc(nodeNMIGradientImage->nvox, nodeNMIGradientImage->nbyper);
 
 #ifdef _USE_CUDA
    float *targetImageArray_d;

@@ -84,7 +84,7 @@ void reg_f3d2<T>::SetInverseConsistencyWeight(T w) {
 /* *************************************************************** */
 template<class T>
 void reg_f3d2<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
-    std::unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d)) };
+    unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d)) };
     conBw = contentCreator->Create(floating, reference, controlPointGridBw, nullptr, mask, affineTransformationBw, sizeof(T));
     computeBw = this->platform->CreateCompute(*conBw);
 }

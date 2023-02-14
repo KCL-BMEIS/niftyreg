@@ -10,10 +10,9 @@
  */
 
 #include "_reg_common_cuda.h"
-#include "_reg_tools.h"
 #include "_reg_blocksize_gpu.h"
 
- /* ******************************** */
+/* *************************************************************** */
 template <class NIFTI_TYPE>
 int cudaCommon_transferNiftiToNiftiOnDevice1(nifti_image *image_d, nifti_image *img) {
     const unsigned int memSize = img->dim[1] * img->dim[2] * img->dim[3] * sizeof(NIFTI_TYPE);
@@ -37,7 +36,7 @@ int cudaCommon_transferNiftiToNiftiOnDevice1(nifti_image *image_d, nifti_image *
 }
 template int cudaCommon_transferNiftiToNiftiOnDevice1<float>(nifti_image*, nifti_image*);
 template int cudaCommon_transferNiftiToNiftiOnDevice1<double>(nifti_image*, nifti_image*);
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE, class NIFTI_TYPE>
 int cudaCommon_transferNiftiToArrayOnDevice1(DTYPE *array_d, nifti_image *img) {
     if (sizeof(DTYPE) != sizeof(NIFTI_TYPE)) {
@@ -51,7 +50,7 @@ int cudaCommon_transferNiftiToArrayOnDevice1(DTYPE *array_d, nifti_image *img) {
     }
     return EXIT_SUCCESS;
 }
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_transferNiftiToArrayOnDevice(DTYPE *array_d, nifti_image *img) {
     if (sizeof(DTYPE) == sizeof(float4)) {
@@ -95,7 +94,7 @@ template int cudaCommon_transferNiftiToArrayOnDevice<double>(double*, nifti_imag
 template int cudaCommon_transferNiftiToArrayOnDevice<float>(float*, nifti_image*);
 template int cudaCommon_transferNiftiToArrayOnDevice<int>(int*, nifti_image*);
 template int cudaCommon_transferNiftiToArrayOnDevice<float4>(float4*, nifti_image*);
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE, class NIFTI_TYPE>
 int cudaCommon_transferNiftiToArrayOnDevice1(DTYPE *array_d, DTYPE *array2_d, nifti_image *img) {
     if (sizeof(DTYPE) != sizeof(NIFTI_TYPE)) {
@@ -111,7 +110,7 @@ int cudaCommon_transferNiftiToArrayOnDevice1(DTYPE *array_d, DTYPE *array2_d, ni
     }
     return EXIT_SUCCESS;
 }
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_transferNiftiToArrayOnDevice(DTYPE *array_d, DTYPE *array2_d, nifti_image *img) {
     if (sizeof(DTYPE) == sizeof(float4)) {
@@ -165,7 +164,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(DTYPE *array_d, DTYPE *array2_d, nif
 template int cudaCommon_transferNiftiToArrayOnDevice<float>(float*, float*, nifti_image*);
 template int cudaCommon_transferNiftiToArrayOnDevice<double>(double*, double*, nifti_image*);
 template int cudaCommon_transferNiftiToArrayOnDevice<float4>(float4*, float4*, nifti_image*); // for deformation field
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE, class NIFTI_TYPE>
 int cudaCommon_transferNiftiToArrayOnDevice1(cudaArray *cuArray_d, nifti_image *img) {
     if (sizeof(DTYPE) != sizeof(NIFTI_TYPE)) {
@@ -187,7 +186,7 @@ int cudaCommon_transferNiftiToArrayOnDevice1(cudaArray *cuArray_d, nifti_image *
     }
     return EXIT_SUCCESS;
 }
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_transferNiftiToArrayOnDevice(cudaArray *cuArray_d, nifti_image *img) {
     if (sizeof(DTYPE) == sizeof(float4)) {
@@ -240,7 +239,7 @@ template int cudaCommon_transferNiftiToArrayOnDevice<int>(cudaArray*, nifti_imag
 template int cudaCommon_transferNiftiToArrayOnDevice<float>(cudaArray*, nifti_image*);
 template int cudaCommon_transferNiftiToArrayOnDevice<double>(cudaArray*, nifti_image*);
 template int cudaCommon_transferNiftiToArrayOnDevice<float4>(cudaArray*, nifti_image*); // for deformation field
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE, class NIFTI_TYPE>
 int cudaCommon_transferNiftiToArrayOnDevice1(cudaArray *cuArray_d, cudaArray *cuArray2_d, nifti_image *img) {
     if (sizeof(DTYPE) != sizeof(NIFTI_TYPE)) {
@@ -271,7 +270,7 @@ int cudaCommon_transferNiftiToArrayOnDevice1(cudaArray *cuArray_d, cudaArray *cu
     }
     return EXIT_SUCCESS;
 }
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_transferNiftiToArrayOnDevice(cudaArray *cuArray_d, cudaArray *cuArray2_d, nifti_image *img) {
     if (sizeof(DTYPE) == sizeof(float4)) {
@@ -345,7 +344,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(cudaArray *cuArray_d, cudaArray *cuA
 template int cudaCommon_transferNiftiToArrayOnDevice<float>(cudaArray*, cudaArray*, nifti_image*);
 template int cudaCommon_transferNiftiToArrayOnDevice<double>(cudaArray*, cudaArray*, nifti_image*);
 template int cudaCommon_transferNiftiToArrayOnDevice<float4>(cudaArray*, cudaArray*, nifti_image*); // for deformation field
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_allocateArrayToDevice(cudaArray **cuArray_d, int *dim) {
     const cudaExtent volumeSize = make_cudaExtent(dim[1], dim[2], dim[3]);
@@ -356,7 +355,7 @@ int cudaCommon_allocateArrayToDevice(cudaArray **cuArray_d, int *dim) {
 template int cudaCommon_allocateArrayToDevice<float>(cudaArray**, int*);
 template int cudaCommon_allocateArrayToDevice<double>(cudaArray**, int*);
 template int cudaCommon_allocateArrayToDevice<float4>(cudaArray**, int*); // for deformation field
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_allocateArrayToDevice(cudaArray **cuArray_d, cudaArray **cuArray2_d, int *dim) {
     const cudaExtent volumeSize = make_cudaExtent(dim[1], dim[2], dim[3]);
@@ -368,7 +367,7 @@ int cudaCommon_allocateArrayToDevice(cudaArray **cuArray_d, cudaArray **cuArray2
 template int cudaCommon_allocateArrayToDevice<float>(cudaArray**, cudaArray**, int*);
 template int cudaCommon_allocateArrayToDevice<double>(cudaArray**, cudaArray**, int*);
 template int cudaCommon_allocateArrayToDevice<float4>(cudaArray**, cudaArray**, int*); // for deformation field
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_allocateArrayToDevice(DTYPE **array_d, int *dim) {
     const unsigned int memSize = dim[1] * dim[2] * dim[3] * sizeof(DTYPE);
@@ -379,7 +378,7 @@ template int cudaCommon_allocateArrayToDevice<float>(float**, int*);
 template int cudaCommon_allocateArrayToDevice<double>(double**, int*);
 template int cudaCommon_allocateArrayToDevice<int>(int**, int*);
 template int cudaCommon_allocateArrayToDevice<float4>(float4**, int*); // for deformation field
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_allocateArrayToDevice(DTYPE **array_d, int vox) {
     const unsigned int memSize = vox * sizeof(DTYPE);
@@ -390,7 +389,7 @@ template int cudaCommon_allocateArrayToDevice<float>(float**, int);
 template int cudaCommon_allocateArrayToDevice<double>(double**, int);
 template int cudaCommon_allocateArrayToDevice<int>(int**, int);
 template int cudaCommon_allocateArrayToDevice<float4>(float4**, int); // for deformation field
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_allocateArrayToDevice(DTYPE **array_d, DTYPE **array2_d, int *dim) {
     const unsigned int memSize = dim[1] * dim[2] * dim[3] * sizeof(DTYPE);
@@ -401,7 +400,7 @@ int cudaCommon_allocateArrayToDevice(DTYPE **array_d, DTYPE **array2_d, int *dim
 template int cudaCommon_allocateArrayToDevice<float>(float**, float**, int*);
 template int cudaCommon_allocateArrayToDevice<double>(double**, double**, int*);
 template int  cudaCommon_allocateArrayToDevice<float4>(float4**, float4**, int*); // for deformation field
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToCpu(DTYPE *cpuPtr, DTYPE *cuPtr, const unsigned int nElements) {
     NR_CUDA_SAFE_CALL(cudaMemcpy((void*)cpuPtr, (void*)cuPtr, nElements * sizeof(DTYPE), cudaMemcpyDeviceToHost));
@@ -409,7 +408,7 @@ int cudaCommon_transferFromDeviceToCpu(DTYPE *cpuPtr, DTYPE *cuPtr, const unsign
 }
 template int cudaCommon_transferFromDeviceToCpu<float>(float *cpuPtr, float *cuPtr, const unsigned int nElements);
 template int cudaCommon_transferFromDeviceToCpu<double>(double *cpuPtr, double *cuPtr, const unsigned int nElements);
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE, class NIFTI_TYPE>
 int cudaCommon_transferFromDeviceToNifti1(nifti_image *img, DTYPE *array_d) {
     if (sizeof(DTYPE) != sizeof(NIFTI_TYPE)) {
@@ -424,7 +423,7 @@ int cudaCommon_transferFromDeviceToNifti1(nifti_image *img, DTYPE *array_d) {
 }
 template int cudaCommon_transferFromDeviceToNifti1<float, float>(nifti_image *img, float *array_d);
 template int cudaCommon_transferFromDeviceToNifti1<double, double>(nifti_image *img, double *array_d);
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToNifti(nifti_image *img, DTYPE *array_d) {
     if (sizeof(DTYPE) == sizeof(float4)) {
@@ -472,7 +471,7 @@ int cudaCommon_transferFromDeviceToNifti(nifti_image *img, DTYPE *array_d) {
 template int cudaCommon_transferFromDeviceToNifti<float>(nifti_image*, float*);
 template int cudaCommon_transferFromDeviceToNifti<double>(nifti_image*, double*);
 template int cudaCommon_transferFromDeviceToNifti<float4>(nifti_image*, float4*); // for deformation field
-/* ******************************** */
+/* *************************************************************** */
 template<>
 int cudaCommon_transferFromDeviceToNifti(nifti_image *img, cudaArray *cuArray_d) {
     if (img->datatype != NIFTI_TYPE_FLOAT32) {
@@ -490,7 +489,7 @@ int cudaCommon_transferFromDeviceToNifti(nifti_image *img, cudaArray *cuArray_d)
     NR_CUDA_SAFE_CALL(cudaMemcpy3D(&copyParams));
     return EXIT_SUCCESS;
 }
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE, class NIFTI_TYPE>
 int cudaCommon_transferFromDeviceToNifti1(nifti_image *img, DTYPE *array_d, DTYPE *array2_d) {
     if (sizeof(DTYPE) != sizeof(NIFTI_TYPE)) {
@@ -506,7 +505,7 @@ int cudaCommon_transferFromDeviceToNifti1(nifti_image *img, DTYPE *array_d, DTYP
     }
     return EXIT_SUCCESS;
 }
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToNifti(nifti_image *img, DTYPE *array_d, DTYPE *array2_d) {
     if (sizeof(DTYPE) == sizeof(float4)) {
@@ -572,11 +571,11 @@ int cudaCommon_transferFromDeviceToNifti(nifti_image *img, DTYPE *array_d, DTYPE
 template int cudaCommon_transferFromDeviceToNifti<float>(nifti_image*, float*, float*);
 template int cudaCommon_transferFromDeviceToNifti<double>(nifti_image*, double*, double*);
 template int cudaCommon_transferFromDeviceToNifti<float4>(nifti_image*, float4*, float4*); // for deformation field
-/* ******************************** */
+/* *************************************************************** */
 void cudaCommon_free(cudaArray *cuArray_d) {
     NR_CUDA_SAFE_CALL(cudaFreeArray(cuArray_d));
 }
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 void cudaCommon_free(DTYPE *array_d) {
     NR_CUDA_SAFE_CALL(cudaFree(array_d));
@@ -585,7 +584,7 @@ template void cudaCommon_free<int>(int*);
 template void cudaCommon_free<float>(float*);
 template void cudaCommon_free<double>(double*);
 template void cudaCommon_free<float4>(float4*);
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToNiftiSimple(DTYPE *array_d, nifti_image *img) {
     NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, img->data, img->nvox * sizeof(DTYPE), cudaMemcpyHostToDevice));
@@ -594,7 +593,7 @@ int cudaCommon_transferFromDeviceToNiftiSimple(DTYPE *array_d, nifti_image *img)
 template int cudaCommon_transferFromDeviceToNiftiSimple<int>(int*, nifti_image*);
 template int cudaCommon_transferFromDeviceToNiftiSimple<float>(float*, nifti_image*);
 template int cudaCommon_transferFromDeviceToNiftiSimple<double>(double*, nifti_image*);
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToNiftiSimple1(DTYPE *array_d, DTYPE *img, const unsigned int nvox) {
     NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, img, nvox * sizeof(DTYPE), cudaMemcpyHostToDevice));
@@ -603,7 +602,7 @@ int cudaCommon_transferFromDeviceToNiftiSimple1(DTYPE *array_d, DTYPE *img, cons
 template int cudaCommon_transferFromDeviceToNiftiSimple1<int>(int*, int*, const unsigned);
 template int cudaCommon_transferFromDeviceToNiftiSimple1<float>(float*, float*, const unsigned);
 template int cudaCommon_transferFromDeviceToNiftiSimple1<double>(double*, double*, const unsigned);
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_transferArrayFromCpuToDevice(DTYPE *array_d, DTYPE *array_cpu, const unsigned int nElements) {
     const unsigned int memSize = nElements * sizeof(DTYPE);
@@ -613,7 +612,7 @@ int cudaCommon_transferArrayFromCpuToDevice(DTYPE *array_d, DTYPE *array_cpu, co
 template int cudaCommon_transferArrayFromCpuToDevice<int>(int*, int*, const unsigned int);
 template int cudaCommon_transferArrayFromCpuToDevice<float>(float*, float*, const unsigned int);
 template int cudaCommon_transferArrayFromCpuToDevice<double>(double*, double*, const unsigned int);
-/* ******************************** */
+/* *************************************************************** */
 template <class DTYPE>
 int cudaCommon_transferArrayFromDeviceToCpu(DTYPE *array_cpu, DTYPE *array_d, const unsigned int nElements) {
     const unsigned int memSize = nElements * sizeof(DTYPE);
@@ -623,4 +622,4 @@ int cudaCommon_transferArrayFromDeviceToCpu(DTYPE *array_cpu, DTYPE *array_d, co
 template int cudaCommon_transferArrayFromDeviceToCpu<int>(int*, int*, const unsigned int);
 template int cudaCommon_transferArrayFromDeviceToCpu<float>(float*, float*, const unsigned int);
 template int cudaCommon_transferArrayFromDeviceToCpu<double>(double*, double*, const unsigned int);
-/* ******************************** */
+/* *************************************************************** */

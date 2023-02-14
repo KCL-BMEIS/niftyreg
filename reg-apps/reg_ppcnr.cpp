@@ -192,7 +192,7 @@ int main(int argc, char **argv)
          makesource->ndim=makesource->dim[0] = 4;
          makesource->nt = makesource->dim[4] = atoi(argv[++i]);
          makesource->nvox = CalcVoxelNumber(*makesource->nx, makesource->ndim);
-         makesource->data = (void *)malloc(makesource->nvox * makesource->nbyper);
+         makesource->data = malloc(makesource->nvox * makesource->nbyper);
          char *temp_data = reinterpret_cast<char *>(makesource->data);
          for(int ii=0; ii<makesource->nt; ii++) // fill with file data
          {
@@ -864,10 +864,10 @@ int main(int argc, char **argv)
             stores->ndim=stores->dim[0]=3;
             stores->nt=stores->dim[4]=1;
             stores->nvox = CalcVoxelNumber(*stores, stores->ndim);
-            stores->data = (void *)calloc(stores->nvox,images->nbyper);
+            stores->data = calloc(stores->nvox,images->nbyper);
 
             nifti_image *storet = nifti_copy_nim_info(stores);
-            storet->data = (void *)calloc(storet->nvox, storet->nbyper);
+            storet->data = calloc(storet->nvox, storet->nbyper);
 
             // COPY THE APPROPRIATE VALUES
             PrecisionTYPE *intensityPtrPP = static_cast<PrecisionTYPE *>(storet->data); // 3D real source image (needs current cpp image)

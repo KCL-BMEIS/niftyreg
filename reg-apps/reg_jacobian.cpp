@@ -292,7 +292,7 @@ int main(int argc, char **argv)
       jacobianImage->cal_max=0;
       jacobianImage->scl_slope = 1.0f;
       jacobianImage->scl_inter = 0.0f;
-      jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
+      jacobianImage->data = calloc(jacobianImage->nvox, jacobianImage->nbyper);
 
       switch((int)inputTransformation->intent_p1){
       case DISP_FIELD:
@@ -346,7 +346,7 @@ int main(int argc, char **argv)
       jacobianImage->cal_max=0;
       jacobianImage->scl_slope = 1.0f;
       jacobianImage->scl_inter = 0.0f;
-      jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
+      jacobianImage->data = calloc(jacobianImage->nvox, jacobianImage->nbyper);
 
       mat33 *jacobianMatriceArray = (mat33 *)malloc(CalcVoxelNumber(*jacobianImage) * sizeof(mat33));
       // Compute the map of Jacobian matrices

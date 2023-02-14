@@ -248,7 +248,7 @@ void reg_aladin_sym<T>::InitAladinContent(nifti_image *ref,
                               inlierLts,
                               blockStepSize);
 
-   std::unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(this->platform->CreateContentCreator(ContentType::Aladin)) };
+   unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(this->platform->CreateContentCreator(ContentType::Aladin)) };
    this->backCon = contentCreator->Create(flo, ref, this->FloatingMaskPyramid[this->currentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
    this->BackwardBlockMatchingParams = backCon->AladinContent::GetBlockMatchingParams();
 }

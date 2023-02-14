@@ -136,7 +136,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
         const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
 #endif
 
-        *originalFloatingData=(void *)malloc(floatingImage->nvox*sizeof(DTYPE));
+        *originalFloatingData=malloc(floatingImage->nvox*sizeof(DTYPE));
         memcpy(*originalFloatingData,
                floatingImage->data,
                floatingImage->nvox*sizeof(DTYPE));
@@ -3547,7 +3547,7 @@ nifti_image *reg_makeIsotropic(nifti_image *img,
     def->nvox = CalcVoxelNumber(*def, def->ndim);
     def->nbyper = sizeof(float);
     def->datatype = NIFTI_TYPE_FLOAT32;
-    def->data = (void *)calloc(def->nvox,def->nbyper);
+    def->data = calloc(def->nvox,def->nbyper);
     // Fill the deformation field with an identity transformation
     reg_getDeformationFromDisplacement(def);
     // resample the original image into the space of the new image

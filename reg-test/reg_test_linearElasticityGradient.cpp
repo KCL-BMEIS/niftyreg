@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 
     // Compute the linear elasticity gradient
     nifti_image *obtainedGradient = nifti_copy_nim_info(expectedGradientImage);
-    obtainedGradient->data=(void *)calloc(obtainedGradient->nvox,obtainedGradient->nbyper);
+    obtainedGradient->data=calloc(obtainedGradient->nvox,obtainedGradient->nbyper);
     switch(computationType){
     case 0: // Approximation based on the control point grid
        reg_spline_approxLinearEnergyGradient(transImage,
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
     }
     // Compute the difference between the computed and expected gradient
     nifti_image *diff_field = nifti_copy_nim_info(obtainedGradient);
-    diff_field->data = (void *)malloc(diff_field->nvox*diff_field->nbyper);
+    diff_field->data = malloc(diff_field->nvox*diff_field->nbyper);
     reg_tools_subtractImageFromImage(obtainedGradient, expectedGradientImage, diff_field);
     reg_tools_abs_image(diff_field);
     double max_difference = reg_tools_getMaxValue(diff_field, -1);

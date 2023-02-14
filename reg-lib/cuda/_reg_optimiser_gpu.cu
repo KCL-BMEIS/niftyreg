@@ -248,7 +248,7 @@ void reg_GetConjugateGradient_gpu(float4 *gradientArray_d,
         gg += sum_h[i].y;
     }
     float gam = (float)(dgg / gg);
-    NR_CUDA_SAFE_CALL(cudaFreeHost((void *)sum_h));
+    NR_CUDA_SAFE_CALL(cudaFreeHost(sum_h));
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ScalingFactor, &gam, sizeof(float)));
     const unsigned int Grid_reg_GetConjugateGradient2 = (unsigned int)reg_ceil(sqrtf((float)nodeNumber / (float)NR_BLOCK->Block_reg_GetConjugateGradient2));

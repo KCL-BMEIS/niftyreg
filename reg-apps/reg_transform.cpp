@@ -403,8 +403,7 @@ int main(int argc, char **argv)
          outputTransformationImage=nifti_copy_nim_info(inputTransformationImage);
       }
       // Allocate the output field data array
-      outputTransformationImage->data=(void *)malloc
-                                      (outputTransformationImage->nvox*outputTransformationImage->nbyper);
+      outputTransformationImage->data=malloc(outputTransformationImage->nvox*outputTransformationImage->nbyper);
       // Create a flow field image
       if(flag->outputFlowFlag)
       {
@@ -705,8 +704,7 @@ int main(int argc, char **argv)
          memset(output1TransImage->intent_name, 0, 16);
          strcpy(output1TransImage->intent_name,"NREG_TRANS");
          output1TransImage->intent_p1=DEF_FIELD;
-         output1TransImage->data=(void *)calloc
-                                 (output1TransImage->nvox,output1TransImage->nbyper);
+         output1TransImage->data=calloc(output1TransImage->nvox,output1TransImage->nbyper);
          if(affine1Trans!=nullptr)
          {
             reg_affine_getDeformationField(affine1Trans,output1TransImage);
@@ -779,8 +777,7 @@ int main(int argc, char **argv)
             memset(output2TransImage->intent_name, 0, 16);
             strcpy(output2TransImage->intent_name,"NREG_TRANS");
             output2TransImage->intent_p1=DEF_FIELD;
-            output2TransImage->data=(void *)calloc
-                                    (output2TransImage->nvox,output2TransImage->nbyper);
+            output2TransImage->data=calloc(output2TransImage->nvox,output2TransImage->nbyper);
             reg_affine_getDeformationField(affine2Trans,output2TransImage);
             reg_defField_compose(output2TransImage,output1TransImage,nullptr);
          }
@@ -830,8 +827,7 @@ int main(int argc, char **argv)
                output2TransImage->nvox=CalcVoxelNumber(*output2TransImage, output2TransImage->ndim);
                output2TransImage->nbyper=output1TransImage->nbyper;
                output2TransImage->datatype=output1TransImage->datatype;
-               output2TransImage->data=(void *)calloc
-                                       (output2TransImage->nvox,output2TransImage->nbyper);
+               output2TransImage->data=calloc(output2TransImage->nvox,output2TransImage->nbyper);
                printf("[NiftyReg] Transformation 2 is a spline velocity field parametrisation:\n[NiftyReg] %s\n",
                       input2TransImage->fname);
                reg_spline_getDefFieldFromVelocityGrid(input2TransImage,
@@ -845,8 +841,7 @@ int main(int argc, char **argv)
                       input2TransImage->fname);
                output2TransImage=nifti_copy_nim_info(input2TransImage);
                output2TransImage->intent_p1=DEF_FIELD;
-               output2TransImage->data=(void *)calloc
-                                       (output2TransImage->nvox,output2TransImage->nbyper);
+               output2TransImage->data=calloc(output2TransImage->nvox,output2TransImage->nbyper);
                reg_defField_getDeformationFieldFromFlowField(input2TransImage,
                      output2TransImage,
                      false // the number of step is not automatically updated
@@ -858,8 +853,7 @@ int main(int argc, char **argv)
                       input2TransImage->fname);
                output2TransImage=nifti_copy_nim_info(input2TransImage);
                output2TransImage->intent_p1=DEF_FIELD;
-               output2TransImage->data=(void *)calloc
-                                       (output2TransImage->nvox,output2TransImage->nbyper);
+               output2TransImage->data=calloc(output2TransImage->nvox,output2TransImage->nbyper);
                reg_getDeformationFromDisplacement(input2TransImage);
                reg_defField_getDeformationFieldFromFlowField(input2TransImage,
                      output2TransImage,
@@ -979,8 +973,7 @@ int main(int argc, char **argv)
          deformationFieldImage=nifti_copy_nim_info(inputTransformationImage);
       }
       // Allocate the deformation field
-      deformationFieldImage->data=(void *)malloc
-            (deformationFieldImage->nvox*deformationFieldImage->nbyper);
+      deformationFieldImage->data=malloc(deformationFieldImage->nvox*deformationFieldImage->nbyper);
       // Fill the deformation field
       if(affineTransformation!=nullptr)
       {
@@ -1095,7 +1088,7 @@ int main(int argc, char **argv)
       landmarkImage->ny=landmarkImage->dim[2]=1;
       landmarkImage->nz=landmarkImage->dim[3]=1;
       landmarkImage->nvox=CalcVoxelNumber(*landmarkImage, landmarkImage->ndim);
-      landmarkImage->data=(void *)malloc(landmarkImage->nvox*landmarkImage->nbyper);
+      landmarkImage->data=malloc(landmarkImage->nvox*landmarkImage->nbyper);
       float *landmarkImagePtr = static_cast<float *>(landmarkImage->data);
       for(size_t l=0, index=0;l<landmarkNumber;++l){
          for(size_t i=0;i<n;++i){
@@ -1297,7 +1290,7 @@ int main(int argc, char **argv)
          }
          tempField->scl_slope=1.f;
          tempField->scl_inter=0.f;
-         tempField->data=(void *)calloc(tempField->nvox,tempField->nbyper);
+         tempField->data=calloc(tempField->nvox,tempField->nbyper);
          // Compute the dense field
          if(inputTransImage->intent_p1==LIN_SPLINE_GRID ||
                inputTransImage->intent_p1==CUB_SPLINE_GRID)
@@ -1330,8 +1323,7 @@ int main(int argc, char **argv)
      outputTransImage->intent_p2 = inputTransImage->intent_p2;
      outputTransImage->scl_slope = 1.f;
      outputTransImage->scl_inter = 0.f;
-     outputTransImage->data = (void *)malloc
-        (outputTransImage->nvox*outputTransImage->nbyper);
+     outputTransImage->data = malloc(outputTransImage->nvox*outputTransImage->nbyper);
       // Invert the provided
       switch(reg_round(inputTransImage->intent_p1))
       {
@@ -1352,7 +1344,7 @@ int main(int argc, char **argv)
          // create a temp deformation field containing an identity transformation
          nifti_image *tempField=nifti_copy_nim_info(outputTransImage);
          tempField->intent_p1=DEF_FIELD;
-         tempField->data=(void *)calloc(tempField->nvox,tempField->nbyper);
+         tempField->data=calloc(tempField->nvox,tempField->nbyper);
          reg_getDeformationFromDisplacement(tempField);
          reg_getDisplacementFromDeformation(inputTransImage);
          reg_resampleGradient(inputTransImage,
@@ -1372,7 +1364,7 @@ int main(int argc, char **argv)
          // create a temp deformation field containing an identity transformation
          nifti_image *tempField=nifti_copy_nim_info(outputTransImage);
          tempField->intent_p1=DEF_FIELD;
-         tempField->data=(void *)calloc(tempField->nvox,tempField->nbyper);
+         tempField->data=calloc(tempField->nvox,tempField->nbyper);
          reg_getDeformationFromDisplacement(tempField);
          reg_resampleGradient(inputTransImage,
                               outputTransImage,

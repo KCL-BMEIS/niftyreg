@@ -264,7 +264,7 @@ int main(int argc, char **argv)
    warpedFloImage->scl_slope=floImage->scl_slope;
    warpedFloImage->datatype=floImage->datatype;
    warpedFloImage->nbyper=floImage->nbyper;
-   warpedFloImage->data=(void *)malloc(warpedFloImage->nvox*warpedFloImage->nbyper);
+   warpedFloImage->data=malloc(warpedFloImage->nvox*warpedFloImage->nbyper);
 
    /* Create the deformation field */
    nifti_image *defField = nifti_copy_nim_info(refImage);
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
    defField->nvox=CalcVoxelNumber(*defField, defField->ndim);
    defField->datatype=NIFTI_TYPE_FLOAT32;
    defField->nbyper=sizeof(float);
-   defField->data=(void *)calloc(defField->nvox,defField->nbyper);
+   defField->data=calloc(defField->nvox,defField->nbyper);
    defField->scl_slope=1.f;
    defField->scl_inter=0.f;
    reg_tools_multiplyValueToImage(defField,defField,0.f);

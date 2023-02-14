@@ -72,7 +72,7 @@ void reg_convertNMIGradientFromVoxelToRealSpace_gpu(mat44 *sourceMatrix_xyz,
     float4 *matrix_d;
     NR_CUDA_SAFE_CALL(cudaMalloc(&matrix_d, 3*sizeof(float4)))
     NR_CUDA_SAFE_CALL(cudaMemcpy(matrix_d, matrix_h, 3*sizeof(float4), cudaMemcpyHostToDevice))
-    NR_CUDA_SAFE_CALL(cudaFreeHost((void *)matrix_h))
+    NR_CUDA_SAFE_CALL(cudaFreeHost(matrix_h))
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, matrixTexture, matrix_d, 3*sizeof(float4)))
 
     const unsigned int Grid_reg_convertNMIGradientFromVoxelToRealSpace =

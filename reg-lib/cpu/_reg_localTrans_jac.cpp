@@ -1247,7 +1247,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
    }
    else detNumber = CalcVoxelNumber(*referenceImage);
 
-   void *JacobianDetermiantArray=(void *)malloc(detNumber*splineControlPoint->nbyper);
+   void *JacobianDetermiantArray=malloc(detNumber*splineControlPoint->nbyper);
 
    // The jacobian determinants are computed
    if(splineControlPoint->nz==1)
@@ -2982,8 +2982,7 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
 
    // A second field is allocated to store the deformation
    nifti_image *defFieldImage = nifti_copy_nim_info(flowFieldImage);
-   defFieldImage->data = (void *)malloc(defFieldImage->nvox *
-                                        defFieldImage->nbyper);
+   defFieldImage->data = malloc(defFieldImage->nvox * defFieldImage->nbyper);
 
    // Remove the affine component from the flow field
    if(flowFieldImage->num_ext>0)
@@ -3130,7 +3129,7 @@ int reg_spline_GetJacobianMatFromVelocityGrid(mat33* jacobianMatrices,
    flowFieldImage->nt=flowFieldImage->dim[4]=1;
    flowFieldImage->nu=flowFieldImage->dim[5]=referenceImage->nz>1?3:2;
    flowFieldImage->nvox = CalcVoxelNumber(*flowFieldImage, flowFieldImage->ndim);
-   flowFieldImage->data=(void *)malloc(flowFieldImage->nvox*flowFieldImage->nbyper);
+   flowFieldImage->data=malloc(flowFieldImage->nvox*flowFieldImage->nbyper);
 
    // The velocity grid image is first converted into a flow field
    reg_spline_getFlowFieldFromVelocityGrid(velocityGridImage,
@@ -3187,7 +3186,7 @@ int reg_spline_GetJacobianDetFromVelocityGrid(nifti_image* jacobianDetImage,
    flowFieldImage->nt=flowFieldImage->dim[4]=1;
    flowFieldImage->nu=flowFieldImage->dim[5]=jacobianDetImage->nz>1?3:2;
    flowFieldImage->nvox = CalcVoxelNumber(*flowFieldImage, flowFieldImage->ndim);
-   flowFieldImage->data=(void *)malloc(flowFieldImage->nvox*flowFieldImage->nbyper);
+   flowFieldImage->data=malloc(flowFieldImage->nvox*flowFieldImage->nbyper);
 
    // The velocity grid image is first converted into a flow field
    reg_spline_getFlowFieldFromVelocityGrid(velocityGridImage,

@@ -61,7 +61,7 @@ void usage(char *exec)
    reg_print_info(exec, "\t-demean_noaff <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>");
    reg_print_info(exec, "\t\tSame as -demean expect that the specified affine is removed from the");
    reg_print_info(exec, "\t\tnon-linear (euclidean) transformation.");
-   reg_print_info(exec, "\t--NN\t\tUse nearest neighboor interpolation - cubic is default");
+   reg_print_info(exec, "\t--NN\t\tUse nearest neighbour interpolation - cubic is default");
    reg_print_info(exec, "\t--LIN\t\tUse linear interpolation - cubic is default");
    reg_print_info(exec, "\t--version\t\tPrint current version and exit");
    sprintf(text, "\t\t\t\t(%s)",NR_VERSION);
@@ -278,7 +278,7 @@ int compute_nrr_demean(nifti_image *demean_field,
       nifti_image *transformation = reg_io_ReadImageFile(inputNRRName[t]);
       // Generate the deformation or flow field
       nifti_image *deformationField = nifti_copy_nim_info(demean_field);
-      deformationField->data = (void *)calloc(deformationField->nvox,deformationField->nbyper);
+      deformationField->data = calloc(deformationField->nvox,deformationField->nbyper);
       reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
       deformationField->scl_slope=1.f;
       deformationField->scl_inter=0.f;
@@ -325,7 +325,7 @@ int compute_nrr_demean(nifti_image *demean_field,
          else reg_tool_ReadAffineFile(&affineTransformation,inputAffName[t]);
          // The affine component is substracted
          nifti_image *tempField = nifti_copy_nim_info(deformationField);
-         tempField->data = (void *)malloc(tempField->nvox*tempField->nbyper);
+         tempField->data = malloc(tempField->nvox*tempField->nbyper);
          tempField->scl_slope=1.f;
          tempField->scl_inter=0.f;
          reg_affine_getDeformationField(&affineTransformation, tempField);
@@ -379,7 +379,7 @@ int compute_average_image(nifti_image *averageImage,
       demeanField->scl_slope=1.f;
       demeanField->scl_inter=0.f;
       demeanField->intent_p1=DISP_FIELD;
-      demeanField->data=(void *)calloc(demeanField->nvox, demeanField->nbyper);
+      demeanField->data=calloc(demeanField->nvox, demeanField->nbyper);
       compute_nrr_demean(demeanField, imageNumber, inputNRRName, inputAffName);
 #ifndef NDEBUG
       reg_print_msg_debug("Displacement field to use for demeaning computed");
@@ -390,7 +390,7 @@ int compute_average_image(nifti_image *averageImage,
    memset(averageImage->data, 0, averageImage->nvox*averageImage->nbyper);
    // Create an image to store the defined value number
    nifti_image *definedValue = nifti_copy_nim_info(averageImage);
-   definedValue->data = (void *)calloc(averageImage->nvox, averageImage->nbyper);
+   definedValue->data = calloc(averageImage->nvox, averageImage->nbyper);
    // Loop over all input images
    for(size_t i=0; i<imageNumber; ++i){
       // Generate a deformation field defined by the average final
@@ -407,7 +407,7 @@ int compute_average_image(nifti_image *averageImage,
       deformationField->scl_slope=1.f;
       deformationField->scl_inter=0.f;
       deformationField->intent_p1=DISP_FIELD;
-      deformationField->data=(void *)calloc(deformationField->nvox, deformationField->nbyper);
+      deformationField->data=calloc(deformationField->nvox, deformationField->nbyper);
       reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
       // Set the transformation to identity
       reg_getDeformationFromDisplacement(deformationField);
@@ -441,7 +441,7 @@ int compute_average_image(nifti_image *averageImage,
             if(deformationField->intent_p1==DEF_VEL_FIELD){
                reg_tools_subtractImageFromImage(deformationField,demeanField,deformationField);
                nifti_image *tempDef = nifti_copy_nim_info(deformationField);
-               tempDef->data = (void *)malloc(tempDef->nvox*tempDef->nbyper);
+               tempDef->data = malloc(tempDef->nvox*tempDef->nbyper);
                memcpy(tempDef->data,deformationField->data,tempDef->nvox*tempDef->nbyper);
                tempDef->scl_slope=1.f;
                tempDef->scl_inter=0.f;
@@ -471,7 +471,7 @@ int compute_average_image(nifti_image *averageImage,
       nifti_image *warpedImage = nifti_copy_nim_info(averageImage);
       warpedImage->datatype = NIFTI_TYPE_FLOAT32;
       warpedImage->nbyper = sizeof(float);
-      warpedImage->data = (void *)malloc(warpedImage->nvox*warpedImage->nbyper);
+      warpedImage->data = malloc(warpedImage->nvox*warpedImage->nbyper);
       // Read the input image
       nifti_image *current_input_image = reg_io_ReadImageFile(inputImageName[i]);
       reg_tools_changeDatatype<PrecisionTYPE>(current_input_image);
@@ -763,7 +763,7 @@ int main(int argc, char **argv)
       if(sizeof(PrecisionTYPE)==sizeof(double))
          avg_output_image->datatype=NIFTI_TYPE_FLOAT64;
       avg_output_image->nbyper=sizeof(PrecisionTYPE);
-      avg_output_image->data=(void *)calloc(avg_output_image->nvox,avg_output_image->nbyper);
+      avg_output_image->data=calloc(avg_output_image->nvox,avg_output_image->nbyper);
       reg_tools_multiplyValueToImage(avg_output_image, avg_output_image, 0.f);
       // Set the output filename
       nifti_set_filenames(avg_output_image, outputName, 0, 0);
