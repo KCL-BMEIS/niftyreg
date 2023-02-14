@@ -392,7 +392,7 @@ void ResampleImage3D(nifti_image *floatingImage,
         kernel_size=2;
         kernelCompFctPtr=&interpNearestNeighKernel;
         kernel_offset=0;
-        break; // nereast-neighboor interpolation
+        break; // nearest-neighbour interpolation
     case 1:
         kernel_size=2;
         kernelCompFctPtr=&interpLinearKernel;
@@ -594,7 +594,7 @@ void ResampleImage2D(nifti_image *floatingImage,
         kernel_size=2;
         kernelCompFctPtr=&interpNearestNeighKernel;
         kernel_offset=0;
-        break; // nereast-neighboor interpolation
+        break; // nearest-neighbour interpolation
     case 1:
         kernel_size=2;
         kernelCompFctPtr=&interpLinearKernel;
@@ -746,7 +746,7 @@ void reg_resampleImage2(nifti_image *floatingImage,
                                                    dtIndicies);
 
     // The deformation field contains the position in the real world
-    if(deformationFieldImage->nz>1)
+    if(deformationFieldImage->nu>2)
     {
         ResampleImage3D<FloatingTYPE,FieldTYPE>(floatingImage,
                                                 deformationFieldImage,
@@ -1071,7 +1071,7 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
         kernel_size=2;
         kernelCompFctPtr=&interpNearestNeighKernel;
         kernel_offset=0;
-        break; // nereast-neighboor interpolation
+        break; // nearest-neighbour interpolation
     case 1:
         kernel_size=2;
         kernelCompFctPtr=&interpLinearKernel;
@@ -1391,7 +1391,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
         kernel_size=2;
         kernelCompFctPtr=&interpNearestNeighKernel;
         kernel_offset=0;
-        break; // nereast-neighboor interpolation
+        break; // nearest-neighbour interpolation
     case 1:
         kernel_size=2;
         kernelCompFctPtr=&interpLinearKernel;
@@ -1773,10 +1773,8 @@ void reg_resampleImage2_PSF(nifti_image *floatingImage,
                             mat33 * jacMat,
                             char algorithm)
 {
-
     // The deformation field contains the position in the real world
-
-    if(deformationFieldImage->nz>1)
+    if(deformationFieldImage->nu>2)
     {
         if(algorithm==2){
 #ifndef NDEBUG
@@ -1801,8 +1799,6 @@ void reg_resampleImage2_PSF(nifti_image *floatingImage,
                                                         interp,
                                                         jacMat,
                                                         algorithm);
-
-
         }
     }
     else
@@ -3542,9 +3538,7 @@ nifti_image *reg_makeIsotropic(nifti_image *img,
     def->dim[0]=def->ndim=5;
     def->dim[4]=def->nt=1;
     def->pixdim[4]=def->dt=1.0;
-    if(newImg->nz==1)
-        def->dim[5]=def->nu=2;
-    else def->dim[5]=def->nu=3;
+    def->dim[5]=def->nu=newImg->nz>1?3:2;
     def->pixdim[5]=def->du=1.0;
     def->dim[6]=def->nv=1;
     def->pixdim[6]=def->dv=1.0;
