@@ -623,3 +623,56 @@ template int cudaCommon_transferArrayFromDeviceToCpu<int>(int*, int*, const unsi
 template int cudaCommon_transferArrayFromDeviceToCpu<float>(float*, float*, const unsigned int);
 template int cudaCommon_transferArrayFromDeviceToCpu<double>(double*, double*, const unsigned int);
 /* *************************************************************** */
+void cudaCommon_destroyTextureObject(cudaTextureObject_t *texObj) {
+    NR_CUDA_SAFE_CALL(cudaDestroyTextureObject(*texObj));
+    delete texObj;
+}
+/* *************************************************************** */
+UniqueTextureObjectPtr cudaCommon_createTextureObject(void *devPtr,
+                                                      cudaResourceType resType,
+                                                      bool normalizedCoordinates,
+                                                      size_t size,
+                                                      cudaChannelFormatKind channelFormat,
+                                                      unsigned channelCount,
+                                                      cudaTextureFilterMode filterMode) {
+    // Specify texture
+    cudaResourceDesc resDesc{};
+    resDesc.resType = resType;
+    switch (resType) {
+    case cudaResourceTypeLinear:
+        resDesc.res.linear.devPtr = devPtr;
+        resDesc.res.linear.desc.f = channelFormat;
+        resDesc.res.linear.desc.x = 32;
+        if (channelCount > 1)
+            resDesc.res.linear.desc.y = 32;
+        if (channelCount > 2)
+            resDesc.res.linear.desc.z = 32;
+        if (channelCount > 3)
+            resDesc.res.linear.desc.w = 32;
+        resDesc.res.linear.sizeInBytes = size;
+        break;
+    case cudaResourceTypeArray:
+        resDesc.res.array.array = static_cast<cudaArray*>(devPtr);
+        break;
+    default:
+        reg_print_fct_error("reg_createTextureObject");
+        reg_print_msg_error("Unsupported resource type");
+        reg_exit();
+    }
+
+    // Specify texture object parameters
+    cudaTextureDesc texDesc{};
+    texDesc.addressMode[0] = cudaAddressModeWrap;
+    texDesc.addressMode[1] = cudaAddressModeWrap;
+    texDesc.addressMode[2] = cudaAddressModeWrap;
+    texDesc.filterMode = filterMode;
+    texDesc.readMode = cudaReadModeElementType;
+    texDesc.normalizedCoords = normalizedCoordinates;
+
+    // Create texture object
+    UniqueTextureObjectPtr texObj(new cudaTextureObject_t(), &cudaCommon_destroyTextureObject);
+    NR_CUDA_SAFE_CALL(cudaCreateTextureObject(texObj.get(), &resDesc, &texDesc, nullptr));
+
+    return texObj;
+}
+/* *************************************************************** */

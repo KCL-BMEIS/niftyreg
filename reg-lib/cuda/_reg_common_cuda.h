@@ -138,3 +138,17 @@ extern "C++"
 template <class DTYPE>
 int cudaCommon_transferArrayFromDeviceToCpu(DTYPE*, DTYPE*, const unsigned int);
 /* *************************************************************** */
+extern "C++"
+void cudaCommon_destroyTextureObject(cudaTextureObject_t *texObj);
+/* *************************************************************** */
+using UniqueTextureObjectPtr = std::unique_ptr<cudaTextureObject_t, decltype(&cudaCommon_destroyTextureObject)>;
+/* *************************************************************** */
+extern "C++"
+UniqueTextureObjectPtr cudaCommon_createTextureObject(void *devPtr,
+													  cudaResourceType resType,
+													  bool normalizedCoordinates = false,
+													  size_t size = 0,
+													  cudaChannelFormatKind channelFormat = cudaChannelFormatKindNone,
+													  unsigned channelCount = 1,
+													  cudaTextureFilterMode filterMode = cudaFilterModeLinear);
+/* *************************************************************** */
