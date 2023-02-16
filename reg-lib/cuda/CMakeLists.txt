@@ -36,7 +36,8 @@ elseif(RUN_RESULT_VAR)
     return()
 else(NOT COMPILE_RESULT_VAR)
     message(STATUS "Found CUDA (v${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}) and a CUDA-enabled card (capability ${RUN_OUTPUT_VAR})")
-    set(CUDA_NVCC_FLAGS "")
+    # Set C++ standard version for CUDA
+    set(CUDA_NVCC_FLAGS "-std=c++17")
     #check cuda version and adjust compile flags
     if("${RUN_OUTPUT_VAR}" LESS "30")
         set(USE_CUDA OFF CACHE BOOL "To use the CUDA platform" FORCE)
