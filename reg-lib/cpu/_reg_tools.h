@@ -20,6 +20,7 @@
 #include "_reg_maths.h"
 
 using std::unique_ptr;
+using std::shared_ptr;
 
 typedef enum {
     MEAN_KERNEL,

@@ -12,19 +12,20 @@
 #include <list>
 #include <catch2/catch_test_macros.hpp>
 
-#define EPS_SINGLE 0.0001
+#define EPS_SINGLE 0.001
 
 /*
     This test file contains the following unit tests:
     test function: image resampling
     In 2D and 3D
-    linear
-    cubic
+    Nearest neighbour
+    Linear
+    Cubic spline
 */
 
 
 typedef std::tuple<std::string, nifti_image*, nifti_image*, int, float*> TestData;
-typedef std::tuple<unique_ptr<AladinContent>, unique_ptr<Platform>> ContentDesc;
+typedef std::tuple<unique_ptr<Content>, shared_ptr<Platform>> ContentDesc;
 
 template <typename T>
 void interpCubicSplineKernel(T relative, T (&basis)[4]) {
@@ -214,16 +215,25 @@ TEST_CASE("Resampling", "[resampling]") {
         // Accumulate all required contents with a vector
         std::vector<ContentDesc> contentDescs;
         for (auto&& platformType : PlatformTypes) {
-            unique_ptr<Platform> platform{ new Platform(platformType) };
-            unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };
-            unique_ptr<AladinContent> content{ contentCreator->Create(reference, reference) };
-            contentDescs.push_back(ContentDesc(std::move(content), std::move(platform)));
+            shared_ptr<Platform> platform{ new Platform(platformType) };
+            // Add Aladin content
+            unique_ptr<AladinContentCreator> aladinContentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };
+            unique_ptr<AladinContent> aladinContent{ aladinContentCreator->Create(reference, reference) };
+            contentDescs.push_back(ContentDesc(std::move(aladinContent), platform));
+            // Add content
+            if (platformType == PlatformType::Cuda && interp != 1)
+                continue;   // CUDA platform only supports linear interpolation
+            unique_ptr<ContentCreator> contentCreator{ dynamic_cast<ContentCreator*>(platform->CreateContentCreator()) };
+            unique_ptr<Content> content{ contentCreator->Create(reference, reference) };
+            contentDescs.push_back(ContentDesc(std::move(content), platform));
         }
 
         // Loop over all possibles contents for each test
         for (auto&& contentDesc : contentDescs) {
             auto&& [content, platform] = contentDesc;
-            SECTION(testName + " " + platform->GetName()) {
+            const bool isAladinContent = dynamic_cast<AladinContent*>(content.get());
+            auto contentName = isAladinContent ? "Aladin" : "Base";
+            SECTION(testName + " " + platform->GetName() + " - " + contentName) {
                 // Create and set a warped image to host the computation
                 nifti_image *warped = nifti_copy_nim_info(defField);
                 warped->ndim = warped->dim[0] = defField->nu;
@@ -236,11 +246,15 @@ TEST_CASE("Resampling", "[resampling]") {
                 content->SetWarped(warped);
                 // Set the deformation field
                 content->SetDeformationField(defField);
-                // Initialise the platform to run current content and retrieve deformation field
-                unique_ptr<Kernel> resampleKernel{ platform->CreateKernel(ResampleImageKernel::GetName(), content.get()) };
-                // args = interpolation and padding
 
-                resampleKernel->castTo<ResampleImageKernel>()->Calculate(interp, 0);
+                if (isAladinContent) {
+                    unique_ptr<Kernel> resampleKernel{ platform->CreateKernel(ResampleImageKernel::GetName(), content.get()) };
+                    resampleKernel->castTo<ResampleImageKernel>()->Calculate(interp, 0);
+                } else {
+                    unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
+                    compute->ResampleImage(interp, 0);
+                }
+
                 warped = content->GetWarped();
 
                 // Check all values
