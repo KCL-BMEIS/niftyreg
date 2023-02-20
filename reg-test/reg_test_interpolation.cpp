@@ -1,5 +1,7 @@
 // OpenCL is not supported for this test
 #undef _USE_OPENCL
+// Enable testing
+#define NR_TESTING
 
 #include "_reg_ReadWriteMatrix.h"
 #include "_reg_tools.h"

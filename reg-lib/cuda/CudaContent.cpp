@@ -84,6 +84,10 @@ void CudaContent::SetDeformationField(nifti_image *deformationFieldIn) {
     cudaCommon_transferNiftiToArrayOnDevice(deformationFieldCuda, deformationField);
 }
 /* *************************************************************** */
+void CudaContent::UpdateDeformationField() {
+    cudaCommon_transferNiftiToArrayOnDevice(deformationFieldCuda, deformationField);
+}
+/* *************************************************************** */
 void CudaContent::SetReferenceMask(int *referenceMaskIn) {
     Content::SetReferenceMask(referenceMaskIn);
 

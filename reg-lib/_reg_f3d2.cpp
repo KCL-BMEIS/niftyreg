@@ -898,11 +898,9 @@ nifti_image** reg_f3d2<T>::GetWarpedImage() {
 
     F3dContent *con = dynamic_cast<F3dContent*>(this->con);
     nifti_image **warpedImage = (nifti_image**)calloc(2, sizeof(nifti_image*));
-    warpedImage[0] = con->GetWarped();
-    warpedImage[1] = conBw->GetWarped();
+    warpedImage[0] = nifti_dup(*con->GetWarped());
+    warpedImage[1] = nifti_dup(*conBw->GetWarped());
 
-    con->SetWarped(nullptr); // Prevent deallocating of warpedImage
-    conBw->SetWarped(nullptr);
     DeinitCurrentLevel(-1);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d2<T>::GetWarpedImage");

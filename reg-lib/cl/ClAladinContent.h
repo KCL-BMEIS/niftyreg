@@ -43,13 +43,6 @@ public:
     virtual nifti_image* GetDeformationField() override;
     virtual nifti_image* GetWarped() override;
 
-    // Setters
-    virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
-    virtual void SetWarped(nifti_image *warpedImageIn) override;
-    virtual void SetDeformationField(nifti_image *deformationFieldIn) override;
-    virtual void SetReferenceMask(int *referenceMaskIn) override;
-    virtual void SetBlockMatchingParams(_reg_blockMatchingParam* bmp) override;
-
 private:
     void InitVars();
     void AllocateClPtrs();
@@ -81,4 +74,16 @@ private:
     void FillImageData(nifti_image *image, cl_mem memoryObject, int type);
     template<class T>
     T FillWarpedImageData(float intensity, int datatype);
+
+#ifdef NR_TESTING
+public:
+#else
+protected:
+#endif
+    // Functions for testing
+    virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
+    virtual void SetWarped(nifti_image *warpedImageIn) override;
+    virtual void SetDeformationField(nifti_image *deformationFieldIn) override;
+    virtual void SetReferenceMask(int *referenceMaskIn) override;
+    virtual void SetBlockMatchingParams(_reg_blockMatchingParam* bmp) override;
 };

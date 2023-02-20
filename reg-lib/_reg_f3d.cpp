@@ -658,9 +658,8 @@ nifti_image** reg_f3d<T>::GetWarpedImage() {
     this->WarpFloatingImage(3); // cubic spline interpolation
 
     nifti_image **warpedImage = (nifti_image**)calloc(2, sizeof(nifti_image*));
-    warpedImage[0] = this->con->GetWarped();
+    warpedImage[0] = nifti_dup(*this->con->GetWarped());
 
-    this->con->SetWarped(nullptr); // Prevent deallocating of warpedImage
     DeinitCurrentLevel(-1);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetWarpedImage");

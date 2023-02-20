@@ -27,11 +27,8 @@ public:
     virtual float* GetTransformationMatrixCuda() { return transformationMatrixCuda; }
     virtual float* GetWarpedCuda() { return warpedCuda; }
 
-    // Setters
-    virtual void SetDeformationField(nifti_image *deformationFieldIn) override;
-    virtual void SetReferenceMask(int *referenceMaskIn) override;
-    virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
-    virtual void SetWarped(nifti_image *warpedIn) override;
+    // Methods for transferring data from nifti to device
+    virtual void UpdateDeformationField() override;
 
 protected:
     cudaArray *referenceCuda = nullptr;
@@ -51,4 +48,15 @@ private:
     template<class DataType> DataType CastImageData(float intensity, int datatype);
     template<class DataType> void FillImageData(nifti_image *image, float *memoryObject, int datatype);
     void DownloadImage(nifti_image *image, float *memoryObject, int datatype);
+
+#ifdef NR_TESTING
+public:
+#else
+protected:
+#endif
+    // Functions for testing
+    virtual void SetDeformationField(nifti_image *deformationFieldIn) override;
+    virtual void SetReferenceMask(int *referenceMaskIn) override;
+    virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
+    virtual void SetWarped(nifti_image *warpedIn) override;
 };

@@ -149,7 +149,7 @@ void CudaCompute::GetDefFieldFromVelocityGrid(bool updateStepNumber) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     // TODO update only the required ones
     con.UpdateControlPointGrid();
-    con.SetDeformationField(con.F3dContent::GetDeformationField());
+    con.UpdateDeformationField();
 }
 /* *************************************************************** */
 void CudaCompute::ConvolveVoxelBasedMeasureGradient(float weight) {

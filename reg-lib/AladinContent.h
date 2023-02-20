@@ -25,13 +25,18 @@ public:
     // Getters
     virtual _reg_blockMatchingParam* GetBlockMatchingParams() { return blockMatchingParams; }
 
-    // Setters
-    virtual void SetCaptureRange(const int captureRangeIn);
-    virtual void SetBlockMatchingParams(_reg_blockMatchingParam *bmp) { blockMatchingParams = bmp; }
-
 protected:
     _reg_blockMatchingParam* blockMatchingParams;
     unsigned int currentPercentageOfBlockToUse;
     unsigned int inlierLts;
     int stepSizeBlock;
+
+#ifdef NR_TESTING
+public:
+#else
+protected:
+#endif
+    // Functions for testing
+    virtual void SetCaptureRange(const int captureRangeIn);
+    virtual void SetBlockMatchingParams(_reg_blockMatchingParam *bmp) { blockMatchingParams = bmp; }
 };

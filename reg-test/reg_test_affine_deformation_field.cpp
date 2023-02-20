@@ -1,3 +1,6 @@
+// Enable testing
+#define NR_TESTING
+
 #include "_reg_ReadWriteMatrix.h"
 #include "_reg_tools.h"
 

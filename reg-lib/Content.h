@@ -23,11 +23,8 @@ public:
     virtual mat44* GetTransformationMatrix() { return transformationMatrix; }
     virtual nifti_image* GetWarped() { return warped; }
 
-    // Setters
-    virtual void SetDeformationField(nifti_image *deformationFieldIn) { deformationField = deformationFieldIn; }
-    virtual void SetReferenceMask(int *referenceMaskIn) { referenceMask = referenceMaskIn; }
-    virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) { transformationMatrix = transformationMatrixIn; }
-    virtual void SetWarped(nifti_image *warpedIn) { warped = warpedIn; }
+    // Methods for transferring data from nifti to device
+    virtual void UpdateDeformationField() {}
 
     // Auxiliary methods
     static mat44* GetXYZMatrix(nifti_image& image) {
@@ -51,4 +48,15 @@ private:
     void DeallocateWarped();
     void AllocateDeformationField(size_t bytes);
     void DeallocateDeformationField();
+
+#ifdef NR_TESTING
+public:
+#else
+protected:
+#endif
+    // Functions for testing
+    virtual void SetDeformationField(nifti_image *deformationFieldIn) { deformationField = deformationFieldIn; }
+    virtual void SetReferenceMask(int *referenceMaskIn) { referenceMask = referenceMaskIn; }
+    virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) { transformationMatrix = transformationMatrixIn; }
+    virtual void SetWarped(nifti_image *warpedIn) { warped = warpedIn; }
 };
