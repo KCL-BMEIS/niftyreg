@@ -53,11 +53,8 @@ int main(int argc, char **argv) {
     }
 
     // Create a deformation field
-    nifti_image *test_field_cpu = nifti_copy_nim_info(inputDeformationField);
-    test_field_cpu->data = malloc(test_field_cpu->nvox * test_field_cpu->nbyper);
-
-    nifti_image *test_field_gpu = nifti_copy_nim_info(inputDeformationField);
-    test_field_gpu->data = malloc(test_field_gpu->nvox * test_field_gpu->nbyper);
+    nifti_image *test_field_cpu = nifti_dup(*inputDeformationField, false);
+    nifti_image *test_field_gpu = nifti_dup(*inputDeformationField, false);
 
     // Compute the affine deformation field
     unique_ptr<Platform> platformCpu{ new Platform(PlatformType::Cpu) };
@@ -82,8 +79,7 @@ int main(int argc, char **argv) {
     test_field_gpu = conGpu->GetDeformationField();
 
     // Compute the difference between the computed and inputted deformation field
-    nifti_image *diff_field = nifti_copy_nim_info(inputDeformationField);
-    diff_field->data = malloc(diff_field->nvox * diff_field->nbyper);
+    nifti_image *diff_field = nifti_dup(*inputDeformationField, false);
     reg_tools_subtractImageFromImage(inputDeformationField, test_field_cpu, diff_field);
     reg_tools_abs_image(diff_field);
     double max_difference = reg_tools_GetMaxValue(diff_field, -1);

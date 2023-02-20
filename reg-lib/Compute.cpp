@@ -262,15 +262,12 @@ void Compute::ExponentiateGradient(Content& conBwIn) {
     const size_t compNum = size_t(fabs(controlPointGridBw->intent_p2)); // The number of composition
 
     /* Allocate a temporary gradient image to store the backward gradient */
-    nifti_image *tempGrad = nifti_copy_nim_info(voxelBasedMeasureGradient);
-    tempGrad->data = malloc(tempGrad->nvox * tempGrad->nbyper);
+    nifti_image *tempGrad = nifti_dup(*voxelBasedMeasureGradient, false);
 
     // Create all deformation field images needed for resampling
     nifti_image **tempDef = (nifti_image**)malloc((compNum + 1) * sizeof(nifti_image*));
-    for (size_t i = 0; i <= compNum; ++i) {
-        tempDef[i] = nifti_copy_nim_info(deformationField);
-        tempDef[i]->data = malloc(tempDef[i]->nvox * tempDef[i]->nbyper);
-    }
+    for (size_t i = 0; i <= compNum; ++i)
+        tempDef[i] = nifti_dup(*deformationField, false);
 
     // Generate all intermediate deformation fields
     reg_spline_getIntermediateDefFieldFromVelGrid(controlPointGridBw, tempDef);
@@ -278,8 +275,7 @@ void Compute::ExponentiateGradient(Content& conBwIn) {
     // Remove the affine component
     nifti_image *affineDisp = nullptr;
     if (affineTransformationBw) {
-        affineDisp = nifti_copy_nim_info(deformationField);
-        affineDisp->data = malloc(affineDisp->nvox * affineDisp->nbyper);
+        affineDisp = nifti_dup(*deformationField, false);
         reg_affine_getDeformationField(affineTransformationBw, affineDisp);
         reg_getDisplacementFromDeformation(affineDisp);
     }
@@ -311,8 +307,7 @@ void Compute::ExponentiateGradient(Content& conBwIn) {
 }
 /* *************************************************************** */
 nifti_image* Compute::ScaleGradient(const nifti_image& transformationGradient, float scale) {
-    nifti_image *scaledGradient = nifti_copy_nim_info(&transformationGradient);
-    scaledGradient->data = malloc(scaledGradient->nvox * scaledGradient->nbyper);
+    nifti_image *scaledGradient = nifti_dup(transformationGradient, false);
     reg_tools_multiplyValueToImage(&transformationGradient, scaledGradient, scale);
     return scaledGradient;
 }
@@ -349,10 +344,8 @@ void Compute::SymmetriseVelocityFields(Content& conBwIn) {
 
     // In order to ensure symmetry, the forward and backward velocity fields
     // are averaged in both image spaces: reference and floating
-    nifti_image *warpedTrans = nifti_copy_nim_info(controlPointGridBw);
-    warpedTrans->data = malloc(warpedTrans->nvox * warpedTrans->nbyper);
-    nifti_image *warpedTransBw = nifti_copy_nim_info(controlPointGrid);
-    warpedTransBw->data = malloc(warpedTransBw->nvox * warpedTransBw->nbyper);
+    nifti_image *warpedTrans = nifti_dup(*controlPointGridBw, false);
+    nifti_image *warpedTransBw = nifti_dup(*controlPointGrid, false);
 
     // Both parametrisations are converted into displacement
     reg_getDisplacementFromDeformation(controlPointGrid);

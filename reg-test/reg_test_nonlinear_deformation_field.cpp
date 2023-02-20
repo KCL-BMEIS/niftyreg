@@ -44,11 +44,9 @@ int main(int argc, char **argv)
    }
 
    // Create a deformation field
-   nifti_image *test_field=nifti_copy_nim_info(inputDeformationField);
-   test_field->data=malloc(test_field->nvox*test_field->nbyper);
+   nifti_image *test_field = nifti_dup(*inputDeformationField, false);
 
    // Compute the non-linear deformation field
-   memset(test_field->data, 0, test_field->nvox*test_field->nbyper);
    reg_getDeformationFromDisplacement(test_field);
    reg_spline_getDeformationField(controlPointGridImage,
                                   test_field,

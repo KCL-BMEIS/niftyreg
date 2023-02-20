@@ -570,13 +570,11 @@ nifti_image* reg_aladin<T>::GetFinalWarpedImage() {
     nifti_image *warped = this->con->GetWarped();
 
     free(mask);
-    nifti_image *resultImage = nifti_copy_nim_info(warped);
+    nifti_image *resultImage = nifti_dup(*warped);
     resultImage->cal_min = this->inputFloating->cal_min;
     resultImage->cal_max = this->inputFloating->cal_max;
     resultImage->scl_slope = this->inputFloating->scl_slope;
     resultImage->scl_inter = this->inputFloating->scl_inter;
-    resultImage->data = malloc(resultImage->nvox * resultImage->nbyper);
-    memcpy(resultImage->data, warped->data, resultImage->nvox * resultImage->nbyper);
 
     reg_aladin<T>::DeallocateKernels();
     reg_aladin<T>::DeinitAladinContent();

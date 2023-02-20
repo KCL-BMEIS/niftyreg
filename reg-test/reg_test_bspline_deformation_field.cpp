@@ -48,8 +48,7 @@ int main(int argc, char **argv)
     }
 
     // Create a deformation field
-    nifti_image *test_field = nifti_copy_nim_info(expectedDefField);
-    test_field->data = malloc(test_field->nvox*test_field->nbyper);
+    nifti_image *test_field = nifti_dup(*expectedDefField, false);
 
     if(useComposition)
     {
@@ -75,8 +74,7 @@ int main(int argc, char **argv)
     }
 
     // Compute the difference between the computed and expected deformation fields
-    nifti_image *diff_field = nifti_copy_nim_info(expectedDefField);
-    diff_field->data = malloc(diff_field->nvox*diff_field->nbyper);
+    nifti_image *diff_field = nifti_dup(*expectedDefField, false);
     reg_tools_subtractImageFromImage(expectedDefField, test_field, diff_field);
     reg_tools_abs_image(diff_field);
     double max_difference = reg_tools_getMaxValue(diff_field, -1);

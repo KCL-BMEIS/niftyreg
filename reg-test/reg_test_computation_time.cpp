@@ -49,8 +49,7 @@ int main(int argc, char **argv)
     }
 
     // Allocate a warped image
-    nifti_image *warpedImage = nifti_copy_nim_info(inputImageOne);
-    warpedImage->data = malloc(warpedImage->nvox*warpedImage->nbyper);
+    nifti_image *warpedImage = nifti_dup(*inputImageOne, false);
 
     // Create mask
     int *mask = (int *)calloc(inputImageOne->nvox,sizeof(int));
@@ -62,11 +61,8 @@ int main(int argc, char **argv)
     defFieldOne->nu=defFieldOne->dim[5]=defFieldOne->nz>1?3:2;
     defFieldOne->nvox = CalcVoxelNumber(*defFieldOne, defFieldOne->ndim);
     defFieldOne->data = malloc(defFieldOne->nvox*defFieldOne->nbyper);
-    nifti_image *defFieldTwo=nifti_copy_nim_info(defFieldOne);
-    defFieldTwo->data = malloc(defFieldTwo->nvox*defFieldTwo->nbyper);
-    nifti_image *defFieldThr=nifti_copy_nim_info(defFieldOne);
-    defFieldThr->data = malloc(defFieldThr->nvox*defFieldThr->nbyper);
-
+    nifti_image *defFieldTwo=nifti_dup(*defFieldOne, false);
+    nifti_image *defFieldThr=nifti_dup(*defFieldOne, false);
 
     // Generate a control point grids
     nifti_image *splineGridOne = nullptr;
@@ -78,8 +74,7 @@ int main(int argc, char **argv)
     reg_createControlPointGrid<float>(&splineGridOne,
                                       inputImageOne,
                                       spacing);
-    nifti_image *splineGridTwo = nifti_copy_nim_info(splineGridOne);
-    splineGridTwo->data = malloc(splineGridTwo->nvox*splineGridTwo->nbyper);
+    nifti_image *splineGridTwo = nifti_dup(*splineGridOne, false);
 
     // Generate an affine matrix
     mat44 affine;reg_mat44_eye(&affine);

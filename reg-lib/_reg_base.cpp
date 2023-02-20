@@ -625,9 +625,7 @@ void reg_base<T>::Initialise() {
     // Update the input images threshold if required
     if (robustRange) {
         // Create a copy of the reference image to extract the robust range
-        nifti_image *temp_reference = nifti_copy_nim_info(inputReference);
-        temp_reference->data = malloc(temp_reference->nvox * temp_reference->nbyper);
-        memcpy(temp_reference->data, inputReference->data, temp_reference->nvox * temp_reference->nbyper);
+        nifti_image *temp_reference = nifti_dup(*inputReference);
         reg_tools_changeDatatype<T>(temp_reference);
         // Extract the robust range of the reference image
         T *refDataPtr = static_cast<T *>(temp_reference->data);
@@ -641,9 +639,7 @@ void reg_base<T>::Initialise() {
         nifti_image_free(temp_reference);
 
         // Create a copy of the floating image to extract the robust range
-        nifti_image *temp_floating = nifti_copy_nim_info(inputFloating);
-        temp_floating->data = malloc(temp_floating->nvox * temp_floating->nbyper);
-        memcpy(temp_floating->data, inputFloating->data, temp_floating->nvox * temp_floating->nbyper);
+        nifti_image *temp_floating = nifti_dup(*inputFloating);
         reg_tools_changeDatatype<T>(temp_floating);
         // Extract the robust range of the floating image
         T *floDataPtr = static_cast<T *>(temp_floating->data);

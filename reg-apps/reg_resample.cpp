@@ -368,10 +368,7 @@ int main(int argc, char **argv)
          reg_getDeformationFromDisplacement(inputTransformationImage);
       case DEF_VEL_FIELD:
          {
-            nifti_image *tempFlowField = nifti_copy_nim_info(deformationFieldImage);
-            tempFlowField->data = malloc(tempFlowField->nvox*tempFlowField->nbyper);
-            memcpy(tempFlowField->data,deformationFieldImage->data,
-                   tempFlowField->nvox*tempFlowField->nbyper);
+            nifti_image *tempFlowField = nifti_dup(*deformationFieldImage);
             reg_defField_compose(inputTransformationImage,
                                  tempFlowField,
                                  nullptr);

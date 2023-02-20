@@ -36,9 +36,7 @@ int main(int argc, char **argv)
    }
 
    // Create a deformation field
-   nifti_image *test_field=nifti_copy_nim_info(inputDeformationField);
-   test_field->data=malloc(test_field->nvox*test_field->nbyper);
-   memcpy(test_field->data, inputDeformationField->data, test_field->nvox*test_field->nbyper);
+   nifti_image *test_field = nifti_dup(*inputDeformationField);
 
    // Compute the non-linear deformation field
    reg_defField_compose(inputDeformationField,

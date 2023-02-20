@@ -1903,11 +1903,7 @@ double reg_tools_getMeanRMS(const nifti_image *imageA, const nifti_image *imageB
 template <class DTYPE>
 int reg_createImagePyramid(const nifti_image *inputImage, nifti_image **pyramid, unsigned int levelNumber, unsigned int levelToPerform) {
     // FINEST LEVEL OF REGISTRATION
-    pyramid[levelToPerform - 1] = nifti_copy_nim_info(inputImage);
-    pyramid[levelToPerform - 1]->data = calloc(pyramid[levelToPerform - 1]->nvox,
-                                               pyramid[levelToPerform - 1]->nbyper);
-    memcpy(pyramid[levelToPerform - 1]->data, inputImage->data,
-           pyramid[levelToPerform - 1]->nvox * pyramid[levelToPerform - 1]->nbyper);
+    pyramid[levelToPerform - 1] = nifti_dup(*inputImage);
     reg_tools_changeDatatype<DTYPE>(pyramid[levelToPerform - 1]);
     reg_tools_removeSCLInfo(pyramid[levelToPerform - 1]);
 
@@ -1923,11 +1919,7 @@ int reg_createImagePyramid(const nifti_image *inputImage, nifti_image **pyramid,
     // Images for each subsequent levels are allocated and downsampled if appropriate
     for (int l = levelToPerform - 2; l >= 0; l--) {
         // Allocation of the image
-        pyramid[l] = nifti_copy_nim_info(pyramid[l + 1]);
-        pyramid[l]->data = calloc(pyramid[l]->nvox, pyramid[l]->nbyper);
-
-        memcpy(pyramid[l]->data, pyramid[l + 1]->data,
-               pyramid[l]->nvox * pyramid[l]->nbyper);
+        pyramid[l] = nifti_dup(*pyramid[l + 1]);
 
         // Downsample the image if appropriate
         bool downsampleAxis[8] = {false, true, true, true, false, false, false, false};
@@ -1945,11 +1937,7 @@ template <class DTYPE>
 int reg_createMaskPyramid(const nifti_image *inputMaskImage, int **maskPyramid, unsigned int levelNumber, unsigned int levelToPerform) {
     // FINEST LEVEL OF REGISTRATION
     nifti_image **tempMaskImagePyramid = (nifti_image **)malloc(levelToPerform * sizeof(nifti_image *));
-    tempMaskImagePyramid[levelToPerform - 1] = nifti_copy_nim_info(inputMaskImage);
-    tempMaskImagePyramid[levelToPerform - 1]->data = calloc(tempMaskImagePyramid[levelToPerform - 1]->nvox,
-                                                            tempMaskImagePyramid[levelToPerform - 1]->nbyper);
-    memcpy(tempMaskImagePyramid[levelToPerform - 1]->data, inputMaskImage->data,
-           tempMaskImagePyramid[levelToPerform - 1]->nvox * tempMaskImagePyramid[levelToPerform - 1]->nbyper);
+    tempMaskImagePyramid[levelToPerform - 1] = nifti_dup(*inputMaskImage);
     reg_tools_binarise_image(tempMaskImagePyramid[levelToPerform - 1]);
     reg_tools_changeDatatype<unsigned char>(tempMaskImagePyramid[levelToPerform - 1]);
 
@@ -1968,10 +1956,7 @@ int reg_createMaskPyramid(const nifti_image *inputMaskImage, int **maskPyramid, 
     // Images for each subsequent levels are allocated and downsampled if appropriate
     for (int l = (int)levelToPerform - 2; l >= 0; l--) {
         // Allocation of the reference image
-        tempMaskImagePyramid[l] = nifti_copy_nim_info(tempMaskImagePyramid[l + 1]);
-        tempMaskImagePyramid[l]->data = calloc(tempMaskImagePyramid[l]->nvox, tempMaskImagePyramid[l]->nbyper);
-        memcpy(tempMaskImagePyramid[l]->data, tempMaskImagePyramid[l + 1]->data,
-               tempMaskImagePyramid[l]->nvox * tempMaskImagePyramid[l]->nbyper);
+        tempMaskImagePyramid[l] = nifti_dup(*tempMaskImagePyramid[l + 1]);
 
         // Downsample the image if appropriate
         bool downsampleAxis[8] = {false, true, true, true, false, false, false, false};

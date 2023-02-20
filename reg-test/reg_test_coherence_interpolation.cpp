@@ -50,10 +50,8 @@ int main(int argc, char **argv) {
     }
 
     // Initialise warped images
-    nifti_image *cpuWarped = nifti_copy_nim_info(referenceImage);
-    cpuWarped->data = malloc(cpuWarped->nvox * cpuWarped->nbyper);
-    nifti_image *gpuWarped = nifti_copy_nim_info(referenceImage);
-    gpuWarped->data = malloc(gpuWarped->nvox * gpuWarped->nbyper);
+    nifti_image *cpuWarped = nifti_dup(*referenceImage, false);
+    nifti_image *gpuWarped = nifti_dup(*referenceImage, false);
 
     int *tempMask = (int *)calloc(referenceImage->nvox, sizeof(int));
 
@@ -88,8 +86,7 @@ int main(int argc, char **argv) {
     }
 
     // Compute the difference between the warped images
-    nifti_image *diff_field = nifti_copy_nim_info(referenceImage);
-    diff_field->data = malloc(diff_field->nvox * diff_field->nbyper);
+    nifti_image *diff_field = nifti_dup(*referenceImage, false);
 
     // Compute the difference between the computed and inputted warped image
     reg_tools_subtractImageFromImage(cpuWarped, gpuWarped, diff_field);

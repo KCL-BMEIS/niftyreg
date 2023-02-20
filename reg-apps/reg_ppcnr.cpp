@@ -493,9 +493,7 @@ int main(int argc, char **argv)
    /* START THE REGISTRATION */
    /* ********************** */
    param->outputImageName="anchor.nii";   // NEED TO GET WORKING AND PUT INTERMEDIATE FILES IN SOURCE DIRECTORY.
-   nifti_image *images=nifti_copy_nim_info(image); // Need to make a new image that has the same info as the original.
-   images->data = (PrecisionTYPE *)calloc(images->nvox, image->nbyper);
-   memcpy(images->data, image->data, image->nvox*image->nbyper);
+   nifti_image *images=nifti_dup(*image); // Need to make a new image that has the same info as the original.
 
    /* ************************************/
    /* FOR NUMBER OF PRINCIPAL COMPONENTS */
@@ -785,8 +783,7 @@ int main(int argc, char **argv)
 
 
       // 4. rebuild images
-      nifti_image *imagep=nifti_copy_nim_info(image); // Need to make a new image that has the same info as the original.
-      imagep->data = (PrecisionTYPE *)calloc(imagep->nvox, image->nbyper);
+      nifti_image *imagep=nifti_dup(*image, false); // Need to make a new image that has the same info as the original.
       float dotty,sum;
       if(flag->locality)  // local mean
       {
@@ -866,8 +863,7 @@ int main(int argc, char **argv)
             stores->nvox = CalcVoxelNumber(*stores, stores->ndim);
             stores->data = calloc(stores->nvox,images->nbyper);
 
-            nifti_image *storet = nifti_copy_nim_info(stores);
-            storet->data = calloc(storet->nvox, storet->nbyper);
+            nifti_image *storet = nifti_dup(*stores, false);
 
             // COPY THE APPROPRIATE VALUES
             PrecisionTYPE *intensityPtrPP = static_cast<PrecisionTYPE *>(storet->data); // 3D real source image (needs current cpp image)

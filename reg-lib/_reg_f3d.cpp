@@ -218,10 +218,7 @@ void reg_f3d<T>::Initialise() {
         } else reg_affine_getDeformationField(this->affineTransformation, controlPointGrid);
     } else {
         // The control point grid image is initialised with the provided grid
-        controlPointGrid = nifti_copy_nim_info(inputControlPointGrid);
-        controlPointGrid->data = malloc(controlPointGrid->nvox * controlPointGrid->nbyper);
-        memcpy(controlPointGrid->data, inputControlPointGrid->data,
-               controlPointGrid->nvox * controlPointGrid->nbyper);
+        controlPointGrid = nifti_dup(*inputControlPointGrid);
         // The final grid spacing is computed
         spacing[0] = controlPointGrid->dx / powf(2, this->levelNumber - 1);
         spacing[1] = controlPointGrid->dy / powf(2, this->levelNumber - 1);
@@ -669,14 +666,10 @@ nifti_image** reg_f3d<T>::GetWarpedImage() {
 /* *************************************************************** */
 template<class T>
 nifti_image* reg_f3d<T>::GetControlPointPositionImage() {
-    nifti_image *returnedControlPointGrid = nifti_copy_nim_info(controlPointGrid);
-    returnedControlPointGrid->data = malloc(returnedControlPointGrid->nvox * returnedControlPointGrid->nbyper);
-    memcpy(returnedControlPointGrid->data, controlPointGrid->data,
-           returnedControlPointGrid->nvox * returnedControlPointGrid->nbyper);
-    return returnedControlPointGrid;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetControlPointPositionImage");
 #endif
+    return nifti_dup(*controlPointGrid);
 }
 /* *************************************************************** */
 template<class T>

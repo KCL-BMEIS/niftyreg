@@ -687,18 +687,10 @@ void reg_f3d2<T>::InitialiseSimilarity() {
 /* *************************************************************** */
 template<class T>
 nifti_image* reg_f3d2<T>::GetBackwardControlPointPositionImage() {
-    // Create a control point grid nifti image
-    nifti_image *returnedControlPointGrid = nifti_copy_nim_info(controlPointGridBw);
-    // Allocate the new image data array
-    returnedControlPointGrid->data = malloc(returnedControlPointGrid->nvox * returnedControlPointGrid->nbyper);
-    // Copy the final backward control point grid image
-    memcpy(returnedControlPointGrid->data, controlPointGridBw->data,
-           returnedControlPointGrid->nvox * returnedControlPointGrid->nbyper);
-    // Return the new control point grid
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d2<T>::GetBackwardControlPointPositionImage");
 #endif
-    return returnedControlPointGrid;
+    return nifti_dup(*controlPointGridBw);
 }
 /* *************************************************************** */
 template <class T>
@@ -745,24 +737,14 @@ void reg_f3d2<T>::Initialise() {
                                                 gridSpacing);
     } else {
         // The control point grid image is initialised with the provided grid
-        this->controlPointGrid = nifti_copy_nim_info(this->inputControlPointGrid);
-        this->controlPointGrid->data = malloc(this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
-        if (this->inputControlPointGrid->num_ext > 0)
-            nifti_copy_extensions(this->controlPointGrid, this->inputControlPointGrid);
-        memcpy(this->controlPointGrid->data, this->inputControlPointGrid->data,
-               this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
+        this->controlPointGrid = nifti_dup(*this->inputControlPointGrid);
         // The final grid spacing is computed
         this->spacing[0] = this->controlPointGrid->dx / powf(2, this->levelNumber - 1);
         this->spacing[1] = this->controlPointGrid->dy / powf(2, this->levelNumber - 1);
         if (this->controlPointGrid->nz > 1)
             this->spacing[2] = this->controlPointGrid->dz / powf(2, this->levelNumber - 1);
         // The backward grid is derived from the forward
-        controlPointGridBw = nifti_copy_nim_info(this->controlPointGrid);
-        controlPointGridBw->data = malloc(controlPointGridBw->nvox * controlPointGridBw->nbyper);
-        if (this->controlPointGrid->num_ext > 0)
-            nifti_copy_extensions(controlPointGridBw, this->controlPointGrid);
-        memcpy(controlPointGridBw->data, this->controlPointGrid->data,
-               controlPointGridBw->nvox * controlPointGridBw->nbyper);
+        controlPointGridBw = nifti_dup(*this->controlPointGrid);
         reg_getDisplacementFromDeformation(controlPointGridBw);
         reg_tools_multiplyValueToImage(controlPointGridBw, controlPointGridBw, -1);
         reg_getDeformationFromDisplacement(controlPointGridBw);

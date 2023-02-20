@@ -277,8 +277,7 @@ int compute_nrr_demean(nifti_image *demean_field,
       // read the transformation
       nifti_image *transformation = reg_io_ReadImageFile(inputNRRName[t]);
       // Generate the deformation or flow field
-      nifti_image *deformationField = nifti_copy_nim_info(demean_field);
-      deformationField->data = calloc(deformationField->nvox,deformationField->nbyper);
+      nifti_image *deformationField = nifti_dup(*demean_field, false);
       reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
       deformationField->scl_slope=1.f;
       deformationField->scl_inter=0.f;
@@ -324,8 +323,7 @@ int compute_nrr_demean(nifti_image *demean_field,
          }
          else reg_tool_ReadAffineFile(&affineTransformation,inputAffName[t]);
          // The affine component is substracted
-         nifti_image *tempField = nifti_copy_nim_info(deformationField);
-         tempField->data = malloc(tempField->nvox*tempField->nbyper);
+         nifti_image *tempField = nifti_dup(*deformationField, false);
          tempField->scl_slope=1.f;
          tempField->scl_inter=0.f;
          reg_affine_getDeformationField(&affineTransformation, tempField);
@@ -389,8 +387,7 @@ int compute_average_image(nifti_image *averageImage,
    // Set the average image to zero
    memset(averageImage->data, 0, averageImage->nvox*averageImage->nbyper);
    // Create an image to store the defined value number
-   nifti_image *definedValue = nifti_copy_nim_info(averageImage);
-   definedValue->data = calloc(averageImage->nvox, averageImage->nbyper);
+   nifti_image *definedValue = nifti_dup(*averageImage, false);
    // Loop over all input images
    for(size_t i=0; i<imageNumber; ++i){
       // Generate a deformation field defined by the average final
@@ -440,9 +437,7 @@ int compute_average_image(nifti_image *averageImage,
          if(demeanField!=nullptr){
             if(deformationField->intent_p1==DEF_VEL_FIELD){
                reg_tools_subtractImageFromImage(deformationField,demeanField,deformationField);
-               nifti_image *tempDef = nifti_copy_nim_info(deformationField);
-               tempDef->data = malloc(tempDef->nvox*tempDef->nbyper);
-               memcpy(tempDef->data,deformationField->data,tempDef->nvox*tempDef->nbyper);
+               nifti_image *tempDef = nifti_dup(*deformationField);
                tempDef->scl_slope=1.f;
                tempDef->scl_inter=0.f;
                reg_defField_getDeformationFieldFromFlowField(tempDef,deformationField,false);

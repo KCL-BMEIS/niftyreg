@@ -497,9 +497,7 @@ int main(int argc, char **argv)
     if(flag->normFlag)
     {
         reg_tools_changeDatatype<float>(image);
-        nifti_image *normImage = nifti_copy_nim_info(image);
-        normImage->data = malloc(normImage->nvox * normImage->nbyper);
-        memcpy(normImage->data, image->data, normImage->nvox*normImage->nbyper);
+        nifti_image *normImage = nifti_dup(*image);
         reg_heapSort(static_cast<float *>(normImage->data), normImage->nvox);
         float minValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(03*(int)normImage->nvox/100))];
         float maxValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(97*(int)normImage->nvox/100))];
@@ -515,9 +513,7 @@ int main(int argc, char **argv)
 
     if(flag->smoothGaussianFlag || flag->smoothSplineFlag || flag->smoothMeanFlag)
     {
-        nifti_image *smoothImg = nifti_copy_nim_info(image);
-        smoothImg->data = malloc(smoothImg->nvox * smoothImg->nbyper);
-        memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
+        nifti_image *smoothImg = nifti_dup(*image);
         float *kernelSize = new float[smoothImg->nt*smoothImg->nu];
         bool *timePoint = new bool[smoothImg->nt*smoothImg->nu];
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) timePoint[i]=true;
@@ -555,9 +551,7 @@ int main(int argc, char **argv)
 
     if(flag->smoothLabFlag)
     {
-        nifti_image *smoothImg = nifti_copy_nim_info(image);
-        smoothImg->data = malloc(smoothImg->nvox * smoothImg->nbyper);
-        memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
+        nifti_image *smoothImg = nifti_dup(*image);
 
         bool *timePoint = new bool[smoothImg->nt*smoothImg->nu];
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) timePoint[i]=true;
@@ -631,8 +625,7 @@ int main(int argc, char **argv)
             }
         }
 
-        nifti_image *outputImage = nifti_copy_nim_info(image);
-        outputImage->data = malloc(outputImage->nvox * outputImage->nbyper);
+        nifti_image *outputImage = nifti_dup(*image, false);
 
         if(image2!=nullptr)
         {
@@ -734,8 +727,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        nifti_image *outputImage = nifti_copy_nim_info(image);
-        outputImage->data = malloc(outputImage->nvox * outputImage->nbyper);
+        nifti_image *outputImage = nifti_dup(*image, false);
 
         reg_tools_nanMask_image(image,maskImage,outputImage);
 
@@ -948,8 +940,7 @@ int main(int argc, char **argv)
         if(image->datatype!=NIFTI_TYPE_FLOAT32)
             reg_tools_changeDatatype<float>(image);
         // Create a temporary scaled image
-        nifti_image *scaledImage = nifti_copy_nim_info(image);
-        scaledImage->data = malloc(scaledImage->nvox * scaledImage->nbyper);
+        nifti_image *scaledImage = nifti_dup(*image, false);
         // Rescale the input image
         float min_value = reg_tools_getMinValue(image, -1);
         float max_value = reg_tools_getMaxValue(image, -1);

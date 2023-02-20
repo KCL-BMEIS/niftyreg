@@ -216,18 +216,12 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImgPtr,
     this->forwardCorrelationImage->data = malloc(voxelNumber * this->forwardCorrelationImage->nbyper);
 
     // Allocate the required images to store mean and stdev of the reference image
-    this->referenceMeanImage = nifti_copy_nim_info(this->forwardCorrelationImage);
-    this->referenceMeanImage->data = malloc(this->referenceMeanImage->nvox * this->referenceMeanImage->nbyper);
-
-    this->referenceSdevImage = nifti_copy_nim_info(this->forwardCorrelationImage);
-    this->referenceSdevImage->data = malloc(this->referenceSdevImage->nvox * this->referenceSdevImage->nbyper);
+    this->referenceMeanImage = nifti_dup(*this->forwardCorrelationImage, false);
+    this->referenceSdevImage = nifti_dup(*this->forwardCorrelationImage, false);
 
     // Allocate the required images to store mean and stdev of the warped floating image
-    this->warpedFloatingMeanImage = nifti_copy_nim_info(this->forwardCorrelationImage);
-    this->warpedFloatingMeanImage->data = malloc(this->warpedFloatingMeanImage->nvox * this->warpedFloatingMeanImage->nbyper);
-
-    this->warpedFloatingSdevImage = nifti_copy_nim_info(this->forwardCorrelationImage);
-    this->warpedFloatingSdevImage->data = malloc(this->warpedFloatingSdevImage->nvox * this->warpedFloatingSdevImage->nbyper);
+    this->warpedFloatingMeanImage = nifti_dup(*this->forwardCorrelationImage, false);
+    this->warpedFloatingSdevImage = nifti_dup(*this->forwardCorrelationImage, false);
 
     // Allocate the array to store the mask of the forward image
     this->forwardMask = (int*)malloc(voxelNumber * sizeof(int));
@@ -242,18 +236,12 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImgPtr,
         this->backwardCorrelationImage->data = malloc(voxelNumber * this->backwardCorrelationImage->nbyper);
 
         // Allocate the required images to store mean and stdev of the floating image
-        this->floatingMeanImage = nifti_copy_nim_info(this->backwardCorrelationImage);
-        this->floatingMeanImage->data = malloc(this->floatingMeanImage->nvox * this->floatingMeanImage->nbyper);
-
-        this->floatingSdevImage = nifti_copy_nim_info(this->backwardCorrelationImage);
-        this->floatingSdevImage->data = malloc(this->floatingSdevImage->nvox * this->floatingSdevImage->nbyper);
+        this->floatingMeanImage = nifti_dup(*this->backwardCorrelationImage, false);
+        this->floatingSdevImage = nifti_dup(*this->backwardCorrelationImage, false);
 
         // Allocate the required images to store mean and stdev of the warped reference image
-        this->warpedReferenceMeanImage = nifti_copy_nim_info(this->backwardCorrelationImage);
-        this->warpedReferenceMeanImage->data = malloc(this->warpedReferenceMeanImage->nvox * this->warpedReferenceMeanImage->nbyper);
-
-        this->warpedReferenceSdevImage = nifti_copy_nim_info(this->backwardCorrelationImage);
-        this->warpedReferenceSdevImage->data = malloc(this->warpedReferenceSdevImage->nvox * this->warpedReferenceSdevImage->nbyper);
+        this->warpedReferenceMeanImage = nifti_dup(*this->backwardCorrelationImage, false);
+        this->warpedReferenceSdevImage = nifti_dup(*this->backwardCorrelationImage, false);
 
         // Allocate the array to store the mask of the backward image
         this->backwardMask = (int*)malloc(voxelNumber * sizeof(int));

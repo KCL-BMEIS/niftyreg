@@ -51,8 +51,7 @@ void F3dContent::DeallocateLocalWeightSim() {
 }
 /* *************************************************************** */
 void F3dContent::AllocateWarpedGradient() {
-    warpedGradient = nifti_copy_nim_info(deformationField);
-    warpedGradient->data = calloc(warpedGradient->nvox, warpedGradient->nbyper);
+    warpedGradient = nifti_dup(*deformationField, false);
 }
 /* *************************************************************** */
 void F3dContent::DeallocateWarpedGradient() {
@@ -63,8 +62,7 @@ void F3dContent::DeallocateWarpedGradient() {
 }
 /* *************************************************************** */
 void F3dContent::AllocateTransformationGradient() {
-    transformationGradient = nifti_copy_nim_info(controlPointGrid);
-    transformationGradient->data = calloc(transformationGradient->nvox, transformationGradient->nbyper);
+    transformationGradient = nifti_dup(*controlPointGrid, false);
 }
 /* *************************************************************** */
 void F3dContent::DeallocateTransformationGradient() {
@@ -75,8 +73,7 @@ void F3dContent::DeallocateTransformationGradient() {
 }
 /* *************************************************************** */
 void F3dContent::AllocateVoxelBasedMeasureGradient() {
-    voxelBasedMeasureGradient = nifti_copy_nim_info(deformationField);
-    voxelBasedMeasureGradient->data = calloc(voxelBasedMeasureGradient->nvox, voxelBasedMeasureGradient->nbyper);
+    voxelBasedMeasureGradient = nifti_dup(*deformationField, false);
 }
 /* *************************************************************** */
 void F3dContent::DeallocateVoxelBasedMeasureGradient() {

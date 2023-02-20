@@ -2981,8 +2981,7 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
 {
 
    // A second field is allocated to store the deformation
-   nifti_image *defFieldImage = nifti_copy_nim_info(flowFieldImage);
-   defFieldImage->data = malloc(defFieldImage->nvox * defFieldImage->nbyper);
+   nifti_image *defFieldImage = nifti_dup(*flowFieldImage, false);
 
    // Remove the affine component from the flow field
    if(flowFieldImage->num_ext>0)

@@ -90,17 +90,14 @@ void GetMINDImageDescriptor_core(nifti_image* inputImage,
     currentInputImage->data = static_cast<void*>(&inputImagePtr[current_timepoint * voxelNumber]);
 
     // Allocate an image to store the mean image
-    nifti_image *meanImage = nifti_copy_nim_info(currentInputImage);
-    meanImage->data = calloc(meanImage->nvox, meanImage->nbyper);
+    nifti_image *meanImage = nifti_dup(*currentInputImage, false);
     DTYPE* meanImgDataPtr = static_cast<DTYPE*>(meanImage->data);
 
     // Allocate an image to store the shifted image
-    nifti_image *shiftedImage = nifti_copy_nim_info(currentInputImage);
-    shiftedImage->data = malloc(shiftedImage->nvox * shiftedImage->nbyper);
+    nifti_image *shiftedImage = nifti_dup(*currentInputImage, false);
 
     // Allocation of the difference image
-    nifti_image *diff_image = nifti_copy_nim_info(currentInputImage);
-    diff_image->data = malloc(diff_image->nvox * diff_image->nbyper);
+    nifti_image *diff_image = nifti_dup(*currentInputImage, false);
 
     // Define the sigma for the convolution
     float sigma = -0.5;// negative value denotes voxel width
@@ -223,13 +220,11 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
     currentInputImage->data = static_cast<void*>(&inputImagePtr[current_timepoint * voxelNumber]);
 
     // Allocate an image to store the mean image
-    nifti_image *mean_img = nifti_copy_nim_info(currentInputImage);
-    mean_img->data = calloc(mean_img->nvox, mean_img->nbyper);
+    nifti_image *mean_img = nifti_dup(*currentInputImage, false);
     DTYPE* meanImgDataPtr = static_cast<DTYPE*>(mean_img->data);
 
     // Allocate an image to store the warped image
-    nifti_image *shiftedImage = nifti_copy_nim_info(currentInputImage);
-    shiftedImage->data = malloc(shiftedImage->nvox * shiftedImage->nbyper);
+    nifti_image *shiftedImage = nifti_dup(*currentInputImage, false);
 
     // Define the sigma for the convolution
     float sigma = -0.5;// negative value denotes voxel width
@@ -242,12 +237,10 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
     // Allocation of the difference image
     //std::vector<nifti_image *> vectNiftiImage;
     //for(int i=0;i<samplingNbr;i++) {
-    nifti_image *diff_image = nifti_copy_nim_info(currentInputImage);
-    diff_image->data = malloc(diff_image->nvox * diff_image->nbyper);
+    nifti_image *diff_image = nifti_dup(*currentInputImage, false);
     int *mask_diff_image = (int*)calloc(diff_image->nvox, sizeof(int));
 
-    nifti_image *diff_imageShifted = nifti_copy_nim_info(currentInputImage);
-    diff_imageShifted->data = malloc(diff_imageShifted->nvox * diff_imageShifted->nbyper);
+    nifti_image *diff_imageShifted = nifti_dup(*currentInputImage, false);
 
     int RSampling3D_x[6] = {+descriptorOffset, +descriptorOffset, -descriptorOffset, +0, +descriptorOffset, +0};
     int RSampling3D_y[6] = {+descriptorOffset, -descriptorOffset, +0, -descriptorOffset, +0, +descriptorOffset};

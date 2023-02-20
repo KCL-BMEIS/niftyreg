@@ -839,9 +839,8 @@ int main(int argc, char **argv)
             case DEF_VEL_FIELD:
                printf("[NiftyReg] Transformation 2 is a deformation field velocity:\n[NiftyReg] %s\n",
                       input2TransImage->fname);
-               output2TransImage=nifti_copy_nim_info(input2TransImage);
+               output2TransImage = nifti_dup(*input2TransImage, false);
                output2TransImage->intent_p1=DEF_FIELD;
-               output2TransImage->data=calloc(output2TransImage->nvox,output2TransImage->nbyper);
                reg_defField_getDeformationFieldFromFlowField(input2TransImage,
                      output2TransImage,
                      false // the number of step is not automatically updated
@@ -851,9 +850,8 @@ int main(int argc, char **argv)
             case DISP_VEL_FIELD:
                printf("[NiftyReg] Transformation 2 is a displacement field velocity:\n[NiftyReg] %s\n",
                       input2TransImage->fname);
-               output2TransImage=nifti_copy_nim_info(input2TransImage);
+               output2TransImage = nifti_dup(*input2TransImage, false);
                output2TransImage->intent_p1=DEF_FIELD;
-               output2TransImage->data=calloc(output2TransImage->nvox,output2TransImage->nbyper);
                reg_getDeformationFromDisplacement(input2TransImage);
                reg_defField_getDeformationFieldFromFlowField(input2TransImage,
                      output2TransImage,
@@ -1342,9 +1340,8 @@ int main(int argc, char **argv)
       case DEF_VEL_FIELD:
       {
          // create a temp deformation field containing an identity transformation
-         nifti_image *tempField=nifti_copy_nim_info(outputTransImage);
+         nifti_image *tempField = nifti_dup(*outputTransImage, false);
          tempField->intent_p1=DEF_FIELD;
-         tempField->data=calloc(tempField->nvox,tempField->nbyper);
          reg_getDeformationFromDisplacement(tempField);
          reg_getDisplacementFromDeformation(inputTransImage);
          reg_resampleGradient(inputTransImage,
@@ -1362,9 +1359,8 @@ int main(int argc, char **argv)
       case DISP_VEL_FIELD:
       {
          // create a temp deformation field containing an identity transformation
-         nifti_image *tempField=nifti_copy_nim_info(outputTransImage);
+         nifti_image *tempField = nifti_dup(*outputTransImage, false);
          tempField->intent_p1=DEF_FIELD;
-         tempField->data=calloc(tempField->nvox,tempField->nbyper);
          reg_getDeformationFromDisplacement(tempField);
          reg_resampleGradient(inputTransImage,
                               outputTransImage,
