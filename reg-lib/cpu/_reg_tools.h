@@ -448,3 +448,10 @@ void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x
  */
 size_t CalcVoxelNumber(const nifti_image& image, const int& dimCount = 3);
 /* *************************************************************** */
+/** @brief Duplicates the nifti image
+ * @param image Input image
+ * @param copyData Boolean to specify if the image data should be copied
+ * @return The duplicated image
+ */
+nifti_image* nifti_dup(const nifti_image& image, const bool& copyData = true);
+/* *************************************************************** */

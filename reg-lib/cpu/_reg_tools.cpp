@@ -2854,3 +2854,12 @@ size_t CalcVoxelNumber(const nifti_image& image, const int& dimCount) {
         voxelNumber *= static_cast<size_t>(std::abs(image.nw));
     return voxelNumber;
 }
+/* *************************************************************** */
+nifti_image* nifti_dup(const nifti_image& image, const bool& copyData) {
+    nifti_image *newImage = nifti_copy_nim_info(&image);
+    newImage->data = calloc(image.nvox, image.nbyper);
+    if (copyData)
+        memcpy(newImage->data, image.data, image.nvox * image.nbyper);
+    return newImage;
+}
+/* *************************************************************** */
