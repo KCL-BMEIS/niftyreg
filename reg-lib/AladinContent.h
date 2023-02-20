@@ -26,7 +26,7 @@ public:
     virtual _reg_blockMatchingParam* GetBlockMatchingParams() { return blockMatchingParams; }
 
     // Setters
-    void SetCaptureRange(const int captureRangeIn);
+    virtual void SetCaptureRange(const int captureRangeIn);
     virtual void SetBlockMatchingParams(_reg_blockMatchingParam *bmp) { blockMatchingParams = bmp; }
 
 protected:

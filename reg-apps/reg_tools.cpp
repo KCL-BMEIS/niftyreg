@@ -626,7 +626,7 @@ int main(int argc, char **argv)
                 reg_tools_changeDatatype<double>(image2,NIFTI_TYPE_FLOAT64);
                 break;
             default:
-                reg_print_msg_error("Unsurported data type.");
+                reg_print_msg_error("Unsupported data type.");
                 reg_exit();
             }
         }

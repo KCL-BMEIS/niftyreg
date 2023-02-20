@@ -114,12 +114,12 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImgPtr,
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 double reg_nmi_gpu::GetSimilarityMeasureValue() {
     // The NMI computation is performed into the host for now
-    // The relevant images have to be transfered from the device to the host
-    cudaMemcpy(this->warpedFloatingImagePointer->data,
-               this->warpedFloatingDevicePointer,
-               this->warpedFloatingImagePointer->nvox *
-               this->warpedFloatingImagePointer->nbyper,
-               cudaMemcpyDeviceToHost);
+    // The relevant images have to be transferred from the device to the host
+    NR_CUDA_SAFE_CALL(cudaMemcpy(this->warpedFloatingImagePointer->data,
+                                 this->warpedFloatingDevicePointer,
+                                 this->warpedFloatingImagePointer->nvox *
+                                 this->warpedFloatingImagePointer->nbyper,
+                                 cudaMemcpyDeviceToHost));
 
     reg_getNMIValue<float>(this->referenceImagePointer,
                            this->warpedFloatingImagePointer,

@@ -45,15 +45,13 @@ void reg_resampleImage_gpu(nifti_image *floatingImage,
     else floatingMatrix = floatingImage->qto_ijk;
 
     if (floatingImage->nz > 1) {
-        const unsigned int Grid_reg_resamplefloatingImage3D =
-            (unsigned int)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_resampleImage3D));
+        const unsigned Grid_reg_resamplefloatingImage3D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_resampleImage3D));
         dim3 B1(NR_BLOCK->Block_reg_resampleImage3D, 1, 1);
         dim3 G1(Grid_reg_resamplefloatingImage3D, Grid_reg_resamplefloatingImage3D, 1);
         reg_resampleImage3D_kernel<<<G1, B1>>>(warpedImageArray_d, *floatingTexture, *deformationFieldTexture, *maskTexture, floatingMatrix, floatingDim, activeVoxelNumber, paddingValue);
         NR_CUDA_CHECK_KERNEL(G1, B1);
     } else {
-        const unsigned int Grid_reg_resamplefloatingImage2D =
-            (unsigned int)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_resampleImage2D));
+        const unsigned Grid_reg_resamplefloatingImage2D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_resampleImage2D));
         dim3 B1(NR_BLOCK->Block_reg_resampleImage2D, 1, 1);
         dim3 G1(Grid_reg_resamplefloatingImage2D, Grid_reg_resamplefloatingImage2D, 1);
         reg_resampleImage2D_kernel<<<G1, B1>>>(warpedImageArray_d, *floatingTexture, *deformationFieldTexture, *maskTexture, floatingMatrix, floatingDim, activeVoxelNumber, paddingValue);
@@ -87,13 +85,13 @@ void reg_getImageGradient_gpu(nifti_image *floatingImage,
     else floatingMatrix = floatingImage->qto_ijk;
 
     if (floatingImage->nz > 1) {
-        const unsigned int Grid_reg_getImageGradient3D = (unsigned int)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_getImageGradient3D));
+        const unsigned Grid_reg_getImageGradient3D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_getImageGradient3D));
         dim3 B1(NR_BLOCK->Block_reg_getImageGradient3D, 1, 1);
         dim3 G1(Grid_reg_getImageGradient3D, Grid_reg_getImageGradient3D, 1);
         reg_getImageGradient3D_kernel<<<G1, B1>>>(warpedGradientArray_d, *floatingTexture, *deformationFieldTexture, floatingMatrix, floatingDim, activeVoxelNumber, paddingValue);
         NR_CUDA_CHECK_KERNEL(G1, B1);
     } else {
-        const unsigned int Grid_reg_getImageGradient2D = (unsigned int)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_getImageGradient2D));
+        const unsigned Grid_reg_getImageGradient2D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_getImageGradient2D));
         dim3 B1(NR_BLOCK->Block_reg_getImageGradient2D, 1, 1);
         dim3 G1(Grid_reg_getImageGradient2D, Grid_reg_getImageGradient2D, 1);
         reg_getImageGradient2D_kernel<<<G1, B1>>>(warpedGradientArray_d, *floatingTexture, *deformationFieldTexture, floatingMatrix, floatingDim, activeVoxelNumber, paddingValue);

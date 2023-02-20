@@ -35,7 +35,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
     nifti_image *reference3d = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
     reg_checkAndCorrectDimension(reference3d);
 
-    // Generate the different use cases
+    // Generate the different test cases
     std::vector<TestData> testCases;
 
     // Identity use case - 2D

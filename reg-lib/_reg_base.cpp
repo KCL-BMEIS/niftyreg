@@ -693,8 +693,8 @@ void reg_base<T>::Initialise() {
                 active[i] = false;
             sigma[0] = referenceSmoothingSigma;
             reg_tools_kernelConvolution(referencePyramid[l], sigma, GAUSSIAN_KERNEL, nullptr, active);
-            delete[]active;
-            delete[]sigma;
+            delete[] active;
+            delete[] sigma;
         }
         if (floatingSmoothingSigma != 0) {
             // Only the first image is smoothed
@@ -705,8 +705,8 @@ void reg_base<T>::Initialise() {
                 active[i] = false;
             sigma[0] = floatingSmoothingSigma;
             reg_tools_kernelConvolution(floatingPyramid[l], sigma, GAUSSIAN_KERNEL, nullptr, active);
-            delete[]active;
-            delete[]sigma;
+            delete[] active;
+            delete[] sigma;
         }
     }
 

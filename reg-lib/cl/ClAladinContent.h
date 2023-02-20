@@ -20,35 +20,35 @@ public:
                     const unsigned int percentageOfBlocks = 0,
                     const unsigned int inlierLts = 0,
                     int blockStepSize = 0);
-    ~ClAladinContent();
+    virtual ~ClAladinContent();
 
-    bool IsCurrentComputationDoubleCapable() override;
+    virtual bool IsCurrentComputationDoubleCapable() override;
 
     // OpenCL getters
-    cl_mem GetReferenceImageArrayClmem();
-    cl_mem GetFloatingImageArrayClmem();
-    cl_mem GetWarpedImageClmem();
-    cl_mem GetReferencePositionClmem();
-    cl_mem GetWarpedPositionClmem();
-    cl_mem GetDeformationFieldArrayClmem();
-    cl_mem GetTotalBlockClmem();
-    cl_mem GetMaskClmem();
-    cl_mem GetRefMatClmem();
-    cl_mem GetFloMatClmem();
-    int* GetReferenceDims();
-    int* GetFloatingDims();
+    virtual cl_mem GetReferenceImageArrayClmem();
+    virtual cl_mem GetFloatingImageArrayClmem();
+    virtual cl_mem GetWarpedImageClmem();
+    virtual cl_mem GetReferencePositionClmem();
+    virtual cl_mem GetWarpedPositionClmem();
+    virtual cl_mem GetDeformationFieldArrayClmem();
+    virtual cl_mem GetTotalBlockClmem();
+    virtual cl_mem GetMaskClmem();
+    virtual cl_mem GetRefMatClmem();
+    virtual cl_mem GetFloMatClmem();
+    virtual int* GetReferenceDims();
+    virtual int* GetFloatingDims();
 
     // CPU getters with data downloaded from device
-    _reg_blockMatchingParam* GetBlockMatchingParams() override;
-    nifti_image* GetDeformationField() override;
-    nifti_image* GetWarped() override;
+    virtual _reg_blockMatchingParam* GetBlockMatchingParams() override;
+    virtual nifti_image* GetDeformationField() override;
+    virtual nifti_image* GetWarped() override;
 
     // Setters
-    void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
-    void SetWarped(nifti_image *warpedImageIn) override;
-    void SetDeformationField(nifti_image *deformationFieldIn) override;
-    void SetReferenceMask(int *referenceMaskIn) override;
-    void SetBlockMatchingParams(_reg_blockMatchingParam* bmp) override;
+    virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
+    virtual void SetWarped(nifti_image *warpedImageIn) override;
+    virtual void SetDeformationField(nifti_image *deformationFieldIn) override;
+    virtual void SetReferenceMask(int *referenceMaskIn) override;
+    virtual void SetBlockMatchingParams(_reg_blockMatchingParam* bmp) override;
 
 private:
     void InitVars();

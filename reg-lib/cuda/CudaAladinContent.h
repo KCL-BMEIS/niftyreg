@@ -14,20 +14,20 @@ public:
                       const unsigned int percentageOfBlocks = 0,
                       const unsigned int inlierLts = 0,
                       int blockStepSize = 0);
-    ~CudaAladinContent();
+    virtual ~CudaAladinContent();
 
-    bool IsCurrentComputationDoubleCapable() override;
+    virtual bool IsCurrentComputationDoubleCapable() override;
 
     // Device getters
-    float* GetReferenceImageArray_d();
-    float* GetFloatingImageArray_d();
-    float* GetWarpedImageArray_d();
-    float* GetTransformationMatrix_d();
-    float* GetReferencePosition_d();
-    float* GetWarpedPosition_d();
-    float* GetDeformationFieldArray_d();
-    float* GetReferenceMat_d();
-    float* GetFloIJKMat_d();
+    virtual float* GetReferenceImageArray_d();
+    virtual float* GetFloatingImageArray_d();
+    virtual float* GetWarpedImageArray_d();
+    virtual float* GetTransformationMatrix_d();
+    virtual float* GetReferencePosition_d();
+    virtual float* GetWarpedPosition_d();
+    virtual float* GetDeformationFieldArray_d();
+    virtual float* GetReferenceMat_d();
+    virtual float* GetFloIJKMat_d();
 
     //	float* GetAR_d(); // Removed until CUDA SVD is added back
     //	float* GetU_d(); // Removed until CUDA SVD is added back
@@ -36,23 +36,23 @@ public:
     //	float* GetLengths_d(); // Removed until CUDA SVD is added back
     //	float* GetNewWarpedPos_d(); // Removed until CUDA SVD is added back
 
-    int* GetTotalBlock_d();
-    int* GetMask_d();
+    virtual int* GetTotalBlock_d();
+    virtual int* GetMask_d();
 
-    int* GetReferenceDims();
-    int* GetFloatingDims();
+    virtual int* GetReferenceDims();
+    virtual int* GetFloatingDims();
 
     // CPU getters with data downloaded from device
-    _reg_blockMatchingParam* GetBlockMatchingParams() override;
-    nifti_image* GetDeformationField() override;
-    nifti_image* GetWarped() override;
+    virtual _reg_blockMatchingParam* GetBlockMatchingParams() override;
+    virtual nifti_image* GetDeformationField() override;
+    virtual nifti_image* GetWarped() override;
 
     // Setters
-    void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
-    void SetWarped(nifti_image *warpedImageIn) override;
-    void SetDeformationField(nifti_image *deformationFieldIn) override;
-    void SetReferenceMask(int *referenceMaskIn) override;
-    void SetBlockMatchingParams(_reg_blockMatchingParam* bmp) override;
+    virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
+    virtual void SetWarped(nifti_image *warpedImageIn) override;
+    virtual void SetDeformationField(nifti_image *deformationFieldIn) override;
+    virtual void SetReferenceMask(int *referenceMaskIn) override;
+    virtual void SetBlockMatchingParams(_reg_blockMatchingParam* bmp) override;
 
 private:
     void InitVars();

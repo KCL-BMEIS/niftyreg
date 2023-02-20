@@ -51,6 +51,7 @@ TEST_CASE("Resampling", "[resampling]") {
             ref2dPtr++;
         }
     }
+    ref2dPtr = static_cast<float*>(reference2d->data);
 
     // Create a corresponding 2D deformation field
     int dimDef[8] = { 5, 1, 1, 1, 1, 2, 1, 1 };
@@ -75,6 +76,7 @@ TEST_CASE("Resampling", "[resampling]") {
             }
         }
     }
+    ref3dPtr = static_cast<float*>(reference3d->data);
 
     // Create a corresponding 3D deformation field
     dimDef[5] = 3;
@@ -85,13 +87,12 @@ TEST_CASE("Resampling", "[resampling]") {
     def3dPtr[1] = 1.3f;
     def3dPtr[2] = 1.4f;
 
-    // Generate the different use cases
+    // Generate the different test cases
     std::vector<TestData> testCases;
 
     // Linear interpolation - 2D
     // coordinate in image: [1.2, 1.3]
     float resLinear2d[1] = {0};
-    ref2dPtr = static_cast<float*>(reference2d->data);
     for (int y = 1; y <= 2; ++y) {
         for (int x = 1; x <= 2; ++x) {
             resLinear2d[0] += ref2dPtr[y * dimFlo[1] + x] *
@@ -147,7 +148,6 @@ TEST_CASE("Resampling", "[resampling]") {
     // Linear interpolation - 3D
     // coordinate in image: [1.2, 1.3, 1.4]
     float resLinear3d[1] = {0};
-    ref3dPtr = static_cast<float*>(reference3d->data);
     for (int z = 1; z <= 2; ++z) {
         for (int y = 1; y <= 2; ++y) {
             for (int x = 1; x <= 2; ++x) {
@@ -242,7 +242,7 @@ TEST_CASE("Resampling", "[resampling]") {
                 warped->dim[3] = warped->nz = 1;
                 warped->dim[5] = warped->nu = 1;
                 warped->nvox = CalcVoxelNumber(*warped, warped->ndim);
-                warped->data = malloc(warped->nvox * warped->nbyper);
+                warped->data = calloc(warped->nvox, warped->nbyper);
                 content->SetWarped(warped);
                 // Set the deformation field
                 content->SetDeformationField(defField);
