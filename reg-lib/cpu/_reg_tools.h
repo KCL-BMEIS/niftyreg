@@ -17,6 +17,9 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <cmath>
+#include <algorithm>
+#include <functional>
 #include "_reg_maths.h"
 
 using std::unique_ptr;
@@ -116,7 +119,7 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
  * @param axis Boolean array to specify which axis have to be
  * downsampled. The array follow the dim array of the nifti header.
  */
-extern "C++" template <class PrecisionTYPE>
+extern "C++" template <class PrecisionType>
 void reg_downsampleImage(nifti_image *image,
                          int type,
                          bool *axis);
@@ -127,13 +130,16 @@ void reg_downsampleImage(nifti_image *image,
  * @return Scalar value that corresponds to the longest
  * euclidean distance
  */
-extern "C++" template <class PrecisionTYPE>
-PrecisionTYPE reg_getMaximalLength(const nifti_image *image);
+extern "C++" template <class PrecisionType>
+PrecisionType reg_getMaximalLength(const nifti_image *image,
+                                   const bool& optimiseX,
+                                   const bool& optimiseY,
+                                   const bool& optimiseZ);
 /* *************************************************************** */
 /** @brief Change the datatype of a nifti image
  * @param image Image to be updated.
  */
-extern "C++" template <class NewTYPE>
+extern "C++" template <class NewType>
 void reg_tools_changeDatatype(nifti_image *image,
                               int type = -1);
 /* *************************************************************** */
@@ -320,7 +326,7 @@ float reg_tools_getSTDValue(const nifti_image *img);
  * @param levelToPerform Number to level that will be perform during
  * the registration.
  */
-extern "C++" template<class DTYPE>
+extern "C++" template<class DataType>
 int reg_createImagePyramid(const nifti_image *input,
                            nifti_image **pyramid,
                            unsigned int levelNumber,
@@ -335,7 +341,7 @@ int reg_createImagePyramid(const nifti_image *input,
  * @param levelToPerform Number to level that will be perform during
  * the registration.
  */
-extern "C++" template<class DTYPE>
+extern "C++" template<class DataType>
 int reg_createMaskPyramid(const nifti_image *input,
                           int **pyramid,
                           unsigned int levelNumber,
@@ -403,9 +409,9 @@ void reg_setGradientToZero(nifti_image *image,
  * The returned value is the largest value computed as ((A/B)-1)
  * If A or B are zeros then the (A-B) value is returned.
  */
-extern "C++" template<class DTYPE>
-double reg_test_compare_arrays(const DTYPE *ptrA,
-                               const DTYPE *ptrB,
+extern "C++" template<class DataType>
+double reg_test_compare_arrays(const DataType *ptrA,
+                               const DataType *ptrB,
                                size_t nvox);
 /* *************************************************************** */
 /** @brief The functions returns the largest ratio between input image intensities

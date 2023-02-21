@@ -132,13 +132,12 @@ void Compute::GetImageGradient(int interpolation, float paddingValue, int active
 }
 /* *************************************************************** */
 double Compute::GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ) {
-    // TODO Fix reg_getMaximalLength to accept optimiseX, optimiseY, optimiseZ
     nifti_image *transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
     switch (transformationGradient->datatype) {
     case NIFTI_TYPE_FLOAT32:
-        return reg_getMaximalLength<float>(transformationGradient);
+        return reg_getMaximalLength<float>(transformationGradient, optimiseX, optimiseY, optimiseZ);
     case NIFTI_TYPE_FLOAT64:
-        return reg_getMaximalLength<double>(transformationGradient);
+        return reg_getMaximalLength<double>(transformationGradient, optimiseX, optimiseY, optimiseZ);
     }
     return 0;
 }
