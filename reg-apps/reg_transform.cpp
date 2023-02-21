@@ -141,7 +141,7 @@ void Usage(char *exec)
    printf("\t\tfilename2 - Image used as a reference (-ref arg in FLIRT)\n");
    printf("\t\tfilename3 - Image used as a floating (-in arg in FLIRT)\n");
    printf("\t\tfilename4 - Output affine transformation file name\n\n");
-#if defined (_OPENMP)
+#ifdef _OPENMP
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
    PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
    // Set the default number of thread
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
-#if defined (_OPENMP)
+#ifdef _OPENMP
          omp_set_num_threads(atoi(argv[++i]));
 #else
          reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");

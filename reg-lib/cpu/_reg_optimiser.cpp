@@ -5,8 +5,7 @@
 
 #include "_reg_optimiser.h"
 
- /* *************************************************************** */
- /* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 reg_optimiser<T>::reg_optimiser() {
     this->dofNumber = 0;
@@ -33,7 +32,6 @@ reg_optimiser<T>::reg_optimiser() {
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template <class T>
 reg_optimiser<T>::~reg_optimiser() {
     if (this->bestDOF != nullptr)
@@ -46,7 +44,6 @@ reg_optimiser<T>::~reg_optimiser() {
     reg_print_msg_debug("reg_optimiser<T>::~reg_optimiser() called");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::Initialise(size_t nvox,
@@ -96,7 +93,6 @@ void reg_optimiser<T>::Initialise(size_t nvox,
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::RestoreBestDOF() {
     // restore forward transformation
@@ -106,7 +102,6 @@ void reg_optimiser<T>::RestoreBestDOF() {
         memcpy(this->currentDOF_b, this->bestDOF_b, this->dofNumber_b * sizeof(T));
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::StoreCurrentDOF() {
     // save forward transformation
@@ -115,7 +110,6 @@ void reg_optimiser<T>::StoreCurrentDOF() {
     if (this->currentDOF_b != nullptr && this->bestDOF_b != nullptr && this->dofNumber_b > 0)
         memcpy(this->bestDOF_b, this->currentDOF_b, this->dofNumber_b * sizeof(T));
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::Perturbation(float length) {
@@ -135,7 +129,6 @@ void reg_optimiser<T>::Perturbation(float length) {
     this->StoreCurrentDOF();
     this->currentObjFunctionValue = this->bestObjFunctionValue = this->objFunc->GetObjectiveFunctionValue();
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::Optimise(T maxLength,
@@ -175,7 +168,7 @@ void reg_optimiser<T>::Optimise(T maxLength,
             addedLength += currentLength;
             // Increase the step size
             currentLength *= 1.1f;
-            currentLength = (currentLength < maxLength) ? currentLength : maxLength;
+            currentLength = std::min(currentLength, static_cast<float>(maxLength));
             // Save the current deformation parametrisation
             this->StoreCurrentDOF();
         } else {
@@ -199,12 +192,10 @@ void reg_optimiser<T>::Optimise(T maxLength,
     this->RestoreBestDOF();
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::reg_test_optimiser() {
     this->objFunc->UpdateParameters(1.f);
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 reg_conjugateGradient<T>::reg_conjugateGradient(): reg_optimiser<T>::reg_optimiser() {
@@ -217,7 +208,6 @@ reg_conjugateGradient<T>::reg_conjugateGradient(): reg_optimiser<T>::reg_optimis
     reg_print_msg_debug("reg_conjugateGradient<T>::reg_conjugateGradient() called");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 reg_conjugateGradient<T>::~reg_conjugateGradient() {
@@ -241,7 +231,6 @@ reg_conjugateGradient<T>::~reg_conjugateGradient() {
     reg_print_msg_debug("reg_conjugateGradient<T>::~reg_conjugateGradient() called");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 void reg_conjugateGradient<T>::Initialise(size_t nvox,
@@ -288,7 +277,6 @@ void reg_conjugateGradient<T>::Initialise(size_t nvox,
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template <class T>
 void reg_conjugateGradient<T>::UpdateGradientValues() {
 #ifdef WIN32
@@ -314,7 +302,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
         reg_print_msg_debug("Conjugate gradient initialisation");
 #endif
         // first conjugate gradient iteration
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(num,array1Ptr,array2Ptr,gradientPtr) \
     private(i)
@@ -323,7 +311,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
             array2Ptr[i] = array1Ptr[i] = -gradientPtr[i];
         }
         if (this->dofNumber_b > 0) {
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(num_b,array1Ptr_b,array2Ptr_b,gradientPtr_b) \
     private(i)
@@ -338,7 +326,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
         reg_print_msg_debug("Conjugate gradient update");
 #endif
         double dgg = 0, gg = 0;
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(num,array1Ptr,array2Ptr,gradientPtr) \
     private(i) \
@@ -353,7 +341,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
 
         if (this->dofNumber_b > 0) {
             double dgg_b = 0, gg_b = 0;
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(num_b,array1Ptr_b,array2Ptr_b,gradientPtr_b) \
     private(i) \
@@ -366,7 +354,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
             }
             gam = (dgg + dgg_b) / (gg + gg_b);
         }
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(num,array1Ptr,array2Ptr,gradientPtr,gam) \
     private(i)
@@ -377,7 +365,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
             gradientPtr[i] = -array2Ptr[i];
         }
         if (this->dofNumber_b > 0) {
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(num_b,array1Ptr_b,array2Ptr_b,gradientPtr_b,gam) \
     private(i)
@@ -389,9 +377,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
             }
         }
     }
-    return;
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 void reg_conjugateGradient<T>::Optimise(T maxLength,
@@ -403,20 +389,17 @@ void reg_conjugateGradient<T>::Optimise(T maxLength,
                                startLength);
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template <class T>
 void reg_conjugateGradient<T>::Perturbation(float length) {
     reg_optimiser<T>::Perturbation(length);
     this->firstcall = true;
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template <class T>
 void reg_conjugateGradient<T>::reg_test_optimiser() {
     this->UpdateGradientValues();
     reg_optimiser<T>::reg_test_optimiser();
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 reg_lbfgs<T>::reg_lbfgs()
@@ -427,7 +410,6 @@ reg_lbfgs<T>::reg_lbfgs()
     this->diffDOF = nullptr;
     this->diffGrad = nullptr;
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 reg_lbfgs<T>::~reg_lbfgs() {
@@ -452,7 +434,6 @@ reg_lbfgs<T>::~reg_lbfgs() {
         free(this->diffGrad);
     this->diffGrad = nullptr;
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 void reg_lbfgs<T>::Initialise(size_t nvox,
@@ -502,12 +483,10 @@ void reg_lbfgs<T>::Initialise(size_t nvox,
     }
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template <class T>
 void reg_lbfgs<T>::UpdateGradientValues() {
 
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 void reg_lbfgs<T>::Optimise(T maxLength,
@@ -518,7 +497,6 @@ void reg_lbfgs<T>::Optimise(T maxLength,
                                smallLength,
                                startLength);
 }
-/* *************************************************************** */
 /* *************************************************************** */
 //template class reg_optimiser<float>;
 //template class reg_conjugateGradient<float>;

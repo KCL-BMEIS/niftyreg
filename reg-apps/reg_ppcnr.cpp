@@ -22,9 +22,7 @@
 #include <time.h>
 #endif
 
-#define PrecisionTYPE float
-#define min(a,b)    ((a) < (b) ? (a): (b))
-#define max(a,b)    ((a) > (b) ? (a): (b))
+using PrecisionType = float;
 
 typedef struct
 {
@@ -385,7 +383,7 @@ int main(int argc, char **argv)
       fprintf(stderr,"* ERROR Error when reading image: %s\n",param->sourceImageName);
       return EXIT_FAILURE;
    }
-   reg_tools_changeDatatype<PrecisionTYPE>(image); // FIX DATA TYPE - DOES THIS WORK?
+   reg_tools_changeDatatype<PrecisionType>(image); // FIX DATA TYPE - DOES THIS WORK?
 
    // --- 2) READ/SET IMAGE MASK (4D VOLUME, [NS, SS]) ---
    nifti_image *mask=nullptr;
@@ -397,7 +395,7 @@ int main(int argc, char **argv)
          fprintf(stderr,"* ERROR Error when reading image: %s\n",param->pcaMaskName);
          return EXIT_FAILURE;
       }
-      reg_tools_changeDatatype<PrecisionTYPE>(mask);
+      reg_tools_changeDatatype<PrecisionType>(mask);
    }
    else
    {
@@ -406,11 +404,11 @@ int main(int argc, char **argv)
       mask->nt=mask->dim[4]=1;
       mask->nvox = CalcVoxelNumber(*mask, mask->ndim);
       mask->data = malloc(mask->nvox*mask->nbyper);
-      PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
+      PrecisionType *intensityPtrM = static_cast<PrecisionType *>(mask->data);
       for(size_t i=0; i<mask->nvox; i++) intensityPtrM[i]=1.0;
    }
-   PrecisionTYPE masksum=0;
-   PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
+   PrecisionType masksum=0;
+   PrecisionType *intensityPtrM = static_cast<PrecisionType *>(mask->data);
    for(size_t i=0; i<mask->nvox; i++)
    {
       if(intensityPtrM[i]) masksum++;
@@ -418,7 +416,7 @@ int main(int argc, char **argv)
 
    if(!flag->prinCompFlag && !flag->locality && !flag->meanonly && !flag->tp)
    {
-      param->prinComp=min((int)(image->nt/2),25);// Check the number of components
+      param->prinComp=std::min(image->nt/2,25);// Check the number of components
    }
    if(param->prinComp>=image->nt) param->prinComp=image->nt-1;
    if(!flag->outputResultFlag) param->outputResultName="ppcnrfinal-img.nii";
@@ -508,9 +506,9 @@ int main(int argc, char **argv)
    levels[2]=-2.5;
    int levelNumber=1;
    if(images->nt<3) levelNumber=3;
-   PrecisionTYPE *Mean = new PrecisionTYPE [image->nt];
-   PrecisionTYPE *Cov = new PrecisionTYPE [image->nt*image->nt];
-   PrecisionTYPE cov;
+   PrecisionType *Mean = new PrecisionType [image->nt];
+   PrecisionType *Cov = new PrecisionType [image->nt*image->nt];
+   PrecisionType cov;
 //   char pcaname[20];
 //   char outname[20];
 
@@ -529,8 +527,8 @@ int main(int argc, char **argv)
 
       // Read images and find image means
       unsigned int voxelNumber = image->nvox/image->nt;
-      PrecisionTYPE *intensityPtr = static_cast<PrecisionTYPE *>(image->data);
-      PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
+      PrecisionType *intensityPtr = static_cast<PrecisionType *>(image->data);
+      PrecisionType *intensityPtrM = static_cast<PrecisionType *>(mask->data);
       for(int t=0; t<image->nt; t++)
       {
          Mean[t]=0.f;
@@ -542,14 +540,14 @@ int main(int argc, char **argv)
       }
 
       // calculate covariance matrix
-      intensityPtr = static_cast<PrecisionTYPE *>(image->data);
-      intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
+      intensityPtr = static_cast<PrecisionType *>(image->data);
+      intensityPtrM = static_cast<PrecisionType *>(mask->data);
       for(int t=0; t<image->nt; t++)
       {
-         PrecisionTYPE *currentIntensityPtr2 = &intensityPtr[t*voxelNumber];
+         PrecisionType *currentIntensityPtr2 = &intensityPtr[t*voxelNumber];
          for(int t2=t; t2<image->nt; t2++)
          {
-            PrecisionTYPE *currentIntensityPtr1 = &intensityPtr[t*voxelNumber];
+            PrecisionType *currentIntensityPtr1 = &intensityPtr[t*voxelNumber];
             cov=0.f;
             for(size_t i=0; i<voxelNumber; i++)
             {
@@ -787,15 +785,15 @@ int main(int argc, char **argv)
       float dotty,sum;
       if(flag->locality)  // local mean
       {
-         PrecisionTYPE *intensityPtr1 = static_cast<PrecisionTYPE *>(image->data);
-         PrecisionTYPE *intensityPtr2 = static_cast<PrecisionTYPE *>(imagep->data);
+         PrecisionType *intensityPtr1 = static_cast<PrecisionType *>(image->data);
+         PrecisionType *intensityPtr2 = static_cast<PrecisionType *>(imagep->data);
          for(size_t i=0; i<voxelNumber; i++)
          {
             for(int t=0; t<image->nt; t++)
             {
                dotty=0;
                sum=0;
-               for(int tt=max(t-param->locality,0); tt<=min(t+param->locality,image->nt); tt++)
+               for(int tt=std::max(t-param->locality,0); tt<=std::min(t+param->locality,image->nt); tt++)
                {
                   dotty += intensityPtr1[tt*voxelNumber+i];
                   sum++;
@@ -806,8 +804,8 @@ int main(int argc, char **argv)
       }
       else if(flag->tp)  // single timepoint
       {
-         PrecisionTYPE *intensityPtr1 = static_cast<PrecisionTYPE *>(image->data);
-         PrecisionTYPE *intensityPtr2 = static_cast<PrecisionTYPE *>(imagep->data);
+         PrecisionType *intensityPtr1 = static_cast<PrecisionType *>(image->data);
+         PrecisionType *intensityPtr2 = static_cast<PrecisionType *>(imagep->data);
          for(size_t i=0; i<voxelNumber; i++)
          {
             for(int t=0; t<image->nt; t++)
@@ -818,8 +816,8 @@ int main(int argc, char **argv)
       }
       else  // ppcr and mean
       {
-         PrecisionTYPE *intensityPtr1 = static_cast<PrecisionTYPE *>(image->data);
-         PrecisionTYPE *intensityPtr2 = static_cast<PrecisionTYPE *>(imagep->data);
+         PrecisionType *intensityPtr1 = static_cast<PrecisionType *>(image->data);
+         PrecisionType *intensityPtr2 = static_cast<PrecisionType *>(imagep->data);
          for(size_t i=0; i<voxelNumber; i++)
          {
             for(int c=0; c<prinCompNumber; c++) // Add up component contributions
@@ -851,9 +849,9 @@ int main(int argc, char **argv)
          /* ****************************/
          // current: images // these are both open: perpetual source
          // target:  imagep //					   pca target
-         PrecisionTYPE *intensityPtrP = static_cast<PrecisionTYPE *>(imagep->data); // pointer to pca-anchor data
-         PrecisionTYPE *intensityPtrS = static_cast<PrecisionTYPE *>(images->data); // pointer to real source-float data
-         PrecisionTYPE *intensityPtrC = static_cast<PrecisionTYPE *>(image->data); // pointer to updated 'current' data
+         PrecisionType *intensityPtrP = static_cast<PrecisionType *>(imagep->data); // pointer to pca-anchor data
+         PrecisionType *intensityPtrS = static_cast<PrecisionType *>(images->data); // pointer to real source-float data
+         PrecisionType *intensityPtrC = static_cast<PrecisionType *>(image->data); // pointer to updated 'current' data
          for(int imageNumber=0; imageNumber<images->nt; imageNumber++)
          {
             // ROLLING FLOAT AND ANCHOR IMAGES
@@ -866,8 +864,8 @@ int main(int argc, char **argv)
             nifti_image *storet = nifti_dup(*stores, false);
 
             // COPY THE APPROPRIATE VALUES
-            PrecisionTYPE *intensityPtrPP = static_cast<PrecisionTYPE *>(storet->data); // 3D real source image (needs current cpp image)
-            PrecisionTYPE *intensityPtrSS = static_cast<PrecisionTYPE *>(stores->data); // 3D pca-float data
+            PrecisionType *intensityPtrPP = static_cast<PrecisionType *>(storet->data); // 3D real source image (needs current cpp image)
+            PrecisionType *intensityPtrSS = static_cast<PrecisionType *>(stores->data); // 3D pca-float data
             memcpy(intensityPtrPP, &intensityPtrP[imageNumber*storet->nvox], storet->nvox*storet->nbyper);
             memcpy(intensityPtrSS, &intensityPtrS[imageNumber*stores->nvox], stores->nvox*stores->nbyper);
 
@@ -943,7 +941,7 @@ int main(int argc, char **argv)
 
             // READ IN RESULT AND MAKE A NEW CURRENT IMAGE 'image'
             stores = nifti_image_read("outputResult.nii",true); // TODO NAME
-            PrecisionTYPE *intensityPtrCC = static_cast<PrecisionTYPE *>(stores->data); // 3D result image
+            PrecisionType *intensityPtrCC = static_cast<PrecisionType *>(stores->data); // 3D result image
             memcpy(&intensityPtrC[imageNumber*stores->nvox], intensityPtrCC, stores->nvox*stores->nbyper);
             nifti_image_free(stores);
          }
@@ -968,14 +966,14 @@ int main(int argc, char **argv)
             nifti_image *dofs = nifti_copy_nim_info(dof);
             dofs->nt = dofs->dim[4] = images->nt;
             dofs->nvox = dof->nvox*images->nt;
-            dofs->data = (PrecisionTYPE *)calloc(dofs->nvox, dof->nbyper);
-            PrecisionTYPE *intensityPtrD = static_cast<PrecisionTYPE *>(dofs->data);
+            dofs->data = (PrecisionType *)calloc(dofs->nvox, dof->nbyper);
+            PrecisionType *intensityPtrD = static_cast<PrecisionType *>(dofs->data);
             for(int t=0; t<images->nt; t++)
             {
                char buffer[20];
                sprintf(buffer,"float%s%i.nii",style, t+1);
                nifti_image *dof = nifti_image_read(buffer,true);
-               PrecisionTYPE *intensityPtrDD = static_cast<PrecisionTYPE *>(dof->data);
+               PrecisionType *intensityPtrDD = static_cast<PrecisionType *>(dof->data);
                int r=dof->nvox/3.0;
                for(int i=0; i<3; i++)
                {
@@ -1019,14 +1017,14 @@ int main(int argc, char **argv)
          nifti_image *dofs = nifti_copy_nim_info(dof);
          dofs->nt = dofs->dim[4] = images->nt;
          dofs->nvox = dof->nvox*images->nt;
-         dofs->data = (PrecisionTYPE *)calloc(dofs->nvox, dof->nbyper);
-         PrecisionTYPE *intensityPtrD = static_cast<PrecisionTYPE *>(dofs->data);
+         dofs->data = (PrecisionType *)calloc(dofs->nvox, dof->nbyper);
+         PrecisionType *intensityPtrD = static_cast<PrecisionType *>(dofs->data);
          for(int t=0; t<images->nt; t++)
          {
             char buffer[20];
             sprintf(buffer,"float%s%i.nii",style, t+1);
             nifti_image *dof = nifti_image_read(buffer,true);
-            PrecisionTYPE *intensityPtrDD = static_cast<PrecisionTYPE *>(dof->data);
+            PrecisionType *intensityPtrDD = static_cast<PrecisionType *>(dof->data);
             int r=dof->nvox/3.0;
             for(int i=0; i<3; i++)
             {

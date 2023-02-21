@@ -36,7 +36,7 @@ void svd(T **in, size_t size_m, size_t size_n, T * w, T **v) {
    Eigen::MatrixXd m(size_m, size_n);
 
    //Convert to Eigen matrix
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(in,m, size__m, size__n) \
    private(sm, sn)
@@ -51,7 +51,7 @@ void svd(T **in, size_t size_m, size_t size_n, T * w, T **v) {
 
    Eigen::JacobiSVD<Eigen::MatrixXd> svd(m, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(in,svd,v,w, size__n,size__m) \
    private(sn2, sn, sm)
@@ -97,7 +97,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
    Eigen::MatrixXd m(size__m, size__n);
 
    //Convert to Eigen matrix
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(in, m, size__m, size__n) \
    private(sm, sn)
@@ -113,7 +113,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
    Eigen::JacobiSVD<Eigen::MatrixXd> svd(m, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
    min_dim = std::min(size__m, size__n);
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(svd, min_dim, S) \
    private(i, j)
@@ -131,7 +131,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
    }
 
    if (size__m > size__n) {
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(svd, min_dim, V) \
    private(i, j)
@@ -143,7 +143,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 
          }
       }
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(svd, size__m, size__n, U) \
    private(i, j)
@@ -155,7 +155,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
       }
    }
    else {
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(svd, min_dim, U) \
    private(i, j)
@@ -167,7 +167,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 
          }
       }
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(svd, size__m, size__n, V) \
    private(i, j)

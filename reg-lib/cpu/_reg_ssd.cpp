@@ -101,7 +101,7 @@ void reg_ssd::SetNormaliseTimepoint(int timepoint, bool normalise) {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 double reg_getSSDValue(nifti_image *referenceImage,
                        nifti_image *warpedImage,
                        double *timePointWeight,
@@ -117,16 +117,16 @@ double reg_getSSDValue(nifti_image *referenceImage,
     const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
     // Create pointers to the reference and warped image data
-    DTYPE *referencePtr = static_cast<DTYPE*>(referenceImage->data);
-    DTYPE *warpedPtr = static_cast<DTYPE*>(warpedImage->data);
+    DataType *referencePtr = static_cast<DataType*>(referenceImage->data);
+    DataType *warpedPtr = static_cast<DataType*>(warpedImage->data);
     // Create a pointer to the Jacobian determinant image if defined
-    DTYPE *jacDetPtr = nullptr;
+    DataType *jacDetPtr = nullptr;
     if (jacobianDetImage != nullptr)
-        jacDetPtr = static_cast<DTYPE*>(jacobianDetImage->data);
+        jacDetPtr = static_cast<DataType*>(jacobianDetImage->data);
     // Create a pointer to the local weight image if defined
-    DTYPE *localWeightPtr = nullptr;
+    DataType *localWeightPtr = nullptr;
     if (localWeightSimImage != nullptr)
-        localWeightPtr = static_cast<DTYPE*>(localWeightSimImage->data);
+        localWeightPtr = static_cast<DataType*>(localWeightSimImage->data);
 
     double SSD_global = 0;
     double refValue, warValue, diff;
@@ -135,11 +135,11 @@ double reg_getSSDValue(nifti_image *referenceImage,
     for (int time = 0; time < referenceImage->nt; ++time) {
         if (timePointWeight[time] > 0) {
             // Create pointers to the current time point of the reference and warped images
-            DTYPE *currentRefPtr = &referencePtr[time * voxelNumber];
-            DTYPE *currentWarPtr = &warpedPtr[time * voxelNumber];
+            DataType *currentRefPtr = &referencePtr[time * voxelNumber];
+            DataType *currentWarPtr = &warpedPtr[time * voxelNumber];
 
             double SSD_local = 0., n = 0.;
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, mask, \
     jacobianDetImage, jacDetPtr, voxelNumber, localWeightPtr) \
@@ -255,7 +255,7 @@ double reg_ssd::GetSimilarityMeasureValue() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *warpedImage,
                                   nifti_image *warpedGradient,
@@ -279,33 +279,33 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
     const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
     // Pointers to the image data
-    DTYPE *refImagePtr = static_cast<DTYPE *>(referenceImage->data);
-    DTYPE *currentRefPtr = &refImagePtr[current_timepoint * voxelNumber];
-    DTYPE *warImagePtr = static_cast<DTYPE *>(warpedImage->data);
-    DTYPE *currentWarPtr = &warImagePtr[current_timepoint * voxelNumber];
+    DataType *refImagePtr = static_cast<DataType *>(referenceImage->data);
+    DataType *currentRefPtr = &refImagePtr[current_timepoint * voxelNumber];
+    DataType *warImagePtr = static_cast<DataType *>(warpedImage->data);
+    DataType *currentWarPtr = &warImagePtr[current_timepoint * voxelNumber];
 
     // Pointers to the spatial gradient of the warped image
-    DTYPE *spatialGradPtrX = static_cast<DTYPE *>(warpedGradient->data);
-    DTYPE *spatialGradPtrY = &spatialGradPtrX[voxelNumber];
-    DTYPE *spatialGradPtrZ = nullptr;
+    DataType *spatialGradPtrX = static_cast<DataType *>(warpedGradient->data);
+    DataType *spatialGradPtrY = &spatialGradPtrX[voxelNumber];
+    DataType *spatialGradPtrZ = nullptr;
     if (referenceImage->nz > 1)
         spatialGradPtrZ = &spatialGradPtrY[voxelNumber];
 
     // Pointers to the measure of similarity gradient
-    DTYPE *measureGradPtrX = static_cast<DTYPE *>(measureGradientImage->data);
-    DTYPE *measureGradPtrY = &measureGradPtrX[voxelNumber];
-    DTYPE *measureGradPtrZ = nullptr;
+    DataType *measureGradPtrX = static_cast<DataType *>(measureGradientImage->data);
+    DataType *measureGradPtrY = &measureGradPtrX[voxelNumber];
+    DataType *measureGradPtrZ = nullptr;
     if (referenceImage->nz > 1)
         measureGradPtrZ = &measureGradPtrY[voxelNumber];
 
     // Create a pointer to the Jacobian determinant values if defined
-    DTYPE *jacDetPtr = nullptr;
+    DataType *jacDetPtr = nullptr;
     if (jacobianDetImage != nullptr)
-        jacDetPtr = static_cast<DTYPE *>(jacobianDetImage->data);
+        jacDetPtr = static_cast<DataType *>(jacobianDetImage->data);
     // Create a pointer to the local weight image if defined
-    DTYPE *localWeightPtr = nullptr;
+    DataType *localWeightPtr = nullptr;
     if (localWeightSimImage != nullptr)
-        localWeightPtr = static_cast<DTYPE *>(localWeightSimImage->data);
+        localWeightPtr = static_cast<DataType *>(localWeightSimImage->data);
 
     // find number of active voxels and correct weight
     double activeVoxel_num = 0;
@@ -319,7 +319,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
 
     double refValue, warValue, common;
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, \
     mask, jacDetPtr, spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, \
@@ -346,13 +346,13 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                 common *= adjusted_weight;
 
                 if (spatialGradPtrX[voxel] == spatialGradPtrX[voxel])
-                    measureGradPtrX[voxel] += (DTYPE)(common * spatialGradPtrX[voxel]);
+                    measureGradPtrX[voxel] += (DataType)(common * spatialGradPtrX[voxel]);
                 if (spatialGradPtrY[voxel] == spatialGradPtrY[voxel])
-                    measureGradPtrY[voxel] += (DTYPE)(common * spatialGradPtrY[voxel]);
+                    measureGradPtrY[voxel] += (DataType)(common * spatialGradPtrY[voxel]);
 
                 if (measureGradPtrZ != nullptr) {
                     if (spatialGradPtrZ[voxel] == spatialGradPtrZ[voxel])
-                        measureGradPtrZ[voxel] += (DTYPE)(common * spatialGradPtrZ[voxel]);
+                        measureGradPtrZ[voxel] += (DataType)(common * spatialGradPtrZ[voxel]);
                 }
             }
         }
@@ -451,7 +451,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                                    float *discretisedValue,
                                    int discretise_radius,
@@ -490,8 +490,8 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
 
     // Pointers to the input image
     const size_t voxelNumber = CalcVoxelNumber(*refImage);
-    DTYPE *refImgPtr = static_cast<DTYPE*>(refImage->data);
-    DTYPE *warImgPtr = static_cast<DTYPE*>(warImage->data);
+    DataType *refImgPtr = static_cast<DataType*>(refImage->data);
+    DataType *warImgPtr = static_cast<DataType*>(warImage->data);
 
     // Create a padded version of the warped image to avoid boundary condition check
     int warPaddedOffset[3] = {
@@ -506,12 +506,12 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
         warImage->nt
     };
 
-    //DTYPE padding_value = std::numeric_limits<DTYPE>::quiet_NaN();
-    DTYPE padding_value = 0;
+    //DataType padding_value = std::numeric_limits<DataType>::quiet_NaN();
+    DataType padding_value = 0;
 
     size_t warPaddedVoxelNumber = (size_t)warPaddedDim[0] *
         warPaddedDim[1] * warPaddedDim[2];
-    DTYPE *paddedWarImgPtr = (DTYPE*)calloc(warPaddedVoxelNumber * warPaddedDim[3], sizeof(DTYPE));
+    DataType *paddedWarImgPtr = (DataType*)calloc(warPaddedVoxelNumber * warPaddedDim[3], sizeof(DataType));
     for (voxIndex = 0; voxIndex < warPaddedVoxelNumber * warPaddedDim[3]; ++voxIndex)
         paddedWarImgPtr[voxIndex] = padding_value;
     voxIndex = 0;
@@ -579,7 +579,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                 // Loop over the discretised value
                 if (definedValueNumber > 0) {
 
-                    DTYPE warpedValue;
+                    DataType warpedValue;
                     int paddedImageVox[3] = {
                         static_cast<int>(imageVox[0] + warPaddedOffset[0]),
                         static_cast<int>(imageVox[1] + warPaddedOffset[1]),
@@ -587,7 +587,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                     };
                     int cc;
                     double currentSum;
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(label_1D_number, label_2D_number, label_nD_number, discretise_step, discretise_radius, \
     paddedImageVox, blockSize, warPaddedDim, paddedWarImgPtr, refBlockValue, warPaddedVoxelNumber, \
@@ -695,7 +695,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
                                      float *discretisedValue,
                                      int discretise_radius,
@@ -734,16 +734,16 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
 
     // Pointers to the input image
     const size_t voxelNumber = CalcVoxelNumber(*refImage);
-    DTYPE *refImgPtr = static_cast<DTYPE*>(refImage->data);
-    DTYPE *warImgPtr = static_cast<DTYPE*>(warImage->data);
+    DataType *refImgPtr = static_cast<DataType*>(refImage->data);
+    DataType *warImgPtr = static_cast<DataType*>(warImage->data);
 
-    DTYPE padding_value = 0;
+    DataType padding_value = 0;
 
     int definedValueNumber, idBlock, timeV;
 
     int threadNumber = 1;
     int tid = 0;
-#if defined (_OPENMP)
+#ifdef _OPENMP
     threadNumber = omp_get_max_threads();
 #endif
 
@@ -753,7 +753,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
         refBlockValue[a] = (float*)malloc(voxelBlockNumber_t * sizeof(float));
 
     // Loop over all control points
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelBlockNumber_t, voxelNumber, voxelBlockNumber, label_nD_number, controlPointGridImage, refImage, warImage, grid2img_vox, blockSize, \
     padding_value, refBlockValue, mask, refImgPtr, warImgPtr, discretise_radius, \
@@ -763,7 +763,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
     timeV, voxIndex_t, blockIndex_t, discretisedIndex, currentSum, currentValue)
 #endif
     for (cpz = 0; cpz < controlPointGridImage->nz; ++cpz) {
-#if defined (_OPENMP)
+#ifdef _OPENMP
         tid = omp_get_thread_num();
 #endif
         gridVox[2] = cpz;
@@ -936,7 +936,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
     } // node
 }
 /* *************************************************************** */
-//template <class DTYPE>
+//template <class DataType>
 //void GetDiscretisedValueSSD_core2D(nifti_image *controlPointGridImage,
 //                                   float *discretisedValue,
 //                                   int discretise_radius,

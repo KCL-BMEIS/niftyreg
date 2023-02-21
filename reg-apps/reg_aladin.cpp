@@ -21,7 +21,7 @@
 #   include <time.h>
 #endif
 
-#define PrecisionTYPE float
+using PrecisionType = float;
 
 void PetitUsage(char *exec) {
     char text[255];
@@ -99,7 +99,7 @@ void Usage(char *exec) {
     }
 
     //   reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
-#if defined (_OPENMP)
+#ifdef _OPENMP
     int defaultOpenMPValue = omp_get_num_procs();
     if (getenv("OMP_NUM_THREADS") != nullptr)
         defaultOpenMPValue = atoi(getenv("OMP_NUM_THREADS"));
@@ -165,11 +165,11 @@ int main(int argc, char **argv) {
     float floatingSigma = 0;
     float referenceSigma = 0;
 
-    float referenceLowerThr = -std::numeric_limits<PrecisionTYPE>::max();
-    float referenceUpperThr = std::numeric_limits<PrecisionTYPE>::max();
-    float floatingLowerThr = -std::numeric_limits<PrecisionTYPE>::max();
-    float floatingUpperThr = std::numeric_limits<PrecisionTYPE>::max();
-    float paddingValue = std::numeric_limits<PrecisionTYPE>::quiet_NaN();
+    float referenceLowerThr = -std::numeric_limits<PrecisionType>::max();
+    float referenceUpperThr = std::numeric_limits<PrecisionType>::max();
+    float floatingLowerThr = -std::numeric_limits<PrecisionType>::max();
+    float floatingUpperThr = std::numeric_limits<PrecisionType>::max();
+    float paddingValue = std::numeric_limits<PrecisionType>::quiet_NaN();
 
     bool iso = false;
     bool verbose = true;
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
     PlatformType platformType(PlatformType::Cpu);
     unsigned gpuIdx = 999;
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
     // Set the default number of thread
     int defaultOpenMPValue = omp_get_num_procs();
     if (getenv("OMP_NUM_THREADS") != nullptr)
@@ -312,7 +312,7 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "-crv") == 0 || strcmp(argv[i], "--crv") == 0) {
             captureRangeVox = atoi(argv[++i]);
         } else if (strcmp(argv[i], "-omp") == 0 || strcmp(argv[i], "--omp") == 0) {
-#if defined (_OPENMP)
+#ifdef _OPENMP
             omp_set_num_threads(atoi(argv[++i]));
 #else
             reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
@@ -349,15 +349,15 @@ int main(int argc, char **argv) {
     }
 #endif
 
-    reg_aladin<PrecisionTYPE> *REG;
+    reg_aladin<PrecisionType> *REG;
     if (symFlag) {
-        REG = new reg_aladin_sym<PrecisionTYPE>;
+        REG = new reg_aladin_sym<PrecisionType>;
         if ((referenceMaskFlag && !floatingMaskName) || (!referenceMaskFlag && floatingMaskName)) {
             reg_print_msg_warn("You have one image mask option turned on but not the other.");
             reg_print_msg_warn("This will affect the degree of symmetry achieved.");
         }
     } else {
-        REG = new reg_aladin<PrecisionTYPE>;
+        REG = new reg_aladin<PrecisionType>;
         if (floatingMaskFlag) {
             reg_print_msg_warn("Note: Floating mask flag only used in symmetric method. Ignoring this option");
         }
@@ -489,7 +489,7 @@ int main(int argc, char **argv) {
     reg_print_msg_debug("*******************************************");
 #endif
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
     if (verbose) {
         int maxThreadNumber = omp_get_max_threads();
         sprintf(text, "OpenMP is used with %i thread(s)", maxThreadNumber);

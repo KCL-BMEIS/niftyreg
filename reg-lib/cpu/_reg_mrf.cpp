@@ -340,7 +340,7 @@ void reg_mrf::Run()
 }
 /*****************************************************/
 /*****************************************************/
-template <class DTYPE>
+template <class DataType>
 void GetGraph_core3D(nifti_image* controlPointGridImage,
                      float* edgeWeightMatrix,
                      int* index_neighbours,
@@ -373,7 +373,7 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
    float SADNeighbourValue = 0;
 
    // Pointers to the input image
-   DTYPE *refImgPtr = static_cast<DTYPE *>(refImage->data);
+   DataType *refImgPtr = static_cast<DataType *>(refImage->data);
 
    // Loop over all control points
    for(cpz=0; cpz<controlPointGridImage->nz; ++cpz){
@@ -558,7 +558,7 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
    free(refBlockValue);
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void GetGraph_core2D(nifti_image* controlPointGridImage,
                      float* edgeWeightMatrix,
                      int* index_neighbours,

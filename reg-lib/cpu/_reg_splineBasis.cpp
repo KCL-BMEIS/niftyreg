@@ -14,66 +14,66 @@
 #include "_reg_splineBasis.h"
 
 /* *************************************************************** */
-template<class DTYPE>
-void get_BSplineBasisValues(DTYPE basis, DTYPE *values)
+template<class DataType>
+void get_BSplineBasisValues(DataType basis, DataType *values)
 {
-   DTYPE FF= basis*basis;
-   DTYPE FFF= FF*basis;
-   DTYPE MF=static_cast<DTYPE>(1.0-basis);
-   values[0] = static_cast<DTYPE>((MF)*(MF)*(MF)/(6.0));
-   values[1] = static_cast<DTYPE>((3.0*FFF - 6.0*FF + 4.0)/6.0);
-   values[2] = static_cast<DTYPE>((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
-   values[3] = static_cast<DTYPE>(FFF/6.0);
+   DataType FF= basis*basis;
+   DataType FFF= FF*basis;
+   DataType MF=static_cast<DataType>(1.0-basis);
+   values[0] = static_cast<DataType>((MF)*(MF)*(MF)/(6.0));
+   values[1] = static_cast<DataType>((3.0*FFF - 6.0*FF + 4.0)/6.0);
+   values[2] = static_cast<DataType>((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+   values[3] = static_cast<DataType>(FFF/6.0);
 }
 template void get_BSplineBasisValues<float>(float, float *);
 template void get_BSplineBasisValues<double>(double, double *);
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
-void get_BSplineBasisValues(DTYPE basis, DTYPE *values, DTYPE *first)
+template<class DataType>
+void get_BSplineBasisValues(DataType basis, DataType *values, DataType *first)
 {
-   get_BSplineBasisValues<DTYPE>(basis, values);
-   first[3]= static_cast<DTYPE>(basis * basis / 2.0);
-   first[0]= static_cast<DTYPE>(basis - 1.0/2.0 - first[3]);
-   first[2]= static_cast<DTYPE>(1.0 + first[0] - 2.0*first[3]);
+   get_BSplineBasisValues<DataType>(basis, values);
+   first[3]= static_cast<DataType>(basis * basis / 2.0);
+   first[0]= static_cast<DataType>(basis - 1.0/2.0 - first[3]);
+   first[2]= static_cast<DataType>(1.0 + first[0] - 2.0*first[3]);
    first[1]= - first[0] - first[2] - first[3];
 }
 template void get_BSplineBasisValues<float>(float, float *, float *);
 template void get_BSplineBasisValues<double>(double, double *, double *);
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
-void get_BSplineBasisValues(DTYPE basis, DTYPE *values, DTYPE *first, DTYPE *second)
+template<class DataType>
+void get_BSplineBasisValues(DataType basis, DataType *values, DataType *first, DataType *second)
 {
-   get_BSplineBasisValues<DTYPE>(basis, values, first);
+   get_BSplineBasisValues<DataType>(basis, values, first);
    second[3]= basis;
-   second[0]= static_cast<DTYPE>(1.0 - second[3]);
-   second[2]= static_cast<DTYPE>(second[0] - 2.0*second[3]);
+   second[0]= static_cast<DataType>(1.0 - second[3]);
+   second[2]= static_cast<DataType>(second[0] - 2.0*second[3]);
    second[1]= - second[0] - second[2] - second[3];
 }
 template void get_BSplineBasisValues<float>(float, float *, float *, float *);
 template void get_BSplineBasisValues<double>(double, double *, double *, double *);
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
-void get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value)
+template<class DataType>
+void get_BSplineBasisValue(DataType basis, int index, DataType &value)
 {
    switch(index)
    {
    case 0:
-      value = (DTYPE)((1.0-basis)*(1.0-basis)*(1.0-basis)/6.0);
+      value = (DataType)((1.0-basis)*(1.0-basis)*(1.0-basis)/6.0);
       break;
    case 1:
-      value = (DTYPE)((3.0*basis*basis*basis - 6.0*basis*basis + 4.0)/6.0);
+      value = (DataType)((3.0*basis*basis*basis - 6.0*basis*basis + 4.0)/6.0);
       break;
    case 2:
-      value = (DTYPE)((3.0*basis*basis - 3.0*basis*basis*basis + 3.0*basis + 1.0)/6.0);
+      value = (DataType)((3.0*basis*basis - 3.0*basis*basis*basis + 3.0*basis + 1.0)/6.0);
       break;
    case 3:
-      value = (DTYPE)(basis*basis*basis/6.0);
+      value = (DataType)(basis*basis*basis/6.0);
       break;
    default:
-      value = (DTYPE)0;
+      value = (DataType)0;
       break;
    }
 }
@@ -81,26 +81,26 @@ template void get_BSplineBasisValue<float>(float, int, float &);
 template void get_BSplineBasisValue<double>(double, int, double &);
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
-void get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value, DTYPE &first)
+template<class DataType>
+void get_BSplineBasisValue(DataType basis, int index, DataType &value, DataType &first)
 {
-   get_BSplineBasisValue<DTYPE>(basis, index, value);
+   get_BSplineBasisValue<DataType>(basis, index, value);
    switch(index)
    {
    case 0:
-      first = (DTYPE)((2.0*basis - basis*basis - 1.0)/2.0);
+      first = (DataType)((2.0*basis - basis*basis - 1.0)/2.0);
       break;
    case 1:
-      first = (DTYPE)((3.0*basis*basis - 4.0*basis)/2.0);
+      first = (DataType)((3.0*basis*basis - 4.0*basis)/2.0);
       break;
    case 2:
-      first = (DTYPE)((2.0*basis - 3.0*basis*basis + 1.0)/2.0);
+      first = (DataType)((2.0*basis - 3.0*basis*basis + 1.0)/2.0);
       break;
    case 3:
-      first = (DTYPE)(basis*basis/2.0);
+      first = (DataType)(basis*basis/2.0);
       break;
    default:
-      first = (DTYPE)0;
+      first = (DataType)0;
       break;
    }
 }
@@ -108,26 +108,26 @@ template void get_BSplineBasisValue<float>(float, int, float &, float &);
 template void get_BSplineBasisValue<double>(double, int, double &, double &);
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
-void get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value, DTYPE &first, DTYPE &second)
+template<class DataType>
+void get_BSplineBasisValue(DataType basis, int index, DataType &value, DataType &first, DataType &second)
 {
-   get_BSplineBasisValue<DTYPE>(basis, index, value, first);
+   get_BSplineBasisValue<DataType>(basis, index, value, first);
    switch(index)
    {
    case 0:
-      second = (DTYPE)(1.0 - basis);
+      second = (DataType)(1.0 - basis);
       break;
    case 1:
-      second = (DTYPE)(3.0*basis -2.0);
+      second = (DataType)(3.0*basis -2.0);
       break;
    case 2:
-      second = (DTYPE)(1.0 - 3.0*basis);
+      second = (DataType)(1.0 - 3.0*basis);
       break;
    case 3:
-      second = (DTYPE)(basis);
+      second = (DataType)(basis);
       break;
    default:
-      second = (DTYPE)0;
+      second = (DataType)0;
       break;
    }
 }
@@ -135,48 +135,48 @@ template void get_BSplineBasisValue<float>(float, int, float &, float &, float &
 template void get_BSplineBasisValue<double>(double, int, double &, double &, double &);
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
-void get_SplineBasisValues(DTYPE basis, DTYPE *values)
+template<class DataType>
+void get_SplineBasisValues(DataType basis, DataType *values)
 {
-   DTYPE FF= basis*basis;
-   values[0] = static_cast<DTYPE>((basis * ((2.0-basis)*basis - 1.0))/2.0);
-   values[1] = static_cast<DTYPE>((FF * (3.0*basis-5.0) + 2.0)/2.0);
-   values[2] = static_cast<DTYPE>((basis * ((4.0-3.0*basis)*basis + 1.0))/2.0);
-   values[3] = static_cast<DTYPE>((basis-1.0) * FF/2.0);
+   DataType FF= basis*basis;
+   values[0] = static_cast<DataType>((basis * ((2.0-basis)*basis - 1.0))/2.0);
+   values[1] = static_cast<DataType>((FF * (3.0*basis-5.0) + 2.0)/2.0);
+   values[2] = static_cast<DataType>((basis * ((4.0-3.0*basis)*basis + 1.0))/2.0);
+   values[3] = static_cast<DataType>((basis-1.0) * FF/2.0);
 }
 template void get_SplineBasisValues<float>(float, float *);
 template void get_SplineBasisValues<double>(double, double *);
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
-void get_SplineBasisValues(DTYPE basis, DTYPE *values, DTYPE *first)
+template<class DataType>
+void get_SplineBasisValues(DataType basis, DataType *values, DataType *first)
 {
-   get_SplineBasisValues<DTYPE>(basis,values);
-   DTYPE FF= basis*basis;
-   first[0] = static_cast<DTYPE>((4.0*basis - 3.0*FF - 1.0)/2.0);
-   first[1] = static_cast<DTYPE>((9.0*basis - 10.0) * basis/2.0);
-   first[2] = static_cast<DTYPE>((8.0*basis - 9.0*FF + 1.0)/2.0);
-   first[3] = static_cast<DTYPE>((3.0*basis - 2.0) * basis/2.0);
+   get_SplineBasisValues<DataType>(basis,values);
+   DataType FF= basis*basis;
+   first[0] = static_cast<DataType>((4.0*basis - 3.0*FF - 1.0)/2.0);
+   first[1] = static_cast<DataType>((9.0*basis - 10.0) * basis/2.0);
+   first[2] = static_cast<DataType>((8.0*basis - 9.0*FF + 1.0)/2.0);
+   first[3] = static_cast<DataType>((3.0*basis - 2.0) * basis/2.0);
 }
 template void get_SplineBasisValues<float>(float, float *, float *);
 template void get_SplineBasisValues<double>(double, double *, double *);
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
-void get_SplineBasisValues(DTYPE basis, DTYPE *values, DTYPE *first, DTYPE *second)
+template<class DataType>
+void get_SplineBasisValues(DataType basis, DataType *values, DataType *first, DataType *second)
 {
-   get_SplineBasisValues<DTYPE>(basis, values, first);
-   second[0] = static_cast<DTYPE>(2.0 - 3.0*basis);
-   second[1] = static_cast<DTYPE>(9.0*basis - 5.0);
-   second[2] = static_cast<DTYPE>(4.0 - 9.0*basis);
-   second[3] = static_cast<DTYPE>(3.0*basis - 1.0);
+   get_SplineBasisValues<DataType>(basis, values, first);
+   second[0] = static_cast<DataType>(2.0 - 3.0*basis);
+   second[1] = static_cast<DataType>(9.0*basis - 5.0);
+   second[2] = static_cast<DataType>(4.0 - 9.0*basis);
+   second[3] = static_cast<DataType>(3.0*basis - 1.0);
 }
 template void get_SplineBasisValues<float>(float, float *, float *, float *);
 template void get_SplineBasisValues<double>(double, double *, double *, double *);
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
-void set_first_order_basis_values(DTYPE *basisX, DTYPE *basisY)
+template <class DataType>
+void set_first_order_basis_values(DataType *basisX, DataType *basisY)
 {
    double BASIS[4], FIRST[4];get_BSplineBasisValues<double>(0, BASIS, FIRST);
    int index=0;
@@ -191,96 +191,96 @@ void set_first_order_basis_values(DTYPE *basisX, DTYPE *basisY)
 template void set_first_order_basis_values<float>(float *, float *);
 template void set_first_order_basis_values<double>(double *, double *);
 /* *************************************************************** */
-template <class DTYPE>
-void set_first_order_basis_values(DTYPE *basisX, DTYPE *basisY, DTYPE *basisZ)
+template <class DataType>
+void set_first_order_basis_values(DataType *basisX, DataType *basisY, DataType *basisZ)
 {
-      basisX[0]=static_cast<DTYPE>(-0.0138889);
-      basisY[0]=static_cast<DTYPE>(-0.0138889);
-      basisZ[0]=static_cast<DTYPE>(-0.0138889);
-      basisX[1]=static_cast<DTYPE>(0);
-      basisY[1]=static_cast<DTYPE>(-0.0555556);
-      basisZ[1]=static_cast<DTYPE>(-0.0555556);
-      basisX[2]=static_cast<DTYPE>(0.0138889);
-      basisY[2]=static_cast<DTYPE>(-0.0138889);
-      basisZ[2]=static_cast<DTYPE>(-0.0138889);
-      basisX[3]=static_cast<DTYPE>(-0.0555556);
-      basisY[3]=static_cast<DTYPE>(0);
-      basisZ[3]=static_cast<DTYPE>(-0.0555556);
-      basisX[4]=static_cast<DTYPE>(0);
-      basisY[4]=static_cast<DTYPE>(0);
-      basisZ[4]=static_cast<DTYPE>(-0.222222);
-      basisX[5]=static_cast<DTYPE>(0.0555556);
-      basisY[5]=static_cast<DTYPE>(0);
-      basisZ[5]=static_cast<DTYPE>(-0.0555556);
-      basisX[6]=static_cast<DTYPE>(-0.0138889);
-      basisY[6]=static_cast<DTYPE>(0.0138889);
-      basisZ[6]=static_cast<DTYPE>(-0.0138889);
-      basisX[7]=static_cast<DTYPE>(0);
-      basisY[7]=static_cast<DTYPE>(0.0555556);
-      basisZ[7]=static_cast<DTYPE>(-0.0555556);
-      basisX[8]=static_cast<DTYPE>(0.0138889);
-      basisY[8]=static_cast<DTYPE>(0.0138889);
-      basisZ[8]=static_cast<DTYPE>(-0.0138889);
-      basisX[9]=static_cast<DTYPE>(-0.0555556);
-      basisY[9]=static_cast<DTYPE>(-0.0555556);
-      basisZ[9]=static_cast<DTYPE>(0);
-      basisX[10]=static_cast<DTYPE>(0);
-      basisY[10]=static_cast<DTYPE>(-0.222222);
-      basisZ[10]=static_cast<DTYPE>(0);
-      basisX[11]=static_cast<DTYPE>(0.0555556);
-      basisY[11]=static_cast<DTYPE>(-0.0555556);
-      basisZ[11]=static_cast<DTYPE>(0);
-      basisX[12]=static_cast<DTYPE>(-0.222222);
-      basisY[12]=static_cast<DTYPE>(0);
-      basisZ[12]=static_cast<DTYPE>(0);
-      basisX[13]=static_cast<DTYPE>(0);
-      basisY[13]=static_cast<DTYPE>(0);
-      basisZ[13]=static_cast<DTYPE>(0);
-      basisX[14]=static_cast<DTYPE>(0.222222);
-      basisY[14]=static_cast<DTYPE>(0);
-      basisZ[14]=static_cast<DTYPE>(0);
-      basisX[15]=static_cast<DTYPE>(-0.0555556);
-      basisY[15]=static_cast<DTYPE>(0.0555556);
-      basisZ[15]=static_cast<DTYPE>(0);
-      basisX[16]=static_cast<DTYPE>(0);
-      basisY[16]=static_cast<DTYPE>(0.222222);
-      basisZ[16]=static_cast<DTYPE>(0);
-      basisX[17]=static_cast<DTYPE>(0.0555556);
-      basisY[17]=static_cast<DTYPE>(0.0555556);
-      basisZ[17]=static_cast<DTYPE>(0);
-      basisX[18]=static_cast<DTYPE>(-0.0138889);
-      basisY[18]=static_cast<DTYPE>(-0.0138889);
-      basisZ[18]=static_cast<DTYPE>(0.0138889);
-      basisX[19]=static_cast<DTYPE>(0);
-      basisY[19]=static_cast<DTYPE>(-0.0555556);
-      basisZ[19]=static_cast<DTYPE>(0.0555556);
-      basisX[20]=static_cast<DTYPE>(0.0138889);
-      basisY[20]=static_cast<DTYPE>(-0.0138889);
-      basisZ[20]=static_cast<DTYPE>(0.0138889);
-      basisX[21]=static_cast<DTYPE>(-0.0555556);
-      basisY[21]=static_cast<DTYPE>(0);
-      basisZ[21]=static_cast<DTYPE>(0.0555556);
-      basisX[22]=static_cast<DTYPE>(0);
-      basisY[22]=static_cast<DTYPE>(0);
-      basisZ[22]=static_cast<DTYPE>(0.222222);
-      basisX[23]=static_cast<DTYPE>(0.0555556);
-      basisY[23]=static_cast<DTYPE>(0);
-      basisZ[23]=static_cast<DTYPE>(0.0555556);
-      basisX[24]=static_cast<DTYPE>(-0.0138889);
-      basisY[24]=static_cast<DTYPE>(0.0138889);
-      basisZ[24]=static_cast<DTYPE>(0.0138889);
-      basisX[25]=static_cast<DTYPE>(0);
-      basisY[25]=static_cast<DTYPE>(0.0555556);
-      basisZ[25]=static_cast<DTYPE>(0.0555556);
-      basisX[26]=static_cast<DTYPE>(0.0138889);
-      basisY[26]=static_cast<DTYPE>(0.0138889);
-      basisZ[26]=static_cast<DTYPE>(0.0138889);
+      basisX[0]=static_cast<DataType>(-0.0138889);
+      basisY[0]=static_cast<DataType>(-0.0138889);
+      basisZ[0]=static_cast<DataType>(-0.0138889);
+      basisX[1]=static_cast<DataType>(0);
+      basisY[1]=static_cast<DataType>(-0.0555556);
+      basisZ[1]=static_cast<DataType>(-0.0555556);
+      basisX[2]=static_cast<DataType>(0.0138889);
+      basisY[2]=static_cast<DataType>(-0.0138889);
+      basisZ[2]=static_cast<DataType>(-0.0138889);
+      basisX[3]=static_cast<DataType>(-0.0555556);
+      basisY[3]=static_cast<DataType>(0);
+      basisZ[3]=static_cast<DataType>(-0.0555556);
+      basisX[4]=static_cast<DataType>(0);
+      basisY[4]=static_cast<DataType>(0);
+      basisZ[4]=static_cast<DataType>(-0.222222);
+      basisX[5]=static_cast<DataType>(0.0555556);
+      basisY[5]=static_cast<DataType>(0);
+      basisZ[5]=static_cast<DataType>(-0.0555556);
+      basisX[6]=static_cast<DataType>(-0.0138889);
+      basisY[6]=static_cast<DataType>(0.0138889);
+      basisZ[6]=static_cast<DataType>(-0.0138889);
+      basisX[7]=static_cast<DataType>(0);
+      basisY[7]=static_cast<DataType>(0.0555556);
+      basisZ[7]=static_cast<DataType>(-0.0555556);
+      basisX[8]=static_cast<DataType>(0.0138889);
+      basisY[8]=static_cast<DataType>(0.0138889);
+      basisZ[8]=static_cast<DataType>(-0.0138889);
+      basisX[9]=static_cast<DataType>(-0.0555556);
+      basisY[9]=static_cast<DataType>(-0.0555556);
+      basisZ[9]=static_cast<DataType>(0);
+      basisX[10]=static_cast<DataType>(0);
+      basisY[10]=static_cast<DataType>(-0.222222);
+      basisZ[10]=static_cast<DataType>(0);
+      basisX[11]=static_cast<DataType>(0.0555556);
+      basisY[11]=static_cast<DataType>(-0.0555556);
+      basisZ[11]=static_cast<DataType>(0);
+      basisX[12]=static_cast<DataType>(-0.222222);
+      basisY[12]=static_cast<DataType>(0);
+      basisZ[12]=static_cast<DataType>(0);
+      basisX[13]=static_cast<DataType>(0);
+      basisY[13]=static_cast<DataType>(0);
+      basisZ[13]=static_cast<DataType>(0);
+      basisX[14]=static_cast<DataType>(0.222222);
+      basisY[14]=static_cast<DataType>(0);
+      basisZ[14]=static_cast<DataType>(0);
+      basisX[15]=static_cast<DataType>(-0.0555556);
+      basisY[15]=static_cast<DataType>(0.0555556);
+      basisZ[15]=static_cast<DataType>(0);
+      basisX[16]=static_cast<DataType>(0);
+      basisY[16]=static_cast<DataType>(0.222222);
+      basisZ[16]=static_cast<DataType>(0);
+      basisX[17]=static_cast<DataType>(0.0555556);
+      basisY[17]=static_cast<DataType>(0.0555556);
+      basisZ[17]=static_cast<DataType>(0);
+      basisX[18]=static_cast<DataType>(-0.0138889);
+      basisY[18]=static_cast<DataType>(-0.0138889);
+      basisZ[18]=static_cast<DataType>(0.0138889);
+      basisX[19]=static_cast<DataType>(0);
+      basisY[19]=static_cast<DataType>(-0.0555556);
+      basisZ[19]=static_cast<DataType>(0.0555556);
+      basisX[20]=static_cast<DataType>(0.0138889);
+      basisY[20]=static_cast<DataType>(-0.0138889);
+      basisZ[20]=static_cast<DataType>(0.0138889);
+      basisX[21]=static_cast<DataType>(-0.0555556);
+      basisY[21]=static_cast<DataType>(0);
+      basisZ[21]=static_cast<DataType>(0.0555556);
+      basisX[22]=static_cast<DataType>(0);
+      basisY[22]=static_cast<DataType>(0);
+      basisZ[22]=static_cast<DataType>(0.222222);
+      basisX[23]=static_cast<DataType>(0.0555556);
+      basisY[23]=static_cast<DataType>(0);
+      basisZ[23]=static_cast<DataType>(0.0555556);
+      basisX[24]=static_cast<DataType>(-0.0138889);
+      basisY[24]=static_cast<DataType>(0.0138889);
+      basisZ[24]=static_cast<DataType>(0.0138889);
+      basisX[25]=static_cast<DataType>(0);
+      basisY[25]=static_cast<DataType>(0.0555556);
+      basisZ[25]=static_cast<DataType>(0.0555556);
+      basisX[26]=static_cast<DataType>(0.0138889);
+      basisY[26]=static_cast<DataType>(0.0138889);
+      basisZ[26]=static_cast<DataType>(0.0138889);
 }
 template void set_first_order_basis_values<float>(float *, float *, float *);
 template void set_first_order_basis_values<double>(double *, double *, double *);
 /* *************************************************************** */
-template <class DTYPE>
-void set_second_order_bspline_basis_values(DTYPE *basisXX, DTYPE *basisYY, DTYPE *basisXY)
+template <class DataType>
+void set_second_order_bspline_basis_values(DataType *basisXX, DataType *basisYY, DataType *basisXY)
 {
    basisXX[0]=0.166667f;
    basisYY[0]=0.166667f;
@@ -313,8 +313,8 @@ void set_second_order_bspline_basis_values(DTYPE *basisXX, DTYPE *basisYY, DTYPE
 template void set_second_order_bspline_basis_values<float>(float *, float *, float *);
 template void set_second_order_bspline_basis_values<double>(double *, double *, double *);
 /* *************************************************************** */
-template <class DTYPE>
-void set_second_order_bspline_basis_values(DTYPE *basisXX, DTYPE *basisYY, DTYPE *basisZZ, DTYPE *basisXY, DTYPE *basisYZ, DTYPE *basisXZ)
+template <class DataType>
+void set_second_order_bspline_basis_values(DataType *basisXX, DataType *basisYY, DataType *basisZZ, DataType *basisXY, DataType *basisYZ, DataType *basisXZ)
 {
    basisXX[0]=0.027778f;
    basisYY[0]=0.027778f;
@@ -483,13 +483,13 @@ template void set_second_order_bspline_basis_values<float>(float *, float *, flo
 template void set_second_order_bspline_basis_values<double>(double *, double *, double *, double *, double *, double *);
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
-void get_SlidedValues(DTYPE &defX,
-                      DTYPE &defY,
+template <class DataType>
+void get_SlidedValues(DataType &defX,
+                      DataType &defY,
                       int X,
                       int Y,
-                      DTYPE *defPtrX,
-                      DTYPE *defPtrY,
+                      DataType *defPtrX,
+                      DataType *defPtrY,
                       mat44 *df_voxel2Real,
                       int *dim,
                       bool displacement)
@@ -512,8 +512,8 @@ void get_SlidedValues(DTYPE &defX,
    {
       newY=dim[2]-1;
    }
-   DTYPE shiftValueX = 0;
-   DTYPE shiftValueY = 0;
+   DataType shiftValueX = 0;
+   DataType shiftValueY = 0;
    if(!displacement)
    {
       int shiftIndexX=X-newX;
@@ -532,16 +532,16 @@ float *, float *, mat44 *, int *, bool);
 template void get_SlidedValues<double>(double &, double &, int, int,
 double *, double *, mat44 *, int *, bool);
 /* *************************************************************** */
-template <class DTYPE>
-void get_SlidedValues(DTYPE &defX,
-                      DTYPE &defY,
-                      DTYPE &defZ,
+template <class DataType>
+void get_SlidedValues(DataType &defX,
+                      DataType &defY,
+                      DataType &defZ,
                       int X,
                       int Y,
                       int Z,
-                      DTYPE *defPtrX,
-                      DTYPE *defPtrY,
-                      DTYPE *defPtrZ,
+                      DataType *defPtrX,
+                      DataType *defPtrY,
+                      DataType *defPtrZ,
                       mat44 *df_voxel2Real,
                       int *dim,
                       bool displacement)
@@ -573,9 +573,9 @@ void get_SlidedValues(DTYPE &defX,
    {
       newZ=dim[3]-1;
    }
-   DTYPE shiftValueX=0;
-   DTYPE shiftValueY=0;
-   DTYPE shiftValueZ=0;
+   DataType shiftValueX=0;
+   DataType shiftValueY=0;
+   DataType shiftValueZ=0;
    if(!displacement)
    {
       int shiftIndexX=X-newX;
@@ -605,14 +605,14 @@ template void get_SlidedValues<double>(double &, double &, double &, int, int, i
 double *, double *, double *, mat44 *, int *, bool);
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void get_GridValues(int startX,
                     int startY,
                     nifti_image *splineControlPoint,
-                    DTYPE *splineX,
-                    DTYPE *splineY,
-                    DTYPE *dispX,
-                    DTYPE *dispY,
+                    DataType *splineX,
+                    DataType *splineY,
+                    DataType *dispX,
+                    DataType *dispY,
                     bool approx,
                     bool displacement)
 
@@ -622,7 +622,7 @@ void get_GridValues(int startX,
 
    size_t index;
    size_t coord=0;
-   DTYPE *xxPtr=nullptr, *yyPtr=nullptr;
+   DataType *xxPtr=nullptr, *yyPtr=nullptr;
 
    mat44 *voxel2realMatrix=nullptr;
    if(splineControlPoint->sform_code>0)
@@ -648,7 +648,7 @@ void get_GridValues(int startX,
          }
          else
          {
-            get_SlidedValues<DTYPE>(dispX[coord],
+            get_SlidedValues<DataType>(dispX[coord],
                                     dispY[coord],
                                     X,
                                     Y,
@@ -667,17 +667,17 @@ float *, float *, float *, float *, bool, bool);
 template void get_GridValues<double>(int, int, nifti_image *,
 double *, double *, double *, double *, bool, bool);
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void get_GridValues(int startX,
                     int startY,
                     int startZ,
                     nifti_image *splineControlPoint,
-                    DTYPE *splineX,
-                    DTYPE *splineY,
-                    DTYPE *splineZ,
-                    DTYPE *dispX,
-                    DTYPE *dispY,
-                    DTYPE *dispZ,
+                    DataType *splineX,
+                    DataType *splineY,
+                    DataType *splineZ,
+                    DataType *dispX,
+                    DataType *dispY,
+                    DataType *dispZ,
                     bool approx,
                     bool displacement)
 {
@@ -687,8 +687,8 @@ void get_GridValues(int startX,
 
    size_t index;
    size_t coord=0;
-   DTYPE *xPtr=nullptr, *yPtr=nullptr, *zPtr=nullptr;
-   DTYPE *xxPtr=nullptr, *yyPtr=nullptr, *zzPtr=nullptr;
+   DataType *xPtr=nullptr, *yPtr=nullptr, *zPtr=nullptr;
+   DataType *xxPtr=nullptr, *yyPtr=nullptr, *zzPtr=nullptr;
 
    mat44 *voxel2realMatrix=nullptr;
    if(splineControlPoint->sform_code>0)
@@ -726,7 +726,7 @@ void get_GridValues(int startX,
             }
             else
             {
-               get_SlidedValues<DTYPE>(dispX[coord],
+               get_SlidedValues<DataType>(dispX[coord],
                                        dispY[coord],
                                        dispZ[coord],
                                        X,

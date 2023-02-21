@@ -20,7 +20,7 @@
 #include "_reg_localTrans.h"
 #include "_reg_maths_eigen.h"
 
-#define PrecisionTYPE float
+using PrecisionType = float;
 
 typedef enum
 {
@@ -76,11 +76,11 @@ void usage(char *exec)
 
 void average_norm_intensity(nifti_image *image)
 {
-   PrecisionTYPE *rankedIntensities = (PrecisionTYPE *)malloc(image->nvox*sizeof(PrecisionTYPE));
-   memcpy(rankedIntensities,image->data,image->nvox*sizeof(PrecisionTYPE));
+   PrecisionType *rankedIntensities = (PrecisionType *)malloc(image->nvox*sizeof(PrecisionType));
+   memcpy(rankedIntensities,image->data,image->nvox*sizeof(PrecisionType));
    reg_heapSort(rankedIntensities,static_cast<int>(image->nvox));
-   PrecisionTYPE lowerValue=rankedIntensities[static_cast<unsigned int>(static_cast<float>(image->nvox)*0.03f)];
-   PrecisionTYPE higherValue=rankedIntensities[static_cast<unsigned int>(static_cast<float>(image->nvox)*0.97f)];
+   PrecisionType lowerValue=rankedIntensities[static_cast<unsigned int>(static_cast<float>(image->nvox)*0.03f)];
+   PrecisionType higherValue=rankedIntensities[static_cast<unsigned int>(static_cast<float>(image->nvox)*0.97f)];
    reg_tools_subtractValueFromImage(image,image,lowerValue);
    reg_tools_multiplyValueToImage(image,image,255.f/(higherValue-lowerValue));
    free(rankedIntensities);
@@ -96,11 +96,11 @@ int remove_nan_and_add(nifti_image *averageImage,
       reg_print_msg_error(" All images must have the same size");
       return EXIT_FAILURE;
    }
-   PrecisionTYPE *avgImgPtr = static_cast<PrecisionTYPE *>(averageImage->data);
-   PrecisionTYPE *addImgPtr = static_cast<PrecisionTYPE *>(toAddImage->data);
-   PrecisionTYPE *defImgPtr = static_cast<PrecisionTYPE *>(definedNumImage->data);
+   PrecisionType *avgImgPtr = static_cast<PrecisionType *>(averageImage->data);
+   PrecisionType *addImgPtr = static_cast<PrecisionType *>(toAddImage->data);
+   PrecisionType *defImgPtr = static_cast<PrecisionType *>(definedNumImage->data);
    for(size_t i=0; i<averageImage->nvox; ++i){
-      PrecisionTYPE value = *addImgPtr;
+      PrecisionType value = *addImgPtr;
       if(value==value){
          *avgImgPtr+=value;
          *defImgPtr+=1;
@@ -469,7 +469,7 @@ int compute_average_image(nifti_image *averageImage,
       warpedImage->data = malloc(warpedImage->nvox*warpedImage->nbyper);
       // Read the input image
       nifti_image *current_input_image = reg_io_ReadImageFile(inputImageName[i]);
-      reg_tools_changeDatatype<PrecisionTYPE>(current_input_image);
+      reg_tools_changeDatatype<PrecisionType>(current_input_image);
       // Apply the transformation
       reg_resampleImage(current_input_image,
                         warpedImage,
@@ -499,7 +499,7 @@ int main(int argc, char **argv)
       usage(argv[0]);
       return EXIT_FAILURE;
    }
-#if defined (_OPENMP)
+#ifdef _OPENMP
    // Set the default number of thread
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
@@ -561,14 +561,14 @@ int main(int argc, char **argv)
          int length = strchr(buffer, '\0')-buffer+1;
          if(strcmp(buffer, "-omp")==0){
             fscanf(cmd_file," %511s", buffer);
-#if defined (_OPENMP)
+#ifdef _OPENMP
             omp_set_num_threads(atoi(buffer));
 #else
             reg_print_msg_warn("OpenMP flag detected and ignored.");
 #endif
 #ifndef NDEBUG
             reg_print_msg_debug("OpenMP flag detected");
-#if defined (_OPENMP)
+#ifdef _OPENMP
             reg_print_msg_debug("OpenMP core number set to:");
             reg_print_msg_debug(buffer);
 #endif
@@ -755,9 +755,9 @@ int main(int argc, char **argv)
       avg_output_image->scl_slope=1.f;
       avg_output_image->scl_inter=0.f;
       avg_output_image->datatype=NIFTI_TYPE_FLOAT32;
-      if(sizeof(PrecisionTYPE)==sizeof(double))
+      if(sizeof(PrecisionType)==sizeof(double))
          avg_output_image->datatype=NIFTI_TYPE_FLOAT64;
-      avg_output_image->nbyper=sizeof(PrecisionTYPE);
+      avg_output_image->nbyper=sizeof(PrecisionType);
       avg_output_image->data=calloc(avg_output_image->nvox,avg_output_image->nbyper);
       reg_tools_multiplyValueToImage(avg_output_image, avg_output_image, 0.f);
       // Set the output filename

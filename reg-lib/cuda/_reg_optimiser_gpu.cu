@@ -90,7 +90,7 @@ void reg_optimiser_gpu::StoreCurrentDOF() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_optimiser_gpu::Perturbation(float length) {
-    /// @todo
+    // TODO: Implement reg_optimiser_gpu::Perturbation()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -238,10 +238,11 @@ void reg_GetConjugateGradient_gpu(float4 *gradientArray_d,
     NR_CUDA_SAFE_CALL(cudaMalloc(&sum_d, nodeNumber * sizeof(float2)));
     reg_GetConjugateGradient1_kernel <<< G1, B1 >>> (sum_d);
     NR_CUDA_CHECK_KERNEL(G1, B1);
-    float2 *sum_h; NR_CUDA_SAFE_CALL(cudaMallocHost(&sum_h, nodeNumber * sizeof(float2)))
-        NR_CUDA_SAFE_CALL(cudaMemcpy(sum_h, sum_d, nodeNumber * sizeof(float2), cudaMemcpyDeviceToHost))
-        NR_CUDA_SAFE_CALL(cudaFree(sum_d))
-        double dgg = 0;
+    float2 *sum_h;
+    NR_CUDA_SAFE_CALL(cudaMallocHost(&sum_h, nodeNumber * sizeof(float2)));
+    NR_CUDA_SAFE_CALL(cudaMemcpy(sum_h, sum_d, nodeNumber * sizeof(float2), cudaMemcpyDeviceToHost));
+    NR_CUDA_SAFE_CALL(cudaFree(sum_d));
+    double dgg = 0;
     double gg = 0;
     for (int i = 0; i < nodeNumber; i++) {
         dgg += sum_h[i].x;

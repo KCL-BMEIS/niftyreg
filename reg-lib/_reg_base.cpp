@@ -1089,7 +1089,6 @@ void reg_base<T>::Run() {
 
             } // while
             if (perturbation < perturbationNumber) {
-
                 optimiser->Perturbation(smallestSize);
                 currentSize = maxStepSize;
 #ifdef NDEBUG

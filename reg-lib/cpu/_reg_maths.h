@@ -22,7 +22,7 @@
 #include <stdexcept>
 #include "nifti1_io.h"
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 

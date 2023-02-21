@@ -69,7 +69,7 @@ private:
  * should be considered. If set to nullptr, all voxels are considered
  * @return Returns the computed sum squared difference
  */
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 double reg_getSSDValue(nifti_image *referenceImage,
                        nifti_image *warpedImage,
                        double *timePointWeight,
@@ -92,7 +92,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
  * @param mask Array that contains a mask to specify which voxel
  * should be considered. If set to nullptr, all voxels are considered
  */
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *warpedImage,
                                   nifti_image *warpedImageGradient,

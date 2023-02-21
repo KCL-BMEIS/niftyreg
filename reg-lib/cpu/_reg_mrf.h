@@ -103,14 +103,14 @@ private:
 };
 /********************************************************************************************************/
 extern "C++"
-template <class DTYPE>
+template <class DataType>
 void GetGraph_core3D(nifti_image* controlPointGridImage,
                      float* edgeWeightMatrix,
                      float* index_neighbours,
                      nifti_image *refImage,
                      int *mask);
 extern "C++"
-template <class DTYPE>
+template <class DataType>
 void GetGraph_core2D(nifti_image* controlPointGridImage,
                      float* edgeWeightMatrix,
                      float* index_neighbours,

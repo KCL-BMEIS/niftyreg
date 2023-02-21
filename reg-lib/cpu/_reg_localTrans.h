@@ -35,12 +35,12 @@
  * define the control point grid image space
  * @param spacingMillimeter Control point spacing along each axis
  */
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 void reg_createControlPointGrid(nifti_image **controlPointGridImage,
                                 nifti_image *referenceImage,
                                 float *spacingMillimeter);
 
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
                                           nifti_image **backwardGridImage,
                                           nifti_image *referenceImage,

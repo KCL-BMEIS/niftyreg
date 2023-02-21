@@ -13,24 +13,24 @@
 #include "_reg_localTrans_regul.h"
 
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 double reg_spline_approxBendingEnergyValue2D(const nifti_image *splineControlPoint) {
     const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint, 2);
     int a, b, x, y, index, i;
 
     // Create pointers to the spline coefficients
-    const DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    const DTYPE *splinePtrY = &splinePtrX[nodeNumber];
+    const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    const DataType *splinePtrY = &splinePtrX[nodeNumber];
 
     // get the constant basis values
-    DTYPE basisXX[9], basisYY[9], basisXY[9];
+    DataType basisXX[9], basisYY[9], basisXY[9];
     set_second_order_bspline_basis_values(basisXX, basisYY, basisXY);
 
     double constraintValue = 0;
 
-    DTYPE splineCoeffX, splineCoeffY;
-    DTYPE XX_x, YY_x, XY_x;
-    DTYPE XX_y, YY_y, XY_y;
+    DataType splineCoeffX, splineCoeffY;
+    DataType XX_x, YY_x, XY_x;
+    DataType XX_y, YY_y, XY_y;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -70,26 +70,26 @@ double reg_spline_approxBendingEnergyValue2D(const nifti_image *splineControlPoi
     return constraintValue / (double)splineControlPoint->nvox;
 }
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 double reg_spline_approxBendingEnergyValue3D(const nifti_image *splineControlPoint) {
     const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
     int a, b, c, x, y, z, index, i;
 
     // Create pointers to the spline coefficients
-    const DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    const DTYPE *splinePtrY = &splinePtrX[nodeNumber];
-    const DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
+    const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    const DataType *splinePtrY = &splinePtrX[nodeNumber];
+    const DataType *splinePtrZ = &splinePtrY[nodeNumber];
 
     // get the constant basis values
-    DTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
+    DataType basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
     set_second_order_bspline_basis_values(basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ);
 
     double constraintValue = 0;
 
-    DTYPE splineCoeffX, splineCoeffY, splineCoeffZ;
-    DTYPE XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x;
-    DTYPE XX_y, YY_y, ZZ_y, XY_y, YZ_y, XZ_y;
-    DTYPE XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z;
+    DataType splineCoeffX, splineCoeffY, splineCoeffZ;
+    DataType XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x;
+    DataType XX_y, YY_y, ZZ_y, XY_y, YZ_y, XZ_y;
+    DataType XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -180,7 +180,7 @@ double reg_spline_approxBendingEnergy(const nifti_image *splineControlPoint) {
     }
 }
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
                                               nifti_image *gradientImage,
                                               float weight) {
@@ -188,20 +188,20 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
     int a, b, x, y, X, Y, index, i;
 
     // Create pointers to the spline coefficients
-    const DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    const DTYPE *splinePtrY = &splinePtrX[nodeNumber];
+    const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    const DataType *splinePtrY = &splinePtrX[nodeNumber];
 
     // get the constant basis values
-    DTYPE basisXX[9], basisYY[9], basisXY[9];
+    DataType basisXX[9], basisYY[9], basisXY[9];
     set_second_order_bspline_basis_values(basisXX, basisYY, basisXY);
 
-    DTYPE splineCoeffX;
-    DTYPE splineCoeffY;
-    DTYPE XX_x, YY_x, XY_x;
-    DTYPE XX_y, YY_y, XY_y;
+    DataType splineCoeffX;
+    DataType splineCoeffY;
+    DataType XX_x, YY_x, XY_x;
+    DataType XX_y, YY_y, XY_y;
 
-    DTYPE *derivativeValues = (DTYPE*)calloc(6 * nodeNumber, sizeof(DTYPE));
-    DTYPE *derivativeValuesPtr;
+    DataType *derivativeValues = (DataType*)calloc(6 * nodeNumber, sizeof(DataType));
+    DataType *derivativeValuesPtr;
 
     reg_getDisplacementFromDeformation(splineControlPoint);
 
@@ -241,16 +241,16 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
             *derivativeValuesPtr++ = XX_y;
             *derivativeValuesPtr++ = YY_x;
             *derivativeValuesPtr++ = YY_y;
-            *derivativeValuesPtr++ = (DTYPE)(2.0 * XY_x);
-            *derivativeValuesPtr++ = (DTYPE)(2.0 * XY_y);
+            *derivativeValuesPtr++ = (DataType)(2.0 * XY_x);
+            *derivativeValuesPtr++ = (DataType)(2.0 * XY_y);
         }
     }
 
-    DTYPE *gradientXPtr = static_cast<DTYPE*>(gradientImage->data);
-    DTYPE *gradientYPtr = &gradientXPtr[nodeNumber];
+    DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
+    DataType *gradientYPtr = &gradientXPtr[nodeNumber];
 
-    DTYPE approxRatio = (DTYPE)weight / (DTYPE)nodeNumber;
-    DTYPE gradientValue[2];
+    DataType approxRatio = (DataType)weight / (DataType)nodeNumber;
+    DataType gradientValue[2];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, derivativeValues, gradientXPtr, gradientYPtr, \
@@ -287,7 +287,7 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
     free(derivativeValues);
 }
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
                                               nifti_image *gradientImage,
                                               float weight) {
@@ -295,23 +295,23 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
     int a, b, c, x, y, z, X, Y, Z, index, i;
 
     // Create pointers to the spline coefficients
-    DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    DTYPE *splinePtrY = &splinePtrX[nodeNumber];
-    DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
+    DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    DataType *splinePtrY = &splinePtrX[nodeNumber];
+    DataType *splinePtrZ = &splinePtrY[nodeNumber];
 
     // get the constant basis values
-    DTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
+    DataType basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
     set_second_order_bspline_basis_values(basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ);
 
-    DTYPE splineCoeffX;
-    DTYPE splineCoeffY;
-    DTYPE splineCoeffZ;
-    DTYPE XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x;
-    DTYPE XX_y, YY_y, ZZ_y, XY_y, YZ_y, XZ_y;
-    DTYPE XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z;
+    DataType splineCoeffX;
+    DataType splineCoeffY;
+    DataType splineCoeffZ;
+    DataType XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x;
+    DataType XX_y, YY_y, ZZ_y, XY_y, YZ_y, XZ_y;
+    DataType XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z;
 
-    DTYPE *derivativeValues = (DTYPE*)calloc(18 * nodeNumber, sizeof(DTYPE));
-    DTYPE *derivativeValuesPtr;
+    DataType *derivativeValues = (DataType*)calloc(18 * nodeNumber, sizeof(DataType));
+    DataType *derivativeValuesPtr;
 
     reg_getDisplacementFromDeformation(splineControlPoint);
 
@@ -379,25 +379,25 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
                 *derivativeValuesPtr++ = ZZ_x;
                 *derivativeValuesPtr++ = ZZ_y;
                 *derivativeValuesPtr++ = ZZ_z;
-                *derivativeValuesPtr++ = (DTYPE)(2.0 * XY_x);
-                *derivativeValuesPtr++ = (DTYPE)(2.0 * XY_y);
-                *derivativeValuesPtr++ = (DTYPE)(2.0 * XY_z);
-                *derivativeValuesPtr++ = (DTYPE)(2.0 * YZ_x);
-                *derivativeValuesPtr++ = (DTYPE)(2.0 * YZ_y);
-                *derivativeValuesPtr++ = (DTYPE)(2.0 * YZ_z);
-                *derivativeValuesPtr++ = (DTYPE)(2.0 * XZ_x);
-                *derivativeValuesPtr++ = (DTYPE)(2.0 * XZ_y);
-                *derivativeValuesPtr++ = (DTYPE)(2.0 * XZ_z);
+                *derivativeValuesPtr++ = (DataType)(2.0 * XY_x);
+                *derivativeValuesPtr++ = (DataType)(2.0 * XY_y);
+                *derivativeValuesPtr++ = (DataType)(2.0 * XY_z);
+                *derivativeValuesPtr++ = (DataType)(2.0 * YZ_x);
+                *derivativeValuesPtr++ = (DataType)(2.0 * YZ_y);
+                *derivativeValuesPtr++ = (DataType)(2.0 * YZ_z);
+                *derivativeValuesPtr++ = (DataType)(2.0 * XZ_x);
+                *derivativeValuesPtr++ = (DataType)(2.0 * XZ_y);
+                *derivativeValuesPtr++ = (DataType)(2.0 * XZ_z);
             }
         }
     }
 
-    DTYPE *gradientXPtr = static_cast<DTYPE*>(gradientImage->data);
-    DTYPE *gradientYPtr = &gradientXPtr[nodeNumber];
-    DTYPE *gradientZPtr = &gradientYPtr[nodeNumber];
+    DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
+    DataType *gradientYPtr = &gradientXPtr[nodeNumber];
+    DataType *gradientZPtr = &gradientYPtr[nodeNumber];
 
-    DTYPE approxRatio = (DTYPE)weight / (DTYPE)nodeNumber;
-    DTYPE gradientValue[3];
+    DataType approxRatio = (DataType)weight / (DataType)nodeNumber;
+    DataType gradientValue[3];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, derivativeValues, gradientXPtr, gradientYPtr, gradientZPtr, \
@@ -492,7 +492,7 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 double reg_spline_approxLinearEnergyValue2D(const nifti_image *splineControlPoint) {
     const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint, 2);
     int a, b, x, y, i, index;
@@ -501,16 +501,16 @@ double reg_spline_approxLinearEnergyValue2D(const nifti_image *splineControlPoin
     double currentValue;
 
     // Create pointers to the spline coefficients
-    const DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    const DTYPE *splinePtrY = &splinePtrX[nodeNumber];
+    const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    const DataType *splinePtrY = &splinePtrX[nodeNumber];
 
     // Store the basis values since they are constant as the value is approximated
     // at the control point positions only
-    DTYPE basisX[9], basisY[9];
+    DataType basisX[9], basisY[9];
     set_first_order_basis_values(basisX, basisY);
 
-    DTYPE splineCoeffX;
-    DTYPE splineCoeffY;
+    DataType splineCoeffX;
+    DataType splineCoeffY;
 
     mat33 matrix, R;
 
@@ -567,7 +567,7 @@ double reg_spline_approxLinearEnergyValue2D(const nifti_image *splineControlPoin
     return constraintValue / static_cast<double>(splineControlPoint->nvox);
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 double reg_spline_approxLinearEnergyValue3D(const nifti_image *splineControlPoint) {
     const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
     int a, b, c, x, y, z, i, index;
@@ -576,18 +576,18 @@ double reg_spline_approxLinearEnergyValue3D(const nifti_image *splineControlPoin
     double currentValue;
 
     // Create pointers to the spline coefficients
-    const DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    const DTYPE *splinePtrY = &splinePtrX[nodeNumber];
-    const DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
+    const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    const DataType *splinePtrY = &splinePtrX[nodeNumber];
+    const DataType *splinePtrZ = &splinePtrY[nodeNumber];
 
     // Store the basis values since they are constant as the value is approximated
     // at the control point positions only
-    DTYPE basisX[27], basisY[27], basisZ[27];
+    DataType basisX[27], basisY[27], basisZ[27];
     set_first_order_basis_values(basisX, basisY, basisZ);
 
-    DTYPE splineCoeffX;
-    DTYPE splineCoeffY;
-    DTYPE splineCoeffZ;
+    DataType splineCoeffX;
+    DataType splineCoeffY;
+    DataType splineCoeffZ;
 
     mat33 matrix, R;
 
@@ -683,14 +683,14 @@ double reg_spline_approxLinearEnergy(const nifti_image *splineControlPoint) {
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 double reg_spline_linearEnergyValue2D(const nifti_image *referenceImage,
                                       const nifti_image *splineControlPoint) {
     const size_t voxelNumber = CalcVoxelNumber(*referenceImage, 2);
     int a, b, x, y, index, xPre, yPre;
-    DTYPE basis;
+    DataType basis;
 
-    const DTYPE gridVoxelSpacing[2] = {
+    const DataType gridVoxelSpacing[2] = {
         splineControlPoint->dx / referenceImage->dx,
         splineControlPoint->dy / referenceImage->dy
     };
@@ -700,14 +700,14 @@ double reg_spline_linearEnergyValue2D(const nifti_image *referenceImage,
 
     // Create pointers to the spline coefficients
     const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
-    const DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    const DTYPE *splinePtrY = &splinePtrX[nodeNumber];
-    DTYPE splineCoeffX, splineCoeffY;
+    const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    const DataType *splinePtrY = &splinePtrX[nodeNumber];
+    DataType splineCoeffX, splineCoeffY;
 
     // Store the basis values since they are constant as the value is approximated
     // at the control point positions only
-    DTYPE basisX[4], basisY[4];
-    DTYPE firstX[4], firstY[4];
+    DataType basisX[4], basisY[4];
+    DataType firstX[4], firstY[4];
 
     mat33 matrix, R;
 
@@ -719,16 +719,16 @@ double reg_spline_linearEnergyValue2D(const nifti_image *referenceImage,
 
 
     for (y = 0; y < referenceImage->ny; ++y) {
-        yPre = static_cast<int>(static_cast<DTYPE>(y) / gridVoxelSpacing[1]);
-        basis = static_cast<DTYPE>(y) / gridVoxelSpacing[1] - static_cast<DTYPE>(yPre);
+        yPre = static_cast<int>(static_cast<DataType>(y) / gridVoxelSpacing[1]);
+        basis = static_cast<DataType>(y) / gridVoxelSpacing[1] - static_cast<DataType>(yPre);
         if (basis < 0) basis = 0; //rounding error
-        get_BSplineBasisValues<DTYPE>(basis, basisY, firstY);
+        get_BSplineBasisValues<DataType>(basis, basisY, firstY);
 
         for (x = 0; x < referenceImage->nx; ++x) {
-            xPre = static_cast<int>(static_cast<DTYPE>(x) / gridVoxelSpacing[0]);
-            basis = static_cast<DTYPE>(x) / gridVoxelSpacing[0] - static_cast<DTYPE>(xPre);
+            xPre = static_cast<int>(static_cast<DataType>(x) / gridVoxelSpacing[0]);
+            basis = static_cast<DataType>(x) / gridVoxelSpacing[0] - static_cast<DataType>(xPre);
             if (basis < 0) basis = 0; //rounding error
-            get_BSplineBasisValues<DTYPE>(basis, basisX, firstX);
+            get_BSplineBasisValues<DataType>(basis, basisX, firstX);
 
             memset(&matrix, 0, sizeof(mat33));
 
@@ -766,14 +766,14 @@ double reg_spline_linearEnergyValue2D(const nifti_image *referenceImage,
     return constraintValue / static_cast<double>(voxelNumber * 2);
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 double reg_spline_linearEnergyValue3D(const nifti_image *referenceImage,
                                       const nifti_image *splineControlPoint) {
     const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
     int a, b, c, x, y, z, index, xPre, yPre, zPre;
-    DTYPE basis;
+    DataType basis;
 
-    const DTYPE gridVoxelSpacing[3] = {
+    const DataType gridVoxelSpacing[3] = {
         splineControlPoint->dx / referenceImage->dx,
         splineControlPoint->dy / referenceImage->dy,
         splineControlPoint->dz / referenceImage->dz
@@ -784,15 +784,15 @@ double reg_spline_linearEnergyValue3D(const nifti_image *referenceImage,
 
     // Create pointers to the spline coefficients
     const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
-    const DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    const DTYPE *splinePtrY = &splinePtrX[nodeNumber];
-    const DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
-    DTYPE splineCoeffX, splineCoeffY, splineCoeffZ;
+    const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    const DataType *splinePtrY = &splinePtrX[nodeNumber];
+    const DataType *splinePtrZ = &splinePtrY[nodeNumber];
+    DataType splineCoeffX, splineCoeffY, splineCoeffZ;
 
     // Store the basis values since they are constant as the value is approximated
     // at the control point positions only
-    DTYPE basisX[4], basisY[4], basisZ[4];
-    DTYPE firstX[4], firstY[4], firstZ[4];
+    DataType basisX[4], basisY[4], basisZ[4];
+    DataType firstX[4], firstY[4], firstZ[4];
 
     mat33 matrix, R;
 
@@ -803,22 +803,22 @@ double reg_spline_linearEnergyValue3D(const nifti_image *referenceImage,
     else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
 
     for (z = 0; z < referenceImage->nz; ++z) {
-        zPre = static_cast<int>(static_cast<DTYPE>(z) / gridVoxelSpacing[2]);
-        basis = static_cast<DTYPE>(z) / gridVoxelSpacing[2] - static_cast<DTYPE>(zPre);
+        zPre = static_cast<int>(static_cast<DataType>(z) / gridVoxelSpacing[2]);
+        basis = static_cast<DataType>(z) / gridVoxelSpacing[2] - static_cast<DataType>(zPre);
         if (basis < 0) basis = 0; //rounding error
-        get_BSplineBasisValues<DTYPE>(basis, basisZ, firstZ);
+        get_BSplineBasisValues<DataType>(basis, basisZ, firstZ);
 
         for (y = 0; y < referenceImage->ny; ++y) {
-            yPre = static_cast<int>(static_cast<DTYPE>(y) / gridVoxelSpacing[1]);
-            basis = static_cast<DTYPE>(y) / gridVoxelSpacing[1] - static_cast<DTYPE>(yPre);
+            yPre = static_cast<int>(static_cast<DataType>(y) / gridVoxelSpacing[1]);
+            basis = static_cast<DataType>(y) / gridVoxelSpacing[1] - static_cast<DataType>(yPre);
             if (basis < 0) basis = 0; //rounding error
-            get_BSplineBasisValues<DTYPE>(basis, basisY, firstY);
+            get_BSplineBasisValues<DataType>(basis, basisY, firstY);
 
             for (x = 0; x < referenceImage->nx; ++x) {
-                xPre = static_cast<int>(static_cast<DTYPE>(x) / gridVoxelSpacing[0]);
-                basis = static_cast<DTYPE>(x) / gridVoxelSpacing[0] - static_cast<DTYPE>(xPre);
+                xPre = static_cast<int>(static_cast<DataType>(x) / gridVoxelSpacing[0]);
+                basis = static_cast<DataType>(x) / gridVoxelSpacing[0] - static_cast<DataType>(xPre);
                 if (basis < 0) basis = 0; //rounding error
-                get_BSplineBasisValues<DTYPE>(basis, basisX, firstX);
+                get_BSplineBasisValues<DataType>(basis, basisX, firstX);
 
                 memset(&matrix, 0, sizeof(mat33));
 
@@ -894,38 +894,38 @@ double reg_spline_linearEnergy(const nifti_image *referenceImage,
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_spline_linearEnergyGradient2D(const nifti_image *referenceImage,
                                        const nifti_image *splineControlPoint,
                                        nifti_image *gradientImage,
                                        float weight) {
     const size_t voxelNumber = CalcVoxelNumber(*referenceImage, 2);
     int a, b, x, y, index, xPre, yPre;
-    DTYPE basis;
+    DataType basis;
 
-    const DTYPE gridVoxelSpacing[2] = {
+    const DataType gridVoxelSpacing[2] = {
         splineControlPoint->dx / referenceImage->dx,
         splineControlPoint->dy / referenceImage->dy
     };
 
     // Create pointers to the spline coefficients
     const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
-    const DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    const DTYPE *splinePtrY = &splinePtrX[nodeNumber];
-    DTYPE splineCoeffX, splineCoeffY;
+    const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    const DataType *splinePtrY = &splinePtrX[nodeNumber];
+    DataType splineCoeffX, splineCoeffY;
 
     // Store the basis values since they are constant as the value is approximated
     // at the control point positions only
-    DTYPE basisX[4], basisY[4];
-    DTYPE firstX[4], firstY[4];
+    DataType basisX[4], basisY[4];
+    DataType firstX[4], firstY[4];
 
     mat33 matrix, R;
 
-    DTYPE *gradientXPtr = static_cast<DTYPE*>(gradientImage->data);
-    DTYPE *gradientYPtr = &gradientXPtr[nodeNumber];
+    DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
+    DataType *gradientYPtr = &gradientXPtr[nodeNumber];
 
-    DTYPE approxRatio = (DTYPE)weight / (DTYPE)voxelNumber;
-    DTYPE gradValues[2];
+    DataType approxRatio = (DataType)weight / (DataType)voxelNumber;
+    DataType gradValues[2];
 
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
@@ -936,16 +936,16 @@ void reg_spline_linearEnergyGradient2D(const nifti_image *referenceImage,
 
     // Loop over all voxels
     for (y = 0; y < referenceImage->ny; ++y) {
-        yPre = static_cast<int>(static_cast<DTYPE>(y) / gridVoxelSpacing[1]);
-        basis = static_cast<DTYPE>(y) / gridVoxelSpacing[1] - static_cast<DTYPE>(yPre);
+        yPre = static_cast<int>(static_cast<DataType>(y) / gridVoxelSpacing[1]);
+        basis = static_cast<DataType>(y) / gridVoxelSpacing[1] - static_cast<DataType>(yPre);
         if (basis < 0) basis = 0; //rounding error
-        get_BSplineBasisValues<DTYPE>(basis, basisY, firstY);
+        get_BSplineBasisValues<DataType>(basis, basisY, firstY);
 
         for (x = 0; x < referenceImage->nx; ++x) {
-            xPre = static_cast<int>(static_cast<DTYPE>(x) / gridVoxelSpacing[0]);
-            basis = static_cast<DTYPE>(x) / gridVoxelSpacing[0] - static_cast<DTYPE>(xPre);
+            xPre = static_cast<int>(static_cast<DataType>(x) / gridVoxelSpacing[0]);
+            basis = static_cast<DataType>(x) / gridVoxelSpacing[0] - static_cast<DataType>(xPre);
             if (basis < 0) basis = 0; //rounding error
-            get_BSplineBasisValues<DTYPE>(basis, basisX, firstX);
+            get_BSplineBasisValues<DataType>(basis, basisX, firstX);
 
             memset(&matrix, 0, sizeof(mat33));
 
@@ -985,16 +985,16 @@ void reg_spline_linearEnergyGradient2D(const nifti_image *referenceImage,
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_spline_linearEnergyGradient3D(const nifti_image *referenceImage,
                                        const nifti_image *splineControlPoint,
                                        nifti_image *gradientImage,
                                        float weight) {
     const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
     int a, b, c, x, y, z, index, xPre, yPre, zPre;
-    DTYPE basis;
+    DataType basis;
 
-    const DTYPE gridVoxelSpacing[3] = {
+    const DataType gridVoxelSpacing[3] = {
         splineControlPoint->dx / referenceImage->dx,
         splineControlPoint->dy / referenceImage->dy,
         splineControlPoint->dz / referenceImage->dz
@@ -1002,24 +1002,24 @@ void reg_spline_linearEnergyGradient3D(const nifti_image *referenceImage,
 
     // Create pointers to the spline coefficients
     const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
-    const DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    const DTYPE *splinePtrY = &splinePtrX[nodeNumber];
-    const DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
-    DTYPE splineCoeffX, splineCoeffY, splineCoeffZ;
+    const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    const DataType *splinePtrY = &splinePtrX[nodeNumber];
+    const DataType *splinePtrZ = &splinePtrY[nodeNumber];
+    DataType splineCoeffX, splineCoeffY, splineCoeffZ;
 
     // Store the basis values since they are constant as the value is approximated
     // at the control point positions only
-    DTYPE basisX[4], basisY[4], basisZ[4];
-    DTYPE firstX[4], firstY[4], firstZ[4];
+    DataType basisX[4], basisY[4], basisZ[4];
+    DataType firstX[4], firstY[4], firstZ[4];
 
     mat33 matrix, R;
 
-    DTYPE *gradientXPtr = static_cast<DTYPE*>(gradientImage->data);
-    DTYPE *gradientYPtr = &gradientXPtr[nodeNumber];
-    DTYPE *gradientZPtr = &gradientYPtr[nodeNumber];
+    DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
+    DataType *gradientYPtr = &gradientXPtr[nodeNumber];
+    DataType *gradientZPtr = &gradientYPtr[nodeNumber];
 
-    DTYPE approxRatio = (DTYPE)weight / (DTYPE)voxelNumber;
-    DTYPE gradValues[3];
+    DataType approxRatio = (DataType)weight / (DataType)voxelNumber;
+    DataType gradValues[3];
 
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
@@ -1030,22 +1030,22 @@ void reg_spline_linearEnergyGradient3D(const nifti_image *referenceImage,
 
     // Loop over all voxels
     for (z = 0; z < referenceImage->nz; ++z) {
-        zPre = static_cast<int>(static_cast<DTYPE>(z) / gridVoxelSpacing[2]);
-        basis = static_cast<DTYPE>(z) / gridVoxelSpacing[2] - static_cast<DTYPE>(zPre);
+        zPre = static_cast<int>(static_cast<DataType>(z) / gridVoxelSpacing[2]);
+        basis = static_cast<DataType>(z) / gridVoxelSpacing[2] - static_cast<DataType>(zPre);
         if (basis < 0) basis = 0; //rounding error
-        get_BSplineBasisValues<DTYPE>(basis, basisZ, firstZ);
+        get_BSplineBasisValues<DataType>(basis, basisZ, firstZ);
 
         for (y = 0; y < referenceImage->ny; ++y) {
-            yPre = static_cast<int>(static_cast<DTYPE>(y) / gridVoxelSpacing[1]);
-            basis = static_cast<DTYPE>(y) / gridVoxelSpacing[1] - static_cast<DTYPE>(yPre);
+            yPre = static_cast<int>(static_cast<DataType>(y) / gridVoxelSpacing[1]);
+            basis = static_cast<DataType>(y) / gridVoxelSpacing[1] - static_cast<DataType>(yPre);
             if (basis < 0) basis = 0; //rounding error
-            get_BSplineBasisValues<DTYPE>(basis, basisY, firstY);
+            get_BSplineBasisValues<DataType>(basis, basisY, firstY);
 
             for (x = 0; x < referenceImage->nx; ++x) {
-                xPre = static_cast<int>(static_cast<DTYPE>(x) / gridVoxelSpacing[0]);
-                basis = static_cast<DTYPE>(x) / gridVoxelSpacing[0] - static_cast<DTYPE>(xPre);
+                xPre = static_cast<int>(static_cast<DataType>(x) / gridVoxelSpacing[0]);
+                basis = static_cast<DataType>(x) / gridVoxelSpacing[0] - static_cast<DataType>(xPre);
                 if (basis < 0) basis = 0; //rounding error
-                get_BSplineBasisValues<DTYPE>(basis, basisX, firstX);
+                get_BSplineBasisValues<DataType>(basis, basisX, firstX);
 
                 memset(&matrix, 0, sizeof(mat33));
 
@@ -1142,7 +1142,7 @@ void reg_spline_linearEnergyGradient(const nifti_image *referenceImage,
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoint,
                                              nifti_image *gradientImage,
                                              float weight) {
@@ -1150,13 +1150,13 @@ void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoi
     int x, y, a, b, i, index;
 
     // Create pointers to the spline coefficients
-    const DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    const DTYPE *splinePtrY = &splinePtrX[nodeNumber];
+    const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    const DataType *splinePtrY = &splinePtrX[nodeNumber];
 
     // Store the basis values since they are constant as the value is approximated
     // at the control point positions only
-    DTYPE basisX[9];
-    DTYPE basisY[9];
+    DataType basisX[9];
+    DataType basisY[9];
     set_first_order_basis_values(basisX, basisY);
 
     // Matrix to use to convert the gradient from mm to voxel
@@ -1166,16 +1166,16 @@ void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoi
     else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
     mat33 inv_reorientation = nifti_mat33_inverse(reorientation);
 
-    DTYPE splineCoeffX;
-    DTYPE splineCoeffY;
+    DataType splineCoeffX;
+    DataType splineCoeffY;
 
     mat33 matrix, R;
 
-    DTYPE *gradientXPtr = static_cast<DTYPE*>(gradientImage->data);
-    DTYPE *gradientYPtr = &gradientXPtr[nodeNumber];
+    DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
+    DataType *gradientYPtr = &gradientXPtr[nodeNumber];
 
-    DTYPE approxRatio = (DTYPE)weight / (DTYPE)nodeNumber;
-    DTYPE gradValues[2];
+    DataType approxRatio = (DataType)weight / (DataType)nodeNumber;
+    DataType gradValues[2];
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -1237,7 +1237,7 @@ void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoi
     } // y
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoint,
                                              nifti_image *gradientImage,
                                              float weight) {
@@ -1245,15 +1245,15 @@ void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoi
     int x, y, z, a, b, c, i, index;
 
     // Create pointers to the spline coefficients
-    const DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    const DTYPE *splinePtrY = &splinePtrX[nodeNumber];
-    const DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
+    const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    const DataType *splinePtrY = &splinePtrX[nodeNumber];
+    const DataType *splinePtrZ = &splinePtrY[nodeNumber];
 
     // Store the basis values since they are constant as the value is approximated
     // at the control point positions only
-    DTYPE basisX[27];
-    DTYPE basisY[27];
-    DTYPE basisZ[27];
+    DataType basisX[27];
+    DataType basisY[27];
+    DataType basisZ[27];
     set_first_order_basis_values(basisX, basisY, basisZ);
 
     // Matrix to use to convert the gradient from mm to voxel
@@ -1263,18 +1263,18 @@ void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoi
     else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
     mat33 inv_reorientation = nifti_mat33_inverse(reorientation);
 
-    DTYPE splineCoeffX;
-    DTYPE splineCoeffY;
-    DTYPE splineCoeffZ;
+    DataType splineCoeffX;
+    DataType splineCoeffY;
+    DataType splineCoeffZ;
 
     mat33 matrix, R;
 
-    DTYPE *gradientXPtr = static_cast<DTYPE*>(gradientImage->data);
-    DTYPE *gradientYPtr = &gradientXPtr[nodeNumber];
-    DTYPE *gradientZPtr = &gradientYPtr[nodeNumber];
+    DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
+    DataType *gradientYPtr = &gradientXPtr[nodeNumber];
+    DataType *gradientZPtr = &gradientYPtr[nodeNumber];
 
-    DTYPE approxRatio = (DTYPE)weight / (DTYPE)(nodeNumber);
-    DTYPE gradValues[3];
+    DataType approxRatio = (DataType)weight / (DataType)(nodeNumber);
+    DataType gradValues[3];
 
     for (z = 1; z < splineControlPoint->nz - 1; z++) {
         for (y = 1; y < splineControlPoint->ny - 1; y++) {
@@ -1380,20 +1380,20 @@ void reg_spline_approxLinearEnergyGradient(const nifti_image *splineControlPoint
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 double reg_defField_linearEnergyValue2D(const nifti_image *deformationField) {
     const size_t voxelNumber = CalcVoxelNumber(*deformationField, 2);
     int a, b, x, y, X, Y, index;
-    DTYPE basis[2] = {1, 0};
-    DTYPE first[2] = {-1, 1};
+    DataType basis[2] = {1, 0};
+    DataType first[2] = {-1, 1};
 
     double constraintValue = 0;
     double currentValue;
 
     // Create pointers to the deformation field
-    const DTYPE *defPtrX = static_cast<DTYPE*>(deformationField->data);
-    const DTYPE *defPtrY = &defPtrX[voxelNumber];
-    DTYPE defX, defY;
+    const DataType *defPtrX = static_cast<DataType*>(deformationField->data);
+    const DataType *defPtrY = &defPtrX[voxelNumber];
+    DataType defX, defY;
 
     mat33 matrix, R;
 
@@ -1443,21 +1443,21 @@ double reg_defField_linearEnergyValue2D(const nifti_image *deformationField) {
     return constraintValue / static_cast<double>(deformationField->nvox);
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 double reg_defField_linearEnergyValue3D(const nifti_image *deformationField) {
     const size_t voxelNumber = CalcVoxelNumber(*deformationField);
     int a, b, c, x, y, z, X, Y, Z, index;
-    DTYPE basis[2] = {1, 0};
-    DTYPE first[2] = {-1, 1};
+    DataType basis[2] = {1, 0};
+    DataType first[2] = {-1, 1};
 
     double constraintValue = 0;
     double currentValue;
 
     // Create pointers to the deformation field
-    const DTYPE *defPtrX = static_cast<DTYPE*>(deformationField->data);
-    const DTYPE *defPtrY = &defPtrX[voxelNumber];
-    const DTYPE *defPtrZ = &defPtrY[voxelNumber];
-    DTYPE defX, defY, defZ;
+    const DataType *defPtrX = static_cast<DataType*>(deformationField->data);
+    const DataType *defPtrY = &defPtrX[voxelNumber];
+    const DataType *defPtrZ = &defPtrY[voxelNumber];
+    DataType defX, defY, defZ;
 
     mat33 matrix, R;
 
@@ -1547,27 +1547,27 @@ double reg_defField_linearEnergy(const nifti_image *deformationField) {
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_defField_linearEnergyGradient2D(const nifti_image *deformationField,
                                          nifti_image *gradientImage,
                                          float weight) {
     const size_t voxelNumber = CalcVoxelNumber(*deformationField, 2);
     int a, b, x, y, X, Y, index;
-    DTYPE basis[2] = {1, 0};
-    DTYPE first[2] = {-1, 1};
+    DataType basis[2] = {1, 0};
+    DataType first[2] = {-1, 1};
 
     // Create pointers to the deformation field
-    const DTYPE *defPtrX = static_cast<DTYPE*>(deformationField->data);
-    const DTYPE *defPtrY = &defPtrX[voxelNumber];
-    DTYPE defX, defY;
+    const DataType *defPtrX = static_cast<DataType*>(deformationField->data);
+    const DataType *defPtrY = &defPtrX[voxelNumber];
+    DataType defX, defY;
 
     mat33 matrix, R;
 
-    DTYPE *gradientXPtr = static_cast<DTYPE*>(gradientImage->data);
-    DTYPE *gradientYPtr = &gradientXPtr[voxelNumber];
+    DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
+    DataType *gradientYPtr = &gradientXPtr[voxelNumber];
 
-    DTYPE approxRatio = (DTYPE)weight / (DTYPE)voxelNumber;
-    DTYPE gradValues[2];
+    DataType approxRatio = (DataType)weight / (DataType)voxelNumber;
+    DataType gradValues[2];
 
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
@@ -1619,29 +1619,29 @@ void reg_defField_linearEnergyGradient2D(const nifti_image *deformationField,
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_defField_linearEnergyGradient3D(const nifti_image *deformationField,
                                          nifti_image *gradientImage,
                                          float weight) {
     const size_t voxelNumber = CalcVoxelNumber(*deformationField);
     int a, b, c, x, y, z, X, Y, Z, index;
-    DTYPE basis[2] = {1, 0};
-    DTYPE first[2] = {-1, 1};
+    DataType basis[2] = {1, 0};
+    DataType first[2] = {-1, 1};
 
     // Create pointers to the deformation field
-    const DTYPE *defPtrX = static_cast<DTYPE*>(deformationField->data);
-    const DTYPE *defPtrY = &defPtrX[voxelNumber];
-    const DTYPE *defPtrZ = &defPtrY[voxelNumber];
-    DTYPE defX, defY, defZ;
+    const DataType *defPtrX = static_cast<DataType*>(deformationField->data);
+    const DataType *defPtrY = &defPtrX[voxelNumber];
+    const DataType *defPtrZ = &defPtrY[voxelNumber];
+    DataType defX, defY, defZ;
 
     mat33 matrix, R;
 
-    DTYPE *gradientXPtr = static_cast<DTYPE*>(gradientImage->data);
-    DTYPE *gradientYPtr = &gradientXPtr[voxelNumber];
-    DTYPE *gradientZPtr = &gradientYPtr[voxelNumber];
+    DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
+    DataType *gradientYPtr = &gradientXPtr[voxelNumber];
+    DataType *gradientZPtr = &gradientYPtr[voxelNumber];
 
-    DTYPE approxRatio = (DTYPE)weight / (DTYPE)voxelNumber;
-    DTYPE gradValues[3];
+    DataType approxRatio = (DataType)weight / (DataType)voxelNumber;
+    DataType gradValues[3];
 
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
@@ -1746,7 +1746,7 @@ void reg_defField_linearEnergyGradient(const nifti_image *deformationField,
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
                                            size_t landmarkNumber,
                                            float *landmarkReference,
@@ -1759,13 +1759,13 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
     float def_position[4];
     float flo_position[4];
     int previous[3], a, b, c;
-    DTYPE basisX[4], basisY[4], basisZ[4], basis;
+    DataType basisX[4], basisY[4], basisZ[4], basis;
     const mat44 *gridRealToVox = &(controlPointImage->qto_ijk);
     if (controlPointImage->sform_code > 0)
         gridRealToVox = &(controlPointImage->sto_ijk);
-    const DTYPE *gridPtrX = static_cast<DTYPE*>(controlPointImage->data);
-    const DTYPE *gridPtrY = &gridPtrX[controlPointNumber];
-    const DTYPE *gridPtrZ = nullptr;
+    const DataType *gridPtrX = static_cast<DataType*>(controlPointImage->data);
+    const DataType *gridPtrY = &gridPtrX[controlPointNumber];
+    const DataType *gridPtrZ = nullptr;
     if (imageDim > 2)
         gridPtrZ = &gridPtrY[controlPointNumber];
 
@@ -1793,9 +1793,9 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
             previous[1] > -1 && previous[1] + 3 < controlPointImage->ny &&
             ((previous[2] > -1 && previous[2] + 3 < controlPointImage->nz) || imageDim == 2)) {
             // Extract the corresponding basis values
-            get_BSplineBasisValues<DTYPE>(def_position[0] - 1 - (DTYPE)previous[0], basisX);
-            get_BSplineBasisValues<DTYPE>(def_position[1] - 1 - (DTYPE)previous[1], basisY);
-            get_BSplineBasisValues<DTYPE>(def_position[2] - 1 - (DTYPE)previous[2], basisZ);
+            get_BSplineBasisValues<DataType>(def_position[0] - 1 - (DataType)previous[0], basisX);
+            get_BSplineBasisValues<DataType>(def_position[1] - 1 - (DataType)previous[1], basisY);
+            get_BSplineBasisValues<DataType>(def_position[2] - 1 - (DataType)previous[2], basisZ);
             def_position[0] = 0;
             def_position[1] = 0;
             def_position[2] = 0;
@@ -1864,7 +1864,7 @@ double reg_spline_getLandmarkDistance(const nifti_image *controlPointImage,
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPointImage,
                                                  nifti_image *gradientImage,
                                                  size_t landmarkNumber,
@@ -1878,16 +1878,16 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
     float def_position[3];
     float flo_position[3];
     int previous[3], a, b, c;
-    DTYPE basisX[4], basisY[4], basisZ[4], basis;
+    DataType basisX[4], basisY[4], basisZ[4], basis;
     const mat44 *gridRealToVox = &(controlPointImage->qto_ijk);
     if (controlPointImage->sform_code > 0)
         gridRealToVox = &(controlPointImage->sto_ijk);
-    const DTYPE *gridPtrX = static_cast<DTYPE*>(controlPointImage->data);
-    DTYPE *gradPtrX = static_cast<DTYPE*>(gradientImage->data);
-    const DTYPE *gridPtrY = &gridPtrX[controlPointNumber];
-    DTYPE *gradPtrY = &gradPtrX[controlPointNumber];
-    const DTYPE *gridPtrZ = nullptr;
-    DTYPE *gradPtrZ = nullptr;
+    const DataType *gridPtrX = static_cast<DataType*>(controlPointImage->data);
+    DataType *gradPtrX = static_cast<DataType*>(gradientImage->data);
+    const DataType *gridPtrY = &gridPtrX[controlPointNumber];
+    DataType *gradPtrY = &gradPtrX[controlPointNumber];
+    const DataType *gridPtrZ = nullptr;
+    DataType *gradPtrZ = nullptr;
     if (imageDim > 2) {
         gridPtrZ = &gridPtrY[controlPointNumber];
         gradPtrZ = &gradPtrY[controlPointNumber];
@@ -1916,9 +1916,9 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
             previous[1] > -1 && previous[1] + 3 < controlPointImage->ny &&
             ((previous[2] > -1 && previous[2] + 3 < controlPointImage->nz) || imageDim == 2)) {
             // Extract the corresponding basis values
-            get_BSplineBasisValues<DTYPE>(def_position[0] - 1 - (DTYPE)previous[0], basisX);
-            get_BSplineBasisValues<DTYPE>(def_position[1] - 1 - (DTYPE)previous[1], basisY);
-            get_BSplineBasisValues<DTYPE>(def_position[2] - 1 - (DTYPE)previous[2], basisZ);
+            get_BSplineBasisValues<DataType>(def_position[0] - 1 - (DataType)previous[0], basisX);
+            get_BSplineBasisValues<DataType>(def_position[1] - 1 - (DataType)previous[1], basisY);
+            get_BSplineBasisValues<DataType>(def_position[2] - 1 - (DataType)previous[2], basisZ);
             def_position[0] = 0;
             def_position[1] = 0;
             def_position[2] = 0;
@@ -2013,21 +2013,21 @@ void reg_spline_getLandmarkDistanceGradient(const nifti_image *controlPointImage
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 double reg_spline_approxLinearPairwise3D(nifti_image *splineControlPoint) {
     const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
     int x, y, z, index;
 
     // Create pointers to the spline coefficients
     reg_getDisplacementFromDeformation(splineControlPoint);
-    DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    DTYPE *splinePtrY = &splinePtrX[nodeNumber];
-    DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
+    DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    DataType *splinePtrY = &splinePtrX[nodeNumber];
+    DataType *splinePtrZ = &splinePtrY[nodeNumber];
 
-    DTYPE centralCP[3], neigbCP[3];
+    DataType centralCP[3], neigbCP[3];
 
     double constraintValue = 0;
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, x, y, z, centralCP, neigbCP) \
     shared(splineControlPoint, splinePtrX, splinePtrY, splinePtrZ) \
@@ -2112,7 +2112,7 @@ double reg_spline_approxLinearPairwise(nifti_image *splineControlPoint) {
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_spline_approxLinearPairwiseGradient3D(nifti_image *splineControlPoint,
                                                nifti_image *gradientImage,
                                                float weight) {
@@ -2121,21 +2121,21 @@ void reg_spline_approxLinearPairwiseGradient3D(nifti_image *splineControlPoint,
 
     // Create pointers to the spline coefficients
     reg_getDisplacementFromDeformation(splineControlPoint);
-    DTYPE *splinePtrX = static_cast<DTYPE*>(splineControlPoint->data);
-    DTYPE *splinePtrY = &splinePtrX[nodeNumber];
-    DTYPE *splinePtrZ = &splinePtrY[nodeNumber];
+    DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
+    DataType *splinePtrY = &splinePtrX[nodeNumber];
+    DataType *splinePtrZ = &splinePtrY[nodeNumber];
 
     // Pointers to the gradient image
-    DTYPE *gradPtrX = static_cast<DTYPE*>(gradientImage->data);
-    DTYPE *gradPtrY = &gradPtrX[nodeNumber];
-    DTYPE *gradPtrZ = &gradPtrY[nodeNumber];
+    DataType *gradPtrX = static_cast<DataType*>(gradientImage->data);
+    DataType *gradPtrY = &gradPtrX[nodeNumber];
+    DataType *gradPtrZ = &gradPtrY[nodeNumber];
 
-    DTYPE centralCP[3], neigbCP[3];
+    DataType centralCP[3], neigbCP[3];
 
     double grad_values[3];
 
-    DTYPE approxRatio = (DTYPE)weight / (DTYPE)nodeNumber;
-#if defined (_OPENMP)
+    DataType approxRatio = (DataType)weight / (DataType)nodeNumber;
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, x, y, z, centralCP, neigbCP, grad_values) \
     shared(splineControlPoint, splinePtrX, splinePtrY, splinePtrZ, approxRatio, \
@@ -2202,9 +2202,9 @@ void reg_spline_approxLinearPairwiseGradient3D(nifti_image *splineControlPoint,
                     grad_values[1] += 2. * (centralCP[1] - neigbCP[1]) / splineControlPoint->dz;
                     grad_values[2] += 2. * (centralCP[2] - neigbCP[2]) / splineControlPoint->dz;
                 }
-                gradPtrX[index] += approxRatio * static_cast<DTYPE>(grad_values[0]);
-                gradPtrY[index] += approxRatio * static_cast<DTYPE>(grad_values[1]);
-                gradPtrZ[index] += approxRatio * static_cast<DTYPE>(grad_values[2]);
+                gradPtrX[index] += approxRatio * static_cast<DataType>(grad_values[0]);
+                gradPtrY[index] += approxRatio * static_cast<DataType>(grad_values[1]);
+                gradPtrZ[index] += approxRatio * static_cast<DataType>(grad_values[2]);
 
                 index++;
             } // x

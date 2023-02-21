@@ -69,7 +69,7 @@ void Usage(char *exec)
    printf("\t-psf\n\t\tPerform the resampling in two steps to resample an image to a lower resolution [off]\n");
    printf("\t-psf_alg <0/1>\n\t\tMinimise the matrix metric (0) or the determinant (1) when estimating the PSF [0]\n");
    printf("\t-voff\n\t\tTurns verbose off [on]\n");
-#if defined (_OPENMP)
+#ifdef _OPENMP
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
    param->PSF_Algorithm=0;
    bool verbose=true;
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
    // Set the default number of thread
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
-#if defined (_OPENMP)
+#ifdef _OPENMP
          omp_set_num_threads(atoi(argv[++i]));
 #else
          reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");

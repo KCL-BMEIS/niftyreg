@@ -16,7 +16,7 @@
 #include <iostream>
 #include <cmath>
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU) {
 
    float *varianceArray = (float *)malloc(params->totalBlockNumber * sizeof(float));
@@ -26,14 +26,14 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
 
    int unusableBlock = 0;
    size_t index;
-   DTYPE *referenceValues = nullptr;
+   DataType *referenceValues = nullptr;
    if (referenceImage->nz > 1) {
-      referenceValues = (DTYPE *)malloc(BLOCK_3D_SIZE * sizeof(DTYPE));
+      referenceValues = (DataType *)malloc(BLOCK_3D_SIZE * sizeof(DataType));
    }
    else {
-      referenceValues = (DTYPE *)malloc(BLOCK_2D_SIZE * sizeof(DTYPE));
+      referenceValues = (DataType *)malloc(BLOCK_2D_SIZE * sizeof(DataType));
    }
-   DTYPE *referencePtr = static_cast<DTYPE *>(referenceImage->data);
+   DataType *referencePtr = static_cast<DataType *>(referenceImage->data);
    int blockIndex = 0;
 
    if (referenceImage->nz > 1) {
@@ -43,7 +43,7 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
             for (unsigned int i = 0; i < params->blockNumber[0]; i++) {
 
                for (unsigned int n = 0; n < BLOCK_3D_SIZE; n++)
-                  referenceValues[n] = (DTYPE)std::numeric_limits<float>::quiet_NaN();
+                  referenceValues[n] = (DataType)std::numeric_limits<float>::quiet_NaN();
 
                float mean = 0.0f;
                float voxelNumber = 0.0f;
@@ -51,12 +51,12 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
                for (unsigned int z = k * BLOCK_WIDTH; z < (k + 1) * BLOCK_WIDTH; z++) {
                   if (z < (unsigned int)referenceImage->nz) {
                      index = z * referenceImage->nx * referenceImage->ny;
-                     DTYPE *referencePtrZ = &referencePtr[index];
+                     DataType *referencePtrZ = &referencePtr[index];
                      int *maskPtrZ = &maskPtr[index];
                      for (unsigned int y = j * BLOCK_WIDTH; y < (j + 1) * BLOCK_WIDTH; y++) {
                         if (y < (unsigned int)referenceImage->ny) {
                            index = y * referenceImage->nx + i * BLOCK_WIDTH;
-                           DTYPE *referencePtrXYZ = &referencePtrZ[index];
+                           DataType *referencePtrXYZ = &referencePtrZ[index];
                            int *maskPtrXYZ = &maskPtrZ[index];
                            for (unsigned int x = i * BLOCK_WIDTH; x < (i + 1) * BLOCK_WIDTH; x++) {
                               if (x < (unsigned int)referenceImage->nx) {
@@ -103,7 +103,7 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
          for (unsigned int i = 0; i < params->blockNumber[0]; i++) {
 
             for (unsigned int n = 0; n < BLOCK_2D_SIZE; n++)
-               referenceValues[n] = (DTYPE)std::numeric_limits<float>::quiet_NaN();
+               referenceValues[n] = std::numeric_limits<DataType>::quiet_NaN();
 
             float mean = 0.0f;
             float voxelNumber = 0.0f;
@@ -112,7 +112,7 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
             for (unsigned int y = j * BLOCK_WIDTH; y < (j + 1) * BLOCK_WIDTH; y++) {
                if (y < (unsigned )referenceImage->ny) {
                   index = y * referenceImage->nx + i * BLOCK_WIDTH;
-                  DTYPE *referencePtrXY = &referencePtr[index];
+                  DataType *referencePtrXY = &referencePtr[index];
                   int *maskPtrXY = &maskPtr[index];
                   for (unsigned int x = i * BLOCK_WIDTH; x < (i + 1) * BLOCK_WIDTH; x++) {
                      if (x < (unsigned)referenceImage->nx) {
@@ -256,10 +256,10 @@ void initialise_block_matching_method(nifti_image * reference,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template<typename DTYPE>
+template<typename DataType>
 void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg_blockMatchingParam *params, int *mask) {
-   DTYPE *referencePtr = static_cast<DTYPE *>(reference->data);
-   DTYPE *warpedPtr = static_cast<DTYPE *>(warped->data);
+   DataType *referencePtr = static_cast<DataType *>(reference->data);
+   DataType *warpedPtr = static_cast<DataType *>(warped->data);
 
    mat44 *referenceMatrix_xyz;
    if (reference->sform_code > 0)
@@ -284,14 +284,14 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
    int index, l, m, x, y, z = 0;
    unsigned int i, j;
    int *maskPtr_XY;
-   DTYPE *referencePtr_XY, *warpedPtr_XY;
-   DTYPE value, bestCC, referenceMean, warpedMean, referenceVar, warpedVar;
-   DTYPE voxelNumber, localCC, referenceTemp, warpedTemp;
+   DataType *referencePtr_XY, *warpedPtr_XY;
+   DataType value, bestCC, referenceMean, warpedMean, referenceVar, warpedVar;
+   DataType voxelNumber, localCC, referenceTemp, warpedTemp;
    float bestDisplacement[3], referencePosition_temp[3], tempPosition[3];
 
-   DTYPE referenceValues[BLOCK_2D_SIZE];
+   DataType referenceValues[BLOCK_2D_SIZE];
    bool referenceOverlap[BLOCK_2D_SIZE];
-   DTYPE warpedValues[BLOCK_2D_SIZE];
+   DataType warpedValues[BLOCK_2D_SIZE];
    bool warpedOverlap[BLOCK_2D_SIZE];
 
    params->definedActiveBlockNumber = 0;
@@ -329,7 +329,7 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                else
                   referenceIndex += BLOCK_WIDTH;
             }
-            bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0;
+            bestCC = params->voxelCaptureRange > 3 ? 0.9f : 0;
             bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
             bestDisplacement[1] = 0.f;
             bestDisplacement[2] = 0.f;
@@ -434,13 +434,13 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
 
 }
 /* *************************************************************** */
-template<typename DTYPE>
+template<typename DataType>
 void block_matching_method3D(nifti_image * reference,
                              nifti_image * warped,
                              _reg_blockMatchingParam *params,
                              int *mask) {
-   DTYPE *referencePtr = static_cast<DTYPE *>(reference->data);
-   DTYPE *warpedPtr = static_cast<DTYPE *>(warped->data);
+   DataType *referencePtr = static_cast<DataType *>(reference->data);
+   DataType *warpedPtr = static_cast<DataType *>(warped->data);
 
    mat44 *referenceMatrix_xyz;
    if (reference->sform_code > 0)
@@ -464,29 +464,29 @@ void block_matching_method3D(nifti_image * reference,
    int index, l, m, n, x, y, z;
    int i, j, k; //Need to be int for VC++ compiler and OpenMP
    int *maskPtr_Z, *maskPtr_XYZ;
-   DTYPE *referencePtr_Z, *referencePtr_XYZ, *warpedPtr_Z, *warpedPtr_XYZ;
-   DTYPE value, bestCC, referenceMean, warpedMean, referenceVar, warpedVar;
-   DTYPE voxelNumber, localCC, referenceTemp, warpedTemp;
+   DataType *referencePtr_Z, *referencePtr_XYZ, *warpedPtr_Z, *warpedPtr_XYZ;
+   DataType value, bestCC, referenceMean, warpedMean, referenceVar, warpedVar;
+   DataType voxelNumber, localCC, referenceTemp, warpedTemp;
    float bestDisplacement[3], referencePosition_temp[3], tempPosition[3];
    size_t referenceIndex, warpedIndex, blockIndex, tid = 0;
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
    int threadNumber = omp_get_max_threads();
    if (threadNumber > 16)
       omp_set_num_threads(16);
-   DTYPE referenceValues[16][BLOCK_3D_SIZE];
-   DTYPE warpedValues[16][BLOCK_3D_SIZE];
+   DataType referenceValues[16][BLOCK_3D_SIZE];
+   DataType warpedValues[16][BLOCK_3D_SIZE];
    bool referenceOverlap[16][BLOCK_3D_SIZE];
    bool warpedOverlap[16][BLOCK_3D_SIZE];
 #else
-   DTYPE referenceValues[1][BLOCK_3D_SIZE];
-   DTYPE warpedValues[1][BLOCK_3D_SIZE];
+   DataType referenceValues[1][BLOCK_3D_SIZE];
+   DataType warpedValues[1][BLOCK_3D_SIZE];
    bool referenceOverlap[1][BLOCK_3D_SIZE];
    bool warpedOverlap[1][BLOCK_3D_SIZE];
 #endif
 
    int currentDefinedActiveBlockNumber = 0;
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(params, reference, warped, referencePtr, warpedPtr, mask, referenceMatrix_xyz, \
    referenceOverlap, warpedOverlap, referenceValues, warpedValues) \
@@ -502,7 +502,7 @@ void block_matching_method3D(nifti_image * reference,
    reduction(+:currentDefinedActiveBlockNumber)
 #endif
    for (k = 0; k < (int)params->blockNumber[2]; k++) {
-#if defined (_OPENMP)
+#ifdef _OPENMP
       tid = omp_get_thread_num();
 #endif
       blockIndex = k * params->blockNumber[0] * params->blockNumber[1];
@@ -549,7 +549,7 @@ void block_matching_method3D(nifti_image * reference,
                   else
                      referenceIndex += BLOCK_WIDTH * BLOCK_WIDTH;
                }
-               bestCC = params->voxelCaptureRange > 3 ? 0.9 : 0; //only when misaligned images are registered
+               bestCC = params->voxelCaptureRange > 3 ? 0.9f : 0; //only when misaligned images are registered
                bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
                bestDisplacement[1] = 0.f;
                bestDisplacement[2] = 0.f;
@@ -665,7 +665,7 @@ void block_matching_method3D(nifti_image * reference,
    }
    params->definedActiveBlockNumber = currentDefinedActiveBlockNumber;
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
    omp_set_num_threads(threadNumber);
 #endif
 }

@@ -11,7 +11,6 @@
 #include <time.h>
 
 /* *************************************************************** */
-/* *************************************************************** */
 /** @brief Interface between the registration class and the optimiser
  */
 class InterfaceOptimiser {
@@ -22,14 +21,7 @@ public:
     virtual void UpdateParameters(float) = 0;
     /// @brief The best objective function values are stored
     virtual void UpdateBestObjFunctionValue() = 0;
-
-protected:
-    /// @brief Interface constructor
-    InterfaceOptimiser() {}
-    /// @brief Interface destructor
-    virtual ~InterfaceOptimiser() {}
 };
-/* *************************************************************** */
 /* *************************************************************** */
 /** @class reg_optimiser
  * @brief Standard gradient ascent optimisation
@@ -146,7 +138,6 @@ public:
     virtual void reg_test_optimiser();
 };
 /* *************************************************************** */
-/* *************************************************************** */
 /** @class reg_conjugateGradient
  * @brief Conjugate gradient ascent optimisation
  */
@@ -186,7 +177,6 @@ public:
     virtual void reg_test_optimiser() override;
 };
 /* *************************************************************** */
-/* *************************************************************** */
 /** @class Global optimisation class
  * @brief
  */
@@ -220,6 +210,5 @@ public:
                           T &startLength) override;
     virtual void UpdateGradientValues() override;
 };
-/* *************************************************************** */
 /* *************************************************************** */
 #include "_reg_optimiser.cpp"

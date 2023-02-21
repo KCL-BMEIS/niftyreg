@@ -13,22 +13,22 @@
 #include "_reg_mind.h"
 
  /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void ShiftImage(nifti_image* inputImgPtr,
                 nifti_image* shiftedImgPtr,
                 int *maskPtr,
                 int tx,
                 int ty,
                 int tz) {
-    DTYPE* inputData = static_cast<DTYPE*>(inputImgPtr->data);
-    DTYPE* shiftImageData = static_cast<DTYPE*>(shiftedImgPtr->data);
+    DataType* inputData = static_cast<DataType*>(inputImgPtr->data);
+    DataType* shiftImageData = static_cast<DataType*>(shiftedImgPtr->data);
 
     int currentIndex;
     int shiftedIndex;
 
     int x, y, z, old_x, old_y, old_z;
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(inputData, shiftImageData, shiftedImgPtr, inputImgPtr, \
     maskPtr, tx, ty, tz) \
@@ -50,12 +50,12 @@ void ShiftImage(nifti_image* inputImgPtr,
                         shiftImageData[currentIndex] = inputData[shiftedIndex];
                     } // mask is not defined
                     else {
-                        //shiftImageData[currentIndex]=std::numeric_limits<DTYPE>::quiet_NaN();
+                        //shiftImageData[currentIndex]=std::numeric_limits<DataType>::quiet_NaN();
                         shiftImageData[currentIndex] = 0;
                     }
                 } // outside of the image
                 else {
-                    //shiftImageData[currentIndex]=std::numeric_limits<DTYPE>::quiet_NaN();
+                    //shiftImageData[currentIndex]=std::numeric_limits<DataType>::quiet_NaN();
                     shiftImageData[currentIndex] = 0;
                 }
                 currentIndex++;
@@ -64,7 +64,7 @@ void ShiftImage(nifti_image* inputImgPtr,
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void GetMINDImageDescriptor_core(nifti_image* inputImage,
                                 nifti_image* MINDImage,
                                 int *maskPtr,
@@ -79,19 +79,19 @@ void GetMINDImageDescriptor_core(nifti_image* inputImage,
 #endif
 
     // Create a pointer to the descriptor image
-    DTYPE* MINDImgDataPtr = static_cast<DTYPE*>(MINDImage->data);
+    DataType* MINDImgDataPtr = static_cast<DataType*>(MINDImage->data);
 
     // Allocate an image to store the current timepoint reference image
     nifti_image *currentInputImage = nifti_copy_nim_info(inputImage);
     currentInputImage->ndim = currentInputImage->dim[0] = inputImage->nz > 1 ? 3 : 2;
     currentInputImage->nt = currentInputImage->dim[4] = 1;
     currentInputImage->nvox = voxelNumber;
-    DTYPE *inputImagePtr = static_cast<DTYPE*>(inputImage->data);
+    DataType *inputImagePtr = static_cast<DataType*>(inputImage->data);
     currentInputImage->data = static_cast<void*>(&inputImagePtr[current_timepoint * voxelNumber]);
 
     // Allocate an image to store the mean image
     nifti_image *meanImage = nifti_dup(*currentInputImage, false);
-    DTYPE* meanImgDataPtr = static_cast<DTYPE*>(meanImage->data);
+    DataType* meanImgDataPtr = static_cast<DataType*>(meanImage->data);
 
     // Allocate an image to store the shifted image
     nifti_image *shiftedImage = nifti_dup(*currentInputImage, false);
@@ -109,7 +109,7 @@ void GetMINDImageDescriptor_core(nifti_image* inputImage,
     int RSampling3D_z[6] = {0, 0, 0, 0, -descriptorOffset, descriptorOffset};
 
     for (int i = 0; i < samplingNbr; i++) {
-        ShiftImage<DTYPE>(currentInputImage, shiftedImage, maskPtr,
+        ShiftImage<DataType>(currentInputImage, shiftedImage, maskPtr,
                           RSampling3D_x[i], RSampling3D_y[i], RSampling3D_z[i]);
         reg_tools_subtractImageFromImage(currentInputImage, shiftedImage, diff_image);
         reg_tools_multiplyImageToImage(diff_image, diff_image, diff_image);
@@ -125,8 +125,8 @@ void GetMINDImageDescriptor_core(nifti_image* inputImage,
 
     // Compute the MIND descriptor
     int mindIndex;
-    DTYPE meanValue, max_desc, descValue;
-#if defined (_OPENMP)
+    DataType meanValue, max_desc, descValue;
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelNumber, samplingNbr, maskPtr, meanImgDataPtr, \
     MINDImgDataPtr) \
@@ -138,12 +138,12 @@ void GetMINDImageDescriptor_core(nifti_image* inputImage,
             // Get the mean value for the current voxel
             meanValue = meanImgDataPtr[voxelIndex];
             if (meanValue == 0) {
-                meanValue = std::numeric_limits<DTYPE>::epsilon();
+                meanValue = std::numeric_limits<DataType>::epsilon();
             }
             max_desc = 0;
             mindIndex = voxelIndex;
             for (int t = 0; t < samplingNbr; t++) {
-                descValue = (DTYPE)exp(-MINDImgDataPtr[mindIndex] / meanValue);
+                descValue = (DataType)exp(-MINDImgDataPtr[mindIndex] / meanValue);
                 MINDImgDataPtr[mindIndex] = descValue;
                 max_desc = (std::max)(max_desc, descValue);
                 mindIndex += voxelNumber;
@@ -194,7 +194,7 @@ void GetMINDImageDescriptor(nifti_image* inputImgPtr,
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
                                    nifti_image* MINDSSCImage,
                                    int *maskPtr,
@@ -209,19 +209,19 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
 #endif
 
     // Create a pointer to the descriptor image
-    DTYPE* MINDSSCImgDataPtr = static_cast<DTYPE*>(MINDSSCImage->data);
+    DataType* MINDSSCImgDataPtr = static_cast<DataType*>(MINDSSCImage->data);
 
     // Allocate an image to store the current timepoint reference image
     nifti_image *currentInputImage = nifti_copy_nim_info(inputImage);
     currentInputImage->ndim = currentInputImage->dim[0] = inputImage->nz > 1 ? 3 : 2;
     currentInputImage->nt = currentInputImage->dim[4] = 1;
     currentInputImage->nvox = voxelNumber;
-    DTYPE *inputImagePtr = static_cast<DTYPE*>(inputImage->data);
+    DataType *inputImagePtr = static_cast<DataType*>(inputImage->data);
     currentInputImage->data = static_cast<void*>(&inputImagePtr[current_timepoint * voxelNumber]);
 
     // Allocate an image to store the mean image
     nifti_image *mean_img = nifti_dup(*currentInputImage, false);
-    DTYPE* meanImgDataPtr = static_cast<DTYPE*>(mean_img->data);
+    DataType* meanImgDataPtr = static_cast<DataType*>(mean_img->data);
 
     // Allocate an image to store the warped image
     nifti_image *shiftedImage = nifti_dup(*currentInputImage, false);
@@ -252,7 +252,7 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
     int compteurId = 0;
 
     for (int i = 0; i < samplingNbr; i++) {
-        ShiftImage<DTYPE>(currentInputImage, shiftedImage, maskPtr,
+        ShiftImage<DataType>(currentInputImage, shiftedImage, maskPtr,
                           RSampling3D_x[i], RSampling3D_y[i], RSampling3D_z[i]);
         reg_tools_subtractImageFromImage(currentInputImage, shiftedImage, diff_image);
         reg_tools_multiplyImageToImage(diff_image, diff_image, diff_image);
@@ -260,7 +260,7 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
 
         for (int j = 0; j < 2; j++) {
 
-            ShiftImage<DTYPE>(diff_image, diff_imageShifted, mask_diff_image,
+            ShiftImage<DataType>(diff_image, diff_imageShifted, mask_diff_image,
                               tx[compteurId], ty[compteurId], tz[compteurId]);
 
             reg_tools_addImageToImage(mean_img, diff_imageShifted, mean_img);
@@ -276,8 +276,8 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
 
     // Compute the MINDSSC descriptor
     int mindIndex;
-    DTYPE meanValue, max_desc, descValue;
-#if defined (_OPENMP)
+    DataType meanValue, max_desc, descValue;
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelNumber, lengthDescriptor, samplingNbr, maskPtr, meanImgDataPtr, \
     MINDSSCImgDataPtr) \
@@ -289,12 +289,12 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
             // Get the mean value for the current voxel
             meanValue = meanImgDataPtr[voxelIndex];
             if (meanValue == 0) {
-                meanValue = std::numeric_limits<DTYPE>::epsilon();
+                meanValue = std::numeric_limits<DataType>::epsilon();
             }
             max_desc = 0;
             mindIndex = voxelIndex;
             for (int t = 0; t < lengthDescriptor; t++) {
-                descValue = (DTYPE)exp(-MINDSSCImgDataPtr[mindIndex] / meanValue);
+                descValue = (DataType)exp(-MINDSSCImgDataPtr[mindIndex] / meanValue);
                 MINDSSCImgDataPtr[mindIndex] = descValue;
                 max_desc = std::max(max_desc, descValue);
                 mindIndex += voxelNumber;

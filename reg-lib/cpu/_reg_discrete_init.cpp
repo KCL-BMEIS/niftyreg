@@ -211,7 +211,7 @@ void reg_discrete_init::AddL2Penalisation(float weight)
    int _node_number = static_cast<int>(this->node_number);
    int _label_nD_num = this->label_nD_num;
    float *_discretised_measures = &this->discretised_measures[0];
-#if defined (_OPENMP)
+#ifdef _OPENMP
    #pragma omp parallel for default(none) \
    shared(_node_number, _label_nD_num, _discretised_measures, l2_penalisation) \
    private(measure_index, n, label_index)

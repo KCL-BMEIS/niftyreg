@@ -425,13 +425,13 @@ void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum)
 }
 /* *************************************************************** */
 // Heap sort
-template<class DTYPE>
-void reg_heapSort(DTYPE *array_tmp, int blockNum)
+template<class DataType>
+void reg_heapSort(DataType *array_tmp, int blockNum)
 {
-    DTYPE *array = &array_tmp[-1];
+    DataType *array = &array_tmp[-1];
     int l = (blockNum >> 1) + 1;
     int ir = blockNum;
-    DTYPE val;
+    DataType val;
     for (;;)
     {
         if (l > 1)

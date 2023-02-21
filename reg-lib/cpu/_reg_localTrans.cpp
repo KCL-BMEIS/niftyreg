@@ -16,7 +16,7 @@
 
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_createControlPointGrid(nifti_image **controlPointGridImage,
                                 nifti_image *referenceImage,
                                 float *spacingMillimeter)
@@ -36,7 +36,7 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
    dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
 
    // Create the new control point grid image and allocate its space
-   if(sizeof(DTYPE)==4)
+   if(sizeof(DataType)==4)
       *controlPointGridImage = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT32, true);
    else *controlPointGridImage = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT64, true);
 
@@ -142,7 +142,7 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
 template void reg_createControlPointGrid<float>(nifti_image **, nifti_image *, float *);
 template void reg_createControlPointGrid<double>(nifti_image **, nifti_image *, float *);
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
                                           nifti_image **backwardGridImage,
                                           nifti_image *referenceImage,
@@ -325,7 +325,7 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
                      };
 
    // Create the control point grid image
-   if(sizeof(DTYPE)==sizeof(float))
+   if(sizeof(DataType)==sizeof(float))
    {
       (*forwardGridImage)=nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32,true);
       (*backwardGridImage)=nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32,true);
@@ -422,7 +422,7 @@ template void reg_createSymmetricControlPointGrids<double>
 (nifti_image **,nifti_image **,nifti_image *,nifti_image *,mat44 *,float *);
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                              nifti_image *deformationField,
                                              int *mask,
@@ -432,17 +432,17 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
    int coord;
 
    const size_t splineControlPointVoxelNumber = CalcVoxelNumber(*splineControlPoint);
-   DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-   DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPointVoxelNumber];
-   DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPointVoxelNumber];
+   DataType *controlPointPtrX = static_cast<DataType *>(splineControlPoint->data);
+   DataType *controlPointPtrY = &controlPointPtrX[splineControlPointVoxelNumber];
+   DataType *controlPointPtrZ = &controlPointPtrY[splineControlPointVoxelNumber];
 
    const size_t deformationFieldVoxelNumber = CalcVoxelNumber(*deformationField);
-   DTYPE *fieldPtrX=static_cast<DTYPE *>(deformationField->data);
-   DTYPE *fieldPtrY=&fieldPtrX[deformationFieldVoxelNumber];
-   DTYPE *fieldPtrZ=&fieldPtrY[deformationFieldVoxelNumber];
+   DataType *fieldPtrX=static_cast<DataType *>(deformationField->data);
+   DataType *fieldPtrY=&fieldPtrX[deformationFieldVoxelNumber];
+   DataType *fieldPtrZ=&fieldPtrY[deformationFieldVoxelNumber];
 
    int x, y, z, a, b, c, xPre, yPre, zPre, index;
-   DTYPE xBasis[2], yBasis[2], zBasis[2], real[3];
+   DataType xBasis[2], yBasis[2], zBasis[2], real[3];
 
    if(composition)  // Composition of deformation fields
    {
@@ -452,7 +452,7 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
          referenceMatrix_real_to_voxel=(splineControlPoint->sto_ijk);
       else referenceMatrix_real_to_voxel=(splineControlPoint->qto_ijk);
 
-      DTYPE voxel[3];
+      DataType voxel[3];
 
       for(z=0; z<deformationField->nz; z++)
       {
@@ -487,17 +487,17 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
                   // The spline coefficients are computed
                   xPre=(int)reg_floor(voxel[0]);
-                  xBasis[1]=voxel[0]-static_cast<DTYPE>(xPre);
+                  xBasis[1]=voxel[0]-static_cast<DataType>(xPre);
                   if(xBasis[1]<0) xBasis[1]=0; //rounding error
                   xBasis[0]=1.-xBasis[1];
 
                   yPre=(int)reg_floor(voxel[1]);
-                  yBasis[1]=voxel[1]-static_cast<DTYPE>(yPre);
+                  yBasis[1]=voxel[1]-static_cast<DataType>(yPre);
                   if(yBasis[1]<0) yBasis[1]=0; //rounding error
                   yBasis[0]=1.-yBasis[1];
 
                   zPre=(int)reg_floor(voxel[2]);
-                  zBasis[1]=voxel[2]-static_cast<DTYPE>(zPre);
+                  zBasis[1]=voxel[2]-static_cast<DataType>(zPre);
                   if(zBasis[1]<0) zBasis[1]=0; //rounding error
                   zBasis[0]=1.-zBasis[1];
 
@@ -507,7 +507,7 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
                   for(c=0; c<2; c++){
                      for(b=0; b<2; b++){
                         for(a=0; a<2; a++){
-                           DTYPE tempValue = xBasis[a] * yBasis[b] * zBasis[c];
+                           DataType tempValue = xBasis[a] * yBasis[b] * zBasis[c];
                            coord = ((zPre+c)*splineControlPoint->ny+yPre+b)*splineControlPoint->nx+xPre+a;
                            real[0] += controlPointPtrX[coord] * tempValue;
                            real[1] += controlPointPtrY[coord] * tempValue;
@@ -526,12 +526,12 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
    }//Composition of deformation
    else  // !composition
    {
-      DTYPE gridVoxelSpacing[3];
+      DataType gridVoxelSpacing[3];
       gridVoxelSpacing[0] = splineControlPoint->dx / deformationField->dx;
       gridVoxelSpacing[1] = splineControlPoint->dy / deformationField->dy;
       gridVoxelSpacing[2] = splineControlPoint->dz / deformationField->dz;
-      DTYPE tempValue;
-#if defined (_OPENMP)
+      DataType tempValue;
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    private(x, y, z, a, b, c, xPre, yPre, zPre, xBasis, yBasis, zBasis, real, index, coord, tempValue) \
    shared(deformationField, gridVoxelSpacing, mask, fieldPtrX, fieldPtrY, fieldPtrZ, \
@@ -541,8 +541,8 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
       {
          index=z*deformationField->nx*deformationField->ny;
 
-         zPre=static_cast<int>(static_cast<DTYPE>(z)/gridVoxelSpacing[2]);
-         zBasis[1]=static_cast<DTYPE>(z)/gridVoxelSpacing[2]-static_cast<DTYPE>(zPre);
+         zPre=static_cast<int>(static_cast<DataType>(z)/gridVoxelSpacing[2]);
+         zBasis[1]=static_cast<DataType>(z)/gridVoxelSpacing[2]-static_cast<DataType>(zPre);
          if(zBasis[1]<0) zBasis[1]=0; //rounding error
          zBasis[0]=1.-zBasis[1];
          zPre++;
@@ -550,8 +550,8 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
          for(y=0; y<deformationField->ny; y++)
          {
 
-            yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
-            yBasis[1]=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
+            yPre=static_cast<int>(static_cast<DataType>(y)/gridVoxelSpacing[1]);
+            yBasis[1]=static_cast<DataType>(y)/gridVoxelSpacing[1]-static_cast<DataType>(yPre);
             if(yBasis[1]<0) yBasis[1]=0; //rounding error
             yBasis[0]=1.-yBasis[1];
             yPre++;
@@ -564,8 +564,8 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
                if(mask[index]>-1)
                {
-                  xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
-                  xBasis[1]=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
+                  xPre=static_cast<int>(static_cast<DataType>(x)/gridVoxelSpacing[0]);
+                  xBasis[1]=static_cast<DataType>(x)/gridVoxelSpacing[0]-static_cast<DataType>(xPre);
                   if(xBasis[1]<0) xBasis[1]=0; //rounding error
                   xBasis[0]=1.-xBasis[1];
                   xPre++;
@@ -597,7 +597,7 @@ void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                       nifti_image *deformationField,
                                       int *mask,
@@ -613,62 +613,62 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
    } val;
    __m128 tempCurrent, tempX, tempY;
 #ifdef _WIN32
-   __declspec(align(16)) DTYPE temp[4];
-   __declspec(align(16)) DTYPE yBasis[4];
+   __declspec(align(16)) DataType temp[4];
+   __declspec(align(16)) DataType yBasis[4];
    union
    {
       __m128 m[16];
-      __declspec(align(16)) DTYPE f[16];
+      __declspec(align(16)) DataType f[16];
    } xControlPointCoordinates;
    union
    {
       __m128 m[16];
-      __declspec(align(16)) DTYPE f[16];
+      __declspec(align(16)) DataType f[16];
    } yControlPointCoordinates;
    union u1
    {
       __m128 m[4];
-      __declspec(align(16)) DTYPE f[16];
+      __declspec(align(16)) DataType f[16];
    } xyBasis;
 #else // _WIN32
-   DTYPE temp[4] __attribute__((aligned(16)));
-   DTYPE yBasis[4] __attribute__((aligned(16)));
+   DataType temp[4] __attribute__((aligned(16)));
+   DataType yBasis[4] __attribute__((aligned(16)));
    union
    {
       __m128 m[16];
-      DTYPE f[16] __attribute__((aligned(16)));
+      DataType f[16] __attribute__((aligned(16)));
    } xControlPointCoordinates;
    union
    {
       __m128 m[16];
-      DTYPE f[16] __attribute__((aligned(16)));
+      DataType f[16] __attribute__((aligned(16)));
    } yControlPointCoordinates;
    union u1
    {
       __m128 m[4];
-      DTYPE f[16] __attribute__((aligned(16)));
+      DataType f[16] __attribute__((aligned(16)));
    } xyBasis;
 #endif // _WIN32
 #else // _USE_SSE
-   DTYPE temp[4];
-   DTYPE yBasis[4];
-   DTYPE xyBasis[16];
-   DTYPE xControlPointCoordinates[16];
-   DTYPE yControlPointCoordinates[16];
+   DataType temp[4];
+   DataType yBasis[4];
+   DataType xyBasis[16];
+   DataType xControlPointCoordinates[16];
+   DataType yControlPointCoordinates[16];
 #endif // _USE_SSE
 
 
-   DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-   DTYPE *controlPointPtrY = &controlPointPtrX[CalcVoxelNumber(*splineControlPoint, 2)];
+   DataType *controlPointPtrX = static_cast<DataType *>(splineControlPoint->data);
+   DataType *controlPointPtrY = &controlPointPtrX[CalcVoxelNumber(*splineControlPoint, 2)];
 
-   DTYPE *fieldPtrX=static_cast<DTYPE *>(deformationField->data);
-   DTYPE *fieldPtrY = &fieldPtrX[CalcVoxelNumber(*deformationField)];
+   DataType *fieldPtrX=static_cast<DataType *>(deformationField->data);
+   DataType *fieldPtrY = &fieldPtrX[CalcVoxelNumber(*deformationField)];
 
-   DTYPE gridVoxelSpacing[2];
+   DataType gridVoxelSpacing[2];
    gridVoxelSpacing[0] = splineControlPoint->dx / deformationField->dx;
    gridVoxelSpacing[1] = splineControlPoint->dy / deformationField->dy;
 
-   DTYPE basis, xReal, yReal, xVoxel, yVoxel;
+   DataType basis, xReal, yReal, xVoxel, yVoxel;
    int x, y, a, b, xPre, yPre, oldXpre, oldYpre;
    size_t index, coord;
 
@@ -689,8 +689,8 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
          {
 
             // The previous position at the current pixel position is read
-            xReal = (DTYPE)(fieldPtrX[index]);
-            yReal = (DTYPE)(fieldPtrY[index]);
+            xReal = (DataType)(fieldPtrX[index]);
+            yReal = (DataType)(fieldPtrY[index]);
 
             // From real to pixel position in the CPP
             xVoxel = referenceMatrix_real_to_voxel->m[0][0]*xReal
@@ -702,18 +702,18 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
 
             // The spline coefficients are computed
             xPre=(int)reg_floor(xVoxel);
-            basis=xVoxel-(DTYPE)xPre;
+            basis=xVoxel-(DataType)xPre;
             --xPre;
             if(basis<0) basis=0; //rounding error
-            if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
-            else get_SplineBasisValues<DTYPE>(basis, temp);
+            if(bspline) get_BSplineBasisValues<DataType>(basis, temp);
+            else get_SplineBasisValues<DataType>(basis, temp);
 
             yPre=(int)reg_floor(yVoxel);
-            basis=yVoxel-(DTYPE)yPre;
+            basis=yVoxel-(DataType)yPre;
             --yPre;
             if(basis<0) basis=0; //rounding error
-            if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
-            else get_SplineBasisValues<DTYPE>(basis, yBasis);
+            if(bspline) get_BSplineBasisValues<DataType>(basis, yBasis);
+            else get_SplineBasisValues<DataType>(basis, yBasis);
 
 
             if(xVoxel>=0 && xVoxel<=deformationField->nx-1 &&
@@ -724,7 +724,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                if(oldXpre!=xPre || oldYpre!=yPre)
                {
 #ifdef _USE_SSE
-                  get_GridValues<DTYPE>(xPre,
+                  get_GridValues<DataType>(xPre,
                                         yPre,
                                         splineControlPoint,
                                         controlPointPtrX,
@@ -735,7 +735,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                         false // not a displacement field
                                         );
 #else // _USE_SSE
-                  get_GridValues<DTYPE>(xPre,
+                  get_GridValues<DataType>(xPre,
                                         yPre,
                                         splineControlPoint,
                                         controlPointPtrX,
@@ -782,7 +782,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                   {
                      for(a=0; a<4; a++)
                      {
-                        DTYPE tempValue = temp[a] * yBasis[b];
+                        DataType tempValue = temp[a] * yBasis[b];
                         xReal += xControlPointCoordinates[b*4+a] * tempValue;
                         yReal += yControlPointCoordinates[b*4+a] * tempValue;
                      }
@@ -790,8 +790,8 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
 #endif
                }
 
-               fieldPtrX[index] = (DTYPE)xReal;
-               fieldPtrY[index] = (DTYPE)yReal;
+               fieldPtrX[index] = (DataType)xReal;
+               fieldPtrY[index] = (DataType)yReal;
             }
             index++;
          }
@@ -800,7 +800,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
    else  // starting deformation field is blank - !composition
    {
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #ifdef _USE_SSE
 #pragma  omp parallel for default(none) \
    shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
@@ -821,20 +821,20 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
          index=y*deformationField->nx;
          oldXpre=oldYpre=9999999;
 
-         yPre=(int)((DTYPE)y/gridVoxelSpacing[1]);
-         basis=(DTYPE)y/gridVoxelSpacing[1]-(DTYPE)yPre;
+         yPre=(int)((DataType)y/gridVoxelSpacing[1]);
+         basis=(DataType)y/gridVoxelSpacing[1]-(DataType)yPre;
          if(basis<0) basis=0; //rounding error
-         if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
-         else get_SplineBasisValues<DTYPE>(basis, yBasis);
+         if(bspline) get_BSplineBasisValues<DataType>(basis, yBasis);
+         else get_SplineBasisValues<DataType>(basis, yBasis);
 
          for(x=0; x<deformationField->nx; x++)
          {
 
-            xPre=(int)((DTYPE)x/gridVoxelSpacing[0]);
-            basis=(DTYPE)x/gridVoxelSpacing[0]-(DTYPE)xPre;
+            xPre=(int)((DataType)x/gridVoxelSpacing[0]);
+            basis=(DataType)x/gridVoxelSpacing[0]-(DataType)xPre;
             if(basis<0) basis=0; //rounding error
-            if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
-            else get_SplineBasisValues<DTYPE>(basis, temp);
+            if(bspline) get_BSplineBasisValues<DataType>(basis, temp);
+            else get_SplineBasisValues<DataType>(basis, temp);
 #if _USE_SSE
             val.f[0] = temp[0];
             val.f[1] = temp[1];
@@ -859,7 +859,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
             if(oldXpre!=xPre || oldYpre!=yPre)
             {
 #ifdef _USE_SSE
-               get_GridValues<DTYPE>(xPre,
+               get_GridValues<DataType>(xPre,
                                      yPre,
                                      splineControlPoint,
                                      controlPointPtrX,
@@ -870,7 +870,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                      false // not a deformation field
                                      );
 #else // _USE_SSE
-               get_GridValues<DTYPE>(xPre,
+               get_GridValues<DataType>(xPre,
                                      yPre,
                                      splineControlPoint,
                                      controlPointPtrX,
@@ -912,8 +912,8 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                }
 #endif
             }// mask
-            fieldPtrX[index] = (DTYPE)xReal;
-            fieldPtrY[index] = (DTYPE)yReal;
+            fieldPtrX[index] = (DataType)xReal;
+            fieldPtrY[index] = (DataType)yReal;
             index++;
          } // x
       } // y
@@ -922,7 +922,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
    return;
 }
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                             nifti_image *deformationField,
                                             int *mask,
@@ -940,65 +940,65 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
    __m128 xBasis_sse, yBasis_sse, zBasis_sse, temp_basis_sse, basis_sse;
 
 #ifdef _WIN32
-   __declspec(align(16)) DTYPE temp[4];
-   __declspec(align(16)) DTYPE zBasis[4];
+   __declspec(align(16)) DataType temp[4];
+   __declspec(align(16)) DataType zBasis[4];
    union
    {
       __m128 m[16];
-      __declspec(align(16)) DTYPE f[16];
+      __declspec(align(16)) DataType f[16];
    } xControlPointCoordinates;
    union
    {
       __m128 m[16];
-      __declspec(align(16)) DTYPE f[16];
+      __declspec(align(16)) DataType f[16];
    } yControlPointCoordinates;
    union
    {
       __m128 m[16];
-      __declspec(align(16)) DTYPE f[16];
+      __declspec(align(16)) DataType f[16];
    } zControlPointCoordinates;
 #else // _WIN32
-   DTYPE temp[4] __attribute__((aligned(16)));
-   DTYPE zBasis[4] __attribute__((aligned(16)));
+   DataType temp[4] __attribute__((aligned(16)));
+   DataType zBasis[4] __attribute__((aligned(16)));
    union
    {
       __m128 m[16];
-      DTYPE f[16] __attribute__((aligned(16)));
+      DataType f[16] __attribute__((aligned(16)));
    } xControlPointCoordinates;
    union
    {
       __m128 m[16];
-      DTYPE f[16] __attribute__((aligned(16)));
+      DataType f[16] __attribute__((aligned(16)));
    } yControlPointCoordinates;
    union
    {
       __m128 m[16];
-      DTYPE f[16] __attribute__((aligned(16)));
+      DataType f[16] __attribute__((aligned(16)));
    } zControlPointCoordinates;
 #endif // _WIN32
 #else // _USE_SSE
-   DTYPE temp[4];
-   DTYPE zBasis[4];
-   DTYPE xControlPointCoordinates[64];
-   DTYPE yControlPointCoordinates[64];
-   DTYPE zControlPointCoordinates[64];
+   DataType temp[4];
+   DataType zBasis[4];
+   DataType xControlPointCoordinates[64];
+   DataType yControlPointCoordinates[64];
+   DataType zControlPointCoordinates[64];
    int coord;
 #endif // _USE_SSE
 
    const size_t splineControlPointVoxelNumber = CalcVoxelNumber(*splineControlPoint);
-   DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-   DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPointVoxelNumber];
-   DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPointVoxelNumber];
+   DataType *controlPointPtrX = static_cast<DataType *>(splineControlPoint->data);
+   DataType *controlPointPtrY = &controlPointPtrX[splineControlPointVoxelNumber];
+   DataType *controlPointPtrZ = &controlPointPtrY[splineControlPointVoxelNumber];
 
    const size_t deformationFieldVoxelNumber = CalcVoxelNumber(*deformationField);
-   DTYPE *fieldPtrX=static_cast<DTYPE *>(deformationField->data);
-   DTYPE *fieldPtrY=&fieldPtrX[deformationFieldVoxelNumber];
-   DTYPE *fieldPtrZ=&fieldPtrY[deformationFieldVoxelNumber];
+   DataType *fieldPtrX=static_cast<DataType *>(deformationField->data);
+   DataType *fieldPtrY=&fieldPtrX[deformationFieldVoxelNumber];
+   DataType *fieldPtrZ=&fieldPtrY[deformationFieldVoxelNumber];
 
-   DTYPE basis, oldBasis=(DTYPE)(1.1);
+   DataType basis, oldBasis=(DataType)(1.1);
 
    int x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, index;
-   DTYPE real[3];
+   DataType real[3];
 
    if(composition)  // Composition of deformation fields
    {
@@ -1009,19 +1009,19 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
       else referenceMatrix_real_to_voxel=(splineControlPoint->qto_ijk);
 #ifdef _USE_SSE
 #ifdef _WIN32
-      __declspec(align(16)) DTYPE xBasis[4];
-      __declspec(align(16)) DTYPE yBasis[4];
+      __declspec(align(16)) DataType xBasis[4];
+      __declspec(align(16)) DataType yBasis[4];
 #else
-      DTYPE xBasis[4] __attribute__((aligned(16)));
-      DTYPE yBasis[4] __attribute__((aligned(16)));
+      DataType xBasis[4] __attribute__((aligned(16)));
+      DataType yBasis[4] __attribute__((aligned(16)));
 #endif
 #else // _USE_SSE
-      DTYPE xBasis[4], yBasis[4];
+      DataType xBasis[4], yBasis[4];
 #endif // _USE_SSE
 
-      DTYPE voxel[3];
+      DataType voxel[3];
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #ifdef _USE_SSE
 #pragma omp parallel for default(none) \
    private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
@@ -1081,31 +1081,31 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
                   // The spline coefficients are computed
                   xPre=(int)reg_floor(voxel[0]);
-                  basis=voxel[0]-static_cast<DTYPE>(xPre);
+                  basis=voxel[0]-static_cast<DataType>(xPre);
                   --xPre;
                   if(basis<0) basis=0; //rounding error
-                  if(bspline) get_BSplineBasisValues<DTYPE>(basis, xBasis);
-                  else get_SplineBasisValues<DTYPE>(basis, xBasis);
+                  if(bspline) get_BSplineBasisValues<DataType>(basis, xBasis);
+                  else get_SplineBasisValues<DataType>(basis, xBasis);
 
                   yPre=(int)reg_floor(voxel[1]);
-                  basis=voxel[1]-static_cast<DTYPE>(yPre);
+                  basis=voxel[1]-static_cast<DataType>(yPre);
                   --yPre;
                   if(basis<0) basis=0; //rounding error
-                  if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
-                  else get_SplineBasisValues<DTYPE>(basis, yBasis);
+                  if(bspline) get_BSplineBasisValues<DataType>(basis, yBasis);
+                  else get_SplineBasisValues<DataType>(basis, yBasis);
 
                   zPre=(int)reg_floor(voxel[2]);
-                  basis=voxel[2]-static_cast<DTYPE>(zPre);
+                  basis=voxel[2]-static_cast<DataType>(zPre);
                   --zPre;
                   if(basis<0) basis=0; //rounding error
-                  if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
-                  else get_SplineBasisValues<DTYPE>(basis, zBasis);
+                  if(bspline) get_BSplineBasisValues<DataType>(basis, zBasis);
+                  else get_SplineBasisValues<DataType>(basis, zBasis);
 
                   // The control point postions are extracted
                   if(xPre!=oldPreX || yPre!=oldPreY || zPre!=oldPreZ)
                   {
 #ifdef _USE_SSE
-                     get_GridValues<DTYPE>(xPre,
+                     get_GridValues<DataType>(xPre,
                                            yPre,
                                            zPre,
                                            splineControlPoint,
@@ -1119,7 +1119,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                            false // not a deformation field
                                            );
 #else // _USE_SSE
-                     get_GridValues<DTYPE>(xPre,
+                     get_GridValues<DataType>(xPre,
                                            yPre,
                                            zPre,
                                            splineControlPoint,
@@ -1181,7 +1181,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                      {
                         for(a=0; a<4; a++)
                         {
-                           DTYPE tempValue = xBasis[a] * yBasis[b] * zBasis[c];
+                           DataType tempValue = xBasis[a] * yBasis[b] * zBasis[c];
                            real[0] += xControlPointCoordinates[coord] * tempValue;
                            real[1] += yControlPointCoordinates[coord] * tempValue;
                            real[2] += zControlPointCoordinates[coord] * tempValue;
@@ -1201,7 +1201,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
    }//Composition of deformation
    else  // !composition
    {
-      DTYPE gridVoxelSpacing[3];
+      DataType gridVoxelSpacing[3];
       gridVoxelSpacing[0] = splineControlPoint->dx / deformationField->dx;
       gridVoxelSpacing[1] = splineControlPoint->dy / deformationField->dy;
       gridVoxelSpacing[2] = splineControlPoint->dz / deformationField->dz;
@@ -1211,37 +1211,37 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
       union u1
       {
          __m128 m[4];
-         __declspec(align(16)) DTYPE f[16];
+         __declspec(align(16)) DataType f[16];
       } yzBasis;
       union u2
       {
          __m128 m[16];
-         __declspec(align(16)) DTYPE f[64];
+         __declspec(align(16)) DataType f[64];
       } xyzBasis;
 #else // _WIN32
       union
       {
          __m128 m[4];
-         DTYPE f[16] __attribute__((aligned(16)));
+         DataType f[16] __attribute__((aligned(16)));
       } yzBasis;
       union
       {
          __m128 m[16];
-         DTYPE f[64] __attribute__((aligned(16)));
+         DataType f[64] __attribute__((aligned(16)));
       } xyzBasis;
 #endif // _WIN32
 #else // _USE_SSE
-      DTYPE yzBasis[16], xyzBasis[64];
+      DataType yzBasis[16], xyzBasis[64];
 #endif // _USE_SSE
 
       // Assess if lookup table can be used
       if(gridVoxelSpacing[0]==5. && gridVoxelSpacing[0]==5. && gridVoxelSpacing[0]==5. && force_no_lut==false){
 
           // Assign a single array that will contain all coefficients
-         DTYPE *coefficients = (DTYPE *)malloc(125*64*sizeof(DTYPE));
+         DataType *coefficients = (DataType *)malloc(125*64*sizeof(DataType));
           // Compute and store all required coefficients
           int coeff_index;
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #ifdef _USE_SSE
 #pragma omp parallel for default(none) \
     private(x, y, z, a, b, c, coeff_index, basis, zBasis, temp, \
@@ -1256,13 +1256,13 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 #endif // _OPENMP
           for(z=0;z<5;++z){
              coeff_index=z*5*5*64;
-              basis=(DTYPE)z/5.;
-              if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
-              else get_SplineBasisValues<DTYPE>(basis, zBasis);
+              basis=(DataType)z/5.;
+              if(bspline) get_BSplineBasisValues<DataType>(basis, zBasis);
+              else get_SplineBasisValues<DataType>(basis, zBasis);
               for(y=0;y<5;++y){
-                  basis=(DTYPE)y/5.;
-                  if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
-                  else get_SplineBasisValues<DTYPE>(basis, temp);
+                  basis=(DataType)y/5.;
+                  if(bspline) get_BSplineBasisValues<DataType>(basis, temp);
+                  else get_SplineBasisValues<DataType>(basis, temp);
 #if _USE_SSE
                   val.f[0] = temp[0];
                   val.f[1] = temp[1];
@@ -1286,9 +1286,9 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 #endif
 
                   for(x=0;x<5;++x){
-                      basis=(DTYPE)x/5.;
-                      if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
-                      else get_SplineBasisValues<DTYPE>(basis, temp);
+                      basis=(DataType)x/5.;
+                      if(bspline) get_BSplineBasisValues<DataType>(basis, temp);
+                      else get_SplineBasisValues<DataType>(basis, temp);
 #if _USE_SSE
 
                       val.f[0] = temp[0];
@@ -1322,7 +1322,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 #if _USE_SSE
           int coord;
 #endif // USE_SSE
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #ifdef _USE_SSE
 #pragma omp parallel for default(none) \
    private(x, y, z, a, b, c, xPre, yPre, zPre, real, \
@@ -1348,7 +1348,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                   for(xPre=0; xPre<splineControlPoint->nx-3; xPre++)
                   {
 #if _USE_SSE
-                      get_GridValues<DTYPE>(xPre,
+                      get_GridValues<DataType>(xPre,
                                             yPre,
                                             zPre,
                                             splineControlPoint,
@@ -1362,7 +1362,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                             false // not a deformation field
                                             );
 #else // _USE_SSE
-                      get_GridValues<DTYPE>(xPre,
+                      get_GridValues<DataType>(xPre,
                                             yPre,
                                             zPre,
                                             splineControlPoint,
@@ -1451,7 +1451,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
       } // if spacings==5 voxels
       else{
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #ifdef _USE_SSE
 #pragma omp parallel for default(none) \
     private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
@@ -1476,20 +1476,20 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
               index=z*deformationField->nx*deformationField->ny;
               oldBasis=1.1;
 
-              zPre=static_cast<int>(static_cast<DTYPE>(z)/gridVoxelSpacing[2]);
-              basis=static_cast<DTYPE>(z)/gridVoxelSpacing[2]-static_cast<DTYPE>(zPre);
+              zPre=static_cast<int>(static_cast<DataType>(z)/gridVoxelSpacing[2]);
+              basis=static_cast<DataType>(z)/gridVoxelSpacing[2]-static_cast<DataType>(zPre);
               if(basis<0) basis=0; //rounding error
-              if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
-              else get_SplineBasisValues<DTYPE>(basis, zBasis);
+              if(bspline) get_BSplineBasisValues<DataType>(basis, zBasis);
+              else get_SplineBasisValues<DataType>(basis, zBasis);
 
               for(y=0; y<deformationField->ny; y++)
               {
 
-                  yPre=static_cast<int>(static_cast<DTYPE>(y)/gridVoxelSpacing[1]);
-                  basis=static_cast<DTYPE>(y)/gridVoxelSpacing[1]-static_cast<DTYPE>(yPre);
+                  yPre=static_cast<int>(static_cast<DataType>(y)/gridVoxelSpacing[1]);
+                  basis=static_cast<DataType>(y)/gridVoxelSpacing[1]-static_cast<DataType>(yPre);
                   if(basis<0) basis=0; //rounding error
-                  if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
-                  else get_SplineBasisValues<DTYPE>(basis, temp);
+                  if(bspline) get_BSplineBasisValues<DataType>(basis, temp);
+                  else get_SplineBasisValues<DataType>(basis, temp);
 #if _USE_SSE
                   val.f[0] = temp[0];
                   val.f[1] = temp[1];
@@ -1515,11 +1515,11 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                   for(x=0; x<deformationField->nx; x++)
                   {
 
-                      xPre=static_cast<int>(static_cast<DTYPE>(x)/gridVoxelSpacing[0]);
-                      basis=static_cast<DTYPE>(x)/gridVoxelSpacing[0]-static_cast<DTYPE>(xPre);
+                      xPre=static_cast<int>(static_cast<DataType>(x)/gridVoxelSpacing[0]);
+                      basis=static_cast<DataType>(x)/gridVoxelSpacing[0]-static_cast<DataType>(xPre);
                       if(basis<0) basis=0; //rounding error
-                      if(bspline) get_BSplineBasisValues<DTYPE>(basis, temp);
-                      else get_SplineBasisValues<DTYPE>(basis, temp);
+                      if(bspline) get_BSplineBasisValues<DataType>(basis, temp);
+                      else get_SplineBasisValues<DataType>(basis, temp);
 #if _USE_SSE
 
                       val.f[0] = temp[0];
@@ -1545,7 +1545,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                       if(basis<=oldBasis || x==0)
                       {
 #ifdef _USE_SSE
-                          get_GridValues<DTYPE>(xPre,
+                          get_GridValues<DataType>(xPre,
                                                 yPre,
                                                 zPre,
                                                 splineControlPoint,
@@ -1559,7 +1559,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                                 false // not a deformation field
                                                 );
 #else // _USE_SSE
-                          get_GridValues<DTYPE>(xPre,
+                          get_GridValues<DataType>(xPre,
                                                 yPre,
                                                 zPre,
                                                 splineControlPoint,
@@ -1745,7 +1745,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                                        nifti_image *voxelImage,
                                        float weight,
@@ -1755,13 +1755,13 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
 {
    const size_t nodeNumber = CalcVoxelNumber(*nodeImage);
    const size_t voxelNumber = CalcVoxelNumber(*voxelImage);
-   DTYPE *nodePtrX = static_cast<DTYPE *>(nodeImage->data);
-   DTYPE *nodePtrY = &nodePtrX[nodeNumber];
-   DTYPE *nodePtrZ = nullptr;
+   DataType *nodePtrX = static_cast<DataType *>(nodeImage->data);
+   DataType *nodePtrY = &nodePtrX[nodeNumber];
+   DataType *nodePtrZ = nullptr;
 
-   DTYPE *voxelPtrX = static_cast<DTYPE *>(voxelImage->data);
-   DTYPE *voxelPtrY = &voxelPtrX[voxelNumber];
-   DTYPE *voxelPtrZ = nullptr;
+   DataType *voxelPtrX = static_cast<DataType *>(voxelImage->data);
+   DataType *voxelPtrY = &voxelPtrX[voxelNumber];
+   DataType *voxelPtrZ = nullptr;
 
    if(nodeImage->nz>1)
    {
@@ -1836,23 +1836,23 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
             nodeCoord[0]=x;
             reg_mat44_mul(&transformation,nodeCoord,voxelCoord);
             // linear interpolation is performed
-            DTYPE basisX[2], basisY[2], basisZ[2]={0,0};
+            DataType basisX[2], basisY[2], basisZ[2]={0,0};
             int pre[3]=
             {
                static_cast<int>(reg_floor(voxelCoord[0])),
                static_cast<int>(reg_floor(voxelCoord[1])),
                static_cast<int>(reg_floor(voxelCoord[2]))
             };
-            basisX[1]=voxelCoord[0]-static_cast<DTYPE>(pre[0]);
-            basisX[0]=static_cast<DTYPE>(1) - basisX[1];
-            basisY[1]=voxelCoord[1]-static_cast<DTYPE>(pre[1]);
-            basisY[0]=static_cast<DTYPE>(1) - basisY[1];
+            basisX[1]=voxelCoord[0]-static_cast<DataType>(pre[0]);
+            basisX[0]=static_cast<DataType>(1) - basisX[1];
+            basisY[1]=voxelCoord[1]-static_cast<DataType>(pre[1]);
+            basisY[0]=static_cast<DataType>(1) - basisY[1];
             if(voxelPtrZ!=nullptr)
             {
-               basisZ[1]=voxelCoord[2]-static_cast<DTYPE>(pre[2]);
-               basisZ[0]=static_cast<DTYPE>(1) - basisZ[1];
+               basisZ[1]=voxelCoord[2]-static_cast<DataType>(pre[2]);
+               basisZ[0]=static_cast<DataType>(1) - basisZ[1];
             }
-            DTYPE interpolatedValue[3]= {0,0,0};
+            DataType interpolatedValue[3]= {0,0,0};
             for(int c=0; c<2; ++c)
             {
                int indexZ=pre[2]+c;
@@ -1870,7 +1870,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                            {
                               size_t index=(indexZ*voxelImage->ny+indexY) *
                                     voxelImage->nx+indexX;
-                              DTYPE linearWeight = basisX[a] * basisY[b];
+                              DataType linearWeight = basisX[a] * basisY[b];
                               if(voxelPtrZ!=nullptr) linearWeight *= basisZ[c];
                               interpolatedValue[0] += linearWeight * voxelPtrX[index];
                               interpolatedValue[1] += linearWeight * voxelPtrY[index];
@@ -1882,7 +1882,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                   }
                }
             }
-            DTYPE reorientedValue[3]={0,0,0};
+            DataType reorientedValue[3]={0,0,0};
             reorientedValue[0] =
                   reorientation.m[0][0] * interpolatedValue[0] +
                   reorientation.m[1][0] * interpolatedValue[1] +
@@ -1898,17 +1898,17 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                      reorientation.m[2][2] * interpolatedValue[2] ;
             if(update)
             {
-               *nodePtrX += reorientedValue[0]*static_cast<DTYPE>(weight);
-               *nodePtrY += reorientedValue[1]*static_cast<DTYPE>(weight);
+               *nodePtrX += reorientedValue[0]*static_cast<DataType>(weight);
+               *nodePtrY += reorientedValue[1]*static_cast<DataType>(weight);
                if(voxelPtrZ!=nullptr)
-                  *nodePtrZ += reorientedValue[2]*static_cast<DTYPE>(weight);
+                  *nodePtrZ += reorientedValue[2]*static_cast<DataType>(weight);
             }
             else
             {
-               *nodePtrX = reorientedValue[0]*static_cast<DTYPE>(weight);
-               *nodePtrY = reorientedValue[1]*static_cast<DTYPE>(weight);
+               *nodePtrX = reorientedValue[0]*static_cast<DataType>(weight);
+               *nodePtrY = reorientedValue[1]*static_cast<DataType>(weight);
                if(voxelPtrZ!=nullptr)
-                  *nodePtrZ = reorientedValue[2]*static_cast<DTYPE>(weight);
+                  *nodePtrZ = reorientedValue[2]*static_cast<DataType>(weight);
             }
             ++nodePtrX;
             ++nodePtrY;
@@ -2542,7 +2542,7 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_defField_compose2D(nifti_image *deformationField,
                             nifti_image *dfToUpdate,
                             int *mask)
@@ -2555,11 +2555,11 @@ void reg_defField_compose2D(nifti_image *deformationField,
    size_t i;
    const size_t warVoxelNumber = CalcVoxelNumber(*dfToUpdate, 2);
 #endif
-   DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);
-   DTYPE *defPtrY = &defPtrX[DFVoxelNumber];
+   DataType *defPtrX = static_cast<DataType *>(deformationField->data);
+   DataType *defPtrY = &defPtrX[DFVoxelNumber];
 
-   DTYPE *resPtrX = static_cast<DTYPE *>(dfToUpdate->data);
-   DTYPE *resPtrY = &resPtrX[warVoxelNumber];
+   DataType *resPtrX = static_cast<DataType *>(dfToUpdate->data);
+   DataType *resPtrY = &resPtrX[warVoxelNumber];
 
    mat44 *df_real2Voxel=nullptr;
    mat44 *df_voxel2Real=nullptr;
@@ -2576,9 +2576,9 @@ void reg_defField_compose2D(nifti_image *deformationField,
 
    size_t index;
    int a, b, pre[2];
-   DTYPE realDefX, realDefY, voxelX, voxelY;
-   DTYPE defX, defY, relX[2], relY[2], basis;
-#if defined (_OPENMP)
+   DataType realDefX, realDefY, voxelX, voxelY;
+   DataType defX, defY, relX[2], relY[2], basis;
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, \
    deformationField, defPtrX, defPtrY, resPtrX, resPtrY) \
@@ -2603,9 +2603,9 @@ void reg_defField_compose2D(nifti_image *deformationField,
          // Linear interpolation to compute the new deformation
          pre[0]=(int)reg_floor(voxelX);
          pre[1]=(int)reg_floor(voxelY);
-         relX[1]=voxelX-(DTYPE)pre[0];
+         relX[1]=voxelX-(DataType)pre[0];
          relX[0]=1.f-relX[1];
-         relY[1]=voxelY-(DTYPE)pre[1];
+         relY[1]=voxelY-(DataType)pre[1];
          relY[0]=1.f-relY[1];
          realDefX=realDefY=0.f;
          for(b=0; b<2; ++b)
@@ -2624,7 +2624,7 @@ void reg_defField_compose2D(nifti_image *deformationField,
                else
                {
                   // Uses a sliding effect
-                  get_SlidedValues<DTYPE>(defX,
+                  get_SlidedValues<DataType>(defX,
                                           defY,
                                           pre[0]+a,
                         pre[1]+b,
@@ -2645,7 +2645,7 @@ void reg_defField_compose2D(nifti_image *deformationField,
    }// loop over every voxel
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_defField_compose3D(nifti_image *deformationField,
                             nifti_image *dfToUpdate,
                             int *mask)
@@ -2660,13 +2660,13 @@ void reg_defField_compose3D(nifti_image *deformationField,
    const size_t warVoxelNumber = CalcVoxelNumber(*dfToUpdate);
 #endif
 
-   DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);
-   DTYPE *defPtrY = &defPtrX[DFVoxelNumber];
-   DTYPE *defPtrZ = &defPtrY[DFVoxelNumber];
+   DataType *defPtrX = static_cast<DataType *>(deformationField->data);
+   DataType *defPtrY = &defPtrX[DFVoxelNumber];
+   DataType *defPtrZ = &defPtrY[DFVoxelNumber];
 
-   DTYPE *resPtrX = static_cast<DTYPE *>(dfToUpdate->data);
-   DTYPE *resPtrY = &resPtrX[warVoxelNumber];
-   DTYPE *resPtrZ = &resPtrY[warVoxelNumber];
+   DataType *resPtrX = static_cast<DataType *>(dfToUpdate->data);
+   DataType *resPtrY = &resPtrX[warVoxelNumber];
+   DataType *resPtrZ = &resPtrY[warVoxelNumber];
 
 #ifdef _WIN32
    __declspec(align(16))mat44 df_real2Voxel;
@@ -2687,10 +2687,10 @@ void reg_defField_compose3D(nifti_image *deformationField,
 
    size_t tempIndex, index;
    int a, b, c, currentX, currentY, currentZ, pre[3];
-   DTYPE realDef[3], voxel[3], basis, tempBasis;
-   DTYPE defX, defY, defZ, relX[2], relY[2], relZ[2];
+   DataType realDef[3], voxel[3], basis, tempBasis;
+   DataType defX, defY, defZ, relX[2], relY[2], relZ[2];
    bool inY, inZ;
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, DefFieldDim, \
    defPtrX, defPtrY, defPtrZ, resPtrX, resPtrY, resPtrZ, deformationField) \
@@ -2726,11 +2726,11 @@ void reg_defField_compose3D(nifti_image *deformationField,
          pre[0]=static_cast<int>reg_floor(voxel[0]);
          pre[1]=static_cast<int>reg_floor(voxel[1]);
          pre[2]=static_cast<int>reg_floor(voxel[2]);
-         relX[1]=voxel[0]-static_cast<DTYPE>(pre[0]);
+         relX[1]=voxel[0]-static_cast<DataType>(pre[0]);
          relX[0]=1.-relX[1];
-         relY[1]=voxel[1]-static_cast<DTYPE>(pre[1]);
+         relY[1]=voxel[1]-static_cast<DataType>(pre[1]);
          relY[0]=1.-relY[1];
-         relZ[1]=voxel[2]-static_cast<DTYPE>(pre[2]);
+         relZ[1]=voxel[2]-static_cast<DataType>(pre[2]);
          relZ[0]=1.-relZ[1];
          realDef[0]=realDef[1]=realDef[2]=0.;
          for(c=0; c<2; ++c)
@@ -2759,7 +2759,7 @@ void reg_defField_compose3D(nifti_image *deformationField,
                   else
                   {
                      // Uses a sliding effect
-                     get_SlidedValues<DTYPE>(defX,
+                     get_SlidedValues<DataType>(defX,
                                              defY,
                                              defZ,
                                              currentX,
@@ -3335,7 +3335,7 @@ static void optimize(gsl_multimin_function *f, double *start, void *data, double
    nmsimplex_calc_center (&t, start);
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_defFieldInvert3D(nifti_image *inputDeformationField,
                           nifti_image *outputDeformationField,
                           float tolerance)
@@ -3369,8 +3369,8 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
    int i,x,y,z;
    double position[4], pars[4], arrayy[4][3];
    struct ddata dat;
-   DTYPE *outData;
-#if defined (_OPENMP)
+   DataType *outData;
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(outputDeformationField,tolerance,outputVoxelNumber, \
    inputDeformationField, OutXYZMatrix, delta) \
@@ -3382,7 +3382,7 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
       for(i=0; i<4; ++i)              /* set up 2D array pointers */
          dat.arrayy[i]= arrayy[i];
 
-      outData = (DTYPE *)(outputDeformationField->data) +
+      outData = (DataType *)(outputDeformationField->data) +
             outputDeformationField->nx * outputDeformationField->ny * z;
 
       for(y=0; y<outputDeformationField->ny; ++y)
@@ -3455,7 +3455,7 @@ void reg_defFieldInvert(nifti_image *inputDeformationField,
 /* *************************************************************** */
 /* *************************************************************** */
 //HAVE TO BE CHECKED
-template<class DTYPE>
+template<class DataType>
 void reg_spline_cppComposition_2D(nifti_image *grid1,
                                   nifti_image *grid2,
                                   bool displacement1,
@@ -3472,32 +3472,32 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
    } val;
  #endif // _USE_SSE
 
-   DTYPE *outCPPPtrX = static_cast<DTYPE *>(grid2->data);
-   DTYPE *outCPPPtrY = &outCPPPtrX[CalcVoxelNumber(*grid2, 2)];
+   DataType *outCPPPtrX = static_cast<DataType *>(grid2->data);
+   DataType *outCPPPtrY = &outCPPPtrX[CalcVoxelNumber(*grid2, 2)];
 
-   DTYPE *controlPointPtrX = static_cast<DTYPE *>(grid1->data);
-   DTYPE *controlPointPtrY = &controlPointPtrX[CalcVoxelNumber(*grid1, 2)];
+   DataType *controlPointPtrX = static_cast<DataType *>(grid1->data);
+   DataType *controlPointPtrY = &controlPointPtrX[CalcVoxelNumber(*grid1, 2)];
 
-   DTYPE basis;
+   DataType basis;
 
  #ifdef _WIN32
-   __declspec(align(16)) DTYPE xBasis[4];
-   __declspec(align(16)) DTYPE yBasis[4];
+   __declspec(align(16)) DataType xBasis[4];
+   __declspec(align(16)) DataType yBasis[4];
  #if _USE_SSE
-   __declspec(align(16)) DTYPE xyBasis[16];
+   __declspec(align(16)) DataType xyBasis[16];
  #endif  //_USE_SSE
 
-   __declspec(align(16)) DTYPE xControlPointCoordinates[16];
-   __declspec(align(16)) DTYPE yControlPointCoordinates[16];
+   __declspec(align(16)) DataType xControlPointCoordinates[16];
+   __declspec(align(16)) DataType yControlPointCoordinates[16];
  #else // _WIN32
-   DTYPE xBasis[4] __attribute__((aligned(16)));
-   DTYPE yBasis[4] __attribute__((aligned(16)));
+   DataType xBasis[4] __attribute__((aligned(16)));
+   DataType yBasis[4] __attribute__((aligned(16)));
  #if _USE_SSE
-   DTYPE xyBasis[16] __attribute__((aligned(16)));
+   DataType xyBasis[16] __attribute__((aligned(16)));
  #endif  //_USE_SSE
 
-   DTYPE xControlPointCoordinates[16] __attribute__((aligned(16)));
-   DTYPE yControlPointCoordinates[16] __attribute__((aligned(16)));
+   DataType xControlPointCoordinates[16] __attribute__((aligned(16)));
+   DataType yControlPointCoordinates[16] __attribute__((aligned(16)));
  #endif // _WIN32
 
    size_t coord;
@@ -3518,10 +3518,10 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
       {
 
          // Get the control point actual position
-         DTYPE xReal = *outCPPPtrX;
-         DTYPE yReal = *outCPPPtrY;
-         DTYPE initialX=xReal;
-         DTYPE initialY=yReal;
+         DataType xReal = *outCPPPtrX;
+         DataType yReal = *outCPPPtrY;
+         DataType initialX=xReal;
+         DataType initialY=yReal;
          if(displacement2)
          {
             xReal +=
@@ -3535,30 +3535,30 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
          }
 
          // Get the voxel based control point position in grid1
-         DTYPE xVoxel = matrix_real_to_voxel1->m[0][0]*xReal
+         DataType xVoxel = matrix_real_to_voxel1->m[0][0]*xReal
                + matrix_real_to_voxel1->m[0][1]*yReal
                + matrix_real_to_voxel1->m[0][3];
-         DTYPE yVoxel = matrix_real_to_voxel1->m[1][0]*xReal
+         DataType yVoxel = matrix_real_to_voxel1->m[1][0]*xReal
                + matrix_real_to_voxel1->m[1][1]*yReal
                + matrix_real_to_voxel1->m[1][3];
 
          // The spline coefficients are computed
          int xPre=(int)(reg_floor(xVoxel));
-         basis=(DTYPE)xVoxel-(DTYPE)xPre;
+         basis=(DataType)xVoxel-(DataType)xPre;
          xPre--;
          if(basis<0) basis=0; //rounding error
-         if(bspline) get_BSplineBasisValues<DTYPE>(basis, xBasis);
-         else get_SplineBasisValues<DTYPE>(basis, xBasis);
+         if(bspline) get_BSplineBasisValues<DataType>(basis, xBasis);
+         else get_SplineBasisValues<DataType>(basis, xBasis);
 
          int yPre=(int)(reg_floor(yVoxel));
-         basis=(DTYPE)yVoxel-(DTYPE)yPre;
+         basis=(DataType)yVoxel-(DataType)yPre;
          yPre--;
          if(basis<0) basis=0; //rounding error
-         if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
-         else get_SplineBasisValues<DTYPE>(basis, yBasis);
+         if(bspline) get_BSplineBasisValues<DataType>(basis, yBasis);
+         else get_SplineBasisValues<DataType>(basis, yBasis);
 
          // The control points are stored
-         get_GridValues<DTYPE>(xPre,
+         get_GridValues<DataType>(xPre,
                                yPre,
                                grid1,
                                controlPointPtrX,
@@ -3605,7 +3605,7 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
          {
             for(unsigned int a=0; a<4; a++)
             {
-               DTYPE tempValue = xBasis[a] * yBasis[b];
+               DataType tempValue = xBasis[a] * yBasis[b];
                xReal += xControlPointCoordinates[coord] * tempValue;
                yReal += yControlPointCoordinates[coord] * tempValue;
                coord++;
@@ -3625,7 +3625,7 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
 }
 /* *************************************************************** */
 //HAVE TO BE CHECKED
-template<class DTYPE>
+template<class DataType>
 void reg_spline_cppComposition_3D(nifti_image *grid1,
                                   nifti_image *grid2,
                                   bool displacement1,
@@ -3653,42 +3653,42 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
  #else
    int a, b, c;
    size_t coord;
-   DTYPE tempValue;
+   DataType tempValue;
  #endif
 
    const size_t grid2VoxelNumber = CalcVoxelNumber(*grid2);
-   DTYPE *outCPPPtrX = static_cast<DTYPE *>(grid2->data);
-   DTYPE *outCPPPtrY = &outCPPPtrX[grid2VoxelNumber];
-   DTYPE *outCPPPtrZ = &outCPPPtrY[grid2VoxelNumber];
+   DataType *outCPPPtrX = static_cast<DataType *>(grid2->data);
+   DataType *outCPPPtrY = &outCPPPtrX[grid2VoxelNumber];
+   DataType *outCPPPtrZ = &outCPPPtrY[grid2VoxelNumber];
 
    const size_t grid1VoxelNumber = CalcVoxelNumber(*grid1);
-   DTYPE *controlPointPtrX = static_cast<DTYPE *>(grid1->data);
-   DTYPE *controlPointPtrY = &controlPointPtrX[grid1VoxelNumber];
-   DTYPE *controlPointPtrZ = &controlPointPtrY[grid1VoxelNumber];
+   DataType *controlPointPtrX = static_cast<DataType *>(grid1->data);
+   DataType *controlPointPtrY = &controlPointPtrX[grid1VoxelNumber];
+   DataType *controlPointPtrZ = &controlPointPtrY[grid1VoxelNumber];
 
-   DTYPE basis;
+   DataType basis;
 
  #ifdef _WIN32
-   __declspec(align(16)) DTYPE xBasis[4];
-   __declspec(align(16)) DTYPE yBasis[4];
-   __declspec(align(16)) DTYPE zBasis[4];
-   __declspec(align(16)) DTYPE xControlPointCoordinates[64];
-   __declspec(align(16)) DTYPE yControlPointCoordinates[64];
-   __declspec(align(16)) DTYPE zControlPointCoordinates[64];
+   __declspec(align(16)) DataType xBasis[4];
+   __declspec(align(16)) DataType yBasis[4];
+   __declspec(align(16)) DataType zBasis[4];
+   __declspec(align(16)) DataType xControlPointCoordinates[64];
+   __declspec(align(16)) DataType yControlPointCoordinates[64];
+   __declspec(align(16)) DataType zControlPointCoordinates[64];
  #else
-   DTYPE xBasis[4] __attribute__((aligned(16)));
-   DTYPE yBasis[4] __attribute__((aligned(16)));
-   DTYPE zBasis[4] __attribute__((aligned(16)));
-   DTYPE xControlPointCoordinates[64] __attribute__((aligned(16)));
-   DTYPE yControlPointCoordinates[64] __attribute__((aligned(16)));
-   DTYPE zControlPointCoordinates[64] __attribute__((aligned(16)));
+   DataType xBasis[4] __attribute__((aligned(16)));
+   DataType yBasis[4] __attribute__((aligned(16)));
+   DataType zBasis[4] __attribute__((aligned(16)));
+   DataType xControlPointCoordinates[64] __attribute__((aligned(16)));
+   DataType yControlPointCoordinates[64] __attribute__((aligned(16)));
+   DataType zControlPointCoordinates[64] __attribute__((aligned(16)));
  #endif
 
    int xPre, xPreOld, yPre, yPreOld, zPre, zPreOld;
    int x, y, z;
    size_t index;
-   DTYPE xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ;
-   DTYPE xVoxel, yVoxel, zVoxel;
+   DataType xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ;
+   DataType xVoxel, yVoxel, zVoxel;
 
    // read the xyz/ijk sform or qform, as appropriate
    mat44 *matrix_real_to_voxel1=nullptr;
@@ -3700,7 +3700,7 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
       matrix_voxel_to_real2=&(grid2->sto_xyz);
    else matrix_voxel_to_real2=&(grid2->qto_xyz);
 
- #if defined (_OPENMP)
+ #ifdef _OPENMP
  #ifdef _USE_SSE
  #pragma omp parallel for default(none) \
    shared(grid1, grid2, displacement1, displacement2, matrix_voxel_to_real2, matrix_real_to_voxel1, \
@@ -3775,22 +3775,22 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
 
             // The spline coefficients are computed
             xPre=(int)(reg_floor(xVoxel));
-            basis=(DTYPE)xVoxel-(DTYPE)xPre;
+            basis=(DataType)xVoxel-(DataType)xPre;
             if(basis<0) basis=0; //rounding error
-            if(bspline) get_BSplineBasisValues<DTYPE>(basis, xBasis);
-            else get_SplineBasisValues<DTYPE>(basis, xBasis);
+            if(bspline) get_BSplineBasisValues<DataType>(basis, xBasis);
+            else get_SplineBasisValues<DataType>(basis, xBasis);
 
             yPre=(int)(reg_floor(yVoxel));
-            basis=(DTYPE)yVoxel-(DTYPE)yPre;
+            basis=(DataType)yVoxel-(DataType)yPre;
             if(basis<0) basis=0; //rounding error
-            if(bspline) get_BSplineBasisValues<DTYPE>(basis, yBasis);
-            else get_SplineBasisValues<DTYPE>(basis, yBasis);
+            if(bspline) get_BSplineBasisValues<DataType>(basis, yBasis);
+            else get_SplineBasisValues<DataType>(basis, yBasis);
 
             zPre=(int)(reg_floor(zVoxel));
-            basis=(DTYPE)zVoxel-(DTYPE)zPre;
+            basis=(DataType)zVoxel-(DataType)zPre;
             if(basis<0) basis=0; //rounding error
-            if(bspline) get_BSplineBasisValues<DTYPE>(basis, zBasis);
-            else get_SplineBasisValues<DTYPE>(basis, zBasis);
+            if(bspline) get_BSplineBasisValues<DataType>(basis, zBasis);
+            else get_SplineBasisValues<DataType>(basis, zBasis);
 
             --xPre;
             --yPre;
@@ -4269,7 +4269,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void compute_lie_bracket(nifti_image *img1,
                          nifti_image *img2,
                          nifti_image *res,
@@ -4298,17 +4298,17 @@ void compute_lie_bracket(nifti_image *img1,
       reg_getDisplacementFromDeformation(img1);
       reg_getDisplacementFromDeformation(img2);
 
-      DTYPE *resPtrX=static_cast<DTYPE *>(res->data);
-      DTYPE *resPtrY=&resPtrX[voxNumber];
-      DTYPE *img1DispPtrX=static_cast<DTYPE *>(img1->data);
-      DTYPE *img1DispPtrY=&img1DispPtrX[voxNumber];
-      DTYPE *img2DispPtrX=static_cast<DTYPE *>(img2->data);
-      DTYPE *img2DispPtrY=&img1DispPtrX[voxNumber];
+      DataType *resPtrX=static_cast<DataType *>(res->data);
+      DataType *resPtrY=&resPtrX[voxNumber];
+      DataType *img1DispPtrX=static_cast<DataType *>(img1->data);
+      DataType *img1DispPtrY=&img1DispPtrX[voxNumber];
+      DataType *img2DispPtrX=static_cast<DataType *>(img2->data);
+      DataType *img2DispPtrY=&img1DispPtrX[voxNumber];
       if(img1->nz>1)
       {
-         DTYPE *resPtrZ=&resPtrY[voxNumber];
-         DTYPE *img1DispPtrZ=&img1DispPtrY[voxNumber];
-         DTYPE *img2DispPtrZ=&img1DispPtrY[voxNumber];
+         DataType *resPtrZ=&resPtrY[voxNumber];
+         DataType *img1DispPtrZ=&img1DispPtrY[voxNumber];
+         DataType *img2DispPtrZ=&img1DispPtrY[voxNumber];
 
          for(size_t i=0; i<voxNumber; ++i)
          {
@@ -4394,9 +4394,9 @@ void compute_lie_bracket(nifti_image *img1,
                              true // bspline?
                              );
    // Create the data pointers
-   DTYPE *resPtr=static_cast<DTYPE *>(res->data);
-   DTYPE *one_twoPtr=static_cast<DTYPE *>(one_two->data);
-   DTYPE *two_onePtr=static_cast<DTYPE *>(two_one->data);
+   DataType *resPtr=static_cast<DataType *>(res->data);
+   DataType *one_twoPtr=static_cast<DataType *>(one_two->data);
+   DataType *two_onePtr=static_cast<DataType *>(two_one->data);
    // Compute the lie bracket value using difference of composition
 
  #ifdef _WIN32
@@ -4407,7 +4407,7 @@ void compute_lie_bracket(nifti_image *img1,
    voxNumber=res->nvox;
  #endif
 
- #if defined (_OPENMP)
+ #ifdef _OPENMP
  #pragma omp parallel for default(none) \
    shared(voxNumber, resPtr, one_twoPtr, two_onePtr) \
    private(i)
@@ -4420,7 +4420,7 @@ void compute_lie_bracket(nifti_image *img1,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void compute_BCH_update1(nifti_image *img1, // current field
                          nifti_image *img2, // gradient
                          int type)
@@ -4428,7 +4428,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
    // To update
    reg_print_msg_error("The compute_BCH_update function needs updating");
    reg_exit();
-   DTYPE *res=(DTYPE *)malloc(img1->nvox*sizeof(DTYPE));
+   DataType *res=(DataType *)malloc(img1->nvox*sizeof(DataType));
 
  #ifdef _WIN32
    long i;
@@ -4441,9 +4441,9 @@ void compute_BCH_update1(nifti_image *img1, // current field
    bool use_jac=false;
 
    // r <- 2 + 1
-   DTYPE *img1Ptr=static_cast<DTYPE *>(img1->data);
-   DTYPE *img2Ptr=static_cast<DTYPE *>(img2->data);
- #if defined (_OPENMP)
+   DataType *img1Ptr=static_cast<DataType *>(img1->data);
+   DataType *img2Ptr=static_cast<DataType *>(img2->data);
+ #ifdef _OPENMP
  #pragma omp parallel for default(none) \
    shared(voxelNumber,img1Ptr,img2Ptr, res) \
    private(i)
@@ -4458,9 +4458,9 @@ void compute_BCH_update1(nifti_image *img1, // current field
 
       // r <- 2 + 1 + 0.5[2,1]
       nifti_image *lie_bracket_img2_img1 = nifti_dup(*img1, false);
-      compute_lie_bracket<DTYPE>(img2, img1, lie_bracket_img2_img1, use_jac);
-      DTYPE *lie_bracket_img2_img1Ptr=static_cast<DTYPE *>(lie_bracket_img2_img1->data);
- #if defined (_OPENMP)
+      compute_lie_bracket<DataType>(img2, img1, lie_bracket_img2_img1, use_jac);
+      DataType *lie_bracket_img2_img1Ptr=static_cast<DataType *>(lie_bracket_img2_img1->data);
+ #ifdef _OPENMP
  #pragma omp parallel for default(none) \
    shared(voxelNumber, res, lie_bracket_img2_img1Ptr) \
    private(i)
@@ -4472,9 +4472,9 @@ void compute_BCH_update1(nifti_image *img1, // current field
       {
          // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12
          nifti_image *lie_bracket_img2_lie1 = nifti_dup(*lie_bracket_img2_img1, false);
-         compute_lie_bracket<DTYPE>(img2, lie_bracket_img2_img1, lie_bracket_img2_lie1, use_jac);
-         DTYPE *lie_bracket_img2_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img2_lie1->data);
- #if defined (_OPENMP)
+         compute_lie_bracket<DataType>(img2, lie_bracket_img2_img1, lie_bracket_img2_lie1, use_jac);
+         DataType *lie_bracket_img2_lie1Ptr=static_cast<DataType *>(lie_bracket_img2_lie1->data);
+ #ifdef _OPENMP
  #pragma omp parallel for default(none) \
    shared(voxelNumber, res, lie_bracket_img2_lie1Ptr) \
    private(i)
@@ -4486,9 +4486,9 @@ void compute_BCH_update1(nifti_image *img1, // current field
          {
             // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12 - [1,[2,1]]/12
             nifti_image *lie_bracket_img1_lie1 = nifti_dup(*lie_bracket_img2_img1, false);
-            compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_img1, lie_bracket_img1_lie1, use_jac);
-            DTYPE *lie_bracket_img1_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie1->data);
- #if defined (_OPENMP)
+            compute_lie_bracket<DataType>(img1, lie_bracket_img2_img1, lie_bracket_img1_lie1, use_jac);
+            DataType *lie_bracket_img1_lie1Ptr=static_cast<DataType *>(lie_bracket_img1_lie1->data);
+ #ifdef _OPENMP
  #pragma omp parallel for default(none) \
    shared(voxelNumber, res, lie_bracket_img1_lie1Ptr) \
    private(i)
@@ -4501,9 +4501,9 @@ void compute_BCH_update1(nifti_image *img1, // current field
             {
                // r <- 2 + 1 + 0.5[2,1] + [2,[2,1]]/12 - [1,[2,1]]/12 - [1,[2,[2,1]]]/24
                nifti_image *lie_bracket_img1_lie2 = nifti_dup(*lie_bracket_img2_lie1, false);
-               compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_lie1, lie_bracket_img1_lie2, use_jac);
-               DTYPE *lie_bracket_img1_lie2Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie2->data);
- #if defined (_OPENMP)
+               compute_lie_bracket<DataType>(img1, lie_bracket_img2_lie1, lie_bracket_img1_lie2, use_jac);
+               DataType *lie_bracket_img1_lie2Ptr=static_cast<DataType *>(lie_bracket_img1_lie2->data);
+ #ifdef _OPENMP
  #pragma omp parallel for default(none) \
    shared(voxelNumber, res, lie_bracket_img1_lie2Ptr) \
    private(i)
@@ -4549,35 +4549,35 @@ void compute_BCH_update(nifti_image *img1, // current field
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
-void extractLine(int start, int end, int increment,const DTYPE *image, DTYPE *values)
+template <class DataType>
+void extractLine(int start, int end, int increment,const DataType *image, DataType *values)
 {
    size_t index = 0;
    for(int i=start; i<end; i+=increment) values[index++] = image[i];
 }
 /* *************************************************************** */
-template <class DTYPE>
-void restoreLine(int start, int end, int increment, DTYPE *image, const DTYPE *values)
+template <class DataType>
+void restoreLine(int start, int end, int increment, DataType *image, const DataType *values)
 {
    size_t index = 0;
    for(int i=start; i<end; i+=increment) image[i] = values[index++];
 }
 /* *************************************************************** */
-template <class DTYPE>
-void intensitiesToSplineCoefficients(DTYPE *values, int number)
+template <class DataType>
+void intensitiesToSplineCoefficients(DataType *values, int number)
 {
    // Border are set to zero
-   DTYPE pole = sqrt(3.0) - 2.0;
-   DTYPE currentPole = pole;
-   DTYPE currentOpposite = pow(pole,(DTYPE)(2.0*(DTYPE)number-1.0));
-   DTYPE sum=0;
+   DataType pole = sqrt(3.0) - 2.0;
+   DataType currentPole = pole;
+   DataType currentOpposite = pow(pole,(DataType)(2.0*(DataType)number-1.0));
+   DataType sum=0;
    for(int i=1; i<number; i++)
    {
       sum += (currentPole - currentOpposite) * values[i];
       currentPole *= pole;
       currentOpposite /= pole;
    }
-   values[0] = (DTYPE)((values[0] - pole*pole*(values[0] + sum)) / (1.0 - pow(pole,(DTYPE)(2.0*(double)number+2.0))));
+   values[0] = (DataType)((values[0] - pole*pole*(values[0] + sum)) / (1.0 - pow(pole,(DataType)(2.0*(double)number+2.0))));
 
    //other values forward
    for(int i=1; i<number; i++)
@@ -4585,7 +4585,7 @@ void intensitiesToSplineCoefficients(DTYPE *values, int number)
       values[i] += pole * values[i-1];
    }
 
-   DTYPE ipp=(DTYPE)(1.0-pole);
+   DataType ipp=(DataType)(1.0-pole);
    ipp*=ipp;
 
    //last value
@@ -4599,11 +4599,11 @@ void intensitiesToSplineCoefficients(DTYPE *values, int number)
    return;
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_spline_GetDeconvolvedCoefficents_core(nifti_image *img)
 {
    double *coeff=(double *)malloc(img->nvox*sizeof(double));
-   DTYPE *imgPtr=static_cast<DTYPE *>(img->data);
+   DataType *imgPtr=static_cast<DataType *>(img->data);
    for(size_t i=0; i<img->nvox; ++i)
       coeff[i]=imgPtr[i];
    for(int u=0; u<img->nu; ++u)

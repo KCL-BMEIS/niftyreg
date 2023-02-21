@@ -66,7 +66,7 @@ protected:
 
     int kernelType;
 
-    template <class DTYPE>
+    template <class DataType>
     void UpdateLocalStatImages(nifti_image *refImage,
                                nifti_image *warImage,
                                nifti_image *meanRefImage,
@@ -88,7 +88,7 @@ protected:
  * should be considered. If set to nullptr, all voxels are considered
  * @return Returns the computed LNCC
  */
-extern "C++" template<class DTYPE>
+extern "C++" template<class DataType>
 double reg_getLNCCValue(nifti_image *referenceImage,
                         nifti_image *referenceMeanImage,
                         nifti_image *referenceStdDevImage,
@@ -112,7 +112,7 @@ double reg_getLNCCValue(nifti_image *referenceImage,
  *  @param mask Array that contains a mask to specify which voxel
  *  should be considered. If set to nullptr, all voxels are considered
  */
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    nifti_image *referenceMeanImage,
                                    nifti_image *referenceStdDevImage,

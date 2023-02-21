@@ -38,32 +38,32 @@ typedef struct
    bool outputLogDetFlag;
 } FLAG;
 
-template <class DTYPE>
+template <class DataType>
 void reg_jacobian_computeLog(nifti_image *image)
 {
-   DTYPE *imgPtr=static_cast<DTYPE *>(image->data);
+   DataType *imgPtr=static_cast<DataType *>(image->data);
    for(size_t i=0; i<image->nvox;++i){
-      *imgPtr = static_cast<DTYPE>(log(*imgPtr));
+      *imgPtr = static_cast<DataType>(log(*imgPtr));
       ++imgPtr;
    }
    return;
 }
 
-template <class DTYPE>
+template <class DataType>
 void reg_jacobian_convertMat33ToNii(mat33 *array, nifti_image *image)
 {
    const size_t voxelNumber=CalcVoxelNumber(*image);
-   DTYPE *ptrXX=static_cast<DTYPE *>(image->data);
+   DataType *ptrXX=static_cast<DataType *>(image->data);
    if(image->nz>1)
    {
-      DTYPE *ptrXY=&ptrXX[voxelNumber];
-      DTYPE *ptrXZ=&ptrXY[voxelNumber];
-      DTYPE *ptrYX=&ptrXZ[voxelNumber];
-      DTYPE *ptrYY=&ptrYX[voxelNumber];
-      DTYPE *ptrYZ=&ptrYY[voxelNumber];
-      DTYPE *ptrZX=&ptrYZ[voxelNumber];
-      DTYPE *ptrZY=&ptrZX[voxelNumber];
-      DTYPE *ptrZZ=&ptrZY[voxelNumber];
+      DataType *ptrXY=&ptrXX[voxelNumber];
+      DataType *ptrXZ=&ptrXY[voxelNumber];
+      DataType *ptrYX=&ptrXZ[voxelNumber];
+      DataType *ptrYY=&ptrYX[voxelNumber];
+      DataType *ptrYZ=&ptrYY[voxelNumber];
+      DataType *ptrZX=&ptrYZ[voxelNumber];
+      DataType *ptrZY=&ptrZX[voxelNumber];
+      DataType *ptrZZ=&ptrZY[voxelNumber];
       for(size_t voxel=0; voxel<voxelNumber; ++voxel)
       {
          mat33 matrix=array[voxel];
@@ -80,9 +80,9 @@ void reg_jacobian_convertMat33ToNii(mat33 *array, nifti_image *image)
    }
    else
    {
-      DTYPE *ptrXY=&ptrXX[voxelNumber];
-      DTYPE *ptrYX=&ptrXY[voxelNumber];
-      DTYPE *ptrYY=&ptrYX[voxelNumber];
+      DataType *ptrXY=&ptrXX[voxelNumber];
+      DataType *ptrYX=&ptrXY[voxelNumber];
+      DataType *ptrYY=&ptrYX[voxelNumber];
       for(size_t voxel=0; voxel<voxelNumber; ++voxel)
       {
          mat33 matrix=array[voxel];
@@ -117,7 +117,7 @@ void Usage(char *exec)
    printf("\t\tFilename of the Jacobian matrix map. (9 or 4 values are stored as a 5D nifti).\n");
    printf("\t-jacL <filename>\n");
    printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
-#if defined (_OPENMP)
+#ifdef _OPENMP
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
    PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
    // Set the default number of thread
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
-#if defined (_OPENMP)
+#ifdef _OPENMP
          omp_set_num_threads(atoi(argv[++i]));
 #else
          reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");

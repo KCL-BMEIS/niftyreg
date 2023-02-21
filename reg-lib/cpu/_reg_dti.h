@@ -57,7 +57,7 @@ protected:
  * should be considered. If set to nullptr, all voxels are considered
  * @return Returns an L2 measure of the distance between the anisotropic components of the diffusion tensors
  */
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 double reg_getDTIMeasureValue(nifti_image *referenceImage,
                               nifti_image *warpedImage,
                               int *mask,
@@ -74,7 +74,7 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
  * @param mask Array that contains a mask to specify which voxel
  * should be considered. If set to nullptr, all voxels are considered
  */
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
                                          nifti_image *warpedImage,
                                          nifti_image *warpedGradient,

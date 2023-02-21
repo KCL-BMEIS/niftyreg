@@ -16,116 +16,116 @@
 #include "_reg_tools.h"
 
 
-extern "C++" template<class DTYPE>
-void get_BSplineBasisValues(DTYPE basis,
-                            DTYPE *values);
-extern "C++" template<class DTYPE>
-void get_BSplineBasisValues(DTYPE basis,
-                            DTYPE *values,
-                            DTYPE *first);
-extern "C++" template<class DTYPE>
-void get_BSplineBasisValues(DTYPE basis,
-                            DTYPE *values,
-                            DTYPE *first,
-                            DTYPE *second);
+extern "C++" template<class DataType>
+void get_BSplineBasisValues(DataType basis,
+                            DataType *values);
+extern "C++" template<class DataType>
+void get_BSplineBasisValues(DataType basis,
+                            DataType *values,
+                            DataType *first);
+extern "C++" template<class DataType>
+void get_BSplineBasisValues(DataType basis,
+                            DataType *values,
+                            DataType *first,
+                            DataType *second);
 
 
-extern "C++" template<class DTYPE>
-void get_BSplineBasisValue(DTYPE basis,
+extern "C++" template<class DataType>
+void get_BSplineBasisValue(DataType basis,
                            int index,
-                           DTYPE &value);
-extern "C++" template<class DTYPE>
-void get_BSplineBasisValue(DTYPE basis,
+                           DataType &value);
+extern "C++" template<class DataType>
+void get_BSplineBasisValue(DataType basis,
                            int index,
-                           DTYPE &value,
-                           DTYPE &first);
-extern "C++" template<class DTYPE>
-void get_BSplineBasisValue(DTYPE basis,
+                           DataType &value,
+                           DataType &first);
+extern "C++" template<class DataType>
+void get_BSplineBasisValue(DataType basis,
                            int index,
-                           DTYPE &value,
-                           DTYPE &first,
-                           DTYPE &second);
+                           DataType &value,
+                           DataType &first,
+                           DataType &second);
 
-extern "C++" template <class DTYPE>
-void set_first_order_basis_values(DTYPE *basisX,
-                                  DTYPE *basisY);
+extern "C++" template <class DataType>
+void set_first_order_basis_values(DataType *basisX,
+                                  DataType *basisY);
 
-extern "C++" template <class DTYPE>
-void set_first_order_basis_values(DTYPE *basisX,
-                                  DTYPE *basisY,
-                                  DTYPE *basisZ);
+extern "C++" template <class DataType>
+void set_first_order_basis_values(DataType *basisX,
+                                  DataType *basisY,
+                                  DataType *basisZ);
 
-extern "C++" template <class DTYPE>
-void set_second_order_bspline_basis_values(DTYPE *basisXX,
-                                           DTYPE *basisYY,
-                                           DTYPE *basisXY);
-extern "C++" template <class DTYPE>
-void set_second_order_bspline_basis_values(DTYPE *basisXX,
-                                           DTYPE *basisYY,
-                                           DTYPE *basisZZ,
-                                           DTYPE *basisXY,
-                                           DTYPE *basisYZ,
-                                           DTYPE *basisXZ);
+extern "C++" template <class DataType>
+void set_second_order_bspline_basis_values(DataType *basisXX,
+                                           DataType *basisYY,
+                                           DataType *basisXY);
+extern "C++" template <class DataType>
+void set_second_order_bspline_basis_values(DataType *basisXX,
+                                           DataType *basisYY,
+                                           DataType *basisZZ,
+                                           DataType *basisXY,
+                                           DataType *basisYZ,
+                                           DataType *basisXZ);
 
 
-extern "C++" template<class DTYPE>
-void get_SplineBasisValues(DTYPE basis,
-                           DTYPE *values);
-extern "C++" template<class DTYPE>
-void get_SplineBasisValues(DTYPE basis,
-                           DTYPE *values,
-                           DTYPE *first);
-extern "C++" template<class DTYPE>
-void get_SplineBasisValues(DTYPE basis,
-                           DTYPE *values,
-                           DTYPE *first,
-                           DTYPE *second);
+extern "C++" template<class DataType>
+void get_SplineBasisValues(DataType basis,
+                           DataType *values);
+extern "C++" template<class DataType>
+void get_SplineBasisValues(DataType basis,
+                           DataType *values,
+                           DataType *first);
+extern "C++" template<class DataType>
+void get_SplineBasisValues(DataType basis,
+                           DataType *values,
+                           DataType *first,
+                           DataType *second);
 
-extern "C++" template <class DTYPE>
-void get_SlidedValues(DTYPE &defX,
-                      DTYPE &defY,
+extern "C++" template <class DataType>
+void get_SlidedValues(DataType &defX,
+                      DataType &defY,
                       int X,
                       int Y,
-                      DTYPE *defPtrX,
-                      DTYPE *defPtrY,
+                      DataType *defPtrX,
+                      DataType *defPtrY,
                       mat44 *df_voxel2Real,
                       int *dim,
                       bool displacement);
-extern "C++" template <class DTYPE>
-void get_SlidedValues(DTYPE &defX,
-                      DTYPE &defY,
-                      DTYPE &defZ,
+extern "C++" template <class DataType>
+void get_SlidedValues(DataType &defX,
+                      DataType &defY,
+                      DataType &defZ,
                       int X,
                       int Y,
                       int Z,
-                      DTYPE *defPtrX,
-                      DTYPE *defPtrY,
-                      DTYPE *defPtrZ,
+                      DataType *defPtrX,
+                      DataType *defPtrY,
+                      DataType *defPtrZ,
                       mat44 *df_voxel2Real,
                       int *dim,
                       bool displacement);
 
 
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 void get_GridValues(int startX,
                     int startY,
                     nifti_image *splineControlPoint,
-                    DTYPE *splineX,
-                    DTYPE *splineY,
-                    DTYPE *dispX,
-                    DTYPE *dispY,
+                    DataType *splineX,
+                    DataType *splineY,
+                    DataType *dispX,
+                    DataType *dispY,
                     bool approx,
                     bool displacement);
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 void get_GridValues(int startX,
                     int startY,
                     int startZ,
                     nifti_image *splineControlPoint,
-                    DTYPE *splineX,
-                    DTYPE *splineY,
-                    DTYPE *splineZ,
-                    DTYPE *dispX,
-                    DTYPE *dispY,
-                    DTYPE *dispZ,
+                    DataType *splineX,
+                    DataType *splineY,
+                    DataType *splineZ,
+                    DataType *dispX,
+                    DataType *dispY,
+                    DataType *dispZ,
                     bool approx,
                     bool displacement);

@@ -14,7 +14,7 @@
 
 #include "_reg_measure.h"
 #include <vector>
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #include "omp.h"
 #endif
 
@@ -78,7 +78,7 @@ protected:
 };
 /* *************************************************************** */
 /* *************************************************************** */
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 void reg_getNMIValue(nifti_image *referenceImage,
                      nifti_image *warpedImage,
                      double *timePointWeight,
@@ -91,7 +91,7 @@ void reg_getNMIValue(nifti_image *referenceImage,
                      int *referenceMask
 );
 /* *************************************************************** */
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                                     nifti_image *warpedImage,
                                     unsigned short *referenceBinNumber,
@@ -105,7 +105,7 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                                     double timepoint_weight
 );
 /* *************************************************************** */
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                                     nifti_image *warpedImage,
                                     unsigned short *referenceBinNumber,

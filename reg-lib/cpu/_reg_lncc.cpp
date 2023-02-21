@@ -81,7 +81,7 @@ reg_lncc::~reg_lncc() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_lncc::UpdateLocalStatImages(nifti_image *refImage,
                                      nifti_image *warImage,
                                      nifti_image *meanRefImage,
@@ -103,9 +103,9 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *refImage,
     reg_tools_removeNanFromMask(refImage, combinedMask);
     reg_tools_removeNanFromMask(warImage, combinedMask);
 
-    DTYPE *origRefPtr = static_cast<DTYPE*>(refImage->data);
-    DTYPE *meanRefPtr = static_cast<DTYPE*>(meanRefImage->data);
-    DTYPE *sdevRefPtr = static_cast<DTYPE*>(stdDevRefImage->data);
+    DataType *origRefPtr = static_cast<DataType*>(refImage->data);
+    DataType *meanRefPtr = static_cast<DataType*>(meanRefImage->data);
+    DataType *sdevRefPtr = static_cast<DataType*>(stdDevRefImage->data);
     memcpy(meanRefPtr, &origRefPtr[current_timepoint * voxelNumber], voxelNumber * refImage->nbyper);
     memcpy(sdevRefPtr, &origRefPtr[current_timepoint * voxelNumber], voxelNumber * refImage->nbyper);
 
@@ -113,16 +113,16 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *refImage,
     reg_tools_kernelConvolution(meanRefImage, this->kernelStandardDeviation, this->kernelType, combinedMask);
     reg_tools_kernelConvolution(stdDevRefImage, this->kernelStandardDeviation, this->kernelType, combinedMask);
 
-    DTYPE *origWarPtr = static_cast<DTYPE*>(warImage->data);
-    DTYPE *meanWarPtr = static_cast<DTYPE*>(meanWarImage->data);
-    DTYPE *sdevWarPtr = static_cast<DTYPE*>(stdDevWarImage->data);
+    DataType *origWarPtr = static_cast<DataType*>(warImage->data);
+    DataType *meanWarPtr = static_cast<DataType*>(meanWarImage->data);
+    DataType *sdevWarPtr = static_cast<DataType*>(stdDevWarImage->data);
     memcpy(meanWarPtr, &origWarPtr[current_timepoint * voxelNumber], voxelNumber * warImage->nbyper);
     memcpy(sdevWarPtr, &origWarPtr[current_timepoint * voxelNumber], voxelNumber * warImage->nbyper);
 
     reg_tools_multiplyImageToImage(stdDevWarImage, stdDevWarImage, stdDevWarImage);
     reg_tools_kernelConvolution(meanWarImage, this->kernelStandardDeviation, this->kernelType, combinedMask);
     reg_tools_kernelConvolution(stdDevWarImage, this->kernelStandardDeviation, this->kernelType, combinedMask);
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelNumber, sdevRefPtr, meanRefPtr, sdevWarPtr, meanWarPtr) \
     private(voxel)
@@ -132,8 +132,8 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *refImage,
         sdevRefPtr[voxel] = sqrt(sdevRefPtr[voxel] - reg_pow2(meanRefPtr[voxel]));
         sdevWarPtr[voxel] = sqrt(sdevWarPtr[voxel] - reg_pow2(meanWarPtr[voxel]));
         // Stabilise the computation
-        if (sdevRefPtr[voxel] < 1.e-06) sdevRefPtr[voxel] = static_cast<DTYPE>(0);
-        if (sdevWarPtr[voxel] < 1.e-06) sdevWarPtr[voxel] = static_cast<DTYPE>(0);
+        if (sdevRefPtr[voxel] < 1.e-06) sdevRefPtr[voxel] = 0;
+        if (sdevWarPtr[voxel] < 1.e-06) sdevWarPtr[voxel] = 0;
     }
 }
 /* *************************************************************** */
@@ -257,7 +257,7 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImgPtr,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 double reg_getLNCCValue(nifti_image *referenceImage,
                         nifti_image *referenceMeanImage,
                         nifti_image *referenceSdevImage,
@@ -278,17 +278,17 @@ double reg_getLNCCValue(nifti_image *referenceImage,
 #endif
 
     // Compute the local correlation
-    DTYPE *refImagePtr = static_cast<DTYPE*>(referenceImage->data);
-    DTYPE *currentRefPtr = &refImagePtr[current_timepoint * voxelNumber];
+    DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
+    DataType *currentRefPtr = &refImagePtr[current_timepoint * voxelNumber];
 
-    DTYPE *warImagePtr = static_cast<DTYPE*>(warpedImage->data);
-    DTYPE *currentWarPtr = &warImagePtr[current_timepoint * voxelNumber];
+    DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
+    DataType *currentWarPtr = &warImagePtr[current_timepoint * voxelNumber];
 
-    DTYPE *refMeanPtr = static_cast<DTYPE*>(referenceMeanImage->data);
-    DTYPE *warMeanPtr = static_cast<DTYPE*>(warpedMeanImage->data);
-    DTYPE *refSdevPtr = static_cast<DTYPE*>(referenceSdevImage->data);
-    DTYPE *warSdevPtr = static_cast<DTYPE*>(warpedSdevImage->data);
-    DTYPE *correlaPtr = static_cast<DTYPE*>(correlationImage->data);
+    DataType *refMeanPtr = static_cast<DataType*>(referenceMeanImage->data);
+    DataType *warMeanPtr = static_cast<DataType*>(warpedMeanImage->data);
+    DataType *refSdevPtr = static_cast<DataType*>(referenceSdevImage->data);
+    DataType *warSdevPtr = static_cast<DataType*>(warpedSdevImage->data);
+    DataType *correlaPtr = static_cast<DataType*>(correlationImage->data);
 
     for (size_t i = 0; i < voxelNumber; ++i)
         correlaPtr[i] = currentRefPtr[i] * currentWarPtr[i];
@@ -299,7 +299,7 @@ double reg_getLNCCValue(nifti_image *referenceImage,
     double activeVoxel_num = 0.;
 
     // Iteration over all voxels
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelNumber,combinedMask,refMeanPtr,warMeanPtr, \
     refSdevPtr,warSdevPtr,correlaPtr) \
@@ -445,7 +445,7 @@ double reg_lncc::GetSimilarityMeasureValue() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    nifti_image *referenceMeanImage,
                                    nifti_image *referenceSdevImage,
@@ -469,17 +469,17 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
 #endif
 
     // Compute the local correlation
-    DTYPE *refImagePtr = static_cast<DTYPE*>(referenceImage->data);
-    DTYPE *currentRefPtr = &refImagePtr[current_timepoint * voxelNumber];
+    DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
+    DataType *currentRefPtr = &refImagePtr[current_timepoint * voxelNumber];
 
-    DTYPE *warImagePtr = static_cast<DTYPE*>(warpedImage->data);
-    DTYPE *currentWarPtr = &warImagePtr[current_timepoint * voxelNumber];
+    DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
+    DataType *currentWarPtr = &warImagePtr[current_timepoint * voxelNumber];
 
-    DTYPE *refMeanPtr = static_cast<DTYPE*>(referenceMeanImage->data);
-    DTYPE *warMeanPtr = static_cast<DTYPE*>(warpedMeanImage->data);
-    DTYPE *refSdevPtr = static_cast<DTYPE*>(referenceSdevImage->data);
-    DTYPE *warSdevPtr = static_cast<DTYPE*>(warpedSdevImage->data);
-    DTYPE *correlaPtr = static_cast<DTYPE*>(correlationImage->data);
+    DataType *refMeanPtr = static_cast<DataType*>(referenceMeanImage->data);
+    DataType *warMeanPtr = static_cast<DataType*>(warpedMeanImage->data);
+    DataType *refSdevPtr = static_cast<DataType*>(referenceSdevImage->data);
+    DataType *warSdevPtr = static_cast<DataType*>(warpedSdevImage->data);
+    DataType *correlaPtr = static_cast<DataType*>(correlationImage->data);
 
     for (size_t i = 0; i < voxelNumber; ++i)
         correlaPtr[i] = currentRefPtr[i] * currentWarPtr[i];
@@ -491,7 +491,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
     double activeVoxel_num = 0;
 
     // Iteration over all voxels
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelNumber,combinedMask,refMeanPtr,warMeanPtr, \
     refSdevPtr,warSdevPtr,correlaPtr) \
@@ -525,9 +525,9 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                     temp2 *= -1;
                     temp3 *= -1;
                 }
-                warMeanPtr[voxel] = temp1;
-                warSdevPtr[voxel] = temp2;
-                correlaPtr[voxel] = temp3;
+                warMeanPtr[voxel] = static_cast<DataType>(temp1);
+                warSdevPtr[voxel] = static_cast<DataType>(temp2);
+                correlaPtr[voxel] = static_cast<DataType>(temp3);
                 activeVoxel_num++;
             } else warMeanPtr[voxel] = warSdevPtr[voxel] = correlaPtr[voxel] = 0;
         } else warMeanPtr[voxel] = warSdevPtr[voxel] = correlaPtr[voxel] = 0;
@@ -540,22 +540,22 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
     reg_tools_kernelConvolution(warpedMeanImage, kernelStandardDeviation, kernelType, combinedMask);
     reg_tools_kernelConvolution(warpedSdevImage, kernelStandardDeviation, kernelType, combinedMask);
     reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, kernelType, combinedMask);
-    DTYPE *measureGradPtrX = static_cast<DTYPE*>(measureGradientImage->data);
-    DTYPE *measureGradPtrY = &measureGradPtrX[voxelNumber];
-    DTYPE *measureGradPtrZ = nullptr;
+    DataType *measureGradPtrX = static_cast<DataType*>(measureGradientImage->data);
+    DataType *measureGradPtrY = &measureGradPtrX[voxelNumber];
+    DataType *measureGradPtrZ = nullptr;
     if (referenceImage->nz > 1)
         measureGradPtrZ = &measureGradPtrY[voxelNumber];
 
     // Create pointers to the spatial gradient of the warped image
-    DTYPE *warpGradPtrX = static_cast<DTYPE*>(warpedGradient->data);
-    DTYPE *warpGradPtrY = &warpGradPtrX[voxelNumber];
-    DTYPE *warpGradPtrZ = nullptr;
+    DataType *warpGradPtrX = static_cast<DataType*>(warpedGradient->data);
+    DataType *warpGradPtrY = &warpGradPtrX[voxelNumber];
+    DataType *warpGradPtrZ = nullptr;
     if (referenceImage->nz > 1)
         warpGradPtrZ = &warpGradPtrY[voxelNumber];
 
     double common;
     // Iteration over all voxels
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelNumber,combinedMask,currentRefPtr,currentWarPtr, \
     warMeanPtr,warSdevPtr,correlaPtr,measureGradPtrX,measureGradPtrY, \
@@ -567,20 +567,20 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
         if (combinedMask[voxel] > -1) {
             common = warMeanPtr[voxel] * currentRefPtr[voxel] - warSdevPtr[voxel] * currentWarPtr[voxel] + correlaPtr[voxel];
             common *= adjusted_weight;
-            measureGradPtrX[voxel] -= warpGradPtrX[voxel] * common;
-            measureGradPtrY[voxel] -= warpGradPtrY[voxel] * common;
+            measureGradPtrX[voxel] -= warpGradPtrX[voxel] * static_cast<DataType>(common);
+            measureGradPtrY[voxel] -= warpGradPtrY[voxel] * static_cast<DataType>(common);
             if (warpGradPtrZ != nullptr)
-                measureGradPtrZ[voxel] -= warpGradPtrZ[voxel] * common;
+                measureGradPtrZ[voxel] -= warpGradPtrZ[voxel] * static_cast<DataType>(common);
         }
     }
     // Check for NaN
-    DTYPE val;
+    DataType val;
 #ifdef _WIN32
     voxelNumber = (long)measureGradientImage->nvox;
 #else
     voxelNumber = measureGradientImage->nvox;
 #endif
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelNumber,measureGradPtrX) \
     private(voxel, val)
@@ -588,7 +588,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
     for (voxel = 0; voxel < voxelNumber; ++voxel) {
         val = measureGradPtrX[voxel];
         if (val != val || isinf(val) != 0)
-            measureGradPtrX[voxel] = static_cast<DTYPE>(0);
+            measureGradPtrX[voxel] = 0;
     }
 }
 /* *************************************************************** */

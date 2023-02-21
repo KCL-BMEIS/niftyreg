@@ -53,7 +53,7 @@ public:
  * should be considered. If set to nullptr, all voxels are considered
  * @return Returns the computed sum squared difference
  */
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 double reg_getKLDivergence(nifti_image *reference,
                            nifti_image *warped,
                            double *timePointWeight,
@@ -75,7 +75,7 @@ double reg_getKLDivergence(nifti_image *reference,
  * @param mask Array that contains a mask to specify which voxel
  * should be considered. If set to nullptr, all voxels are considered
  */
-extern "C++" template <class DTYPE>
+extern "C++" template <class DataType>
 void reg_getKLDivergenceVoxelBasedGradient(nifti_image *reference,
                                            nifti_image *warped,
                                            nifti_image *warpedGradient,

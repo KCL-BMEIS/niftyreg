@@ -110,7 +110,7 @@ void interpNearestNeighKernel(double relative, double *basis)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
                                       void **originalFloatingData,
                                       int *dtIndicies)
@@ -136,31 +136,31 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
         const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
 #endif
 
-        *originalFloatingData=malloc(floatingImage->nvox*sizeof(DTYPE));
+        *originalFloatingData=malloc(floatingImage->nvox*sizeof(DataType));
         memcpy(*originalFloatingData,
                floatingImage->data,
-               floatingImage->nvox*sizeof(DTYPE));
+               floatingImage->nvox*sizeof(DataType));
 #ifndef NDEBUG
         reg_print_msg_debug("The floating image data has been copied");
 #endif
 
         /* As the tensor has 6 unique components that we need to worry about, read them out
       for the floating image. */
-        DTYPE *firstVox = static_cast<DTYPE *>(floatingImage->data);
+        DataType *firstVox = static_cast<DataType *>(floatingImage->data);
         // CAUTION: Here the tensor is assumed to be encoding in lower triangular order
-        DTYPE *floatingIntensityXX = &firstVox[floatingVoxelNumber*dtIndicies[0]];
-        DTYPE *floatingIntensityXY = &firstVox[floatingVoxelNumber*dtIndicies[1]];
-        DTYPE *floatingIntensityYY = &firstVox[floatingVoxelNumber*dtIndicies[2]];
-        DTYPE *floatingIntensityXZ = &firstVox[floatingVoxelNumber*dtIndicies[3]];
-        DTYPE *floatingIntensityYZ = &firstVox[floatingVoxelNumber*dtIndicies[4]];
-        DTYPE *floatingIntensityZZ = &firstVox[floatingVoxelNumber*dtIndicies[5]];
+        DataType *floatingIntensityXX = &firstVox[floatingVoxelNumber*dtIndicies[0]];
+        DataType *floatingIntensityXY = &firstVox[floatingVoxelNumber*dtIndicies[1]];
+        DataType *floatingIntensityYY = &firstVox[floatingVoxelNumber*dtIndicies[2]];
+        DataType *floatingIntensityXZ = &firstVox[floatingVoxelNumber*dtIndicies[3]];
+        DataType *floatingIntensityYZ = &firstVox[floatingVoxelNumber*dtIndicies[4]];
+        DataType *floatingIntensityZZ = &firstVox[floatingVoxelNumber*dtIndicies[5]];
 
 
         // Should log the tensor up front
         // We need to take the logarithm of the tensor for each voxel in the floating intensity
         // image, and replace the warped
         int tid=0;
-#if defined (_OPENMP)
+#ifdef _OPENMP
         mat33 diffTensor[16];
         int max_thread_number = omp_get_max_threads();
         if(max_thread_number>16) omp_set_num_threads(16);
@@ -174,7 +174,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 #endif
         for(floatingIndex=0; floatingIndex<floatingVoxelNumber; ++floatingIndex)
         {
-#if defined (_OPENMP)
+#ifdef _OPENMP
             tid=omp_get_thread_num();
 #endif
             // Fill a mat44 with the tensor components
@@ -192,14 +192,14 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
             reg_mat33_logm(&diffTensor[tid]);
 
             // Write this out as a new image
-            floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[0][0]);
-            floatingIntensityXY[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[0][1]);
-            floatingIntensityYY[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[1][1]);
-            floatingIntensityXZ[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[0][2]);
-            floatingIntensityYZ[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[1][2]);
-            floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(diffTensor[tid].m[2][2]);
+            floatingIntensityXX[floatingIndex] = static_cast<DataType>(diffTensor[tid].m[0][0]);
+            floatingIntensityXY[floatingIndex] = static_cast<DataType>(diffTensor[tid].m[0][1]);
+            floatingIntensityYY[floatingIndex] = static_cast<DataType>(diffTensor[tid].m[1][1]);
+            floatingIntensityXZ[floatingIndex] = static_cast<DataType>(diffTensor[tid].m[0][2]);
+            floatingIntensityYZ[floatingIndex] = static_cast<DataType>(diffTensor[tid].m[1][2]);
+            floatingIntensityZZ[floatingIndex] = static_cast<DataType>(diffTensor[tid].m[2][2]);
         }
-#if defined (_OPENMP)
+#ifdef _OPENMP
         omp_set_num_threads(max_thread_number);
 #endif
 #ifndef NDEBUG
@@ -208,7 +208,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
     }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                                        int *mask,
                                        mat33 *jacMat,
@@ -226,10 +226,10 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
         size_t warpedIndex;
         const size_t voxelNumber = CalcVoxelNumber(*inputImage);
 #endif
-        DTYPE *warpVox,*warpedXX,*warpedXY,*warpedXZ,*warpedYY,*warpedYZ,*warpedZZ;
+        DataType *warpVox,*warpedXX,*warpedXY,*warpedXZ,*warpedYY,*warpedYZ,*warpedZZ;
         if(warpedImage!=nullptr)
         {
-            warpVox = static_cast<DTYPE *>(warpedImage->data);
+            warpVox = static_cast<DataType *>(warpedImage->data);
             // CAUTION: Here the tensor is assumed to be encoding in lower triangular order
             warpedXX = &warpVox[voxelNumber*dtIndicies[0]];
             warpedXY = &warpVox[voxelNumber*dtIndicies[1]];
@@ -245,19 +245,19 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
             /* As the tensor has 6 unique components that we need to worry about, read them out
          for the warped image. */
             // CAUTION: Here the tensor is assumed to be encoding in lower triangular order
-            DTYPE *firstWarpVox = static_cast<DTYPE *>(inputImage->data);
-            DTYPE *inputIntensityXX = &firstWarpVox[voxelNumber*(dtIndicies[0]+inputImage->nt*u)];
-            DTYPE *inputIntensityXY = &firstWarpVox[voxelNumber*(dtIndicies[1]+inputImage->nt*u)];
-            DTYPE *inputIntensityYY = &firstWarpVox[voxelNumber*(dtIndicies[2]+inputImage->nt*u)];
-            DTYPE *inputIntensityXZ = &firstWarpVox[voxelNumber*(dtIndicies[3]+inputImage->nt*u)];
-            DTYPE *inputIntensityYZ = &firstWarpVox[voxelNumber*(dtIndicies[4]+inputImage->nt*u)];
-            DTYPE *inputIntensityZZ = &firstWarpVox[voxelNumber*(dtIndicies[5]+inputImage->nt*u)];
+            DataType *firstWarpVox = static_cast<DataType *>(inputImage->data);
+            DataType *inputIntensityXX = &firstWarpVox[voxelNumber*(dtIndicies[0]+inputImage->nt*u)];
+            DataType *inputIntensityXY = &firstWarpVox[voxelNumber*(dtIndicies[1]+inputImage->nt*u)];
+            DataType *inputIntensityYY = &firstWarpVox[voxelNumber*(dtIndicies[2]+inputImage->nt*u)];
+            DataType *inputIntensityXZ = &firstWarpVox[voxelNumber*(dtIndicies[3]+inputImage->nt*u)];
+            DataType *inputIntensityYZ = &firstWarpVox[voxelNumber*(dtIndicies[4]+inputImage->nt*u)];
+            DataType *inputIntensityZZ = &firstWarpVox[voxelNumber*(dtIndicies[5]+inputImage->nt*u)];
 
             // Step through each voxel in the warped image
             double testSum=0;
             int col, row;
             int tid=0;
-#if defined (_OPENMP)
+#ifdef _OPENMP
             mat33 inputTensor[16], warpedTensor[16], RotMat[16], RotMatT[16];
             int max_thread_number = omp_get_max_threads();
             if(max_thread_number>16) omp_set_num_threads(16);
@@ -272,7 +272,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
 #endif
             for(warpedIndex=0; warpedIndex<voxelNumber; ++warpedIndex)
             {
-#if defined (_OPENMP)
+#ifdef _OPENMP
                 tid=omp_get_thread_num();
 #endif
                 if(mask[warpedIndex]>-1)
@@ -325,25 +325,25 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                         inputTensor[tid] = nifti_mat33_mul(nifti_mat33_mul(RotMatT[tid], inputTensor[tid]), RotMat[tid]);
 
                         // Finally, read the tensor back out as a warped image
-                        inputIntensityXX[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[0][0]);
-                        inputIntensityYY[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[1][1]);
-                        inputIntensityZZ[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[2][2]);
-                        inputIntensityXY[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[0][1]);
-                        inputIntensityXZ[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[0][2]);
-                        inputIntensityYZ[warpedIndex] = static_cast<DTYPE>(inputTensor[tid].m[1][2]);
+                        inputIntensityXX[warpedIndex] = static_cast<DataType>(inputTensor[tid].m[0][0]);
+                        inputIntensityYY[warpedIndex] = static_cast<DataType>(inputTensor[tid].m[1][1]);
+                        inputIntensityZZ[warpedIndex] = static_cast<DataType>(inputTensor[tid].m[2][2]);
+                        inputIntensityXY[warpedIndex] = static_cast<DataType>(inputTensor[tid].m[0][1]);
+                        inputIntensityXZ[warpedIndex] = static_cast<DataType>(inputTensor[tid].m[0][2]);
+                        inputIntensityYZ[warpedIndex] = static_cast<DataType>(inputTensor[tid].m[1][2]);
                     }
                     else
                     {
-                        inputIntensityXX[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
-                        inputIntensityYY[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
-                        inputIntensityZZ[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
-                        inputIntensityXY[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
-                        inputIntensityXZ[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
-                        inputIntensityYZ[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
+                        inputIntensityXX[warpedIndex] = std::numeric_limits<DataType>::quiet_NaN();
+                        inputIntensityYY[warpedIndex] = std::numeric_limits<DataType>::quiet_NaN();
+                        inputIntensityZZ[warpedIndex] = std::numeric_limits<DataType>::quiet_NaN();
+                        inputIntensityXY[warpedIndex] = std::numeric_limits<DataType>::quiet_NaN();
+                        inputIntensityXZ[warpedIndex] = std::numeric_limits<DataType>::quiet_NaN();
+                        inputIntensityYZ[warpedIndex] = std::numeric_limits<DataType>::quiet_NaN();
                     }
                 }
             }
-#if defined (_OPENMP)
+#ifdef _OPENMP
             omp_set_num_threads(max_thread_number);
 #endif
         }
@@ -428,7 +428,7 @@ void ResampleImage3D(nifti_image *floatingImage,
         double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative[3];
         double xTempNewValue, yTempNewValue, intensity;
         float world[3], position[3];
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
     a, b, c, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue) \
@@ -630,7 +630,7 @@ void ResampleImage2D(nifti_image *floatingImage,
         double xTempNewValue, intensity;
         float world[3] = {0, 0, 0};
         float position[3] = {0, 0, 0};
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
     a, b, Y, xyzPointer, xTempNewValue) \
@@ -1116,7 +1116,7 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
         size_t currentIndex;
 
         /*
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(intensity, psfWeightSum, psfWeight, \
     currentA, currentB, currentC, psfWorld, position,  shiftSamp,\
@@ -2032,7 +2032,7 @@ void reg_resampleImage_PSF(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_bilinearResampleGradient(nifti_image *floatingImage,
                                   nifti_image *warpedImage,
                                   nifti_image *deformationField,
@@ -2040,12 +2040,12 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
 {
     const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
     const size_t warpedVoxelNumber = CalcVoxelNumber(*warpedImage);
-    DTYPE *floatingIntensityX = static_cast<DTYPE *>(floatingImage->data);
-    DTYPE *floatingIntensityY = &floatingIntensityX[floatingVoxelNumber];
-    DTYPE *warpedIntensityX = static_cast<DTYPE *>(warpedImage->data);
-    DTYPE *warpedIntensityY = &warpedIntensityX[warpedVoxelNumber];
-    DTYPE *deformationFieldPtrX = static_cast<DTYPE *>(deformationField->data);
-    DTYPE *deformationFieldPtrY = &deformationFieldPtrX[CalcVoxelNumber(*deformationField)];
+    DataType *floatingIntensityX = static_cast<DataType *>(floatingImage->data);
+    DataType *floatingIntensityY = &floatingIntensityX[floatingVoxelNumber];
+    DataType *warpedIntensityX = static_cast<DataType *>(warpedImage->data);
+    DataType *warpedIntensityY = &warpedIntensityX[warpedVoxelNumber];
+    DataType *deformationFieldPtrX = static_cast<DataType *>(deformationField->data);
+    DataType *deformationFieldPtrY = &deformationFieldPtrX[CalcVoxelNumber(*deformationField)];
 
     // Extract the relevant affine matrix
     mat44 *floating_mm_to_voxel = &floatingImage->qto_ijk;
@@ -2069,15 +2069,15 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
 
     // Some useful variables
     mat33 jacMat;
-    DTYPE defX,defY;
-    DTYPE basisX[2], basisY[2], deriv[2], basis[2];
-    DTYPE xFloCoord,yFloCoord;
+    DataType defX,defY;
+    DataType basisX[2], basisY[2], deriv[2], basis[2];
+    DataType xFloCoord,yFloCoord;
     int anteIntX[2],anteIntY[2];
     int x,y,a,b,defIndex,floIndex,warpedIndex;
-    DTYPE val_x,val_y,weight[2];
+    DataType val_x,val_y,weight[2];
 
     // Loop over all voxel
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(x,y,a,b,val_x,val_y,defIndex,floIndex,warpedIndex, \
     anteIntX,anteIntY,xFloCoord,yFloCoord, \
@@ -2118,8 +2118,8 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
             anteIntY[1]=static_cast<int>(reg_ceil(yFloCoord));
             val_x=0;
             val_y=0;
-            basisX[1]=fabs(xFloCoord-(DTYPE)anteIntX[0]);
-            basisY[1]=fabs(yFloCoord-(DTYPE)anteIntY[0]);
+            basisX[1]=fabs(xFloCoord-(DataType)anteIntX[0]);
+            basisY[1]=fabs(yFloCoord-(DataType)anteIntY[0]);
             basisX[0]=1.0-basisX[1];
             basisY[0]=1.0-basisY[1];
             for(b=0; b<2; ++b)
@@ -2213,7 +2213,7 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
     } // y
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_trilinearResampleGradient(nifti_image *floatingImage,
                                    nifti_image *warpedImage,
                                    nifti_image *deformationField,
@@ -2222,15 +2222,15 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
     const size_t floatingVoxelNumber = CalcVoxelNumber(*floatingImage);
     const size_t warpedVoxelNumber = CalcVoxelNumber(*warpedImage);
     const size_t deformationFieldVoxelNumber = CalcVoxelNumber(*deformationField);
-    DTYPE *floatingIntensityX = static_cast<DTYPE *>(floatingImage->data);
-    DTYPE *floatingIntensityY = &floatingIntensityX[floatingVoxelNumber];
-    DTYPE *floatingIntensityZ = &floatingIntensityY[floatingVoxelNumber];
-    DTYPE *warpedIntensityX = static_cast<DTYPE *>(warpedImage->data);
-    DTYPE *warpedIntensityY = &warpedIntensityX[warpedVoxelNumber];
-    DTYPE *warpedIntensityZ = &warpedIntensityY[warpedVoxelNumber];
-    DTYPE *deformationFieldPtrX = static_cast<DTYPE *>(deformationField->data);
-    DTYPE *deformationFieldPtrY = &deformationFieldPtrX[deformationFieldVoxelNumber];
-    DTYPE *deformationFieldPtrZ = &deformationFieldPtrY[deformationFieldVoxelNumber];
+    DataType *floatingIntensityX = static_cast<DataType *>(floatingImage->data);
+    DataType *floatingIntensityY = &floatingIntensityX[floatingVoxelNumber];
+    DataType *floatingIntensityZ = &floatingIntensityY[floatingVoxelNumber];
+    DataType *warpedIntensityX = static_cast<DataType *>(warpedImage->data);
+    DataType *warpedIntensityY = &warpedIntensityX[warpedVoxelNumber];
+    DataType *warpedIntensityZ = &warpedIntensityY[warpedVoxelNumber];
+    DataType *deformationFieldPtrX = static_cast<DataType *>(deformationField->data);
+    DataType *deformationFieldPtrY = &deformationFieldPtrX[deformationFieldVoxelNumber];
+    DataType *deformationFieldPtrZ = &deformationFieldPtrY[deformationFieldVoxelNumber];
 
     // Extract the relevant affine matrix
     mat44 *floating_mm_to_voxel = &floatingImage->qto_ijk;
@@ -2255,15 +2255,15 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
 
     // Some useful variables
     mat33 jacMat;
-    DTYPE defX,defY,defZ;
-    DTYPE basisX[2], basisY[2], basisZ[2], deriv[2], basis[2];
-    DTYPE xFloCoord,yFloCoord,zFloCoord;
+    DataType defX,defY,defZ;
+    DataType basisX[2], basisY[2], basisZ[2], deriv[2], basis[2];
+    DataType xFloCoord,yFloCoord,zFloCoord;
     int anteIntX[2],anteIntY[2],anteIntZ[2];
     int x,y,z,a,b,c,defIndex,floIndex,warpedIndex;
-    DTYPE val_x,val_y,val_z,weight[3];
+    DataType val_x,val_y,val_z,weight[3];
 
     // Loop over all voxel
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(x,y,z,a,b,c,val_x,val_y,val_z,defIndex,floIndex,warpedIndex, \
     anteIntX,anteIntY,anteIntZ,xFloCoord,yFloCoord,zFloCoord, \
@@ -2318,9 +2318,9 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
                 val_x=0;
                 val_y=0;
                 val_z=0;
-                basisX[1]=fabs(xFloCoord-(DTYPE)anteIntX[0]);
-                basisY[1]=fabs(yFloCoord-(DTYPE)anteIntY[0]);
-                basisZ[1]=fabs(zFloCoord-(DTYPE)anteIntZ[0]);
+                basisX[1]=fabs(xFloCoord-(DataType)anteIntX[0]);
+                basisY[1]=fabs(yFloCoord-(DataType)anteIntY[0]);
+                basisZ[1]=fabs(zFloCoord-(DataType)anteIntZ[0]);
                 basisX[0]=1.0-basisX[1];
                 basisY[0]=1.0-basisY[1];
                 basisZ[0]=1.0-basisZ[1];
@@ -2573,7 +2573,7 @@ void TrilinearImageGradient(nifti_image *floatingImage,
     FieldTYPE relative, world[3], grad[3], coeff;
     FieldTYPE xxTempNewValue, yyTempNewValue, zzTempNewValue, xTempNewValue, yTempNewValue;
     FloatingTYPE *zPointer, *xyzPointer;
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, world, position, previous, xBasis, yBasis, zBasis, relative, grad, coeff, \
     a, b, c, X, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
@@ -2769,7 +2769,7 @@ void BilinearImageGradient(nifti_image *floatingImage,
     int previous[3], a, b, X, Y;
     FloatingTYPE *xyPointer;
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, world, position, previous, xBasis, yBasis, relative, grad, coeff, \
     a, b, X, Y, xyPointer, xTempNewValue, yTempNewValue) \
@@ -2901,7 +2901,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
     FieldTYPE coeff, position[3], world[3], grad[3];
     FieldTYPE xxTempNewValue, yyTempNewValue, zzTempNewValue, xTempNewValue, yTempNewValue;
     FloatingTYPE *zPointer, *yzPointer, *xyzPointer;
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, world, position, previous, xBasis, yBasis, zBasis, xDeriv, yDeriv, zDeriv, relative, grad, coeff, \
     a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
@@ -3061,7 +3061,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
     FieldTYPE coeff, position[3], world[3], grad[2];
     FieldTYPE xTempNewValue, yTempNewValue;
     FloatingTYPE *yPointer, *xyPointer;
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, world, position, previous, xBasis, yBasis, xDeriv, yDeriv, relative, grad, coeff, \
     a, b, Y, yPointer, xyPointer, xTempNewValue, yTempNewValue) \
@@ -3376,7 +3376,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
+template<class DataType>
 void reg_getImageGradient_symDiff_core(nifti_image *img,
                                        nifti_image *gradImg,
                                        int *mask,
@@ -3388,18 +3388,18 @@ void reg_getImageGradient_symDiff_core(nifti_image *img,
     int dimImg = img->nz > 1 ? 3 : 2;
     int x, y, z;
 
-    DTYPE *imgPtr = static_cast<DTYPE *>(img->data);
-    DTYPE *currentImgPtr = &imgPtr[timepoint*voxelNumber];
+    DataType *imgPtr = static_cast<DataType *>(img->data);
+    DataType *currentImgPtr = &imgPtr[timepoint*voxelNumber];
 
-    DTYPE *gradPtrX = static_cast<DTYPE *>(gradImg->data);
-    DTYPE *gradPtrY = &gradPtrX[voxelNumber];
-    DTYPE *gradPtrZ = nullptr;
+    DataType *gradPtrX = static_cast<DataType *>(gradImg->data);
+    DataType *gradPtrY = &gradPtrX[voxelNumber];
+    DataType *gradPtrZ = nullptr;
     if(dimImg==3)
         gradPtrZ = &gradPtrY[voxelNumber];
 
-    DTYPE valX, valY, valZ, pre, post;
+    DataType valX, valY, valZ, pre, post;
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(img, currentImgPtr, mask, \
     gradPtrX, gradPtrY, gradPtrZ, padding_value) \

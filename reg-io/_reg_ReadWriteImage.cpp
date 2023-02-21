@@ -177,11 +177,11 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename)
    return;
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_io_diplayImageData1(nifti_image *image)
 {
     reg_print_msg_debug("image values:");
-    DTYPE *data = static_cast<DTYPE *>(image->data);
+    DataType *data = static_cast<DataType *>(image->data);
     std::string text;
 
     size_t voxelIndex=0;

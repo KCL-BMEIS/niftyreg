@@ -76,7 +76,7 @@ void reg_kld::InitialiseMeasure(nifti_image *refImgPtr,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 double reg_getKLDivergence(nifti_image *referenceImage,
                            nifti_image *warpedImage,
                            double *timePointWeight,
@@ -90,8 +90,8 @@ double reg_getKLDivergence(nifti_image *referenceImage,
     const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
 
-    DTYPE *refPtr = static_cast<DTYPE*>(referenceImage->data);
-    DTYPE *warPtr = static_cast<DTYPE*>(warpedImage->data);
+    DataType *refPtr = static_cast<DataType*>(referenceImage->data);
+    DataType *warPtr = static_cast<DataType*>(warpedImage->data);
     int *maskPtr = nullptr;
     bool MrClean = false;
     if (mask == nullptr) {
@@ -99,16 +99,16 @@ double reg_getKLDivergence(nifti_image *referenceImage,
         MrClean = true;
     } else maskPtr = &mask[0];
 
-    DTYPE *jacPtr = nullptr;
+    DataType *jacPtr = nullptr;
     if (jacobianDetImg != nullptr)
-        jacPtr = static_cast<DTYPE*>(jacobianDetImg->data);
+        jacPtr = static_cast<DataType*>(jacobianDetImg->data);
     double measure = 0, measure_tp = 0, num = 0, tempRefValue, tempWarValue, tempValue;
 
     for (int time = 0; time < referenceImage->nt; ++time) {
         if (timePointWeight[time] > 0) {
-            DTYPE *currentRefPtr = &refPtr[time * voxelNumber];
-            DTYPE *currentWarPtr = &warPtr[time * voxelNumber];
-#if defined (_OPENMP)
+            DataType *currentRefPtr = &refPtr[time * voxelNumber];
+            DataType *currentWarPtr = &warPtr[time * voxelNumber];
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelNumber,currentRefPtr, currentWarPtr, \
     maskPtr, jacobianDetImg, jacPtr) \
@@ -205,7 +205,7 @@ double reg_kld::GetSimilarityMeasureValue() {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
                                            nifti_image *warpedImage,
                                            nifti_image *warpedImageGradient,
@@ -222,10 +222,10 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
     const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
 
-    DTYPE *refImagePtr = static_cast<DTYPE*>(referenceImage->data);
-    DTYPE *warImagePtr = static_cast<DTYPE*>(warpedImage->data);
-    DTYPE *currentRefPtr = &refImagePtr[current_timepoint * voxelNumber];
-    DTYPE *currentWarPtr = &warImagePtr[current_timepoint * voxelNumber];
+    DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
+    DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
+    DataType *currentRefPtr = &refImagePtr[current_timepoint * voxelNumber];
+    DataType *currentWarPtr = &warImagePtr[current_timepoint * voxelNumber];
     int *maskPtr = nullptr;
     bool MrClean = false;
     if (mask == nullptr) {
@@ -233,22 +233,22 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
         MrClean = true;
     } else maskPtr = &mask[0];
 
-    DTYPE *jacPtr = nullptr;
+    DataType *jacPtr = nullptr;
     if (jacobianDetImg != nullptr)
-        jacPtr = static_cast<DTYPE*>(jacobianDetImg->data);
+        jacPtr = static_cast<DataType*>(jacobianDetImg->data);
     double tempValue, tempGradX, tempGradY, tempGradZ, tempRefValue, tempWarValue;
 
     // Create pointers to the spatial gradient of the current warped volume
-    DTYPE *currentGradPtrX = static_cast<DTYPE*>(warpedImageGradient->data);
-    DTYPE *currentGradPtrY = &currentGradPtrX[voxelNumber];
-    DTYPE *currentGradPtrZ = nullptr;
+    DataType *currentGradPtrX = static_cast<DataType*>(warpedImageGradient->data);
+    DataType *currentGradPtrY = &currentGradPtrX[voxelNumber];
+    DataType *currentGradPtrZ = nullptr;
     if (referenceImage->nz > 1)
         currentGradPtrZ = &currentGradPtrY[voxelNumber];
 
     // Create pointers to the kld gradient image
-    DTYPE *measureGradPtrX = static_cast<DTYPE*>(measureGradient->data);
-    DTYPE *measureGradPtrY = &measureGradPtrX[voxelNumber];
-    DTYPE *measureGradPtrZ = nullptr;
+    DataType *measureGradPtrX = static_cast<DataType*>(measureGradient->data);
+    DataType *measureGradPtrY = &measureGradPtrX[voxelNumber];
+    DataType *measureGradPtrZ = nullptr;
     if (referenceImage->nz > 1)
         measureGradPtrZ = &measureGradPtrY[voxelNumber];
 
@@ -262,7 +262,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
     }
     double adjusted_weight = timepoint_weight / activeVoxel_num;
 
-#if defined (_OPENMP)
+#ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelNumber,currentRefPtr, currentWarPtr, \
     maskPtr, jacobianDetImg, jacPtr, referenceImage, \
@@ -293,13 +293,13 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
                 tempGradX = currentGradPtrX[voxel];
                 if (tempGradX == tempGradX)
                     // Update the gradient along the x-axis
-                    measureGradPtrX[voxel] -= (DTYPE)(tempValue * tempGradX);
+                    measureGradPtrX[voxel] -= (DataType)(tempValue * tempGradX);
 
                 // Ensure that gradient of the warpedImage image along y-axis is not NaN
                 tempGradY = currentGradPtrY[voxel];
                 if (tempGradY == tempGradY)
                     // Update the gradient along the y-axis
-                    measureGradPtrY[voxel] -= (DTYPE)(tempValue * tempGradY);
+                    measureGradPtrY[voxel] -= (DataType)(tempValue * tempGradY);
 
                 // Check if the current images are 3D
                 if (referenceImage->nz > 1) {
@@ -307,7 +307,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
                     tempGradZ = currentGradPtrZ[voxel];
                     if (tempGradZ == tempGradZ)
                         // Update the gradient along the z-axis
-                        measureGradPtrZ[voxel] -= (DTYPE)(tempValue * tempGradZ);
+                        measureGradPtrZ[voxel] -= (DataType)(tempValue * tempGradZ);
                 }
             }
         }

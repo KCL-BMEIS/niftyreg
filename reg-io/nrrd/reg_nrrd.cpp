@@ -13,17 +13,17 @@
 #include "reg_nrrd.h"
 
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_convertVectorField_nifti_to_nrrd(nifti_image *niiImage,
       Nrrd *nrrdImage)
 {
    const size_t voxNumber = CalcVoxelNumber(*niiImage);
 
-   DTYPE *inPtrX=static_cast<DTYPE *>(niiImage->data);
-   DTYPE *inPtrY=&inPtrX[voxNumber];
-   DTYPE *inPtrZ=nullptr;
+   DataType *inPtrX=static_cast<DataType *>(niiImage->data);
+   DataType *inPtrY=&inPtrX[voxNumber];
+   DataType *inPtrZ=nullptr;
 
-   DTYPE *outPtr=static_cast<DTYPE *>(nrrdImage->data);
+   DataType *outPtr=static_cast<DataType *>(nrrdImage->data);
 
    if(niiImage->nu==3)
    {
@@ -45,7 +45,7 @@ void reg_convertVectorField_nifti_to_nrrd(nifti_image *niiImage,
    }
 }
 /* *************************************************************** */
-template <class DTYPE>
+template <class DataType>
 void reg_convertVectorField_nrrd_to_nifti(Nrrd *nrrdImage,
       nifti_image *niiImage)
 {
@@ -53,11 +53,11 @@ void reg_convertVectorField_nrrd_to_nifti(Nrrd *nrrdImage,
                       nrrdImage->axis[2].size *
                       nrrdImage->axis[3].size;
 
-   DTYPE *outPtr=static_cast<DTYPE *>(nrrdImage->data);
+   DataType *outPtr=static_cast<DataType *>(nrrdImage->data);
 
-   DTYPE *inPtrX=static_cast<DTYPE *>(niiImage->data);
-   DTYPE *inPtrY=&inPtrX[voxNumber];
-   DTYPE *inPtrZ=nullptr;
+   DataType *inPtrX=static_cast<DataType *>(niiImage->data);
+   DataType *inPtrY=&inPtrX[voxNumber];
+   DataType *inPtrZ=nullptr;
 
    if(nrrdImage->axis[0].size==3)
    {
