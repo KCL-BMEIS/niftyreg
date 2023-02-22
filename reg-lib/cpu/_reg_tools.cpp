@@ -510,8 +510,8 @@ void reg_tools_operationImageToImage(const nifti_image *img1,
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2,sclSlope1,sclSlope2,operation)
 #endif
     for (i = 0; i < voxelNumber; i++)
-        resPtr[i] = Type((operation((double)img1Ptr[i] * sclSlope1 + img1->scl_inter,
-                                    (double)img2Ptr[i] * sclSlope2 + img2->scl_inter) - img1->scl_inter) / sclSlope1);
+        resPtr[i] = static_cast<Type>((operation(img1Ptr[i] * sclSlope1 + img1->scl_inter,
+                                                 img2Ptr[i] * sclSlope2 + img2->scl_inter) - img1->scl_inter) / sclSlope1);
 }
 /* *************************************************************** */
 void reg_tools_addImageToImage(const nifti_image *img1,
@@ -701,7 +701,7 @@ void reg_tools_divideImageToImage(const nifti_image *img1,
 template <class Type>
 void reg_tools_operationValueToImage(const nifti_image *img,
                                      nifti_image *res,
-                                     float val,
+                                     const double& val,
                                      const Operation& operation) {
     const Type *imgPtr = static_cast<Type*>(img->data);
     Type *resPtr = static_cast<Type*>(res->data);
@@ -725,12 +725,12 @@ void reg_tools_operationValueToImage(const nifti_image *img,
    shared(voxelNumber,resPtr,imgPtr,img,val,sclSlope,operation)
 #endif
     for (i = 0; i < voxelNumber; i++)
-        resPtr[i] = Type((operation((double)imgPtr[i] * sclSlope + img->scl_inter, val) - img->scl_inter) / sclSlope);
+        resPtr[i] = static_cast<Type>((operation(imgPtr[i] * sclSlope + img->scl_inter, val) - img->scl_inter) / sclSlope);
 }
 /* *************************************************************** */
 void reg_tools_addValueToImage(const nifti_image *img,
                                nifti_image *res,
-                               float val) {
+                               const double& val) {
     if (img->datatype != res->datatype) {
         reg_print_fct_error("reg_tools_addValueToImage");
         reg_print_msg_error("Input and output image do not have the same data type");
@@ -776,7 +776,7 @@ void reg_tools_addValueToImage(const nifti_image *img,
 /* *************************************************************** */
 void reg_tools_subtractValueFromImage(const nifti_image *img,
                                       nifti_image *res,
-                                      float val) {
+                                      const double& val) {
     if (img->datatype != res->datatype) {
         reg_print_fct_error("reg_tools_subtractValueFromImage");
         reg_print_msg_error("Input and output image do not have the same data type");
@@ -822,7 +822,7 @@ void reg_tools_subtractValueFromImage(const nifti_image *img,
 /* *************************************************************** */
 void reg_tools_multiplyValueToImage(const nifti_image *img,
                                     nifti_image *res,
-                                    float val) {
+                                    const double& val) {
     if (img->datatype != res->datatype) {
         reg_print_fct_error("reg_tools_multiplyValueToImage");
         reg_print_msg_error("Input and output image do not have the same data type");
@@ -868,7 +868,7 @@ void reg_tools_multiplyValueToImage(const nifti_image *img,
 /* *************************************************************** */
 void reg_tools_divideValueToImage(const nifti_image *img,
                                   nifti_image *res,
-                                  float val) {
+                                  const double& val) {
     if (img->datatype != res->datatype) {
         reg_print_fct_error("reg_tools_divideValueToImage");
         reg_print_msg_error("Input and output image do not have the same data type");

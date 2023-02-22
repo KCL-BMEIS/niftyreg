@@ -17,17 +17,17 @@ F3dContent::F3dContent(nifti_image *referenceIn,
         reg_print_msg_error("controlPointGridIn can't be nullptr");
         reg_exit();
     }
-    AllocateLocalWeightSim(localWeightSimIn);
     AllocateWarpedGradient();
     AllocateTransformationGradient();
     AllocateVoxelBasedMeasureGradient();
+    AllocateLocalWeightSim(localWeightSimIn);
 }
 /* *************************************************************** */
 F3dContent::~F3dContent() {
-    DeallocateLocalWeightSim();
     DeallocateWarpedGradient();
     DeallocateTransformationGradient();
     DeallocateVoxelBasedMeasureGradient();
+    DeallocateLocalWeightSim();
 }
 /* *************************************************************** */
 void F3dContent::AllocateLocalWeightSim(nifti_image *localWeightSimIn) {
@@ -38,7 +38,6 @@ void F3dContent::AllocateLocalWeightSim(nifti_image *localWeightSimIn) {
     localWeightSim->dim[5] = localWeightSim->nu = localWeightSimIn->dim[5];
     localWeightSim->nvox = CalcVoxelNumber(*localWeightSim, localWeightSim->ndim);
     localWeightSim->data = malloc(localWeightSim->nvox * localWeightSim->nbyper);
-    F3dContent::ZeroVoxelBasedMeasureGradient();
     reg_getDeformationFromDisplacement(voxelBasedMeasureGradient);
     reg_resampleImage(localWeightSimIn, localWeightSim, voxelBasedMeasureGradient, nullptr, 1, 0);
 }

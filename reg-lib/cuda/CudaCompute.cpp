@@ -122,7 +122,7 @@ double CudaCompute::GetMaximalLength(size_t nodeNumber, bool optimiseX, bool opt
 /* *************************************************************** */
 void CudaCompute::NormaliseGradient(size_t nodeNumber, double maxGradLength) {
     // TODO Fix reg_multiplyValue_gpu to accept optimiseX, optimiseY, optimiseZ
-    reg_multiplyValue_gpu(nodeNumber, dynamic_cast<CudaF3dContent&>(con).GetTransformationGradientCuda(), 1 / (float)maxGradLength);
+    reg_multiplyValue_gpu(nodeNumber, dynamic_cast<CudaF3dContent&>(con).GetTransformationGradientCuda(), float(1 / maxGradLength));
 }
 /* *************************************************************** */
 void CudaCompute::SmoothGradient(float sigma) {

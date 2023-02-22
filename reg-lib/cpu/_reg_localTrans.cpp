@@ -1750,8 +1750,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                                        nifti_image *voxelImage,
                                        float weight,
                                        bool update,
-                                       mat44 *voxelToMillimeter
-                                       )
+                                       const mat44 *voxelToMillimeter)
 {
    const size_t nodeNumber = CalcVoxelNumber(*nodeImage);
    const size_t voxelNumber = CalcVoxelNumber(*voxelImage);
@@ -1924,8 +1923,7 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                                   nifti_image *voxelImage,
                                   float weight,
                                   bool update,
-                                  mat44 *voxelToMillimeter
-                                  )
+                                  const mat44 *voxelToMillimeter)
 {
    if(nodeImage->datatype!=voxelImage->datatype)
    {

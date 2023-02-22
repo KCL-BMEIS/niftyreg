@@ -95,14 +95,14 @@ void Compute::UpdateControlPointPosition(float *currentDOF, float *bestDOF, floa
         for (size_t i = 0; i < controlPointGrid->nvox; ++i)
             currentDOF[i] = bestDOF[i] + scale * gradient[i];
     } else {
-        size_t voxNumber = controlPointGrid->nvox / controlPointGrid->ndim;
+        size_t voxNumber = controlPointGrid->nvox / (controlPointGrid->nz > 1 ? 3 : 2);
         // Update the values for the x-axis displacement
         if (optimiseX) {
             for (size_t i = 0; i < voxNumber; ++i)
                 currentDOF[i] = bestDOF[i] + scale * gradient[i];
         }
         // Update the values for the y-axis displacement
-        if (optimiseY && controlPointGrid->ndim > 1) {
+        if (optimiseY) {
             float *currentDOFY = &currentDOF[voxNumber];
             float *bestDOFY = &bestDOF[voxNumber];
             float *gradientY = &gradient[voxNumber];
@@ -110,7 +110,7 @@ void Compute::UpdateControlPointPosition(float *currentDOF, float *bestDOF, floa
                 currentDOFY[i] = bestDOFY[i] + scale * gradientY[i];
         }
         // Update the values for the z-axis displacement
-        if (optimiseZ && controlPointGrid->ndim > 2) {
+        if (optimiseZ && controlPointGrid->nz > 1) {
             float *currentDOFZ = &currentDOF[2 * voxNumber];
             float *bestDOFZ = &bestDOF[2 * voxNumber];
             float *gradientZ = &gradient[2 * voxNumber];
@@ -145,7 +145,7 @@ double Compute::GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimis
 void Compute::NormaliseGradient(size_t nodeNumber, double maxGradLength) {
     // TODO Fix reg_tools_multiplyValueToImage to accept optimiseX, optimiseY, optimiseZ
     nifti_image *transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
-    reg_tools_multiplyValueToImage(transformationGradient, transformationGradient, 1 / (float)maxGradLength);
+    reg_tools_multiplyValueToImage(transformationGradient, transformationGradient, 1 / maxGradLength);
 }
 /* *************************************************************** */
 void Compute::SmoothGradient(float sigma) {

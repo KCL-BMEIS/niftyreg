@@ -670,7 +670,7 @@ UniqueTextureObjectPtr cudaCommon_createTextureObject(void *devPtr,
     texDesc.normalizedCoords = normalizedCoordinates;
 
     // Create texture object
-    UniqueTextureObjectPtr texObj(new cudaTextureObject_t(), &cudaCommon_destroyTextureObject);
+    UniqueTextureObjectPtr texObj(new cudaTextureObject_t(), cudaCommon_destroyTextureObject);
     NR_CUDA_SAFE_CALL(cudaCreateTextureObject(texObj.get(), &resDesc, &texDesc, nullptr));
 
     return texObj;

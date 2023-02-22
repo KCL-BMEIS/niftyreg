@@ -591,8 +591,8 @@ double reg_f3d<T>::GetObjectiveFunctionValue() {
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetObjectiveFunctionValue");
 #endif
-    // Store the global objective function value
 
+    // Store the global objective function value
     return this->currentWMeasure - currentWBE - currentWLE - currentWJac - this->currentWLand;
 }
 /* *************************************************************** */

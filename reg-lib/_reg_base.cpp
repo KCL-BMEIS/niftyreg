@@ -1079,7 +1079,7 @@ void reg_base<T>::Run() {
                 NormaliseGradient();
 
                 // Initialise the line search initial step size
-                currentSize = currentSize > maxStepSize ? maxStepSize : currentSize;
+                currentSize = std::min(currentSize, maxStepSize);
 
                 // A line search is performed
                 optimiser->Optimise(maxStepSize, smallestSize, currentSize);

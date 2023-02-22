@@ -195,7 +195,7 @@ void reg_tools_divideImageToImage(const nifti_image *img1,
 extern "C++"
 void reg_tools_addValueToImage(const nifti_image *img,
                                nifti_image *out,
-                               float val);
+                               const double& val);
 /* *************************************************************** */
 /** @brief Subtract a scalar from all image intensity
  * @param img Input image
@@ -205,7 +205,7 @@ void reg_tools_addValueToImage(const nifti_image *img,
 extern "C++"
 void reg_tools_subtractValueFromImage(const nifti_image *img,
                                       nifti_image *out,
-                                      float val);
+                                      const double& val);
 /* *************************************************************** */
 /** @brief Multiply a scalar to all image intensity
  * @param img Input image
@@ -215,7 +215,7 @@ void reg_tools_subtractValueFromImage(const nifti_image *img,
 extern "C++"
 void reg_tools_multiplyValueToImage(const nifti_image *img,
                                     nifti_image *out,
-                                    float val);
+                                    const double& val);
 /* *************************************************************** */
 /** @brief Divide a scalar to all image intensity
  * @param img Input image
@@ -225,7 +225,7 @@ void reg_tools_multiplyValueToImage(const nifti_image *img,
 extern "C++"
 void reg_tools_divideValueToImage(const nifti_image *img,
                                   nifti_image *out,
-                                  float val);
+                                  const double& val);
 /* *************************************************************** */
 /** @brief Binarise an input image. All values different
  * from 0 are set to 1, 0 otherwise.

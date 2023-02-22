@@ -47,7 +47,6 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
                                           nifti_image *floatingImage,
                                           mat44 *forwardAffineTrans,
                                           float *spacing);
-
 /* *************************************************************** */
 /** @brief Compute a dense deformation field in the space of a reference
  * image from a grid of control point.
@@ -86,8 +85,7 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                                   nifti_image *voxelImage,
                                   float weight,
                                   bool update,
-                                  mat44 *voxelToMillimeter = nullptr
-      );
+                                  const mat44 *voxelToMillimeter = nullptr);
 /* *************************************************************** */
 /** @brief Refine a grid of control points
  * @param referenceImage Image that defined the space of the reference
@@ -97,8 +95,7 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
  */
 extern "C++"
 void reg_spline_refineControlPointGrid(nifti_image *controlPointGridImage,
-                                       nifti_image *referenceImage = nullptr
-      );
+                                       nifti_image *referenceImage = nullptr);
 /* *************************************************************** */
 /** @brief This function compose the a first control point image with a second one:
  * Grid2(x) <= Grid1(Grid2(x)).
@@ -119,8 +116,7 @@ int reg_spline_cppComposition(nifti_image *grid1,
                               nifti_image *grid2,
                               bool displacement1,
                               bool displacement2,
-                              bool bspline
-                              );
+                              bool bspline);
 /* *************************************************************** */
 /** @brief Preforms the composition of two deformation fields
  * The deformation field image is applied to the second image:
@@ -157,7 +153,6 @@ extern "C++"
 void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
                                                    nifti_image *deformationFieldImage,
                                                    bool updateStepNumber);
-
 /* *************************************************************** */
 /** @brief The deformation field (img2) is computed by integrating
  * a velocity Grid (img1)
@@ -178,7 +173,6 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
 extern "C++"
 void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              nifti_image *flowField);
-
 /* *************************************************************** */
 
 
