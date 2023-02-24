@@ -124,7 +124,7 @@ void Usage(char *exec) {
     reg_print_info(exec, "\t-ln <int>\t\tNumber of level to perform [3]");
     reg_print_info(exec, "\t-lp <int>\t\tOnly perform the first levels [ln]");
     reg_print_info(exec, "\t-nopy\t\t\tDo not use a pyramidal approach");
-    reg_print_info(exec, "\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent");
+    reg_print_info(exec, "\t-noConj\t\t\tTo not use the conjugate gradient optimisation but a simple gradient ascent");
     reg_print_info(exec, "\t-pert <int>\t\tTo add perturbation step(s) after each optimisation scheme");
     reg_print_info(exec, "");
     reg_print_info(exec, "*** F3D2 options:");

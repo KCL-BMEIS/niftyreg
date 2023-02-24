@@ -1163,7 +1163,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                         tempZ = _mm_add_ps(_mm_mul_ps(basis_sse, zControlPointCoordinates.m[c*4+b]), tempZ );
                      }
                   }
-                  //the values stored in SSE variables are transfered to normal float
+                  //the values stored in SSE variables are transferred to normal float
                   val.m = tempX;
                   real[0] = val.f[0]+val.f[1]+val.f[2]+val.f[3];
                   val.m = tempY;
@@ -1407,7 +1407,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                                                                 zControlPointCoordinates.m[coord]),
                                                                      tempZ );
                                               }
-                                              //the values stored in SSE variables are transfered to normal float
+                                              //the values stored in SSE variables are transferred to normal float
 #ifdef __SSE3__
                                               val.m = _mm_hadd_ps(tempX, tempY);
                                               val.m = _mm_hadd_ps(val.m, tempZ);
@@ -1593,7 +1593,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                               tempY = _mm_add_ps(_mm_mul_ps(xyzBasis.m[a], yControlPointCoordinates.m[a]), tempY );
                               tempZ = _mm_add_ps(_mm_mul_ps(xyzBasis.m[a], zControlPointCoordinates.m[a]), tempZ );
                           }
-                          //the values stored in SSE variables are transfered to normal float
+                          //the values stored in SSE variables are transferred to normal float
                           val.m=tempX;
                           real[0]=val.f[0]+val.f[1]+val.f[2]+val.f[3];
                           val.m=tempY;
@@ -3592,7 +3592,7 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
             ptrX++;
             ptrY++;
          }
-         //the values stored in SSE variables are transfered to normal float
+         //the values stored in SSE variables are transferred to normal float
          val.m = tempX;
          xReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
          val.m = tempY;
@@ -3847,7 +3847,7 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
                   ptrZ++;
                }
             }
-            //the values stored in SSE variables are transfered to normal float
+            //the values stored in SSE variables are transferred to normal float
             val.m = tempX;
             xReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
             val.m = tempY;

@@ -499,9 +499,9 @@ T reg_f3d2<T>::NormaliseGradient() {
 #endif
 
     // The forward gradient is normalised
-    this->compute->NormaliseGradient(this->optimiser->GetVoxNumber(), maxGradLength);
+    this->compute->NormaliseGradient(this->optimiser->GetVoxNumber(), maxGradLength, this->optimiseX, this->optimiseY, this->optimiseZ);
     // The backward gradient is normalised
-    computeBw->NormaliseGradient(this->optimiser->GetVoxNumber_b(), maxGradLength);
+    computeBw->NormaliseGradient(this->optimiser->GetVoxNumber_b(), maxGradLength, this->optimiseX, this->optimiseY, this->optimiseZ);
 
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d2<T>::NormaliseGradient");

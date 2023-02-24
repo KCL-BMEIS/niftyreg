@@ -210,7 +210,7 @@ void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) {
-    // The latest joint histogram is transfered onto the GPU
+    // The latest joint histogram is transferred onto the GPU
     float *temp = (float*)malloc(this->totalBinNumber[0] * sizeof(float));
     for (unsigned short i = 0; i < this->totalBinNumber[0]; ++i)
         temp[i] = static_cast<float>(this->forwardJointHistogramLog[0][i]);

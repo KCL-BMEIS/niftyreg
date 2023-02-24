@@ -386,7 +386,7 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
       break;
    default:
       reg_print_fct_error("reg_io_nifti2nrrd");
-      reg_print_msg_error("he data type is not supported. Exit");
+      reg_print_msg_error("The data type is not supported. Exit");
       reg_exit();
    }
 
@@ -543,7 +543,7 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
          break;
       default:
          reg_print_fct_error("reg_convertVectorField_nifti_to_nrrd");
-         reg_print_msg_error("he data type is not supported. Exit");
+         reg_print_msg_error("The data type is not supported. Exit");
          reg_exit();
       }
 

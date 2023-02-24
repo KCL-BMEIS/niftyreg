@@ -20,7 +20,7 @@ public:
     virtual void UpdateControlPointPosition(float *currentDOF, float *bestDOF, float *gradient, float scale, bool optimiseX, bool optimiseY, bool optimiseZ) override;
     virtual void GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) override;
     virtual double GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ) override;
-    virtual void NormaliseGradient(size_t nodeNumber, double maxGradLength) override;
+    virtual void NormaliseGradient(size_t nodeNumber, double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ) override;
     virtual void SmoothGradient(float sigma) override;
     virtual void GetApproximatedGradient(InterfaceOptimiser& opt) override;
     virtual void GetDefFieldFromVelocityGrid(bool updateStepNumber) override;

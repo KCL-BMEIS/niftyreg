@@ -131,11 +131,9 @@ TEST_CASE("Resampling", "[resampling]") {
     interpCubicSplineKernel(0.2f, xBasis);
     interpCubicSplineKernel(0.3f, yBasis);
     for (int y = 0; y <= 3; ++y) {
-        float resX = 0;
         for (int x = 0; x <= 3; ++x) {
-            resX += ref2dPtr[y * dimFlo[1] + x] * xBasis[x];
+            resCubic2d[0] += ref2dPtr[y * dimFlo[1] + x] * xBasis[x] * yBasis[y];
         }
-        resCubic2d[0] += resX * yBasis[y];
     }
 
     // create the test case
@@ -189,15 +187,11 @@ TEST_CASE("Resampling", "[resampling]") {
     float zBasis[4];
     interpCubicSplineKernel(0.4f, zBasis);
     for (int z = 0; z <= 3; ++z) {
-        float resY = 0;
         for (int y = 0; y <= 3; ++y) {
-            float resX = 0;
             for (int x = 0; x <= 3; ++x) {
-                resX += ref3dPtr[z * dimFlo[1] * dimFlo[2] + y * dimFlo[1] + x] * xBasis[x];
+                resCubic3d[0] += ref3dPtr[z * dimFlo[1] * dimFlo[2] + y * dimFlo[1] + x] * xBasis[x] * yBasis[y] * zBasis[z];
             }
-            resY += resX * yBasis[y];
         }
-        resCubic3d[0] += resY * zBasis[z];
     }
 
     // create the test case
@@ -268,7 +262,7 @@ TEST_CASE("Resampling", "[resampling]") {
             }
         }
     }
-    // Only free-ing ref as the rest if cleared by content destructor
+    // Only freeing ref as the rest if cleared by content destructor
     nifti_image_free(reference2d);
     nifti_image_free(reference3d);
 }

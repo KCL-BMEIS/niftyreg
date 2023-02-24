@@ -142,7 +142,7 @@ double Compute::GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimis
     return 0;
 }
 /* *************************************************************** */
-void Compute::NormaliseGradient(size_t nodeNumber, double maxGradLength) {
+void Compute::NormaliseGradient(size_t nodeNumber, double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ) {
     // TODO Fix reg_tools_multiplyValueToImage to accept optimiseX, optimiseY, optimiseZ
     nifti_image *transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
     reg_tools_multiplyValueToImage(transformationGradient, transformationGradient, 1 / maxGradLength);
@@ -295,7 +295,7 @@ void Compute::ExponentiateGradient(Content& conBwIn) {
     // Normalise the forward gradient
     reg_tools_divideValueToImage(voxelBasedMeasureGradient, // in
                                  voxelBasedMeasureGradient, // out
-                                 powf(2, compNum)); // value
+                                 pow(2, compNum)); // value
 
     for (size_t i = 0; i <= compNum; ++i)
         nifti_image_free(tempDef[i]);

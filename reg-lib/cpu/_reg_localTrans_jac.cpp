@@ -951,7 +951,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                      tempZ_z = _mm_add_ps(_mm_mul_ps(basisZ.m[incr0], coeffZ.m[incr0]), tempZ_z );
                   }
 
-                  //the values stored in SSE variables are transfered to normal float
+                  //the values stored in SSE variables are transferred to normal float
                   val.m = tempX_x;
                   jacobianMatrix.m[0][0] = val.f[0]+val.f[1]+val.f[2]+val.f[3];
                   val.m = tempX_y;
@@ -1179,7 +1179,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                      tempZ_z = _mm_add_ps(_mm_mul_ps(basisZ.m[incr0], coeffZ.m[incr0]), tempZ_z );
                   }
 
-                  //the values stored in SSE variables are transfered to normal float
+                  //the values stored in SSE variables are transferred to normal float
                   val.m = tempX_x;
                   jacobianMatrix.m[0][0] = val.f[0]+val.f[1]+val.f[2]+val.f[3];
                   val.m = tempX_y;

@@ -212,8 +212,6 @@ void reg_f3d<T>::Initialise() {
 
         // The control point position image is initialised with the affine transformation
         if (!this->affineTransformation) {
-            memset(controlPointGrid->data, 0, controlPointGrid->nvox * controlPointGrid->nbyper);
-            reg_tools_multiplyValueToImage(controlPointGrid, controlPointGrid, 0.f);
             reg_getDeformationFromDisplacement(controlPointGrid);
         } else reg_affine_getDeformationField(this->affineTransformation, controlPointGrid);
     } else {
@@ -501,7 +499,7 @@ T reg_f3d<T>::NormaliseGradient() {
     if (strcmp(this->executableName, "NiftyReg F3D") == 0) {
         // The gradient is normalised if we are running f3d
         // It will be normalised later when running f3d2
-        this->compute->NormaliseGradient(this->optimiser->GetVoxNumber(), maxGradLength);
+        this->compute->NormaliseGradient(this->optimiser->GetVoxNumber(), maxGradLength, this->optimiseX, this->optimiseY, this->optimiseZ);
 #ifndef NDEBUG
         char text[255];
         sprintf(text, "Objective function gradient maximal length: %g", maxGradLength);
