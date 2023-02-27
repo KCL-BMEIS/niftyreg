@@ -1,18 +1,7 @@
 // OpenCL is not supported for this test
 #undef _USE_OPENCL
-// Enable testing
-#define NR_TESTING
 
-#include "_reg_ReadWriteMatrix.h"
-#include "_reg_tools.h"
-
-#include "Kernel.h"
-#include "ResampleImageKernel.h"
-#include "Platform.h"
-#include "AladinContent.h"
-
-#include <list>
-#include <catch2/catch_test_macros.hpp>
+#include "reg_test_common.h"
 
 #define EPS_SINGLE 0.001
 
@@ -28,16 +17,6 @@
 
 typedef std::tuple<std::string, nifti_image*, nifti_image*, int, float*> TestData;
 typedef std::tuple<unique_ptr<Content>, shared_ptr<Platform>> ContentDesc;
-
-template <typename T>
-void interpCubicSplineKernel(T relative, T (&basis)[4]) {
-    if (relative < 0) relative = 0; //reg_rounding error
-    const T relative2 = relative * relative;
-    basis[0] = (relative * ((2.f - relative) * relative - 1.f)) / 2.f;
-    basis[1] = (relative2 * (3.f * relative - 5.f) + 2.f) / 2.f;
-    basis[2] = (relative * ((4.f - 3.f * relative) * relative + 1.f)) / 2.f;
-    basis[3] = (relative - 1.f) * relative2 / 2.f;
-}
 
 TEST_CASE("Resampling", "[resampling]") {
     // Create a reference 2D image
