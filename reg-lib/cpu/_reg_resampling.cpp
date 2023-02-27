@@ -3165,7 +3165,7 @@ void reg_getImageGradient3(nifti_image *floatingImage,
     /* The deformation field contains the position in the real world */
     if(interp==3)
     {
-        if(deformationField->nz>1)
+        if(deformationField->nu>2)
         {
             CubicSplineImageGradient3D
                     <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
@@ -3188,7 +3188,7 @@ void reg_getImageGradient3(nifti_image *floatingImage,
     }
     else  // trilinear interpolation [ by default ]
     {
-        if(deformationField->nz>1)
+        if(deformationField->nu>2)
         {
             TrilinearImageGradient
                     <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
