@@ -1,0 +1,220 @@
+// OpenCL is not supported for this test
+#undef _USE_OPENCL
+
+#include "reg_test_common.h"
+
+#define EPS 0.000001
+
+/*
+    This test file contains the following unit tests:
+    test function: image gradient
+    In 2D and 3D
+    Linear
+    Cubic spline
+*/
+
+
+typedef std::tuple<std::string, nifti_image*, nifti_image*, int, float*> TestData;
+typedef std::tuple<unique_ptr<F3dContent>, unique_ptr<Platform>> ContentDesc;
+
+TEST_CASE("Image gradient", "[ImageGradient]") {
+    // Create a reference 2D image
+    int dimFlo[8] = { 2, 4, 4, 1, 1, 1, 1, 1 };
+    nifti_image *reference2d = nifti_make_new_nim(dimFlo, NIFTI_TYPE_FLOAT32, true);
+    reg_checkAndCorrectDimension(reference2d);
+
+    // Fill image with distance from identity
+    auto ref2dPtr = static_cast<float*>(reference2d->data);
+    for (auto y = 0; y < reference2d->ny; ++y) {
+        for (auto x = 0; x < reference2d->nx; ++x) {
+            *ref2dPtr = sqrtf(float(x * x) + float(y * y));
+            ref2dPtr++;
+        }
+    }
+    ref2dPtr = static_cast<float*>(reference2d->data);
+
+    // Create a corresponding 2D deformation field
+    int dimDef[8] = { 5, 1, 1, 1, 1, 2, 1, 1 };
+    nifti_image *deformationField2d = nifti_make_new_nim(dimDef, NIFTI_TYPE_FLOAT32, true);
+    reg_checkAndCorrectDimension(deformationField2d);
+    auto def2dPtr = static_cast<float*>(deformationField2d->data);
+    def2dPtr[0] = 1.2f;
+    def2dPtr[1] = 1.3f;
+
+    // Create a reference 3D image
+    dimFlo[0] = 3; dimFlo[3] = 4;
+    nifti_image *reference3d = nifti_make_new_nim(dimFlo, NIFTI_TYPE_FLOAT32, true);
+    reg_checkAndCorrectDimension(reference3d);
+
+    // Fill image with distance from identity
+    auto ref3dPtr = static_cast<float*>(reference3d->data);
+    for (auto z = 0; z < reference3d->nz; ++z) {
+        for (auto y = 0; y < reference3d->ny; ++y) {
+            for (auto x = 0; x < reference3d->nx; ++x) {
+                *ref3dPtr = sqrtf(float(x * x) + float(y * y) + float(z * z));
+                ref3dPtr++;
+            }
+        }
+    }
+    ref3dPtr = static_cast<float*>(reference3d->data);
+
+    // Create a corresponding 3D deformation field
+    dimDef[5] = 3;
+    nifti_image *deformationField3d = nifti_make_new_nim(dimDef, NIFTI_TYPE_FLOAT32, true);
+    reg_checkAndCorrectDimension(deformationField3d);
+    auto def3dPtr = static_cast<float*>(deformationField3d->data);
+    def3dPtr[0] = 1.2f;
+    def3dPtr[1] = 1.3f;
+    def3dPtr[2] = 1.4f;
+
+    // Generate the different test cases
+    std::vector<TestData> testCases;
+
+    // Linear image gradient - 2D
+    // coordinate in image: [1.2, 1.3]
+    float resLinear2d[2] = {};
+    const float derivLinear[2] = { -1, 1 };
+    const float xBasisLinear[2] = { 0.8f, 0.2f };
+    const float yBasisLinear[2] = { 0.7f, 0.3f };
+    for (int y = 0; y < 2; ++y) {
+        for (int x = 0; x < 2; ++x) {
+            const auto coeff = ref2dPtr[(y + 1) * dimFlo[1] + (x + 1)];
+            resLinear2d[0] += coeff * derivLinear[x] * yBasisLinear[y];
+            resLinear2d[1] += coeff * xBasisLinear[x] * derivLinear[y];
+        }
+    }
+    // Create the test case
+    testCases.emplace_back(TestData(
+        "Linear 2D",
+        reference2d,
+        deformationField2d,
+        1,
+        resLinear2d)
+    );
+
+    // Cubic spline image gradient - 2D
+    // coordinate in image: [1.2, 1.3]
+    float resCubic2d[2] = {};
+    float xBasisCubic[4], yBasisCubic[4];
+    float xDerivCubic[4], yDerivCubic[4];
+    interpCubicSplineKernel(0.2f, xBasisCubic, xDerivCubic);
+    interpCubicSplineKernel(0.3f, yBasisCubic, yDerivCubic);
+    for (int y = 0; y <= 3; ++y) {
+        for (int x = 0; x <= 3; ++x) {
+            const auto coeff = ref2dPtr[y * dimFlo[1] + x];
+            resCubic2d[0] += coeff * xDerivCubic[x] * yBasisCubic[y];
+            resCubic2d[1] += coeff * xBasisCubic[x] * yDerivCubic[y];
+        }
+    }
+
+    // Create the test case
+    testCases.emplace_back(TestData(
+        "Cubic Spline 2D",
+        reference2d,
+        deformationField2d,
+        3,
+        resCubic2d)
+    );
+
+    // Linear image gradient - 3D
+    // coordinate in image: [1.2, 1.3, 1.4]
+    float resLinear3d[3] = {};
+    const float zBasisLinear[2] = { 0.6f, 0.4f };
+    for (int z = 0; z < 2; ++z) {
+        for (int y = 0; y < 2; ++y) {
+            for (int x = 0; x < 2; ++x) {
+                const auto coeff = ref3dPtr[(z + 1) * dimFlo[1] * dimFlo[2] + (y + 1) * dimFlo[1] + (x + 1)];
+                resLinear3d[0] += coeff * derivLinear[x] * yBasisLinear[y] * zBasisLinear[z];
+                resLinear3d[1] += coeff * xBasisLinear[x] * derivLinear[y] * zBasisLinear[z];
+                resLinear3d[2] += coeff * xBasisLinear[x] * yBasisLinear[y] * derivLinear[z];
+            }
+        }
+    }
+
+    // Create the test case
+    testCases.emplace_back(TestData(
+        "Linear 3D",
+        reference3d,
+        deformationField3d,
+        1,
+        resLinear3d)
+    );
+
+    // Cubic spline image gradient - 3D
+    // coordinate in image: [1.2, 1.3, 1.4]
+    float resCubic3d[3] = {};
+    float zBasisCubic[4], zDerivCubic[4];
+    interpCubicSplineKernel(0.4f, zBasisCubic, zDerivCubic);
+    for (int z = 0; z <= 3; ++z) {
+        for (int y = 0; y <= 3; ++y) {
+            for (int x = 0; x <= 3; ++x) {
+                const auto coeff = ref3dPtr[z * dimFlo[1] * dimFlo[2] + y * dimFlo[1] + x];
+                resCubic3d[0] += coeff * xDerivCubic[x] * yBasisCubic[y] * zBasisCubic[z];
+                resCubic3d[1] += coeff * xBasisCubic[x] * yDerivCubic[y] * zBasisCubic[z];
+                resCubic3d[2] += coeff * xBasisCubic[x] * yBasisCubic[y] * zDerivCubic[z];
+            }
+        }
+    }
+
+    // Create the test case
+    testCases.emplace_back(TestData(
+        "Cubic Spline 3D",
+        reference3d,
+        deformationField3d,
+        3,
+        resCubic3d)
+    );
+
+    // Loop over all generated test cases
+    for (auto&& testCase : testCases) {
+        // Retrieve test information
+        auto&& [testName, reference, defField, interp, testResult] = testCase;
+        // Create the control point grid
+        unique_ptr<nifti_image> controlPointGrid{ CreateControlPointGrid(reference) };
+
+        // Accumulate all required contents with a vector
+        std::vector<ContentDesc> contentDescs;
+        for (auto&& platformType : PlatformTypes) {
+            unique_ptr<Platform> platform{ new Platform(platformType) };
+            // Add content
+            if (platformType == PlatformType::Cuda && interp != 1)
+                continue;   // CUDA platform only supports linear interpolation
+            unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
+            unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid.get()) };
+            contentDescs.push_back({ std::move(content), std::move(platform) });
+        }
+
+        // Loop over all possibles contents for each test
+        for (auto&& contentDesc : contentDescs) {
+            auto&& [content, platform] = contentDesc;
+            SECTION(testName + " " + platform->GetName()) {
+                // Set the warped gradient image to host the computation
+                auto warpedGradient = content->GetWarpedGradient();
+                warpedGradient->ndim = warpedGradient->dim[0] = defField->ndim;
+                warpedGradient->dim[1] = warpedGradient->nx = 1;
+                warpedGradient->dim[2] = warpedGradient->ny = 1;
+                warpedGradient->dim[3] = warpedGradient->nz = 1;
+                warpedGradient->dim[5] = warpedGradient->nu = defField->nu;
+                warpedGradient->nvox = CalcVoxelNumber(*warpedGradient, warpedGradient->ndim);
+
+                // Set the deformation field
+                content->SetDeformationField(defField);
+
+                // Do the computation
+                unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
+                compute->GetImageGradient(interp, 0, 0);
+
+                // Check all values
+                warpedGradient = content->GetWarpedGradient();
+                auto warpedGradPtr = static_cast<float*>(warpedGradient->data);
+                for (size_t i = 0; i < warpedGradient->nvox; ++i) {
+                    std::cout << i << " " << warpedGradPtr[i] << " " << testResult[i] << std::endl;
+                    REQUIRE(fabs(warpedGradPtr[i] - testResult[i]) < EPS);
+                }
+            }
+        }
+    }
+    // Clean up
+    nifti_image_free(reference2d);
+    nifti_image_free(reference3d);
+}

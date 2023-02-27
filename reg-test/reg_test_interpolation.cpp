@@ -3,7 +3,7 @@
 
 #include "reg_test_common.h"
 
-#define EPS_SINGLE 0.001
+#define EPS 0.001
 
 /*
     This test file contains the following unit tests:
@@ -18,14 +18,14 @@
 typedef std::tuple<std::string, nifti_image*, nifti_image*, int, float*> TestData;
 typedef std::tuple<unique_ptr<Content>, shared_ptr<Platform>> ContentDesc;
 
-TEST_CASE("Resampling", "[resampling]") {
+TEST_CASE("Interpolation", "[Interpolation]") {
     // Create a reference 2D image
     int dimFlo[8] = { 2, 4, 4, 1, 1, 1, 1, 1 };
     nifti_image *reference2d = nifti_make_new_nim(dimFlo, NIFTI_TYPE_FLOAT32, true);
     reg_checkAndCorrectDimension(reference2d);
 
     // Fill image with distance from identity
-    auto *ref2dPtr = static_cast<float*>(reference2d->data);
+    auto ref2dPtr = static_cast<float*>(reference2d->data);
     for (auto y = 0; y < reference2d->ny; ++y) {
         for (auto x = 0; x < reference2d->nx; ++x) {
             *ref2dPtr = sqrtf(float(x * x) + float(y * y));
@@ -38,7 +38,7 @@ TEST_CASE("Resampling", "[resampling]") {
     int dimDef[8] = { 5, 1, 1, 1, 1, 2, 1, 1 };
     nifti_image *deformationField2d = nifti_make_new_nim(dimDef, NIFTI_TYPE_FLOAT32, true);
     reg_checkAndCorrectDimension(deformationField2d);
-    auto *def2dPtr = static_cast<float*>(deformationField2d->data);
+    auto def2dPtr = static_cast<float*>(deformationField2d->data);
     def2dPtr[0] = 1.2f;
     def2dPtr[1] = 1.3f;
 
@@ -48,7 +48,7 @@ TEST_CASE("Resampling", "[resampling]") {
     reg_checkAndCorrectDimension(reference3d);
 
     // Fill image with distance from identity
-    auto *ref3dPtr = static_cast<float*>(reference3d->data);
+    auto ref3dPtr = static_cast<float*>(reference3d->data);
     for (auto z = 0; z < reference3d->nz; ++z) {
         for (auto y = 0; y < reference3d->ny; ++y) {
             for (auto x = 0; x < reference3d->nx; ++x) {
@@ -63,7 +63,7 @@ TEST_CASE("Resampling", "[resampling]") {
     dimDef[5] = 3;
     nifti_image *deformationField3d = nifti_make_new_nim(dimDef, NIFTI_TYPE_FLOAT32, true);
     reg_checkAndCorrectDimension(deformationField3d);
-    auto *def3dPtr = static_cast<float*>(deformationField3d->data);
+    auto def3dPtr = static_cast<float*>(deformationField3d->data);
     def3dPtr[0] = 1.2f;
     def3dPtr[1] = 1.3f;
     def3dPtr[2] = 1.4f;
@@ -81,7 +81,8 @@ TEST_CASE("Resampling", "[resampling]") {
                 abs(2.0f - (float)y - 0.3f);
         }
     }
-    // create the test case
+
+    // Create the test case
     testCases.emplace_back(TestData(
         "Linear 2D",
         reference2d,
@@ -94,7 +95,7 @@ TEST_CASE("Resampling", "[resampling]") {
     // coordinate in image: [1.2, 1.3]
     float resNearest2d[1];
     resNearest2d[0] = ref2dPtr[1 * dimFlo[1] + 1];
-    // create the test case
+    // Create the test case
     testCases.emplace_back(TestData(
         "Nearest Neighbour 2D",
         reference2d,
@@ -115,7 +116,7 @@ TEST_CASE("Resampling", "[resampling]") {
         }
     }
 
-    // create the test case
+    // Create the test case
     testCases.emplace_back(TestData(
         "Cubic Spline 2D",
         reference2d,
@@ -138,7 +139,7 @@ TEST_CASE("Resampling", "[resampling]") {
         }
     }
 
-    // create the test case
+    // Create the test case
     testCases.emplace_back(TestData(
         "Linear 3D",
         reference3d,
@@ -151,7 +152,7 @@ TEST_CASE("Resampling", "[resampling]") {
     // coordinate in image: [1.2, 1.3, 1.4]
     float resNearest3d[1];
     resNearest3d[0] = ref3dPtr[1 * dimFlo[2] * dimFlo[1] + 1 * dimFlo[1] + 1];
-    // create the test case
+    // Create the test case
     testCases.emplace_back(TestData(
         "Nearest Neighbour 3D",
         reference3d,
@@ -173,7 +174,7 @@ TEST_CASE("Resampling", "[resampling]") {
         }
     }
 
-    // create the test case
+    // Create the test case
     testCases.emplace_back(TestData(
         "Cubic Spline 3D",
         reference3d,
@@ -182,7 +183,7 @@ TEST_CASE("Resampling", "[resampling]") {
         resCubic3d)
     );
 
-    // Loop over all generated test cases to create all content and run all tests
+    // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
         auto&& [testName, reference, defField, interp, testResult] = testCase;
@@ -200,7 +201,7 @@ TEST_CASE("Resampling", "[resampling]") {
                 continue;   // CUDA platform only supports linear interpolation
             unique_ptr<ContentCreator> contentCreator{ dynamic_cast<ContentCreator*>(platform->CreateContentCreator()) };
             unique_ptr<Content> content{ contentCreator->Create(reference, reference) };
-            contentDescs.push_back(ContentDesc(std::move(content), platform));
+            contentDescs.push_back({ std::move(content), platform });
         }
 
         // Loop over all possibles contents for each test
@@ -219,9 +220,11 @@ TEST_CASE("Resampling", "[resampling]") {
                 warped->nvox = CalcVoxelNumber(*warped, warped->ndim);
                 warped->data = calloc(warped->nvox, warped->nbyper);
                 content->SetWarped(warped);
+
                 // Set the deformation field
                 content->SetDeformationField(defField);
 
+                // Do the computation
                 if (isAladinContent) {
                     unique_ptr<Kernel> resampleKernel{ platform->CreateKernel(ResampleImageKernel::GetName(), content.get()) };
                     resampleKernel->castTo<ResampleImageKernel>()->Calculate(interp, 0);
@@ -230,18 +233,17 @@ TEST_CASE("Resampling", "[resampling]") {
                     compute->ResampleImage(interp, 0);
                 }
 
-                warped = content->GetWarped();
-
                 // Check all values
-                auto *warpedPtr = static_cast<float*>(warped->data);
+                warped = content->GetWarped();
+                auto warpedPtr = static_cast<float*>(warped->data);
                 for (size_t i = 0; i < warped->nvox; ++i) {
                     std::cout << i << " " << warpedPtr[i] << " " << testResult[i] << std::endl;
-                    REQUIRE(fabs(warpedPtr[i] - testResult[i]) < EPS_SINGLE);
+                    REQUIRE(fabs(warpedPtr[i] - testResult[i]) < EPS);
                 }
             }
         }
     }
-    // Only freeing ref as the rest if cleared by content destructor
+    // Clean up
     nifti_image_free(reference2d);
     nifti_image_free(reference3d);
 }
