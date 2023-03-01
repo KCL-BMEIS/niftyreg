@@ -1,7 +1,7 @@
 #pragma once
 
 #include "_reg_maths.h"
-#include "cuda.h"
+#include <cuda.h>
 
 class CudaContextSingleton {
 public:
