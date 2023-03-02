@@ -6,6 +6,7 @@
 [![GitHub Actions](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/linux.yml/badge.svg?branch=master)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/linux.yml?query=branch%3Amaster)
 [![GitHub Actions](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/macos.yml?query=branch%3Amaster)
 [![GitHub Actions](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/windows.yml/badge.svg?branch=master)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/windows.yml?query=branch%3Amaster)
+[![Coverage Status](https://coveralls.io/repos/github/KCL-BMEIS/niftyreg/badge.svg?branch=master)](https://coveralls.io/github/KCL-BMEIS/niftyreg?branch=master)
 
 
 
@@ -81,5 +82,3 @@ Imaging, 18(8), 712–721. doi:10.1109/42.796284
 [4] Modat, et al. (2010). Fast free-form deformation using graphics processing
 units. Computer Methods And Programs In Biomedicine,98(3), 278–284.
 doi:10.1016/j.cmpb.2009.09.002
-
-
