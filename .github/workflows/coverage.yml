@@ -1,0 +1,50 @@
+name: Coverage
+on: [push, pull_request]
+jobs:
+  Coverage:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Clone NiftyReg
+        uses: actions/checkout@v3
+
+      - name: Install Catch2
+        run:  |
+          git clone https://github.com/catchorg/Catch2.git
+          cd Catch2
+          cmake -Bbuild -H. -DBUILD_TESTING=OFF
+          sudo cmake --build build/ --target install --config Debug
+
+      - name: Install lcov
+        run: sudo apt-get install lcov
+
+      - name: Configure NiftyReg
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_CXX_COMPILER=g++ \
+                -DCMAKE_C_COMPILER=gcc \
+                -DCMAKE_BUILD_TYPE=Debug \
+                -DBUILD_ALL_DEP=ON \
+                -DUSE_CUDA=OFF \
+                -DUSE_OPENCL=OFF \
+                -DUSE_SSE=ON \
+                -DUSE_OPENMP=ON \
+                -DBUILD_TESTING=ON \
+                -DWITH_COVERAGE=ON \
+                ..
+
+      - name: Build NiftyReg
+        run: cmake --build build --config Debug
+
+      - name: Run tests
+        run: ctest -V
+        working-directory: build
+
+      - name: Coverage
+        run: make coverage
+        working-directory: build
+
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v1
+        with:
+          path-to-lcov: build/coverage.info
