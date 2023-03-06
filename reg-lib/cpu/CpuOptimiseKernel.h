@@ -2,7 +2,7 @@
 
 #include "OptimiseKernel.h"
 #include "_reg_blockMatching.h"
-#include "nifti1_io.h"
+#include "niftilib/nifti1_io.h"
 #include "AladinContent.h"
 
 class CpuOptimiseKernel: public OptimiseKernel {

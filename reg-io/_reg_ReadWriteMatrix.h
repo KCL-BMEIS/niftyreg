@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "nifti1_io.h"
+#include "niftilib/nifti1_io.h"
 //STD
 #include <fstream>
 #include <utility>

@@ -6,7 +6,6 @@ if(NOT ZLIB_FOUND)
             LIBRARY DESTINATION lib COMPONENT Development
             ARCHIVE DESTINATION lib COMPONENT Development
     )
-    install(FILES zlib.h zutil.h DESTINATION include COMPONENT Development)
     set(ZLIB_LIBRARY "z")
 endif(NOT ZLIB_FOUND)
 #-----------------------------------------------------------------------------

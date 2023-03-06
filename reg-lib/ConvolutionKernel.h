@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Kernel.h"
-#include "nifti1_io.h"
+#include "niftilib/nifti1_io.h"
 
 class ConvolutionKernel: public Kernel {
 public:

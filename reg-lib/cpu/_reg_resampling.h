@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "nifti1_io.h"
+#include "niftilib/nifti1_io.h"
 
 /** @brief This function resample a floating image into the space of a reference/warped image.
  * The deformation is provided by a 4D nifti image which is in the space of the reference image.

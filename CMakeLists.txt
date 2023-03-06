@@ -141,12 +141,9 @@ include_directories(${PNG_INCLUDE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib)
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cpu)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io)
-include_directories(${CMAKE_SOURCE_DIR}/reg-io/nifti)
 include_directories(${CMAKE_SOURCE_DIR}/third-party)
-include_directories(${CMAKE_BINARY_DIR}/third-party/eigen3)
 include_directories(${CMAKE_BINARY_DIR})
-include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd)
-include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd/NrrdIO)
+include_directories(${CMAKE_BINARY_DIR}/third-party/eigen3)
 #-----------------------------------------------------------------------------
 if(USE_OPENCL)
   # Find the OpenCL package

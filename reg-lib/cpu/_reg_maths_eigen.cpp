@@ -2,7 +2,7 @@
 
 #include "_reg_maths_eigen.h"
 #include "_reg_maths.h"
-#include "nifti1_io.h"
+#include "niftilib/nifti1_io.h"
 
 // Eigen headers are in there because of the nvcc preprocessing step
 #include "Eigen/Core"

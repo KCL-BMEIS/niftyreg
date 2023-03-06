@@ -3,10 +3,13 @@ if(NOT ZLIB_FOUND OR BUILD_ALL_DEP)
     subdirs(zlib)
 endif(NOT ZLIB_FOUND OR BUILD_ALL_DEP)
 
-# Build the nifti file format library
-subdirs(nifti)
+# Build the znz library
+subdirs(znzlib)
 
-set(LIBRARIES reg_nifti z)
+# Build the nifti file format library
+subdirs(niftilib)
+
+set(LIBRARIES reg_nifti z znz)
 
 # Build the png library if required
 subdirs(png)
