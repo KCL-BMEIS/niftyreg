@@ -1,5 +1,4 @@
-#ifndef _NIFTI_IMAGE_PRINT_H_
-#define _NIFTI_IMAGE_PRINT_H_
+#pragma once
 
 #ifdef USING_R
 
@@ -32,5 +31,3 @@
 #define Rprintf(...) fprintf(stderr, __VA_ARGS__)
 
 #endif // USING_R
-
-#endif // _PRINT_H_

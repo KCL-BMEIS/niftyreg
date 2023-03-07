@@ -1,5 +1,4 @@
-#ifndef _NIFTI_IMAGE_MATRIX_H_
-#define _NIFTI_IMAGE_MATRIX_H_
+#pragma once
 
 template <>
 inline SquareMatrix<mat33,float,3> SquareMatrix<mat33,float,3>::inverse () const
@@ -131,5 +130,3 @@ inline Vector<ElementType,Order> SquareMatrix<NiftiType,ElementType,Order>::mult
     }
     return result;
 }
-
-#endif

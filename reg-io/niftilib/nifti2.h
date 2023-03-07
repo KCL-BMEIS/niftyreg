@@ -2,8 +2,7 @@
     \brief Header structure for NIFTI-2 format.
  */
 
-#ifndef __NIFTI2_HEADER
-#define __NIFTI2_HEADER
+#pragma once
 
 /*---------------------------------------------------------------------------*/
 /* Changes to the header from NIFTI-1 to NIFTI-2 are intended to allow for
@@ -113,5 +112,3 @@ typedef struct nifti_2_header nifti_2_header;
 }
 #endif
 /*=================*/
-
-#endif /* __NIFTI2_HEADER */

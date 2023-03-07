@@ -1,5 +1,4 @@
-#ifndef _NIFTI2_IMAGE_H_
-#define _NIFTI2_IMAGE_H_
+#pragma once
 
 #include <inttypes.h>
 
@@ -102,5 +101,3 @@ typedef struct {                /*!< Image storage struct **/
 } nifti2_image ;
 
 #endif // RNIFTI_NIFTILIB_VERSION
-
-#endif

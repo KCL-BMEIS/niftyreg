@@ -3,8 +3,7 @@
            - Written by Bob Cox, SSCC NIMH
            - Revisions by Rick Reynolds, SSCC NIMH
  */
-#ifndef _NIFTI2_IO_HEADER_
-#define _NIFTI2_IO_HEADER_
+#pragma once
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -826,5 +825,3 @@ typedef struct {
 }
 #endif
 /*=================*/
-
-#endif /* _NIFTI2_IO_HEADER_ */

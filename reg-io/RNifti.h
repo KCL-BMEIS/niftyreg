@@ -1,5 +1,4 @@
-#ifndef _RNIFTI_H_
-#define _RNIFTI_H_
+#pragma once
 
 // RNiftyReg and divest have used HAVE_R, so accept this variant for compatibility
 #if !defined(USING_R) && defined(HAVE_R)
@@ -12,7 +11,7 @@
 
 // Versions 1 and 2 of the NIfTI reference library are mutually incompatible, but RNifti does some
 // work to get them to play nicely:
-// 
+//
 // - The compile-time constant RNIFTI_NIFTILIB_VERSION indicates which version of the library has
 //   precedence. nifti1_io.h sets this to 1, and nifti2.io.h to 2, so the first-included header
 //   wins unless the user sets a value explicitly.
@@ -23,9 +22,9 @@
 // - Library functions that are essentially the same in the two versions are fenced out of
 //   nifti1_io.c (if RNIFTI_NIFTILIB_DEDUPLICATE is defined), to avoid duplicate symbols in the
 //   compiled package library.
-// 
+//
 // There are therefore several possible modes of usage:
-// 
+//
 // 1. Standalone programs that include RNifti.h can *first* define RNIFTI_NIFTILIB_VERSION to
 //    choose the library version required (the default is 1). They should link against nifti1_io.o
 //    or nifti2_io.o, accordingly. (A mismatch will result in compiler/linker errors.) See the
@@ -59,6 +58,4 @@ extern void niftilib_register_all (void);
 
 #ifdef __cplusplus
 } // extern "C"
-#endif
-
 #endif

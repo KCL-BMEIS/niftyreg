@@ -1,6 +1,4 @@
-#ifndef _NIFTI_IMAGE_H_
-#define _NIFTI_IMAGE_H_
-
+#pragma once
 
 #ifdef USING_R
 
@@ -168,13 +166,13 @@ protected:
 
     /**
      * Create a concrete type handler appropriate to the datatype code stored with the data
-     * @return The newly allocated type handler, or \c NULL
+     * @return The newly allocated type handler, or \c nullptr
      * @exception runtime_error If the current datatype is unsupported
     **/
     TypeHandler * createHandler ()
     {
         if (_datatype == DT_NONE)
-            return NULL;
+            return nullptr;
 
         switch (_datatype)
         {
@@ -206,13 +204,13 @@ protected:
 
     /**
      * Initialiser method, used by constructors
-     * @param data Pointer to a preallocated data blob, or \c NULL
+     * @param data Pointer to a preallocated data blob, or \c nullptr
      * @param length Number of elements in the blob
      * @param datatype NIfTI datatype code appropriate to the blob
      * @param slope Slope parameter for scaling values
      * @param intercept Intercept parameter for scaling values
-     * @param alloc If \c true, the default, and \c data is \c NULL, memory will be allocated for
-     *   the blob. If \c false, the blob will be \c NULL in this case
+     * @param alloc If \c true, the default, and \c data is \c nullptr, memory will be allocated for
+     *   the blob. If \c false, the blob will be \c nullptr in this case
     **/
     void init (void *data, const size_t length, const int datatype, const double slope, const double intercept, const bool alloc = true)
     {
@@ -223,9 +221,9 @@ protected:
 
         owner = false;
         handler = createHandler();
-        if (handler == NULL)
-            dataPtr = NULL;
-        else if (alloc && data == NULL)
+        if (handler == nullptr)
+            dataPtr = nullptr;
+        else if (alloc && data == nullptr)
         {
             dataPtr = calloc(length, handler->size());
             owner = true;
@@ -249,7 +247,7 @@ protected:
         {
             double dataMin, dataMax, typeMin, typeMax;
             data.minmax(&dataMin, &dataMax);
-            handler->minmax(NULL, 0, &typeMin, &typeMax);
+            handler->minmax(nullptr, 0, &typeMin, &typeMax);
 
             // If the source type is floating-point but values are in range, we will just round them
             if (dataMin < typeMin || dataMax > typeMax)
@@ -274,13 +272,13 @@ public:
         /**
          * Primary constructor
          * @param parent A reference to the parent object
-         * @param ptr An opaque pointer to the element. If \c NULL, the start of the data blob
+         * @param ptr An opaque pointer to the element. If \c nullptr, the start of the data blob
          *   encapsulated by the parent will be used
         **/
-        Element (const NiftiImageData &parent, void *ptr = NULL)
+        Element (const NiftiImageData &parent, void *ptr = nullptr)
             : parent(parent)
         {
-            this->ptr = (ptr == NULL ? parent.dataPtr : ptr);
+            this->ptr = (ptr == nullptr ? parent.dataPtr : ptr);
         }
 
         /**
@@ -371,10 +369,10 @@ public:
          * @param step The increment between elements within the blob, in bytes. If zero, the
          *   default, the width associated with the stored datatype will be used.
         **/
-        Iterator (const NiftiImageData &parent, void *ptr = NULL, const size_t step = 0)
+        Iterator (const NiftiImageData &parent, void *ptr = nullptr, const size_t step = 0)
             : parent(parent)
         {
-            this->ptr = (ptr == NULL ? parent.dataPtr : ptr);
+            this->ptr = (ptr == nullptr ? parent.dataPtr : ptr);
             this->step = (step == 0 ? parent.handler->size() : step);
         }
 
@@ -426,11 +424,11 @@ public:
      * Default constructor, creating an empty data object
     **/
     NiftiImageData ()
-        : slope(1.0), intercept(0.0), dataPtr(NULL), _datatype(DT_NONE), handler(NULL), _length(0), owner(false) {}
+        : slope(1.0), intercept(0.0), dataPtr(nullptr), _datatype(DT_NONE), handler(nullptr), _length(0), owner(false) {}
 
     /**
      * Primary constructor
-     * @param data A pointer to a pre-allocated data blob, or \c NULL. In the latter case, memory
+     * @param data A pointer to a pre-allocated data blob, or \c nullptr. In the latter case, memory
      *   will be allocated by the object, and cleaned up at destruction unless it is disowned
      * @param length The number of elements in the blob
      * @param datatype The NIfTI datatype code corresponding to the type of the data elements
@@ -448,8 +446,8 @@ public:
     **/
     NiftiImageData (nifti_image *image)
     {
-        if (image == NULL)
-            init(NULL, 0, DT_NONE, 0.0, 0.0, false);
+        if (image == nullptr)
+            init(nullptr, 0, DT_NONE, 0.0, 0.0, false);
         else
             init(image->data, image->nvox, image->datatype, static_cast<double>(image->scl_slope), static_cast<double>(image->scl_inter), false);
     }
@@ -463,7 +461,7 @@ public:
     **/
     NiftiImageData (const NiftiImageData &source, const int datatype = DT_NONE)
     {
-        init(NULL, source.length(), datatype == DT_NONE ? source.datatype() : datatype, source.slope, source.intercept);
+        init(nullptr, source.length(), datatype == DT_NONE ? source.datatype() : datatype, source.slope, source.intercept);
 
         if (datatype == DT_NONE || datatype == source.datatype())
             memcpy(dataPtr, source.dataPtr, source.totalBytes());
@@ -485,7 +483,7 @@ public:
     NiftiImageData (InputIterator from, InputIterator to, const int datatype)
     {
         const size_t length = static_cast<size_t>(std::distance(from, to));
-        init(NULL, length, datatype, 1.0, 0.0);
+        init(nullptr, length, datatype, 1.0, 0.0);
         std::copy(from, to, this->begin());
     }
 
@@ -506,12 +504,12 @@ public:
     **/
     NiftiImageData & operator= (const NiftiImageData &source)
     {
-        if (source.dataPtr != NULL)
+        if (source.dataPtr != nullptr)
         {
             // Free the old data, if we allocated it
             if (owner)
                 free(dataPtr);
-            init(NULL, source.length(), source.datatype(), source.slope, source.intercept);
+            init(nullptr, source.length(), source.datatype(), source.slope, source.intercept);
             memcpy(dataPtr, source.dataPtr, source.totalBytes());
         }
         return *this;
@@ -522,17 +520,17 @@ public:
     size_t length () const           { return _length; }                /**< Return the number of elements in the data */
     size_t size () const             { return _length; }                /**< Return the number of elements in the data */
 
-    /** Return the number of bytes used per element, or zero if the datatype is undefined or the blob is \c NULL */
-    size_t bytesPerPixel () const    { return (handler == NULL ? 0 : handler->size()); }
+    /** Return the number of bytes used per element, or zero if the datatype is undefined or the blob is \c nullptr */
+    size_t bytesPerPixel () const    { return (handler == nullptr ? 0 : handler->size()); }
 
     /** Return the total size of the data blob, in bytes */
     size_t totalBytes () const       { return _length * bytesPerPixel(); }
 
     /**
      * Determine whether or not the object is empty
-     * @return \c true if the data pointer is \c NULL; \c false otherwise
+     * @return \c true if the data pointer is \c nullptr; \c false otherwise
     **/
-    bool isEmpty () const            { return (dataPtr == NULL); }
+    bool isEmpty () const            { return (dataPtr == nullptr); }
 
     /**
      * Determine whether the object uses data scaling
@@ -613,7 +611,7 @@ public:
     **/
     void minmax (double *min, double *max) const
     {
-        if (handler == NULL)
+        if (handler == nullptr)
         {
             *min = 0.0;
             *max = 0.0;
@@ -962,10 +960,10 @@ public:
 
     public:
         /**
-         * Default constructor, wrapping \c NULL
+         * Default constructor, wrapping \c nullptr
         **/
         Extension ()
-            : ext(NULL) {}
+            : ext(nullptr) {}
 
         /**
          * Initialise from an existing \c nifti1_extension (which is used by both NIfTI-1 and
@@ -976,7 +974,7 @@ public:
         **/
         Extension (nifti1_extension * const extension, const bool copy = false)
         {
-            if (!copy || extension == NULL)
+            if (!copy || extension == nullptr)
                 this->ext = extension;
             else
                 this->copy(extension);
@@ -1039,27 +1037,27 @@ public:
 
         /**
          * Return the code associated with the extension
-         * @return An integer code giving the relevant code, or -1 if the extension is \c NULL
+         * @return An integer code giving the relevant code, or -1 if the extension is \c nullptr
         **/
-        int code () const { return (ext == NULL ? -1 : ext->ecode); }
+        int code () const { return (ext == nullptr ? -1 : ext->ecode); }
 
         /**
          * Return the data blob associated with the extension
          * @return The data, as a byte array
         **/
-        const char * data () const { return (ext == NULL ? NULL : ext->edata); }
+        const char * data () const { return (ext == nullptr ? nullptr : ext->edata); }
 
         /**
          * Return the length of the data array
          * @return The length of the data array, in bytes
         **/
-        size_t length () const { return (ext == NULL || ext->esize < 8 ? 0 : size_t(ext->esize - 8)); }
+        size_t length () const { return (ext == nullptr || ext->esize < 8 ? 0 : size_t(ext->esize - 8)); }
 
         /**
          * Return the length of the data array
          * @return The length of the data array, in bytes
         **/
-        size_t size () const { return (ext == NULL || ext->esize < 8 ? 0 : size_t(ext->esize - 8)); }
+        size_t size () const { return (ext == nullptr || ext->esize < 8 ? 0 : size_t(ext->esize - 8)); }
 
 #ifdef USING_R
         /**
@@ -1067,7 +1065,7 @@ public:
         **/
         operator SEXP () const
         {
-            if (ext == NULL || ext->esize < 8)
+            if (ext == nullptr || ext->esize < 8)
                 return R_NilValue;
 
             const int length = ext->esize - 8;
@@ -1109,7 +1107,7 @@ public:
 
         /**
          * Replace the current matrix with a new one. This function propagates the changes to the
-         * linked arrays, if they are not \c NULL.
+         * linked arrays, if they are not \c nullptr.
         **/
         void replace (const Matrix &source);
 
@@ -1118,32 +1116,32 @@ public:
          * Default constructor
         **/
         Xform ()
-            : forward(NULL), inverse(NULL), qparams(NULL), mat() {}
+            : forward(nullptr), inverse(nullptr), qparams(nullptr), mat() {}
 
         /**
          * Initialise from a 4x4 \ref SquareMatrix
         **/
         Xform (const Matrix &source)
-            : forward(NULL), inverse(NULL), qparams(NULL), mat(source) {}
+            : forward(nullptr), inverse(nullptr), qparams(nullptr), mat(source) {}
 
         /**
          * Initialise from a constant NIfTI \c mat44 or \c dmat44
         **/
         Xform (const Matrix::NativeType &source)
-            : forward(NULL), inverse(NULL), qparams(NULL), mat(source) {}
+            : forward(nullptr), inverse(nullptr), qparams(nullptr), mat(source) {}
 
         /**
          * Initialise from a NIfTI \c mat44 or \c dmat44. The data in the linked matrix will be
          * replaced if this object is updated.
         **/
         Xform (Matrix::NativeType &source)
-            : forward(*source.m), inverse(NULL), qparams(NULL), mat(source) {}
+            : forward(*source.m), inverse(nullptr), qparams(nullptr), mat(source) {}
 
         /**
          * Initialise from forward and backward matrices, and optionally quaternion parameters.
          * These will all be linked to the new object and replaced if it is updated.
         **/
-        Xform (Matrix::NativeType &source, Matrix::NativeType &inverse, Element *qparams = NULL)
+        Xform (Matrix::NativeType &source, Matrix::NativeType &inverse, Element *qparams = nullptr)
             : forward(*source.m), inverse(*inverse.m), qparams(qparams), mat(source) {}
 
 #ifdef USING_R
@@ -1151,7 +1149,7 @@ public:
          * Initialise from an R numeric matrix object
         **/
         Xform (SEXP source)
-            : forward(NULL), inverse(NULL), qparams(NULL), mat(Matrix(source)) {}
+            : forward(nullptr), inverse(nullptr), qparams(nullptr), mat(Matrix(source)) {}
 #endif
 
         /**
@@ -1285,17 +1283,7 @@ protected:
     void acquire (nifti_image * const image);
 
     /**
-     * Acquire the same pointer as another \c NiftiImage, incrementing the shared reference count
-     * @param source A reference to a \c NiftiImage
-    **/
-    void acquire (const NiftiImage &source)
-    {
-        refCount = source.refCount;
-        acquire(source.image);
-    }
-
-    /**
-     * Release the currently wrapped pointer, if it is not \c NULL, decrementing the reference
+     * Release the currently wrapped pointer, if it is not \c nullptr, decrementing the reference
      * count and releasing memory if there are no remaining references to the pointer
     **/
     void release ();
@@ -1305,12 +1293,6 @@ protected:
      * @param source A pointer to a \c nifti_image
     **/
     void copy (const nifti_image *source);
-
-    /**
-     * Copy the contents of another \c NiftiImage to create a new image, acquiring a new pointer
-     * @param source A reference to a \c NiftiImage
-    **/
-    void copy (const NiftiImage &source);
 
     /**
      * Copy the contents of a \ref Block to create a new image, acquiring a new pointer
@@ -1384,7 +1366,7 @@ public:
      * Default constructor
     **/
     NiftiImage ()
-        : image(NULL), refCount(NULL) {}
+        : image(nullptr), refCount(nullptr) {}
 
     /**
      * Copy constructor
@@ -1393,12 +1375,14 @@ public:
      * object wraps the same \c nifti_image and increments the shared reference count
     **/
     NiftiImage (const NiftiImage &source, const bool copy = true)
-        : image(NULL), refCount(NULL)
+        : image(nullptr), refCount(nullptr)
     {
-        if (copy)
+        if (copy) {
             this->copy(source);
-        else
-            acquire(source);
+        } else {
+            refCount = source.refCount;
+            acquire(source.image);
+        }
 #ifndef NDEBUG
         Rc_printf("Creating NiftiImage (v%d) with pointer %p (from NiftiImage)\n", RNIFTI_NIFTILIB_VERSION, this->image);
 #endif
@@ -1422,7 +1406,7 @@ public:
      * @param source A \c Block object, referring to part of another \c NiftiImage
     **/
     NiftiImage (const Block &source)
-        : image(NULL), refCount(NULL)
+        : NiftiImage()
     {
         this->copy(source);
 #ifndef NDEBUG
@@ -1432,12 +1416,12 @@ public:
 
     /**
      * Initialise using an existing \c nifti_image pointer
-     * @param image An existing \c nifti_image pointer, possibly \c NULL
+     * @param image An existing \c nifti_image pointer, possibly \c nullptr
      * @param copy If \c true, the image data will be copied; otherwise this object just wraps
      * the pointer passed to it
     **/
     NiftiImage (nifti_image * const image, const bool copy = false)
-        : image(NULL), refCount(NULL)
+        : NiftiImage()
     {
         if (copy)
             this->copy(image);
@@ -1553,16 +1537,16 @@ public:
     NiftiImage & setPersistence (const bool persistent) { return *this; }
 
     /**
-     * Determine whether or not the wrapped pointer is \c NULL
-     * @return \c true if the wrapped pointer is \c NULL; \c false otherwise
+     * Determine whether or not the wrapped pointer is \c nullptr
+     * @return \c true if the wrapped pointer is \c nullptr; \c false otherwise
     **/
-    bool isNull () const { return (image == NULL); }
+    bool isNull () const { return (image == nullptr); }
 
     /**
      * Determine whether the wrapped pointer is shared with another \c NiftiImage
      * @return \c true if the reference count is greater than 1; \c false otherwise
     **/
-    bool isShared () const { return (refCount != NULL && *refCount > 1); }
+    bool isShared () const { return (refCount != nullptr && *refCount > 1); }
 
     /**
      * Determine whether or not the image is marked as persistent
@@ -1577,7 +1561,7 @@ public:
      * @return \c true if the object wraps an image pointer, its slope is not zero and the slope
      *         and intercept are not exactly one and zero; \c false otherwise
     **/
-    bool isDataScaled () const { return (image != NULL && image->scl_slope != 0.0 && (image->scl_slope != 1.0 || image->scl_inter != 0.0)); }
+    bool isDataScaled () const { return (image != nullptr && image->scl_slope != 0.0 && (image->scl_slope != 1.0 || image->scl_inter != 0.0)); }
 
     /**
      * Return the number of dimensions in the image
@@ -1585,7 +1569,7 @@ public:
     **/
     int nDims () const
     {
-        if (image == NULL)
+        if (image == nullptr)
             return 0;
         else
             return image->ndim;
@@ -1597,7 +1581,7 @@ public:
     **/
     std::vector<dim_t> dim () const
     {
-        if (image == NULL)
+        if (image == nullptr)
             return std::vector<dim_t>();
         else
             return std::vector<dim_t>(image->dim+1, image->dim+image->ndim+1);
@@ -1609,7 +1593,7 @@ public:
     **/
     std::vector<pixdim_t> pixdim () const
     {
-        if (image == NULL)
+        if (image == nullptr)
             return std::vector<pixdim_t>();
         else
             return std::vector<pixdim_t>(image->pixdim+1, image->pixdim+image->ndim+1);
@@ -1756,31 +1740,31 @@ public:
      * Access the qform matrix
      * @return An \ref Xform object
     **/
-    const Xform qform () const { return (image == NULL ? Xform() : Xform(image->qto_xyz)); }
+    const Xform qform () const { return (image == nullptr ? Xform() : Xform(image->qto_xyz)); }
 
     /**
      * Access the qform matrix
      * @return An \ref Xform object
     **/
-    Xform qform () { return (image == NULL ? Xform() : Xform(image->qto_xyz, image->qto_ijk, &image->quatern_b)); }
+    Xform qform () { return (image == nullptr ? Xform() : Xform(image->qto_xyz, image->qto_ijk, &image->quatern_b)); }
 
     /**
      * Access the sform matrix
      * @return An \ref Xform object
     **/
-    const Xform sform () const { return (image == NULL ? Xform() : Xform(image->sto_xyz)); }
+    const Xform sform () const { return (image == nullptr ? Xform() : Xform(image->sto_xyz)); }
 
     /**
      * Access the sform matrix
      * @return An \ref Xform object
     **/
-    Xform sform () { return (image == NULL ? Xform() : Xform(image->sto_xyz, image->sto_ijk)); }
+    Xform sform () { return (image == nullptr ? Xform() : Xform(image->sto_xyz, image->sto_ijk)); }
 
     /**
      * Return the number of blocks in the image
      * @return An integer giving the number of blocks in the image
     **/
-    dim_t nBlocks () const { return (image == NULL ? 0 : image->dim[image->ndim]); }
+    dim_t nBlocks () const { return (image == nullptr ? 0 : image->dim[image->ndim]); }
 
     /**
      * Extract a block from the image
@@ -1835,7 +1819,7 @@ public:
     **/
     int nChannels () const
     {
-        if (image == NULL)
+        if (image == nullptr)
             return 0;
         else
         {
@@ -1853,13 +1837,13 @@ public:
      * Return the number of voxels in the image
      * @return An integer giving the number of voxels in the image
     **/
-    size_t nVoxels () const { return (image == NULL ? 0 : image->nvox); }
+    size_t nVoxels () const { return (image == nullptr ? 0 : image->nvox); }
 
     /**
      * Return the number of extensions associated with the image
      * @return An integer giving the number of extensions
     **/
-    int nExtensions () const { return (image == NULL ? 0 : image->num_ext); }
+    int nExtensions () const { return (image == nullptr ? 0 : image->num_ext); }
 
     /**
      * Return a list of the extensions associated with the image
@@ -1869,7 +1853,7 @@ public:
     **/
     std::list<Extension> extensions (const int code = -1) const
     {
-        if (image == NULL)
+        if (image == nullptr)
             return std::list<Extension>();
         else
         {
@@ -1891,7 +1875,7 @@ public:
     **/
     NiftiImage & addExtension (const Extension &extension)
     {
-        if (image != NULL)
+        if (image != nullptr)
 #if RNIFTI_NIFTILIB_VERSION == 1
             nifti_add_extension(image, extension.data(), int(extension.length()), extension.code());
 #elif RNIFTI_NIFTILIB_VERSION == 2
@@ -1919,7 +1903,7 @@ public:
     **/
     NiftiImage & dropExtensions ()
     {
-        if (image != NULL)
+        if (image != nullptr)
 #if RNIFTI_NIFTILIB_VERSION == 1
             nifti_free_extensions(image);
 #elif RNIFTI_NIFTILIB_VERSION == 2
@@ -1979,5 +1963,3 @@ public:
 #include "RNifti/NiftiImage_impl.h"
 
 } // main namespace
-
-#endif

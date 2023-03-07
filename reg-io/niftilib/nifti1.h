@@ -9,12 +9,11 @@
                 TIME_SERIES, NODE_INDEX, RGB_VECTOR, RGBA_VECTOR, SHAPE
 
         08 Mar 2019 [PT,DRG]
-           - Updated to include [qs]form_code = 5 
+           - Updated to include [qs]form_code = 5
 
  */
 
-#ifndef _NIFTI_HEADER_
-#define _NIFTI_HEADER_
+#pragma once
 
 /*****************************************************************************
       ** This file defines the "NIFTI-1" header format.               **
@@ -1524,5 +1523,3 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 }
 #endif
 /*=================*/
-
-#endif /* _NIFTI_HEADER_ */

@@ -1,5 +1,4 @@
-#ifndef _ZNZLIB_H_
-#define _ZNZLIB_H_
+#pragma once
 
 /*
 znzlib.h  (zipped or non-zipped library)
@@ -122,5 +121,3 @@ int znzprintf(znzFile stream, const char *format, ...);
 }
 #endif
 /*=================*/
-
-#endif
