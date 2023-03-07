@@ -385,6 +385,11 @@ public:
         Iterator (const Iterator &other)
             : parent(other.parent), ptr(other.ptr), step(other.step) {}
 
+        /**
+         * Reset the iterator to point to the start of the data blob
+        **/
+        void reset () { ptr = parent.dataPtr; }
+
         Iterator & operator++ () { ptr = static_cast<char*>(ptr) + step; return *this; }
         Iterator operator++ (int) { Iterator copy(*this); ptr = static_cast<char*>(ptr) + step; return copy; }
         Iterator operator+ (ptrdiff_t n) const
