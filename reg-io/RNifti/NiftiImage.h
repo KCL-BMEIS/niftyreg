@@ -1371,6 +1371,16 @@ protected:
 
 public:
     /**
+     * Swap the contents of two \c NiftiImage objects
+    */
+    friend void swap (NiftiImage &first, NiftiImage &second)
+    {
+        using std::swap;
+        swap(first.image, second.image);
+        swap(first.refCount, second.refCount);
+    }
+
+    /**
      * Default constructor
     **/
     NiftiImage ()
@@ -1391,6 +1401,19 @@ public:
             acquire(source);
 #ifndef NDEBUG
         Rc_printf("Creating NiftiImage (v%d) with pointer %p (from NiftiImage)\n", RNIFTI_NIFTILIB_VERSION, this->image);
+#endif
+    }
+
+    /**
+     * Move constructor
+     * @param source Another \c NiftiImage object
+    **/
+    NiftiImage (NiftiImage &&source)
+        : NiftiImage()
+    {
+        swap(*this, source);
+#ifndef NDEBUG
+        Rc_printf("Acquiring NiftiImage (v%d) with pointer %p (from NiftiImage)\n", RNIFTI_NIFTILIB_VERSION, this->image);
 #endif
     }
 
@@ -1496,15 +1519,13 @@ public:
     nifti_image * operator-> () { return image; }
 
     /**
-     * Copy assignment operator, which copies from its argument
+     * Copy and move assignment operator
      * @param source Another \c NiftiImage
+     * @note Uses copy-and-swap idiom (https://stackoverflow.com/questions/3279543/what-is-the-copy-and-swap-idiom/3279550#3279550)
     **/
-    NiftiImage & operator= (const NiftiImage &source)
+    NiftiImage & operator= (NiftiImage source)
     {
-        copy(source);
-#ifndef NDEBUG
-        Rc_printf("Creating NiftiImage (v%d), with pointer %p (from NiftiImage)\n", RNIFTI_NIFTILIB_VERSION, this->image);
-#endif
+        swap(*this, source);
         return *this;
     }
 
