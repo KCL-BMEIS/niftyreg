@@ -32,7 +32,6 @@ void PetitUsage(char *exec) {
     reg_print_msg_error(text);
     reg_print_msg_error("\tSee the help for more details (-h)");
     reg_print_msg_error("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-    return;
 }
 
 void Usage(char *exec) {
@@ -169,7 +168,6 @@ void Usage(char *exec) {
     sprintf(text, "\t\t\t\t(%s)", NR_VERSION);
     reg_print_info(exec, text);
     reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-    return;
 }
 
 int main(int argc, char **argv) {
@@ -245,12 +243,11 @@ int main(int argc, char **argv) {
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Read the reference and floating image
-    nifti_image *referenceImage = nullptr;
-    nifti_image *floatingImage = nullptr;
+    NiftiImage referenceImage, floatingImage;
     for (int i = 1; i < argc; i++) {
         if ((strcmp(argv[i], "-ref") == 0) || (strcmp(argv[i], "-target") == 0) || (strcmp(argv[i], "--ref") == 0)) {
             referenceImage = reg_io_ReadImageFile(argv[++i]);
-            if (referenceImage == nullptr) {
+            if (!referenceImage) {
                 reg_print_msg_error("Error when reading the reference image:");
                 reg_print_msg_error(argv[i - 1]);
                 return EXIT_FAILURE;
@@ -258,7 +255,7 @@ int main(int argc, char **argv) {
         }
         if ((strcmp(argv[i], "-flo") == 0) || (strcmp(argv[i], "-source") == 0) || (strcmp(argv[i], "--flo") == 0)) {
             floatingImage = reg_io_ReadImageFile(argv[++i]);
-            if (floatingImage == nullptr) {
+            if (!floatingImage) {
                 reg_print_msg_error("Error when reading the floating image:");
                 reg_print_msg_error(argv[i - 1]);
                 return EXIT_FAILURE;
@@ -266,27 +263,25 @@ int main(int argc, char **argv) {
         }
     }
     // Check that both reference and floating image have been defined
-    if (referenceImage == nullptr) {
+    if (!referenceImage) {
         reg_print_msg_error("Error. No reference image has been defined");
         PetitUsage((argv[0]));
         return EXIT_FAILURE;
     }
     // Read the floating image
-    if (floatingImage == nullptr) {
+    if (!floatingImage) {
         reg_print_msg_error("Error. No floating image has been defined");
         PetitUsage((argv[0]));
         return EXIT_FAILURE;
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Check the type of registration object to create
-    reg_f3d<float> *reg = nullptr;
-    float *referenceLandmark = nullptr;
-    float *floatingLandmark = nullptr;
+    unique_ptr<reg_f3d<float>> reg;
     PlatformType platformType(PlatformType::Cpu);
     unsigned gpuIdx = 999;
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-vel") == 0 || strcmp(argv[i], "--vel") == 0) {
-            reg = new reg_f3d2<float>(referenceImage->nt, floatingImage->nt);
+            reg.reset(new reg_f3d2<float>(referenceImage->nt, floatingImage->nt));
         } else if (strcmp(argv[i], "-platf") == 0 || strcmp(argv[i], "--platf") == 0) {
             PlatformType value{ atoi(argv[++i]) };
             if (value < PlatformType::Cpu || value > PlatformType::Cuda) {
@@ -308,21 +303,16 @@ int main(int argc, char **argv) {
             gpuIdx = unsigned(atoi(argv[++i]));
         }
     }
-    if (reg == nullptr)
-        reg = new reg_f3d<float>(referenceImage->nt, floatingImage->nt);
+    if (!reg)
+        reg.reset(new reg_f3d<float>(referenceImage->nt, floatingImage->nt));
     reg->SetReferenceImage(referenceImage);
     reg->SetFloatingImage(floatingImage);
     reg->SetPlatformType(platformType);
     reg->SetGpuIdx(gpuIdx);
 
     // Create some pointers that could be used
-    mat44 affineMatrix;
-    nifti_image *inputCCPImage = nullptr;
-    nifti_image *referenceMaskImage = nullptr;
-    nifti_image *floatingMaskImage = nullptr;
-    nifti_image *refLocalWeightSim = nullptr;
-    char *outputWarpedImageName = nullptr;
-    char *outputCPPImageName = nullptr;
+    const char *outputWarpedImageName = "outputResult.nii";
+    const char *outputCPPImageName = "outputCPP.nii";
     bool useMeanLNCC = false;
     int refBinNumber = 0;
     int floBinNumber = 0;
@@ -349,26 +339,26 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
             }
             // Read the affine matrix
-            reg_tool_ReadAffineFile(&affineMatrix,
-                                    affineTransformationName);
+            mat44 affineMatrix;
+            reg_tool_ReadAffineFile(&affineMatrix, affineTransformationName);
             // Send the transformation to the registration object
             reg->SetAffineTransformation(&affineMatrix);
         } else if (strcmp(argv[i], "-incpp") == 0 || (strcmp(argv[i], "--incpp") == 0)) {
-            inputCCPImage = reg_io_ReadImageFile(argv[++i]);
-            if (inputCCPImage == nullptr) {
+            NiftiImage inputCCPImage = reg_io_ReadImageFile(argv[++i]);
+            if (!inputCCPImage) {
                 reg_print_msg_error("Error when reading the input control point grid image:");
                 reg_print_msg_error(argv[i - 1]);
                 return EXIT_FAILURE;
             }
-            reg->SetControlPointGridImage(inputCCPImage);
+            reg->SetControlPointGridImage(std::move(inputCCPImage));
         } else if ((strcmp(argv[i], "-rmask") == 0) || (strcmp(argv[i], "-tmask") == 0) || (strcmp(argv[i], "--rmask") == 0)) {
-            referenceMaskImage = reg_io_ReadImageFile(argv[++i]);
-            if (referenceMaskImage == nullptr) {
+            NiftiImage referenceMaskImage = reg_io_ReadImageFile(argv[++i]);
+            if (!referenceMaskImage) {
                 reg_print_msg_error("Error when reading the reference mask image:");
                 reg_print_msg_error(argv[i - 1]);
                 return EXIT_FAILURE;
             }
-            reg->SetReferenceMask(referenceMaskImage);
+            reg->SetReferenceMask(std::move(referenceMaskImage));
         } else if ((strcmp(argv[i], "-res") == 0) || (strcmp(argv[i], "-result") == 0) || (strcmp(argv[i], "--res") == 0)) {
             outputWarpedImageName = argv[++i];
         } else if (strcmp(argv[i], "-cpp") == 0 || (strcmp(argv[i], "--cpp") == 0)) {
@@ -441,8 +431,8 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
             }
             float **allLandmarks = reg_tool_ReadMatrixFile<float>(filename, landmarkNumber, n);
-            referenceLandmark = (float *)malloc(landmarkNumber * n / 2 * sizeof(float));
-            floatingLandmark = (float *)malloc(landmarkNumber * n / 2 * sizeof(float));
+            unique_ptr<float[]> referenceLandmark(new float[landmarkNumber * n / 2]);
+            unique_ptr<float[]> floatingLandmark(new float[landmarkNumber * n / 2]);
             for (size_t l = 0, index = 0; l < landmarkNumber; ++l) {
                 referenceLandmark[index] = allLandmarks[l][0];
                 referenceLandmark[index + 1] = allLandmarks[l][1];
@@ -459,8 +449,8 @@ int main(int argc, char **argv) {
                 }
             }
             reg->SetLandmarkRegularisationParam(landmarkNumber,
-                                                referenceLandmark,
-                                                floatingLandmark,
+                                                referenceLandmark.get(),
+                                                floatingLandmark.get(),
                                                 weight);
             for (size_t l = 0; l < landmarkNumber; ++l)
                 free(allLandmarks[l]);
@@ -559,7 +549,7 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "-lnccMean") == 0) {
             useMeanLNCC = true;
         } else if (strcmp(argv[i], "-dti") == 0 || strcmp(argv[i], "--dti") == 0) {
-            bool *timePoint = new bool[referenceImage->nt];
+            unique_ptr<bool[]> timePoint(new bool[referenceImage->nt]);
             for (int t = 0; t < referenceImage->nt; ++t)
                 timePoint[t] = false;
             timePoint[atoi(argv[++i])] = true;
@@ -570,8 +560,7 @@ int main(int argc, char **argv) {
                 timePoint[atoi(argv[++i])] = true;
                 timePoint[atoi(argv[++i])] = true;
             }
-            reg->UseDTI(timePoint);
-            delete[]timePoint;
+            reg->UseDTI(timePoint.get());
         } else if (strcmp(argv[i], "-nmiw") == 0) {
             int tp = atoi(argv[++i]);
             double w = atof(argv[++i]);
@@ -589,8 +578,8 @@ int main(int argc, char **argv) {
             double w = atof(argv[++i]);
             reg->SetKLDWeight(tp, w);
         } else if (strcmp(argv[i], "-wSim") == 0 || strcmp(argv[i], "--wSim") == 0) {
-            refLocalWeightSim = reg_io_ReadImageFile(argv[++i]);
-            reg->SetLocalWeightSim(refLocalWeightSim);
+            NiftiImage refLocalWeightSim = reg_io_ReadImageFile(argv[++i]);
+            reg->SetLocalWeightSim(std::move(refLocalWeightSim));
         } else if (strcmp(argv[i], "-pad") == 0 || strcmp(argv[i], "--pad") == 0) {
             reg->SetWarpedPaddingValue(atof(argv[++i]));
         } else if (strcmp(argv[i], "-nopy") == 0 || strcmp(argv[i], "--nopy") == 0) {
@@ -614,13 +603,13 @@ int main(int argc, char **argv) {
             }
         } else if ((strcmp(argv[i], "-fmask") == 0) || (strcmp(argv[i], "-smask") == 0) ||
                  (strcmp(argv[i], "--fmask") == 0) || (strcmp(argv[i], "--smask") == 0)) {
-            floatingMaskImage = reg_io_ReadImageFile(argv[++i]);
-            if (floatingMaskImage == nullptr) {
+            NiftiImage floatingMaskImage = reg_io_ReadImageFile(argv[++i]);
+            if (!floatingMaskImage) {
                 reg_print_msg_error("Error when reading the floating mask image:");
                 reg_print_msg_error(argv[i - 1]);
                 return EXIT_FAILURE;
             }
-            reg->SetFloatingMask(floatingMaskImage);
+            reg->SetFloatingMask(std::move(floatingMaskImage));
         } else if (strcmp(argv[i], "-ic") == 0 || strcmp(argv[i], "--ic") == 0) {
             reg->SetInverseConsistencyWeight(atof(argv[++i]));
         } else if (strcmp(argv[i], "-nox") == 0) {
@@ -638,7 +627,6 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "-bch") == 0 || strcmp(argv[i], "--bch") == 0) {
             reg->UseBCHUpdate(atoi(argv[++i]));
         }
-
         else if (strcmp(argv[i], "-omp") == 0 || strcmp(argv[i], "--omp") == 0) {
 #ifdef _OPENMP
             omp_set_num_threads(atoi(argv[++i]));
@@ -687,99 +675,70 @@ int main(int argc, char **argv) {
     reg->Run();
 
     // Save the control point image
-    nifti_image *outputControlPointGridImage = reg->GetControlPointPositionImage();
-    if (outputCPPImageName == nullptr) outputCPPImageName = (char *)"outputCPP.nii";
+    NiftiImage outputControlPointGridImage = reg->GetControlPointPositionImage();
     memset(outputControlPointGridImage->descrip, 0, 80);
     strcpy(outputControlPointGridImage->descrip, "Control point position from NiftyReg (reg_f3d)");
     if (strcmp("NiftyReg F3D2", reg->GetExecutableName()) == 0)
         strcpy(outputControlPointGridImage->descrip, "Velocity field grid from NiftyReg (reg_f3d2)");
     reg_io_WriteImageFile(outputControlPointGridImage, outputCPPImageName);
-    nifti_image_free(outputControlPointGridImage);
-    outputControlPointGridImage = nullptr;
 
     // Save the backward control point image
     if (reg->GetSymmetricStatus()) {
         // _backward is added to the forward control point grid image name
-        std::string b(outputCPPImageName);
-        if (b.find(".nii.gz") != std::string::npos)
-            b.replace(b.find(".nii.gz"), 7, "_backward.nii.gz");
-        else if (b.find(".nii") != std::string::npos)
-            b.replace(b.find(".nii"), 4, "_backward.nii");
-        else if (b.find(".hdr") != std::string::npos)
-            b.replace(b.find(".hdr"), 4, "_backward.hdr");
-        else if (b.find(".img.gz") != std::string::npos)
-            b.replace(b.find(".img.gz"), 7, "_backward.img.gz");
-        else if (b.find(".img") != std::string::npos)
-            b.replace(b.find(".img"), 4, "_backward.img");
-        else if (b.find(".png") != std::string::npos)
-            b.replace(b.find(".png"), 4, "_backward.png");
-        else if (b.find(".nrrd") != std::string::npos)
-            b.replace(b.find(".nrrd"), 5, "_backward.nrrd");
-        else b.append("_backward.nii");
-        nifti_image *outputBackwardControlPointGridImage = reg->GetBackwardControlPointPositionImage();
+        std::string fname(outputCPPImageName);
+        if (fname.find(".nii.gz") != std::string::npos)
+            fname.replace(fname.find(".nii.gz"), 7, "_backward.nii.gz");
+        else if (fname.find(".nii") != std::string::npos)
+            fname.replace(fname.find(".nii"), 4, "_backward.nii");
+        else if (fname.find(".hdr") != std::string::npos)
+            fname.replace(fname.find(".hdr"), 4, "_backward.hdr");
+        else if (fname.find(".img.gz") != std::string::npos)
+            fname.replace(fname.find(".img.gz"), 7, "_backward.img.gz");
+        else if (fname.find(".img") != std::string::npos)
+            fname.replace(fname.find(".img"), 4, "_backward.img");
+        else if (fname.find(".png") != std::string::npos)
+            fname.replace(fname.find(".png"), 4, "_backward.png");
+        else if (fname.find(".nrrd") != std::string::npos)
+            fname.replace(fname.find(".nrrd"), 5, "_backward.nrrd");
+        else fname.append("_backward.nii");
+        NiftiImage outputBackwardControlPointGridImage = reg->GetBackwardControlPointPositionImage();
         memset(outputBackwardControlPointGridImage->descrip, 0, 80);
         strcpy(outputBackwardControlPointGridImage->descrip, "Backward Control point position from NiftyReg (reg_f3d)");
         if (strcmp("NiftyReg F3D2", reg->GetExecutableName()) == 0)
             strcpy(outputBackwardControlPointGridImage->descrip, "Backward velocity field grid from NiftyReg (reg_f3d2)");
-        reg_io_WriteImageFile(outputBackwardControlPointGridImage, b.c_str());
-        nifti_image_free(outputBackwardControlPointGridImage);
-        outputBackwardControlPointGridImage = nullptr;
+        reg_io_WriteImageFile(outputBackwardControlPointGridImage, fname.c_str());
     }
 
     // Save the warped image(s)
-    nifti_image **outputWarpedImage = reg->GetWarpedImage();
-    if (outputWarpedImageName == nullptr)
-        outputWarpedImageName = (char*)"outputResult.nii";
-    memset(outputWarpedImage[0]->descrip, 0, 80);
-    strcpy(outputWarpedImage[0]->descrip, "Warped image using NiftyReg (reg_f3d)");
+    auto outputWarpedImages = reg->GetWarpedImage();
+    memset(outputWarpedImages[0]->descrip, 0, 80);
+    strcpy(outputWarpedImages[0]->descrip, "Warped image using NiftyReg (reg_f3d)");
     if (strcmp("NiftyReg F3D2", reg->GetExecutableName()) == 0) {
-        strcpy(outputWarpedImage[0]->descrip, "Warped image using NiftyReg (reg_f3d2)");
-        strcpy(outputWarpedImage[1]->descrip, "Warped image using NiftyReg (reg_f3d2)");
+        strcpy(outputWarpedImages[0]->descrip, "Warped image using NiftyReg (reg_f3d2)");
+        strcpy(outputWarpedImages[1]->descrip, "Warped image using NiftyReg (reg_f3d2)");
     }
     if (reg->GetSymmetricStatus()) {
-        if (outputWarpedImage[1] != nullptr) {
-            std::string b(outputWarpedImageName);
-            if (b.find(".nii.gz") != std::string::npos)
-                b.replace(b.find(".nii.gz"), 7, "_backward.nii.gz");
-            else if (b.find(".nii") != std::string::npos)
-                b.replace(b.find(".nii"), 4, "_backward.nii");
-            else if (b.find(".hdr") != std::string::npos)
-                b.replace(b.find(".hdr"), 4, "_backward.hdr");
-            else if (b.find(".img.gz") != std::string::npos)
-                b.replace(b.find(".img.gz"), 7, "_backward.img.gz");
-            else if (b.find(".img") != std::string::npos)
-                b.replace(b.find(".img"), 4, "_backward.img");
-            else if (b.find(".png") != std::string::npos)
-                b.replace(b.find(".png"), 4, "_backward.png");
-            else if (b.find(".nrrd") != std::string::npos)
-                b.replace(b.find(".nrrd"), 5, "_backward.nrrd");
-            else b.append("_backward.nii");
-            reg_io_WriteImageFile(outputWarpedImage[1], b.c_str());
+        if (outputWarpedImages[1]) {
+            std::string fname(outputWarpedImageName);
+            if (fname.find(".nii.gz") != std::string::npos)
+                fname.replace(fname.find(".nii.gz"), 7, "_backward.nii.gz");
+            else if (fname.find(".nii") != std::string::npos)
+                fname.replace(fname.find(".nii"), 4, "_backward.nii");
+            else if (fname.find(".hdr") != std::string::npos)
+                fname.replace(fname.find(".hdr"), 4, "_backward.hdr");
+            else if (fname.find(".img.gz") != std::string::npos)
+                fname.replace(fname.find(".img.gz"), 7, "_backward.img.gz");
+            else if (fname.find(".img") != std::string::npos)
+                fname.replace(fname.find(".img"), 4, "_backward.img");
+            else if (fname.find(".png") != std::string::npos)
+                fname.replace(fname.find(".png"), 4, "_backward.png");
+            else if (fname.find(".nrrd") != std::string::npos)
+                fname.replace(fname.find(".nrrd"), 5, "_backward.nrrd");
+            else fname.append("_backward.nii");
+            reg_io_WriteImageFile(outputWarpedImages[1], fname.c_str());
         }
     }
-    reg_io_WriteImageFile(outputWarpedImage[0], outputWarpedImageName);
-    if (outputWarpedImage[0] != nullptr)
-        nifti_image_free(outputWarpedImage[0]);
-    outputWarpedImage[0] = nullptr;
-    if (outputWarpedImage[1] != nullptr)
-        nifti_image_free(outputWarpedImage[1]);
-    outputWarpedImage[1] = nullptr;
-    free(outputWarpedImage);
-    outputWarpedImage = nullptr;
-    // Free the allocated landmarks if used
-    free(referenceLandmark);
-    free(floatingLandmark);
-
-    // Erase the registration object
-    delete reg;
-
-    // Clean the allocated images
-    if (refLocalWeightSim != nullptr) nifti_image_free(refLocalWeightSim);
-    if (referenceImage != nullptr) nifti_image_free(referenceImage);
-    if (floatingImage != nullptr) nifti_image_free(floatingImage);
-    if (inputCCPImage != nullptr) nifti_image_free(inputCCPImage);
-    if (referenceMaskImage != nullptr) nifti_image_free(referenceMaskImage);
-    if (floatingMaskImage != nullptr) nifti_image_free(floatingMaskImage);
+    reg_io_WriteImageFile(outputWarpedImages[0], outputWarpedImageName);
 
 #ifdef NDEBUG
     if (verbose) {
