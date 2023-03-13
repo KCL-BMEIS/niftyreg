@@ -1353,6 +1353,11 @@ protected:
 
 public:
     /**
+     * Correct dimensions of the image
+    */
+    void correctDimensions ();
+
+    /**
      * Swap the contents of two \c NiftiImage objects
     */
     friend void swap (NiftiImage &first, NiftiImage &second)
@@ -1375,7 +1380,7 @@ public:
      * object wraps the same \c nifti_image and increments the shared reference count
     **/
     NiftiImage (const NiftiImage &source, const bool copy = true)
-        : image(nullptr), refCount(nullptr)
+        : NiftiImage()
     {
         if (copy) {
             this->copy(source);
