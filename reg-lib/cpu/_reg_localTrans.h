@@ -33,12 +33,12 @@
  * store in this pointer
  * @param referenceImage Reference image which dimension will be used to
  * define the control point grid image space
- * @param spacingMillimeter Control point spacing along each axis
+ * @param spacing Control point spacing along each axis
  */
 extern "C++" template <class DataType>
-void reg_createControlPointGrid(nifti_image **controlPointGridImage,
-                                nifti_image *referenceImage,
-                                float *spacingMillimeter);
+void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
+                                const NiftiImage& referenceImage,
+                                const float *spacing);
 
 extern "C++" template <class DataType>
 void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,

@@ -17,75 +17,68 @@
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DataType>
-void reg_createControlPointGrid(nifti_image **controlPointGridImage,
-                                nifti_image *referenceImage,
-                                float *spacingMillimeter)
+void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
+                                const NiftiImage& referenceImage,
+                                const float *spacing)
 {
    // Define the control point grid dimension
-   int dim_cpp[8];
-   dim_cpp[0]=5;
-   dim_cpp[1]=static_cast<int>(reg_ceil(referenceImage->nx*referenceImage->dx/spacingMillimeter[0])+3.f);
-   dim_cpp[2]=static_cast<int>(reg_ceil(referenceImage->ny*referenceImage->dy/spacingMillimeter[1])+3.f);
-   dim_cpp[3]=1;
-   dim_cpp[5]=2;
-   if(referenceImage->nz>1)
-   {
-      dim_cpp[3]=static_cast<int>(reg_ceil(referenceImage->nz*referenceImage->dz/spacingMillimeter[2])+3.f);
-      dim_cpp[5]=3;
-   }
-   dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
+   vector<NiftiImage::dim_t> dims{
+      static_cast<int>(reg_ceil(referenceImage->nx*referenceImage->dx / spacing[0]) + 3.f),
+      static_cast<int>(reg_ceil(referenceImage->ny*referenceImage->dy / spacing[1]) + 3.f),
+      referenceImage->nz > 1 ? static_cast<int>(reg_ceil(referenceImage->nz * referenceImage->dz / spacing[2]) + 3.f) : 1,
+      1,
+      referenceImage->nz > 1 ? 3 : 2
+   };
 
    // Create the new control point grid image and allocate its space
-   if(sizeof(DataType)==4)
-      *controlPointGridImage = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT32, true);
-   else *controlPointGridImage = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT64, true);
+   controlPointGridImage = NiftiImage(dims, sizeof(DataType) == sizeof(float) ? NIFTI_TYPE_FLOAT32 : NIFTI_TYPE_FLOAT64);
 
    // Fill the header information
-   (*controlPointGridImage)->cal_min=0;
-   (*controlPointGridImage)->cal_max=0;
-   (*controlPointGridImage)->pixdim[0]=1.0f;
-   (*controlPointGridImage)->pixdim[1]=(*controlPointGridImage)->dx=spacingMillimeter[0];
-   (*controlPointGridImage)->pixdim[2]=(*controlPointGridImage)->dy=spacingMillimeter[1];
+   controlPointGridImage->cal_min=0;
+   controlPointGridImage->cal_max=0;
+   controlPointGridImage->pixdim[0]=1.0f;
+   controlPointGridImage->pixdim[1]=controlPointGridImage->dx=spacing[0];
+   controlPointGridImage->pixdim[2]=controlPointGridImage->dy=spacing[1];
    if(referenceImage->nz==1)
    {
-      (*controlPointGridImage)->pixdim[3]=(*controlPointGridImage)->dz=1.0f;
+      controlPointGridImage->pixdim[3]=controlPointGridImage->dz=1.0f;
    }
-   else (*controlPointGridImage)->pixdim[3]=(*controlPointGridImage)->dz=spacingMillimeter[2];
-   (*controlPointGridImage)->pixdim[4]=(*controlPointGridImage)->dt=1.0f;
-   (*controlPointGridImage)->pixdim[5]=(*controlPointGridImage)->du=1.0f;
-   (*controlPointGridImage)->pixdim[6]=(*controlPointGridImage)->dv=1.0f;
-   (*controlPointGridImage)->pixdim[7]=(*controlPointGridImage)->dw=1.0f;
+   else controlPointGridImage->pixdim[3]=controlPointGridImage->dz=spacing[2];
+   controlPointGridImage->pixdim[4]=controlPointGridImage->dt=1.0f;
+   controlPointGridImage->pixdim[5]=controlPointGridImage->du=1.0f;
+   controlPointGridImage->pixdim[6]=controlPointGridImage->dv=1.0f;
+   controlPointGridImage->pixdim[7]=controlPointGridImage->dw=1.0f;
 
    // Reproduce the orientation of the reference image and add a one voxel shift
    if(referenceImage->qform_code+referenceImage->sform_code>0)
    {
-      (*controlPointGridImage)->qform_code=referenceImage->qform_code;
-      (*controlPointGridImage)->sform_code=referenceImage->sform_code;
+      controlPointGridImage->qform_code=referenceImage->qform_code;
+      controlPointGridImage->sform_code=referenceImage->sform_code;
    }
    else
    {
-      (*controlPointGridImage)->qform_code=1;
-      (*controlPointGridImage)->sform_code=0;
+      controlPointGridImage->qform_code=1;
+      controlPointGridImage->sform_code=0;
    }
 
    // The qform (and sform) are set for the control point position image
-   (*controlPointGridImage)->quatern_b=referenceImage->quatern_b;
-   (*controlPointGridImage)->quatern_c=referenceImage->quatern_c;
-   (*controlPointGridImage)->quatern_d=referenceImage->quatern_d;
-   (*controlPointGridImage)->qoffset_x=referenceImage->qoffset_x;
-   (*controlPointGridImage)->qoffset_y=referenceImage->qoffset_y;
-   (*controlPointGridImage)->qoffset_z=referenceImage->qoffset_z;
-   (*controlPointGridImage)->qfac=referenceImage->qfac;
-   (*controlPointGridImage)->qto_xyz = nifti_quatern_to_mat44((*controlPointGridImage)->quatern_b,
-                                                              (*controlPointGridImage)->quatern_c,
-                                                              (*controlPointGridImage)->quatern_d,
-                                                              (*controlPointGridImage)->qoffset_x,
-                                                              (*controlPointGridImage)->qoffset_y,
-                                                              (*controlPointGridImage)->qoffset_z,
-                                                              (*controlPointGridImage)->dx,
-                                                              (*controlPointGridImage)->dy,
-                                                              (*controlPointGridImage)->dz,
-                                                              (*controlPointGridImage)->qfac);
+   controlPointGridImage->quatern_b=referenceImage->quatern_b;
+   controlPointGridImage->quatern_c=referenceImage->quatern_c;
+   controlPointGridImage->quatern_d=referenceImage->quatern_d;
+   controlPointGridImage->qoffset_x=referenceImage->qoffset_x;
+   controlPointGridImage->qoffset_y=referenceImage->qoffset_y;
+   controlPointGridImage->qoffset_z=referenceImage->qoffset_z;
+   controlPointGridImage->qfac=referenceImage->qfac;
+   controlPointGridImage->qto_xyz = nifti_quatern_to_mat44(controlPointGridImage->quatern_b,
+                                                           controlPointGridImage->quatern_c,
+                                                           controlPointGridImage->quatern_d,
+                                                           controlPointGridImage->qoffset_x,
+                                                           controlPointGridImage->qoffset_y,
+                                                           controlPointGridImage->qoffset_z,
+                                                           controlPointGridImage->dx,
+                                                           controlPointGridImage->dy,
+                                                           controlPointGridImage->dz,
+                                                           controlPointGridImage->qfac);
 
    // Origin is shifted from 1 control point in the qform
    float originIndex[3];
@@ -94,53 +87,53 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
    originIndex[1] = -1.0f;
    originIndex[2] = 0.0f;
    if(referenceImage->nz>1) originIndex[2] = -1.0f;
-   reg_mat44_mul(&((*controlPointGridImage)->qto_xyz), originIndex, originReal);
-   (*controlPointGridImage)->qto_xyz.m[0][3] = (*controlPointGridImage)->qoffset_x = originReal[0];
-   (*controlPointGridImage)->qto_xyz.m[1][3] = (*controlPointGridImage)->qoffset_y = originReal[1];
-   (*controlPointGridImage)->qto_xyz.m[2][3] = (*controlPointGridImage)->qoffset_z = originReal[2];
+   reg_mat44_mul(&(controlPointGridImage->qto_xyz), originIndex, originReal);
+   controlPointGridImage->qto_xyz.m[0][3] = controlPointGridImage->qoffset_x = originReal[0];
+   controlPointGridImage->qto_xyz.m[1][3] = controlPointGridImage->qoffset_y = originReal[1];
+   controlPointGridImage->qto_xyz.m[2][3] = controlPointGridImage->qoffset_z = originReal[2];
 
-   (*controlPointGridImage)->qto_ijk = nifti_mat44_inverse((*controlPointGridImage)->qto_xyz);
+   controlPointGridImage->qto_ijk = nifti_mat44_inverse(controlPointGridImage->qto_xyz);
 
    // Update the sform if required
-   if((*controlPointGridImage)->sform_code>0)
+   if(controlPointGridImage->sform_code>0)
    {
       float scalingRatio[3];
-      scalingRatio[0]= (*controlPointGridImage)->dx / referenceImage->dx;
-      scalingRatio[1]= (*controlPointGridImage)->dy / referenceImage->dy;
-      scalingRatio[2]= (*controlPointGridImage)->dz / referenceImage->dz;
+      scalingRatio[0]= controlPointGridImage->dx / referenceImage->dx;
+      scalingRatio[1]= controlPointGridImage->dy / referenceImage->dy;
+      scalingRatio[2]= controlPointGridImage->dz / referenceImage->dz;
 
-      (*controlPointGridImage)->sto_xyz.m[0][0]=referenceImage->sto_xyz.m[0][0] * scalingRatio[0];
-      (*controlPointGridImage)->sto_xyz.m[1][0]=referenceImage->sto_xyz.m[1][0] * scalingRatio[0];
-      (*controlPointGridImage)->sto_xyz.m[2][0]=referenceImage->sto_xyz.m[2][0] * scalingRatio[0];
-      (*controlPointGridImage)->sto_xyz.m[3][0]=referenceImage->sto_xyz.m[3][0];
-      (*controlPointGridImage)->sto_xyz.m[0][1]=referenceImage->sto_xyz.m[0][1] * scalingRatio[1];
-      (*controlPointGridImage)->sto_xyz.m[1][1]=referenceImage->sto_xyz.m[1][1] * scalingRatio[1];
-      (*controlPointGridImage)->sto_xyz.m[2][1]=referenceImage->sto_xyz.m[2][1] * scalingRatio[1];
-      (*controlPointGridImage)->sto_xyz.m[3][1]=referenceImage->sto_xyz.m[3][1];
-      (*controlPointGridImage)->sto_xyz.m[0][2]=referenceImage->sto_xyz.m[0][2] * scalingRatio[2];
-      (*controlPointGridImage)->sto_xyz.m[1][2]=referenceImage->sto_xyz.m[1][2] * scalingRatio[2];
-      (*controlPointGridImage)->sto_xyz.m[2][2]=referenceImage->sto_xyz.m[2][2] * scalingRatio[2];
-      (*controlPointGridImage)->sto_xyz.m[3][2]=referenceImage->sto_xyz.m[3][2];
-      (*controlPointGridImage)->sto_xyz.m[0][3]=referenceImage->sto_xyz.m[0][3];
-      (*controlPointGridImage)->sto_xyz.m[1][3]=referenceImage->sto_xyz.m[1][3];
-      (*controlPointGridImage)->sto_xyz.m[2][3]=referenceImage->sto_xyz.m[2][3];
-      (*controlPointGridImage)->sto_xyz.m[3][3]=referenceImage->sto_xyz.m[3][3];
+      controlPointGridImage->sto_xyz.m[0][0]=referenceImage->sto_xyz.m[0][0] * scalingRatio[0];
+      controlPointGridImage->sto_xyz.m[1][0]=referenceImage->sto_xyz.m[1][0] * scalingRatio[0];
+      controlPointGridImage->sto_xyz.m[2][0]=referenceImage->sto_xyz.m[2][0] * scalingRatio[0];
+      controlPointGridImage->sto_xyz.m[3][0]=referenceImage->sto_xyz.m[3][0];
+      controlPointGridImage->sto_xyz.m[0][1]=referenceImage->sto_xyz.m[0][1] * scalingRatio[1];
+      controlPointGridImage->sto_xyz.m[1][1]=referenceImage->sto_xyz.m[1][1] * scalingRatio[1];
+      controlPointGridImage->sto_xyz.m[2][1]=referenceImage->sto_xyz.m[2][1] * scalingRatio[1];
+      controlPointGridImage->sto_xyz.m[3][1]=referenceImage->sto_xyz.m[3][1];
+      controlPointGridImage->sto_xyz.m[0][2]=referenceImage->sto_xyz.m[0][2] * scalingRatio[2];
+      controlPointGridImage->sto_xyz.m[1][2]=referenceImage->sto_xyz.m[1][2] * scalingRatio[2];
+      controlPointGridImage->sto_xyz.m[2][2]=referenceImage->sto_xyz.m[2][2] * scalingRatio[2];
+      controlPointGridImage->sto_xyz.m[3][2]=referenceImage->sto_xyz.m[3][2];
+      controlPointGridImage->sto_xyz.m[0][3]=referenceImage->sto_xyz.m[0][3];
+      controlPointGridImage->sto_xyz.m[1][3]=referenceImage->sto_xyz.m[1][3];
+      controlPointGridImage->sto_xyz.m[2][3]=referenceImage->sto_xyz.m[2][3];
+      controlPointGridImage->sto_xyz.m[3][3]=referenceImage->sto_xyz.m[3][3];
 
       // Origin is shifted from 1 control point in the sform
-      reg_mat44_mul(&((*controlPointGridImage)->sto_xyz), originIndex, originReal);
-      (*controlPointGridImage)->sto_xyz.m[0][3] = originReal[0];
-      (*controlPointGridImage)->sto_xyz.m[1][3] = originReal[1];
-      (*controlPointGridImage)->sto_xyz.m[2][3] = originReal[2];
-      (*controlPointGridImage)->sto_ijk = nifti_mat44_inverse((*controlPointGridImage)->sto_xyz);
+      reg_mat44_mul(&(controlPointGridImage->sto_xyz), originIndex, originReal);
+      controlPointGridImage->sto_xyz.m[0][3] = originReal[0];
+      controlPointGridImage->sto_xyz.m[1][3] = originReal[1];
+      controlPointGridImage->sto_xyz.m[2][3] = originReal[2];
+      controlPointGridImage->sto_ijk = nifti_mat44_inverse(controlPointGridImage->sto_xyz);
    }
 
-   (*controlPointGridImage)->intent_code=NIFTI_INTENT_VECTOR;
-   memset((*controlPointGridImage)->intent_name, 0, 16);
-   strcpy((*controlPointGridImage)->intent_name,"NREG_TRANS");
-   (*controlPointGridImage)->intent_p1=CUB_SPLINE_GRID;
+   controlPointGridImage->intent_code=NIFTI_INTENT_VECTOR;
+   memset(controlPointGridImage->intent_name, 0, 16);
+   strcpy(controlPointGridImage->intent_name,"NREG_TRANS");
+   controlPointGridImage->intent_p1=CUB_SPLINE_GRID;
 }
-template void reg_createControlPointGrid<float>(nifti_image **, nifti_image *, float *);
-template void reg_createControlPointGrid<double>(nifti_image **, nifti_image *, float *);
+template void reg_createControlPointGrid<float>(NiftiImage&, const NiftiImage&, const float*);
+template void reg_createControlPointGrid<double>(NiftiImage&, const NiftiImage&, const float*);
 /* *************************************************************** */
 template <class DataType>
 void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
