@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
     char *floatingImageName = nullptr;
     int floatingImageFlag = 0;
 
-    char *outputAffineName = nullptr;
+    const char *outputAffineName = "outputAffine.txt";
     int outputAffineFlag = 0;
 
     char *inputAffineName = nullptr;
@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
     char *floatingMaskName = nullptr;
     int floatingMaskFlag = 0;
 
-    char *outputResultName = nullptr;
+    const char *outputResultName = "outputResult.nii.gz";
     int outputResultFlag = 0;
 
     int maxIter = 5;
@@ -163,9 +163,9 @@ int main(int argc, char **argv) {
     float floatingSigma = 0;
     float referenceSigma = 0;
 
-    float referenceLowerThr = -std::numeric_limits<PrecisionType>::max();
+    float referenceLowerThr = std::numeric_limits<PrecisionType>::min();
     float referenceUpperThr = std::numeric_limits<PrecisionType>::max();
-    float floatingLowerThr = -std::numeric_limits<PrecisionType>::max();
+    float floatingLowerThr = std::numeric_limits<PrecisionType>::min();
     float floatingUpperThr = std::numeric_limits<PrecisionType>::max();
     float paddingValue = std::numeric_limits<PrecisionType>::quiet_NaN();
 
@@ -347,56 +347,45 @@ int main(int argc, char **argv) {
     }
 #endif
 
-    reg_aladin<PrecisionType> *REG;
+    unique_ptr<reg_aladin<PrecisionType>> reg;
     if (symFlag) {
-        REG = new reg_aladin_sym<PrecisionType>;
+        reg.reset(new reg_aladin_sym<PrecisionType>);
         if ((referenceMaskFlag && !floatingMaskName) || (!referenceMaskFlag && floatingMaskName)) {
             reg_print_msg_warn("You have one image mask option turned on but not the other.");
             reg_print_msg_warn("This will affect the degree of symmetry achieved.");
         }
     } else {
-        REG = new reg_aladin<PrecisionType>;
+        reg.reset(new reg_aladin<PrecisionType>);
         if (floatingMaskFlag) {
             reg_print_msg_warn("Note: Floating mask flag only used in symmetric method. Ignoring this option");
         }
     }
 
     /* Read the reference image and check its dimension */
-    nifti_image *referenceHeader = reg_io_ReadImageFile(referenceImageName);
-    if (referenceHeader == nullptr) {
+    NiftiImage referenceHeader = reg_io_ReadImageFile(referenceImageName);
+    if (!referenceHeader) {
         sprintf(text, "Error when reading the reference image: %s", referenceImageName);
         reg_print_msg_error(text);
         return EXIT_FAILURE;
     }
 
     /* Read the floating image and check its dimension */
-    nifti_image *floatingHeader = reg_io_ReadImageFile(floatingImageName);
-    if (floatingHeader == nullptr) {
+    NiftiImage floatingHeader = reg_io_ReadImageFile(floatingImageName);
+    if (!floatingHeader) {
         sprintf(text, "Error when reading the floating image: %s", floatingImageName);
         reg_print_msg_error(text);
         return EXIT_FAILURE;
     }
 
     // Set the reference and floating images
-    nifti_image *isoRefImage = nullptr;
-    nifti_image *isoFloImage = nullptr;
-    if (iso) {
-        // make the images isotropic if required
-        isoRefImage = reg_makeIsotropic(referenceHeader, 1);
-        isoFloImage = reg_makeIsotropic(floatingHeader, 1);
-        REG->SetInputReference(isoRefImage);
-        REG->SetInputFloating(isoFloImage);
-    } else {
-        REG->SetInputReference(referenceHeader);
-        REG->SetInputFloating(floatingHeader);
-    }
+    // make the images isotropic if required
+    reg->SetInputReference(iso ? reg_makeIsotropic(referenceHeader, 1) : referenceHeader);
+    reg->SetInputFloating(iso ? reg_makeIsotropic(floatingHeader, 1) : floatingHeader);
 
     /* read the reference mask image */
-    nifti_image *referenceMaskImage = nullptr;
-    nifti_image *isoRefMaskImage = nullptr;
     if (referenceMaskFlag) {
-        referenceMaskImage = reg_io_ReadImageFile(referenceMaskName);
-        if (referenceMaskImage == nullptr) {
+        NiftiImage referenceMaskImage = reg_io_ReadImageFile(referenceMaskName);
+        if (!referenceMaskImage) {
             sprintf(text, "Error when reading the reference mask image: %s", referenceMaskName);
             reg_print_msg_error(text);
             return EXIT_FAILURE;
@@ -408,18 +397,13 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
             }
         }
-        if (iso) {
-            // make the image isotropic if required
-            isoRefMaskImage = reg_makeIsotropic(referenceMaskImage, 0);
-            REG->SetInputMask(isoRefMaskImage);
-        } else REG->SetInputMask(referenceMaskImage);
+        // make the image isotropic if required
+        reg->SetInputMask(iso ? reg_makeIsotropic(referenceMaskImage, 0) : std::move(referenceMaskImage));
     }
     /* Read the floating mask image */
-    nifti_image *floatingMaskImage = nullptr;
-    nifti_image *isoFloMaskImage = nullptr;
     if (floatingMaskFlag && symFlag) {
-        floatingMaskImage = reg_io_ReadImageFile(floatingMaskName);
-        if (floatingMaskImage == nullptr) {
+        NiftiImage floatingMaskImage = reg_io_ReadImageFile(floatingMaskName);
+        if (!floatingMaskImage) {
             sprintf(text, "Error when reading the floating mask image: %s", floatingMaskName);
             reg_print_msg_error(text);
             return EXIT_FAILURE;
@@ -431,51 +415,48 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
             }
         }
-        if (iso) {
-            // make the image isotropic if required
-            isoFloMaskImage = reg_makeIsotropic(floatingMaskImage, 0);
-            REG->SetInputFloatingMask(isoFloMaskImage);
-        } else REG->SetInputFloatingMask(floatingMaskImage);
+        // make the image isotropic if required
+        reg->SetInputFloatingMask(iso ? reg_makeIsotropic(floatingMaskImage, 0) : std::move(floatingMaskImage));
     }
 
-    REG->SetMaxIterations(maxIter);
-    REG->SetNumberOfLevels(nLevels);
-    REG->SetLevelsToPerform(levelsToPerform);
-    REG->SetReferenceSigma(referenceSigma);
-    REG->SetFloatingSigma(floatingSigma);
-    REG->SetAlignCentre(alignCentre);
-    REG->SetAlignCentreMass(alignCentreOfMass);
-    REG->SetPerformAffine(affineFlag);
-    REG->SetPerformRigid(rigidFlag);
-    REG->SetBlockStepSize(blockStepSize);
-    REG->SetBlockPercentage(blockPercentage);
-    REG->SetInlierLts(inlierLts);
-    REG->SetInterpolation(interpolation);
-    REG->SetCaptureRangeVox(captureRangeVox);
-    REG->SetPlatformType(platformType);
-    REG->SetGpuIdx(gpuIdx);
+    reg->SetMaxIterations(maxIter);
+    reg->SetNumberOfLevels(nLevels);
+    reg->SetLevelsToPerform(levelsToPerform);
+    reg->SetReferenceSigma(referenceSigma);
+    reg->SetFloatingSigma(floatingSigma);
+    reg->SetAlignCentre(alignCentre);
+    reg->SetAlignCentreMass(alignCentreOfMass);
+    reg->SetPerformAffine(affineFlag);
+    reg->SetPerformRigid(rigidFlag);
+    reg->SetBlockStepSize(blockStepSize);
+    reg->SetBlockPercentage(blockPercentage);
+    reg->SetInlierLts(inlierLts);
+    reg->SetInterpolation(interpolation);
+    reg->SetCaptureRangeVox(captureRangeVox);
+    reg->SetPlatformType(platformType);
+    reg->SetGpuIdx(gpuIdx);
 
     if (referenceLowerThr != referenceUpperThr) {
-        REG->SetReferenceLowerThreshold(referenceLowerThr);
-        REG->SetReferenceUpperThreshold(referenceUpperThr);
+        reg->SetReferenceLowerThreshold(referenceLowerThr);
+        reg->SetReferenceUpperThreshold(referenceUpperThr);
     }
 
     if (floatingLowerThr != floatingUpperThr) {
-        REG->SetFloatingLowerThreshold(floatingLowerThr);
-        REG->SetFloatingUpperThreshold(floatingUpperThr);
+        reg->SetFloatingLowerThreshold(floatingLowerThr);
+        reg->SetFloatingUpperThreshold(floatingUpperThr);
     }
 
-    REG->SetWarpedPaddingValue(paddingValue);
+    reg->SetWarpedPaddingValue(paddingValue);
 
-    if (REG->GetLevelsToPerform() > REG->GetNumberOfLevels())
-        REG->SetLevelsToPerform(REG->GetNumberOfLevels());
+    if (reg->GetLevelsToPerform() > reg->GetNumberOfLevels())
+        reg->SetLevelsToPerform(reg->GetNumberOfLevels());
 
     // Set the input affine transformation if defined
     if (inputAffineFlag == 1)
-        REG->SetInputTransform(inputAffineName);
+        reg->SetInputTransform(inputAffineName);
 
     // Set the verbose type
-    REG->SetVerbose(verbose);
+    reg->SetVerbose(verbose);
 
 #ifndef NDEBUG
     reg_print_msg_debug("*******************************************");
@@ -496,39 +477,19 @@ int main(int argc, char **argv) {
 #endif // _OPENMP
 
     // Run the registration
-    REG->Run();
+    reg->Run();
 
     // The warped image is saved
     if (iso) {
-        REG->SetInputReference(referenceHeader);
-        REG->SetInputFloating(floatingHeader);
+        reg->SetInputReference(referenceHeader);
+        reg->SetInputFloating(floatingHeader);
     }
-    nifti_image *outputResultImage = REG->GetFinalWarpedImage();
-    if (!outputResultFlag) outputResultName = (char *)"outputResult.nii.gz";
+    NiftiImage outputResultImage = reg->GetFinalWarpedImage();
     reg_io_WriteImageFile(outputResultImage, outputResultName);
-    nifti_image_free(outputResultImage);
 
     /* The affine transformation is saved */
-    if (outputAffineFlag)
-        reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), outputAffineName);
-    else reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), (char *)"outputAffine.txt");
+    reg_tool_WriteAffineFile(reg->GetTransformationMatrix(), outputAffineName);
 
-    nifti_image_free(referenceHeader);
-    nifti_image_free(floatingHeader);
-    if (isoRefImage != nullptr)
-        nifti_image_free(isoRefImage);
-    if (isoFloImage != nullptr)
-        nifti_image_free(isoFloImage);
-    if (referenceMaskImage != nullptr)
-        nifti_image_free(referenceMaskImage);
-    if (floatingMaskImage != nullptr)
-        nifti_image_free(floatingMaskImage);
-    if (isoRefMaskImage != nullptr)
-        nifti_image_free(isoRefMaskImage);
-    if (isoFloMaskImage != nullptr)
-        nifti_image_free(isoFloMaskImage);
-
-    delete REG;
 #ifdef NDEBUG
     if (verbose) {
 #endif
