@@ -20,7 +20,7 @@
 #include <iostream>
 #include <vector>
 #include <stdexcept>
-#include "niftilib/nifti1_io.h"
+#include "RNifti.h"
 
 #ifdef _OPENMP
 #include <omp.h>

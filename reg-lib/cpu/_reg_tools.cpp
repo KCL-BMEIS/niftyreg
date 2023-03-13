@@ -1825,9 +1825,9 @@ double reg_tools_getMeanRMS(const nifti_image *imageA, const nifti_image *imageB
 }
 /* *************************************************************** */
 template <class DataType>
-int reg_createImagePyramid(const nifti_image *inputImage, nifti_image **pyramid, unsigned int levelNumber, unsigned int levelToPerform) {
+void reg_createImagePyramid(const NiftiImage& inputImage, vector<NiftiImage>& pyramid, unsigned int levelNumber, unsigned int levelToPerform) {
     // FINEST LEVEL OF REGISTRATION
-    pyramid[levelToPerform - 1] = nifti_dup(*inputImage);
+    pyramid[levelToPerform - 1] = inputImage;
     reg_tools_changeDatatype<DataType>(pyramid[levelToPerform - 1]);
     reg_tools_removeSCLInfo(pyramid[levelToPerform - 1]);
 
@@ -1843,7 +1843,7 @@ int reg_createImagePyramid(const nifti_image *inputImage, nifti_image **pyramid,
     // Images for each subsequent levels are allocated and downsampled if appropriate
     for (int l = levelToPerform - 2; l >= 0; l--) {
         // Allocation of the image
-        pyramid[l] = nifti_dup(*pyramid[l + 1]);
+        pyramid[l] = pyramid[l + 1];
 
         // Downsample the image if appropriate
         bool downsampleAxis[8] = { false, true, true, true, false, false, false, false };
@@ -1852,10 +1852,9 @@ int reg_createImagePyramid(const nifti_image *inputImage, nifti_image **pyramid,
         if ((pyramid[l]->nz / 2) < 32) downsampleAxis[3] = false;
         reg_downsampleImage<DataType>(pyramid[l], 1, downsampleAxis);
     }
-    return EXIT_SUCCESS;
 }
-template int reg_createImagePyramid<float>(const nifti_image*, nifti_image**, unsigned int, unsigned int);
-template int reg_createImagePyramid<double>(const nifti_image*, nifti_image**, unsigned int, unsigned int);
+template void reg_createImagePyramid<float>(const NiftiImage&, vector<NiftiImage>&, unsigned int, unsigned int);
+template void reg_createImagePyramid<double>(const NiftiImage&, vector<NiftiImage>&, unsigned int, unsigned int);
 /* *************************************************************** */
 template <class DataType>
 int reg_createMaskPyramid(const nifti_image *inputMaskImage, int **maskPyramid, unsigned int levelNumber, unsigned int levelToPerform) {

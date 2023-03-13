@@ -24,6 +24,9 @@
 
 using std::unique_ptr;
 using std::shared_ptr;
+using std::vector;
+using RNifti::NiftiImage;
+using RNifti::NiftiImageData;
 
 typedef enum {
     MEAN_KERNEL,
@@ -327,10 +330,10 @@ float reg_tools_getSTDValue(const nifti_image *img);
  * the registration.
  */
 extern "C++" template<class DataType>
-int reg_createImagePyramid(const nifti_image *input,
-                           nifti_image **pyramid,
-                           unsigned int levelNumber,
-                           unsigned int levelToPerform);
+void reg_createImagePyramid(const NiftiImage& input,
+                            vector<NiftiImage>& pyramid,
+                            unsigned int levelNumber,
+                            unsigned int levelToPerform);
 /* *************************************************************** */
 /** @brief Generate a pyramid from an input mask image.
  * @param input Input image to be downsampled to create the pyramid
