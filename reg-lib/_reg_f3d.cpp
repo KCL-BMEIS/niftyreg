@@ -19,8 +19,6 @@ reg_f3d<T>::reg_f3d(int refTimePoint, int floTimePoint):
     reg_base<T>::reg_base(refTimePoint, floTimePoint) {
 
     this->executableName = (char*)"NiftyReg F3D";
-    inputControlPointGrid = nullptr; // pointer to external
-    controlPointGrid = nullptr;
     bendingEnergyWeight = 0.001;
     linearEnergyWeight = 0.01;
     jacobianLogWeight = 0;
@@ -38,19 +36,8 @@ reg_f3d<T>::reg_f3d(int refTimePoint, int floTimePoint):
 }
 /* *************************************************************** */
 template<class T>
-reg_f3d<T>::~reg_f3d() {
-    if (controlPointGrid) {
-        nifti_image_free(controlPointGrid);
-        controlPointGrid = nullptr;
-    }
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d<T>::~reg_f3d");
-#endif
-}
-/* *************************************************************** */
-template<class T>
-void reg_f3d<T>::SetControlPointGridImage(nifti_image *cp) {
-    inputControlPointGrid = cp;
+void reg_f3d<T>::SetControlPointGridImage(NiftiImage inputControlPointGridIn) {
+    inputControlPointGrid = inputControlPointGridIn;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::SetControlPointGridImage");
 #endif
@@ -107,8 +94,8 @@ void reg_f3d<T>::SetSpacing(unsigned int i, T s) {
 template<class T>
 void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
     unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d)) };
-    this->con = contentCreator->Create(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T));
-    this->compute = this->platform->CreateCompute(*this->con);
+    this->con.reset(contentCreator->Create(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T)));
+    this->compute.reset(this->platform->CreateCompute(*this->con));
 }
 /* *************************************************************** */
 template<class T>
@@ -124,7 +111,7 @@ T reg_f3d<T>::InitCurrentLevel(int currentLevel) {
         const int index = this->usePyramid ? currentLevel : 0;
         reference = this->referencePyramid[index];
         floating = this->floatingPyramid[index];
-        mask = this->maskPyramid[index];
+        mask = this->maskPyramid[index].get();
     }
 
     // Set the initial step size for the gradient ascent
@@ -155,16 +142,14 @@ T reg_f3d<T>::InitCurrentLevel(int currentLevel) {
 template<class T>
 void reg_f3d<T>::DeinitCurrentLevel(int currentLevel) {
     reg_base<T>::DeinitCurrentLevel(currentLevel);
-    delete this->compute;
     this->compute = nullptr;
-    delete this->con;
     this->con = nullptr;
 }
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::CheckParameters() {
     reg_base<T>::CheckParameters();
-    // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
+    // Normalise the objective function weights
     if (strcmp(this->executableName, "NiftyReg F3D") == 0) {
         T penaltySum = bendingEnergyWeight + linearEnergyWeight + jacobianLogWeight + this->landmarkRegWeight;
         if (penaltySum >= 1) {
@@ -186,7 +171,7 @@ void reg_f3d<T>::Initialise() {
 
     reg_base<T>::Initialise();
 
-    // DETERMINE THE GRID SPACING AND CREATE THE GRID
+    // Determine the grid spacing and create the grid
     if (!inputControlPointGrid) {
         // Set the spacing along y and z if undefined. Their values are set to match
         // the spacing along the x axis
@@ -194,21 +179,21 @@ void reg_f3d<T>::Initialise() {
         if (spacing[2] != spacing[2]) spacing[2] = spacing[0];
 
         /* Convert the spacing from voxel to mm if necessary */
-        float spacingInMillimeter[3] = {spacing[0], spacing[1], spacing[2]};
-        if (spacingInMillimeter[0] < 0) spacingInMillimeter[0] *= -this->inputReference->dx;
-        if (spacingInMillimeter[1] < 0) spacingInMillimeter[1] *= -this->inputReference->dy;
-        if (spacingInMillimeter[2] < 0) spacingInMillimeter[2] *= -this->inputReference->dz;
+        float spacingInMillimetre[3] = {spacing[0], spacing[1], spacing[2]};
+        if (spacingInMillimetre[0] < 0) spacingInMillimetre[0] *= -this->inputReference->dx;
+        if (spacingInMillimetre[1] < 0) spacingInMillimetre[1] *= -this->inputReference->dy;
+        if (spacingInMillimetre[2] < 0) spacingInMillimetre[2] *= -this->inputReference->dz;
 
         // Define the spacing for the first level
         float gridSpacing[3];
-        gridSpacing[0] = spacingInMillimeter[0] * powf(2, this->levelNumber - 1);
-        gridSpacing[1] = spacingInMillimeter[1] * powf(2, this->levelNumber - 1);
+        gridSpacing[0] = spacingInMillimetre[0] * powf(2, this->levelNumber - 1);
+        gridSpacing[1] = spacingInMillimetre[1] * powf(2, this->levelNumber - 1);
         gridSpacing[2] = 1;
         if (this->referencePyramid[0]->nz > 1)
-            gridSpacing[2] = spacingInMillimeter[2] * powf(2, this->levelNumber - 1);
+            gridSpacing[2] = spacingInMillimetre[2] * powf(2, this->levelNumber - 1);
 
         // Create and allocate the control point image
-        reg_createControlPointGrid<T>(&controlPointGrid, this->referencePyramid[0], gridSpacing);
+        reg_createControlPointGrid<T>(controlPointGrid, this->referencePyramid[0], gridSpacing);
 
         // The control point position image is initialised with the affine transformation
         if (!this->affineTransformation) {
@@ -216,7 +201,7 @@ void reg_f3d<T>::Initialise() {
         } else reg_affine_getDeformationField(this->affineTransformation, controlPointGrid);
     } else {
         // The control point grid image is initialised with the provided grid
-        controlPointGrid = nifti_dup(*inputControlPointGrid);
+        controlPointGrid = inputControlPointGrid;
         // The final grid spacing is computed
         spacing[0] = controlPointGrid->dx / powf(2, this->levelNumber - 1);
         spacing[1] = controlPointGrid->dy / powf(2, this->levelNumber - 1);
@@ -610,13 +595,13 @@ void reg_f3d<T>::UpdateParameters(float scale) {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::SetOptimiser() {
-    this->optimiser = this->platform->template CreateOptimiser<T>(*dynamic_cast<F3dContent*>(this->con),
-                                                                  *this,
-                                                                  this->maxIterationNumber,
-                                                                  this->useConjGradient,
-                                                                  this->optimiseX,
-                                                                  this->optimiseY,
-                                                                  this->optimiseZ);
+    this->optimiser.reset(this->platform->template CreateOptimiser<T>(dynamic_cast<F3dContent&>(*this->con),
+                                                                      *this,
+                                                                      this->maxIterationNumber,
+                                                                      this->useConjGradient,
+                                                                      this->optimiseX,
+                                                                      this->optimiseY,
+                                                                      this->optimiseZ));
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::SetOptimiser");
 #endif
@@ -640,7 +625,7 @@ void reg_f3d<T>::GetApproximatedGradient() {
 }
 /* *************************************************************** */
 template<class T>
-nifti_image** reg_f3d<T>::GetWarpedImage() {
+vector<NiftiImage> reg_f3d<T>::GetWarpedImage() {
     // The initial images are used
     if (!this->inputReference || !this->inputFloating || !controlPointGrid) {
         reg_print_fct_error("reg_f3d<T>::GetWarpedImage()");
@@ -652,22 +637,21 @@ nifti_image** reg_f3d<T>::GetWarpedImage() {
 
     this->WarpFloatingImage(3); // cubic spline interpolation
 
-    nifti_image **warpedImage = (nifti_image**)calloc(2, sizeof(nifti_image*));
-    warpedImage[0] = nifti_dup(*this->con->GetWarped());
+    NiftiImage warpedImage = NiftiImage(this->con->GetWarped(), true);
 
     DeinitCurrentLevel(-1);
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetWarpedImage");
 #endif
-    return warpedImage;
+    return { warpedImage };
 }
 /* *************************************************************** */
 template<class T>
-nifti_image* reg_f3d<T>::GetControlPointPositionImage() {
+NiftiImage reg_f3d<T>::GetControlPointPositionImage() {
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::GetControlPointPositionImage");
 #endif
-    return nifti_dup(*controlPointGrid);
+    return controlPointGrid;
 }
 /* *************************************************************** */
 template<class T>
@@ -729,7 +713,7 @@ void reg_f3d<T>::GetObjectiveFunctionGradient() {
             this->WarpFloatingImage(this->interpolation);
             GetSimilarityMeasureGradient();
         } else {
-            dynamic_cast<F3dContent*>(this->con)->ZeroTransformationGradient();
+            dynamic_cast<F3dContent&>(*this->con).ZeroTransformationGradient();
         }
         // Compute the penalty term gradients if required
         GetBendingEnergyGradient();

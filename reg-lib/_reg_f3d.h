@@ -18,8 +18,8 @@
 template <class T>
 class reg_f3d: public reg_base<T> {
 protected:
-    nifti_image *inputControlPointGrid; // pointer to external
-    nifti_image *controlPointGrid;
+    NiftiImage inputControlPointGrid; // pointer to external
+    NiftiImage controlPointGrid;
     T bendingEnergyWeight;
     T linearEnergyWeight;
     T jacobianLogWeight;
@@ -64,12 +64,11 @@ protected:
 
 public:
     reg_f3d(int refTimePoint, int floTimePoint);
-    virtual ~reg_f3d();
 
-    virtual nifti_image* GetControlPointPositionImage();
-    virtual nifti_image** GetWarpedImage() override;
+    virtual NiftiImage GetControlPointPositionImage();
+    virtual vector<NiftiImage> GetWarpedImage() override;
 
-    virtual void SetControlPointGridImage(nifti_image*);
+    virtual void SetControlPointGridImage(NiftiImage);
     virtual void SetBendingEnergyWeight(T);
     virtual void SetLinearEnergyWeight(T);
     virtual void SetJacobianLogWeight(T);
@@ -79,10 +78,10 @@ public:
     virtual void NoGridRefinement() { gridRefinement = false; }
 
     // F3D2 specific options
-    virtual nifti_image* GetBackwardControlPointPositionImage() { return nullptr; }
+    virtual NiftiImage GetBackwardControlPointPositionImage() { return {}; }
     virtual void UseBCHUpdate(int) {}
     virtual void UseGradientCumulativeExp() {}
     virtual void DoNotUseGradientCumulativeExp() {}
-    virtual void SetFloatingMask(nifti_image*) {}
+    virtual void SetFloatingMask(NiftiImage) {}
     virtual void SetInverseConsistencyWeight(T) {}
 };
