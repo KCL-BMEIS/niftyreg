@@ -63,12 +63,12 @@ template<class T>
 class reg_aladin {
 protected:
     char *executableName;
-    nifti_image *inputReference;
-    nifti_image *inputFloating;
-    nifti_image *inputReferenceMask;
-    nifti_image **referencePyramid;
-    nifti_image **floatingPyramid;
-    int **referenceMaskPyramid;
+    NiftiImage inputReference;
+    NiftiImage inputFloating;
+    NiftiImage inputReferenceMask;
+    vector<NiftiImage> referencePyramid;
+    vector<NiftiImage> floatingPyramid;
+    vector<unique_ptr<int[]>> referenceMaskPyramid;
 
     char *inputTransformName;
     mat44 *transformationMatrix;
@@ -104,7 +104,7 @@ protected:
     float floatingLowerThreshold;
     float warpedPaddingValue;
 
-    Platform *platform;
+    unique_ptr<Platform> platform;
     PlatformType platformType;
     unsigned gpuIdx;
 
@@ -134,28 +134,30 @@ protected:
     virtual void DeallocateKernels();
 
 public:
+    unique_ptr<AladinContent> con;
+
     reg_aladin();
     virtual ~reg_aladin();
     GetStringMacro(ExecutableName, executableName);
 
     //No allocating of the images here...
-    void SetInputReference(nifti_image *input) {
+    void SetInputReference(NiftiImage input) {
         this->inputReference = input;
     }
-    nifti_image* GetInputReference() {
+    NiftiImage GetInputReference() {
         return this->inputReference;
     }
-    void SetInputFloating(nifti_image *input) {
+    void SetInputFloating(NiftiImage input) {
         this->inputFloating = input;
     }
-    nifti_image* GetInputFloating() {
+    NiftiImage GetInputFloating() {
         return this->inputFloating;
     }
 
-    void SetInputMask(nifti_image *input) {
+    void SetInputMask(NiftiImage input) {
         this->inputReferenceMask = input;
     }
-    nifti_image* GetInputMask() {
+    NiftiImage GetInputMask() {
         return this->inputReferenceMask;
     }
 
@@ -167,7 +169,7 @@ public:
     mat44* GetTransformationMatrix() {
         return this->transformationMatrix;
     }
-    nifti_image* GetFinalWarpedImage();
+    NiftiImage GetFinalWarpedImage();
 
     void SetPlatformType(const PlatformType& platformTypeIn) {
         this->platformType = platformTypeIn;
@@ -260,10 +262,8 @@ public:
         funcProgressCallback = funcProgCallback;
         paramsProgressCallback = paramsProgCallback;
     }
-    AladinContent *con;
 
 private:
-    Kernel *affineTransformation3DKernel, *blockMatchingKernel;
-    Kernel *optimiseKernel, *resamplingKernel;
+    unique_ptr<Kernel> affineTransformation3DKernel, blockMatchingKernel, optimiseKernel, resamplingKernel;
     void ResolveMatrix(unsigned int iterations, const unsigned int optimizationFlag);
 };

@@ -4,24 +4,11 @@
 template<class T>
 reg_aladin<T>::reg_aladin() {
     this->executableName = (char*)"Aladin";
-    this->inputReference = nullptr;
-    this->inputFloating = nullptr;
-    this->inputReferenceMask = nullptr;
-    this->referencePyramid = nullptr;
-    this->floatingPyramid = nullptr;
-    this->referenceMaskPyramid = nullptr;
 
     this->transformationMatrix = new mat44;
     this->inputTransformName = nullptr;
 
-    this->affineTransformation3DKernel = nullptr;
-    this->blockMatchingKernel = nullptr;
-    this->optimiseKernel = nullptr;
-    this->resamplingKernel = nullptr;
-
-    this->con = nullptr;
     this->blockMatchingParams = nullptr;
-    this->platform = nullptr;
 
     this->verbose = true;
 
@@ -40,16 +27,16 @@ reg_aladin<T>::reg_aladin() {
     this->alignCentre = 1;
     this->alignCentreMass = 0;
 
-    this->interpolation = 1;
+    this->interpolation = 1;    // linear
 
     this->floatingSigma = 0;
     this->referenceSigma = 0;
 
     this->referenceUpperThreshold = std::numeric_limits<T>::max();
-    this->referenceLowerThreshold = -std::numeric_limits<T>::max();
+    this->referenceLowerThreshold = std::numeric_limits<T>::min();
 
     this->floatingUpperThreshold = std::numeric_limits<T>::max();
-    this->floatingLowerThreshold = -std::numeric_limits<T>::max();
+    this->floatingLowerThreshold = std::numeric_limits<T>::min();
 
     this->warpedPaddingValue = std::numeric_limits<T>::quiet_NaN();
 
@@ -67,39 +54,9 @@ reg_aladin<T>::reg_aladin() {
 /* *************************************************************** */
 template<class T>
 reg_aladin<T>::~reg_aladin() {
-    if (this->transformationMatrix != nullptr)
+    if (this->transformationMatrix)
         delete this->transformationMatrix;
-    this->transformationMatrix = nullptr;
 
-    if (this->referencePyramid != nullptr) {
-        for (unsigned int l = 0; l < this->levelsToPerform; ++l) {
-            if (this->referencePyramid[l] != nullptr)
-                nifti_image_free(this->referencePyramid[l]);
-            this->referencePyramid[l] = nullptr;
-        }
-        free(this->referencePyramid);
-        this->referencePyramid = nullptr;
-    }
-    if (this->floatingPyramid != nullptr) {
-        for (unsigned int l = 0; l < this->levelsToPerform; ++l) {
-            if (this->floatingPyramid[l] != nullptr)
-                nifti_image_free(this->floatingPyramid[l]);
-            this->floatingPyramid[l] = nullptr;
-        }
-        free(this->floatingPyramid);
-        this->floatingPyramid = nullptr;
-    }
-    if (this->referenceMaskPyramid != nullptr) {
-        for (unsigned int l = 0; l < this->levelsToPerform; ++l) {
-            if (this->referenceMaskPyramid[l] != nullptr)
-                free(this->referenceMaskPyramid[l]);
-            this->referenceMaskPyramid[l] = nullptr;
-        }
-        free(this->referenceMaskPyramid);
-        this->referenceMaskPyramid = nullptr;
-    }
-    if (this->platform != nullptr)
-        delete this->platform;
 #ifndef NDEBUG
     reg_print_msg_debug("reg_aladin destructor called");
 #endif
@@ -147,13 +104,13 @@ void reg_aladin<T>::SetVerbose(bool _verbose) {
 template<class T>
 int reg_aladin<T>::Check() {
     //This does all the initial checking
-    if (this->inputReference == nullptr) {
+    if (!this->inputReference) {
         reg_print_fct_error("reg_aladin<T>::Check()");
         reg_print_msg_error("No reference image has been specified or it can not be read");
         return EXIT_FAILURE;
     }
 
-    if (this->inputFloating == nullptr) {
+    if (!this->inputFloating) {
         reg_print_fct_error("reg_aladin<T>::Check()");
         reg_print_msg_error("No floating image has been specified or it can not be read");
         return EXIT_FAILURE;
@@ -164,12 +121,12 @@ int reg_aladin<T>::Check() {
 /* *************************************************************** */
 template<class T>
 int reg_aladin<T>::Print() {
-    if (this->inputReference == nullptr) {
+    if (!this->inputReference) {
         reg_print_fct_error("reg_aladin<T>::Print()");
         reg_print_msg_error("No reference image has been specified");
         return EXIT_FAILURE;
     }
-    if (this->inputFloating == nullptr) {
+    if (!this->inputFloating) {
         reg_print_fct_error("reg_aladin<T>::Print()");
         reg_print_msg_error("No floating image has been specified");
         return EXIT_FAILURE;
@@ -221,15 +178,15 @@ void reg_aladin<T>::InitialiseRegistration() {
     reg_print_fct_debug("reg_aladin::InitialiseRegistration()");
 #endif
 
-    this->platform = new Platform(this->platformType);
+    this->platform.reset(new Platform(this->platformType));
     this->platform->SetGpuIdx(this->gpuIdx);
 
     this->Print();
 
     // CREATE THE PYRAMID IMAGES
-    this->referencePyramid = (nifti_image **)malloc(this->levelsToPerform * sizeof(nifti_image *));
-    this->floatingPyramid = (nifti_image **)malloc(this->levelsToPerform * sizeof(nifti_image *));
-    this->referenceMaskPyramid = (int **)malloc(this->levelsToPerform * sizeof(int *));
+    this->referencePyramid = vector<NiftiImage>(this->levelsToPerform);
+    this->floatingPyramid = vector<NiftiImage>(this->levelsToPerform);
+    this->referenceMaskPyramid = vector<unique_ptr<int[]>>(this->levelsToPerform);
 
     // FINEST LEVEL OF REGISTRATION
     reg_createImagePyramid<T>(this->inputReference,
@@ -241,47 +198,39 @@ void reg_aladin<T>::InitialiseRegistration() {
                               this->numberOfLevels,
                               this->levelsToPerform);
 
-    if (this->inputReferenceMask != nullptr)
+    if (this->inputReferenceMask)
         reg_createMaskPyramid<T>(this->inputReferenceMask,
                                  this->referenceMaskPyramid,
                                  this->numberOfLevels,
                                  this->levelsToPerform);
-    else {
-        for (unsigned int l = 0; l < this->levelsToPerform; ++l) {
-            const size_t voxelNumber = CalcVoxelNumber(*this->referencePyramid[l]);
-            this->referenceMaskPyramid[l] = (int *)calloc(voxelNumber, sizeof(int));
-        }
-    }
+    else
+        for (unsigned int l = 0; l < this->levelsToPerform; ++l)
+            this->referenceMaskPyramid[l].reset(new int[this->referencePyramid[l].nVoxelsPerVolume()]());
 
-    Kernel *convolutionKernel = this->platform->CreateKernel(ConvolutionKernel::GetName(), nullptr);
+    unique_ptr<Kernel> convolutionKernel(this->platform->CreateKernel(ConvolutionKernel::GetName(), nullptr));
     // SMOOTH THE INPUT IMAGES IF REQUIRED
     for (unsigned int l = 0; l < this->levelsToPerform; l++) {
         if (this->referenceSigma != 0) {
             // Only the first image is smoothed
-            bool *active = new bool[this->referencePyramid[l]->nt];
-            float *sigma = new float[this->referencePyramid[l]->nt];
+            unique_ptr<bool[]> active(new bool[this->referencePyramid[l]->nt]);
+            unique_ptr<float[]> sigma(new float[this->referencePyramid[l]->nt]);
             active[0] = true;
             for (int i = 1; i < this->referencePyramid[l]->nt; ++i)
                 active[i] = false;
             sigma[0] = this->referenceSigma;
-            convolutionKernel->castTo<ConvolutionKernel>()->Calculate(this->referencePyramid[l], sigma, 0, nullptr, active);
-            delete[] active;
-            delete[] sigma;
+            convolutionKernel->castTo<ConvolutionKernel>()->Calculate(this->referencePyramid[l], sigma.get(), 0, nullptr, active.get());
         }
         if (this->floatingSigma != 0) {
             // Only the first image is smoothed
-            bool *active = new bool[this->floatingPyramid[l]->nt];
-            float *sigma = new float[this->floatingPyramid[l]->nt];
+            unique_ptr<bool[]> active(new bool[this->floatingPyramid[l]->nt]);
+            unique_ptr<float[]> sigma(new float[this->floatingPyramid[l]->nt]);
             active[0] = true;
             for (int i = 1; i < this->floatingPyramid[l]->nt; ++i)
                 active[i] = false;
             sigma[0] = this->floatingSigma;
-            convolutionKernel->castTo<ConvolutionKernel>()->Calculate(this->floatingPyramid[l], sigma, 0, nullptr, active);
-            delete[] active;
-            delete[] sigma;
+            convolutionKernel->castTo<ConvolutionKernel>()->Calculate(this->floatingPyramid[l], sigma.get(), 0, nullptr, active.get());
         }
     }
-    delete convolutionKernel;
 
     // THRESHOLD THE INPUT IMAGES IF REQUIRED
     for (unsigned int l = 0; l < this->levelsToPerform; l++) {
@@ -294,8 +243,7 @@ void reg_aladin<T>::InitialiseRegistration() {
         if (FILE *aff = fopen(this->inputTransformName, "r")) {
             fclose(aff);
         } else {
-            std::string text;
-            text = stringFormat("The specified input affine file (%s) can not be read", this->inputTransformName);
+            std::string text = stringFormat("The specified input affine file (%s) can not be read", this->inputTransformName);
             reg_print_fct_error("reg_aladin<T>::InitialiseRegistration()");
             reg_print_msg_error(text.c_str());
             reg_exit();
@@ -330,7 +278,7 @@ void reg_aladin<T>::InitialiseRegistration() {
             this->transformationMatrix->m[1][3] = floatingRealPosition[1] - referenceRealPosition[1];
             this->transformationMatrix->m[2][3] = floatingRealPosition[2] - referenceRealPosition[2];
         } else if (this->alignCentreMass == 2) {
-            float referenceCentre[3] = {0, 0, 0};
+            float referenceCentre[3] = { 0, 0, 0 };
             float referenceCount = 0;
             reg_tools_changeDatatype<float>(this->inputReference);
             float *refPtr = static_cast<float *>(this->inputReference->data);
@@ -354,7 +302,7 @@ void reg_aladin<T>::InitialiseRegistration() {
             if (this->inputReference->sform_code > 0)
                 reg_mat44_mul(&(this->inputReference->sto_xyz), referenceCentre, refCOM);
 
-            float floatingCentre[3] = {0, 0, 0};
+            float floatingCentre[3] = { 0, 0, 0 };
             float floatingCount = 0;
             reg_tools_changeDatatype<float>(this->inputFloating);
             float *floPtr = static_cast<float *>(this->inputFloating->data);
@@ -387,23 +335,18 @@ void reg_aladin<T>::InitialiseRegistration() {
 /* *************************************************************** */
 template<class T>
 void reg_aladin<T>::DeallocateCurrentInputImage() {
-    nifti_image_free(this->referencePyramid[this->currentLevel]);
     this->referencePyramid[this->currentLevel] = nullptr;
-
-    nifti_image_free(this->floatingPyramid[this->currentLevel]);
     this->floatingPyramid[this->currentLevel] = nullptr;
-
-    free(this->referenceMaskPyramid[this->currentLevel]);
     this->referenceMaskPyramid[this->currentLevel] = nullptr;
 }
 /* *************************************************************** */
 template<class T>
 void reg_aladin<T>::CreateKernels() {
-    this->affineTransformation3DKernel = platform->CreateKernel(AffineDeformationFieldKernel::GetName(), this->con);
-    this->resamplingKernel = platform->CreateKernel(ResampleImageKernel::GetName(), this->con);
-    if (this->blockMatchingParams != nullptr) {
-        this->blockMatchingKernel = platform->CreateKernel(BlockMatchingKernel::GetName(), this->con);
-        this->optimiseKernel = platform->CreateKernel(OptimiseKernel::GetName(), this->con);
+    this->affineTransformation3DKernel.reset(platform->CreateKernel(AffineDeformationFieldKernel::GetName(), this->con.get()));
+    this->resamplingKernel.reset(platform->CreateKernel(ResampleImageKernel::GetName(), this->con.get()));
+    if (this->blockMatchingParams) {
+        this->blockMatchingKernel.reset(platform->CreateKernel(BlockMatchingKernel::GetName(), this->con.get()));
+        this->optimiseKernel.reset(platform->CreateKernel(OptimiseKernel::GetName(), this->con.get()));
     } else {
         this->blockMatchingKernel = nullptr;
         this->optimiseKernel = nullptr;
@@ -412,12 +355,10 @@ void reg_aladin<T>::CreateKernels() {
 /* *************************************************************** */
 template<class T>
 void reg_aladin<T>::DeallocateKernels() {
-    delete this->affineTransformation3DKernel;
-    delete this->resamplingKernel;
-    if (this->blockMatchingKernel != nullptr)
-        delete this->blockMatchingKernel;
-    if (this->optimiseKernel != nullptr)
-        delete this->optimiseKernel;
+    this->affineTransformation3DKernel = nullptr;
+    this->resamplingKernel = nullptr;
+    this->blockMatchingKernel = nullptr;
+    this->optimiseKernel = nullptr;
 }
 /* *************************************************************** */
 template<class T>
@@ -451,13 +392,13 @@ void reg_aladin<T>::InitAladinContent(nifti_image *ref,
                                       unsigned int inlierLts,
                                       unsigned int blockStepSize) {
     unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(this->platform->CreateContentCreator(ContentType::Aladin)) };
-    this->con = contentCreator->Create(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+    this->con.reset(contentCreator->Create(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize));
     this->blockMatchingParams = this->con->AladinContent::GetBlockMatchingParams();
 }
 /* *************************************************************** */
 template<class T>
 void reg_aladin<T>::DeinitAladinContent() {
-    delete this->con;
+    this->con = nullptr;
 }
 /* *************************************************************** */
 template<class T>
@@ -485,8 +426,8 @@ void reg_aladin<T>::Run() {
     //Main loop over the levels:
     for (this->currentLevel = 0; this->currentLevel < this->levelsToPerform; this->currentLevel++) {
         this->InitAladinContent(this->referencePyramid[currentLevel], this->floatingPyramid[currentLevel],
-                                this->referenceMaskPyramid[currentLevel], this->transformationMatrix, sizeof(T), this->blockPercentage,
-                                this->inlierLts, this->blockStepSize);
+                                this->referenceMaskPyramid[currentLevel].get(), this->transformationMatrix, sizeof(T),
+                                this->blockPercentage, this->inlierLts, this->blockStepSize);
         this->CreateKernels();
 
         // Twice more iterations are performed during the first level
@@ -545,40 +486,37 @@ void reg_aladin<T>::Run() {
 #ifndef NDEBUG
     reg_print_msg_debug("reg_aladin::Run() done");
 #endif
-    return;
 }
 /* *************************************************************** */
 template<class T>
-nifti_image* reg_aladin<T>::GetFinalWarpedImage() {
+NiftiImage reg_aladin<T>::GetFinalWarpedImage() {
     // The initial images are used
-    if (this->inputReference == nullptr || this->inputFloating == nullptr || this->transformationMatrix == nullptr) {
+    if (!this->inputReference || !this->inputFloating || !this->transformationMatrix) {
         reg_print_fct_error("reg_aladin::GetFinalWarpedImage()");
         reg_print_msg_error("The reference, floating images and the transformation have to be defined");
         reg_exit();
     }
 
-    int *mask = (int *)calloc(CalcVoxelNumber(*this->inputReference), sizeof(int));
+    unique_ptr<int[]> mask(new int[this->inputReference.nVoxelsPerVolume()]());
 
     reg_aladin<T>::InitAladinContent(this->inputReference,
                                      this->inputFloating,
-                                     mask,
+                                     mask.get(),
                                      this->transformationMatrix,
                                      sizeof(T));
     reg_aladin<T>::CreateKernels();
 
     reg_aladin<T>::GetWarpedImage(3, this->warpedPaddingValue); // cubic spline interpolation
-    nifti_image *warped = this->con->GetWarped();
 
-    free(mask);
-    nifti_image *resultImage = nifti_dup(*warped);
-    resultImage->cal_min = this->inputFloating->cal_min;
-    resultImage->cal_max = this->inputFloating->cal_max;
-    resultImage->scl_slope = this->inputFloating->scl_slope;
-    resultImage->scl_inter = this->inputFloating->scl_inter;
+    NiftiImage warpedImage(this->con->GetWarped(), true);
+    warpedImage->cal_min = this->inputFloating->cal_min;
+    warpedImage->cal_max = this->inputFloating->cal_max;
+    warpedImage->scl_slope = this->inputFloating->scl_slope;
+    warpedImage->scl_inter = this->inputFloating->scl_inter;
 
     reg_aladin<T>::DeallocateKernels();
     reg_aladin<T>::DeinitAladinContent();
-    return resultImage;
+    return warpedImage;
 }
 /* *************************************************************** */
 template<class T>
