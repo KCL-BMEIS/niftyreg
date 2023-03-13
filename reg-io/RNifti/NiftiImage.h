@@ -1528,6 +1528,12 @@ public:
     }
 
     /**
+     * Boolean operator, which allows a \c NiftiImage to be used in a boolean context
+     * @return \c true if the wrapped pointer is not \c nullptr; \c false otherwise
+    */
+    operator bool () const { return (image != nullptr); }
+
+    /**
      * Mark the image as persistent, so that it can be passed back to R
      * @param persistent The new persistence state of the object
      * @return A reference to the callee.
@@ -1567,13 +1573,7 @@ public:
      * Return the number of dimensions in the image
      * @return An integer giving the image dimensionality
     **/
-    int nDims () const
-    {
-        if (image == nullptr)
-            return 0;
-        else
-            return image->ndim;
-    }
+    int nDims () const { return (image == nullptr ? 0 : image->ndim); }
 
     /**
      * Return the dimensions of the image
@@ -1834,10 +1834,45 @@ public:
     }
 
     /**
+     * Calculate the number of voxels in the image
+     * @param image Input image
+     * @param dimCount Number of dimensions to consider
+     * @return The number of voxels in the image
+     */
+    static size_t calcVoxelNumber(const nifti_image *image, const int& dimCount) {
+        if (image == nullptr)
+            return 0;
+        size_t voxelNumber = 1;
+        for (int i = 1; i <= dimCount; i++)
+            voxelNumber *= static_cast<size_t>(std::abs(image->dim[i]));
+        return voxelNumber;
+    }
+
+    /**
+     * Recalculate the number of voxels in the image
+    */
+    void recalcVoxelNumber() {
+        if (image != nullptr)
+            image->nvox = calcVoxelNumber(image, image->ndim);
+    }
+
+    /**
      * Return the number of voxels in the image
      * @return An integer giving the number of voxels in the image
     **/
     size_t nVoxels () const { return (image == nullptr ? 0 : image->nvox); }
+
+    /**
+     * Return the number of voxels per slice
+     * @return An integer giving the number of voxels per slice
+    */
+    size_t nVoxelsPerSlice () const { return calcVoxelNumber(*this, 2); }
+
+    /**
+     * Return the number of voxels per volume
+     * @return An integer giving the number of voxels per volume
+    */
+    size_t nVoxelsPerVolume () const { return calcVoxelNumber(*this, 3); }
 
     /**
      * Return the number of extensions associated with the image
