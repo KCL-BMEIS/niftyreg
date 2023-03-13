@@ -34,21 +34,21 @@ template<class T>
 class reg_base: public InterfaceOptimiser {
 protected:
     // Platform
-    Platform *platform;
+    unique_ptr<Platform> platform;
     PlatformType platformType;
     unsigned gpuIdx;
 
     // Content
-    Content *con = nullptr;
+    unique_ptr<Content> con;
 
     // Compute
-    Compute *compute = nullptr;
+    unique_ptr<Compute> compute;
 
     // Measure
-    Measure *measure = nullptr;
+    unique_ptr<Measure> measure;
 
     // Optimiser-related variables
-    reg_optimiser<T> *optimiser;
+    unique_ptr<reg_optimiser<T>> optimiser;
     size_t maxIterationNumber;
     size_t perturbationNumber;
     bool optimiseX;
@@ -56,29 +56,28 @@ protected:
     bool optimiseZ;
 
     // Measure-related variables
-    reg_ssd *measure_ssd;
-    reg_kld *measure_kld;
-    reg_dti *measure_dti;
-    reg_lncc *measure_lncc;
-    reg_nmi *measure_nmi;
-    reg_mind *measure_mind;
-    reg_mindssc *measure_mindssc;
-    nifti_image *localWeightSimInput;
+    unique_ptr<reg_ssd> measure_ssd;
+    unique_ptr<reg_kld> measure_kld;
+    unique_ptr<reg_dti> measure_dti;
+    unique_ptr<reg_lncc> measure_lncc;
+    unique_ptr<reg_nmi> measure_nmi;
+    unique_ptr<reg_mind> measure_mind;
+    unique_ptr<reg_mindssc> measure_mindssc;
+    NiftiImage localWeightSimInput;
 
     char *executableName;
     int referenceTimePoint;
     int floatingTimePoint;
-    nifti_image *inputReference; // pointer to external
-    nifti_image *inputFloating; // pointer to external
-    nifti_image *maskImage; // pointer to external
+    NiftiImage inputReference; // pointer to external
+    NiftiImage inputFloating; // pointer to external
+    NiftiImage maskImage; // pointer to external
     mat44 *affineTransformation; // pointer to external
-    int *referenceMask;
     T referenceSmoothingSigma;
     T floatingSmoothingSigma;
-    float *referenceThresholdUp;
-    float *referenceThresholdLow;
-    float *floatingThresholdUp;
-    float *floatingThresholdLow;
+    unique_ptr<T[]> referenceThresholdUp;
+    unique_ptr<T[]> referenceThresholdLow;
+    unique_ptr<T[]> floatingThresholdUp;
+    unique_ptr<T[]> floatingThresholdLow;
     bool robustRange;
     float warpedPaddingValue;
     unsigned int levelNumber;
@@ -93,9 +92,9 @@ protected:
     int interpolation;
 
     bool initialised;
-    nifti_image **referencePyramid;
-    nifti_image **floatingPyramid;
-    int **maskPyramid;
+    vector<NiftiImage> referencePyramid;
+    vector<NiftiImage> floatingPyramid;
+    vector<unique_ptr<int[]>> maskPyramid;
 
     double bestWMeasure;
     double currentWMeasure;
@@ -139,10 +138,9 @@ protected:
 
 public:
     reg_base(int refTimePoint, int floTimePoint);
-    virtual ~reg_base();
 
     virtual void Run();
-    virtual nifti_image** GetWarpedImage() = 0;
+    virtual vector<NiftiImage> GetWarpedImage() = 0;
     virtual char* GetExecutableName() { return executableName; }
     virtual bool GetSymmetricStatus() { return false; }
 
@@ -172,16 +170,16 @@ public:
     virtual void UseDTI(bool*);
     virtual void UseLNCC(int, float);
     virtual void SetLNCCKernelType(int type);
-    virtual void SetLocalWeightSim(nifti_image*);
+    virtual void SetLocalWeightSim(NiftiImage);
 
     virtual void SetNMIWeight(int, double);
     virtual void SetSSDWeight(int, double);
     virtual void SetKLDWeight(int, double);
     virtual void SetLNCCWeight(int, double);
 
-    virtual void SetReferenceImage(nifti_image*);
-    virtual void SetFloatingImage(nifti_image*);
-    virtual void SetReferenceMask(nifti_image*);
+    virtual void SetReferenceImage(NiftiImage);
+    virtual void SetFloatingImage(NiftiImage);
+    virtual void SetReferenceMask(NiftiImage);
     virtual void SetAffineTransformation(mat44*);
     virtual void SetReferenceSmoothingSigma(T);
     virtual void SetFloatingSmoothingSigma(T);
@@ -211,5 +209,5 @@ public:
     }
 
     // For testing
-    virtual void reg_test_setOptimiser(reg_optimiser<T> *opt) { optimiser = opt; }
+    virtual void reg_test_setOptimiser(reg_optimiser<T> *opt) { optimiser.reset(opt); }
 };
