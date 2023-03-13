@@ -41,12 +41,12 @@ void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
                                 const float *spacing);
 
 extern "C++" template <class DataType>
-void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
-                                          nifti_image **backwardGridImage,
-                                          nifti_image *referenceImage,
-                                          nifti_image *floatingImage,
-                                          mat44 *forwardAffineTrans,
-                                          float *spacing);
+void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
+                                          NiftiImage& backwardGridImage,
+                                          const NiftiImage& referenceImage,
+                                          const NiftiImage& floatingImage,
+                                          const mat44 *forwardAffineTrans,
+                                          const float *spacing);
 /* *************************************************************** */
 /** @brief Compute a dense deformation field in the space of a reference
  * image from a grid of control point.

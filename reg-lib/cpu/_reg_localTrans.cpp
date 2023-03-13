@@ -136,22 +136,15 @@ template void reg_createControlPointGrid<float>(NiftiImage&, const NiftiImage&, 
 template void reg_createControlPointGrid<double>(NiftiImage&, const NiftiImage&, const float*);
 /* *************************************************************** */
 template <class DataType>
-void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
-                                          nifti_image **backwardGridImage,
-                                          nifti_image *referenceImage,
-                                          nifti_image *floatingImage,
-                                          mat44 *forwardAffineTrans,
-                                          float *spacing)
+void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
+                                          NiftiImage& backwardGridImage,
+                                          const NiftiImage& referenceImage,
+                                          const NiftiImage& floatingImage,
+                                          const mat44 *forwardAffineTrans,
+                                          const float *spacing)
 {
-   // Delete the grid if they are already initialised
-   if(*forwardGridImage!=nullptr)
-      nifti_image_free(*forwardGridImage);
-   *forwardGridImage=nullptr;
-   if(*backwardGridImage!=nullptr)
-      nifti_image_free(*backwardGridImage);
-   *backwardGridImage=nullptr;
    // We specified a space which is in-between both input images
-   // // Get the reference image space
+   // Get the reference image space
    mat44 referenceImageSpace = referenceImage->qto_xyz;
    if(referenceImage->sform_code>0)
       referenceImageSpace = referenceImage->sto_xyz;
@@ -307,112 +300,103 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
    }
 
    // Compute the dimension of the control point grids
-   const int dim[8]= {5,
-                      static_cast<int>(reg_ceil((maxPosition[0]-minPosition[0])/spacing[0])+3),
-                      static_cast<int>(reg_ceil((maxPosition[1]-minPosition[1])/spacing[1])+3),
-                      referenceImage->nz>1?static_cast<int>(reg_ceil((maxPosition[2]-minPosition[2])/spacing[2])+3):1,
-                      1,
-                      referenceImage->nz>1?3:2,
-                      1,
-                      1
-                     };
+   const vector<NiftiImage::dim_t> dims{
+      static_cast<int>(reg_ceil((maxPosition[0] - minPosition[0]) / spacing[0]) + 3),
+      static_cast<int>(reg_ceil((maxPosition[1] - minPosition[1]) / spacing[1]) + 3),
+      referenceImage->nz > 1 ? static_cast<int>(reg_ceil((maxPosition[2] - minPosition[2]) / spacing[2]) + 3) : 1,
+      1,
+      referenceImage->nz > 1 ? 3 : 2
+   };
 
    // Create the control point grid image
-   if(sizeof(DataType)==sizeof(float))
-   {
-      (*forwardGridImage)=nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32,true);
-      (*backwardGridImage)=nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32,true);
-   }
-   else
-   {
-      (*forwardGridImage)=nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT64,true);
-      (*backwardGridImage)=nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT64,true);
-   }
+   forwardGridImage = NiftiImage(dims, sizeof(DataType) == sizeof(float) ? NIFTI_TYPE_FLOAT32 : NIFTI_TYPE_FLOAT64);
+   backwardGridImage = NiftiImage(dims, sizeof(DataType) == sizeof(float) ? NIFTI_TYPE_FLOAT32 : NIFTI_TYPE_FLOAT64);
+
    // Set the control point grid spacing
-   (*forwardGridImage)->pixdim[1]=(*forwardGridImage)->dx=(*backwardGridImage)->pixdim[1]=(*backwardGridImage)->dx=spacing[0];
-   (*forwardGridImage)->pixdim[2]=(*forwardGridImage)->dy=(*backwardGridImage)->pixdim[2]=(*backwardGridImage)->dy=spacing[1];
+   forwardGridImage->pixdim[1]=forwardGridImage->dx=backwardGridImage->pixdim[1]=backwardGridImage->dx=spacing[0];
+   forwardGridImage->pixdim[2]=forwardGridImage->dy=backwardGridImage->pixdim[2]=backwardGridImage->dy=spacing[1];
    if(referenceImage->nz>1)
-      (*forwardGridImage)->pixdim[3]=(*forwardGridImage)->dz=(*backwardGridImage)->pixdim[3]=(*backwardGridImage)->dz=spacing[2];
+      forwardGridImage->pixdim[3]=forwardGridImage->dz=backwardGridImage->pixdim[3]=backwardGridImage->dz=spacing[2];
    // Set the control point grid image orientation
-   (*forwardGridImage)->qform_code=(*backwardGridImage)->qform_code=0;
-   (*forwardGridImage)->sform_code=(*backwardGridImage)->sform_code=1;
-   reg_mat44_eye(&(*forwardGridImage)->sto_xyz);
-   reg_mat44_eye(&(*backwardGridImage)->sto_xyz);
-   reg_mat44_eye(&(*forwardGridImage)->sto_ijk);
-   reg_mat44_eye(&(*backwardGridImage)->sto_ijk);
+   forwardGridImage->qform_code=backwardGridImage->qform_code=0;
+   forwardGridImage->sform_code=backwardGridImage->sform_code=1;
+   reg_mat44_eye(&forwardGridImage->sto_xyz);
+   reg_mat44_eye(&backwardGridImage->sto_xyz);
+   reg_mat44_eye(&forwardGridImage->sto_ijk);
+   reg_mat44_eye(&backwardGridImage->sto_ijk);
    for(unsigned int i=0; i<3; ++i)
    {
       if(referenceImage->nz>1 || i<2)
       {
-         (*forwardGridImage)->sto_xyz.m[i][i]=(*backwardGridImage)->sto_xyz.m[i][i]=spacing[i];
-         (*forwardGridImage)->sto_xyz.m[i][3]=(*backwardGridImage)->sto_xyz.m[i][3]=minPosition[i]-spacing[i];
+         forwardGridImage->sto_xyz.m[i][i]=backwardGridImage->sto_xyz.m[i][i]=spacing[i];
+         forwardGridImage->sto_xyz.m[i][3]=backwardGridImage->sto_xyz.m[i][3]=minPosition[i]-spacing[i];
       }
       else
       {
-         (*forwardGridImage)->sto_xyz.m[i][i]=(*backwardGridImage)->sto_xyz.m[i][i]=1.f;
-         (*forwardGridImage)->sto_xyz.m[i][3]=(*backwardGridImage)->sto_xyz.m[i][3]=0.f;
+         forwardGridImage->sto_xyz.m[i][i]=backwardGridImage->sto_xyz.m[i][i]=1.f;
+         forwardGridImage->sto_xyz.m[i][3]=backwardGridImage->sto_xyz.m[i][3]=0.f;
       }
    }
-   (*forwardGridImage)->sto_ijk=(*backwardGridImage)->sto_ijk=nifti_mat44_inverse((*forwardGridImage)->sto_xyz);
+   forwardGridImage->sto_ijk=backwardGridImage->sto_ijk=nifti_mat44_inverse(forwardGridImage->sto_xyz);
    // Set the intent type
-   (*forwardGridImage)->intent_code=(*backwardGridImage)->intent_code=NIFTI_INTENT_VECTOR;
-   memset((*forwardGridImage)->intent_name, 0, 16);
-   memset((*backwardGridImage)->intent_name, 0, 16);
-   strcpy((*forwardGridImage)->intent_name,"NREG_TRANS");
-   strcpy((*backwardGridImage)->intent_name,"NREG_TRANS");
-   (*forwardGridImage)->intent_p1=(*backwardGridImage)->intent_p1=CUB_SPLINE_GRID;
+   forwardGridImage->intent_code=backwardGridImage->intent_code=NIFTI_INTENT_VECTOR;
+   memset(forwardGridImage->intent_name, 0, 16);
+   memset(backwardGridImage->intent_name, 0, 16);
+   strcpy(forwardGridImage->intent_name,"NREG_TRANS");
+   strcpy(backwardGridImage->intent_name,"NREG_TRANS");
+   forwardGridImage->intent_p1=backwardGridImage->intent_p1=CUB_SPLINE_GRID;
    // Set the affine matrices
    mat44 identity;
    reg_mat44_eye(&identity);
-   if((*forwardGridImage)->ext_list!=nullptr)
-      free((*forwardGridImage)->ext_list);
-   if((*backwardGridImage)->ext_list!=nullptr)
-      free((*backwardGridImage)->ext_list);
-   (*forwardGridImage)->num_ext=0;
-   (*backwardGridImage)->num_ext=0;
+   if(forwardGridImage->ext_list!=nullptr)
+      free(forwardGridImage->ext_list);
+   if(backwardGridImage->ext_list!=nullptr)
+      free(backwardGridImage->ext_list);
+   forwardGridImage->num_ext=0;
+   backwardGridImage->num_ext=0;
    if(identity!=halfForwardAffine && identity!=halfBackwardAffine)
    {
       // Create extensions to store the affine parametrisations for the forward transformation
-      (*forwardGridImage)->num_ext=2;
-      (*forwardGridImage)->ext_list=(nifti1_extension *)malloc(2*sizeof(nifti1_extension));
-      (*forwardGridImage)->ext_list[0].esize=16*sizeof(float)+16;
-      (*forwardGridImage)->ext_list[1].esize=16*sizeof(float)+16;
-      (*forwardGridImage)->ext_list[0].ecode=NIFTI_ECODE_IGNORE;
-      (*forwardGridImage)->ext_list[1].ecode=NIFTI_ECODE_IGNORE;
-      (*forwardGridImage)->ext_list[0].edata=(char *)calloc((*forwardGridImage)->ext_list[0].esize-8,sizeof(float));
-      (*forwardGridImage)->ext_list[1].edata=(char *)calloc((*forwardGridImage)->ext_list[1].esize-8,sizeof(float));
-      memcpy((*forwardGridImage)->ext_list[0].edata, &halfForwardAffine, sizeof(mat44));
-      memcpy((*forwardGridImage)->ext_list[1].edata, &halfForwardAffine, sizeof(mat44));
+      forwardGridImage->num_ext=2;
+      forwardGridImage->ext_list=(nifti1_extension *)malloc(2*sizeof(nifti1_extension));
+      forwardGridImage->ext_list[0].esize=16*sizeof(float)+16;
+      forwardGridImage->ext_list[1].esize=16*sizeof(float)+16;
+      forwardGridImage->ext_list[0].ecode=NIFTI_ECODE_IGNORE;
+      forwardGridImage->ext_list[1].ecode=NIFTI_ECODE_IGNORE;
+      forwardGridImage->ext_list[0].edata=(char *)calloc(forwardGridImage->ext_list[0].esize-8,sizeof(float));
+      forwardGridImage->ext_list[1].edata=(char *)calloc(forwardGridImage->ext_list[1].esize-8,sizeof(float));
+      memcpy(forwardGridImage->ext_list[0].edata, &halfForwardAffine, sizeof(mat44));
+      memcpy(forwardGridImage->ext_list[1].edata, &halfForwardAffine, sizeof(mat44));
 #ifndef NDEBUG
       reg_mat44_disp(&halfForwardAffine,(char *)"[NiftyReg DEBUG] Forward transformation half-affine");
 #endif
       // Create extensions to store the affine parametrisations for the backward transformation
-      (*backwardGridImage)->num_ext=2;
-      (*backwardGridImage)->ext_list=(nifti1_extension *)malloc(2*sizeof(nifti1_extension));
-      (*backwardGridImage)->ext_list[0].esize=16*sizeof(float)+16;
-      (*backwardGridImage)->ext_list[1].esize=16*sizeof(float)+16;
-      (*backwardGridImage)->ext_list[0].ecode=NIFTI_ECODE_IGNORE;
-      (*backwardGridImage)->ext_list[1].ecode=NIFTI_ECODE_IGNORE;
-      (*backwardGridImage)->ext_list[0].edata=(char *)calloc((*backwardGridImage)->ext_list[0].esize-8,sizeof(float));
-      (*backwardGridImage)->ext_list[1].edata=(char *)calloc((*backwardGridImage)->ext_list[1].esize-8,sizeof(float));
-      memcpy((*backwardGridImage)->ext_list[0].edata, &halfBackwardAffine, sizeof(mat44));
-      memcpy((*backwardGridImage)->ext_list[1].edata, &halfBackwardAffine, sizeof(mat44));
+      backwardGridImage->num_ext=2;
+      backwardGridImage->ext_list=(nifti1_extension *)malloc(2*sizeof(nifti1_extension));
+      backwardGridImage->ext_list[0].esize=16*sizeof(float)+16;
+      backwardGridImage->ext_list[1].esize=16*sizeof(float)+16;
+      backwardGridImage->ext_list[0].ecode=NIFTI_ECODE_IGNORE;
+      backwardGridImage->ext_list[1].ecode=NIFTI_ECODE_IGNORE;
+      backwardGridImage->ext_list[0].edata=(char *)calloc(backwardGridImage->ext_list[0].esize-8,sizeof(float));
+      backwardGridImage->ext_list[1].edata=(char *)calloc(backwardGridImage->ext_list[1].esize-8,sizeof(float));
+      memcpy(backwardGridImage->ext_list[0].edata, &halfBackwardAffine, sizeof(mat44));
+      memcpy(backwardGridImage->ext_list[1].edata, &halfBackwardAffine, sizeof(mat44));
 #ifndef NDEBUG
       reg_mat44_disp(&halfBackwardAffine,(char *)"[NiftyReg DEBUG] Backward transformation half-affine");
 #endif
    }
    // Initialise the grid with identity transformations
-   reg_tools_multiplyValueToImage(*forwardGridImage,*forwardGridImage,0.f);
-   reg_tools_multiplyValueToImage(*backwardGridImage,*backwardGridImage,0.f);
+   reg_tools_multiplyValueToImage(forwardGridImage,forwardGridImage,0.f);
+   reg_tools_multiplyValueToImage(backwardGridImage,backwardGridImage,0.f);
    // Convert the parametrisations into deformation fields
-   reg_getDeformationFromDisplacement(*forwardGridImage);
-   reg_getDeformationFromDisplacement(*backwardGridImage);
+   reg_getDeformationFromDisplacement(forwardGridImage);
+   reg_getDeformationFromDisplacement(backwardGridImage);
 }
 /* *************************************************************** */
 template void reg_createSymmetricControlPointGrids<float>
-(nifti_image **,nifti_image **,nifti_image *,nifti_image *,mat44 *,float *);
+(NiftiImage&,NiftiImage&,const NiftiImage&,const NiftiImage&,const mat44*,const float*);
 template void reg_createSymmetricControlPointGrids<double>
-(nifti_image **,nifti_image **,nifti_image *,nifti_image *,mat44 *,float *);
+(NiftiImage&,NiftiImage&,const NiftiImage&,const NiftiImage&,const mat44*,const float*);
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DataType>
