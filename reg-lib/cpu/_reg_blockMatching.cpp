@@ -710,7 +710,7 @@ void optimize(_reg_blockMatchingParam *params,
               mat44 *transformation_matrix,
               bool affine)
 {
-   // The block matching provide correspondences in millimeters
+   // The block matching provide correspondences in millimetres
    // in the space of the reference image. All warped image coordinates
    // are updated to be in the original warped space
    //    mat44 inverseMatrix = nifti_mat44_inverse(*transformation_matrix);

@@ -54,7 +54,7 @@
  *
  * Possible improvement: Take care of anisotropic data. Right now, we specify
  * the block size, neighborhood and the step sizes in voxels and it would be
- * better to specify it in millimeters and take the voxel size into account.
+ * better to specify it in millimetres and take the voxel size into account.
  * However, it would be more efficient to calculate this once (outside this
  * module) and pass these values for each axes. For the time being, we do this
  * simple implementation.

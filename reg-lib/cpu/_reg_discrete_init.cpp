@@ -39,7 +39,7 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
       currentValue+=this->discrete_increment;
    }
 
-   // Allocate the discretised values in millimeter
+   // Allocate the discretised values in millimetre
    this->discrete_values_mm = (float **)malloc(this->image_dim*sizeof(float *));
    for(int i=0;i<this->image_dim;++i){
       this->discrete_values_mm[i] = (float *)malloc(this->label_nD_num*sizeof(float));

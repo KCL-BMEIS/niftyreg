@@ -50,7 +50,7 @@ void reg_checkAndCorrectDimension(nifti_image *image) {
                                                 image->qfac);
         image->qto_ijk = nifti_mat44_inverse(image->qto_xyz);
     }
-    // Set the voxel spacing to millimeters
+    // Set the voxel spacing to millimetres
     if (image->xyz_units == NIFTI_UNITS_MICRON) {
         for (int d = 1; d <= image->ndim; ++d)
             image->pixdim[d] /= 1000.f;

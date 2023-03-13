@@ -426,8 +426,7 @@ template<class DataType>
 void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                              nifti_image *deformationField,
                                              int *mask,
-                                             bool composition
-                                             )
+                                             bool composition)
 {
    int coord;
 
@@ -1750,7 +1749,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                                        nifti_image *voxelImage,
                                        float weight,
                                        bool update,
-                                       const mat44 *voxelToMillimeter)
+                                       const mat44 *voxelToMillimetre)
 {
    const size_t nodeNumber = CalcVoxelNumber(*nodeImage);
    const size_t voxelNumber = CalcVoxelNumber(*voxelImage);
@@ -1770,7 +1769,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
 
    // The transformation between the image and the grid is used
    mat44 transformation;
-   // voxel to millimeter in the grid image
+   // voxel to millimetre in the grid image
    if(nodeImage->sform_code>0)
       transformation=nodeImage->sto_xyz;
    else transformation=nodeImage->qto_xyz;
@@ -1784,18 +1783,18 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
          transformation = reg_mat44_mul(&temp,&transformation);
       }
    }
-   // millimeter to voxel in the reference image
+   // millimetre to voxel in the reference image
    if(voxelImage->sform_code>0)
       transformation = reg_mat44_mul(&voxelImage->sto_ijk,&transformation);
    else transformation = reg_mat44_mul(&voxelImage->qto_ijk,&transformation);
 
    // The information has to be reoriented
    mat33 reorientation;
-   // Voxel to millimeter contains the orientation of the image that is used
+   // Voxel to millimetre contains the orientation of the image that is used
    // to compute the spatial gradient (floating image)
-   if(voxelToMillimeter!=nullptr)
+   if(voxelToMillimetre!=nullptr)
    {
-      reorientation=reg_mat44_to_mat33(voxelToMillimeter);
+      reorientation=reg_mat44_to_mat33(voxelToMillimetre);
       if(nodeImage->num_ext>0)
       {
          if(nodeImage->ext_list[0].edata!=nullptr)
@@ -1923,7 +1922,7 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                                   nifti_image *voxelImage,
                                   float weight,
                                   bool update,
-                                  const mat44 *voxelToMillimeter)
+                                  const mat44 *voxelToMillimetre)
 {
    if(nodeImage->datatype!=voxelImage->datatype)
    {
@@ -1936,11 +1935,11 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
    {
    case NIFTI_TYPE_FLOAT32:
       reg_voxelCentric2NodeCentric_core<float>
-            (nodeImage, voxelImage, weight, update, voxelToMillimeter);
+            (nodeImage, voxelImage, weight, update, voxelToMillimetre);
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_voxelCentric2NodeCentric_core<double>
-            (nodeImage, voxelImage, weight, update, voxelToMillimeter);
+            (nodeImage, voxelImage, weight, update, voxelToMillimetre);
       break;
    default:
       reg_print_fct_error("reg_voxelCentric2NodeCentric");

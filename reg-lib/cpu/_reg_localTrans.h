@@ -69,7 +69,7 @@ void reg_spline_getDeformationField(nifti_image *controlPointGridImage,
                                     bool force_no_lut = false);
 /* *************************************************************** */
 /** @brief Upsample an image from voxel space to node space using
- * millimiter correspendences.
+ * millimetre correspondences.
  * @param nodeImage This image is a coarse representation of the
  * transformation (typically a grid of control point). This image
  * values are going to be updated
@@ -85,7 +85,7 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                                   nifti_image *voxelImage,
                                   float weight,
                                   bool update,
-                                  const mat44 *voxelToMillimeter = nullptr);
+                                  const mat44 *voxelToMillimetre = nullptr);
 /* *************************************************************** */
 /** @brief Refine a grid of control points
  * @param referenceImage Image that defined the space of the reference

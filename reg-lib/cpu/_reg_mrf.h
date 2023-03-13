@@ -85,7 +85,7 @@ private:
    int image_dim; ///< Dimension of the reference image
    size_t node_number; ///< Number of nodes in the tree
 
-   float **discrete_values_mm; ///< All discretised values in millimeter
+   float **discrete_values_mm; ///< All discretised values in millimetre
 
    int* orderedList; ///< Ordered list of nodes from the root to the leaves
    int* parentsList; ///< List that gives parent's index for each node

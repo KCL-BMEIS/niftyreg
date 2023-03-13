@@ -69,7 +69,7 @@ TEST_CASE("Interpolation", "[Interpolation]") {
     def3dPtr[2] = 1.4f;
 
     // Generate the different test cases
-    std::vector<TestData> testCases;
+    vector<TestData> testCases;
 
     // Linear interpolation - 2D
     // coordinate in image: [1.2, 1.3]
@@ -108,8 +108,8 @@ TEST_CASE("Interpolation", "[Interpolation]") {
     // coordinate in image: [1.2, 1.3]
     float resCubic2d[1] = {0};
     float xBasis[4], yBasis[4];
-    interpCubicSplineKernel(0.2f, xBasis);
-    interpCubicSplineKernel(0.3f, yBasis);
+    InterpCubicSplineKernel(0.2f, xBasis);
+    InterpCubicSplineKernel(0.3f, yBasis);
     for (int y = 0; y <= 3; ++y) {
         for (int x = 0; x <= 3; ++x) {
             resCubic2d[0] += ref2dPtr[y * dimFlo[1] + x] * xBasis[x] * yBasis[y];
@@ -165,7 +165,7 @@ TEST_CASE("Interpolation", "[Interpolation]") {
     // coordinate in image: [1.2, 1.3, 1.4]
     float resCubic3d[1] = {0};
     float zBasis[4];
-    interpCubicSplineKernel(0.4f, zBasis);
+    InterpCubicSplineKernel(0.4f, zBasis);
     for (int z = 0; z <= 3; ++z) {
         for (int y = 0; y <= 3; ++y) {
             for (int x = 0; x <= 3; ++x) {
@@ -189,7 +189,7 @@ TEST_CASE("Interpolation", "[Interpolation]") {
         auto&& [testName, reference, defField, interp, testResult] = testCase;
 
         // Accumulate all required contents with a vector
-        std::vector<ContentDesc> contentDescs;
+        vector<ContentDesc> contentDescs;
         for (auto&& platformType : PlatformTypes) {
             shared_ptr<Platform> platform{ new Platform(platformType) };
             // Add Aladin content

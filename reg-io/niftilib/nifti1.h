@@ -1318,7 +1318,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                                /** Space codes are multiples of 1. **/
                                /*! NIFTI code for meters. */
 #define NIFTI_UNITS_METER   1
-                               /*! NIFTI code for millimeters. */
+                               /*! NIFTI code for millimetres. */
 #define NIFTI_UNITS_MM      2
                                /*! NIFTI code for micrometers. */
 #define NIFTI_UNITS_MICRON  3

@@ -22,7 +22,7 @@
 /** @brief Read a text file that contains a affine transformation
  * and store it into a mat44 structure. This function can also read
  * affine parametrisation from Flirt (FSL package) and convert it
- * to a standard millimeter parametrisation
+ * to a standard millimetre parametrisation
  * @param mat Structure that will be updated with the affine
  * transformation matrix
  * @param referenceImage Reference image of the current transformation
@@ -79,8 +79,8 @@ std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename);
 * @brief Read a file that contains a m-by-n matrix and store it into
 * an appropriate structure
 * @param filename Filename of the text file that contains the matrix to read
-* @param nbLine number of line of the imput matrix
-* @param nbColumn number of column of the imput matrix
+* @param nbLine number of line of the input matrix
+* @param nbColumn number of column of the input matrix
 * @return a pointer to a 2D array that points the read matrix
 **/
 extern "C++" template <class T>
@@ -92,8 +92,8 @@ T** reg_tool_ReadMatrixFile(char *filename,
 * @brief Write a file that contains a m-by-n matrix into a text file
 * @param filename Filename of the text file to be written
 * @param mat Input matrix to be saved
-* @param nbLine number of line of the imput matrix
-* @param nbColumn number of column of the imput matrix
+* @param nbLine number of line of the input matrix
+* @param nbColumn number of column of the input matrix
 **/
 extern "C++" template <class T>
 void reg_tool_WriteMatrixFile(char *filename,

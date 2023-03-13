@@ -1,6 +1,7 @@
 // Enable testing
 #define NR_TESTING
 
+#include <random>
 #include <catch2/catch_test_macros.hpp>
 #include "_reg_localTrans.h"
 #include "Platform.h"
@@ -9,7 +10,7 @@
 
 
 template <typename T>
-void interpCubicSplineKernel(T relative, T (&basis)[4]) {
+void InterpCubicSplineKernel(T relative, T (&basis)[4]) {
     if (relative < 0) relative = 0; //reg_rounding error
     const T relative2 = relative * relative;
     basis[0] = (relative * ((2.f - relative) * relative - 1.f)) / 2.f;
@@ -19,8 +20,8 @@ void interpCubicSplineKernel(T relative, T (&basis)[4]) {
 }
 
 template <typename T>
-void interpCubicSplineKernel(T relative, T (&basis)[4], T (&derivative)[4]) {
-    interpCubicSplineKernel(relative, basis);
+void InterpCubicSplineKernel(T relative, T (&basis)[4], T (&derivative)[4]) {
+    InterpCubicSplineKernel(relative, basis);
     if (relative < 0) relative = 0; //reg_rounding error
     const T relative2 = relative * relative;
     derivative[0] = (4.f * relative - 3.f * relative2 - 1.f) / 2.f;

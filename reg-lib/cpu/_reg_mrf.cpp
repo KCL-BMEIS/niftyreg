@@ -24,7 +24,7 @@ reg_mrf::reg_mrf(int _discrete_radius,
     this->label_nD_num = static_cast<int>(std::pow((double) this->label_1D_num,this->image_dim));
     this->node_number = _node_number;
 
-    // Allocate the discretised values in millimeter
+    // Allocate the discretised values in millimetre
     this->discrete_values_mm = (float **)malloc(this->image_dim*sizeof(float *));
     for(int i=0;i<this->image_dim;++i){
         this->discrete_values_mm[i] = (float *)malloc(this->label_nD_num*sizeof(float));
@@ -71,7 +71,7 @@ reg_mrf::reg_mrf(reg_measure *_measure,
       currentValue+=this->discrete_increment;
    }
 
-   // Allocate the discretised values in millimeter
+   // Allocate the discretised values in millimetre
    this->discrete_values_mm = (float **)malloc(this->image_dim*sizeof(float *));
    for(int i=0;i<this->image_dim;++i){
        this->discrete_values_mm[i] = (float *)malloc(this->label_nD_num*sizeof(float));

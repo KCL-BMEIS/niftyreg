@@ -28,7 +28,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
     reg_checkAndCorrectDimension(reference3d);
 
     // Generate the different test cases
-    std::vector<TestData> testCases;
+    vector<TestData> testCases;
 
     // Identity use case - 2D
     mat44 identity;
@@ -149,7 +149,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         auto&& [testName, reference, testMat, testResX, testResY, testResZ] = testCase;
 
         // Accumulate all required contents with a vector
-        std::vector<ContentDesc> contentDescs;
+        vector<ContentDesc> contentDescs;
         for (auto&& platformType : PlatformTypes) {
             unique_ptr<Platform> platform{ new Platform(platformType) };
             unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };

@@ -31,7 +31,6 @@ void PetitUsage(char *exec) {
     reg_print_msg_error(text);
     reg_print_msg_error("\tSee the help for more details (-h).");
     reg_print_msg_error("");
-    return;
 }
 
 void Usage(char *exec) {
@@ -57,7 +56,7 @@ void Usage(char *exec) {
 
     reg_print_info(exec, "\t-rmask <filename>\tFilename of a mask image in the reference space.");
     reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space. (Only used when symmetric turned on)");
-    reg_print_info(exec, "\t-res <filename>\t\tFilename of the resampled image. [outputResult.nii]");
+    reg_print_info(exec, "\t-res <filename>\t\tFilename of the resampled image. [outputResult.nii.gz]");
 
     reg_print_info(exec, "\t-maxit <int>\t\tMaximal number of iterations of the trimmed least square approach to perform per level. [5]");
     reg_print_info(exec, "\t-ln <int>\t\tNumber of levels to use to generate the pyramids for the coarse-to-fine approach. [3]");
@@ -113,7 +112,6 @@ void Usage(char *exec) {
     sprintf(text, "\t\t\t\t(%s)", NR_VERSION);
     reg_print_info(exec, text);
     reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-    return;
 }
 
 int main(int argc, char **argv) {

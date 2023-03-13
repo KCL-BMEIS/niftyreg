@@ -59,7 +59,7 @@ private:
    int image_dim; ///< Dimension of the reference image
    size_t node_number; ///< Number of nodes in the tree
 
-   float **discrete_values_mm; ///< All discretised values in millimeter
+   float **discrete_values_mm; ///< All discretised values in millimetre
 
    int label_1D_num; ///< Number of discretised values per axis
    int label_nD_num; ///< Total number of discretised values
