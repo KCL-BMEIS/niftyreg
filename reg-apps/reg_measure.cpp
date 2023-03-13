@@ -215,40 +215,38 @@ int main(int argc, char **argv)
    }
 
    /* Read the reference image */
-   nifti_image *refImage = reg_io_ReadImageFile(param->refImageName);
-   if(refImage == nullptr)
+   NiftiImage refImage = reg_io_ReadImageFile(param->refImageName);
+   if(!refImage)
    {
-      fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",
-              param->refImageName);
+      fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n", param->refImageName);
       return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(refImage);
 
    /* Read the floating image */
-   nifti_image *floImage = reg_io_ReadImageFile(param->floImageName);
-   if(floImage == nullptr)
+   NiftiImage floImage = reg_io_ReadImageFile(param->floImageName);
+   if(!floImage)
    {
-      fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n",
-              param->floImageName);
+      fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n", param->floImageName);
       return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(floImage);
 
    /* Read and create the mask array */
-   int *refMask=nullptr;
-   size_t refMaskVoxNumber = CalcVoxelNumber(*refImage);
+   vector<unique_ptr<int[]>> refMasks(1);
+   unique_ptr<int[]>& refMask = refMasks[0];
+   size_t refMaskVoxNumber = refImage.nVoxelsPerVolume();
    if(flag->refMaskImageFlag){
-      nifti_image *refMaskImage = reg_io_ReadImageFile(param->refMaskImageName);
-      if(refMaskImage == nullptr)
+      NiftiImage refMaskImage = reg_io_ReadImageFile(param->refMaskImageName);
+      if(!refMaskImage)
       {
-         fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference mask image: %s\n",
-                 param->refMaskImageName);
+         fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference mask image: %s\n", param->refMaskImageName);
          return EXIT_FAILURE;
       }
-      reg_createMaskPyramid<float>(refMaskImage, &refMask, 1, 1);
+      reg_createMaskPyramid<float>(refMaskImage, refMasks, 1, 1);
    }
    else{
-      refMask = (int *)calloc(refMaskVoxNumber,sizeof(int));
+      refMask = unique_ptr<int[]>(new int[refMaskVoxNumber]());
       for(size_t i=0;i<refMaskVoxNumber;++i) refMask[i]=i;
    }
 
@@ -285,7 +283,7 @@ int main(int argc, char **argv)
    reg_resampleImage(floImage,
                      warpedFloImage,
                      defField,
-                     refMask,
+                     refMask.get(),
                      param->interpolation,
                      param->paddingValue);
    nifti_image_free(defField);
@@ -338,7 +336,7 @@ int main(int argc, char **argv)
          lncc_object->SetTimepointWeight(i,1.0);
       lncc_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
-                                    refMask,
+                                    refMask.get(),
                                     warpedFloImage,
                                     nullptr,
                                     nullptr);
@@ -355,7 +353,7 @@ int main(int argc, char **argv)
         nmi_object->SetTimepointWeight(i, 1.0);
       nmi_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
-                                    refMask,
+                                    refMask.get(),
                                     warpedFloImage,
                                     nullptr,
                                     nullptr);
@@ -372,7 +370,7 @@ int main(int argc, char **argv)
         ssd_object->SetTimepointWeight(i, 1.0);
       ssd_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
-                                    refMask,
+                                    refMask.get(),
                                     warpedFloImage,
                                     nullptr,
                                     nullptr,
@@ -390,7 +388,7 @@ int main(int argc, char **argv)
         mind_object->SetTimepointWeight(i, 1.0);
       mind_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
-                                    refMask,
+                                    refMask.get(),
                                     warpedFloImage,
                                     nullptr,
                                     nullptr);
@@ -404,11 +402,6 @@ int main(int argc, char **argv)
    // Close the output file if required
    if(outFile!=nullptr)
       fclose(outFile);
-
-   // Free the allocated images
-   nifti_image_free(refImage);
-   nifti_image_free(floImage);
-   free(refMask);
 
    free(flag);
    free(param);

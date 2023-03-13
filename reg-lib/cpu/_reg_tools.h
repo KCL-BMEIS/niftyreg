@@ -345,10 +345,10 @@ void reg_createImagePyramid(const NiftiImage& input,
  * the registration.
  */
 extern "C++" template<class DataType>
-int reg_createMaskPyramid(const nifti_image *input,
-                          int **pyramid,
-                          unsigned int levelNumber,
-                          unsigned int levelToPerform);
+void reg_createMaskPyramid(const NiftiImage& input,
+                           vector<unique_ptr<int[]>>& pyramid,
+                           unsigned int levelNumber,
+                           unsigned int levelToPerform);
 /* *************************************************************** */
 /** @brief this function will threshold an image to the values provided,
  * set the scl_slope and sct_inter of the image to 1 and 0
