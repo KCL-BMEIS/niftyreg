@@ -379,8 +379,8 @@ int main(int argc, char **argv) {
 
     // Set the reference and floating images
     // make the images isotropic if required
-    reg->SetInputReference(iso ? reg_makeIsotropic(referenceHeader, 1) : referenceHeader);
-    reg->SetInputFloating(iso ? reg_makeIsotropic(floatingHeader, 1) : floatingHeader);
+    reg->SetInputReference(iso ? NiftiImage(reg_makeIsotropic(referenceHeader, 1)) : referenceHeader);
+    reg->SetInputFloating(iso ? NiftiImage(reg_makeIsotropic(floatingHeader, 1)) : floatingHeader);
 
     /* read the reference mask image */
     if (referenceMaskFlag) {
@@ -398,7 +398,7 @@ int main(int argc, char **argv) {
             }
         }
         // make the image isotropic if required
-        reg->SetInputMask(iso ? reg_makeIsotropic(referenceMaskImage, 0) : std::move(referenceMaskImage));
+        reg->SetInputMask(iso ? NiftiImage(reg_makeIsotropic(referenceMaskImage, 0)) : std::move(referenceMaskImage));
     }
     /* Read the floating mask image */
     if (floatingMaskFlag && symFlag) {
@@ -416,7 +416,7 @@ int main(int argc, char **argv) {
             }
         }
         // make the image isotropic if required
-        reg->SetInputFloatingMask(iso ? reg_makeIsotropic(floatingMaskImage, 0) : std::move(floatingMaskImage));
+        reg->SetInputFloatingMask(iso ? NiftiImage(reg_makeIsotropic(floatingMaskImage, 0)) : std::move(floatingMaskImage));
     }
 
     reg->SetMaxIterations(maxIter);

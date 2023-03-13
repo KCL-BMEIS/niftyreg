@@ -1338,7 +1338,7 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
                             }
                             currIterator = tmp_lab.begin();
                             maxindex = 0;
-                            maxval = -std::numeric_limits<float>::max();;
+                            maxval = std::numeric_limits<float>::min();
                             while (currIterator != tmp_lab.end()) {
                                 if (currIterator->second > maxval) {
                                     maxindex = currIterator->first;

@@ -1871,13 +1871,13 @@ public:
      * Return the number of voxels per slice
      * @return An integer giving the number of voxels per slice
     */
-    size_t nVoxelsPerSlice () const { return calcVoxelNumber(*this, 2); }
+    size_t nVoxelsPerSlice () const { return calcVoxelNumber(image, 2); }
 
     /**
      * Return the number of voxels per volume
      * @return An integer giving the number of voxels per volume
     */
-    size_t nVoxelsPerVolume () const { return calcVoxelNumber(*this, 3); }
+    size_t nVoxelsPerVolume () const { return calcVoxelNumber(image, 3); }
 
     /**
      * Return the number of extensions associated with the image
