@@ -38,7 +38,7 @@
   * @param filename Filename of the input images
   * @return Code, NIFTYREG_FILEFORMAT_TYPE,  that encode the file format
   */
-int reg_io_checkFileFormat(const char *filename);
+int reg_io_checkFileFormat(const std::string& filename);
 /* *************************************************************** */
 /** The function expects a filename and returns a nifti_image structure
   * The function will use to correct library and will return a NULL image
@@ -69,5 +69,5 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename);
   * The image will be displayed on the standard output
   * @param Nifti image to be displayed
   */
-void reg_io_diplayImageData(nifti_image *image);
+void reg_io_displayImageData(nifti_image *image);
 /* *************************************************************** */
