@@ -18,20 +18,20 @@
 template <class T>
 class reg_f3d2: public reg_f3d<T> {
 protected:
-    nifti_image *floatingMaskImage;
-    int **floatingMaskPyramid;
-    nifti_image *controlPointGridBw;
-    mat44 *affineTransformationBw;
+    NiftiImage floatingMaskImage;
+    vector<unique_ptr<int[]>> floatingMaskPyramid;
+    NiftiImage controlPointGridBw;
+    unique_ptr<mat44> affineTransformationBw;
     T inverseConsistencyWeight;
     bool bchUpdate;
     bool useGradientCumulativeExp;
     int bchUpdateValue;
 
     // Content backwards
-    F3dContent *conBw = nullptr;
+    unique_ptr<F3dContent> conBw;
 
     // Compute backwards
-    Compute *computeBw = nullptr;
+    unique_ptr<Compute> computeBw;
 
     virtual void SetOptimiser() override;
     virtual double ComputeBendingEnergyPenaltyTerm() override;
@@ -67,13 +67,12 @@ protected:
 
 public:
     reg_f3d2(int refTimePoint, int floTimePoint);
-    virtual ~reg_f3d2();
 
-    virtual nifti_image* GetBackwardControlPointPositionImage() override;
-    virtual nifti_image** GetWarpedImage() override;
+    virtual NiftiImage GetBackwardControlPointPositionImage() override;
+    virtual vector<NiftiImage> GetWarpedImage() override;
     virtual bool GetSymmetricStatus() override { return true; }
 
-    virtual void SetFloatingMask(nifti_image*) override;
+    virtual void SetFloatingMask(NiftiImage) override;
     virtual void SetInverseConsistencyWeight(T) override;
     virtual void UseBCHUpdate(int) override;
     virtual void UseGradientCumulativeExp() override;

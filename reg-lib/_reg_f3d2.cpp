@@ -18,10 +18,6 @@ template <class T>
 reg_f3d2<T>::reg_f3d2(int refTimePoint, int floTimePoint):
     reg_f3d<T>::reg_f3d(refTimePoint, floTimePoint) {
     this->executableName = (char*)"NiftyReg F3D2";
-    controlPointGridBw = nullptr;
-    floatingMaskImage = nullptr;
-    floatingMaskPyramid = nullptr;
-    affineTransformationBw = nullptr;
     inverseConsistencyWeight = 0;
     bchUpdate = false;
     useGradientCumulativeExp = true;
@@ -32,43 +28,9 @@ reg_f3d2<T>::reg_f3d2(int refTimePoint, int floTimePoint):
 #endif
 }
 /* *************************************************************** */
-template <class T>
-reg_f3d2<T>::~reg_f3d2() {
-    if (controlPointGridBw) {
-        nifti_image_free(controlPointGridBw);
-        controlPointGridBw = nullptr;
-    }
-
-    if (floatingMaskPyramid) {
-        if (this->usePyramid) {
-            for (unsigned int i = 0; i < this->levelToPerform; i++) {
-                if (floatingMaskPyramid[i]) {
-                    free(floatingMaskPyramid[i]);
-                    floatingMaskPyramid[i] = nullptr;
-                }
-            }
-        } else {
-            if (floatingMaskPyramid[0]) {
-                free(floatingMaskPyramid[0]);
-                floatingMaskPyramid[0] = nullptr;
-            }
-        }
-        free(floatingMaskPyramid);
-        floatingMaskPyramid = nullptr;
-    }
-
-    if (affineTransformationBw) {
-        delete affineTransformationBw;
-        affineTransformationBw = nullptr;
-    }
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_f3d2 destructor called");
-#endif
-}
-/* *************************************************************** */
 template<class T>
-void reg_f3d2<T>::SetFloatingMask(nifti_image *m) {
-    floatingMaskImage = m;
+void reg_f3d2<T>::SetFloatingMask(NiftiImage floatingMaskImageIn) {
+    floatingMaskImage = floatingMaskImageIn;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d2<T>::~SetFloatingMask");
 #endif
@@ -85,8 +47,8 @@ void reg_f3d2<T>::SetInverseConsistencyWeight(T w) {
 template<class T>
 void reg_f3d2<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
     unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d)) };
-    conBw = contentCreator->Create(floating, reference, controlPointGridBw, nullptr, mask, affineTransformationBw, sizeof(T));
-    computeBw = this->platform->CreateCompute(*conBw);
+    conBw.reset(contentCreator->Create(floating, reference, controlPointGridBw, nullptr, mask, affineTransformationBw.get(), sizeof(T)));
+    computeBw.reset(this->platform->CreateCompute(*conBw));
 }
 /* *************************************************************** */
 template <class T>
@@ -103,8 +65,8 @@ T reg_f3d2<T>::InitCurrentLevel(int currentLevel) {
         const int index = this->usePyramid ? currentLevel : 0;
         reference = this->referencePyramid[index];
         floating = this->floatingPyramid[index];
-        referenceMask = this->maskPyramid[index];
-        floatingMask = floatingMaskPyramid[index];
+        referenceMask = this->maskPyramid[index].get();
+        floatingMask = floatingMaskPyramid[index].get();
     }
 
     // Define the initial step size for the gradient ascent optimisation
@@ -143,16 +105,12 @@ T reg_f3d2<T>::InitCurrentLevel(int currentLevel) {
 template<class T>
 void reg_f3d2<T>::DeinitCurrentLevel(int currentLevel) {
     reg_f3d<T>::DeinitCurrentLevel(currentLevel);
-    delete computeBw;
     computeBw = nullptr;
-    delete conBw;
     conBw = nullptr;
     if (currentLevel >= 0) {
         if (this->usePyramid) {
-            free(floatingMaskPyramid[currentLevel]);
             floatingMaskPyramid[currentLevel] = nullptr;
         } else if (currentLevel == this->levelToPerform - 1) {
-            free(floatingMaskPyramid[0]);
             floatingMaskPyramid[0] = nullptr;
         }
     }
@@ -330,11 +288,11 @@ double reg_f3d2<T>::ComputeLandmarkDistancePenaltyTerm() {
 template <class T>
 void reg_f3d2<T>::GetVoxelBasedGradient() {
     // The voxel based gradient image is initialised with zeros
-    dynamic_cast<F3dContent*>(this->con)->ZeroVoxelBasedMeasureGradient();
+    dynamic_cast<F3dContent&>(*this->con).ZeroVoxelBasedMeasureGradient();
     conBw->ZeroVoxelBasedMeasureGradient();
 
     // The intensity gradient is first computed
-    //    if(this->measure_dti!=nullptr){
+    //    if(this->measure_dti){
     //        reg_getImageGradient(this->floating,
     //                             this->warpedGradient,
     //                             this->deformationFieldImage,
@@ -354,7 +312,7 @@ void reg_f3d2<T>::GetVoxelBasedGradient() {
     //                             this->measure_dti->GetActiveTimepoints(),
     //                             backwardJacobianMatrix,
     //                             backwardWarped);
-    //   if(this->measure_dti!=nullptr)
+    //   if(this->measure_dti)
     //      this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
     //    }
     //    else{
@@ -518,7 +476,7 @@ void reg_f3d2<T>::GetObjectiveFunctionGradient() {
             WarpFloatingImage(this->interpolation);
             GetSimilarityMeasureGradient();
         } else {
-            dynamic_cast<F3dContent*>(this->con)->ZeroTransformationGradient();
+            dynamic_cast<F3dContent&>(*this->con).ZeroTransformationGradient();
             conBw->ZeroTransformationGradient();
         }
     } else GetApproximatedGradient();
@@ -569,14 +527,14 @@ void reg_f3d2<T>::DisplayCurrentLevelParameters(int currentLevel) {
 /* *************************************************************** */
 template <class T>
 void reg_f3d2<T>::SetOptimiser() {
-    this->optimiser = this->platform->template CreateOptimiser<T>(*dynamic_cast<F3dContent*>(this->con),
-                                                                  *this,
-                                                                  this->maxIterationNumber,
-                                                                  this->useConjGradient,
-                                                                  this->optimiseX,
-                                                                  this->optimiseY,
-                                                                  this->optimiseZ,
-                                                                  conBw);
+    this->optimiser.reset(this->platform->template CreateOptimiser<T>(dynamic_cast<F3dContent&>(*this->con),
+                                                                      *this,
+                                                                      this->maxIterationNumber,
+                                                                      this->useConjGradient,
+                                                                      this->optimiseX,
+                                                                      this->optimiseY,
+                                                                      this->optimiseZ,
+                                                                      conBw.get()));
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d2<T>::SetOptimiser");
 #endif
@@ -657,28 +615,28 @@ double reg_f3d2<T>::GetObjectiveFunctionValue() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d2<T>::InitialiseSimilarity() {
-    F3dContent& con = *dynamic_cast<F3dContent*>(this->con);
+    F3dContent& con = dynamic_cast<F3dContent&>(*this->con);
 
     if (this->measure_nmi)
-        this->measure->Initialise(*this->measure_nmi, con, conBw);
+        this->measure->Initialise(*this->measure_nmi, con, conBw.get());
 
     if (this->measure_ssd)
-        this->measure->Initialise(*this->measure_ssd, con, conBw);
+        this->measure->Initialise(*this->measure_ssd, con, conBw.get());
 
     if (this->measure_kld)
-        this->measure->Initialise(*this->measure_kld, con, conBw);
+        this->measure->Initialise(*this->measure_kld, con, conBw.get());
 
     if (this->measure_lncc)
-        this->measure->Initialise(*this->measure_lncc, con, conBw);
+        this->measure->Initialise(*this->measure_lncc, con, conBw.get());
 
     if (this->measure_dti)
-        this->measure->Initialise(*this->measure_dti, con, conBw);
+        this->measure->Initialise(*this->measure_dti, con, conBw.get());
 
     if (this->measure_mind)
-        this->measure->Initialise(*this->measure_mind, con, conBw);
+        this->measure->Initialise(*this->measure_mind, con, conBw.get());
 
     if (this->measure_mindssc)
-        this->measure->Initialise(*this->measure_mindssc, con, conBw);
+        this->measure->Initialise(*this->measure_mindssc, con, conBw.get());
 
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d2<T>::InitialiseSimilarity");
@@ -686,11 +644,11 @@ void reg_f3d2<T>::InitialiseSimilarity() {
 }
 /* *************************************************************** */
 template<class T>
-nifti_image* reg_f3d2<T>::GetBackwardControlPointPositionImage() {
+NiftiImage reg_f3d2<T>::GetBackwardControlPointPositionImage() {
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d2<T>::GetBackwardControlPointPositionImage");
 #endif
-    return nifti_dup(*controlPointGridBw);
+    return controlPointGridBw;
 }
 /* *************************************************************** */
 template <class T>
@@ -729,22 +687,22 @@ void reg_f3d2<T>::Initialise() {
         gridSpacing[2] *= powf(2, this->levelNumber - 1);
 
         // Create the forward and backward control point grids
-        reg_createSymmetricControlPointGrids<T>(&this->controlPointGrid,
-                                                &controlPointGridBw,
+        reg_createSymmetricControlPointGrids<T>(this->controlPointGrid,
+                                                controlPointGridBw,
                                                 this->referencePyramid[0],
                                                 this->floatingPyramid[0],
                                                 this->affineTransformation,
                                                 gridSpacing);
     } else {
         // The control point grid image is initialised with the provided grid
-        this->controlPointGrid = nifti_dup(*this->inputControlPointGrid);
+        this->controlPointGrid = this->inputControlPointGrid;
         // The final grid spacing is computed
         this->spacing[0] = this->controlPointGrid->dx / powf(2, this->levelNumber - 1);
         this->spacing[1] = this->controlPointGrid->dy / powf(2, this->levelNumber - 1);
         if (this->controlPointGrid->nz > 1)
             this->spacing[2] = this->controlPointGrid->dz / powf(2, this->levelNumber - 1);
         // The backward grid is derived from the forward
-        controlPointGridBw = nifti_dup(*this->controlPointGrid);
+        controlPointGridBw = this->controlPointGrid;
         reg_getDisplacementFromDeformation(controlPointGridBw);
         reg_tools_multiplyValueToImage(controlPointGridBw, controlPointGridBw, -1);
         reg_getDeformationFromDisplacement(controlPointGridBw);
@@ -755,29 +713,15 @@ void reg_f3d2<T>::Initialise() {
     }
 
     // Set the floating mask image pyramid
-    if (this->usePyramid) {
-        floatingMaskPyramid = (int**)malloc(this->levelToPerform * sizeof(int*));
-    } else {
-        floatingMaskPyramid = (int**)malloc(sizeof(int*));
-    }
+    const unsigned int imageCount = this->usePyramid ? this->levelToPerform : 1;
+    const unsigned int levelCount = this->usePyramid ? this->levelNumber : 1;
+    floatingMaskPyramid = vector<unique_ptr<int[]>>(imageCount);
 
-    if (this->usePyramid) {
-        if (floatingMaskImage) {
-            reg_createMaskPyramid<T>(floatingMaskImage, floatingMaskPyramid, this->levelNumber, this->levelToPerform);
-        } else {
-            for (unsigned int l = 0; l < this->levelToPerform; ++l) {
-                const size_t voxelNumberBw = CalcVoxelNumber(*this->floatingPyramid[l]);
-                floatingMaskPyramid[l] = (int*)calloc(voxelNumberBw, sizeof(int));
-            }
-        }
-    } else {  // no pyramid
-        if (floatingMaskImage)
-            reg_createMaskPyramid<T>(floatingMaskImage, floatingMaskPyramid, 1, 1);
-        else {
-            const size_t voxelNumberBw = CalcVoxelNumber(*this->floatingPyramid[0]);
-            floatingMaskPyramid[0] = (int*)calloc(voxelNumberBw, sizeof(int));
-        }
-    }
+    if (floatingMaskImage)
+        reg_createMaskPyramid<T>(floatingMaskImage, floatingMaskPyramid, levelCount, imageCount);
+    else
+        for (unsigned int l = 0; l < imageCount; ++l)
+            floatingMaskPyramid[l].reset(new int[this->floatingPyramid[l].nVoxelsPerVolume()]());
 
 #ifdef NDEBUG
     if (this->verbose) {
@@ -798,7 +742,7 @@ void reg_f3d2<T>::Initialise() {
     this->controlPointGrid->intent_p2 = controlPointGridBw->intent_p2 = 6;
 
     if (this->affineTransformation)
-        affineTransformationBw = new mat44(nifti_mat44_inverse(*this->affineTransformation));
+        affineTransformationBw.reset(new mat44(nifti_mat44_inverse(*this->affineTransformation)));
 
 #ifndef NDEBUG
     reg_print_msg_debug("reg_f3d2::Initialise() done");
@@ -866,7 +810,7 @@ void reg_f3d2<T>::UpdateParameters(float scale) {
 }
 /* *************************************************************** */
 template<class T>
-nifti_image** reg_f3d2<T>::GetWarpedImage() {
+vector<NiftiImage> reg_f3d2<T>::GetWarpedImage() {
     // The initial images are used
     if (!this->inputReference || !this->inputFloating || !this->controlPointGrid || !controlPointGridBw) {
         reg_print_fct_error("reg_f3d2<T>::GetWarpedImage()");
@@ -878,10 +822,11 @@ nifti_image** reg_f3d2<T>::GetWarpedImage() {
 
     WarpFloatingImage(3); // cubic spline interpolation
 
-    F3dContent *con = dynamic_cast<F3dContent*>(this->con);
-    nifti_image **warpedImage = (nifti_image**)calloc(2, sizeof(nifti_image*));
-    warpedImage[0] = nifti_dup(*con->GetWarped());
-    warpedImage[1] = nifti_dup(*conBw->GetWarped());
+    F3dContent& con = dynamic_cast<F3dContent&>(*this->con);
+    vector<NiftiImage> warpedImage{
+        NiftiImage(con.GetWarped(), true),
+        NiftiImage(conBw->GetWarped(), true)
+    };
 
     DeinitCurrentLevel(-1);
 #ifndef NDEBUG
