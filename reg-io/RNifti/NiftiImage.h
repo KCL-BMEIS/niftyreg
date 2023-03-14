@@ -1604,6 +1604,43 @@ public:
     }
 
     /**
+     * Set a dimension of the image
+     * @param dim The dimension to set
+     * @param value The new value of the dimension
+    */
+    void setDim (const int dim, const dim_t value)
+    {
+        if (image == nullptr)
+            return;
+        switch (dim) {
+        case 0:
+            image->dim[0] = image->ndim = value;
+            break;
+        case 1:
+            image->dim[1] = image->nx = value;
+            break;
+        case 2:
+            image->dim[2] = image->ny = value;
+            break;
+        case 3:
+            image->dim[3] = image->nz = value;
+            break;
+        case 4:
+            image->dim[4] = image->nt = value;
+            break;
+        case 5:
+            image->dim[5] = image->nu = value;
+            break;
+        case 6:
+            image->dim[6] = image->nv = value;
+            break;
+        case 7:
+            image->dim[7] = image->nw = value;
+            break;
+        }
+    }
+
+    /**
      * Return the dimensions of the pixels or voxels in the image
      * @return A vector of floating-point values giving the pixel width in each dimension
     **/
