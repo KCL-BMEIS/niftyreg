@@ -200,15 +200,14 @@ TEST_CASE("Interpolation", "[Interpolation]") {
             auto contentName = isAladinContent ? "Aladin" : "Base";
             SECTION(testName + " " + platform->GetName() + " - " + contentName) {
                 // Create and set a warped image to host the computation
-                nifti_image *warped = nifti_copy_nim_info(defField);
-                warped->ndim = warped->dim[0] = defField->nu;
-                warped->dim[1] = warped->nx = 1;
-                warped->dim[2] = warped->ny = 1;
-                warped->dim[3] = warped->nz = 1;
-                warped->dim[5] = warped->nu = 1;
-                warped->nvox = NiftiImage::calcVoxelNumber(warped, warped->ndim);
-                warped->data = calloc(warped->nvox, warped->nbyper);
-                content->SetWarped(warped);
+                NiftiImage warped(defField, true, true);
+                warped.setDim(0, defField->nu);
+                warped.setDim(1, 1);
+                warped.setDim(2, 1);
+                warped.setDim(3, 1);
+                warped.setDim(5, 1);
+                warped.realloc();
+                content->SetWarped(warped.disown());
 
                 // Set the deformation field
                 content->SetDeformationField(defField.disown());
@@ -224,11 +223,12 @@ TEST_CASE("Interpolation", "[Interpolation]") {
 
                 // Check all values
                 warped = content->GetWarped();
-                auto warpedPtr = static_cast<float*>(warped->data);
+                auto warpedPtr = warped.data();
                 for (size_t i = 0; i < warped->nvox; ++i) {
-                    std::cout << i << " " << warpedPtr[i] << " " << testResult[i] << std::endl;
-                    REQUIRE(fabs(warpedPtr[i] - testResult[i]) < EPS);
+                    std::cout << i << " " << float(warpedPtr[i]) << " " << testResult[i] << std::endl;
+                    REQUIRE(fabs(float(warpedPtr[i]) - testResult[i]) < EPS);
                 }
+                warped.disown();
             }
         }
     }

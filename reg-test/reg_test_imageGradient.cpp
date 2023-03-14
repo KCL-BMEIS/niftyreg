@@ -178,13 +178,14 @@ TEST_CASE("Image gradient", "[ImageGradient]") {
             auto&& [content, platform] = contentDesc;
             SECTION(testName + " " + platform->GetName()) {
                 // Set the warped gradient image to host the computation
-                auto warpedGradient = content->GetWarpedGradient();
-                warpedGradient->ndim = warpedGradient->dim[0] = defField->ndim;
-                warpedGradient->dim[1] = warpedGradient->nx = 1;
-                warpedGradient->dim[2] = warpedGradient->ny = 1;
-                warpedGradient->dim[3] = warpedGradient->nz = 1;
-                warpedGradient->dim[5] = warpedGradient->nu = defField->nu;
-                warpedGradient->nvox = NiftiImage::calcVoxelNumber(warpedGradient, warpedGradient->ndim);
+                NiftiImage warpedGradient(content->GetWarpedGradient());
+                warpedGradient.setDim(0, defField->ndim);
+                warpedGradient.setDim(1, 1);
+                warpedGradient.setDim(2, 1);
+                warpedGradient.setDim(3, 1);
+                warpedGradient.setDim(5, defField->nu);
+                warpedGradient.recalcVoxelNumber();
+                warpedGradient.disown();
 
                 // Set the deformation field
                 content->SetDeformationField(defField.disown());
@@ -195,11 +196,12 @@ TEST_CASE("Image gradient", "[ImageGradient]") {
 
                 // Check all values
                 warpedGradient = content->GetWarpedGradient();
-                auto warpedGradPtr = static_cast<float*>(warpedGradient->data);
+                auto warpedGradPtr = warpedGradient.data();
                 for (size_t i = 0; i < warpedGradient->nvox; ++i) {
-                    std::cout << i << " " << warpedGradPtr[i] << " " << testResult[i] << std::endl;
-                    REQUIRE(fabs(warpedGradPtr[i] - testResult[i]) < EPS);
+                    std::cout << i << " " << float(warpedGradPtr[i]) << " " << testResult[i] << std::endl;
+                    REQUIRE(fabs(float(warpedGradPtr[i]) - testResult[i]) < EPS);
                 }
+                warpedGradient.disown();
             }
         }
     }
