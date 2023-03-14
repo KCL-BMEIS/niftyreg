@@ -15,55 +15,44 @@
 */
 
 
-typedef std::tuple<std::string, nifti_image*, nifti_image*, int, float*> TestData;
+typedef std::tuple<std::string, NiftiImage, NiftiImage, int, float*> TestData;
 typedef std::tuple<unique_ptr<Content>, shared_ptr<Platform>> ContentDesc;
 
 TEST_CASE("Interpolation", "[Interpolation]") {
     // Create a reference 2D image
-    int dimFlo[8] = { 2, 4, 4, 1, 1, 1, 1, 1 };
-    nifti_image *reference2d = nifti_make_new_nim(dimFlo, NIFTI_TYPE_FLOAT32, true);
-    reg_checkAndCorrectDimension(reference2d);
+    vector<NiftiImage::dim_t> dimFlo{ 4, 4 };
+    NiftiImage reference2d(dimFlo, NIFTI_TYPE_FLOAT32);
 
     // Fill image with distance from identity
-    auto ref2dPtr = static_cast<float*>(reference2d->data);
-    for (auto y = 0; y < reference2d->ny; ++y) {
-        for (auto x = 0; x < reference2d->nx; ++x) {
-            *ref2dPtr = sqrtf(float(x * x) + float(y * y));
-            ref2dPtr++;
-        }
-    }
-    ref2dPtr = static_cast<float*>(reference2d->data);
+    const auto ref2dPtr = reference2d.data();
+    auto ref2dIt = ref2dPtr.begin();
+    for (auto y = 0; y < reference2d->ny; ++y)
+        for (auto x = 0; x < reference2d->nx; ++x)
+            *ref2dIt++ = sqrtf(float(x * x) + float(y * y));
 
     // Create a corresponding 2D deformation field
-    int dimDef[8] = { 5, 1, 1, 1, 1, 2, 1, 1 };
-    nifti_image *deformationField2d = nifti_make_new_nim(dimDef, NIFTI_TYPE_FLOAT32, true);
-    reg_checkAndCorrectDimension(deformationField2d);
-    auto def2dPtr = static_cast<float*>(deformationField2d->data);
+    vector<NiftiImage::dim_t> dimDef{ 1, 1, 1, 1, 2 };
+    NiftiImage deformationField2d(dimDef, NIFTI_TYPE_FLOAT32);
+    auto def2dPtr = deformationField2d.data();
     def2dPtr[0] = 1.2f;
     def2dPtr[1] = 1.3f;
 
     // Create a reference 3D image
-    dimFlo[0] = 3; dimFlo[3] = 4;
-    nifti_image *reference3d = nifti_make_new_nim(dimFlo, NIFTI_TYPE_FLOAT32, true);
-    reg_checkAndCorrectDimension(reference3d);
+    dimFlo.push_back(4);
+    NiftiImage reference3d(dimFlo, NIFTI_TYPE_FLOAT32);
 
     // Fill image with distance from identity
-    auto ref3dPtr = static_cast<float*>(reference3d->data);
-    for (auto z = 0; z < reference3d->nz; ++z) {
-        for (auto y = 0; y < reference3d->ny; ++y) {
-            for (auto x = 0; x < reference3d->nx; ++x) {
-                *ref3dPtr = sqrtf(float(x * x) + float(y * y) + float(z * z));
-                ref3dPtr++;
-            }
-        }
-    }
-    ref3dPtr = static_cast<float*>(reference3d->data);
+    const auto ref3dPtr = reference3d.data();
+    auto ref3dIt = ref3dPtr.begin();
+    for (auto z = 0; z < reference3d->nz; ++z)
+        for (auto y = 0; y < reference3d->ny; ++y)
+            for (auto x = 0; x < reference3d->nx; ++x)
+                *ref3dIt++ = sqrtf(float(x * x) + float(y * y) + float(z * z));
 
     // Create a corresponding 3D deformation field
-    dimDef[5] = 3;
-    nifti_image *deformationField3d = nifti_make_new_nim(dimDef, NIFTI_TYPE_FLOAT32, true);
-    reg_checkAndCorrectDimension(deformationField3d);
-    auto def3dPtr = static_cast<float*>(deformationField3d->data);
+    dimDef[4] = 3;
+    NiftiImage deformationField3d(dimDef, NIFTI_TYPE_FLOAT32);
+    auto def3dPtr = deformationField3d.data();
     def3dPtr[0] = 1.2f;
     def3dPtr[1] = 1.3f;
     def3dPtr[2] = 1.4f;
@@ -73,12 +62,12 @@ TEST_CASE("Interpolation", "[Interpolation]") {
 
     // Linear interpolation - 2D
     // coordinate in image: [1.2, 1.3]
-    float resLinear2d[1] = {0};
+    float resLinear2d[1] = {};
     for (int y = 1; y <= 2; ++y) {
         for (int x = 1; x <= 2; ++x) {
-            resLinear2d[0] += ref2dPtr[y * dimFlo[1] + x] *
-                abs(2.0f - (float)x - 0.2f) *
-                abs(2.0f - (float)y - 0.3f);
+            resLinear2d[0] += float(ref2dPtr[y * dimFlo[1] + x]) *
+                abs(2.0f - float(x) - 0.2f) *
+                abs(2.0f - float(y) - 0.3f);
         }
     }
 
@@ -106,13 +95,13 @@ TEST_CASE("Interpolation", "[Interpolation]") {
 
     // Cubic spline interpolation - 2D
     // coordinate in image: [1.2, 1.3]
-    float resCubic2d[1] = {0};
+    float resCubic2d[1] = {};
     float xBasis[4], yBasis[4];
     InterpCubicSplineKernel(0.2f, xBasis);
     InterpCubicSplineKernel(0.3f, yBasis);
     for (int y = 0; y <= 3; ++y) {
         for (int x = 0; x <= 3; ++x) {
-            resCubic2d[0] += ref2dPtr[y * dimFlo[1] + x] * xBasis[x] * yBasis[y];
+            resCubic2d[0] += float(ref2dPtr[y * dimFlo[1] + x]) * xBasis[x] * yBasis[y];
         }
     }
 
@@ -127,14 +116,14 @@ TEST_CASE("Interpolation", "[Interpolation]") {
 
     // Linear interpolation - 3D
     // coordinate in image: [1.2, 1.3, 1.4]
-    float resLinear3d[1] = {0};
+    float resLinear3d[1] = {};
     for (int z = 1; z <= 2; ++z) {
         for (int y = 1; y <= 2; ++y) {
             for (int x = 1; x <= 2; ++x) {
-                resLinear3d[0] += ref3dPtr[z * dimFlo[1] * dimFlo[2] + y * dimFlo[1] + x] *
-                    abs(2.0f - (float)x - 0.2f) *
-                    abs(2.0f - (float)y - 0.3f) *
-                    abs(2.0f - (float)z - 0.4f);
+                resLinear3d[0] += float(ref3dPtr[z * dimFlo[1] * dimFlo[2] + y * dimFlo[1] + x]) *
+                    abs(2.0f - float(x) - 0.2f) *
+                    abs(2.0f - float(y) - 0.3f) *
+                    abs(2.0f - float(z) - 0.4f);
             }
         }
     }
@@ -163,13 +152,13 @@ TEST_CASE("Interpolation", "[Interpolation]") {
 
     // Cubic spline interpolation - 3D
     // coordinate in image: [1.2, 1.3, 1.4]
-    float resCubic3d[1] = {0};
+    float resCubic3d[1] = {};
     float zBasis[4];
     InterpCubicSplineKernel(0.4f, zBasis);
     for (int z = 0; z <= 3; ++z) {
         for (int y = 0; y <= 3; ++y) {
             for (int x = 0; x <= 3; ++x) {
-                resCubic3d[0] += ref3dPtr[z * dimFlo[1] * dimFlo[2] + y * dimFlo[1] + x] * xBasis[x] * yBasis[y] * zBasis[z];
+                resCubic3d[0] += float(ref3dPtr[z * dimFlo[1] * dimFlo[2] + y * dimFlo[1] + x]) * xBasis[x] * yBasis[y] * zBasis[z];
             }
         }
     }
@@ -217,12 +206,12 @@ TEST_CASE("Interpolation", "[Interpolation]") {
                 warped->dim[2] = warped->ny = 1;
                 warped->dim[3] = warped->nz = 1;
                 warped->dim[5] = warped->nu = 1;
-                warped->nvox = CalcVoxelNumber(*warped, warped->ndim);
+                warped->nvox = NiftiImage::calcVoxelNumber(warped, warped->ndim);
                 warped->data = calloc(warped->nvox, warped->nbyper);
                 content->SetWarped(warped);
 
                 // Set the deformation field
-                content->SetDeformationField(defField);
+                content->SetDeformationField(defField.disown());
 
                 // Do the computation
                 if (isAladinContent) {
@@ -243,7 +232,4 @@ TEST_CASE("Interpolation", "[Interpolation]") {
             }
         }
     }
-    // Clean up
-    nifti_image_free(reference2d);
-    nifti_image_free(reference3d);
 }
