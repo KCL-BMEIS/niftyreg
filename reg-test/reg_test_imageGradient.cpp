@@ -187,15 +187,11 @@ TEST_CASE("Image gradient", "[ImageGradient]") {
                 warpedGradient->nvox = NiftiImage::calcVoxelNumber(warpedGradient, warpedGradient->ndim);
 
                 // Set the deformation field
-                content->SetDeformationField(defField);
+                content->SetDeformationField(defField.disown());
 
                 // Do the computation
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 compute->GetImageGradient(interp, 0, 0);
-
-                // TODO: Fix this
-                // To prevent the content from deleting the deformation field
-                content->SetDeformationField(nullptr);
 
                 // Check all values
                 warpedGradient = content->GetWarpedGradient();
