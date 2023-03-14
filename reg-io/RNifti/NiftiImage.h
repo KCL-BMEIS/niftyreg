@@ -1291,8 +1291,9 @@ protected:
     /**
      * Copy the contents of a \c nifti_image to create a new image, acquiring the new pointer
      * @param source A pointer to a \c nifti_image
+     * @param onlyImageInfo If \c true, only the image info is copied; otherwise the data are also copied
     **/
-    void copy (const nifti_image *source);
+    void copy (const nifti_image *source, const bool onlyImageInfo);
 
     /**
      * Copy the contents of a \ref Block to create a new image, acquiring a new pointer
@@ -1378,12 +1379,13 @@ public:
      * @param source Another \c NiftiImage object
      * @param copy If \c true, the underlying \c nifti_image will be copied; otherwise the new
      * object wraps the same \c nifti_image and increments the shared reference count
+     * @param onlyImageInfo If \c true, only the image info is copied; otherwise the entire image is copied
     **/
-    NiftiImage (const NiftiImage &source, const bool copy = true)
+    NiftiImage (const NiftiImage &source, const bool copy = true, const bool onlyImageInfo = false)
         : NiftiImage()
     {
         if (copy) {
-            this->copy(source);
+            this->copy(source, onlyImageInfo);
         } else {
             refCount = source.refCount;
             acquire(source.image);
@@ -1424,12 +1426,13 @@ public:
      * @param image An existing \c nifti_image pointer, possibly \c nullptr
      * @param copy If \c true, the image data will be copied; otherwise this object just wraps
      * the pointer passed to it
+     * @param onlyImageInfo If \c true, only the image info is copied; otherwise the entire image is copied
     **/
-    NiftiImage (nifti_image * const image, const bool copy = false)
+    NiftiImage (nifti_image * const image, const bool copy = false, const bool onlyImageInfo = false)
         : NiftiImage()
     {
         if (copy)
-            this->copy(image);
+            this->copy(image, onlyImageInfo);
         else
             acquire(image);
 #ifndef NDEBUG
