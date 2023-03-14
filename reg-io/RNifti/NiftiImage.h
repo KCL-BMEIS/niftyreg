@@ -1539,6 +1539,16 @@ public:
     operator bool () const { return (image != nullptr); }
 
     /**
+     * Disown the wrapped pointer, removing responsibility for freeing it upon destruction
+     * @return The wrapped pointer
+    */
+    nifti_image* disown () {
+        nifti_image *img = image;
+        image = nullptr;
+        return img;
+    }
+
+    /**
      * Mark the image as persistent, so that it can be passed back to R
      * @param persistent The new persistence state of the object
      * @return A reference to the callee.
