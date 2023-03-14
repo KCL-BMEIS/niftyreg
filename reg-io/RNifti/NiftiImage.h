@@ -1488,6 +1488,17 @@ public:
     virtual ~NiftiImage () { release(); }
 
     /**
+     * Disown the wrapped pointer, removing responsibility for freeing it upon destruction
+     * @return The wrapped pointer
+    */
+    nifti_image* disown ()
+    {
+        nifti_image *img = image;
+        image = nullptr;
+        return img;
+    }
+
+    /**
      * Allows a \c NiftiImage object to be treated as a pointer to a \c const \c nifti_image
     **/
     operator const nifti_image* () const { return image; }
@@ -1537,16 +1548,6 @@ public:
      * @return \c true if the wrapped pointer is not \c nullptr; \c false otherwise
     */
     operator bool () const { return (image != nullptr); }
-
-    /**
-     * Disown the wrapped pointer, removing responsibility for freeing it upon destruction
-     * @return The wrapped pointer
-    */
-    nifti_image* disown () {
-        nifti_image *img = image;
-        image = nullptr;
-        return img;
-    }
 
     /**
      * Mark the image as persistent, so that it can be passed back to R
@@ -1707,6 +1708,20 @@ public:
     }
 
     /**
+     * Reallocate the image data, preserving the metadata
+     * @note Recalculates the number of voxels in the image and updates the nvox field
+    */
+    void realloc ()
+    {
+        if (image == nullptr)
+            return;
+        if (image->data)
+            free(image->data);
+        recalcVoxelNumber();
+        image->data = calloc(1, nifti_get_volsize(image));
+    }
+
+    /**
      * Rescale the image, changing its image dimensions and pixel dimensions
      * @param scales Vector of scale factors along each dimension
      * @return Self, after rescaling the metadata
@@ -1864,7 +1879,7 @@ public:
     }
 
     /**
-     * Recalculate the number of voxels in the image
+     * Recalculate the number of voxels in the image and update the nvox field
     */
     void recalcVoxelNumber() {
         if (image != nullptr)
