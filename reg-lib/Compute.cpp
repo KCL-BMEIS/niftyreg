@@ -143,9 +143,36 @@ double Compute::GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimis
 }
 /* *************************************************************** */
 void Compute::NormaliseGradient(size_t nodeNumber, double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ) {
-    // TODO Fix reg_tools_multiplyValueToImage to accept optimiseX, optimiseY, optimiseZ
-    nifti_image *transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
-    reg_tools_multiplyValueToImage(transformationGradient, transformationGradient, 1 / maxGradLength);
+    NiftiImage transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
+    const bool hasZ = transformationGradient->nz > 1;
+    if (!hasZ)
+        optimiseZ = false;
+    NiftiImageData ptrX = transformationGradient.data(0);
+    NiftiImageData ptrY = transformationGradient.data(1);
+    NiftiImageData ptrZ = hasZ ? transformationGradient.data(2) : nullptr;
+
+#ifdef _WIN32
+    long i;
+    const long voxelNumber = static_cast<long>(transformationGradient.nVoxelsPerVolume());
+#else
+    size_t i;
+    const size_t voxelNumber = transformationGradient.nVoxelsPerVolume();
+#endif
+
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(voxelNumber, ptrX, ptrY, ptrZ, hasZ, optimiseX, optimiseY, optimiseZ, maxGradLength)
+#endif
+    for (i = 0; i < voxelNumber; ++i) {
+        const double valX = optimiseX ? static_cast<double>(ptrX[i]) : 0;
+        const double valY = optimiseY ? static_cast<double>(ptrY[i]) : 0;
+        const double valZ = optimiseZ ? static_cast<double>(ptrZ[i]) : 0;
+        ptrX[i] = valX / maxGradLength;
+        ptrY[i] = valY / maxGradLength;
+        if (hasZ)
+            ptrZ[i] = valZ / maxGradLength;
+    }
+    transformationGradient.disown();
 }
 /* *************************************************************** */
 void Compute::SmoothGradient(float sigma) {
