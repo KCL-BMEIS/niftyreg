@@ -179,11 +179,11 @@ TEST_CASE("Image gradient", "[ImageGradient]") {
             SECTION(testName + " " + platform->GetName()) {
                 // Set the warped gradient image to host the computation
                 NiftiImage warpedGradient(content->GetWarpedGradient());
-                warpedGradient.setDim(0, defField->ndim);
-                warpedGradient.setDim(1, 1);
-                warpedGradient.setDim(2, 1);
-                warpedGradient.setDim(3, 1);
-                warpedGradient.setDim(5, defField->nu);
+                warpedGradient.setDim(NiftiDim::NDim, defField->ndim);
+                warpedGradient.setDim(NiftiDim::X, 1);
+                warpedGradient.setDim(NiftiDim::Y, 1);
+                warpedGradient.setDim(NiftiDim::Z, 1);
+                warpedGradient.setDim(NiftiDim::U, defField->nu);
                 warpedGradient.recalcVoxelNumber();
                 warpedGradient.disown();
 

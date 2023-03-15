@@ -855,6 +855,8 @@ public:
     typedef double scale_t;             /**< Type used for scale elements */
 #endif
 
+    enum class Dim { X, Y, Z, T, U, V, W, NDim };    /**< Dimension enumeration */
+
     /**
      * Inner class referring to a subset of an image. Currently must refer to the last
      * dimension in the image, i.e., a volume in a 4D parent image, or a slice in a 3D image
@@ -1611,33 +1613,33 @@ public:
      * @param dim The dimension to set
      * @param value The new value of the dimension
     */
-    void setDim (const int dim, const dim_t value)
+    void setDim (const Dim dim, const dim_t value)
     {
         if (image == nullptr)
             return;
         switch (dim) {
-        case 0:
+        case Dim::NDim:
             image->dim[0] = image->ndim = value;
             break;
-        case 1:
+        case Dim::X:
             image->dim[1] = image->nx = value;
             break;
-        case 2:
+        case Dim::Y:
             image->dim[2] = image->ny = value;
             break;
-        case 3:
+        case Dim::Z:
             image->dim[3] = image->nz = value;
             break;
-        case 4:
+        case Dim::T:
             image->dim[4] = image->nt = value;
             break;
-        case 5:
+        case Dim::U:
             image->dim[5] = image->nu = value;
             break;
-        case 6:
+        case Dim::V:
             image->dim[6] = image->nv = value;
             break;
-        case 7:
+        case Dim::W:
             image->dim[7] = image->nw = value;
             break;
         }

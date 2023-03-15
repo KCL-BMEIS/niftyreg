@@ -201,11 +201,11 @@ TEST_CASE("Interpolation", "[Interpolation]") {
             SECTION(testName + " " + platform->GetName() + " - " + contentName) {
                 // Create and set a warped image to host the computation
                 NiftiImage warped(defField, true, true);
-                warped.setDim(0, defField->nu);
-                warped.setDim(1, 1);
-                warped.setDim(2, 1);
-                warped.setDim(3, 1);
-                warped.setDim(5, 1);
+                warped.setDim(NiftiDim::NDim, defField->nu);
+                warped.setDim(NiftiDim::X, 1);
+                warped.setDim(NiftiDim::Y, 1);
+                warped.setDim(NiftiDim::Z, 1);
+                warped.setDim(NiftiDim::U, 1);
                 warped.realloc();
                 content->SetWarped(warped.disown());
 

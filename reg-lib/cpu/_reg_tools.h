@@ -27,6 +27,7 @@ using std::shared_ptr;
 using std::vector;
 using RNifti::NiftiImage;
 using RNifti::NiftiImageData;
+using NiftiDim = NiftiImage::Dim;
 
 typedef enum {
     MEAN_KERNEL,
