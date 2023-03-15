@@ -198,8 +198,9 @@ TEST_CASE("Image gradient", "[ImageGradient]") {
                 warpedGradient = content->GetWarpedGradient();
                 auto warpedGradPtr = warpedGradient.data();
                 for (size_t i = 0; i < warpedGradient->nvox; ++i) {
-                    std::cout << i << " " << float(warpedGradPtr[i]) << " " << testResult[i] << std::endl;
-                    REQUIRE(fabs(float(warpedGradPtr[i]) - testResult[i]) < EPS);
+                    const float warpedGradVal = warpedGradPtr[i];
+                    std::cout << i << " " << warpedGradVal << " " << testResult[i] << std::endl;
+                    REQUIRE(fabs(warpedGradVal - testResult[i]) < EPS);
                 }
                 warpedGradient.disown();
             }

@@ -225,8 +225,9 @@ TEST_CASE("Interpolation", "[Interpolation]") {
                 warped = content->GetWarped();
                 auto warpedPtr = warped.data();
                 for (size_t i = 0; i < warped->nvox; ++i) {
-                    std::cout << i << " " << float(warpedPtr[i]) << " " << testResult[i] << std::endl;
-                    REQUIRE(fabs(float(warpedPtr[i]) - testResult[i]) < EPS);
+                    const float warpedValue = warpedPtr[i];
+                    std::cout << i << " " << warpedValue << " " << testResult[i] << std::endl;
+                    REQUIRE(fabs(warpedValue - testResult[i]) < EPS);
                 }
                 warped.disown();
             }

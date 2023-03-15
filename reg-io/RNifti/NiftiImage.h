@@ -1915,8 +1915,10 @@ public:
         if (image == nullptr)
             return 0;
         size_t voxelNumber = 1;
-        for (int i = 1; i <= dimCount; i++)
-            voxelNumber *= static_cast<size_t>(std::abs(image->dim[i]));
+        for (int i = 1; i <= dimCount; i++) {
+            const size_t dim = static_cast<size_t>(std::abs(image->dim[i]));
+            voxelNumber *= dim > 0 ? dim : 1;
+        }
         return voxelNumber;
     }
 

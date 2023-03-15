@@ -365,10 +365,10 @@ PrecisionType reg_getMaximalLength(const nifti_image *image,
                                    const bool& optimiseZ) {
     switch (image->datatype) {
     case NIFTI_TYPE_FLOAT32:
-        return reg_getMaximalLength<PrecisionType, float>(image, optimiseX, optimiseY, image->nz == 1 ? false : optimiseZ);
+        return reg_getMaximalLength<PrecisionType, float>(image, optimiseX, optimiseY, image->nz > 1 ? optimiseZ : false);
         break;
     case NIFTI_TYPE_FLOAT64:
-        return reg_getMaximalLength<PrecisionType, double>(image, optimiseX, optimiseY, image->nz == 1 ? false : optimiseZ);
+        return reg_getMaximalLength<PrecisionType, double>(image, optimiseX, optimiseY, image->nz > 1 ? optimiseZ : false);
         break;
     }
     return EXIT_SUCCESS;

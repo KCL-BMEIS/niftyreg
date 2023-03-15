@@ -405,62 +405,6 @@ inline void addAttributes (const SEXP pointer, const NiftiImage &source, const b
 
 }       // internal namespace
 
-inline void NiftiImage::correctDimensions() {
-    // Ensure that no dimension is set to zero
-    if (image->nx < 1 || image->dim[1] < 1) image->dim[1] = image->nx = 1;
-    if (image->ny < 1 || image->dim[2] < 1) image->dim[2] = image->ny = 1;
-    if (image->nz < 1 || image->dim[3] < 1) image->dim[3] = image->nz = 1;
-    if (image->nt < 1 || image->dim[4] < 1) image->dim[4] = image->nt = 1;
-    if (image->nu < 1 || image->dim[5] < 1) image->dim[5] = image->nu = 1;
-    if (image->nv < 1 || image->dim[6] < 1) image->dim[6] = image->nv = 1;
-    if (image->nw < 1 || image->dim[7] < 1) image->dim[7] = image->nw = 1;
-    //Correcting the dim of the images
-    for (int i = 1; i < 8; ++i) {
-        if (image->dim[i] > 1) {
-            image->dim[0] = image->ndim = i;
-        }
-    }
-    // Set the slope to 1 if undefined
-    if (image->scl_slope == 0) image->scl_slope = 1.f;
-    // Ensure that no spacing is set to zero
-    if (image->ny == 1 && (image->dy == 0 || image->pixdim[2] == 0))
-        image->dy = image->pixdim[2] = 1;
-    if (image->nz == 1 && (image->dz == 0 || image->pixdim[3] == 0))
-        image->dz = image->pixdim[3] = 1;
-    // Create the qform matrix if required
-    if (image->qform_code == 0 && image->sform_code == 0) {
-        image->qto_xyz = nifti_quatern_to_mat44(image->quatern_b,
-                                                image->quatern_c,
-                                                image->quatern_d,
-                                                image->qoffset_x,
-                                                image->qoffset_y,
-                                                image->qoffset_z,
-                                                image->dx,
-                                                image->dy,
-                                                image->dz,
-                                                image->qfac);
-        image->qto_ijk = nifti_mat44_inverse(image->qto_xyz);
-    }
-    // Set the voxel spacing to millimetres
-    if (image->xyz_units == NIFTI_UNITS_MICRON) {
-        for (int d = 1; d <= image->ndim; ++d)
-            image->pixdim[d] /= 1000.f;
-        image->xyz_units = NIFTI_UNITS_MM;
-    }
-    if (image->xyz_units == NIFTI_UNITS_METER) {
-        for (int d = 1; d <= image->ndim; ++d)
-            image->pixdim[d] *= 1000.f;
-        image->xyz_units = NIFTI_UNITS_MM;
-    }
-    image->dx = image->pixdim[1];
-    image->dy = image->pixdim[2];
-    image->dz = image->pixdim[3];
-    image->dt = image->pixdim[4];
-    image->du = image->pixdim[5];
-    image->dv = image->pixdim[6];
-    image->dw = image->pixdim[7];
-}
-
 template <typename Type, bool alpha>
 inline void NiftiImageData::ConcreteTypeHandler<Type,alpha>::minmax (void *ptr, const size_t length, double *min, double *max) const
 {
@@ -1199,6 +1143,62 @@ inline NiftiImage::NiftiImage (const SEXP object, const bool readData, const boo
 }
 
 #endif // USING_R
+
+inline void NiftiImage::correctDimensions() {
+    // Ensure that no dimension is set to zero
+    if (image->nx < 1 || image->dim[1] < 1) image->dim[1] = image->nx = 1;
+    if (image->ny < 1 || image->dim[2] < 1) image->dim[2] = image->ny = 1;
+    if (image->nz < 1 || image->dim[3] < 1) image->dim[3] = image->nz = 1;
+    if (image->nt < 1 || image->dim[4] < 1) image->dim[4] = image->nt = 1;
+    if (image->nu < 1 || image->dim[5] < 1) image->dim[5] = image->nu = 1;
+    if (image->nv < 1 || image->dim[6] < 1) image->dim[6] = image->nv = 1;
+    if (image->nw < 1 || image->dim[7] < 1) image->dim[7] = image->nw = 1;
+    //Correcting the dim of the images
+    for (int i = 1; i < 8; ++i) {
+        if (image->dim[i] > 1) {
+            image->dim[0] = image->ndim = i;
+        }
+    }
+    // Set the slope to 1 if undefined
+    if (image->scl_slope == 0) image->scl_slope = 1.f;
+    // Ensure that no spacing is set to zero
+    if (image->ny == 1 && (image->dy == 0 || image->pixdim[2] == 0))
+        image->dy = image->pixdim[2] = 1;
+    if (image->nz == 1 && (image->dz == 0 || image->pixdim[3] == 0))
+        image->dz = image->pixdim[3] = 1;
+    // Create the qform matrix if required
+    if (image->qform_code == 0 && image->sform_code == 0) {
+        image->qto_xyz = nifti_quatern_to_mat44(image->quatern_b,
+                                                image->quatern_c,
+                                                image->quatern_d,
+                                                image->qoffset_x,
+                                                image->qoffset_y,
+                                                image->qoffset_z,
+                                                image->dx,
+                                                image->dy,
+                                                image->dz,
+                                                image->qfac);
+        image->qto_ijk = nifti_mat44_inverse(image->qto_xyz);
+    }
+    // Set the voxel spacing to millimetres
+    if (image->xyz_units == NIFTI_UNITS_MICRON) {
+        for (int d = 1; d <= image->ndim; ++d)
+            image->pixdim[d] /= 1000.f;
+        image->xyz_units = NIFTI_UNITS_MM;
+    }
+    if (image->xyz_units == NIFTI_UNITS_METER) {
+        for (int d = 1; d <= image->ndim; ++d)
+            image->pixdim[d] *= 1000.f;
+        image->xyz_units = NIFTI_UNITS_MM;
+    }
+    image->dx = image->pixdim[1];
+    image->dy = image->pixdim[2];
+    image->dz = image->pixdim[3];
+    image->dt = image->pixdim[4];
+    image->du = image->pixdim[5];
+    image->dv = image->pixdim[6];
+    image->dw = image->pixdim[7];
+}
 
 inline void NiftiImage::initFromDims (const std::vector<dim_t> &dim, const int datatype)
 {
