@@ -511,6 +511,24 @@ inline NiftiImageData::Element & NiftiImageData::Element::operator= (const Nifti
     return *this;
 }
 
+inline NiftiImageData::NiftiImageData (nifti_image *image, const int vol)
+    : NiftiImageData()
+{
+    if (image != nullptr) {
+        size_t offset = 0;
+        size_t length = NiftiImage::calcVoxelNumber(image, image->ndim);
+        if (vol >= 0) {
+            const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(image, 3);
+            offset = static_cast<size_t>(vol) * voxelsPerVolume;
+            if (length > offset) {
+                length = voxelsPerVolume;
+                offset *= image->nbyper;
+            } else return;
+        }
+        init(static_cast<char*>(image->data) + offset, length, image->datatype, static_cast<double>(image->scl_slope), static_cast<double>(image->scl_inter), false);
+    }
+}
+
 inline void NiftiImage::Extension::copy (const nifti1_extension *source)
 {
     if (source == nullptr)

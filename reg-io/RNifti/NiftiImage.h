@@ -443,14 +443,9 @@ public:
     /**
      * Convenience constructor for a \c nifti_image
      * @param image The image struct whose data the object will wrap
+     * @param vol The volume to extract, or \c -1 for the whole image
     **/
-    NiftiImageData (nifti_image *image)
-    {
-        if (image == nullptr)
-            init(nullptr, 0, DT_NONE, 0.0, 0.0, false);
-        else
-            init(image->data, image->nvox, image->datatype, static_cast<double>(image->scl_slope), static_cast<double>(image->scl_inter), false);
-    }
+    NiftiImageData (nifti_image *image, const int vol = -1);
 
     /**
      * Copy constructor with optional type conversion
@@ -1675,15 +1670,17 @@ public:
 
     /**
      * Obtain the pixel data within the image
+     * @param dim The volume to extract, use \c -1 for the whole image
      * @return A constant \c NiftiImageData object encapsulating the data
     **/
-    const NiftiImageData data () const { return NiftiImageData(image); }
+    const NiftiImageData data (const int vol = -1) const { return NiftiImageData(image, vol); }
 
     /**
      * Obtain the pixel data within the image
+     * @param dim The volume to extract, use \c -1 for the whole image
      * @return A mutable \c NiftiImageData object encapsulating the data
     **/
-    NiftiImageData data () { return NiftiImageData(image); }
+    NiftiImageData data (const int vol = -1) { return NiftiImageData(image, vol); }
 
     /**
      * Extract a vector of data from the image, casting it to any required element type
