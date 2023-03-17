@@ -850,7 +850,7 @@ public:
     typedef double scale_t;             /**< Type used for scale elements */
 #endif
 
-    enum class Dim { X, Y, Z, T, U, V, W, NDim };    /**< Dimension enumeration */
+    enum class Dim { NDim, X, Y, Z, T, U, V, W };    /**< Dimension enumeration */
 
     /**
      * Inner class referring to a subset of an image. Currently must refer to the last

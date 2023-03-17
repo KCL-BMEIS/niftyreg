@@ -349,10 +349,10 @@ PrecisionType reg_getMaximalLength(const nifti_image *image,
     const DataType *dataPtrZ = &dataPtrY[voxelNumber];
     PrecisionType max = 0;
     for (size_t i = 0; i < voxelNumber; i++) {
-        PrecisionType valX = optimiseX ? static_cast<PrecisionType>(*dataPtrX++) : 0;
-        PrecisionType valY = optimiseY ? static_cast<PrecisionType>(*dataPtrY++) : 0;
-        PrecisionType valZ = optimiseZ ? static_cast<PrecisionType>(*dataPtrZ++) : 0;
-        PrecisionType length = static_cast<PrecisionType>(sqrt(valX * valX + valY * valY + valZ * valZ));
+        const PrecisionType valX = optimiseX ? static_cast<PrecisionType>(*dataPtrX++) : 0;
+        const PrecisionType valY = optimiseY ? static_cast<PrecisionType>(*dataPtrY++) : 0;
+        const PrecisionType valZ = optimiseZ ? static_cast<PrecisionType>(*dataPtrZ++) : 0;
+        const PrecisionType length = static_cast<PrecisionType>(sqrt(valX * valX + valY * valY + valZ * valZ));
         max = std::max(length, max);
     }
     return max;

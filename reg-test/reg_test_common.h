@@ -9,7 +9,7 @@
 #include "AffineDeformationFieldKernel.h"
 
 
-template <typename T>
+template<typename T>
 void InterpCubicSplineKernel(T relative, T (&basis)[4]) {
     if (relative < 0) relative = 0; //reg_rounding error
     const T relative2 = relative * relative;
@@ -19,7 +19,7 @@ void InterpCubicSplineKernel(T relative, T (&basis)[4]) {
     basis[3] = (relative - 1.f) * relative2 / 2.f;
 }
 
-template <typename T>
+template<typename T>
 void InterpCubicSplineKernel(T relative, T (&basis)[4], T (&derivative)[4]) {
     InterpCubicSplineKernel(relative, basis);
     if (relative < 0) relative = 0; //reg_rounding error

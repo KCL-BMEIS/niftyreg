@@ -26,9 +26,9 @@ TEST_CASE("Interpolation", "[Interpolation]") {
     // Fill image with distance from identity
     const auto ref2dPtr = reference2d.data();
     auto ref2dIt = ref2dPtr.begin();
-    for (auto y = 0; y < reference2d->ny; ++y)
-        for (auto x = 0; x < reference2d->nx; ++x)
-            *ref2dIt++ = sqrtf(float(x * x) + float(y * y));
+    for (int y = 0; y < reference2d->ny; ++y)
+        for (int x = 0; x < reference2d->nx; ++x)
+            *ref2dIt++ = sqrtf(static_cast<float>(x * x + y * y));
 
     // Create a corresponding 2D deformation field
     vector<NiftiImage::dim_t> dimDef{ 1, 1, 1, 1, 2 };
@@ -44,10 +44,10 @@ TEST_CASE("Interpolation", "[Interpolation]") {
     // Fill image with distance from identity
     const auto ref3dPtr = reference3d.data();
     auto ref3dIt = ref3dPtr.begin();
-    for (auto z = 0; z < reference3d->nz; ++z)
-        for (auto y = 0; y < reference3d->ny; ++y)
-            for (auto x = 0; x < reference3d->nx; ++x)
-                *ref3dIt++ = sqrtf(float(x * x) + float(y * y) + float(z * z));
+    for (int z = 0; z < reference3d->nz; ++z)
+        for (int y = 0; y < reference3d->ny; ++y)
+            for (int x = 0; x < reference3d->nx; ++x)
+                *ref3dIt++ = sqrtf(static_cast<float>(x * x + y * y + z * z));
 
     // Create a corresponding 3D deformation field
     dimDef[4] = 3;
@@ -65,9 +65,9 @@ TEST_CASE("Interpolation", "[Interpolation]") {
     float resLinear2d[1] = {};
     for (int y = 1; y <= 2; ++y) {
         for (int x = 1; x <= 2; ++x) {
-            resLinear2d[0] += float(ref2dPtr[y * dimFlo[1] + x]) *
-                abs(2.0f - float(x) - 0.2f) *
-                abs(2.0f - float(y) - 0.3f);
+            resLinear2d[0] += static_cast<float>(ref2dPtr[y * dimFlo[1] + x]) *
+                abs(2.0f - static_cast<float>(x) - 0.2f) *
+                abs(2.0f - static_cast<float>(y) - 0.3f);
         }
     }
 
@@ -77,21 +77,22 @@ TEST_CASE("Interpolation", "[Interpolation]") {
         reference2d,
         deformationField2d,
         1,
-        resLinear2d)
-    );
+        resLinear2d
+    ));
 
     // Nearest neighbour interpolation - 2D
     // coordinate in image: [1.2, 1.3]
     float resNearest2d[1];
     resNearest2d[0] = ref2dPtr[1 * dimFlo[1] + 1];
+
     // Create the test case
     testCases.emplace_back(TestData(
         "Nearest Neighbour 2D",
         reference2d,
         deformationField2d,
         0,
-        resNearest2d)
-    );
+        resNearest2d
+    ));
 
     // Cubic spline interpolation - 2D
     // coordinate in image: [1.2, 1.3]
@@ -99,11 +100,9 @@ TEST_CASE("Interpolation", "[Interpolation]") {
     float xBasis[4], yBasis[4];
     InterpCubicSplineKernel(0.2f, xBasis);
     InterpCubicSplineKernel(0.3f, yBasis);
-    for (int y = 0; y <= 3; ++y) {
-        for (int x = 0; x <= 3; ++x) {
-            resCubic2d[0] += float(ref2dPtr[y * dimFlo[1] + x]) * xBasis[x] * yBasis[y];
-        }
-    }
+    for (int y = 0; y <= 3; ++y)
+        for (int x = 0; x <= 3; ++x)
+            resCubic2d[0] += static_cast<float>(ref2dPtr[y * dimFlo[1] + x]) * xBasis[x] * yBasis[y];
 
     // Create the test case
     testCases.emplace_back(TestData(
@@ -111,8 +110,8 @@ TEST_CASE("Interpolation", "[Interpolation]") {
         reference2d,
         deformationField2d,
         3,
-        resCubic2d)
-    );
+        resCubic2d
+    ));
 
     // Linear interpolation - 3D
     // coordinate in image: [1.2, 1.3, 1.4]
@@ -120,10 +119,10 @@ TEST_CASE("Interpolation", "[Interpolation]") {
     for (int z = 1; z <= 2; ++z) {
         for (int y = 1; y <= 2; ++y) {
             for (int x = 1; x <= 2; ++x) {
-                resLinear3d[0] += float(ref3dPtr[z * dimFlo[1] * dimFlo[2] + y * dimFlo[1] + x]) *
-                    abs(2.0f - float(x) - 0.2f) *
-                    abs(2.0f - float(y) - 0.3f) *
-                    abs(2.0f - float(z) - 0.4f);
+                resLinear3d[0] += static_cast<float>(ref3dPtr[z * dimFlo[1] * dimFlo[2] + y * dimFlo[1] + x]) *
+                    abs(2.0f - static_cast<float>(x) - 0.2f) *
+                    abs(2.0f - static_cast<float>(y) - 0.3f) *
+                    abs(2.0f - static_cast<float>(z) - 0.4f);
             }
         }
     }
@@ -134,34 +133,32 @@ TEST_CASE("Interpolation", "[Interpolation]") {
         reference3d,
         deformationField3d,
         1,
-        resLinear3d)
-    );
+        resLinear3d
+    ));
 
     // Nearest neighbour interpolation - 3D
     // coordinate in image: [1.2, 1.3, 1.4]
     float resNearest3d[1];
     resNearest3d[0] = ref3dPtr[1 * dimFlo[2] * dimFlo[1] + 1 * dimFlo[1] + 1];
+
     // Create the test case
     testCases.emplace_back(TestData(
         "Nearest Neighbour 3D",
         reference3d,
         deformationField3d,
         0,
-        resNearest3d)
-    );
+        resNearest3d
+    ));
 
     // Cubic spline interpolation - 3D
     // coordinate in image: [1.2, 1.3, 1.4]
     float resCubic3d[1] = {};
     float zBasis[4];
     InterpCubicSplineKernel(0.4f, zBasis);
-    for (int z = 0; z <= 3; ++z) {
-        for (int y = 0; y <= 3; ++y) {
-            for (int x = 0; x <= 3; ++x) {
-                resCubic3d[0] += float(ref3dPtr[z * dimFlo[1] * dimFlo[2] + y * dimFlo[1] + x]) * xBasis[x] * yBasis[y] * zBasis[z];
-            }
-        }
-    }
+    for (int z = 0; z <= 3; ++z)
+        for (int y = 0; y <= 3; ++y)
+            for (int x = 0; x <= 3; ++x)
+                resCubic3d[0] += static_cast<float>(ref3dPtr[z * dimFlo[1] * dimFlo[2] + y * dimFlo[1] + x]) * xBasis[x] * yBasis[y] * zBasis[z];
 
     // Create the test case
     testCases.emplace_back(TestData(
@@ -169,8 +166,8 @@ TEST_CASE("Interpolation", "[Interpolation]") {
         reference3d,
         deformationField3d,
         3,
-        resCubic3d)
-    );
+        resCubic3d
+    ));
 
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {

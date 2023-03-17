@@ -42,8 +42,8 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         &identity,
         identityResult2x,
         identityResult2y,
-        nullptr)
-    );
+        nullptr
+    ));
 
     // Identity use case - 3D
     // Test order [0,0,0] [1,0,0] [0,1,0] [1,1,0],[0,0,1] [1,0,1] [0,1,1] [1,1,1]
@@ -56,8 +56,8 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         &identity,
         identityResult3x,
         identityResult3y,
-        identityResult3z)
-    );
+        identityResult3z
+    ));
 
     // Translation - 2D
     mat44 translation;
@@ -74,8 +74,8 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         &translation,
         translationResult2x,
         translationResult2y,
-        nullptr)
-    );
+        nullptr
+    ));
 
     // Translation - 3D
     // Test order [0,0,0] [1,0,0] [0,1,0] [1,1,0],[0,0,1] [1,0,1] [0,1,1] [1,1,1]
@@ -88,8 +88,8 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         &translation,
         translationResult3x,
         translationResult3y,
-        translationResult3z)
-    );
+        translationResult3z
+    ));
 
     // Full affine - 2D
     // Test order [0,0] [1,0] [0,1] [1,1]
@@ -98,14 +98,14 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
     affine.m[0][3] = -0.5;
     affine.m[1][3] = 1.5;
     affine.m[2][3] = 0.75;
-    for (auto i = 0; i < 4; ++i) {
-        for (auto j = 0; j < 4; ++j) {
-            affine.m[i][j] += (((float)rand() / (RAND_MAX)) - 0.5f) / 10.f;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            affine.m[i][j] += ((static_cast<float>(rand()) / RAND_MAX) - 0.5f) / 10.f;
         }
     }
     float affineResult2x[4];
     float affineResult2y[4];
-    for (auto i = 0; i < 4; ++i) {
+    for (int i = 0; i < 4; ++i) {
         auto x = identityResult2x[i];
         auto y = identityResult2y[i];
         affineResult2x[i] = affine.m[0][3] + affine.m[0][0] * x + affine.m[0][1] * y;
@@ -118,15 +118,15 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         &affine,
         affineResult2x,
         affineResult2y,
-        nullptr)
-    );
+        nullptr
+    ));
 
     // Full affine - 3D
     // Test order [0,0,0] [1,0,0] [0,1,0] [1,1,0],[0,0,1] [1,0,1] [0,1,1] [1,1,1]
     float affineResult3x[8];
     float affineResult3y[8];
     float affineResult3z[8];
-    for (auto i = 0; i < 8; ++i) {
+    for (int i = 0; i < 8; ++i) {
         auto x = identityResult3x[i];
         auto y = identityResult3y[i];
         auto z = identityResult3z[i];
@@ -140,8 +140,8 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         &affine,
         affineResult3x,
         affineResult3y,
-        affineResult3z)
-    );
+        affineResult3z
+    ));
 
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {

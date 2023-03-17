@@ -153,17 +153,17 @@ void Compute::NormaliseGradient(size_t nodeNumber, double maxGradLength, bool op
 
 #ifdef _WIN32
     long i;
-    const long voxelNumber = static_cast<long>(transformationGradient.nVoxelsPerVolume());
+    const long voxelsPerVolume = static_cast<long>(transformationGradient.nVoxelsPerVolume());
 #else
     size_t i;
-    const size_t voxelNumber = transformationGradient.nVoxelsPerVolume();
+    const size_t voxelsPerVolume = transformationGradient.nVoxelsPerVolume();
 #endif
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(voxelNumber, ptrX, ptrY, ptrZ, hasZ, optimiseX, optimiseY, optimiseZ, maxGradLength)
+    shared(voxelsPerVolume, ptrX, ptrY, ptrZ, hasZ, optimiseX, optimiseY, optimiseZ, maxGradLength)
 #endif
-    for (i = 0; i < voxelNumber; ++i) {
+    for (i = 0; i < voxelsPerVolume; ++i) {
         const double valX = optimiseX ? static_cast<double>(ptrX[i]) : 0;
         const double valY = optimiseY ? static_cast<double>(ptrY[i]) : 0;
         const double valZ = optimiseZ ? static_cast<double>(ptrZ[i]) : 0;
