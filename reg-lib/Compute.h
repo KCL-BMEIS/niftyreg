@@ -21,8 +21,8 @@ public:
     virtual void GetDeformationField(bool composition, bool bspline);
     virtual void UpdateControlPointPosition(float *currentDOF, float *bestDOF, float *gradient, float scale, bool optimiseX, bool optimiseY, bool optimiseZ);
     virtual void GetImageGradient(int interpolation, float paddingValue, int activeTimepoint);
-    virtual double GetMaximalLength(size_t nodeNumber, bool optimiseX, bool optimiseY, bool optimiseZ);
-    virtual void NormaliseGradient(size_t nodeNumber, double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ);
+    virtual double GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ);
+    virtual void NormaliseGradient(double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ);
     virtual void SmoothGradient(float sigma);
     virtual void GetApproximatedGradient(InterfaceOptimiser& opt);
     virtual void GetDefFieldFromVelocityGrid(bool updateStepNumber);

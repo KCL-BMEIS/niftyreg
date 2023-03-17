@@ -479,12 +479,12 @@ void reg_f3d<T>::GetLandmarkDistanceGradient() {
 template<class T>
 T reg_f3d<T>::NormaliseGradient() {
     // First compute the gradient max length for normalisation purpose
-    T maxGradLength = (T)this->compute->GetMaximalLength(this->optimiser->GetVoxNumber(), this->optimiseX, this->optimiseY, this->optimiseZ);
+    T maxGradLength = (T)this->compute->GetMaximalLength(this->optimiseX, this->optimiseY, this->optimiseZ);
 
     if (strcmp(this->executableName, "NiftyReg F3D") == 0) {
         // The gradient is normalised if we are running f3d
         // It will be normalised later when running f3d2
-        this->compute->NormaliseGradient(this->optimiser->GetVoxNumber(), maxGradLength, this->optimiseX, this->optimiseY, this->optimiseZ);
+        this->compute->NormaliseGradient(maxGradLength, this->optimiseX, this->optimiseY, this->optimiseZ);
 #ifndef NDEBUG
         char text[255];
         sprintf(text, "Objective function gradient maximal length: %g", maxGradLength);
