@@ -220,13 +220,13 @@ TEST_CASE("Interpolation", "[Interpolation]") {
 
                 // Check all values
                 warped = content->GetWarped();
-                auto warpedPtr = warped.data();
-                for (size_t i = 0; i < warped->nvox; ++i) {
+                const auto warpedPtr = warped.data();
+                warped.disown();
+                for (size_t i = 0; i < warped.nVoxels(); ++i) {
                     const float warpedValue = warpedPtr[i];
                     std::cout << i << " " << warpedValue << " " << testResult[i] << std::endl;
                     REQUIRE(fabs(warpedValue - testResult[i]) < EPS);
                 }
-                warped.disown();
             }
         }
     }
