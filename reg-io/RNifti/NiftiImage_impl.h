@@ -1864,6 +1864,27 @@ inline NiftiImage & NiftiImage::replaceData (const NiftiImageData &data)
     return *this;
 }
 
+inline NiftiImage & NiftiImage::copyData (const nifti_image *other)
+{
+    if (this->isNull())
+        return *this;
+    else if (other == nullptr || other->data == nullptr)
+        throw std::runtime_error("Cannot copy data from a null image");
+    else if (other->nvox != image->nvox)
+        throw std::runtime_error("Cannot copy data from an image with a different length");
+    else if (other->datatype != image->datatype)
+        throw std::runtime_error("Cannot copy data from an image with a different datatype");
+
+    // Copy the data
+    memcpy(image->data, other->data, totalBytes());
+    image->scl_slope = other->scl_slope;
+    image->scl_inter = other->scl_inter;
+    image->cal_min = other->cal_min;
+    image->cal_max = other->cal_max;
+
+    return *this;
+}
+
 inline std::pair<std::string,std::string> NiftiImage::toFile (const std::string fileName, const int datatype, const int filetype) const
 {
     const bool changingDatatype = (datatype != DT_NONE && !this->isNull() && datatype != image->datatype);

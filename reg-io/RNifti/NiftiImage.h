@@ -1732,6 +1732,14 @@ public:
     NiftiImage & replaceData (const NiftiImageData &data);
 
     /**
+     * Copy the pixel data from another image
+     * @param other The image from which to copy the data
+     * @exception runtime_error If the lengths and datatypes of the two images do not match
+     * @return Self, after copying the data
+    */
+    NiftiImage & copyData (const nifti_image *other);
+
+    /**
      * Drop the data from the image, retaining only the metadata. This method invalidates any
      * \ref NiftiImageData objects referencing the old data
      * @return Self, after dropping the data
