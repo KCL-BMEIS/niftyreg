@@ -421,6 +421,21 @@ public:
     };
 
     /**
+     * Swap the contents of two \c NiftiImageData objects
+    */
+    friend void swap (NiftiImageData &first, NiftiImageData &second)
+    {
+        using std::swap;
+        swap(first.slope, second.slope);
+        swap(first.intercept, second.intercept);
+        swap(first.dataPtr, second.dataPtr);
+        swap(first._datatype, second._datatype);
+        swap(first.handler, second.handler);
+        swap(first._length, second._length);
+        swap(first.owner, second.owner);
+    }
+
+    /**
      * Default constructor, creating an empty data object
     **/
     NiftiImageData ()
@@ -469,6 +484,16 @@ public:
     }
 
     /**
+     * Move constructor
+     * @param source Another \c NiftiImageData object
+    */
+    NiftiImageData (NiftiImageData &&source)
+        : NiftiImageData()
+    {
+        swap(*this, source);
+    }
+
+    /**
      * Iterator-based constructor
      * @param from Iterator type representing the start of the source data to be copied
      * @param to Iterator type representing the end of the source data to be copied
@@ -493,20 +518,13 @@ public:
     }
 
     /**
-     * Copy assignment operator
-     * @param source Another \c NiftiImageData object, from which the data and metadata are copied
+     * Copy and move assignment operator
+     * @param source Another \c NiftiImageData object
      * @return A reference to the callee
     **/
-    NiftiImageData & operator= (const NiftiImageData &source)
+    NiftiImageData & operator= (NiftiImageData source)
     {
-        if (source.dataPtr != nullptr)
-        {
-            // Free the old data, if we allocated it
-            if (owner)
-                free(dataPtr);
-            init(nullptr, source.length(), source.datatype(), source.slope, source.intercept);
-            memcpy(dataPtr, source.dataPtr, source.totalBytes());
-        }
+        swap(*this, source);
         return *this;
     }
 
