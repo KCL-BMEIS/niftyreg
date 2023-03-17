@@ -763,7 +763,7 @@ inline void NiftiImage::release ()
     }
 }
 
-inline void NiftiImage::copy (const nifti_image *source, const bool onlyImageInfo)
+inline void NiftiImage::copy (const nifti_image *source, const bool onlyImageInfo, const bool allocData)
 {
     if (source == nullptr)
         acquire(nullptr);
@@ -771,17 +771,25 @@ inline void NiftiImage::copy (const nifti_image *source, const bool onlyImageInf
     {
 #if RNIFTI_NIFTILIB_VERSION == 1
         acquire(nifti_copy_nim_info(source));
-        if (!onlyImageInfo && source->data != nullptr)
+        if (onlyImageInfo)
         {
-            size_t dataSize = nifti_get_volsize(source);
+            if (allocData)
+                realloc();
+        } else if (source->data != nullptr)
+        {
+            const size_t dataSize = nifti_get_volsize(source);
             image->data = calloc(1, dataSize);
             memcpy(image->data, source->data, dataSize);
         }
 #elif RNIFTI_NIFTILIB_VERSION == 2
         acquire(nifti2_copy_nim_info(source));
-        if (!onlyImageInfo && source->data != nullptr)
+        if (onlyImageInfo)
         {
-            size_t dataSize = nifti2_get_volsize(source);
+            if (allocData)
+                realloc();
+        } else if (source->data != nullptr)
+        {
+            const size_t dataSize = nifti2_get_volsize(source);
             image->data = calloc(1, dataSize);
             memcpy(image->data, source->data, dataSize);
         }
