@@ -1957,6 +1957,18 @@ public:
     size_t nVoxelsPerVolume () const { return calcVoxelNumber(image, 3); }
 
     /**
+     * Return the total size of the image data in bytes
+    */
+    size_t totalBytes() const
+    {
+#if RNIFTI_NIFTILIB_VERSION == 1
+        return nifti_get_volsize(image);
+#elif RNIFTI_NIFTILIB_VERSION == 2
+        return nifti2_get_volsize(image);
+#endif
+    }
+
+    /**
      * Return the number of extensions associated with the image
      * @return An integer giving the number of extensions
     **/
