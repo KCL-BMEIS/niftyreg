@@ -1,0 +1,207 @@
+// OpenCL is not supported for this test
+#undef _USE_OPENCL
+
+#include "reg_test_common.h"
+
+#define EPS 0.000001
+
+/*
+    This test file contains the following unit tests:
+    test functions:
+    In 2D and 3D
+    Maximal length
+    Normalise gradient
+*/
+
+
+class NormaliseGradientTest {
+protected:
+    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage>;
+    using TestCase = std::tuple<TestData, unique_ptr<F3dContent>, unique_ptr<Platform>>;
+
+    vector<TestData> testData;
+    vector<TestCase> testCases;
+
+public:
+    NormaliseGradientTest() {
+        // Create a random number generator
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<float> distr(0, 1);
+
+        // Create a reference 2D image
+        vector<NiftiImage::dim_t> dimFlo{ 4, 4 };
+        NiftiImage reference2d(dimFlo, NIFTI_TYPE_FLOAT32);
+
+        // Fill image with distance from identity
+        const auto ref2dPtr = reference2d.data();
+        auto ref2dIt = ref2dPtr.begin();
+        for (int y = 0; y < reference2d->ny; ++y)
+            for (int x = 0; x < reference2d->nx; ++x)
+                *ref2dIt++ = sqrtf(static_cast<float>(x * x + y * y));
+
+        // Create a reference 3D image
+        dimFlo.push_back(4);
+        NiftiImage reference3d(dimFlo, NIFTI_TYPE_FLOAT32);
+
+        // Fill image with distance from identity
+        const auto ref3dPtr = reference3d.data();
+        auto ref3dIt = ref3dPtr.begin();
+        for (int z = 0; z < reference3d->nz; ++z)
+            for (int y = 0; y < reference3d->ny; ++y)
+                for (int x = 0; x < reference3d->nx; ++x)
+                    *ref3dIt++ = sqrtf(static_cast<float>(x * x + y * y + z * z));
+
+        // Generate the different test cases
+        // Test 2D
+        NiftiImage controlPointGrid2d = CreateControlPointGrid(reference2d);
+        NiftiImage transformationGradient2d(controlPointGrid2d, true, true, true);
+        auto transGrad2dPtr = transformationGradient2d.data();
+        for (size_t i = 0; i < transformationGradient2d.nVoxels(); ++i)
+            transGrad2dPtr[i] = distr(gen);
+
+        // Add the test data
+        testData.emplace_back(TestData(
+            "2D",
+            std::move(reference2d),
+            std::move(controlPointGrid2d),
+            std::move(transformationGradient2d)
+        ));
+
+        // Test 3D
+        NiftiImage controlPointGrid3d = CreateControlPointGrid(reference3d);
+        NiftiImage transformationGradient3d(controlPointGrid3d, true, true, true);
+        auto transGrad3dPtr = transformationGradient3d.data();
+        for (size_t i = 0; i < transformationGradient3d.nVoxels(); ++i)
+            transGrad3dPtr[i] = distr(gen);
+
+        // Add the test data
+        testData.emplace_back(TestData(
+            "3D",
+            std::move(reference3d),
+            std::move(controlPointGrid3d),
+            std::move(transformationGradient3d)
+        ));
+
+        // Add platforms to the test data
+        for (auto&& testData : testData) {
+            auto&& [testName, reference, controlPointGrid, testGrad] = testData;
+
+            for (auto&& platformType : PlatformTypes) {
+                unique_ptr<Platform> platform{ new Platform(platformType) };
+                // Add content
+                unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
+                unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
+                testCases.push_back({ testData, std::move(content), std::move(platform) });
+            }
+        }
+    }
+
+    template<typename T>
+    T GetMaximalLength(const nifti_image* transformationGradient, const bool& optimiseX, const bool& optimiseY, const bool& optimiseZ) {
+        const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(transformationGradient, 3);
+        const T *ptrX = static_cast<T*>(transformationGradient->data);
+        const T *ptrY = &ptrX[voxelsPerVolume];
+        const T *ptrZ = &ptrY[voxelsPerVolume];
+        T maxGradValue = 0;
+
+        if (transformationGradient->nz > 1) {
+            for (size_t i = 0; i < voxelsPerVolume; i++) {
+                T valX = 0, valY = 0, valZ = 0;
+                if (optimiseX)
+                    valX = *ptrX++;
+                if (optimiseY)
+                    valY = *ptrY++;
+                if (optimiseZ)
+                    valZ = *ptrZ++;
+                maxGradValue = std::max(sqrt(valX * valX + valY * valY + valZ * valZ), maxGradValue);
+            }
+        } else {
+            for (size_t i = 0; i < voxelsPerVolume; i++) {
+                T valX = 0, valY = 0;
+                if (optimiseX)
+                    valX = *ptrX++;
+                if (optimiseY)
+                    valY = *ptrY++;
+                maxGradValue = std::max(sqrt(valX * valX + valY * valY), maxGradValue);
+            }
+        }
+
+        return maxGradValue;
+    }
+
+    template<typename T>
+    void NormaliseGradient(const nifti_image* transformationGradient, const T& maxGradValue, const bool& optimiseX, const bool& optimiseY, const bool& optimiseZ) {
+        const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(transformationGradient, 3);
+        T *ptrX = static_cast<T*>(transformationGradient->data);
+        T *ptrY = &ptrX[voxelsPerVolume];
+        T *ptrZ = &ptrY[voxelsPerVolume];
+        if (transformationGradient->nz > 1) {
+            for (size_t i = 0; i < voxelsPerVolume; ++i) {
+                T valX = 0, valY = 0, valZ = 0;
+                if (optimiseX)
+                    valX = ptrX[i];
+                if (optimiseY)
+                    valY = ptrY[i];
+                if (optimiseZ)
+                    valZ = ptrZ[i];
+                ptrX[i] = valX / maxGradValue;
+                ptrY[i] = valY / maxGradValue;
+                ptrZ[i] = valZ / maxGradValue;
+            }
+        } else {
+            for (size_t i = 0; i < voxelsPerVolume; ++i) {
+                T valX = 0, valY = 0;
+                if (optimiseX)
+                    valX = ptrX[i];
+                if (optimiseY)
+                    valY = ptrY[i];
+                ptrX[i] = valX / maxGradValue;
+                ptrY[i] = valY / maxGradValue;
+            }
+        }
+    }
+};
+
+TEST_CASE_METHOD(NormaliseGradientTest, "Normalise gradient", "[NormaliseGradient]") {
+    // Loop over all generated test cases
+    for (auto&& testCase : testCases) {
+        // Retrieve test information
+        auto&& [testData, content, platform] = testCase;
+        auto&& [testName, reference, controlPointGrid, testGrad] = testData;
+
+        SECTION(testName + " " + platform->GetName()) {
+            // Set the transformation gradient image to host the computation
+            NiftiImage transGrad = content->GetTransformationGradient();
+            transGrad.copyData(testGrad);
+            transGrad.disown();
+            content->UpdateTransformationGradient();
+
+            // Get the number of voxels per volume
+            const auto voxelsPerVolume = testGrad.nVoxelsPerVolume();
+
+            // Calculate the maximal length
+            unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
+            const auto maxLength = static_cast<float>(compute->GetMaximalLength(true, true, true));
+            const auto testLength = GetMaximalLength<float>(testGrad, true, true, true);
+            // Check the results
+            REQUIRE(fabs(maxLength - testLength) < EPS);
+
+            // Normalise the gradient
+            compute->NormaliseGradient(maxLength, true, true, true);
+            NormaliseGradient<float>(testGrad, testLength, true, true, true);
+
+            // Check the results
+            transGrad = content->GetTransformationGradient();
+            const auto transGradPtr = transGrad.data();
+            const auto testGradPtr = testGrad.data();
+            transGrad.disown();
+            for (size_t i = 0; i < testGrad.nVoxels(); ++i) {
+                const float transGradVal = transGradPtr[i];
+                const float testGradVal = testGradPtr[i];
+                std::cout << i << " " << transGradVal << " " << testGradVal << std::endl;
+                REQUIRE(fabs(transGradVal - testGradVal) < EPS);
+            }
+        }
+    }
+}

@@ -110,6 +110,7 @@ include(Catch)
 set(EXEC_LIST reg_test_affineDeformationField)
 set(EXEC_LIST reg_test_imageGradient ${EXEC_LIST})
 set(EXEC_LIST reg_test_interpolation ${EXEC_LIST})
+set(EXEC_LIST reg_test_normaliseGradient ${EXEC_LIST})
 
 foreach(EXEC ${EXEC_LIST})
   add_executable(${EXEC} ${EXEC}.cpp)
