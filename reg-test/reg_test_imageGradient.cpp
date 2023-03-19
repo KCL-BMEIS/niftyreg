@@ -198,8 +198,9 @@ TEST_CASE("Image gradient", "[ImageGradient]") {
                 // Check all values
                 warpedGradient = content->GetWarpedGradient();
                 const auto warpedGradPtr = warpedGradient.data();
+                const size_t nVoxels = warpedGradient.nVoxels();
                 warpedGradient.disown();
-                for (size_t i = 0; i < warpedGradient.nVoxels(); ++i) {
+                for (size_t i = 0; i < nVoxels; ++i) {
                     const float warpedGradVal = warpedGradPtr[i];
                     std::cout << i << " " << warpedGradVal << " " << testResult[i] << std::endl;
                     REQUIRE(fabs(warpedGradVal - testResult[i]) < EPS);
