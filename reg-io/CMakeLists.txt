@@ -2,6 +2,7 @@
 if(NOT ZLIB_FOUND OR BUILD_ALL_DEP)
     subdirs(zlib)
 endif(NOT ZLIB_FOUND OR BUILD_ALL_DEP)
+add_definitions(-DHAVE_ZLIB)
 
 # Build the znz library
 subdirs(znzlib)
