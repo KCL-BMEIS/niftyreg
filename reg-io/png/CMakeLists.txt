@@ -51,7 +51,7 @@ if(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
       lpng1510/pngwutil.c
     )
     # Build the library
-    add_library(png STATIC ${png_SRCS} ${png_HDRS})
+    add_library(png STATIC ${png_SRCS})
     target_link_libraries(png z)
     install(TARGETS png
         LIBRARY DESTINATION lib COMPONENT Development
@@ -60,11 +60,10 @@ if(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
     install(FILES ${png_HDRS} ${CMAKE_BINARY_DIR}/pnglibconf.h DESTINATION include COMPONENT Development)
 endif(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
 
-add_library(reg_png reg_png.cpp reg_png.h readpng.cpp readpng.h)
-target_link_libraries(reg_png ${PNG_LIBRARY} _reg_tools reg_nifti z)
+add_library(reg_png reg_png.cpp readpng.cpp)
+target_link_libraries(reg_png ${PNG_LIBRARY} _reg_tools)
 install(TARGETS reg_png
         RUNTIME DESTINATION bin COMPONENT Development
         LIBRARY DESTINATION lib COMPONENT Development
         ARCHIVE DESTINATION lib COMPONENT Development
 )
-install(FILES reg_png.h readpng.h DESTINATION include COMPONENT Development)

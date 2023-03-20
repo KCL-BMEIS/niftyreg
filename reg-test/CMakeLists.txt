@@ -114,9 +114,7 @@ set(EXEC_LIST reg_test_normaliseGradient ${EXEC_LIST})
 
 foreach(EXEC ${EXEC_LIST})
   add_executable(${EXEC} ${EXEC}.cpp)
-  target_link_libraries(${EXEC} PRIVATE Catch2::Catch2WithMain)
-  target_link_libraries(${EXEC} PRIVATE _reg_aladin)
-  target_link_libraries(${EXEC} PRIVATE _reg_f3d)
+  target_link_libraries(${EXEC} PRIVATE Catch2::Catch2WithMain _reg_aladin _reg_f3d)
   catch_discover_tests(${EXEC})
 endforeach(EXEC)
 #-----------------------------------------------------------------------------

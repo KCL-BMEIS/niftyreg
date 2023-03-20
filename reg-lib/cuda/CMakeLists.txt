@@ -48,14 +48,13 @@ else(NOT COMPILE_RESULT_VAR)
 endif(NOT COMPILE_RESULT_VAR)
 #-----------------------------------------------------------------------------
 set(NAME _reg_common_cuda)
-cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cu)
+cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cu)
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
 install(TARGETS ${NAME}
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )
-install(FILES ${NAME}.h DESTINATION include/cuda)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
 set(NAME _reg_cuda_kernels)
@@ -90,19 +89,16 @@ install(TARGETS ${NAME}
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )
-install(FILES blockMatchingKernel.h CudaCompute.h CudaContent.h CudaF3dContent.h CudaMeasure.h CudaContextSingleton.h CudaAladinContent.h DESTINATION include/cuda)
-install(FILES CudaKernelFactory.h affineDeformationKernel.h resampleKernel.h optimizeKernel.h CudaAffineDeformationFieldKernel.h CudaBlockMatchingKernel.h CudaConvolutionKernel.h CudaOptimiseKernel.h CudaResampleImageKernel.h DESTINATION include/cuda)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
 set(NAME _reg_cudainfo)
-cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cpp ${NAME}.h)
+cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cpp)
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
 install(TARGETS ${NAME}
     RUNTIME DESTINATION lib
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )
-install(FILES ${NAME}.h DESTINATION include/cuda)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES}" PARENT_SCOPE)

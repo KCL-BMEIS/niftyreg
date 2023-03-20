@@ -6,7 +6,7 @@ if(USE_NII_NAN)
 endif(USE_NII_NAN)
 set(NAME reg_nifti)
 add_library(${NAME} nifti1_io.c)
-target_link_libraries(${NAME} z znz)
+target_link_libraries(${NAME} znz)
 install(TARGETS ${NAME}
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib

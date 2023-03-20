@@ -23,7 +23,6 @@ install(TARGETS _reg_maths
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_maths.h cpu/_reg_maths_eigen.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_maths")
 #-----------------------------------------------------------------------------
 add_library(_reg_tools ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_tools.cpp)
@@ -36,7 +35,6 @@ install(TARGETS _reg_tools
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_tools.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_tools")
 #-----------------------------------------------------------------------------
 add_library(_reg_globalTrans ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_globalTrans.cpp)
@@ -46,17 +44,12 @@ install(TARGETS _reg_globalTrans
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_globalTrans.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_globalTrans")
 #-----------------------------------------------------------------------------
 add_library(_reg_localTrans ${NIFTYREG_LIBRARY_TYPE}
-  cpu/_reg_splineBasis.h
   cpu/_reg_splineBasis.cpp
-  cpu/_reg_localTrans.h
   cpu/_reg_localTrans.cpp
-  cpu/_reg_localTrans_regul.h
   cpu/_reg_localTrans_regul.cpp
-  cpu/_reg_localTrans_jac.h
   cpu/_reg_localTrans_jac.cpp
 )
 target_link_libraries(_reg_localTrans
@@ -68,22 +61,14 @@ install(TARGETS _reg_localTrans
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_localTrans.h cpu/_reg_splineBasis.h cpu/_reg_localTrans_regul.h cpu/_reg_localTrans_jac.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_localTrans")
 #-----------------------------------------------------------------------------
 set(measure_files
-  cpu/_reg_measure.h
-  cpu/_reg_nmi.h
   cpu/_reg_nmi.cpp
-  cpu/_reg_ssd.h
   cpu/_reg_ssd.cpp
-  cpu/_reg_kld.h
   cpu/_reg_kld.cpp
-  cpu/_reg_lncc.h
   cpu/_reg_lncc.cpp
-  cpu/_reg_dti.h
   cpu/_reg_dti.cpp
-  cpu/_reg_mind.h
   cpu/_reg_mind.cpp
 )
 add_library(_reg_measure ${NIFTYREG_LIBRARY_TYPE} ${measure_files})
@@ -92,15 +77,6 @@ install(TARGETS _reg_measure
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
-)
-install(FILES
-  cpu/_reg_measure.h
-  cpu/_reg_nmi.h
-  cpu/_reg_ssd.h
-  cpu/_reg_kld.h
-  cpu/_reg_lncc.h
-  cpu/_reg_dti.h
-  cpu/_reg_mind.h DESTINATION include
 )
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_measure")
 #-----------------------------------------------------------------------------
@@ -111,7 +87,6 @@ install(TARGETS _reg_resampling
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_resampling.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_resampling")
 #-----------------------------------------------------------------------------
 add_library(_reg_blockMatching ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_blockMatching.cpp)
@@ -121,7 +96,6 @@ install(TARGETS _reg_blockMatching
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_blockMatching.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_blockMatching")
 #-----------------------------------------------------------------------------
 add_library(_reg_femTrans ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_femTrans.cpp)
@@ -131,22 +105,15 @@ install(TARGETS _reg_femTrans
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_femTrans.h DESTINATION include)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_femTrans")
 #-----------------------------------------------------------------------------
 add_library(_reg_compute ${NIFTYREG_LIBRARY_TYPE}
   Compute.cpp
-  Compute.h
   AladinContent.cpp
-  AladinContent.h
   Content.cpp
-  Content.h
   F3dContent.cpp
-  F3dContent.h
   Platform.cpp
-  Platform.h
   Measure.cpp
-  Measure.h
 )
 target_link_libraries(_reg_compute _reg_measure)
 install(TARGETS _reg_compute
@@ -154,30 +121,15 @@ install(TARGETS _reg_compute
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES
-  Compute.h
-  ComputeFactory.h
-  AladinContent.h
-  Content.h
-  F3dContent.h
-  Platform.h
-  Measure.h DESTINATION include
-)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_compute")
 #-----------------------------------------------------------------------------
 add_library(_reg_kernels ${NIFTYREG_LIBRARY_TYPE}
   cpu/CpuKernelFactory.cpp
-  cpu/CpuKernelFactory.h
   cpu/CpuAffineDeformationFieldKernel.cpp
-  cpu/CpuAffineDeformationFieldKernel.h
   cpu/CpuBlockMatchingKernel.cpp
-  cpu/CpuBlockMatchingKernel.h
   cpu/CpuConvolutionKernel.cpp
-  cpu/CpuConvolutionKernel.h
   cpu/CpuOptimiseKernel.cpp
-  cpu/CpuOptimiseKernel.h
   cpu/CpuResampleImageKernel.cpp
-  cpu/CpuResampleImageKernel.h
 )
 target_link_libraries(_reg_kernels
   _reg_blockMatching
@@ -186,21 +138,6 @@ install(TARGETS _reg_kernels
   RUNTIME DESTINATION lib
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
-)
-install(FILES
-  KernelFactory.h
-  AffineDeformationFieldKernel.h
-  BlockMatchingKernel.h
-  ConvolutionKernel.h
-  Kernel.h
-  OptimiseKernel.h
-  ResampleImageKernel.h
-  cpu/CpuKernelFactory.h
-  cpu/CpuAffineDeformationFieldKernel.h
-  cpu/CpuBlockMatchingKernel.h
-  cpu/CpuConvolutionKernel.h
-  cpu/CpuOptimiseKernel.h
-  cpu/CpuResampleImageKernel.h DESTINATION include
 )
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_kernels")
 #-----------------------------------------------------------------------------
@@ -223,22 +160,14 @@ install(TARGETS _reg_aladin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES
-  _reg_aladin.h
-  _reg_aladin_sym.h
-  cpu/_reg_macros.h DESTINATION include
-)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_aladin")
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE F3D LIBRARY
 set(_reg_f3d_files
   _reg_base.cpp
-  _reg_base.h
   _reg_f3d.cpp
-  _reg_f3d.h
   _reg_f3d2.cpp
-  _reg_f3d2.h
 )
 set(_reg_f3d_libraries
   _reg_blockMatching
@@ -260,23 +189,15 @@ install(TARGETS _reg_f3d
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES
-  _reg_base.h
-  _reg_f3d.h
-  _reg_f3d2.h
-  _reg_f3d_sym.h
-  cpu/_reg_optimiser.cpp
-  cpu/_reg_optimiser.h DESTINATION include
-)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_f3d")
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY
 #set(NAME _reg_thinPlateSpline)
 #if(APPLE)
-#	add_library(${NAME} SHARED cpu/${NAME}.h cpu/${NAME}.cpp)
+#	add_library(${NAME} SHARED cpu/${NAME}.cpp)
 #else(APPLE)
-#	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/${NAME}.h cpu/${NAME}.cpp)
+#	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/${NAME}.cpp)
 #endif(APPLE)
 #target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
 #install(TARGETS ${NAME}
@@ -284,15 +205,14 @@ set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_f3d")
 #	LIBRARY DESTINATION lib
 #	ARCHIVE DESTINATION lib
 #	)
-#install(FILES cpu/${NAME}.h  DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE POLYAFFINE LIBRARY
 #set(NAME _reg_polyAffine)
 #if(APPLE)
-#	add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
+#	add_library(${NAME} SHARED _reg_base.cpp ${NAME}.cpp)
 #else(APPLE)
-#	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
+#	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} _reg_base.cpp ${NAME}.cpp)
 #endif(APPLE)
 #target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
 #install(TARGETS ${NAME}
@@ -300,7 +220,6 @@ set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_f3d")
 #	LIBRARY DESTINATION lib
 #	ARCHIVE DESTINATION lib
 #	)
-#install(FILES ${NAME}.h  DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES}" PARENT_SCOPE)

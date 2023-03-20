@@ -23,30 +23,14 @@ install(TARGETS ${NAME}
 )
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
-install(FILES
-  ClCompute.h
-  ClContextSingleton.h
-  ClAladinContent.h
-  ClKernelFactory.h
-  ClAffineDeformationFieldKernel.h
-  ClBlockMatchingKernel.h
-  ClConvolutionKernel.h
-  ClOptimiseKernel.h
-  ClResampleImageKernel.h
-  resampleKernel.cl
-  affineDeformationKernel.cl
-  blockMatchingKernel.cl DESTINATION include/cl
-)
-#-----------------------------------------------------------------------------
 set(NAME _reg_openclinfo)
-add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cpp ${NAME}.h InfoDevice.h ClContextSingleton.cpp)
+add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cpp ClContextSingleton.cpp)
 target_link_libraries(${NAME} ${OpenCL_LIBRARIES})
 install(TARGETS ${NAME}
   RUNTIME DESTINATION lib
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES ${NAME}.h DESTINATION include/cl)
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 #-----------------------------------------------------------------------------
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES}" PARENT_SCOPE)
