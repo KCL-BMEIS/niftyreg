@@ -60,7 +60,7 @@ NiftyReg_CudaBlock100::NiftyReg_CudaBlock100() {
     Block_reg_initialiseConjugateGradient = 384; // 09 reg - 24 smem
     Block_reg_GetConjugateGradient1 = 320; // 12 reg - 24 smem
     Block_reg_GetConjugateGradient2 = 384; // 10 reg - 40 smem
-    Block_reg_getEuclideanDistance = 384; // 04 reg - 24 smem
+    Block_GetMaximalLength = 384; // 04 reg - 24 smem
     Block_reg_updateControlPointPosition = 384; // 08 reg - 24 smem
     /* _reg_ssd_gpu */
     Block_reg_getSquaredDifference = 320; // 12 reg - 24 smem - 08 cmem
@@ -128,7 +128,7 @@ NiftyReg_CudaBlock200::NiftyReg_CudaBlock200() {
 //    Block_reg_initialiseConjugateGradient = ; //
 //    Block_reg_GetConjugateGradient1 = ; //
 //    Block_reg_GetConjugateGradient2 = ; //
-//    Block_reg_getEuclideanDistance = ; //
+//    Block_GetMaximalLength = ; //
 //    Block_reg_updateControlPointPosition = ; //
 //    /* _reg_ssd_gpu */
 //    Block_reg_getSquaredDifference = ; //
@@ -196,7 +196,7 @@ NiftyReg_CudaBlock300::NiftyReg_CudaBlock300() {
     Block_reg_initialiseConjugateGradient = 1024; // 20 reg
     Block_reg_GetConjugateGradient1 = 1024; // 22 reg
     Block_reg_GetConjugateGradient2 = 1024; // 25 reg
-    Block_reg_getEuclideanDistance = 1024; // 20 reg
+    Block_GetMaximalLength = 1024; // 20 reg
     Block_reg_updateControlPointPosition = 1024; // 22 reg
     /* _reg_ssd_gpu */
     Block_reg_getSquaredDifference = 768; // 34 reg

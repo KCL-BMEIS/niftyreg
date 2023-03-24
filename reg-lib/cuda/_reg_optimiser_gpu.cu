@@ -265,32 +265,6 @@ void reg_GetConjugateGradient_gpu(float4 *gradientArray_d,
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-float reg_getMaximalLength_gpu(float4 *gradientArray_d, int nodeNumber) {
-    // Get the BlockSize - The values have been set in CudaContextSingleton
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
-
-    // Copy constant memory value and bind texture
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber, &nodeNumber, sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, gradientArray_d, nodeNumber * sizeof(float4)));
-
-    float *dist_d = nullptr;
-    NR_CUDA_SAFE_CALL(cudaMalloc(&dist_d, nodeNumber * sizeof(float)));
-
-    const unsigned int Grid_reg_getEuclideanDistance = (unsigned int)reg_ceil(sqrtf((float)nodeNumber / (float)NR_BLOCK->Block_reg_getEuclideanDistance));
-    dim3 B1(NR_BLOCK->Block_reg_getEuclideanDistance, 1, 1);
-    dim3 G1(Grid_reg_getEuclideanDistance, Grid_reg_getEuclideanDistance, 1);
-    reg_getEuclideanDistance_kernel <<< G1, B1 >>> (dist_d);
-    NR_CUDA_CHECK_KERNEL(G1, B1);
-    // Unbind the textures
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture));
-
-    float maxDistance = reg_maxReduction_gpu(dist_d, nodeNumber);
-    NR_CUDA_SAFE_CALL(cudaFree(dist_d));
-
-    return maxDistance;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
                                         float4 *controlPointImageArray_d,
                                         float4 *bestControlPointPosition_d,

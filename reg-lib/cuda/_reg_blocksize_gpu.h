@@ -70,7 +70,7 @@ public:    /* _reg_blockMatching_gpu */
     size_t Block_reg_initialiseConjugateGradient;
     size_t Block_reg_GetConjugateGradient1;
     size_t Block_reg_GetConjugateGradient2;
-    size_t Block_reg_getEuclideanDistance;
+    size_t Block_GetMaximalLength;
     size_t Block_reg_updateControlPointPosition;
     /* _reg_ssd_gpu */
     size_t Block_reg_getSquaredDifference;

@@ -82,6 +82,7 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     _reg_nmi_gpu.cu
     _reg_ssd_gpu.cu
     _reg_optimiser_gpu.cu
+    NormaliseGradient.cu
 )
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
 install(TARGETS ${NAME}

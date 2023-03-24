@@ -3,6 +3,7 @@
 #include "_reg_resampling_gpu.h"
 #include "_reg_localTransformation_gpu.h"
 #include "_reg_optimiser_gpu.h"
+#include "NormaliseGradient.hpp"
 
 /* *************************************************************** */
 void CudaCompute::ResampleImage(int inter, float paddingValue) {
@@ -116,17 +117,17 @@ void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int ac
 }
 /* *************************************************************** */
 double CudaCompute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ) {
-    // TODO Fix reg_getMaximalLength_gpu to accept optimiseX, optimiseY, optimiseZ
+    if (!optimiseX && !optimiseY && !optimiseZ) return 0;
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(con.F3dContent::GetTransformationGradient(), 3);
-    return reg_getMaximalLength_gpu(con.GetTransformationGradientCuda(), voxelsPerVolume);
+    return NiftyReg::Cuda::GetMaximalLength(con.GetTransformationGradientCuda(), voxelsPerVolume, optimiseX, optimiseY, optimiseZ);
 }
 /* *************************************************************** */
 void CudaCompute::NormaliseGradient(double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ) {
-    // TODO Fix reg_multiplyValue_gpu to accept optimiseX, optimiseY, optimiseZ
+    if (maxGradLength == 0 || (!optimiseX && !optimiseY && !optimiseZ)) return;
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(con.F3dContent::GetTransformationGradient(), 3);
-    reg_multiplyValue_gpu(voxelsPerVolume, con.GetTransformationGradientCuda(), float(1 / maxGradLength));
+    NiftyReg::Cuda::NormaliseGradient(con.GetTransformationGradientCuda(), voxelsPerVolume, static_cast<float>(maxGradLength), optimiseX, optimiseY, optimiseZ);
 }
 /* *************************************************************** */
 void CudaCompute::SmoothGradient(float sigma) {

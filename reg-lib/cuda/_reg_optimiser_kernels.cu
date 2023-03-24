@@ -54,16 +54,6 @@ __global__ void reg_GetConjugateGradient2_kernel(float4 *nodeNMIGradientArray_d,
     }
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-__global__ void reg_getEuclideanDistance_kernel(float *distance_d)
-{
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    if(tid < c_NodeNumber){
-
-        float4 gradValue = tex1Dfetch(gradientImageTexture,tid);
-        distance_d[tid] = sqrtf(gradValue.x*gradValue.x + gradValue.y*gradValue.y + gradValue.z*gradValue.z);
-    }
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 __global__ void reg_updateControlPointPosition_kernel(float4 *controlPointImageArray_d)
 {
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;

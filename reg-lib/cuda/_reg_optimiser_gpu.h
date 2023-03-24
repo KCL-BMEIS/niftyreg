@@ -106,12 +106,6 @@ void reg_GetConjugateGradient_gpu(float4 *gradientArray_d,
 /** @brief
  */
 extern "C++"
-float reg_getMaximalLength_gpu(float4 *gradientArray_d,
-                               int nodeNumber);
-
-/** @brief
- */
-extern "C++"
 void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
                                         float4 *controlPointImageArray_d,
                                         float4 *bestControlPointPosition_d,
