@@ -35,8 +35,6 @@ class reg_base: public InterfaceOptimiser {
 protected:
     // Platform
     unique_ptr<Platform> platform;
-    PlatformType platformType;
-    unsigned gpuIdx;
 
     // Content
     unique_ptr<Content> con;
@@ -145,8 +143,11 @@ public:
     virtual bool GetSymmetricStatus() { return false; }
 
     // Platform
-    virtual void SetPlatformType(const PlatformType& platformTypeIn) { platformType = platformTypeIn; }
-    virtual void SetGpuIdx(unsigned gpuIdxIn) { gpuIdx = gpuIdxIn; }
+    virtual void SetPlatformType(const PlatformType& platformType) {
+        platform.reset(new Platform(platformType));
+        measure.reset(platform->CreateMeasure());
+    }
+    virtual void SetGpuIdx(const unsigned& gpuIdx) { platform->SetGpuIdx(gpuIdx); }
 
     // Optimisation-related functions
     virtual void SetMaximalIterationNumber(unsigned int);

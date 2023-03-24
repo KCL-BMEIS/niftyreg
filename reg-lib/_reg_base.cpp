@@ -15,8 +15,7 @@
 /* *************************************************************** */
 template<class T>
 reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
-    platformType = PlatformType::Cpu;
-    gpuIdx = 999;
+    SetPlatformType(PlatformType::Cpu);
 
     maxIterationNumber = 150;
     optimiseX = true;
@@ -487,10 +486,6 @@ void reg_base<T>::InitialiseSimilarity() {
 template<class T>
 void reg_base<T>::Initialise() {
     if (initialised) return;
-
-    platform.reset(new Platform(platformType));
-    platform->SetGpuIdx(gpuIdx);
-    measure.reset(platform->CreateMeasure());
 
     CheckParameters();
 
