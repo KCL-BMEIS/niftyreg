@@ -17,9 +17,8 @@
 class NormaliseGradientTest {
 protected:
     using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage>;
-    using TestCase = std::tuple<TestData, unique_ptr<F3dContent>, unique_ptr<Platform>>;
+    using TestCase = std::tuple<TestData, unique_ptr<F3dContent>, unique_ptr<Platform>, bool, bool, bool>;
 
-    vector<TestData> testData;
     vector<TestCase> testCases;
 
 public:
@@ -61,6 +60,7 @@ public:
             transGrad2dPtr[i] = distr(gen);
 
         // Add the test data
+        vector<TestData> testData;
         testData.emplace_back(TestData(
             "2D",
             std::move(reference2d),
@@ -83,27 +83,35 @@ public:
             std::move(transformationGradient3d)
         ));
 
-        // Add platforms to the test data
+        // Add platforms and optimise* to the test data
         for (auto&& testData : testData) {
-            auto&& [testName, reference, controlPointGrid, testGrad] = testData;
-
             for (auto&& platformType : PlatformTypes) {
-                unique_ptr<Platform> platform{ new Platform(platformType) };
-                // Add content
-                unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
-                unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
-                testCases.push_back({ testData, std::move(content), std::move(platform) });
+                for (int optimiseX = 0; optimiseX < 2; optimiseX++) {
+                    for (int optimiseY = 0; optimiseY < 2; optimiseY++) {
+                        for (int optimiseZ = 0; optimiseZ < 2; optimiseZ++) {
+                            // Make a copy of the test data
+                            auto td = testData;
+                            auto&& [testName, reference, controlPointGrid, testGrad] = td;
+                            // Add content
+                            unique_ptr<Platform> platform{ new Platform(platformType) };
+                            unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
+                            unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
+                            testCases.push_back({ std::move(td), std::move(content), std::move(platform), optimiseX, optimiseY, optimiseZ });
+                        }
+                    }
+                }
             }
         }
     }
 
     template<typename T>
     T GetMaximalLength(const nifti_image* transformationGradient, const bool& optimiseX, const bool& optimiseY, const bool& optimiseZ) {
+        if (!optimiseX && !optimiseY && !optimiseZ) return 0;
         const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(transformationGradient, 3);
         const T *ptrX = static_cast<T*>(transformationGradient->data);
         const T *ptrY = &ptrX[voxelsPerVolume];
         const T *ptrZ = &ptrY[voxelsPerVolume];
-        T maxGradValue = 0;
+        T maxGradLength = 0;
 
         if (transformationGradient->nz > 1) {
             for (size_t i = 0; i < voxelsPerVolume; i++) {
@@ -114,7 +122,7 @@ public:
                     valY = *ptrY++;
                 if (optimiseZ)
                     valZ = *ptrZ++;
-                maxGradValue = std::max(sqrt(valX * valX + valY * valY + valZ * valZ), maxGradValue);
+                maxGradLength = std::max(sqrt(valX * valX + valY * valY + valZ * valZ), maxGradLength);
             }
         } else {
             for (size_t i = 0; i < voxelsPerVolume; i++) {
@@ -123,15 +131,16 @@ public:
                     valX = *ptrX++;
                 if (optimiseY)
                     valY = *ptrY++;
-                maxGradValue = std::max(sqrt(valX * valX + valY * valY), maxGradValue);
+                maxGradLength = std::max(sqrt(valX * valX + valY * valY), maxGradLength);
             }
         }
 
-        return maxGradValue;
+        return maxGradLength;
     }
 
     template<typename T>
-    void NormaliseGradient(const nifti_image* transformationGradient, const T& maxGradValue, const bool& optimiseX, const bool& optimiseY, const bool& optimiseZ) {
+    void NormaliseGradient(const nifti_image* transformationGradient, const T& maxGradLength, const bool& optimiseX, const bool& optimiseY, const bool& optimiseZ) {
+        if (maxGradLength == 0 || (!optimiseX && !optimiseY && !optimiseZ)) return;
         const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(transformationGradient, 3);
         T *ptrX = static_cast<T*>(transformationGradient->data);
         T *ptrY = &ptrX[voxelsPerVolume];
@@ -145,9 +154,9 @@ public:
                     valY = ptrY[i];
                 if (optimiseZ)
                     valZ = ptrZ[i];
-                ptrX[i] = valX / maxGradValue;
-                ptrY[i] = valY / maxGradValue;
-                ptrZ[i] = valZ / maxGradValue;
+                ptrX[i] = valX / maxGradLength;
+                ptrY[i] = valY / maxGradLength;
+                ptrZ[i] = valZ / maxGradLength;
             }
         } else {
             for (size_t i = 0; i < voxelsPerVolume; ++i) {
@@ -156,8 +165,8 @@ public:
                     valX = ptrX[i];
                 if (optimiseY)
                     valY = ptrY[i];
-                ptrX[i] = valX / maxGradValue;
-                ptrY[i] = valY / maxGradValue;
+                ptrX[i] = valX / maxGradLength;
+                ptrY[i] = valY / maxGradLength;
             }
         }
     }
@@ -167,10 +176,10 @@ TEST_CASE_METHOD(NormaliseGradientTest, "Normalise gradient", "[NormaliseGradien
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
-        auto&& [testData, content, platform] = testCase;
+        auto&& [testData, content, platform, optimiseX, optimiseY, optimiseZ] = testCase;
         auto&& [testName, reference, controlPointGrid, testGrad] = testData;
 
-        SECTION(testName + " " + platform->GetName()) {
+        SECTION(testName + " " + platform->GetName() + " " + (optimiseX ? "X" : "noX") + " " + (optimiseY ? "Y" : "noY") + " " + (optimiseZ ? "Z" : "noZ")) {
             // Set the transformation gradient image to host the computation
             NiftiImage transGrad = content->GetTransformationGradient();
             transGrad.copyData(testGrad);
@@ -182,14 +191,14 @@ TEST_CASE_METHOD(NormaliseGradientTest, "Normalise gradient", "[NormaliseGradien
 
             // Calculate the maximal length
             unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
-            const auto maxLength = static_cast<float>(compute->GetMaximalLength(true, true, true));
-            const auto testLength = GetMaximalLength<float>(testGrad, true, true, true);
+            const auto maxLength = static_cast<float>(compute->GetMaximalLength(optimiseX, optimiseY, optimiseZ));
+            const auto testLength = GetMaximalLength<float>(testGrad, optimiseX, optimiseY, optimiseZ);
             // Check the results
             REQUIRE(fabs(maxLength - testLength) < EPS);
 
             // Normalise the gradient
-            compute->NormaliseGradient(maxLength, true, true, true);
-            NormaliseGradient<float>(testGrad, testLength, true, true, true);
+            compute->NormaliseGradient(maxLength, optimiseX, optimiseY, optimiseZ);
+            NormaliseGradient<float>(testGrad, testLength, optimiseX, optimiseY, optimiseZ);
 
             // Check the results
             transGrad = content->GetTransformationGradient();
