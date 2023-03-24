@@ -58,11 +58,11 @@ extern "C++"
 void reg_fillMaskArray_gpu(int num, int *array1_d);
 /* *************************************************************** */
 extern "C++"
-float reg_sumReduction_gpu(float *array_d, int size);
+float reg_sumReduction_gpu(float *array_d, size_t size);
 /* *************************************************************** */
 extern "C++"
-float reg_maxReduction_gpu(float *array_d, int size);
+float reg_maxReduction_gpu(float *array_d, size_t size);
 /* *************************************************************** */
 extern "C++"
-float reg_minReduction_gpu(float *array_d, int size);
+float reg_minReduction_gpu(float *array_d, size_t size);
 /* *************************************************************** */

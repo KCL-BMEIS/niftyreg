@@ -10,7 +10,6 @@
  */
 
 #include "_reg_common_cuda.h"
-#include "_reg_blocksize_gpu.h"
 
 /* *************************************************************** */
 template <class NiftiType>
@@ -628,7 +627,7 @@ void cudaCommon_destroyTextureObject(cudaTextureObject_t *texObj) {
     delete texObj;
 }
 /* *************************************************************** */
-UniqueTextureObjectPtr cudaCommon_createTextureObject(void *devPtr,
+UniqueTextureObjectPtr cudaCommon_createTextureObject(const void *devPtr,
                                                       cudaResourceType resType,
                                                       bool normalizedCoordinates,
                                                       size_t size,
@@ -640,7 +639,7 @@ UniqueTextureObjectPtr cudaCommon_createTextureObject(void *devPtr,
     resDesc.resType = resType;
     switch (resType) {
     case cudaResourceTypeLinear:
-        resDesc.res.linear.devPtr = devPtr;
+        resDesc.res.linear.devPtr = const_cast<void*>(devPtr);
         resDesc.res.linear.desc.f = channelFormat;
         resDesc.res.linear.desc.x = 32;
         if (channelCount > 1)
@@ -652,7 +651,7 @@ UniqueTextureObjectPtr cudaCommon_createTextureObject(void *devPtr,
         resDesc.res.linear.sizeInBytes = size;
         break;
     case cudaResourceTypeArray:
-        resDesc.res.array.array = static_cast<cudaArray*>(devPtr);
+        resDesc.res.array.array = static_cast<cudaArray*>(const_cast<void*>(devPtr));
         break;
     default:
         reg_print_fct_error("reg_createTextureObject");

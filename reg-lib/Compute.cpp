@@ -132,6 +132,7 @@ void Compute::GetImageGradient(int interpolation, float paddingValue, int active
 }
 /* *************************************************************** */
 double Compute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ) {
+    if (!optimiseX && !optimiseY && !optimiseZ) return 0;
     const nifti_image *transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
     switch (transformationGradient->datatype) {
     case NIFTI_TYPE_FLOAT32:
@@ -143,13 +144,14 @@ double Compute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ)
 }
 /* *************************************************************** */
 void Compute::NormaliseGradient(double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ) {
+    if (maxGradLength == 0 || (!optimiseX && !optimiseY && !optimiseZ)) return;
     NiftiImage transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
     const bool hasZ = transformationGradient->nz > 1;
-    if (!hasZ)
-        optimiseZ = false;
+    if (!hasZ) optimiseZ = false;
     NiftiImageData ptrX = transformationGradient.data(0);
     NiftiImageData ptrY = transformationGradient.data(1);
     NiftiImageData ptrZ = hasZ ? transformationGradient.data(2) : nullptr;
+    const double maxGradLenInv = 1.0 / maxGradLength;
 
 #ifdef _WIN32
     long i;
@@ -163,16 +165,16 @@ void Compute::NormaliseGradient(double maxGradLength, bool optimiseX, bool optim
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(voxelsPerVolume, ptrX, ptrY, ptrZ, hasZ, optimiseX, optimiseY, optimiseZ, maxGradLength)
+    shared(voxelsPerVolume, ptrX, ptrY, ptrZ, hasZ, optimiseX, optimiseY, optimiseZ, maxGradLenInv)
 #endif
     for (i = 0; i < voxelsPerVolume; ++i) {
         const double valX = optimiseX ? static_cast<double>(ptrX[i]) : 0;
         const double valY = optimiseY ? static_cast<double>(ptrY[i]) : 0;
         const double valZ = optimiseZ ? static_cast<double>(ptrZ[i]) : 0;
-        ptrX[i] = valX / maxGradLength;
-        ptrY[i] = valY / maxGradLength;
+        ptrX[i] = valX * maxGradLenInv;
+        ptrY[i] = valY * maxGradLenInv;
         if (hasZ)
-            ptrZ[i] = valZ / maxGradLength;
+            ptrZ[i] = valZ * maxGradLenInv;
     }
 }
 /* *************************************************************** */

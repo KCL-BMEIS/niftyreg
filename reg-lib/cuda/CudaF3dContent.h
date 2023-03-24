@@ -2,7 +2,6 @@
 
 #include "F3dContent.h"
 #include "CudaContent.h"
-#include "_reg_blocksize_gpu.h"
 
 class CudaF3dContent: public F3dContent, public CudaContent {
 public:

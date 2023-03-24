@@ -12,6 +12,7 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include "_reg_tools.h"
+#include "_reg_blocksize_gpu.h"
 
 /* *************************************************************** */
 #ifndef __VECTOR_TYPES_H__
@@ -141,7 +142,7 @@ int cudaCommon_transferArrayFromDeviceToCpu(DataType*, DataType*, const unsigned
 using UniqueTextureObjectPtr = std::unique_ptr<cudaTextureObject_t, void(*)(cudaTextureObject_t*)>;
 /* *************************************************************** */
 extern "C++"
-UniqueTextureObjectPtr cudaCommon_createTextureObject(void *devPtr,
+UniqueTextureObjectPtr cudaCommon_createTextureObject(const void *devPtr,
 													  cudaResourceType resType,
 													  bool normalizedCoordinates = false,
 													  size_t size = 0,

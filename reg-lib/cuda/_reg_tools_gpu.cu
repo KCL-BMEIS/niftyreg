@@ -330,19 +330,19 @@ void reg_fillMaskArray_gpu(int num, int *array1_d)
     NR_CUDA_CHECK_KERNEL(G,B)
 }
 /* *************************************************************** */
-float reg_sumReduction_gpu(float *array_d,int size)
+float reg_sumReduction_gpu(float *array_d,size_t size)
 {
     thrust::device_ptr<float> dptr(array_d);
     return thrust::reduce(dptr,dptr+size, 0.f, thrust::plus<float>());
 }
 /* *************************************************************** */
-float reg_maxReduction_gpu(float *array_d,int size)
+float reg_maxReduction_gpu(float *array_d,size_t size)
 {
     thrust::device_ptr<float> dptr(array_d);
     return thrust::reduce(dptr, dptr+size, 0.f, thrust::maximum<float>());
 }
 /* *************************************************************** */
-float reg_minReduction_gpu(float *array_d,int size)
+float reg_minReduction_gpu(float *array_d,size_t size)
 {
     thrust::device_ptr<float> dptr(array_d);
     return thrust::reduce(dptr, dptr+size, 0.f, thrust::minimum<float>());

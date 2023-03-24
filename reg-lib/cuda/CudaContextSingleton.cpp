@@ -1,6 +1,5 @@
 #include "CudaContextSingleton.h"
 #include "_reg_common_cuda.h"
-#include "_reg_blocksize_gpu.h"
 
 /* *************************************************************** */
 CudaContextSingleton::CudaContextSingleton() {
