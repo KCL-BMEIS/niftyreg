@@ -91,7 +91,7 @@ void launchAffine(mat44 *affineTransformation,
    affineKernel << <G1_b, B1_b >> >(*trans_d, *def_d, *mask_d, dims_d, CalcVoxelNumber(*deformationField), compose);
 
 #ifndef NDEBUG
-   NR_CUDA_CHECK_KERNEL(G1_b, B1_b)
+   NR_CUDA_CHECK_KERNEL(G1_b, B1_b);
 #else
    NR_CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #endif
