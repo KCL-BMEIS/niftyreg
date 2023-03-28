@@ -27,16 +27,16 @@ void reg_resampleImage_gpu(nifti_image *floatingImage,
     int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 
     // Create the texture object for the floating image
-    auto&& floatingTexture = cudaCommon_createTextureObject(floatingImageArray_d, cudaResourceTypeArray);
+    auto floatingTexture = cudaCommon_createTextureObject(floatingImageArray_d, cudaResourceTypeArray);
 
     // Create the texture object for the deformation field
-    auto&& deformationFieldTexture = cudaCommon_createTextureObject(deformationFieldImageArray_d, cudaResourceTypeLinear,
-                                                                    false, activeVoxelNumber * sizeof(float4),
-                                                                    cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
+    auto deformationFieldTexture = cudaCommon_createTextureObject(deformationFieldImageArray_d, cudaResourceTypeLinear,
+                                                                  false, activeVoxelNumber * sizeof(float4),
+                                                                  cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
 
     // Create the texture object for the mask
-    auto&& maskTexture = cudaCommon_createTextureObject(mask_d, cudaResourceTypeLinear, false, activeVoxelNumber * sizeof(int),
-                                                        cudaChannelFormatKindSigned, 1, cudaFilterModePoint);
+    auto maskTexture = cudaCommon_createTextureObject(mask_d, cudaResourceTypeLinear, false, activeVoxelNumber * sizeof(int),
+                                                      cudaChannelFormatKindSigned, 1, cudaFilterModePoint);
 
     // Bind the real to voxel matrix to the texture
     mat44 floatingMatrix;
@@ -71,12 +71,12 @@ void reg_getImageGradient_gpu(nifti_image *floatingImage,
     int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 
     // Create the texture object for the floating image
-    auto&& floatingTexture = cudaCommon_createTextureObject(floatingImageArray_d, cudaResourceTypeArray, true);
+    auto floatingTexture = cudaCommon_createTextureObject(floatingImageArray_d, cudaResourceTypeArray, true);
 
     // Create the texture object for the deformation field
-    auto&& deformationFieldTexture = cudaCommon_createTextureObject(deformationFieldImageArray_d, cudaResourceTypeLinear,
-                                                                    false, activeVoxelNumber * sizeof(float4),
-                                                                    cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
+    auto deformationFieldTexture = cudaCommon_createTextureObject(deformationFieldImageArray_d, cudaResourceTypeLinear,
+                                                                  false, activeVoxelNumber * sizeof(float4),
+                                                                  cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
 
     // Bind the real to voxel matrix to the texture
     mat44 floatingMatrix;

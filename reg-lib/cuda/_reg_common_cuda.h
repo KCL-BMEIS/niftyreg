@@ -134,10 +134,10 @@ using UniqueTextureObjectPtr = std::unique_ptr<cudaTextureObject_t, void(*)(cuda
 /* *************************************************************** */
 extern "C++"
 UniqueTextureObjectPtr cudaCommon_createTextureObject(const void *devPtr,
-													  cudaResourceType resType,
-													  bool normalizedCoordinates = false,
-													  size_t size = 0,
-													  cudaChannelFormatKind channelFormat = cudaChannelFormatKindNone,
-													  unsigned channelCount = 1,
-													  cudaTextureFilterMode filterMode = cudaFilterModeLinear);
+													  const cudaResourceType& resType,
+													  const bool& normalizedCoordinates = false,
+													  const size_t& size = 0,
+													  const cudaChannelFormatKind& channelFormat = cudaChannelFormatKindNone,
+													  const unsigned& channelCount = 1,
+													  const cudaTextureFilterMode& filterMode = cudaFilterModeLinear);
 /* *************************************************************** */

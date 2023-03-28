@@ -88,34 +88,40 @@ void Compute::GetDeformationField(bool composition, bool bspline) {
                                    bspline);
 }
 /* *************************************************************** */
-void Compute::UpdateControlPointPosition(float *currentDOF, float *bestDOF, float *gradient, float scale, bool optimiseX, bool optimiseY, bool optimiseZ) {
-    nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(con).GetControlPointGrid();
+void Compute::UpdateControlPointPosition(float *currentDof,
+                                         const float *bestDof,
+                                         const float *gradient,
+                                         const float& scale,
+                                         const bool& optimiseX,
+                                         const bool& optimiseY,
+                                         const bool& optimiseZ) {
+    const nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(con).GetControlPointGrid();
     if (optimiseX && optimiseY && optimiseZ) {
         // Update the values for all axis displacement
         for (size_t i = 0; i < controlPointGrid->nvox; ++i)
-            currentDOF[i] = bestDOF[i] + scale * gradient[i];
+            currentDof[i] = bestDof[i] + scale * gradient[i];
     } else {
-        size_t voxNumber = controlPointGrid->nvox / (controlPointGrid->nz > 1 ? 3 : 2);
+        const size_t nVoxelsPerDim = controlPointGrid->nvox / (controlPointGrid->nz > 1 ? 3 : 2);
         // Update the values for the x-axis displacement
         if (optimiseX) {
-            for (size_t i = 0; i < voxNumber; ++i)
-                currentDOF[i] = bestDOF[i] + scale * gradient[i];
+            for (size_t i = 0; i < nVoxelsPerDim; ++i)
+                currentDof[i] = bestDof[i] + scale * gradient[i];
         }
         // Update the values for the y-axis displacement
         if (optimiseY) {
-            float *currentDOFY = &currentDOF[voxNumber];
-            float *bestDOFY = &bestDOF[voxNumber];
-            float *gradientY = &gradient[voxNumber];
-            for (size_t i = 0; i < voxNumber; ++i)
-                currentDOFY[i] = bestDOFY[i] + scale * gradientY[i];
+            float *currentDofY = &currentDof[nVoxelsPerDim];
+            const float *bestDofY = &bestDof[nVoxelsPerDim];
+            const float *gradientY = &gradient[nVoxelsPerDim];
+            for (size_t i = 0; i < nVoxelsPerDim; ++i)
+                currentDofY[i] = bestDofY[i] + scale * gradientY[i];
         }
         // Update the values for the z-axis displacement
         if (optimiseZ && controlPointGrid->nz > 1) {
-            float *currentDOFZ = &currentDOF[2 * voxNumber];
-            float *bestDOFZ = &bestDOF[2 * voxNumber];
-            float *gradientZ = &gradient[2 * voxNumber];
-            for (size_t i = 0; i < voxNumber; ++i)
-                currentDOFZ[i] = bestDOFZ[i] + scale * gradientZ[i];
+            float *currentDofZ = &currentDof[2 * nVoxelsPerDim];
+            const float *bestDofZ = &bestDof[2 * nVoxelsPerDim];
+            const float *gradientZ = &gradient[2 * nVoxelsPerDim];
+            for (size_t i = 0; i < nVoxelsPerDim; ++i)
+                currentDofZ[i] = bestDofZ[i] + scale * gradientZ[i];
         }
     }
 }

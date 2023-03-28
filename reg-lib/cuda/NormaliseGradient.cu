@@ -23,18 +23,18 @@ float NiftyReg::Cuda::GetMaximalLength(const float4 *imageCuda,
                                        const bool& optimiseY,
                                        const bool& optimiseZ) {
     // Create a texture object for the imageCuda
-    auto&& imageTexture = cudaCommon_createTextureObject(imageCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
-                                                         cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
+    auto imageTexture = cudaCommon_createTextureObject(imageCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
+                                                       cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
 
     float *dists = nullptr;
     NR_CUDA_SAFE_CALL(cudaMalloc(&dists, nVoxels * sizeof(float)));
 
-    const unsigned int block = static_cast<unsigned int>(NiftyReg_CudaBlock::GetInstance(0)->Block_GetMaximalLength);
-    const unsigned int grid = static_cast<unsigned int>(reg_ceil(sqrtf(static_cast<float>(nVoxels) / static_cast<float>(block))));
-    dim3 B1(block, 1, 1);
-    dim3 G1(grid, grid, 1);
-    GetMaximalLengthKernel<<<G1, B1>>>(dists, *imageTexture, nVoxels, optimiseX, optimiseY, optimiseZ);
-    NR_CUDA_CHECK_KERNEL(G1, B1);
+    const unsigned int blocks = static_cast<unsigned int>(NiftyReg_CudaBlock::GetInstance(0)->Block_GetMaximalLength);
+    const unsigned int grids = static_cast<unsigned int>(reg_ceil(sqrtf(static_cast<float>(nVoxels) / static_cast<float>(blocks))));
+    dim3 blockDims(blocks, 1, 1);
+    dim3 gridDims(grids, grids, 1);
+    GetMaximalLengthKernel<<<gridDims, blockDims>>>(dists, *imageTexture, nVoxels, optimiseX, optimiseY, optimiseZ);
+    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 
     const float maxDistance = reg_maxReduction_gpu(dists, nVoxels);
     NR_CUDA_SAFE_CALL(cudaFree(dists));
@@ -64,11 +64,11 @@ void NiftyReg::Cuda::NormaliseGradient(float4 *imageCuda,
                                        const bool& optimiseX,
                                        const bool& optimiseY,
                                        const bool& optimiseZ) {
-    const unsigned int block = static_cast<unsigned int>(NiftyReg_CudaBlock::GetInstance(0)->Block_reg_arithmetic);
-    const unsigned int grid = static_cast<unsigned int>(ceil(sqrtf(static_cast<float>(nVoxels) / static_cast<float>(block))));
-    const dim3 G(grid, grid, 1);
-    const dim3 B(block, 1, 1);
-    NormaliseGradientKernel<<<G, B>>>(imageCuda, nVoxels, 1 / maxGradLength, optimiseX, optimiseY, optimiseZ);
-    NR_CUDA_CHECK_KERNEL(G, B);
+    const unsigned int blocks = static_cast<unsigned int>(NiftyReg_CudaBlock::GetInstance(0)->Block_reg_arithmetic);
+    const unsigned int grids = static_cast<unsigned int>(ceil(sqrtf(static_cast<float>(nVoxels) / static_cast<float>(blocks))));
+    const dim3 gridDims(grids, grids, 1);
+    const dim3 blockDims(blocks, 1, 1);
+    NormaliseGradientKernel<<<gridDims, blockDims>>>(imageCuda, nVoxels, 1 / maxGradLength, optimiseX, optimiseY, optimiseZ);
+    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */

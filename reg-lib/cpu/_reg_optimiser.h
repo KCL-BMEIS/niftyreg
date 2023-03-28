@@ -29,16 +29,16 @@ public:
 template <class T>
 class reg_optimiser {
 protected:
-    bool backward;
+    bool isBackwards;
     size_t dofNumber;
-    size_t dofNumber_b;
+    size_t dofNumberBw;
     size_t ndim;
-    T *currentDOF; // pointer to the cpp nifti image array
-    T *currentDOF_b; // pointer to the cpp nifti image array (backward)
-    T *bestDOF;
-    T *bestDOF_b;
+    T *currentDof; // pointer to the cpp nifti image array
+    T *currentDofBw; // pointer to the cpp nifti image array (backwards)
+    T *bestDof;
+    T *bestDofBw;
     T *gradient;
-    T *gradient_b;
+    T *gradientBw;
     bool optimiseX;
     bool optimiseY;
     bool optimiseZ;
@@ -46,18 +46,18 @@ protected:
     size_t currentIterationNumber;
     double bestObjFunctionValue;
     double currentObjFunctionValue;
-    InterfaceOptimiser *objFunc;
+    InterfaceOptimiser *intOpt;
 
 public:
     reg_optimiser();
     virtual ~reg_optimiser();
-    virtual void StoreCurrentDOF();
-    virtual void RestoreBestDOF();
-    virtual size_t GetDOFNumber() {
+    virtual void StoreCurrentDof();
+    virtual void RestoreBestDof();
+    virtual size_t GetDofNumber() {
         return this->dofNumber;
     }
-    virtual size_t GetDOFNumber_b() {
-        return this->dofNumber_b;
+    virtual size_t GetDofNumberBw() {
+        return this->dofNumberBw;
     }
     virtual size_t GetNDim() {
         return this->ndim;
@@ -65,26 +65,26 @@ public:
     virtual size_t GetVoxNumber() {
         return this->dofNumber / this->ndim;
     }
-    virtual size_t GetVoxNumber_b() {
-        return this->dofNumber_b / this->ndim;
+    virtual size_t GetVoxNumberBw() {
+        return this->dofNumberBw / this->ndim;
     }
-    virtual T* GetBestDOF() {
-        return this->bestDOF;
+    virtual T* GetBestDof() {
+        return this->bestDof;
     }
-    virtual T* GetBestDOF_b() {
-        return this->bestDOF_b;
+    virtual T* GetBestDofBw() {
+        return this->bestDofBw;
     }
-    virtual T* GetCurrentDOF() {
-        return this->currentDOF;
+    virtual T* GetCurrentDof() {
+        return this->currentDof;
     }
-    virtual T* GetCurrentDOF_b() {
-        return this->currentDOF_b;
+    virtual T* GetCurrentDofBw() {
+        return this->currentDofBw;
     }
     virtual T* GetGradient() {
         return this->gradient;
     }
-    virtual T* GetGradient_b() {
-        return this->gradient_b;
+    virtual T* GetGradientBw() {
+        return this->gradientBw;
     }
     virtual bool GetOptimiseX() {
         return this->optimiseX;
@@ -117,18 +117,18 @@ public:
         this->currentIterationNumber++;
     }
     virtual void Initialise(size_t nvox,
-                            int dim,
+                            int ndim,
                             bool optX,
                             bool optY,
                             bool optZ,
-                            size_t maxit,
-                            size_t start,
-                            InterfaceOptimiser *o,
+                            size_t maxIt,
+                            size_t startIt,
+                            InterfaceOptimiser *intOpt,
                             T *cppData,
                             T *gradData = nullptr,
-                            size_t nvox_b = 0,
-                            T *cppData_b = nullptr,
-                            T *gradData_b = nullptr);
+                            size_t nvoxBw = 0,
+                            T *cppDataBw = nullptr,
+                            T *gradDataBw = nullptr);
     virtual void Optimise(T maxLength,
                           T smallLength,
                           T &startLength);
@@ -145,10 +145,10 @@ template <class T>
 class reg_conjugateGradient: public reg_optimiser<T> {
 protected:
     T *array1;
-    T *array1_b;
+    T *array1Bw;
     T *array2;
-    T *array2_b;
-    bool firstcall;
+    T *array2Bw;
+    bool firstCall;
 
     void UpdateGradientValues(); /// @brief Update the gradient array
 
@@ -156,18 +156,18 @@ public:
     reg_conjugateGradient();
     virtual ~reg_conjugateGradient();
     virtual void Initialise(size_t nvox,
-                            int dim,
+                            int ndim,
                             bool optX,
                             bool optY,
                             bool optZ,
-                            size_t maxit,
-                            size_t start,
-                            InterfaceOptimiser *o,
+                            size_t maxIt,
+                            size_t startIt,
+                            InterfaceOptimiser *intOpt,
                             T *cppData = nullptr,
                             T *gradData = nullptr,
-                            size_t nvox_b = 0,
-                            T *cppData_b = nullptr,
-                            T *gradData_b = nullptr) override;
+                            size_t nvoxBw = 0,
+                            T *cppDataBw = nullptr,
+                            T *gradDataBw = nullptr) override;
     virtual void Optimise(T maxLength,
                           T smallLength,
                           T &startLength) override;
@@ -184,27 +184,27 @@ template <class T>
 class reg_lbfgs: public reg_optimiser<T> {
 protected:
     size_t stepToKeep;
-    T *oldDOF;
+    T *oldDof;
     T *oldGrad;
-    T **diffDOF;
+    T **diffDof;
     T **diffGrad;
 
 public:
     reg_lbfgs();
     virtual ~reg_lbfgs();
     virtual void Initialise(size_t nvox,
-                            int dim,
+                            int ndim,
                             bool optX,
                             bool optY,
                             bool optZ,
-                            size_t maxit,
-                            size_t start,
-                            InterfaceOptimiser *o,
+                            size_t maxIt,
+                            size_t startIt,
+                            InterfaceOptimiser *intOpt,
                             T *cppData = nullptr,
                             T *gradData = nullptr,
-                            size_t nvox_b = 0,
-                            T *cppData_b = nullptr,
-                            T *gradData_b = nullptr) override;
+                            size_t nvoxBw = 0,
+                            T *cppDataBw = nullptr,
+                            T *gradDataBw = nullptr) override;
     virtual void Optimise(T maxLength,
                           T smallLength,
                           T &startLength) override;

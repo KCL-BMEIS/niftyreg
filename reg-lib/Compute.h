@@ -19,7 +19,7 @@ public:
     virtual double GetLandmarkDistance(size_t landmarkNumber, float *landmarkReference, float *landmarkFloating);
     virtual void LandmarkDistanceGradient(size_t landmarkNumber, float *landmarkReference, float *landmarkFloating, float weight);
     virtual void GetDeformationField(bool composition, bool bspline);
-    virtual void UpdateControlPointPosition(float *currentDOF, float *bestDOF, float *gradient, float scale, bool optimiseX, bool optimiseY, bool optimiseZ);
+    virtual void UpdateControlPointPosition(float *currentDof, const float *bestDof, const float *gradient, const float& scale, const bool& optimiseX, const bool& optimiseY, const bool& optimiseZ);
     virtual void GetImageGradient(int interpolation, float paddingValue, int activeTimepoint);
     virtual double GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ);
     virtual void NormaliseGradient(double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ);

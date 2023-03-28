@@ -219,7 +219,7 @@ double reg_f3d2<T>::ComputeJacobianBasedPenaltyTerm(int type) {
     }
     if (type > 0 && it > 0) {
         if (backwardPenaltyTerm != backwardPenaltyTerm) {
-            this->optimiser->RestoreBestDOF();
+            this->optimiser->RestoreBestDof();
 #ifndef NDEBUG
             reg_print_fct_warn("reg_f3d2<T>::ComputeJacobianBasedPenaltyTerm()");
             reg_print_msg_warn("The backward transformation folding correction scheme failed");
@@ -772,7 +772,7 @@ void reg_f3d2<T>::ExponentiateGradient() {
 template <class T>
 void reg_f3d2<T>::UpdateParameters(float scale) {
     // Restore the last successful control point grids
-    this->optimiser->RestoreBestDOF();
+    this->optimiser->RestoreBestDof();
 
     // The scaled gradient image is added to the current estimate of the transformation using
     // a simple addition or by computing the BCH update

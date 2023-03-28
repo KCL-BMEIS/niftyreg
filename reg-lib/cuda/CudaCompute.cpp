@@ -96,12 +96,18 @@ void CudaCompute::GetDeformationField(bool composition, bool bspline) {
                                        bspline);
 }
 /* *************************************************************** */
-void CudaCompute::UpdateControlPointPosition(float *currentDOF, float *bestDOF, float *gradient, float scale, bool optimiseX, bool optimiseY, bool optimiseZ) {
+void CudaCompute::UpdateControlPointPosition(float *currentDof,
+                                             const float *bestDof,
+                                             const float *gradient,
+                                             const float& scale,
+                                             const bool& optimiseX,
+                                             const bool& optimiseY,
+                                             const bool& optimiseZ) {
     // TODO Fix reg_updateControlPointPosition_gpu to accept optimiseX, optimiseY, optimiseZ
     reg_updateControlPointPosition_gpu(dynamic_cast<CudaF3dContent&>(con).F3dContent::GetControlPointGrid(),
-                                       reinterpret_cast<float4*>(currentDOF),
-                                       reinterpret_cast<float4*>(bestDOF),
-                                       reinterpret_cast<float4*>(gradient),
+                                       reinterpret_cast<float4*>(currentDof),
+                                       reinterpret_cast<const float4*>(bestDof),
+                                       reinterpret_cast<const float4*>(gradient),
                                        scale);
 }
 /* *************************************************************** */

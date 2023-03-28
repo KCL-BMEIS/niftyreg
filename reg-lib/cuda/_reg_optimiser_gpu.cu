@@ -1,99 +1,92 @@
 #include "_reg_optimiser_gpu.h"
 #include "_reg_optimiser_kernels.cu"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 reg_optimiser_gpu::reg_optimiser_gpu(): reg_optimiser<float>::reg_optimiser() {
-    this->currentDOF_gpu = nullptr;
-    this->bestDOF_gpu = nullptr;
-    this->gradient_gpu = nullptr;
+    this->currentDofCuda = nullptr;
+    this->bestDofCuda = nullptr;
+    this->gradientCuda = nullptr;
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_optimiser_gpu::reg_optimiser_gpu() called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 reg_optimiser_gpu::~reg_optimiser_gpu() {
-    if (this->bestDOF_gpu != nullptr) {
-        cudaCommon_free(this->bestDOF_gpu);
-        this->bestDOF_gpu = nullptr;
+    if (this->bestDofCuda) {
+        cudaCommon_free(this->bestDofCuda);
+        this->bestDofCuda = nullptr;
     }
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_optimiser_gpu::~reg_optimiser_gpu() called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_optimiser_gpu::Initialise(size_t nvox,
-                                   int dim,
+                                   int ndim,
                                    bool optX,
                                    bool optY,
                                    bool optZ,
-                                   size_t maxit,
-                                   size_t start,
-                                   InterfaceOptimiser *obj,
+                                   size_t maxIt,
+                                   size_t startIt,
+                                   InterfaceOptimiser *intOpt,
                                    float *cppData,
                                    float *gradData,
-                                   size_t a,
-                                   float *b,
-                                   float *c) {
+                                   size_t nvoxBw,
+                                   float *cppDataBw,
+                                   float *gradDataBw) {
     this->dofNumber = nvox;
-    this->ndim = dim;
+    this->ndim = ndim;
     this->optimiseX = optX;
     this->optimiseY = optY;
     this->optimiseZ = optZ;
-    this->maxIterationNumber = maxit;
-    this->currentIterationNumber = start;
+    this->maxIterationNumber = maxIt;
+    this->currentIterationNumber = startIt;
 
     // Arrays are converted from float to float4
-    this->currentDOF_gpu = reinterpret_cast<float4*>(cppData);
+    this->currentDofCuda = reinterpret_cast<float4*>(cppData);
 
-    if (gradData != nullptr)
-        this->gradient_gpu = reinterpret_cast<float4*>(gradData);
+    if (gradData)
+        this->gradientCuda = reinterpret_cast<float4*>(gradData);
 
-    if (this->bestDOF_gpu != nullptr)
-        cudaCommon_free(this->bestDOF_gpu);
+    if (this->bestDofCuda)
+        cudaCommon_free(this->bestDofCuda);
 
-    if (cudaCommon_allocateArrayToDevice(&this->bestDOF_gpu, (int)(this->GetVoxNumber()))) {
+    if (cudaCommon_allocateArrayToDevice(&this->bestDofCuda, (int)(this->GetVoxNumber()))) {
         printf("[NiftyReg ERROR] Error when allocating the best control point array on the GPU.\n");
         reg_exit();
     }
 
-    this->StoreCurrentDOF();
+    this->StoreCurrentDof();
 
-    this->objFunc = obj;
-    this->bestObjFunctionValue = this->currentObjFunctionValue = this->objFunc->GetObjectiveFunctionValue();
+    this->intOpt = intOpt;
+    this->bestObjFunctionValue = this->currentObjFunctionValue = this->intOpt->GetObjectiveFunctionValue();
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_optimiser_gpu::Initialise() called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_optimiser_gpu::RestoreBestDOF() {
+/* *************************************************************** */
+void reg_optimiser_gpu::RestoreBestDof() {
     // restore forward transformation
-    NR_CUDA_SAFE_CALL(cudaMemcpy(this->currentDOF_gpu,
-                                 this->bestDOF_gpu,
+    NR_CUDA_SAFE_CALL(cudaMemcpy(this->currentDofCuda,
+                                 this->bestDofCuda,
                                  this->GetVoxNumber() * sizeof(float4),
                                  cudaMemcpyDeviceToDevice));
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_optimiser_gpu::StoreCurrentDOF() {
+/* *************************************************************** */
+void reg_optimiser_gpu::StoreCurrentDof() {
     // Store forward transformation
-    NR_CUDA_SAFE_CALL(cudaMemcpy(this->bestDOF_gpu,
-                                 this->currentDOF_gpu,
+    NR_CUDA_SAFE_CALL(cudaMemcpy(this->bestDofCuda,
+                                 this->currentDofCuda,
                                  this->GetVoxNumber() * sizeof(float4),
                                  cudaMemcpyDeviceToDevice));
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_optimiser_gpu::Perturbation(float length) {
     // TODO: Implement reg_optimiser_gpu::Perturbation()
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 reg_conjugateGradient_gpu::reg_conjugateGradient_gpu(): reg_optimiser_gpu::reg_optimiser_gpu() {
     this->array1 = nullptr;
     this->array2 = nullptr;
@@ -101,15 +94,14 @@ reg_conjugateGradient_gpu::reg_conjugateGradient_gpu(): reg_optimiser_gpu::reg_o
     printf("[NiftyReg DEBUG] reg_conjugateGradient_gpu::reg_conjugateGradient_gpu() called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() {
-    if (this->array1 != nullptr) {
+    if (this->array1) {
         cudaCommon_free(this->array1);
         this->array1 = nullptr;
     }
 
-    if (this->array2 != nullptr) {
+    if (this->array2) {
         cudaCommon_free(this->array2);
         this->array2 = nullptr;
     }
@@ -117,62 +109,50 @@ reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() {
     printf("[NiftyReg DEBUG] reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_conjugateGradient_gpu::Initialise(size_t nvox,
-                                           int dim,
+                                           int ndim,
                                            bool optX,
                                            bool optY,
                                            bool optZ,
-                                           size_t maxit,
-                                           size_t start,
-                                           InterfaceOptimiser *obj,
+                                           size_t maxIt,
+                                           size_t startIt,
+                                           InterfaceOptimiser *intOpt,
                                            float *cppData,
                                            float *gradData,
-                                           size_t a,
-                                           float *b,
-                                           float *c) {
-    reg_optimiser_gpu::Initialise(nvox,
-                                  dim,
-                                  optX,
-                                  optY,
-                                  optZ,
-                                  maxit,
-                                  start,
-                                  obj,
-                                  cppData,
-                                  gradData);
-    this->firstcall = true;
+                                           size_t nvoxBw,
+                                           float *cppDataBw,
+                                           float *gradDataBw) {
+    reg_optimiser_gpu::Initialise(nvox, ndim, optX, optY, optZ, maxIt, startIt, intOpt, cppData, gradData);
+    this->firstCall = true;
     if (cudaCommon_allocateArrayToDevice<float4>(&this->array1, (int)(this->GetVoxNumber()))) {
-        printf("[NiftyReg ERROR] Error when allocating the first conjugate gradient_gpu array on the GPU.\n");
+        printf("[NiftyReg ERROR] Error when allocating the first conjugate gradient array on the GPU.\n");
         reg_exit();
     }
     if (cudaCommon_allocateArrayToDevice<float4>(&this->array2, (int)(this->GetVoxNumber()))) {
-        printf("[NiftyReg ERROR] Error when allocating the second conjugate gradient_gpu array on the GPU.\n");
+        printf("[NiftyReg ERROR] Error when allocating the second conjugate gradient array on the GPU.\n");
         reg_exit();
     }
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_conjugateGradient_gpu::Initialise() called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_conjugateGradient_gpu::UpdateGradientValues() {
-    if (this->firstcall) {
-        reg_initialiseConjugateGradient_gpu(this->gradient_gpu,
+    if (this->firstCall) {
+        reg_initialiseConjugateGradient_gpu(this->gradientCuda,
                                             this->array1,
                                             this->array2,
-                                            (int)(this->GetVoxNumber()));
-        this->firstcall = false;
+                                            this->GetVoxNumber());
+        this->firstCall = false;
     } else {
-        reg_GetConjugateGradient_gpu(this->gradient_gpu,
+        reg_GetConjugateGradient_gpu(this->gradientCuda,
                                      this->array1,
                                      this->array2,
-                                     (int)(this->GetVoxNumber()));
+                                     this->GetVoxNumber());
     }
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_conjugateGradient_gpu::Optimise(float maxLength,
                                          float smallLength,
                                          float &startLength) {
@@ -181,20 +161,17 @@ void reg_conjugateGradient_gpu::Optimise(float maxLength,
                             smallLength,
                             startLength);
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_conjugateGradient_gpu::Perturbation(float length) {
     reg_optimiser_gpu::Perturbation(length);
-    this->firstcall = true;
+    this->firstCall = true;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_conjugateGradient_gpu::reg_test_optimiser() {
     this->UpdateGradientValues();
     reg_optimiser_gpu::reg_test_optimiser();
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_initialiseConjugateGradient_gpu(float4 *gradientArray_d,
                                          float4 *conjugateG_d,
                                          float4 *conjugateH_d,
@@ -215,8 +192,7 @@ void reg_initialiseConjugateGradient_gpu(float4 *gradientArray_d,
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture));
     NR_CUDA_SAFE_CALL(cudaMemcpy(conjugateH_d, conjugateG_d, nodeNumber * sizeof(float4), cudaMemcpyDeviceToDevice));
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_GetConjugateGradient_gpu(float4 *gradientArray_d,
                                   float4 *conjugateG_d,
                                   float4 *conjugateH_d,
@@ -263,13 +239,12 @@ void reg_GetConjugateGradient_gpu(float4 *gradientArray_d,
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture));
 
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
+/* *************************************************************** */
+void reg_updateControlPointPosition_gpu(const nifti_image *controlPointImage,
                                         float4 *controlPointImageArray_d,
-                                        float4 *bestControlPointPosition_d,
-                                        float4 *gradientArray_d,
-                                        float currentLength) {
+                                        const float4 *bestControlPointPosition_d,
+                                        const float4 *gradientArray_d,
+                                        const float& currentLength) {
     // Get the BlockSize - The values have been set in CudaContextSingleton
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
 
@@ -293,5 +268,4 @@ void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
     printf("[NiftyReg DEBUG] reg_updateControlPointPosition_gpu() called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */

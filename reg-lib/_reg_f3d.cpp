@@ -167,8 +167,6 @@ void reg_f3d<T>::CheckParameters() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::Initialise() {
-    if (this->initialised) return;
-
     reg_base<T>::Initialise();
 
     // Determine the grid spacing and create the grid
@@ -331,7 +329,6 @@ void reg_f3d<T>::Initialise() {
     }
 #endif
 
-    this->initialised = true;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::Initialise");
 #endif
@@ -366,7 +363,7 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type) {
     }
     if (type > 0) {
         if (value != value) {
-            this->optimiser->RestoreBestDOF();
+            this->optimiser->RestoreBestDof();
             reg_print_fct_warn("reg_f3d<T>::ComputeJacobianBasedPenaltyTerm()");
             reg_print_msg_warn("The folding correction scheme failed");
         } else {
@@ -581,8 +578,8 @@ double reg_f3d<T>::GetObjectiveFunctionValue() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::UpdateParameters(float scale) {
-    this->compute->UpdateControlPointPosition(this->optimiser->GetCurrentDOF(),
-                                              this->optimiser->GetBestDOF(),
+    this->compute->UpdateControlPointPosition(this->optimiser->GetCurrentDof(),
+                                              this->optimiser->GetBestDof(),
                                               this->optimiser->GetGradient(),
                                               scale,
                                               this->optimiseX,

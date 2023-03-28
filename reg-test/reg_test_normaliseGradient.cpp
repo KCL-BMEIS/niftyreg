@@ -107,14 +107,14 @@ public:
     template<typename T>
     T GetMaximalLength(const nifti_image* transformationGradient, const bool& optimiseX, const bool& optimiseY, const bool& optimiseZ) {
         if (!optimiseX && !optimiseY && !optimiseZ) return 0;
-        const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(transformationGradient, 3);
+        const size_t nVoxelsPerVolume = NiftiImage::calcVoxelNumber(transformationGradient, 3);
         const T *ptrX = static_cast<T*>(transformationGradient->data);
-        const T *ptrY = &ptrX[voxelsPerVolume];
-        const T *ptrZ = &ptrY[voxelsPerVolume];
+        const T *ptrY = &ptrX[nVoxelsPerVolume];
+        const T *ptrZ = &ptrY[nVoxelsPerVolume];
         T maxGradLength = 0;
 
         if (transformationGradient->nz > 1) {
-            for (size_t i = 0; i < voxelsPerVolume; i++) {
+            for (size_t i = 0; i < nVoxelsPerVolume; i++) {
                 T valX = 0, valY = 0, valZ = 0;
                 if (optimiseX)
                     valX = *ptrX++;
@@ -125,7 +125,7 @@ public:
                 maxGradLength = std::max(sqrt(valX * valX + valY * valY + valZ * valZ), maxGradLength);
             }
         } else {
-            for (size_t i = 0; i < voxelsPerVolume; i++) {
+            for (size_t i = 0; i < nVoxelsPerVolume; i++) {
                 T valX = 0, valY = 0;
                 if (optimiseX)
                     valX = *ptrX++;
@@ -141,12 +141,12 @@ public:
     template<typename T>
     void NormaliseGradient(const nifti_image* transformationGradient, const T& maxGradLength, const bool& optimiseX, const bool& optimiseY, const bool& optimiseZ) {
         if (maxGradLength == 0 || (!optimiseX && !optimiseY && !optimiseZ)) return;
-        const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(transformationGradient, 3);
+        const size_t nVoxelsPerVolume = NiftiImage::calcVoxelNumber(transformationGradient, 3);
         T *ptrX = static_cast<T*>(transformationGradient->data);
-        T *ptrY = &ptrX[voxelsPerVolume];
-        T *ptrZ = &ptrY[voxelsPerVolume];
+        T *ptrY = &ptrX[nVoxelsPerVolume];
+        T *ptrZ = &ptrY[nVoxelsPerVolume];
         if (transformationGradient->nz > 1) {
-            for (size_t i = 0; i < voxelsPerVolume; ++i) {
+            for (size_t i = 0; i < nVoxelsPerVolume; ++i) {
                 T valX = 0, valY = 0, valZ = 0;
                 if (optimiseX)
                     valX = ptrX[i];
@@ -159,7 +159,7 @@ public:
                 ptrZ[i] = valZ / maxGradLength;
             }
         } else {
-            for (size_t i = 0; i < voxelsPerVolume; ++i) {
+            for (size_t i = 0; i < nVoxelsPerVolume; ++i) {
                 T valX = 0, valY = 0;
                 if (optimiseX)
                     valX = ptrX[i];
@@ -185,9 +185,6 @@ TEST_CASE_METHOD(NormaliseGradientTest, "Normalise gradient", "[NormaliseGradien
             transGrad.copyData(testGrad);
             transGrad.disown();
             content->UpdateTransformationGradient();
-
-            // Get the number of voxels per volume
-            const auto voxelsPerVolume = testGrad.nVoxelsPerVolume();
 
             // Calculate the maximal length
             unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
