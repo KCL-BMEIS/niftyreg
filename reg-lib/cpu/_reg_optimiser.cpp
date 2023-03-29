@@ -193,11 +193,6 @@ void reg_optimiser<T>::Optimise(T maxLength, T smallLength, T &startLength) {
 }
 /* *************************************************************** */
 template <class T>
-void reg_optimiser<T>::reg_test_optimiser() {
-    this->intOpt->UpdateParameters(1.f);
-}
-/* *************************************************************** */
-template <class T>
 reg_conjugateGradient<T>::reg_conjugateGradient(): reg_optimiser<T>::reg_optimiser() {
     this->array1 = nullptr;
     this->array2 = nullptr;
@@ -379,12 +374,6 @@ template <class T>
 void reg_conjugateGradient<T>::Perturbation(float length) {
     reg_optimiser<T>::Perturbation(length);
     this->firstCall = true;
-}
-/* *************************************************************** */
-template <class T>
-void reg_conjugateGradient<T>::reg_test_optimiser() {
-    this->UpdateGradientValues();
-    reg_optimiser<T>::reg_test_optimiser();
 }
 /* *************************************************************** */
 template <class T>

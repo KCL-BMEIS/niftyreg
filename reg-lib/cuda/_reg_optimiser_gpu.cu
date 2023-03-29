@@ -167,11 +167,6 @@ void reg_conjugateGradient_gpu::Perturbation(float length) {
     this->firstCall = true;
 }
 /* *************************************************************** */
-void reg_conjugateGradient_gpu::reg_test_optimiser() {
-    this->UpdateGradientValues();
-    reg_optimiser_gpu::reg_test_optimiser();
-}
-/* *************************************************************** */
 void reg_initialiseConjugateGradient_gpu(float4 *gradientImageCuda,
                                          float4 *conjugateGCuda,
                                          float4 *conjugateHCuda,

@@ -79,9 +79,6 @@ public:
                           float smallLength,
                           float &startLength) override;
     virtual void Perturbation(float length) override;
-
-    // Function used for testing
-    virtual void reg_test_optimiser() override;
 };
 /* *************************************************************** */
 /** @brief

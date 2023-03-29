@@ -133,9 +133,6 @@ public:
                           T smallLength,
                           T &startLength);
     virtual void Perturbation(float length);
-
-    // Function used for testing
-    virtual void reg_test_optimiser();
 };
 /* *************************************************************** */
 /** @class reg_conjugateGradient
@@ -172,9 +169,6 @@ public:
                           T smallLength,
                           T &startLength) override;
     virtual void Perturbation(float length) override;
-
-    // Function used for testing
-    virtual void reg_test_optimiser() override;
 };
 /* *************************************************************** */
 /** @class Global optimisation class

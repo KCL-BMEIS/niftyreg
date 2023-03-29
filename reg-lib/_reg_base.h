@@ -208,7 +208,4 @@ public:
         funcProgressCallback = funcProgCallback;
         paramsProgressCallback = paramsProgCallback;
     }
-
-    // For testing
-    virtual void reg_test_setOptimiser(reg_optimiser<T> *opt) { optimiser.reset(opt); }
 };
