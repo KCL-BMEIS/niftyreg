@@ -87,24 +87,28 @@ public:
 /** @brief
  */
 extern "C++"
-void reg_initialiseConjugateGradient_gpu(float4 *gradientArray_d,
-                                         float4 *conjugateG_d,
-                                         float4 *conjugateH_d,
-                                         int nodeNumber);
-
+void reg_initialiseConjugateGradient_gpu(float4 *gradientImageCuda,
+                                         float4 *conjugateGCuda,
+                                         float4 *conjugateHCuda,
+                                         const size_t& nVoxels);
+/* *************************************************************** */
 /** @brief
  */
 extern "C++"
-void reg_GetConjugateGradient_gpu(float4 *gradientArray_d,
-                                  float4 *conjugateG_d,
-                                  float4 *conjugateH_d,
-                                  int nodeNumber);
-
+void reg_GetConjugateGradient_gpu(float4 *gradientImageCuda,
+                                  float4 *conjugateGCuda,
+                                  float4 *conjugateHCuda,
+                                  const size_t& nVoxels);
+/* *************************************************************** */
 /** @brief
  */
 extern "C++"
-void reg_updateControlPointPosition_gpu(const nifti_image *controlPointImage,
-                                        float4 *controlPointImageArray_d,
-                                        const float4 *bestControlPointPosition_d,
-                                        const float4 *gradientArray_d,
-                                        const float& currentLength);
+void reg_updateControlPointPosition_gpu(const size_t& nVoxels,
+                                        float4 *controlPointImageCuda,
+                                        const float4 *bestControlPointCuda,
+                                        const float4 *gradientImageCuda,
+                                        const float& scale,
+                                        const bool& optimiseX,
+                                        const bool& optimiseY,
+                                        const bool& optimiseZ);
+/* *************************************************************** */

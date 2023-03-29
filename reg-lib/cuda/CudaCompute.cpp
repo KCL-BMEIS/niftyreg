@@ -103,12 +103,14 @@ void CudaCompute::UpdateControlPointPosition(float *currentDof,
                                              const bool& optimiseX,
                                              const bool& optimiseY,
                                              const bool& optimiseZ) {
-    // TODO Fix reg_updateControlPointPosition_gpu to accept optimiseX, optimiseY, optimiseZ
-    reg_updateControlPointPosition_gpu(dynamic_cast<CudaF3dContent&>(con).F3dContent::GetControlPointGrid(),
+    reg_updateControlPointPosition_gpu(NiftiImage::calcVoxelNumber(dynamic_cast<CudaF3dContent&>(con).F3dContent::GetControlPointGrid(), 3),
                                        reinterpret_cast<float4*>(currentDof),
                                        reinterpret_cast<const float4*>(bestDof),
                                        reinterpret_cast<const float4*>(gradient),
-                                       scale);
+                                       scale,
+                                       optimiseX,
+                                       optimiseY,
+                                       optimiseZ);
 }
 /* *************************************************************** */
 void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) {

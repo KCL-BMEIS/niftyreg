@@ -172,100 +172,83 @@ void reg_conjugateGradient_gpu::reg_test_optimiser() {
     reg_optimiser_gpu::reg_test_optimiser();
 }
 /* *************************************************************** */
-void reg_initialiseConjugateGradient_gpu(float4 *gradientArray_d,
-                                         float4 *conjugateG_d,
-                                         float4 *conjugateH_d,
-                                         int nodeNumber) {
-    // Get the BlockSize - The values have been set in CudaContextSingleton
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+void reg_initialiseConjugateGradient_gpu(float4 *gradientImageCuda,
+                                         float4 *conjugateGCuda,
+                                         float4 *conjugateHCuda,
+                                         const size_t& nVoxels) {
+    auto gradientImageTexture = cudaCommon_createTextureObject(gradientImageCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
+                                                               cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
 
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber, &nodeNumber, sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, gradientArray_d, nodeNumber * sizeof(float4)));
+    const unsigned int blocks = (unsigned int)NiftyReg_CudaBlock::GetInstance(0)->Block_reg_initialiseConjugateGradient;
+    const unsigned int grids = (unsigned int)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    const dim3 gridDims(grids, grids, 1);
+    const dim3 blockDims(blocks, 1, 1);
 
-    const unsigned int Grid_reg_initialiseConjugateGradient =
-        (unsigned int)reg_ceil(sqrtf((float)nodeNumber / (float)NR_BLOCK->Block_reg_initialiseConjugateGradient));
-    dim3 G1(Grid_reg_initialiseConjugateGradient, Grid_reg_initialiseConjugateGradient, 1);
-    dim3 B1(NR_BLOCK->Block_reg_initialiseConjugateGradient, 1, 1);
-
-    reg_initialiseConjugateGradient_kernel <<< G1, B1 >>> (conjugateG_d);
-    NR_CUDA_CHECK_KERNEL(G1, B1);
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture));
-    NR_CUDA_SAFE_CALL(cudaMemcpy(conjugateH_d, conjugateG_d, nodeNumber * sizeof(float4), cudaMemcpyDeviceToDevice));
+    reg_initialiseConjugateGradient_kernel<<<gridDims, blockDims>>>(conjugateGCuda, *gradientImageTexture, nVoxels);
+    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+    NR_CUDA_SAFE_CALL(cudaMemcpy(conjugateHCuda, conjugateGCuda, nVoxels * sizeof(float4), cudaMemcpyDeviceToDevice));
 }
 /* *************************************************************** */
-void reg_GetConjugateGradient_gpu(float4 *gradientArray_d,
-                                  float4 *conjugateG_d,
-                                  float4 *conjugateH_d,
-                                  int nodeNumber) {
-    // Get the BlockSize - The values have been set in CudaContextSingleton
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
-
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber, &nodeNumber, sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, conjugateGTexture, conjugateG_d, nodeNumber * sizeof(float4)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, conjugateHTexture, conjugateH_d, nodeNumber * sizeof(float4)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, gradientArray_d, nodeNumber * sizeof(float4)));
+void reg_GetConjugateGradient_gpu(float4 *gradientImageCuda,
+                                  float4 *conjugateGCuda,
+                                  float4 *conjugateHCuda,
+                                  const size_t& nVoxels) {
+    auto gradientImageTexture = cudaCommon_createTextureObject(gradientImageCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
+                                                               cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
+    auto conjugateGTexture = cudaCommon_createTextureObject(conjugateGCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
+                                                            cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
+    auto conjugateHTexture = cudaCommon_createTextureObject(conjugateHCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
+                                                            cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
 
     // gam = sum((grad+g)*grad)/sum(HxG);
-    const unsigned int Grid_reg_GetConjugateGradient1 = (unsigned int)reg_ceil(sqrtf((float)nodeNumber / (float)NR_BLOCK->Block_reg_GetConjugateGradient1));
-    dim3 B1(NR_BLOCK->Block_reg_GetConjugateGradient1, 1, 1);
-    dim3 G1(Grid_reg_GetConjugateGradient1, Grid_reg_GetConjugateGradient1, 1);
+    unsigned int blocks = (unsigned int)NiftyReg_CudaBlock::GetInstance(0)->Block_reg_GetConjugateGradient1;
+    unsigned int grids = (unsigned int)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    dim3 blockDims(blocks, 1, 1);
+    dim3 gridDims(grids, grids, 1);
 
-    float2 *sum_d;
-    NR_CUDA_SAFE_CALL(cudaMalloc(&sum_d, nodeNumber * sizeof(float2)));
-    reg_GetConjugateGradient1_kernel <<< G1, B1 >>> (sum_d);
-    NR_CUDA_CHECK_KERNEL(G1, B1);
-    float2 *sum_h;
-    NR_CUDA_SAFE_CALL(cudaMallocHost(&sum_h, nodeNumber * sizeof(float2)));
-    NR_CUDA_SAFE_CALL(cudaMemcpy(sum_h, sum_d, nodeNumber * sizeof(float2), cudaMemcpyDeviceToHost));
-    NR_CUDA_SAFE_CALL(cudaFree(sum_d));
+    float2 *sumsCuda;
+    NR_CUDA_SAFE_CALL(cudaMalloc(&sumsCuda, nVoxels * sizeof(float2)));
+    reg_GetConjugateGradient1_kernel<<<gridDims, blockDims>>>(sumsCuda, *gradientImageTexture, *conjugateGTexture, *conjugateHTexture, nVoxels);
+    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+    float2 *sums;
+    NR_CUDA_SAFE_CALL(cudaMallocHost(&sums, nVoxels * sizeof(float2)));
+    NR_CUDA_SAFE_CALL(cudaMemcpy(sums, sumsCuda, nVoxels * sizeof(float2), cudaMemcpyDeviceToHost));
+    NR_CUDA_SAFE_CALL(cudaFree(sumsCuda));
     double dgg = 0;
     double gg = 0;
-    for (int i = 0; i < nodeNumber; i++) {
-        dgg += sum_h[i].x;
-        gg += sum_h[i].y;
+    for (size_t i = 0; i < nVoxels; i++) {
+        dgg += sums[i].x;
+        gg += sums[i].y;
     }
-    float gam = (float)(dgg / gg);
-    NR_CUDA_SAFE_CALL(cudaFreeHost(sum_h));
+    const float gam = (float)(dgg / gg);
+    NR_CUDA_SAFE_CALL(cudaFreeHost(sums));
 
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ScalingFactor, &gam, sizeof(float)));
-    const unsigned int Grid_reg_GetConjugateGradient2 = (unsigned int)reg_ceil(sqrtf((float)nodeNumber / (float)NR_BLOCK->Block_reg_GetConjugateGradient2));
-    dim3 B2(NR_BLOCK->Block_reg_GetConjugateGradient2, 1, 1);
-    dim3 G2(Grid_reg_GetConjugateGradient2, Grid_reg_GetConjugateGradient2, 1);
-    reg_GetConjugateGradient2_kernel <<< G2, B2 >>> (gradientArray_d, conjugateG_d, conjugateH_d);
-    NR_CUDA_CHECK_KERNEL(G1, B1);
-
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(conjugateGTexture));
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(conjugateHTexture));
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture));
-
+    blocks = (unsigned int)NiftyReg_CudaBlock::GetInstance(0)->Block_reg_GetConjugateGradient2;
+    grids = (unsigned int)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    gridDims = dim3(blocks, 1, 1);
+    blockDims = dim3(grids, grids, 1);
+    reg_GetConjugateGradient2_kernel<<<blockDims, gridDims>>>(gradientImageCuda, conjugateGCuda, conjugateHCuda, nVoxels, gam);
+    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
-void reg_updateControlPointPosition_gpu(const nifti_image *controlPointImage,
-                                        float4 *controlPointImageArray_d,
-                                        const float4 *bestControlPointPosition_d,
-                                        const float4 *gradientArray_d,
-                                        const float& currentLength) {
-    // Get the BlockSize - The values have been set in CudaContextSingleton
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+void reg_updateControlPointPosition_gpu(const size_t& nVoxels,
+                                        float4 *controlPointImageCuda,
+                                        const float4 *bestControlPointCuda,
+                                        const float4 *gradientImageCuda,
+                                        const float& scale,
+                                        const bool& optimiseX,
+                                        const bool& optimiseY,
+                                        const bool& optimiseZ) {
+    auto bestControlPointTexture = cudaCommon_createTextureObject(bestControlPointCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
+                                                                  cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
+    auto gradientImageTexture = cudaCommon_createTextureObject(gradientImageCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
+                                                               cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
 
-    const int nodeNumber = CalcVoxelNumber(*controlPointImage);
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber, &nodeNumber, sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ScalingFactor, &currentLength, sizeof(float)));
-
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, controlPointTexture, bestControlPointPosition_d, nodeNumber * sizeof(float4)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, gradientArray_d, nodeNumber * sizeof(float4)));
-
-    const unsigned int Grid_reg_updateControlPointPosition =
-        (unsigned int)reg_ceil(sqrtf((float)nodeNumber / (float)NR_BLOCK->Block_reg_updateControlPointPosition));
-    dim3 B1(NR_BLOCK->Block_reg_updateControlPointPosition, 1, 1);
-    dim3 G1(Grid_reg_updateControlPointPosition, Grid_reg_updateControlPointPosition, 1);
-    reg_updateControlPointPosition_kernel <<< G1, B1 >>> (controlPointImageArray_d);
-    NR_CUDA_CHECK_KERNEL(G1, B1);
-    // Unbind the textures
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture));
-#ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_updateControlPointPosition_gpu() called\n");
-#endif
+    const unsigned int blocks = (unsigned int)NiftyReg_CudaBlock::GetInstance(0)->Block_reg_updateControlPointPosition;
+    const unsigned int grids = (unsigned int)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    const dim3 blockDims(blocks, 1, 1);
+    const dim3 gridDims(grids, grids, 1);
+    reg_updateControlPointPosition_kernel<<<gridDims, blockDims>>>(controlPointImageCuda, *bestControlPointTexture, *gradientImageTexture, nVoxels, scale, optimiseX, optimiseY, optimiseZ);
+    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */

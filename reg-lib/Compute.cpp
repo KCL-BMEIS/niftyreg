@@ -243,7 +243,7 @@ void Compute::ConvolveImage(nifti_image *image) {
     const int kernelType = CUBIC_SPLINE_KERNEL;
     float currentNodeSpacing[3];
     currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dx;
-    bool activeAxis[3] = {1, 0, 0};
+    bool activeAxis[3] = { 1, 0, 0 };
     reg_tools_kernelConvolution(image,
                                 currentNodeSpacing,
                                 kernelType,
@@ -392,11 +392,11 @@ void Compute::SymmetriseVelocityFields(Content& conBwIn) {
 
     // and subtracted (sum and negation)
     reg_tools_subtractImageFromImage(controlPointGridBw,  // displacement
-                                   warpedTrans,         // displacement
-                                   controlPointGridBw); // displacement output
+                                     warpedTrans,         // displacement
+                                     controlPointGridBw); // displacement output
     reg_tools_subtractImageFromImage(controlPointGrid,  // displacement
-                                   warpedTransBw,     // displacement
-                                   controlPointGrid); // displacement output
+                                     warpedTransBw,     // displacement
+                                     controlPointGrid); // displacement output
 
     // Divide by 2
     reg_tools_multiplyValueToImage(controlPointGridBw, // displacement
