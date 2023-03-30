@@ -56,7 +56,11 @@ protected:
     float4 *array1;
     float4 *array2;
     bool firstCall;
-    void UpdateGradientValues(); /// @brief Update the gradient array
+
+#ifdef NR_TESTING
+public:
+#endif
+    virtual void UpdateGradientValues() override;
 
 public:
     reg_conjugateGradient_gpu();

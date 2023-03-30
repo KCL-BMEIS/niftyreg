@@ -48,6 +48,12 @@ protected:
     double currentObjFunctionValue;
     InterfaceOptimiser *intOpt;
 
+#ifdef NR_TESTING
+public:
+#endif
+    /// @brief Update the gradient array
+    virtual void UpdateGradientValues() {}
+
 public:
     reg_optimiser();
     virtual ~reg_optimiser();
@@ -147,7 +153,10 @@ protected:
     T *array2Bw;
     bool firstCall;
 
-    void UpdateGradientValues(); /// @brief Update the gradient array
+#ifdef NR_TESTING
+public:
+#endif
+    virtual void UpdateGradientValues() override;
 
 public:
     reg_conjugateGradient();
@@ -183,6 +192,11 @@ protected:
     T **diffDof;
     T **diffGrad;
 
+#ifdef NR_TESTING
+public:
+#endif
+    virtual void UpdateGradientValues() override;
+
 public:
     reg_lbfgs();
     virtual ~reg_lbfgs();
@@ -202,7 +216,6 @@ public:
     virtual void Optimise(T maxLength,
                           T smallLength,
                           T &startLength) override;
-    virtual void UpdateGradientValues() override;
 };
 /* *************************************************************** */
 #include "_reg_optimiser.cpp"
