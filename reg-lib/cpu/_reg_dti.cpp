@@ -85,7 +85,7 @@ template<class DataType>
 double reg_getDTIMeasureValue(nifti_image *referenceImage,
                               nifti_image *warpedImage,
                               int *mask,
-                              unsigned int * dtIndicies
+                              unsigned *dtIndicies
                              )
 {
 #ifdef _WIN32
@@ -151,8 +151,8 @@ reduction(+:n)
    } // loop over voxels
    return DTI_cost/n;
 }
-template double reg_getDTIMeasureValue<float>(nifti_image *,nifti_image *,int *, unsigned int *);
-template double reg_getDTIMeasureValue<double>(nifti_image *,nifti_image *,int *, unsigned int *);
+template double reg_getDTIMeasureValue<float>(nifti_image *,nifti_image *,int *, unsigned *);
+template double reg_getDTIMeasureValue<double>(nifti_image *,nifti_image *,int *, unsigned *);
 /* *************************************************************** */
 double reg_dti::GetSimilarityMeasureValue()
 {
@@ -232,7 +232,7 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
       nifti_image *warpedGradient,
       nifti_image *dtiMeasureGradientImage,
       int *mask,
-      unsigned int * dtIndicies)
+      unsigned *dtIndicies)
 {
    // Create pointers to the reference and warped images
 #ifdef _WIN32
@@ -264,7 +264,7 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
    // THE FOLLOWING IS WRONG
    reg_print_msg_error("ERROR IN THE DTI GRADIENT COMPUTATION - TO FIX");
    reg_exit();
-   unsigned int gradientVoxels = warpedGradient->nu*voxelNumber;
+   unsigned gradientVoxels = warpedGradient->nu*voxelNumber;
    DataType *firstGradVox = static_cast<DataType *>(warpedGradient->data);
    DataType *spatialGradXX = &firstGradVox[gradientVoxels*dtIndicies[0]];
    DataType *spatialGradXY = &firstGradVox[gradientVoxels*dtIndicies[1]];
@@ -327,9 +327,9 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template void reg_getVoxelBasedDTIMeasureGradient<float>
-(nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned int *);
+(nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned *);
 template void reg_getVoxelBasedDTIMeasureGradient<double>
-(nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned int *);
+(nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned *);
 /* *************************************************************** */
 void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
 {

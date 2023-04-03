@@ -123,7 +123,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
         char text[255];
         reg_print_msg_debug("DTI indices:");
         sprintf(text, "Active time point:");
-        for(unsigned int i = 0; i < 6; i++ )
+        for(unsigned i = 0; i < 6; i++ )
             sprintf(text, "%s %i", text, dtIndicies[i]);
         reg_print_msg_debug(text);
 #endif
@@ -882,7 +882,7 @@ void reg_resampleImage(nifti_image *floatingImage,
                                             jacMat);
             break;
         case NIFTI_TYPE_UINT32:
-            reg_resampleImage2<float,unsigned int>(floatingImage,
+            reg_resampleImage2<float,unsigned>(floatingImage,
                                                    warpedImage,
                                                    deformationField,
                                                    mask,
@@ -970,7 +970,7 @@ void reg_resampleImage(nifti_image *floatingImage,
                                              jacMat);
             break;
         case NIFTI_TYPE_UINT32:
-            reg_resampleImage2<double,unsigned int>(floatingImage,
+            reg_resampleImage2<double,unsigned>(floatingImage,
                                                     warpedImage,
                                                     deformationField,
                                                     mask,
@@ -1888,7 +1888,7 @@ void reg_resampleImage_PSF(nifti_image *floatingImage,
                                                 algorithm);
             break;
         case NIFTI_TYPE_UINT32:
-            reg_resampleImage2_PSF<float,unsigned int>(floatingImage,
+            reg_resampleImage2_PSF<float,unsigned>(floatingImage,
                                                        warpedImage,
                                                        deformationField,
                                                        mask,
@@ -1976,7 +1976,7 @@ void reg_resampleImage_PSF(nifti_image *floatingImage,
                                                  algorithm);
             break;
         case NIFTI_TYPE_UINT32:
-            reg_resampleImage2_PSF<double,unsigned int>(floatingImage,
+            reg_resampleImage2_PSF<double,unsigned>(floatingImage,
                                                         warpedImage,
                                                         deformationField,
                                                         mask,
@@ -3287,7 +3287,7 @@ void reg_getImageGradient1(nifti_image *floatingImage,
                 (floatingImage,warpedGradient,deformationField,mask,interp,paddingValue,active_timepoint,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_getImageGradient2<FieldTYPE,unsigned int>
+        reg_getImageGradient2<FieldTYPE,unsigned>
                 (floatingImage,warpedGradient,deformationField,mask,interp,paddingValue,active_timepoint,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_INT32:

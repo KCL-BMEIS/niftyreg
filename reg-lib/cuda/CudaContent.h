@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Content.h"
-#include "CudaContextSingleton.h"
 #include "_reg_common_cuda.h"
 #include "_reg_tools.h"
 

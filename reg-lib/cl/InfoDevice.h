@@ -22,12 +22,12 @@ public:
 	{
 		std::size_t paramValueSize;
 		std::string clInfo;
-		ClContextSingleton *sContext = &ClContextSingleton::Instance();
+		ClContextSingleton *sContext = &ClContextSingleton::GetInstance();
 
-		sContext->checkErrNum(clGetDeviceInfo(id, name, 0, nullptr, &paramValueSize), "Failed to find OpenCL device info ");
+		sContext->CheckErrNum(clGetDeviceInfo(id, name, 0, nullptr, &paramValueSize), "Failed to find OpenCL device info ");
 
 		T * field = (T *) alloca(sizeof(T) * paramValueSize);
-		sContext->checkErrNum(clGetDeviceInfo(id, name, paramValueSize, field, nullptr), "Failed to find OpenCL device info ");
+		sContext->CheckErrNum(clGetDeviceInfo(id, name, paramValueSize, field, nullptr), "Failed to find OpenCL device info ");
 
 		switch (name) {
 		case CL_DEVICE_TYPE: {
@@ -77,7 +77,7 @@ public:
 		case CL_DEVICE_MAX_WORK_ITEM_SIZES: {
 				cl_uint maxWorkItemDimensions;
 
-				sContext->checkErrNum(clGetDeviceInfo(id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(cl_uint), &maxWorkItemDimensions, nullptr), "Failed to find OpenCL device info  CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS.");
+				sContext->CheckErrNum(clGetDeviceInfo(id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(cl_uint), &maxWorkItemDimensions, nullptr), "Failed to find OpenCL device info  CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS.");
 				std::cout << str << ":\t";
 				for (cl_uint i = 0; i < maxWorkItemDimensions; i++)
 					std::cout << field[i] << " ";
@@ -101,9 +101,9 @@ public:
 	{
 		cl_int errNum;
 		size_t local;
-		ClContextSingleton *sContext = &ClContextSingleton::Instance();
+		ClContextSingleton *sContext = &ClContextSingleton::GetInstance();
 
-		errNum = clGetKernelWorkGroupInfo(sContext->dummyKernel(id), id, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(local), &local, nullptr);
+		errNum = clGetKernelWorkGroupInfo(sContext->DummyKernel(id), id, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(local), &local, nullptr);
 
 		switch (name) {
 		case CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE: {

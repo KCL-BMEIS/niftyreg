@@ -84,7 +84,7 @@ void reg_f3d<T>::DoNotApproximateJacobianLog() {
 }
 /* *************************************************************** */
 template<class T>
-void reg_f3d<T>::SetSpacing(unsigned int i, T s) {
+void reg_f3d<T>::SetSpacing(unsigned i, T s) {
     spacing[i] = s;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::SetSpacing");
@@ -351,9 +351,9 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type) {
 
     double value = this->compute->GetJacobianPenaltyTerm(approx);
 
-    unsigned int maxit = 5;
+    unsigned maxit = 5;
     if (type > 0) maxit = 20;
-    unsigned int it = 0;
+    unsigned it = 0;
     while (value != value && it < maxit) {
         value = this->compute->CorrectFolding(approx);
 #ifndef NDEBUG

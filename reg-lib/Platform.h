@@ -25,7 +25,7 @@ public:
 
     std::string GetName() const;
     PlatformType GetPlatformType() const;
-    unsigned int GetGpuIdx() const;
+    unsigned GetGpuIdx() const;
     void SetGpuIdx(unsigned gpuIdxIn);
 
     Compute* CreateCompute(Content& con) const;

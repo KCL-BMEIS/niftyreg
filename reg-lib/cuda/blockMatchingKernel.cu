@@ -87,7 +87,7 @@ float blockReduce2DSum(float val, int tid)
    shared[tid] = val;
    __syncthreads();
 
-	for (unsigned int i = 8; i > 0; i >>= 1){
+	for (unsigned i = 8; i > 0; i >>= 1){
         if (tid < i) {
             shared[tid] += shared[tid + i];
         }
@@ -103,7 +103,7 @@ float blockReduceSum(float val, int tid)
    shared[tid] = val;
    __syncthreads();
 
-	for (unsigned int i = 32; i > 0; i >>= 1){
+	for (unsigned i = 32; i > 0; i >>= 1){
         if (tid < i) {
             shared[tid] += shared[tid + i];
         }
@@ -116,21 +116,21 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
                                       float *referencePosition,
                                       int *mask,
                                       float* referenceMatrix_xyz,
-                                      unsigned int *definedBlock)
+                                      unsigned *definedBlock)
 {
 	extern __shared__ float sWarpedValues[];
 	// Compute the current block index
-    const unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+    const unsigned bid = blockIdx.y * gridDim.x + blockIdx.x;
 
 	const int currentBlockIndex = tex1Dfetch(totalBlock_texture, bid);
 	if (currentBlockIndex > -1) {
 
-		const unsigned int idy = threadIdx.x;
-		const unsigned int idx = threadIdx.y;
-		const unsigned int tid = idy * 4 + idx;
+		const unsigned idy = threadIdx.x;
+		const unsigned idx = threadIdx.y;
+		const unsigned tid = idy * 4 + idx;
 
-		const unsigned int xImage = blockIdx.x * 4 + idx;
-		const unsigned int yImage = blockIdx.y * 4 + idy;
+		const unsigned xImage = blockIdx.x * 4 + idx;
+		const unsigned yImage = blockIdx.y * 4 + idy;
 
 		//populate shared memory with resultImageArray's values
 		for (int y=-1; y<2; ++y) {
@@ -160,7 +160,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 					tex1Dfetch(referenceImageArray_texture, voxIndex) : nanf("sNaN");
 		const bool finiteReference = isfinite(rReferenceValue);
 		rReferenceValue = finiteReference ? rReferenceValue : 0.f;
-		const unsigned int referenceSize = __syncthreads_count(finiteReference);
+		const unsigned referenceSize = __syncthreads_count(finiteReference);
 
         float bestDisplacement[2] = {nanf("sNaN"), 0.0f};
         float bestCC = 0;
@@ -171,13 +171,13 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 			const float referenceTemp = finiteReference ? rReferenceValue - referenceMean : 0.f;
 			const float referenceVar = blockReduce2DSum(referenceTemp * referenceTemp, tid);
 			// iteration over the result blocks (block matching part)
-			for (unsigned int y=1; y<8; ++y) {
-				for (unsigned int x=1; x<8; ++x) {
+			for (unsigned y=1; y<8; ++y) {
+				for (unsigned x=1; x<8; ++x) {
 
-					const unsigned int sharedIndex = ( y + idy ) * 12 + x + idx;
+					const unsigned sharedIndex = ( y + idy ) * 12 + x + idx;
 					const float rWarpedValue = sWarpedValues[sharedIndex];
 					const bool overlap = isfinite(rWarpedValue) && finiteReference;
-					const unsigned int warpedSize = __syncthreads_count(overlap);
+					const unsigned warpedSize = __syncthreads_count(overlap);
 
                     if (warpedSize > 8) {
                         //the reference values must remain intact at each loop, so please do not touch this!
@@ -209,7 +209,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 		}
 
         if (tid==0){
-			const unsigned int posIdx = 2 * currentBlockIndex;
+			const unsigned posIdx = 2 * currentBlockIndex;
 			const float referencePosition_temp[2] = {(float)xImage, (float)yImage};
 
 			bestDisplacement[0] += referencePosition_temp[0];
@@ -229,13 +229,13 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 __inline__ __device__
 float2 REDUCE_TEST(float* sData,
                    float data,
-                   unsigned int tid)
+                   unsigned tid)
 {
 	sData[tid] = data;
 	__syncthreads();
 
 	bool seconHalf = tid > 63 ? true : false;
-	for (unsigned int i = 32; i > 0; i >>= 1){
+	for (unsigned i = 32; i > 0; i >>= 1){
 		if (tid < i) sData[tid] += sData[tid + i];
 		if (seconHalf && tid < 64 + i) sData[tid] += sData[tid + i];
 		__syncthreads();
@@ -250,26 +250,26 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                                       float *referencePosition,
                                       int *mask,
                                       float* referenceMatrix_xyz,
-                                      unsigned int *definedBlock)
+                                      unsigned *definedBlock)
 {
    extern __shared__ float sWarpedValues[];
    float *sData = &sWarpedValues[12*12*16];
 
    // Compute the current block index
-   const unsigned int bid0 = (2*blockIdx.z * gridDim.y + blockIdx.y) *
+   const unsigned bid0 = (2*blockIdx.z * gridDim.y + blockIdx.y) *
          gridDim.x + blockIdx.x;
-   const unsigned int bid1 = bid0 + gridDim.x * gridDim.y;
+   const unsigned bid1 = bid0 + gridDim.x * gridDim.y;
    int currentBlockIndex[2] = {tex1Dfetch(totalBlock_texture, bid0),
                                tex1Dfetch(totalBlock_texture, bid1)};
    currentBlockIndex[1] = (2*blockIdx.z+1)<c_BlockDim.z ? currentBlockIndex[1] : -1;
    if (currentBlockIndex[0] > -1 || currentBlockIndex[1] > -1) {
-      const unsigned int idx = threadIdx.x;
-      const unsigned int idy = threadIdx.y;
-      const unsigned int idz = threadIdx.z;
-      const unsigned int tid = (idz*4+idy)*4+idx;
-      const unsigned int xImage = blockIdx.x * 4 + idx;
-      const unsigned int yImage = blockIdx.y * 4 + idy;
-      const unsigned int zImage = blockIdx.z * 8 + idz;
+      const unsigned idx = threadIdx.x;
+      const unsigned idy = threadIdx.y;
+      const unsigned idz = threadIdx.z;
+      const unsigned tid = (idz*4+idy)*4+idx;
+      const unsigned xImage = blockIdx.x * 4 + idx;
+      const unsigned yImage = blockIdx.y * 4 + idy;
+      const unsigned zImage = blockIdx.z * 8 + idz;
 
       //populate shared memory with resultImageArray's values
       for (int z=-1 ; z<2; z+=2) {
@@ -281,7 +281,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 
                const int sharedIndex = (((z+1)*4+idz)*12+(y+1)*4+idy)*12+(x+1)*4+idx;
 
-               const unsigned int indexXYZIn = xImageIn + c_ImageSize.x *
+               const unsigned indexXYZIn = xImageIn + c_ImageSize.x *
                      (yImageIn + zImageIn * c_ImageSize.y);
 
                const bool valid =
@@ -294,7 +294,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
          }
       }
 
-      const unsigned int voxIndex = ( zImage * c_ImageSize.y + yImage ) *
+      const unsigned voxIndex = ( zImage * c_ImageSize.y + yImage ) *
             c_ImageSize.x + xImage;
       const bool referenceInBounds =
             xImage < c_ImageSize.x &&
@@ -321,11 +321,11 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
          float2 referenceVar = REDUCE_TEST(sData, referenceTemp*referenceTemp, tid);
 
          // iteration over the result blocks (block matching part)
-         for (unsigned int z=1; z<8; ++z) {
-            for (unsigned int y=1; y<8; ++y) {
-               for (unsigned int x=1; x<8; ++x) {
+         for (unsigned z=1; z<8; ++z) {
+            for (unsigned y=1; y<8; ++y) {
+               for (unsigned x=1; x<8; ++x) {
 
-                  const unsigned int sharedIndex = ( (z+idz) * 12 + y + idy ) * 12 + x + idx;
+                  const unsigned sharedIndex = ( (z+idz) * 12 + y + idy ) * 12 + x + idx;
                   const float rWarpedValue = sWarpedValues[sharedIndex];
                   const bool overlap = isfinite(rWarpedValue) && finiteReference;
                   tempVal = REDUCE_TEST(sData, overlap ? 1.0f : 0.0f, tid);
@@ -384,7 +384,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
       }
 
       if(tid==0 && currentBlockIndex[0]>-1){
-         const unsigned int posIdx = 3 * currentBlockIndex[0];
+         const unsigned posIdx = 3 * currentBlockIndex[0];
          warpedPosition[posIdx] = NAN;
          if (isfinite(bestDisp[0][0])){
             const float referencePosition_temp[3] = { (float)xImage,
@@ -403,7 +403,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
          }
       }
       if(tid==64 && currentBlockIndex[1]>-1){
-         const unsigned int posIdx = 3 * currentBlockIndex[1];
+         const unsigned posIdx = 3 * currentBlockIndex[1];
          warpedPosition[posIdx] = NAN;
          if (isfinite(bestDisp[1][0])){
             const float referencePosition_temp[3] = {(float)xImage,
@@ -430,21 +430,21 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                                       float *referencePosition,
                                       int *mask,
                                       float* referenceMatrix_xyz,
-                                      unsigned int *definedBlock)
+                                      unsigned *definedBlock)
 {
 	extern __shared__ float sWarpedValues[];
 	// Compute the current block index
-	const unsigned int bid = (blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x ;
+	const unsigned bid = (blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x ;
 
 	const int currentBlockIndex = tex1Dfetch(totalBlock_texture, bid);
 	if (currentBlockIndex > -1) {
-		const unsigned int idx = threadIdx.x;
-		const unsigned int idy = threadIdx.y;
-		const unsigned int idz = threadIdx.z;
-		const unsigned int tid = (idz*4+idy)*4+idx;
-		const unsigned int xImage = blockIdx.x * 4 + idx;
-		const unsigned int yImage = blockIdx.y * 4 + idy;
-		const unsigned int zImage = blockIdx.z * 4 + idz;
+		const unsigned idx = threadIdx.x;
+		const unsigned idy = threadIdx.y;
+		const unsigned idz = threadIdx.z;
+		const unsigned tid = (idz*4+idy)*4+idx;
+		const unsigned xImage = blockIdx.x * 4 + idx;
+		const unsigned yImage = blockIdx.y * 4 + idy;
+		const unsigned zImage = blockIdx.z * 4 + idz;
 
 		//populate shared memory with resultImageArray's values
 		for (int z=-1 ; z<2; ++z) {
@@ -456,7 +456,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 
 					const int sharedIndex = (((z+1)*4+idz)*12+(y+1)*4+idy)*12+(x+1)*4+idx;
 
-					const unsigned int indexXYZIn = xImageIn + c_ImageSize.x *
+					const unsigned indexXYZIn = xImageIn + c_ImageSize.x *
 							(yImageIn + zImageIn * c_ImageSize.y);
 
 					const bool valid =
@@ -471,7 +471,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 
 		//for most cases we need this out of th loop
 		//value if the block is 4x4x4 NaN otherwise
-		const unsigned int voxIndex = ( zImage * c_ImageSize.y + yImage ) *
+		const unsigned voxIndex = ( zImage * c_ImageSize.y + yImage ) *
 				c_ImageSize.x + xImage;
 		const bool referenceInBounds =
 				xImage < c_ImageSize.x &&
@@ -481,7 +481,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 					tex1Dfetch(referenceImageArray_texture, voxIndex) : nanf("sNaN");
 		const bool finiteReference = isfinite(rReferenceValue);
 		rReferenceValue = finiteReference ? rReferenceValue : 0.f;
-		const unsigned int referenceSize = __syncthreads_count(finiteReference);
+		const unsigned referenceSize = __syncthreads_count(finiteReference);
 
         float bestDisplacement[3] = {nanf("sNaN"), 0.0f, 0.0f };
         float bestCC = 0.0f;
@@ -493,14 +493,14 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 			const float referenceVar = blockReduceSum(referenceTemp * referenceTemp, tid);
 
 			// iteration over the result blocks (block matching part)
-			for (unsigned int z=1; z<8; ++z) {
-				for (unsigned int y=1; y<8; ++y) {
-					for (unsigned int x=1; x<8; ++x) {
+			for (unsigned z=1; z<8; ++z) {
+				for (unsigned y=1; y<8; ++y) {
+					for (unsigned x=1; x<8; ++x) {
 
-						const unsigned int sharedIndex = ( (z+idz) * 12 + y + idy ) * 12 + x + idx;
+						const unsigned sharedIndex = ( (z+idz) * 12 + y + idy ) * 12 + x + idx;
 						const float rWarpedValue = sWarpedValues[sharedIndex];
 						const bool overlap = isfinite(rWarpedValue) && finiteReference;
-						const unsigned int warpedSize = __syncthreads_count(overlap);
+						const unsigned warpedSize = __syncthreads_count(overlap);
 
 						if (warpedSize > 32) {
 
@@ -535,7 +535,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 		}
 
 		if (tid==0) {
-			const unsigned int posIdx = 3 * currentBlockIndex;
+			const unsigned posIdx = 3 * currentBlockIndex;
 			const float referencePosition_temp[3] = { (float)xImage, (float)yImage, (float)zImage };
 
 			bestDisplacement[0] += referencePosition_temp[0];
@@ -573,16 +573,16 @@ void block_matching_method_gpu(nifti_image *targetImage,
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_BlockDim,&blockSize,sizeof(uint3)));
 
 	// Texture binding
-	const unsigned int numBlocks = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
+	const unsigned numBlocks = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, referenceImageArray_texture, *targetImageArray_d, targetImage->nvox * sizeof(float)));
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, warpedImageArray_texture, *resultImageArray_d, targetImage->nvox * sizeof(float)));
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, totalBlock_texture, *totalBlock_d, numBlocks * sizeof(int)));
 
-	unsigned int *definedBlock_d;
-	unsigned int *definedBlock_h = (unsigned int*) malloc(sizeof(unsigned int));
+	unsigned *definedBlock_d;
+	unsigned *definedBlock_h = (unsigned*) malloc(sizeof(unsigned));
 	*definedBlock_h = 0;
-	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&definedBlock_d), sizeof(unsigned int)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(definedBlock_d, definedBlock_h, sizeof(unsigned int), cudaMemcpyHostToDevice));
+	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&definedBlock_d), sizeof(unsigned)));
+	NR_CUDA_SAFE_CALL(cudaMemcpy(definedBlock_d, definedBlock_h, sizeof(unsigned), cudaMemcpyHostToDevice));
 
 
 	if (params->stepSize!=1 || params->voxelCaptureRange!=3){
@@ -595,15 +595,15 @@ void block_matching_method_gpu(nifti_image *targetImage,
 	dim3 BlocksGrid3D(
 				params->blockNumber[0],
 			params->blockNumber[1],
-			(unsigned int)reg_ceil((float)params->blockNumber[2]/2.f));
-	unsigned int sMem = (128 + 4*3 * 4*3 * 4*4) * sizeof(float);
+			(unsigned)reg_ceil((float)params->blockNumber[2]/2.f));
+	unsigned sMem = (128 + 4*3 * 4*3 * 4*4) * sizeof(float);
 #else
     dim3 BlockDims1D(4,4,4);
     dim3 BlocksGrid3D(
                 params->blockNumber[0],
             params->blockNumber[1],
             params->blockNumber[2]);
-    unsigned int sMem = (64 + 4*3 * 4*3 * 4*3) * sizeof(float); // (3*4)^3
+    unsigned sMem = (64 + 4*3 * 4*3 * 4*3) * sizeof(float); // (3*4)^3
 #endif
 
 	if (targetImage->nz == 1){
@@ -629,7 +629,7 @@ void block_matching_method_gpu(nifti_image *targetImage,
     NR_CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #endif
 
-	NR_CUDA_SAFE_CALL(cudaMemcpy((void * )definedBlock_h, (void * )definedBlock_d, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	NR_CUDA_SAFE_CALL(cudaMemcpy((void * )definedBlock_h, (void * )definedBlock_d, sizeof(unsigned), cudaMemcpyDeviceToHost));
 	params->definedActiveBlockNumber = *definedBlock_h;
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(referenceImageArray_texture));
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(warpedImageArray_texture));

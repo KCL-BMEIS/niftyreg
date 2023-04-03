@@ -75,11 +75,11 @@ protected:
 
     bool verbose;
 
-    unsigned int maxIterations;
+    unsigned maxIterations;
 
-    unsigned int currentLevel;
-    unsigned int numberOfLevels;
-    unsigned int levelsToPerform;
+    unsigned currentLevel;
+    unsigned numberOfLevels;
+    unsigned levelsToPerform;
 
     bool performRigid;
     bool performAffine;
@@ -126,9 +126,9 @@ protected:
                                    int *mask,
                                    mat44 *transMat,
                                    size_t bytes,
-                                   unsigned int blockPercentage = 0,
-                                   unsigned int inlierLts = 0,
-                                   unsigned int blockStepSize = 0);
+                                   unsigned blockPercentage = 0,
+                                   unsigned inlierLts = 0,
+                                   unsigned blockStepSize = 0);
     virtual void DeinitAladinContent();
     virtual void CreateKernels();
     virtual void DeallocateKernels();
@@ -178,14 +178,14 @@ public:
         this->gpuIdx = gpuIdxIn;
     }
 
-    SetMacro(MaxIterations, maxIterations, unsigned int);
-    GetMacro(MaxIterations, maxIterations, unsigned int);
+    SetMacro(MaxIterations, maxIterations, unsigned);
+    GetMacro(MaxIterations, maxIterations, unsigned);
 
-    SetMacro(NumberOfLevels, numberOfLevels, unsigned int);
-    GetMacro(NumberOfLevels, numberOfLevels, unsigned int);
+    SetMacro(NumberOfLevels, numberOfLevels, unsigned);
+    GetMacro(NumberOfLevels, numberOfLevels, unsigned);
 
-    SetMacro(LevelsToPerform, levelsToPerform, unsigned int);
-    GetMacro(LevelsToPerform, levelsToPerform, unsigned int);
+    SetMacro(LevelsToPerform, levelsToPerform, unsigned);
+    GetMacro(LevelsToPerform, levelsToPerform, unsigned);
 
     SetMacro(BlockPercentage, blockPercentage, int);
     GetMacro(BlockPercentage, blockPercentage, int);
@@ -265,5 +265,5 @@ public:
 
 private:
     unique_ptr<Kernel> affineTransformation3DKernel, blockMatchingKernel, optimiseKernel, resamplingKernel;
-    void ResolveMatrix(unsigned int iterations, const unsigned int optimizationFlag);
+    void ResolveMatrix(unsigned iterations, const unsigned optimizationFlag);
 };

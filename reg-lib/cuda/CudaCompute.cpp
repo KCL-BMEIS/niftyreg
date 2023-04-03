@@ -1,9 +1,9 @@
 #include "CudaCompute.h"
 #include "CudaF3dContent.h"
+#include "CudaNormaliseGradient.hpp"
 #include "_reg_resampling_gpu.h"
 #include "_reg_localTransformation_gpu.h"
 #include "_reg_optimiser_gpu.h"
-#include "NormaliseGradient.hpp"
 
 /* *************************************************************** */
 void CudaCompute::ResampleImage(int inter, float paddingValue) {

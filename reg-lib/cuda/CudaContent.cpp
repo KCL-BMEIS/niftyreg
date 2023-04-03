@@ -67,7 +67,7 @@ void CudaContent::DeallocateWarped() {
 }
 /* *************************************************************** */
 bool CudaContent::IsCurrentComputationDoubleCapable() {
-    return CudaContextSingleton::Instance().GetIsCardDoubleCapable();
+    return NiftyReg::CudaContext::GetInstance().IsCardDoubleCapable();
 }
 /* *************************************************************** */
 nifti_image* CudaContent::GetDeformationField() {
@@ -165,7 +165,7 @@ DataType CudaContent::CastImageData(float intensity, int datatype) {
         break;
     case NIFTI_TYPE_UINT32:
         intensity = (intensity <= 4294967295 ? reg_round(intensity) : 4294967295); // 4294967295=2^32-1
-        return static_cast<unsigned int>(intensity > 0 ? reg_round(intensity) : 0);
+        return static_cast<unsigned>(intensity > 0 ? reg_round(intensity) : 0);
         break;
     default:
         return static_cast<DataType>(reg_round(intensity));
@@ -211,7 +211,7 @@ void CudaContent::DownloadImage(nifti_image *image, float *memoryObject, int dat
         FillImageData<short>(image, memoryObject, datatype);
         break;
     case NIFTI_TYPE_UINT32:
-        FillImageData<unsigned int>(image, memoryObject, datatype);
+        FillImageData<unsigned>(image, memoryObject, datatype);
         break;
     case NIFTI_TYPE_INT32:
         FillImageData<int>(image, memoryObject, datatype);

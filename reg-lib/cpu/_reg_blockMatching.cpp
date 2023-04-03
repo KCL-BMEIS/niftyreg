@@ -38,28 +38,28 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
 
    if (referenceImage->nz > 1) {
       // Version using 3D blocks
-      for (unsigned int k = 0; k < params->blockNumber[2]; k++) {
-         for (unsigned int j = 0; j < params->blockNumber[1]; j++) {
-            for (unsigned int i = 0; i < params->blockNumber[0]; i++) {
+      for (unsigned k = 0; k < params->blockNumber[2]; k++) {
+         for (unsigned j = 0; j < params->blockNumber[1]; j++) {
+            for (unsigned i = 0; i < params->blockNumber[0]; i++) {
 
-               for (unsigned int n = 0; n < BLOCK_3D_SIZE; n++)
+               for (unsigned n = 0; n < BLOCK_3D_SIZE; n++)
                   referenceValues[n] = (DataType)std::numeric_limits<float>::quiet_NaN();
 
                float mean = 0.0f;
                float voxelNumber = 0.0f;
                int coord = 0;
-               for (unsigned int z = k * BLOCK_WIDTH; z < (k + 1) * BLOCK_WIDTH; z++) {
-                  if (z < (unsigned int)referenceImage->nz) {
+               for (unsigned z = k * BLOCK_WIDTH; z < (k + 1) * BLOCK_WIDTH; z++) {
+                  if (z < (unsigned)referenceImage->nz) {
                      index = z * referenceImage->nx * referenceImage->ny;
                      DataType *referencePtrZ = &referencePtr[index];
                      int *maskPtrZ = &maskPtr[index];
-                     for (unsigned int y = j * BLOCK_WIDTH; y < (j + 1) * BLOCK_WIDTH; y++) {
-                        if (y < (unsigned int)referenceImage->ny) {
+                     for (unsigned y = j * BLOCK_WIDTH; y < (j + 1) * BLOCK_WIDTH; y++) {
+                        if (y < (unsigned)referenceImage->ny) {
                            index = y * referenceImage->nx + i * BLOCK_WIDTH;
                            DataType *referencePtrXYZ = &referencePtrZ[index];
                            int *maskPtrXYZ = &maskPtrZ[index];
-                           for (unsigned int x = i * BLOCK_WIDTH; x < (i + 1) * BLOCK_WIDTH; x++) {
-                              if (x < (unsigned int)referenceImage->nx) {
+                           for (unsigned x = i * BLOCK_WIDTH; x < (i + 1) * BLOCK_WIDTH; x++) {
+                              if (x < (unsigned)referenceImage->nx) {
                                  referenceValues[coord] = *referencePtrXYZ;
                                  if (referenceValues[coord] == referenceValues[coord] && *maskPtrXYZ > -1) {
                                     mean += (float)referenceValues[coord];
@@ -99,22 +99,22 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
    }
    else {
       // Version using 2D blocks
-      for (unsigned int j = 0; j < params->blockNumber[1]; j++) {
-         for (unsigned int i = 0; i < params->blockNumber[0]; i++) {
+      for (unsigned j = 0; j < params->blockNumber[1]; j++) {
+         for (unsigned i = 0; i < params->blockNumber[0]; i++) {
 
-            for (unsigned int n = 0; n < BLOCK_2D_SIZE; n++)
+            for (unsigned n = 0; n < BLOCK_2D_SIZE; n++)
                referenceValues[n] = std::numeric_limits<DataType>::quiet_NaN();
 
             float mean = 0.0f;
             float voxelNumber = 0.0f;
             int coord = 0;
 
-            for (unsigned int y = j * BLOCK_WIDTH; y < (j + 1) * BLOCK_WIDTH; y++) {
+            for (unsigned y = j * BLOCK_WIDTH; y < (j + 1) * BLOCK_WIDTH; y++) {
                if (y < (unsigned )referenceImage->ny) {
                   index = y * referenceImage->nx + i * BLOCK_WIDTH;
                   DataType *referencePtrXY = &referencePtr[index];
                   int *maskPtrXY = &maskPtr[index];
-                  for (unsigned int x = i * BLOCK_WIDTH; x < (i + 1) * BLOCK_WIDTH; x++) {
+                  for (unsigned x = i * BLOCK_WIDTH; x < (i + 1) * BLOCK_WIDTH; x++) {
                      if (x < (unsigned)referenceImage->nx) {
                         referenceValues[coord] = *referencePtrXY;
                         if (referenceValues[coord] == referenceValues[coord] && *maskPtrXY > -1) {
@@ -267,22 +267,22 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
    else
       referenceMatrix_xyz = &(reference->qto_xyz);
 
-   unsigned int referenceIndex_start_x;
-   unsigned int referenceIndex_start_y;
-   unsigned int referenceIndex_end_x;
-   unsigned int referenceIndex_end_y;
+   unsigned referenceIndex_start_x;
+   unsigned referenceIndex_start_y;
+   unsigned referenceIndex_end_x;
+   unsigned referenceIndex_end_y;
    int warpedIndex_start_x;
    int warpedIndex_start_y;
    int warpedIndex_end_x;
    int warpedIndex_end_y;
 
-   unsigned int referenceIndex;
-   unsigned int warpedIndex;
+   unsigned referenceIndex;
+   unsigned warpedIndex;
 
-   unsigned int blockIndex = 0;
+   unsigned blockIndex = 0;
 
    int index, l, m, x, y, z = 0;
-   unsigned int i, j;
+   unsigned i, j;
    int *maskPtr_XY;
    DataType *referencePtr_XY, *warpedPtr_XY;
    DataType value, bestCC, referenceMean, warpedMean, referenceVar, warpedVar;
@@ -448,12 +448,12 @@ void block_matching_method3D(nifti_image * reference,
    else
       referenceMatrix_xyz = &(reference->qto_xyz);
 
-   unsigned int referenceIndex_start_x;
-   unsigned int referenceIndex_start_y;
-   unsigned int referenceIndex_start_z;
-   unsigned int referenceIndex_end_x;
-   unsigned int referenceIndex_end_y;
-   unsigned int referenceIndex_end_z;
+   unsigned referenceIndex_start_x;
+   unsigned referenceIndex_start_y;
+   unsigned referenceIndex_start_z;
+   unsigned referenceIndex_end_x;
+   unsigned referenceIndex_end_y;
+   unsigned referenceIndex_end_z;
    int warpedIndex_start_x;
    int warpedIndex_start_y;
    int warpedIndex_start_z;

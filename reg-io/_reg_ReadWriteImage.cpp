@@ -198,7 +198,7 @@ void reg_io_displayImageData(nifti_image *image) {
         reg_io_displayImageData1<short>(image);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_io_displayImageData1<unsigned int>(image);
+        reg_io_displayImageData1<unsigned>(image);
         break;
     case NIFTI_TYPE_INT32:
         reg_io_displayImageData1<int>(image);

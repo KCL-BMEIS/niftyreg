@@ -117,7 +117,7 @@ void GetMINDImageDescriptor_core(nifti_image* inputImage,
         reg_tools_addImageToImage(meanImage, diff_image, meanImage);
 
         // Store the current descriptor
-        unsigned int index = i * diff_image->nvox;
+        unsigned index = i * diff_image->nvox;
         memcpy(&MINDImgDataPtr[index], diff_image->data, diff_image->nbyper * diff_image->nvox);
     }
     // Compute the mean over the number of sample
@@ -265,7 +265,7 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
 
             reg_tools_addImageToImage(mean_img, diff_imageShifted, mean_img);
             // Store the current descriptor
-            unsigned int index = compteurId * diff_imageShifted->nvox;
+            unsigned index = compteurId * diff_imageShifted->nvox;
             memcpy(&MINDSSCImgDataPtr[index], diff_imageShifted->data,
                    diff_imageShifted->nbyper * diff_imageShifted->nvox);
             compteurId++;

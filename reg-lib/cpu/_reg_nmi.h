@@ -273,8 +273,8 @@ protected:
 extern "C++"
 void reg_getMultiChannelNMIValue(nifti_image *referenceImages,
                                  nifti_image *warpedImages,
-                                 unsigned int *reference_bins, // should be an array of size num_reference_volumes
-                                 unsigned int *warped_bins, // should be an array of size num_warped_volumes
+                                 unsigned *reference_bins, // should be an array of size num_reference_volumes
+                                 unsigned *warped_bins, // should be an array of size num_warped_volumes
                                  double *probaJointHistogram,
                                  double *logJointHistogram,
                                  double *entropies,
@@ -286,8 +286,8 @@ extern "C++"
 void reg_getVoxelBasedMultiChannelNMIGradient2D(nifti_image *referenceImages,
                                                 nifti_image *warpedImages,
                                                 nifti_image *warpedImageGradient,
-                                                unsigned int *reference_bins,
-                                                unsigned int *warped_bins,
+                                                unsigned *reference_bins,
+                                                unsigned *warped_bins,
                                                 double *logJointHistogram,
                                                 double *entropies,
                                                 nifti_image *nmiGradientImage,
@@ -298,8 +298,8 @@ extern "C++"
 void reg_getVoxelBasedMultiChannelNMIGradient3D(nifti_image *referenceImages,
                                                 nifti_image *warpedImages,
                                                 nifti_image *warpedImageGradient,
-                                                unsigned int *reference_bins,
-                                                unsigned int *warped_bins,
+                                                unsigned *reference_bins,
+                                                unsigned *warped_bins,
                                                 double *logJointHistogram,
                                                 double *entropies,
                                                 nifti_image *nmiGradientImage,

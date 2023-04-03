@@ -174,12 +174,12 @@ void reg_initialiseConjugateGradient_gpu(float4 *gradientImageCuda,
     auto gradientImageTexture = cudaCommon_createTextureObject(gradientImageCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
                                                                cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
 
-    const unsigned int blocks = (unsigned int)NiftyReg_CudaBlock::GetInstance(0)->Block_reg_initialiseConjugateGradient;
-    const unsigned int grids = (unsigned int)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    const unsigned blocks = (unsigned)NiftyReg::CudaContext::GetBlockSize()->reg_initialiseConjugateGradient;
+    const unsigned grids = (unsigned)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
 
-    reg_initialiseConjugateGradient_kernel<<<gridDims, blockDims>>>(conjugateGCuda, *gradientImageTexture, nVoxels);
+    reg_initialiseConjugateGradient_kernel<<<gridDims, blockDims>>>(conjugateGCuda, *gradientImageTexture, (unsigned)nVoxels);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     NR_CUDA_SAFE_CALL(cudaMemcpy(conjugateHCuda, conjugateGCuda, nVoxels * sizeof(float4), cudaMemcpyDeviceToDevice));
 }
@@ -196,14 +196,14 @@ void reg_GetConjugateGradient_gpu(float4 *gradientImageCuda,
                                                             cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
 
     // gam = sum((grad+g)*grad)/sum(HxG);
-    unsigned int blocks = (unsigned int)NiftyReg_CudaBlock::GetInstance(0)->Block_reg_GetConjugateGradient1;
-    unsigned int grids = (unsigned int)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    unsigned blocks = NiftyReg::CudaContext::GetBlockSize()->reg_GetConjugateGradient1;
+    unsigned grids = (unsigned)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
     dim3 blockDims(blocks, 1, 1);
     dim3 gridDims(grids, grids, 1);
 
     float2 *sumsCuda;
     NR_CUDA_SAFE_CALL(cudaMalloc(&sumsCuda, nVoxels * sizeof(float2)));
-    reg_GetConjugateGradient1_kernel<<<gridDims, blockDims>>>(sumsCuda, *gradientImageTexture, *conjugateGTexture, *conjugateHTexture, nVoxels);
+    reg_GetConjugateGradient1_kernel<<<gridDims, blockDims>>>(sumsCuda, *gradientImageTexture, *conjugateGTexture, *conjugateHTexture, (unsigned)nVoxels);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     float2 *sums;
     NR_CUDA_SAFE_CALL(cudaMallocHost(&sums, nVoxels * sizeof(float2)));
@@ -218,11 +218,11 @@ void reg_GetConjugateGradient_gpu(float4 *gradientImageCuda,
     const float gam = (float)(dgg / gg);
     NR_CUDA_SAFE_CALL(cudaFreeHost(sums));
 
-    blocks = (unsigned int)NiftyReg_CudaBlock::GetInstance(0)->Block_reg_GetConjugateGradient2;
-    grids = (unsigned int)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    blocks = (unsigned)NiftyReg::CudaContext::GetBlockSize()->reg_GetConjugateGradient2;
+    grids = (unsigned)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
     gridDims = dim3(blocks, 1, 1);
     blockDims = dim3(grids, grids, 1);
-    reg_GetConjugateGradient2_kernel<<<blockDims, gridDims>>>(gradientImageCuda, conjugateGCuda, conjugateHCuda, nVoxels, gam);
+    reg_GetConjugateGradient2_kernel<<<blockDims, gridDims>>>(gradientImageCuda, conjugateGCuda, conjugateHCuda, (unsigned)nVoxels, gam);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
@@ -239,11 +239,11 @@ void reg_updateControlPointPosition_gpu(const size_t& nVoxels,
     auto gradientImageTexture = cudaCommon_createTextureObject(gradientImageCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
                                                                cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
 
-    const unsigned int blocks = (unsigned int)NiftyReg_CudaBlock::GetInstance(0)->Block_reg_updateControlPointPosition;
-    const unsigned int grids = (unsigned int)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    const unsigned blocks = (unsigned)NiftyReg::CudaContext::GetBlockSize()->reg_updateControlPointPosition;
+    const unsigned grids = (unsigned)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
     const dim3 blockDims(blocks, 1, 1);
     const dim3 gridDims(grids, grids, 1);
-    reg_updateControlPointPosition_kernel<<<gridDims, blockDims>>>(controlPointImageCuda, *bestControlPointTexture, *gradientImageTexture, nVoxels, scale, optimiseX, optimiseY, optimiseZ);
+    reg_updateControlPointPosition_kernel<<<gridDims, blockDims>>>(controlPointImageCuda, *bestControlPointTexture, *gradientImageTexture, (unsigned)nVoxels, scale, optimiseX, optimiseY, optimiseZ);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */

@@ -14,7 +14,6 @@
 
 #include "_reg_common_cuda.h"
 #include "_reg_tools.h"
-#include "_reg_blocksize_gpu.h"
 #include <thrust/device_ptr.h>
 #include <thrust/reduce.h>
 

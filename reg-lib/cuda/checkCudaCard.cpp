@@ -23,7 +23,7 @@ int main() {
     }
 
     //detects device capability and picks the best
-    for( unsigned int i = 0; i < deviceCount; ++i ) {
+    for( unsigned i = 0; i < deviceCount; ++i ) {
         cudaSetDevice(i);
         cudaDeviceProp deviceProp;
         cudaGetDeviceProperties(&deviceProp, i);

@@ -269,8 +269,8 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
       }
       // The matrix is flipped to go from nrrd to nifti
       // and follow the ITK style
-      for(unsigned int i=0; i<2; ++i)
-         for(unsigned int j=0; j<4; ++j)
+      for(unsigned i=0; i<2; ++i)
+         for(unsigned j=0; j<4; ++j)
             niiImage->sto_xyz.m[i][j]*=-1.0f;
       niiImage->sto_ijk=nifti_mat44_inverse(niiImage->sto_xyz);
    }
@@ -445,8 +445,8 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
 
       // The matrix is flipped to go from nifti to nrrd
       // and follow the ITK style
-      for(unsigned int i=0; i<2; ++i)
-         for(unsigned int j=0; j<4; ++j)
+      for(unsigned i=0; i<2; ++i)
+         for(unsigned j=0; j<4; ++j)
             currentAffineMatrix.m[i][j]*=-1.0f;
 
       // the space direction is initialised to identity

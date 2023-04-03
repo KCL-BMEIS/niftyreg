@@ -12,7 +12,7 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include "_reg_tools.h"
-#include "_reg_blocksize_gpu.h"
+#include "CudaContext.hpp"
 
 /* *************************************************************** */
 #ifndef __VECTOR_TYPES_H__
@@ -120,15 +120,15 @@ int cudaCommon_transferFromDeviceToNiftiSimple1(DataType*, DataType*, const unsi
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferFromDeviceToCpu(DataType*, DataType*, const unsigned int);
+int cudaCommon_transferFromDeviceToCpu(DataType*, DataType*, const unsigned);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferArrayFromCpuToDevice(DataType*, DataType*, const unsigned int);
+int cudaCommon_transferArrayFromCpuToDevice(DataType*, DataType*, const unsigned);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferArrayFromDeviceToCpu(DataType*, DataType*, const unsigned int);
+int cudaCommon_transferArrayFromDeviceToCpu(DataType*, DataType*, const unsigned);
 /* *************************************************************** */
 using UniqueTextureObjectPtr = std::unique_ptr<cudaTextureObject_t, void(*)(cudaTextureObject_t*)>;
 /* *************************************************************** */

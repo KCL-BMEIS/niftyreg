@@ -17,8 +17,8 @@ public:
                     int *referenceMaskIn = nullptr,
                     mat44 *transformationMatrixIn = nullptr,
                     size_t bytesIn = sizeof(float),
-                    const unsigned int percentageOfBlocks = 0,
-                    const unsigned int inlierLts = 0,
+                    const unsigned percentageOfBlocks = 0,
+                    const unsigned inlierLts = 0,
                     int blockStepSize = 0);
     virtual ~ClAladinContent();
 
@@ -67,7 +67,7 @@ private:
     int referenceDims[4];
     int floatingDims[4];
 
-    unsigned int nVoxels;
+    unsigned nVoxels;
 
     void DownloadImage(nifti_image *image, cl_mem memoryObject, int datatype);
     template<class T>

@@ -34,11 +34,11 @@ struct _reg_blockMatchingParam
 {
    int totalBlockNumber;
    int *totalBlock;
-   unsigned int blockNumber[3];
+   unsigned blockNumber[3];
    //Number of block we keep for LTS
    int percent_to_keep;
 
-   unsigned int dim;
+   unsigned dim;
    float *referencePosition;
    float *warpedPosition;
 

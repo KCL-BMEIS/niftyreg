@@ -604,8 +604,8 @@ int main(int argc, char **argv)
                 reg_tools_changeDatatype<short>(image2,NIFTI_TYPE_INT16);
                 break;
             case NIFTI_TYPE_UINT32:
-                reg_tools_changeDatatype<unsigned int>(image,NIFTI_TYPE_UINT32);
-                reg_tools_changeDatatype<unsigned int>(image2,NIFTI_TYPE_UINT32);
+                reg_tools_changeDatatype<unsigned>(image,NIFTI_TYPE_UINT32);
+                reg_tools_changeDatatype<unsigned>(image2,NIFTI_TYPE_UINT32);
                 break;
             case NIFTI_TYPE_INT32:
                 reg_tools_changeDatatype<int>(image,NIFTI_TYPE_INT32);

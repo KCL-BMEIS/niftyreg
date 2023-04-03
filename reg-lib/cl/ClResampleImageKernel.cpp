@@ -36,7 +36,7 @@ ClResampleImageKernel::ClResampleImageKernel(Content *conIn) : ResampleImageKern
     }
 
     //get opencl context params
-    sContext = &ClContextSingleton::Instance();
+    sContext = &ClContextSingleton::GetInstance();
     clContext = sContext->GetContext();
     commandQueue = sContext->GetCommandQueue();
     program = sContext->CreateProgram(clKernelPath.c_str());
@@ -79,13 +79,13 @@ void ClResampleImageKernel::Calculate(int interp,
         reg_print_msg_error("The image dimension is not supported. Exit.");
         reg_exit();
     }
-    sContext->checkErrNum(errNum, "Error setting kernel ResampleImage.");
+    sContext->CheckErrNum(errNum, "Error setting kernel ResampleImage.");
 
     const size_t targetVoxelNumber = CalcVoxelNumber(*this->warpedImage);
-    const unsigned int maxThreads = sContext->GetMaxThreads();
-    const unsigned int maxBlocks = sContext->GetMaxBlocks();
+    const unsigned maxThreads = sContext->GetMaxThreads();
+    const unsigned maxBlocks = sContext->GetMaxBlocks();
 
-    unsigned int blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
+    unsigned blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
     blocks = std::min(blocks, maxBlocks);
 
     const cl_uint dims = 1;
@@ -105,30 +105,30 @@ void ClResampleImageKernel::Calculate(int interp,
     int datatype = this->floatingImage->datatype;
 
     errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->clFloating);
-    sContext->checkErrNum(errNum, "Error setting interp kernel arguments 0.");
+    sContext->CheckErrNum(errNum, "Error setting interp kernel arguments 0.");
     errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clDeformationField);
-    sContext->checkErrNum(errNum, "Error setting interp kernel arguments 1.");
+    sContext->CheckErrNum(errNum, "Error setting interp kernel arguments 1.");
     errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clWarped);
-    sContext->checkErrNum(errNum, "Error setting interp kernel arguments 2.");
+    sContext->CheckErrNum(errNum, "Error setting interp kernel arguments 2.");
     errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->clMask);
-    sContext->checkErrNum(errNum, "Error setting interp kernel arguments 3.");
+    sContext->CheckErrNum(errNum, "Error setting interp kernel arguments 3.");
     errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &this->floMat);
-    sContext->checkErrNum(errNum, "Error setting interp kernel arguments 4.");
+    sContext->CheckErrNum(errNum, "Error setting interp kernel arguments 4.");
     errNum |= clSetKernelArg(kernel, 5, sizeof(cl_long2), &voxelNumber);
-    sContext->checkErrNum(errNum, "Error setting interp kernel arguments 5.");
+    sContext->CheckErrNum(errNum, "Error setting interp kernel arguments 5.");
     errNum |= clSetKernelArg(kernel, 6, sizeof(cl_uint3), &fi_xyz);
-    sContext->checkErrNum(errNum, "Error setting interp kernel arguments 6.");
+    sContext->CheckErrNum(errNum, "Error setting interp kernel arguments 6.");
     errNum |= clSetKernelArg(kernel, 7, sizeof(cl_uint2), &wi_tu);
-    sContext->checkErrNum(errNum, "Error setting interp kernel arguments 7.");
+    sContext->CheckErrNum(errNum, "Error setting interp kernel arguments 7.");
     errNum |= clSetKernelArg(kernel, 8, sizeof(float), &paddingValue);
-    sContext->checkErrNum(errNum, "Error setting interp kernel arguments 8.");
+    sContext->CheckErrNum(errNum, "Error setting interp kernel arguments 8.");
     errNum |= clSetKernelArg(kernel, 9, sizeof(cl_int), &interp);
-    sContext->checkErrNum(errNum, "Error setting interp kernel arguments 9.");
+    sContext->CheckErrNum(errNum, "Error setting interp kernel arguments 9.");
     errNum |= clSetKernelArg(kernel, 10, sizeof(cl_int), &datatype);
-    sContext->checkErrNum(errNum, "Error setting interp kernel arguments 10.");
+    sContext->CheckErrNum(errNum, "Error setting interp kernel arguments 10.");
 
     errNum = clEnqueueNDRangeKernel(commandQueue, kernel, dims, nullptr, globalWorkSize, localWorkSize, 0, nullptr, nullptr);
-    sContext->checkErrNum(errNum, "Error queuing interp kernel for execution: ");
+    sContext->CheckErrNum(errNum, "Error queuing interp kernel for execution: ");
 
     clFinish(commandQueue);
 }

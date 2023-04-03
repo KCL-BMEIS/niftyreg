@@ -82,7 +82,7 @@ void reg_base<T>::SetFloatingImage(NiftiImage inputFloatingIn) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetMaximalIterationNumber(unsigned int iter) {
+void reg_base<T>::SetMaximalIterationNumber(unsigned iter) {
     maxIterationNumber = iter;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::SetMaximalIterationNumber");
@@ -122,7 +122,7 @@ void reg_base<T>::SetFloatingSmoothingSigma(T floatingSmoothingSigmaIn) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetReferenceThresholdUp(unsigned int i, T t) {
+void reg_base<T>::SetReferenceThresholdUp(unsigned i, T t) {
     referenceThresholdUp[i] = t;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::SetReferenceThresholdUp");
@@ -130,7 +130,7 @@ void reg_base<T>::SetReferenceThresholdUp(unsigned int i, T t) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetReferenceThresholdLow(unsigned int i, T t) {
+void reg_base<T>::SetReferenceThresholdLow(unsigned i, T t) {
     referenceThresholdLow[i] = t;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::SetReferenceThresholdLow");
@@ -138,7 +138,7 @@ void reg_base<T>::SetReferenceThresholdLow(unsigned int i, T t) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetFloatingThresholdUp(unsigned int i, T t) {
+void reg_base<T>::SetFloatingThresholdUp(unsigned i, T t) {
     floatingThresholdUp[i] = t;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::SetFloatingThresholdUp");
@@ -146,7 +146,7 @@ void reg_base<T>::SetFloatingThresholdUp(unsigned int i, T t) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetFloatingThresholdLow(unsigned int i, T t) {
+void reg_base<T>::SetFloatingThresholdLow(unsigned i, T t) {
     floatingThresholdLow[i] = t;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::SetFloatingThresholdLow");
@@ -178,7 +178,7 @@ void reg_base<T>::SetWarpedPaddingValue(float warpedPaddingValueIn) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetLevelNumber(unsigned int levelNumberIn) {
+void reg_base<T>::SetLevelNumber(unsigned levelNumberIn) {
     levelNumber = levelNumberIn;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::SetLevelNumber");
@@ -186,7 +186,7 @@ void reg_base<T>::SetLevelNumber(unsigned int levelNumberIn) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetLevelToPerform(unsigned int levelToPerformIn) {
+void reg_base<T>::SetLevelToPerform(unsigned levelToPerformIn) {
     levelToPerform = levelToPerformIn;
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::SetLevelToPerform");
@@ -490,7 +490,7 @@ void reg_base<T>::Initialise() {
     CheckParameters();
 
     // CREATE THE PYRAMID IMAGES
-    const unsigned int imageCount = usePyramid ? levelToPerform : 1;
+    const unsigned imageCount = usePyramid ? levelToPerform : 1;
     referencePyramid = vector<NiftiImage>(imageCount);
     floatingPyramid = vector<NiftiImage>(imageCount);
     maskPyramid = vector<unique_ptr<int[]>>(imageCount);
@@ -523,17 +523,17 @@ void reg_base<T>::Initialise() {
     }
 
     // FINEST LEVEL OF REGISTRATION
-    const unsigned int levelCount = usePyramid ? levelNumber : 1;
+    const unsigned levelCount = usePyramid ? levelNumber : 1;
     reg_createImagePyramid<T>(inputReference, referencePyramid, levelCount, imageCount);
     reg_createImagePyramid<T>(inputFloating, floatingPyramid, levelCount, imageCount);
     if (maskImage)
         reg_createMaskPyramid<T>(maskImage, maskPyramid, levelCount, imageCount);
     else
-        for (unsigned int l = 0; l < imageCount; ++l)
+        for (unsigned l = 0; l < imageCount; ++l)
             maskPyramid[l].reset(new int[referencePyramid[l].nVoxelsPerVolume()]());
 
     // SMOOTH THE INPUT IMAGES IF REQUIRED
-    for (unsigned int l = 0; l < levelToPerform; l++) {
+    for (unsigned l = 0; l < levelToPerform; l++) {
         if (referenceSmoothingSigma != 0) {
             unique_ptr<bool[]> active(new bool[referencePyramid[l]->nt]);
             unique_ptr<float[]> sigma(new float[referencePyramid[l]->nt]);
@@ -556,7 +556,7 @@ void reg_base<T>::Initialise() {
     }
 
     // THRESHOLD THE INPUT IMAGES IF REQUIRED
-    for (unsigned int l = 0; l < imageCount; l++) {
+    for (unsigned l = 0; l < imageCount; l++) {
         reg_thresholdImage<T>(referencePyramid[l], referenceThresholdLow[0], referenceThresholdUp[0]);
         reg_thresholdImage<T>(floatingPyramid[l], referenceThresholdLow[0], referenceThresholdUp[0]);
     }

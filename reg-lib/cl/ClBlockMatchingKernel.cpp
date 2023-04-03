@@ -35,7 +35,7 @@ ClBlockMatchingKernel::ClBlockMatchingKernel(Content *conIn) : BlockMatchingKern
    }
 
    //get opencl context params
-   sContext = &ClContextSingleton::Instance();
+   sContext = &ClContextSingleton::GetInstance();
    clContext = sContext->GetContext();
    commandQueue = sContext->GetCommandQueue();
    program = sContext->CreateProgram(clKernelPath.c_str());
@@ -47,7 +47,7 @@ ClBlockMatchingKernel::ClBlockMatchingKernel(Content *conIn) : BlockMatchingKern
    } else {
       kernel = clCreateKernel(program, "blockMatchingKernel2D", &errNum);
    }
-   sContext->checkErrNum(errNum, "Error setting bm kernel.");
+   sContext->CheckErrNum(errNum, "Error setting bm kernel.");
 
    //get cl ptrs
    clTotalBlock = con->GetTotalBlockClmem();
@@ -73,7 +73,7 @@ void ClBlockMatchingKernel::Calculate() {
    params->definedActiveBlockNumber = 0;
    cl_mem cldefinedBlock = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                                           sizeof(int), &(params->definedActiveBlockNumber), &errNum);
-   sContext->checkErrNum(errNum, "ClBlockMatchingKernel::calculate failed to allocate memory (cldefinedBlock) ");
+   sContext->CheckErrNum(errNum, "ClBlockMatchingKernel::calculate failed to allocate memory (cldefinedBlock) ");
 
    const cl_uint4 imageSize = {{(cl_uint)reference->nx,
       (cl_uint)reference->ny,
@@ -84,7 +84,7 @@ void ClBlockMatchingKernel::Calculate() {
       (size_t)params->blockNumber[1] * 4,
       (size_t)params->blockNumber[2] * 4};
    size_t localWorkSize[3] = {4, 4, 4};
-   unsigned int sMemSize = 1728; // (3*4)^3
+   unsigned sMemSize = 1728; // (3*4)^3
    if (reference->nz == 1) {
       globalWorkSize[2] = 1;
       localWorkSize[2] = 1;
@@ -92,36 +92,36 @@ void ClBlockMatchingKernel::Calculate() {
    }
 
    errNum = clSetKernelArg(kernel, 0, sMemSize * sizeof(cl_float), nullptr);
-   sContext->checkErrNum(errNum, "Error setting shared memory.");
+   sContext->CheckErrNum(errNum, "Error setting shared memory.");
    errNum = clSetKernelArg(kernel, 1, sizeof(cl_mem), &clWarpedImageArray);
-   sContext->checkErrNum(errNum, "Error setting resultImageArray.");
+   sContext->CheckErrNum(errNum, "Error setting resultImageArray.");
    errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &clReferenceImageArray);
-   sContext->checkErrNum(errNum, "Error setting targetImageArray.");
+   sContext->CheckErrNum(errNum, "Error setting targetImageArray.");
    errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &clWarpedPosition);
-   sContext->checkErrNum(errNum, "Error setting resultPosition.");
+   sContext->CheckErrNum(errNum, "Error setting resultPosition.");
    errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &clReferencePosition);
-   sContext->checkErrNum(errNum, "Error setting targetPosition.");
+   sContext->CheckErrNum(errNum, "Error setting targetPosition.");
    errNum |= clSetKernelArg(kernel, 5, sizeof(cl_mem), &clTotalBlock);
-   sContext->checkErrNum(errNum, "Error setting mask.");
+   sContext->CheckErrNum(errNum, "Error setting mask.");
    errNum |= clSetKernelArg(kernel, 6, sizeof(cl_mem), &clMask);
-   sContext->checkErrNum(errNum, "Error setting mask.");
+   sContext->CheckErrNum(errNum, "Error setting mask.");
    errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &clReferenceMat);
-   sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
+   sContext->CheckErrNum(errNum, "Error setting targetMatrix_xyz.");
    errNum |= clSetKernelArg(kernel, 8, sizeof(cl_mem), &cldefinedBlock);
-   sContext->checkErrNum(errNum, "Error setting cldefinedBlock.");
+   sContext->CheckErrNum(errNum, "Error setting cldefinedBlock.");
    errNum |= clSetKernelArg(kernel, 9, sizeof(cl_uint4), &imageSize);
-   sContext->checkErrNum(errNum, "Error setting image size.");
+   sContext->CheckErrNum(errNum, "Error setting image size.");
 
    errNum = clEnqueueNDRangeKernel(commandQueue, kernel, params->dim, nullptr,
                                    globalWorkSize, localWorkSize, 0, nullptr, nullptr);
-   sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution ");
+   sContext->CheckErrNum(errNum, "Error queuing blockmatching kernel for execution ");
 
    errNum = clFinish(commandQueue);
-   sContext->checkErrNum(errNum, "Error after clFinish ClBlockMatchingKernel");
+   sContext->CheckErrNum(errNum, "Error after clFinish ClBlockMatchingKernel");
 
    errNum = clEnqueueReadBuffer(commandQueue, cldefinedBlock, CL_TRUE, 0, sizeof(int),
                                 &(params->definedActiveBlockNumber), 0, nullptr, nullptr);
-   sContext->checkErrNum(errNum, "Error reading  var after ClBlockMatchingKernel execution ");
+   sContext->CheckErrNum(errNum, "Error reading  var after ClBlockMatchingKernel execution ");
 
    if (params->definedActiveBlockNumber == 0) {
       reg_print_msg_error("Unexpected error in the ClBlockMatchingKernel execution");

@@ -21,8 +21,7 @@ void reg_resampleImage_gpu(nifti_image *floatingImage,
                            int *mask_d,
                            size_t activeVoxelNumber,
                            float paddingValue) {
-    // Get the BlockSize - The values have been set in CudaContextSingleton
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+    auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
     int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 
@@ -45,16 +44,16 @@ void reg_resampleImage_gpu(nifti_image *floatingImage,
     else floatingMatrix = floatingImage->qto_ijk;
 
     if (floatingImage->nz > 1) {
-        const unsigned Grid_reg_resamplefloatingImage3D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_resampleImage3D));
-        dim3 B1(NR_BLOCK->Block_reg_resampleImage3D, 1, 1);
+        const unsigned Grid_reg_resamplefloatingImage3D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blockSize->reg_resampleImage3D));
+        dim3 B1(blockSize->reg_resampleImage3D, 1, 1);
         dim3 G1(Grid_reg_resamplefloatingImage3D, Grid_reg_resamplefloatingImage3D, 1);
-        reg_resampleImage3D_kernel<<<G1, B1>>>(warpedImageArray_d, *floatingTexture, *deformationFieldTexture, *maskTexture, floatingMatrix, floatingDim, activeVoxelNumber, paddingValue);
+        reg_resampleImage3D_kernel<<<G1, B1>>>(warpedImageArray_d, *floatingTexture, *deformationFieldTexture, *maskTexture, floatingMatrix, floatingDim, (unsigned)activeVoxelNumber, paddingValue);
         NR_CUDA_CHECK_KERNEL(G1, B1);
     } else {
-        const unsigned Grid_reg_resamplefloatingImage2D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_resampleImage2D));
-        dim3 B1(NR_BLOCK->Block_reg_resampleImage2D, 1, 1);
+        const unsigned Grid_reg_resamplefloatingImage2D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blockSize->reg_resampleImage2D));
+        dim3 B1(blockSize->reg_resampleImage2D, 1, 1);
         dim3 G1(Grid_reg_resamplefloatingImage2D, Grid_reg_resamplefloatingImage2D, 1);
-        reg_resampleImage2D_kernel<<<G1, B1>>>(warpedImageArray_d, *floatingTexture, *deformationFieldTexture, *maskTexture, floatingMatrix, floatingDim, activeVoxelNumber, paddingValue);
+        reg_resampleImage2D_kernel<<<G1, B1>>>(warpedImageArray_d, *floatingTexture, *deformationFieldTexture, *maskTexture, floatingMatrix, floatingDim, (unsigned)activeVoxelNumber, paddingValue);
         NR_CUDA_CHECK_KERNEL(G1, B1);
     }
 }
@@ -65,8 +64,7 @@ void reg_getImageGradient_gpu(nifti_image *floatingImage,
                               float4 *warpedGradientArray_d,
                               size_t activeVoxelNumber,
                               float paddingValue) {
-    // Get the BlockSize - The values have been set in CudaContextSingleton
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+    auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
     int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 
@@ -85,16 +83,16 @@ void reg_getImageGradient_gpu(nifti_image *floatingImage,
     else floatingMatrix = floatingImage->qto_ijk;
 
     if (floatingImage->nz > 1) {
-        const unsigned Grid_reg_getImageGradient3D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_getImageGradient3D));
-        dim3 B1(NR_BLOCK->Block_reg_getImageGradient3D, 1, 1);
+        const unsigned Grid_reg_getImageGradient3D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blockSize->reg_getImageGradient3D));
+        dim3 B1(blockSize->reg_getImageGradient3D, 1, 1);
         dim3 G1(Grid_reg_getImageGradient3D, Grid_reg_getImageGradient3D, 1);
-        reg_getImageGradient3D_kernel<<<G1, B1>>>(warpedGradientArray_d, *floatingTexture, *deformationFieldTexture, floatingMatrix, floatingDim, activeVoxelNumber, paddingValue);
+        reg_getImageGradient3D_kernel<<<G1, B1>>>(warpedGradientArray_d, *floatingTexture, *deformationFieldTexture, floatingMatrix, floatingDim, (unsigned)activeVoxelNumber, paddingValue);
         NR_CUDA_CHECK_KERNEL(G1, B1);
     } else {
-        const unsigned Grid_reg_getImageGradient2D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_getImageGradient2D));
-        dim3 B1(NR_BLOCK->Block_reg_getImageGradient2D, 1, 1);
+        const unsigned Grid_reg_getImageGradient2D = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blockSize->reg_getImageGradient2D));
+        dim3 B1(blockSize->reg_getImageGradient2D, 1, 1);
         dim3 G1(Grid_reg_getImageGradient2D, Grid_reg_getImageGradient2D, 1);
-        reg_getImageGradient2D_kernel<<<G1, B1>>>(warpedGradientArray_d, *floatingTexture, *deformationFieldTexture, floatingMatrix, floatingDim, activeVoxelNumber, paddingValue);
+        reg_getImageGradient2D_kernel<<<G1, B1>>>(warpedGradientArray_d, *floatingTexture, *deformationFieldTexture, floatingMatrix, floatingDim, (unsigned)activeVoxelNumber, paddingValue);
         NR_CUDA_CHECK_KERNEL(G1, B1);
     }
 }

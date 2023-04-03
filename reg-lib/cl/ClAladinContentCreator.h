@@ -10,8 +10,8 @@ public:
                                   int *referenceMask = nullptr,
                                   mat44 *transformationMatrix = nullptr,
                                   size_t bytes = sizeof(float),
-                                  const unsigned int percentageOfBlocks = 0,
-                                  const unsigned int inlierLts = 0,
+                                  const unsigned percentageOfBlocks = 0,
+                                  const unsigned inlierLts = 0,
                                   int blockStepSize = 0) override {
         return new ClAladinContent(reference, floating, referenceMask, transformationMatrix, bytes, percentageOfBlocks, inlierLts, blockStepSize);
     }

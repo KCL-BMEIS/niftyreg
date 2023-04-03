@@ -14,7 +14,7 @@
 #include "affineDeformationKernel.h"
 //CUDA affine kernel
 /* *************************************************************** */
-__device__ __inline__ void getPosition(float* position, float* matrix, double* voxel, const unsigned int idx)
+__device__ __inline__ void getPosition(float* position, float* matrix, double* voxel, const unsigned idx)
 {
    position[idx] = (float) ((double) matrix[idx * 4 + 0] * voxel[0] +
          (double) matrix[idx * 4 + 1] * voxel[1] +
@@ -22,7 +22,7 @@ __device__ __inline__ void getPosition(float* position, float* matrix, double* v
          (double) matrix[idx * 4 + 3]);
 }
 /* *************************************************************** */
-__device__ __inline__ double getPosition(float* matrix, double* voxel, const unsigned int idx)
+__device__ __inline__ double getPosition(float* matrix, double* voxel, const unsigned idx)
 {
    unsigned long index = idx * 4;
    return (double)matrix[index++] * voxel[0] +
@@ -39,9 +39,9 @@ __global__ void affineKernel(float* transformationMatrix,
                              const bool composition)
 {
    // Get the current coordinate
-   const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
-   const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
-   const unsigned int z = blockIdx.z * blockDim.z + threadIdx.z;
+   const unsigned x = blockIdx.x * blockDim.x + threadIdx.x;
+   const unsigned y = blockIdx.y * blockDim.y + threadIdx.y;
+   const unsigned z = blockIdx.z * blockDim.z + threadIdx.z;
    const unsigned long index = x + dims.x * (y + z * dims.y);
 
    if (z<dims.z && y<dims.y && x<dims.x &&  mask[index] >= 0)
@@ -69,13 +69,13 @@ void launchAffine(mat44 *affineTransformation,
                   float **trans_d,
                   bool compose) {
 
-   const unsigned int xThreads = 8;
-   const unsigned int yThreads = 8;
-   const unsigned int zThreads = 8;
+   const unsigned xThreads = 8;
+   const unsigned yThreads = 8;
+   const unsigned zThreads = 8;
 
-   const unsigned int xBlocks = ((deformationField->nx % xThreads) == 0) ? (deformationField->nx / xThreads) : (deformationField->nx / xThreads) + 1;
-   const unsigned int yBlocks = ((deformationField->ny % yThreads) == 0) ? (deformationField->ny / yThreads) : (deformationField->ny / yThreads) + 1;
-   const unsigned int zBlocks = ((deformationField->nz % zThreads) == 0) ? (deformationField->nz / zThreads) : (deformationField->nz / zThreads) + 1;
+   const unsigned xBlocks = ((deformationField->nx % xThreads) == 0) ? (deformationField->nx / xThreads) : (deformationField->nx / xThreads) + 1;
+   const unsigned yBlocks = ((deformationField->ny % yThreads) == 0) ? (deformationField->ny / yThreads) : (deformationField->ny / yThreads) + 1;
+   const unsigned zBlocks = ((deformationField->nz % zThreads) == 0) ? (deformationField->nz / zThreads) : (deformationField->nz / zThreads) + 1;
 
    dim3 G1_b(xBlocks, yBlocks, zBlocks);
    dim3 B1_b(xThreads, yThreads, zThreads);

@@ -14,7 +14,7 @@
 /* *************************************************************** */
 template <class NiftiType>
 int cudaCommon_transferNiftiToNiftiOnDevice1(nifti_image *image_d, nifti_image *img) {
-    const unsigned int memSize = img->dim[1] * img->dim[2] * img->dim[3] * sizeof(NiftiType);
+    const unsigned memSize = img->dim[1] * img->dim[2] * img->dim[3] * sizeof(NiftiType);
 
     int *g_dim;
     float* g_pixdim;
@@ -43,7 +43,7 @@ int cudaCommon_transferNiftiToArrayOnDevice1(DataType *array_d, nifti_image *img
         reg_print_msg_error("The host and device arrays are of different types");
         return EXIT_FAILURE;
     } else {
-        const unsigned int memSize = img->dim[1] * img->dim[2] * img->dim[3] * sizeof(DataType);
+        const unsigned memSize = img->dim[1] * img->dim[2] * img->dim[3] * sizeof(DataType);
         NiftiType *array_h = static_cast<NiftiType*>(img->data);
         NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, array_h, memSize, cudaMemcpyHostToDevice));
     }
@@ -101,7 +101,7 @@ int cudaCommon_transferNiftiToArrayOnDevice1(DataType *array_d, DataType *array2
         reg_print_msg_error("The host and device arrays are of different types");
         return EXIT_FAILURE;
     } else {
-        const unsigned int memSize = img->dim[1] * img->dim[2] * img->dim[3] * sizeof(DataType);
+        const unsigned memSize = img->dim[1] * img->dim[2] * img->dim[3] * sizeof(DataType);
         NiftiType *array_h = static_cast<NiftiType*>(img->data);
         NiftiType *array2_h = &array_h[img->dim[1] * img->dim[2] * img->dim[3]];
         NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, array_h, memSize, cudaMemcpyHostToDevice));
@@ -369,7 +369,7 @@ template int cudaCommon_allocateArrayToDevice<float4>(cudaArray**, cudaArray**, 
 /* *************************************************************** */
 template <class DataType>
 int cudaCommon_allocateArrayToDevice(DataType **array_d, int *dim) {
-    const unsigned int memSize = dim[1] * dim[2] * dim[3] * sizeof(DataType);
+    const unsigned memSize = dim[1] * dim[2] * dim[3] * sizeof(DataType);
     NR_CUDA_SAFE_CALL(cudaMalloc(array_d, memSize));
     return EXIT_SUCCESS;
 }
@@ -380,7 +380,7 @@ template int cudaCommon_allocateArrayToDevice<float4>(float4**, int*); // for de
 /* *************************************************************** */
 template <class DataType>
 int cudaCommon_allocateArrayToDevice(DataType **array_d, int vox) {
-    const unsigned int memSize = vox * sizeof(DataType);
+    const unsigned memSize = vox * sizeof(DataType);
     NR_CUDA_SAFE_CALL(cudaMalloc(array_d, memSize));
     return EXIT_SUCCESS;
 }
@@ -391,7 +391,7 @@ template int cudaCommon_allocateArrayToDevice<float4>(float4**, int); // for def
 /* *************************************************************** */
 template <class DataType>
 int cudaCommon_allocateArrayToDevice(DataType **array_d, DataType **array2_d, int *dim) {
-    const unsigned int memSize = dim[1] * dim[2] * dim[3] * sizeof(DataType);
+    const unsigned memSize = dim[1] * dim[2] * dim[3] * sizeof(DataType);
     NR_CUDA_SAFE_CALL(cudaMalloc(array_d, memSize));
     NR_CUDA_SAFE_CALL(cudaMalloc(array2_d, memSize));
     return EXIT_SUCCESS;
@@ -401,12 +401,12 @@ template int cudaCommon_allocateArrayToDevice<double>(double**, double**, int*);
 template int  cudaCommon_allocateArrayToDevice<float4>(float4**, float4**, int*); // for deformation field
 /* *************************************************************** */
 template <class DataType>
-int cudaCommon_transferFromDeviceToCpu(DataType *cpuPtr, DataType *cuPtr, const unsigned int nElements) {
+int cudaCommon_transferFromDeviceToCpu(DataType *cpuPtr, DataType *cuPtr, const unsigned nElements) {
     NR_CUDA_SAFE_CALL(cudaMemcpy((void*)cpuPtr, (void*)cuPtr, nElements * sizeof(DataType), cudaMemcpyDeviceToHost));
     return EXIT_SUCCESS;
 }
-template int cudaCommon_transferFromDeviceToCpu<float>(float *cpuPtr, float *cuPtr, const unsigned int nElements);
-template int cudaCommon_transferFromDeviceToCpu<double>(double *cpuPtr, double *cuPtr, const unsigned int nElements);
+template int cudaCommon_transferFromDeviceToCpu<float>(float *cpuPtr, float *cuPtr, const unsigned nElements);
+template int cudaCommon_transferFromDeviceToCpu<double>(double *cpuPtr, double *cuPtr, const unsigned nElements);
 /* *************************************************************** */
 template <class DataType, class NiftiType>
 int cudaCommon_transferFromDeviceToNifti1(nifti_image *img, DataType *array_d) {
@@ -594,7 +594,7 @@ template int cudaCommon_transferFromDeviceToNiftiSimple<float>(float*, nifti_ima
 template int cudaCommon_transferFromDeviceToNiftiSimple<double>(double*, nifti_image*);
 /* *************************************************************** */
 template <class DataType>
-int cudaCommon_transferFromDeviceToNiftiSimple1(DataType *array_d, DataType *img, const unsigned int nvox) {
+int cudaCommon_transferFromDeviceToNiftiSimple1(DataType *array_d, DataType *img, const unsigned nvox) {
     NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, img, nvox * sizeof(DataType), cudaMemcpyHostToDevice));
     return EXIT_SUCCESS;
 }
@@ -603,24 +603,24 @@ template int cudaCommon_transferFromDeviceToNiftiSimple1<float>(float*, float*, 
 template int cudaCommon_transferFromDeviceToNiftiSimple1<double>(double*, double*, const unsigned);
 /* *************************************************************** */
 template <class DataType>
-int cudaCommon_transferArrayFromCpuToDevice(DataType *array_d, DataType *array_cpu, const unsigned int nElements) {
-    const unsigned int memSize = nElements * sizeof(DataType);
+int cudaCommon_transferArrayFromCpuToDevice(DataType *array_d, DataType *array_cpu, const unsigned nElements) {
+    const unsigned memSize = nElements * sizeof(DataType);
     NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, array_cpu, memSize, cudaMemcpyHostToDevice));
     return EXIT_SUCCESS;
 }
-template int cudaCommon_transferArrayFromCpuToDevice<int>(int*, int*, const unsigned int);
-template int cudaCommon_transferArrayFromCpuToDevice<float>(float*, float*, const unsigned int);
-template int cudaCommon_transferArrayFromCpuToDevice<double>(double*, double*, const unsigned int);
+template int cudaCommon_transferArrayFromCpuToDevice<int>(int*, int*, const unsigned);
+template int cudaCommon_transferArrayFromCpuToDevice<float>(float*, float*, const unsigned);
+template int cudaCommon_transferArrayFromCpuToDevice<double>(double*, double*, const unsigned);
 /* *************************************************************** */
 template <class DataType>
-int cudaCommon_transferArrayFromDeviceToCpu(DataType *array_cpu, DataType *array_d, const unsigned int nElements) {
-    const unsigned int memSize = nElements * sizeof(DataType);
+int cudaCommon_transferArrayFromDeviceToCpu(DataType *array_cpu, DataType *array_d, const unsigned nElements) {
+    const unsigned memSize = nElements * sizeof(DataType);
     NR_CUDA_SAFE_CALL(cudaMemcpy(array_cpu, array_d, memSize, cudaMemcpyDeviceToHost));
     return EXIT_SUCCESS;
 }
-template int cudaCommon_transferArrayFromDeviceToCpu<int>(int*, int*, const unsigned int);
-template int cudaCommon_transferArrayFromDeviceToCpu<float>(float*, float*, const unsigned int);
-template int cudaCommon_transferArrayFromDeviceToCpu<double>(double*, double*, const unsigned int);
+template int cudaCommon_transferArrayFromDeviceToCpu<int>(int*, int*, const unsigned);
+template int cudaCommon_transferArrayFromDeviceToCpu<float>(float*, float*, const unsigned);
+template int cudaCommon_transferArrayFromDeviceToCpu<double>(double*, double*, const unsigned);
 /* *************************************************************** */
 void cudaCommon_destroyTextureObject(cudaTextureObject_t *texObj) {
     NR_CUDA_SAFE_CALL(cudaDestroyTextureObject(*texObj));

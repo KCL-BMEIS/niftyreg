@@ -204,12 +204,12 @@ void reg_aladin<T>::InitialiseRegistration() {
                                  this->numberOfLevels,
                                  this->levelsToPerform);
     else
-        for (unsigned int l = 0; l < this->levelsToPerform; ++l)
+        for (unsigned l = 0; l < this->levelsToPerform; ++l)
             this->referenceMaskPyramid[l].reset(new int[this->referencePyramid[l].nVoxelsPerVolume()]());
 
     unique_ptr<Kernel> convolutionKernel(this->platform->CreateKernel(ConvolutionKernel::GetName(), nullptr));
     // SMOOTH THE INPUT IMAGES IF REQUIRED
-    for (unsigned int l = 0; l < this->levelsToPerform; l++) {
+    for (unsigned l = 0; l < this->levelsToPerform; l++) {
         if (this->referenceSigma != 0) {
             // Only the first image is smoothed
             unique_ptr<bool[]> active(new bool[this->referencePyramid[l]->nt]);
@@ -233,7 +233,7 @@ void reg_aladin<T>::InitialiseRegistration() {
     }
 
     // THRESHOLD THE INPUT IMAGES IF REQUIRED
-    for (unsigned int l = 0; l < this->levelsToPerform; l++) {
+    for (unsigned l = 0; l < this->levelsToPerform; l++) {
         reg_thresholdImage<T>(this->referencePyramid[l], this->referenceLowerThreshold, this->referenceUpperThreshold);
         reg_thresholdImage<T>(this->floatingPyramid[l], this->floatingLowerThreshold, this->floatingUpperThreshold);
     }
@@ -388,9 +388,9 @@ void reg_aladin<T>::InitAladinContent(nifti_image *ref,
                                       int *mask,
                                       mat44 *transMat,
                                       size_t bytes,
-                                      unsigned int blockPercentage,
-                                      unsigned int inlierLts,
-                                      unsigned int blockStepSize) {
+                                      unsigned blockPercentage,
+                                      unsigned inlierLts,
+                                      unsigned blockStepSize) {
     unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(this->platform->CreateContentCreator(ContentType::Aladin)) };
     this->con.reset(contentCreator->Create(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize));
     this->blockMatchingParams = this->con->AladinContent::GetBlockMatchingParams();
@@ -402,8 +402,8 @@ void reg_aladin<T>::DeinitAladinContent() {
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::ResolveMatrix(unsigned int iterations, const unsigned int optimizationFlag) {
-    unsigned int iteration = 0;
+void reg_aladin<T>::ResolveMatrix(unsigned iterations, const unsigned optimizationFlag) {
+    unsigned iteration = 0;
     while (iteration < iterations) {
 #ifndef NDEBUG
         char text[255];
@@ -432,7 +432,7 @@ void reg_aladin<T>::Run() {
 
         // Twice more iterations are performed during the first level
         // All the blocks are used during the first level
-        const unsigned int maxNumberOfIterationToPerform = (currentLevel == 0) ? this->maxIterations * 2 : this->maxIterations;
+        const unsigned maxNumberOfIterationToPerform = (currentLevel == 0) ? this->maxIterations * 2 : this->maxIterations;
 
 #ifdef NDEBUG
         if (this->verbose) {
@@ -457,7 +457,7 @@ void reg_aladin<T>::Run() {
         /* Rigid registration */
         /* ****************** */
         if ((this->performRigid && !this->performAffine) || (this->performAffine && this->performRigid && this->currentLevel == 0)) {
-            const unsigned int ratio = (this->performAffine && this->performRigid && this->currentLevel == 0) ? 4 : 1;
+            const unsigned ratio = (this->performAffine && this->performRigid && this->currentLevel == 0) ? 4 : 1;
             ResolveMatrix(maxNumberOfIterationToPerform * ratio, RIGID);
         }
 

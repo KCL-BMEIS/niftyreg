@@ -16,8 +16,8 @@ public:
                   int *referenceMaskIn = nullptr,
                   mat44 *transformationMatrixIn = nullptr,
                   size_t bytesIn = sizeof(float),
-                  const unsigned int percentageOfBlocks = 0,
-                  const unsigned int inlierLts = 0,
+                  const unsigned percentageOfBlocks = 0,
+                  const unsigned inlierLts = 0,
                   int blockStepSize = 0);
 
     virtual ~AladinContent();
@@ -27,8 +27,8 @@ public:
 
 protected:
     _reg_blockMatchingParam* blockMatchingParams;
-    unsigned int currentPercentageOfBlockToUse;
-    unsigned int inlierLts;
+    unsigned currentPercentageOfBlockToUse;
+    unsigned inlierLts;
     int stepSizeBlock;
 
 #ifdef NR_TESTING

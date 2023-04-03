@@ -45,7 +45,7 @@ public:
 
 protected:
     // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ
-    unsigned int dtIndicies[6];
+    unsigned dtIndicies[6];
     float currentValue;
 };
 /* *************************************************************** */
@@ -61,7 +61,7 @@ extern "C++" template <class DataType>
 double reg_getDTIMeasureValue(nifti_image *referenceImage,
                               nifti_image *warpedImage,
                               int *mask,
-                              unsigned int *dtIndicies);
+                              unsigned *dtIndicies);
 
 /** @brief Compute a voxel based gradient of the sum squared difference.
  * @param referenceImage First input image to use to compute the metric
@@ -80,4 +80,4 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
                                          nifti_image *warpedGradient,
                                          nifti_image *dtiMeasureGradientImage,
                                          int *mask,
-                                         unsigned int *dtIndicies);
+                                         unsigned *dtIndicies);

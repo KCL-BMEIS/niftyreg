@@ -333,8 +333,8 @@ float reg_tools_getSTDValue(const nifti_image *img);
 extern "C++" template<class DataType>
 void reg_createImagePyramid(const NiftiImage& input,
                             vector<NiftiImage>& pyramid,
-                            unsigned int levelNumber,
-                            unsigned int levelToPerform);
+                            unsigned levelNumber,
+                            unsigned levelToPerform);
 /* *************************************************************** */
 /** @brief Generate a pyramid from an input mask image.
  * @param input Input image to be downsampled to create the pyramid
@@ -348,8 +348,8 @@ void reg_createImagePyramid(const NiftiImage& input,
 extern "C++" template<class DataType>
 void reg_createMaskPyramid(const NiftiImage& input,
                            vector<unique_ptr<int[]>>& pyramid,
-                           unsigned int levelNumber,
-                           unsigned int levelToPerform);
+                           unsigned levelNumber,
+                           unsigned levelToPerform);
 /* *************************************************************** */
 /** @brief this function will threshold an image to the values provided,
  * set the scl_slope and sct_inter of the image to 1 and 0
@@ -438,16 +438,16 @@ extern "C++"
 void cPtrToMat44(mat44 *mat, const float *cMat);
 /* *************************************************************** */
 extern "C++"
-void mat33ToCptr(const mat33 *mat, float *cMat, const unsigned int numMats);
+void mat33ToCptr(const mat33 *mat, float *cMat, const unsigned numMats);
 /* *************************************************************** */
 extern "C++"
 void cPtrToMat33(mat33 *mat, const float *cMat);
 /* *************************************************************** */
 extern "C++" template<typename T>
-void matmnToCptr(const T **mat, T *cMat, unsigned int m, unsigned int n);
+void matmnToCptr(const T **mat, T *cMat, unsigned m, unsigned n);
 /* *************************************************************** */
 extern "C++" template<typename T>
-void cPtrToMatmn(T **mat, const T *cMat, unsigned int m, unsigned int n);
+void cPtrToMatmn(T **mat, const T *cMat, unsigned m, unsigned n);
 /* *************************************************************** */
 void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x, int& y, int& z);
 /* *************************************************************** */

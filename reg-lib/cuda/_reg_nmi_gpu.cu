@@ -153,8 +153,7 @@ void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
                                       double *entropies,
                                       int refBinning,
                                       int floBinning) {
-    // Get the BlockSize - The values have been set in CudaContextSingleton
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+    auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
     const int voxelNumber = CalcVoxelNumber(*referenceImage);
     const int3 imageSize = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
@@ -187,16 +186,16 @@ void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
     NR_CUDA_SAFE_CALL(cudaMemset(voxelNMIGradientArray_d, 0, voxelNumber * sizeof(float4)));
 
     if (referenceImage->nz > 1) {
-        const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW3D =
-            (unsigned int)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW3D));
-        dim3 B1(NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW3D, 1, 1);
+        const unsigned Grid_reg_getVoxelBasedNMIGradientUsingPW3D =
+            (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blockSize->reg_getVoxelBasedNMIGradientUsingPW3D));
+        dim3 B1(blockSize->reg_getVoxelBasedNMIGradientUsingPW3D, 1, 1);
         dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW3D, Grid_reg_getVoxelBasedNMIGradientUsingPW3D, 1);
         reg_getVoxelBasedNMIGradientUsingPW3D_kernel <<< G1, B1 >>> (voxelNMIGradientArray_d);
         NR_CUDA_CHECK_KERNEL(G1, B1);
     } else {
-        const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW2D =
-            (unsigned int)ceil(sqrtf((float)activeVoxelNumber / (float)NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW2D));
-        dim3 B1(NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW2D, 1, 1);
+        const unsigned Grid_reg_getVoxelBasedNMIGradientUsingPW2D =
+            (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blockSize->reg_getVoxelBasedNMIGradientUsingPW2D));
+        dim3 B1(blockSize->reg_getVoxelBasedNMIGradientUsingPW2D, 1, 1);
         dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW2D, Grid_reg_getVoxelBasedNMIGradientUsingPW2D, 1);
         reg_getVoxelBasedNMIGradientUsingPW2D_kernel <<< G1, B1 >>> (voxelNMIGradientArray_d);
         NR_CUDA_CHECK_KERNEL(G1, B1);

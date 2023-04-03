@@ -9,8 +9,8 @@ CudaAladinContent::CudaAladinContent(nifti_image *referenceIn,
                                      int *referenceMaskIn,
                                      mat44 *transformationMatrixIn,
                                      size_t bytesIn,
-                                     const unsigned int percentageOfBlocks,
-                                     const unsigned int inlierLts,
+                                     const unsigned percentageOfBlocks,
+                                     const unsigned inlierLts,
                                      int blockStepSize) :
     AladinContent(referenceIn,
                   floatingIn,
@@ -114,8 +114,8 @@ void CudaAladinContent::AllocateCuPtrs() {
         }
         /* // Removed until CUDA SVD is added back
         if (blockMatchingParams->activeBlockNumber > 0 ) {
-           unsigned int m = blockMatchingParams->activeBlockNumber * blockMatchingParams->dim;
-           unsigned int n = 0;
+           unsigned m = blockMatchingParams->activeBlockNumber * blockMatchingParams->dim;
+           unsigned n = 0;
 
            if (blockMatchingParams->dim == 2) {
               n = 6;
@@ -213,8 +213,8 @@ void CudaAladinContent::SetBlockMatchingParams(_reg_blockMatchingParam* bmp) {
     }
     /* // Removed until CUDA SVD is added back
      if (blockMatchingParams->activeBlockNumber > 0) {
-         unsigned int m = blockMatchingParams->activeBlockNumber * blockMatchingParams->dim;
-         unsigned int n = 0;
+         unsigned m = blockMatchingParams->activeBlockNumber * blockMatchingParams->dim;
+         unsigned n = 0;
 
          if (blockMatchingParams->dim == 2) {
              n = 6;
@@ -252,7 +252,7 @@ DataType CudaAladinContent::FillWarpedImageData(float intensity, int datatype) {
         break;
     case NIFTI_TYPE_UINT32:
         intensity = (intensity <= 4294967295 ? reg_round(intensity) : 4294967295); // 4294967295=2^32-1
-        return static_cast<unsigned int>(intensity > 0 ? reg_round(intensity) : 0);
+        return static_cast<unsigned>(intensity > 0 ? reg_round(intensity) : 0);
         break;
     default:
         return static_cast<DataType>(reg_round(intensity));
@@ -298,7 +298,7 @@ void CudaAladinContent::DownloadImage(nifti_image *image, float *memoryObject, i
         FillImageData<short>(image, memoryObject, datatype);
         break;
     case NIFTI_TYPE_UINT32:
-        FillImageData<unsigned int>(image, memoryObject, datatype);
+        FillImageData<unsigned>(image, memoryObject, datatype);
         break;
     case NIFTI_TYPE_INT32:
         FillImageData<int>(image, memoryObject, datatype);
@@ -442,6 +442,6 @@ void CudaAladinContent::FreeCuPtrs() {
 }
 /* *************************************************************** */
 bool CudaAladinContent::IsCurrentComputationDoubleCapable() {
-    return CudaContextSingleton::Instance().GetIsCardDoubleCapable();
+    return NiftyReg::CudaContext::GetInstance().IsCardDoubleCapable();
 }
 /* *************************************************************** */

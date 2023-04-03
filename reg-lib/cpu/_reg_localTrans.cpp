@@ -324,7 +324,7 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
    reg_mat44_eye(&backwardGridImage->sto_xyz);
    reg_mat44_eye(&forwardGridImage->sto_ijk);
    reg_mat44_eye(&backwardGridImage->sto_ijk);
-   for(unsigned int i=0; i<3; ++i)
+   for(unsigned i=0; i<3; ++i)
    {
       if(referenceImage->nz>1 || i<2)
       {
@@ -2492,7 +2492,7 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
    else
    {
       // The voxel spacing is reduced by two
-      for(unsigned int i=0; i<3; ++i)
+      for(unsigned i=0; i<3; ++i)
       {
          controlPointGrid->sto_xyz.m[0][i] /= 2.f;
          controlPointGrid->sto_xyz.m[1][i] /= 2.f;
@@ -3546,9 +3546,9 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
          yReal=0;
  #if _USE_SSE
          coord=0;
-         for(unsigned int b=0; b<4; b++)
+         for(unsigned b=0; b<4; b++)
          {
-            for(unsigned int a=0; a<4; a++)
+            for(unsigned a=0; a<4; a++)
             {
                xyBasis[coord++] = xBasis[a] * yBasis[b];
             }
@@ -3560,7 +3560,7 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
          __m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
          __m128 *ptrBasis   = (__m128 *) &xyBasis[0];
          //addition and multiplication of the 16 basis value and CP position for each axis
-         for(unsigned int a=0; a<4; a++)
+         for(unsigned a=0; a<4; a++)
          {
             tempX = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrX), tempX );
             tempY = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrY), tempY );
@@ -3575,9 +3575,9 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
          yReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
  #else
          coord=0;
-         for(unsigned int b=0; b<4; b++)
+         for(unsigned b=0; b<4; b++)
          {
-            for(unsigned int a=0; a<4; a++)
+            for(unsigned a=0; a<4; a++)
             {
                DataType tempValue = xBasis[a] * yBasis[b];
                xReal += xControlPointCoordinates[coord] * tempValue;
@@ -3807,9 +3807,9 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
             ptrY = (__m128 *) &yControlPointCoordinates[0];
             ptrZ = (__m128 *) &zControlPointCoordinates[0];
 
-            for(unsigned int c=0; c<4; c++)
+            for(unsigned c=0; c<4; c++)
             {
-               for(unsigned int b=0; b<4; b++)
+               for(unsigned b=0; b<4; b++)
                {
                   _yBasis_sse  = _mm_set_ps1(yBasis[b]);
                   _zBasis_sse  = _mm_set_ps1(zBasis[c]);

@@ -23,8 +23,7 @@ void reg_spline_getDeformationField_gpu(nifti_image *controlPointImage,
 										int activeVoxelNumber,
 										bool bspline)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	const int voxelNumber = CalcVoxelNumber(*reference);
 	const int controlPointNumber = CalcVoxelNumber(*controlPointImage);
@@ -48,23 +47,23 @@ void reg_spline_getDeformationField_gpu(nifti_image *controlPointImage,
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, mask_d, activeVoxelNumber*sizeof(int)));
 
 	if(reference->nz>1){
-		const unsigned int Grid_reg_spline_getDeformationField3D =
-			(unsigned int)ceilf(sqrtf((float)activeVoxelNumber/(float)(NR_BLOCK->Block_reg_spline_getDeformationField3D)));
+		const unsigned Grid_reg_spline_getDeformationField3D =
+			(unsigned)ceilf(sqrtf((float)activeVoxelNumber/(float)(blockSize->reg_spline_getDeformationField3D)));
 		dim3 G1(Grid_reg_spline_getDeformationField3D,Grid_reg_spline_getDeformationField3D,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_getDeformationField3D,1,1);
+		dim3 B1(blockSize->reg_spline_getDeformationField3D,1,1);
 		// 8 floats of shared memory are allocated per thread
 		reg_spline_getDeformationField3D
-				<<< G1, B1, NR_BLOCK->Block_reg_spline_getDeformationField3D*8*sizeof(float) >>>(positionFieldImageArray_d);
+				<<< G1, B1, blockSize->reg_spline_getDeformationField3D*8*sizeof(float) >>>(positionFieldImageArray_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
 	else{
-		const unsigned int Grid_reg_spline_getDeformationField2D =
-			(unsigned int)ceilf(sqrtf((float)activeVoxelNumber/(float)(NR_BLOCK->Block_reg_spline_getDeformationField2D)));
+		const unsigned Grid_reg_spline_getDeformationField2D =
+			(unsigned)ceilf(sqrtf((float)activeVoxelNumber/(float)(blockSize->reg_spline_getDeformationField2D)));
 		dim3 G1(Grid_reg_spline_getDeformationField2D,Grid_reg_spline_getDeformationField2D,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_getDeformationField2D,1,1);
+		dim3 B1(blockSize->reg_spline_getDeformationField2D,1,1);
 		// 4 floats of shared memory are allocated per thread
 		reg_spline_getDeformationField2D
-				<<< G1, B1, NR_BLOCK->Block_reg_spline_getDeformationField2D*4*sizeof(float) >>>(positionFieldImageArray_d);
+				<<< G1, B1, blockSize->reg_spline_getDeformationField2D*4*sizeof(float) >>>(positionFieldImageArray_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
 
@@ -75,8 +74,7 @@ void reg_spline_getDeformationField_gpu(nifti_image *controlPointImage,
 /* *************************************************************** */
 float reg_spline_approxBendingEnergy_gpu(nifti_image *controlPointImage, float4 *controlPointImageArray_d)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	const int controlPointNumber = CalcVoxelNumber(*controlPointImage);
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -90,19 +88,19 @@ float reg_spline_approxBendingEnergy_gpu(nifti_image *controlPointImage, float4 
 	float4 *secondDerivativeValues_d;
 	if(controlPointImage->nz>1){
 		NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValues_d, 6*controlPointGridMem));
-		const unsigned int Grid_bspline_getApproxSecondDerivatives =
-			(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_getApproxSecondDerivatives3D)));
+		const unsigned Grid_bspline_getApproxSecondDerivatives =
+			(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_getApproxSecondDerivatives3D)));
 		dim3 G1(Grid_bspline_getApproxSecondDerivatives,Grid_bspline_getApproxSecondDerivatives,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_getApproxSecondDerivatives3D,1,1);
+		dim3 B1(blockSize->reg_spline_getApproxSecondDerivatives3D,1,1);
 		reg_spline_getApproxSecondDerivatives3D <<< G1, B1 >>>(secondDerivativeValues_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
 	else{
 		NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValues_d, 3*controlPointGridMem));
-		const unsigned int Grid_bspline_getApproxSecondDerivatives =
-			(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_getApproxSecondDerivatives2D)));
+		const unsigned Grid_bspline_getApproxSecondDerivatives =
+			(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_getApproxSecondDerivatives2D)));
 		dim3 G1(Grid_bspline_getApproxSecondDerivatives,Grid_bspline_getApproxSecondDerivatives,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_getApproxSecondDerivatives2D,1,1);
+		dim3 B1(blockSize->reg_spline_getApproxSecondDerivatives2D,1,1);
 		reg_spline_getApproxSecondDerivatives2D <<< G1, B1 >>>(secondDerivativeValues_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
@@ -116,10 +114,10 @@ float reg_spline_approxBendingEnergy_gpu(nifti_image *controlPointImage, float4 
 		NR_CUDA_SAFE_CALL(cudaBindTexture(0,secondDerivativesTexture,
 										  secondDerivativeValues_d,
 										  6*controlPointGridMem));
-		const unsigned int Grid_reg_spline_ApproxBendingEnergy =
-			(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_getApproxBendingEnergy3D)));
+		const unsigned Grid_reg_spline_ApproxBendingEnergy =
+			(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_getApproxBendingEnergy3D)));
 		dim3 G2(Grid_reg_spline_ApproxBendingEnergy,Grid_reg_spline_ApproxBendingEnergy,1);
-		dim3 B2(NR_BLOCK->Block_reg_spline_getApproxBendingEnergy3D,1,1);
+		dim3 B2(blockSize->reg_spline_getApproxBendingEnergy3D,1,1);
 		reg_spline_getApproxBendingEnergy3D_kernel <<< G2, B2 >>>(penaltyTerm_d);
 		NR_CUDA_CHECK_KERNEL(G2,B2);
 	}
@@ -127,10 +125,10 @@ float reg_spline_approxBendingEnergy_gpu(nifti_image *controlPointImage, float4 
 		NR_CUDA_SAFE_CALL(cudaBindTexture(0,secondDerivativesTexture,
 										  secondDerivativeValues_d,
 										  3*controlPointGridMem));
-		const unsigned int Grid_reg_spline_ApproxBendingEnergy =
-			(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_getApproxBendingEnergy2D)));
+		const unsigned Grid_reg_spline_ApproxBendingEnergy =
+			(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_getApproxBendingEnergy2D)));
 		dim3 G2(Grid_reg_spline_ApproxBendingEnergy,Grid_reg_spline_ApproxBendingEnergy,1);
-		dim3 B2(NR_BLOCK->Block_reg_spline_getApproxBendingEnergy2D,1,1);
+		dim3 B2(blockSize->reg_spline_getApproxBendingEnergy2D,1,1);
 		reg_spline_getApproxBendingEnergy2D_kernel <<< G2, B2 >>>(penaltyTerm_d);
 		NR_CUDA_CHECK_KERNEL(G2,B2);
 	}
@@ -150,8 +148,7 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
 												float4 *nodeGradientArray_d,
 												float bendingEnergyWeight)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	const int controlPointNumber = CalcVoxelNumber(*controlPointImage);
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -165,19 +162,19 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
 	float4 *secondDerivativeValues_d;
 	if(controlPointImage->nz>1){
 		NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValues_d, 6*controlPointNumber*sizeof(float4)));
-		const unsigned int Grid_bspline_getApproxSecondDerivatives =
-			(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_getApproxSecondDerivatives3D)));
+		const unsigned Grid_bspline_getApproxSecondDerivatives =
+			(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_getApproxSecondDerivatives3D)));
 		dim3 G1(Grid_bspline_getApproxSecondDerivatives,Grid_bspline_getApproxSecondDerivatives,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_getApproxSecondDerivatives3D,1,1);
+		dim3 B1(blockSize->reg_spline_getApproxSecondDerivatives3D,1,1);
 		reg_spline_getApproxSecondDerivatives3D <<< G1, B1 >>>(secondDerivativeValues_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
 	else{
 		NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValues_d, 3*controlPointNumber*sizeof(float4)));
-		const unsigned int Grid_bspline_getApproxSecondDerivatives =
-			(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_getApproxSecondDerivatives2D)));
+		const unsigned Grid_bspline_getApproxSecondDerivatives =
+			(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_getApproxSecondDerivatives2D)));
 		dim3 G1(Grid_bspline_getApproxSecondDerivatives,Grid_bspline_getApproxSecondDerivatives,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_getApproxSecondDerivatives2D,1,1);
+		dim3 B1(blockSize->reg_spline_getApproxSecondDerivatives2D,1,1);
 		reg_spline_getApproxSecondDerivatives2D <<< G1, B1 >>>(secondDerivativeValues_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
@@ -190,10 +187,10 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
 		NR_CUDA_SAFE_CALL(cudaBindTexture(0,secondDerivativesTexture,
 										  secondDerivativeValues_d,
 										  6*controlPointNumber*sizeof(float4)));
-		const unsigned int Grid_reg_spline_getApproxBendingEnergyGradient =
-			(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_getApproxBendingEnergyGradient3D)));
+		const unsigned Grid_reg_spline_getApproxBendingEnergyGradient =
+			(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_getApproxBendingEnergyGradient3D)));
 		dim3 G2(Grid_reg_spline_getApproxBendingEnergyGradient,Grid_reg_spline_getApproxBendingEnergyGradient,1);
-		dim3 B2(NR_BLOCK->Block_reg_spline_getApproxBendingEnergyGradient3D,1,1);
+		dim3 B2(blockSize->reg_spline_getApproxBendingEnergyGradient3D,1,1);
 		reg_spline_getApproxBendingEnergyGradient3D_kernel <<< G2, B2 >>>(nodeGradientArray_d);
 		NR_CUDA_CHECK_KERNEL(G2,B2);
 	}
@@ -201,10 +198,10 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
 		NR_CUDA_SAFE_CALL(cudaBindTexture(0,secondDerivativesTexture,
 										  secondDerivativeValues_d,
 										  3*controlPointNumber*sizeof(float4)));
-		const unsigned int Grid_reg_spline_getApproxBendingEnergyGradient =
-			(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_getApproxBendingEnergyGradient2D)));
+		const unsigned Grid_reg_spline_getApproxBendingEnergyGradient =
+			(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_getApproxBendingEnergyGradient2D)));
 		dim3 G2(Grid_reg_spline_getApproxBendingEnergyGradient,Grid_reg_spline_getApproxBendingEnergyGradient,1);
-		dim3 B2(NR_BLOCK->Block_reg_spline_getApproxBendingEnergyGradient2D,1,1);
+		dim3 B2(blockSize->reg_spline_getApproxBendingEnergyGradient2D,1,1);
 		reg_spline_getApproxBendingEnergyGradient2D_kernel <<< G2, B2 >>>(nodeGradientArray_d);
 		NR_CUDA_CHECK_KERNEL(G2,B2);
 	}
@@ -218,8 +215,7 @@ void reg_spline_ComputeApproxJacobianValues(nifti_image *controlPointImage,
 											float *jacobianMatrices_d,
 											float *jacobianDet_d)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	// Need to reorient the Jacobian matrix using the header information - real to voxel conversion
 	mat33 reorientation;
@@ -245,18 +241,18 @@ void reg_spline_ComputeApproxJacobianValues(nifti_image *controlPointImage,
 
 	// The Jacobian matrix is computed for every control point
 	if(controlPointImage->nz>1){
-		const unsigned int Grid_reg_spline_getApproxJacobianValues3D =
-			(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_getApproxJacobianValues3D)));
+		const unsigned Grid_reg_spline_getApproxJacobianValues3D =
+			(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_getApproxJacobianValues3D)));
 		dim3 G1(Grid_reg_spline_getApproxJacobianValues3D,Grid_reg_spline_getApproxJacobianValues3D,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_getApproxJacobianValues3D,1,1);
+		dim3 B1(blockSize->reg_spline_getApproxJacobianValues3D,1,1);
 		reg_spline_getApproxJacobianValues3D_kernel<<< G1, B1>>>(jacobianMatrices_d, jacobianDet_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
 	else{
-		const unsigned int Grid_reg_spline_getApproxJacobianValues2D =
-			(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_getApproxJacobianValues2D)));
+		const unsigned Grid_reg_spline_getApproxJacobianValues2D =
+			(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_getApproxJacobianValues2D)));
 		dim3 G1(Grid_reg_spline_getApproxJacobianValues2D,Grid_reg_spline_getApproxJacobianValues2D,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_getApproxJacobianValues2D,1,1);
+		dim3 B1(blockSize->reg_spline_getApproxJacobianValues2D,1,1);
 		reg_spline_getApproxJacobianValues2D_kernel<<< G1, B1>>>(jacobianMatrices_d, jacobianDet_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
@@ -269,8 +265,7 @@ void reg_spline_ComputeJacobianValues(nifti_image *controlPointImage,
 									   float *jacobianMatrices_d,
 									   float *jacobianDet_d)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	// Need to reorient the Jacobian matrix using the header information - real to voxel conversion
 	mat33 reorientation;
@@ -304,21 +299,21 @@ void reg_spline_ComputeJacobianValues(nifti_image *controlPointImage,
 
 	// The Jacobian matrix is computed for every voxel
 	if(controlPointImage->nz>1){
-		const unsigned int Grid_reg_spline_getJacobianValues3D =
-			(unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(NR_BLOCK->Block_reg_spline_getJacobianValues3D)));
+		const unsigned Grid_reg_spline_getJacobianValues3D =
+			(unsigned)ceilf(sqrtf((float)voxelNumber/(float)(blockSize->reg_spline_getJacobianValues3D)));
 		dim3 G1(Grid_reg_spline_getJacobianValues3D,Grid_reg_spline_getJacobianValues3D,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_getJacobianValues3D,1,1);
+		dim3 B1(blockSize->reg_spline_getJacobianValues3D,1,1);
 		// 8 floats of shared memory are allocated per thread
 		reg_spline_getJacobianValues3D_kernel
-				<<< G1, B1, NR_BLOCK->Block_reg_spline_getJacobianValues3D*8*sizeof(float)>>>
+				<<< G1, B1, blockSize->reg_spline_getJacobianValues3D*8*sizeof(float)>>>
 				(jacobianMatrices_d, jacobianDet_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
 	else{
-		const unsigned int Grid_reg_spline_getJacobianValues2D =
-			(unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(NR_BLOCK->Block_reg_spline_getJacobianValues2D)));
+		const unsigned Grid_reg_spline_getJacobianValues2D =
+			(unsigned)ceilf(sqrtf((float)voxelNumber/(float)(blockSize->reg_spline_getJacobianValues2D)));
 		dim3 G1(Grid_reg_spline_getJacobianValues2D,Grid_reg_spline_getJacobianValues2D,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_getJacobianValues2D,1,1);
+		dim3 B1(blockSize->reg_spline_getJacobianValues2D,1,1);
 		reg_spline_getJacobianValues2D_kernel
 				<<< G1, B1>>>
 				(jacobianMatrices_d, jacobianDet_d);
@@ -333,8 +328,7 @@ double reg_spline_getJacobianPenaltyTerm_gpu(nifti_image *referenceImage,
 											 float4 *controlPointImageArray_d,
 											 bool approx)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	// The Jacobian matrices and determinants are computed
 	float *jacobianMatrices_d;
@@ -381,10 +375,10 @@ double reg_spline_getJacobianPenaltyTerm_gpu(nifti_image *referenceImage,
 
 	// The Jacobian determinant are squared and logged (might not be english but will do)
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&jacNumber,sizeof(int)));
-	const unsigned int Grid_reg_spline_logSquaredValues =
-		(unsigned int)ceilf(sqrtf((float)jacNumber/(float)(NR_BLOCK->Block_reg_spline_logSquaredValues)));
+	const unsigned Grid_reg_spline_logSquaredValues =
+		(unsigned)ceilf(sqrtf((float)jacNumber/(float)(blockSize->reg_spline_logSquaredValues)));
 	dim3 G1(Grid_reg_spline_logSquaredValues,Grid_reg_spline_logSquaredValues,1);
-	dim3 B1(NR_BLOCK->Block_reg_spline_logSquaredValues,1,1);
+	dim3 B1(blockSize->reg_spline_logSquaredValues,1,1);
 	reg_spline_logSquaredValues_kernel<<< G1, B1>>>(jacobianDet_d);
 	NR_CUDA_CHECK_KERNEL(G1,B1);
 	// Perform the reduction
@@ -400,8 +394,7 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(nifti_image *referenceImage,
 												   float jacobianWeight,
 												   bool approx)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	// The Jacobian matrices and determinants are computed
 	float *jacobianMatrices_d;
@@ -465,18 +458,18 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(nifti_image *referenceImage,
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight3,&weight,sizeof(float3)));
 	if(approx){
 		if(controlPointImage->nz>1){
-			const unsigned int Grid_reg_spline_computeApproxJacGradient3D =
-				(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_computeApproxJacGradient3D)));
+			const unsigned Grid_reg_spline_computeApproxJacGradient3D =
+				(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_computeApproxJacGradient3D)));
 			dim3 G1(Grid_reg_spline_computeApproxJacGradient3D,Grid_reg_spline_computeApproxJacGradient3D,1);
-			dim3 B1(NR_BLOCK->Block_reg_spline_computeApproxJacGradient3D,1,1);
+			dim3 B1(blockSize->reg_spline_computeApproxJacGradient3D,1,1);
 			reg_spline_computeApproxJacGradient3D_kernel<<< G1, B1>>>(nodeGradientArray_d);
 			NR_CUDA_CHECK_KERNEL(G1,B1);
 		}
 		else{
-			const unsigned int Grid_reg_spline_computeApproxJacGradient2D =
-				(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_computeApproxJacGradient2D)));
+			const unsigned Grid_reg_spline_computeApproxJacGradient2D =
+				(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_computeApproxJacGradient2D)));
 			dim3 G1(Grid_reg_spline_computeApproxJacGradient2D,Grid_reg_spline_computeApproxJacGradient2D,1);
-			dim3 B1(NR_BLOCK->Block_reg_spline_computeApproxJacGradient2D,1,1);
+			dim3 B1(blockSize->reg_spline_computeApproxJacGradient2D,1,1);
 			reg_spline_computeApproxJacGradient2D_kernel<<< G1, B1>>>(nodeGradientArray_d);
 			NR_CUDA_CHECK_KERNEL(G1,B1);
 		}
@@ -492,18 +485,18 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(nifti_image *referenceImage,
 		NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceImageDim,sizeof(int3)));
 		NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointVoxelSpacing,&controlPointVoxelSpacing,sizeof(float3)));
 		if(controlPointImage->nz>1){
-			const unsigned int Grid_reg_spline_computeJacGradient3D =
-				(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_computeJacGradient3D)));
+			const unsigned Grid_reg_spline_computeJacGradient3D =
+				(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_computeJacGradient3D)));
 			dim3 G1(Grid_reg_spline_computeJacGradient3D,Grid_reg_spline_computeJacGradient3D,1);
-			dim3 B1(NR_BLOCK->Block_reg_spline_computeJacGradient3D,1,1);
+			dim3 B1(blockSize->reg_spline_computeJacGradient3D,1,1);
 			reg_spline_computeJacGradient3D_kernel<<< G1, B1>>>(nodeGradientArray_d);
 			NR_CUDA_CHECK_KERNEL(G1,B1);
 		}
 		else{
-			const unsigned int Grid_reg_spline_computeJacGradient2D =
-				(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_computeJacGradient2D)));
+			const unsigned Grid_reg_spline_computeJacGradient2D =
+				(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_computeJacGradient2D)));
 			dim3 G1(Grid_reg_spline_computeJacGradient2D,Grid_reg_spline_computeJacGradient2D,1);
-			dim3 B1(NR_BLOCK->Block_reg_spline_computeJacGradient2D,1,1);
+			dim3 B1(blockSize->reg_spline_computeJacGradient2D,1,1);
 			reg_spline_computeJacGradient2D_kernel<<< G1, B1>>>(nodeGradientArray_d);
 			NR_CUDA_CHECK_KERNEL(G1,B1);
 		}
@@ -519,8 +512,7 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 									  float4 *controlPointImageArray_d,
 									  bool approx)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	// The Jacobian matrices and determinants are computed
 	float *jacobianMatrices_d;
@@ -553,10 +545,10 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 	float *jacobianDet2_d;
 	NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDet2_d,jacNumber*sizeof(float)));
 	NR_CUDA_SAFE_CALL(cudaMemcpy(jacobianDet2_d,jacobianDet_d,jacNumber*sizeof(float),cudaMemcpyDeviceToDevice));
-	const unsigned int Grid_reg_spline_logSquaredValues =
-		(unsigned int)ceilf(sqrtf((float)jacNumber/(float)(NR_BLOCK->Block_reg_spline_logSquaredValues)));
+	const unsigned Grid_reg_spline_logSquaredValues =
+		(unsigned)ceilf(sqrtf((float)jacNumber/(float)(blockSize->reg_spline_logSquaredValues)));
 	dim3 G1(Grid_reg_spline_logSquaredValues,Grid_reg_spline_logSquaredValues,1);
-	dim3 B1(NR_BLOCK->Block_reg_spline_logSquaredValues,1,1);
+	dim3 B1(blockSize->reg_spline_logSquaredValues,1,1);
 	reg_spline_logSquaredValues_kernel<<< G1, B1>>>(jacobianDet2_d);
 	NR_CUDA_CHECK_KERNEL(G1,B1);
 	float *jacobianDet_h;
@@ -600,10 +592,10 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointImageDim,&controlPointImageDim,sizeof(int3)));
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointSpacing,&controlPointSpacing,sizeof(float3)));
 	if(approx){
-		const unsigned int Grid_reg_spline_approxCorrectFolding =
-			(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_approxCorrectFolding3D)));
+		const unsigned Grid_reg_spline_approxCorrectFolding =
+			(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_approxCorrectFolding3D)));
 		dim3 G1(Grid_reg_spline_approxCorrectFolding,Grid_reg_spline_approxCorrectFolding,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_approxCorrectFolding3D,1,1);
+		dim3 B1(blockSize->reg_spline_approxCorrectFolding3D,1,1);
 		reg_spline_approxCorrectFolding3D_kernel<<< G1, B1>>>(controlPointImageArray_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
@@ -617,10 +609,10 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 		NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)));
 		NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceImageDim,sizeof(int3)));
 		NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointVoxelSpacing,&controlPointVoxelSpacing,sizeof(float3)));
-		const unsigned int Grid_reg_spline_correctFolding =
-		(unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(NR_BLOCK->Block_reg_spline_correctFolding3D)));
+		const unsigned Grid_reg_spline_correctFolding =
+		(unsigned)ceilf(sqrtf((float)controlPointNumber/(float)(blockSize->reg_spline_correctFolding3D)));
 		dim3 G1(Grid_reg_spline_correctFolding,Grid_reg_spline_correctFolding,1);
-		dim3 B1(NR_BLOCK->Block_reg_spline_correctFolding3D,1,1);
+		dim3 B1(blockSize->reg_spline_correctFolding3D,1,1);
 		reg_spline_correctFolding3D_kernel<<< G1, B1>>>(controlPointImageArray_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
@@ -634,8 +626,7 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 /* *************************************************************** */
 void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageArray_d)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	// Bind the qform or sform
 	mat44 temp_mat=image->qto_xyz;
@@ -653,10 +644,10 @@ void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageArr
 	const int3 imageDim=make_int3(image->nx,image->ny,image->nz);
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&imageDim,sizeof(int3)));
 
-	const unsigned int Grid_reg_getDeformationFromDisplacement =
-	(unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(NR_BLOCK->Block_reg_getDeformationFromDisplacement)));
+	const unsigned Grid_reg_getDeformationFromDisplacement =
+	(unsigned)ceilf(sqrtf((float)voxelNumber/(float)(blockSize->reg_getDeformationFromDisplacement)));
 	dim3 G1(Grid_reg_getDeformationFromDisplacement,Grid_reg_getDeformationFromDisplacement,1);
-	dim3 B1(NR_BLOCK->Block_reg_getDeformationFromDisplacement,1,1);
+	dim3 B1(blockSize->reg_getDeformationFromDisplacement,1,1);
 	reg_getDeformationFromDisplacement3D_kernel<<< G1, B1>>>(imageArray_d);
 	NR_CUDA_CHECK_KERNEL(G1,B1);
 }
@@ -664,8 +655,7 @@ void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageArr
 /* *************************************************************** */
 void reg_getDisplacementFromDeformation_gpu(nifti_image *image, float4 *imageArray_d)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	// Bind the qform or sform
 	mat44 temp_mat=image->qto_xyz;
@@ -683,10 +673,10 @@ void reg_getDisplacementFromDeformation_gpu(nifti_image *image, float4 *imageArr
 	const int3 imageDim=make_int3(image->nx,image->ny,image->nz);
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&imageDim,sizeof(int3)));
 
-	const unsigned int Grid_reg_getDisplacementFromDeformation =
-		(unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(NR_BLOCK->Block_reg_getDisplacementFromDeformation)));
+	const unsigned Grid_reg_getDisplacementFromDeformation =
+		(unsigned)ceilf(sqrtf((float)voxelNumber/(float)(blockSize->reg_getDisplacementFromDeformation)));
 	dim3 G1(Grid_reg_getDisplacementFromDeformation,Grid_reg_getDisplacementFromDeformation,1);
-	dim3 B1(NR_BLOCK->Block_reg_getDisplacementFromDeformation,1,1);
+	dim3 B1(blockSize->reg_getDisplacementFromDeformation,1,1);
 	reg_getDisplacementFromDeformation3D_kernel<<< G1, B1>>>(imageArray_d);
 	NR_CUDA_CHECK_KERNEL(G1,B1);
 }
@@ -738,8 +728,8 @@ void reg_getDeformationFieldFromVelocityGrid_gpu(nifti_image *cpp_h,
 
 
 	// The deformation field is squared
-	unsigned int squaringNumber = (unsigned int)fabs(cpp_h->intent_p1);
-	for(unsigned int i=0;i<squaringNumber;++i){
+	unsigned squaringNumber = (unsigned)fabs(cpp_h->intent_p1);
+	for(unsigned i=0;i<squaringNumber;++i){
 
 		// The deformation field arrays are updated
 		NR_CUDA_SAFE_CALL(cudaMemcpy(tempDef_gpu,def_gpu,voxelNumber*sizeof(float4),cudaMemcpyDeviceToDevice));
@@ -763,8 +753,7 @@ void reg_defField_compose_gpu(nifti_image *def,
 							  int *mask_gpu,
 							  int activeVoxel)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	const int voxelNumber = CalcVoxelNumber(*def);
 
@@ -797,18 +786,18 @@ void reg_defField_compose_gpu(nifti_image *def,
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceImageDim,sizeof(int3)));
 
 	if(def->nz>1){
-		const unsigned int Grid_reg_defField_compose3D =
-			(unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(NR_BLOCK->Block_reg_defField_compose3D)));
+		const unsigned Grid_reg_defField_compose3D =
+			(unsigned)ceilf(sqrtf((float)voxelNumber/(float)(blockSize->reg_defField_compose3D)));
 		dim3 G1(Grid_reg_defField_compose3D,Grid_reg_defField_compose3D,1);
-		dim3 B1(NR_BLOCK->Block_reg_defField_compose3D,1,1);
+		dim3 B1(blockSize->reg_defField_compose3D,1,1);
 		reg_defField_compose3D_kernel<<< G1, B1>>>(defOut_gpu);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
 	else{
-		const unsigned int Grid_reg_defField_compose2D =
-			(unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(NR_BLOCK->Block_reg_defField_compose2D)));
+		const unsigned Grid_reg_defField_compose2D =
+			(unsigned)ceilf(sqrtf((float)voxelNumber/(float)(blockSize->reg_defField_compose2D)));
 		dim3 G1(Grid_reg_defField_compose2D,Grid_reg_defField_compose2D,1);
-		dim3 B1(NR_BLOCK->Block_reg_defField_compose2D,1,1);
+		dim3 B1(blockSize->reg_defField_compose2D,1,1);
 		reg_defField_compose2D_kernel<<< G1, B1>>>(defOut_gpu);
 		NR_CUDA_CHECK_KERNEL(G1,B1);
 	}
@@ -822,8 +811,7 @@ void reg_defField_getJacobianMatrix_gpu(nifti_image *deformationField,
 										float4 **deformationField_gpu,
 										float **jacobianMatrices_gpu)
 {
-	// Get the BlockSize - The values have been set in CudaContextSingleton
-	NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::GetInstance(0);
+	auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
 	const int3 referenceDim=make_int3(deformationField->nx,deformationField->ny,deformationField->nz);
 	const float3 referenceSpacing=make_float3(deformationField->dx,deformationField->dy,deformationField->dz);
@@ -845,10 +833,10 @@ void reg_defField_getJacobianMatrix_gpu(nifti_image *deformationField,
 
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0,voxelDeformationTexture,*deformationField_gpu,voxelNumber*sizeof(float4)));
 
-	const unsigned int Grid_reg_defField_getJacobianMatrix =
-		(unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(NR_BLOCK->Block_reg_defField_getJacobianMatrix)));
+	const unsigned Grid_reg_defField_getJacobianMatrix =
+		(unsigned)ceilf(sqrtf((float)voxelNumber/(float)(blockSize->reg_defField_getJacobianMatrix)));
 	dim3 G1(Grid_reg_defField_getJacobianMatrix,Grid_reg_defField_getJacobianMatrix,1);
-	dim3 B1(NR_BLOCK->Block_reg_defField_getJacobianMatrix);
+	dim3 B1(blockSize->reg_defField_getJacobianMatrix);
 	reg_defField_getJacobianMatrix3D_kernel<<<G1,B1>>>(*jacobianMatrices_gpu);
 	NR_CUDA_CHECK_KERNEL(G1,B1);
 

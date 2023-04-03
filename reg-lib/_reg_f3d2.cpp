@@ -207,9 +207,9 @@ double reg_f3d2<T>::ComputeJacobianBasedPenaltyTerm(int type) {
 
     double backwardPenaltyTerm = computeBw->GetJacobianPenaltyTerm(approx);
 
-    unsigned int maxit = 5;
+    unsigned maxit = 5;
     if (type > 0) maxit = 20;
-    unsigned int it = 0;
+    unsigned it = 0;
     while (backwardPenaltyTerm != backwardPenaltyTerm && it < maxit) {
         backwardPenaltyTerm = computeBw->CorrectFolding(approx);
 #ifndef NDEBUG
@@ -712,14 +712,14 @@ void reg_f3d2<T>::Initialise() {
     }
 
     // Set the floating mask image pyramid
-    const unsigned int imageCount = this->usePyramid ? this->levelToPerform : 1;
-    const unsigned int levelCount = this->usePyramid ? this->levelNumber : 1;
+    const unsigned imageCount = this->usePyramid ? this->levelToPerform : 1;
+    const unsigned levelCount = this->usePyramid ? this->levelNumber : 1;
     floatingMaskPyramid = vector<unique_ptr<int[]>>(imageCount);
 
     if (floatingMaskImage)
         reg_createMaskPyramid<T>(floatingMaskImage, floatingMaskPyramid, levelCount, imageCount);
     else
-        for (unsigned int l = 0; l < imageCount; ++l)
+        for (unsigned l = 0; l < imageCount; ++l)
             floatingMaskPyramid[l].reset(new int[this->floatingPyramid[l].nVoxelsPerVolume()]());
 
 #ifdef NDEBUG

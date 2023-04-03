@@ -74,7 +74,7 @@ public:
     virtual void SetJacobianLogWeight(T);
     virtual void ApproximateJacobianLog();
     virtual void DoNotApproximateJacobianLog();
-    virtual void SetSpacing(unsigned int, T);
+    virtual void SetSpacing(unsigned, T);
     virtual void NoGridRefinement() { gridRefinement = false; }
 
     // F3D2 specific options

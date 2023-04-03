@@ -32,10 +32,10 @@
  * the weight associated with the closest node.
  */
 void reg_fem_InitialiseTransformation(int *elementNodes,
-                                      unsigned int elementNumber,
+                                      unsigned elementNumber,
                                       float *nodePositions,
                                       nifti_image *deformationFieldImage,
-                                      unsigned int *closestNodes,
+                                      unsigned *closestNodes,
                                       float *femInterpolationWeight
                                      );
 
@@ -51,7 +51,7 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
  */
 void reg_fem_getDeformationField(float *nodePositions,
                                  nifti_image *deformationFieldImage,
-                                 unsigned int *closestNodes,
+                                 unsigned *closestNodes,
                                  float *femInterpolationWeight
                                 );
 
@@ -66,7 +66,7 @@ void reg_fem_getDeformationField(float *nodePositions,
  * every node.
  */
 void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
-                                 unsigned int *closestNodes,
+                                 unsigned *closestNodes,
                                  float *femInterpolationWeight,
-                                 unsigned int nodeNumber,
+                                 unsigned nodeNumber,
                                  float *femBasedGradient);

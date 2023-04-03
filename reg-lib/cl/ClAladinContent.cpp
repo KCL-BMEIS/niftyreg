@@ -7,8 +7,8 @@ ClAladinContent::ClAladinContent(nifti_image *referenceIn,
                                  int *referenceMaskIn,
                                  mat44 *transformationMatrixIn,
                                  size_t bytesIn,
-                                 const unsigned int percentageOfBlocks,
-                                 const unsigned int inlierLts,
+                                 const unsigned percentageOfBlocks,
+                                 const unsigned inlierLts,
                                  int blockStepSize) :
     AladinContent(referenceIn,
                   floatingIn,
@@ -43,7 +43,7 @@ void ClAladinContent::InitVars() {
         if (warped != nullptr)
             reg_tools_changeDatatype<float>(warped);
     }
-    sContext = &ClContextSingleton::Instance();
+    sContext = &ClContextSingleton::GetInstance();
     clContext = sContext->GetContext();
     commandQueue = sContext->GetCommandQueue();
     //numBlocks = (blockMatchingParams != nullptr) ? blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2] : 0;
@@ -52,32 +52,32 @@ void ClAladinContent::InitVars() {
 void ClAladinContent::AllocateClPtrs() {
     if (warped != nullptr) {
         warpedImageClmem = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, warped->nvox * sizeof(float), warped->data, &errNum);
-        sContext->checkErrNum(errNum, "ClAladinContent::AllocateClPtrs failed to allocate memory (warpedImageClmem): ");
+        sContext->CheckErrNum(errNum, "ClAladinContent::AllocateClPtrs failed to allocate memory (warpedImageClmem): ");
     }
     if (deformationField != nullptr) {
         deformationFieldClmem = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * deformationField->nvox, deformationField->data, &errNum);
-        sContext->checkErrNum(errNum, "ClAladinContent::AllocateClPtrs failed to allocate memory (deformationFieldClmem): ");
+        sContext->CheckErrNum(errNum, "ClAladinContent::AllocateClPtrs failed to allocate memory (deformationFieldClmem): ");
     }
     if (floating != nullptr) {
         floatingImageClmem = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * floating->nvox, floating->data, &errNum);
-        sContext->checkErrNum(errNum, "ClAladinContent::AllocateClPtrs failed to allocate memory (floating): ");
+        sContext->CheckErrNum(errNum, "ClAladinContent::AllocateClPtrs failed to allocate memory (floating): ");
 
         float *sourceIJKMatrix_h = (float*)malloc(sizeof(mat44));
         mat44ToCptr(*GetIJKMatrix(*floating), sourceIJKMatrix_h);
         floMatClmem = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(mat44), sourceIJKMatrix_h, &errNum);
-        sContext->checkErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (floMatClmem): ");
+        sContext->CheckErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (floMatClmem): ");
         free(sourceIJKMatrix_h);
     }
     if (reference != nullptr) {
         referenceImageClmem = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                              sizeof(float) * reference->nvox,
                                              reference->data, &errNum);
-        sContext->checkErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (referenceImageClmem): ");
+        sContext->CheckErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (referenceImageClmem): ");
 
         float* targetMat = (float *)malloc(sizeof(mat44)); //freed
         mat44ToCptr(*GetXYZMatrix(*reference), targetMat);
         refMatClmem = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(mat44), targetMat, &errNum);
-        sContext->checkErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (refMatClmem): ");
+        sContext->CheckErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (refMatClmem): ");
         free(targetMat);
     }
     if (blockMatchingParams != nullptr) {
@@ -86,27 +86,27 @@ void ClAladinContent::AllocateClPtrs() {
             referencePositionClmem = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                                                     blockMatchingParams->activeBlockNumber * blockMatchingParams->dim * sizeof(float),
                                                     blockMatchingParams->referencePosition, &errNum);
-            sContext->checkErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (referencePositionClmem): ");
+            sContext->CheckErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (referencePositionClmem): ");
         }
         if (blockMatchingParams->warpedPosition != nullptr) {
             //resultPositionClmem
             warpedPositionClmem = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                                                  blockMatchingParams->activeBlockNumber * blockMatchingParams->dim * sizeof(float),
                                                  blockMatchingParams->warpedPosition, &errNum);
-            sContext->checkErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (warpedPositionClmem): ");
+            sContext->CheckErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (warpedPositionClmem): ");
         }
         if (blockMatchingParams->totalBlock != nullptr) {
             //totalBlockClmem
             totalBlockClmem = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                              blockMatchingParams->totalBlockNumber * sizeof(int),
                                              blockMatchingParams->totalBlock, &errNum);
-            sContext->checkErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (activeBlockClmem): ");
+            sContext->CheckErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (activeBlockClmem): ");
         }
     }
     if (referenceMask != nullptr && reference != nullptr) {
         maskClmem = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                    CalcVoxelNumber(*reference) * sizeof(int), referenceMask, &errNum);
-        sContext->checkErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (clCreateBuffer): ");
+        sContext->CheckErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (clCreateBuffer): ");
     }
 }
 /* *************************************************************** */
@@ -117,15 +117,15 @@ nifti_image* ClAladinContent::GetWarped() {
 /* *************************************************************** */
 nifti_image* ClAladinContent::GetDeformationField() {
     errNum = clEnqueueReadBuffer(commandQueue, deformationFieldClmem, CL_TRUE, 0, deformationField->nvox * sizeof(float), deformationField->data, 0, nullptr, nullptr); //CLCONTEXT
-    sContext->checkErrNum(errNum, "Get: failed deformationField: ");
+    sContext->CheckErrNum(errNum, "Get: failed deformationField: ");
     return deformationField;
 }
 /* *************************************************************** */
 _reg_blockMatchingParam* ClAladinContent::GetBlockMatchingParams() {
     errNum = clEnqueueReadBuffer(commandQueue, warpedPositionClmem, CL_TRUE, 0, sizeof(float) * blockMatchingParams->activeBlockNumber * blockMatchingParams->dim, blockMatchingParams->warpedPosition, 0, nullptr, nullptr); //CLCONTEXT
-    sContext->checkErrNum(errNum, "CLContext: failed result position: ");
+    sContext->CheckErrNum(errNum, "CLContext: failed result position: ");
     errNum = clEnqueueReadBuffer(commandQueue, referencePositionClmem, CL_TRUE, 0, sizeof(float) * blockMatchingParams->activeBlockNumber * blockMatchingParams->dim, blockMatchingParams->referencePosition, 0, nullptr, nullptr); //CLCONTEXT
-    sContext->checkErrNum(errNum, "CLContext: failed target position: ");
+    sContext->CheckErrNum(errNum, "CLContext: failed target position: ");
     return blockMatchingParams;
 }
 /* *************************************************************** */
@@ -139,7 +139,7 @@ void ClAladinContent::SetDeformationField(nifti_image *deformationFieldIn) {
 
     AladinContent::SetDeformationField(deformationFieldIn);
     deformationFieldClmem = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, deformationField->nvox * sizeof(float), deformationField->data, &errNum);
-    sContext->checkErrNum(errNum, "ClAladinContent::SetDeformationField failed to allocate memory (deformationFieldClmem): ");
+    sContext->CheckErrNum(errNum, "ClAladinContent::SetDeformationField failed to allocate memory (deformationFieldClmem): ");
 }
 /* *************************************************************** */
 void ClAladinContent::SetReferenceMask(int *referenceMaskIn) {
@@ -147,7 +147,7 @@ void ClAladinContent::SetReferenceMask(int *referenceMaskIn) {
         clReleaseMemObject(maskClmem);
     AladinContent::SetReferenceMask(referenceMaskIn);
     maskClmem = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, reference->nvox * sizeof(int), referenceMask, &errNum);
-    sContext->checkErrNum(errNum, "ClAladinContent::SetReferenceMask failed to allocate memory (maskClmem): ");
+    sContext->CheckErrNum(errNum, "ClAladinContent::SetReferenceMask failed to allocate memory (maskClmem): ");
 }
 /* *************************************************************** */
 void ClAladinContent::SetWarped(nifti_image *warped) {
@@ -159,7 +159,7 @@ void ClAladinContent::SetWarped(nifti_image *warped) {
     }
     AladinContent::SetWarped(warped);
     warpedImageClmem = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, warped->nvox * sizeof(float), warped->data, &errNum);
-    sContext->checkErrNum(errNum, "ClAladinContent::SetWarped failed to allocate memory (warpedImageClmem): ");
+    sContext->CheckErrNum(errNum, "ClAladinContent::SetWarped failed to allocate memory (warpedImageClmem): ");
 }
 /* *************************************************************** */
 void ClAladinContent::SetBlockMatchingParams(_reg_blockMatchingParam* bmp) {
@@ -168,19 +168,19 @@ void ClAladinContent::SetBlockMatchingParams(_reg_blockMatchingParam* bmp) {
         clReleaseMemObject(referencePositionClmem);
         //referencePositionClmem
         referencePositionClmem = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim * sizeof(float), blockMatchingParams->referencePosition, &errNum);
-        sContext->checkErrNum(errNum, "ClAladinContent::SetBlockMatchingParams failed to allocate memory (referencePositionClmem): ");
+        sContext->CheckErrNum(errNum, "ClAladinContent::SetBlockMatchingParams failed to allocate memory (referencePositionClmem): ");
     }
     if (blockMatchingParams->warpedPosition != nullptr) {
         clReleaseMemObject(warpedPositionClmem);
         //warpedPositionClmem
         warpedPositionClmem = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim * sizeof(float), blockMatchingParams->warpedPosition, &errNum);
-        sContext->checkErrNum(errNum, "ClAladinContent::SetBlockMatchingParams failed to allocate memory (warpedPositionClmem): ");
+        sContext->CheckErrNum(errNum, "ClAladinContent::SetBlockMatchingParams failed to allocate memory (warpedPositionClmem): ");
     }
     if (blockMatchingParams->totalBlock != nullptr) {
         clReleaseMemObject(totalBlockClmem);
         //totalBlockClmem
         totalBlockClmem = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, blockMatchingParams->totalBlockNumber * sizeof(int), blockMatchingParams->totalBlock, &errNum);
-        sContext->checkErrNum(errNum, "ClAladinContent::SetBlockMatchingParams failed to allocate memory (activeBlockClmem): ");
+        sContext->CheckErrNum(errNum, "ClAladinContent::SetBlockMatchingParams failed to allocate memory (activeBlockClmem): ");
     }
 }
 /* *************************************************************** */
@@ -257,7 +257,7 @@ DataType ClAladinContent::FillWarpedImageData(float intensity, int datatype) {
         if (intensity != intensity)
             intensity = 0;
         intensity = (intensity <= 4294967295 ? reg_round(intensity) : 4294967295); // 4294967295=2^32-1
-        return static_cast<unsigned int>(intensity > 0 ? reg_round(intensity) : 0);
+        return static_cast<unsigned>(intensity > 0 ? reg_round(intensity) : 0);
         break;
     default:
         if (intensity != intensity)
@@ -280,7 +280,7 @@ void ClAladinContent::FillImageData(nifti_image *image, cl_mem memoryObject, int
 
     errNum = clEnqueueReadBuffer(commandQueue, memoryObject, CL_TRUE, 0,
                                  size * sizeof(float), buffer, 0, nullptr, nullptr);
-    sContext->checkErrNum(errNum, "Error reading warped buffer.");
+    sContext->CheckErrNum(errNum, "Error reading warped buffer.");
 
     free(image->data);
     image->datatype = type;
@@ -313,7 +313,7 @@ void ClAladinContent::DownloadImage(nifti_image *image, cl_mem memoryObject, int
         FillImageData<short>(image, memoryObject, datatype);
         break;
     case NIFTI_TYPE_UINT32:
-        FillImageData<unsigned int>(image, memoryObject, datatype);
+        FillImageData<unsigned>(image, memoryObject, datatype);
         break;
     case NIFTI_TYPE_INT32:
         FillImageData<int>(image, memoryObject, datatype);
@@ -349,6 +349,6 @@ void ClAladinContent::FreeClPtrs() {
 }
 /* *************************************************************** */
 bool ClAladinContent::IsCurrentComputationDoubleCapable() {
-    return sContext->GetIsCardDoubleCapable();
+    return sContext->IsCardDoubleCapable();
 }
 /* *************************************************************** */

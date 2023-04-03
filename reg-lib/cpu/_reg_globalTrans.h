@@ -82,7 +82,7 @@ void reg_affine_getDeformationField(mat44 *affine,
                                     int *mask = nullptr);
 /* *************************************************************** */
 void optimize_2D(float* referencePosition, float* warpedPosition,
-    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    unsigned definedActiveBlock, int percent_to_keep, int max_iter, double tol,
     mat44* final, bool affine);
 /* *************************************************************** */
 void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
@@ -90,7 +90,7 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, 
 void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
 /* *************************************************************** */
 void optimize_3D(float* referencePosition, float* warpedPosition,
-    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    unsigned definedActiveBlock, int percent_to_keep, int max_iter, double tol,
     mat44* final, bool affine);
 /* *************************************************************** */
 void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);

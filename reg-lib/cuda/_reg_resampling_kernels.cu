@@ -15,11 +15,11 @@ __global__ void reg_resampleImage2D_kernel(float *resultArray,
                                            cudaTextureObject_t floatingTexture,
                                            cudaTextureObject_t deformationFieldTexture,
                                            cudaTextureObject_t maskTexture,
-                                           mat44 floatingMatrix,
-                                           int3 floatingDim,
-                                           size_t activeVoxelNumber,
-                                           float paddingValue) {
-    const size_t tid = ((size_t)blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+                                           const mat44 floatingMatrix,
+                                           const int3 floatingDim,
+                                           const unsigned activeVoxelNumber,
+                                           const float paddingValue) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < activeVoxelNumber) {
         //Get the real world deformation in the floating space
         const int tid2 = tex1Dfetch<int>(maskTexture, tid);
@@ -45,11 +45,11 @@ __global__ void reg_resampleImage3D_kernel(float *resultArray,
                                            cudaTextureObject_t floatingTexture,
                                            cudaTextureObject_t deformationFieldTexture,
                                            cudaTextureObject_t maskTexture,
-                                           mat44 floatingMatrix,
-                                           int3 floatingDim,
-                                           size_t activeVoxelNumber,
-                                           float paddingValue) {
-    const size_t tid = ((size_t)blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+                                           const mat44 floatingMatrix,
+                                           const int3 floatingDim,
+                                           const unsigned activeVoxelNumber,
+                                           const float paddingValue) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < activeVoxelNumber) {
         const int tid2 = tex1Dfetch<int>(maskTexture, tid);
 
@@ -82,11 +82,11 @@ __global__ void reg_resampleImage3D_kernel(float *resultArray,
 __global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
                                               cudaTextureObject_t floatingTexture,
                                               cudaTextureObject_t deformationFieldTexture,
-                                              mat44 floatingMatrix,
-                                              int3 floatingDim,
-                                              size_t activeVoxelNumber,
-                                              float paddingValue) {
-    const size_t tid = ((size_t)blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+                                              const mat44 floatingMatrix,
+                                              const int3 floatingDim,
+                                              const unsigned activeVoxelNumber,
+                                              const float paddingValue) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < activeVoxelNumber) {
         //Get the real world deformation in the floating space
         float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, tid);
@@ -142,11 +142,11 @@ __global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
 __global__ void reg_getImageGradient3D_kernel(float4 *gradientArray,
                                               cudaTextureObject_t floatingTexture,
                                               cudaTextureObject_t deformationFieldTexture,
-                                              mat44 floatingMatrix,
-                                              int3 floatingDim,
-                                              size_t activeVoxelNumber,
-                                              float paddingValue) {
-    const size_t tid = ((size_t)blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+                                              const mat44 floatingMatrix,
+                                              const int3 floatingDim,
+                                              const unsigned activeVoxelNumber,
+                                              const float paddingValue) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < activeVoxelNumber) {
         //Get the real world deformation in the floating space
         float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, tid);

@@ -26,9 +26,9 @@ private:
                                    int *mask,
                                    mat44 *transMat,
                                    size_t bytes,
-                                   unsigned int blockPercentage = 0,
-                                   unsigned int inlierLts = 0,
-                                   unsigned int blockStepSize = 0);
+                                   unsigned blockPercentage = 0,
+                                   unsigned inlierLts = 0,
+                                   unsigned blockStepSize = 0);
     virtual void DeinitAladinContent();
     virtual void CreateKernels();
     virtual void DeallocateKernels();

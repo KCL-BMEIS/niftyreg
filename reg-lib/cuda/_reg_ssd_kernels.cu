@@ -31,7 +31,7 @@ __global__ void reg_getSquaredDifference3D_kernel(float *squaredDifference)
     if(tid<c_ActiveVoxelNumber){
 
         int3 imageSize = c_ReferenceImageDim;
-        unsigned int index=tex1Dfetch(maskTexture,tid);
+        unsigned index=tex1Dfetch(maskTexture,tid);
         const int z = index/(imageSize.x*imageSize.y);
         const int tempIndex = index - z*imageSize.x*imageSize.y;
         const int y = tempIndex/imageSize.x;
@@ -54,7 +54,7 @@ __global__ void reg_getSquaredDifference2D_kernel(float *squaredDifference)
     if(tid<c_ActiveVoxelNumber){
 
         int3 imageSize = c_ReferenceImageDim;
-        unsigned int index=tex1Dfetch(maskTexture,tid);
+        unsigned index=tex1Dfetch(maskTexture,tid);
         const int y = index/imageSize.x;
         const int x = index - y*imageSize.x;
 
@@ -75,7 +75,7 @@ __global__ void reg_getSSDGradient2D_kernel(float4 *ssdGradient)
     if(tid<c_ActiveVoxelNumber){
 
         int3 imageSize = c_ReferenceImageDim;
-        unsigned int index = tex1Dfetch(maskTexture,tid);
+        unsigned index = tex1Dfetch(maskTexture,tid);
         const int y = index/imageSize.x;
         const int x = index - y*imageSize.x;
 
@@ -112,7 +112,7 @@ __global__ void reg_getSSDGradient3D_kernel(float4 *ssdGradient)
     if(tid<c_ActiveVoxelNumber){
 
         int3 imageSize = c_ReferenceImageDim;
-        unsigned int index = tex1Dfetch(maskTexture,tid);
+        unsigned index = tex1Dfetch(maskTexture,tid);
         const int z = index/(imageSize.x*imageSize.y);
         const int tempIndex = index - z*imageSize.x*imageSize.y;
         const int y = tempIndex/imageSize.x;

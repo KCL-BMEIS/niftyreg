@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AladinContent.h"
-#include "CudaContextSingleton.h"
+#include "CudaContext.hpp"
 #include "_reg_tools.h"
 
 class CudaAladinContent: public AladinContent {
@@ -11,8 +11,8 @@ public:
                       int *referenceMaskIn = nullptr,
                       mat44 *transformationMatrixIn = nullptr,
                       size_t bytesIn = sizeof(float),
-                      const unsigned int percentageOfBlocks = 0,
-                      const unsigned int inlierLts = 0,
+                      const unsigned percentageOfBlocks = 0,
+                      const unsigned inlierLts = 0,
                       int blockStepSize = 0);
     virtual ~CudaAladinContent();
 

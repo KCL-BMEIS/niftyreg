@@ -119,8 +119,8 @@ void reg_intensityRescale_core(nifti_image *image,
         currentMax = (DataType)std::numeric_limits<short>::min();
         break;
     case NIFTI_TYPE_UINT32:
-        currentMin = (DataType)std::numeric_limits<unsigned int>::max();
-        currentMax = (DataType)std::numeric_limits<unsigned int>::min();
+        currentMin = (DataType)std::numeric_limits<unsigned>::max();
+        currentMax = (DataType)std::numeric_limits<unsigned>::min();
         break;
     case NIFTI_TYPE_INT32:
         currentMin = (DataType)std::numeric_limits<int>::max();
@@ -191,7 +191,7 @@ void reg_intensityRescale(nifti_image *image,
         reg_intensityRescale_core<short>(image, timepoint, newMin, newMax);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_intensityRescale_core<unsigned int>(image, timepoint, newMin, newMax);
+        reg_intensityRescale_core<unsigned>(image, timepoint, newMin, newMax);
         break;
     case NIFTI_TYPE_INT32:
         reg_intensityRescale_core<int>(image, timepoint, newMin, newMax);
@@ -236,7 +236,7 @@ void reg_tools_removeSCLInfo(nifti_image *image) {
         reg_tools_removeSCLInfo<short>(image);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_removeSCLInfo<unsigned int>(image);
+        reg_tools_removeSCLInfo<unsigned>(image);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_removeSCLInfo<int>(image);
@@ -318,7 +318,7 @@ void reg_thresholdImage(nifti_image *image, T lowThr, T upThr) {
         reg_thresholdImage<T, short>(image, lowThr, upThr);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_thresholdImage<T, unsigned int>(image, lowThr, upThr);
+        reg_thresholdImage<T, unsigned>(image, lowThr, upThr);
         break;
     case NIFTI_TYPE_INT32:
         reg_thresholdImage<T, int>(image, lowThr, upThr);
@@ -433,7 +433,7 @@ void reg_tools_changeDatatype(nifti_image *image, int type) {
         reg_tools_changeDatatype<NewType, short>(image, type);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_changeDatatype<NewType, unsigned int>(image, type);
+        reg_tools_changeDatatype<NewType, unsigned>(image, type);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_changeDatatype<NewType, int>(image, type);
@@ -452,7 +452,7 @@ void reg_tools_changeDatatype(nifti_image *image, int type) {
 }
 template void reg_tools_changeDatatype<unsigned char>(nifti_image*, int);
 template void reg_tools_changeDatatype<unsigned short>(nifti_image*, int);
-template void reg_tools_changeDatatype<unsigned int>(nifti_image*, int);
+template void reg_tools_changeDatatype<unsigned>(nifti_image*, int);
 template void reg_tools_changeDatatype<char>(nifti_image*, int);
 template void reg_tools_changeDatatype<short>(nifti_image*, int);
 template void reg_tools_changeDatatype<int>(nifti_image*, int);
@@ -542,7 +542,7 @@ void reg_tools_addImageToImage(const nifti_image *img1,
         reg_tools_operationImageToImage<short>(img1, img2, res, operation);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_operationImageToImage<unsigned int>(img1, img2, res, operation);
+        reg_tools_operationImageToImage<unsigned>(img1, img2, res, operation);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_operationImageToImage<int>(img1, img2, res, operation);
@@ -588,7 +588,7 @@ void reg_tools_subtractImageFromImage(const nifti_image *img1,
         reg_tools_operationImageToImage<short>(img1, img2, res, operation);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_operationImageToImage<unsigned int>(img1, img2, res, operation);
+        reg_tools_operationImageToImage<unsigned>(img1, img2, res, operation);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_operationImageToImage<int>(img1, img2, res, operation);
@@ -634,7 +634,7 @@ void reg_tools_multiplyImageToImage(const nifti_image *img1,
         reg_tools_operationImageToImage<short>(img1, img2, res, operation);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_operationImageToImage<unsigned int>(img1, img2, res, operation);
+        reg_tools_operationImageToImage<unsigned>(img1, img2, res, operation);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_operationImageToImage<int>(img1, img2, res, operation);
@@ -680,7 +680,7 @@ void reg_tools_divideImageToImage(const nifti_image *img1,
         reg_tools_operationImageToImage<short>(img1, img2, res, operation);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_operationImageToImage<unsigned int>(img1, img2, res, operation);
+        reg_tools_operationImageToImage<unsigned>(img1, img2, res, operation);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_operationImageToImage<int>(img1, img2, res, operation);
@@ -756,7 +756,7 @@ void reg_tools_addValueToImage(const nifti_image *img,
         reg_tools_operationValueToImage<short>(img, res, val, operation);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_operationValueToImage<unsigned int>(img, res, val, operation);
+        reg_tools_operationValueToImage<unsigned>(img, res, val, operation);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_operationValueToImage<int>(img, res, val, operation);
@@ -802,7 +802,7 @@ void reg_tools_subtractValueFromImage(const nifti_image *img,
         reg_tools_operationValueToImage<short>(img, res, val, operation);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_operationValueToImage<unsigned int>(img, res, val, operation);
+        reg_tools_operationValueToImage<unsigned>(img, res, val, operation);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_operationValueToImage<int>(img, res, val, operation);
@@ -848,7 +848,7 @@ void reg_tools_multiplyValueToImage(const nifti_image *img,
         reg_tools_operationValueToImage<short>(img, res, val, operation);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_operationValueToImage<unsigned int>(img, res, val, operation);
+        reg_tools_operationValueToImage<unsigned>(img, res, val, operation);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_operationValueToImage<int>(img, res, val, operation);
@@ -894,7 +894,7 @@ void reg_tools_divideValueToImage(const nifti_image *img,
         reg_tools_operationValueToImage<short>(img, res, val, operation);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_operationValueToImage<unsigned int>(img, res, val, operation);
+        reg_tools_operationValueToImage<unsigned>(img, res, val, operation);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_operationValueToImage<int>(img, res, val, operation);
@@ -1389,7 +1389,7 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
         reg_tools_labelKernelConvolution_core<short>(image, varianceX, varianceY, varianceZ, mask, timePoint);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_labelKernelConvolution_core<unsigned int>(image, varianceX, varianceY, varianceZ, mask, timePoint);
+        reg_tools_labelKernelConvolution_core<unsigned>(image, varianceX, varianceY, varianceZ, mask, timePoint);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_labelKernelConvolution_core<int>(image, varianceX, varianceY, varianceZ, mask, timePoint);
@@ -1594,7 +1594,7 @@ void reg_downsampleImage(nifti_image *image, int type, bool *downsampleAxis) {
         reg_downsampleImage<PrecisionType, short>(image, type, downsampleAxis);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_downsampleImage<PrecisionType, unsigned int>(image, type, downsampleAxis);
+        reg_downsampleImage<PrecisionType, unsigned>(image, type, downsampleAxis);
         break;
     case NIFTI_TYPE_INT32:
         reg_downsampleImage<PrecisionType, int>(image, type, downsampleAxis);
@@ -1638,7 +1638,7 @@ void reg_tools_binarise_image(nifti_image *image) {
         reg_tools_binarise_image<short>(image);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_binarise_image<unsigned int>(image);
+        reg_tools_binarise_image<unsigned>(image);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_binarise_image<int>(image);
@@ -1678,7 +1678,7 @@ void reg_tools_binarise_image(nifti_image *image, float threshold) {
         reg_tools_binarise_image<short>(image, threshold);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_binarise_image<unsigned int>(image, threshold);
+        reg_tools_binarise_image<unsigned>(image, threshold);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_binarise_image<int>(image, threshold);
@@ -1718,7 +1718,7 @@ void reg_tools_binaryImage2int(const nifti_image *image, int *array) {
         reg_tools_binaryImage2int<short>(image, array);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_binaryImage2int<unsigned int>(image, array);
+        reg_tools_binaryImage2int<unsigned>(image, array);
         break;
     case NIFTI_TYPE_INT32:
         reg_tools_binaryImage2int<int>(image, array);
@@ -1785,7 +1785,7 @@ double reg_tools_getMeanRMS(const nifti_image *imageA, const nifti_image *imageB
     case NIFTI_TYPE_INT16:
         return reg_tools_getMeanRMS<AType, short>(imageA, imageB);
     case NIFTI_TYPE_UINT32:
-        return reg_tools_getMeanRMS<AType, unsigned int>(imageA, imageB);
+        return reg_tools_getMeanRMS<AType, unsigned>(imageA, imageB);
     case NIFTI_TYPE_INT32:
         return reg_tools_getMeanRMS<AType, int>(imageA, imageB);
     case NIFTI_TYPE_FLOAT32:
@@ -1810,7 +1810,7 @@ double reg_tools_getMeanRMS(const nifti_image *imageA, const nifti_image *imageB
     case NIFTI_TYPE_INT16:
         return reg_tools_getMeanRMS<short>(imageA, imageB);
     case NIFTI_TYPE_UINT32:
-        return reg_tools_getMeanRMS<unsigned int>(imageA, imageB);
+        return reg_tools_getMeanRMS<unsigned>(imageA, imageB);
     case NIFTI_TYPE_INT32:
         return reg_tools_getMeanRMS<int>(imageA, imageB);
     case NIFTI_TYPE_FLOAT32:
@@ -1825,14 +1825,14 @@ double reg_tools_getMeanRMS(const nifti_image *imageA, const nifti_image *imageB
 }
 /* *************************************************************** */
 template <class DataType>
-void reg_createImagePyramid(const NiftiImage& inputImage, vector<NiftiImage>& pyramid, unsigned int levelNumber, unsigned int levelToPerform) {
+void reg_createImagePyramid(const NiftiImage& inputImage, vector<NiftiImage>& pyramid, unsigned levelNumber, unsigned levelToPerform) {
     // FINEST LEVEL OF REGISTRATION
     pyramid[levelToPerform - 1] = inputImage;
     reg_tools_changeDatatype<DataType>(pyramid[levelToPerform - 1]);
     reg_tools_removeSCLInfo(pyramid[levelToPerform - 1]);
 
     // Images are downsampled if appropriate
-    for (unsigned int l = levelToPerform; l < levelNumber; l++) {
+    for (unsigned l = levelToPerform; l < levelNumber; l++) {
         bool downsampleAxis[8] = { false, true, true, true, false, false, false, false };
         if ((pyramid[levelToPerform - 1]->nx / 2) < 32) downsampleAxis[1] = false;
         if ((pyramid[levelToPerform - 1]->ny / 2) < 32) downsampleAxis[2] = false;
@@ -1853,11 +1853,11 @@ void reg_createImagePyramid(const NiftiImage& inputImage, vector<NiftiImage>& py
         reg_downsampleImage<DataType>(pyramid[l], 1, downsampleAxis);
     }
 }
-template void reg_createImagePyramid<float>(const NiftiImage&, vector<NiftiImage>&, unsigned int, unsigned int);
-template void reg_createImagePyramid<double>(const NiftiImage&, vector<NiftiImage>&, unsigned int, unsigned int);
+template void reg_createImagePyramid<float>(const NiftiImage&, vector<NiftiImage>&, unsigned, unsigned);
+template void reg_createImagePyramid<double>(const NiftiImage&, vector<NiftiImage>&, unsigned, unsigned);
 /* *************************************************************** */
 template <class DataType>
-void reg_createMaskPyramid(const NiftiImage& inputMaskImage, vector<unique_ptr<int[]>>& maskPyramid, unsigned int levelNumber, unsigned int levelToPerform) {
+void reg_createMaskPyramid(const NiftiImage& inputMaskImage, vector<unique_ptr<int[]>>& maskPyramid, unsigned levelNumber, unsigned levelToPerform) {
     // FINEST LEVEL OF REGISTRATION
     vector<NiftiImage> tempMaskImagePyramid(levelToPerform);
     tempMaskImagePyramid[levelToPerform - 1] = inputMaskImage;
@@ -1865,7 +1865,7 @@ void reg_createMaskPyramid(const NiftiImage& inputMaskImage, vector<unique_ptr<i
     reg_tools_changeDatatype<unsigned char>(tempMaskImagePyramid[levelToPerform - 1]);
 
     // Image is downsampled if appropriate
-    for (unsigned int l = levelToPerform; l < levelNumber; l++) {
+    for (unsigned l = levelToPerform; l < levelNumber; l++) {
         bool downsampleAxis[8] = { false, true, true, true, false, false, false, false };
         if ((tempMaskImagePyramid[levelToPerform - 1]->nx / 2) < 32) downsampleAxis[1] = false;
         if ((tempMaskImagePyramid[levelToPerform - 1]->ny / 2) < 32) downsampleAxis[2] = false;
@@ -1893,8 +1893,8 @@ void reg_createMaskPyramid(const NiftiImage& inputMaskImage, vector<unique_ptr<i
         reg_tools_binaryImage2int(tempMaskImagePyramid[l], maskPyramid[l].get());
     }
 }
-template void reg_createMaskPyramid<float>(const NiftiImage&, vector<unique_ptr<int[]>>&, unsigned int, unsigned int);
-template void reg_createMaskPyramid<double>(const NiftiImage&, vector<unique_ptr<int[]>>&, unsigned int, unsigned int);
+template void reg_createMaskPyramid<float>(const NiftiImage&, vector<unique_ptr<int[]>>&, unsigned, unsigned);
+template void reg_createMaskPyramid<double>(const NiftiImage&, vector<unique_ptr<int[]>>&, unsigned, unsigned);
 /* *************************************************************** */
 template <class ImageType, class MaskType>
 int reg_tools_nanMask_image(const nifti_image *image, const nifti_image *maskImage, nifti_image *outputImage) {
@@ -1924,7 +1924,7 @@ int reg_tools_nanMask_image(const nifti_image *image, const nifti_image *maskIma
     case NIFTI_TYPE_INT16:
         return reg_tools_nanMask_image<ImageType, short>(image, maskImage, outputImage);
     case NIFTI_TYPE_UINT32:
-        return reg_tools_nanMask_image<ImageType, unsigned int>(image, maskImage, outputImage);
+        return reg_tools_nanMask_image<ImageType, unsigned>(image, maskImage, outputImage);
     case NIFTI_TYPE_INT32:
         return reg_tools_nanMask_image<ImageType, int>(image, maskImage, outputImage);
     case NIFTI_TYPE_FLOAT32:
@@ -1961,7 +1961,7 @@ int reg_tools_nanMask_image(const nifti_image *image, const nifti_image *maskIma
     case NIFTI_TYPE_INT16:
         return reg_tools_nanMask_image<short>(image, maskImage, outputImage);
     case NIFTI_TYPE_UINT32:
-        return reg_tools_nanMask_image<unsigned int>(image, maskImage, outputImage);
+        return reg_tools_nanMask_image<unsigned>(image, maskImage, outputImage);
     case NIFTI_TYPE_INT32:
         return reg_tools_nanMask_image<int>(image, maskImage, outputImage);
     case NIFTI_TYPE_FLOAT32:
@@ -2038,7 +2038,7 @@ float reg_tools_getMinValue(const nifti_image *image, int timepoint) {
     case NIFTI_TYPE_INT16:
         return reg_tools_getMinMaxValue<short>(image, timepoint);
     case NIFTI_TYPE_UINT32:
-        return (float)reg_tools_getMinMaxValue<unsigned int>(image, timepoint);
+        return (float)reg_tools_getMinMaxValue<unsigned>(image, timepoint);
     case NIFTI_TYPE_INT32:
         return (float)reg_tools_getMinMaxValue<int>(image, timepoint);
     case NIFTI_TYPE_FLOAT32:
@@ -2064,7 +2064,7 @@ float reg_tools_getMaxValue(const nifti_image *image, int timepoint) {
     case NIFTI_TYPE_INT16:
         return reg_tools_getMinMaxValue<short>(image, timepoint, false);
     case NIFTI_TYPE_UINT32:
-        return (float)reg_tools_getMinMaxValue<unsigned int>(image, timepoint, false);
+        return (float)reg_tools_getMinMaxValue<unsigned>(image, timepoint, false);
     case NIFTI_TYPE_INT32:
         return (float)reg_tools_getMinMaxValue<int>(image, timepoint, false);
     case NIFTI_TYPE_FLOAT32:
@@ -2103,7 +2103,7 @@ float reg_tools_getMeanValue(const nifti_image *image) {
     case NIFTI_TYPE_INT16:
         return reg_tools_getMeanValue<short>(image);
     case NIFTI_TYPE_UINT32:
-        return reg_tools_getMeanValue<unsigned int>(image);
+        return reg_tools_getMeanValue<unsigned>(image);
     case NIFTI_TYPE_INT32:
         return reg_tools_getMeanValue<int>(image);
     case NIFTI_TYPE_FLOAT32:
@@ -2143,7 +2143,7 @@ float reg_tools_getSTDValue(const nifti_image *image) {
     case NIFTI_TYPE_INT16:
         return reg_tools_getSTDValue<short>(image);
     case NIFTI_TYPE_UINT32:
-        return reg_tools_getSTDValue<unsigned int>(image);
+        return reg_tools_getSTDValue<unsigned>(image);
     case NIFTI_TYPE_INT32:
         return reg_tools_getSTDValue<int>(image);
     case NIFTI_TYPE_FLOAT32:
@@ -2220,7 +2220,7 @@ void reg_flipAxis(const nifti_image *image, void **outputArray, const std::strin
         reg_flipAxis<short>(image, outputArray, cmd);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_flipAxis<unsigned int>(image, outputArray, cmd);
+        reg_flipAxis<unsigned>(image, outputArray, cmd);
         break;
     case NIFTI_TYPE_INT32:
         reg_flipAxis<int>(image, outputArray, cmd);
@@ -2595,7 +2595,7 @@ double reg_test_compare_images(const nifti_image *imgA, const nifti_image *imgB)
     case NIFTI_TYPE_UINT16:
         return reg_test_compare_images<unsigned short>(imgA, imgB);
     case NIFTI_TYPE_UINT32:
-        return reg_test_compare_images<unsigned int>(imgA, imgB);
+        return reg_test_compare_images<unsigned>(imgA, imgB);
     case NIFTI_TYPE_INT8:
         return reg_test_compare_images<char>(imgA, imgB);
     case NIFTI_TYPE_INT16:
@@ -2629,7 +2629,7 @@ void reg_tools_abs_image(nifti_image *img) {
         reg_tools_abs_image<unsigned short>(img);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_abs_image<unsigned int>(img);
+        reg_tools_abs_image<unsigned>(img);
         break;
     case NIFTI_TYPE_INT8:
         reg_tools_abs_image<char>(img);
@@ -2669,7 +2669,7 @@ void cPtrToMat44(mat44 *mat, const float *cMat) {
     }
 }
 /* *************************************************************** */
-void mat33ToCptr(const mat33 *mat, float *cMat, const unsigned int numMats) {
+void mat33ToCptr(const mat33 *mat, float *cMat, const unsigned numMats) {
     for (size_t k = 0; k < numMats; k++) {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
@@ -2688,26 +2688,26 @@ void cPtrToMat33(mat33 *mat, const float *cMat) {
 }
 /* *************************************************************** */
 template<typename T>
-void matmnToCptr(const T **mat, T *cMat, unsigned int m, unsigned int n) {
-    for (unsigned int i = 0; i < m; i++) {
-        for (unsigned int j = 0; j < n; j++) {
+void matmnToCptr(const T **mat, T *cMat, unsigned m, unsigned n) {
+    for (unsigned i = 0; i < m; i++) {
+        for (unsigned j = 0; j < n; j++) {
             cMat[i * n + j] = mat[i][j];
         }
     }
 }
-template void matmnToCptr<float>(const float**, float*, unsigned int, unsigned int);
-template void matmnToCptr<double>(const double**, double*, unsigned int, unsigned int);
+template void matmnToCptr<float>(const float**, float*, unsigned, unsigned);
+template void matmnToCptr<double>(const double**, double*, unsigned, unsigned);
 /* *************************************************************** */
 template<typename T>
-void cPtrToMatmn(T **mat, const T *cMat, unsigned int m, unsigned int n) {
-    for (unsigned int i = 0; i < m; i++) {
-        for (unsigned int j = 0; j < n; j++) {
+void cPtrToMatmn(T **mat, const T *cMat, unsigned m, unsigned n) {
+    for (unsigned i = 0; i < m; i++) {
+        for (unsigned j = 0; j < n; j++) {
             mat[i][j] = cMat[i * n + j];
         }
     }
 }
-template void cPtrToMatmn<float>(float**, const float*, unsigned int, unsigned int);
-template void cPtrToMatmn<double>(double**, const double*, unsigned int, unsigned int);
+template void cPtrToMatmn<float>(float**, const float*, unsigned, unsigned);
+template void cPtrToMatmn<double>(double**, const double*, unsigned, unsigned);
 /* *************************************************************** */
 void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x, int& y, int& z) {
     x = index % (maxValue_x + 1);

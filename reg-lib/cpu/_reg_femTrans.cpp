@@ -31,10 +31,10 @@ float reg_getTetrahedronVolume(float *node1,float *node2,float *node3,float *nod
 }
 
 void reg_fem_InitialiseTransformation(int *elementNodes,
-                                      unsigned int elementNumber,
+                                      unsigned elementNumber,
                                       float *nodePositions,
                                       nifti_image *deformationFieldImage,
-                                      unsigned int *closestNodes,
+                                      unsigned *closestNodes,
                                       float *femInterpolationWeight
                                      )
 {
@@ -59,10 +59,10 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
    float fullVolume;
    float subVolume[4];
 
-   for(unsigned int element=0; element<elementNumber; ++element)
+   for(unsigned element=0; element<elementNumber; ++element)
    {
       // Compute the element bounding box in voxel coordinate
-      for(unsigned int i=0; i<4; ++i)
+      for(unsigned i=0; i<4; ++i)
       {
          currentNodes[i]=elementNodes[4*element+i];
          nodeRealPosition[0]=nodePositions[3*currentNodes[i]];
@@ -74,7 +74,7 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
       int xRange[2]= {(int)reg_ceil(nodeVoxelIndices[0][0]), (int)reg_floor(nodeVoxelIndices[0][0])};
       int yRange[2]= {(int)reg_ceil(nodeVoxelIndices[0][1]), (int)reg_floor(nodeVoxelIndices[0][1])};
       int zRange[2]= {(int)reg_ceil(nodeVoxelIndices[0][2]), (int)reg_floor(nodeVoxelIndices[0][2])};
-      for(unsigned int i=1; i<4; ++i)
+      for(unsigned i=1; i<4; ++i)
       {
          xRange[0]=xRange[0]<(int)reg_ceil(nodeVoxelIndices[i][0])?xRange[0]:(int)reg_ceil(nodeVoxelIndices[i][0]);
          xRange[1]=xRange[1]>(int)reg_floor(nodeVoxelIndices[i][0])?xRange[1]:(int)reg_floor(nodeVoxelIndices[i][0]);
@@ -128,7 +128,7 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
                if(fabs(fullVolume/(subVolume[0]+subVolume[1]+subVolume[2]+subVolume[3])-1.f)<.000001f)
                {
                   int index=(z*deformationFieldImage->ny+y)*deformationFieldImage->nx+x;
-                  for(unsigned int i=0; i<4; ++i)
+                  for(unsigned i=0; i<4; ++i)
                   {
                      closestNodes[4*index+i]=currentNodes[i];
                      femInterpolationWeight[4*index+i]=subVolume[i]/fullVolume;
@@ -144,7 +144,7 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
 
 void reg_fem_getDeformationField(float *nodePositions,
                                  nifti_image *deformationFieldImage,
-                                 unsigned int *closestNodes,
+                                 unsigned *closestNodes,
                                  float *femInterpolationWeight
                                 )
 {
@@ -210,9 +210,9 @@ void reg_fem_getDeformationField(float *nodePositions,
 }// reg_fem_getDeformationField
 
 void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
-                                 unsigned int *closestNodes,
+                                 unsigned *closestNodes,
                                  float *femInterpolationWeight,
-                                 unsigned int nodeNumber,
+                                 unsigned nodeNumber,
                                  float *femBasedGradient)
 {
    const size_t voxelNumber = CalcVoxelNumber(*voxelBasedGradient);
@@ -220,10 +220,10 @@ void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
    float *voxGradPtrY = &voxGradPtrX[voxelNumber];
    float *voxGradPtrZ = &voxGradPtrY[voxelNumber];
 
-   for(unsigned int node=0; node<3*nodeNumber; ++node)
+   for(unsigned node=0; node<3*nodeNumber; ++node)
       femBasedGradient[node]=0.f;
 
-   unsigned int currentNodes[4];
+   unsigned currentNodes[4];
    float currentGradient[3];
    float coefficients[4];
    for(size_t voxel=0; voxel<voxelNumber; ++voxel)
@@ -242,7 +242,7 @@ void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
       currentGradient[1]=voxGradPtrY[voxel];
       currentGradient[2]=voxGradPtrZ[voxel];
 
-      for(unsigned int i=0; i<4; ++i)
+      for(unsigned i=0; i<4; ++i)
       {
          femBasedGradient[3*currentNodes[i]  ] += currentGradient[0]*coefficients[i];
          femBasedGradient[3*currentNodes[i]+1] += currentGradient[1]*coefficients[i];

@@ -78,8 +78,8 @@ protected:
     unique_ptr<T[]> floatingThresholdLow;
     bool robustRange;
     float warpedPaddingValue;
-    unsigned int levelNumber;
-    unsigned int levelToPerform;
+    unsigned levelNumber;
+    unsigned levelToPerform;
     T gradientSmoothingSigma;
     T similarityWeight;
     bool additive_mc_nmi;
@@ -150,7 +150,7 @@ public:
     virtual void SetGpuIdx(const unsigned& gpuIdx) { platform->SetGpuIdx(gpuIdx); }
 
     // Optimisation-related functions
-    virtual void SetMaximalIterationNumber(unsigned int);
+    virtual void SetMaximalIterationNumber(unsigned);
     virtual void NoOptimisationAlongX() { optimiseX = false; }
     virtual void NoOptimisationAlongY() { optimiseY = false; }
     virtual void NoOptimisationAlongZ() { optimiseZ = false; }
@@ -185,15 +185,15 @@ public:
     virtual void SetReferenceSmoothingSigma(T);
     virtual void SetFloatingSmoothingSigma(T);
     virtual void SetGradientSmoothingSigma(T);
-    virtual void SetReferenceThresholdUp(unsigned int, T);
-    virtual void SetReferenceThresholdLow(unsigned int, T);
-    virtual void SetFloatingThresholdUp(unsigned int, T);
-    virtual void SetFloatingThresholdLow(unsigned int, T);
+    virtual void SetReferenceThresholdUp(unsigned, T);
+    virtual void SetReferenceThresholdLow(unsigned, T);
+    virtual void SetFloatingThresholdUp(unsigned, T);
+    virtual void SetFloatingThresholdLow(unsigned, T);
     virtual void UseRobustRange();
     virtual void DoNotUseRobustRange();
     virtual void SetWarpedPaddingValue(float);
-    virtual void SetLevelNumber(unsigned int);
-    virtual void SetLevelToPerform(unsigned int);
+    virtual void SetLevelNumber(unsigned);
+    virtual void SetLevelToPerform(unsigned);
     virtual void PrintOutInformation();
     virtual void DoNotPrintOutInformation();
     virtual void DoNotUsePyramidalApproach();

@@ -49,12 +49,12 @@ void reg_aladin_sym<T>::InitialiseRegistration() {
                                  this->numberOfLevels,
                                  this->levelsToPerform);
     else
-        for (unsigned int l = 0; l < this->levelsToPerform; ++l)
+        for (unsigned l = 0; l < this->levelsToPerform; ++l)
             this->floatingMaskPyramid[l].reset(new int[this->floatingPyramid[l].nVoxelsPerVolume()]());
 
     // CHECK THE THRESHOLD VALUES TO UPDATE THE MASK
     if (this->floatingUpperThreshold != std::numeric_limits<T>::max()) {
-        for (unsigned int l = 0; l < this->levelsToPerform; ++l) {
+        for (unsigned l = 0; l < this->levelsToPerform; ++l) {
             T *refPtr = static_cast<T *>(this->floatingPyramid[l]->data);
             int *mskPtr = this->floatingMaskPyramid[l].get();
             for (size_t i = 0; i < this->floatingPyramid[l].nVoxelsPerVolume(); ++i) {
@@ -64,7 +64,7 @@ void reg_aladin_sym<T>::InitialiseRegistration() {
         }
     }
     if (this->floatingLowerThreshold != std::numeric_limits<T>::min()) {
-        for (unsigned int l = 0; l < this->levelsToPerform; ++l) {
+        for (unsigned l = 0; l < this->levelsToPerform; ++l) {
             T *refPtr = static_cast<T *>(this->floatingPyramid[l]->data);
             int *mskPtr = this->floatingMaskPyramid[l].get();
             for (size_t i = 0; i < this->floatingPyramid[l].nVoxelsPerVolume(); ++i) {
@@ -186,9 +186,9 @@ void reg_aladin_sym<T>::InitAladinContent(nifti_image *ref,
                                           int *mask,
                                           mat44 *transMat,
                                           size_t bytes,
-                                          unsigned int blockPercentage,
-                                          unsigned int inlierLts,
-                                          unsigned int blockStepSize) {
+                                          unsigned blockPercentage,
+                                          unsigned inlierLts,
+                                          unsigned blockStepSize) {
     reg_aladin<T>::InitAladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
     unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(this->platform->CreateContentCreator(ContentType::Aladin)) };
     this->backCon.reset(contentCreator->Create(flo, ref, this->floatingMaskPyramid[this->currentLevel].get(), this->backwardTransformationMatrix, bytes, blockPercentage, inlierLts, blockStepSize));

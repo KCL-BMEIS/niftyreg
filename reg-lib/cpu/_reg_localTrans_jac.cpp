@@ -1495,7 +1495,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
          DataType xBasis, yBasis, basis;
          DataType xFirst, yFirst;
          DataType basisValues[2];
-         unsigned int jacIndex;
+         unsigned jacIndex;
 
          int x, y, xPre, yPre, pixelX, pixelY, index;
          DataType jacobianConstraint[2];
@@ -1759,7 +1759,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
          DataType xBasis, yBasis, zBasis, basis;
          DataType xFirst, yFirst, zFirst;
          DataType basisValues[3];
-         unsigned int jacIndex;
+         unsigned jacIndex;
 
          int x, y, z, xPre, yPre, zPre, pixelX, pixelY, pixelZ, index;
          DataType jacobianConstraint[3];

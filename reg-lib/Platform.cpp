@@ -1,7 +1,7 @@
 #include "Platform.h"
 #include "CpuKernelFactory.h"
 #ifdef _USE_CUDA
-#include "CudaContextSingleton.h"
+#include "CudaContext.hpp"
 #include "CudaF3dContent.h"
 #include "CudaComputeFactory.h"
 #include "CudaContentCreatorFactory.h"
@@ -20,27 +20,29 @@
 Platform::Platform(const PlatformType& platformTypeIn) {
     platformType = platformTypeIn;
     if (platformType == PlatformType::Cpu) {
+        platformName = "CPU";
         computeFactory = new ComputeFactory();
         contentCreatorFactory = new ContentCreatorFactory();
         kernelFactory = new CpuKernelFactory();
         measureFactory = new MeasureFactory();
-        platformName = "CPU";
     }
 #ifdef _USE_CUDA
     else if (platformType == PlatformType::Cuda) {
+        platformName = "CUDA";
+        SetGpuIdx(999);
         computeFactory = new CudaComputeFactory();
         contentCreatorFactory = new CudaContentCreatorFactory();
         kernelFactory = new CudaKernelFactory();
         measureFactory = new CudaMeasureFactory();
-        platformName = "CUDA";
     }
 #endif
 #ifdef _USE_OPENCL
     else if (platformType == PlatformType::OpenCl) {
+        platformName = "OpenCL";
+        SetGpuIdx(999);
         computeFactory = new ClComputeFactory();
         contentCreatorFactory = new ClContentCreatorFactory();
         kernelFactory = new ClKernelFactory();
-        platformName = "OpenCL";
     }
 #endif
     else {
@@ -65,7 +67,7 @@ PlatformType Platform::GetPlatformType() const {
     return platformType;
 }
 /* *************************************************************** */
-unsigned int Platform::GetGpuIdx() const {
+unsigned Platform::GetGpuIdx() const {
     return gpuIdx;
 }
 /* *************************************************************** */
@@ -75,27 +77,27 @@ void Platform::SetGpuIdx(unsigned gpuIdxIn) {
     }
 #ifdef _USE_CUDA
     else if (platformType == PlatformType::Cuda) {
-        CudaContextSingleton *cudaContext = &CudaContextSingleton::Instance();
+        NiftyReg::CudaContext& cudaContext = NiftyReg::CudaContext::GetInstance();
         if (gpuIdxIn != 999) {
             gpuIdx = gpuIdxIn;
-            cudaContext->SetCudaIdx(gpuIdxIn);
+            cudaContext.SetCudaIdx(gpuIdxIn);
         }
     }
 #endif
 #ifdef _USE_OPENCL
     else if (platformType == PlatformType::OpenCl) {
-        ClContextSingleton *sContext = &ClContextSingleton::Instance();
+        ClContextSingleton& clContext = ClContextSingleton::GetInstance();
         if (gpuIdxIn != 999) {
             gpuIdx = gpuIdxIn;
-            sContext->SetClIdx(gpuIdxIn);
+            clContext.SetClIdx(gpuIdxIn);
         }
 
         std::size_t paramValueSize;
-        sContext->checkErrNum(clGetDeviceInfo(sContext->GetDeviceId(), CL_DEVICE_TYPE, 0, nullptr, &paramValueSize), "Failed to find OpenCL device info ");
+        clContext.CheckErrNum(clGetDeviceInfo(clContext.GetDeviceId(), CL_DEVICE_TYPE, 0, nullptr, &paramValueSize), "Failed to find OpenCL device info ");
         cl_device_type *field = (cl_device_type *)alloca(sizeof(cl_device_type) * paramValueSize);
-        sContext->checkErrNum(clGetDeviceInfo(sContext->GetDeviceId(), CL_DEVICE_TYPE, paramValueSize, field, nullptr), "Failed to find OpenCL device info ");
+        clContext.CheckErrNum(clGetDeviceInfo(clContext.GetDeviceId(), CL_DEVICE_TYPE, paramValueSize, field, nullptr), "Failed to find OpenCL device info ");
         if (CL_DEVICE_TYPE_CPU == *field) {
-            reg_print_fct_error("Platform::setClIdx");
+            reg_print_fct_error("Platform::SetGpuIdx");
             reg_print_msg_error("The OpenCL kernels only support GPU devices for now. Exit");
             reg_exit();
         }

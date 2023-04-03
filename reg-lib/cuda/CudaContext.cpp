@@ -1,8 +1,9 @@
-#include "CudaContextSingleton.h"
+#include "CudaContext.hpp"
 #include "_reg_common_cuda.h"
 
+namespace NiftyReg {
 /* *************************************************************** */
-CudaContextSingleton::CudaContextSingleton() {
+CudaContext::CudaContext() {
     // The CUDA card is setup
     cuInit(0);
     int device_count = 0;
@@ -12,50 +13,57 @@ CudaContextSingleton::CudaContextSingleton() {
     sprintf(text, "[NiftyReg CUDA] %i card(s) detected\n", device_count);
     reg_print_msg_debug(text);
 #endif
-    this->cudaContext = nullptr;
-    this->numDevices = device_count;
-    this->cudaIdx = 999;
-    PickCard(this->cudaIdx);
+    cudaContext = nullptr;
+    numDevices = device_count;
+    cudaIdx = 999;
+    PickCard(cudaIdx);
 }
 /* *************************************************************** */
-void CudaContextSingleton::SetCudaIdx(unsigned int cudaIdxIn) {
-    if (cudaIdxIn >= this->numDevices) {
+void CudaContext::SetCudaIdx(unsigned cudaIdxIn) {
+    if (cudaIdxIn >= numDevices) {
         reg_print_msg_error("The specified cuda card id is not defined");
         reg_print_msg_error("Run reg_gpuinfo to get the proper id");
         reg_exit();
     }
-    this->cudaIdx = cudaIdxIn;
-    PickCard(this->cudaIdx);
+    cudaIdx = cudaIdxIn;
+    PickCard(cudaIdx);
 }
 /* *************************************************************** */
-CUcontext CudaContextSingleton::GetContext() {
-    return this->cudaContext;
+CUcontext CudaContext::GetContext() {
+    return cudaContext;
 }
 /* *************************************************************** */
-void CudaContextSingleton::PickCard(unsigned deviceId = 999) {
+void CudaContext::SetBlockSize(int major) {
+    if (major >= 3)
+        blockSize.reset(new BlockSize300());
+    else
+        blockSize.reset(new BlockSize100());
+}
+/* *************************************************************** */
+void CudaContext::PickCard(unsigned deviceId = 999) {
     struct cudaDeviceProp deviceProp;
-    if (deviceId < this->numDevices) {
-        this->cudaIdx = deviceId;
-        NR_CUDA_SAFE_CALL(cudaSetDevice(this->cudaIdx));
-        NR_CUDA_SAFE_CALL(cuCtxCreate(&this->cudaContext, CU_CTX_SCHED_SPIN, this->cudaIdx));
+    if (deviceId < numDevices) {
+        cudaIdx = deviceId;
+        NR_CUDA_SAFE_CALL(cudaSetDevice(cudaIdx));
+        NR_CUDA_SAFE_CALL(cuCtxCreate(&cudaContext, CU_CTX_SCHED_SPIN, cudaIdx));
 
-        cudaGetDeviceProperties(&deviceProp, this->cudaIdx);
+        cudaGetDeviceProperties(&deviceProp, cudaIdx);
         if (deviceProp.major > 1) {
-            this->isCardDoubleCapable = true;
+            isCardDoubleCapable = true;
         } else if (deviceProp.major == 1 && deviceProp.minor > 2) {
-            this->isCardDoubleCapable = true;
+            isCardDoubleCapable = true;
         } else {
-            this->isCardDoubleCapable = false;
+            isCardDoubleCapable = false;
         }
-        NiftyReg_CudaBlock::GetInstance(deviceProp.major);
+        SetBlockSize(deviceProp.major);
         return;
     }
 
     // following code is from cutGetMaxGflopsDeviceId()
     int max_gflops_device = 0;
     int max_gflops = 0;
-    unsigned int current_device = 0;
-    while (current_device < this->numDevices) {
+    unsigned current_device = 0;
+    while (current_device < numDevices) {
         cudaGetDeviceProperties(&deviceProp, current_device);
         int gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
         if (gflops > max_gflops) {
@@ -65,7 +73,7 @@ void CudaContextSingleton::PickCard(unsigned deviceId = 999) {
         ++current_device;
     }
     NR_CUDA_SAFE_CALL(cudaSetDevice(max_gflops_device));
-    NR_CUDA_SAFE_CALL(cuCtxCreate(&this->cudaContext, CU_CTX_SCHED_SPIN, max_gflops_device));
+    NR_CUDA_SAFE_CALL(cuCtxCreate(&cudaContext, CU_CTX_SCHED_SPIN, max_gflops_device));
     NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device));
 
     if (deviceProp.major < 1) {
@@ -92,23 +100,25 @@ void CudaContextSingleton::PickCard(unsigned deviceId = 999) {
         printf("[NiftyReg CUDA] Card clock rate: %i MHz\n", deviceProp.clockRate / 1000);
         printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n", deviceProp.multiProcessorCount);
 #endif
-        this->cudaIdx = max_gflops_device;
-        cudaGetDeviceProperties(&deviceProp, this->cudaIdx);
+        cudaIdx = max_gflops_device;
+        cudaGetDeviceProperties(&deviceProp, cudaIdx);
         if (deviceProp.major > 1) {
-            this->isCardDoubleCapable = true;
+            isCardDoubleCapable = true;
         } else if (deviceProp.major == 1 && deviceProp.minor > 2) {
-            this->isCardDoubleCapable = true;
+            isCardDoubleCapable = true;
         } else {
-            this->isCardDoubleCapable = false;
+            isCardDoubleCapable = false;
         }
-        NiftyReg_CudaBlock::GetInstance(deviceProp.major);
+        SetBlockSize(deviceProp.major);
     }
 }
 /* *************************************************************** */
-bool CudaContextSingleton::GetIsCardDoubleCapable() {
-    return this->isCardDoubleCapable;
+bool CudaContext::IsCardDoubleCapable() {
+    return isCardDoubleCapable;
 }
 /* *************************************************************** */
-CudaContextSingleton::~CudaContextSingleton() {
-    cuCtxDestroy(this->cudaContext);
+CudaContext::~CudaContext() {
+    cuCtxDestroy(cudaContext);
 }
+/* *************************************************************** */
+} // namespace NiftyReg::Cuda

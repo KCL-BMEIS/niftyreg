@@ -37,7 +37,7 @@ ClAffineDeformationFieldKernel::ClAffineDeformationFieldKernel(Content *conIn) :
     }
 
     //get opencl context params
-    sContext = &ClContextSingleton::Instance();
+    sContext = &ClContextSingleton::GetInstance();
     clContext = sContext->GetContext();
     commandQueue = sContext->GetCommandQueue();
     program = sContext->CreateProgram(clKernelPath.c_str());
@@ -52,7 +52,7 @@ ClAffineDeformationFieldKernel::ClAffineDeformationFieldKernel(Content *conIn) :
     if (deformationFieldImage->nz > 1)
         kernel = clCreateKernel(program, "affineKernel3D", &errNum);
     else kernel = clCreateKernel(program, "affineKernel2D", &errNum);
-    sContext->checkErrNum(errNum, "Error setting kernel ClAffineDeformationFieldKernel.");
+    sContext->CheckErrNum(errNum, "Error setting kernel ClAffineDeformationFieldKernel.");
 
     //get cl ptrs
     clDeformationField = con->GetDeformationFieldArrayClmem();
@@ -60,7 +60,7 @@ ClAffineDeformationFieldKernel::ClAffineDeformationFieldKernel(Content *conIn) :
 
     //set some final kernel args
     errNum = clSetKernelArg(kernel, 2, sizeof(cl_mem), &clMask);
-    sContext->checkErrNum(errNum, "Error setting clMask.");
+    sContext->CheckErrNum(errNum, "Error setting clMask.");
 
 }
 /* *************************************************************** */
@@ -70,16 +70,16 @@ void ClAffineDeformationFieldKernel::Calculate(bool compose) {
     cl_int errNum;
     std::size_t paramValueSize;
     errNum = clGetDeviceInfo(sContext->GetDeviceId(), CL_DEVICE_MAX_WORK_GROUP_SIZE, 0, nullptr, &paramValueSize);
-    sContext->checkErrNum(errNum, "Failed to GetDeviceId() OpenCL device info ");
+    sContext->CheckErrNum(errNum, "Failed to GetDeviceId() OpenCL device info ");
     cl_uint * info = (cl_uint *)alloca(sizeof(cl_uint) * paramValueSize);
     errNum = clGetDeviceInfo(sContext->GetDeviceId(), CL_DEVICE_MAX_WORK_GROUP_SIZE, paramValueSize, info, nullptr);
-    sContext->checkErrNum(errNum, "Failed to GetDeviceId() OpenCL device info ");
+    sContext->CheckErrNum(errNum, "Failed to GetDeviceId() OpenCL device info ");
     maxWG = *info;
 
     //8=default value
-    unsigned int xThreads = 8;
-    unsigned int yThreads = 8;
-    unsigned int zThreads = 8;
+    unsigned xThreads = 8;
+    unsigned yThreads = 8;
+    unsigned zThreads = 8;
 
     while (xThreads * yThreads * zThreads > maxWG) {
         xThreads = xThreads / 2;
@@ -87,11 +87,11 @@ void ClAffineDeformationFieldKernel::Calculate(bool compose) {
         zThreads = zThreads / 2;
     }
 
-    const unsigned int xBlocks = ((deformationFieldImage->nx % xThreads) == 0) ?
+    const unsigned xBlocks = ((deformationFieldImage->nx % xThreads) == 0) ?
         (deformationFieldImage->nx / xThreads) : (deformationFieldImage->nx / xThreads) + 1;
-    const unsigned int yBlocks = ((deformationFieldImage->ny % yThreads) == 0) ?
+    const unsigned yBlocks = ((deformationFieldImage->ny % yThreads) == 0) ?
         (deformationFieldImage->ny / yThreads) : (deformationFieldImage->ny / yThreads) + 1;
-    const unsigned int zBlocks = ((deformationFieldImage->nz % zThreads) == 0) ?
+    const unsigned zBlocks = ((deformationFieldImage->nz % zThreads) == 0) ?
         (deformationFieldImage->nz / zThreads) : (deformationFieldImage->nz / zThreads) + 1;
     //const cl_uint dims = deformationFieldImage->nz>1?3:2;
     //Back to the old version... at least I could compile
@@ -111,21 +111,21 @@ void ClAffineDeformationFieldKernel::Calculate(bool compose) {
 
     cl_mem cltransMat = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                        sizeof(float) * 16, trans, &errNum);
-    sContext->checkErrNum(errNum,
+    sContext->CheckErrNum(errNum,
                           "ClAffineDeformationFieldKernel::calculate failed to allocate memory (cltransMat): ");
 
     cl_uint composition = compose;
     errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &cltransMat);
-    sContext->checkErrNum(errNum, "Error setting cltransMat.");
+    sContext->CheckErrNum(errNum, "Error setting cltransMat.");
     errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &clDeformationField);
-    sContext->checkErrNum(errNum, "Error setting clDeformationField.");
+    sContext->CheckErrNum(errNum, "Error setting clDeformationField.");
     errNum |= clSetKernelArg(kernel, 3, sizeof(cl_uint3), &pms_d);
-    sContext->checkErrNum(errNum, "Error setting kernel arguments.");
+    sContext->CheckErrNum(errNum, "Error setting kernel arguments.");
     errNum |= clSetKernelArg(kernel, 4, sizeof(cl_uint), &composition);
-    sContext->checkErrNum(errNum, "Error setting kernel arguments.");
+    sContext->CheckErrNum(errNum, "Error setting kernel arguments.");
 
     errNum = clEnqueueNDRangeKernel(commandQueue, kernel, dims, nullptr, globalWorkSize, localWorkSize, 0, nullptr, nullptr);
-    sContext->checkErrNum(errNum, "Error queuing ClAffineDeformationFieldKernel for execution");
+    sContext->CheckErrNum(errNum, "Error queuing ClAffineDeformationFieldKernel for execution");
     clFinish(commandQueue);
 
     free(trans);

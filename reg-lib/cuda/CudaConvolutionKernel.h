@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ConvolutionKernel.h"
-#include "CudaContextSingleton.h"
+#include "CudaContext.hpp"
 
 // A kernel function for convolution (gaussian smoothing?)
 class CudaConvolutionKernel: public ConvolutionKernel {

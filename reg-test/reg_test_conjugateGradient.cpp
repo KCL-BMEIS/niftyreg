@@ -273,6 +273,8 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate gradient", "[ConjugateGradien
                     REQUIRE(fabs(gradVal - gradExpVal) < EPS);
                 }
             }
+            // Ensure the termination of content before CudaContext
+            content.reset();
         }
     }
 }

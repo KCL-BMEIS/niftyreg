@@ -62,7 +62,7 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaAladinContent.cpp
     CudaCompute.cpp
     CudaContent.cpp
-    CudaContextSingleton.cpp
+    CudaContext.cpp
     CudaF3dContent.cpp
     CudaKernelFactory.cpp
     CudaMeasure.cpp
@@ -72,17 +72,16 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaAffineDeformationFieldKernel.cpp
     CudaBlockMatchingKernel.cpp
     CudaConvolutionKernel.cpp
+    CudaNormaliseGradient.cu
     CudaOptimiseKernel.cpp
     CudaResampleImageKernel.cpp
     ../AladinContent.cpp
     _reg_resampling_gpu.cu
-    _reg_blocksize_gpu.cu
     _reg_tools_gpu.cu
     _reg_localTransformation_gpu.cu
     _reg_nmi_gpu.cu
     _reg_ssd_gpu.cu
     _reg_optimiser_gpu.cu
-    NormaliseGradient.cu
 )
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
 install(TARGETS ${NAME}

@@ -81,11 +81,11 @@ void uploadMat44(mat44 lastTransformation, float* transform_d) {
 }
 /* *************************************************************** */
 //threads: 512 | blocks:numEquations/512
-__global__ void transformWarpedPointsKernel(float* transform, float* in, float* out, unsigned int definedBlockNum)
+__global__ void transformWarpedPointsKernel(float* transform, float* in, float* out, unsigned definedBlockNum)
 {
-    const unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < definedBlockNum) {
-        const unsigned int posIdx = 3 * tid;
+        const unsigned posIdx = 3 * tid;
         in += posIdx;
         out += posIdx;
         reg_mat44_mul_cuda<float>(transform, in, out);
@@ -99,10 +99,10 @@ __global__ void trimAndInvertSingularValuesKernel(float* sigma)
 }
 /* *************************************************************** */
 //launched as ldm blocks n threads
-__global__ void scaleV(float* V, const unsigned int ldm, const unsigned int n, float*w)
+__global__ void scaleV(float* V, const unsigned ldm, const unsigned n, float*w)
 {
-    unsigned int k = blockIdx.x;
-    unsigned int j = threadIdx.x;
+    unsigned k = blockIdx.x;
+    unsigned j = threadIdx.x;
     V[IDX2C(j, k, ldm)] = (float)((double)V[IDX2C(j, k, ldm)] * (double)w[j]);
 }
 /* *************************************************************** */
@@ -110,12 +110,12 @@ __global__ void scaleV(float* V, const unsigned int ldm, const unsigned int n, f
 __global__ void permuteAffineMatrix(float* transform)
 {
     __shared__ float buffer[16];
-    const unsigned int i = threadIdx.x;
+    const unsigned i = threadIdx.x;
 
     buffer[i] = transform[i];
     __syncthreads();
-    const unsigned int idx33 = (i / 3) * 4 + i % 3;
-    const unsigned int idx34 = (i % 3) * 4 + 3;
+    const unsigned idx33 = (i / 3) * 4 + i % 3;
+    const unsigned idx34 = (i % 3) * 4 + 3;
 
     if (i < 9) transform[idx33] = buffer[i];
     else if (i < 12)transform[idx34] = buffer[i];
@@ -124,12 +124,12 @@ __global__ void permuteAffineMatrix(float* transform)
 }
 /* *************************************************************** */
 //threads: 512 | blocks:numEquations/512
-__global__ void populateMatrixA(float* A, float *reference, unsigned int numBlocks)
+__global__ void populateMatrixA(float* A, float *reference, unsigned numBlocks)
 {
-    const unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    const unsigned int c = tid * 3;
-    //	const unsigned int n = 12;
-    const unsigned int lda = numBlocks * 3;
+    const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned c = tid * 3;
+    //	const unsigned n = 12;
+    const unsigned lda = numBlocks * 3;
 
     if (tid < numBlocks) {
         reference += c;
@@ -155,10 +155,10 @@ __global__ void populateMatrixA(float* A, float *reference, unsigned int numBloc
 }
 /* *************************************************************** */
 //threads: 512 | blocks:numEquations/512
-__global__ void populateLengthsKernel(float* lengths, float* warped_d, float* newWarped_d, unsigned int numEquations)
+__global__ void populateLengthsKernel(float* lengths, float* warped_d, float* newWarped_d, unsigned numEquations)
 {
-    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int c = tid * 3;
+    unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned c = tid * 3;
 
     if (tid < numEquations) {
         newWarped_d += c;
@@ -169,7 +169,7 @@ __global__ void populateLengthsKernel(float* lengths, float* warped_d, float* ne
 }
 /* *************************************************************** */
 //launched as 1 block 1 thread
-__global__ void outputMatFlat(float* mat, const unsigned int ldm, const unsigned int n, char* msg)
+__global__ void outputMatFlat(float* mat, const unsigned ldm, const unsigned n, char* msg)
 {
     for (int i = 0; i < ldm * n; ++i)
         printf("%f | ", mat[i]);
@@ -177,7 +177,7 @@ __global__ void outputMatFlat(float* mat, const unsigned int ldm, const unsigned
 }
 /* *************************************************************** */
 //launched as 1 block 1 thread
-__global__ void outputMat(float* mat, const unsigned int ldm, const unsigned int n, char* msg)
+__global__ void outputMat(float* mat, const unsigned ldm, const unsigned n, char* msg)
 {
     for (int i = 0; i < ldm; ++i) {
         printf("%d ", i);
@@ -193,7 +193,7 @@ __global__ void outputMat(float* mat, const unsigned int ldm, const unsigned int
 * the function computes the SVD of a matrix A
 * A = V* x S x U, where V* is a (conjugate) transpose of V
 * */
-void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* VT_d, float* U_d) {
+void cusolverSVD(float* A_d, unsigned m, unsigned n, float* S_d, float* VT_d, float* U_d) {
 
     //CAST float* to double*
     /*
@@ -259,7 +259,7 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 * the function computes the Pseudoinverse from the products of the SVD factorisation of A
 * R = V x inv(S) x U*
 * */
-void cublasPseudoInverse(float* transformation, float *R_d, float* warped_d, float *VT_d, float* Sigma_d, float *U_d, const unsigned int m, const unsigned int n) {
+void cublasPseudoInverse(float* transformation, float *R_d, float* warped_d, float *VT_d, float* Sigma_d, float *U_d, const unsigned m, const unsigned n) {
     // First we make sure that the really small singular values
     // are set to 0. and compute the inverse by taking the reciprocal of the entries
 
@@ -299,9 +299,9 @@ double sortAndReduce(float* lengths_d,
                         float* reference_d,
                         float* warped_d,
                         float* newWarped_d,
-                        const unsigned int numBlocks,
-                        const unsigned int numToKeep,
-                        const unsigned int m) {
+                        const unsigned numBlocks,
+                        const unsigned numToKeep,
+                        const unsigned m) {
     //populateLengthsKernel
     populateLengthsKernel <<< numBlocks, 512 >>>(lengths_d, warped_d, newWarped_d, m / 3);
 
@@ -332,7 +332,7 @@ double sortAndReduce(float* lengths_d,
 /* *************************************************************** */
 //OPTIMIZER-----------------------------------------------
 // estimate an affine transformation using least square
-void getAffineMat3D(float* AR_d, float* Sigma_d, float* VT_d, float* U_d, float* reference_d, float* warped_d, float *transformation, const unsigned int numBlocks, unsigned int m, unsigned int n) {
+void getAffineMat3D(float* AR_d, float* Sigma_d, float* VT_d, float* U_d, float* reference_d, float* warped_d, float *transformation, const unsigned numBlocks, unsigned m, unsigned n) {
 
     //populate A
     populateMatrixA <<< numBlocks, 512 >>>(AR_d, reference_d, m / 3); //test 2
@@ -344,7 +344,7 @@ void getAffineMat3D(float* AR_d, float* Sigma_d, float* VT_d, float* U_d, float*
 
 }
 /* *************************************************************** */
-void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* Sigma_d, float* U_d, float* VT_d, float * newWarpedPos_d, float* referencePos_d, float* warpedPos_d, float* lengths_d, const unsigned int numBlocks, const unsigned int num_to_keep, const unsigned int m, const unsigned int n) {
+void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* Sigma_d, float* U_d, float* VT_d, float * newWarpedPos_d, float* referencePos_d, float* warpedPos_d, float* lengths_d, const unsigned numBlocks, const unsigned num_to_keep, const unsigned m, const unsigned n) {
 
     double lastDistance = std::numeric_limits<double>::max();
 
@@ -354,7 +354,7 @@ void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* 
     //get initial affine matrix
     getAffineMat3D(AR_d, Sigma_d, VT_d, U_d, referencePos_d, warpedPos_d, final_d, numBlocks, m, n);
 
-    for (unsigned int count = 0; count < MAX_ITERATIONS; ++count) {
+    for (unsigned count = 0; count < MAX_ITERATIONS; ++count) {
 
         // Transform the points in the reference
         transformWarpedPointsKernel <<< numBlocks, 512 >>>(final_d, referencePos_d, newWarpedPos_d, m / 3); //test 1
@@ -384,16 +384,16 @@ void optimize_affine3D_cuda(mat44* cpuMat,
                             float* reference_d,
                             float* warped_d,
                             float* newWarped_d,
-                            unsigned int m,
-                            unsigned int n,
-                            const unsigned int numToKeep,
+                            unsigned m,
+                            unsigned n,
+                            const unsigned numToKeep,
                             bool ilsIn,
                             bool isAffine) {
 
     //m | blockMatchingParams->activeBlockNumber * 3
     //n | 12
-    const unsigned int numEquations = m;
-    const unsigned int numBlocks = (numEquations % 512) ? (numEquations / 512) + 1 : numEquations / 512;
+    const unsigned numEquations = m;
+    const unsigned numBlocks = (numEquations % 512) ? (numEquations / 512) + 1 : numEquations / 512;
 
     uploadMat44(*cpuMat, final_d);
     transformWarpedPointsKernel <<< numBlocks, 512 >>>(final_d, warped_d, newWarped_d, m / 3); //test 1

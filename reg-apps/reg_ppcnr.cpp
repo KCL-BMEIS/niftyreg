@@ -526,7 +526,7 @@ int main(int argc, char **argv)
       printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 
       // Read images and find image means
-      unsigned int voxelNumber = image->nvox/image->nt;
+      unsigned voxelNumber = image->nvox/image->nt;
       PrecisionType *intensityPtr = static_cast<PrecisionType *>(image->data);
       PrecisionType *intensityPtrM = static_cast<PrecisionType *>(mask->data);
       for(int t=0; t<image->nt; t++)

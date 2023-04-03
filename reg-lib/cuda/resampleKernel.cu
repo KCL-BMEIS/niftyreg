@@ -13,7 +13,7 @@
 #define SINC_KERNEL_SIZE SINC_KERNEL_RADIUS*2
 
 /* *************************************************************** */
-unsigned int min1(unsigned int a, unsigned int b)
+unsigned min1(unsigned a, unsigned b)
 {
 	return (a < b) ? a : b;
 }
@@ -136,7 +136,7 @@ __inline__ __device__ double interpLoop2D(float* floatingIntensity,
     int *previous,
     uint3 fi_xyz,
     float paddingValue,
-    unsigned int kernel_size)
+    unsigned kernel_size)
 {
     double intensity = 0;
 
@@ -149,7 +149,7 @@ __inline__ __device__ double interpLoop2D(float* floatingIntensity,
                 int X = previous[0] + a;
                 bool xInBounds = -1 < X && X < fi_xyz.x;
 
-                const unsigned int idx = Y * fi_xyz.x + X;
+                const unsigned idx = Y * fi_xyz.x + X;
 
                 xTempNewValue += (xInBounds && yInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
             }
@@ -165,7 +165,7 @@ __inline__ __device__ double interpLoop3D(float* floatingIntensity,
                                           int *previous,
                                           uint3 fi_xyz,
                                           float paddingValue,
-                                          unsigned int kernel_size)
+                                          unsigned kernel_size)
 {
 	double intensity = 0;
 	for (int c = 0; c < kernel_size; c++) {
@@ -179,7 +179,7 @@ __inline__ __device__ double interpLoop3D(float* floatingIntensity,
 			for (int a = 0; a < kernel_size; a++) {
 				int X = previous[0] + a;
 				bool xInBounds = -1 < X && X < fi_xyz.x;
-				const unsigned int idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
+				const unsigned idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
 
 				xTempNewValue += (xInBounds && yInBounds && zInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
 			}
@@ -212,7 +212,7 @@ __global__ void ResampleImage2D(float* floatingImage,
 
     while (index < voxelNumber.x) {
 
-        for (unsigned int t = 0; t < wi_tu.x * wi_tu.y; t++) {
+        for (unsigned t = 0; t < wi_tu.x * wi_tu.y; t++) {
 
             float *resultIntensity = &resultIntensityPtr[t * voxelNumber.x];
             float *floatingIntensity = &sourceIntensityPtr[t * voxelNumber.y];
@@ -305,7 +305,7 @@ __global__ void ResampleImage3D(float* floatingImage,
 
 	while (index < voxelNumber.x) {
 
-		for (unsigned int t = 0; t < wi_tu.x * wi_tu.y; t++) {
+		for (unsigned t = 0; t < wi_tu.x * wi_tu.y; t++) {
 
 			float *resultIntensity = &resultIntensityPtr[t * voxelNumber.x];
 			float *floatingIntensity = &sourceIntensityPtr[t * voxelNumber.y];
@@ -402,9 +402,9 @@ void launchResample(nifti_image *floatingImage,
 	//the below lines need to be moved to cu common
 	cudaDeviceProp prop;
 	cudaGetDeviceProperties(&prop, 0);
-	unsigned int maxThreads = 512;
-	unsigned int maxBlocks = 65365;
-	unsigned int blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
+	unsigned maxThreads = 512;
+	unsigned maxBlocks = 65365;
+	unsigned blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
 	blocks = min1(blocks, maxBlocks);
 
 	dim3 mygrid(blocks, 1, 1);

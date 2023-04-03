@@ -438,7 +438,7 @@ __device__ float4 get_SlidedValues_gpu(int x, int y, int z)
 /* *************************************************************** */
 __global__ void reg_spline_getDeformationField3D(float4 *positionField)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ActiveVoxelNumber){
 
 		// Allocate the shared memory
@@ -448,7 +448,7 @@ __global__ void reg_spline_getDeformationField3D(float4 *positionField)
 
 		int3 imageSize = c_ReferenceImageDim;
 
-		unsigned int tempIndex=tex1Dfetch(maskTexture,tid);
+		unsigned tempIndex=tex1Dfetch(maskTexture,tid);
 		const int z = tempIndex/(imageSize.x*imageSize.y);
 		tempIndex  -= z*imageSize.x*imageSize.y;
 		const int y = tempIndex/imageSize.x;
@@ -531,7 +531,7 @@ __global__ void reg_spline_getDeformationField3D(float4 *positionField)
 /* *************************************************************** */
 __global__ void reg_spline_getDeformationField2D(float4 *positionField)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ActiveVoxelNumber){
 
 		// Allocate the shared memory
@@ -539,7 +539,7 @@ __global__ void reg_spline_getDeformationField2D(float4 *positionField)
 
 		int3 imageSize = c_ReferenceImageDim;
 
-		unsigned int tempIndex=tex1Dfetch(maskTexture,tid);
+		unsigned tempIndex=tex1Dfetch(maskTexture,tid);
 		const int y = tempIndex/imageSize.x;
 		const int x = tempIndex - y*imageSize.x;
 
@@ -844,7 +844,7 @@ __global__ void reg_spline_getApproxBendingEnergyGradient3D_kernel(float4 *nodeG
 			for(int b=y-1; b<y+2; ++b){
 				for(int a=x-1; a<x+2; ++a){
 					if(-1<a && -1<b && -1<c && a<gridSize.x && b<gridSize.y && c<gridSize.z){
-						unsigned int indexXYZ = 6*((c*gridSize.y+b)*gridSize.x+a);
+						unsigned indexXYZ = 6*((c*gridSize.y+b)*gridSize.x+a);
 						secondDerivativeValues = tex1Dfetch(secondDerivativesTexture,indexXYZ++); // XX
 						gradientValue.x += secondDerivativeValues.x * xxbasis[coord];
 						gradientValue.y += secondDerivativeValues.y * xxbasis[coord];
@@ -898,7 +898,7 @@ __global__ void reg_spline_getApproxJacobianValues2D_kernel(float *jacobianMatri
 										ybasis);
 	__syncthreads();
 
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ControlPointNumber){
 
 		int3 gridSize = c_ControlPointImageDim;
@@ -969,7 +969,7 @@ __global__ void reg_spline_getApproxJacobianValues3D_kernel(float *jacobianMatri
 									  zbasis);
 	__syncthreads();
 
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ControlPointNumber){
 
 		int3 gridSize = c_ControlPointImageDim;
@@ -1059,12 +1059,12 @@ __global__ void reg_spline_getApproxJacobianValues3D_kernel(float *jacobianMatri
 __global__ void reg_spline_getJacobianValues2D_kernel(float *jacobianMatrices,
 													 float *jacobianDet)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_VoxelNumber){
 
 		int2 imageSize = make_int2(c_ReferenceImageDim.x,c_ReferenceImageDim.y);
 
-		unsigned int tempIndex=tid;
+		unsigned tempIndex=tid;
 		const int y = tempIndex/imageSize.x;
 		const int x = tempIndex - y*imageSize.x;
 
@@ -1131,12 +1131,12 @@ __global__ void reg_spline_getJacobianValues2D_kernel(float *jacobianMatrices,
 __global__ void reg_spline_getJacobianValues3D_kernel(float *jacobianMatrices,
 													 float *jacobianDet)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_VoxelNumber){
 
 		int3 imageSize = c_ReferenceImageDim;
 
-		unsigned int tempIndex=tid;
+		unsigned tempIndex=tid;
 		const int z = tempIndex/(imageSize.x*imageSize.y);
 		tempIndex  -= z*imageSize.x*imageSize.y;
 		const int y = tempIndex/imageSize.x;
@@ -1238,7 +1238,7 @@ __global__ void reg_spline_getJacobianValues3D_kernel(float *jacobianMatrices,
 /* *************************************************************** */
 __global__ void reg_spline_logSquaredValues_kernel(float *det)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_VoxelNumber){
 		float val = logf(det[tid]);
 		det[tid]=val*val;
@@ -1293,12 +1293,12 @@ __global__ void reg_spline_computeApproxJacGradient2D_kernel(float4 *gradient)
 										ybasis);
 	__syncthreads();
 
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ControlPointNumber){
 
 		int3 gridSize = c_ControlPointImageDim;
 
-		unsigned int tempIndex=tid;
+		unsigned tempIndex=tid;
 		const int y =(int)(tempIndex/(gridSize.x));
 		const int x = tempIndex - y*(gridSize.x);
 
@@ -1359,12 +1359,12 @@ __global__ void reg_spline_computeApproxJacGradient3D_kernel(float4 *gradient)
 									  zbasis);
 	__syncthreads();
 
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ControlPointNumber){
 
 		int3 gridSize = c_ControlPointImageDim;
 
-		unsigned int tempIndex=tid;
+		unsigned tempIndex=tid;
 		const int z =(int)(tempIndex/(gridSize.x*gridSize.y));
 		tempIndex -= z*(gridSize.x)*(gridSize.y);
 		const int y =(int)(tempIndex/(gridSize.x));
@@ -1433,7 +1433,7 @@ __global__ void reg_spline_computeApproxJacGradient3D_kernel(float4 *gradient)
 /* *************************************************************** */
 __global__ void reg_spline_computeJacGradient2D_kernel(float4 *gradient)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ControlPointNumber){
 
 		int3 gridSize = c_ControlPointImageDim;
@@ -1506,7 +1506,7 @@ __global__ void reg_spline_computeJacGradient2D_kernel(float4 *gradient)
 /* *************************************************************** */
 __global__ void reg_spline_computeJacGradient3D_kernel(float4 *gradient)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ControlPointNumber){
 
 		int3 gridSize = c_ControlPointImageDim;
@@ -1605,12 +1605,12 @@ __global__ void reg_spline_computeJacGradient3D_kernel(float4 *gradient)
 /* *************************************************************** */
 __global__ void reg_spline_approxCorrectFolding3D_kernel(float4 *controlPointGrid_d)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ControlPointNumber){
 
 		int3 gridSize = c_ControlPointImageDim;
 
-		unsigned int tempIndex=tid;
+		unsigned tempIndex=tid;
 		const int z = tempIndex/(gridSize.x*gridSize.y);
 		tempIndex  -= z*gridSize.x*gridSize.y;
 		const int y = tempIndex/gridSize.x;
@@ -1692,12 +1692,12 @@ __global__ void reg_spline_approxCorrectFolding3D_kernel(float4 *controlPointGri
 /* *************************************************************** */
 __global__ void reg_spline_correctFolding3D_kernel(float4 *controlPointGrid_d)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ControlPointNumber){
 
 		int3 gridSize = c_ControlPointImageDim;
 
-		unsigned int tempIndex=tid;
+		unsigned tempIndex=tid;
 		const int z = tempIndex/(gridSize.x*gridSize.y);
 		tempIndex  -= z*gridSize.x*gridSize.y;
 		const int y = tempIndex/gridSize.x;
@@ -1793,12 +1793,12 @@ __global__ void reg_spline_correctFolding3D_kernel(float4 *controlPointGrid_d)
 /* *************************************************************** */
 __global__ void reg_getDeformationFromDisplacement3D_kernel(float4 *imageArray_d)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_VoxelNumber){
 
 		int3 imageSize = c_ReferenceImageDim;
 
-		unsigned int tempIndex=tid;
+		unsigned tempIndex=tid;
 		const int z = tempIndex/(imageSize.x*imageSize.y);
 		tempIndex  -= z*imageSize.x*imageSize.y;
 		const int y = tempIndex/imageSize.x;
@@ -1816,12 +1816,12 @@ __global__ void reg_getDeformationFromDisplacement3D_kernel(float4 *imageArray_d
 /* *************************************************************** */
 __global__ void reg_getDisplacementFromDeformation3D_kernel(float4 *imageArray_d)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_VoxelNumber){
 
 		int3 imageSize = c_ReferenceImageDim;
 
-		unsigned int tempIndex=tid;
+		unsigned tempIndex=tid;
 		const int z = tempIndex/(imageSize.x*imageSize.y);
 		tempIndex  -= z*imageSize.x*imageSize.y;
 		const int y = tempIndex/imageSize.x;
@@ -1839,7 +1839,7 @@ __global__ void reg_getDisplacementFromDeformation3D_kernel(float4 *imageArray_d
 /* *************************************************************** */
 __global__ void reg_defField_compose2D_kernel(float4 *outDef)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_VoxelNumber){
 
 		// Extract the original voxel position
@@ -1870,7 +1870,7 @@ __global__ void reg_defField_compose2D_kernel(float4 *outDef)
 
 		for(int b=0;b<2;++b){
 			for(int a=0;a<2;++a){
-				unsigned int index=(ante.y+b)*c_ReferenceImageDim.x+ante.x+a;
+				unsigned index=(ante.y+b)*c_ReferenceImageDim.x+ante.x+a;
 				float4 deformation;
 				if((ante.x+a)>-1 && (ante.y+b)>-1 &&
 				   (ante.x+a)<c_ReferenceImageDim.x &&
@@ -1891,7 +1891,7 @@ __global__ void reg_defField_compose2D_kernel(float4 *outDef)
 /* *************************************************************** */
 __global__ void reg_defField_compose3D_kernel(float4 *outDef)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_VoxelNumber){
 
 		// Extract the original voxel position
@@ -1931,7 +1931,7 @@ __global__ void reg_defField_compose3D_kernel(float4 *outDef)
 		for(int c=0;c<2;++c){
 			for(int b=0;b<2;++b){
 				for(int a=0;a<2;++a){
-					unsigned int index=((ante.z+c)*c_ReferenceImageDim.y+ante.y+b)*c_ReferenceImageDim.x+ante.x+a;
+					unsigned index=((ante.z+c)*c_ReferenceImageDim.y+ante.y+b)*c_ReferenceImageDim.x+ante.x+a;
 					float4 deformation;
 					if((ante.x+a)>-1 && (ante.y+b)>-1 && (ante.z+c)>-1 &&
 					   (ante.x+a)<c_ReferenceImageDim.x &&
@@ -1955,12 +1955,12 @@ __global__ void reg_defField_compose3D_kernel(float4 *outDef)
 /* *************************************************************** */
 __global__ void reg_defField_getJacobianMatrix3D_kernel(float *jacobianMatrices)
 {
-	const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	const unsigned tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_VoxelNumber){
 
 		int3 imageSize = c_ReferenceImageDim;
 
-		unsigned int tempIndex=tid;
+		unsigned tempIndex=tid;
 		const int z = tempIndex/(imageSize.x*imageSize.y);
 		tempIndex  -= z*imageSize.x*imageSize.y;
 		const int y = tempIndex/imageSize.x;
