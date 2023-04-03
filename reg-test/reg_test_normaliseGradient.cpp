@@ -17,12 +17,15 @@
 class NormaliseGradientTest {
 protected:
     using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage>;
-    using TestCase = std::tuple<TestData, unique_ptr<F3dContent>, unique_ptr<Platform>, bool, bool, bool>;
+    using TestCase = std::tuple<shared_ptr<Platform>, unique_ptr<F3dContent>, TestData, bool, bool, bool>;
 
-    vector<TestCase> testCases;
+    inline static vector<TestCase> testCases;
 
 public:
     NormaliseGradientTest() {
+        if (!testCases.empty())
+            return;
+
         // Create a random number generator
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -86,6 +89,8 @@ public:
         // Add platforms and optimise* to the test data
         for (auto&& testData : testData) {
             for (auto&& platformType : PlatformTypes) {
+                shared_ptr<Platform> platform{ new Platform(platformType) };
+                unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
                 for (int optimiseX = 0; optimiseX < 2; optimiseX++) {
                     for (int optimiseY = 0; optimiseY < 2; optimiseY++) {
                         for (int optimiseZ = 0; optimiseZ < 2; optimiseZ++) {
@@ -93,10 +98,8 @@ public:
                             auto td = testData;
                             auto&& [testName, reference, controlPointGrid, testGrad] = td;
                             // Add content
-                            unique_ptr<Platform> platform{ new Platform(platformType) };
-                            unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
                             unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
-                            testCases.push_back({ std::move(td), std::move(content), std::move(platform), optimiseX, optimiseY, optimiseZ });
+                            testCases.push_back({ platform, std::move(content), std::move(td), optimiseX, optimiseY, optimiseZ });
                         }
                     }
                 }
@@ -176,10 +179,13 @@ TEST_CASE_METHOD(NormaliseGradientTest, "Normalise gradient", "[NormaliseGradien
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
-        auto&& [testData, content, platform, optimiseX, optimiseY, optimiseZ] = testCase;
+        auto&& [platform, content, testData, optimiseX, optimiseY, optimiseZ] = testCase;
         auto&& [testName, reference, controlPointGrid, testGrad] = testData;
+        const std::string sectionName = testName + " " + platform->GetName() + " " + (optimiseX ? "X" : "noX") + " " + (optimiseY ? "Y" : "noY") + " " + (optimiseZ ? "Z" : "noZ");
 
-        SECTION(testName + " " + platform->GetName() + " " + (optimiseX ? "X" : "noX") + " " + (optimiseY ? "Y" : "noY") + " " + (optimiseZ ? "Z" : "noZ")) {
+        SECTION(sectionName) {
+            std::cout << "******** Section " << sectionName << " ********" << std::endl;
+
             // Set the transformation gradient image to host the computation
             NiftiImage transGrad = content->GetTransformationGradient();
             transGrad.copyData(testGrad);
@@ -208,6 +214,8 @@ TEST_CASE_METHOD(NormaliseGradientTest, "Normalise gradient", "[NormaliseGradien
                 std::cout << i << " " << transGradVal << " " << testGradVal << std::endl;
                 REQUIRE(fabs(transGradVal - testGradVal) < EPS);
             }
+            // Ensure the termination of content before CudaContext
+            content.reset();
         }
     }
 }
