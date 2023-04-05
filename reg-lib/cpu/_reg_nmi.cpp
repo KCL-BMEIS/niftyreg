@@ -138,11 +138,11 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImgPtr,
             reg_intensityRescale(this->referenceImagePointer,
                                  i,
                                  2.f,
-                                 this->referenceBinNumber[i] - 3);
+                                 this->referenceBinNumber[i] - 3.f);
             reg_intensityRescale(this->floatingImagePointer,
                                  i,
                                  2.f,
-                                 this->floatingBinNumber[i] - 3);
+                                 this->floatingBinNumber[i] - 3.f);
         }
     }
     // Create the joint histograms
@@ -475,17 +475,17 @@ double reg_nmi::GetSimilarityMeasureValue() {
 }
 /* *************************************************************** */
 template <class DataType>
-void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
-                                    nifti_image *warpedImage,
-                                    unsigned short *referenceBinNumber,
-                                    unsigned short *floatingBinNumber,
-                                    double **jointHistogramLog,
-                                    double **entropyValues,
-                                    nifti_image *warpedGradient,
+void reg_getVoxelBasedNMIGradient2D(const nifti_image *referenceImage,
+                                    const nifti_image *warpedImage,
+                                    const unsigned short *referenceBinNumber,
+                                    const unsigned short *floatingBinNumber,
+                                    const double *const *jointHistogramLog,
+                                    const double *const *entropyValues,
+                                    const nifti_image *warpedGradient,
                                     nifti_image *measureGradientImage,
-                                    int *referenceMask,
-                                    int current_timepoint,
-                                    double timepoint_weight) {
+                                    const int *referenceMask,
+                                    const int& current_timepoint,
+                                    const double& timepoint_weight) {
     if (current_timepoint < 0 || current_timepoint >= referenceImage->nt) {
         reg_print_fct_error("reg_getVoxelBasedNMIGradient2D");
         reg_print_msg_error("The specified active timepoint is not defined in the ref/war images");
@@ -494,25 +494,25 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
     const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 
     // Pointers to the image data
-    DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
-    DataType *refPtr = &refImagePtr[current_timepoint * voxelNumber];
-    DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
-    DataType *warPtr = &warImagePtr[current_timepoint * voxelNumber];
+    const DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
+    const DataType *refPtr = &refImagePtr[current_timepoint * voxelNumber];
+    const DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
+    const DataType *warPtr = &warImagePtr[current_timepoint * voxelNumber];
 
     // Pointers to the spatial gradient of the warped image
-    DataType *warGradPtrX = static_cast<DataType*>(warpedGradient->data);
-    DataType *warGradPtrY = &warGradPtrX[voxelNumber];
+    const DataType *warGradPtrX = static_cast<DataType*>(warpedGradient->data);
+    const DataType *warGradPtrY = &warGradPtrX[voxelNumber];
 
     // Pointers to the measure of similarity gradient
     DataType *measureGradPtrX = static_cast<DataType*>(measureGradientImage->data);
     DataType *measureGradPtrY = &measureGradPtrX[voxelNumber];
 
     // Create pointers to the current joint histogram
-    double *logHistoPtr = jointHistogramLog[current_timepoint];
-    double *entropyPtr = entropyValues[current_timepoint];
-    double nmi = (entropyPtr[0] + entropyPtr[1]) / entropyPtr[2];
-    size_t referenceOffset = referenceBinNumber[current_timepoint] * floatingBinNumber[current_timepoint];
-    size_t floatingOffset = referenceOffset + referenceBinNumber[current_timepoint];
+    const double *logHistoPtr = jointHistogramLog[current_timepoint];
+    const double *entropyPtr = entropyValues[current_timepoint];
+    const double nmi = (entropyPtr[0] + entropyPtr[1]) / entropyPtr[2];
+    const size_t referenceOffset = referenceBinNumber[current_timepoint] * floatingBinNumber[current_timepoint];
+    const size_t floatingOffset = referenceOffset + referenceBinNumber[current_timepoint];
     // Iterate over all voxel
     for (size_t i = 0; i < voxelNumber; ++i) {
         // Check if the voxel belongs to the image mask
@@ -561,22 +561,22 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template void reg_getVoxelBasedNMIGradient2D<float>
-(nifti_image*, nifti_image*, unsigned short*, unsigned short*, double**, double**, nifti_image*, nifti_image*, int*, int, double);
+(const nifti_image*, const nifti_image*, const unsigned short*, const unsigned short*, const double*const*, const double*const*, const nifti_image*, nifti_image*, const int*, const int&, const double&);
 template void reg_getVoxelBasedNMIGradient2D<double>
-(nifti_image*, nifti_image*, unsigned short*, unsigned short*, double**, double**, nifti_image*, nifti_image*, int*, int, double);
+(const nifti_image*, const nifti_image*, const unsigned short*, const unsigned short*, const double*const*, const double*const*, const nifti_image*, nifti_image*, const int*, const int&, const double&);
 /* *************************************************************** */
 template <class DataType>
-void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
-                                    nifti_image *warpedImage,
-                                    unsigned short *referenceBinNumber,
-                                    unsigned short *floatingBinNumber,
-                                    double **jointHistogramLog,
-                                    double **entropyValues,
-                                    nifti_image *warpedGradient,
+void reg_getVoxelBasedNMIGradient3D(const nifti_image *referenceImage,
+                                    const nifti_image *warpedImage,
+                                    const unsigned short *referenceBinNumber,
+                                    const unsigned short *floatingBinNumber,
+                                    const double *const *jointHistogramLog,
+                                    const double *const *entropyValues,
+                                    const nifti_image *warpedGradient,
                                     nifti_image *measureGradientImage,
-                                    int *referenceMask,
-                                    int current_timepoint,
-                                    double timepoint_weight) {
+                                    const int *referenceMask,
+                                    const int& current_timepoint,
+                                    const double& timepoint_weight) {
     if (current_timepoint < 0 || current_timepoint >= referenceImage->nt) {
         reg_print_fct_error("reg_getVoxelBasedNMIGradient3D");
         reg_print_msg_error("The specified active timepoint is not defined in the ref/war images");
@@ -591,15 +591,15 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
     const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
 #endif
     // Pointers to the image data
-    DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
-    DataType *refPtr = &refImagePtr[current_timepoint * voxelNumber];
-    DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
-    DataType *warPtr = &warImagePtr[current_timepoint * voxelNumber];
+    const DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
+    const DataType *refPtr = &refImagePtr[current_timepoint * voxelNumber];
+    const DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
+    const DataType *warPtr = &warImagePtr[current_timepoint * voxelNumber];
 
     // Pointers to the spatial gradient of the warped image
-    DataType *warGradPtrX = static_cast<DataType*>(warpedGradient->data);
-    DataType *warGradPtrY = &warGradPtrX[voxelNumber];
-    DataType *warGradPtrZ = &warGradPtrY[voxelNumber];
+    const DataType *warGradPtrX = static_cast<DataType*>(warpedGradient->data);
+    const DataType *warGradPtrY = &warGradPtrX[voxelNumber];
+    const DataType *warGradPtrZ = &warGradPtrY[voxelNumber];
 
     // Pointers to the measure of similarity gradient
     DataType *measureGradPtrX = static_cast<DataType*>(measureGradientImage->data);
@@ -607,18 +607,18 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
     DataType *measureGradPtrZ = &measureGradPtrY[voxelNumber];
 
     // Create pointers to the current joint histogram
-    double *logHistoPtr = jointHistogramLog[current_timepoint];
-    double *entropyPtr = entropyValues[current_timepoint];
-    double nmi = (entropyPtr[0] + entropyPtr[1]) / entropyPtr[2];
-    size_t referenceOffset = referenceBinNumber[current_timepoint] * floatingBinNumber[current_timepoint];
-    size_t floatingOffset = referenceOffset + referenceBinNumber[current_timepoint];
+    const double *logHistoPtr = jointHistogramLog[current_timepoint];
+    const double *entropyPtr = entropyValues[current_timepoint];
+    const double nmi = (entropyPtr[0] + entropyPtr[1]) / entropyPtr[2];
+    const size_t referenceOffset = referenceBinNumber[current_timepoint] * floatingBinNumber[current_timepoint];
+    const size_t floatingOffset = referenceOffset + referenceBinNumber[current_timepoint];
     int r, w;
     DataType refValue, warValue, gradX, gradY, gradZ;
     double jointDeriv[3], refDeriv[3], warDeriv[3], commun, jointLog, refLog, warLog;
     // Iterate over all voxel
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    private(i,r,w,refValue,warValue,gradX,gradY,gradZ, \
+    private(r,w,refValue,warValue,gradX,gradY,gradZ, \
     jointDeriv,refDeriv,warDeriv,commun,jointLog,refLog,warLog) \
     shared(voxelNumber,referenceMask,refPtr,warPtr,referenceBinNumber,floatingBinNumber, \
     logHistoPtr,referenceOffset,floatingOffset,measureGradPtrX,measureGradPtrY,measureGradPtrZ, \
@@ -678,9 +678,9 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template void reg_getVoxelBasedNMIGradient3D<float>
-(nifti_image*, nifti_image*, unsigned short*, unsigned short*, double**, double**, nifti_image*, nifti_image*, int*, int, double);
+(const nifti_image*, const nifti_image*, const unsigned short*, const unsigned short*, const double*const*, const double*const*, const nifti_image*, nifti_image*, const int*, const int&, const double&);
 template void reg_getVoxelBasedNMIGradient3D<double>
-(nifti_image*, nifti_image*, unsigned short*, unsigned short*, double**, double**, nifti_image*, nifti_image*, int*, int, double);
+(const nifti_image*, const nifti_image*, const unsigned short*, const unsigned short*, const double*const*, const double*const*, const nifti_image*, nifti_image*, const int*, const int&, const double&);
 /* *************************************************************** */
 void reg_nmi::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) {
     // Check if the specified time point exists and is active

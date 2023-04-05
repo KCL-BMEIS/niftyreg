@@ -142,17 +142,17 @@ double reg_nmi_gpu::GetSimilarityMeasureValue() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /// Called when we only have one target and one source image
-void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
-                                      cudaArray *referenceImageArray_d,
-                                      float *warpedImageArray_d,
-                                      float4 *warpedGradientArray_d,
-                                      float *logJointHistogram_d,
+void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
+                                      const cudaArray *referenceImageArray_d,
+                                      const float *warpedImageArray_d,
+                                      const float4 *warpedGradientArray_d,
+                                      const float *logJointHistogram_d,
                                       float4 *voxelNMIGradientArray_d,
-                                      int *mask_d,
-                                      int activeVoxelNumber,
-                                      double *entropies,
-                                      int refBinning,
-                                      int floBinning) {
+                                      const int *mask_d,
+                                      const int activeVoxelNumber,
+                                      const double *entropies,
+                                      const int refBinning,
+                                      const int floBinning) {
     auto blockSize = NiftyReg::CudaContext::GetBlockSize();
 
     const int voxelNumber = CalcVoxelNumber(*referenceImage);

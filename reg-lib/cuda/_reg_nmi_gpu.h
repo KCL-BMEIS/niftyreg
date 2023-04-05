@@ -68,7 +68,7 @@ public:
                            int *refMskDevicePtr,
                            float *warFloDevicePtr,
                            float4 *warFloGradDevicePtr,
-                           float4 *forVoxBasedGraDevicePtr) {}
+                           float4 *forVoxBasedGraDevicePtr) override {}
     /// @brief reg_nmi class constructor
     reg_multichannel_nmi_gpu() {}
     /// @brief reg_nmi class destructor
@@ -81,14 +81,14 @@ public:
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 extern "C++"
-void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
-                                      cudaArray *referenceImageArray_d,
-                                      float *warpedImageArray_d,
-                                      float4 *resultGradientArray_d,
-                                      float *logJointHistogram_d,
+void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
+                                      const cudaArray *referenceImageArray_d,
+                                      const float *warpedImageArray_d,
+                                      const float4 *resultGradientArray_d,
+                                      const float *logJointHistogram_d,
                                       float4 *voxelNMIGradientArray_d,
-                                      int *targetMask_d,
-                                      int activeVoxelNumber,
-                                      double *entropies,
-                                      int refBinning,
-                                      int floBinning);
+                                      const int *targetMask_d,
+                                      const int activeVoxelNumber,
+                                      const double *entropies,
+                                      const int refBinning,
+                                      const int floBinning);

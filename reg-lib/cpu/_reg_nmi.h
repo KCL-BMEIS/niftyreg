@@ -92,31 +92,31 @@ void reg_getNMIValue(nifti_image *referenceImage,
 );
 /* *************************************************************** */
 extern "C++" template <class DataType>
-void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
-                                    nifti_image *warpedImage,
-                                    unsigned short *referenceBinNumber,
-                                    unsigned short *floatingBinNumber,
-                                    double **jointHistogramLog,
-                                    double **entropyValues,
-                                    nifti_image *warpedGradient,
+void reg_getVoxelBasedNMIGradient2D(const nifti_image *referenceImage,
+                                    const nifti_image *warpedImage,
+                                    const unsigned short *referenceBinNumber,
+                                    const unsigned short *floatingBinNumber,
+                                    const double *const *jointHistogramLog,
+                                    const double *const *entropyValues,
+                                    const nifti_image *warpedGradient,
                                     nifti_image *nmiGradientImage,
-                                    int *referenceMask,
-                                    int current_timepoint,
-                                    double timepoint_weight
+                                    const int *referenceMask,
+                                    const int& current_timepoint,
+                                    const double& timepoint_weight
 );
 /* *************************************************************** */
 extern "C++" template <class DataType>
-void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
-                                    nifti_image *warpedImage,
-                                    unsigned short *referenceBinNumber,
-                                    unsigned short *floatingBinNumber,
-                                    double **jointHistogramLog,
-                                    double **entropyValues,
-                                    nifti_image *warpedGradient,
+void reg_getVoxelBasedNMIGradient3D(const nifti_image *referenceImage,
+                                    const nifti_image *warpedImage,
+                                    const unsigned short *referenceBinNumber,
+                                    const unsigned short *floatingBinNumber,
+                                    const double *const *jointHistogramLog,
+                                    const double *const *entropyValues,
+                                    const nifti_image *warpedGradient,
                                     nifti_image *nmiGradientImage,
-                                    int *referenceMask,
-                                    int current_timepoint,
-                                    double timepoint_weight
+                                    const int *referenceMask,
+                                    const int& current_timepoint,
+                                    const double& timepoint_weight
 );
 /* *************************************************************** */
 /* *************************************************************** */

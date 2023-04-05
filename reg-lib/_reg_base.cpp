@@ -928,8 +928,8 @@ void reg_base<T>::Run() {
 
                 // Update the objective function variables and print some information
                 PrintCurrentObjFunctionValue(currentSize);
+            }
 
-            } // while
             if (perturbation < perturbationNumber) {
                 optimiser->Perturbation(smallestSize);
                 currentSize = maxStepSize;
