@@ -104,6 +104,10 @@ T reg_f3d<T>::InitCurrentLevel(int currentLevel) {
     nifti_image *reference, *floating;
     int *mask;
     if (currentLevel < 0) {
+        // Settings for GetWarpedImage()
+        // Use CPU for warping since CUDA isn't supporting Cubic interpolation
+        // TODO Remove this when CUDA supports Cubic interpolation
+        this->SetPlatformType(PlatformType::Cpu);
         reference = this->inputReference;
         floating = this->inputFloating;
         mask = nullptr;
