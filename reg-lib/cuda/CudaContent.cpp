@@ -146,6 +146,10 @@ void CudaContent::SetWarped(nifti_image *warpedIn) {
     cudaCommon_transferNiftiToArrayOnDevice(warpedCuda, warped);
 }
 /* *************************************************************** */
+void CudaContent::UpdateWarped() {
+    cudaCommon_transferNiftiToArrayOnDevice(warpedCuda, warped);
+}
+/* *************************************************************** */
 template<class DataType>
 DataType CudaContent::CastImageData(float intensity, int datatype) {
     switch (datatype) {

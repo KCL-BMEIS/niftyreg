@@ -25,6 +25,7 @@ public:
 
     // Methods for transferring data from nifti to device
     virtual void UpdateDeformationField() {}
+    virtual void UpdateWarped() {}
 
     // Auxiliary methods
     static mat44* GetXYZMatrix(nifti_image& image) {

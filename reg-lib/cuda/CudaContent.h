@@ -28,6 +28,7 @@ public:
 
     // Methods for transferring data from nifti to device
     virtual void UpdateDeformationField() override;
+    virtual void UpdateWarped() override;
 
 protected:
     cudaArray *referenceCuda = nullptr;
