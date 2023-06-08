@@ -870,6 +870,13 @@ public:
 
     enum class Dim { NDim, X, Y, Z, T, U, V, W };    /**< Dimension enumeration */
 
+    enum class Copy {           /**< Enumeration of copy options of the constructor */
+        None,                   /**< Do not copy the image */
+        Image,                  /**< Copy the entire image */
+        ImageInfo,              /**< Copy only the image info, and do not allocate data */
+        ImageInfoAndAllocData   /**< Copy only the image info, and allocate and zero the data */
+    };
+
     /**
      * Inner class referring to a subset of an image. Currently must refer to the last
      * dimension in the image, i.e., a volume in a 4D parent image, or a slice in a 3D image
@@ -1306,10 +1313,9 @@ protected:
     /**
      * Copy the contents of a \c nifti_image to create a new image, acquiring the new pointer
      * @param source A pointer to a \c nifti_image
-     * @param onlyImageInfo If \c true, only the image info is copied; otherwise the data are also copied
-     * @param allocData If \c true, the image data will be allocated and zeroed. Only relevant if \c onlyImageInfo is \c true
+     * @param copy A \ref Copy value indicating which part of the image data to copy
     **/
-    void copy (const nifti_image *source, const bool onlyImageInfo, const bool allocData);
+    void copy (const nifti_image *source, const Copy copy);
 
     /**
      * Copy the contents of a \ref Block to create a new image, acquiring a new pointer
@@ -1393,16 +1399,13 @@ public:
     /**
      * Copy constructor
      * @param source Another \c NiftiImage object
-     * @param copy If \c true, the underlying \c nifti_image will be copied; otherwise the new
-     * object wraps the same \c nifti_image and increments the shared reference count
-     * @param onlyImageInfo If \c true, only the image info is copied; otherwise the entire image is copied. Only relevant if \c copy is \c true
-     * @param allocData If \c true, the image data will be allocated and zeroed. Only relevant if \c onlyImageInfo is \c true
+     * @param copy If \c Copy::None, the new object just wraps the same pointer as \c source; otherwise the image data is copied
     **/
-    NiftiImage (const NiftiImage &source, const bool copy = true, const bool onlyImageInfo = false, const bool allocData = false)
+    NiftiImage (const NiftiImage &source, const Copy copy = Copy::Image)
         : NiftiImage()
     {
-        if (copy) {
-            this->copy(source, onlyImageInfo, allocData);
+        if (copy != Copy::None) {
+            this->copy(source, copy);
         } else {
             refCount = source.refCount;
             acquire(source.image);
@@ -1441,16 +1444,13 @@ public:
     /**
      * Initialise using an existing \c nifti_image pointer
      * @param image An existing \c nifti_image pointer, possibly \c nullptr
-     * @param copy If \c true, the image data will be copied; otherwise this object just wraps
-     * the pointer passed to it
-     * @param onlyImageInfo If \c true, only the image info is copied; otherwise the entire image is copied. Only relevant if \c copy is \c true
-     * @param allocData If \c true, the image data will be allocated and zeroed. Only relevant if \c onlyImageInfo is \c true
+     * @param copy If \c Copy::None, the new object just wraps the pointer passed to it; otherwise the image data is copied
     **/
-    NiftiImage (nifti_image * const image, const bool copy = false, const bool onlyImageInfo = false, const bool allocData = false)
+    NiftiImage (nifti_image * const image, const Copy copy = Copy::None)
         : NiftiImage()
     {
-        if (copy)
-            this->copy(image, onlyImageInfo, allocData);
+        if (copy != Copy::None)
+            this->copy(image, copy);
         else
             acquire(image);
 #ifndef NDEBUG

@@ -827,8 +827,8 @@ vector<NiftiImage> reg_f3d2<T>::GetWarpedImage() {
 
     F3dContent& con = dynamic_cast<F3dContent&>(*this->con);
     vector<NiftiImage> warpedImage{
-        NiftiImage(con.GetWarped(), true),
-        NiftiImage(conBw->GetWarped(), true)
+        NiftiImage(con.GetWarped(), NiftiImage::Copy::Image),
+        NiftiImage(conBw->GetWarped(), NiftiImage::Copy::Image)
     };
 
     DeinitCurrentLevel(-1);

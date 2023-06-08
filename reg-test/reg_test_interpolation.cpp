@@ -197,7 +197,7 @@ TEST_CASE("Interpolation", "[Interpolation]") {
             auto contentName = isAladinContent ? "Aladin" : "Base";
             SECTION(testName + " " + platform->GetName() + " - " + contentName) {
                 // Create and set a warped image to host the computation
-                NiftiImage warped(defField, true, true);
+                NiftiImage warped(defField, NiftiImage::Copy::ImageInfo);
                 warped.setDim(NiftiDim::NDim, defField->nu);
                 warped.setDim(NiftiDim::X, 1);
                 warped.setDim(NiftiDim::Y, 1);

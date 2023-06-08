@@ -57,8 +57,8 @@ public:
         // Generate the different test cases
         // Test 2D
         NiftiImage controlPointGrid2d = CreateControlPointGrid(reference2d);
-        NiftiImage bestControlPointGrid2d(controlPointGrid2d, true, true, true);
-        NiftiImage transformationGradient2d(controlPointGrid2d, true, true, true);
+        NiftiImage bestControlPointGrid2d(controlPointGrid2d, NiftiImage::Copy::ImageInfoAndAllocData);
+        NiftiImage transformationGradient2d(controlPointGrid2d, NiftiImage::Copy::ImageInfoAndAllocData);
         auto bestCpp2dPtr = bestControlPointGrid2d.data();
         auto transGrad2dPtr = transformationGradient2d.data();
         for (size_t i = 0; i < transformationGradient2d.nVoxels(); ++i) {
@@ -78,8 +78,8 @@ public:
 
         // Test 3D
         NiftiImage controlPointGrid3d = CreateControlPointGrid(reference3d);
-        NiftiImage bestControlPointGrid3d(controlPointGrid3d, true, true, true);
-        NiftiImage transformationGradient3d(controlPointGrid3d, true, true, true);
+        NiftiImage bestControlPointGrid3d(controlPointGrid3d, NiftiImage::Copy::ImageInfoAndAllocData);
+        NiftiImage transformationGradient3d(controlPointGrid3d, NiftiImage::Copy::ImageInfoAndAllocData);
         auto bestCpp3dPtr = bestControlPointGrid3d.data();
         auto transGrad3dPtr = transformationGradient3d.data();
         for (size_t i = 0; i < transformationGradient3d.nVoxels(); ++i) {
@@ -156,8 +156,8 @@ public:
         static NiftiImage array1;
         static NiftiImage array2;
         if (firstCall) {
-            array1 = NiftiImage(gradient, true, true, true);
-            array2 = NiftiImage(gradient, true, true, true);
+            array1 = NiftiImage(gradient, NiftiImage::Copy::ImageInfoAndAllocData);
+            array2 = NiftiImage(gradient, NiftiImage::Copy::ImageInfoAndAllocData);
         }
 
         auto gradientPtr = gradient.data();

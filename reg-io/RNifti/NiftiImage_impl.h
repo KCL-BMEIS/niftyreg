@@ -763,7 +763,7 @@ inline void NiftiImage::release ()
     }
 }
 
-inline void NiftiImage::copy (const nifti_image *source, const bool onlyImageInfo, const bool allocData)
+inline void NiftiImage::copy (const nifti_image *source, const Copy copy)
 {
     if (source == nullptr)
         acquire(nullptr);
@@ -771,9 +771,9 @@ inline void NiftiImage::copy (const nifti_image *source, const bool onlyImageInf
     {
 #if RNIFTI_NIFTILIB_VERSION == 1
         acquire(nifti_copy_nim_info(source));
-        if (onlyImageInfo)
+        if (copy != Copy::Image)
         {
-            if (allocData)
+            if (copy == Copy::ImageInfoAndAllocData)
                 realloc();
         } else if (source->data != nullptr)
         {
@@ -783,9 +783,9 @@ inline void NiftiImage::copy (const nifti_image *source, const bool onlyImageInf
         }
 #elif RNIFTI_NIFTILIB_VERSION == 2
         acquire(nifti2_copy_nim_info(source));
-        if (onlyImageInfo)
+        if (copy != Copy::Image)
         {
-            if (allocData)
+            if (copy == Copy::ImageInfoAndAllocData)
                 realloc();
         } else if (source->data != nullptr)
         {
@@ -1898,7 +1898,7 @@ inline std::pair<std::string,std::string> NiftiImage::toFile (const std::string 
     const bool changingDatatype = (datatype != DT_NONE && !this->isNull() && datatype != image->datatype);
 
     // Copy the source image only if the datatype will be changed
-    NiftiImage imageToWrite(*this, changingDatatype);
+    NiftiImage imageToWrite(*this, Copy(changingDatatype));
 
     if (changingDatatype)
         imageToWrite.changeDatatype(datatype, true);

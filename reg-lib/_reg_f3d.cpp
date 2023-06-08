@@ -638,7 +638,7 @@ vector<NiftiImage> reg_f3d<T>::GetWarpedImage() {
 
     this->WarpFloatingImage(3); // cubic spline interpolation
 
-    NiftiImage warpedImage = NiftiImage(this->con->GetWarped(), true);
+    NiftiImage warpedImage = NiftiImage(this->con->GetWarped(), NiftiImage::Copy::Image);
 
     DeinitCurrentLevel(-1);
 #ifndef NDEBUG

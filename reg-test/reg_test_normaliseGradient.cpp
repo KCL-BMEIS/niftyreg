@@ -57,7 +57,7 @@ public:
         // Generate the different test cases
         // Test 2D
         NiftiImage controlPointGrid2d = CreateControlPointGrid(reference2d);
-        NiftiImage transformationGradient2d(controlPointGrid2d, true, true, true);
+        NiftiImage transformationGradient2d(controlPointGrid2d, NiftiImage::Copy::ImageInfoAndAllocData);
         auto transGrad2dPtr = transformationGradient2d.data();
         for (size_t i = 0; i < transformationGradient2d.nVoxels(); ++i)
             transGrad2dPtr[i] = distr(gen);
@@ -73,7 +73,7 @@ public:
 
         // Test 3D
         NiftiImage controlPointGrid3d = CreateControlPointGrid(reference3d);
-        NiftiImage transformationGradient3d(controlPointGrid3d, true, true, true);
+        NiftiImage transformationGradient3d(controlPointGrid3d, NiftiImage::Copy::ImageInfoAndAllocData);
         auto transGrad3dPtr = transformationGradient3d.data();
         for (size_t i = 0; i < transformationGradient3d.nVoxels(); ++i)
             transGrad3dPtr[i] = distr(gen);

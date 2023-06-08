@@ -508,7 +508,7 @@ NiftiImage reg_aladin<T>::GetFinalWarpedImage() {
 
     reg_aladin<T>::GetWarpedImage(3, this->warpedPaddingValue); // cubic spline interpolation
 
-    NiftiImage warpedImage(this->con->GetWarped(), true);
+    NiftiImage warpedImage(this->con->GetWarped(), NiftiImage::Copy::Image);
     warpedImage->cal_min = this->inputFloating->cal_min;
     warpedImage->cal_max = this->inputFloating->cal_max;
     warpedImage->scl_slope = this->inputFloating->scl_slope;
