@@ -11,6 +11,13 @@
  */
 
 /* *************************************************************** */
+__inline__ __device__ void InterpLinearKernel(float relative, float (&basis)[2]) {
+    if (relative < 0)
+        relative = 0;  // reg_rounding error
+    basis[1] = relative;
+    basis[0] = 1.0 - relative;
+}
+/* *************************************************************** */
 __global__ void reg_resampleImage2D_kernel(float *resultArray,
                                            cudaTextureObject_t floatingTexture,
                                            cudaTextureObject_t deformationFieldTexture,
@@ -21,11 +28,11 @@ __global__ void reg_resampleImage2D_kernel(float *resultArray,
                                            const float paddingValue) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < activeVoxelNumber) {
-        //Get the real world deformation in the floating space
+        // Get the real world deformation in the floating space
         const int tid2 = tex1Dfetch<int>(maskTexture, tid);
         float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, tid);
 
-        //Get the voxel-based deformation in the floating space
+        // Get the voxel-based deformation in the floating space
         float2 voxelDeformation;
         voxelDeformation.x = (floatingMatrix.m[0][0] * realDeformation.x +
                               floatingMatrix.m[0][1] * realDeformation.y +
@@ -34,10 +41,30 @@ __global__ void reg_resampleImage2D_kernel(float *resultArray,
                               floatingMatrix.m[1][1] * realDeformation.y +
                               floatingMatrix.m[1][3]);
 
-        if (voxelDeformation.x >= 0.0f && voxelDeformation.x <= floatingDim.x - 1 &&
-            voxelDeformation.y >= 0.0f && voxelDeformation.y <= floatingDim.y - 1) {
-            resultArray[tid2] = tex3D<float>(floatingTexture, voxelDeformation.x + 0.5f, voxelDeformation.y + 0.5f, 0.5f);
-        } else resultArray[tid2] = paddingValue;
+        // Compute the linear interpolation
+        const int2 previous = { reg_floor(voxelDeformation.x), reg_floor(voxelDeformation.y) };
+        const float2 relative = { voxelDeformation.x - previous.x, voxelDeformation.y - previous.y };
+        float xBasis[2], yBasis[2];
+        InterpLinearKernel(relative.x, xBasis);
+        InterpLinearKernel(relative.y, yBasis);
+
+        float intensity = 0;
+        for (short b = 0; b < 2; b++) {
+            const int y = previous.y + b;
+            float xTempNewValue = 0;
+            for (short a = 0; a < 2; a++) {
+                const int x = previous.x + a;
+                if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y) {
+                    xTempNewValue += tex3D<float>(floatingTexture, x, y, 0) * xBasis[a];
+                } else {
+                    // Padding value
+                    xTempNewValue += paddingValue * xBasis[a];
+                }
+            }
+            intensity += xTempNewValue * yBasis[b];
+        }
+
+        resultArray[tid2] = intensity;
     }
 }
 /* *************************************************************** */
@@ -53,10 +80,10 @@ __global__ void reg_resampleImage3D_kernel(float *resultArray,
     if (tid < activeVoxelNumber) {
         const int tid2 = tex1Dfetch<int>(maskTexture, tid);
 
-        //Get the real world deformation in the floating space
+        // Get the real world deformation in the floating space
         float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, tid);
 
-        //Get the voxel-based deformation in the floating space
+        // Get the voxel-based deformation in the floating space
         float3 voxelDeformation;
         voxelDeformation.x = (floatingMatrix.m[0][0] * realDeformation.x +
                               floatingMatrix.m[0][1] * realDeformation.y +
@@ -71,11 +98,36 @@ __global__ void reg_resampleImage3D_kernel(float *resultArray,
                               floatingMatrix.m[2][2] * realDeformation.z +
                               floatingMatrix.m[2][3]);
 
-        if (voxelDeformation.x >= 0.0f && voxelDeformation.x <= floatingDim.x - 1 &&
-            voxelDeformation.y >= 0.0f && voxelDeformation.y <= floatingDim.y - 1 &&
-            voxelDeformation.z >= 0.0f && voxelDeformation.z <= floatingDim.z - 1) {
-            resultArray[tid2] = tex3D<float>(floatingTexture, voxelDeformation.x + 0.5f, voxelDeformation.y + 0.5f, voxelDeformation.z + 0.5f);
-        } else resultArray[tid2] = paddingValue;
+        // Compute the linear interpolation
+        const int3 previous = { reg_floor(voxelDeformation.x), reg_floor(voxelDeformation.y), reg_floor(voxelDeformation.z) };
+        const float3 relative = { voxelDeformation.x - previous.x, voxelDeformation.y - previous.y, voxelDeformation.z - previous.z };
+        float xBasis[2], yBasis[2], zBasis[2];
+        InterpLinearKernel(relative.x, xBasis);
+        InterpLinearKernel(relative.y, yBasis);
+        InterpLinearKernel(relative.z, zBasis);
+
+        float intensity = 0;
+        for (short c = 0; c < 2; c++) {
+            const int z = previous.z + c;
+            float yTempNewValue = 0;
+            for (short b = 0; b < 2; b++) {
+                const int y = previous.y + b;
+                float xTempNewValue = 0;
+                for (short a = 0; a < 2; a++) {
+                    const int x = previous.x + a;
+                    if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y && -1 < z && z < floatingDim.z) {
+                        xTempNewValue += tex3D<float>(floatingTexture, x, y, z) * xBasis[a];
+                    } else {
+                        // Padding value
+                        xTempNewValue += paddingValue * xBasis[a];
+                    }
+                }
+                yTempNewValue += xTempNewValue * yBasis[b];
+            }
+            intensity += yTempNewValue * zBasis[c];
+        }
+
+        resultArray[tid2] = intensity;
     }
 }
 /* *************************************************************** */
@@ -88,10 +140,10 @@ __global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
                                               const float paddingValue) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < activeVoxelNumber) {
-        //Get the real world deformation in the floating space
+        // Get the real world deformation in the floating space
         float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, tid);
 
-        //Get the voxel-based deformation in the floating space
+        // Get the voxel-based deformation in the floating space
         float3 voxelDeformation;
         voxelDeformation.x = (floatingMatrix.m[0][0] * realDeformation.x +
                               floatingMatrix.m[0][1] * realDeformation.y +
@@ -148,10 +200,10 @@ __global__ void reg_getImageGradient3D_kernel(float4 *gradientArray,
                                               const float paddingValue) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < activeVoxelNumber) {
-        //Get the real world deformation in the floating space
+        // Get the real world deformation in the floating space
         float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, tid);
 
-        //Get the voxel-based deformation in the floating space
+        // Get the voxel-based deformation in the floating space
         float3 voxelDeformation;
         voxelDeformation.x = (floatingMatrix.m[0][0] * realDeformation.x +
                               floatingMatrix.m[0][1] * realDeformation.y +

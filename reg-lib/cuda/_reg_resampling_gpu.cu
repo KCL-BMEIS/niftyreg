@@ -26,7 +26,8 @@ void reg_resampleImage_gpu(nifti_image *floatingImage,
     int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 
     // Create the texture object for the floating image
-    auto floatingTexture = cudaCommon_createTextureObject(floatingImageArray_d, cudaResourceTypeArray);
+    auto floatingTexture = cudaCommon_createTextureObject(floatingImageArray_d, cudaResourceTypeArray, false, 0,
+                                                          cudaChannelFormatKindNone, 1, cudaFilterModePoint);
 
     // Create the texture object for the deformation field
     auto deformationFieldTexture = cudaCommon_createTextureObject(deformationFieldImageArray_d, cudaResourceTypeLinear,

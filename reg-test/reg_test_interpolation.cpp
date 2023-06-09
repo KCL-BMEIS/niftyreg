@@ -3,7 +3,7 @@
 
 #include "reg_test_common.h"
 
-#define EPS 0.001
+#define EPS 0.000001
 
 /*
     This test file contains the following unit tests:
