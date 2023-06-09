@@ -1,7 +1,5 @@
 #include "reg_test_common.h"
 
-#define EPS 0.0001
-
 /*
     This test file contains the following unit tests:
     test function: creation of a deformation field from an affine matrix

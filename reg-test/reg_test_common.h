@@ -1,5 +1,5 @@
-// Enable testing
-#define NR_TESTING
+#define NR_TESTING  // Enable testing
+#define EPS     0.000001
 
 #include <random>
 #include <catch2/catch_test_macros.hpp>
