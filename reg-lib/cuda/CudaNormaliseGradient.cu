@@ -23,8 +23,8 @@ float NiftyReg::Cuda::GetMaximalLength(const float4 *imageCuda,
                                        const bool& optimiseY,
                                        const bool& optimiseZ) {
     // Create a texture object for the imageCuda
-    auto imageTexture = cudaCommon_createTextureObject(imageCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
-                                                       cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
+    auto imageTexture = cudaCommon_createTextureObject(imageCuda, cudaResourceTypeLinear,
+                                                       nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
     float *dists = nullptr;
     NR_CUDA_SAFE_CALL(cudaMalloc(&dists, nVoxels * sizeof(float)));

@@ -171,10 +171,10 @@ void reg_initialiseConjugateGradient_gpu(float4 *gradientImageCuda,
                                          float4 *conjugateGCuda,
                                          float4 *conjugateHCuda,
                                          const size_t& nVoxels) {
-    auto gradientImageTexture = cudaCommon_createTextureObject(gradientImageCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
-                                                               cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
+    auto gradientImageTexture = cudaCommon_createTextureObject(gradientImageCuda, cudaResourceTypeLinear,
+                                                               nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
-    const unsigned blocks = (unsigned)NiftyReg::CudaContext::GetBlockSize()->reg_initialiseConjugateGradient;
+    const unsigned blocks = NiftyReg::CudaContext::GetBlockSize()->reg_initialiseConjugateGradient;
     const unsigned grids = (unsigned)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
@@ -188,12 +188,12 @@ void reg_GetConjugateGradient_gpu(float4 *gradientImageCuda,
                                   float4 *conjugateGCuda,
                                   float4 *conjugateHCuda,
                                   const size_t& nVoxels) {
-    auto gradientImageTexture = cudaCommon_createTextureObject(gradientImageCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
-                                                               cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
-    auto conjugateGTexture = cudaCommon_createTextureObject(conjugateGCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
-                                                            cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
-    auto conjugateHTexture = cudaCommon_createTextureObject(conjugateHCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
-                                                            cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
+    auto gradientImageTexture = cudaCommon_createTextureObject(gradientImageCuda, cudaResourceTypeLinear,
+                                                               nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto conjugateGTexture = cudaCommon_createTextureObject(conjugateGCuda, cudaResourceTypeLinear,
+                                                            nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto conjugateHTexture = cudaCommon_createTextureObject(conjugateHCuda, cudaResourceTypeLinear,
+                                                            nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
     // gam = sum((grad+g)*grad)/sum(HxG);
     unsigned blocks = NiftyReg::CudaContext::GetBlockSize()->reg_GetConjugateGradient1;
@@ -234,10 +234,10 @@ void reg_updateControlPointPosition_gpu(const size_t& nVoxels,
                                         const bool& optimiseX,
                                         const bool& optimiseY,
                                         const bool& optimiseZ) {
-    auto bestControlPointTexture = cudaCommon_createTextureObject(bestControlPointCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
-                                                                  cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
-    auto gradientImageTexture = cudaCommon_createTextureObject(gradientImageCuda, cudaResourceTypeLinear, false, nVoxels * sizeof(float4),
-                                                               cudaChannelFormatKindFloat, 4, cudaFilterModePoint);
+    auto bestControlPointTexture = cudaCommon_createTextureObject(bestControlPointCuda, cudaResourceTypeLinear,
+                                                                  nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto gradientImageTexture = cudaCommon_createTextureObject(gradientImageCuda, cudaResourceTypeLinear,
+                                                               nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
     const unsigned blocks = (unsigned)NiftyReg::CudaContext::GetBlockSize()->reg_updateControlPointPosition;
     const unsigned grids = (unsigned)reg_ceil(sqrtf((float)nVoxels / (float)blocks));

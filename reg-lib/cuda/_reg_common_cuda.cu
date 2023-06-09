@@ -629,11 +629,11 @@ void cudaCommon_destroyTextureObject(cudaTextureObject_t *texObj) {
 /* *************************************************************** */
 UniqueTextureObjectPtr cudaCommon_createTextureObject(const void *devPtr,
                                                       const cudaResourceType& resType,
-                                                      const bool& normalizedCoordinates,
                                                       const size_t& size,
                                                       const cudaChannelFormatKind& channelFormat,
                                                       const unsigned& channelCount,
-                                                      const cudaTextureFilterMode& filterMode) {
+                                                      const cudaTextureFilterMode& filterMode,
+                                                      const bool& normalizedCoordinates) {
     // Specify texture
     cudaResourceDesc resDesc{};
     resDesc.resType = resType;
