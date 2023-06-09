@@ -152,34 +152,24 @@ __global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
                               floatingMatrix.m[1][1] * realDeformation.y +
                               floatingMatrix.m[1][3]);
 
-        int2 voxel;
-        voxel.x = (int)(voxelDeformation.x);
-        voxel.y = (int)(voxelDeformation.y);
+        // Compute the gradient
+        const int2 previous = { reg_floor(voxelDeformation.x), reg_floor(voxelDeformation.y) };
+        float xBasis[2], yBasis[2];
+        const float2 relative = { voxelDeformation.x - previous.x, voxelDeformation.y - previous.y };
+        InterpLinearKernel(relative.x, xBasis);
+        InterpLinearKernel(relative.y, yBasis);
+        const float deriv[] = { -1.0f, 1.0f };
 
-        float xBasis[2];
-        float relative = fabsf(voxelDeformation.x - (float)voxel.x);
-        xBasis[0] = 1.0f - relative;
-        xBasis[1] = relative;
-        float yBasis[2];
-        relative = fabsf(voxelDeformation.y - (float)voxel.y);
-        yBasis[0] = 1.0f - relative;
-        yBasis[1] = relative;
-        float deriv[2];
-        deriv[0] = -1.0f;
-        deriv[1] = 1.0f;
-
-        float4 gradientValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-        float2 relativeDeformation;
+        float4 gradientValue{};
         for (short b = 0; b < 2; b++) {
-            float2 tempValueX = make_float2(0.0f, 0.0f);
-            relativeDeformation.y = ((float)voxel.y + (float)b + 0.5f) / (float)floatingDim.y;
+            float2 tempValueX{};
+            const int y = previous.y + b;
             for (short a = 0; a < 2; a++) {
-                relativeDeformation.x = ((float)voxel.x + (float)a + 0.5f) / (float)floatingDim.x;
+                const int x = previous.x + a;
                 float intensity = paddingValue;
 
-                if (0.f <= relativeDeformation.x && relativeDeformation.x <= 1.f &&
-                    0.f <= relativeDeformation.y && relativeDeformation.y <= 1.f)
-                    intensity = tex3D<float>(floatingTexture, relativeDeformation.x, relativeDeformation.y, 0.5f);
+                if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y)
+                    intensity = tex3D<float>(floatingTexture, x, y, 0);
 
                 tempValueX.x += intensity * deriv[a];
                 tempValueX.y += intensity * xBasis[a];
@@ -187,6 +177,7 @@ __global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
             gradientValue.x += tempValueX.x * yBasis[b];
             gradientValue.y += tempValueX.y * deriv[b];
         }
+
         gradientArray[tid] = gradientValue;
     }
 }
@@ -218,43 +209,28 @@ __global__ void reg_getImageGradient3D_kernel(float4 *gradientArray,
                               floatingMatrix.m[2][2] * realDeformation.z +
                               floatingMatrix.m[2][3]);
 
-        int3 voxel;
-        voxel.x = (int)(voxelDeformation.x);
-        voxel.y = (int)(voxelDeformation.y);
-        voxel.z = (int)(voxelDeformation.z);
+        // Compute the gradient
+        const int3 previous = { reg_floor(voxelDeformation.x), reg_floor(voxelDeformation.y), reg_floor(voxelDeformation.z) };
+        float xBasis[2], yBasis[2], zBasis[2];
+        const float3 relative = { voxelDeformation.x - previous.x, voxelDeformation.y - previous.y, voxelDeformation.z - previous.z };
+        InterpLinearKernel(relative.x, xBasis);
+        InterpLinearKernel(relative.y, yBasis);
+        InterpLinearKernel(relative.z, zBasis);
+        const float deriv[] = { -1.0f, 1.0f };
 
-        float xBasis[2];
-        float relative = fabsf(voxelDeformation.x - (float)voxel.x);
-        xBasis[0] = 1.0f - relative;
-        xBasis[1] = relative;
-        float yBasis[2];
-        relative = fabsf(voxelDeformation.y - (float)voxel.y);
-        yBasis[0] = 1.0f - relative;
-        yBasis[1] = relative;
-        float zBasis[2];
-        relative = fabsf(voxelDeformation.z - (float)voxel.z);
-        zBasis[0] = 1.0f - relative;
-        zBasis[1] = relative;
-        float deriv[2];
-        deriv[0] = -1.0f;
-        deriv[1] = 1.0f;
-
-        float4 gradientValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-        float3 relativeDeformation;
+        float4 gradientValue{};
         for (short c = 0; c < 2; c++) {
-            relativeDeformation.z = ((float)voxel.z + (float)c + 0.5f) / (float)floatingDim.z;
-            float3 tempValueY = make_float3(0.0f, 0.0f, 0.0f);
+            const int z = previous.z + c;
+            float3 tempValueY{};
             for (short b = 0; b < 2; b++) {
-                float2 tempValueX = make_float2(0.0f, 0.0f);
-                relativeDeformation.y = ((float)voxel.y + (float)b + 0.5f) / (float)floatingDim.y;
+                float2 tempValueX{};
+                const int y = previous.y + b;
                 for (short a = 0; a < 2; a++) {
-                    relativeDeformation.x = ((float)voxel.x + (float)a + 0.5f) / (float)floatingDim.x;
+                    const int x = previous.x + a;
                     float intensity = paddingValue;
 
-                    if (0.f <= relativeDeformation.x && relativeDeformation.x <= 1.f &&
-                        0.f <= relativeDeformation.y && relativeDeformation.y <= 1.f &&
-                        0.f <= relativeDeformation.z && relativeDeformation.z <= 1.f)
-                        intensity = tex3D<float>(floatingTexture, relativeDeformation.x, relativeDeformation.y, relativeDeformation.z);
+                    if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y && -1 < z && z < floatingDim.z)
+                        intensity = tex3D<float>(floatingTexture, x, y, z);
 
                     tempValueX.x += intensity * deriv[a];
                     tempValueX.y += intensity * xBasis[a];
@@ -267,6 +243,7 @@ __global__ void reg_getImageGradient3D_kernel(float4 *gradientArray,
             gradientValue.y += tempValueY.y * zBasis[c];
             gradientValue.z += tempValueY.z * deriv[c];
         }
+
         gradientArray[tid] = gradientValue;
     }
 }
