@@ -140,7 +140,7 @@ public:
     }
 
     template<typename T>
-    void NormaliseGradient(const nifti_image* transformationGradient, const T& maxGradLength, const bool& optimiseX, const bool& optimiseY, const bool& optimiseZ) {
+    void NormaliseGradient(nifti_image* transformationGradient, const T& maxGradLength, const bool& optimiseX, const bool& optimiseY, const bool& optimiseZ) {
         if (maxGradLength == 0 || (!optimiseX && !optimiseY && !optimiseZ)) return;
         const size_t nVoxelsPerVolume = NiftiImage::calcVoxelNumber(transformationGradient, 3);
         T *ptrX = static_cast<T*>(transformationGradient->data);
@@ -182,7 +182,7 @@ TEST_CASE_METHOD(NormaliseGradientTest, "Normalise gradient", "[NormaliseGradien
         const std::string sectionName = testName + " " + platform->GetName() + " " + (optimiseX ? "X" : "noX") + " " + (optimiseY ? "Y" : "noY") + " " + (optimiseZ ? "Z" : "noZ");
 
         SECTION(sectionName) {
-            std::cout << "******** Section " << sectionName << " ********" << std::endl;
+            std::cout << "\n**************** Section " << sectionName << " ****************" << std::endl;
 
             // Set the transformation gradient image to host the computation
             NiftiImage transGrad = content->GetTransformationGradient();

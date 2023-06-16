@@ -163,10 +163,9 @@ TEST_CASE("Image gradient", "[ImageGradient]") {
         // Accumulate all required contents with a vector
         vector<ContentDesc> contentDescs;
         for (auto&& platformType : PlatformTypes) {
-            unique_ptr<Platform> platform{ new Platform(platformType) };
-            // Add content
             if (platformType == PlatformType::Cuda && interp != 1)
                 continue;   // CUDA platform only supports linear interpolation
+            unique_ptr<Platform> platform{ new Platform(platformType) };
             unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
             unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
             contentDescs.push_back({ std::move(content), std::move(platform) });

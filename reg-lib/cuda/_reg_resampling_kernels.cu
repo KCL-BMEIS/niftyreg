@@ -15,7 +15,7 @@ __inline__ __device__ void InterpLinearKernel(float relative, float (&basis)[2])
     if (relative < 0)
         relative = 0;  // reg_rounding error
     basis[1] = relative;
-    basis[0] = 1.0 - relative;
+    basis[0] = 1.f - relative;
 }
 /* *************************************************************** */
 __global__ void reg_resampleImage2D_kernel(float *resultArray,

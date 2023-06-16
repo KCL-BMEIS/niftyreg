@@ -219,7 +219,7 @@ void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) 
                cudaMemcpyHostToDevice);
     free(temp);
 
-    // THe gradient of the NMI is computed on the GPU
+    // The gradient of the NMI is computed on the GPU
     reg_getVoxelBasedNMIGradient_gpu(this->referenceImagePointer,
                                      this->referenceDevicePointer,
                                      this->warpedFloatingDevicePointer,

@@ -199,7 +199,7 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate gradient", "[ConjugateGradien
         const std::string sectionName = testName + " " + platform->GetName() + " " + (optimiseX ? "X" : "noX") + " " + (optimiseY ? "Y" : "noY") + " " + (optimiseZ ? "Z" : "noZ") + " scale = " + std::to_string(scale);
 
         SECTION(sectionName) {
-            std::cout << "******** UpdateControlPointPosition " << sectionName << " ********" << std::endl;
+            std::cout << "\n**************** UpdateControlPointPosition " << sectionName << " ****************" << std::endl;
 
             // Set the control point grid
             NiftiImage img = content->GetControlPointGrid();
@@ -238,7 +238,7 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate gradient", "[ConjugateGradien
             // Update the gradient values
             // Only run once by discarding other optimiseX, optimiseY, optimiseZ combinations
             if (!optimiseX && !optimiseY && !optimiseZ) {
-                std::cout << "******** UpdateGradientValues " << sectionName << " ********" << std::endl;
+                std::cout << "\n**************** UpdateGradientValues " << sectionName << " ****************" << std::endl;
 
                 // Initialise the conjugate gradient
                 optimiser->UpdateGradientValues();

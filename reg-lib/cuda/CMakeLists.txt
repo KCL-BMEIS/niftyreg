@@ -44,6 +44,7 @@ else(NOT COMPILE_RESULT_VAR)
     endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     if(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUAL "OFF")
         set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -use_fast_math")
+        message(STATUS "CUDA fast math enabled")
     endif(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUAL "OFF")
 endif(NOT COMPILE_RESULT_VAR)
 #-----------------------------------------------------------------------------
