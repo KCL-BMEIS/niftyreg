@@ -167,11 +167,13 @@ void CudaCompute::GetDefFieldFromVelocityGrid(bool updateStepNumber) {
 /* *************************************************************** */
 void CudaCompute::VoxelCentricToNodeCentric(float weight) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    reg_voxelCentric2NodeCentric_gpu(con.F3dContent::GetWarped(),
-                                     con.F3dContent::GetControlPointGrid(),
-                                     con.GetVoxelBasedMeasureGradientCuda(),
+    const mat44 *reorientation = Content::GetIJKMatrix(*con.Content::GetFloating());
+    reg_voxelCentric2NodeCentric_gpu(con.F3dContent::GetTransformationGradient(),
+                                     con.F3dContent::GetVoxelBasedMeasureGradient(),
                                      con.GetTransformationGradientCuda(),
-                                     weight);
+                                     con.GetVoxelBasedMeasureGradientCuda(),
+                                     weight,
+                                     reorientation);
 }
 /* *************************************************************** */
 void CudaCompute::ConvolveVoxelBasedMeasureGradient(float weight) {

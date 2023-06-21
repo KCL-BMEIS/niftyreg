@@ -22,31 +22,73 @@ texture<float4, 1, cudaReadModeElementType> gradientImageTexture;
 texture<float4, 1, cudaReadModeElementType> matrixTexture;
 texture<float, 1, cudaReadModeElementType> convolutionKernelTexture;
 /* *************************************************************** */
-__global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeNMIGradientArray_d) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_NodeNumber) {
-        const int3 gridSize = c_ControlPointImageDim;
+__device__ __inline__ void reg_mat33_mul_cuda(const mat33& mat, const float (&in)[3], const float& weight, float (&out)[3], const bool& is3d) {
+    out[0] = weight * (mat.m[0][0] * in[0] + mat.m[0][1] * in[1] + mat.m[0][2] * in[2]);
+    out[1] = weight * (mat.m[1][0] * in[0] + mat.m[1][1] * in[1] + mat.m[1][2] * in[2]);
+    out[2] = is3d ? weight * (mat.m[2][0] * in[0] + mat.m[2][1] * in[1] + mat.m[2][2] * in[2]) : 0;
+}
+/* *************************************************************** */
+__device__ __inline__ void reg_mat44_mul_cuda(const mat44& mat, const float (&in)[3], float (&out)[3], const bool& is3d) {
+    out[0] = mat.m[0][0] * in[0] + mat.m[0][1] * in[1] + mat.m[0][2] * in[2] + mat.m[0][3];
+    out[1] = mat.m[1][0] * in[0] + mat.m[1][1] * in[1] + mat.m[1][2] * in[2] + mat.m[1][3];
+    out[2] = is3d ? mat.m[2][0] * in[0] + mat.m[2][1] * in[1] + mat.m[2][2] * in[2] + mat.m[2][3] : 0;
+}
+/* *************************************************************** */
+__global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeImageCuda,
+                                                    cudaTextureObject_t voxelImageTexture,
+                                                    const unsigned nodeNumber,
+                                                    const int3 nodeImageDims,
+                                                    const int3 voxelImageDims,
+                                                    const bool is3d,
+                                                    const float weight,
+                                                    const mat44 transformation,
+                                                    const mat33 reorientation) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < nodeNumber) {
+        float nodeCoord[3], voxelCoord[3], reorientedValue[3];
         int tempIndex = tid;
-        const short z = (int)(tempIndex / (gridSize.x * gridSize.y));
-        tempIndex -= z * (gridSize.x) * (gridSize.y);
-        const short y = (int)(tempIndex / (gridSize.x));
-        const short x = tempIndex - y * (gridSize.x);
+        nodeCoord[2] = tempIndex / (nodeImageDims.x * nodeImageDims.y);
+        tempIndex -= nodeCoord[2] * nodeImageDims.x * nodeImageDims.y;
+        nodeCoord[1] = tempIndex / nodeImageDims.x;
+        nodeCoord[0] = tempIndex - nodeCoord[1] * nodeImageDims.x;
+        reg_mat44_mul_cuda(transformation, nodeCoord, voxelCoord, is3d);
 
-        const float3 ratio = c_VoxelNodeRatio;
-        const short X = round((x - 1) * ratio.x);
-        const short Y = round((y - 1) * ratio.y);
-        const short Z = round((z - 1) * ratio.z);
+        // Linear interpolation
+        float basisX[2], basisY[2], basisZ[2], interpolatedValue[3]{};
+        const int pre[3] = { reg_floor(voxelCoord[0]), reg_floor(voxelCoord[1]), reg_floor(voxelCoord[2]) };
+        basisX[1] = voxelCoord[0] - static_cast<float>(pre[0]);
+        basisX[0] = 1.f - basisX[1];
+        basisY[1] = voxelCoord[1] - static_cast<float>(pre[1]);
+        basisY[0] = 1.f - basisY[1];
+        if (is3d) {
+            basisZ[1] = voxelCoord[2] - static_cast<float>(pre[2]);
+            basisZ[0] = 1.f - basisZ[1];
+        }
+        for (short c = 0; c < 2; ++c) {
+            const int indexZ = pre[2] + c;
+            if (-1 < indexZ && indexZ < voxelImageDims.z) {
+                for (short b = 0; b < 2; ++b) {
+                    const int indexY = pre[1] + b;
+                    if (-1 < indexY && indexY < voxelImageDims.y) {
+                        for (short a = 0; a < 2; ++a) {
+                            const int indexX = pre[0] + a;
+                            if (-1 < indexX && indexX < voxelImageDims.x) {
+                                const int index = (indexZ * voxelImageDims.y + indexY) * voxelImageDims.x + indexX;
+                                const float linearWeight = basisX[a] * basisY[b] * (is3d ? basisZ[c] : 1);
+                                const float4 voxelValue = tex1Dfetch<float4>(voxelImageTexture, index);
+                                interpolatedValue[0] += linearWeight * voxelValue.x;
+                                interpolatedValue[1] += linearWeight * voxelValue.y;
+                                if (is3d)
+                                    interpolatedValue[2] += linearWeight * voxelValue.z;
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-        const int3 imageSize = c_TargetImageDim;
-
-        if (-1 < X && X < imageSize.x && -1 < Y && Y < imageSize.y && -1 < Z && Z < imageSize.z) {
-            int index = (Z * imageSize.y + Y) * imageSize.x + X;
-            float4 gradientValue = tex1Dfetch(gradientImageTexture, index);
-            nodeNMIGradientArray_d[tid] = make_float4(c_Weight * gradientValue.x,
-                                                      c_Weight * gradientValue.y,
-                                                      c_Weight * gradientValue.z,
-                                                      0.0f);
-        } else nodeNMIGradientArray_d[tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        reg_mat33_mul_cuda(reorientation, interpolatedValue, weight, reorientedValue, is3d);
+        nodeImageCuda[tid] = { reorientedValue[0], reorientedValue[1], reorientedValue[2], 0 };
     }
 }
 /* *************************************************************** */

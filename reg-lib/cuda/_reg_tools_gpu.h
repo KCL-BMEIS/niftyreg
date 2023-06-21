@@ -19,11 +19,12 @@
 
 /* *************************************************************** */
 extern "C++"
-void reg_voxelCentric2NodeCentric_gpu(nifti_image *targetImage,
-                                      nifti_image *controlPointImage,
-                                      float4 *voxelNMIGradientArray_d,
-                                      float4 *nodeNMIGradientArray_d,
-                                      float weight);
+void reg_voxelCentric2NodeCentric_gpu(const nifti_image *nodeImage,
+                                      const nifti_image *voxelImage,
+                                      float4 *nodeImageCuda,
+                                      float4 *voxelImageCuda,
+                                      float weight,
+                                      const mat44 *voxelToMillimetre);
 /* *************************************************************** */
 extern "C++"
 void reg_convertNMIGradientFromVoxelToRealSpace_gpu(mat44 *sourceMatrix_xyz,

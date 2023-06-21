@@ -15,37 +15,66 @@
 #include "_reg_tools_kernels.cu"
 
 /* *************************************************************** */
-void reg_voxelCentric2NodeCentric_gpu(nifti_image *targetImage,
-                                      nifti_image *controlPointImage,
-                                      float4 *voxelNMIGradientArray_d,
-                                      float4 *nodeNMIGradientArray_d,
-                                      float weight) {
-    auto blockSize = NiftyReg::CudaContext::GetBlockSize();
+void reg_voxelCentric2NodeCentric_gpu(const nifti_image *nodeImage,
+                                      const nifti_image *voxelImage,
+                                      float4 *nodeImageCuda,
+                                      float4 *voxelImageCuda,
+                                      float weight,
+                                      const mat44 *voxelToMillimetre) {
+    const bool is3d = nodeImage->nz > 1;
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(nodeImage, 3);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(voxelImage, 3);
+    const int3 nodeImageDims = make_int3(nodeImage->nx, nodeImage->ny, nodeImage->nz);
+    const int3 voxelImageDims = make_int3(voxelImage->nx, voxelImage->ny, voxelImage->nz);
 
-    const int nodeNumber = CalcVoxelNumber(*controlPointImage);
-    const int voxelNumber = CalcVoxelNumber(*targetImage);
-    const int3 targetImageDim = make_int3(targetImage->nx, targetImage->ny, targetImage->nz);
-    const int3 gridSize = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
-    float3 voxelNodeRatio_h = make_float3(controlPointImage->dx / targetImage->dx,
-                                          controlPointImage->dy / targetImage->dy,
-                                          controlPointImage->dz / targetImage->dz);
-    // Ensure that Z=0 if 2D images
-    if (gridSize.z == 1) voxelNodeRatio_h.z = 0;
+    auto voxelImageTexture = cudaCommon_createTextureObject(voxelImageCuda, cudaResourceTypeLinear,
+                                                            voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber, &nodeNumber, sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_TargetImageDim, &targetImageDim, sizeof(int3)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointImageDim, &gridSize, sizeof(int3)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNodeRatio, &voxelNodeRatio_h, sizeof(float3)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight, &weight, sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, voxelNMIGradientArray_d, voxelNumber * sizeof(float4)));
+    // The transformation between the image and the grid
+    mat44 transformation;
+    // Voxel to millimetre in the grid image
+    if (nodeImage->sform_code > 0)
+        transformation = nodeImage->sto_xyz;
+    else transformation = nodeImage->qto_xyz;
+    // Affine transformation between the grid and the reference image
+    if (nodeImage->num_ext > 0 && nodeImage->ext_list[0].edata) {
+        mat44 temp = *(reinterpret_cast<mat44*>(nodeImage->ext_list[0].edata));
+        temp = nifti_mat44_inverse(temp);
+        transformation = reg_mat44_mul(&temp, &transformation);
+    }
+    // Millimetre to voxel in the reference image
+    if (voxelImage->sform_code > 0)
+        transformation = reg_mat44_mul(&voxelImage->sto_ijk, &transformation);
+    else transformation = reg_mat44_mul(&voxelImage->qto_ijk, &transformation);
 
-    const unsigned Grid_reg_voxelCentric2NodeCentric = (unsigned)ceil(sqrtf((float)nodeNumber / (float)blockSize->reg_voxelCentric2NodeCentric));
-    dim3 B1(blockSize->reg_voxelCentric2NodeCentric, 1, 1);
-    dim3 G1(Grid_reg_voxelCentric2NodeCentric, Grid_reg_voxelCentric2NodeCentric, 1);
-    reg_voxelCentric2NodeCentric_kernel<<<G1, B1>>>(nodeNMIGradientArray_d);
-    NR_CUDA_CHECK_KERNEL(G1, B1);
+    // The information has to be reoriented
+    // Voxel to millimetre contains the orientation of the image that is used
+    // to compute the spatial gradient (floating image)
+    mat33 reorientation = reg_mat44_to_mat33(voxelToMillimetre);
+    if (nodeImage->num_ext > 0 && nodeImage->ext_list[0].edata) {
+        mat33 temp = reg_mat44_to_mat33(reinterpret_cast<mat44*>(nodeImage->ext_list[0].edata));
+        temp = nifti_mat33_inverse(temp);
+        reorientation = nifti_mat33_mul(temp, reorientation);
+    }
+    // The information has to be weighted
+    float ratio[3] = { nodeImage->dx, nodeImage->dy, nodeImage->dz };
+    for (int i = 0; i < (is3d ? 3 : 2); ++i) {
+        if (nodeImage->sform_code > 0) {
+            ratio[i] = sqrt(reg_pow2(nodeImage->sto_xyz.m[i][0]) +
+                            reg_pow2(nodeImage->sto_xyz.m[i][1]) +
+                            reg_pow2(nodeImage->sto_xyz.m[i][2]));
+        }
+        ratio[i] /= voxelImage->pixdim[i + 1];
+        weight *= ratio[i];
+    }
 
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture));
+    const unsigned blocks = NiftyReg::CudaContext::GetBlockSize()->reg_voxelCentric2NodeCentric;
+    const unsigned grids = (unsigned)ceil(sqrtf((float)nodeNumber / (float)blocks));
+    const dim3 blockDims(blocks, 1, 1);
+    const dim3 gridDims(grids, grids, 1);
+    reg_voxelCentric2NodeCentric_kernel<<<gridDims, blockDims>>>(nodeImageCuda, *voxelImageTexture, (unsigned)nodeNumber, nodeImageDims,
+                                                                 voxelImageDims, is3d, weight, transformation, reorientation);
+    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
 void reg_convertNMIGradientFromVoxelToRealSpace_gpu(mat44 *sourceMatrix_xyz,
