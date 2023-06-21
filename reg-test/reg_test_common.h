@@ -1,6 +1,7 @@
 #define NR_TESTING  // Enable testing
 #define EPS     0.000001
 
+#include <array>
 #include <random>
 #include <catch2/catch_test_macros.hpp>
 #include "_reg_localTrans.h"

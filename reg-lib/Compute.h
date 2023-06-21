@@ -37,6 +37,11 @@ protected:
 
     void ConvolveImage(nifti_image*);
 
+#ifdef NR_TESTING
+public:
+#endif
+    virtual void VoxelCentricToNodeCentric(float weight);
+
 private:
     template<typename Type> void GetApproximatedGradient(InterfaceOptimiser&);
     nifti_image* ScaleGradient(const nifti_image&, float);

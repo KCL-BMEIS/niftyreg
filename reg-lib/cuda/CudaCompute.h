@@ -29,4 +29,9 @@ public:
     virtual void UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ) override;
     virtual void BchUpdate(float scale, int bchUpdateValue) override;
     virtual void SymmetriseVelocityFields(Content& conBw) override;
+
+#ifndef NR_TESTING
+protected:
+#endif
+    virtual void VoxelCentricToNodeCentric(float weight) override;
 };

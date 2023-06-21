@@ -274,17 +274,22 @@ void Compute::ConvolveImage(nifti_image *image) {
     }
 }
 /* *************************************************************** */
-void Compute::ConvolveVoxelBasedMeasureGradient(float weight) {
+void Compute::VoxelCentricToNodeCentric(float weight) {
     F3dContent& con = dynamic_cast<F3dContent&>(this->con);
-    ConvolveImage(con.GetVoxelBasedMeasureGradient());
-
-    // The node-based NMI gradient is extracted
     mat44 *reorientation = Content::GetIJKMatrix(*con.GetFloating());
     reg_voxelCentric2NodeCentric(con.GetTransformationGradient(),
                                  con.GetVoxelBasedMeasureGradient(),
                                  weight,
                                  false, // no update
                                  reorientation);
+}
+/* *************************************************************** */
+void Compute::ConvolveVoxelBasedMeasureGradient(float weight) {
+    F3dContent& con = dynamic_cast<F3dContent&>(this->con);
+    ConvolveImage(con.GetVoxelBasedMeasureGradient());
+
+    // The node-based NMI gradient is extracted from the voxel-based gradient
+    VoxelCentricToNodeCentric(weight);
 }
 /* *************************************************************** */
 void Compute::ExponentiateGradient(Content& conBwIn) {

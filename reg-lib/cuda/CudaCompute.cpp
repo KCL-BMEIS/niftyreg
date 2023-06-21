@@ -165,6 +165,15 @@ void CudaCompute::GetDefFieldFromVelocityGrid(bool updateStepNumber) {
     con.UpdateDeformationField();
 }
 /* *************************************************************** */
+void CudaCompute::VoxelCentricToNodeCentric(float weight) {
+    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
+    reg_voxelCentric2NodeCentric_gpu(con.F3dContent::GetWarped(),
+                                     con.F3dContent::GetControlPointGrid(),
+                                     con.GetVoxelBasedMeasureGradientCuda(),
+                                     con.GetTransformationGradientCuda(),
+                                     weight);
+}
+/* *************************************************************** */
 void CudaCompute::ConvolveVoxelBasedMeasureGradient(float weight) {
     // TODO Implement this for CUDA
     // Use CPU temporarily
@@ -173,12 +182,8 @@ void CudaCompute::ConvolveVoxelBasedMeasureGradient(float weight) {
     // Transfer the data back to the CUDA device
     con.UpdateVoxelBasedMeasureGradient();
 
-    // The node-based NMI gradient is extracted
-    reg_voxelCentric2NodeCentric_gpu(con.F3dContent::GetWarped(),
-                                     con.F3dContent::GetControlPointGrid(),
-                                     con.GetVoxelBasedMeasureGradientCuda(),
-                                     con.GetTransformationGradientCuda(),
-                                     weight);
+    // The node-based NMI gradient is extracted from the voxel-based gradient
+    VoxelCentricToNodeCentric(weight);
 }
 /* *************************************************************** */
 void CudaCompute::ExponentiateGradient(Content& conBwIn) {
