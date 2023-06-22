@@ -124,8 +124,7 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *refImage,
     reg_tools_kernelConvolution(stdDevWarImage, this->kernelStandardDeviation, this->kernelType, combinedMask);
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(voxelNumber, sdevRefPtr, meanRefPtr, sdevWarPtr, meanWarPtr) \
-    private(voxel)
+    shared(voxelNumber, sdevRefPtr, meanRefPtr, sdevWarPtr, meanWarPtr)
 #endif
     for (voxel = 0; voxel < voxelNumber; ++voxel) {
         // G*(I^2) - (G*I)^2
@@ -303,7 +302,7 @@ double reg_getLNCCValue(nifti_image *referenceImage,
 #pragma omp parallel for default(none) \
     shared(voxelNumber,combinedMask,refMeanPtr,warMeanPtr, \
     refSdevPtr,warSdevPtr,correlaPtr) \
-    private(voxel,lncc_value) \
+    private(lncc_value) \
     reduction(+:lncc_value_sum) \
     reduction(+:activeVoxel_num)
 #endif
@@ -495,7 +494,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
 #pragma omp parallel for default(none) \
     shared(voxelNumber,combinedMask,refMeanPtr,warMeanPtr, \
     refSdevPtr,warSdevPtr,correlaPtr) \
-    private(voxel,refMeanValue,warMeanValue,refSdevValue, \
+    private(refMeanValue,warMeanValue,refSdevValue, \
     warSdevValue, correlaValue, temp1, temp2, temp3) \
     reduction(+:activeVoxel_num)
 #endif
@@ -560,17 +559,17 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
     shared(voxelNumber,combinedMask,currentRefPtr,currentWarPtr, \
     warMeanPtr,warSdevPtr,correlaPtr,measureGradPtrX,measureGradPtrY, \
     measureGradPtrZ, warpGradPtrX, warpGradPtrY, warpGradPtrZ, adjusted_weight) \
-    private(voxel, common)
+    private(common)
 #endif
     for (voxel = 0; voxel < voxelNumber; ++voxel) {
         // Check if the current voxel belongs to the mask
         if (combinedMask[voxel] > -1) {
             common = warMeanPtr[voxel] * currentRefPtr[voxel] - warSdevPtr[voxel] * currentWarPtr[voxel] + correlaPtr[voxel];
             common *= adjusted_weight;
-            measureGradPtrX[voxel] -= warpGradPtrX[voxel] * static_cast<DataType>(common);
-            measureGradPtrY[voxel] -= warpGradPtrY[voxel] * static_cast<DataType>(common);
+            measureGradPtrX[voxel] -= static_cast<DataType>(warpGradPtrX[voxel] * common);
+            measureGradPtrY[voxel] -= static_cast<DataType>(warpGradPtrY[voxel] * common);
             if (warpGradPtrZ != nullptr)
-                measureGradPtrZ[voxel] -= warpGradPtrZ[voxel] * static_cast<DataType>(common);
+                measureGradPtrZ[voxel] -= static_cast<DataType>(warpGradPtrZ[voxel] * common);
         }
     }
     // Check for NaN
@@ -583,7 +582,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelNumber,measureGradPtrX) \
-    private(voxel, val)
+    private(val)
 #endif
     for (voxel = 0; voxel < voxelNumber; ++voxel) {
         val = measureGradPtrX[voxel];
