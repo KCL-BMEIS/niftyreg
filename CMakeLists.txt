@@ -219,7 +219,7 @@ add_subdirectory(cmake)
 #-----------------------------------------------------------------------------
 if(BUILD_TESTING)
   enable_testing()
-  add_subdirectory(reg-test)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/reg-test)
 endif(BUILD_TESTING)
 #-----------------------------------------------------------------------------
 # add a target to generate API documentation with Doxygen

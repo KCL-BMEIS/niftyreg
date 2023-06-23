@@ -5,6 +5,8 @@ if(NOT Catch2_FOUND)
   message(SEND_ERROR "Catch2 is required to generate the unit test.
   The BUILD_TESTING flag is turned OFF")
   return()
+else(NOT Catch2_FOUND)
+  message(STATUS "Found Catch2")
 endif(NOT Catch2_FOUND)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
@@ -114,6 +116,7 @@ set(EXEC_LIST reg_test_imageGradient ${EXEC_LIST})
 set(EXEC_LIST reg_test_interpolation ${EXEC_LIST})
 set(EXEC_LIST reg_test_normaliseGradient ${EXEC_LIST})
 set(EXEC_LIST reg_test_voxelCentricToNodeCentric ${EXEC_LIST})
+set(EXEC_LIST reg_test_lncc ${EXEC_LIST})
 
 foreach(EXEC ${EXEC_LIST})
   add_executable(${EXEC} ${EXEC}.cpp)
