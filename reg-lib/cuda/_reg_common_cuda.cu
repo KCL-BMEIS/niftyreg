@@ -654,7 +654,7 @@ UniqueTextureObjectPtr cudaCommon_createTextureObject(const void *devPtr,
         resDesc.res.array.array = static_cast<cudaArray*>(const_cast<void*>(devPtr));
         break;
     default:
-        reg_print_fct_error("reg_createTextureObject");
+        reg_print_fct_error("cudaCommon_createTextureObject");
         reg_print_msg_error("Unsupported resource type");
         reg_exit();
     }

@@ -24,6 +24,8 @@
 #   include <time.h>
 #endif
 
+using PrecisionType = float;
+
 void PetitUsage(char *exec) {
     char text[255];
     reg_print_msg_error("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
@@ -79,7 +81,7 @@ void Usage(char *exec) {
     reg_print_info(exec, "");
     reg_print_info(exec, "*** Regularisation options:");
     reg_print_info(exec, "\t-be <float>\t\tWeight of the bending energy (second derivative of the transformation) penalty term [0.001]");
-    reg_print_info(exec, "\t-le <float>\t\tWeight of first order penalty term (symmetric and anti-symmetric part of the Jacobian) [0.00]");
+    reg_print_info(exec, "\t-le <float>\t\tWeight of first order penalty term (symmetric and anti-symmetric part of the Jacobian) [0.01]");
     reg_print_info(exec, "\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]");
     reg_print_info(exec, "\t-noAppJL\t\tTo not approximate the JL value only at the control point position");
     reg_print_info(exec, "\t-land <float> <file>\tUse of a set of landmarks which distance should be minimised");
@@ -276,12 +278,12 @@ int main(int argc, char **argv) {
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Check the type of registration object to create
-    unique_ptr<reg_f3d<float>> reg;
+    unique_ptr<reg_f3d<PrecisionType>> reg;
     PlatformType platformType(PlatformType::Cpu);
     unsigned gpuIdx = 999;
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-vel") == 0 || strcmp(argv[i], "--vel") == 0) {
-            reg.reset(new reg_f3d2<float>(referenceImage->nt, floatingImage->nt));
+            reg.reset(new reg_f3d2<PrecisionType>(referenceImage->nt, floatingImage->nt));
         } else if (strcmp(argv[i], "-platf") == 0 || strcmp(argv[i], "--platf") == 0) {
             PlatformType value{ atoi(argv[++i]) };
             if (value < PlatformType::Cpu || value > PlatformType::Cuda) {
@@ -304,7 +306,7 @@ int main(int argc, char **argv) {
         }
     }
     if (!reg)
-        reg.reset(new reg_f3d<float>(referenceImage->nt, floatingImage->nt));
+        reg.reset(new reg_f3d<PrecisionType>(referenceImage->nt, floatingImage->nt));
     reg->SetReferenceImage(referenceImage);
     reg->SetFloatingImage(floatingImage);
     reg->SetPlatformType(platformType);
@@ -366,11 +368,11 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "-maxit") == 0 || strcmp(argv[i], "--maxit") == 0) {
             reg->SetMaximalIterationNumber(atoi(argv[++i]));
         } else if (strcmp(argv[i], "-sx") == 0 || strcmp(argv[i], "--sx") == 0) {
-            reg->SetSpacing(0, (float)atof(argv[++i]));
+            reg->SetSpacing(0, (PrecisionType)atof(argv[++i]));
         } else if (strcmp(argv[i], "-sy") == 0 || strcmp(argv[i], "--sy") == 0) {
-            reg->SetSpacing(1, (float)atof(argv[++i]));
+            reg->SetSpacing(1, (PrecisionType)atof(argv[++i]));
         } else if (strcmp(argv[i], "-sz") == 0 || strcmp(argv[i], "--sz") == 0) {
-            reg->SetSpacing(2, (float)atof(argv[++i]));
+            reg->SetSpacing(2, (PrecisionType)atof(argv[++i]));
         } else if ((strcmp(argv[i], "--nmi") == 0)) {
             int bin = 64;
             if (refBinNumber != 0)
@@ -407,15 +409,15 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "-lp") == 0 || strcmp(argv[i], "--lp") == 0) {
             reg->SetLevelToPerform(atoi(argv[++i]));
         } else if (strcmp(argv[i], "-be") == 0 || strcmp(argv[i], "--be") == 0) {
-            reg->SetBendingEnergyWeight(atof(argv[++i]));
+            reg->SetBendingEnergyWeight((PrecisionType)atof(argv[++i]));
         } else if (strcmp(argv[i], "-le") == 0 || strcmp(argv[i], "--le") == 0) {
-            reg->SetLinearEnergyWeight(atof(argv[++i]));
+            reg->SetLinearEnergyWeight((PrecisionType)atof(argv[++i]));
         } else if (strcmp(argv[i], "-jl") == 0 || strcmp(argv[i], "--jl") == 0) {
-            reg->SetJacobianLogWeight(atof(argv[++i]));
+            reg->SetJacobianLogWeight((PrecisionType)atof(argv[++i]));
         } else if (strcmp(argv[i], "-noAppJL") == 0 || strcmp(argv[i], "--noAppJL") == 0) {
             reg->DoNotApproximateJacobianLog();
         } else if (strcmp(argv[i], "-land") == 0 || strcmp(argv[i], "--land") == 0) {
-            float weight = atof(argv[++i]);
+            float weight = (float)atof(argv[++i]);
             char *filename = argv[++i];
             std::pair<size_t, size_t> inputMatrixSize = reg_tool_sizeInputMatrixFile(filename);
             size_t landmarkNumber = inputMatrixSize.first;
@@ -456,45 +458,45 @@ int main(int argc, char **argv) {
                 free(allLandmarks[l]);
             free(allLandmarks);
         } else if ((strcmp(argv[i], "-smooR") == 0) || (strcmp(argv[i], "-smooT") == 0) || strcmp(argv[i], "--smooR") == 0) {
-            reg->SetReferenceSmoothingSigma(atof(argv[++i]));
+            reg->SetReferenceSmoothingSigma((PrecisionType)atof(argv[++i]));
         } else if ((strcmp(argv[i], "-smooF") == 0) || (strcmp(argv[i], "-smooS") == 0) || strcmp(argv[i], "--smooF") == 0) {
-            reg->SetFloatingSmoothingSigma(atof(argv[++i]));
+            reg->SetFloatingSmoothingSigma((PrecisionType)atof(argv[++i]));
         } else if ((strcmp(argv[i], "-rLwTh") == 0) || (strcmp(argv[i], "-tLwTh") == 0)) {
             int tp = atoi(argv[++i]);
-            float val = atof(argv[++i]);
+            PrecisionType val = (PrecisionType)atof(argv[++i]);
             reg->SetReferenceThresholdLow(tp, val);
         } else if ((strcmp(argv[i], "-rUpTh") == 0) || strcmp(argv[i], "-tUpTh") == 0) {
             int tp = atoi(argv[++i]);
-            float val = atof(argv[++i]);
+            PrecisionType val = (PrecisionType)atof(argv[++i]);
             reg->SetReferenceThresholdUp(tp, val);
         } else if ((strcmp(argv[i], "-fLwTh") == 0) || (strcmp(argv[i], "-sLwTh") == 0)) {
             int tp = atoi(argv[++i]);
-            float val = atof(argv[++i]);
+            PrecisionType val = (PrecisionType)atof(argv[++i]);
             reg->SetFloatingThresholdLow(tp, val);
         } else if ((strcmp(argv[i], "-fUpTh") == 0) || (strcmp(argv[i], "-sUpTh") == 0)) {
             int tp = atoi(argv[++i]);
-            float val = atof(argv[++i]);
+            PrecisionType val = (PrecisionType)atof(argv[++i]);
             reg->SetFloatingThresholdUp(tp, val);
         } else if ((strcmp(argv[i], "--rLwTh") == 0)) {
-            float threshold = atof(argv[++i]);
+            PrecisionType threshold = (PrecisionType)atof(argv[++i]);
             for (int t = 0; t < referenceImage->nt; ++t)
                 reg->SetReferenceThresholdLow(t, threshold);
         } else if ((strcmp(argv[i], "--rUpTh") == 0)) {
-            float threshold = atof(argv[++i]);
+            PrecisionType threshold = (PrecisionType)atof(argv[++i]);
             for (int t = 0; t < referenceImage->nt; ++t)
                 reg->SetReferenceThresholdUp(t, threshold);
         } else if ((strcmp(argv[i], "--fLwTh") == 0)) {
-            float threshold = atof(argv[++i]);
+            PrecisionType threshold = (PrecisionType)atof(argv[++i]);
             for (int t = 0; t < floatingImage->nt; ++t)
                 reg->SetFloatingThresholdLow(t, threshold);
         } else if ((strcmp(argv[i], "--fUpTh") == 0)) {
-            float threshold = atof(argv[++i]);
+            PrecisionType threshold = (PrecisionType)atof(argv[++i]);
             for (int t = 0; t < floatingImage->nt; ++t)
                 reg->SetFloatingThresholdUp(t, threshold);
         } else if (strcmp(argv[i], "-smoothGrad") == 0) {
-            reg->SetGradientSmoothingSigma(atof(argv[++i]));
+            reg->SetGradientSmoothingSigma((PrecisionType)atof(argv[++i]));
         } else if (strcmp(argv[i], "--smoothGrad") == 0) {
-            reg->SetGradientSmoothingSigma(atof(argv[++i]));
+            reg->SetGradientSmoothingSigma((PrecisionType)atof(argv[++i]));
         } else if (strcmp(argv[i], "-ssd") == 0) {
             int timepoint = atoi(argv[++i]);
             bool normalise = 1;
@@ -538,7 +540,7 @@ int main(int argc, char **argv) {
             reg->UseRobustRange();
         } else if (strcmp(argv[i], "-lncc") == 0) {
             int tp = atoi(argv[++i]);
-            float stdev = atof(argv[++i]);
+            float stdev = (float)atof(argv[++i]);
             reg->UseLNCC(tp, stdev);
         } else if (strcmp(argv[i], "--lncc") == 0) {
             float stdev = (float)atof(argv[++i]);
@@ -581,7 +583,7 @@ int main(int argc, char **argv) {
             NiftiImage refLocalWeightSim = reg_io_ReadImageFile(argv[++i]);
             reg->SetLocalWeightSim(std::move(refLocalWeightSim));
         } else if (strcmp(argv[i], "-pad") == 0 || strcmp(argv[i], "--pad") == 0) {
-            reg->SetWarpedPaddingValue(atof(argv[++i]));
+            reg->SetWarpedPaddingValue((float)atof(argv[++i]));
         } else if (strcmp(argv[i], "-nopy") == 0 || strcmp(argv[i], "--nopy") == 0) {
             reg->DoNotUsePyramidalApproach();
         } else if (strcmp(argv[i], "-noConj") == 0 || strcmp(argv[i], "--noConj") == 0) {
@@ -611,7 +613,7 @@ int main(int argc, char **argv) {
             }
             reg->SetFloatingMask(std::move(floatingMaskImage));
         } else if (strcmp(argv[i], "-ic") == 0 || strcmp(argv[i], "--ic") == 0) {
-            reg->SetInverseConsistencyWeight(atof(argv[++i]));
+            reg->SetInverseConsistencyWeight((PrecisionType)atof(argv[++i]));
         } else if (strcmp(argv[i], "-nox") == 0) {
             reg->NoOptimisationAlongX();
         } else if (strcmp(argv[i], "-noy") == 0) {
