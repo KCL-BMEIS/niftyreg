@@ -34,6 +34,12 @@ __device__ __inline__ void reg_mat44_mul_cuda(const mat44& mat, const float (&in
     out[2] = is3d ? mat.m[2][0] * in[0] + mat.m[2][1] * in[1] + mat.m[2][2] * in[2] + mat.m[2][3] : 0;
 }
 /* *************************************************************** */
+__device__ __inline__ void div(const int num, const int denom, int& quot, int& rem) {
+    // This will be optimised by the compiler into a single div instruction
+    quot = num / denom;
+    rem = num % denom;
+}
+/* *************************************************************** */
 __global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeImageCuda,
                                                     cudaTextureObject_t voxelImageTexture,
                                                     const unsigned nodeNumber,
@@ -46,11 +52,13 @@ __global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeImageCuda,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < nodeNumber) {
         float nodeCoord[3], voxelCoord[3], reorientedValue[3];
-        int tempIndex = tid;
-        nodeCoord[2] = tempIndex / (nodeImageDims.x * nodeImageDims.y);
-        tempIndex -= nodeCoord[2] * nodeImageDims.x * nodeImageDims.y;
-        nodeCoord[1] = tempIndex / nodeImageDims.x;
-        nodeCoord[0] = tempIndex - nodeCoord[1] * nodeImageDims.x;
+        // Calculate the node coordinates
+        int quot, rem;
+        div(tid, nodeImageDims.x * nodeImageDims.y, quot, rem);
+        nodeCoord[2] = quot;
+        div(rem, nodeImageDims.x, quot, rem);
+        nodeCoord[1] = quot; nodeCoord[0] = rem;
+        // Transform into voxel coordinates
         reg_mat44_mul_cuda(transformation, nodeCoord, voxelCoord, is3d);
 
         // Linear interpolation
