@@ -34,14 +34,14 @@ reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     referenceSmoothingSigma = 0;
     floatingSmoothingSigma = 0;
 
+    referenceThresholdLow.reset(new T[referenceTimePoint]);
+    std::fill(referenceThresholdLow.get(), referenceThresholdLow.get() + referenceTimePoint, std::numeric_limits<T>::lowest());
     referenceThresholdUp.reset(new T[referenceTimePoint]);
     std::fill(referenceThresholdUp.get(), referenceThresholdUp.get() + referenceTimePoint, std::numeric_limits<T>::max());
-    referenceThresholdLow.reset(new T[referenceTimePoint]);
-    std::fill(referenceThresholdLow.get(), referenceThresholdLow.get() + referenceTimePoint, std::numeric_limits<T>::min());
+    floatingThresholdLow.reset(new T[floatingTimePoint]);
+    std::fill(floatingThresholdLow.get(), floatingThresholdLow.get() + floatingTimePoint, std::numeric_limits<T>::lowest());
     floatingThresholdUp.reset(new T[floatingTimePoint]);
     std::fill(floatingThresholdUp.get(), floatingThresholdUp.get() + floatingTimePoint, std::numeric_limits<T>::max());
-    floatingThresholdLow.reset(new T[floatingTimePoint]);
-    std::fill(floatingThresholdLow.get(), floatingThresholdLow.get() + floatingTimePoint, std::numeric_limits<T>::min());
 
     robustRange = false;
     warpedPaddingValue = std::numeric_limits<T>::quiet_NaN();
@@ -504,7 +504,7 @@ void reg_base<T>::Initialise() {
         T *refDataPtr = static_cast<T *>(tmpReference->data);
         reg_heapSort(refDataPtr, tmpReference->nvox);
         // Update the reference threshold values if no value has been setup by the user
-        if (referenceThresholdLow[0] == std::numeric_limits<T>::min())
+        if (referenceThresholdLow[0] == std::numeric_limits<T>::lowest())
             referenceThresholdLow[0] = refDataPtr[(int)reg_round((float)tmpReference->nvox * 0.02f)];
         if (referenceThresholdUp[0] == std::numeric_limits<T>::max())
             referenceThresholdUp[0] = refDataPtr[(int)reg_round((float)tmpReference->nvox * 0.98f)];
@@ -516,7 +516,7 @@ void reg_base<T>::Initialise() {
         T *floDataPtr = static_cast<T *>(tmpFloating->data);
         reg_heapSort(floDataPtr, tmpFloating->nvox);
         // Update the floating threshold values if no value has been setup by the user
-        if (floatingThresholdLow[0] == std::numeric_limits<T>::min())
+        if (floatingThresholdLow[0] == std::numeric_limits<T>::lowest())
             floatingThresholdLow[0] = floDataPtr[(int)reg_round((float)tmpFloating->nvox * 0.02f)];
         if (floatingThresholdUp[0] == std::numeric_limits<T>::max())
             floatingThresholdUp[0] = floDataPtr[(int)reg_round((float)tmpFloating->nvox * 0.98f)];

@@ -11,9 +11,6 @@ reg_aladin_sym<T>::reg_aladin_sym()
 
     this->backwardBlockMatchingParams = nullptr;
 
-    this->floatingUpperThreshold = std::numeric_limits<T>::max();
-    this->floatingLowerThreshold = std::numeric_limits<T>::min();
-
 #ifndef NDEBUG
     reg_print_msg_debug("reg_aladin_sym constructor called");
 #endif
@@ -63,7 +60,7 @@ void reg_aladin_sym<T>::InitialiseRegistration() {
             }
         }
     }
-    if (this->floatingLowerThreshold != std::numeric_limits<T>::min()) {
+    if (this->floatingLowerThreshold != std::numeric_limits<T>::lowest()) {
         for (unsigned l = 0; l < this->levelsToPerform; ++l) {
             T *refPtr = static_cast<T *>(this->floatingPyramid[l]->data);
             int *mskPtr = this->floatingMaskPyramid[l].get();

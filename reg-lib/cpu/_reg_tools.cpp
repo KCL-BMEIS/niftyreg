@@ -104,35 +104,35 @@ void reg_intensityRescale_core(nifti_image *image,
     switch (image->datatype) {
     case NIFTI_TYPE_UINT8:
         currentMin = (DataType)std::numeric_limits<unsigned char>::max();
-        currentMax = 0;
+        currentMax = (DataType)std::numeric_limits<unsigned char>::lowest();
         break;
     case NIFTI_TYPE_INT8:
         currentMin = (DataType)std::numeric_limits<char>::max();
-        currentMax = (DataType)std::numeric_limits<char>::min();
+        currentMax = (DataType)std::numeric_limits<char>::lowest();
         break;
     case NIFTI_TYPE_UINT16:
         currentMin = (DataType)std::numeric_limits<unsigned short>::max();
-        currentMax = (DataType)std::numeric_limits<unsigned short>::min();
+        currentMax = (DataType)std::numeric_limits<unsigned short>::lowest();
         break;
     case NIFTI_TYPE_INT16:
         currentMin = (DataType)std::numeric_limits<short>::max();
-        currentMax = (DataType)std::numeric_limits<short>::min();
+        currentMax = (DataType)std::numeric_limits<short>::lowest();
         break;
     case NIFTI_TYPE_UINT32:
         currentMin = (DataType)std::numeric_limits<unsigned>::max();
-        currentMax = (DataType)std::numeric_limits<unsigned>::min();
+        currentMax = (DataType)std::numeric_limits<unsigned>::lowest();
         break;
     case NIFTI_TYPE_INT32:
         currentMin = (DataType)std::numeric_limits<int>::max();
-        currentMax = (DataType)std::numeric_limits<int>::min();
+        currentMax = (DataType)std::numeric_limits<int>::lowest();
         break;
     case NIFTI_TYPE_FLOAT32:
         currentMin = (DataType)std::numeric_limits<float>::max();
-        currentMax = (DataType)std::numeric_limits<float>::min();
+        currentMax = (DataType)std::numeric_limits<float>::lowest();
         break;
     case NIFTI_TYPE_FLOAT64:
         currentMin = (DataType)std::numeric_limits<double>::max();
-        currentMax = (DataType)std::numeric_limits<double>::min();
+        currentMax = (DataType)std::numeric_limits<double>::lowest();
         break;
     }
 
@@ -284,7 +284,7 @@ template<class T, class DataType>
 void reg_thresholdImage(nifti_image *image, T lowThr, T upThr) {
     DataType *imagePtr = static_cast<DataType*>(image->data);
     T currentMin = std::numeric_limits<T>::max();
-    T currentMax = std::numeric_limits<T>::min();
+    T currentMax = std::numeric_limits<T>::lowest();
 
     if (image->scl_slope == 0)image->scl_slope = 1.0;
 
@@ -1338,7 +1338,7 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
                             }
                             currIterator = tmp_lab.begin();
                             maxindex = 0;
-                            maxval = std::numeric_limits<float>::min();
+                            maxval = std::numeric_limits<float>::lowest();
                             while (currIterator != tmp_lab.end()) {
                                 if (currIterator->second > maxval) {
                                     maxindex = currIterator->first;
@@ -2008,7 +2008,7 @@ DataType reg_tools_getMinMaxValue(const nifti_image *image, int timepoint, bool 
         reg_print_msg_error("reg_tools_getMinMaxValue. The required time point does not exists");
 
     const DataType *imgPtr = static_cast<DataType*>(image->data);
-    DataType retValue = calcMin ? std::numeric_limits<DataType>::max() : std::numeric_limits<DataType>::min();
+    DataType retValue = calcMin ? std::numeric_limits<DataType>::max() : std::numeric_limits<DataType>::lowest();
     const size_t voxelNumber = CalcVoxelNumber(*image);
     const float sclSlope = image->scl_slope == 0 ? 1 : image->scl_slope;
 

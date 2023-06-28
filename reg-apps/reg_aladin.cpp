@@ -163,9 +163,9 @@ int main(int argc, char **argv) {
     float floatingSigma = 0;
     float referenceSigma = 0;
 
-    float referenceLowerThr = std::numeric_limits<PrecisionType>::min();
+    float referenceLowerThr = std::numeric_limits<PrecisionType>::lowest();
     float referenceUpperThr = std::numeric_limits<PrecisionType>::max();
-    float floatingLowerThr = std::numeric_limits<PrecisionType>::min();
+    float floatingLowerThr = std::numeric_limits<PrecisionType>::lowest();
     float floatingUpperThr = std::numeric_limits<PrecisionType>::max();
     float paddingValue = std::numeric_limits<PrecisionType>::quiet_NaN();
 

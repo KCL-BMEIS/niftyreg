@@ -32,11 +32,11 @@ reg_aladin<T>::reg_aladin() {
     this->floatingSigma = 0;
     this->referenceSigma = 0;
 
+    this->referenceLowerThreshold = std::numeric_limits<T>::lowest();
     this->referenceUpperThreshold = std::numeric_limits<T>::max();
-    this->referenceLowerThreshold = std::numeric_limits<T>::min();
 
+    this->floatingLowerThreshold = std::numeric_limits<T>::lowest();
     this->floatingUpperThreshold = std::numeric_limits<T>::max();
-    this->floatingLowerThreshold = std::numeric_limits<T>::min();
 
     this->warpedPaddingValue = std::numeric_limits<T>::quiet_NaN();
 
