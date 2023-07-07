@@ -69,7 +69,7 @@ void reg_optimiser<T>::Initialise(size_t nvox,
     this->maxIterationNumber = maxIt;
     this->currentIterationNumber = startIt;
     this->currentDof = cppData;
-    if (this->bestDof) free(this->bestDof);
+    if (this->bestDof != nullptr) free(this->bestDof);
     this->bestDof = (T*)malloc(this->dofNumber * sizeof(T));
     memcpy(this->bestDof, this->currentDof, this->dofNumber * sizeof(T));
     if (gradData)
@@ -80,7 +80,7 @@ void reg_optimiser<T>::Initialise(size_t nvox,
     if (cppDataBw) {
         this->currentDofBw = cppDataBw;
         this->isBackwards = true;
-        if (this->bestDofBw) free(this->bestDofBw);
+        if (this->bestDofBw != nullptr) free(this->bestDofBw);
         this->bestDofBw = (T*)malloc(this->dofNumberBw * sizeof(T));
         memcpy(this->bestDofBw, this->currentDofBw, this->dofNumberBw * sizeof(T));
     }

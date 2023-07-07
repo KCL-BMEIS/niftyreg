@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
     int rigidFlag = 1;
     int blockStepSize = 1;
     int blockPercentage = 50;
-    float inlierLts = 50.0f;
+    int inlierLts = 50;
     int alignCentre = 1;
     int alignCentreOfMass = 0;
     int interpolation = 1;
@@ -255,16 +255,16 @@ int main(int argc, char **argv) {
             alignCentre = 0;
             alignCentreOfMass = 2;
         } else if (strcmp(argv[i], "-%v") == 0 || strcmp(argv[i], "-pv") == 0 || strcmp(argv[i], "--pv") == 0) {
-            float value = atof(argv[++i]);
-            if (value < 0.f || value>100.f) {
-                reg_print_msg_error("The variance argument is expected to be between 0 and 100");
+            int value = atoi(argv[++i]);
+            if (value < 1 || value>100) {
+                reg_print_msg_error("The variance argument is expected to be an integer between 1 and 100");
                 return EXIT_FAILURE;
             }
             blockPercentage = value;
         } else if (strcmp(argv[i], "-%i") == 0 || strcmp(argv[i], "-pi") == 0 || strcmp(argv[i], "--pi") == 0) {
-            float value = atof(argv[++i]);
-            if (value < 0.f || value>100.f) {
-                reg_print_msg_error("The inlier argument is expected to be between 0 and 100");
+            int value = atoi(argv[++i]);
+            if (value < 1 || value>100) {
+                reg_print_msg_error("The inlier argument is expected to be an integer between 1 and 100");
                 return EXIT_FAILURE;
             }
             inlierLts = value;
@@ -273,17 +273,17 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "-interp") == 0 || strcmp(argv[i], "--interp") == 0) {
             interpolation = atoi(argv[++i]);
         } else if (strcmp(argv[i], "-refLowThr") == 0 || strcmp(argv[i], "--refLowThr") == 0) {
-            referenceLowerThr = atof(argv[++i]);
+            referenceLowerThr = std::stof(argv[++i]);
         } else if (strcmp(argv[i], "-refUpThr") == 0 || strcmp(argv[i], "--refUpThr") == 0) {
-            referenceUpperThr = atof(argv[++i]);
+            referenceUpperThr = std::stof(argv[++i]);
         } else if (strcmp(argv[i], "-floLowThr") == 0 || strcmp(argv[i], "--floLowThr") == 0) {
-            floatingLowerThr = atof(argv[++i]);
+            floatingLowerThr = std::stof(argv[++i]);
         } else if (strcmp(argv[i], "-floUpThr") == 0 || strcmp(argv[i], "--floUpThr") == 0) {
-            floatingUpperThr = atof(argv[++i]);
+            floatingUpperThr = std::stof(argv[++i]);
         }
 
         else if (strcmp(argv[i], "-pad") == 0 || strcmp(argv[i], "--pad") == 0) {
-            paddingValue = atof(argv[++i]);
+            paddingValue = std::stof(argv[++i]);
         } else if (strcmp(argv[i], "-iso") == 0 || strcmp(argv[i], "--iso") == 0) {
             iso = true;
         } else if (strcmp(argv[i], "-voff") == 0 || strcmp(argv[i], "--voff") == 0) {
@@ -495,9 +495,9 @@ int main(int argc, char **argv) {
 #endif
         time_t end;
         time(&end);
-        int minutes = (int)floorf((end - start) / 60.0f);
-        int seconds = (int)(end - start - 60 * minutes);
-        sprintf(text, "Registration performed in %i min %i sec", minutes, seconds);
+        float minutes = floorf((end - start) / 60.0f);
+        float seconds = (end - start - 60 * minutes);
+        sprintf(text, "Registration performed in %i min %i sec", (int)minutes, (int)seconds);
         reg_print_info((argv[0]), text);
         reg_print_info((argv[0]), "Have a good day !");
 #ifdef NDEBUG

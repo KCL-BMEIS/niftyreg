@@ -319,6 +319,9 @@ int main(int argc, char **argv) {
     int refBinNumber = 0;
     int floBinNumber = 0;
 
+    // mat44 to store the affine matrix if needed
+    mat44 affineMatrix;
+
     /* read the input parameter */
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-ref") == 0 || strcmp(argv[i], "-target") == 0 ||
@@ -341,7 +344,6 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
             }
             // Read the affine matrix
-            mat44 affineMatrix;
             reg_tool_ReadAffineFile(&affineMatrix, affineTransformationName);
             // Send the transformation to the registration object
             reg->SetAffineTransformation(&affineMatrix);
@@ -748,7 +750,7 @@ int main(int argc, char **argv) {
         time_t end;
         time(&end);
         int minutes = (int)floorf((end - start) / 60.0f);
-        int seconds = (int)(end - start - 60 * minutes);
+        int seconds = ((int)(end - start) - 60 * minutes);
         text = stringFormat("Registration performed in %i min %i sec", minutes, seconds);
         reg_print_info((argv[0]), text.c_str());
         reg_print_info((argv[0]), "Have a good day !");
