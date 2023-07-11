@@ -1,6 +1,6 @@
 #pragma once
 
-#include "_reg_maths.h"
+#include "_reg_tools.h"
 
 class Content {
 public:
@@ -41,6 +41,7 @@ protected:
     nifti_image *floating = nullptr;
     nifti_image *deformationField = nullptr;
     int *referenceMask = nullptr;
+    unique_ptr<int[]> referenceMaskManaged;
     mat44 *transformationMatrix = nullptr;
     nifti_image *warped = nullptr;
 

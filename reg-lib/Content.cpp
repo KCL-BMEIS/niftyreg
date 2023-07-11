@@ -19,14 +19,15 @@ Content::Content(nifti_image *referenceIn,
     AllocateWarped();
     AllocateDeformationField(bytesIn);
     activeVoxelNumber = reference->nvox;
-    if (!referenceMask)
-        referenceMask = (int*)calloc(activeVoxelNumber, sizeof(int));
+    if (!referenceMask) {
+        referenceMaskManaged.reset(new int[activeVoxelNumber]());
+        referenceMask = referenceMaskManaged.get();
+    }
 }
 /* *************************************************************** */
 Content::~Content() {
     DeallocateWarped();
     DeallocateDeformationField();
-    // free(referenceMask); // TODO Fix this with smart pointers
 }
 /* *************************************************************** */
 void Content::AllocateWarped() {
