@@ -319,9 +319,6 @@ int main(int argc, char **argv) {
     int refBinNumber = 0;
     int floBinNumber = 0;
 
-    // mat44 to store the affine matrix if needed
-    mat44 affineMatrix;
-
     /* read the input parameter */
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-ref") == 0 || strcmp(argv[i], "-target") == 0 ||
@@ -344,9 +341,10 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
             }
             // Read the affine matrix
+            mat44 affineMatrix;
             reg_tool_ReadAffineFile(&affineMatrix, affineTransformationName);
             // Send the transformation to the registration object
-            reg->SetAffineTransformation(&affineMatrix);
+            reg->SetAffineTransformation(affineMatrix);
         } else if (strcmp(argv[i], "-incpp") == 0 || (strcmp(argv[i], "--incpp") == 0)) {
             NiftiImage inputCCPImage = reg_io_ReadImageFile(argv[++i]);
             if (!inputCCPImage) {

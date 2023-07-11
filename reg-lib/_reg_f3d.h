@@ -18,7 +18,7 @@
 template <class T>
 class reg_f3d: public reg_base<T> {
 protected:
-    NiftiImage inputControlPointGrid; // pointer to external
+    NiftiImage inputControlPointGrid;
     NiftiImage controlPointGrid;
     T bendingEnergyWeight;
     T linearEnergyWeight;

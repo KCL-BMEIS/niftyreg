@@ -30,7 +30,6 @@ reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     executableName = (char*)"NiftyReg BASE";
     referenceTimePoint = refTimePoint;
     floatingTimePoint = floTimePoint;
-    affineTransformation = nullptr;  // pointer to external
     referenceSmoothingSigma = 0;
     floatingSmoothingSigma = 0;
 
@@ -98,8 +97,8 @@ void reg_base<T>::SetReferenceMask(NiftiImage maskImageIn) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetAffineTransformation(mat44 *affineTransformationIn) {
-    affineTransformation = affineTransformationIn;
+void reg_base<T>::SetAffineTransformation(const mat44& affineTransformationIn) {
+    affineTransformation.reset(new mat44(affineTransformationIn));
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::SetAffineTransformation");
 #endif

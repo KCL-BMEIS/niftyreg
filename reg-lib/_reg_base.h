@@ -66,10 +66,10 @@ protected:
     char *executableName;
     int referenceTimePoint;
     int floatingTimePoint;
-    NiftiImage inputReference; // pointer to external
-    NiftiImage inputFloating; // pointer to external
-    NiftiImage maskImage; // pointer to external
-    mat44 *affineTransformation; // pointer to external
+    NiftiImage inputReference;
+    NiftiImage inputFloating;
+    NiftiImage maskImage;
+    unique_ptr<mat44> affineTransformation;
     T referenceSmoothingSigma;
     T floatingSmoothingSigma;
     unique_ptr<T[]> referenceThresholdUp;
@@ -181,7 +181,7 @@ public:
     virtual void SetReferenceImage(NiftiImage);
     virtual void SetFloatingImage(NiftiImage);
     virtual void SetReferenceMask(NiftiImage);
-    virtual void SetAffineTransformation(mat44*);
+    virtual void SetAffineTransformation(const mat44&);
     virtual void SetReferenceSmoothingSigma(T);
     virtual void SetFloatingSmoothingSigma(T);
     virtual void SetGradientSmoothingSigma(T);

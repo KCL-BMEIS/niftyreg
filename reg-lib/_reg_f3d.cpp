@@ -94,7 +94,7 @@ void reg_f3d<T>::SetSpacing(unsigned i, T s) {
 template<class T>
 void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
     unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d)) };
-    this->con.reset(contentCreator->Create(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation, sizeof(T)));
+    this->con.reset(contentCreator->Create(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation.get(), sizeof(T)));
     this->compute.reset(this->platform->CreateCompute(*this->con));
 }
 /* *************************************************************** */
@@ -200,7 +200,7 @@ void reg_f3d<T>::Initialise() {
         // The control point position image is initialised with the affine transformation
         if (!this->affineTransformation) {
             reg_getDeformationFromDisplacement(controlPointGrid);
-        } else reg_affine_getDeformationField(this->affineTransformation, controlPointGrid);
+        } else reg_affine_getDeformationField(this->affineTransformation.get(), controlPointGrid);
     } else {
         // The control point grid image is initialised with the provided grid
         controlPointGrid = inputControlPointGrid;

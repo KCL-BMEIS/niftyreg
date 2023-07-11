@@ -694,7 +694,7 @@ void reg_f3d2<T>::Initialise() {
                                                 controlPointGridBw,
                                                 this->referencePyramid[0],
                                                 this->floatingPyramid[0],
-                                                this->affineTransformation,
+                                                this->affineTransformation.get(),
                                                 gridSpacing);
     } else {
         // The control point grid image is initialised with the provided grid
