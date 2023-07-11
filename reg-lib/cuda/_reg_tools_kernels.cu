@@ -8,37 +8,8 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  */
 
-/* *************************************************************** */
-__device__ __constant__ int c_NodeNumber;
-__device__ __constant__ int c_VoxelNumber;
-__device__ __constant__ int3 c_TargetImageDim;
-__device__ __constant__ float3 c_VoxelNodeRatio;
-__device__ __constant__ int3 c_ControlPointImageDim;
-__device__ __constant__ int3 c_ImageDim;
-__device__ __constant__ float c_Weight;
-/* *************************************************************** */
-texture<float4, 1, cudaReadModeElementType> controlPointTexture;
-texture<float4, 1, cudaReadModeElementType> gradientImageTexture;
-texture<float4, 1, cudaReadModeElementType> matrixTexture;
-texture<float, 1, cudaReadModeElementType> convolutionKernelTexture;
-/* *************************************************************** */
-__device__ __inline__ void reg_mat33_mul_cuda(const mat33& mat, const float (&in)[3], const float& weight, float (&out)[3], const bool& is3d) {
-    out[0] = weight * (mat.m[0][0] * in[0] + mat.m[0][1] * in[1] + mat.m[0][2] * in[2]);
-    out[1] = weight * (mat.m[1][0] * in[0] + mat.m[1][1] * in[1] + mat.m[1][2] * in[2]);
-    out[2] = is3d ? weight * (mat.m[2][0] * in[0] + mat.m[2][1] * in[1] + mat.m[2][2] * in[2]) : 0;
-}
-/* *************************************************************** */
-__device__ __inline__ void reg_mat44_mul_cuda(const mat44& mat, const float (&in)[3], float (&out)[3], const bool& is3d) {
-    out[0] = mat.m[0][0] * in[0] + mat.m[0][1] * in[1] + mat.m[0][2] * in[2] + mat.m[0][3];
-    out[1] = mat.m[1][0] * in[0] + mat.m[1][1] * in[1] + mat.m[1][2] * in[2] + mat.m[1][3];
-    out[2] = is3d ? mat.m[2][0] * in[0] + mat.m[2][1] * in[1] + mat.m[2][2] * in[2] + mat.m[2][3] : 0;
-}
-/* *************************************************************** */
-__device__ __inline__ void div(const int num, const int denom, int& quot, int& rem) {
-    // This will be optimised by the compiler into a single div instruction
-    quot = num / denom;
-    rem = num % denom;
-}
+#include "_reg_common_cuda_kernels.cu"
+
 /* *************************************************************** */
 __global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeImageCuda,
                                                     cudaTextureObject_t voxelImageTexture,
@@ -54,9 +25,9 @@ __global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeImageCuda,
         float nodeCoord[3], voxelCoord[3], reorientedValue[3];
         // Calculate the node coordinates
         int quot, rem;
-        div(tid, nodeImageDims.x * nodeImageDims.y, quot, rem);
+        reg_div_cuda(tid, nodeImageDims.x * nodeImageDims.y, quot, rem);
         nodeCoord[2] = quot;
-        div(rem, nodeImageDims.x, quot, rem);
+        reg_div_cuda(rem, nodeImageDims.x, quot, rem);
         nodeCoord[1] = quot; nodeCoord[0] = rem;
         // Transform into voxel coordinates
         reg_mat44_mul_cuda(transformation, nodeCoord, voxelCoord, is3d);
@@ -100,46 +71,44 @@ __global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeImageCuda,
     }
 }
 /* *************************************************************** */
-__global__ void _reg_convertNMIGradientFromVoxelToRealSpace_kernel(float4 *gradient) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_NodeNumber) {
-        float4 voxelGradient = gradient[tid];
+__global__ void reg_convertNMIGradientFromVoxelToRealSpace_kernel(float4 *gradient, const mat44 matrix, const unsigned nodeNumber) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < nodeNumber) {
+        const float4 voxelGradient = gradient[tid];
         float4 realGradient;
-        float4 matrix = tex1Dfetch(matrixTexture, 0);
-        realGradient.x = matrix.x * voxelGradient.x + matrix.y * voxelGradient.y + matrix.z * voxelGradient.z;
-        matrix = tex1Dfetch(matrixTexture, 1);
-        realGradient.y = matrix.x * voxelGradient.x + matrix.y * voxelGradient.y + matrix.z * voxelGradient.z;
-        matrix = tex1Dfetch(matrixTexture, 2);
-        realGradient.z = matrix.x * voxelGradient.x + matrix.y * voxelGradient.y + matrix.z * voxelGradient.z;
-
+        realGradient.x = matrix.m[0][0] * voxelGradient.x + matrix.m[0][1] * voxelGradient.y + matrix.m[0][2] * voxelGradient.z;
+        realGradient.y = matrix.m[1][0] * voxelGradient.x + matrix.m[1][1] * voxelGradient.y + matrix.m[1][2] * voxelGradient.z;
+        realGradient.z = matrix.m[2][0] * voxelGradient.x + matrix.m[2][1] * voxelGradient.y + matrix.m[2][2] * voxelGradient.z;
         gradient[tid] = realGradient;
     }
 }
 /* *************************************************************** */
-__global__ void _reg_ApplyConvolutionWindowAlongX_kernel(float4 *smoothedImage, int windowSize) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber) {
-        int3 imageSize = c_ImageDim;
+__global__ void reg_applyConvolutionWindowAlongX_kernel(float4 *smoothedImage,
+                                                        cudaTextureObject_t imageTexture,
+                                                        cudaTextureObject_t kernelTexture,
+                                                        const int kernelSize,
+                                                        const int3 imageSize,
+                                                        const unsigned voxelNumber) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < voxelNumber) {
+        int quot, rem;
+        reg_div_cuda(tid, imageSize.x * imageSize.y, quot, rem);
+        reg_div_cuda(rem, imageSize.x, quot, rem);
+        int x = rem;
 
-        int temp = tid;
-        const short z = (int)(temp / (imageSize.x * imageSize.y));
-        temp -= z * imageSize.x * imageSize.y;
-        const short y = (int)(temp / (imageSize.x));
-        short x = temp - y * (imageSize.x);
-
-        int radius = (windowSize - 1) / 2;
+        const int radius = (kernelSize - 1) / 2;
         int index = tid - radius;
         x -= radius;
 
-        float4 finalValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        float4 finalValue{};
 
         // Kahan summation used here
-        float3 c = make_float3(0.f, 0.f, 0.f), Y, t;
+        float3 c{}, Y, t;
         float windowValue;
-        for (int i = 0; i < windowSize; i++) {
+        for (int i = 0; i < kernelSize; i++) {
             if (-1 < x && x < imageSize.x) {
-                float4 gradientValue = tex1Dfetch(gradientImageTexture, index);
-                windowValue = tex1Dfetch(convolutionKernelTexture, i);
+                float4 gradientValue = tex1Dfetch<float4>(imageTexture, index);
+                windowValue = tex1Dfetch<float>(kernelTexture, i);
 
                 Y.x = gradientValue.x * windowValue - c.x;
                 Y.y = gradientValue.y * windowValue - c.y;
@@ -159,28 +128,31 @@ __global__ void _reg_ApplyConvolutionWindowAlongX_kernel(float4 *smoothedImage, 
     }
 }
 /* *************************************************************** */
-__global__ void _reg_ApplyConvolutionWindowAlongY_kernel(float4 *smoothedImage, int windowSize) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber) {
-        int3 imageSize = c_ImageDim;
+__global__ void reg_applyConvolutionWindowAlongY_kernel(float4 *smoothedImage,
+                                                        cudaTextureObject_t imageTexture,
+                                                        cudaTextureObject_t kernelTexture,
+                                                        const int kernelSize,
+                                                        const int3 imageSize,
+                                                        const unsigned voxelNumber) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < voxelNumber) {
+        int quot, rem;
+        reg_div_cuda(tid, imageSize.x * imageSize.y, quot, rem);
+        int y = rem / imageSize.x;
 
-        const short z = (int)(tid / (imageSize.x * imageSize.y));
-        int index = tid - z * imageSize.x * imageSize.y;
-        short y = (int)(index / imageSize.x);
-
-        int radius = (windowSize - 1) / 2;
-        index = tid - imageSize.x * radius;
+        const int radius = (kernelSize - 1) / 2;
+        int index = tid - imageSize.x * radius;
         y -= radius;
 
-        float4 finalValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        float4 finalValue{};
 
         // Kahan summation used here
-        float3 c = make_float3(0.f, 0.f, 0.f), Y, t;
+        float3 c{}, Y, t;
         float windowValue;
-        for (int i = 0; i < windowSize; i++) {
+        for (int i = 0; i < kernelSize; i++) {
             if (-1 < y && y < imageSize.y) {
-                float4 gradientValue = tex1Dfetch(gradientImageTexture, index);
-                windowValue = tex1Dfetch(convolutionKernelTexture, i);
+                float4 gradientValue = tex1Dfetch<float4>(imageTexture, index);
+                windowValue = tex1Dfetch<float>(kernelTexture, i);
 
                 Y.x = gradientValue.x * windowValue - c.x;
                 Y.y = gradientValue.y * windowValue - c.y;
@@ -200,26 +172,29 @@ __global__ void _reg_ApplyConvolutionWindowAlongY_kernel(float4 *smoothedImage, 
     }
 }
 /* *************************************************************** */
-__global__ void _reg_ApplyConvolutionWindowAlongZ_kernel(float4 *smoothedImage, int windowSize) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber) {
-        int3 imageSize = c_ImageDim;
+__global__ void reg_applyConvolutionWindowAlongZ_kernel(float4 *smoothedImage,
+                                                        cudaTextureObject_t imageTexture,
+                                                        cudaTextureObject_t kernelTexture,
+                                                        const int kernelSize,
+                                                        const int3 imageSize,
+                                                        const unsigned voxelNumber) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < voxelNumber) {
+        int z = (int)tid / (imageSize.x * imageSize.y);
 
-        short z = (int)(tid / ((imageSize.x) * (imageSize.y)));
-
-        int radius = (windowSize - 1) / 2;
+        const int radius = (kernelSize - 1) / 2;
         int index = tid - imageSize.x * imageSize.y * radius;
         z -= radius;
 
-        float4 finalValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        float4 finalValue{};
 
         // Kahan summation used here
-        float3 c = make_float3(0.f, 0.f, 0.f), Y, t;
+        float3 c{}, Y, t;
         float windowValue;
-        for (int i = 0; i < windowSize; i++) {
+        for (int i = 0; i < kernelSize; i++) {
             if (-1 < z && z < imageSize.z) {
-                float4 gradientValue = tex1Dfetch(gradientImageTexture, index);
-                windowValue = tex1Dfetch(convolutionKernelTexture, i);
+                float4 gradientValue = tex1Dfetch<float4>(imageTexture, index);
+                windowValue = tex1Dfetch<float>(kernelTexture, i);
 
                 Y.x = gradientValue.x * windowValue - c.x;
                 Y.y = gradientValue.y * windowValue - c.y;
@@ -239,71 +214,67 @@ __global__ void _reg_ApplyConvolutionWindowAlongZ_kernel(float4 *smoothedImage, 
     }
 }
 /* *************************************************************** */
-__global__ void reg_multiplyValue_kernel_float(float *array_d) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber) {
-        array_d[tid] *= c_Weight;
+__global__ void reg_multiplyValue_kernel_float(float *array, const float value, const unsigned count) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < count)
+        array[tid] *= value;
+}
+/* *************************************************************** */
+__global__ void reg_multiplyValue_kernel_float4(float4 *array, const float value, const unsigned count) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < count) {
+        const float4 temp = array[tid];
+        array[tid] = make_float4(temp.x * value, temp.y * value, temp.z * value, temp.w * value);
     }
 }
 /* *************************************************************** */
-__global__ void reg_multiplyValue_kernel_float4(float4 *array_d) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber) {
-        float4 temp = array_d[tid];
-        array_d[tid] = make_float4(temp.x * c_Weight, temp.y * c_Weight, temp.z * c_Weight, temp.w * c_Weight);
+__global__ void reg_addValue_kernel_float(float *array, const float value, const unsigned count) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < count)
+        array[tid] += value;
+}
+/* *************************************************************** */
+__global__ void reg_addValue_kernel_float4(float4 *array, const float value, const unsigned count) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < count) {
+        const float4 temp = array[tid];
+        array[tid] = make_float4(temp.x + value, temp.y + value, temp.z + value, temp.w + value);
     }
 }
 /* *************************************************************** */
-__global__ void reg_addValue_kernel_float(float *array_d) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber) {
-        array_d[tid] += c_Weight;
+__global__ void reg_multiplyArrays_kernel_float(float *array1, float *array2, const unsigned count) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < count)
+        array1[tid] *= array2[tid];
+}
+/* *************************************************************** */
+__global__ void reg_multiplyArrays_kernel_float4(float4 *array1, float4 *array2, const unsigned count) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < count) {
+        const float4 a = array1[tid];
+        const float4 b = array2[tid];
+        array1[tid] = make_float4(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
     }
 }
 /* *************************************************************** */
-__global__ void reg_addValue_kernel_float4(float4 *array_d) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber) {
-        float4 temp = array_d[tid];
-        array_d[tid] = make_float4(temp.x + c_Weight, temp.y + c_Weight, temp.z + c_Weight, temp.w + c_Weight);
+__global__ void reg_addArrays_kernel_float(float *array1, float *array2, const unsigned count) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < count)
+        array1[tid] += array2[tid];
+}
+/* *************************************************************** */
+__global__ void reg_addArrays_kernel_float4(float4 *array1, float4 *array2, const unsigned count) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < count) {
+        const float4 a = array1[tid];
+        const float4 b = array2[tid];
+        array1[tid] = make_float4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
     }
 }
 /* *************************************************************** */
-__global__ void reg_multiplyArrays_kernel_float(float *array1_d, float *array2_d) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber) {
-        array1_d[tid] *= array2_d[tid];
-    }
-}
-/* *************************************************************** */
-__global__ void reg_multiplyArrays_kernel_float4(float4 *array1_d, float4 *array2_d) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber) {
-        float4 a = array1_d[tid];
-        float4 b = array1_d[tid];
-        array1_d[tid] = make_float4(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
-    }
-}
-/* *************************************************************** */
-__global__ void reg_addArrays_kernel_float(float *array1_d, float *array2_d) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber) {
-        array1_d[tid] += array2_d[tid];
-    }
-}
-/* *************************************************************** */
-__global__ void reg_addArrays_kernel_float4(float4 *array1_d, float4 *array2_d) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber) {
-        float4 a = array1_d[tid];
-        float4 b = array1_d[tid];
-        array1_d[tid] = make_float4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
-    }
-}
-/* *************************************************************** */
-__global__ void reg_fillMaskArray_kernel(int *array1_d) {
-    const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < c_VoxelNumber)
-        array1_d[tid] = tid;
+__global__ void reg_fillMaskArray_kernel(int *array, const unsigned count) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < count)
+        array[tid] = tid;
 }
 /* *************************************************************** */

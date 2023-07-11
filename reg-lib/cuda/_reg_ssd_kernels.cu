@@ -14,136 +14,125 @@
 
 #include "_reg_ssd_gpu.h"
 #include "_reg_ssd_kernels.cu"
+#include "_reg_common_cuda_kernels.cu"
 
 /* *************************************************************** */
-texture<float, 3, cudaReadModeElementType> referenceTexture;
-texture<float, 1, cudaReadModeElementType> warpedTexture;
-texture<int, 1, cudaReadModeElementType> maskTexture;
-texture<float4, 1, cudaReadModeElementType> spaGradientTexture;
-/* *************************************************************** */
-__device__ __constant__ int c_ActiveVoxelNumber;
-__device__ __constant__ int3 c_ReferenceImageDim;
-__device__ __constant__ float c_NormalisationNumber;
-/* *************************************************************** */
-__global__ void reg_getSquaredDifference3D_kernel(float *squaredDifference)
-{
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    if(tid<c_ActiveVoxelNumber){
+__global__ void reg_getSquaredDifference3D_kernel(float *squaredDifference,
+                                                  cudaTextureObject_t referenceTexture,
+                                                  cudaTextureObject_t warpedTexture,
+                                                  cudaTextureObject_t maskTexture,
+                                                  const int3 referenceImageDim,
+                                                  const unsigned activeVoxelNumber) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < activeVoxelNumber) {
+        const unsigned index = tex1Dfetch<int>(maskTexture, tid);
+        int quot, rem;
+        reg_div_cuda(index, referenceImageDim.x * referenceImageDim.y, quot, rem);
+        const int z = quot;
+        reg_div_cuda(rem, referenceImageDim.x, quot, rem);
+        const int y = quot, x = rem;
 
-        int3 imageSize = c_ReferenceImageDim;
-        unsigned index=tex1Dfetch(maskTexture,tid);
-        const int z = index/(imageSize.x*imageSize.y);
-        const int tempIndex = index - z*imageSize.x*imageSize.y;
-        const int y = tempIndex/imageSize.x;
-        const int x = tempIndex - y*imageSize.x;
-
-        float difference = tex3D(referenceTexture,
-                                    ((float)x+0.5f)/(float)imageSize.x,
-                                    ((float)y+0.5f)/(float)imageSize.y,
-                                    ((float)z+0.5f)/(float)imageSize.z);
-        difference -= tex1Dfetch(warpedTexture,index);
-        if(difference==difference)
-            squaredDifference[tid]= difference*difference;
-        else squaredDifference[tid] = 0.f;
+        float difference = tex3D<float>(referenceTexture,
+                                        ((float)x + 0.5f) / (float)referenceImageDim.x,
+                                        ((float)y + 0.5f) / (float)referenceImageDim.y,
+                                        ((float)z + 0.5f) / (float)referenceImageDim.z);
+        difference -= tex1Dfetch<float>(warpedTexture, index);
+        squaredDifference[tid] = difference == difference ? difference * difference : 0;
     }
 }
 /* *************************************************************** */
-__global__ void reg_getSquaredDifference2D_kernel(float *squaredDifference)
-{
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    if(tid<c_ActiveVoxelNumber){
+__global__ void reg_getSquaredDifference2D_kernel(float *squaredDifference,
+                                                  cudaTextureObject_t referenceTexture,
+                                                  cudaTextureObject_t warpedTexture,
+                                                  cudaTextureObject_t maskTexture,
+                                                  const int3 referenceImageDim,
+                                                  const unsigned activeVoxelNumber) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < activeVoxelNumber) {
+        const unsigned index = tex1Dfetch<int>(maskTexture, tid);
+        int quot, rem;
+        reg_div_cuda(index, referenceImageDim.x, quot, rem);
+        const int y = quot, x = rem;
 
-        int3 imageSize = c_ReferenceImageDim;
-        unsigned index=tex1Dfetch(maskTexture,tid);
-        const int y = index/imageSize.x;
-        const int x = index - y*imageSize.x;
-
-        float difference = tex3D(referenceTexture,
-                                    ((float)x+0.5f)/(float)imageSize.x,
-                                    ((float)y+0.5f)/(float)imageSize.y,
-                                    0.5f);
-        difference -= tex1Dfetch(warpedTexture,index);
-        if(difference==difference)
-            squaredDifference[tid]= difference*difference;
-        else squaredDifference[tid] = 0.f;
+        float difference = tex3D<float>(referenceTexture,
+                                        ((float)x + 0.5f) / (float)referenceImageDim.x,
+                                        ((float)y + 0.5f) / (float)referenceImageDim.y,
+                                        0.5f);
+        difference -= tex1Dfetch<float>(warpedTexture, index);
+        squaredDifference[tid] = difference == difference ? difference * difference : 0;
     }
 }
 /* *************************************************************** */
-__global__ void reg_getSSDGradient2D_kernel(float4 *ssdGradient)
-{
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    if(tid<c_ActiveVoxelNumber){
+__global__ void reg_getSSDGradient2D_kernel(float4 *ssdGradient,
+                                            cudaTextureObject_t referenceTexture,
+                                            cudaTextureObject_t warpedTexture,
+                                            cudaTextureObject_t maskTexture,
+                                            cudaTextureObject_t spaGradientTexture,
+                                            const int3 referenceImageDim,
+                                            const float maxSD,
+                                            const unsigned activeVoxelNumber) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < activeVoxelNumber) {
+        const unsigned index = tex1Dfetch<int>(maskTexture, tid);
+        int quot, rem;
+        reg_div_cuda(index, referenceImageDim.x, quot, rem);
+        const int y = quot, x = rem;
 
-        int3 imageSize = c_ReferenceImageDim;
-        unsigned index = tex1Dfetch(maskTexture,tid);
-        const int y = index/imageSize.x;
-        const int x = index - y*imageSize.x;
-
-        float refValue = tex3D(referenceTexture,
-                               ((float)x+0.5f)/(float)imageSize.x,
-                               ((float)y+0.5f)/(float)imageSize.y,
-                               0.5f);
-        if(refValue != refValue)
+        const float refValue = tex3D<float>(referenceTexture,
+                                            ((float)x + 0.5f) / (float)referenceImageDim.x,
+                                            ((float)y + 0.5f) / (float)referenceImageDim.y,
+                                            0.5f);
+        if (refValue != refValue)
             return;
-        float warpValue = tex1Dfetch(warpedTexture,index);
-        if(warpValue != warpValue)
+        const float warpValue = tex1Dfetch<float>(warpedTexture, index);
+        if (warpValue != warpValue)
             return;
 
-        float4 spaGradientValue = tex1Dfetch(spaGradientTexture,tid);
-        if(spaGradientValue.x != spaGradientValue.x ||
-           spaGradientValue.y != spaGradientValue.y)
+        const float4 spaGradientValue = tex1Dfetch<float4>(spaGradientTexture, tid);
+        if (spaGradientValue.x != spaGradientValue.x || spaGradientValue.y != spaGradientValue.y)
             return;
 
-        float common = -2.f * (refValue - warpValue) /
-                (c_NormalisationNumber * (float)c_ActiveVoxelNumber);
-
-        ssdGradient[index] = make_float4(
-                    common * spaGradientValue.x,
-                    common * spaGradientValue.y,
-                    0.f,
-                    0.f
-                    );
+        const float common = -2.f * (refValue - warpValue) / (maxSD * (float)activeVoxelNumber);
+        ssdGradient[index] = make_float4(common * spaGradientValue.x, common * spaGradientValue.y, 0.f, 0.f);
     }
 }
 /* *************************************************************** */
-__global__ void reg_getSSDGradient3D_kernel(float4 *ssdGradient)
-{
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    if(tid<c_ActiveVoxelNumber){
+__global__ void reg_getSSDGradient3D_kernel(float4 *ssdGradient,
+                                            cudaTextureObject_t referenceTexture,
+                                            cudaTextureObject_t warpedTexture,
+                                            cudaTextureObject_t maskTexture,
+                                            cudaTextureObject_t spaGradientTexture,
+                                            const int3 referenceImageDim,
+                                            const float maxSD,
+                                            const unsigned activeVoxelNumber) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < activeVoxelNumber) {
+        const unsigned index = tex1Dfetch<int>(maskTexture, tid);
+        int quot, rem;
+        reg_div_cuda(index, referenceImageDim.x * referenceImageDim.y, quot, rem);
+        const int z = quot;
+        reg_div_cuda(rem, referenceImageDim.x, quot, rem);
+        const int y = quot, x = rem;
 
-        int3 imageSize = c_ReferenceImageDim;
-        unsigned index = tex1Dfetch(maskTexture,tid);
-        const int z = index/(imageSize.x*imageSize.y);
-        const int tempIndex = index - z*imageSize.x*imageSize.y;
-        const int y = tempIndex/imageSize.x;
-        const int x = tempIndex - y*imageSize.x;
-
-        float refValue = tex3D(referenceTexture,
-                               ((float)x+0.5f)/(float)imageSize.x,
-                               ((float)y+0.5f)/(float)imageSize.y,
-                               ((float)z+0.5f)/(float)imageSize.z);
-        if(refValue != refValue)
+        const float refValue = tex3D<float>(referenceTexture,
+                                            ((float)x + 0.5f) / (float)referenceImageDim.x,
+                                            ((float)y + 0.5f) / (float)referenceImageDim.y,
+                                            ((float)z + 0.5f) / (float)referenceImageDim.z);
+        if (refValue != refValue)
             return;
 
-        float warpValue = tex1Dfetch(warpedTexture,index);
-        if(warpValue != warpValue)
+        const float warpValue = tex1Dfetch<float>(warpedTexture, index);
+        if (warpValue != warpValue)
             return;
 
-        float4 spaGradientValue = tex1Dfetch(spaGradientTexture,tid);
-        if(spaGradientValue.x != spaGradientValue.x ||
-           spaGradientValue.y != spaGradientValue.y ||
-           spaGradientValue.z != spaGradientValue.z)
+        const float4 spaGradientValue = tex1Dfetch<float4>(spaGradientTexture, tid);
+        if (spaGradientValue.x != spaGradientValue.x ||
+            spaGradientValue.y != spaGradientValue.y ||
+            spaGradientValue.z != spaGradientValue.z)
             return;
 
-        float common = -2.f * (refValue - warpValue) /
-                (c_NormalisationNumber * (float)c_ActiveVoxelNumber);
-
-        ssdGradient[index] = make_float4(
-                    common * spaGradientValue.x,
-                    common * spaGradientValue.y,
-                    common * spaGradientValue.z,
-                    0.f
-                    );
+        const float common = -2.f * (refValue - warpValue) / (maxSD * (float)activeVoxelNumber);
+        ssdGradient[index] = make_float4(common * spaGradientValue.x, common * spaGradientValue.y, common * spaGradientValue.z, 0.f);
     }
 }
 /* *************************************************************** */

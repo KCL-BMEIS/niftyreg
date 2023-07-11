@@ -23,12 +23,12 @@ CudaBlockMatchingKernel::CudaBlockMatchingKernel(Content *conIn) : BlockMatching
 void CudaBlockMatchingKernel::Calculate() {
     block_matching_method_gpu(reference,
                               params,
-                              &referenceImageArray_d,
-                              &warpedImageArray_d,
-                              &referencePosition_d,
-                              &warpedPosition_d,
-                              &totalBlock_d,
-                              &mask_d,
-                              &referenceMat_d);
+                              referenceImageArray_d,
+                              warpedImageArray_d,
+                              referencePosition_d,
+                              warpedPosition_d,
+                              totalBlock_d,
+                              mask_d,
+                              referenceMat_d);
 }
 /* *************************************************************** */

@@ -15,8 +15,7 @@
 #include "_reg_nmi.h"
 #include "_reg_measure_gpu.h"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 /// @brief NMI measure of similarity class - GPU based
 class reg_nmi_gpu: public reg_nmi, public reg_measure_gpu {
 public:
@@ -29,7 +28,7 @@ public:
     virtual void InitialiseMeasure(nifti_image *refImgPtr,
                                    nifti_image *floImgPtr,
                                    int *maskRefPtr,
-                                   int activeVoxNum,
+                                   size_t activeVoxNum,
                                    nifti_image *warFloImgPtr,
                                    nifti_image *warFloGraPtr,
                                    nifti_image *forVoxBasedGraPtr,
@@ -50,15 +49,14 @@ protected:
     // float **backwardJointHistogramLog_device;
     void DeallocateHistogram();
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 /// @brief NMI measure of similarity class
 class reg_multichannel_nmi_gpu: public reg_multichannel_nmi, public reg_measure_gpu {
 public:
     void InitialiseMeasure(nifti_image *refImgPtr,
                            nifti_image *floImgPtr,
                            int *maskRefPtr,
-                           int activeVoxNum,
+                           size_t activeVoxNum,
                            nifti_image *warFloImgPtr,
                            nifti_image *warFloGraPtr,
                            nifti_image *forVoxBasedGraPtr,
@@ -78,17 +76,4 @@ public:
     /// @brief Compute the voxel based nmi gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {}
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-extern "C++"
-void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
-                                      const cudaArray *referenceImageArray_d,
-                                      const float *warpedImageArray_d,
-                                      const float4 *resultGradientArray_d,
-                                      const float *logJointHistogram_d,
-                                      float4 *voxelNMIGradientArray_d,
-                                      const int *targetMask_d,
-                                      const int activeVoxelNumber,
-                                      const double *entropies,
-                                      const int refBinning,
-                                      const int floBinning);
+/* *************************************************************** */

@@ -14,48 +14,24 @@
 #include "_reg_globalTransformation_kernels.cu"
 
 /* *************************************************************** */
-void reg_affine_positionField_gpu(mat44 *affineMatrix,
-                                  nifti_image *targetImage,
-                                  float4 *array_d) {
-    auto blockSize = NiftyReg::CudaContext::GetBlockSize();
-
-    int3 imageSize = make_int3(targetImage->nx, targetImage->ny, targetImage->nz);
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize, &imageSize, sizeof(int3)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber, &(targetImage->nvox), sizeof(int)));
+void reg_affine_positionField_gpu(const mat44 *affineMatrix,
+                                  const nifti_image *targetImage,
+                                  float4 *deformationFieldCuda) {
+    const int3 imageSize = make_int3(targetImage->nx, targetImage->ny, targetImage->nz);
+    const size_t voxelNumber = targetImage->nvox;
 
     // If the target sform is defined, it is used. The qform is used otherwise
-    mat44 *targetMatrix;
-    if (targetImage->sform_code > 0)
-        targetMatrix = &(targetImage->sto_xyz);
-    else targetMatrix = &(targetImage->qto_xyz);
+    const mat44 *targetMatrix = targetImage->sform_code > 0 ? &targetImage->sto_xyz : &targetImage->qto_xyz;
 
-    // We here performed Affine * TargetMat * voxelIndex
+    // Affine * TargetMat * voxelIndex is performed
     // Affine * TargetMat is constant
-    mat44 transformationMatrix = reg_mat44_mul(affineMatrix, targetMatrix);
+    const mat44 transformationMatrix = reg_mat44_mul(affineMatrix, targetMatrix);
 
-    // The transformation matrix is bound to a texture
-    float4 *transformationMatrix_h;
-    NR_CUDA_SAFE_CALL(cudaMallocHost(&transformationMatrix_h, 3 * sizeof(float4)));
-    float4 *transformationMatrix_d;
-    NR_CUDA_SAFE_CALL(cudaMalloc(&transformationMatrix_d, 3 * sizeof(float4)));
-    for (int i = 0; i < 3; i++) {
-        transformationMatrix_h[i].x = transformationMatrix.m[i][0];
-        transformationMatrix_h[i].y = transformationMatrix.m[i][1];
-        transformationMatrix_h[i].z = transformationMatrix.m[i][2];
-        transformationMatrix_h[i].w = transformationMatrix.m[i][3];
-    }
-    NR_CUDA_SAFE_CALL(cudaMemcpy(transformationMatrix_d, transformationMatrix_h, 3 * sizeof(float4), cudaMemcpyHostToDevice));
-    cudaBindTexture(0, txAffineTransformation, transformationMatrix_d, 3 * sizeof(float4));
-    NR_CUDA_SAFE_CALL(cudaFreeHost(transformationMatrix_h));
-
-    const unsigned Grid_reg_affine_deformationField = (unsigned)ceil(sqrtf((float)targetImage->nvox / (float)blockSize->reg_affine_deformationField));
-    dim3 B1(blockSize->reg_affine_deformationField, 1, 1);
-    dim3 G1(Grid_reg_affine_deformationField, Grid_reg_affine_deformationField, 1);
-
-    reg_affine_deformationField_kernel<<<G1, B1>>>(array_d);
-    NR_CUDA_CHECK_KERNEL(G1, B1);
-
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(txAffineTransformation));
-    NR_CUDA_SAFE_CALL(cudaFree(transformationMatrix_d));
+    const unsigned blocks = NiftyReg::CudaContext::GetBlockSize()->reg_affine_deformationField;
+    const unsigned grids = (unsigned)ceil(sqrtf((float)targetImage->nvox / (float)blocks));
+    const dim3 gridDims(grids, grids, 1);
+    const dim3 blockDims(blocks, 1, 1);
+    reg_affine_deformationField_kernel<<<gridDims, blockDims>>>(deformationFieldCuda, transformationMatrix, imageSize, (unsigned)voxelNumber);
+    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */

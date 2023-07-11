@@ -52,7 +52,6 @@ struct BlockSize {
     unsigned reg_spline_approxCorrectFolding3D;
     unsigned reg_spline_correctFolding3D;
     unsigned reg_getDeformationFromDisplacement;
-    unsigned reg_getDisplacementFromDeformation;
     unsigned reg_defField_compose2D;
     unsigned reg_defField_compose3D;
     unsigned reg_defField_getJacobianMatrix;
@@ -118,7 +117,6 @@ struct BlockSize100: public BlockSize {
         reg_spline_approxCorrectFolding3D = 256; // 32 reg - 24 smem - 24 cmem
         reg_spline_correctFolding3D = 256; // 31 reg - 24 smem - 32 cmem
         reg_getDeformationFromDisplacement = 384; // 09 reg - 24 smem
-        reg_getDisplacementFromDeformation = 384; // 09 reg - 24 smem
         reg_defField_compose2D = 512; // 15 reg - 24 smem - 08 cmem - 16 lmem
         reg_defField_compose3D = 384; // 21 reg - 24 smem - 08 cmem - 24 lmem
         reg_defField_getJacobianMatrix = 512; // 16 reg - 24 smem - 04 cmem
@@ -188,7 +186,6 @@ struct BlockSize300: public BlockSize {
         reg_spline_approxCorrectFolding3D = 768; // 34 reg
         reg_spline_correctFolding3D = 768; // 34 reg
         reg_getDeformationFromDisplacement = 1024; // 18 reg
-        reg_getDisplacementFromDeformation = 1024; // 18 reg
         reg_defField_compose2D = 1024; // 23 reg
         reg_defField_compose3D = 1024; // 24 reg
         reg_defField_getJacobianMatrix = 768; // 34 reg

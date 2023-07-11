@@ -16,8 +16,7 @@
 #include "_reg_measure_gpu.h"
 #include "_reg_ssd.h"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 /// @brief SSD measure of similarity class on the device
 class reg_ssd_gpu: public reg_ssd, public reg_measure_gpu {
 public:
@@ -30,7 +29,7 @@ public:
     virtual void InitialiseMeasure(nifti_image *refImgPtr,
                                    nifti_image *floImgPtr,
                                    int *maskRefPtr,
-                                   int activeVoxNum,
+                                   size_t activeVoxNum,
                                    nifti_image *warFloImgPtr,
                                    nifti_image *warFloGraPtr,
                                    nifti_image *forVoxBasedGraPtr,
@@ -46,22 +45,4 @@ public:
     /// @brief Compute the voxel based ssd gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-extern "C++"
-float reg_getSSDValue_gpu(nifti_image *referenceImage,
-                          cudaArray **reference_d,
-                          float **warped_d,
-                          int **mask_d,
-                          int activeVoxelNumber);
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-extern "C++"
-void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
-                                      cudaArray *reference_d,
-                                      float *warped_d,
-                                      float4 *spaGradient_d,
-                                      float4 *ssdGradient_d,
-                                      float maxSD,
-                                      int *mask_d,
-                                      int activeVoxelNumber);
+/* *************************************************************** */

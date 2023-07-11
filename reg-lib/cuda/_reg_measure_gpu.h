@@ -25,7 +25,7 @@ public:
     virtual void InitialiseMeasure(nifti_image *refImgPtr,
                                    nifti_image *floImgPtr,
                                    int *maskRefPtr,
-                                   int activeVoxNum,
+                                   size_t activeVoxNum,
                                    nifti_image *warFloImgPtr,
                                    nifti_image *warFloGraPtr,
                                    nifti_image *forVoxBasedGraPtr,
@@ -41,7 +41,7 @@ protected:
     cudaArray *referenceDevicePointer;
     cudaArray *floatingDevicePointer;
     int *referenceMaskDevicePointer;
-    int activeVoxelNumber;
+    size_t activeVoxelNumber;
     float *warpedFloatingDevicePointer;
     float4 *warpedFloatingGradientDevicePointer;
     float4 *forwardVoxelBasedGradientDevicePointer;
@@ -61,7 +61,7 @@ public:
     virtual void InitialiseMeasure(nifti_image *refImgPtr,
                                    nifti_image *floImgPtr,
                                    int *maskRefPtr,
-                                   int activeVoxNum,
+                                   size_t activeVoxNum,
                                    nifti_image *warFloImgPtr,
                                    nifti_image *warFloGraPtr,
                                    nifti_image *forVoxBasedGraPtr,
@@ -92,7 +92,7 @@ public:
     virtual void InitialiseMeasure(nifti_image *refImgPtr,
                                    nifti_image *floImgPtr,
                                    int *maskRefPtr,
-                                   int activeVoxNum,
+                                   size_t activeVoxNum,
                                    nifti_image *warFloImgPtr,
                                    nifti_image *warFloGraPtr,
                                    nifti_image *forVoxBasedGraPtr,
@@ -123,7 +123,7 @@ public:
     virtual void InitialiseMeasure(nifti_image *refImgPtr,
                                    nifti_image *floImgPtr,
                                    int *maskRefPtr,
-                                   int activeVoxNum,
+                                   size_t activeVoxNum,
                                    nifti_image *warFloImgPtr,
                                    nifti_image *warFloGraPtr,
                                    nifti_image *forVoxBasedGraPtr,

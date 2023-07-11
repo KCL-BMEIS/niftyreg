@@ -10,45 +10,30 @@
  *
  */
 
-#include "_reg_common_cuda.h"
+#include "_reg_common_cuda_kernels.cu"
 
 /* *************************************************************** */
-/* *************************************************************** */
-__device__ __constant__ int3 c_ImageSize;
-__device__ __constant__ int c_VoxelNumber;
-/* *************************************************************** */
-texture<float4, 1, cudaReadModeElementType> txAffineTransformation;
-/* *************************************************************** */
-/* *************************************************************** */
-__global__
-void reg_affine_deformationField_kernel(float4 *PositionFieldArray)
-{
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    if(tid<c_VoxelNumber){
-
-        int3 imageSize = c_ImageSize;
-        short3 voxelIndex;
-        int tempIndex=tid;
-        voxelIndex.z=(int)(tempIndex/((imageSize.x)*(imageSize.y)));
-        tempIndex -= voxelIndex.z*(imageSize.x)*(imageSize.y);
-        voxelIndex.y=(int)(tempIndex/(imageSize.x));
-        voxelIndex.x = tempIndex - voxelIndex.y*(imageSize.x);
+__global__ void reg_affine_deformationField_kernel(float4 *deformationField,
+                                                   const mat44 affineMatrix,
+                                                   const int3 imageSize,
+                                                   const unsigned voxelNumber) {
+    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (tid < voxelNumber) {
+        int quot, rem;
+        reg_div_cuda(tid, imageSize.x * imageSize.y, quot, rem);
+        const int z = quot;
+        reg_div_cuda(rem, imageSize.x, quot, rem);
+        const int y = quot, x = rem;
 
         /* The transformation is applied */
-        float4 position;
-        float4 matrix = tex1Dfetch(txAffineTransformation,0);
-        position.x = 	matrix.x*voxelIndex.x + matrix.y*voxelIndex.y  +
-                        matrix.z*voxelIndex.z  +  matrix.w;
-        matrix = tex1Dfetch(txAffineTransformation,1);
-        position.y = 	matrix.x*voxelIndex.x + matrix.y*voxelIndex.y  +
-                        matrix.z*voxelIndex.z  +  matrix.w;
-        matrix = tex1Dfetch(txAffineTransformation,2);
-        position.z = 	matrix.x*voxelIndex.x + matrix.y*voxelIndex.y  +
-                        matrix.z*voxelIndex.z  +  matrix.w;
-        position.w=0.0f;
+        const float4 position = {
+            affineMatrix.m[0][0] * x + affineMatrix.m[0][1] * y + affineMatrix.m[0][2] * z + affineMatrix.m[0][3],
+            affineMatrix.m[1][0] * x + affineMatrix.m[1][1] * y + affineMatrix.m[1][2] * z + affineMatrix.m[1][3],
+            affineMatrix.m[2][0] * x + affineMatrix.m[2][1] * y + affineMatrix.m[2][2] * z + affineMatrix.m[2][3],
+            0.f
+        };
         /* the deformation field (real coordinates) is stored */
-        PositionFieldArray[tid] = position;
+        deformationField[tid] = position;
     }
 }
-/* *************************************************************** */
 /* *************************************************************** */

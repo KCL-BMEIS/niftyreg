@@ -14,25 +14,22 @@
 #include "_reg_nmi_gpu.h"
 #include "_reg_nmi_kernels.cu"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 reg_nmi_gpu::reg_nmi_gpu(): reg_nmi::reg_nmi() {
     this->forwardJointHistogramLog_device = nullptr;
     //	this->backwardJointHistogramLog_device=nullptr;
-
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_nmi_gpu constructor called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 reg_nmi_gpu::~reg_nmi_gpu() {
     this->DeallocateHistogram();
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_nmi_gpu destructor called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_nmi_gpu::DeallocateHistogram() {
     if (this->forwardJointHistogramLog_device != nullptr) {
         cudaFree(this->forwardJointHistogramLog_device);
@@ -42,12 +39,11 @@ void reg_nmi_gpu::DeallocateHistogram() {
     printf("[NiftyReg DEBUG] reg_nmi_gpu::DeallocateHistogram() called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImgPtr,
                                     nifti_image *floImgPtr,
                                     int *maskRefPtr,
-                                    int activeVoxNum,
+                                    size_t activeVoxNum,
                                     nifti_image *warFloImgPtr,
                                     nifti_image *warFloGraPtr,
                                     nifti_image *forVoxBasedGraPtr,
@@ -74,14 +70,14 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImgPtr,
     // Check if the input images have multiple timepoints
     if (this->referenceTimePoint > 1 || this->floatingImagePointer->nt > 1) {
         fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        fprintf(stderr, "[NiftyReg ERROR] This class can only be \n");
+        fprintf(stderr, "[NiftyReg ERROR] Multiple timepoints are not yet supported on the GPU\n");
         reg_exit();
     }
     // Check that the input image are of type float
     if (this->referenceImagePointer->datatype != NIFTI_TYPE_FLOAT32 ||
         this->warpedFloatingImagePointer->datatype != NIFTI_TYPE_FLOAT32) {
         fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        fprintf(stderr, "[NiftyReg ERROR] This class can only be \n");
+        fprintf(stderr, "[NiftyReg ERROR] Only single precision is supported on the GPU\n");
         reg_exit();
     }
     // Bind the required pointers
@@ -95,12 +91,12 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImgPtr,
     // The reference and floating images have to be updated on the device
     if (cudaCommon_transferNiftiToArrayOnDevice<float>(this->referenceDevicePointer, this->referenceImagePointer)) {
         fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        printf("[NiftyReg ERROR] Error when transfering the reference image.\n");
+        printf("[NiftyReg ERROR] Error when transferring the reference image.\n");
         reg_exit();
     }
     if (cudaCommon_transferNiftiToArrayOnDevice<float>(this->floatingDevicePointer, this->floatingImagePointer)) {
         fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        printf("[NiftyReg ERROR] Error when transfering the floating image.\n");
+        printf("[NiftyReg ERROR] Error when transferring the floating image.\n");
         reg_exit();
     }
     // Allocate the required joint histogram on the GPU
@@ -110,8 +106,7 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImgPtr,
     printf("[NiftyReg DEBUG] reg_nmi_gpu::InitialiseMeasure called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 double reg_nmi_gpu::GetSimilarityMeasureValue() {
     // The NMI computation is performed into the host for now
     // The relevant images have to be transferred from the device to the host
@@ -132,82 +127,68 @@ double reg_nmi_gpu::GetSimilarityMeasureValue() {
                            this->forwardEntropyValues,
                            this->referenceMaskPointer);
 
-    double nmi_value = (this->forwardEntropyValues[0][0] + this->forwardEntropyValues[0][1]) / this->forwardEntropyValues[0][2];
+    const double nmi_value = (this->forwardEntropyValues[0][0] + this->forwardEntropyValues[0][1]) / this->forwardEntropyValues[0][2];
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_nmi_gpu::GetSimilarityMeasureValue called\n");
 #endif
     return nmi_value;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 /// Called when we only have one target and one source image
 void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
-                                      const cudaArray *referenceImageArray_d,
-                                      const float *warpedImageArray_d,
-                                      const float4 *warpedGradientArray_d,
-                                      const float *logJointHistogram_d,
-                                      float4 *voxelNMIGradientArray_d,
-                                      const int *mask_d,
-                                      const int activeVoxelNumber,
+                                      const cudaArray *referenceImageCuda,
+                                      const float *warpedImageCuda,
+                                      const float4 *warpedGradientCuda,
+                                      const float *logJointHistogramCuda,
+                                      float4 *voxelBasedGradientCuda,
+                                      const int *maskCuda,
+                                      const size_t& activeVoxelNumber,
                                       const double *entropies,
-                                      const int refBinning,
-                                      const int floBinning) {
+                                      const int& refBinning,
+                                      const int& floBinning) {
     auto blockSize = NiftyReg::CudaContext::GetBlockSize();
-
-    const int voxelNumber = CalcVoxelNumber(*referenceImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
     const int3 imageSize = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const int binNumber = refBinning * floBinning + refBinning + floBinning;
     const float normalisedJE = (float)(entropies[2] * entropies[3]);
-    const float NMI = (float)((entropies[0] + entropies[1]) / entropies[2]);
+    const float nmi = (float)((entropies[0] + entropies[1]) / entropies[2]);
 
-    // Bind Symbols
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber, &voxelNumber, sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize, &imageSize, sizeof(int3)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstTargetBin, &refBinning, sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstResultBin, &floBinning, sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NormalisedJE, &normalisedJE, sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NMI, &NMI, sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber, &activeVoxelNumber, sizeof(int)));
-
-    // Texture binding floating
-    //Bind target image array to a 3D texture
-    firstreferenceImageTexture.normalized = true;
-    firstreferenceImageTexture.filterMode = cudaFilterModeLinear;
-    firstreferenceImageTexture.addressMode[0] = cudaAddressModeWrap;
-    firstreferenceImageTexture.addressMode[1] = cudaAddressModeWrap;
-    firstreferenceImageTexture.addressMode[2] = cudaAddressModeWrap;
-    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
-    NR_CUDA_SAFE_CALL(cudaBindTextureToArray(firstreferenceImageTexture, referenceImageArray_d, channelDesc));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstwarpedImageTexture, warpedImageArray_d, voxelNumber * sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstwarpedImageGradientTexture, warpedGradientArray_d, voxelNumber * sizeof(float4)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, logJointHistogram_d, binNumber * sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, mask_d, activeVoxelNumber * sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaMemset(voxelNMIGradientArray_d, 0, voxelNumber * sizeof(float4)));
+    auto referenceImageTexture = cudaCommon_createTextureObject(referenceImageCuda, cudaResourceTypeArray, 0,
+                                                                cudaChannelFormatKindNone, 1, cudaFilterModePoint, true);
+    auto warpedImageTexture = cudaCommon_createTextureObject(warpedImageCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float),
+                                                             cudaChannelFormatKindFloat, 1);
+    auto warpedGradientTexture = cudaCommon_createTextureObject(warpedGradientCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float4),
+                                                                cudaChannelFormatKindFloat, 4);
+    auto histogramTexture = cudaCommon_createTextureObject(logJointHistogramCuda, cudaResourceTypeLinear, binNumber * sizeof(float),
+                                                           cudaChannelFormatKindFloat, 1);
+    auto maskTexture = cudaCommon_createTextureObject(maskCuda, cudaResourceTypeLinear, activeVoxelNumber * sizeof(int),
+                                                      cudaChannelFormatKindSigned, 1);
+    NR_CUDA_SAFE_CALL(cudaMemset(voxelBasedGradientCuda, 0, voxelNumber * sizeof(float4)));
 
     if (referenceImage->nz > 1) {
-        const unsigned Grid_reg_getVoxelBasedNMIGradientUsingPW3D =
-            (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blockSize->reg_getVoxelBasedNMIGradientUsingPW3D));
-        dim3 B1(blockSize->reg_getVoxelBasedNMIGradientUsingPW3D, 1, 1);
-        dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW3D, Grid_reg_getVoxelBasedNMIGradientUsingPW3D, 1);
-        reg_getVoxelBasedNMIGradientUsingPW3D_kernel <<< G1, B1 >>> (voxelNMIGradientArray_d);
-        NR_CUDA_CHECK_KERNEL(G1, B1);
+        const unsigned blocks = blockSize->reg_getVoxelBasedNMIGradientUsingPW3D;
+        const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
+        const dim3 gridDims(grids, grids, 1);
+        const dim3 blockDims(blocks, 1, 1);
+        reg_getVoxelBasedNMIGradientUsingPW3D_kernel<<<gridDims, blockDims>>>(voxelBasedGradientCuda, *referenceImageTexture, *warpedImageTexture,
+                                                                              *warpedGradientTexture, *histogramTexture, *maskTexture,
+                                                                              imageSize, refBinning, floBinning, normalisedJE, nmi,
+                                                                              (unsigned)activeVoxelNumber);
+        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
-        const unsigned Grid_reg_getVoxelBasedNMIGradientUsingPW2D =
-            (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blockSize->reg_getVoxelBasedNMIGradientUsingPW2D));
-        dim3 B1(blockSize->reg_getVoxelBasedNMIGradientUsingPW2D, 1, 1);
-        dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW2D, Grid_reg_getVoxelBasedNMIGradientUsingPW2D, 1);
-        reg_getVoxelBasedNMIGradientUsingPW2D_kernel <<< G1, B1 >>> (voxelNMIGradientArray_d);
-        NR_CUDA_CHECK_KERNEL(G1, B1);
+        const unsigned blocks = blockSize->reg_getVoxelBasedNMIGradientUsingPW2D;
+        const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
+        const dim3 gridDims(grids, grids, 1);
+        const dim3 blockDims(blocks, 1, 1);
+        reg_getVoxelBasedNMIGradientUsingPW2D_kernel<<<gridDims, blockDims>>>(voxelBasedGradientCuda, *referenceImageTexture, *warpedImageTexture,
+                                                                              *warpedGradientTexture, *histogramTexture, *maskTexture,
+                                                                              imageSize, refBinning, floBinning, normalisedJE, nmi,
+                                                                              (unsigned)activeVoxelNumber);
+        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstreferenceImageTexture));
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstwarpedImageTexture));
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstwarpedImageGradientTexture));
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture));
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) {
     // The latest joint histogram is transferred onto the GPU
     float *temp = (float*)malloc(this->totalBinNumber[0] * sizeof(float));
@@ -235,5 +216,4 @@ void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) 
     printf("[NiftyReg DEBUG] reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient called\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */

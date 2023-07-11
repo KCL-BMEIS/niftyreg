@@ -27,42 +27,42 @@ void reg_voxelCentric2NodeCentric_gpu(const nifti_image *nodeImage,
                                       const mat44 *voxelToMillimetre);
 /* *************************************************************** */
 extern "C++"
-void reg_convertNMIGradientFromVoxelToRealSpace_gpu(mat44 *sourceMatrix_xyz,
-                                                    nifti_image *controlPointImage,
-                                                    float4 *nodeNMIGradientArray_d);
+void reg_convertNMIGradientFromVoxelToRealSpace_gpu(const mat44 *sourceMatrixXYZ,
+                                                    const nifti_image *controlPointImage,
+                                                    float4 *nmiGradientCuda);
 /* *************************************************************** */
 extern "C++"
-void reg_gaussianSmoothing_gpu(nifti_image *image,
-                               float4 *imageArray_d,
-                               float sigma,
-                               bool axisToSmooth[8]);
+void reg_gaussianSmoothing_gpu(const nifti_image *image,
+                               float4 *imageCuda,
+                               const float& sigma,
+                               const bool axisToSmooth[8]);
 /* *************************************************************** */
 extern "C++"
-void reg_smoothImageForCubicSpline_gpu(nifti_image *resultImage,
-                                       float4 *voxelNMIGradientArray_d,
-                                       float *smoothingRadius);
+void reg_smoothImageForCubicSpline_gpu(const nifti_image *image,
+                                       float4 *imageCuda,
+                                       const float *smoothingRadius);
 /* *************************************************************** */
 extern "C++"
-void reg_multiplyValue_gpu(int num, float4 *array_d, float value);
+void reg_multiplyValue_gpu(const size_t& count, float4 *arrayCuda, const float& value);
 /* *************************************************************** */
 extern "C++"
-void reg_addValue_gpu(int num, float4 *array_d, float value);
+void reg_addValue_gpu(const size_t& count, float4 *arrayCuda, const float& value);
 /* *************************************************************** */
 extern "C++"
-void reg_multiplyArrays_gpu(int num, float4 *array1_d, float4 *array2_d);
+void reg_multiplyArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cuda);
 /* *************************************************************** */
 extern "C++"
-void reg_addArrays_gpu(int num, float4 *array1_d, float4 *array2_d);
+void reg_addArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cuda);
 /* *************************************************************** */
 extern "C++"
-void reg_fillMaskArray_gpu(int num, int *array1_d);
+void reg_fillMaskArray_gpu(int *arrayCuda, const size_t& count);
 /* *************************************************************** */
 extern "C++"
-float reg_sumReduction_gpu(float *array_d, size_t size);
+float reg_sumReduction_gpu(float *arrayCuda, const size_t& size);
 /* *************************************************************** */
 extern "C++"
-float reg_maxReduction_gpu(float *array_d, size_t size);
+float reg_maxReduction_gpu(float *arrayCuda, const size_t& size);
 /* *************************************************************** */
 extern "C++"
-float reg_minReduction_gpu(float *array_d, size_t size);
+float reg_minReduction_gpu(float *arrayCuda, const size_t& size);
 /* *************************************************************** */

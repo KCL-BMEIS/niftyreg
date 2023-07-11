@@ -14,19 +14,21 @@
 
 #include "_reg_common_cuda.h"
 
+/* *************************************************************** */
 extern "C++"
-void reg_resampleImage_gpu(nifti_image *sourceImage,
-                           float *resultImageArray_d,
-                           cudaArray *sourceImageArray_d,
-                           float4 *positionFieldImageArray_d,
-                           int *mask_d,
-                           size_t activeVoxelNumber,
-                           float paddingValue);
-
+void reg_resampleImage_gpu(const nifti_image *floatingImage,
+                           float *warpedImageCuda,
+                           const cudaArray *floatingImageCuda,
+                           const float4 *deformationFieldCuda,
+                           const int *maskCuda,
+                           const size_t& activeVoxelNumber,
+                           const float& paddingValue);
+/* *************************************************************** */
 extern "C++"
-void reg_getImageGradient_gpu(nifti_image *sourceImage,
-                              cudaArray *sourceImageArray_d,
-                              float4 *positionFieldImageArray_d,
-                              float4 *resultGradientArray_d,
-                              size_t activeVoxelNumber,
-                              float paddingValue);
+void reg_getImageGradient_gpu(const nifti_image *floatingImage,
+                              const cudaArray *floatingImageCuda,
+                              const float4 *deformationFieldCuda,
+                              float4 *warpedGradientCuda,
+                              const size_t& activeVoxelNumber,
+                              const float& paddingValue);
+/* *************************************************************** */

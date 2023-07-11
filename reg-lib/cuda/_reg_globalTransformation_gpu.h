@@ -13,9 +13,8 @@
 #pragma once
 
 #include "_reg_common_cuda.h"
-// #include "_reg_globalTransformation.h"
 
 extern "C++"
-void reg_affine_positionField_gpu(mat44 *,
-                                  nifti_image *,
-                                  float4 *);
+void reg_affine_positionField_gpu(const mat44 *affineMatrix,
+                                  const nifti_image *targetImage,
+                                  float4 *deformationFieldCuda);

@@ -17,67 +17,60 @@
 #include "_reg_tools_gpu.h"
 #include <limits>
 
+/* *************************************************************** */
 extern "C++"
-void reg_spline_getDeformationField_gpu(nifti_image *controlPointImage,
-                                        nifti_image *targetImage,
-                                        float4 *controlPointImageArray_d,
-                                        float4 *positionFieldImageArray_d,
-                                        int *mask,
-                                        int activeVoxelNumber,
-                                        bool bspline);
-
-/* BE */
+void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
+                                        const nifti_image *referenceImage,
+                                        const float4 *controlPointImageCuda,
+                                        float4 *deformationFieldCuda,
+                                        const int *maskCuda,
+                                        const size_t& activeVoxelNumber,
+                                        const bool& bspline);
+/* *************************************************************** */
 extern "C++"
-float reg_spline_approxBendingEnergy_gpu(nifti_image *controlPointImage, float4 *controlPointImageArray_d);
-
+float reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage,
+                                         const float4 *controlPointImageCuda);
+/* *************************************************************** */
 extern "C++"
-void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
-                                                float4 *controlPointImageArray_d,
-                                                float4 *nodeGradientArray_d,
+void reg_spline_approxBendingEnergyGradient_gpu(const nifti_image *controlPointImage,
+                                                const float4 *controlPointImageCuda,
+                                                float4 *transGradientCuda,
                                                 float bendingEnergyWeight);
-
-/** Jacobian
- *
- */
+/* *************************************************************** */
 extern "C++"
-double reg_spline_getJacobianPenaltyTerm_gpu(nifti_image *referenceImage,
-                                             nifti_image *controlPointImage,
-                                             float4 *controlPointImageArray_d,
-                                             bool approx);
-
+double reg_spline_getJacobianPenaltyTerm_gpu(const nifti_image *referenceImage,
+                                             const nifti_image *controlPointImage,
+                                             const float4 *controlPointImageCuda,
+                                             const bool& approx);
+/* *************************************************************** */
 extern "C++"
-void reg_spline_getJacobianPenaltyTermGradient_gpu(nifti_image *referenceImage,
-                                                   nifti_image *controlPointImage,
-                                                   float4 *controlPointImageArray_d,
-                                                   float4 *nodeGradientArray_d,
-                                                   float jacobianWeight,
-                                                   bool approx);
-
+void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceImage,
+                                                   const nifti_image *controlPointImage,
+                                                   const float4 *controlPointImageCuda,
+                                                   float4 *transGradientCuda,
+                                                   const float& jacobianWeight,
+                                                   const bool& approx);
+/* *************************************************************** */
 extern "C++"
-double reg_spline_correctFolding_gpu(nifti_image *targetImage,
-                                     nifti_image *controlPointImage,
-                                     float4 *controlPointImageArray_d,
-                                     bool approx);
-
+double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
+                                     const nifti_image *controlPointImage,
+                                     float4 *controlPointImageCuda,
+                                     const bool& approx);
+/* *************************************************************** */
 extern "C++"
-void reg_getDeformationFieldFromVelocityGrid_gpu(nifti_image *cpp_h,
-                                                 nifti_image *def_h,
-                                                 float4 *cpp_gpu,
-                                                 float4 *def_gpu);
-
+void reg_getDeformationFieldFromVelocityGrid_gpu(const nifti_image *controlPointImage,
+                                                 const nifti_image *deformationField,
+                                                 const float4 *controlPointImageCuda,
+                                                 float4 *deformationFieldCuda);
+/* *************************************************************** */
 extern "C++"
-void reg_defField_compose_gpu(nifti_image *def,
-                              float4 *def_gpu,
-                              float4 *defOut_gpu,
-                              int *mask_gpu,
-                              int activeVoxel);
-
+void reg_defField_compose_gpu(const nifti_image *deformationField,
+                              const float4 *deformationFieldCuda,
+                              float4 *deformationFieldOutCuda,
+                              const size_t& activeVoxelNumber);
+/* *************************************************************** */
 extern "C++"
-void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageArray_d);
-extern "C++"
-void reg_getDisplacementFromDeformation_gpu(nifti_image *image, float4 *imageArray_d);
-
-extern "C++"
-void reg_defField_getJacobianMatrix_gpu(nifti_image *deformationField,
-                                        float4 *deformationField_gpu,
-                                        float *jacobianMatrices_gpu);
+void reg_defField_getJacobianMatrix_gpu(const nifti_image *deformationField,
+                                        const float4 *deformationFieldCuda,
+                                        float *jacobianMatricesCuda);
+/* *************************************************************** */
