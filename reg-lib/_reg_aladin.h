@@ -71,7 +71,7 @@ protected:
     vector<unique_ptr<int[]>> referenceMaskPyramid;
 
     char *inputTransformName;
-    mat44 *transformationMatrix;
+    unique_ptr<mat44> affineTransformation;
 
     bool verbose;
 
@@ -137,7 +137,6 @@ public:
     unique_ptr<AladinContent> con;
 
     reg_aladin();
-    virtual ~reg_aladin();
     GetStringMacro(ExecutableName, executableName);
 
     //No allocating of the images here...
@@ -166,8 +165,8 @@ public:
         return this->inputTransformName;
     }
 
-    mat44* GetTransformationMatrix() {
-        return this->transformationMatrix;
+    const mat44* GetTransformationMatrix() {
+        return this->affineTransformation.get();
     }
     NiftiImage GetFinalWarpedImage();
 

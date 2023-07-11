@@ -7,22 +7,12 @@ reg_aladin_sym<T>::reg_aladin_sym()
     :reg_aladin<T>::reg_aladin() {
     this->executableName = (char*)"reg_aladin_sym";
 
-    this->backwardTransformationMatrix = new mat44;
+    this->affineTransformationBw.reset(new mat44);
 
     this->backwardBlockMatchingParams = nullptr;
 
 #ifndef NDEBUG
     reg_print_msg_debug("reg_aladin_sym constructor called");
-#endif
-}
-/* *************************************************************** */
-template <class T>
-reg_aladin_sym<T>::~reg_aladin_sym() {
-    if (this->backwardTransformationMatrix)
-        delete this->backwardTransformationMatrix;
-
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_aladin_sym destructor called");
 #endif
 }
 /* *************************************************************** */
@@ -125,12 +115,12 @@ void reg_aladin_sym<T>::InitialiseRegistration() {
         float floCOG[3];
         if (this->inputFloating->sform_code > 0)
             reg_mat44_mul(&(this->inputFloating->sto_xyz), floatingCentre, floCOG);
-        reg_mat44_eye(this->transformationMatrix);
-        this->transformationMatrix->m[0][3] = floCOG[0] - refCOG[0];
-        this->transformationMatrix->m[1][3] = floCOG[1] - refCOG[1];
-        this->transformationMatrix->m[2][3] = floCOG[2] - refCOG[2];
+        reg_mat44_eye(this->affineTransformation.get());
+        this->affineTransformation->m[0][3] = floCOG[0] - refCOG[0];
+        this->affineTransformation->m[1][3] = floCOG[1] - refCOG[1];
+        this->affineTransformation->m[2][3] = floCOG[2] - refCOG[2];
     }
-    *this->backwardTransformationMatrix = nifti_mat44_inverse(*this->transformationMatrix);
+    *this->affineTransformationBw = nifti_mat44_inverse(*this->affineTransformation);
 }
 /* *************************************************************** */
 template <class T>
@@ -154,26 +144,26 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type) {
     this->bOptimiseKernel->template castTo<OptimiseKernel>()->Calculate(type);
 
 #ifndef NDEBUG
-    reg_mat44_disp(this->transformationMatrix, (char *)"[NiftyReg DEBUG] pre-updated forward transformation matrix");
-    reg_mat44_disp(this->backwardTransformationMatrix, (char *)"[NiftyReg DEBUG] pre-updated backward transformation matrix");
+    reg_mat44_disp(this->affineTransformation.get(), (char*)"[NiftyReg DEBUG] pre-updated forward transformation matrix");
+    reg_mat44_disp(this->affineTransformationBw.get(), (char*)"[NiftyReg DEBUG] pre-updated backward transformation matrix");
 #endif
     // Forward and backward matrix are inverted
-    mat44 fInverted = nifti_mat44_inverse(*this->transformationMatrix);
-    mat44 bInverted = nifti_mat44_inverse(*this->backwardTransformationMatrix);
+    mat44 fInverted = nifti_mat44_inverse(*this->affineTransformation);
+    mat44 bInverted = nifti_mat44_inverse(*this->affineTransformationBw);
 
     // We average the forward and inverted backward matrix
-    *this->transformationMatrix = reg_mat44_avg2(this->transformationMatrix, &bInverted);
+    *this->affineTransformation = reg_mat44_avg2(this->affineTransformation.get(), &bInverted);
     // We average the inverted forward and backward matrix
-    *this->backwardTransformationMatrix = reg_mat44_avg2(&fInverted, this->backwardTransformationMatrix);
+    *this->affineTransformationBw = reg_mat44_avg2(&fInverted, this->affineTransformationBw.get());
     for (int i = 0; i < 3; ++i) {
-        this->transformationMatrix->m[3][i] = 0.f;
-        this->backwardTransformationMatrix->m[3][i] = 0.f;
+        this->affineTransformation->m[3][i] = 0.f;
+        this->affineTransformationBw->m[3][i] = 0.f;
     }
-    this->transformationMatrix->m[3][3] = 1.f;
-    this->backwardTransformationMatrix->m[3][3] = 1.f;
+    this->affineTransformation->m[3][3] = 1.f;
+    this->affineTransformationBw->m[3][3] = 1.f;
 #ifndef NDEBUG
-    reg_mat44_disp(this->transformationMatrix, (char *)"[NiftyReg DEBUG] updated forward transformation matrix");
-    reg_mat44_disp(this->backwardTransformationMatrix, (char *)"[NiftyReg DEBUG] updated backward transformation matrix");
+    reg_mat44_disp(this->affineTransformation.get(), (char*)"[NiftyReg DEBUG] updated forward transformation matrix");
+    reg_mat44_disp(this->affineTransformationBw.get(), (char*)"[NiftyReg DEBUG] updated backward transformation matrix");
 #endif
 }
 /* *************************************************************** */
@@ -188,7 +178,7 @@ void reg_aladin_sym<T>::InitAladinContent(nifti_image *ref,
                                           unsigned blockStepSize) {
     reg_aladin<T>::InitAladinContent(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
     unique_ptr<AladinContentCreator> contentCreator{ dynamic_cast<AladinContentCreator*>(this->platform->CreateContentCreator(ContentType::Aladin)) };
-    this->backCon.reset(contentCreator->Create(flo, ref, this->floatingMaskPyramid[this->currentLevel].get(), this->backwardTransformationMatrix, bytes, blockPercentage, inlierLts, blockStepSize));
+    this->backCon.reset(contentCreator->Create(flo, ref, this->floatingMaskPyramid[this->currentLevel].get(), this->affineTransformationBw.get(), bytes, blockPercentage, inlierLts, blockStepSize));
     this->backwardBlockMatchingParams = backCon->AladinContent::GetBlockMatchingParams();
 }
 /* *************************************************************** */
@@ -253,17 +243,17 @@ void reg_aladin_sym<T>::DebugPrintLevelInfoStart() {
     sprintf(text, "Backward Block number = [%i %i %i]", this->backwardBlockMatchingParams->blockNumber[0],
             this->backwardBlockMatchingParams->blockNumber[1], this->backwardBlockMatchingParams->blockNumber[2]);
     reg_print_info(this->executableName, text);
-    reg_mat44_disp(this->transformationMatrix,
-                   (char *)"[reg_aladin_sym] Initial forward transformation matrix:");
-    reg_mat44_disp(this->backwardTransformationMatrix,
-                   (char *)"[reg_aladin_sym] Initial backward transformation matrix:");
+    reg_mat44_disp(this->affineTransformation.get(),
+                   (char*)"[reg_aladin_sym] Initial forward transformation matrix:");
+    reg_mat44_disp(this->affineTransformationBw.get(),
+                   (char*)"[reg_aladin_sym] Initial backward transformation matrix:");
     reg_print_info(this->executableName, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::DebugPrintLevelInfoEnd() {
-    reg_mat44_disp(this->transformationMatrix, (char *)"[reg_aladin_sym] Final forward transformation matrix:");
-    reg_mat44_disp(this->backwardTransformationMatrix, (char *)"[reg_aladin_sym] Final backward transformation matrix:");
+    reg_mat44_disp(this->affineTransformation.get(), (char*)"[reg_aladin_sym] Final forward transformation matrix:");
+    reg_mat44_disp(this->affineTransformationBw.get(), (char*)"[reg_aladin_sym] Final backward transformation matrix:");
 }
 /* *************************************************************** */
 template class reg_aladin_sym<float>;

@@ -5,7 +5,7 @@ template<class T>
 reg_aladin<T>::reg_aladin() {
     this->executableName = (char*)"Aladin";
 
-    this->transformationMatrix = new mat44;
+    this->affineTransformation.reset(new mat44);
     this->inputTransformName = nullptr;
 
     this->blockMatchingParams = nullptr;
@@ -49,16 +49,6 @@ reg_aladin<T>::reg_aladin() {
 
 #ifndef NDEBUG
     reg_print_msg_debug("reg_aladin constructor called");
-#endif
-}
-/* *************************************************************** */
-template<class T>
-reg_aladin<T>::~reg_aladin() {
-    if (this->transformationMatrix)
-        delete this->transformationMatrix;
-
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_aladin destructor called");
 #endif
 }
 /* *************************************************************** */
@@ -248,13 +238,13 @@ void reg_aladin<T>::InitialiseRegistration() {
             reg_print_msg_error(text.c_str());
             reg_exit();
         }
-        reg_tool_ReadAffineFile(this->transformationMatrix, this->inputTransformName);
+        reg_tool_ReadAffineFile(this->affineTransformation.get(), this->inputTransformName);
     } else { // No input affine transformation
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                this->transformationMatrix->m[i][j] = 0;
+                this->affineTransformation->m[i][j] = 0;
             }
-            this->transformationMatrix->m[i][i] = 1;
+            this->affineTransformation->m[i][i] = 1;
         }
         if (this->alignCentre && this->alignCentreMass == 0) {
             const mat44 *floatingMatrix = (this->inputFloating->sform_code > 0) ? &(this->inputFloating->sto_xyz) : &(this->inputFloating->qto_xyz);
@@ -274,9 +264,9 @@ void reg_aladin<T>::InitialiseRegistration() {
             float referenceRealPosition[3];
             reg_mat44_mul(referenceMatrix, referenceCenter, referenceRealPosition);
             //Set translation to the transformation matrix
-            this->transformationMatrix->m[0][3] = floatingRealPosition[0] - referenceRealPosition[0];
-            this->transformationMatrix->m[1][3] = floatingRealPosition[1] - referenceRealPosition[1];
-            this->transformationMatrix->m[2][3] = floatingRealPosition[2] - referenceRealPosition[2];
+            this->affineTransformation->m[0][3] = floatingRealPosition[0] - referenceRealPosition[0];
+            this->affineTransformation->m[1][3] = floatingRealPosition[1] - referenceRealPosition[1];
+            this->affineTransformation->m[2][3] = floatingRealPosition[2] - referenceRealPosition[2];
         } else if (this->alignCentreMass == 2) {
             float referenceCentre[3] = { 0, 0, 0 };
             float referenceCount = 0;
@@ -325,10 +315,10 @@ void reg_aladin<T>::InitialiseRegistration() {
             float floCOM[3];
             if (this->inputFloating->sform_code > 0)
                 reg_mat44_mul(&(this->inputFloating->sto_xyz), floatingCentre, floCOM);
-            reg_mat44_eye(this->transformationMatrix);
-            this->transformationMatrix->m[0][3] = floCOM[0] - refCOM[0];
-            this->transformationMatrix->m[1][3] = floCOM[1] - refCOM[1];
-            this->transformationMatrix->m[2][3] = floCOM[2] - refCOM[2];
+            reg_mat44_eye(this->affineTransformation.get());
+            this->affineTransformation->m[0][3] = floCOM[0] - refCOM[0];
+            this->affineTransformation->m[1][3] = floCOM[1] - refCOM[1];
+            this->affineTransformation->m[2][3] = floCOM[2] - refCOM[2];
         }
     }
 }
@@ -378,7 +368,7 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type) {
     this->optimiseKernel->template castTo<OptimiseKernel>()->Calculate(type);
 
 #ifndef NDEBUG
-    reg_mat44_disp(this->transformationMatrix, (char *)"[NiftyReg DEBUG] updated forward matrix");
+    reg_mat44_disp(this->affineTransformation.get(), (char*)"[NiftyReg DEBUG] updated forward matrix");
 #endif
 }
 /* *************************************************************** */
@@ -408,7 +398,7 @@ void reg_aladin<T>::ResolveMatrix(unsigned iterations, const unsigned optimizati
 #ifndef NDEBUG
         char text[255];
         sprintf(text, "%s - level: %i/%i - iteration %i/%i",
-                optimizationFlag ? (char *)"Affine" : (char *)"Rigid",
+                optimizationFlag ? (char*)"Affine" : (char*)"Rigid",
                 this->currentLevel + 1, this->numberOfLevels, iteration + 1, iterations);
         reg_print_msg_debug(text);
 #endif
@@ -426,7 +416,7 @@ void reg_aladin<T>::Run() {
     //Main loop over the levels:
     for (this->currentLevel = 0; this->currentLevel < this->levelsToPerform; this->currentLevel++) {
         this->InitAladinContent(this->referencePyramid[currentLevel], this->floatingPyramid[currentLevel],
-                                this->referenceMaskPyramid[currentLevel].get(), this->transformationMatrix, sizeof(T),
+                                this->referenceMaskPyramid[currentLevel].get(), this->affineTransformation.get(), sizeof(T),
                                 this->blockPercentage, this->inlierLts, this->blockStepSize);
         this->CreateKernels();
 
@@ -444,13 +434,13 @@ void reg_aladin<T>::Run() {
 
 #ifndef NDEBUG
         if (this->con->GetReference()->sform_code > 0)
-            reg_mat44_disp(&this->con->GetReference()->sto_xyz, (char *)"[NiftyReg DEBUG] Reference image matrix (sform sto_xyz)");
+            reg_mat44_disp(&this->con->GetReference()->sto_xyz, (char*)"[NiftyReg DEBUG] Reference image matrix (sform sto_xyz)");
         else
-            reg_mat44_disp(&this->con->GetReference()->qto_xyz, (char *)"[NiftyReg DEBUG] Reference image matrix (qform qto_xyz)");
+            reg_mat44_disp(&this->con->GetReference()->qto_xyz, (char*)"[NiftyReg DEBUG] Reference image matrix (qform qto_xyz)");
         if (this->con->GetFloating()->sform_code > 0)
-            reg_mat44_disp(&this->con->GetFloating()->sto_xyz, (char *)"[NiftyReg DEBUG] Floating image matrix (sform sto_xyz)");
+            reg_mat44_disp(&this->con->GetFloating()->sto_xyz, (char*)"[NiftyReg DEBUG] Floating image matrix (sform sto_xyz)");
         else
-            reg_mat44_disp(&this->con->GetFloating()->qto_xyz, (char *)"[NiftyReg DEBUG] Floating image matrix (qform qto_xyz)");
+            reg_mat44_disp(&this->con->GetFloating()->qto_xyz, (char*)"[NiftyReg DEBUG] Floating image matrix (qform qto_xyz)");
 #endif
 
         /* ****************** */
@@ -491,7 +481,7 @@ void reg_aladin<T>::Run() {
 template<class T>
 NiftiImage reg_aladin<T>::GetFinalWarpedImage() {
     // The initial images are used
-    if (!this->inputReference || !this->inputFloating || !this->transformationMatrix) {
+    if (!this->inputReference || !this->inputFloating || !this->affineTransformation) {
         reg_print_fct_error("reg_aladin::GetFinalWarpedImage()");
         reg_print_msg_error("The reference, floating images and the transformation have to be defined");
         reg_exit();
@@ -502,7 +492,7 @@ NiftiImage reg_aladin<T>::GetFinalWarpedImage() {
     reg_aladin<T>::InitAladinContent(this->inputReference,
                                      this->inputFloating,
                                      mask.get(),
-                                     this->transformationMatrix,
+                                     this->affineTransformation.get(),
                                      sizeof(T));
     reg_aladin<T>::CreateKernels();
 
@@ -548,12 +538,12 @@ void reg_aladin<T>::DebugPrintLevelInfoStart() {
     sprintf(text, "Block number = [%i %i %i]", this->blockMatchingParams->blockNumber[0],
             this->blockMatchingParams->blockNumber[1], this->blockMatchingParams->blockNumber[2]);
     reg_print_info(this->executableName, text);
-    reg_mat44_disp(this->transformationMatrix, (char *)"[reg_aladin] Initial transformation matrix:");
+    reg_mat44_disp(this->affineTransformation.get(), (char*)"[reg_aladin] Initial transformation matrix:");
 }
 /* *************************************************************** */
 template<class T>
 void reg_aladin<T>::DebugPrintLevelInfoEnd() {
-    reg_mat44_disp(this->transformationMatrix, (char *)"[reg_aladin] Final transformation matrix:");
+    reg_mat44_disp(this->affineTransformation.get(), (char*)"[reg_aladin] Final transformation matrix:");
 }
 /* *************************************************************** */
 template class reg_aladin<float>;

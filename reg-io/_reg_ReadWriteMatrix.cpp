@@ -126,7 +126,7 @@ void reg_tool_ReadAffineFile(mat44 *mat, char *fileName) {
     affineFile.close();
 }
 /* *************************************************************** */
-void reg_tool_WriteAffineFile(mat44 *mat, const char *fileName) {
+void reg_tool_WriteAffineFile(const mat44 *mat, const char *fileName) {
     FILE *affineFile;
     affineFile = fopen(fileName, "w");
     for (int i = 0; i < 4; i++)

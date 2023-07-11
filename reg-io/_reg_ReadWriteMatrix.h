@@ -65,7 +65,7 @@ mat44* reg_tool_ReadMat44File(char *fileName);
  * @param filename Name of the text file to save on the disk
  */
 extern "C++"
-void reg_tool_WriteAffineFile(mat44 *mat,
+void reg_tool_WriteAffineFile(const mat44 *mat,
                               const char *fileName);
 
 /**

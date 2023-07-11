@@ -39,7 +39,7 @@ protected:
 
     _reg_blockMatchingParam *backwardBlockMatchingParams;
 
-    mat44 *backwardTransformationMatrix;
+    unique_ptr<mat44> affineTransformationBw;
 
     virtual void DeallocateCurrentInputImage();
     virtual void GetBackwardDeformationField();
@@ -52,6 +52,5 @@ protected:
 
 public:
     reg_aladin_sym();
-    virtual ~reg_aladin_sym();
     virtual void SetInputFloatingMask(NiftiImage);
 };
