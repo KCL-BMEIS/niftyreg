@@ -117,6 +117,11 @@ set(EXEC_LIST reg_test_interpolation ${EXEC_LIST})
 set(EXEC_LIST reg_test_lncc ${EXEC_LIST})
 set(EXEC_LIST reg_test_normaliseGradient ${EXEC_LIST})
 set(EXEC_LIST reg_test_voxelCentricToNodeCentric ${EXEC_LIST})
+if(USE_CUDA)
+  set(EXEC_LIST reg_test_regr_blockMatching ${EXEC_LIST})
+  set(EXEC_LIST reg_test_regr_lts ${EXEC_LIST})
+endif(USE_CUDA)
+
 
 foreach(EXEC ${EXEC_LIST})
   add_executable(${EXEC} ${EXEC}.cpp)

@@ -15,6 +15,36 @@
 #include <map>
 #include <iostream>
 #include <cmath>
+
+_reg_blockMatchingParam::_reg_blockMatchingParam(_reg_blockMatchingParam *in)
+{
+   this->totalBlockNumber=in->totalBlockNumber;
+   this->dim=in->dim;
+   this->percent_to_keep=in->percent_to_keep;
+   this->activeBlockNumber=in->activeBlockNumber;
+   this->definedActiveBlockNumber=in->definedActiveBlockNumber;
+   this->stepSize=in->stepSize;
+   this->voxelCaptureRange=in->voxelCaptureRange;
+   this->blockNumber[0]=in->blockNumber[0];
+   this->blockNumber[1]=in->blockNumber[1];
+   this->blockNumber[2]=in->blockNumber[2];
+   this->totalBlock = (int *)malloc(this->totalBlockNumber * sizeof(int));
+   for(int i=0; i<this->totalBlockNumber; ++i)
+      this->totalBlock[i] = in->totalBlock[i];
+
+   this->referencePosition = (float *)malloc(this->activeBlockNumber * this->dim * sizeof(float));
+   this->warpedPosition = (float *)malloc(this->activeBlockNumber * this->dim * sizeof(float));
+   for(int i=0; i<this->activeBlockNumber*this->dim ; ++i){
+      this->referencePosition[i] = in->referencePosition[i];
+      this->warpedPosition[i] = in->warpedPosition[i];
+   }
+}
+_reg_blockMatchingParam::~_reg_blockMatchingParam()
+{
+   if (referencePosition) free(referencePosition);
+   if (warpedPosition) free(warpedPosition);
+   if (totalBlock) free(totalBlock);
+}
 /* *************************************************************** */
 template<class DataType>
 void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU) {
@@ -247,7 +277,7 @@ void initialise_block_matching_method(nifti_image * reference,
    reg_print_msg_debug(text)
       #endif
          //params->activeBlock = (int *)malloc(params->activeBlockNumber * sizeof(int));
-         params->referencePosition = (float *)malloc(params->activeBlockNumber * params->dim * sizeof(float));
+   params->referencePosition = (float *)malloc(params->activeBlockNumber * params->dim * sizeof(float));
    params->warpedPosition = (float *)malloc(params->activeBlockNumber * params->dim * sizeof(float));
 
 #ifndef NDEBUG

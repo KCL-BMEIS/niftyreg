@@ -69,12 +69,10 @@ struct _reg_blockMatchingParam
         stepSize(0)
    {}
 
-   ~_reg_blockMatchingParam()
-   {
-      if (referencePosition) free(referencePosition);
-      if (warpedPosition) free(warpedPosition);
-      if (totalBlock) free(totalBlock);
-   }
+   // Perform a deep copy
+   _reg_blockMatchingParam(_reg_blockMatchingParam *);
+
+   ~_reg_blockMatchingParam();
 };
 /* *************************************************************** */
 /** @brief This function initialise a _reg_blockMatchingParam structure

@@ -35,6 +35,7 @@ CudaAladinContent::~CudaAladinContent() {
 void CudaAladinContent::InitVars() {
     referenceImageArray_d = nullptr;
     floatingImageArray_d = nullptr;
+    transformationMatrix_d = nullptr;
     warpedImageArray_d = nullptr;
     deformationFieldArray_d = nullptr;
     referencePosition_d = nullptr;
@@ -404,31 +405,33 @@ int* CudaAladinContent::GetFloatingDims() {
 }
 /* *************************************************************** */
 void CudaAladinContent::FreeCuPtrs() {
-    if (transformationMatrix != nullptr)
+    if (transformationMatrix_d != nullptr)
         cudaCommon_free(transformationMatrix_d);
 
-    if (reference != nullptr) {
+    if (referenceImageArray_d != nullptr)
         cudaCommon_free(referenceImageArray_d);
+    if (referenceMat_d != nullptr)
         cudaCommon_free(referenceMat_d);
-    }
 
-    if (floating != nullptr) {
+    if (floatingImageArray_d != nullptr)
         cudaCommon_free(floatingImageArray_d);
+    if (floIJKMat_d != nullptr)
         cudaCommon_free(floIJKMat_d);
-    }
 
-    if (warped != nullptr)
+    if (warpedImageArray_d != nullptr)
         cudaCommon_free(warpedImageArray_d);
 
-    if (deformationField != nullptr)
+    if (deformationFieldArray_d != nullptr)
         cudaCommon_free(deformationFieldArray_d);
 
-    if (referenceMask != nullptr)
+    if (mask_d != nullptr)
         cudaCommon_free(mask_d);
 
-    if (blockMatchingParams != nullptr) {
+    if (totalBlock_d != nullptr)
         cudaCommon_free(totalBlock_d);
+    if (referencePosition_d != nullptr)
         cudaCommon_free(referencePosition_d);
+    if (warpedPosition_d != nullptr)
         cudaCommon_free(warpedPosition_d);
         /*
         cudaCommon_free(AR_d);
@@ -438,7 +441,6 @@ void CudaAladinContent::FreeCuPtrs() {
         cudaCommon_free(lengths_d);
         cudaCommon_free(newWarpedPos_d);
         */
-    }
 }
 /* *************************************************************** */
 bool CudaAladinContent::IsCurrentComputationDoubleCapable() {

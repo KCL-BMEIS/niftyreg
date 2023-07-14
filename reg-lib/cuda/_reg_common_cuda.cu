@@ -577,7 +577,8 @@ void cudaCommon_free(cudaArray *cuArray_d) {
 /* *************************************************************** */
 template <class DataType>
 void cudaCommon_free(DataType *array_d) {
-    NR_CUDA_SAFE_CALL(cudaFree(array_d));
+    if (array_d != nullptr)
+        NR_CUDA_SAFE_CALL(cudaFree(array_d));
 }
 template void cudaCommon_free<int>(int*);
 template void cudaCommon_free<float>(float*);
