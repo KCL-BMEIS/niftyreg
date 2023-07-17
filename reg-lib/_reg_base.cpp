@@ -293,7 +293,7 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::CheckParameters() {
-    // CHECK THAT BOTH INPUT IMAGES ARE DEFINED
+    // Check if both input images are defined
     if (!inputReference) {
         reg_print_fct_error("reg_base::CheckParameters()");
         reg_print_msg_error("The reference image is not defined");
@@ -305,7 +305,7 @@ void reg_base<T>::CheckParameters() {
         reg_exit();
     }
 
-    // CHECK THE MASK DIMENSION IF IT IS DEFINED
+    // Check the mask dimension if it is defined
     if (maskImage) {
         if (inputReference->nx != maskImage->nx ||
             inputReference->ny != maskImage->ny ||
@@ -316,14 +316,14 @@ void reg_base<T>::CheckParameters() {
         }
     }
 
-    // CHECK THE NUMBER OF LEVEL TO PERFORM
+    // Check the number of level to perform
     if (levelToPerform > 0) {
         levelToPerform = levelToPerform < levelNumber ? levelToPerform : levelNumber;
     } else levelToPerform = levelNumber;
     if (levelToPerform == 0 || levelToPerform > levelNumber)
         levelToPerform = levelNumber;
 
-    // SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
+    // Set the default similarity measure if none has been set
     if (!measure_nmi && !measure_ssd && !measure_dti && !measure_lncc &&
         !measure_kld && !measure_mind && !measure_mindssc) {
         measure_nmi.reset(dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)));
@@ -331,14 +331,14 @@ void reg_base<T>::CheckParameters() {
             measure_nmi->SetTimepointWeight(i, 1.0);
     }
 
-    // CHECK THAT IMAGES HAVE SAME NUMBER OF CHANNELS (TIMEPOINTS)
-    // THAT EACH CHANNEL HAS AT LEAST ONE SIMILARITY MEASURE ASSIGNED
-    // AND THAT EACH SIMILARITY MEASURE IS USED FOR AT LEAST ONE CHANNEL
-    // NORMALISE CHANNEL AND SIMILARITY WEIGHTS SO TOTAL = 1
+    // Check that images have same number of channels (timepoints)
+    // that each channel has at least one similarity measure assigned
+    // and that each similarity measure is used for at least one channel
+    // Normalise channel and similarity weights so total = 1
     //
     // NOTE - DTI currently ignored as needs fixing
     //
-    // tests ignored if using MIND or MINDSSC as they are not implemented for multi-channel or weighting
+    // Tests are ignored if using MIND or MINDSSC as they are not implemented for multi-channel or weighting
     if (!measure_mind && !measure_mindssc) {
         if (inputFloating->nt != inputReference->nt) {
             reg_print_fct_error("reg_base::CheckParameters()");

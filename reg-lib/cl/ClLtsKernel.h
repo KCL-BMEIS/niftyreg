@@ -1,12 +1,12 @@
 #pragma once
 
-#include "OptimiseKernel.h"
+#include "LtsKernel.h"
 #include "ClAladinContent.h"
 
-class ClOptimiseKernel: public OptimiseKernel {
+class ClLtsKernel: public LtsKernel {
 public:
-    ClOptimiseKernel(Content *con);
-    ~ClOptimiseKernel() {}
+    ClLtsKernel(Content *con);
+    ~ClLtsKernel() {}
     void Calculate(bool affine);
 
 private:

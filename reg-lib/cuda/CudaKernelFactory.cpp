@@ -3,7 +3,7 @@
 #include "CudaConvolutionKernel.h"
 #include "CudaBlockMatchingKernel.h"
 #include "CudaResampleImageKernel.h"
-#include "CudaOptimiseKernel.h"
+#include "CudaLtsKernel.h"
 #include "AladinContent.h"
 
 Kernel* CudaKernelFactory::Produce(std::string name, Content *con) const {
@@ -11,6 +11,6 @@ Kernel* CudaKernelFactory::Produce(std::string name, Content *con) const {
     else if (name == ConvolutionKernel::GetName()) return new CudaConvolutionKernel();
     else if (name == BlockMatchingKernel::GetName()) return new CudaBlockMatchingKernel(con);
     else if (name == ResampleImageKernel::GetName()) return new CudaResampleImageKernel(con);
-    else if (name == OptimiseKernel::GetName()) return new CudaOptimiseKernel(con);
+    else if (name == LtsKernel::GetName()) return new CudaLtsKernel(con);
     else return nullptr;
 }

@@ -133,10 +133,10 @@ void reg_optimiser<T>::Perturbation(float length) {
 }
 /* *************************************************************** */
 template <class T>
-void reg_optimiser<T>::Optimise(T maxLength, T smallLength, T &startLength) {
+void reg_optimiser<T>::Optimise(T maxLength, T smallLength, T& startLength) {
     size_t lineIteration = 0;
     float addedLength = 0;
-    float currentLength = startLength;
+    float currentLength = static_cast<float>(startLength);
 
     // Start performing the line search
     while (currentLength > smallLength &&
@@ -343,7 +343,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
 #endif
         for (i = 0; i < num; i++) {
             array1Ptr[i] = -gradientPtr[i];
-            array2Ptr[i] = (array1Ptr[i] + gam * array2Ptr[i]);
+            array2Ptr[i] = static_cast<T>(array1Ptr[i] + gam * array2Ptr[i]);
             gradientPtr[i] = -array2Ptr[i];
         }
         if (this->dofNumberBw > 0) {
@@ -353,7 +353,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
 #endif
             for (i = 0; i < numBw; i++) {
                 array1PtrBw[i] = -gradientPtrBw[i];
-                array2PtrBw[i] = (array1PtrBw[i] + gam * array2PtrBw[i]);
+                array2PtrBw[i] = static_cast<T>(array1PtrBw[i] + gam * array2PtrBw[i]);
                 gradientPtrBw[i] = -array2PtrBw[i];
             }
         }

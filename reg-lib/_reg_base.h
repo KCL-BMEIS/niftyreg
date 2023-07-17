@@ -159,6 +159,7 @@ public:
     virtual void DoNotUseConjugateGradient();
     virtual void UseApproximatedGradient();
     virtual void DoNotUseApproximatedGradient();
+
     // Measure of similarity-related functions
     // virtual void ApproximateParzenWindow();
     // virtual void DoNotApproximateParzenWindow();

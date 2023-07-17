@@ -1,7 +1,7 @@
-#include "ClOptimiseKernel.h"
+#include "ClLtsKernel.h"
 
 /* *************************************************************** */
-ClOptimiseKernel::ClOptimiseKernel(Content *conIn) : OptimiseKernel() {
+ClLtsKernel::ClLtsKernel(Content *conIn) : LtsKernel() {
     //populate the ClAladinContent object ptr
     ClAladinContent *con = static_cast<ClAladinContent*>(conIn);
 
@@ -10,7 +10,7 @@ ClOptimiseKernel::ClOptimiseKernel(Content *conIn) : OptimiseKernel() {
     blockMatchingParams = con->AladinContent::GetBlockMatchingParams();
 }
 /* *************************************************************** */
-void ClOptimiseKernel::Calculate(bool affine) {
+void ClLtsKernel::Calculate(bool affine) {
     optimize(blockMatchingParams, transformationMatrix, affine);
 }
 /* *************************************************************** */

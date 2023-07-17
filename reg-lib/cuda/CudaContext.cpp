@@ -121,4 +121,4 @@ CudaContext::~CudaContext() {
     cuCtxDestroy(cudaContext);
 }
 /* *************************************************************** */
-} // namespace NiftyReg::Cuda
+} // namespace NiftyReg

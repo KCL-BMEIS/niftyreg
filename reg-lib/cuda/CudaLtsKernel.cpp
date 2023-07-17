@@ -1,10 +1,10 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
-#include "CudaOptimiseKernel.h"
+#include "CudaLtsKernel.h"
 #include "optimizeKernel.h"
 
 /* *************************************************************** */
-CudaOptimiseKernel::CudaOptimiseKernel(Content *conIn) : OptimiseKernel() {
+CudaLtsKernel::CudaLtsKernel(Content *conIn) : LtsKernel() {
     //get CudaAladinContent ptr
     con = static_cast<CudaAladinContent*>(conIn);
 
@@ -24,7 +24,7 @@ CudaOptimiseKernel::CudaOptimiseKernel(Content *conIn) : OptimiseKernel() {
 
 }
 /* *************************************************************** */
-void CudaOptimiseKernel::Calculate(bool affine) {
+void CudaLtsKernel::Calculate(bool affine) {
     /* // Removed until CUDA SVD is added back
  #if _WIN64 || __x86_64__ || __ppc64__
 

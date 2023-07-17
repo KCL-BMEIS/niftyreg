@@ -19,7 +19,6 @@ public:
                   const unsigned percentageOfBlocks = 0,
                   const unsigned inlierLts = 0,
                   int blockStepSize = 0);
-
     virtual ~AladinContent();
 
     // Getters

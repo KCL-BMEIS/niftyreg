@@ -1,13 +1,13 @@
-#include "CpuOptimiseKernel.h"
+#include "CpuLtsKernel.h"
 
 /* *************************************************************** */
-CpuOptimiseKernel::CpuOptimiseKernel(Content *conIn) : OptimiseKernel() {
+CpuLtsKernel::CpuLtsKernel(Content *conIn) : LtsKernel() {
     AladinContent *con = static_cast<AladinContent*>(conIn);
     transformationMatrix = con->GetTransformationMatrix();
     blockMatchingParams = con->GetBlockMatchingParams();
 }
 /* *************************************************************** */
-void CpuOptimiseKernel::Calculate(bool affine) {
+void CpuLtsKernel::Calculate(bool affine) {
     optimize(blockMatchingParams, transformationMatrix, affine);
 }
 /* *************************************************************** */

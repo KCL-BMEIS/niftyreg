@@ -336,10 +336,10 @@ void reg_aladin<T>::CreateKernels() {
     this->resamplingKernel.reset(platform->CreateKernel(ResampleImageKernel::GetName(), this->con.get()));
     if (this->blockMatchingParams) {
         this->blockMatchingKernel.reset(platform->CreateKernel(BlockMatchingKernel::GetName(), this->con.get()));
-        this->optimiseKernel.reset(platform->CreateKernel(OptimiseKernel::GetName(), this->con.get()));
+        this->ltsKernel.reset(platform->CreateKernel(LtsKernel::GetName(), this->con.get()));
     } else {
         this->blockMatchingKernel = nullptr;
-        this->optimiseKernel = nullptr;
+        this->ltsKernel = nullptr;
     }
 }
 /* *************************************************************** */
@@ -348,7 +348,7 @@ void reg_aladin<T>::DeallocateKernels() {
     this->affineTransformation3DKernel = nullptr;
     this->resamplingKernel = nullptr;
     this->blockMatchingKernel = nullptr;
-    this->optimiseKernel = nullptr;
+    this->ltsKernel = nullptr;
 }
 /* *************************************************************** */
 template<class T>
@@ -365,7 +365,7 @@ void reg_aladin<T>::GetWarpedImage(int interp, float padding) {
 template<class T>
 void reg_aladin<T>::UpdateTransformationMatrix(int type) {
     this->blockMatchingKernel->template castTo<BlockMatchingKernel>()->Calculate();
-    this->optimiseKernel->template castTo<OptimiseKernel>()->Calculate(type);
+    this->ltsKernel->template castTo<LtsKernel>()->Calculate(type);
 
 #ifndef NDEBUG
     reg_mat44_disp(this->affineTransformation.get(), (char*)"[NiftyReg DEBUG] updated forward matrix");

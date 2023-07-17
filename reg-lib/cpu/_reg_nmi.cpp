@@ -12,8 +12,7 @@
 
 #include "_reg_nmi.h"
 
- /* *************************************************************** */
- /* *************************************************************** */
+/* *************************************************************** */
 reg_nmi::reg_nmi(): reg_measure() {
     this->forwardJointHistogramPro = nullptr;
     this->forwardJointHistogramLog = nullptr;
@@ -30,7 +29,6 @@ reg_nmi::reg_nmi(): reg_measure() {
     reg_print_msg_debug("reg_nmi constructor called");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 reg_nmi::~reg_nmi() {
     this->DeallocateHistogram();
@@ -102,7 +100,6 @@ void reg_nmi::DeallocateHistogram() {
     reg_print_msg_debug("reg_nmi::DeallocateHistogram called");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */
 void reg_nmi::InitialiseMeasure(nifti_image *refImgPtr,
                                 nifti_image *floImgPtr,
@@ -188,7 +185,6 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImgPtr,
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 template<class PrecisionType>
 PrecisionType GetBasisSplineValue(PrecisionType x) {
     x = fabs(x);
@@ -219,7 +215,6 @@ PrecisionType GetBasisSplineDerivativeValue(PrecisionType ori) {
     }
     return value;
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class DataType>
 void reg_getNMIValue(nifti_image *referenceImage,
@@ -371,10 +366,8 @@ void reg_getNMIValue(nifti_image *referenceImage,
         } // if active time point
     } // iterate over all time point in the reference image
 }
-/* *************************************************************** */
 template void reg_getNMIValue<float>(nifti_image*, nifti_image*, double*, unsigned short*, unsigned short*, unsigned short*, double**, double**, double**, int*);
 template void reg_getNMIValue<double>(nifti_image*, nifti_image*, double*, unsigned short*, unsigned short*, unsigned short*, double**, double**, double**, int*);
-/* *************************************************************** */
 /* *************************************************************** */
 double reg_nmi::GetSimilarityMeasureValue() {
     // Check that all the specified image are of the same datatype
@@ -552,14 +545,13 @@ void reg_getVoxelBasedNMIGradient2D(const nifti_image *referenceImage,
                     }
                 }
                 measureGradPtrX[i] += (DataType)(timepoint_weight * (refDeriv[0] + warDeriv[0] -
-                                                                  nmi * jointDeriv[0]) / (entropyPtr[2] * entropyPtr[3]));
+                                                                     nmi * jointDeriv[0]) / (entropyPtr[2] * entropyPtr[3]));
                 measureGradPtrY[i] += (DataType)(timepoint_weight * (refDeriv[1] + warDeriv[1] -
-                                                                  nmi * jointDeriv[1]) / (entropyPtr[2] * entropyPtr[3]));
+                                                                     nmi * jointDeriv[1]) / (entropyPtr[2] * entropyPtr[3]));
             }// Check that the values are defined
         } // mask
     } // loop over all voxel
 }
-/* *************************************************************** */
 template void reg_getVoxelBasedNMIGradient2D<float>
 (const nifti_image*, const nifti_image*, const unsigned short*, const unsigned short*, const double*const*, const double*const*, const nifti_image*, nifti_image*, const int*, const int&, const double&);
 template void reg_getVoxelBasedNMIGradient2D<double>
@@ -667,16 +659,15 @@ void reg_getVoxelBasedNMIGradient3D(const nifti_image *referenceImage,
                     }
                 }
                 measureGradPtrX[i] += (DataType)(timepoint_weight * (refDeriv[0] + warDeriv[0] -
-                                                                  nmi * jointDeriv[0]) / (entropyPtr[2] * entropyPtr[3]));
+                                                                     nmi * jointDeriv[0]) / (entropyPtr[2] * entropyPtr[3]));
                 measureGradPtrY[i] += (DataType)(timepoint_weight * (refDeriv[1] + warDeriv[1] -
-                                                                  nmi * jointDeriv[1]) / (entropyPtr[2] * entropyPtr[3]));
+                                                                     nmi * jointDeriv[1]) / (entropyPtr[2] * entropyPtr[3]));
                 measureGradPtrZ[i] += (DataType)(timepoint_weight * (refDeriv[2] + warDeriv[2] -
-                                                                  nmi * jointDeriv[2]) / (entropyPtr[2] * entropyPtr[3]));
+                                                                     nmi * jointDeriv[2]) / (entropyPtr[2] * entropyPtr[3]));
             }// Check that the values are defined
         } // mask
     } // loop over all voxel
 }
-/* *************************************************************** */
 template void reg_getVoxelBasedNMIGradient3D<float>
 (const nifti_image*, const nifti_image*, const unsigned short*, const unsigned short*, const double*const*, const double*const*, const nifti_image*, nifti_image*, const int*, const int&, const double&);
 template void reg_getVoxelBasedNMIGradient3D<double>
@@ -852,5 +843,4 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) {
     reg_print_msg_debug("reg_nmi::GetVoxelBasedSimilarityMeasureGradient called");
 #endif
 }
-/* *************************************************************** */
 /* *************************************************************** */

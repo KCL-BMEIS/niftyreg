@@ -128,7 +128,7 @@ add_library(_reg_kernels ${NIFTYREG_LIBRARY_TYPE}
   cpu/CpuAffineDeformationFieldKernel.cpp
   cpu/CpuBlockMatchingKernel.cpp
   cpu/CpuConvolutionKernel.cpp
-  cpu/CpuOptimiseKernel.cpp
+  cpu/CpuLtsKernel.cpp
   cpu/CpuResampleImageKernel.cpp
 )
 target_link_libraries(_reg_kernels

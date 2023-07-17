@@ -1,12 +1,12 @@
 #pragma once
 
-#include "OptimiseKernel.h"
+#include "LtsKernel.h"
 #include "CudaAladinContent.h"
 
 // Kernel functions for numerical optimisation
-class CudaOptimiseKernel: public OptimiseKernel {
+class CudaLtsKernel: public LtsKernel {
 public:
-    CudaOptimiseKernel(Content *conIn);
+    CudaLtsKernel(Content *conIn);
     void Calculate(bool affine);
 
 private:

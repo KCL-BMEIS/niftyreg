@@ -137,7 +137,7 @@ public:
                             T *gradDataBw = nullptr);
     virtual void Optimise(T maxLength,
                           T smallLength,
-                          T &startLength);
+                          T& startLength);
     virtual void Perturbation(float length);
 };
 /* *************************************************************** */

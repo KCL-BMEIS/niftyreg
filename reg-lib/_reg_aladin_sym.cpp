@@ -141,7 +141,7 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type) {
 
     // Update now the backward transformation matrix
     this->bBlockMatchingKernel->template castTo<BlockMatchingKernel>()->Calculate();
-    this->bOptimiseKernel->template castTo<OptimiseKernel>()->Calculate(type);
+    this->bLtsKernel->template castTo<LtsKernel>()->Calculate(type);
 
 #ifndef NDEBUG
     reg_mat44_disp(this->affineTransformation.get(), (char*)"[NiftyReg DEBUG] pre-updated forward transformation matrix");
@@ -194,7 +194,7 @@ void reg_aladin_sym<T>::CreateKernels() {
     this->bAffineTransformation3DKernel.reset(this->platform->CreateKernel(AffineDeformationFieldKernel::GetName(), this->backCon.get()));
     this->bBlockMatchingKernel.reset(this->platform->CreateKernel(BlockMatchingKernel::GetName(), this->backCon.get()));
     this->bResamplingKernel.reset(this->platform->CreateKernel(ResampleImageKernel::GetName(), this->backCon.get()));
-    this->bOptimiseKernel.reset(this->platform->CreateKernel(OptimiseKernel::GetName(), this->backCon.get()));
+    this->bLtsKernel.reset(this->platform->CreateKernel(LtsKernel::GetName(), this->backCon.get()));
 }
 /* *************************************************************** */
 template <class T>
@@ -209,7 +209,7 @@ void reg_aladin_sym<T>::DeallocateKernels() {
     this->bResamplingKernel = nullptr;
     this->bAffineTransformation3DKernel = nullptr;
     this->bBlockMatchingKernel = nullptr;
-    this->bOptimiseKernel = nullptr;
+    this->bLtsKernel = nullptr;
 }
 /* *************************************************************** */
 template <class T>

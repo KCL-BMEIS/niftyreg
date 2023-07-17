@@ -1,13 +1,13 @@
 #pragma once
 
-#include "OptimiseKernel.h"
+#include "LtsKernel.h"
 #include "_reg_blockMatching.h"
 #include "niftilib/nifti1_io.h"
 #include "AladinContent.h"
 
-class CpuOptimiseKernel: public OptimiseKernel {
+class CpuLtsKernel: public LtsKernel {
 public:
-    CpuOptimiseKernel(Content *con);
+    CpuLtsKernel(Content *con);
     void Calculate(bool affine);
 
 private:

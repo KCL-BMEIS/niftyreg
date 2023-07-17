@@ -11,7 +11,7 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
   ClAffineDeformationFieldKernel.cpp
   ClBlockMatchingKernel.cpp
   ClConvolutionKernel.cpp
-  ClOptimiseKernel.cpp
+  ClLtsKernel.cpp
   ClResampleImageKernel.cpp
   ../AladinContent.cpp
 )

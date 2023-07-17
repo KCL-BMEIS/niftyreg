@@ -2,9 +2,9 @@
 #include "_reg_blockMatching.h"
 #include "CpuBlockMatchingKernel.h"
 
-#include "OptimiseKernel.h"
-#include "CpuOptimiseKernel.h"
-#include "CudaOptimiseKernel.h"
+#include "LtsKernel.h"
+#include "CpuLtsKernel.h"
+#include "CudaLtsKernel.h"
 
 /**
  *  LTS regression test to ensure the CPU and CUDA versions yield the same output
@@ -130,8 +130,8 @@ public:
             contentCuda->SetBlockMatchingParams(blockMatchingParamsCuda);
 
             // Initialise the optimise kernels
-            std::unique_ptr<OptimiseKernel> kernelCpu{ new CpuOptimiseKernel(contentCpu.get()) };
-            std::unique_ptr<OptimiseKernel> kernelCuda{ new CudaOptimiseKernel(contentCuda.get()) };
+            std::unique_ptr<LtsKernel> kernelCpu{ new CpuLtsKernel(contentCpu.get()) };
+            std::unique_ptr<LtsKernel> kernelCuda{ new CudaLtsKernel(contentCuda.get()) };
 
             // Compute the transformations
             kernelCpu->Calculate(ttype);

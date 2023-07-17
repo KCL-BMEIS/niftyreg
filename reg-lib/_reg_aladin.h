@@ -29,7 +29,7 @@
 #include "AffineDeformationFieldKernel.h"
 #include "ResampleImageKernel.h"
 #include "BlockMatchingKernel.h"
-#include "OptimiseKernel.h"
+#include "LtsKernel.h"
 #include "ConvolutionKernel.h"
 #include "AladinContent.h"
 
@@ -263,6 +263,6 @@ public:
     }
 
 private:
-    unique_ptr<Kernel> affineTransformation3DKernel, blockMatchingKernel, optimiseKernel, resamplingKernel;
+    unique_ptr<Kernel> affineTransformation3DKernel, blockMatchingKernel, ltsKernel, resamplingKernel;
     void ResolveMatrix(unsigned iterations, const unsigned optimizationFlag);
 };

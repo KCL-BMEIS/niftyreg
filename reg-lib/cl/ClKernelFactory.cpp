@@ -3,7 +3,7 @@
 #include "ClConvolutionKernel.h"
 #include "ClBlockMatchingKernel.h"
 #include "ClResampleImageKernel.h"
-#include "ClOptimiseKernel.h"
+#include "ClLtsKernel.h"
 #include "AladinContent.h"
 
 Kernel* ClKernelFactory::Produce(std::string name, Content *con) const {
@@ -11,6 +11,6 @@ Kernel* ClKernelFactory::Produce(std::string name, Content *con) const {
 	else if (name == ConvolutionKernel::GetName()) return new ClConvolutionKernel();
 	else if (name == BlockMatchingKernel::GetName()) return new ClBlockMatchingKernel(con);
 	else if (name == ResampleImageKernel::GetName()) return new ClResampleImageKernel(con);
-	else if (name == OptimiseKernel::GetName()) return new ClOptimiseKernel(con);
+	else if (name == LtsKernel::GetName()) return new ClLtsKernel(con);
 	else return nullptr;
 }

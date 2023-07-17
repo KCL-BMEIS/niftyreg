@@ -12,8 +12,7 @@
 #include "_reg_common_cuda.h"
 #include "_reg_kld.h"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 /// @brief Class that contains the GPU device pointers
 class reg_measure_gpu {
 public:
@@ -46,8 +45,7 @@ protected:
     float4 *warpedFloatingGradientDevicePointer;
     float4 *forwardVoxelBasedGradientDevicePointer;
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 class reg_lncc_gpu: public reg_lncc, public reg_measure_gpu {
 public:
     /// @brief reg_lncc class constructor
@@ -77,8 +75,7 @@ public:
     /// @brief Compute the voxel based lncc gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {}
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 class reg_kld_gpu: public reg_kld, public reg_measure_gpu {
 public:
     /// @brief reg_kld_gpu class constructor
@@ -108,8 +105,7 @@ public:
     /// @brief Compute the voxel based kld gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {}
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 class reg_dti_gpu: public reg_dti, public reg_measure_gpu {
 public:
     /// @brief reg_dti_gpu class constructor
@@ -139,5 +135,4 @@ public:
     /// @brief Compute the voxel based dti gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {}
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */

@@ -74,7 +74,7 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaBlockMatchingKernel.cpp
     CudaConvolutionKernel.cpp
     CudaNormaliseGradient.cu
-    CudaOptimiseKernel.cpp
+    CudaLtsKernel.cpp
     CudaResampleImageKernel.cpp
     ../AladinContent.cpp
     _reg_resampling_gpu.cu

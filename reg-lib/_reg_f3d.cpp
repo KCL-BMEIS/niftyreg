@@ -153,6 +153,7 @@ void reg_f3d<T>::DeinitCurrentLevel(int currentLevel) {
 template<class T>
 void reg_f3d<T>::CheckParameters() {
     reg_base<T>::CheckParameters();
+
     // Normalise the objective function weights
     if (strcmp(this->executableName, "NiftyReg F3D") == 0) {
         T penaltySum = bendingEnergyWeight + linearEnergyWeight + jacobianLogWeight + this->landmarkRegWeight;
@@ -164,6 +165,7 @@ void reg_f3d<T>::CheckParameters() {
             this->landmarkRegWeight /= penaltySum;
         } else this->similarityWeight = 1 - penaltySum;
     }
+
 #ifndef NDEBUG
     reg_print_fct_debug("reg_f3d<T>::CheckParameters");
 #endif
