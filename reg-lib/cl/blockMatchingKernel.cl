@@ -151,7 +151,9 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 						(xImageIn > -1 && xImageIn < (int)c_ImageSize.x) &&
 						(yImageIn > -1 && yImageIn < (int)c_ImageSize.y);
 				// Copy the value from the global to the local shared memory
-				sWarpedValues[sharedIndex] = (valid && mask[indexXYIn] > -1) ?
+				//sWarpedValues[sharedIndex] = (valid && mask[indexXYIn] > -1) ?
+				//			warpedImageArray[indexXYIn] : NAN;
+				sWarpedValues[sharedIndex] = valid ?
 							warpedImageArray[indexXYIn] : NAN;
 			}
 		}
@@ -309,7 +311,9 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 							(yImageIn > -1 && yImageIn < (int)c_ImageSize.y) &&
 							(zImageIn > -1 && zImageIn < (int)c_ImageSize.z);
 					// Copy the value from the global to the local shared memory
-					sWarpedValues[sharedIndex] = (valid && mask[indexXYZIn] > -1) ?
+					// sWarpedValues[sharedIndex] = (valid && mask[indexXYZIn] > -1) ?
+					//			warpedImageArray[indexXYZIn] : NAN;
+					sWarpedValues[sharedIndex] = valid ?
 								warpedImageArray[indexXYZIn] : NAN;
 				}
 			}

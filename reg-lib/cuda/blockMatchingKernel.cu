@@ -17,7 +17,6 @@
 #include <vector>
 #include "_reg_maths.h"
 
-// #define USE_TEST_KERNEL
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 /*
@@ -124,7 +123,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
                 const bool valid =
                     (xImageIn > -1 && xImageIn < (int)imageSize.x) &&
                     (yImageIn > -1 && yImageIn < (int)imageSize.y);
-                sWarpedValues[sharedIndex] = (valid && mask[indexXYIn] > -1) ?
+                sWarpedValues[sharedIndex] = valid  ?
                     tex1Dfetch<float>(warpedTexture, indexXYIn) : nanf("sNaN");
             }
         }
@@ -200,182 +199,6 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
     }
 }
 /* *************************************************************** */
-#ifdef USE_TEST_KERNEL
-__device__ __inline__ float2 REDUCE_TEST(float* sData,
-                                         float data,
-                                         unsigned tid) {
-    sData[tid] = data;
-    __syncthreads();
-
-    bool seconHalf = tid > 63 ? true : false;
-    for (unsigned i = 32; i > 0; i >>= 1) {
-        if (tid < i) sData[tid] += sData[tid + i];
-        if (seconHalf && tid < 64 + i) sData[tid] += sData[tid + i];
-        __syncthreads();
-    }
-
-    const float2 temp = make_float2(sData[0], sData[64]);
-    __syncthreads();
-    return temp;
-}
-/* *************************************************************** */
-__global__ void blockMatchingKernel3D(float *warpedPosition,
-                                      float *referencePosition,
-                                      cudaTextureObject_t referenceTexture,
-                                      cudaTextureObject_t warpedTexture,
-                                      cudaTextureObject_t totalBlockTexture,
-                                      const int *mask,
-                                      const float* referenceMatrix,
-                                      unsigned *definedBlock,
-                                      const int3 imageSize,
-                                      const uint3 blockSize) {
-    extern __shared__ float sWarpedValues[];
-    float *sData = &sWarpedValues[12 * 12 * 16];
-
-    // Compute the current block index
-    const unsigned bid0 = (2 * blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x;
-    const unsigned bid1 = bid0 + gridDim.x * gridDim.y;
-    int currentBlockIndex[2]{ tex1Dfetch<int>(totalBlockTexture, bid0), tex1Dfetch<int>(totalBlockTexture, bid1) };
-    currentBlockIndex[1] = (2 * blockIdx.z + 1) < blockSize.z ? currentBlockIndex[1] : -1;
-    if (currentBlockIndex[0] > -1 || currentBlockIndex[1] > -1) {
-        const unsigned idx = threadIdx.x;
-        const unsigned idy = threadIdx.y;
-        const unsigned idz = threadIdx.z;
-        const unsigned tid = (idz * 4 + idy) * 4 + idx;
-        const unsigned xImage = blockIdx.x * 4 + idx;
-        const unsigned yImage = blockIdx.y * 4 + idy;
-        const unsigned zImage = blockIdx.z * 8 + idz;
-
-        //populate shared memory with resultImageArray's values
-        for (int z = -1; z < 2; z += 2) {
-            const int zImageIn = zImage + z * 4;
-            for (int y = -1; y < 2; ++y) {
-                const int yImageIn = yImage + y * 4;
-                for (int x = -1; x < 2; ++x) {
-                    const int xImageIn = xImage + x * 4;
-                    const int sharedIndex = (((z + 1) * 4 + idz) * 12 + (y + 1) * 4 + idy) * 12 + (x + 1) * 4 + idx;
-                    const unsigned indexXYZIn = xImageIn + imageSize.x * (yImageIn + zImageIn * imageSize.y);
-                    const bool valid =
-                        (xImageIn > -1 && xImageIn < (int)imageSize.x) &&
-                        (yImageIn > -1 && yImageIn < (int)imageSize.y) &&
-                        (zImageIn > -1 && zImageIn < (int)imageSize.z);
-                    sWarpedValues[sharedIndex] = (valid && mask[indexXYZIn] > -1) ?
-                        tex1Dfetch<float>(warpedTexture, indexXYZIn) : nanf("sNaN");
-                }
-            }
-        }
-
-        const unsigned voxIndex = (zImage * imageSize.y + yImage) * imageSize.x + xImage;
-        const bool referenceInBounds = xImage < imageSize.x && yImage < imageSize.y && zImage < imageSize.z;
-        float rReferenceValue = (referenceInBounds && mask[voxIndex] > -1) ?
-            tex1Dfetch<float>(referenceTexture, voxIndex) : nanf("sNaN");
-        const bool finiteReference = isfinite(rReferenceValue);
-        rReferenceValue = finiteReference ? rReferenceValue : 0.f;
-        float2 tempVal = REDUCE_TEST(sData, finiteReference ? 1.0f : 0.0f, tid);
-        const uint2 referenceSize = make_uint2((unsigned)tempVal.x, (unsigned)tempVal.y);
-
-        float2 bestValue{};
-        float bestDisp[2][3];
-        bestDisp[0][0] = bestDisp[1][0] = nanf("sNaN");
-        if (referenceSize.x > 32 || referenceSize.y > 32) {
-            float2 referenceMean = REDUCE_TEST(sData, rReferenceValue, tid);
-            referenceMean.x /= (float)referenceSize.x;
-            referenceMean.y /= (float)referenceSize.y;
-            float referenceTemp;
-            if (tid > 63)
-                referenceTemp = finiteReference ? rReferenceValue - referenceMean.y : 0.f;
-            else referenceTemp = finiteReference ? rReferenceValue - referenceMean.x : 0.f;
-            float2 referenceVar = REDUCE_TEST(sData, referenceTemp * referenceTemp, tid);
-
-            // iteration over the result blocks (block matching part)
-            for (unsigned z = 1; z < 8; ++z) {
-                for (unsigned y = 1; y < 8; ++y) {
-                    for (unsigned x = 1; x < 8; ++x) {
-                        const unsigned sharedIndex = ((z + idz) * 12 + y + idy) * 12 + x + idx;
-                        const float rWarpedValue = sWarpedValues[sharedIndex];
-                        const bool overlap = isfinite(rWarpedValue) && finiteReference;
-                        tempVal = REDUCE_TEST(sData, overlap ? 1.0f : 0.0f, tid);
-                        const uint2 warpedSize = make_uint2((unsigned)tempVal.x, (unsigned)tempVal.y);
-
-                        if (warpedSize.x > 32 || warpedSize.y > 32) {
-                            float newreferenceTemp = referenceTemp;
-                            float2 newreferenceVar = referenceVar;
-                            if (warpedSize.x != referenceSize.x || warpedSize.y != referenceSize.y) {
-                                const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
-                                float2 newReferenceMean = REDUCE_TEST(sData, newReferenceValue, tid);
-                                newReferenceMean.x /= (float)warpedSize.x;
-                                newReferenceMean.y /= (float)warpedSize.y;
-                                if (tid > 63)
-                                    referenceTemp = overlap ? newReferenceValue - newReferenceMean.y : 0.f;
-                                else referenceTemp = overlap ? newReferenceValue - newReferenceMean.x : 0.f;
-                                newreferenceVar = REDUCE_TEST(sData, newreferenceTemp * newreferenceTemp, tid);
-                            }
-                            const float rChecked = overlap ? rWarpedValue : 0.0f;
-                            float2 warpedMean = REDUCE_TEST(sData, rChecked, tid);
-                            warpedMean.x /= (float)warpedSize.x;
-                            warpedMean.y /= (float)warpedSize.y;
-                            float warpedTemp;
-                            if (tid > 63)
-                                warpedTemp = overlap ? rChecked - warpedMean.y : 0.f;
-                            else warpedTemp = overlap ? rChecked - warpedMean.x : 0.f;
-                            const float2 warpedVar = REDUCE_TEST(sData, warpedTemp * warpedTemp, tid);
-                            const float2 sumTargetResult = REDUCE_TEST(sData, newreferenceTemp * warpedTemp, tid);
-
-                            if (tid == 0 && warpedSize.x > 32) {
-                                const float localCC = fabs(sumTargetResult.x * rsqrtf(newreferenceVar.x * warpedVar.x));
-                                if (localCC > bestValue.x) {
-                                    bestValue.x = localCC;
-                                    bestDisp[0][0] = x - 4.f;
-                                    bestDisp[0][1] = y - 4.f;
-                                    bestDisp[0][2] = z - 4.f;
-                                }
-                            }
-                            if (tid == 64 && warpedSize.y > 32) {
-                                const float localCC = fabs(sumTargetResult.y * rsqrtf(newreferenceVar.y * warpedVar.y));
-                                if (localCC > bestValue.y) {
-                                    bestValue.y = localCC;
-                                    bestDisp[1][0] = x - 4.f;
-                                    bestDisp[1][1] = y - 4.f;
-                                    bestDisp[1][2] = z - 4.f;
-                                }
-                            }
-                            __syncthreads();
-                        }
-                    }
-                }
-            }
-        }
-
-        if (tid == 0 && currentBlockIndex[0] > -1) {
-            const unsigned posIdx = 3 * currentBlockIndex[0];
-            warpedPosition[posIdx] = NAN;
-            if (isfinite(bestDisp[0][0])) {
-                const float referencePosition_temp[3]{ (float)xImage, (float)yImage, (float)zImage };
-                bestDisp[0][0] += referencePosition_temp[0];
-                bestDisp[0][1] += referencePosition_temp[1];
-                bestDisp[0][2] += referencePosition_temp[2];
-                reg_mat44_mul_cuda<float>(referenceMatrix, referencePosition_temp, &referencePosition[posIdx]);
-                reg_mat44_mul_cuda<float>(referenceMatrix, bestDisp[0], &warpedPosition[posIdx]);
-                atomicAdd(definedBlock, 1);
-            }
-        }
-        if (tid == 64 && currentBlockIndex[1] > -1) {
-            const unsigned posIdx = 3 * currentBlockIndex[1];
-            warpedPosition[posIdx] = NAN;
-            if (isfinite(bestDisp[1][0])) {
-                const float referencePosition_temp[3] = { (float)xImage, (float)yImage, (float)zImage };
-                bestDisp[1][0] += referencePosition_temp[0];
-                bestDisp[1][1] += referencePosition_temp[1];
-                bestDisp[1][2] += referencePosition_temp[2];
-                reg_mat44_mul_cuda<float>(referenceMatrix, referencePosition_temp, &referencePosition[posIdx]);
-                reg_mat44_mul_cuda<float>(referenceMatrix, bestDisp[1], &warpedPosition[posIdx]);
-                atomicAdd(definedBlock, 1);
-            }
-        }
-    }
-}
-#else
-/* *************************************************************** */
 __global__ void blockMatchingKernel3D(float *warpedPosition,
                                       float *referencePosition,
                                       cudaTextureObject_t referenceTexture,
@@ -413,7 +236,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                         (xImageIn > -1 && xImageIn < (int)imageSize.x) &&
                         (yImageIn > -1 && yImageIn < (int)imageSize.y) &&
                         (zImageIn > -1 && zImageIn < (int)imageSize.z);
-                    sWarpedValues[sharedIndex] = (valid && mask[indexXYZIn] > -1) ?
+                    sWarpedValues[sharedIndex] = valid ?
                         tex1Dfetch<float>(warpedTexture, indexXYZIn) : nanf("sNaN");     //for some reason the mask here creates probs
                 }
             }
@@ -434,7 +257,8 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 
         if (referenceSize > 32) {
             //the target values must remain constant throughout the block matching process
-            const float referenceMean = __fdividef(blockReduceSum(rReferenceValue, tid), referenceSize);
+            // const float referenceMean = __fdividef(blockReduceSum(rReferenceValue, tid), referenceSize);
+            const float referenceMean = blockReduceSum(rReferenceValue, tid) / referenceSize;
             const float referenceTemp = finiteReference ? rReferenceValue - referenceMean : 0.f;
             const float referenceVar = blockReduceSum(referenceTemp * referenceTemp, tid);
 
@@ -453,18 +277,21 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                             float newreferenceVar = referenceVar;
                             if (warpedSize != referenceSize) {
                                 const float newReferenceValue = overlap ? rReferenceValue : 0.0f;
-                                const float newReferenceMean = __fdividef(blockReduceSum(newReferenceValue, tid), warpedSize);
+                                // const float newReferenceMean = __fdividef(blockReduceSum(newReferenceValue, tid), warpedSize);
+                                const float newReferenceMean = blockReduceSum(newReferenceValue, tid) / warpedSize;
                                 newreferenceTemp = overlap ? newReferenceValue - newReferenceMean : 0.0f;
                                 newreferenceVar = blockReduceSum(newreferenceTemp * newreferenceTemp, tid);
                             }
 
                             const float rChecked = overlap ? rWarpedValue : 0.0f;
-                            const float warpedMean = __fdividef(blockReduceSum(rChecked, tid), warpedSize);
+                            // const float warpedMean = __fdividef(blockReduceSum(rChecked, tid), warpedSize);
+                            const float warpedMean = blockReduceSum(rChecked, tid) / warpedSize;
                             const float warpedTemp = overlap ? rChecked - warpedMean : 0.0f;
                             const float warpedVar = blockReduceSum(warpedTemp * warpedTemp, tid);
 
                             const float sumTargetResult = blockReduceSum(newreferenceTemp * warpedTemp, tid);
-                            const float localCC = (newreferenceVar * warpedVar) > 0 ? fabs(sumTargetResult / sqrt(newreferenceVar * warpedVar)) : 0;
+                            const float localCC = (newreferenceVar * warpedVar) > 0 ? fabs(
+                                sumTargetResult / sqrt(newreferenceVar * warpedVar)) : 0;
 
                             if (tid == 0 && localCC > bestCC) {
                                 bestCC = localCC + 1.0e-7f;
@@ -493,7 +320,6 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
         }
     }
 }
-#endif
 /* *************************************************************** */
 void block_matching_method_gpu(const nifti_image *referenceImage,
                                _reg_blockMatchingParam *params,
@@ -524,15 +350,9 @@ void block_matching_method_gpu(const nifti_image *referenceImage,
     NR_CUDA_SAFE_CALL(cudaMalloc(&definedBlockCuda, sizeof(unsigned)));
     NR_CUDA_SAFE_CALL(cudaMemcpy(definedBlockCuda, &definedBlock, sizeof(unsigned), cudaMemcpyHostToDevice));
 
-#ifdef USE_TEST_KERNEL
-    dim3 blockDims(4, 4, 8);
-    dim3 gridDims(params->blockNumber[0], params->blockNumber[1], (unsigned)reg_ceil((float)params->blockNumber[2] / 2.f));
-    unsigned sharedMemSize = (128 + 4 * 3 * 4 * 3 * 4 * 4) * sizeof(float);
-#else
     dim3 blockDims(4, 4, 4);
     dim3 gridDims(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
     unsigned sharedMemSize = (64 + 4 * 3 * 4 * 3 * 4 * 3) * sizeof(float);  // (3*4)^3
-#endif
 
     if (referenceImage->nz == 1) {
         blockDims.z = 1;

@@ -129,8 +129,8 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
    }
    else {
       // Version using 2D blocks
-      for (unsigned j = 0; j < params->blockNumber[1]; j++) {
-         for (unsigned i = 0; i < params->blockNumber[0]; i++) {
+      for (unsigned j = 0; j < params->blockNumber[1]; j++){
+         for (unsigned i = 0; i < params->blockNumber[0]; i++){
 
             for (unsigned n = 0; n < BLOCK_2D_SIZE; n++)
                referenceValues[n] = std::numeric_limits<DataType>::quiet_NaN();
@@ -162,9 +162,9 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
 
             //Let's calculate the variance of the block
             float variance = 0.0f;
-            for (int i = 0; i < BLOCK_2D_SIZE; i++) {
-               if (referenceValues[i] == referenceValues[i])
-                  variance += (mean - (float)referenceValues[i]) * (mean - (float)referenceValues[i]);
+            for (int ii = 0; ii < BLOCK_2D_SIZE; ii++) {
+               if (referenceValues[ii] == referenceValues[ii])
+                  variance += (mean - (float)referenceValues[ii]) * (mean - (float)referenceValues[ii]);
             }
             variance /= voxelNumber;
 
@@ -267,7 +267,7 @@ void initialise_block_matching_method(nifti_image * reference,
    }
    if (params->activeBlockNumber < 2) {
       reg_print_fct_error("initialise_block_matching_method()");
-      reg_print_msg_error("There are no active blocks");
+      reg_print_msg_error("There are less than 2 active blocks");
       reg_exit();
    }
 #ifndef NDEBUG
@@ -382,8 +382,9 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                            if (-1 < x && x < warped->nx) {
                               warpedPtr_XY = &warpedPtr[index];
                               value = *warpedPtr_XY;
-                              maskPtr_XY = &mask[index];
-                              if (value == value && *maskPtr_XY > -1) {
+                              // maskPtr_XY = &mask[index];
+                              if (value == value) {
+                              // if (value == value && *maskPtr_XY > -1) {
                                  warpedValues[warpedIndex] = value;
                                  warpedOverlap[warpedIndex] = 1;
                               }
@@ -424,8 +425,8 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
                         }
                      }
 
-                     localCC = (referenceVar * warpedVar) > 0 ? fabs(localCC / sqrt(referenceVar * warpedVar)) : 0;
-                     //localCC = fabs(localCC / sqrt(referenceVar * warpedVar));
+                     localCC = (referenceVar * warpedVar) > 0 ? fabs(
+                        localCC / sqrt(referenceVar * warpedVar)) : 0;
 
                      if (localCC > bestCC) {
                         bestCC = localCC + 1.0e-7f;
@@ -601,16 +602,17 @@ void block_matching_method3D(nifti_image * reference,
                            if (-1 < z && z < warped->nz) {
                               index = z * warped->nx * warped->ny;
                               warpedPtr_Z = &warpedPtr[index];
-                              maskPtr_Z = &mask[index];
+                              // maskPtr_Z = &mask[index];
                               for (y = warpedIndex_start_y; y < warpedIndex_end_y; y++) {
                                  if (-1 < y && y < warped->ny) {
                                     index = y * warped->nx + warpedIndex_start_x;
                                     for (x = warpedIndex_start_x; x < warpedIndex_end_x; x++) {
                                        if (-1 < x && x < warped->nx) {
                                           warpedPtr_XYZ = &warpedPtr_Z[index];
-                                          maskPtr_XYZ = &maskPtr_Z[index];
+                                          // maskPtr_XYZ = &maskPtr_Z[index];
                                           value = *warpedPtr_XYZ;
-                                          if (value == value && *maskPtr_XYZ > -1) {
+                                          if (value == value) {
+                                          // if (value == value && *maskPtr_XYZ > -1) {
                                              warpedValues[tid][warpedIndex] = value;
                                              warpedOverlap[tid][warpedIndex] = 1;
                                           }

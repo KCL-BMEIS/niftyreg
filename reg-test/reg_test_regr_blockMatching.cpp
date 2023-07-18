@@ -25,7 +25,7 @@ public:
         std::uniform_real_distribution<float> distr(0, 1);
 
         // Create a reference and floating 2D images
-        constexpr NiftiImage::dim_t size = 64;
+        constexpr NiftiImage::dim_t size = 128;
         vector<NiftiImage::dim_t> dim{ size, size };
         NiftiImage reference2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating2d(dim, NIFTI_TYPE_FLOAT32);
@@ -140,15 +140,27 @@ TEST_CASE_METHOD(BMTest, "Regression BlockMatching", "[regression]") {
             REQUIRE(blockMatchingParamsCpu->activeBlockNumber == blockMatchingParamsCuda->activeBlockNumber);
 
             // Loop over the block and ensure all values are identical
-            for (int b = 0; b < blockMatchingParamsCpu->activeBlockNumber * (int)blockMatchingParamsCpu->dim; ++b) {
-                const auto refPosCpu = blockMatchingParamsCpu->referencePosition[b];
-                const auto refPosCuda = blockMatchingParamsCuda->referencePosition[b];
-                std::cout << "referencePosition: " << b << " " << refPosCpu << " " << refPosCuda << std::endl;
-                REQUIRE(fabs(refPosCpu - refPosCuda) < EPS);
-                const auto warPosCpu = blockMatchingParamsCpu->warpedPosition[b];
-                const auto warPosCuda = blockMatchingParamsCuda->warpedPosition[b];
-                std::cout << "warpedPosition: " << b << " " << warPosCpu << " " << warPosCuda << std::endl;
-                REQUIRE(fabs(warPosCpu - warPosCuda) < EPS);
+            for (int b = 0; b < blockMatchingParamsCpu->activeBlockNumber; ++b) {
+                for(int d = 0; d<(int)blockMatchingParamsCpu->dim; ++d){
+
+                    const int i = b*(int)blockMatchingParamsCpu->dim+d;
+                    const auto refPosCpu = blockMatchingParamsCpu->referencePosition[i];
+                    const auto refPosCuda = blockMatchingParamsCuda->referencePosition[i];
+                    if(fabs(refPosCpu - refPosCuda) > EPS){
+                        std::cout << "Ref[" << b << "/" << blockMatchingParamsCpu->activeBlockNumber << ":" << d << "] CPU:";
+                        std::cout << refPosCpu << " | CUDA:" << refPosCuda << std::endl;
+                        std::cout.flush();
+                    }
+                    REQUIRE(fabs(refPosCpu - refPosCuda) < EPS);
+                    const auto warPosCpu = blockMatchingParamsCpu->warpedPosition[i];
+                    const auto warPosCuda = blockMatchingParamsCuda->warpedPosition[i];
+                    if(fabs(warPosCpu - warPosCuda) > EPS){
+                        std::cout << "War[" << b << "/" << blockMatchingParamsCpu->activeBlockNumber << ":" << d << "] CPU:";
+                        std::cout << warPosCpu << " | CUDA:" << warPosCuda << std::endl;
+                        std::cout.flush();
+                    }
+                    REQUIRE(fabs(warPosCpu - warPosCuda) < EPS);
+                }
             }
         }
     }
