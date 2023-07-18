@@ -13,7 +13,6 @@
 #include "_reg_dti.h"
 
 /* *************************************************************** */
-/* *************************************************************** */
 reg_dti::reg_dti()
    : reg_measure()
 {
@@ -22,35 +21,34 @@ reg_dti::reg_dti()
 #endif
 }
 /* *************************************************************** */
-/* *************************************************************** */
 // This function is directly the same as that used for reg_ssd
-void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
-                                nifti_image *floImgPtr,
-                                int *maskRefPtr,
-                                nifti_image *warFloImgPtr,
-                                nifti_image *warFloGraPtr,
-                                nifti_image *forVoxBasedGraPtr,
-                                nifti_image *localWeightSimPtr,
-                                int *maskFloPtr,
-                                nifti_image *warRefImgPtr,
-                                nifti_image *warRefGraPtr,
-                                nifti_image *bckVoxBasedGraPtr)
+void reg_dti::InitialiseMeasure(nifti_image *refImg,
+                                nifti_image *floImg,
+                                int *refMask,
+                                nifti_image *warpedImg,
+                                nifti_image *warpedGrad,
+                                nifti_image *voxelBasedGrad,
+                                nifti_image *localWeightSim,
+                                int *floMask,
+                                nifti_image *warpedImgBw,
+                                nifti_image *warpedGradBw,
+                                nifti_image *voxelBasedGradBw)
 {
    // Set the pointers using the parent class function
-   reg_measure::InitialiseMeasure(refImgPtr,
-                                  floImgPtr,
-                                  maskRefPtr,
-                                  warFloImgPtr,
-                                  warFloGraPtr,
-                                  forVoxBasedGraPtr,
-                                  localWeightSimPtr,
-                                  maskFloPtr,
-                                  warRefImgPtr,
-                                  warRefGraPtr,
-                                  bckVoxBasedGraPtr);
+   reg_measure::InitialiseMeasure(refImg,
+                                  floImg,
+                                  refMask,
+                                  warpedImg,
+                                  warpedGrad,
+                                  voxelBasedGrad,
+                                  localWeightSim,
+                                  floMask,
+                                  warpedImgBw,
+                                  warpedGradBw,
+                                  voxelBasedGradBw);
 
    // Check that the input images have the same number of time point
-   if(this->referenceImagePointer->nt != this->floatingImagePointer->nt)
+   if(this->referenceImage->nt != this->floatingImage->nt)
    {
       reg_print_fct_error("reg_dti::InitialiseMeasure");
       reg_print_msg_error("This number of time point should be the same for both input images");
@@ -58,7 +56,7 @@ void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
    }
 
    int j=0;
-   for(int i=0; i<refImgPtr->nt; ++i)
+   for(int i=0; i<refImg->nt; ++i)
    {
       //JM - note, the specific value of timePointWeight is not used for DTI images
       //any value > 0 indicates the 'time point' is active
@@ -73,7 +71,7 @@ void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
 #endif
       }
    }
-   if((refImgPtr->nz>1 && j!=6) && (refImgPtr->nz==1 && j!=3))
+   if((refImg->nz>1 && j!=6) && (refImg->nz==1 && j!=3))
    {
       reg_print_fct_error("reg_dti::InitialiseMeasure");
       reg_print_msg_error("Unexpected number of DTI components");
@@ -157,28 +155,28 @@ template double reg_getDTIMeasureValue<double>(nifti_image *,nifti_image *,int *
 double reg_dti::GetSimilarityMeasureValue()
 {
    // Check that all the specified image are of the same datatype
-   if(this->warpedFloatingImagePointer->datatype != this->referenceImagePointer->datatype)
+   if(this->warpedImage->datatype != this->referenceImage->datatype)
    {
       reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
       reg_print_msg_error("Both input images are expected to have the same type");
       reg_exit();
    }
    double DTIMeasureValue;
-   switch(this->referenceImagePointer->datatype)
+   switch(this->referenceImage->datatype)
    {
    case NIFTI_TYPE_FLOAT32:
       DTIMeasureValue = reg_getDTIMeasureValue<float>
-                        (this->referenceImagePointer,
-                         this->warpedFloatingImagePointer,
-                         this->referenceMaskPointer,
+                        (this->referenceImage,
+                         this->warpedImage,
+                         this->referenceMask,
                          this->dtIndicies
                         );
       break;
    case NIFTI_TYPE_FLOAT64:
       DTIMeasureValue = reg_getDTIMeasureValue<double>
-                        (this->referenceImagePointer,
-                         this->warpedFloatingImagePointer,
-                         this->referenceMaskPointer,
+                        (this->referenceImage,
+                         this->warpedImage,
+                         this->referenceMask,
                          this->dtIndicies
                         );
       break;
@@ -192,27 +190,27 @@ double reg_dti::GetSimilarityMeasureValue()
    if(this->isSymmetric)
    {
       // Check that all the specified image are of the same datatype
-      if(this->warpedReferenceImagePointer->datatype != this->floatingImagePointer->datatype)
+      if(this->warpedImageBw->datatype != this->floatingImage->datatype)
       {
          reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
          reg_print_msg_error("Both input images are expected to have the same type");
          reg_exit();
       }
-      switch(this->floatingImagePointer->datatype)
+      switch(this->floatingImage->datatype)
       {
       case NIFTI_TYPE_FLOAT32:
          DTIMeasureValue += reg_getDTIMeasureValue<float>
-                            (this->floatingImagePointer,
-                             this->warpedReferenceImagePointer,
-                             this->floatingMaskPointer,
+                            (this->floatingImage,
+                             this->warpedImageBw,
+                             this->floatingMask,
                              this->dtIndicies
                             );
          break;
       case NIFTI_TYPE_FLOAT64:
          DTIMeasureValue += reg_getDTIMeasureValue<double>
-                            (this->floatingImagePointer,
-                             this->warpedReferenceImagePointer,
-                             this->floatingMaskPointer,
+                            (this->floatingImage,
+                             this->warpedImageBw,
+                             this->floatingMask,
                              this->dtIndicies
                             );
          break;
@@ -224,7 +222,6 @@ double reg_dti::GetSimilarityMeasureValue()
    }
    return DTIMeasureValue;
 }
-/* *************************************************************** */
 /* *************************************************************** */
 template <class DataType>
 void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
@@ -331,18 +328,18 @@ template void reg_getVoxelBasedDTIMeasureGradient<float>
 template void reg_getVoxelBasedDTIMeasureGradient<double>
 (nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned *);
 /* *************************************************************** */
-void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
+void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint)
 {
    // Check if the specified time point exists and is active
-   reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
-   if(this->timePointWeight[current_timepoint]==0)
+   reg_measure::GetVoxelBasedSimilarityMeasureGradient(currentTimepoint);
+   if(this->timePointWeight[currentTimepoint]==0)
       return;
 
    // Check if all required input images are of the same data type
-   int dtype = this->referenceImagePointer->datatype;
-   if(this->warpedFloatingImagePointer->datatype != dtype ||
-         this->warpedFloatingGradientImagePointer->datatype != dtype ||
-         this->forwardVoxelBasedGradientImagePointer->datatype != dtype
+   int dtype = this->referenceImage->datatype;
+   if(this->warpedImage->datatype != dtype ||
+         this->warpedGradient->datatype != dtype ||
+         this->voxelBasedGradient->datatype != dtype
      )
    {
       reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
@@ -354,21 +351,21 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
    {
    case NIFTI_TYPE_FLOAT32:
       reg_getVoxelBasedDTIMeasureGradient<float>
-      (this->referenceImagePointer,
-       this->warpedFloatingImagePointer,
-       this->warpedFloatingGradientImagePointer,
-       this->forwardVoxelBasedGradientImagePointer,
-       this->referenceMaskPointer,
+      (this->referenceImage,
+       this->warpedImage,
+       this->warpedGradient,
+       this->voxelBasedGradient,
+       this->referenceMask,
        this->dtIndicies
       );
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_getVoxelBasedDTIMeasureGradient<double>
-      (this->referenceImagePointer,
-       this->warpedFloatingImagePointer,
-       this->warpedFloatingGradientImagePointer,
-       this->forwardVoxelBasedGradientImagePointer,
-       this->referenceMaskPointer,
+      (this->referenceImage,
+       this->warpedImage,
+       this->warpedGradient,
+       this->voxelBasedGradient,
+       this->referenceMask,
        this->dtIndicies
       );
       break;
@@ -380,10 +377,10 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
    // Compute the gradient of the ssd for the backward transformation
    if(this->isSymmetric)
    {
-      dtype = this->floatingImagePointer->datatype;
-      if(this->warpedReferenceImagePointer->datatype != dtype ||
-            this->warpedReferenceGradientImagePointer->datatype != dtype ||
-            this->backwardVoxelBasedGradientImagePointer->datatype != dtype
+      dtype = this->floatingImage->datatype;
+      if(this->warpedImageBw->datatype != dtype ||
+            this->warpedGradientBw->datatype != dtype ||
+            this->voxelBasedGradientBw->datatype != dtype
         )
       {
          reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
@@ -395,21 +392,21 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
       {
       case NIFTI_TYPE_FLOAT32:
          reg_getVoxelBasedDTIMeasureGradient<float>
-         (this->floatingImagePointer,
-          this->warpedReferenceImagePointer,
-          this->warpedReferenceGradientImagePointer,
-          this->backwardVoxelBasedGradientImagePointer,
-          this->floatingMaskPointer,
+         (this->floatingImage,
+          this->warpedImageBw,
+          this->warpedGradientBw,
+          this->voxelBasedGradientBw,
+          this->floatingMask,
           this->dtIndicies
          );
          break;
       case NIFTI_TYPE_FLOAT64:
          reg_getVoxelBasedDTIMeasureGradient<double>
-         (this->floatingImagePointer,
-          this->warpedReferenceImagePointer,
-          this->warpedReferenceGradientImagePointer,
-          this->backwardVoxelBasedGradientImagePointer,
-          this->floatingMaskPointer,
+         (this->floatingImage,
+          this->warpedImageBw,
+          this->warpedGradientBw,
+          this->voxelBasedGradientBw,
+          this->floatingMask,
           this->dtIndicies
          );
          break;
@@ -420,5 +417,4 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
       }
    }
 }
-/* *************************************************************** */
 /* *************************************************************** */

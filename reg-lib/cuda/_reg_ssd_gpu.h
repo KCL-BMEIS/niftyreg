@@ -26,23 +26,23 @@ public:
     virtual ~reg_ssd_gpu() {}
 
     /// @brief Initialise the reg_ssd object
-    virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                   nifti_image *floImgPtr,
-                                   int *maskRefPtr,
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   nifti_image *floImg,
+                                   int *refMask,
                                    size_t activeVoxNum,
-                                   nifti_image *warFloImgPtr,
-                                   nifti_image *warFloGraPtr,
-                                   nifti_image *forVoxBasedGraPtr,
-                                   nifti_image *localWeightSimPtr,
-                                   cudaArray *refDevicePtr,
-                                   cudaArray *floDevicePtr,
-                                   int *refMskDevicePtr,
-                                   float *warFloDevicePtr,
-                                   float4 *warFloGradDevicePtr,
-                                   float4 *forVoxBasedGraDevicePtr) override;
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim,
+                                   cudaArray *refImgCuda,
+                                   cudaArray *floImgCuda,
+                                   int *refMaskCuda,
+                                   float *warpedImgCuda,
+                                   float4 *warpedGradCuda,
+                                   float4 *voxelBasedGradCuda) override;
     /// @brief Returns the ssd value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based ssd gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
 };
 /* *************************************************************** */

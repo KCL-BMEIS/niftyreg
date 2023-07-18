@@ -20,7 +20,6 @@
 #define MINDSSC_TYPE 1
 
 /* *************************************************************** */
-/* *************************************************************** */
 /// @brief MIND measure of similarity class
 class reg_mind: public reg_ssd {
 public:
@@ -30,21 +29,21 @@ public:
     virtual ~reg_mind();
 
     /// @brief Initialise the reg_mind object
-    virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                           nifti_image *floImgPtr,
-                           int *maskRefPtr,
-                           nifti_image *warFloImgPtr,
-                           nifti_image *warFloGraPtr,
-                           nifti_image *forVoxBasedGraPtr,
-                           nifti_image *localWeightSimPtr = nullptr,
-                           int *maskFloPtr = nullptr,
-                           nifti_image *warRefImgPtr = nullptr,
-                           nifti_image *warRefGraPtr = nullptr,
-                           nifti_image *bckVoxBasedGraPtr = nullptr) override;
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                           nifti_image *floImg,
+                           int *refMask,
+                           nifti_image *warpedImg,
+                           nifti_image *warpedGrad,
+                           nifti_image *voxelBasedGrad,
+                           nifti_image *localWeightSim = nullptr,
+                           int *floMask = nullptr,
+                           nifti_image *warpedImgBw = nullptr,
+                           nifti_image *warpedGradBw = nullptr,
+                           nifti_image *voxelBasedGradBw = nullptr) override;
     /// @brief Returns the mind based measure of similarity value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
     virtual void SetDescriptorOffset(int);
     virtual int GetDescriptorOffset();
 
@@ -69,16 +68,17 @@ public:
     virtual ~reg_mindssc();
 };
 /* *************************************************************** */
-
 extern "C++"
 void GetMINDImageDescriptor(nifti_image *inputImgPtr,
                            nifti_image *MINDImgPtr,
                            int *mask,
                            int descriptorOffset,
-                           int current_timepoint);
+                           int currentTimepoint);
+/* *************************************************************** */
 extern "C++"
 void GetMINDSSCImageDescriptor(nifti_image *inputImgPtr,
                               nifti_image *MINDSSCImgPtr,
                               int *mask,
                               int descriptorOffset,
-                              int current_timepoint);
+                              int currentTimepoint);
+/* *************************************************************** */

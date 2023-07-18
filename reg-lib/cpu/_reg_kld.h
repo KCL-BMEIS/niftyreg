@@ -23,21 +23,21 @@ public:
     virtual ~reg_kld() {}
 
     /// @brief Initialise the reg_kld object
-    virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                   nifti_image *floImgPtr,
-                                   int *maskRefPtr,
-                                   nifti_image *warFloImgPtr,
-                                   nifti_image *warFloGraPtr,
-                                   nifti_image *forVoxBasedGraPtr,
-                                   nifti_image *localWeightSimPtr = nullptr,
-                                   int *maskFloPtr = nullptr,
-                                   nifti_image *warRefImgPtr = nullptr,
-                                   nifti_image *warRefGraPtr = nullptr,
-                                   nifti_image *bckVoxBasedGraPtr = nullptr) override;
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   nifti_image *floImg,
+                                   int *refMask,
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr) override;
     /// @brief Returns the kld value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based kld gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
 };
 /* *************************************************************** */
 
@@ -82,6 +82,6 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *reference,
                                            nifti_image *KLdivGradient,
                                            nifti_image *jacobianDeterminantImage,
                                            int *mask,
-                                           int current_timepoint,
-                                           double timepoint_weight);
+                                           int currentTimepoint,
+                                           double timepointWeight);
 /* *************************************************************** */

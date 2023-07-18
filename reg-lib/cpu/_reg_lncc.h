@@ -14,8 +14,7 @@
 
 #include "_reg_measure.h"
 
- /* *************************************************************** */
- /* *************************************************************** */
+/* *************************************************************** */
 class reg_lncc: public reg_measure {
 public:
     /// @brief reg_lncc class constructor
@@ -24,21 +23,21 @@ public:
     virtual ~reg_lncc();
 
     /// @brief Initialise the reg_lncc object
-    virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                   nifti_image *floImgPtr,
-                                   int *maskRefPtr,
-                                   nifti_image *warFloImgPtr,
-                                   nifti_image *warFloGraPtr,
-                                   nifti_image *forVoxBasedGraPtr,
-                                   nifti_image *localWeightSimPtr = nullptr,
-                                   int *maskFloPtr = nullptr,
-                                   nifti_image *warRefImgPtr = nullptr,
-                                   nifti_image *warRefGraPtr = nullptr,
-                                   nifti_image *bckVoxBasedGraPtr = nullptr) override;
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   nifti_image *floImg,
+                                   int *refMask,
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr) override;
     /// @brief Returns the lncc value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based lncc gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
     /// @brief Stuff
     virtual void SetKernelStandardDeviation(int t, float stddev) {
         this->kernelStandardDeviation[t] = stddev;
@@ -50,18 +49,18 @@ public:
 
 protected:
     float kernelStandardDeviation[255];
-    nifti_image *forwardCorrelationImage;
-    nifti_image *referenceMeanImage;
-    nifti_image *referenceSdevImage;
-    nifti_image *warpedFloatingMeanImage;
-    nifti_image *warpedFloatingSdevImage;
+    nifti_image *correlationImage;
+    nifti_image *meanImage;
+    nifti_image *sdevImage;
+    nifti_image *warpedMeanImage;
+    nifti_image *warpedSdevImage;
     int *forwardMask;
 
-    nifti_image *backwardCorrelationImage;
-    nifti_image *floatingMeanImage;
-    nifti_image *floatingSdevImage;
-    nifti_image *warpedReferenceMeanImage;
-    nifti_image *warpedReferenceSdevImage;
+    nifti_image *correlationImageBw;
+    nifti_image *meanImageBw;
+    nifti_image *sdevImageBw;
+    nifti_image *warpedMeanImageBw;
+    nifti_image *warpedSdevImageBw;
     int *backwardMask;
 
     int kernelType;
@@ -69,17 +68,16 @@ protected:
     template <class DataType>
     void UpdateLocalStatImages(nifti_image *refImage,
                                nifti_image *warImage,
-                               nifti_image *meanRefImage,
-                               nifti_image *meanWarImage,
-                               nifti_image *stdDevRefImage,
-                               nifti_image *stdDevWarImage,
+                               nifti_image *meanImage,
+                               nifti_image *warpedMeanImage,
+                               nifti_image *stdDevImage,
+                               nifti_image *warpedSdevImage,
                                int *refMask,
                                int *mask,
-                               int current_timepoint);
+                               int currentTimepoint);
 };
 /* *************************************************************** */
-/* *************************************************************** */
-/** @brief Copmutes and returns the LNCC between two input image
+/** @brief Compute and return the LNCC between two input image
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
  * @param gaussianStandardDeviation Standard deviation of the Gaussian kernel
@@ -90,16 +88,16 @@ protected:
  */
 extern "C++" template<class DataType>
 double reg_getLNCCValue(nifti_image *referenceImage,
-                        nifti_image *referenceMeanImage,
-                        nifti_image *referenceStdDevImage,
+                        nifti_image *meanImage,
+                        nifti_image *sdevImage,
                         nifti_image *warpedImage,
                         nifti_image *warpedMeanImage,
-                        nifti_image *warpedStdDevImage,
+                        nifti_image *warpedSdevImage,
                         int *combinedMask,
-                        float *kernelStdDev,
+                        float *kernelStandardDeviation,
                         nifti_image *correlationImage,
-                        int kernelType);
-
+                        int kernelType,
+                        int currentTimepoint);
 /* *************************************************************** */
 /** @brief Compute a voxel based gradient of the LNCC.
  *  @param referenceImage First input image to use to compute the metric
@@ -114,8 +112,8 @@ double reg_getLNCCValue(nifti_image *referenceImage,
  */
 extern "C++" template <class DataType>
 void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
-                                   nifti_image *referenceMeanImage,
-                                   nifti_image *referenceStdDevImage,
+                                   nifti_image *meanImage,
+                                   nifti_image *sdevImage,
                                    nifti_image *warpedImage,
                                    nifti_image *warpedMeanImage,
                                    nifti_image *warpedStdDevImage,
@@ -125,5 +123,6 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    nifti_image *warpedGradient,
                                    nifti_image *lnccGradientImage,
                                    int kernelType,
-                                   int current_timepoint,
-                                   double timepoint_weight);
+                                   int currentTimepoint,
+                                   double timepointWeight);
+/* *************************************************************** */

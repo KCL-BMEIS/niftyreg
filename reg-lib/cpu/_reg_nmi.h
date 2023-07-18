@@ -19,7 +19,6 @@
 #endif
 
 /* *************************************************************** */
-/* *************************************************************** */
 /// @brief NMI measure of similarity class
 class reg_nmi: public reg_measure {
 public:
@@ -28,21 +27,21 @@ public:
     /// @brief reg_nmi class destructor
     virtual ~reg_nmi();
 
-    virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                   nifti_image *floImgPtr,
-                                   int *maskRefPtr,
-                                   nifti_image *warFloImgPtr,
-                                   nifti_image *warFloGraPtr,
-                                   nifti_image *forVoxBasedGraPtr,
-                                   nifti_image *localWeightSimPtr = nullptr,
-                                   int *maskFloPtr = nullptr,
-                                   nifti_image *warRefImgPtr = nullptr,
-                                   nifti_image *warRefGraPtr = nullptr,
-                                   nifti_image *bckVoxBasedGraPtr = nullptr) override;
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   nifti_image *floImg,
+                                   int *refMask,
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr) override;
     /// @brief Returns the nmi value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based nmi gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
 
     virtual void SetRefAndFloatBinNumbers(unsigned short refBinNumber,
                                           unsigned short floBinNumber,
@@ -77,7 +76,6 @@ protected:
     void DeallocateHistogram();
 };
 /* *************************************************************** */
-/* *************************************************************** */
 extern "C++" template <class DataType>
 void reg_getNMIValue(nifti_image *referenceImage,
                      nifti_image *warpedImage,
@@ -101,8 +99,8 @@ void reg_getVoxelBasedNMIGradient2D(const nifti_image *referenceImage,
                                     const nifti_image *warpedGradient,
                                     nifti_image *nmiGradientImage,
                                     const int *referenceMask,
-                                    const int& current_timepoint,
-                                    const double& timepoint_weight
+                                    const int& currentTimepoint,
+                                    const double& timepointWeight
 );
 /* *************************************************************** */
 extern "C++" template <class DataType>
@@ -115,10 +113,9 @@ void reg_getVoxelBasedNMIGradient3D(const nifti_image *referenceImage,
                                     const nifti_image *warpedGradient,
                                     nifti_image *nmiGradientImage,
                                     const int *referenceMask,
-                                    const int& current_timepoint,
-                                    const double& timepoint_weight
+                                    const int& currentTimepoint,
+                                    const double& timepointWeight
 );
-/* *************************************************************** */
 /* *************************************************************** */
 // Simple class to dynamically manage an array of pointers
 // Needed for multi channel NMI
@@ -237,7 +234,6 @@ inline int previous(int current, int num_dims) {
     return num_dims - 1;
 }
 /* *************************************************************** */
-/* *************************************************************** */
 /// @brief NMI measure of similarity class
 class reg_multichannel_nmi: public reg_measure {
 public:
@@ -250,10 +246,10 @@ public:
     virtual double GetSimilarityMeasureValue() override { return 0; }
 
     /// @brief Compute the voxel based nmi gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {
         // Check if the specified time point exists and is active
-        reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
-        if (this->timePointWeight[current_timepoint] == 0)
+        reg_measure::GetVoxelBasedSimilarityMeasureGradient(currentTimepoint);
+        if (this->timePointWeight[currentTimepoint] == 0)
             return;
     }
 
@@ -273,37 +269,37 @@ protected:
 extern "C++"
 void reg_getMultiChannelNMIValue(nifti_image *referenceImages,
                                  nifti_image *warpedImages,
-                                 unsigned *reference_bins, // should be an array of size num_reference_volumes
-                                 unsigned *warped_bins, // should be an array of size num_warped_volumes
+                                 unsigned *referenceBins, // should be an array of size num_reference_volumes
+                                 unsigned *warpedBins, // should be an array of size num_warped_volumes
                                  double *probaJointHistogram,
                                  double *logJointHistogram,
                                  double *entropies,
                                  int *mask,
                                  bool approx);
-
+/* *************************************************************** */
 /// Multi channel NMI version - Gradient
 extern "C++"
 void reg_getVoxelBasedMultiChannelNMIGradient2D(nifti_image *referenceImages,
                                                 nifti_image *warpedImages,
                                                 nifti_image *warpedImageGradient,
-                                                unsigned *reference_bins,
-                                                unsigned *warped_bins,
-                                                double *logJointHistogram,
-                                                double *entropies,
-                                                nifti_image *nmiGradientImage,
-                                                int *mask,
-                                                bool approx);
-/// Multi channel NMI version - Gradient
-extern "C++"
-void reg_getVoxelBasedMultiChannelNMIGradient3D(nifti_image *referenceImages,
-                                                nifti_image *warpedImages,
-                                                nifti_image *warpedImageGradient,
-                                                unsigned *reference_bins,
-                                                unsigned *warped_bins,
+                                                unsigned *referenceBins,
+                                                unsigned *warpedBins,
                                                 double *logJointHistogram,
                                                 double *entropies,
                                                 nifti_image *nmiGradientImage,
                                                 int *mask,
                                                 bool approx);
 /* *************************************************************** */
+/// Multi channel NMI version - Gradient
+extern "C++"
+void reg_getVoxelBasedMultiChannelNMIGradient3D(nifti_image *referenceImages,
+                                                nifti_image *warpedImages,
+                                                nifti_image *warpedImageGradient,
+                                                unsigned *referenceBins,
+                                                unsigned *warpedBins,
+                                                double *logJointHistogram,
+                                                double *entropies,
+                                                nifti_image *nmiGradientImage,
+                                                int *mask,
+                                                bool approx);
 /* *************************************************************** */

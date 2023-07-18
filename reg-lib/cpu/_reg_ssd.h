@@ -27,23 +27,23 @@ public:
     virtual ~reg_ssd() {}
 
     /// @brief Initialise the reg_ssd object
-    virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                   nifti_image *floImgPtr,
-                                   int *maskRefPtr,
-                                   nifti_image *warFloImgPtr,
-                                   nifti_image *warFloGraPtr,
-                                   nifti_image *forVoxBasedGraPtr,
-                                   nifti_image *localWeightSimPtr = nullptr,
-                                   int *maskFloPtr = nullptr,
-                                   nifti_image *warRefImgPtr = nullptr,
-                                   nifti_image *warRefGraPtr = nullptr,
-                                   nifti_image *bckVoxBasedGraPtr = nullptr) override;
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   nifti_image *floImg,
+                                   int *refMask,
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr) override;
     /// @brief Define if the specified time point should be normalised
     void SetNormaliseTimepoint(int timepoint, bool normalise);
     /// @brief Returns the ssd value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based ssd gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
     /// @brief Here
     virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
                                      float *discretisedValue,
@@ -99,6 +99,6 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDeterminantImage,
                                   int *mask,
-                                  int current_timepoint,
-                                  double timepoint_weight,
+                                  int currentTimepoint,
+                                  double timepointWeight,
                                   nifti_image *localWeightImage);

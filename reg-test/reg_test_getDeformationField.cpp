@@ -109,7 +109,7 @@ public:
     void GetGridValues(const int& xPre, const int& yPre, const NiftiImage& controlPointGrid, float *xControlPointCoordinates, float *yControlPointCoordinates) {
         const auto cppPtr = controlPointGrid.data();
         const auto cppPtrX = cppPtr.begin();
-        const auto cppPtrY = cppPtrX + NiftiImage::calcVoxelNumber(controlPointGrid, 2);
+        const auto cppPtrY = cppPtrX + controlPointGrid.nVoxelsPerSlice();
         size_t coord = 0;
         for (int y = yPre; y < yPre + 4; y++) {
             const bool in = -1 < y && y < controlPointGrid->ny;
@@ -128,7 +128,7 @@ public:
     }
 
     void GetGridValues(const int& xPre, const int& yPre, const int& zPre, const NiftiImage& controlPointGrid, float *xControlPointCoordinates, float *yControlPointCoordinates, float *zControlPointCoordinates) {
-        const size_t cppVoxelNumber = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
+        const size_t cppVoxelNumber = controlPointGrid.nVoxelsPerVolume();
         const auto cppPtr = controlPointGrid.data();
         const auto cppPtrX = cppPtr.begin();
         const auto cppPtrY = cppPtrX + cppVoxelNumber;

@@ -17,7 +17,6 @@
 #include "_reg_ssd.h"
 
 /* *************************************************************** */
-/* *************************************************************** */
 /// @brief DTI related measure of similarity class
 class reg_dti: public reg_measure {
 public:
@@ -27,21 +26,21 @@ public:
     virtual ~reg_dti() {}
 
     /// @brief Initialise the reg_dti object
-    virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                   nifti_image *floImgPtr,
-                                   int *maskRefPtr,
-                                   nifti_image *warFloImgPtr,
-                                   nifti_image *warFloGraPtr,
-                                   nifti_image *forVoxBasedGraPtr,
-                                   nifti_image *localWeightSimPtr = nullptr,
-                                   int *maskFloPtr = nullptr,
-                                   nifti_image *warRefImgPtr = nullptr,
-                                   nifti_image *warRefGraPtr = nullptr,
-                                   nifti_image *bckVoxBasedGraPtr = nullptr) override;
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   nifti_image *floImg,
+                                   int *refMask,
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr) override;
     /// @brief Returns the value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based gradient for DTI images
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
 
 protected:
     // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ
@@ -49,8 +48,8 @@ protected:
     float currentValue;
 };
 /* *************************************************************** */
-
-/** @brief Copmutes and returns the SSD between two input image
+/**
+ * @brief Computes and returns the SSD between two input image
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
  * @param mask Array that contains a mask to specify which voxel
@@ -62,8 +61,9 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
                               nifti_image *warpedImage,
                               int *mask,
                               unsigned *dtIndicies);
-
-/** @brief Compute a voxel based gradient of the sum squared difference.
+/* *************************************************************** */
+/**
+ * @brief Compute a voxel based gradient of the sum squared difference.
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
  * @param warpedImageGradient Spatial gradient of the input warped image
@@ -81,3 +81,4 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
                                          nifti_image *dtiMeasureGradientImage,
                                          int *mask,
                                          unsigned *dtIndicies);
+/* *************************************************************** */

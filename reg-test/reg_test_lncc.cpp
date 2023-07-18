@@ -37,27 +37,20 @@ public:
         NiftiImage cpp3d(CreateControlPointGrid(reference3d));
 
         // Fill images with random values
-        const auto ref2dPtr = reference2d.data();
-        auto ref2dItr = ref2dPtr.begin();
-        const auto flo2dPtr = floating2d.data();
-        auto flo2dItr = flo2dPtr.begin();
-        for (int y = 0; y < reference2d->ny; ++y)
-            for (int x = 0; x < reference2d->nx; ++x) {
-                *ref2dItr++ = distr(gen);
-                *flo2dItr++ = distr(gen);
-            }
+        auto ref2dPtr = reference2d.data();
+        auto flo2dPtr = floating2d.data();
+        for (size_t i = 0; i < reference2d.nVoxels(); ++i) {
+            ref2dPtr[i] = distr(gen);
+            flo2dPtr[i] = distr(gen);
+        }
 
         // Fill images with random values
-        const auto ref3dPtr = reference3d.data();
-        auto ref3dItr = ref3dPtr.begin();
-        const auto flo3dPtr = floating3d.data();
-        auto flo3dItr = flo3dPtr.begin();
-        for (int z = 0; z < reference3d->nz; ++z)
-            for (int y = 0; y < reference3d->ny; ++y)
-                for (int x = 0; x < reference3d->nx; ++x) {
-                    *ref3dItr++ = distr(gen);
-                    *flo3dItr++ = distr(gen);
-                }
+        auto ref3dPtr = reference3d.data();
+        auto flo3dPtr = floating3d.data();
+        for (size_t i = 0; i < reference3d.nVoxels(); ++i) {
+            ref3dPtr[i] = distr(gen);
+            flo3dPtr[i] = distr(gen);
+        }
 
         // Create the object to compute the expected values
         vector<TestData> testData;

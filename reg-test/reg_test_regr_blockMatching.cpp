@@ -36,27 +36,20 @@ public:
         NiftiImage floating3d(dim, NIFTI_TYPE_FLOAT32);
 
         // Fill images with random values
-        const auto ref2dPtr = reference2d.data();
-        auto ref2dItr = ref2dPtr.begin();
-        const auto flo2dPtr = floating2d.data();
-        auto flo2dItr = flo2dPtr.begin();
-        for (int y = 0; y < reference2d->ny; ++y)
-            for (int x = 0; x < reference2d->nx; ++x) {
-                *ref2dItr++ = distr(gen);
-                *flo2dItr++ = distr(gen);
-            }
+        auto ref2dPtr = reference2d.data();
+        auto flo2dPtr = floating2d.data();
+        for (size_t i = 0; i < reference2d.nVoxels(); ++i) {
+            ref2dPtr[i] = distr(gen);
+            flo2dPtr[i] = distr(gen);
+        }
 
         // Fill images with random values
-        const auto ref3dPtr = reference3d.data();
-        auto ref3dItr = ref3dPtr.begin();
-        const auto flo3dPtr = floating3d.data();
-        auto flo3dItr = flo3dPtr.begin();
-        for (int z = 0; z < reference3d->nz; ++z)
-            for (int y = 0; y < reference3d->ny; ++y)
-                for (int x = 0; x < reference3d->nx; ++x) {
-                    *ref3dItr++ = distr(gen);
-                    *flo3dItr++ = distr(gen);
-                }
+        auto ref3dPtr = reference3d.data();
+        auto flo3dPtr = floating3d.data();
+        for (size_t i = 0; i < reference3d.nVoxels(); ++i) {
+            ref3dPtr[i] = distr(gen);
+            flo3dPtr[i] = distr(gen);
+        }
 
         // Create the data container for the regression test
         vector<TestData> testData;
@@ -111,8 +104,8 @@ public:
             contentCuda->SetWarped(warpedCuda.disown());
 
             // Initialise the block matching
-            std::unique_ptr<BlockMatchingKernel> kernelCpu{ new CpuBlockMatchingKernel(contentCpu.get()) };
-            std::unique_ptr<BlockMatchingKernel> kernelCuda{ new CudaBlockMatchingKernel(contentCuda.get()) };
+            unique_ptr<BlockMatchingKernel> kernelCpu{ new CpuBlockMatchingKernel(contentCpu.get()) };
+            unique_ptr<BlockMatchingKernel> kernelCuda{ new CudaBlockMatchingKernel(contentCuda.get()) };
 
             // Do the computation
             kernelCpu->Calculate();
@@ -141,12 +134,12 @@ TEST_CASE_METHOD(BMTest, "Regression BlockMatching", "[regression]") {
 
             // Loop over the block and ensure all values are identical
             for (int b = 0; b < blockMatchingParamsCpu->activeBlockNumber; ++b) {
-                for(int d = 0; d<(int)blockMatchingParamsCpu->dim; ++d){
+                for (int d = 0; d < (int)blockMatchingParamsCpu->dim; ++d) {
 
-                    const int i = b*(int)blockMatchingParamsCpu->dim+d;
+                    const int i = b * (int)blockMatchingParamsCpu->dim + d;
                     const auto refPosCpu = blockMatchingParamsCpu->referencePosition[i];
                     const auto refPosCuda = blockMatchingParamsCuda->referencePosition[i];
-                    if(fabs(refPosCpu - refPosCuda) > EPS){
+                    if (fabs(refPosCpu - refPosCuda) > EPS) {
                         std::cout << "Ref[" << b << "/" << blockMatchingParamsCpu->activeBlockNumber << ":" << d << "] CPU:";
                         std::cout << refPosCpu << " | CUDA:" << refPosCuda << std::endl;
                         std::cout.flush();
@@ -154,7 +147,7 @@ TEST_CASE_METHOD(BMTest, "Regression BlockMatching", "[regression]") {
                     REQUIRE(fabs(refPosCpu - refPosCuda) < EPS);
                     const auto warPosCpu = blockMatchingParamsCpu->warpedPosition[i];
                     const auto warPosCuda = blockMatchingParamsCuda->warpedPosition[i];
-                    if(fabs(warPosCpu - warPosCuda) > EPS){
+                    if (fabs(warPosCpu - warPosCuda) > EPS) {
                         std::cout << "War[" << b << "/" << blockMatchingParamsCpu->activeBlockNumber << ":" << d << "] CPU:";
                         std::cout << warPosCpu << " | CUDA:" << warPosCuda << std::endl;
                         std::cout.flush();

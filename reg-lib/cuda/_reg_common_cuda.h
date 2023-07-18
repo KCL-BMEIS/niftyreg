@@ -130,7 +130,7 @@ extern "C++"
 template <class DataType>
 int cudaCommon_transferArrayFromDeviceToCpu(DataType*, DataType*, const unsigned);
 /* *************************************************************** */
-using UniqueTextureObjectPtr = std::unique_ptr<cudaTextureObject_t, void(*)(cudaTextureObject_t*)>;
+using UniqueTextureObjectPtr = unique_ptr<cudaTextureObject_t, void(*)(cudaTextureObject_t*)>;
 /* *************************************************************** */
 extern "C++"
 UniqueTextureObjectPtr cudaCommon_createTextureObject(const void *devPtr,

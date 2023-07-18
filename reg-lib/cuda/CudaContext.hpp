@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cuda.h>
-#include "_reg_maths.h"
+#include "_reg_tools.h"
 #include "BlockSize.hpp"
 
 namespace NiftyReg {
@@ -33,7 +33,7 @@ private:
     CUcontext cudaContext;
     unsigned numDevices;
     unsigned cudaIdx;
-    std::unique_ptr<BlockSize> blockSize;
+    unique_ptr<BlockSize> blockSize;
 
     void PickCard(unsigned deviceId);
     void SetBlockSize(int major);

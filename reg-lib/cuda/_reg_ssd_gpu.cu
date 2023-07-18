@@ -20,27 +20,27 @@ reg_ssd_gpu::reg_ssd_gpu(): reg_ssd::reg_ssd() {
 #endif
 }
 /* *************************************************************** */
-void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImgPtr,
-                                    nifti_image *floImgPtr,
-                                    int *maskRefPtr,
+void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImg,
+                                    nifti_image *floImg,
+                                    int *refMask,
                                     size_t activeVoxNum,
-                                    nifti_image *warFloImgPtr,
-                                    nifti_image *warFloGraPtr,
-                                    nifti_image *forVoxBasedGraPtr,
-                                    nifti_image *localWeightSimPtr,
-                                    cudaArray *refDevicePtr,
-                                    cudaArray *floDevicePtr,
-                                    int *refMskDevicePtr,
-                                    float *warFloDevicePtr,
-                                    float4 *warFloGradDevicePtr,
-                                    float4 *forVoxBasedGraDevicePtr) {
-    reg_ssd::InitialiseMeasure(refImgPtr,
-                               floImgPtr,
-                               maskRefPtr,
-                               warFloImgPtr,
-                               warFloGraPtr,
-                               forVoxBasedGraPtr,
-                               localWeightSimPtr);
+                                    nifti_image *warpedImg,
+                                    nifti_image *warpedGrad,
+                                    nifti_image *voxelBasedGrad,
+                                    nifti_image *localWeightSim,
+                                    cudaArray *refImgCuda,
+                                    cudaArray *floImgCuda,
+                                    int *refMaskCuda,
+                                    float *warpedImgCuda,
+                                    float4 *warpedGradCuda,
+                                    float4 *voxelBasedGradCuda) {
+    reg_ssd::InitialiseMeasure(refImg,
+                               floImg,
+                               refMask,
+                               warpedImg,
+                               warpedGrad,
+                               voxelBasedGrad,
+                               localWeightSim);
     // Check if a symmetric measure is required
     if (this->isSymmetric) {
         fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
@@ -48,26 +48,26 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImgPtr,
         reg_exit();
     }
     // Check that the input image are of type float
-    if (this->referenceImagePointer->datatype != NIFTI_TYPE_FLOAT32 ||
-        this->warpedFloatingImagePointer->datatype != NIFTI_TYPE_FLOAT32) {
+    if (this->referenceImage->datatype != NIFTI_TYPE_FLOAT32 ||
+        this->warpedImage->datatype != NIFTI_TYPE_FLOAT32) {
         fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
         fprintf(stderr, "[NiftyReg ERROR] The input images are expected to be float\n");
         reg_exit();
     }
     // Check that the input images have only one time point
-    if (this->referenceImagePointer->nt > 1 || this->floatingImagePointer->nt > 1) {
+    if (this->referenceImage->nt > 1 || this->floatingImage->nt > 1) {
         fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
         fprintf(stderr, "[NiftyReg ERROR] Both input images should have only one time point\n");
         reg_exit();
     }
     // Bind the required pointers
-    this->referenceDevicePointer = refDevicePtr;
-    this->floatingDevicePointer = floDevicePtr;
-    this->referenceMaskDevicePointer = refMskDevicePtr;
+    this->referenceImageCuda = refImgCuda;
+    this->floatingImageCuda = floImgCuda;
+    this->referenceMaskCuda = refMaskCuda;
     this->activeVoxelNumber = activeVoxNum;
-    this->warpedFloatingDevicePointer = warFloDevicePtr;
-    this->warpedFloatingGradientDevicePointer = warFloGradDevicePtr;
-    this->forwardVoxelBasedGradientDevicePointer = forVoxBasedGraDevicePtr;
+    this->warpedImageCuda = warpedImgCuda;
+    this->warpedGradientCuda = warpedGradCuda;
+    this->voxelBasedGradientCuda = voxelBasedGradCuda;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_ssd_gpu::InitialiseMeasure()\n");
 #endif
@@ -115,10 +115,10 @@ double reg_getSSDValue_gpu(const nifti_image *referenceImage,
 }
 /* *************************************************************** */
 double reg_ssd_gpu::GetSimilarityMeasureValue() {
-    const double SSDValue = reg_getSSDValue_gpu(this->referenceImagePointer,
-                                                this->referenceDevicePointer,
-                                                this->warpedFloatingDevicePointer,
-                                                this->referenceMaskDevicePointer,
+    const double SSDValue = reg_getSSDValue_gpu(this->referenceImage,
+                                                this->referenceImageCuda,
+                                                this->warpedImageCuda,
+                                                this->referenceMaskCuda,
                                                 this->activeVoxelNumber);
     return -SSDValue;
 }
@@ -159,14 +159,14 @@ void reg_getVoxelBasedSSDGradient_gpu(const nifti_image *referenceImage,
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
-void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) {
-    reg_getVoxelBasedSSDGradient_gpu(this->referenceImagePointer,
-                                     this->referenceDevicePointer,
-                                     this->warpedFloatingDevicePointer,
-                                     this->warpedFloatingGradientDevicePointer,
-                                     this->forwardVoxelBasedGradientDevicePointer,
+void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {
+    reg_getVoxelBasedSSDGradient_gpu(this->referenceImage,
+                                     this->referenceImageCuda,
+                                     this->warpedImageCuda,
+                                     this->warpedGradientCuda,
+                                     this->voxelBasedGradientCuda,
                                      1.f,
-                                     this->referenceMaskDevicePointer,
+                                     this->referenceMaskCuda,
                                      this->activeVoxelNumber);
 }
 /* *************************************************************** */

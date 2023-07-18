@@ -21,29 +21,29 @@ public:
     /// @brief Measure class destructor
     virtual ~reg_measure_gpu() {}
 
-    virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                   nifti_image *floImgPtr,
-                                   int *maskRefPtr,
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   nifti_image *floImg,
+                                   int *refMask,
                                    size_t activeVoxNum,
-                                   nifti_image *warFloImgPtr,
-                                   nifti_image *warFloGraPtr,
-                                   nifti_image *forVoxBasedGraPtr,
-                                   nifti_image *localWeightSimPtr,
-                                   cudaArray *refDevicePtr,
-                                   cudaArray *floDevicePtr,
-                                   int *refMskDevicePtr,
-                                   float *warFloDevicePtr,
-                                   float4 *warFloGradDevicePtr,
-                                   float4 *forVoxBasedGraDevicePtr) = 0;
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim,
+                                   cudaArray *refImgCuda,
+                                   cudaArray *floImgCuda,
+                                   int *refMaskCuda,
+                                   float *warpedImgCuda,
+                                   float4 *warpedGradCuda,
+                                   float4 *voxelBasedGradCuda) = 0;
 
 protected:
-    cudaArray *referenceDevicePointer;
-    cudaArray *floatingDevicePointer;
-    int *referenceMaskDevicePointer;
+    cudaArray *referenceImageCuda;
+    cudaArray *floatingImageCuda;
+    int *referenceMaskCuda;
     size_t activeVoxelNumber;
-    float *warpedFloatingDevicePointer;
-    float4 *warpedFloatingGradientDevicePointer;
-    float4 *forwardVoxelBasedGradientDevicePointer;
+    float *warpedImageCuda;
+    float4 *warpedGradientCuda;
+    float4 *voxelBasedGradientCuda;
 };
 /* *************************************************************** */
 class reg_lncc_gpu: public reg_lncc, public reg_measure_gpu {
@@ -56,24 +56,24 @@ public:
     /// @brief reg_lncc class destructor
     virtual ~reg_lncc_gpu() {}
 
-    virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                   nifti_image *floImgPtr,
-                                   int *maskRefPtr,
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   nifti_image *floImg,
+                                   int *refMask,
                                    size_t activeVoxNum,
-                                   nifti_image *warFloImgPtr,
-                                   nifti_image *warFloGraPtr,
-                                   nifti_image *forVoxBasedGraPtr,
-                                   nifti_image *localWeightSimPtr,
-                                   cudaArray *refDevicePtr,
-                                   cudaArray *floDevicePtr,
-                                   int *refMskDevicePtr,
-                                   float *warFloDevicePtr,
-                                   float4 *warFloGradDevicePtr,
-                                   float4 *forVoxBasedGraDevicePtr) override {}
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim,
+                                   cudaArray *refImgCuda,
+                                   cudaArray *floImgCuda,
+                                   int *refMaskCuda,
+                                   float *warpedImgCuda,
+                                   float4 *warpedGradCuda,
+                                   float4 *voxelBasedGradCuda) override {}
     /// @brief Returns the lncc value
     virtual double GetSimilarityMeasureValue() override { return 0; }
     /// @brief Compute the voxel based lncc gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {}
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {}
 };
 /* *************************************************************** */
 class reg_kld_gpu: public reg_kld, public reg_measure_gpu {
@@ -86,24 +86,24 @@ public:
     /// @brief reg_kld_gpu class destructor
     virtual ~reg_kld_gpu() {}
 
-    virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                   nifti_image *floImgPtr,
-                                   int *maskRefPtr,
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   nifti_image *floImg,
+                                   int *refMask,
                                    size_t activeVoxNum,
-                                   nifti_image *warFloImgPtr,
-                                   nifti_image *warFloGraPtr,
-                                   nifti_image *forVoxBasedGraPtr,
-                                   nifti_image *localWeightSimPtr,
-                                   cudaArray *refDevicePtr,
-                                   cudaArray *floDevicePtr,
-                                   int *refMskDevicePtr,
-                                   float *warFloDevicePtr,
-                                   float4 *warFloGradDevicePtr,
-                                   float4 *forVoxBasedGraDevicePtr) override {}
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim,
+                                   cudaArray *refImgCuda,
+                                   cudaArray *floImgCuda,
+                                   int *refMaskCuda,
+                                   float *warpedImgCuda,
+                                   float4 *warpedGradCuda,
+                                   float4 *voxelBasedGradCuda) override {}
     /// @brief Returns the kld value
     virtual double GetSimilarityMeasureValue() override { return 0; }
     /// @brief Compute the voxel based kld gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {}
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {}
 };
 /* *************************************************************** */
 class reg_dti_gpu: public reg_dti, public reg_measure_gpu {
@@ -116,23 +116,23 @@ public:
     /// @brief reg_dti_gpu class destructor
     virtual ~reg_dti_gpu() {}
 
-    virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                   nifti_image *floImgPtr,
-                                   int *maskRefPtr,
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   nifti_image *floImg,
+                                   int *refMask,
                                    size_t activeVoxNum,
-                                   nifti_image *warFloImgPtr,
-                                   nifti_image *warFloGraPtr,
-                                   nifti_image *forVoxBasedGraPtr,
-                                   nifti_image *localWeightSimPtr,
-                                   cudaArray *refDevicePtr,
-                                   cudaArray *floDevicePtr,
-                                   int *refMskDevicePtr,
-                                   float *warFloDevicePtr,
-                                   float4 *warFloGradDevicePtr,
-                                   float4 *forVoxBasedGraDevicePtr) override {}
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim,
+                                   cudaArray *refImgCuda,
+                                   cudaArray *floImgCuda,
+                                   int *refMaskCuda,
+                                   float *warpedImgCuda,
+                                   float4 *warpedGradCuda,
+                                   float4 *voxelBasedGradCuda) override {}
     /// @brief Returns the dti value
     virtual double GetSimilarityMeasureValue() override { return 0; }
     /// @brief Compute the voxel based dti gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint) override {}
+    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {}
 };
 /* *************************************************************** */

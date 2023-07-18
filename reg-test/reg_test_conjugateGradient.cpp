@@ -35,10 +35,10 @@ public:
 
         // Fill image with distance from identity
         const auto ref2dPtr = reference2d.data();
-        auto ref2dIt = ref2dPtr.begin();
+        auto ref2dItr = ref2dPtr.begin();
         for (int y = 0; y < reference2d->ny; ++y)
             for (int x = 0; x < reference2d->nx; ++x)
-                *ref2dIt++ = sqrtf(static_cast<float>(x * x + y * y));
+                *ref2dItr++ = sqrtf(static_cast<float>(x * x + y * y));
 
         // Create a reference 3D image
         dimFlo.push_back(4);
@@ -46,11 +46,11 @@ public:
 
         // Fill image with distance from identity
         const auto ref3dPtr = reference3d.data();
-        auto ref3dIt = ref3dPtr.begin();
+        auto ref3dItr = ref3dPtr.begin();
         for (int z = 0; z < reference3d->nz; ++z)
             for (int y = 0; y < reference3d->ny; ++y)
                 for (int x = 0; x < reference3d->nx; ++x)
-                    *ref3dIt++ = sqrtf(static_cast<float>(x * x + y * y + z * z));
+                    *ref3dItr++ = sqrtf(static_cast<float>(x * x + y * y + z * z));
 
         // Generate the different test cases
         // Test 2D
