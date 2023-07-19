@@ -6,7 +6,7 @@
 //Kernel functions for block matching
 class CudaBlockMatchingKernel: public BlockMatchingKernel {
 public:
-    CudaBlockMatchingKernel(Content *conIn);
+    explicit CudaBlockMatchingKernel(Content *conIn);
     void Calculate();
 
 private:

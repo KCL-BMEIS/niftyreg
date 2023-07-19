@@ -67,6 +67,7 @@ __device__ __inline__ void apply_affine(const float4& pt, float *result) {
 /* *************************************************************** */
 __device__ __inline__ float blockReduce2DSum(float val, unsigned tid) {
     static __shared__ float shared[16];
+    __syncthreads();
     shared[tid] = val;
     __syncthreads();
 
@@ -80,6 +81,7 @@ __device__ __inline__ float blockReduce2DSum(float val, unsigned tid) {
 /* *************************************************************** */
 __device__ __inline__ float blockReduceSum(float val, unsigned tid) {
     static __shared__ float shared[64];
+    __syncthreads();
     shared[tid] = val;
     __syncthreads();
 
