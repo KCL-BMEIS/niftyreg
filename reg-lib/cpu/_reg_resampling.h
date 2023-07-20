@@ -36,47 +36,49 @@
 extern "C++"
 void reg_resampleImage(nifti_image *floatingImage,
                        nifti_image *warpedImage,
-                       nifti_image *deformationField,
-                       int *mask,
-                       int interp,
-                       float paddingValue,
-                       bool *dti_timepoint = nullptr,
-                       mat33 * jacMat = nullptr);
+                       const nifti_image *deformationField,
+                       const int *mask,
+                       const int& interp,
+                       const float& paddingValue,
+                       const bool *dtiTimepoint = nullptr,
+                       const mat33 *jacMat = nullptr);
+/* *************************************************************** */
 extern "C++"
-void reg_resampleImage_PSF(nifti_image *floatingImage,
+void reg_resampleImage_PSF(const nifti_image *floatingImage,
                            nifti_image *warpedImage,
-                           nifti_image *deformationField,
-                           int *mask,
-                           int interp,
-                           float paddingValue,
-                           mat33 * jacMat,
-                           char algorithm);
-
-
+                           const nifti_image *deformationField,
+                           const int *mask,
+                           const int& interp,
+                           const float& paddingValue,
+                           const mat33 *jacMat,
+                           const char& algorithm);
+/* *************************************************************** */
 extern "C++"
-void reg_resampleGradient(nifti_image *gradientImage,
+void reg_resampleGradient(const nifti_image *gradientImage,
                           nifti_image *warpedGradient,
-                          nifti_image *deformationField,
-                          int interp,
-                          float paddingValue);
-
+                          const nifti_image *deformationField,
+                          const int& interp,
+                          const float& paddingValue);
+/* *************************************************************** */
 extern "C++"
 void reg_getImageGradient(nifti_image *floatingImage,
                           nifti_image *warpedGradient,
-                          nifti_image *deformationField,
-                          int *mask,
-                          int interp,
-                          float paddingValue,
-                          int active_timepoint,
-                          bool *dti_timepoint = nullptr,
-                          mat33 *jacMat = nullptr,
-                          nifti_image *warpedImage = nullptr);
-
+                          const nifti_image *deformationField,
+                          const int *mask,
+                          const int& interp,
+                          const float& paddingValue,
+                          const int& activeTimepoint,
+                          const bool *dtiTimepoint = nullptr,
+                          const mat33 *jacMat = nullptr,
+                          const nifti_image *warpedImage = nullptr);
+/* *************************************************************** */
 extern "C++"
-void reg_getImageGradient_symDiff(nifti_image* inputImg,
-                                  nifti_image* gradImg,
-                                  int *mask,
-                                  float padding_value,
-                                  int timepoint);
+void reg_getImageGradient_symDiff(const nifti_image *img,
+                                  nifti_image *gradImg,
+                                  const int *mask,
+                                  const float& paddingValue,
+                                  const int& timepoint);
+/* *************************************************************** */
 extern "C++"
-nifti_image *reg_makeIsotropic(nifti_image *, int);
+nifti_image* reg_makeIsotropic(nifti_image*, int);
+/* *************************************************************** */
