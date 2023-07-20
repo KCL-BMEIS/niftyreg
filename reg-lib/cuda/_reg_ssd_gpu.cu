@@ -16,58 +16,45 @@
 /* *************************************************************** */
 reg_ssd_gpu::reg_ssd_gpu(): reg_ssd::reg_ssd() {
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_ssd_gpu constructor called\n");
+    reg_print_msg_debug("reg_ssd_gpu constructor called");
 #endif
 }
 /* *************************************************************** */
-void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImg,
-                                    nifti_image *floImg,
-                                    int *refMask,
+reg_ssd_gpu::~reg_ssd_gpu() {
+#ifndef NDEBUG
+    reg_print_msg_debug("reg_ssd_gpu destructor called");
+#endif
+}
+/* *************************************************************** */
+void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
+                                    nifti_image *floImg, cudaArray *floImgCuda,
+                                    int *refMask, int *refMaskCuda,
                                     size_t activeVoxNum,
-                                    nifti_image *warpedImg,
-                                    nifti_image *warpedGrad,
-                                    nifti_image *voxelBasedGrad,
+                                    nifti_image *warpedImg, float *warpedImgCuda,
+                                    nifti_image *warpedGrad, float4 *warpedGradCuda,
+                                    nifti_image *voxelBasedGrad, float4 *voxelBasedGradCuda,
                                     nifti_image *localWeightSim,
-                                    cudaArray *refImgCuda,
-                                    cudaArray *floImgCuda,
-                                    int *refMaskCuda,
-                                    float *warpedImgCuda,
-                                    float4 *warpedGradCuda,
-                                    float4 *voxelBasedGradCuda) {
-    reg_ssd::InitialiseMeasure(refImg,
-                               floImg,
-                               refMask,
-                               warpedImg,
-                               warpedGrad,
-                               voxelBasedGrad,
-                               localWeightSim);
+                                    int *floMask, int *floMaskCuda,
+                                    nifti_image *warpedImgBw, float *warpedImgBwCuda,
+                                    nifti_image *warpedGradBw, float4 *warpedGradBwCuda,
+                                    nifti_image *voxelBasedGradBw, float4 *voxelBasedGradBwCuda) {
+    reg_ssd::InitialiseMeasure(refImg, floImg, refMask, warpedImg, warpedGrad, voxelBasedGrad,
+                               localWeightSim, floMask, warpedImgBw, warpedGradBw, voxelBasedGradBw);
+    reg_measure_gpu::InitialiseMeasure(refImg, refImgCuda, floImg, floImgCuda, refMask, refMaskCuda, activeVoxNum, warpedImg, warpedImgCuda,
+                                       warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda, localWeightSim, floMask, floMaskCuda,
+                                       warpedImgBw, warpedImgBwCuda, warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
     // Check if a symmetric measure is required
     if (this->isSymmetric) {
-        fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        fprintf(stderr, "[NiftyReg ERROR] Symmetric scheme is not yet supported on the GPU\n");
-        reg_exit();
-    }
-    // Check that the input image are of type float
-    if (this->referenceImage->datatype != NIFTI_TYPE_FLOAT32 ||
-        this->warpedImage->datatype != NIFTI_TYPE_FLOAT32) {
-        fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        fprintf(stderr, "[NiftyReg ERROR] The input images are expected to be float\n");
+        reg_print_fct_error("reg_ssd_gpu::InitialiseMeasure");
+        reg_print_msg_error("Symmetric scheme is not yet supported");
         reg_exit();
     }
     // Check that the input images have only one time point
     if (this->referenceImage->nt > 1 || this->floatingImage->nt > 1) {
-        fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        fprintf(stderr, "[NiftyReg ERROR] Both input images should have only one time point\n");
+        reg_print_fct_error("reg_ssd_gpu::InitialiseMeasure");
+        reg_print_msg_error("Multiple timepoints are not yet supported");
         reg_exit();
     }
-    // Bind the required pointers
-    this->referenceImageCuda = refImgCuda;
-    this->floatingImageCuda = floImgCuda;
-    this->referenceMaskCuda = refMaskCuda;
-    this->activeVoxelNumber = activeVoxNum;
-    this->warpedImageCuda = warpedImgCuda;
-    this->warpedGradientCuda = warpedGradCuda;
-    this->voxelBasedGradientCuda = voxelBasedGradCuda;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_ssd_gpu::InitialiseMeasure()\n");
 #endif

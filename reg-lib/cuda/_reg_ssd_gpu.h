@@ -23,23 +23,31 @@ public:
     /// @brief reg_ssd class constructor
     reg_ssd_gpu();
     /// @brief Measure class destructor
-    virtual ~reg_ssd_gpu() {}
+    virtual ~reg_ssd_gpu();
 
     /// @brief Initialise the reg_ssd object
     virtual void InitialiseMeasure(nifti_image *refImg,
+                                   cudaArray *refImgCuda,
                                    nifti_image *floImg,
+                                   cudaArray *floImgCuda,
                                    int *refMask,
+                                   int *refMaskCuda,
                                    size_t activeVoxNum,
                                    nifti_image *warpedImg,
-                                   nifti_image *warpedGrad,
-                                   nifti_image *voxelBasedGrad,
-                                   nifti_image *localWeightSim,
-                                   cudaArray *refImgCuda,
-                                   cudaArray *floImgCuda,
-                                   int *refMaskCuda,
                                    float *warpedImgCuda,
+                                   nifti_image *warpedGrad,
                                    float4 *warpedGradCuda,
-                                   float4 *voxelBasedGradCuda) override;
+                                   nifti_image *voxelBasedGrad,
+                                   float4 *voxelBasedGradCuda,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   int *floMaskCuda = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   float *warpedImgBwCuda = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   float4 *warpedGradBwCuda = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr,
+                                   float4 *voxelBasedGradBwCuda = nullptr) override;
     /// @brief Returns the ssd value
     virtual double GetSimilarityMeasureValue() override;
     /// @brief Compute the voxel based ssd gradient

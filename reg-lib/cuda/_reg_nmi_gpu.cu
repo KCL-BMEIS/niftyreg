@@ -10,129 +10,101 @@
  *
  */
 
-#include "_reg_nmi.h"
 #include "_reg_nmi_gpu.h"
 #include "_reg_nmi_kernels.cu"
+#include <thrust/device_vector.h>
 
 /* *************************************************************** */
 reg_nmi_gpu::reg_nmi_gpu(): reg_nmi::reg_nmi() {
-    this->forwardJointHistogramLog_device = nullptr;
-    //	this->backwardJointHistogramLog_device=nullptr;
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_nmi_gpu constructor called\n");
+    reg_print_msg_debug("reg_nmi_gpu constructor called");
 #endif
 }
 /* *************************************************************** */
 reg_nmi_gpu::~reg_nmi_gpu() {
-    this->DeallocateHistogram();
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_nmi_gpu destructor called\n");
+    reg_print_msg_debug("reg_nmi_gpu destructor called");
 #endif
 }
 /* *************************************************************** */
-void reg_nmi_gpu::DeallocateHistogram() {
-    if (this->forwardJointHistogramLog_device != nullptr) {
-        cudaFree(this->forwardJointHistogramLog_device);
-        this->forwardJointHistogramLog_device = nullptr;
-    }
-#ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_nmi_gpu::DeallocateHistogram() called\n");
-#endif
-}
-/* *************************************************************** */
-void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg,
-                                    nifti_image *floImg,
-                                    int *refMask,
+void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
+                                    nifti_image *floImg, cudaArray *floImgCuda,
+                                    int *refMask, int *refMaskCuda,
                                     size_t activeVoxNum,
-                                    nifti_image *warpedImg,
-                                    nifti_image *warpedGrad,
-                                    nifti_image *voxelBasedGrad,
+                                    nifti_image *warpedImg, float *warpedImgCuda,
+                                    nifti_image *warpedGrad, float4 *warpedGradCuda,
+                                    nifti_image *voxelBasedGrad, float4 *voxelBasedGradCuda,
                                     nifti_image *localWeightSim,
-                                    cudaArray *refImgCuda,
-                                    cudaArray *floImgCuda,
-                                    int *refMaskCuda,
-                                    float *warpedImgCuda,
-                                    float4 *warpedGradCuda,
-                                    float4 *voxelBasedGradCuda) {
+                                    int *floMask, int *floMaskCuda,
+                                    nifti_image *warpedImgBw, float *warpedImgBwCuda,
+                                    nifti_image *warpedGradBw, float4 *warpedGradBwCuda,
+                                    nifti_image *voxelBasedGradBw, float4 *voxelBasedGradBwCuda) {
     this->DeallocateHistogram();
-    reg_nmi::InitialiseMeasure(refImg,
-                               floImg,
-                               refMask,
-                               warpedImg,
-                               warpedGrad,
-                               voxelBasedGrad);
-    // Check if a symmetric measure is required
-    if (this->isSymmetric) {
-        fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        fprintf(stderr, "[NiftyReg ERROR] Symmetric scheme is not yet supported on the GPU\n");
-        reg_exit();
-    }
+    reg_nmi::InitialiseMeasure(refImg, floImg, refMask, warpedImg, warpedGrad, voxelBasedGrad,
+                               localWeightSim, floMask, warpedImgBw, warpedGradBw, voxelBasedGradBw);
+    reg_measure_gpu::InitialiseMeasure(refImg, refImgCuda, floImg, floImgCuda, refMask, refMaskCuda, activeVoxNum, warpedImg, warpedImgCuda,
+                                       warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda, localWeightSim, floMask, floMaskCuda,
+                                       warpedImgBw, warpedImgBwCuda, warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
     // Check if the input images have multiple timepoints
     if (this->referenceTimePoint > 1 || this->floatingImage->nt > 1) {
-        fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        fprintf(stderr, "[NiftyReg ERROR] Multiple timepoints are not yet supported on the GPU\n");
+        reg_print_fct_error("reg_nmi_gpu::InitialiseMeasure");
+        reg_print_msg_error("Multiple timepoints are not yet supported");
         reg_exit();
     }
-    // Check that the input image are of type float
-    if (this->referenceImage->datatype != NIFTI_TYPE_FLOAT32 ||
-        this->warpedImage->datatype != NIFTI_TYPE_FLOAT32) {
-        fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        fprintf(stderr, "[NiftyReg ERROR] Only single precision is supported on the GPU\n");
-        reg_exit();
-    }
-    // Bind the required pointers
-    this->referenceImageCuda = refImgCuda;
-    this->floatingImageCuda = floImgCuda;
-    this->referenceMaskCuda = refMaskCuda;
-    this->activeVoxelNumber = activeVoxNum;
-    this->warpedImageCuda = warpedImgCuda;
-    this->warpedGradientCuda = warpedGradCuda;
-    this->voxelBasedGradientCuda = voxelBasedGradCuda;
     // The reference and floating images have to be updated on the device
-    if (cudaCommon_transferNiftiToArrayOnDevice<float>(this->referenceImageCuda, this->referenceImage)) {
-        fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        printf("[NiftyReg ERROR] Error when transferring the reference image.\n");
+    if (cudaCommon_transferNiftiToArrayOnDevice<float>(this->referenceImageCuda, this->referenceImage) ||
+        cudaCommon_transferNiftiToArrayOnDevice<float>(this->floatingImageCuda, this->floatingImage)) {
+        reg_print_fct_error("reg_nmi_gpu::InitialiseMeasure");
+        reg_print_msg_error("Error when transferring the reference or floating image");
         reg_exit();
     }
-    if (cudaCommon_transferNiftiToArrayOnDevice<float>(this->floatingImageCuda, this->floatingImage)) {
-        fprintf(stderr, "[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        printf("[NiftyReg ERROR] Error when transferring the floating image.\n");
-        reg_exit();
-    }
-    // Allocate the required joint histogram on the GPU
-    cudaMalloc(&this->forwardJointHistogramLog_device, this->totalBinNumber[0] * sizeof(float));
-
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_nmi_gpu::InitialiseMeasure called\n");
+    reg_print_msg_debug("reg_nmi_gpu::InitialiseMeasure called");
 #endif
 }
 /* *************************************************************** */
 double reg_nmi_gpu::GetSimilarityMeasureValue() {
     // The NMI computation is performed into the host for now
     // The relevant images have to be transferred from the device to the host
-    NR_CUDA_SAFE_CALL(cudaMemcpy(this->warpedImage->data,
-                                 this->warpedImageCuda,
-                                 this->warpedImage->nvox *
-                                 this->warpedImage->nbyper,
-                                 cudaMemcpyDeviceToHost));
-
+    cudaCommon_transferFromDeviceToNifti<float>(this->warpedImage, this->warpedImageCuda);
     reg_getNMIValue<float>(this->referenceImage,
                            this->warpedImage,
                            this->timePointWeight,
                            this->referenceBinNumber,
                            this->floatingBinNumber,
                            this->totalBinNumber,
-                           this->forwardJointHistogramLog,
-                           this->forwardJointHistogramPro,
-                           this->forwardEntropyValues,
+                           this->jointHistogramLog,
+                           this->jointHistogramPro,
+                           this->entropyValues,
                            this->referenceMask);
 
-    const double nmi_value = (this->forwardEntropyValues[0][0] + this->forwardEntropyValues[0][1]) / this->forwardEntropyValues[0][2];
+    if (this->isSymmetric) {
+        cudaCommon_transferFromDeviceToNifti<float>(this->warpedImageBw, this->warpedImageBwCuda);
+        reg_getNMIValue<float>(this->floatingImage,
+                               this->warpedImageBw,
+                               this->timePointWeight,
+                               this->floatingBinNumber,
+                               this->referenceBinNumber,
+                               this->totalBinNumber,
+                               this->jointHistogramLogBw,
+                               this->jointHistogramProBw,
+                               this->entropyValuesBw,
+                               this->floatingMask);
+    }
+
+    double nmiFw = 0, nmiBw = 0;
+    for (int t = 0; t < this->referenceTimePoint; ++t) {
+        if (this->timePointWeight[t] > 0) {
+            nmiFw += timePointWeight[t] * (this->entropyValues[t][0] + this->entropyValues[t][1]) / this->entropyValues[t][2];
+            if (this->isSymmetric)
+                nmiBw += timePointWeight[t] * (this->entropyValuesBw[t][0] + this->entropyValuesBw[t][1]) / this->entropyValuesBw[t][2];
+        }
+    }
 
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_nmi_gpu::GetSimilarityMeasureValue called\n");
+    reg_print_msg_debug("reg_nmi_gpu::GetSimilarityMeasureValue called");
 #endif
-    return nmi_value;
+    return nmiFw + nmiBw;
 }
 /* *************************************************************** */
 /// Called when we only have one target and one source image
@@ -190,30 +162,46 @@ void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
 }
 /* *************************************************************** */
 void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {
+    // Check if the specified time point exists and is active
+    reg_measure::GetVoxelBasedSimilarityMeasureGradient(currentTimepoint);
+    if (this->timePointWeight[currentTimepoint] == 0)
+        return;
+
+    // Call compute similarity measure to calculate joint histogram
+    this->GetSimilarityMeasureValue();
+
     // The latest joint histogram is transferred onto the GPU
-    float *temp = (float*)malloc(this->totalBinNumber[0] * sizeof(float));
-    for (unsigned short i = 0; i < this->totalBinNumber[0]; ++i)
-        temp[i] = static_cast<float>(this->forwardJointHistogramLog[0][i]);
-    cudaMemcpy(this->forwardJointHistogramLog_device,
-               temp,
-               this->totalBinNumber[0] * sizeof(float),
-               cudaMemcpyHostToDevice);
-    free(temp);
+    thrust::device_vector<float> jointHistogramLogCuda(this->jointHistogramLog[0], this->jointHistogramLog[0] + this->totalBinNumber[0]);
 
     // The gradient of the NMI is computed on the GPU
     reg_getVoxelBasedNMIGradient_gpu(this->referenceImage,
                                      this->referenceImageCuda,
                                      this->warpedImageCuda,
                                      this->warpedGradientCuda,
-                                     this->forwardJointHistogramLog_device,
+                                     jointHistogramLogCuda.data().get(),
                                      this->voxelBasedGradientCuda,
                                      this->referenceMaskCuda,
                                      this->activeVoxelNumber,
-                                     this->forwardEntropyValues[0],
+                                     this->entropyValues[0],
                                      this->referenceBinNumber[0],
                                      this->floatingBinNumber[0]);
+
+    if (this->isSymmetric) {
+        thrust::device_vector<float> jointHistogramLogCudaBw(this->jointHistogramLogBw[0], this->jointHistogramLogBw[0] + this->totalBinNumber[0]);
+        reg_getVoxelBasedNMIGradient_gpu(this->floatingImage,
+                                         this->floatingImageCuda,
+                                         this->warpedImageBwCuda,
+                                         this->warpedGradientBwCuda,
+                                         jointHistogramLogCudaBw.data().get(),
+                                         this->voxelBasedGradientBwCuda,
+                                         this->floatingMaskCuda,
+                                         this->activeVoxelNumber,
+                                         this->entropyValuesBw[0],
+                                         this->floatingBinNumber[0],
+                                         this->referenceBinNumber[0]);
+    }
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient called\n");
+    reg_print_msg_debug("reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient called\n");
 #endif
 }
 /* *************************************************************** */

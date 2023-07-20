@@ -22,19 +22,63 @@ public:
     virtual ~reg_measure_gpu() {}
 
     virtual void InitialiseMeasure(nifti_image *refImg,
+                                   cudaArray *refImgCuda,
                                    nifti_image *floImg,
+                                   cudaArray *floImgCuda,
                                    int *refMask,
+                                   int *refMaskCuda,
                                    size_t activeVoxNum,
                                    nifti_image *warpedImg,
-                                   nifti_image *warpedGrad,
-                                   nifti_image *voxelBasedGrad,
-                                   nifti_image *localWeightSim,
-                                   cudaArray *refImgCuda,
-                                   cudaArray *floImgCuda,
-                                   int *refMaskCuda,
                                    float *warpedImgCuda,
+                                   nifti_image *warpedGrad,
                                    float4 *warpedGradCuda,
-                                   float4 *voxelBasedGradCuda) = 0;
+                                   nifti_image *voxelBasedGrad,
+                                   float4 *voxelBasedGradCuda,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   int *floMaskCuda = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   float *warpedImgBwCuda = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   float4 *warpedGradBwCuda = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr,
+                                   float4 *voxelBasedGradBwCuda = nullptr) {
+        // Check that the input image are of type float
+        if (refImg->datatype != NIFTI_TYPE_FLOAT32 || warpedImg->datatype != NIFTI_TYPE_FLOAT32) {
+            reg_print_fct_error("reg_measure_gpu::InitialiseMeasure");
+            reg_print_msg_error("Only single precision is supported on the GPU");
+            reg_exit();
+        }
+        // Bind the required pointers
+        this->referenceImageCuda = refImgCuda;
+        this->floatingImageCuda = floImgCuda;
+        this->referenceMaskCuda = refMaskCuda;
+        this->activeVoxelNumber = activeVoxNum;
+        this->warpedImageCuda = warpedImgCuda;
+        this->warpedGradientCuda = warpedGradCuda;
+        this->voxelBasedGradientCuda = voxelBasedGradCuda;
+        // Check if the symmetric mode is used
+        if (floMask != nullptr && warpedImgBw != nullptr && warpedGradBw != nullptr && voxelBasedGradBw != nullptr &&
+            floMaskCuda != nullptr && warpedImgBwCuda != nullptr && warpedGradBwCuda != nullptr && voxelBasedGradBwCuda != nullptr) {
+            if (floImg->datatype != NIFTI_TYPE_FLOAT32 || warpedImgBw->datatype != NIFTI_TYPE_FLOAT32) {
+                reg_print_fct_error("reg_measure_gpu::InitialiseMeasure");
+                reg_print_msg_error("Only single precision is supported on the GPU");
+                reg_exit();
+            }
+            this->floatingMaskCuda = floMaskCuda;
+            this->warpedImageBwCuda = warpedImgBwCuda;
+            this->warpedGradientBwCuda = warpedGradBwCuda;
+            this->voxelBasedGradientBwCuda = voxelBasedGradBwCuda;
+        } else {
+            this->floatingMaskCuda = nullptr;
+            this->warpedImageBwCuda = nullptr;
+            this->warpedGradientBwCuda = nullptr;
+            this->voxelBasedGradientBwCuda = nullptr;
+        }
+#ifndef NDEBUG
+        reg_print_msg_debug("reg_measure_gpu::InitialiseMeasure() called");
+#endif
+    }
 
 protected:
     cudaArray *referenceImageCuda;
@@ -44,6 +88,11 @@ protected:
     float *warpedImageCuda;
     float4 *warpedGradientCuda;
     float4 *voxelBasedGradientCuda;
+
+    int *floatingMaskCuda;
+    float *warpedImageBwCuda;
+    float4 *warpedGradientBwCuda;
+    float4 *voxelBasedGradientBwCuda;
 };
 /* *************************************************************** */
 class reg_lncc_gpu: public reg_lncc, public reg_measure_gpu {
@@ -57,19 +106,27 @@ public:
     virtual ~reg_lncc_gpu() {}
 
     virtual void InitialiseMeasure(nifti_image *refImg,
+                                   cudaArray *refImgCuda,
                                    nifti_image *floImg,
+                                   cudaArray *floImgCuda,
                                    int *refMask,
+                                   int *refMaskCuda,
                                    size_t activeVoxNum,
                                    nifti_image *warpedImg,
-                                   nifti_image *warpedGrad,
-                                   nifti_image *voxelBasedGrad,
-                                   nifti_image *localWeightSim,
-                                   cudaArray *refImgCuda,
-                                   cudaArray *floImgCuda,
-                                   int *refMaskCuda,
                                    float *warpedImgCuda,
+                                   nifti_image *warpedGrad,
                                    float4 *warpedGradCuda,
-                                   float4 *voxelBasedGradCuda) override {}
+                                   nifti_image *voxelBasedGrad,
+                                   float4 *voxelBasedGradCuda,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   int *floMaskCuda = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   float *warpedImgBwCuda = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   float4 *warpedGradBwCuda = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr,
+                                   float4 *voxelBasedGradBwCuda = nullptr) override {}
     /// @brief Returns the lncc value
     virtual double GetSimilarityMeasureValue() override { return 0; }
     /// @brief Compute the voxel based lncc gradient
@@ -80,26 +137,35 @@ class reg_kld_gpu: public reg_kld, public reg_measure_gpu {
 public:
     /// @brief reg_kld_gpu class constructor
     reg_kld_gpu() {
-        fprintf(stderr, "[ERROR] CUDA CANNOT BE USED WITH KLD YET\n");
+        reg_print_fct_error("reg_kld_gpu::reg_kld_gpu");
+        reg_print_msg_error("CUDA CANNOT BE USED WITH KLD YET");
         reg_exit();
     }
     /// @brief reg_kld_gpu class destructor
     virtual ~reg_kld_gpu() {}
 
     virtual void InitialiseMeasure(nifti_image *refImg,
+                                   cudaArray *refImgCuda,
                                    nifti_image *floImg,
+                                   cudaArray *floImgCuda,
                                    int *refMask,
+                                   int *refMaskCuda,
                                    size_t activeVoxNum,
                                    nifti_image *warpedImg,
-                                   nifti_image *warpedGrad,
-                                   nifti_image *voxelBasedGrad,
-                                   nifti_image *localWeightSim,
-                                   cudaArray *refImgCuda,
-                                   cudaArray *floImgCuda,
-                                   int *refMaskCuda,
                                    float *warpedImgCuda,
+                                   nifti_image *warpedGrad,
                                    float4 *warpedGradCuda,
-                                   float4 *voxelBasedGradCuda) override {}
+                                   nifti_image *voxelBasedGrad,
+                                   float4 *voxelBasedGradCuda,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   int *floMaskCuda = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   float *warpedImgBwCuda = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   float4 *warpedGradBwCuda = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr,
+                                   float4 *voxelBasedGradBwCuda = nullptr) override {}
     /// @brief Returns the kld value
     virtual double GetSimilarityMeasureValue() override { return 0; }
     /// @brief Compute the voxel based kld gradient
@@ -110,26 +176,35 @@ class reg_dti_gpu: public reg_dti, public reg_measure_gpu {
 public:
     /// @brief reg_dti_gpu class constructor
     reg_dti_gpu() {
-        fprintf(stderr, "[ERROR] CUDA CANNOT BE USED WITH DTI YET\n");
+        reg_print_fct_error("reg_dti_gpu::reg_dti_gpu");
+        reg_print_msg_error("CUDA CANNOT BE USED WITH DTI YET");
         reg_exit();
     }
     /// @brief reg_dti_gpu class destructor
     virtual ~reg_dti_gpu() {}
 
     virtual void InitialiseMeasure(nifti_image *refImg,
+                                   cudaArray *refImgCuda,
                                    nifti_image *floImg,
+                                   cudaArray *floImgCuda,
                                    int *refMask,
+                                   int *refMaskCuda,
                                    size_t activeVoxNum,
                                    nifti_image *warpedImg,
-                                   nifti_image *warpedGrad,
-                                   nifti_image *voxelBasedGrad,
-                                   nifti_image *localWeightSim,
-                                   cudaArray *refImgCuda,
-                                   cudaArray *floImgCuda,
-                                   int *refMaskCuda,
                                    float *warpedImgCuda,
+                                   nifti_image *warpedGrad,
                                    float4 *warpedGradCuda,
-                                   float4 *voxelBasedGradCuda) override {}
+                                   nifti_image *voxelBasedGrad,
+                                   float4 *voxelBasedGradCuda,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   int *floMaskCuda = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   float *warpedImgBwCuda = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   float4 *warpedGradBwCuda = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr,
+                                   float4 *voxelBasedGradBwCuda = nullptr) override {}
     /// @brief Returns the dti value
     virtual double GetSimilarityMeasureValue() override { return 0; }
     /// @brief Compute the voxel based dti gradient
