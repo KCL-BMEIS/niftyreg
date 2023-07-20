@@ -57,8 +57,8 @@ public:
 protected:
 #endif
     // Functions for testing
-    virtual void SetDeformationField(nifti_image *deformationFieldIn) { deformationField = deformationFieldIn; }
+    virtual void SetDeformationField(nifti_image *deformationFieldIn) { DeallocateDeformationField(); deformationField = deformationFieldIn; }
     virtual void SetReferenceMask(int *referenceMaskIn) { referenceMask = referenceMaskIn; }
     virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) { transformationMatrix = transformationMatrixIn; }
-    virtual void SetWarped(nifti_image *warpedIn) { warped = warpedIn; }
+    virtual void SetWarped(nifti_image *warpedIn) { DeallocateWarped(); warped = warpedIn; }
 };
