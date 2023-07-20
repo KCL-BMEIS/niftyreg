@@ -22,6 +22,7 @@
 #include <functional>
 #include "_reg_maths.h"
 
+using namespace std::string_literals;
 using std::unique_ptr;
 using std::shared_ptr;
 using std::vector;

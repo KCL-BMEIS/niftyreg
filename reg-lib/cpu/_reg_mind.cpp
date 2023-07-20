@@ -32,7 +32,7 @@ void ShiftImage(nifti_image* inputImgPtr,
 #pragma omp parallel for default(none) \
     shared(inputData, shiftImageData, shiftedImgPtr, inputImgPtr, \
     maskPtr, tx, ty, tz) \
-    private(x, y, z, old_x, old_y, old_z, shiftedIndex, \
+    private(x, y, old_x, old_y, old_z, shiftedIndex, \
     currentIndex)
 #endif
     for (z = 0; z < shiftedImgPtr->nz; z++) {
@@ -130,10 +130,9 @@ void GetMINDImageDescriptor_core(nifti_image* inputImage,
 #pragma omp parallel for default(none) \
     shared(voxelNumber, samplingNbr, maskPtr, meanImgDataPtr, \
     MINDImgDataPtr) \
-    private(voxelIndex, meanValue, max_desc, descValue, mindIndex)
+    private(meanValue, max_desc, descValue, mindIndex)
 #endif
     for (voxelIndex = 0; voxelIndex < voxelNumber; voxelIndex++) {
-
         if (maskPtr[voxelIndex] > -1) {
             // Get the mean value for the current voxel
             meanValue = meanImgDataPtr[voxelIndex];
@@ -281,10 +280,9 @@ void GetMINDSSCImageDescriptor_core(nifti_image* inputImage,
 #pragma omp parallel for default(none) \
     shared(voxelNumber, lengthDescriptor, samplingNbr, maskPtr, meanImgDataPtr, \
     MINDSSCImgDataPtr) \
-    private(voxelIndex, meanValue, max_desc, descValue, mindIndex)
+    private(meanValue, max_desc, descValue, mindIndex)
 #endif
     for (voxelIndex = 0; voxelIndex < voxelNumber; voxelIndex++) {
-
         if (maskPtr[voxelIndex] > -1) {
             // Get the mean value for the current voxel
             meanValue = meanImgDataPtr[voxelIndex];

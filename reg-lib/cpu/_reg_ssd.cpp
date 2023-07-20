@@ -266,7 +266,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   double timepointWeight,
                                   nifti_image *localWeightSimImage) {
     if (currentTimepoint < 0 || currentTimepoint >= referenceImage->nt) {
-        reg_print_fct_error("reg_getVoxelBasedNMIGradient2D");
+        reg_print_fct_error("reg_getVoxelBasedSSDGradient");
         reg_print_msg_error("The specified active timepoint is not defined in the ref/war images");
         reg_exit();
     }

@@ -14,12 +14,12 @@
 
 /* *************************************************************** */
 reg_nmi::reg_nmi(): reg_measure() {
-    this->forwardJointHistogramPro = nullptr;
-    this->forwardJointHistogramLog = nullptr;
-    this->forwardEntropyValues = nullptr;
-    this->backwardJointHistogramPro = nullptr;
-    this->backwardJointHistogramLog = nullptr;
-    this->backwardEntropyValues = nullptr;
+    this->jointHistogramPro = nullptr;
+    this->jointHistogramLog = nullptr;
+    this->entropyValues = nullptr;
+    this->jointHistogramProBw = nullptr;
+    this->jointHistogramLogBw = nullptr;
+    this->entropyValuesBw = nullptr;
 
     for (int i = 0; i < 255; ++i) {
         this->referenceBinNumber[i] = 68;
@@ -40,62 +40,62 @@ reg_nmi::~reg_nmi() {
 void reg_nmi::DeallocateHistogram() {
     int timepoint = this->referenceTimePoint;
     // Free the joint histograms and the entropy arrays
-    if (this->forwardJointHistogramPro != nullptr) {
+    if (this->jointHistogramPro != nullptr) {
         for (int i = 0; i < timepoint; ++i) {
-            if (this->forwardJointHistogramPro[i] != nullptr)
-                free(this->forwardJointHistogramPro[i]);
-            this->forwardJointHistogramPro[i] = nullptr;
+            if (this->jointHistogramPro[i] != nullptr)
+                free(this->jointHistogramPro[i]);
+            this->jointHistogramPro[i] = nullptr;
         }
-        free(this->forwardJointHistogramPro);
+        free(this->jointHistogramPro);
     }
-    this->forwardJointHistogramPro = nullptr;
-    if (this->backwardJointHistogramPro != nullptr) {
+    this->jointHistogramPro = nullptr;
+    if (this->jointHistogramProBw != nullptr) {
         for (int i = 0; i < timepoint; ++i) {
-            if (this->backwardJointHistogramPro[i] != nullptr)
-                free(this->backwardJointHistogramPro[i]);
-            this->backwardJointHistogramPro[i] = nullptr;
+            if (this->jointHistogramProBw[i] != nullptr)
+                free(this->jointHistogramProBw[i]);
+            this->jointHistogramProBw[i] = nullptr;
         }
-        free(this->backwardJointHistogramPro);
+        free(this->jointHistogramProBw);
     }
-    this->backwardJointHistogramPro = nullptr;
+    this->jointHistogramProBw = nullptr;
 
-    if (this->forwardJointHistogramLog != nullptr) {
+    if (this->jointHistogramLog != nullptr) {
         for (int i = 0; i < timepoint; ++i) {
-            if (this->forwardJointHistogramLog[i] != nullptr)
-                free(this->forwardJointHistogramLog[i]);
-            this->forwardJointHistogramLog[i] = nullptr;
+            if (this->jointHistogramLog[i] != nullptr)
+                free(this->jointHistogramLog[i]);
+            this->jointHistogramLog[i] = nullptr;
         }
-        free(this->forwardJointHistogramLog);
+        free(this->jointHistogramLog);
     }
-    this->forwardJointHistogramLog = nullptr;
-    if (this->backwardJointHistogramLog != nullptr) {
+    this->jointHistogramLog = nullptr;
+    if (this->jointHistogramLogBw != nullptr) {
         for (int i = 0; i < timepoint; ++i) {
-            if (this->backwardJointHistogramLog[i] != nullptr)
-                free(this->backwardJointHistogramLog[i]);
-            this->backwardJointHistogramLog[i] = nullptr;
+            if (this->jointHistogramLogBw[i] != nullptr)
+                free(this->jointHistogramLogBw[i]);
+            this->jointHistogramLogBw[i] = nullptr;
         }
-        free(this->backwardJointHistogramLog);
+        free(this->jointHistogramLogBw);
     }
-    this->backwardJointHistogramLog = nullptr;
+    this->jointHistogramLogBw = nullptr;
 
-    if (this->forwardEntropyValues != nullptr) {
+    if (this->entropyValues != nullptr) {
         for (int i = 0; i < timepoint; ++i) {
-            if (this->forwardEntropyValues[i] != nullptr)
-                free(this->forwardEntropyValues[i]);
-            this->forwardEntropyValues[i] = nullptr;
+            if (this->entropyValues[i] != nullptr)
+                free(this->entropyValues[i]);
+            this->entropyValues[i] = nullptr;
         }
-        free(this->forwardEntropyValues);
+        free(this->entropyValues);
     }
-    this->forwardEntropyValues = nullptr;
-    if (this->backwardEntropyValues != nullptr) {
+    this->entropyValues = nullptr;
+    if (this->entropyValuesBw != nullptr) {
         for (int i = 0; i < timepoint; ++i) {
-            if (this->backwardEntropyValues[i] != nullptr)
-                free(this->backwardEntropyValues[i]);
-            this->backwardEntropyValues[i] = nullptr;
+            if (this->entropyValuesBw[i] != nullptr)
+                free(this->entropyValuesBw[i]);
+            this->entropyValuesBw[i] = nullptr;
         }
-        free(this->backwardEntropyValues);
+        free(this->entropyValuesBw);
     }
-    this->backwardEntropyValues = nullptr;
+    this->entropyValuesBw = nullptr;
 #ifndef NDEBUG
     reg_print_msg_debug("reg_nmi::DeallocateHistogram called");
 #endif
@@ -127,10 +127,8 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImg,
 
     // Deallocate all allocated arrays
     this->DeallocateHistogram();
-    // Extract the number of time point
-    int timepoint = this->referenceTimePoint;
     // Reference and floating are resampled between 2 and bin-3
-    for (int i = 0; i < timepoint; ++i) {
+    for (int i = 0; i < this->referenceTimePoint; ++i) {
         if (this->timePointWeight[i] > 0) {
             reg_intensityRescale(this->referenceImage,
                                  i,
@@ -143,41 +141,32 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImg,
         }
     }
     // Create the joint histograms
-    this->forwardJointHistogramPro = (double**)malloc(255 * sizeof(double*));
-    this->forwardJointHistogramLog = (double**)malloc(255 * sizeof(double*));
-    this->forwardEntropyValues = (double**)malloc(255 * sizeof(double*));
+    this->jointHistogramPro = (double**)calloc(255, sizeof(double*));
+    this->jointHistogramLog = (double**)calloc(255, sizeof(double*));
+    this->entropyValues = (double**)calloc(255, sizeof(double*));
     if (this->isSymmetric) {
-        this->backwardJointHistogramPro = (double**)malloc(255 * sizeof(double*));
-        this->backwardJointHistogramLog = (double**)malloc(255 * sizeof(double*));
-        this->backwardEntropyValues = (double**)malloc(255 * sizeof(double*));
+        this->jointHistogramProBw = (double**)calloc(255, sizeof(double*));
+        this->jointHistogramLogBw = (double**)calloc(255, sizeof(double*));
+        this->entropyValuesBw = (double**)calloc(255, sizeof(double*));
     }
-    for (int i = 0; i < timepoint; ++i) {
+    for (int i = 0; i < this->referenceTimePoint; ++i) {
         if (this->timePointWeight[i] > 0) {
             // Compute the total number of bin
             this->totalBinNumber[i] = this->referenceBinNumber[i] * this->floatingBinNumber[i] +
                 this->referenceBinNumber[i] + this->floatingBinNumber[i];
-            this->forwardJointHistogramLog[i] = (double*)calloc(this->totalBinNumber[i], sizeof(double));
-            this->forwardJointHistogramPro[i] = (double*)calloc(this->totalBinNumber[i], sizeof(double));
-            this->forwardEntropyValues[i] = (double*)calloc(4, sizeof(double));
+            this->jointHistogramLog[i] = (double*)calloc(this->totalBinNumber[i], sizeof(double));
+            this->jointHistogramPro[i] = (double*)calloc(this->totalBinNumber[i], sizeof(double));
+            this->entropyValues[i] = (double*)calloc(4, sizeof(double));
             if (this->isSymmetric) {
-                this->backwardJointHistogramLog[i] = (double*)calloc(this->totalBinNumber[i], sizeof(double));
-                this->backwardJointHistogramPro[i] = (double*)calloc(this->totalBinNumber[i], sizeof(double));
-                this->backwardEntropyValues[i] = (double*)calloc(4, sizeof(double));
-            }
-        } else {
-            this->forwardJointHistogramLog[i] = nullptr;
-            this->forwardJointHistogramPro[i] = nullptr;
-            this->forwardEntropyValues[i] = nullptr;
-            if (this->isSymmetric) {
-                this->backwardJointHistogramLog[i] = nullptr;
-                this->backwardJointHistogramPro[i] = nullptr;
-                this->backwardEntropyValues[i] = nullptr;
+                this->jointHistogramLogBw[i] = (double*)calloc(this->totalBinNumber[i], sizeof(double));
+                this->jointHistogramProBw[i] = (double*)calloc(this->totalBinNumber[i], sizeof(double));
+                this->entropyValuesBw[i] = (double*)calloc(4, sizeof(double));
             }
         }
     }
 #ifndef NDEBUG
     char text[255];
-    reg_print_msg_debug("reg_nmi::InitialiseMeasure().");
+    reg_print_msg_debug("reg_nmi::InitialiseMeasure()");
     for (int i = 0; i < this->referenceImage->nt; ++i) {
         sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
         reg_print_msg_debug(text);
@@ -217,21 +206,21 @@ PrecisionType GetBasisSplineDerivativeValue(PrecisionType ori) {
 }
 /* *************************************************************** */
 template <class DataType>
-void reg_getNMIValue(nifti_image *referenceImage,
-                     nifti_image *warpedImage,
-                     double *timePointWeight,
-                     unsigned short *referenceBinNumber,
-                     unsigned short *floatingBinNumber,
-                     unsigned short *totalBinNumber,
+void reg_getNMIValue(const nifti_image *referenceImage,
+                     const nifti_image *warpedImage,
+                     const double *timePointWeight,
+                     const unsigned short *referenceBinNumber,
+                     const unsigned short *floatingBinNumber,
+                     const unsigned short *totalBinNumber,
                      double **jointHistogramLog,
                      double **jointhistogramPro,
                      double **entropyValues,
-                     int *referenceMask) {
+                     const int *referenceMask) {
     // Create pointers to the image data arrays
-    DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
-    DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
+    const DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
+    const DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
     // Useful variable
-    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
     // Iterate over all active time points
     for (int t = 0; t < referenceImage->nt; ++t) {
         if (timePointWeight[t] > 0) {
@@ -246,16 +235,15 @@ void reg_getNMIValue(nifti_image *referenceImage,
             // Empty the joint histogram
             memset(jointHistoProPtr, 0, totalBinNumber[t] * sizeof(double));
             // Fill the joint histograms using an approximation
-            DataType *refPtr = &refImagePtr[t * voxelNumber];
-            DataType *warPtr = &warImagePtr[t * voxelNumber];
+            const DataType *refPtr = &refImagePtr[t * voxelNumber];
+            const DataType *warPtr = &warImagePtr[t * voxelNumber];
             for (size_t voxel = 0; voxel < voxelNumber; ++voxel) {
                 if (referenceMask[voxel] > -1) {
-                    DataType refValue = refPtr[voxel];
-                    DataType warValue = warPtr[voxel];
+                    const DataType& refValue = refPtr[voxel];
+                    const DataType& warValue = warPtr[voxel];
                     if (refValue == refValue && warValue == warValue &&
-                        refValue >= 0 && warValue >= 0 &&
-                        refValue < referenceBinNumber[t] &&
-                        warValue < floatingBinNumber[t]) {
+                        0 <= refValue && refValue < referenceBinNumber[t] &&
+                        0 <= warValue && warValue < floatingBinNumber[t]) {
                         ++jointHistoProPtr[static_cast<int>(refValue) + static_cast<int>(warValue) * referenceBinNumber[t]];
                     }
                 }
@@ -366,105 +354,72 @@ void reg_getNMIValue(nifti_image *referenceImage,
         } // if active time point
     } // iterate over all time point in the reference image
 }
-template void reg_getNMIValue<float>(nifti_image*, nifti_image*, double*, unsigned short*, unsigned short*, unsigned short*, double**, double**, double**, int*);
-template void reg_getNMIValue<double>(nifti_image*, nifti_image*, double*, unsigned short*, unsigned short*, unsigned short*, double**, double**, double**, int*);
 /* *************************************************************** */
 double reg_nmi::GetSimilarityMeasureValue() {
     // Check that all the specified image are of the same datatype
+    if (this->referenceImage->datatype != NIFTI_TYPE_FLOAT32 && this->referenceImage->datatype != NIFTI_TYPE_FLOAT64) {
+        reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
+        reg_print_msg_error("Input images are expected to be of floating precision type");
+        reg_exit();
+    }
     if (this->warpedImage->datatype != this->referenceImage->datatype) {
         reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
         reg_print_msg_error("Both input images are expected to have the same type");
         reg_exit();
     }
-    switch (this->referenceImage->datatype) {
-    case NIFTI_TYPE_FLOAT32:
-        reg_getNMIValue<float>(this->referenceImage,
-                               this->warpedImage,
-                               this->timePointWeight,
-                               this->referenceBinNumber,
-                               this->floatingBinNumber,
-                               this->totalBinNumber,
-                               this->forwardJointHistogramLog,
-                               this->forwardJointHistogramPro,
-                               this->forwardEntropyValues,
-                               this->referenceMask);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        reg_getNMIValue<double>(this->referenceImage,
-                                this->warpedImage,
-                                this->timePointWeight,
-                                this->referenceBinNumber,
-                                this->floatingBinNumber,
-                                this->totalBinNumber,
-                                this->forwardJointHistogramLog,
-                                this->forwardJointHistogramPro,
-                                this->forwardEntropyValues,
-                                this->referenceMask);
-        break;
-    default:
-        reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
-        reg_print_msg_error("Unsupported datatype");
-        reg_exit();
-    }
+    std::visit([&](auto&& refImgDataType) {
+        using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
+        reg_getNMIValue<RefImgDataType>(this->referenceImage,
+                                        this->warpedImage,
+                                        this->timePointWeight,
+                                        this->referenceBinNumber,
+                                        this->floatingBinNumber,
+                                        this->totalBinNumber,
+                                        this->jointHistogramLog,
+                                        this->jointHistogramPro,
+                                        this->entropyValues,
+                                        this->referenceMask);
+    }, NiftiImage::getFloatingDataType(this->referenceImage));
 
     if (this->isSymmetric) {
         // Check that all the specified image are of the same datatype
+        if (this->floatingImage->datatype != NIFTI_TYPE_FLOAT32 && this->floatingImage->datatype != NIFTI_TYPE_FLOAT64) {
+            reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
+            reg_print_msg_error("Input images are expected to be of floating precision type");
+            reg_exit();
+        }
         if (this->floatingImage->datatype != this->warpedImageBw->datatype) {
             reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
             reg_print_msg_error("Both input images are expected to have the same type");
             reg_exit();
         }
-        switch (this->floatingImage->datatype) {
-        case NIFTI_TYPE_FLOAT32:
-            reg_getNMIValue<float>(this->floatingImage,
-                                   this->warpedImageBw,
-                                   this->timePointWeight,
-                                   this->floatingBinNumber,
-                                   this->referenceBinNumber,
-                                   this->totalBinNumber,
-                                   this->backwardJointHistogramLog,
-                                   this->backwardJointHistogramPro,
-                                   this->backwardEntropyValues,
-                                   this->floatingMask);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            reg_getNMIValue<double>(this->floatingImage,
-                                    this->warpedImageBw,
-                                    this->timePointWeight,
-                                    this->floatingBinNumber,
-                                    this->referenceBinNumber,
-                                    this->totalBinNumber,
-                                    this->backwardJointHistogramLog,
-                                    this->backwardJointHistogramPro,
-                                    this->backwardEntropyValues,
-                                    this->floatingMask);
-            break;
-        default:
-            reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
-            reg_print_msg_error("Unsupported datatype");
-            reg_exit();
-        }
+        std::visit([&](auto&& floImgDataType) {
+            using FloImgDataType = std::decay_t<decltype(floImgDataType)>;
+            reg_getNMIValue<FloImgDataType>(this->floatingImage,
+                                            this->warpedImageBw,
+                                            this->timePointWeight,
+                                            this->floatingBinNumber,
+                                            this->referenceBinNumber,
+                                            this->totalBinNumber,
+                                            this->jointHistogramLogBw,
+                                            this->jointHistogramProBw,
+                                            this->entropyValuesBw,
+                                            this->floatingMask);
+        }, NiftiImage::getFloatingDataType(this->floatingImage));
     }
 
-    double nmi_value_forward = 0.;
-    double nmi_value_backward = 0.;
+    double nmiFw = 0, nmiBw = 0;
     for (int t = 0; t < this->referenceTimePoint; ++t) {
         if (this->timePointWeight[t] > 0) {
-            nmi_value_forward += timePointWeight[t] *
-                (this->forwardEntropyValues[t][0] +
-                 this->forwardEntropyValues[t][1]) /
-                this->forwardEntropyValues[t][2];
+            nmiFw += timePointWeight[t] * (this->entropyValues[t][0] + this->entropyValues[t][1]) / this->entropyValues[t][2];
             if (this->isSymmetric)
-                nmi_value_backward += timePointWeight[t] *
-                (this->backwardEntropyValues[t][0] +
-                 this->backwardEntropyValues[t][1]) /
-                this->backwardEntropyValues[t][2];
+                nmiBw += timePointWeight[t] * (this->entropyValuesBw[t][0] + this->entropyValuesBw[t][1]) / this->entropyValuesBw[t][2];
         }
     }
 #ifndef NDEBUG
     reg_print_msg_debug("reg_nmi::GetSimilarityMeasureValue called");
 #endif
-    return nmi_value_forward + nmi_value_backward;
+    return nmiFw + nmiBw;
 }
 /* *************************************************************** */
 template <class DataType>
@@ -484,7 +439,7 @@ void reg_getVoxelBasedNMIGradient2D(const nifti_image *referenceImage,
         reg_print_msg_error("The specified active timepoint is not defined in the ref/war images");
         reg_exit();
     }
-    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 
     // Pointers to the image data
     const DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
@@ -552,10 +507,6 @@ void reg_getVoxelBasedNMIGradient2D(const nifti_image *referenceImage,
         } // mask
     } // loop over all voxel
 }
-template void reg_getVoxelBasedNMIGradient2D<float>
-(const nifti_image*, const nifti_image*, const unsigned short*, const unsigned short*, const double*const*, const double*const*, const nifti_image*, nifti_image*, const int*, const int&, const double&);
-template void reg_getVoxelBasedNMIGradient2D<double>
-(const nifti_image*, const nifti_image*, const unsigned short*, const unsigned short*, const double*const*, const double*const*, const nifti_image*, nifti_image*, const int*, const int&, const double&);
 /* *************************************************************** */
 template <class DataType>
 void reg_getVoxelBasedNMIGradient3D(const nifti_image *referenceImage,
@@ -577,10 +528,10 @@ void reg_getVoxelBasedNMIGradient3D(const nifti_image *referenceImage,
 
 #ifdef WIN32
     long i;
-    const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
 #else
     size_t i;
-    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 #endif
     // Pointers to the image data
     const DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
@@ -659,19 +610,15 @@ void reg_getVoxelBasedNMIGradient3D(const nifti_image *referenceImage,
                     }
                 }
                 measureGradPtrX[i] += (DataType)(timepointWeight * (refDeriv[0] + warDeriv[0] -
-                                                                     nmi * jointDeriv[0]) / (entropyPtr[2] * entropyPtr[3]));
+                                                                    nmi * jointDeriv[0]) / (entropyPtr[2] * entropyPtr[3]));
                 measureGradPtrY[i] += (DataType)(timepointWeight * (refDeriv[1] + warDeriv[1] -
-                                                                     nmi * jointDeriv[1]) / (entropyPtr[2] * entropyPtr[3]));
+                                                                    nmi * jointDeriv[1]) / (entropyPtr[2] * entropyPtr[3]));
                 measureGradPtrZ[i] += (DataType)(timepointWeight * (refDeriv[2] + warDeriv[2] -
-                                                                     nmi * jointDeriv[2]) / (entropyPtr[2] * entropyPtr[3]));
+                                                                    nmi * jointDeriv[2]) / (entropyPtr[2] * entropyPtr[3]));
             }// Check that the values are defined
         } // mask
     } // loop over all voxel
 }
-template void reg_getVoxelBasedNMIGradient3D<float>
-(const nifti_image*, const nifti_image*, const unsigned short*, const unsigned short*, const double*const*, const double*const*, const nifti_image*, nifti_image*, const int*, const int&, const double&);
-template void reg_getVoxelBasedNMIGradient3D<double>
-(const nifti_image*, const nifti_image*, const unsigned short*, const unsigned short*, const double*const*, const double*const*, const nifti_image*, nifti_image*, const int*, const int&, const double&);
 /* *************************************************************** */
 void reg_nmi::GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {
     // Check if the specified time point exists and is active
@@ -681,6 +628,11 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {
 
     // Check if all required input images are of the same data type
     int dtype = this->referenceImage->datatype;
+    if (dtype != NIFTI_TYPE_FLOAT32 && dtype != NIFTI_TYPE_FLOAT64) {
+        reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
+        reg_print_msg_error("Input images are expected to be of floating precision type");
+        reg_exit();
+    }
     if (this->warpedImage->datatype != dtype ||
         this->warpedGradient->datatype != dtype ||
         this->voxelBasedGradient->datatype != dtype) {
@@ -693,76 +645,42 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {
     this->GetSimilarityMeasureValue();
 
     // Compute the gradient of the nmi for the forward transformation
-    if (this->referenceImage->nz > 1) {  // 3D input images
-        switch (dtype) {
-        case NIFTI_TYPE_FLOAT32:
-            reg_getVoxelBasedNMIGradient3D<float>(this->referenceImage,
-                                                  this->warpedImage,
-                                                  this->referenceBinNumber,
-                                                  this->floatingBinNumber,
-                                                  this->forwardJointHistogramLog,
-                                                  this->forwardEntropyValues,
-                                                  this->warpedGradient,
-                                                  this->voxelBasedGradient,
-                                                  this->referenceMask,
-                                                  currentTimepoint,
-                                                  this->timePointWeight[currentTimepoint]);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            reg_getVoxelBasedNMIGradient3D<double>(this->referenceImage,
-                                                   this->warpedImage,
-                                                   this->referenceBinNumber,
-                                                   this->floatingBinNumber,
-                                                   this->forwardJointHistogramLog,
-                                                   this->forwardEntropyValues,
-                                                   this->warpedGradient,
-                                                   this->voxelBasedGradient,
-                                                   this->referenceMask,
-                                                   currentTimepoint,
-                                                   this->timePointWeight[currentTimepoint]);
-            break;
-        default:
-            reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
-            reg_print_msg_error("Unsupported datatype");
-            reg_exit();
+    std::visit([&](auto&& refImgDataType) {
+        using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
+        if (this->referenceImage->nz > 1) {  // 3D input images
+            reg_getVoxelBasedNMIGradient3D<RefImgDataType>(this->referenceImage,
+                                                           this->warpedImage,
+                                                           this->referenceBinNumber,
+                                                           this->floatingBinNumber,
+                                                           this->jointHistogramLog,
+                                                           this->entropyValues,
+                                                           this->warpedGradient,
+                                                           this->voxelBasedGradient,
+                                                           this->referenceMask,
+                                                           currentTimepoint,
+                                                           this->timePointWeight[currentTimepoint]);
+        } else { // 2D input images
+            reg_getVoxelBasedNMIGradient2D<RefImgDataType>(this->referenceImage,
+                                                           this->warpedImage,
+                                                           this->referenceBinNumber,
+                                                           this->floatingBinNumber,
+                                                           this->jointHistogramLog,
+                                                           this->entropyValues,
+                                                           this->warpedGradient,
+                                                           this->voxelBasedGradient,
+                                                           this->referenceMask,
+                                                           currentTimepoint,
+                                                           this->timePointWeight[currentTimepoint]);
         }
-    } else { // 2D input images
-        switch (dtype) {
-        case NIFTI_TYPE_FLOAT32:
-            reg_getVoxelBasedNMIGradient2D<float>(this->referenceImage,
-                                                  this->warpedImage,
-                                                  this->referenceBinNumber,
-                                                  this->floatingBinNumber,
-                                                  this->forwardJointHistogramLog,
-                                                  this->forwardEntropyValues,
-                                                  this->warpedGradient,
-                                                  this->voxelBasedGradient,
-                                                  this->referenceMask,
-                                                  currentTimepoint,
-                                                  this->timePointWeight[currentTimepoint]);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            reg_getVoxelBasedNMIGradient2D<double>(this->referenceImage,
-                                                   this->warpedImage,
-                                                   this->referenceBinNumber,
-                                                   this->floatingBinNumber,
-                                                   this->forwardJointHistogramLog,
-                                                   this->forwardEntropyValues,
-                                                   this->warpedGradient,
-                                                   this->voxelBasedGradient,
-                                                   this->referenceMask,
-                                                   currentTimepoint,
-                                                   this->timePointWeight[currentTimepoint]);
-            break;
-        default:
-            reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
-            reg_print_msg_error("Unsupported datatype");
-            reg_exit();
-        }
-    }
+    }, NiftiImage::getFloatingDataType(this->referenceImage));
 
     if (this->isSymmetric) {
         dtype = this->floatingImage->datatype;
+        if (dtype != NIFTI_TYPE_FLOAT32 && dtype != NIFTI_TYPE_FLOAT64) {
+            reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
+            reg_print_msg_error("Input images are expected to be of floating precision type");
+            reg_exit();
+        }
         if (this->warpedImageBw->datatype != dtype ||
             this->warpedGradientBw->datatype != dtype ||
             this->voxelBasedGradientBw->datatype != dtype) {
@@ -771,73 +689,34 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {
             reg_exit();
         }
         // Compute the gradient of the nmi for the backward transformation
-        if (this->floatingImage->nz > 1) {  // 3D input images
-            switch (dtype) {
-            case NIFTI_TYPE_FLOAT32:
-                reg_getVoxelBasedNMIGradient3D<float>(this->floatingImage,
-                                                      this->warpedImageBw,
-                                                      this->floatingBinNumber,
-                                                      this->referenceBinNumber,
-                                                      this->backwardJointHistogramLog,
-                                                      this->backwardEntropyValues,
-                                                      this->warpedGradientBw,
-                                                      this->voxelBasedGradientBw,
-                                                      this->floatingMask,
-                                                      currentTimepoint,
-                                                      this->timePointWeight[currentTimepoint]);
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                reg_getVoxelBasedNMIGradient3D<double>(this->floatingImage,
-                                                       this->warpedImageBw,
-                                                       this->floatingBinNumber,
-                                                       this->referenceBinNumber,
-                                                       this->backwardJointHistogramLog,
-                                                       this->backwardEntropyValues,
-                                                       this->warpedGradientBw,
-                                                       this->voxelBasedGradientBw,
-                                                       this->floatingMask,
-                                                       currentTimepoint,
-                                                       this->timePointWeight[currentTimepoint]);
-                break;
-            default:
-                reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
-                reg_print_msg_error("Unsupported datatype");
-                reg_exit();
+        std::visit([&](auto&& floImgDataType) {
+            using FloImgDataType = std::decay_t<decltype(floImgDataType)>;
+            if (this->floatingImage->nz > 1) {  // 3D input images
+                reg_getVoxelBasedNMIGradient3D<FloImgDataType>(this->floatingImage,
+                                                               this->warpedImageBw,
+                                                               this->floatingBinNumber,
+                                                               this->referenceBinNumber,
+                                                               this->jointHistogramLogBw,
+                                                               this->entropyValuesBw,
+                                                               this->warpedGradientBw,
+                                                               this->voxelBasedGradientBw,
+                                                               this->floatingMask,
+                                                               currentTimepoint,
+                                                               this->timePointWeight[currentTimepoint]);
+            } else { // 2D input images
+                reg_getVoxelBasedNMIGradient2D<FloImgDataType>(this->floatingImage,
+                                                               this->warpedImageBw,
+                                                               this->floatingBinNumber,
+                                                               this->referenceBinNumber,
+                                                               this->jointHistogramLogBw,
+                                                               this->entropyValuesBw,
+                                                               this->warpedGradientBw,
+                                                               this->voxelBasedGradientBw,
+                                                               this->floatingMask,
+                                                               currentTimepoint,
+                                                               this->timePointWeight[currentTimepoint]);
             }
-        } else { // 2D input images
-            switch (dtype) {
-            case NIFTI_TYPE_FLOAT32:
-                reg_getVoxelBasedNMIGradient2D<float>(this->floatingImage,
-                                                      this->warpedImageBw,
-                                                      this->floatingBinNumber,
-                                                      this->referenceBinNumber,
-                                                      this->backwardJointHistogramLog,
-                                                      this->backwardEntropyValues,
-                                                      this->warpedGradientBw,
-                                                      this->voxelBasedGradientBw,
-                                                      this->floatingMask,
-                                                      currentTimepoint,
-                                                      this->timePointWeight[currentTimepoint]);
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                reg_getVoxelBasedNMIGradient2D<double>(this->floatingImage,
-                                                       this->warpedImageBw,
-                                                       this->floatingBinNumber,
-                                                       this->referenceBinNumber,
-                                                       this->backwardJointHistogramLog,
-                                                       this->backwardEntropyValues,
-                                                       this->warpedGradientBw,
-                                                       this->voxelBasedGradientBw,
-                                                       this->floatingMask,
-                                                       currentTimepoint,
-                                                       this->timePointWeight[currentTimepoint]);
-                break;
-            default:
-                reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
-                reg_print_msg_error("Unsupported datatype");
-                reg_exit();
-            }
-        }
+        }, NiftiImage::getFloatingDataType(this->floatingImage));
     }
 #ifndef NDEBUG
     reg_print_msg_debug("reg_nmi::GetVoxelBasedSimilarityMeasureGradient called");

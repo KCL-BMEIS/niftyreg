@@ -66,56 +66,27 @@ protected:
     unsigned short referenceBinNumber[255];
     unsigned short floatingBinNumber[255];
     unsigned short totalBinNumber[255];
-    double **forwardJointHistogramPro;
-    double **forwardJointHistogramLog;
-    double **forwardEntropyValues;
-    double **backwardJointHistogramPro;
-    double **backwardJointHistogramLog;
-    double **backwardEntropyValues;
+    double **jointHistogramPro;
+    double **jointHistogramLog;
+    double **entropyValues;
+    double **jointHistogramProBw;
+    double **jointHistogramLogBw;
+    double **entropyValuesBw;
 
     void DeallocateHistogram();
 };
 /* *************************************************************** */
 extern "C++" template <class DataType>
-void reg_getNMIValue(nifti_image *referenceImage,
-                     nifti_image *warpedImage,
-                     double *timePointWeight,
-                     unsigned short *referenceBinNumber,
-                     unsigned short *floatingBinNumber,
-                     unsigned short *totalBinNumber,
+void reg_getNMIValue(const nifti_image *referenceImage,
+                     const nifti_image *warpedImage,
+                     const double *timePointWeight,
+                     const unsigned short *referenceBinNumber,
+                     const unsigned short *floatingBinNumber,
+                     const unsigned short *totalBinNumber,
                      double **jointHistogramLog,
                      double **jointhistogramPro,
                      double **entropyValues,
-                     int *referenceMask
-);
-/* *************************************************************** */
-extern "C++" template <class DataType>
-void reg_getVoxelBasedNMIGradient2D(const nifti_image *referenceImage,
-                                    const nifti_image *warpedImage,
-                                    const unsigned short *referenceBinNumber,
-                                    const unsigned short *floatingBinNumber,
-                                    const double *const *jointHistogramLog,
-                                    const double *const *entropyValues,
-                                    const nifti_image *warpedGradient,
-                                    nifti_image *nmiGradientImage,
-                                    const int *referenceMask,
-                                    const int& currentTimepoint,
-                                    const double& timepointWeight
-);
-/* *************************************************************** */
-extern "C++" template <class DataType>
-void reg_getVoxelBasedNMIGradient3D(const nifti_image *referenceImage,
-                                    const nifti_image *warpedImage,
-                                    const unsigned short *referenceBinNumber,
-                                    const unsigned short *floatingBinNumber,
-                                    const double *const *jointHistogramLog,
-                                    const double *const *entropyValues,
-                                    const nifti_image *warpedGradient,
-                                    nifti_image *nmiGradientImage,
-                                    const int *referenceMask,
-                                    const int& currentTimepoint,
-                                    const double& timepointWeight
-);
+                     const int *referenceMask);
 /* *************************************************************** */
 // Simple class to dynamically manage an array of pointers
 // Needed for multi channel NMI
@@ -237,9 +208,9 @@ inline int previous(int current, int num_dims) {
 /// @brief NMI measure of similarity class
 class reg_multichannel_nmi: public reg_measure {
 public:
-    /// @brief reg_nmi class constructor
+    /// @brief reg_multichannel_nmi class constructor
     reg_multichannel_nmi() {}
-    /// @brief reg_nmi class destructor
+    /// @brief reg_multichannel_nmi class destructor
     virtual ~reg_multichannel_nmi() {}
 
     /// @brief Returns the nmi value
@@ -257,12 +228,12 @@ protected:
     unsigned short referenceBinNumber[255];
     unsigned short floatingBinNumber[255];
     unsigned short totalBinNumber[255];
-    double *forwardJointHistogramProp;
-    double *forwardJointHistogramLog;
-    double *forwardEntropyValues;
-    double *backwardJointHistogramProp;
-    double *backwardJointHistogramLog;
-    double *backwardEntropyValues;
+    double *jointHistogramProp;
+    double *jointHistogramLog;
+    double *entropyValues;
+    double *jointHistogramPropBw;
+    double *jointHistogramLogBw;
+    double *entropyValuesBw;
 };
 /* *************************************************************** */
 /// Multi channel NMI version - Entropy
