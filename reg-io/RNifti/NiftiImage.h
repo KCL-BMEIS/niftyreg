@@ -27,6 +27,7 @@
 #include <map>
 #include <locale>
 #include <limits>
+#include <variant>
 
 #endif
 
@@ -1733,6 +1734,65 @@ public:
     **/
     NiftiImage & changeDatatype (const std::string &datatype, const bool useSlope = false);
 
+    /// @brief  A variant type holding a NIfTI datatype
+    using DataType = std::variant<uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double>;
+
+    /**
+     * Return the datatype of the image
+     * @return A variant holding a NIfTI datatype
+    */
+    static DataType getDataType(const nifti_image *image)
+    {
+        if (image == nullptr)
+            throw std::runtime_error("Cannot get datatype of null image");
+        switch (image->datatype)
+        {
+            case DT_UINT8:      return uint8_t();          break;
+            case DT_INT16:      return int16_t();          break;
+            case DT_INT32:      return int32_t();          break;
+            case DT_FLOAT32:    return float();            break;
+            case DT_FLOAT64:    return double();           break;
+            case DT_INT8:       return int8_t();           break;
+            case DT_UINT16:     return uint16_t();         break;
+            case DT_UINT32:     return uint32_t();         break;
+            case DT_INT64:      return int64_t();          break;
+            case DT_UINT64:     return uint64_t();         break;
+
+            default:
+            throw std::runtime_error("Unsupported data type (" + std::string(nifti_datatype_string(image->datatype)) + ")");
+        }
+    }
+
+    /**
+     * Return the datatype of the image
+     * @return A variant holding a NIfTI datatype
+    */
+    DataType getDataType() const { return getDataType(image); }
+
+    /**
+     * Return the datatype of the image, if it is a floating-point type
+     * @return A variant holding a NIfTI datatype
+    */
+    static std::variant<float, double> getFloatingDataType(const nifti_image *image)
+    {
+        if (image == nullptr)
+            throw std::runtime_error("Cannot get datatype of null image");
+        switch (image->datatype)
+        {
+            case DT_FLOAT32:    return float();            break;
+            case DT_FLOAT64:    return double();           break;
+
+            default:
+            throw std::runtime_error("Unsupported data type (" + std::string(nifti_datatype_string(image->datatype)) + ")");
+        }
+    }
+
+    /**
+     * Return the datatype of the image, if it is a floating-point type
+     * @return A variant holding a NIfTI datatype
+    */
+    std::variant<float, double> getFloatingDataType() const { return getFloatingDataType(image); }
+
     /**
      * Replace the pixel data in the image with the contents of a vector
      * @param data A data vector, whose elements will be used to replace the image data
@@ -1786,7 +1846,7 @@ public:
         if (image->data)
             free(image->data);
         recalcVoxelNumber();
-        image->data = calloc(1, nifti_get_volsize(image));
+        image->data = calloc(1, totalBytes());
     }
 
     /**
