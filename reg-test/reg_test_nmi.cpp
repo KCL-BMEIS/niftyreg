@@ -1,6 +1,5 @@
 // OpenCL and CUDA are not supported for this test yet
 #undef _USE_OPENCL
-#undef _USE_CUDA
 
 #include "reg_test_common.h"
 #include "_reg_tools.h"
@@ -24,12 +23,12 @@ public:
         std::uniform_real_distribution<float> distr(2, 65);
 
         // Create reference and floating 2D images
-        vector<NiftiImage::dim_t> dim{ 16, 16 };
+        vector<NiftiImage::dim_t> dim{ 60, 62 };
         NiftiImage reference2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating2d(dim, NIFTI_TYPE_FLOAT32);
 
         // Create reference and floating 3D images
-        dim.push_back(16);
+        dim.push_back(64);
         NiftiImage reference3d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating3d(dim, NIFTI_TYPE_FLOAT32);
 
