@@ -42,3 +42,7 @@ CMakeSettings.json
 
 # Build
 build*
+
+# Doxygen
+html
+latex
