@@ -178,7 +178,12 @@ void reg_base<T>::SetWarpedPaddingValue(float warpedPaddingValueIn) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLevelNumber(unsigned levelNumberIn) {
+    if(levelNumberIn>0)
     levelNumber = levelNumberIn;
+    else{
+        reg_print_msg_error("The number of level is expected to be strictly positive. Exit");
+        reg_exit();
+    }
 #ifndef NDEBUG
     reg_print_fct_debug("reg_base<T>::SetLevelNumber");
 #endif
