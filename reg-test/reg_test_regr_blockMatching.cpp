@@ -19,9 +19,7 @@ public:
         if (!testCases.empty())
             return;
 
-        // Create a random number generator
-        std::random_device rd;
-        std::mt19937 gen(rd());
+        std::mt19937 gen(0);        
         std::uniform_real_distribution<float> distr(0, 1);
 
         // Create a reference and floating 2D images

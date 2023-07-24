@@ -90,6 +90,12 @@ __device__ __inline__ float blockReduceSum(float val, unsigned tid) {
             shared[tid] += shared[tid + i];
         __syncthreads();
     }
+    // if (tid == 0){
+    //     for (unsigned i = 1; i < 64; ++i) {
+    //             shared[0] += shared[i];
+    //     }
+    // }
+    // __syncthreads();
     return shared[0];
 }
 /* *************************************************************** */
