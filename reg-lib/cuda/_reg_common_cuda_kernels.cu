@@ -8,47 +8,51 @@
 #pragma once
 
 /* *************************************************************** */
-__device__ __inline__ float2 operator*(float a, float2 b) {
+__device__ __inline__ float2 operator*(const float& a, const float2& b) {
     return { a * b.x, a * b.y };
 }
-__device__ __inline__ float3 operator*(float a, float3 b) {
+__device__ __inline__ float3 operator*(const float& a, const float3& b) {
     return { a * b.x, a * b.y, a * b.z };
 }
-__device__ __inline__ float3 operator*(float3 a, float3 b) {
+__device__ __inline__ float3 operator*(const float3& a, const float3& b) {
     return { a.x * b.x, a.y * b.y, a.z * b.z };
 }
-__device__ __inline__ float4 operator*(float4 a, float4 b) {
+__device__ __inline__ float4 operator*(const float4& a, const float4& b) {
     return { a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w };
 }
-__device__ __inline__ float4 operator*(float a, float4 b) {
+__device__ __inline__ float4 operator*(const float& a, const float4& b) {
     return { a * b.x, a * b.y, a * b.z, 0.0f };
 }
 /* *************************************************************** */
-__device__ __inline__ float2 operator/(float2 a, float2 b) {
+__device__ __inline__ float2 operator/(const float2& a, const float2& b) {
     return { a.x / b.x, a.y / b.y };
 }
-__device__ __inline__ float3 operator/(float3 a, float b) {
+__device__ __inline__ float3 operator/(const float3& a, const float& b) {
     return { a.x / b, a.y / b, a.z / b };
 }
-__device__ __inline__ float3 operator/(float3 a, float3 b) {
+__device__ __inline__ float3 operator/(const float3& a, const float3& b) {
     return { a.x / b.x, a.y / b.y, a.z / b.z };
 }
 /* *************************************************************** */
-__device__ __inline__ float2 operator+(float2 a, float2 b) {
+__device__ __inline__ float2 operator+(const float2& a, const float2& b) {
     return { a.x + b.x, a.y + b.y };
 }
-__device__ __inline__ float4 operator+(float4 a, float4 b) {
+__device__ __inline__ float4 operator+(const float4& a, const float4& b) {
     return { a.x + b.x, a.y + b.y, a.z + b.z, 0.0f };
 }
-__device__ __inline__ float3 operator+(float3 a, float3 b) {
+__device__ __inline__ float3 operator+(const float3& a, const float3& b) {
     return { a.x + b.x, a.y + b.y, a.z + b.z };
 }
 /* *************************************************************** */
-__device__ __inline__ float3 operator-(float3 a, float3 b) {
+__device__ __inline__ float3 operator-(const float3& a, const float3& b) {
     return { a.x - b.x, a.y - b.y, a.z - b.z };
 }
-__device__ __inline__ float4 operator-(float4 a, float4 b) {
+__device__ __inline__ float4 operator-(const float4& a, const float4& b) {
     return { a.x - b.x, a.y - b.y, a.z - b.z, 0.f };
+}
+/* *************************************************************** */
+__device__ __inline__ double2 operator+(const double2& a, const double2& b) {
+    return { a.x + b.x, a.y + b.y };
 }
 /* *************************************************************** */
 __device__ __inline__ void reg_mat33_mul_cuda(const mat33& mat, const float (&in)[3], const float& weight, float (&out)[3], const bool& is3d) {

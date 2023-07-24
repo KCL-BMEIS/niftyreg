@@ -18,7 +18,7 @@ reg_optimiser<T>::reg_optimiser() {
     this->currentDofBw = nullptr;
     this->bestDof = nullptr;
     this->bestDofBw = nullptr;
-    this->isBackwards = false;
+    this->isSymmetric = false;
     this->gradient = nullptr;
     this->currentIterationNumber = 0;
     this->currentObjFunctionValue = 0;
@@ -69,23 +69,21 @@ void reg_optimiser<T>::Initialise(size_t nvox,
     this->maxIterationNumber = maxIt;
     this->currentIterationNumber = startIt;
     this->currentDof = cppData;
-    if (this->bestDof != nullptr) free(this->bestDof);
-    this->bestDof = (T*)malloc(this->dofNumber * sizeof(T));
-    memcpy(this->bestDof, this->currentDof, this->dofNumber * sizeof(T));
-    if (gradData)
-        this->gradient = gradData;
+    this->gradient = gradData;
 
-    if (nvoxBw > 0)
+    if (this->bestDof) free(this->bestDof);
+    this->bestDof = (T*)malloc(this->dofNumber * sizeof(T));
+
+    this->isSymmetric = nvoxBw > 0 && cppDataBw && gradDataBw;
+    if (this->isSymmetric) {
         this->dofNumberBw = nvoxBw;
-    if (cppDataBw) {
         this->currentDofBw = cppDataBw;
-        this->isBackwards = true;
-        if (this->bestDofBw != nullptr) free(this->bestDofBw);
-        this->bestDofBw = (T*)malloc(this->dofNumberBw * sizeof(T));
-        memcpy(this->bestDofBw, this->currentDofBw, this->dofNumberBw * sizeof(T));
-    }
-    if (gradDataBw)
         this->gradientBw = gradDataBw;
+        if (this->bestDofBw) free(this->bestDofBw);
+        this->bestDofBw = (T*)malloc(this->dofNumberBw * sizeof(T));
+    }
+
+    this->StoreCurrentDof();
 
     this->intOpt = intOpt;
     this->bestObjFunctionValue = this->currentObjFunctionValue = this->intOpt->GetObjectiveFunctionValue();
@@ -97,25 +95,25 @@ void reg_optimiser<T>::Initialise(size_t nvox,
 /* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::RestoreBestDof() {
-    // restore forward transformation
+    // Restore forward transformation
     memcpy(this->currentDof, this->bestDof, this->dofNumber * sizeof(T));
-    // restore backward transformation if required
-    if (this->currentDofBw && this->bestDofBw && this->dofNumberBw > 0)
+    // Restore backward transformation if required
+    if (this->isSymmetric)
         memcpy(this->currentDofBw, this->bestDofBw, this->dofNumberBw * sizeof(T));
 }
 /* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::StoreCurrentDof() {
-    // save forward transformation
+    // Save forward transformation
     memcpy(this->bestDof, this->currentDof, this->dofNumber * sizeof(T));
-    // save backward transformation if required
-    if (this->currentDofBw && this->bestDofBw && this->dofNumberBw > 0)
+    // Save backward transformation if required
+    if (this->isSymmetric)
         memcpy(this->bestDofBw, this->currentDofBw, this->dofNumberBw * sizeof(T));
 }
 /* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::Perturbation(float length) {
-    // initialise the randomiser
+    // Initialise the randomiser
     srand((unsigned)time(nullptr));
     // Reset the number of iteration
     this->currentIterationNumber = 0;
@@ -123,7 +121,7 @@ void reg_optimiser<T>::Perturbation(float length) {
     for (size_t i = 0; i < this->dofNumber; ++i) {
         this->currentDof[i] = this->bestDof[i] + length * (float)(rand() - RAND_MAX / 2) / ((float)RAND_MAX / 2.0f);
     }
-    if (this->isBackwards) {
+    if (this->isSymmetric) {
         for (size_t i = 0; i < this->dofNumberBw; ++i) {
             this->currentDofBw[i] = this->bestDofBw[i] + length * (float)(rand() % 2001 - 1000) / 1000.f;
         }
@@ -195,10 +193,9 @@ void reg_optimiser<T>::Optimise(T maxLength, T smallLength, T& startLength) {
 template <class T>
 reg_conjugateGradient<T>::reg_conjugateGradient(): reg_optimiser<T>::reg_optimiser() {
     this->array1 = nullptr;
-    this->array2 = nullptr;
     this->array1Bw = nullptr;
+    this->array2 = nullptr;
     this->array2Bw = nullptr;
-
 #ifndef NDEBUG
     reg_print_msg_debug("reg_conjugateGradient<T>::reg_conjugateGradient() called");
 #endif
@@ -210,22 +207,18 @@ reg_conjugateGradient<T>::~reg_conjugateGradient() {
         free(this->array1);
         this->array1 = nullptr;
     }
-
-    if (this->array2) {
-        free(this->array2);
-        this->array2 = nullptr;
-    }
-
     if (this->array1Bw) {
         free(this->array1Bw);
         this->array1Bw = nullptr;
     }
-
+    if (this->array2) {
+        free(this->array2);
+        this->array2 = nullptr;
+    }
     if (this->array2Bw) {
         free(this->array2Bw);
         this->array2Bw = nullptr;
     }
-
 #ifndef NDEBUG
     reg_print_msg_debug("reg_conjugateGradient<T>::~reg_conjugateGradient() called");
 #endif
@@ -252,7 +245,7 @@ void reg_conjugateGradient<T>::Initialise(size_t nvox,
     this->array1 = (T*)malloc(this->dofNumber * sizeof(T));
     this->array2 = (T*)malloc(this->dofNumber * sizeof(T));
 
-    if (cppDataBw && gradDataBw && nvoxBw > 0) {
+    if (this->isSymmetric) {
         if (this->array1Bw) free(this->array1Bw);
         if (this->array2Bw) free(this->array2Bw);
         this->array1Bw = (T*)malloc(this->dofNumberBw * sizeof(T));
@@ -296,7 +289,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
         for (i = 0; i < num; i++) {
             array2Ptr[i] = array1Ptr[i] = -gradientPtr[i];
         }
-        if (this->dofNumberBw > 0) {
+        if (this->isSymmetric) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(numBw,array1PtrBw,array2PtrBw,gradientPtrBw)
@@ -323,7 +316,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
         }
         double gam = dgg / gg;
 
-        if (this->dofNumberBw > 0) {
+        if (this->isSymmetric) {
             double dggBw = 0, ggBw = 0;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -346,7 +339,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
             array2Ptr[i] = static_cast<T>(array1Ptr[i] + gam * array2Ptr[i]);
             gradientPtr[i] = -array2Ptr[i];
         }
-        if (this->dofNumberBw > 0) {
+        if (this->isSymmetric) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(numBw,array1PtrBw,array2PtrBw,gradientPtrBw,gam)
@@ -365,9 +358,7 @@ void reg_conjugateGradient<T>::Optimise(T maxLength,
                                         T smallLength,
                                         T &startLength) {
     this->UpdateGradientValues();
-    reg_optimiser<T>::Optimise(maxLength,
-                               smallLength,
-                               startLength);
+    reg_optimiser<T>::Optimise(maxLength, smallLength, startLength);
 }
 /* *************************************************************** */
 template <class T>
@@ -377,8 +368,7 @@ void reg_conjugateGradient<T>::Perturbation(float length) {
 }
 /* *************************************************************** */
 template <class T>
-reg_lbfgs<T>::reg_lbfgs()
-    :reg_optimiser<T>::reg_optimiser() {
+reg_lbfgs<T>::reg_lbfgs(): reg_optimiser<T>::reg_optimiser() {
     this->stepToKeep = 5;
     this->oldDof = nullptr;
     this->oldGrad = nullptr;

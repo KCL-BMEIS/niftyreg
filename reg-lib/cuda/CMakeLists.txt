@@ -38,7 +38,7 @@ else(NOT COMPILE_RESULT_VAR)
     endif()
     #adjust for debug and release versions
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --ptxas-options=-v -g -G -lineinfo")
+        set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --ptxas-options=-v -g -G")
     else(CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --ptxas-options=-O3")
     endif(CMAKE_BUILD_TYPE STREQUAL "Debug")

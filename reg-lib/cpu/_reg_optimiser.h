@@ -29,7 +29,7 @@ public:
 template <class T>
 class reg_optimiser {
 protected:
-    bool isBackwards;
+    bool isSymmetric;
     size_t dofNumber;
     size_t dofNumberBw;
     size_t ndim;
@@ -131,10 +131,10 @@ public:
                             size_t startIt,
                             InterfaceOptimiser *intOpt,
                             T *cppData,
-                            T *gradData = nullptr,
-                            size_t nvoxBw = 0,
-                            T *cppDataBw = nullptr,
-                            T *gradDataBw = nullptr);
+                            T *gradData,
+                            size_t nvoxBw,
+                            T *cppDataBw,
+                            T *gradDataBw);
     virtual void Optimise(T maxLength,
                           T smallLength,
                           T& startLength);
@@ -169,14 +169,14 @@ public:
                             size_t maxIt,
                             size_t startIt,
                             InterfaceOptimiser *intOpt,
-                            T *cppData = nullptr,
-                            T *gradData = nullptr,
-                            size_t nvoxBw = 0,
-                            T *cppDataBw = nullptr,
-                            T *gradDataBw = nullptr) override;
+                            T *cppData,
+                            T *gradData,
+                            size_t nvoxBw,
+                            T *cppDataBw,
+                            T *gradDataBw) override;
     virtual void Optimise(T maxLength,
                           T smallLength,
-                          T &startLength) override;
+                          T& startLength) override;
     virtual void Perturbation(float length) override;
 };
 /* *************************************************************** */
@@ -208,14 +208,14 @@ public:
                             size_t maxIt,
                             size_t startIt,
                             InterfaceOptimiser *intOpt,
-                            T *cppData = nullptr,
-                            T *gradData = nullptr,
-                            size_t nvoxBw = 0,
-                            T *cppDataBw = nullptr,
-                            T *gradDataBw = nullptr) override;
+                            T *cppData,
+                            T *gradData,
+                            size_t nvoxBw,
+                            T *cppDataBw,
+                            T *gradDataBw) override;
     virtual void Optimise(T maxLength,
                           T smallLength,
-                          T &startLength) override;
+                          T& startLength) override;
 };
 /* *************************************************************** */
 #include "_reg_optimiser.cpp"

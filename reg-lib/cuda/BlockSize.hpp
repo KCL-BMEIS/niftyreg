@@ -57,8 +57,8 @@ struct BlockSize {
     unsigned reg_defField_getJacobianMatrix;
     /* _reg_optimiser_gpu */
     unsigned reg_initialiseConjugateGradient;
-    unsigned reg_GetConjugateGradient1;
-    unsigned reg_GetConjugateGradient2;
+    unsigned reg_getConjugateGradient1;
+    unsigned reg_getConjugateGradient2;
     unsigned GetMaximalLength;
     unsigned reg_updateControlPointPosition;
     /* _reg_ssd_gpu */
@@ -122,8 +122,8 @@ struct BlockSize100: public BlockSize {
         reg_defField_getJacobianMatrix = 512; // 16 reg - 24 smem - 04 cmem
         /* _reg_optimiser_gpu */
         reg_initialiseConjugateGradient = 384; // 09 reg - 24 smem
-        reg_GetConjugateGradient1 = 320; // 12 reg - 24 smem
-        reg_GetConjugateGradient2 = 384; // 10 reg - 40 smem
+        reg_getConjugateGradient1 = 320; // 12 reg - 24 smem
+        reg_getConjugateGradient2 = 384; // 10 reg - 40 smem
         GetMaximalLength = 384; // 04 reg - 24 smem
         reg_updateControlPointPosition = 384; // 08 reg - 24 smem
         /* _reg_ssd_gpu */
@@ -191,8 +191,8 @@ struct BlockSize300: public BlockSize {
         reg_defField_getJacobianMatrix = 768; // 34 reg
         /* _reg_optimiser_gpu */
         reg_initialiseConjugateGradient = 1024; // 20 reg
-        reg_GetConjugateGradient1 = 1024; // 22 reg
-        reg_GetConjugateGradient2 = 1024; // 25 reg
+        reg_getConjugateGradient1 = 1024; // 22 reg
+        reg_getConjugateGradient2 = 1024; // 25 reg
         GetMaximalLength = 1024; // 20 reg
         reg_updateControlPointPosition = 1024; // 22 reg
         /* _reg_ssd_gpu */

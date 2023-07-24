@@ -9,7 +9,7 @@ __global__ void reg_initialiseConjugateGradient_kernel(float4 *conjugateGCuda,
     }
 }
 /* *************************************************************** */
-__global__ void reg_GetConjugateGradient1_kernel(float2 *sums,
+__global__ void reg_getConjugateGradient1_kernel(float2 *sums,
                                                  cudaTextureObject_t gradientImageTexture,
                                                  cudaTextureObject_t conjugateGTexture,
                                                  cudaTextureObject_t conjugateHTexture,
@@ -27,7 +27,7 @@ __global__ void reg_GetConjugateGradient1_kernel(float2 *sums,
     }
 }
 /* *************************************************************** */
-__global__ void reg_GetConjugateGradient2_kernel(float4 *gradientImageCuda,
+__global__ void reg_getConjugateGradient2_kernel(float4 *gradientImageCuda,
                                                  float4 *conjugateGCuda,
                                                  float4 *conjugateHCuda,
                                                  const unsigned nVoxels,
