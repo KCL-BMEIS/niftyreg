@@ -12,6 +12,7 @@
 #include "_reg_ReadWriteImage.h"
 #include "_reg_tools.h"
 #include "_reg_stringFormat.h"
+#include <filesystem>
 
 /* *************************************************************** */
 void reg_hack_filename(nifti_image *image, std::string filename) {
@@ -120,6 +121,14 @@ nifti_image* reg_io_ReadImageHeader(const char *filename) {
 }
 /* *************************************************************** */
 void reg_io_WriteImageFile(nifti_image *image, const char *filename) {
+    // Check if the specified directory exists
+    std::filesystem::path p(filename);
+    p = p.parent_path();
+    if(!std::filesystem::exists(p) && p!=std::filesystem::path()){
+        std::cerr << "The specified folder to save the following file does not exist:" << std::endl;
+        std::cerr << filename << std::endl;
+        reg_exit();
+    }
     // First read the file format in order to use the correct library
     int fileFormat = reg_io_checkFileFormat(filename);
 
