@@ -65,7 +65,7 @@ public:
         ));
 
         // Add platforms, composition, and bspline to the test data
-        for (auto&& testData : testData) {
+        for (auto&& data : testData) {
             for (auto&& platformType : PlatformTypes) {
                 shared_ptr<Platform> platform{ new Platform(platformType) };
                 unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
@@ -74,7 +74,7 @@ public:
                         continue;   // CUDA platform does not support composition
                     for (int bspline = 0; bspline < 2; bspline++) {
                         // Make a copy of the test data
-                        auto td = testData;
+                        auto td = data;
                         auto&& [testName, reference, controlPointGrid] = td;
                         // Add content
                         unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };

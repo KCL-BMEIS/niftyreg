@@ -98,7 +98,7 @@ public:
                 measure->Initialise(*measure_nmi, *content);
                 double nmi = measure_nmi->GetSimilarityMeasureValue();
 
-                testCases.push_back({ testName, nmi, expected});
+                testCases.push_back({ testName + " " + platform->GetName(), nmi, expected});
             }
         }
     }

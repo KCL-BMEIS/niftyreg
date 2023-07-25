@@ -33,22 +33,14 @@ void InterpCubicSplineKernel(T relative, T (&basis)[4], T (&derivative)[4]) {
 }
 
 NiftiImage CreateControlPointGrid(const NiftiImage& reference) {
-    // Set the spacing for the control point grid
-    float spacingInMillimetre[3] = { reference->dx, reference->dy, reference->dz };
-
-    // Define the spacing for the first level
-    float gridSpacing[3];
-    gridSpacing[0] = spacingInMillimetre[0];
-    gridSpacing[1] = spacingInMillimetre[1];
-    gridSpacing[2] = 1;
-    if (reference->nz > 1)
-        gridSpacing[2] = spacingInMillimetre[2];
+    // Set the spacing for the control point grid to 2 voxel along each axis
+    float gridSpacing[3] = { reference->dx*2, reference->dy*2, reference->dz*2};
 
     // Create and allocate the control point image
     NiftiImage controlPointGrid;
     reg_createControlPointGrid<float>(controlPointGrid, reference, gridSpacing);
 
-    // The control point position image is initialised with the affine transformation
+    // The control point position image is initialised with an identity transformation
     reg_getDeformationFromDisplacement(controlPointGrid);
 
     return controlPointGrid;
