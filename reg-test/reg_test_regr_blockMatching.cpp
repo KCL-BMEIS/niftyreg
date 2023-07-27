@@ -19,7 +19,7 @@ public:
         if (!testCases.empty())
             return;
 
-        std::mt19937 gen(0);        
+        std::mt19937 gen(0);
         std::uniform_real_distribution<float> distr(0, 1);
 
         // Create a reference and floating 2D images

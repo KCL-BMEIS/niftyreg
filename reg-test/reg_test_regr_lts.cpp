@@ -114,7 +114,7 @@ public:
             contentCuda->SetWarped(warpedCuda.disown());
 
             // Initialise the block matching and run it on the CPU
-            unique_ptr<BlockMatchingKernel> bmKernelCpu { new CpuBlockMatchingKernel(contentCpu.get()) };
+            unique_ptr<BlockMatchingKernel> bmKernelCpu{ new CpuBlockMatchingKernel(contentCpu.get()) };
             bmKernelCpu->Calculate();
 
             // Set the CUDA block matching parameters

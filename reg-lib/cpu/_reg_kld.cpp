@@ -84,10 +84,10 @@ double reg_getKLDivergence(nifti_image *referenceImage,
                            int *mask) {
 #ifdef _WIN32
     long voxel;
-    const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
 #else
     size_t voxel;
-    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 #endif
 
     DataType *refPtr = static_cast<DataType*>(referenceImage->data);
@@ -112,9 +112,8 @@ double reg_getKLDivergence(nifti_image *referenceImage,
 #pragma omp parallel for default(none) \
     shared(voxelNumber,currentRefPtr, currentWarPtr, \
     maskPtr, jacobianDetImg, jacPtr) \
-    private(voxel, tempRefValue, tempWarValue, tempValue) \
-    reduction(+:measure_tp) \
-    reduction(+:num)
+    private(tempRefValue, tempWarValue, tempValue) \
+    reduction(+:measure_tp, num)
 #endif
             for (voxel = 0; voxel < voxelNumber; ++voxel) {
                 if (maskPtr[voxel] > -1) {
@@ -216,10 +215,10 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
                                            double timepointWeight) {
 #ifdef _WIN32
     long voxel;
-    const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
 #else
     size_t voxel;
-    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 #endif
 
     DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
@@ -268,7 +267,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
     maskPtr, jacobianDetImg, jacPtr, referenceImage, \
     measureGradPtrX, measureGradPtrY, measureGradPtrZ, \
     currentGradPtrX, currentGradPtrY, currentGradPtrZ, adjusted_weight) \
-    private(voxel, tempValue, tempGradX, tempGradY, tempGradZ, \
+    private(tempValue, tempGradX, tempGradY, tempGradZ, \
     tempRefValue, tempWarValue)
 #endif
     for (voxel = 0; voxel < voxelNumber; ++voxel) {

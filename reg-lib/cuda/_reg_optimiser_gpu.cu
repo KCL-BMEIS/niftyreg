@@ -56,7 +56,7 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
     this->gradientCuda = reinterpret_cast<float4*>(gradData);
 
     cudaCommon_free(this->bestDofCuda);
-    if (cudaCommon_allocateArrayToDevice(&this->bestDofCuda, (int)this->GetVoxNumber())) {
+    if (cudaCommon_allocateArrayToDevice(&this->bestDofCuda, this->GetVoxNumber())) {
         reg_print_fct_error("reg_optimiser_gpu::Initialise()");
         reg_print_msg_error("Error when allocating the best control point array on the GPU");
         reg_exit();
@@ -68,7 +68,7 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
         this->currentDofBwCuda = reinterpret_cast<float4*>(cppDataBw);
         this->gradientBwCuda = reinterpret_cast<float4*>(gradDataBw);
         cudaCommon_free(this->bestDofBwCuda);
-        if (cudaCommon_allocateArrayToDevice(&this->bestDofBwCuda, (int)this->GetVoxNumberBw())) {
+        if (cudaCommon_allocateArrayToDevice(&this->bestDofBwCuda, this->GetVoxNumberBw())) {
             reg_print_fct_error("reg_optimiser_gpu::Initialise()");
             reg_print_msg_error("Error when allocating the best control point backwards array on the GPU");
             reg_exit();
@@ -153,16 +153,16 @@ void reg_conjugateGradient_gpu::Initialise(size_t nvox,
     reg_optimiser_gpu::Initialise(nvox, ndim, optX, optY, optZ, maxIt, startIt, intOpt, cppData, gradData, nvoxBw, cppDataBw, gradDataBw);
     this->firstCall = true;
     cudaCommon_free(this->array1); cudaCommon_free(this->array2);
-    if (cudaCommon_allocateArrayToDevice<float4>(&this->array1, (int)this->GetVoxNumber()) ||
-        cudaCommon_allocateArrayToDevice<float4>(&this->array2, (int)this->GetVoxNumber())) {
+    if (cudaCommon_allocateArrayToDevice<float4>(&this->array1, this->GetVoxNumber()) ||
+        cudaCommon_allocateArrayToDevice<float4>(&this->array2, this->GetVoxNumber())) {
         reg_print_fct_error("reg_conjugateGradient_gpu::Initialise()");
         reg_print_msg_error("Error when allocating the conjugate gradient array on the GPU");
         reg_exit();
     }
     if (this->isSymmetric) {
         cudaCommon_free(this->array1Bw); cudaCommon_free(this->array2Bw);
-        if (cudaCommon_allocateArrayToDevice<float4>(&this->array1Bw, (int)this->GetVoxNumberBw()) ||
-            cudaCommon_allocateArrayToDevice<float4>(&this->array2Bw, (int)this->GetVoxNumberBw())) {
+        if (cudaCommon_allocateArrayToDevice<float4>(&this->array1Bw, this->GetVoxNumberBw()) ||
+            cudaCommon_allocateArrayToDevice<float4>(&this->array2Bw, this->GetVoxNumberBw())) {
             reg_print_fct_error("reg_conjugateGradient_gpu::Initialise()");
             reg_print_msg_error("Error when allocating the conjugate gradient array backwards on the GPU");
             reg_exit();

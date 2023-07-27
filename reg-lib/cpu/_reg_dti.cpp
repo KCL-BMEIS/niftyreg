@@ -88,10 +88,10 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
 {
 #ifdef _WIN32
    long voxel;
-   const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
+   const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
 #else
    size_t voxel;
-   const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
+   const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 #endif
 
    /* As the tensor has 6 unique components that we need to worry about, read them out
@@ -116,14 +116,13 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
    const double twoThirds = (2.0/3.0);
    DataType rXX, rXY, rYY, rXZ, rYZ, rZZ;
 #ifdef _OPENMP
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(referenceImage, referenceIntensityXX, referenceIntensityXY, referenceIntensityXZ, \
           referenceIntensityYY, referenceIntensityYZ, referenceIntensityZZ, \
           warpedIntensityXX,warpedIntensityXY,warpedIntensityXZ, \
           warpedIntensityYY,warpedIntensityYZ, warpedIntensityZZ, mask,voxelNumber) \
-   private(voxel, rXX, rXY, rYY, rXZ, rYZ, rZZ) \
-reduction(+:DTI_cost) \
-reduction(+:n)
+   private(rXX, rXY, rYY, rXZ, rYZ, rZZ) \
+   reduction(+:DTI_cost, n)
 #endif
    for(voxel=0; voxel<voxelNumber; ++voxel)
    {
@@ -234,10 +233,10 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
    // Create pointers to the reference and warped images
 #ifdef _WIN32
     long voxel;
-    const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
 #else
     size_t voxel;
-    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 #endif
 
    /* As the tensor has 6 unique components that we need to worry about, read them out
@@ -280,13 +279,13 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
 
    DataType rXX, rXY, rYY, rXZ, rYZ, rZZ, xxGrad, yyGrad, zzGrad, xyGrad, xzGrad, yzGrad;
 #ifdef _OPENMP
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(referenceIntensityXX, referenceIntensityXY, referenceIntensityXZ, \
           referenceIntensityYY, referenceIntensityYZ, referenceIntensityZZ,warpedIntensityXX, \
           warpedIntensityXY,warpedIntensityXZ ,warpedIntensityYY,warpedIntensityYZ, warpedIntensityZZ, \
           mask, spatialGradXX, spatialGradXY, spatialGradXZ, spatialGradYY, spatialGradYZ, spatialGradZZ, \
           dtiMeasureGradPtrX, dtiMeasureGradPtrY, dtiMeasureGradPtrZ, voxelNumber) \
-   private(voxel, rXX, rXY, rYY, rXZ, rYZ, rZZ, xxGrad, yyGrad, zzGrad, xyGrad, xzGrad, yzGrad)
+   private(rXX, rXY, rYY, rXZ, rYZ, rZZ, xxGrad, yyGrad, zzGrad, xyGrad, xzGrad, yzGrad)
 #endif
    for(voxel=0; voxel<voxelNumber; voxel++)
    {

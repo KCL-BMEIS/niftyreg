@@ -35,7 +35,7 @@ void Content::AllocateWarped() {
     warped->dim[0] = warped->ndim = floating->ndim;
     warped->dim[4] = warped->nt = floating->nt;
     warped->pixdim[4] = warped->dt = 1;
-    warped->nvox = CalcVoxelNumber(*warped, warped->ndim);
+    warped->nvox = NiftiImage::calcVoxelNumber(warped, warped->ndim);
     warped->datatype = floating->datatype;
     warped->nbyper = floating->nbyper;
     warped->data = calloc(warped->nvox, warped->nbyper);
@@ -61,7 +61,7 @@ void Content::AllocateDeformationField(size_t bytes) {
     deformationField->pixdim[6] = deformationField->dv = 1;
     deformationField->dim[7] = deformationField->nw = 1;
     deformationField->pixdim[7] = deformationField->dw = 1;
-    deformationField->nvox = CalcVoxelNumber(*deformationField, deformationField->ndim);
+    deformationField->nvox = NiftiImage::calcVoxelNumber(deformationField, deformationField->ndim);
     deformationField->nbyper = (int)bytes;
     if (bytes == 4)
         deformationField->datatype = NIFTI_TYPE_FLOAT32;

@@ -189,7 +189,7 @@ int main(int argc, char **argv)
          nifti_image_free(source);
          makesource->ndim=makesource->dim[0] = 4;
          makesource->nt = makesource->dim[4] = atoi(argv[++i]);
-         makesource->nvox = CalcVoxelNumber(*makesource->nx, makesource->ndim);
+         makesource->nvox = NiftiImage::calcVoxelNumber(makesource->nx, makesource->ndim);
          makesource->data = malloc(makesource->nvox * makesource->nbyper);
          char *temp_data = reinterpret_cast<char *>(makesource->data);
          for(int ii=0; ii<makesource->nt; ii++) // fill with file data
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
          nifti_image *makesource = nifti_copy_nim_info(source);
          makesource->ndim=makesource->dim[0] = 3;
          makesource->nt = makesource->dim[4] = 1;
-         makesource->nvox = CalcVoxelNumber(*makesource, makesource->ndim);
+         makesource->nvox = NiftiImage::calcVoxelNumber(makesource, makesource->ndim);
          makesource->data = malloc(makesource->nvox * makesource->nbyper);
          char *temp_data = reinterpret_cast<char *>(source->data);
          for(int ii=0; ii<source->nt; ii++) // fill with file data
@@ -402,7 +402,7 @@ int main(int argc, char **argv)
       mask = nifti_copy_nim_info(image);
       mask->ndim=mask->dim[0]=3;
       mask->nt=mask->dim[4]=1;
-      mask->nvox = CalcVoxelNumber(*mask, mask->ndim);
+      mask->nvox = NiftiImage::calcVoxelNumber(mask, mask->ndim);
       mask->data = malloc(mask->nvox*mask->nbyper);
       PrecisionType *intensityPtrM = static_cast<PrecisionType *>(mask->data);
       for(size_t i=0; i<mask->nvox; i++) intensityPtrM[i]=1.0;
@@ -858,7 +858,7 @@ int main(int argc, char **argv)
             nifti_image *stores = nifti_copy_nim_info(images);
             stores->ndim=stores->dim[0]=3;
             stores->nt=stores->dim[4]=1;
-            stores->nvox = CalcVoxelNumber(*stores, stores->ndim);
+            stores->nvox = NiftiImage::calcVoxelNumber(stores, stores->ndim);
             stores->data = calloc(stores->nvox,images->nbyper);
 
             nifti_image *storet = nifti_dup(*stores, false);

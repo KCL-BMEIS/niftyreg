@@ -521,7 +521,7 @@ void block_matching_method3D(nifti_image * reference,
 #pragma omp parallel for default(none) \
    shared(params, reference, warped, referencePtr, warpedPtr, mask, referenceMatrix_xyz, \
    referenceOverlap, warpedOverlap, referenceValues, warpedValues) \
-   private(i, j, k, l, m, n, x, y, z, blockIndex, referenceIndex, \
+   private(i, j, l, m, n, x, y, z, blockIndex, referenceIndex, \
    index, tid, referencePtr_Z, referencePtr_XYZ, warpedPtr_Z, warpedPtr_XYZ, \
    maskPtr_Z, maskPtr_XYZ, value, bestCC, bestDisplacement, \
    referenceIndex_start_x, referenceIndex_start_y, referenceIndex_start_z, \

@@ -397,7 +397,7 @@ void launchResample(nifti_image *floatingImage,
 		reg_exit();
 	}
 
-	const size_t targetVoxelNumber = CalcVoxelNumber(*warpedImage);
+	const size_t targetVoxelNumber = NiftiImage::calcVoxelNumber(warpedImage, 3);
 
 	//the below lines need to be moved to cu common
 	cudaDeviceProp prop;
@@ -410,7 +410,7 @@ void launchResample(nifti_image *floatingImage,
 	dim3 mygrid(blocks, 1, 1);
 	dim3 myblocks(maxThreads, 1, 1);
 
-	ulong2 voxelNumber = make_ulong2(targetVoxelNumber, CalcVoxelNumber(*floatingImage));
+	ulong2 voxelNumber = make_ulong2(targetVoxelNumber, NiftiImage::calcVoxelNumber(floatingImage, 3));
 	uint3 fi_xyz = make_uint3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 	uint2 wi_tu = make_uint2(warpedImage->nt, warpedImage->nu);
 	 if (floatingImage->nz > 1) {

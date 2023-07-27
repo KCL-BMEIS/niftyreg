@@ -12,6 +12,7 @@
 
 #include "_reg_ssd_gpu.h"
 #include "_reg_ssd_kernels.cu"
+#include <thrust/device_vector.h>
 
 /* *************************************************************** */
 reg_ssd_gpu::reg_ssd_gpu(): reg_ssd::reg_ssd() {
@@ -56,7 +57,7 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
         reg_exit();
     }
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_ssd_gpu::InitialiseMeasure()\n");
+    reg_print_msg_debug("reg_ssd_gpu::InitialiseMeasure()");
 #endif
 }
 /* *************************************************************** */
@@ -77,8 +78,7 @@ double reg_getSSDValue_gpu(const nifti_image *referenceImage,
                                                       cudaChannelFormatKindSigned, 1);
 
     // Create an array on the device to store the absolute difference values
-    float *absoluteValuesCuda;
-    NR_CUDA_SAFE_CALL(cudaMalloc(&absoluteValuesCuda, activeVoxelNumber * sizeof(float)));
+    thrust::device_vector<float> absoluteValuesCuda(activeVoxelNumber);
 
     // Compute the absolute values
     const unsigned blocks = NiftyReg::CudaContext::GetBlockSize()->reg_getSquaredDifference;
@@ -86,17 +86,14 @@ double reg_getSSDValue_gpu(const nifti_image *referenceImage,
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     if (referenceImageDim.z > 1)
-        reg_getSquaredDifference3D_kernel<<<gridDims, blockDims>>>(absoluteValuesCuda, *referenceTexture, *warpedTexture, *maskTexture,
-                                                                   referenceImageDim, (unsigned)activeVoxelNumber);
-    else reg_getSquaredDifference2D_kernel<<<gridDims, blockDims>>>(absoluteValuesCuda, *referenceTexture, *warpedTexture, *maskTexture,
-                                                                    referenceImageDim, (unsigned)activeVoxelNumber);
+        reg_getSquaredDifference3D_kernel<<<gridDims, blockDims>>>(absoluteValuesCuda.data().get(), *referenceTexture, *warpedTexture,
+                                                                   *maskTexture, referenceImageDim, (unsigned)activeVoxelNumber);
+    else reg_getSquaredDifference2D_kernel<<<gridDims, blockDims>>>(absoluteValuesCuda.data().get(), *referenceTexture, *warpedTexture,
+                                                                    *maskTexture, referenceImageDim, (unsigned)activeVoxelNumber);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 
     // Perform a reduction on the absolute values
-    const double ssd = (double)reg_sumReduction_gpu(absoluteValuesCuda, activeVoxelNumber) / (double)activeVoxelNumber;
-
-    // Free the absolute value array
-    NR_CUDA_SAFE_CALL(cudaFree(absoluteValuesCuda));
+    const double ssd = (double)reg_sumReduction_gpu(absoluteValuesCuda.data().get(), activeVoxelNumber) / (double)activeVoxelNumber;
 
     return ssd;
 }

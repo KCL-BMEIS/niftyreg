@@ -128,10 +128,10 @@ void reg_tool_ReadAffineFile(mat44 *mat, char *fileName) {
 }
 /* *************************************************************** */
 void reg_tool_WriteAffineFile(const mat44 *mat, const char *fileName) {
-        // Check if the specified directory exists
+    // Check if the specified directory exists
     std::filesystem::path p(fileName);
     p = p.parent_path();
-    if(!std::filesystem::exists(p) && p!=std::filesystem::path()){
+    if (!std::filesystem::exists(p) && p != std::filesystem::path()) {
         std::cerr << "The specified folder to save the following file does not exist:" << std::endl;
         std::cerr << fileName << std::endl;
         reg_exit();

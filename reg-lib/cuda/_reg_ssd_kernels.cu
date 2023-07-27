@@ -25,7 +25,7 @@ __global__ void reg_getSquaredDifference3D_kernel(float *squaredDifference,
                                                   const unsigned activeVoxelNumber) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < activeVoxelNumber) {
-        const unsigned index = tex1Dfetch<int>(maskTexture, tid);
+        const int index = tex1Dfetch<int>(maskTexture, tid);
         int quot, rem;
         reg_div_cuda(index, referenceImageDim.x * referenceImageDim.y, quot, rem);
         const int z = quot;
@@ -49,7 +49,7 @@ __global__ void reg_getSquaredDifference2D_kernel(float *squaredDifference,
                                                   const unsigned activeVoxelNumber) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < activeVoxelNumber) {
-        const unsigned index = tex1Dfetch<int>(maskTexture, tid);
+        const int index = tex1Dfetch<int>(maskTexture, tid);
         int quot, rem;
         reg_div_cuda(index, referenceImageDim.x, quot, rem);
         const int y = quot, x = rem;
@@ -73,7 +73,7 @@ __global__ void reg_getSSDGradient2D_kernel(float4 *ssdGradient,
                                             const unsigned activeVoxelNumber) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < activeVoxelNumber) {
-        const unsigned index = tex1Dfetch<int>(maskTexture, tid);
+        const int index = tex1Dfetch<int>(maskTexture, tid);
         int quot, rem;
         reg_div_cuda(index, referenceImageDim.x, quot, rem);
         const int y = quot, x = rem;
@@ -107,7 +107,7 @@ __global__ void reg_getSSDGradient3D_kernel(float4 *ssdGradient,
                                             const unsigned activeVoxelNumber) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < activeVoxelNumber) {
-        const unsigned index = tex1Dfetch<int>(maskTexture, tid);
+        const int index = tex1Dfetch<int>(maskTexture, tid);
         int quot, rem;
         reg_div_cuda(index, referenceImageDim.x * referenceImageDim.y, quot, rem);
         const int z = quot;

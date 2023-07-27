@@ -95,7 +95,7 @@ void reg_intensityRescale_core(nifti_image *image,
                                float newMin,
                                float newMax) {
     DataType *imagePtr = static_cast<DataType*>(image->data);
-    const size_t voxelNumber = CalcVoxelNumber(*image);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
 
     // The rescaling is done for each volume independently
     DataType *volumePtr = &imagePtr[timePoint * voxelNumber];
@@ -343,7 +343,7 @@ PrecisionType reg_getMaximalLength(const nifti_image *image,
                                    const bool& optimiseX,
                                    const bool& optimiseY,
                                    const bool& optimiseZ) {
-    const size_t voxelNumber = CalcVoxelNumber(*image);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
     const DataType *dataPtrX = static_cast<DataType*>(image->data);
     const DataType *dataPtrY = &dataPtrX[voxelNumber];
     const DataType *dataPtrZ = &dataPtrY[voxelNumber];
@@ -506,7 +506,6 @@ void reg_tools_operationImageToImage(const nifti_image *img1,
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2,sclSlope1,sclSlope2,operation)
 #endif
     for (i = 0; i < voxelNumber; i++)
@@ -721,7 +720,6 @@ void reg_tools_operationValueToImage(const nifti_image *img,
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   private(i) \
    shared(voxelNumber,resPtr,imgPtr,img,val,sclSlope,operation)
 #endif
     for (i = 0; i < voxelNumber; i++)
@@ -913,23 +911,23 @@ void reg_tools_divideValueToImage(const nifti_image *img,
 }
 /* *************************************************************** */
 template <class DataType>
-void reg_tools_kernelConvolution_core(nifti_image *image,
-                                      float *sigma,
-                                      int kernelType,
-                                      int *mask,
-                                      bool *timePoint,
-                                      bool *axis) {
+void reg_tools_kernelConvolution(nifti_image *image,
+                                 const float *sigma,
+                                 const int& kernelType,
+                                 const int *mask,
+                                 const bool *timePoint,
+                                 const bool *axis) {
     if (image->nx > 2048 || image->ny > 2048 || image->nz > 2048) {
-        reg_print_fct_error("reg_tools_kernelConvolution_core");
+        reg_print_fct_error("reg_tools_kernelConvolution");
         reg_print_msg_error("This function does not support images with dimension > 2048");
         reg_exit();
     }
 #ifdef WIN32
     long index;
-    const long voxelNumber = (long)CalcVoxelNumber(*image);
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(image, 3);
 #else
     size_t index;
-    const size_t voxelNumber = CalcVoxelNumber(*image);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
 #endif
     DataType *imagePtr = static_cast<DataType*>(image->data);
     int imageDim[3] = { image->nx, image->ny, image->nz };
@@ -943,15 +941,14 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
             DataType *intensityPtr = &imagePtr[t * voxelNumber];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(densityPtr, intensityPtr, mask, nanImagePtr, voxelNumber) \
-   private(index)
+   shared(densityPtr, intensityPtr, mask, nanImagePtr, voxelNumber)
 #endif
             for (index = 0; index < voxelNumber; index++) {
-                densityPtr[index] = (intensityPtr[index] == intensityPtr[index]) ? 1.f : 0;
-                densityPtr[index] *= (mask[index] >= 0) ? 1 : 0;
+                densityPtr[index] = intensityPtr[index] == intensityPtr[index] ? 1.f : 0;
+                densityPtr[index] *= mask[index] >= 0 ? 1 : 0;
                 nanImagePtr[index] = static_cast<bool>(densityPtr[index]);
                 if (nanImagePtr[index] == 0)
-                    intensityPtr[index] = static_cast<DataType>(0);
+                    intensityPtr[index] = 0;
             }
             // Loop over the x, y and z dimensions
             for (int n = 0; n < 3; n++) {
@@ -971,7 +968,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                         // Spline kernel
                         radius = static_cast<int>(temp * 2.0f);
                     } else {
-                        reg_print_fct_error("reg_tools_kernelConvolution_core");
+                        reg_print_fct_error("reg_tools_kernelConvolution");
                         reg_print_msg_error("Unknown kernel type");
                         reg_exit();
                     }
@@ -1060,7 +1057,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
    planeNumber,kernelSum) \
    private(realIndex,currentIntensityPtr,currentDensityPtr,lineIndex,bufferIntensity, \
    bufferDensity,shiftPre,shiftPst,kernelPtr,kernelValue,densitySum,intensitySum, \
-   k, bufferIntensitycur,bufferDensitycur, planeIndex, \
+   k, bufferIntensitycur,bufferDensitycur, \
    kernel_sse, intensity_sse, density_sse, intensity_sum_sse, density_sum_sse)
 #else
 #pragma omp parallel for default(none) \
@@ -1068,7 +1065,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
    planeNumber,kernelSum) \
    private(realIndex,currentIntensityPtr,currentDensityPtr,lineIndex,bufferIntensity, \
    bufferDensity,shiftPre,shiftPst,kernelPtr,kernelValue,densitySum,intensitySum, \
-   k, bufferIntensitycur,bufferDensitycur, planeIndex)
+   k, bufferIntensitycur,bufferDensitycur)
 #endif
 #endif // _OPENMP
                         // Loop over the different voxel
@@ -1196,8 +1193,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
             // Normalise per timepoint
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(voxelNumber, intensityPtr, densityPtr, nanImagePtr) \
-   private(index)
+   shared(voxelNumber, intensityPtr, densityPtr, nanImagePtr)
 #endif
             for (index = 0; index < voxelNumber; ++index) {
                 if (nanImagePtr[index] != 0)
@@ -1224,10 +1220,10 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
     }
 #ifdef WIN32
     long index;
-    const long voxelNumber = (long)CalcVoxelNumber(*image);
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(image, 3);
 #else
     size_t index;
-    const size_t voxelNumber = CalcVoxelNumber(*image);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
 #endif
     DataType *imagePtr = static_cast<DataType*>(image->data);
 
@@ -1408,48 +1404,43 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
 }
 /* *************************************************************** */
 void reg_tools_kernelConvolution(nifti_image *image,
-                                 float *sigma,
-                                 int kernelType,
-                                 int *mask,
-                                 bool *timePoint,
-                                 bool *axis) {
+                                 const float *sigma,
+                                 const int& kernelType,
+                                 const int *mask,
+                                 const bool *timePoint,
+                                 const bool *axis) {
+    if (image->datatype != NIFTI_TYPE_FLOAT32 && image->datatype != NIFTI_TYPE_FLOAT64) {
+        reg_print_fct_error("reg_tools_kernelConvolution");
+        reg_print_msg_error("The image is expected to be of floating precision type");
+        reg_exit();
+    }
+
     if (image->nt <= 0) image->nt = image->dim[4] = 1;
     if (image->nu <= 0) image->nu = image->dim[5] = 1;
 
-    bool *axisToSmooth = new bool[3];
-    const int activeTimePointNumber = image->nt * image->nu;
-    bool *activeTimePoint = new bool[activeTimePointNumber];
+    unique_ptr<bool[]> axisToSmooth{ new bool[3] };
     if (axis == nullptr) {
         // All axis are smoothed by default
         for (int i = 0; i < 3; i++) axisToSmooth[i] = true;
     } else for (int i = 0; i < 3; i++) axisToSmooth[i] = axis[i];
 
+    const int activeTimePointNumber = image->nt * image->nu;
+    unique_ptr<bool[]> activeTimePoint{ new bool[activeTimePointNumber] };
     if (timePoint == nullptr) {
         // All time points are considered as active
         for (int i = 0; i < activeTimePointNumber; i++) activeTimePoint[i] = true;
     } else for (int i = 0; i < activeTimePointNumber; i++) activeTimePoint[i] = timePoint[i];
 
-    int *currentMask = nullptr;
-    if (mask == nullptr) {
-        currentMask = (int*)calloc(CalcVoxelNumber(*image), sizeof(int));
-    } else currentMask = mask;
-
-    switch (image->datatype) {
-    case NIFTI_TYPE_FLOAT32:
-        reg_tools_kernelConvolution_core<float>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        reg_tools_kernelConvolution_core<double>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-        break;
-    default:
-        reg_print_fct_error("reg_tools_kernelConvolution");
-        reg_print_msg_error("The image data type is not supported");
-        reg_exit();
+    unique_ptr<int[]> currentMask;
+    if (!mask) {
+        currentMask.reset(new int[NiftiImage::calcVoxelNumber(image, 3)]());
+        mask = currentMask.get();
     }
 
-    if (mask == nullptr) free(currentMask);
-    delete[] axisToSmooth;
-    delete[] activeTimePoint;
+    std::visit([&](auto&& imgDataType) {
+        using ImgDataType = std::decay_t<decltype(imgDataType)>;
+        reg_tools_kernelConvolution<ImgDataType>(image, sigma, kernelType, mask, activeTimePoint.get(), axisToSmooth.get());
+    }, NiftiImage::getFloatingDataType(image));
 }
 /* *************************************************************** */
 template <class PrecisionType, class ImageType>
@@ -1530,7 +1521,7 @@ void reg_downsampleImage(nifti_image *image, int type, bool *downsampleAxis) {
     image->sto_ijk = nifti_mat44_inverse(image->sto_xyz);
 
     // Reallocate the image
-    image->nvox = CalcVoxelNumber(*image, 7);
+    image->nvox = NiftiImage::calcVoxelNumber(image, 7);
     image->data = calloc(image->nvox, image->nbyper);
     imagePtr = static_cast<ImageType*>(image->data);
 
@@ -1699,7 +1690,7 @@ void reg_tools_binarise_image(nifti_image *image, float threshold) {
 template <class DataType>
 void reg_tools_binaryImage2int(const nifti_image *image, int *array) {
     const DataType *dataPtr = static_cast<DataType*>(image->data);
-    for (size_t i = 0; i < CalcVoxelNumber(*image); i++)
+    for (size_t i = 0; i < NiftiImage::calcVoxelNumber(image, 3); i++)
         array[i] = dataPtr[i] != 0 ? 1 : -1;
 }
 /* *************************************************************** */
@@ -1738,7 +1729,7 @@ void reg_tools_binaryImage2int(const nifti_image *image, int *array) {
 /* *************************************************************** */
 template <class AType, class BType>
 double reg_tools_getMeanRMS(const nifti_image *imageA, const nifti_image *imageB) {
-    const size_t voxelNumber = CalcVoxelNumber(*imageA);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(imageA, 3);
     const AType *imageAPtrX = static_cast<AType*>(imageA->data);
     const BType *imageBPtrX = static_cast<BType*>(imageB->data);
     const AType *imageAPtrY = nullptr;
@@ -1977,7 +1968,7 @@ int reg_tools_nanMask_image(const nifti_image *image, const nifti_image *maskIma
 /* *************************************************************** */
 template <class DataType>
 int reg_tools_removeNanFromMask_core(const nifti_image *image, int *mask) {
-    const size_t voxelNumber = CalcVoxelNumber(*image);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
     const DataType *imagePtr = static_cast<DataType*>(image->data);
     for (int t = 0; t < image->nt; ++t) {
         for (size_t i = 0; i < voxelNumber; ++i) {
@@ -2009,7 +2000,7 @@ DataType reg_tools_getMinMaxValue(const nifti_image *image, int timepoint, bool 
 
     const DataType *imgPtr = static_cast<DataType*>(image->data);
     DataType retValue = calcMin ? std::numeric_limits<DataType>::max() : std::numeric_limits<DataType>::lowest();
-    const size_t voxelNumber = CalcVoxelNumber(*image);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
     const float sclSlope = image->scl_slope == 0 ? 1 : image->scl_slope;
 
     for (int time = 0; time < image->nt; ++time) {
@@ -2161,7 +2152,7 @@ template <class DataType>
 void reg_flipAxis(const nifti_image *image, void **outputArray, const std::string& cmd) {
     // Allocate the outputArray if it is not allocated yet
     if (*outputArray == nullptr)
-        *outputArray = malloc(CalcVoxelNumber(*image, 7) * sizeof(DataType));
+        *outputArray = malloc(NiftiImage::calcVoxelNumber(image, 7) * sizeof(DataType));
 
     // Parse the cmd to check which axis have to be flipped
     const char *axisName = "x\0y\0z\0t\0u\0v\0w\0";
@@ -2241,7 +2232,7 @@ void reg_flipAxis(const nifti_image *image, void **outputArray, const std::strin
 template<class DataType>
 void reg_getDisplacementFromDeformation_2D(nifti_image *field) {
     DataType *ptrX = static_cast<DataType*>(field->data);
-    DataType *ptrY = &ptrX[CalcVoxelNumber(*field, 2)];
+    DataType *ptrY = &ptrX[NiftiImage::calcVoxelNumber(field, 2)];
 
     mat44 matrix;
     if (field->sform_code > 0)
@@ -2253,7 +2244,7 @@ void reg_getDisplacementFromDeformation_2D(nifti_image *field) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(field, matrix, ptrX, ptrY) \
-   private(x, y, index, xInit, yInit)
+   private(x, index, xInit, yInit)
 #endif
     for (y = 0; y < field->ny; y++) {
         index = y * field->nx;
@@ -2276,7 +2267,7 @@ void reg_getDisplacementFromDeformation_2D(nifti_image *field) {
 /* *************************************************************** */
 template<class DataType>
 void reg_getDisplacementFromDeformation_3D(nifti_image *field) {
-    const size_t voxelNumber = CalcVoxelNumber(*field);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(field, 3);
     DataType *ptrX = static_cast<DataType*>(field->data);
     DataType *ptrY = &ptrX[voxelNumber];
     DataType *ptrZ = &ptrY[voxelNumber];
@@ -2290,9 +2281,8 @@ void reg_getDisplacementFromDeformation_3D(nifti_image *field) {
     float xInit, yInit, zInit;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(field, matrix, \
-   ptrX, ptrY, ptrZ) \
-   private(x, y, z, index, xInit, yInit, zInit)
+   shared(field, matrix, ptrX, ptrY, ptrZ) \
+   private(x, y, index, xInit, yInit, zInit)
 #endif
     for (z = 0; z < field->nz; z++) {
         index = z * field->nx * field->ny;
@@ -2367,7 +2357,7 @@ int reg_getDisplacementFromDeformation(nifti_image *field) {
 template<class DataType>
 void reg_getDeformationFromDisplacement_2D(nifti_image *field) {
     DataType *ptrX = static_cast<DataType*>(field->data);
-    DataType *ptrY = &ptrX[CalcVoxelNumber(*field, 2)];
+    DataType *ptrY = &ptrX[NiftiImage::calcVoxelNumber(field, 2)];
 
     mat44 matrix;
     if (field->sform_code > 0)
@@ -2378,9 +2368,8 @@ void reg_getDeformationFromDisplacement_2D(nifti_image *field) {
     DataType xInit, yInit;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(field, matrix, \
-   ptrX, ptrY) \
-   private(x, y, index, xInit, yInit)
+   shared(field, matrix, ptrX, ptrY) \
+   private(x, index, xInit, yInit)
 #endif
     for (y = 0; y < field->ny; y++) {
         index = y * field->nx;
@@ -2403,7 +2392,7 @@ void reg_getDeformationFromDisplacement_2D(nifti_image *field) {
 /* *************************************************************** */
 template<class DataType>
 void reg_getDeformationFromDisplacement_3D(nifti_image *field) {
-    const size_t voxelNumber = CalcVoxelNumber(*field);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(field, 3);
     DataType *ptrX = static_cast<DataType*>(field->data);
     DataType *ptrY = &ptrX[voxelNumber];
     DataType *ptrZ = &ptrY[voxelNumber];
@@ -2418,7 +2407,7 @@ void reg_getDeformationFromDisplacement_3D(nifti_image *field) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(field, matrix, ptrX, ptrY, ptrZ) \
-   private(x, y, z, index, xInit, yInit, zInit)
+   private(x, y, index, xInit, yInit, zInit)
 #endif
     for (z = 0; z < field->nz; z++) {
         index = z * field->nx * field->ny;
@@ -2496,7 +2485,7 @@ void reg_setGradientToZero_core(nifti_image *image,
                                 bool xAxis,
                                 bool yAxis,
                                 bool zAxis) {
-    const size_t voxelNumber = CalcVoxelNumber(*image);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
     DataType *ptr = static_cast<DataType*>(image->data);
     if (xAxis) {
         for (size_t i = 0; i < voxelNumber; ++i)
@@ -2715,21 +2704,6 @@ void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x
     y = index % (maxValue_y + 1);
     index /= (maxValue_y + 1);
     z = index;
-}
-/* *************************************************************** */
-size_t CalcVoxelNumber(const nifti_image& image, const int& dimCount) {
-    size_t voxelNumber = static_cast<size_t>(std::abs(image.nx)) * static_cast<size_t>(std::abs(image.ny));
-    if (dimCount > 2)
-        voxelNumber *= static_cast<size_t>(std::abs(image.nz));
-    if (dimCount > 3)
-        voxelNumber *= static_cast<size_t>(std::abs(image.nt));
-    if (dimCount > 4)
-        voxelNumber *= static_cast<size_t>(std::abs(image.nu));
-    if (dimCount > 5)
-        voxelNumber *= static_cast<size_t>(std::abs(image.nv));
-    if (dimCount > 6)
-        voxelNumber *= static_cast<size_t>(std::abs(image.nw));
-    return voxelNumber;
 }
 /* *************************************************************** */
 nifti_image* nifti_dup(const nifti_image& image, const bool& copyData) {

@@ -38,8 +38,7 @@ public:
         // Ensure at least one pixel contains the max and one the min
         ref2dPtr[0] = flo2dPtr[0] = 2.f;
         ref2dPtr[1] = flo2dPtr[1] = 65.f;
-        for (size_t i = 2; i < reference2d.nVoxels(); ++i)
-        {
+        for (size_t i = 2; i < reference2d.nVoxels(); ++i) {
             ref2dPtr[i] = (int)distr(gen); // cast to integer to not use PW
             flo2dPtr[i] = (int)distr(gen);
         }
@@ -98,7 +97,7 @@ public:
                 measure->Initialise(*measure_nmi, *content);
                 double nmi = measure_nmi->GetSimilarityMeasureValue();
 
-                testCases.push_back({ testName + " " + platform->GetName(), nmi, expected});
+                testCases.push_back({ testName + " " + platform->GetName(), nmi, expected });
             }
         }
     }
@@ -108,8 +107,7 @@ protected:
     using TestCase = std::tuple<std::string, double, double>;
     inline static vector<TestCase> testCases;
 
-    double GetNMIPW(const NiftiImage& ref, const NiftiImage& flo)
-    {   
+    double GetNMIPW(const NiftiImage& ref, const NiftiImage& flo) {
         // Allocate a joint histogram and fill it with zeros
         double jh[68][68];
         for (unsigned i = 0; i < 68; ++i)
@@ -118,23 +116,21 @@ protected:
         // Fill it with the intensity values
         const auto refPtr = ref.data();
         const auto floPtr = flo.data();
-        for (auto refItr = refPtr.begin(), floItr = floPtr.begin();
-            refItr != refPtr.end();
-            ++refItr, ++floItr)
+        for (auto refItr = refPtr.begin(), floItr = floPtr.begin(); refItr != refPtr.end(); ++refItr, ++floItr)
             jh[(int)*refItr][(int)*floItr]++;
         // Convert the histogram into an image to later apply the convolution
         vector<NiftiImage::dim_t> dim{ 68, 68 };
         NiftiImage jointHistogram(dim, NIFTI_TYPE_FLOAT64);
-        double *jhPtr = static_cast<double *>(jointHistogram->data);
-        // Conver the occurances to probabilities
+        double *jhPtr = static_cast<double*>(jointHistogram->data);
+        // Convert the occurrences to probabilities
         for (unsigned i = 0; i < 68; ++i)
             for (unsigned j = 0; j < 68; ++j)
                 *jhPtr++ = jh[i][j] / ref.nVoxels();
         // Apply a convolution to mimic the parzen windowing
-        float sigma[1] = {1.f};
+        float sigma[1] = { 1.f };
         reg_tools_kernelConvolution(jointHistogram, sigma, CUBIC_SPLINE_KERNEL);
         // Restore the jh array
-        jhPtr = static_cast<double *>(jointHistogram->data);
+        jhPtr = static_cast<double*>(jointHistogram->data);
         for (unsigned i = 0; i < 68; ++i)
             for (unsigned j = 0; j < 68; ++j)
                 jh[i][j] = *jhPtr++;
@@ -142,20 +138,18 @@ protected:
         double ref_ent = 0.;
         double flo_ent = 0.;
         double joi_ent = 0.;
-        for (unsigned i = 0; i < 68; ++i)
-        {
+        for (unsigned i = 0; i < 68; ++i) {
             double ref_pro = 0.;
             double flo_pro = 0.;
-            for (unsigned j = 0; j < 68; ++j)
-            {
+            for (unsigned j = 0; j < 68; ++j) {
                 flo_pro += jh[i][j];
                 ref_pro += jh[j][i];
-                if(jh[i][j]>0.)
+                if (jh[i][j] > 0.)
                     joi_ent -= jh[i][j] * log(jh[i][j]);
             }
-            if (ref_pro>0)
+            if (ref_pro > 0)
                 ref_ent -= ref_pro * log(ref_pro);
-            if (flo_pro>0)
+            if (flo_pro > 0)
                 flo_ent -= flo_pro * log(flo_pro);
         }
         double nmi = (ref_ent + flo_ent) / joi_ent;
@@ -171,7 +165,7 @@ TEST_CASE_METHOD(NMITest, "NMI", "[unit]") {
 
         SECTION(testName) {
             std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
-            if (fabs(result - expected) > EPS){
+            if (fabs(result - expected) > EPS) {
                 std::cout << "Result=" << result << " | Expected=" << expected << std::endl;
             }
             REQUIRE(fabs(result - expected) < EPS);

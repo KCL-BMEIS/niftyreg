@@ -91,10 +91,10 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *refImage,
     // Generate the forward mask to ignore all NaN values
 #ifdef _WIN32
     long voxel;
-    const long voxelNumber = (long)CalcVoxelNumber(*refImage);
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(refImage, 3);
 #else
     size_t voxel;
-    const size_t voxelNumber = CalcVoxelNumber(*refImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(refImage, 3);
 #endif
     memcpy(combinedMask, refMask, voxelNumber * sizeof(int));
     reg_tools_removeNanFromMask(refImage, combinedMask);
@@ -201,7 +201,7 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImg,
         free(this->backwardMask);
     this->backwardMask = nullptr;
 
-    size_t voxelNumber = CalcVoxelNumber(*this->referenceImage);
+    size_t voxelNumber = NiftiImage::calcVoxelNumber(this->referenceImage, 3);
 
     // Allocate the required image to store the correlation of the forward transformation
     this->correlationImage = nifti_copy_nim_info(this->referenceImage);
@@ -221,7 +221,7 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImg,
     // Allocate the array to store the mask of the forward image
     this->forwardMask = (int*)malloc(voxelNumber * sizeof(int));
     if (this->isSymmetric) {
-        voxelNumber = CalcVoxelNumber(*floatingImage);
+        voxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
 
         // Allocate the required image to store the correlation of the backward transformation
         this->correlationImageBw = nifti_copy_nim_info(this->floatingImage);
@@ -265,10 +265,10 @@ double reg_getLNCCValue(nifti_image *referenceImage,
                         int currentTimepoint) {
 #ifdef _WIN32
     long voxel;
-    const long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
 #else
     size_t voxel;
-    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 #endif
 
     // Compute the local correlation
@@ -454,10 +454,10 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    double timepointWeight) {
 #ifdef _WIN32
     long voxel;
-    long voxelNumber = (long)CalcVoxelNumber(*referenceImage);
+    long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
 #else
     size_t voxel;
-    size_t voxelNumber = CalcVoxelNumber(*referenceImage);
+    size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 #endif
 
     // Compute the local correlation

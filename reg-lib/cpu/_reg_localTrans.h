@@ -204,5 +204,5 @@ void compute_BCH_update(nifti_image *img1,
  * @param img Image to be deconvolved
  */
 extern "C++"
-void reg_spline_GetDeconvolvedCoefficents(nifti_image *img);
+void reg_spline_getDeconvolvedCoefficents(nifti_image *img);
 /* *************************************************************** */

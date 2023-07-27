@@ -331,7 +331,7 @@ int main(int argc, char **argv)
    deformationFieldImage->dim[5]=deformationFieldImage->nu=referenceImage->nz>1?3:2;
    deformationFieldImage->dim[6]=deformationFieldImage->nv=1;
    deformationFieldImage->dim[7]=deformationFieldImage->nw=1;
-   deformationFieldImage->nvox = CalcVoxelNumber(*deformationFieldImage, deformationFieldImage->ndim);
+   deformationFieldImage->nvox = NiftiImage::calcVoxelNumber(deformationFieldImage, deformationFieldImage->ndim);
    deformationFieldImage->scl_slope=1.f;
    deformationFieldImage->scl_inter=0.f;
    if(inputTransformationImage!=nullptr)
@@ -456,7 +456,7 @@ int main(int argc, char **argv)
          reg_print_msg_debug("DTI-based resampling\n");
 #endif
          // Compute first the Jacobian matrices
-         mat33 *jacobian = (mat33 *)malloc(CalcVoxelNumber(*deformationFieldImage) * sizeof(mat33));
+         mat33 *jacobian = (mat33 *)malloc(NiftiImage::calcVoxelNumber(deformationFieldImage, 3) * sizeof(mat33));
          reg_defField_getJacobianMatrix(deformationFieldImage, jacobian);
          // resample the DTI image
          bool timepoints[7];
@@ -475,7 +475,7 @@ int main(int argc, char **argv)
       else{
          if(flag->usePSF){
             // Compute first the Jacobian matrices
-            mat33 *jacobian = (mat33 *)malloc(CalcVoxelNumber(*deformationFieldImage) * sizeof(mat33));
+            mat33 *jacobian = (mat33 *)malloc(NiftiImage::calcVoxelNumber(deformationFieldImage, 3) * sizeof(mat33));
             reg_defField_getJacobianMatrix(deformationFieldImage, jacobian);
 
             reg_resampleImage_PSF(floatingImage,
@@ -530,7 +530,7 @@ int main(int argc, char **argv)
       gridImage->dim[3]=gridImage->nz=floatingImage->nz;
       gridImage->dim[4]=gridImage->nt=1;
       gridImage->dim[5]=gridImage->nu=1;
-      gridImage->nvox = CalcVoxelNumber(*gridImage, gridImage->ndim);
+      gridImage->nvox = NiftiImage::calcVoxelNumber(gridImage, gridImage->ndim);
       gridImage->datatype = NIFTI_TYPE_UINT8;
       gridImage->nbyper = sizeof(unsigned char);
       gridImage->data = calloc(gridImage->nvox, gridImage->nbyper);

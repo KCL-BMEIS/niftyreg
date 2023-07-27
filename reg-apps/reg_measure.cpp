@@ -255,7 +255,7 @@ int main(int argc, char **argv)
    warpedFloImage->ndim=warpedFloImage->dim[0]=floImage->ndim;
    warpedFloImage->nt=warpedFloImage->dim[4]=floImage->nt;
    warpedFloImage->nu=warpedFloImage->dim[5]=floImage->nu;
-   warpedFloImage->nvox=CalcVoxelNumber(*warpedFloImage, warpedFloImage->ndim);
+   warpedFloImage->nvox=NiftiImage::calcVoxelNumber(warpedFloImage, warpedFloImage->ndim);
    warpedFloImage->cal_min=floImage->cal_min;
    warpedFloImage->cal_max=floImage->cal_max;
    warpedFloImage->scl_inter=floImage->scl_inter;
@@ -269,7 +269,7 @@ int main(int argc, char **argv)
    defField->ndim=defField->dim[0]=5;
    defField->nt=defField->dim[4]=1;
    defField->nu=defField->dim[5]=refImage->nz>1?3:2;
-   defField->nvox=CalcVoxelNumber(*defField, defField->ndim);
+   defField->nvox=NiftiImage::calcVoxelNumber(defField, defField->ndim);
    defField->datatype=NIFTI_TYPE_FLOAT32;
    defField->nbyper=sizeof(float);
    defField->data=calloc(defField->nvox,defField->nbyper);

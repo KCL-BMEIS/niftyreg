@@ -15,7 +15,7 @@
 /* *************************************************************** */
 template<class DataType>
 double reg_spline_approxBendingEnergyValue2D(const nifti_image *splineControlPoint) {
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint, 2);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 2);
     int a, b, x, y, index, i;
 
     // Create pointers to the spline coefficients
@@ -37,8 +37,7 @@ double reg_spline_approxBendingEnergyValue2D(const nifti_image *splineControlPoi
     shared(splineControlPoint, splinePtrX, splinePtrY, \
     basisXX, basisYY, basisXY) \
     private(XX_x, YY_x, XY_x, XX_y, YY_y, XY_y, \
-    x, y, a, b, index, i, \
-    splineCoeffX, splineCoeffY) \
+    x, a, b, index, i, splineCoeffX, splineCoeffY) \
     reduction(+:constraintValue)
 #endif
     for (y = 1; y < splineControlPoint->ny - 1; ++y) {
@@ -72,7 +71,7 @@ double reg_spline_approxBendingEnergyValue2D(const nifti_image *splineControlPoi
 /* *************************************************************** */
 template<class DataType>
 double reg_spline_approxBendingEnergyValue3D(const nifti_image *splineControlPoint) {
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
     int a, b, c, x, y, z, index, i;
 
     // Create pointers to the spline coefficients
@@ -96,7 +95,7 @@ double reg_spline_approxBendingEnergyValue3D(const nifti_image *splineControlPoi
     shared(splineControlPoint, splinePtrX, splinePtrY, splinePtrZ, \
     basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ) \
     private(XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x, XX_y, YY_y, ZZ_y, XY_y, YZ_y, XZ_y, \
-    XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z, x, y, z, a, b, c, index, i, \
+    XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z, x, y, a, b, c, index, i, \
     splineCoeffX, splineCoeffY, splineCoeffZ) \
     reduction(+:constraintValue)
 #endif
@@ -184,7 +183,7 @@ template<class DataType>
 void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
                                               nifti_image *gradientImage,
                                               float weight) {
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint, 2);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 2);
     int a, b, x, y, X, Y, index, i;
 
     // Create pointers to the spline coefficients
@@ -210,7 +209,7 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
 #pragma omp parallel for default(none) \
     shared(splineControlPoint,splinePtrX,splinePtrY, derivativeValues, \
     basisXX, basisYY, basisXY) \
-    private(a, b, i, index, x, y, derivativeValuesPtr, splineCoeffX, splineCoeffY, \
+    private(a, b, i, index, x, derivativeValuesPtr, splineCoeffX, splineCoeffY, \
     XX_x, YY_x, XY_x, XX_y, YY_y, XY_y)
 #endif
     for (y = 0; y < splineControlPoint->ny; y++) {
@@ -255,7 +254,7 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, derivativeValues, gradientXPtr, gradientYPtr, \
     basisXX, basisYY, basisXY, approxRatio) \
-    private(index, a, X, Y, x, y, derivativeValuesPtr, gradientValue)
+    private(index, a, X, Y, x, derivativeValuesPtr, gradientValue)
 #endif
     for (y = 0; y < splineControlPoint->ny; y++) {
         index = y * splineControlPoint->nx;
@@ -291,7 +290,7 @@ template<class DataType>
 void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
                                               nifti_image *gradientImage,
                                               float weight) {
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
     int a, b, c, x, y, z, X, Y, Z, index, i;
 
     // Create pointers to the spline coefficients
@@ -320,7 +319,7 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
 #pragma omp parallel for default(none) \
     shared(splineControlPoint,splinePtrX,splinePtrY,splinePtrZ, derivativeValues, \
     basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ) \
-    private(a, b, c, i, index, x, y, z, derivativeValuesPtr, splineCoeffX, splineCoeffY, \
+    private(a, b, c, i, index, x, y, derivativeValuesPtr, splineCoeffX, splineCoeffY, \
     splineCoeffZ, XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x, XX_y, YY_y, \
     ZZ_y, XY_y, YZ_y, XZ_y, XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z)
 #endif
@@ -402,7 +401,7 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, derivativeValues, gradientXPtr, gradientYPtr, gradientZPtr, \
     basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ, approxRatio) \
-    private(index, a, X, Y, Z, x, y, z, derivativeValuesPtr, gradientValue)
+    private(index, a, X, Y, Z, x, y, derivativeValuesPtr, gradientValue)
 #endif
     for (z = 0; z < splineControlPoint->nz; z++) {
         index = z * splineControlPoint->nx * splineControlPoint->ny;
@@ -494,7 +493,7 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
 /* *************************************************************** */
 template <class DataType>
 double reg_spline_approxLinearEnergyValue2D(const nifti_image *splineControlPoint) {
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint, 2);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 2);
     int a, b, x, y, i, index;
 
     double constraintValue = 0;
@@ -524,7 +523,7 @@ double reg_spline_approxLinearEnergyValue2D(const nifti_image *splineControlPoin
 #pragma omp parallel for default(none) \
     shared(splinePtrX, splinePtrY, splineControlPoint, \
     basisX, basisY, reorientation) \
-    private(x, y, a, b, i, index, matrix, R, \
+    private(x, a, b, i, index, matrix, R, \
     splineCoeffX, splineCoeffY, currentValue) \
     reduction(+:constraintValue)
 #endif
@@ -569,7 +568,7 @@ double reg_spline_approxLinearEnergyValue2D(const nifti_image *splineControlPoin
 /* *************************************************************** */
 template <class DataType>
 double reg_spline_approxLinearEnergyValue3D(const nifti_image *splineControlPoint) {
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
     int a, b, c, x, y, z, i, index;
 
     double constraintValue = 0;
@@ -601,7 +600,7 @@ double reg_spline_approxLinearEnergyValue3D(const nifti_image *splineControlPoin
 #pragma omp parallel for default(none) \
     shared(splinePtrX, splinePtrY, splinePtrZ, splineControlPoint, \
     basisX, basisY, basisZ, reorientation) \
-    private(x, y, z, a, b, c, i, index, matrix, R, \
+    private(x, y, a, b, c, i, index, matrix, R, \
     splineCoeffX, splineCoeffY, splineCoeffZ, currentValue) \
     reduction(+:constraintValue)
 #endif
@@ -686,7 +685,7 @@ double reg_spline_approxLinearEnergy(const nifti_image *splineControlPoint) {
 template <class DataType>
 double reg_spline_linearEnergyValue2D(const nifti_image *referenceImage,
                                       const nifti_image *splineControlPoint) {
-    const size_t voxelNumber = CalcVoxelNumber(*referenceImage, 2);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 2);
     int a, b, x, y, index, xPre, yPre;
     DataType basis;
 
@@ -699,7 +698,7 @@ double reg_spline_linearEnergyValue2D(const nifti_image *referenceImage,
     double currentValue;
 
     // Create pointers to the spline coefficients
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
     const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
     const DataType *splinePtrY = &splinePtrX[nodeNumber];
     DataType splineCoeffX, splineCoeffY;
@@ -769,7 +768,7 @@ double reg_spline_linearEnergyValue2D(const nifti_image *referenceImage,
 template <class DataType>
 double reg_spline_linearEnergyValue3D(const nifti_image *referenceImage,
                                       const nifti_image *splineControlPoint) {
-    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
     int a, b, c, x, y, z, index, xPre, yPre, zPre;
     DataType basis;
 
@@ -783,7 +782,7 @@ double reg_spline_linearEnergyValue3D(const nifti_image *referenceImage,
     double currentValue;
 
     // Create pointers to the spline coefficients
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
     const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
     const DataType *splinePtrY = &splinePtrX[nodeNumber];
     const DataType *splinePtrZ = &splinePtrY[nodeNumber];
@@ -899,7 +898,7 @@ void reg_spline_linearEnergyGradient2D(const nifti_image *referenceImage,
                                        const nifti_image *splineControlPoint,
                                        nifti_image *gradientImage,
                                        float weight) {
-    const size_t voxelNumber = CalcVoxelNumber(*referenceImage, 2);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 2);
     int a, b, x, y, index, xPre, yPre;
     DataType basis;
 
@@ -909,7 +908,7 @@ void reg_spline_linearEnergyGradient2D(const nifti_image *referenceImage,
     };
 
     // Create pointers to the spline coefficients
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
     const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
     const DataType *splinePtrY = &splinePtrX[nodeNumber];
     DataType splineCoeffX, splineCoeffY;
@@ -990,7 +989,7 @@ void reg_spline_linearEnergyGradient3D(const nifti_image *referenceImage,
                                        const nifti_image *splineControlPoint,
                                        nifti_image *gradientImage,
                                        float weight) {
-    const size_t voxelNumber = CalcVoxelNumber(*referenceImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
     int a, b, c, x, y, z, index, xPre, yPre, zPre;
     DataType basis;
 
@@ -1001,7 +1000,7 @@ void reg_spline_linearEnergyGradient3D(const nifti_image *referenceImage,
     };
 
     // Create pointers to the spline coefficients
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
     const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
     const DataType *splinePtrY = &splinePtrX[nodeNumber];
     const DataType *splinePtrZ = &splinePtrY[nodeNumber];
@@ -1146,7 +1145,7 @@ template <class DataType>
 void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoint,
                                              nifti_image *gradientImage,
                                              float weight) {
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint, 2);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 2);
     int x, y, a, b, i, index;
 
     // Create pointers to the spline coefficients
@@ -1182,7 +1181,7 @@ void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoi
     shared(splineControlPoint, splinePtrX, splinePtrY, \
     basisX, basisY, reorientation, inv_reorientation, \
     gradientXPtr, gradientYPtr, approxRatio) \
-    private(x, y, a, b, i, index, gradValues, \
+    private(x, a, b, i, index, gradValues, \
     splineCoeffX, splineCoeffY, matrix, R)
 #endif
     for (y = 1; y < splineControlPoint->ny - 1; y++) {
@@ -1241,7 +1240,7 @@ template <class DataType>
 void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoint,
                                              nifti_image *gradientImage,
                                              float weight) {
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
     int x, y, z, a, b, c, i, index;
 
     // Create pointers to the spline coefficients
@@ -1382,7 +1381,7 @@ void reg_spline_approxLinearEnergyGradient(const nifti_image *splineControlPoint
 /* *************************************************************** */
 template <class DataType>
 double reg_defField_linearEnergyValue2D(const nifti_image *deformationField) {
-    const size_t voxelNumber = CalcVoxelNumber(*deformationField, 2);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 2);
     int a, b, x, y, X, Y, index;
     DataType basis[2] = {1, 0};
     DataType first[2] = {-1, 1};
@@ -1445,7 +1444,7 @@ double reg_defField_linearEnergyValue2D(const nifti_image *deformationField) {
 /* *************************************************************** */
 template <class DataType>
 double reg_defField_linearEnergyValue3D(const nifti_image *deformationField) {
-    const size_t voxelNumber = CalcVoxelNumber(*deformationField);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
     int a, b, c, x, y, z, X, Y, Z, index;
     DataType basis[2] = {1, 0};
     DataType first[2] = {-1, 1};
@@ -1551,7 +1550,7 @@ template <class DataType>
 void reg_defField_linearEnergyGradient2D(const nifti_image *deformationField,
                                          nifti_image *gradientImage,
                                          float weight) {
-    const size_t voxelNumber = CalcVoxelNumber(*deformationField, 2);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 2);
     int a, b, x, y, X, Y, index;
     DataType basis[2] = {1, 0};
     DataType first[2] = {-1, 1};
@@ -1623,7 +1622,7 @@ template <class DataType>
 void reg_defField_linearEnergyGradient3D(const nifti_image *deformationField,
                                          nifti_image *gradientImage,
                                          float weight) {
-    const size_t voxelNumber = CalcVoxelNumber(*deformationField);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
     int a, b, c, x, y, z, X, Y, Z, index;
     DataType basis[2] = {1, 0};
     DataType first[2] = {-1, 1};
@@ -1752,7 +1751,7 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
                                            float *landmarkReference,
                                            float *landmarkFloating) {
     const int imageDim = controlPointImage->nz > 1 ? 3 : 2;
-    const size_t controlPointNumber = CalcVoxelNumber(*controlPointImage);
+    const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     double constraintValue = 0;
     size_t l, index;
     float ref_position[4];
@@ -1872,7 +1871,7 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
                                                  float *landmarkFloating,
                                                  float weight) {
     const int imageDim = controlPointImage->nz > 1 ? 3 : 2;
-    const size_t controlPointNumber = CalcVoxelNumber(*controlPointImage);
+    const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     size_t l, index;
     float ref_position[3];
     float def_position[3];
@@ -2015,7 +2014,7 @@ void reg_spline_getLandmarkDistanceGradient(const nifti_image *controlPointImage
 /* *************************************************************** */
 template <class DataType>
 double reg_spline_approxLinearPairwise3D(nifti_image *splineControlPoint) {
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
     int x, y, z, index;
 
     // Create pointers to the spline coefficients
@@ -2029,7 +2028,7 @@ double reg_spline_approxLinearPairwise3D(nifti_image *splineControlPoint) {
     double constraintValue = 0;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    private(index, x, y, z, centralCP, neigbCP) \
+    private(index, x, y, centralCP, neigbCP) \
     shared(splineControlPoint, splinePtrX, splinePtrY, splinePtrZ) \
     reduction(+:constraintValue)
 #endif // _OPENMP
@@ -2116,7 +2115,7 @@ template <class DataType>
 void reg_spline_approxLinearPairwiseGradient3D(nifti_image *splineControlPoint,
                                                nifti_image *gradientImage,
                                                float weight) {
-    const size_t nodeNumber = CalcVoxelNumber(*splineControlPoint);
+    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
     int x, y, z, index;
 
     // Create pointers to the spline coefficients
@@ -2137,7 +2136,7 @@ void reg_spline_approxLinearPairwiseGradient3D(nifti_image *splineControlPoint,
     DataType approxRatio = (DataType)weight / (DataType)nodeNumber;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    private(index, x, y, z, centralCP, neigbCP, grad_values) \
+    private(index, x, y, centralCP, neigbCP, grad_values) \
     shared(splineControlPoint, splinePtrX, splinePtrY, splinePtrZ, approxRatio, \
     gradPtrX, gradPtrY, gradPtrZ)
 #endif // _OPENMP

@@ -78,16 +78,14 @@ public:
         ));
 
         // Set some scaling transformation in the transformations
-        mat44 *affine2d = new mat44;
-        mat44 *affine3d = new mat44;
-        reg_mat44_eye(affine2d);
-        reg_mat44_eye(affine3d);
-        affine3d->m[0][0] = affine2d->m[0][0] = 0.8f;
-        affine3d->m[1][1] = affine2d->m[1][1] = 1.2f;
-        affine3d->m[2][2] = 1.1f;
-        reg_affine_getDeformationField(affine2d, controlPointGrid2d);
-        reg_affine_getDeformationField(affine3d, controlPointGrid3d);
-        delete affine2d, affine3d;
+        mat44 affine2d, affine3d;
+        reg_mat44_eye(&affine2d);
+        reg_mat44_eye(&affine3d);
+        affine3d.m[0][0] = affine2d.m[0][0] = 0.8f;
+        affine3d.m[1][1] = affine2d.m[1][1] = 1.2f;
+        affine3d.m[2][2] = 1.1f;
+        reg_affine_getDeformationField(&affine2d, controlPointGrid2d);
+        reg_affine_getDeformationField(&affine3d, controlPointGrid3d);
 
         // Add the test data
         testData.emplace_back(TestData(
@@ -113,34 +111,34 @@ public:
                 unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
                 unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
-                float be = compute->ApproxBendingEnergy();
+                float be = static_cast<float>(compute->ApproxBendingEnergy());
                 testCases.push_back({ testName + " " + platform->GetName(), be, expected });
             }
         }
     }
-    float GetBe2d(NiftiImage cpp)
-    {
+
+    float GetBe2d(const NiftiImage& cpp) {
         // variable to store the bending energy and the normalisation value
         double be = 0;
 
         // The BSpine basis values are known since the control points all have a relative position equal to 0
         float basis[3], first[3], second[3];
-        basis[0]=1.f/6.f;basis[1]=4.f/6.f;basis[2]=1.f/6.f;
-        first[0]=-.5f; first[1]=0.f; first[2]=.5f;
-        second[0]=1.f; second[1]=-2.f;second[2]=1.f;
+        basis[0] = 1.f / 6.f; basis[1] = 4.f / 6.f; basis[2] = 1.f / 6.f;
+        first[0] = -.5f; first[1] = 0.f; first[2] = .5f;
+        second[0] = 1.f; second[1] = -2.f; second[2] = 1.f;
 
         // the first and last control points along each axis are
         // ignored for lack of support
-        auto cppPtr = cpp.data();
-        for(unsigned y=1; y<cpp->dim[2]-1;++y){
-            for(unsigned x=1; x<cpp->dim[1]-1;++x){
+        const auto cppPtr = cpp.data();
+        for (int y = 1; y < cpp->dim[2] - 1; ++y) {
+            for (int x = 1; x < cpp->dim[1] - 1; ++x) {
                 // The BE is computed as
                 // BE=dXX/dx^2 + dYY/dy^2 + dXX/dy^2 + dYY/dx^2 + 2 * [dXY/dx^2 + dXY/dy^2]
-                float XX_x=0,YY_x=0, XY_x=0;
-                float XX_y=0,YY_y=0, XY_y=0;
-                for(unsigned j=0; j<3;++j){
-                    for(unsigned i=0; i<3;++i){
-                        unsigned cpIndex = (y+j-1) * cpp->dim[1] + x+i-1;
+                float XX_x = 0, YY_x = 0, XY_x = 0;
+                float XX_y = 0, YY_y = 0, XY_y = 0;
+                for (unsigned j = 0; j < 3; ++j) {
+                    for (unsigned i = 0; i < 3; ++i) {
+                        unsigned cpIndex = (y + j - 1) * cpp->dim[1] + x + i - 1;
                         float x_val = cppPtr[cpIndex];
                         float y_val = cppPtr[cpIndex + cpp.nVoxelsPerVolume()];
                         XX_x += x_val * second[i] * basis[j];
@@ -151,39 +149,39 @@ public:
                         XY_y += y_val * first[i] * first[j];
                     }
                 }
-                be += XX_x*XX_x + YY_x*YY_x + XX_y*XX_y + YY_y*YY_y + \
-                    2.*XY_x*XY_x + 2.*XY_y*XY_y;
+                be += XX_x * XX_x + YY_x * YY_x + XX_y * XX_y + YY_y * YY_y + \
+                    2. * XY_x * XY_x + 2. * XY_y * XY_y;
             }
         }
-        return (float)(be/(double)cpp.nVoxels());
+        return (float)(be / (double)cpp.nVoxels());
     }
-    float GetBe3d(NiftiImage cpp)
-    {
+
+    float GetBe3d(const NiftiImage& cpp) {
         // variable to store the bending energy and the normalisation value
         double be = 0;
 
         // The BSpine basis values are known since the control points all have a relative position equal to 0
         float basis[3], first[3], second[3];
-        basis[0]=1.f/6.f;basis[1]=4.f/6.f;basis[2]=1.f/6.f;
-        first[0]=-.5f; first[1]=0.f; first[2]=.5f;
-        second[0]=1.f; second[1]=-2.f;second[2]=1.f;
+        basis[0] = 1.f / 6.f; basis[1] = 4.f / 6.f; basis[2] = 1.f / 6.f;
+        first[0] = -.5f; first[1] = 0.f; first[2] = .5f;
+        second[0] = 1.f; second[1] = -2.f; second[2] = 1.f;
 
-        auto cppPtr = cpp.data();
+        const auto cppPtr = cpp.data();
         // the first and last control points along each axis are
         // ignored for lack of support
-        for(unsigned z=1; z<cpp->nz-1;++z){
-            for(unsigned y=1; y<cpp->ny-1;++y){
-                for(unsigned x=1; x<cpp->nx-1;++x){
-                    float XX_x=0, YY_x=0, ZZ_x=0, XY_x=0, YZ_x=0, XZ_x=0;
-                    float XX_y=0, YY_y=0, ZZ_y=0, XY_y=0, YZ_y=0, XZ_y=0;
-                    float XX_z=0, YY_z=0, ZZ_z=0, XY_z=0, YZ_z=0, XZ_z=0;
-                    for(unsigned k=0; k<3;++k){
-                        for(unsigned j=0; j<3;++j){
-                            for(unsigned i=0; i<3;++i){
-                                unsigned cpIndex = ((z+k-1) * cpp->ny + y+j-1 ) * cpp->nx + x+i-1;
+        for (int z = 1; z < cpp->nz - 1; ++z) {
+            for (int y = 1; y < cpp->ny - 1; ++y) {
+                for (int x = 1; x < cpp->nx - 1; ++x) {
+                    float XX_x = 0, YY_x = 0, ZZ_x = 0, XY_x = 0, YZ_x = 0, XZ_x = 0;
+                    float XX_y = 0, YY_y = 0, ZZ_y = 0, XY_y = 0, YZ_y = 0, XZ_y = 0;
+                    float XX_z = 0, YY_z = 0, ZZ_z = 0, XY_z = 0, YZ_z = 0, XZ_z = 0;
+                    for (unsigned k = 0; k < 3; ++k) {
+                        for (unsigned j = 0; j < 3; ++j) {
+                            for (unsigned i = 0; i < 3; ++i) {
+                                unsigned cpIndex = ((z + k - 1) * cpp->ny + y + j - 1) * cpp->nx + x + i - 1;
                                 float x_val = cppPtr[cpIndex];
                                 float y_val = cppPtr[cpIndex + cpp.nVoxelsPerVolume()];
-                                float z_val = cppPtr[cpIndex + 2*cpp.nVoxelsPerVolume()];
+                                float z_val = cppPtr[cpIndex + 2 * cpp.nVoxelsPerVolume()];
                                 XX_x += x_val * second[i] * basis[j] * basis[k];
                                 YY_x += x_val * basis[i] * second[j] * basis[k];
                                 ZZ_x += x_val * basis[i] * basis[j] * second[k];
@@ -207,16 +205,16 @@ public:
                             }
                         }
                     }
-                    be += XX_x*XX_x + YY_x*YY_x + ZZ_x*ZZ_x + \
-                        XX_y*XX_y + YY_y*YY_y + ZZ_y*ZZ_y + \
-                        XX_z*XX_z + YY_z*YY_z + ZZ_z*ZZ_z + \
-                        2.*XY_x*XY_x + 2.*YZ_x*YZ_x + 2.*XZ_x*XZ_x + \
-                        2.*XY_y*XY_y + 2.*YZ_y*YZ_y + 2.*XZ_y*XZ_y + \
-                        2.*XY_z*XY_z + 2.*YZ_z*YZ_z + 2.*XZ_z*XZ_z;
+                    be += XX_x * XX_x + YY_x * YY_x + ZZ_x * ZZ_x + \
+                        XX_y * XX_y + YY_y * YY_y + ZZ_y * ZZ_y + \
+                        XX_z * XX_z + YY_z * YY_z + ZZ_z * ZZ_z + \
+                        2. * XY_x * XY_x + 2. * YZ_x * YZ_x + 2. * XZ_x * XZ_x + \
+                        2. * XY_y * XY_y + 2. * YZ_y * YZ_y + 2. * XZ_y * XZ_y + \
+                        2. * XY_z * XY_z + 2. * YZ_z * YZ_z + 2. * XZ_z * XZ_z;
                 }
             }
         }
-        return (float)(be/(double)cpp.nVoxels());
+        return (float)(be / (double)cpp.nVoxels());
     }
 };
 
@@ -229,7 +227,7 @@ TEST_CASE_METHOD(BendingEnergyTest, "Bending Energy", "[unit]") {
         SECTION(testName) {
             std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
             // if (fabs(result - expected) > EPS){
-                std::cout << "Result=" << result << " | Expected=" << expected << std::endl;
+            std::cout << "Result=" << result << " | Expected=" << expected << std::endl;
             // }
             REQUIRE(fabs(result - expected) < EPS);
         }

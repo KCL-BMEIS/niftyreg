@@ -59,7 +59,7 @@ reg_mrf::reg_mrf(reg_measure *_measure,
    this->image_dim = this->referenceImage->nz > 1 ? 3 :2;
    this->label_1D_num = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
    this->label_nD_num = static_cast<int>(std::pow((double) this->label_1D_num,this->image_dim));
-   this->node_number = CalcVoxelNumber(*this->controlPointImage);
+   this->node_number = NiftiImage::calcVoxelNumber(this->controlPointImage, 3);
 
    this->input_transformation=nifti_copy_nim_info(this->controlPointImage);
    this->input_transformation->data=(float *)malloc(this->node_number*this->image_dim*sizeof(float));
@@ -170,7 +170,7 @@ void reg_mrf::Initialise()
    for(int i =0;i<edge_number;i++) {
       index_neighbours[i]=-1;
    }
-   const size_t num_vertices = CalcVoxelNumber(*this->controlPointImage);
+   const size_t num_vertices = NiftiImage::calcVoxelNumber(this->controlPointImage, 3);
    const int num_neighbours=this->controlPointImage->nz > 1 ? 6 : 4;
 
    this->GetGraph(edgeWeightMatrix, index_neighbours);
@@ -358,7 +358,7 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
       image_mm2vox = &refImage->sto_ijk;
    mat44 grid2img_vox = reg_mat44_mul(image_mm2vox, grid_vox2mm);
 
-   const size_t node_number = CalcVoxelNumber(*controlPointGridImage);
+   const size_t node_number = NiftiImage::calcVoxelNumber(controlPointGridImage, 3);
 
    // Compute the block size
    int blockSize[3]={
@@ -633,7 +633,7 @@ void reg_mrf::GetGraph(float *edgeWeightMatrix, int *index_neighbours)
 void reg_mrf::GetPrimsMST(float *edgeWeightMatrix,
                           int *index_neighbours, int num_vertices, int num_neighbours,bool norm)
 {
-   //size_t num_vertices = CalcVoxelNumber(*controlPointGridImage);
+   //size_t num_vertices = NiftiImage::calcVoxelNumber(controlPointGridImage, 3);
 
    //DEBUG
    //int blockSize[3]={
@@ -641,7 +641,7 @@ void reg_mrf::GetPrimsMST(float *edgeWeightMatrix,
    //    (int)reg_ceil(controlPointImage->dy / referenceImage->dy),
    //    (int)reg_ceil(controlPointImage->dz / referenceImage->dz),
    //};
-   //size_t sz=CalcVoxelNumber(*referenceImage);
+   //size_t sz=NiftiImage::calcVoxelNumber(referenceImage, 3);
    //int m=referenceImage->nx;
    //int n=referenceImage->ny;
    //int o=referenceImage->nz;

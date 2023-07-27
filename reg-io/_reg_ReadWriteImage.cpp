@@ -124,7 +124,7 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename) {
     // Check if the specified directory exists
     std::filesystem::path p(filename);
     p = p.parent_path();
-    if(!std::filesystem::exists(p) && p!=std::filesystem::path()){
+    if (!std::filesystem::exists(p) && p != std::filesystem::path()) {
         std::cerr << "The specified folder to save the following file does not exist:" << std::endl;
         std::cerr << filename << std::endl;
         reg_exit();
@@ -183,7 +183,7 @@ void reg_io_displayImageData1(nifti_image *image) {
                 text = stringFormat("[%d - %d - %d] = [", x, y, z);
                 for (int tu = 0; tu < image->nt * image->nu; ++tu) {
                     text = stringFormat("%s%g ", text.c_str(),
-                                        static_cast<double>(data[voxelIndex + tu * CalcVoxelNumber(*image)]));
+                                        static_cast<double>(data[voxelIndex + tu * NiftiImage::calcVoxelNumber(image, 3)]));
                 }
                 text = stringFormat("%s]", text.c_str());
                 reg_print_msg_debug(text.c_str());

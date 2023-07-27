@@ -39,7 +39,7 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
                                      )
 {
    // Set all the closest nodes and coefficients to zero
-   for (int i = 0; i < 4 * CalcVoxelNumber(*deformationFieldImage); ++i)
+   for (int i = 0; i < 4 * NiftiImage::calcVoxelNumber(deformationFieldImage, 3); ++i)
    {
       closestNodes[i]=0;
       femInterpolationWeight[i]=0.f;
@@ -150,10 +150,10 @@ void reg_fem_getDeformationField(float *nodePositions,
 {
 #ifdef _WIN32
     long voxel;
-    const long voxelNumber = (long)CalcVoxelNumber(*deformationFieldImage);
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(deformationFieldImage, 3);
 #else
     size_t voxel;
-    const size_t voxelNumber = CalcVoxelNumber(*deformationFieldImage);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationFieldImage, 3);
 #endif
 
    float *defPtrX = static_cast<float *>(deformationFieldImage->data);
@@ -166,7 +166,7 @@ void reg_fem_getDeformationField(float *nodePositions,
    #pragma omp parallel for default(none) \
    shared(defPtrX, defPtrY, defPtrZ, femInterpolationWeight, \
           nodePositions, closestNodes, voxelNumber) \
-   private(voxel, coefficients, positionA, positionB, positionC, positionD)
+   private(coefficients, positionA, positionB, positionC, positionD)
 #endif
    for(voxel=0; voxel<voxelNumber; ++voxel)
    {
@@ -215,7 +215,7 @@ void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
                                  unsigned nodeNumber,
                                  float *femBasedGradient)
 {
-   const size_t voxelNumber = CalcVoxelNumber(*voxelBasedGradient);
+   const size_t voxelNumber = NiftiImage::calcVoxelNumber(voxelBasedGradient, 3);
    float *voxGradPtrX = static_cast<float *>(voxelBasedGradient->data);
    float *voxGradPtrY = &voxGradPtrX[voxelNumber];
    float *voxGradPtrZ = &voxGradPtrY[voxelNumber];

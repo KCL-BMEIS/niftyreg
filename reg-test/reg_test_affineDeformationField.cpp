@@ -165,7 +165,7 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
                 // Check all values
                 nifti_image *defField = content->GetDeformationField();
                 auto defFieldPtrX = static_cast<float*>(defField->data);
-                const size_t voxelNumber = CalcVoxelNumber(*defField);
+                const size_t voxelNumber = NiftiImage::calcVoxelNumber(defField, 3);
                 auto defFieldPtrY = &defFieldPtrX[voxelNumber];
                 auto defFieldPtrZ = &defFieldPtrY[voxelNumber];
                 for (size_t i = 0; i < voxelNumber; ++i) {

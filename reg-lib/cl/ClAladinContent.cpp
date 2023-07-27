@@ -105,7 +105,7 @@ void ClAladinContent::AllocateClPtrs() {
     }
     if (referenceMask != nullptr && reference != nullptr) {
         maskClmem = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   CalcVoxelNumber(*reference) * sizeof(int), referenceMask, &errNum);
+                                   NiftiImage::calcVoxelNumber(reference, 3) * sizeof(int), referenceMask, &errNum);
         sContext->CheckErrNum(errNum, "ClContent::AllocateClPtrs failed to allocate memory (clCreateBuffer): ");
     }
 }

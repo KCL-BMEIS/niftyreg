@@ -39,7 +39,7 @@ void svd(T **in, size_t size_m, size_t size_n, T * w, T **v) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(in,m, size__m, size__n) \
-   private(sm, sn)
+   private(sn)
 #endif
    for (sm = 0; sm < size__m; sm++)
    {
@@ -54,7 +54,7 @@ void svd(T **in, size_t size_m, size_t size_n, T * w, T **v) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(in,svd,v,w, size__n,size__m) \
-   private(sn2, sn, sm)
+   private(sn2, sm)
 #endif
    for (sn = 0; sn < size__n; sn++) {
       w[sn] = static_cast<T>(svd.singularValues()(sn));
@@ -88,7 +88,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
    }
 
 #ifdef _WIN32
-   long sm, sn, sn2, min_dim, i, j;
+   long sm, sn, min_dim, i, j;
    long size__m = (long)size_m, size__n = (long)size_n;
 #else
    size_t sm, sn, min_dim, i, j;
@@ -100,7 +100,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(in, m, size__m, size__n) \
-   private(sm, sn)
+   private(sn)
 #endif
    for (sm = 0; sm < size__m; sm++)
    {
@@ -116,7 +116,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(svd, min_dim, S) \
-   private(i, j)
+   private(j)
 #endif
    //Convert to C matrix
    for (i = 0; i < min_dim; i++) {
@@ -134,7 +134,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(svd, min_dim, V) \
-   private(i, j)
+   private(j)
 #endif
       //Convert to C matrix
       for (i = 0; i < min_dim; i++) {
@@ -146,7 +146,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(svd, size__m, size__n, U) \
-   private(i, j)
+   private(j)
 #endif
       for (i = 0; i < size__m; i++) {
          for (j = 0; j < size__n; j++) {
@@ -158,7 +158,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(svd, min_dim, U) \
-   private(i, j)
+   private(j)
 #endif
       //Convert to C matrix
       for (i = 0; i < min_dim; i++) {
@@ -170,7 +170,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(svd, size__m, size__n, V) \
-   private(i, j)
+   private(j)
 #endif
       for (i = 0; i < size__n; i++) {
          for (j = 0; j < size__m; j++) {

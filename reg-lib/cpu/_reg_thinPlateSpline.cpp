@@ -214,7 +214,7 @@ void reg_tps<T>::FillDeformationField(nifti_image *deformationField)
    if(this->initialised==false)
       this->InitialiseTPS();
 
-   const size_t voxelNumber = CalcVoxelNumber(*deformationField);
+   const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
    T *defX=static_cast<T *>(deformationField->data);
    T *defY=&defX[voxelNumber];
    T *defZ=nullptr;

@@ -22,7 +22,7 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
                                    bool composition,
                                    int *mask)
 {
-   const size_t voxelNumber = CalcVoxelNumber(*deformationFieldImage, 2);
+   const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationFieldImage, 2);
    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationFieldImage->data);
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
 
@@ -49,7 +49,7 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
 #pragma omp parallel for default(none) \
    shared(deformationFieldImage, transformationMatrix, affineTransformation, \
    deformationFieldPtrX, deformationFieldPtrY, mask, composition) \
-   private(voxel, position, x, y, index)
+   private(voxel, position, x, index)
 #endif
    for(y=0; y<deformationFieldImage->ny; y++)
    {
@@ -84,7 +84,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
                                    bool composition,
                                    int *mask)
 {
-   const size_t voxelNumber=CalcVoxelNumber(*deformationFieldImage);
+   const size_t voxelNumber=NiftiImage::calcVoxelNumber(deformationFieldImage, 3);
    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationFieldImage->data);
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber];
@@ -112,7 +112,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
 #pragma omp parallel for default(none) \
    shared(deformationFieldImage, transformationMatrix, affineTransformation, \
    deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, mask, composition) \
-   private(voxel, position, x, y, z, index)
+   private(voxel, position, x, y, index)
 #endif
    for(z=0; z<deformationFieldImage->nz; z++)
    {
@@ -153,7 +153,7 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
    int *tempMask=mask;
    if(mask==nullptr)
    {
-      tempMask = (int *)calloc(CalcVoxelNumber(*deformationField), sizeof(int));
+      tempMask = (int *)calloc(NiftiImage::calcVoxelNumber(deformationField, 3), sizeof(int));
    }
    if(deformationField->nz==1)
    {

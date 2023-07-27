@@ -883,14 +883,14 @@ int main(int argc, char **argv)
         def->pixdim[6]=def->dv=1.f;
         def->dim[7]=def->nw=1;
         def->pixdim[7]=def->dw=1.f;
-        def->nvox = CalcVoxelNumber(*def, def->ndim);
+        def->nvox = NiftiImage::calcVoxelNumber(def, def->ndim);
         def->nbyper = sizeof(float);
         def->datatype = NIFTI_TYPE_FLOAT32;
         def->data = calloc(def->nvox,def->nbyper);
         // Fill the deformation field with an identity transformation
         reg_getDeformationFromDisplacement(def);
         // Allocate and compute the Jacobian matrices
-        const size_t jacobianVoxelNumber = CalcVoxelNumber(*def);
+        const size_t jacobianVoxelNumber = NiftiImage::calcVoxelNumber(def, 3);
         mat33 *jacobian = (mat33 *)malloc(jacobianVoxelNumber * sizeof(mat33));
         for (size_t i = 0; i < jacobianVoxelNumber; ++i)
             reg_mat33_eye(&jacobian[i]);
@@ -950,7 +950,7 @@ int main(int argc, char **argv)
         nifti_image *outputImage = nifti_copy_nim_info(image);
         outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
         outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
-        outputImage->nvox = CalcVoxelNumber(*outputImage, outputImage->ndim);
+        outputImage->nvox = NiftiImage::calcVoxelNumber(outputImage, outputImage->ndim);
         outputImage->datatype = NIFTI_TYPE_RGB24;
         outputImage->nbyper = 3 * sizeof(unsigned char);
         outputImage->data = malloc(outputImage->nbyper*outputImage->nvox);
@@ -988,7 +988,7 @@ int main(int argc, char **argv)
         nifti_image *outputImage = nifti_copy_nim_info(image);
         outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
         outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
-        outputImage->nvox = CalcVoxelNumber(*outputImage, outputImage->ndim);
+        outputImage->nvox = NiftiImage::calcVoxelNumber(outputImage, outputImage->ndim);
         outputImage->datatype = NIFTI_TYPE_RGB24;
         outputImage->nbyper = 3 * sizeof(unsigned char);
         outputImage->scl_slope = 1.f;
@@ -1079,7 +1079,7 @@ int main(int argc, char **argv)
         if(image->datatype!=NIFTI_TYPE_FLOAT32)
             reg_tools_changeDatatype<float>(image);
         // Create a temporary mask
-        const size_t voxelNumber = CalcVoxelNumber(*image);
+        const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
         int *temp_mask = (int *)malloc(voxelNumber * sizeof(int));
         for (size_t i = 0; i < voxelNumber; ++i)
             temp_mask[i]=i;
@@ -1097,7 +1097,7 @@ int main(int argc, char **argv)
         nifti_image *outputImage = nifti_copy_nim_info(image);
         outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
         outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
-        outputImage->nvox = CalcVoxelNumber(*outputImage, outputImage->ndim);
+        outputImage->nvox = NiftiImage::calcVoxelNumber(outputImage, outputImage->ndim);
         outputImage->cal_min=0;
         outputImage->data = calloc(outputImage->nbyper, outputImage->nvox);
         float *inPtr = static_cast<float *>(image->data);

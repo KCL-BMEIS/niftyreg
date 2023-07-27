@@ -93,11 +93,11 @@ void reg_getRealImageSpacing(nifti_image *image,
  */
 extern "C++"
 void reg_tools_kernelConvolution(nifti_image *image,
-                                 float *sigma,
-                                 int kernelType,
-                                 int *mask = nullptr,
-                                 bool *timePoints = nullptr,
-                                 bool *axis = nullptr);
+                                 const float *sigma,
+                                 const int& kernelType,
+                                 const int *mask = nullptr,
+                                 const bool *timePoints = nullptr,
+                                 const bool *axis = nullptr);
 /* *************************************************************** */
 /** @brief Smooth a label image using a Gaussian kernel
  * @param image Image to be smoothed
@@ -451,13 +451,6 @@ extern "C++" template<typename T>
 void cPtrToMatmn(T **mat, const T *cMat, unsigned m, unsigned n);
 /* *************************************************************** */
 void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x, int& y, int& z);
-/* *************************************************************** */
-/** @brief Calculates the number of voxels in the image
- * @param image Input image
- * @param dimCount Number of dimensions to consider
- * @return The number of voxels in the image
- */
-size_t CalcVoxelNumber(const nifti_image& image, const int& dimCount = 3);
 /* *************************************************************** */
 /** @brief Duplicates the nifti image
  * @param image Input image

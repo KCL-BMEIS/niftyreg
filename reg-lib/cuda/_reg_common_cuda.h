@@ -62,47 +62,47 @@ inline void CheckKernel(const char *file, const int& line, const dim3& grid, con
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_allocateArrayToDevice(cudaArray**, int*);
+int cudaCommon_allocateArrayToDevice(cudaArray**, const int*);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_allocateArrayToDevice(cudaArray**, cudaArray**, int*);
+int cudaCommon_allocateArrayToDevice(cudaArray**, cudaArray**, const int*);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_allocateArrayToDevice(DataType**, int);
+int cudaCommon_allocateArrayToDevice(DataType**, const size_t&);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_allocateArrayToDevice(DataType**, int*);
+int cudaCommon_allocateArrayToDevice(DataType**, const int*);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_allocateArrayToDevice(DataType**, DataType**, int*);
+int cudaCommon_allocateArrayToDevice(DataType**, DataType**, const int*);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferNiftiToArrayOnDevice(cudaArray*, nifti_image*);
+int cudaCommon_transferNiftiToArrayOnDevice(cudaArray*, const nifti_image*);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferNiftiToArrayOnDevice(cudaArray*, cudaArray*, nifti_image*);
+int cudaCommon_transferNiftiToArrayOnDevice(cudaArray*, cudaArray*, const nifti_image*);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferNiftiToArrayOnDevice(DataType*, nifti_image*);
+int cudaCommon_transferNiftiToArrayOnDevice(DataType*, const nifti_image*);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferNiftiToArrayOnDevice(DataType*, DataType*, nifti_image*);
+int cudaCommon_transferNiftiToArrayOnDevice(DataType*, DataType*, const nifti_image*);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferFromDeviceToNifti(nifti_image*, DataType*);
+int cudaCommon_transferFromDeviceToNifti(nifti_image*, const DataType*);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferFromDeviceToNifti(nifti_image*, DataType*, DataType*);
+int cudaCommon_transferFromDeviceToNifti(nifti_image*, const DataType*, const DataType*);
 /* *************************************************************** */
 extern "C++"
 void cudaCommon_free(cudaArray*);
@@ -112,23 +112,23 @@ void cudaCommon_free(DataType*);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferFromDeviceToNiftiSimple(DataType*, nifti_image*);
+int cudaCommon_transferFromDeviceToNiftiSimple(DataType*, const nifti_image*);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferFromDeviceToNiftiSimple1(DataType*, DataType*, const unsigned);
+int cudaCommon_transferFromDeviceToNiftiSimple1(DataType*, const DataType*, const size_t&);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferFromDeviceToCpu(DataType*, DataType*, const unsigned);
+int cudaCommon_transferFromDeviceToCpu(DataType*, const DataType*, const size_t&);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferArrayFromCpuToDevice(DataType*, DataType*, const unsigned);
+int cudaCommon_transferArrayFromCpuToDevice(DataType*, const DataType*, const size_t&);
 /* *************************************************************** */
 extern "C++"
 template <class DataType>
-int cudaCommon_transferArrayFromDeviceToCpu(DataType*, DataType*, const unsigned);
+int cudaCommon_transferArrayFromDeviceToCpu(DataType*, const DataType*, const size_t&);
 /* *************************************************************** */
 using UniqueTextureObjectPtr = unique_ptr<cudaTextureObject_t, void(*)(cudaTextureObject_t*)>;
 /* *************************************************************** */

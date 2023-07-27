@@ -368,7 +368,7 @@ int compute_average_image(nifti_image *averageImage,
       demeanField->ndim=demeanField->dim[0]=5;
       demeanField->nt=demeanField->dim[4]=1;
       demeanField->nu=demeanField->dim[5]=demeanField->nz>1?3:2;
-      demeanField->nvox=CalcVoxelNumber(*demeanField, demeanField->ndim);
+      demeanField->nvox=NiftiImage::calcVoxelNumber(demeanField, demeanField->ndim);
       demeanField->nbyper=sizeof(float);
       demeanField->datatype=NIFTI_TYPE_FLOAT32;
       demeanField->intent_code=NIFTI_INTENT_VECTOR;
@@ -395,7 +395,7 @@ int compute_average_image(nifti_image *averageImage,
       deformationField->ndim=deformationField->dim[0]=5;
       deformationField->nt=deformationField->dim[4]=1;
       deformationField->nu=deformationField->dim[5]=deformationField->nz>1?3:2;
-      deformationField->nvox=CalcVoxelNumber(*deformationField, deformationField->ndim);
+      deformationField->nvox=NiftiImage::calcVoxelNumber(deformationField, deformationField->ndim);
       deformationField->nbyper=sizeof(float);
       deformationField->datatype=NIFTI_TYPE_FLOAT32;
       deformationField->intent_code=NIFTI_INTENT_VECTOR;
