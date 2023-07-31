@@ -30,18 +30,20 @@ public:
 
     /// @brief Initialise the reg_mind object
     virtual void InitialiseMeasure(nifti_image *refImg,
-                           nifti_image *floImg,
-                           int *refMask,
-                           nifti_image *warpedImg,
-                           nifti_image *warpedGrad,
-                           nifti_image *voxelBasedGrad,
-                           nifti_image *localWeightSim = nullptr,
-                           int *floMask = nullptr,
-                           nifti_image *warpedImgBw = nullptr,
-                           nifti_image *warpedGradBw = nullptr,
-                           nifti_image *voxelBasedGradBw = nullptr) override;
-    /// @brief Returns the mind based measure of similarity value
-    virtual double GetSimilarityMeasureValue() override;
+                                   nifti_image *floImg,
+                                   int *refMask,
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr) override;
+    /// @brief Returns the forward mind-based measure of similarity value
+    virtual double GetSimilarityMeasureValueFw() override;
+    /// @brief Returns the backward mind-based measure of similarity value
+    virtual double GetSimilarityMeasureValueBw() override;
     /// @brief Compute the voxel based gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
     virtual void SetDescriptorOffset(int);
@@ -55,8 +57,8 @@ protected:
     double timePointWeightDescriptor[255] = {0};
 
     int descriptorOffset;
-    int mind_type;
-    int descriptor_number;
+    int mindType;
+    int descriptorNumber;
 };
 /* *************************************************************** */
 /// @brief MIND-SSC measure of similarity class
@@ -69,16 +71,16 @@ public:
 };
 /* *************************************************************** */
 extern "C++"
-void GetMINDImageDescriptor(nifti_image *inputImgPtr,
-                           nifti_image *MINDImgPtr,
-                           int *mask,
-                           int descriptorOffset,
-                           int currentTimepoint);
+void GetMindImageDescriptor(const nifti_image *inputImage,
+                            nifti_image *mindImage,
+                            const int *mask,
+                            const int& descriptorOffset,
+                            const int& currentTimepoint);
 /* *************************************************************** */
 extern "C++"
-void GetMINDSSCImageDescriptor(nifti_image *inputImgPtr,
-                              nifti_image *MINDSSCImgPtr,
-                              int *mask,
-                              int descriptorOffset,
-                              int currentTimepoint);
+void GetMindSscImageDescriptor(const nifti_image *inputImage,
+                               nifti_image *mindSscImage,
+                               const int *mask,
+                               const int& descriptorOffset,
+                               const int& currentTimepoint);
 /* *************************************************************** */

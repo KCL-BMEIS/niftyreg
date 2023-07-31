@@ -34,8 +34,10 @@ public:
                                    nifti_image *warpedImgBw = nullptr,
                                    nifti_image *warpedGradBw = nullptr,
                                    nifti_image *voxelBasedGradBw = nullptr) override;
-    /// @brief Returns the kld value
-    virtual double GetSimilarityMeasureValue() override;
+    /// @brief Returns the kld value forwards
+    virtual double GetSimilarityMeasureValueFw() override;
+    /// @brief Returns the kld value backwards
+    virtual double GetSimilarityMeasureValueBw() override;
     /// @brief Compute the voxel based kld gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
 };
@@ -50,15 +52,15 @@ public:
  * image is used to modulate the KLD. The argument is ignored if the
  * pointer is set to nullptr
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to nullptr, all voxels are considered
+ * should be considered
  * @return Returns the computed sum squared difference
  */
 extern "C++" template <class DataType>
-double reg_getKLDivergence(nifti_image *reference,
-                           nifti_image *warped,
-                           double *timePointWeight,
-                           nifti_image *jacobianDeterminantImage,
-                           int *mask);
+double reg_getKLDivergence(const nifti_image *reference,
+                           const nifti_image *warped,
+                           const double *timePointWeight,
+                           const nifti_image *jacobianDeterminantImage,
+                           const int *mask);
 /* *************************************************************** */
 
 /** @brief Compute a voxel based gradient of the sum squared difference.

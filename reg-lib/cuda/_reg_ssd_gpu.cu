@@ -98,13 +98,17 @@ double reg_getSSDValue_gpu(const nifti_image *referenceImage,
     return ssd;
 }
 /* *************************************************************** */
-double reg_ssd_gpu::GetSimilarityMeasureValue() {
+double reg_ssd_gpu::GetSimilarityMeasureValueFw() {
     const double SSDValue = reg_getSSDValue_gpu(this->referenceImage,
                                                 this->referenceImageCuda,
                                                 this->warpedImageCuda,
                                                 this->referenceMaskCuda,
                                                 this->activeVoxelNumber);
     return -SSDValue;
+}
+/* *************************************************************** */
+double reg_ssd_gpu::GetSimilarityMeasureValueBw() {
+    return 0;
 }
 /* *************************************************************** */
 void reg_getVoxelBasedSSDGradient_gpu(const nifti_image *referenceImage,

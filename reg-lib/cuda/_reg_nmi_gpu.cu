@@ -63,48 +63,67 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
 #endif
 }
 /* *************************************************************** */
-double reg_nmi_gpu::GetSimilarityMeasureValue() {
-    // The NMI computation is performed into the host for now
-    // The relevant images have to be transferred from the device to the host
-    cudaCommon_transferFromDeviceToNifti<float>(this->warpedImage, this->warpedImageCuda);
-    reg_getNMIValue<float>(this->referenceImage,
-                           this->warpedImage,
-                           this->timePointWeight,
-                           this->referenceBinNumber,
-                           this->floatingBinNumber,
-                           this->totalBinNumber,
-                           this->jointHistogramLog,
-                           this->jointHistogramPro,
-                           this->entropyValues,
-                           this->referenceMask);
+double GetSimilarityMeasureValue(const nifti_image *referenceImage,
+                                 nifti_image *warpedImage,
+                                 const float *warpedImageCuda,
+                                 const double *timePointWeight,
+                                 const unsigned short *referenceBinNumber,
+                                 const unsigned short *floatingBinNumber,
+                                 const unsigned short *totalBinNumber,
+                                 double **jointHistogramLog,
+                                 double **jointHistogramPro,
+                                 double **entropyValues,
+                                 const int *referenceMask,
+                                 const int& referenceTimePoint) {
+    // The NMI computation is performed on the host for now
+    cudaCommon_transferFromDeviceToNifti<float>(warpedImage, warpedImageCuda);
+    reg_getNMIValue<float>(referenceImage,
+                           warpedImage,
+                           timePointWeight,
+                           referenceBinNumber,
+                           floatingBinNumber,
+                           totalBinNumber,
+                           jointHistogramLog,
+                           jointHistogramPro,
+                           entropyValues,
+                           referenceMask);
 
-    if (this->isSymmetric) {
-        cudaCommon_transferFromDeviceToNifti<float>(this->warpedImageBw, this->warpedImageBwCuda);
-        reg_getNMIValue<float>(this->floatingImage,
-                               this->warpedImageBw,
-                               this->timePointWeight,
-                               this->floatingBinNumber,
-                               this->referenceBinNumber,
-                               this->totalBinNumber,
-                               this->jointHistogramLogBw,
-                               this->jointHistogramProBw,
-                               this->entropyValuesBw,
-                               this->floatingMask);
+    double nmi = 0;
+    for (int t = 0; t < referenceTimePoint; ++t) {
+        if (timePointWeight[t] > 0)
+            nmi += timePointWeight[t] * (entropyValues[t][0] + entropyValues[t][1]) / entropyValues[t][2];
     }
-
-    double nmiFw = 0, nmiBw = 0;
-    for (int t = 0; t < this->referenceTimePoint; ++t) {
-        if (this->timePointWeight[t] > 0) {
-            nmiFw += timePointWeight[t] * (this->entropyValues[t][0] + this->entropyValues[t][1]) / this->entropyValues[t][2];
-            if (this->isSymmetric)
-                nmiBw += timePointWeight[t] * (this->entropyValuesBw[t][0] + this->entropyValuesBw[t][1]) / this->entropyValuesBw[t][2];
-        }
-    }
-
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_nmi_gpu::GetSimilarityMeasureValue called");
-#endif
-    return nmiFw + nmiBw;
+    return nmi;
+}
+/* *************************************************************** */
+double reg_nmi_gpu::GetSimilarityMeasureValueFw() {
+    return ::GetSimilarityMeasureValue(this->referenceImage,
+                                       this->warpedImage,
+                                       this->warpedImageCuda,
+                                       this->timePointWeight,
+                                       this->referenceBinNumber,
+                                       this->floatingBinNumber,
+                                       this->totalBinNumber,
+                                       this->jointHistogramLog,
+                                       this->jointHistogramPro,
+                                       this->entropyValues,
+                                       this->referenceMask,
+                                       this->referenceTimePoint);
+}
+/* *************************************************************** */
+double reg_nmi_gpu::GetSimilarityMeasureValueBw() {
+    return ::GetSimilarityMeasureValue(this->floatingImage,
+                                       this->warpedImageBw,
+                                       this->warpedImageBwCuda,
+                                       this->timePointWeight,
+                                       this->floatingBinNumber,
+                                       this->referenceBinNumber,
+                                       this->totalBinNumber,
+                                       this->jointHistogramLogBw,
+                                       this->jointHistogramProBw,
+                                       this->entropyValuesBw,
+                                       this->floatingMask,
+                                       this->referenceTimePoint);
 }
 /* *************************************************************** */
 /// Called when we only have one target and one source image
@@ -201,7 +220,7 @@ void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {
                                          this->referenceBinNumber[0]);
     }
 #ifndef NDEBUG
-    reg_print_msg_debug("reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient called\n");
+    reg_print_msg_debug("reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient called");
 #endif
 }
 /* *************************************************************** */

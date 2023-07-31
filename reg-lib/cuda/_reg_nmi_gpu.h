@@ -47,8 +47,10 @@ public:
                                    float4 *warpedGradBwCuda = nullptr,
                                    nifti_image *voxelBasedGradBw = nullptr,
                                    float4 *voxelBasedGradBwCuda = nullptr) override;
-    /// @brief Returns the nmi value
-    virtual double GetSimilarityMeasureValue() override;
+    /// @brief Returns the nmi value forwards
+    virtual double GetSimilarityMeasureValueFw() override;
+    /// @brief Returns the nmi value backwards
+    virtual double GetSimilarityMeasureValueBw() override;
     /// @brief Compute the voxel based nmi gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
 };
@@ -82,8 +84,10 @@ public:
     reg_multichannel_nmi_gpu() {}
     /// @brief reg_multichannel_nmi_gpu class destructor
     virtual ~reg_multichannel_nmi_gpu() {}
-    /// @brief Returns the nmi value
-    virtual double GetSimilarityMeasureValue() override { return 0; }
+    /// @brief Returns the nmi value forwards
+    virtual double GetSimilarityMeasureValueFw() override { return 0; }
+    /// @brief Returns the nmi value backwards
+    virtual double GetSimilarityMeasureValueBw() override { return 0; }
     /// @brief Compute the voxel based nmi gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {}
 };

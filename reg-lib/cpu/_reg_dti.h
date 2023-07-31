@@ -37,8 +37,10 @@ public:
                                    nifti_image *warpedImgBw = nullptr,
                                    nifti_image *warpedGradBw = nullptr,
                                    nifti_image *voxelBasedGradBw = nullptr) override;
-    /// @brief Returns the value
-    virtual double GetSimilarityMeasureValue() override;
+    /// @brief Returns the dti value forwards
+    virtual double GetSimilarityMeasureValueFw() override;
+    /// @brief Returns the dti value backwards
+    virtual double GetSimilarityMeasureValueBw() override;
     /// @brief Compute the voxel based gradient for DTI images
     virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
 
@@ -57,10 +59,10 @@ protected:
  * @return Returns an L2 measure of the distance between the anisotropic components of the diffusion tensors
  */
 extern "C++" template <class DataType>
-double reg_getDTIMeasureValue(nifti_image *referenceImage,
-                              nifti_image *warpedImage,
-                              int *mask,
-                              unsigned *dtIndicies);
+double reg_getDTIMeasureValue(const nifti_image *referenceImage,
+                              const nifti_image *warpedImage,
+                              const int *mask,
+                              const unsigned *dtIndicies);
 /* *************************************************************** */
 /**
  * @brief Compute a voxel based gradient of the sum squared difference.

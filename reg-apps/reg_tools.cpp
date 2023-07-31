@@ -1037,7 +1037,7 @@ int main(int argc, char **argv)
         outputImage->data = malloc(outputImage->nvox * outputImage->nbyper);
         // Compute the MIND descriptor
         int *mask = (int *)calloc(image->nvox, sizeof(int));
-        GetMINDImageDescriptor(image, outputImage, mask, 1, 0);
+        GetMindImageDescriptor(image, outputImage, mask, 1, 0);
         free(mask);
         // Save the MIND descriptor image
         if(flag->outputImageFlag)
@@ -1064,7 +1064,7 @@ int main(int argc, char **argv)
         outputImage->data = malloc(outputImage->nvox * outputImage->nbyper);
         // Compute the MIND-SSC descriptor
         int *mask = (int *)calloc(image->nvox, sizeof(int));
-        GetMINDSSCImageDescriptor(image, outputImage, mask, 1, 0);
+        GetMindSscImageDescriptor(image, outputImage, mask, 1, 0);
         free(mask);
         // Save the MIND descriptor image
         if(flag->outputImageFlag)

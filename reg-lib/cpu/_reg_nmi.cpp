@@ -213,7 +213,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
                      const unsigned short *floatingBinNumber,
                      const unsigned short *totalBinNumber,
                      double **jointHistogramLog,
-                     double **jointhistogramPro,
+                     double **jointHistogramPro,
                      double **entropyValues,
                      const int *referenceMask) {
     // Create pointers to the image data arrays
@@ -230,7 +230,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
             reg_print_msg_debug(text);
 #endif
             // Define some pointers to the current histograms
-            double *jointHistoProPtr = jointhistogramPro[t];
+            double *jointHistoProPtr = jointHistogramPro[t];
             double *jointHistoLogPtr = jointHistogramLog[t];
             // Empty the joint histogram
             memset(jointHistoProPtr, 0, totalBinNumber[t] * sizeof(double));
@@ -355,71 +355,65 @@ void reg_getNMIValue(const nifti_image *referenceImage,
     } // iterate over all time point in the reference image
 }
 /* *************************************************************** */
-double reg_nmi::GetSimilarityMeasureValue() {
-    // Check that all the specified image are of the same datatype
-    if (this->referenceImage->datatype != NIFTI_TYPE_FLOAT32 && this->referenceImage->datatype != NIFTI_TYPE_FLOAT64) {
-        reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
-        reg_print_msg_error("Input images are expected to be of floating precision type");
-        reg_exit();
-    }
-    if (this->warpedImage->datatype != this->referenceImage->datatype) {
-        reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
-        reg_print_msg_error("Both input images are expected to have the same type");
-        reg_exit();
-    }
+double GetSimilarityMeasureValue(const nifti_image *referenceImage,
+                                 const nifti_image *warpedImage,
+                                 const double *timePointWeight,
+                                 const unsigned short *referenceBinNumber,
+                                 const unsigned short *floatingBinNumber,
+                                 const unsigned short *totalBinNumber,
+                                 double **jointHistogramLog,
+                                 double **jointHistogramPro,
+                                 double **entropyValues,
+                                 const int *referenceMask,
+                                 const int& referenceTimePoint) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
-        reg_getNMIValue<RefImgDataType>(this->referenceImage,
-                                        this->warpedImage,
-                                        this->timePointWeight,
-                                        this->referenceBinNumber,
-                                        this->floatingBinNumber,
-                                        this->totalBinNumber,
-                                        this->jointHistogramLog,
-                                        this->jointHistogramPro,
-                                        this->entropyValues,
-                                        this->referenceMask);
-    }, NiftiImage::getFloatingDataType(this->referenceImage));
+        reg_getNMIValue<RefImgDataType>(referenceImage,
+                                        warpedImage,
+                                        timePointWeight,
+                                        referenceBinNumber,
+                                        floatingBinNumber,
+                                        totalBinNumber,
+                                        jointHistogramLog,
+                                        jointHistogramPro,
+                                        entropyValues,
+                                        referenceMask);
+    }, NiftiImage::getFloatingDataType(referenceImage));
 
-    if (this->isSymmetric) {
-        // Check that all the specified image are of the same datatype
-        if (this->floatingImage->datatype != NIFTI_TYPE_FLOAT32 && this->floatingImage->datatype != NIFTI_TYPE_FLOAT64) {
-            reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
-            reg_print_msg_error("Input images are expected to be of floating precision type");
-            reg_exit();
-        }
-        if (this->floatingImage->datatype != this->warpedImageBw->datatype) {
-            reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
-            reg_print_msg_error("Both input images are expected to have the same type");
-            reg_exit();
-        }
-        std::visit([&](auto&& floImgDataType) {
-            using FloImgDataType = std::decay_t<decltype(floImgDataType)>;
-            reg_getNMIValue<FloImgDataType>(this->floatingImage,
-                                            this->warpedImageBw,
-                                            this->timePointWeight,
-                                            this->floatingBinNumber,
-                                            this->referenceBinNumber,
-                                            this->totalBinNumber,
-                                            this->jointHistogramLogBw,
-                                            this->jointHistogramProBw,
-                                            this->entropyValuesBw,
-                                            this->floatingMask);
-        }, NiftiImage::getFloatingDataType(this->floatingImage));
+    double nmi = 0;
+    for (int t = 0; t < referenceTimePoint; ++t) {
+        if (timePointWeight[t] > 0)
+            nmi += timePointWeight[t] * (entropyValues[t][0] + entropyValues[t][1]) / entropyValues[t][2];
     }
-
-    double nmiFw = 0, nmiBw = 0;
-    for (int t = 0; t < this->referenceTimePoint; ++t) {
-        if (this->timePointWeight[t] > 0) {
-            nmiFw += timePointWeight[t] * (this->entropyValues[t][0] + this->entropyValues[t][1]) / this->entropyValues[t][2];
-            if (this->isSymmetric)
-                nmiBw += timePointWeight[t] * (this->entropyValuesBw[t][0] + this->entropyValuesBw[t][1]) / this->entropyValuesBw[t][2];
-        }
-    }
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_nmi::GetSimilarityMeasureValue called");
-#endif
-    return nmiFw + nmiBw;
+    return nmi;
+}
+/* *************************************************************** */
+double reg_nmi::GetSimilarityMeasureValueFw() {
+    return ::GetSimilarityMeasureValue(this->referenceImage,
+                                       this->warpedImage,
+                                       this->timePointWeight,
+                                       this->referenceBinNumber,
+                                       this->floatingBinNumber,
+                                       this->totalBinNumber,
+                                       this->jointHistogramLog,
+                                       this->jointHistogramPro,
+                                       this->entropyValues,
+                                       this->referenceMask,
+                                       this->referenceTimePoint);
+}
+/* *************************************************************** */
+double reg_nmi::GetSimilarityMeasureValueBw() {
+    return ::GetSimilarityMeasureValue(this->floatingImage,
+                                       this->warpedImageBw,
+                                       this->timePointWeight,
+                                       this->floatingBinNumber,
+                                       this->referenceBinNumber,
+                                       this->totalBinNumber,
+                                       this->jointHistogramLogBw,
+                                       this->jointHistogramProBw,
+                                       this->entropyValuesBw,
+                                       this->floatingMask,
+                                       this->referenceTimePoint);
 }
 /* *************************************************************** */
 template <class DataType>

@@ -48,8 +48,10 @@ public:
                                    float4 *warpedGradBwCuda = nullptr,
                                    nifti_image *voxelBasedGradBw = nullptr,
                                    float4 *voxelBasedGradBwCuda = nullptr) override;
-    /// @brief Returns the ssd value
-    virtual double GetSimilarityMeasureValue() override;
+    /// @brief Returns the ssd value forwards
+    virtual double GetSimilarityMeasureValueFw() override;
+    /// @brief Returns the ssd value backwards
+    virtual double GetSimilarityMeasureValueBw() override;
     /// @brief Compute the voxel based ssd gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
 };

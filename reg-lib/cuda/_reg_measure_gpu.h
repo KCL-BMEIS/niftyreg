@@ -99,7 +99,8 @@ class reg_lncc_gpu: public reg_lncc, public reg_measure_gpu {
 public:
     /// @brief reg_lncc class constructor
     reg_lncc_gpu() {
-        fprintf(stderr, "[ERROR] CUDA CANNOT BE USED WITH LNCC YET\n");
+        reg_print_fct_error("reg_lncc_gpu::reg_lncc_gpu");
+        reg_print_msg_error("CUDA CANNOT BE USED WITH LNCC YET");
         reg_exit();
     }
     /// @brief reg_lncc class destructor
@@ -127,8 +128,10 @@ public:
                                    float4 *warpedGradBwCuda = nullptr,
                                    nifti_image *voxelBasedGradBw = nullptr,
                                    float4 *voxelBasedGradBwCuda = nullptr) override {}
-    /// @brief Returns the lncc value
-    virtual double GetSimilarityMeasureValue() override { return 0; }
+    /// @brief Returns the lncc value forwards
+    virtual double GetSimilarityMeasureValueFw() override { return 0; }
+    /// @brief Returns the lncc value backwards
+    virtual double GetSimilarityMeasureValueBw() override { return 0; }
     /// @brief Compute the voxel based lncc gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {}
 };
@@ -166,8 +169,10 @@ public:
                                    float4 *warpedGradBwCuda = nullptr,
                                    nifti_image *voxelBasedGradBw = nullptr,
                                    float4 *voxelBasedGradBwCuda = nullptr) override {}
-    /// @brief Returns the kld value
-    virtual double GetSimilarityMeasureValue() override { return 0; }
+    /// @brief Returns the kld value forwards
+    virtual double GetSimilarityMeasureValueFw() override { return 0; }
+    /// @brief Returns the kld value backwards
+    virtual double GetSimilarityMeasureValueBw() override { return 0; }
     /// @brief Compute the voxel based kld gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {}
 };
@@ -205,8 +210,10 @@ public:
                                    float4 *warpedGradBwCuda = nullptr,
                                    nifti_image *voxelBasedGradBw = nullptr,
                                    float4 *voxelBasedGradBwCuda = nullptr) override {}
-    /// @brief Returns the dti value
-    virtual double GetSimilarityMeasureValue() override { return 0; }
+    /// @brief Returns the dti value forwards
+    virtual double GetSimilarityMeasureValueFw() override { return 0; }
+    /// @brief Returns the dti value backwards
+    virtual double GetSimilarityMeasureValueBw() override { return 0; }
     /// @brief Compute the voxel based dti gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {}
 };

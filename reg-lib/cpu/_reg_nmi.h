@@ -38,8 +38,10 @@ public:
                                    nifti_image *warpedImgBw = nullptr,
                                    nifti_image *warpedGradBw = nullptr,
                                    nifti_image *voxelBasedGradBw = nullptr) override;
-    /// @brief Returns the nmi value
-    virtual double GetSimilarityMeasureValue() override;
+    /// @brief Returns the nmi value forwards
+    virtual double GetSimilarityMeasureValueFw() override;
+    /// @brief Returns the nmi value backwards
+    virtual double GetSimilarityMeasureValueBw() override;
     /// @brief Compute the voxel based nmi gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
 
@@ -84,7 +86,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
                      const unsigned short *floatingBinNumber,
                      const unsigned short *totalBinNumber,
                      double **jointHistogramLog,
-                     double **jointhistogramPro,
+                     double **jointHistogramPro,
                      double **entropyValues,
                      const int *referenceMask);
 /* *************************************************************** */
@@ -213,8 +215,10 @@ public:
     /// @brief reg_multichannel_nmi class destructor
     virtual ~reg_multichannel_nmi() {}
 
-    /// @brief Returns the nmi value
-    virtual double GetSimilarityMeasureValue() override { return 0; }
+    /// @brief Returns the nmi value forwards
+    virtual double GetSimilarityMeasureValueFw() override { return 0; }
+    /// @brief Returns the nmi value backwards
+    virtual double GetSimilarityMeasureValueBw() override { return 0; }
 
     /// @brief Compute the voxel based nmi gradient
     virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {
