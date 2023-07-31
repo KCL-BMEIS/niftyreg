@@ -28,7 +28,7 @@ jobs:
                 -DUSE_CUDA=OFF \
                 -DUSE_OPENCL=OFF \
                 -DUSE_SSE=ON \
-                -DUSE_OPENMP=ON \
+                -DUSE_OPENMP=OFF \
                 -DBUILD_TESTING=ON \
                 -DWITH_COVERAGE=ON \
                 ..
