@@ -44,18 +44,19 @@ public:
     virtual double GetSimilarityMeasureValueFw() override;
     /// @brief Returns the backward mind-based measure of similarity value
     virtual double GetSimilarityMeasureValueBw() override;
-    /// @brief Compute the voxel based gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
-    virtual void SetDescriptorOffset(int);
-    virtual int GetDescriptorOffset();
+    /// @brief Compute the voxel-based mind gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override;
+    /// @brief Compute the voxel-based mind gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override;
+    virtual void SetDescriptorOffset(int val) { this->descriptorOffset = val; }
+    virtual int GetDescriptorOffset() { return this->descriptorOffset; }
 
 protected:
     nifti_image *referenceImageDescriptor;
     nifti_image *floatingImageDescriptor;
     nifti_image *warpedReferenceImageDescriptor;
     nifti_image *warpedFloatingImageDescriptor;
-    double timePointWeightDescriptor[255] = {0};
-
+    double timePointWeightDescriptor[255]{};
     int descriptorOffset;
     int mindType;
     int descriptorNumber;

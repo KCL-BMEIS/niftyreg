@@ -52,7 +52,9 @@ public:
     virtual double GetSimilarityMeasureValueFw() override;
     /// @brief Returns the ssd value backwards
     virtual double GetSimilarityMeasureValueBw() override;
-    /// @brief Compute the voxel based ssd gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
+    /// @brief Compute the voxel-based ssd gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override;
+    /// @brief Compute the voxel-based ssd gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override;
 };
 /* *************************************************************** */

@@ -51,8 +51,10 @@ public:
     virtual double GetSimilarityMeasureValueFw() override;
     /// @brief Returns the nmi value backwards
     virtual double GetSimilarityMeasureValueBw() override;
-    /// @brief Compute the voxel based nmi gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
+    /// @brief Compute the voxel-based nmi gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override;
+    /// @brief Compute the voxel-based nmi gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override;
 };
 /* *************************************************************** */
 /// @brief NMI measure of similarity class
@@ -88,7 +90,9 @@ public:
     virtual double GetSimilarityMeasureValueFw() override { return 0; }
     /// @brief Returns the nmi value backwards
     virtual double GetSimilarityMeasureValueBw() override { return 0; }
-    /// @brief Compute the voxel based nmi gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {}
+    /// @brief Compute the voxel-based nmi gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override {}
+    /// @brief Compute the voxel-based nmi gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override {}
 };
 /* *************************************************************** */

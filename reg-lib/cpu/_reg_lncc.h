@@ -38,8 +38,10 @@ public:
     virtual double GetSimilarityMeasureValueFw() override;
     /// @brief Returns the lncc value backwards
     virtual double GetSimilarityMeasureValueBw() override;
-    /// @brief Compute the voxel based lncc gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
+    /// @brief Compute the voxel-based lncc gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override;
+    /// @brief Compute the voxel-based lncc gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override;
     /// @brief Set the kernel standard deviation
     virtual void SetKernelStandardDeviation(int t, float stddev) {
         this->kernelStandardDeviation[t] = stddev;

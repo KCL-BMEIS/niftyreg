@@ -43,13 +43,15 @@ public:
     virtual double GetSimilarityMeasureValueFw() override;
     /// @brief Returns the ssd value backwards
     virtual double GetSimilarityMeasureValueBw() override;
-    /// @brief Compute the voxel based ssd gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
+    /// @brief Compute the voxel-based ssd gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override;
+    /// @brief Compute the voxel-based ssd gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override;
     /// @brief Here
     virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
                                      float *discretisedValue,
-                                     int discretise_radius,
-                                     int discretise_step) override;
+                                     int discretiseRadius,
+                                     int discretiseStep) override;
 protected:
     float currentValue[255];
 
@@ -60,13 +62,15 @@ private:
 /** @brief Computes and returns the SSD between two input images
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
- * @param activeTimePoint Specified which time point volumes have to be considered
+ * @param timePointWeight Array that contains the weight of each time point
  * @param jacobianDetImage Image that contains the Jacobian
  * determinant of a transformation at every voxel position. This
  * image is used to modulate the SSD. The argument is ignored if the
  * pointer is set to nullptr
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to nullptr, all voxels are considered
+ * should be considered
+ * @param currentValue Array that contains the current values
+ * @param localWeightSim Image that contains the local weight similarity
  * @return Returns the computed sum squared difference
  */
 extern "C++" template <class DataType>
@@ -81,7 +85,6 @@ double reg_getSsdValue(const nifti_image *referenceImage,
 /** @brief Compute a voxel based gradient of the sum squared difference.
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
- * @param activeTimePoint Specified which time point volumes have to be considered
  * @param warpedGradient Spatial gradient of the input warped image
  * @param measureGradientImage Output image that will be updated with the
  * value of the SSD gradient
@@ -90,7 +93,10 @@ double reg_getSsdValue(const nifti_image *referenceImage,
  * image is used to modulate the SSD. The argument is ignored if the
  * pointer is set to nullptr
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to nullptr, all voxels are considered
+ * should be considered
+ * @param currentTimepoint Specifies which time point volumes have to be considered
+ * @param timepointWeight Weight of the specified time point
+ * @param localWeightSim Image that contains the local weight similarity
  */
 extern "C++" template <class DataType>
 void reg_getVoxelBasedSsdGradient(const nifti_image *referenceImage,

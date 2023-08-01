@@ -61,7 +61,7 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
 #endif
 }
 /* *************************************************************** */
-double reg_getSSDValue_gpu(const nifti_image *referenceImage,
+double reg_getSsdValue_gpu(const nifti_image *referenceImage,
                            const cudaArray *referenceImageCuda,
                            const float *warpedCuda,
                            const int *maskCuda,
@@ -86,9 +86,9 @@ double reg_getSSDValue_gpu(const nifti_image *referenceImage,
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     if (referenceImageDim.z > 1)
-        reg_getSquaredDifference3D_kernel<<<gridDims, blockDims>>>(absoluteValuesCuda.data().get(), *referenceTexture, *warpedTexture,
+        reg_getSquaredDifference3d_kernel<<<gridDims, blockDims>>>(absoluteValuesCuda.data().get(), *referenceTexture, *warpedTexture,
                                                                    *maskTexture, referenceImageDim, (unsigned)activeVoxelNumber);
-    else reg_getSquaredDifference2D_kernel<<<gridDims, blockDims>>>(absoluteValuesCuda.data().get(), *referenceTexture, *warpedTexture,
+    else reg_getSquaredDifference2d_kernel<<<gridDims, blockDims>>>(absoluteValuesCuda.data().get(), *referenceTexture, *warpedTexture,
                                                                     *maskTexture, referenceImageDim, (unsigned)activeVoxelNumber);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 
@@ -99,19 +99,22 @@ double reg_getSSDValue_gpu(const nifti_image *referenceImage,
 }
 /* *************************************************************** */
 double reg_ssd_gpu::GetSimilarityMeasureValueFw() {
-    const double SSDValue = reg_getSSDValue_gpu(this->referenceImage,
-                                                this->referenceImageCuda,
-                                                this->warpedImageCuda,
-                                                this->referenceMaskCuda,
-                                                this->activeVoxelNumber);
-    return -SSDValue;
+    return -reg_getSsdValue_gpu(this->referenceImage,
+                                this->referenceImageCuda,
+                                this->warpedImageCuda,
+                                this->referenceMaskCuda,
+                                this->activeVoxelNumber);
 }
 /* *************************************************************** */
 double reg_ssd_gpu::GetSimilarityMeasureValueBw() {
-    return 0;
+    return -reg_getSsdValue_gpu(this->floatingImage,
+                                this->floatingImageCuda,
+                                this->warpedImageBwCuda,
+                                this->floatingMaskCuda,
+                                this->activeVoxelNumber);
 }
 /* *************************************************************** */
-void reg_getVoxelBasedSSDGradient_gpu(const nifti_image *referenceImage,
+void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
                                       const cudaArray *referenceImageCuda,
                                       const float *warpedCuda,
                                       const float4 *spaGradientCuda,
@@ -140,21 +143,32 @@ void reg_getVoxelBasedSSDGradient_gpu(const nifti_image *referenceImage,
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     if (referenceImageDim.z > 1)
-        reg_getSSDGradient3D_kernel<<<gridDims, blockDims>>>(ssdGradientCuda, *referenceTexture, *warpedTexture, *maskTexture,
+        reg_getSsdGradient3d_kernel<<<gridDims, blockDims>>>(ssdGradientCuda, *referenceTexture, *warpedTexture, *maskTexture,
                                                              *spaGradientTexture, referenceImageDim, maxSD, (unsigned)activeVoxelNumber);
-    else reg_getSSDGradient2D_kernel<<<gridDims, blockDims>>>(ssdGradientCuda, *referenceTexture, *warpedTexture, *maskTexture,
+    else reg_getSsdGradient2d_kernel<<<gridDims, blockDims>>>(ssdGradientCuda, *referenceTexture, *warpedTexture, *maskTexture,
                                                               *spaGradientTexture, referenceImageDim, maxSD, (unsigned)activeVoxelNumber);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
-void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {
-    reg_getVoxelBasedSSDGradient_gpu(this->referenceImage,
+void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) {
+    reg_getVoxelBasedSsdGradient_gpu(this->referenceImage,
                                      this->referenceImageCuda,
                                      this->warpedImageCuda,
                                      this->warpedGradientCuda,
                                      this->voxelBasedGradientCuda,
                                      1.f,
                                      this->referenceMaskCuda,
+                                     this->activeVoxelNumber);
+}
+/* *************************************************************** */
+void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) {
+    reg_getVoxelBasedSsdGradient_gpu(this->floatingImage,
+                                     this->floatingImageCuda,
+                                     this->warpedImageBwCuda,
+                                     this->warpedGradientBwCuda,
+                                     this->voxelBasedGradientBwCuda,
+                                     1.f,
+                                     this->floatingMaskCuda,
                                      this->activeVoxelNumber);
 }
 /* *************************************************************** */

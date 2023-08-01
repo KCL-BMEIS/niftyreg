@@ -180,12 +180,7 @@ void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
     }
 }
 /* *************************************************************** */
-void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {
-    // Check if the specified time point exists and is active
-    reg_measure::GetVoxelBasedSimilarityMeasureGradient(currentTimepoint);
-    if (this->timePointWeight[currentTimepoint] == 0)
-        return;
-
+void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) {
     // Call compute similarity measure to calculate joint histogram
     this->GetSimilarityMeasureValue();
 
@@ -204,23 +199,23 @@ void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {
                                      this->entropyValues[0],
                                      this->referenceBinNumber[0],
                                      this->floatingBinNumber[0]);
+}
+/* *************************************************************** */
+void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) {
+    // The latest joint histogram is transferred onto the GPU
+    thrust::device_vector<float> jointHistogramLogCudaBw(this->jointHistogramLogBw[0], this->jointHistogramLogBw[0] + this->totalBinNumber[0]);
 
-    if (this->isSymmetric) {
-        thrust::device_vector<float> jointHistogramLogCudaBw(this->jointHistogramLogBw[0], this->jointHistogramLogBw[0] + this->totalBinNumber[0]);
-        reg_getVoxelBasedNMIGradient_gpu(this->floatingImage,
-                                         this->floatingImageCuda,
-                                         this->warpedImageBwCuda,
-                                         this->warpedGradientBwCuda,
-                                         jointHistogramLogCudaBw.data().get(),
-                                         this->voxelBasedGradientBwCuda,
-                                         this->floatingMaskCuda,
-                                         this->activeVoxelNumber,
-                                         this->entropyValuesBw[0],
-                                         this->floatingBinNumber[0],
-                                         this->referenceBinNumber[0]);
-    }
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient called");
-#endif
+    // The gradient of the NMI is computed on the GPU
+    reg_getVoxelBasedNMIGradient_gpu(this->floatingImage,
+                                     this->floatingImageCuda,
+                                     this->warpedImageBwCuda,
+                                     this->warpedGradientBwCuda,
+                                     jointHistogramLogCudaBw.data().get(),
+                                     this->voxelBasedGradientBwCuda,
+                                     this->floatingMaskCuda,
+                                     this->activeVoxelNumber,
+                                     this->entropyValuesBw[0],
+                                     this->floatingBinNumber[0],
+                                     this->referenceBinNumber[0]);
 }
 /* *************************************************************** */

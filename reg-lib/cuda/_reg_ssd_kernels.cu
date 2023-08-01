@@ -17,7 +17,7 @@
 #include "_reg_common_cuda_kernels.cu"
 
 /* *************************************************************** */
-__global__ void reg_getSquaredDifference3D_kernel(float *squaredDifference,
+__global__ void reg_getSquaredDifference3d_kernel(float *squaredDifference,
                                                   cudaTextureObject_t referenceTexture,
                                                   cudaTextureObject_t warpedTexture,
                                                   cudaTextureObject_t maskTexture,
@@ -41,7 +41,7 @@ __global__ void reg_getSquaredDifference3D_kernel(float *squaredDifference,
     }
 }
 /* *************************************************************** */
-__global__ void reg_getSquaredDifference2D_kernel(float *squaredDifference,
+__global__ void reg_getSquaredDifference2d_kernel(float *squaredDifference,
                                                   cudaTextureObject_t referenceTexture,
                                                   cudaTextureObject_t warpedTexture,
                                                   cudaTextureObject_t maskTexture,
@@ -63,7 +63,7 @@ __global__ void reg_getSquaredDifference2D_kernel(float *squaredDifference,
     }
 }
 /* *************************************************************** */
-__global__ void reg_getSSDGradient2D_kernel(float4 *ssdGradient,
+__global__ void reg_getSsdGradient2d_kernel(float4 *ssdGradient,
                                             cudaTextureObject_t referenceTexture,
                                             cudaTextureObject_t warpedTexture,
                                             cudaTextureObject_t maskTexture,
@@ -97,7 +97,7 @@ __global__ void reg_getSSDGradient2D_kernel(float4 *ssdGradient,
     }
 }
 /* *************************************************************** */
-__global__ void reg_getSSDGradient3D_kernel(float4 *ssdGradient,
+__global__ void reg_getSsdGradient3d_kernel(float4 *ssdGradient,
                                             cudaTextureObject_t referenceTexture,
                                             cudaTextureObject_t warpedTexture,
                                             cudaTextureObject_t maskTexture,

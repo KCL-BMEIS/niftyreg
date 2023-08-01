@@ -41,8 +41,10 @@ public:
     virtual double GetSimilarityMeasureValueFw() override;
     /// @brief Returns the dti value backwards
     virtual double GetSimilarityMeasureValueBw() override;
-    /// @brief Compute the voxel based gradient for DTI images
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
+    /// @brief Compute the voxel-based gradient for DTI images forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override;
+    /// @brief Compute the voxel-based gradient for DTI images backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override;
 
 protected:
     // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ
@@ -50,8 +52,7 @@ protected:
     float currentValue;
 };
 /* *************************************************************** */
-/**
- * @brief Computes and returns the SSD between two input image
+/** @brief Computes and returns the SSD between two input image
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
  * @param mask Array that contains a mask to specify which voxel
@@ -59,25 +60,22 @@ protected:
  * @return Returns an L2 measure of the distance between the anisotropic components of the diffusion tensors
  */
 extern "C++" template <class DataType>
-double reg_getDTIMeasureValue(const nifti_image *referenceImage,
+double reg_getDtiMeasureValue(const nifti_image *referenceImage,
                               const nifti_image *warpedImage,
                               const int *mask,
                               const unsigned *dtIndicies);
 /* *************************************************************** */
-/**
- * @brief Compute a voxel based gradient of the sum squared difference.
+/** @brief Compute a voxel based gradient of the sum squared difference.
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
- * @param warpedImageGradient Spatial gradient of the input warped image
- * @param dtiGradientImage Output image that will be updated with the
+ * @param warpedGradient Spatial gradient of the input warped image
+ * @param dtiMeasureGradientImage Output image that will be updated with the
  * value of the dti measure gradient
- * @param maxSD Input scalar that contain the difference value between
- * the highest and the lowest intensity.
  * @param mask Array that contains a mask to specify which voxel
  * should be considered. If set to nullptr, all voxels are considered
  */
 extern "C++" template <class DataType>
-void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
+void reg_getVoxelBasedDtiMeasureGradient(nifti_image *referenceImage,
                                          nifti_image *warpedImage,
                                          nifti_image *warpedGradient,
                                          nifti_image *dtiMeasureGradientImage,

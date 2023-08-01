@@ -42,8 +42,10 @@ public:
     virtual double GetSimilarityMeasureValueFw() override;
     /// @brief Returns the nmi value backwards
     virtual double GetSimilarityMeasureValueBw() override;
-    /// @brief Compute the voxel based nmi gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override;
+    /// @brief Compute the voxel-based nmi gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override;
+    /// @brief Compute the voxel-based nmi gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override;
 
     virtual void SetRefAndFloatBinNumbers(unsigned short refBinNumber,
                                           unsigned short floBinNumber,
@@ -220,13 +222,10 @@ public:
     /// @brief Returns the nmi value backwards
     virtual double GetSimilarityMeasureValueBw() override { return 0; }
 
-    /// @brief Compute the voxel based nmi gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {
-        // Check if the specified time point exists and is active
-        reg_measure::GetVoxelBasedSimilarityMeasureGradient(currentTimepoint);
-        if (this->timePointWeight[currentTimepoint] == 0)
-            return;
-    }
+    /// @brief Compute the voxel-based nmi gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override {}
+    /// @brief Compute the voxel-based nmi gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override {}
 
 protected:
     unsigned short referenceBinNumber[255];
@@ -242,7 +241,7 @@ protected:
 /* *************************************************************** */
 /// Multi channel NMI version - Entropy
 extern "C++"
-void reg_getMultiChannelNMIValue(nifti_image *referenceImages,
+void reg_getMultiChannelNmiValue(nifti_image *referenceImages,
                                  nifti_image *warpedImages,
                                  unsigned *referenceBins, // should be an array of size num_reference_volumes
                                  unsigned *warpedBins, // should be an array of size num_warped_volumes
@@ -254,7 +253,7 @@ void reg_getMultiChannelNMIValue(nifti_image *referenceImages,
 /* *************************************************************** */
 /// Multi channel NMI version - Gradient
 extern "C++"
-void reg_getVoxelBasedMultiChannelNMIGradient2D(nifti_image *referenceImages,
+void reg_getVoxelBasedMultiChannelNmiGradient2D(nifti_image *referenceImages,
                                                 nifti_image *warpedImages,
                                                 nifti_image *warpedImageGradient,
                                                 unsigned *referenceBins,
@@ -267,7 +266,7 @@ void reg_getVoxelBasedMultiChannelNMIGradient2D(nifti_image *referenceImages,
 /* *************************************************************** */
 /// Multi channel NMI version - Gradient
 extern "C++"
-void reg_getVoxelBasedMultiChannelNMIGradient3D(nifti_image *referenceImages,
+void reg_getVoxelBasedMultiChannelNmiGradient3D(nifti_image *referenceImages,
                                                 nifti_image *warpedImages,
                                                 nifti_image *warpedImageGradient,
                                                 unsigned *referenceBins,

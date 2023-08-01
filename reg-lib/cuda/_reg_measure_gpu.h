@@ -132,8 +132,10 @@ public:
     virtual double GetSimilarityMeasureValueFw() override { return 0; }
     /// @brief Returns the lncc value backwards
     virtual double GetSimilarityMeasureValueBw() override { return 0; }
-    /// @brief Compute the voxel based lncc gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {}
+    /// @brief Compute the voxel-based lncc gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override {}
+    /// @brief Compute the voxel-based lncc gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override {}
 };
 /* *************************************************************** */
 class reg_kld_gpu: public reg_kld, public reg_measure_gpu {
@@ -173,8 +175,10 @@ public:
     virtual double GetSimilarityMeasureValueFw() override { return 0; }
     /// @brief Returns the kld value backwards
     virtual double GetSimilarityMeasureValueBw() override { return 0; }
-    /// @brief Compute the voxel based kld gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {}
+    /// @brief Compute the voxel-based kld gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override {}
+    /// @brief Compute the voxel-based kld gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override {}
 };
 /* *************************************************************** */
 class reg_dti_gpu: public reg_dti, public reg_measure_gpu {
@@ -214,7 +218,9 @@ public:
     virtual double GetSimilarityMeasureValueFw() override { return 0; }
     /// @brief Returns the dti value backwards
     virtual double GetSimilarityMeasureValueBw() override { return 0; }
-    /// @brief Compute the voxel based dti gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) override {}
+    /// @brief Compute the voxel-based dti gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override {}
+    /// @brief Compute the voxel-based dti gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override {}
 };
 /* *************************************************************** */
