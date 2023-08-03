@@ -54,24 +54,18 @@ public:
             flo3dPtr[i] = (int)distr(gen);
         }
 
-        // Create corresponding identify control point grids
-        NiftiImage cpp2d(CreateControlPointGrid(reference2d));
-        NiftiImage cpp3d(CreateControlPointGrid(reference3d));
-
         // Create the object to compute the expected values
         vector<TestData> testData;
         testData.emplace_back(TestData(
             "NMI 2D",
             reference2d,
             floating2d,
-            cpp2d,
             GetNMIPW(reference2d, floating2d)
         ));
         testData.emplace_back(TestData(
             "NMI 3D",
             reference3d,
             floating3d,
-            cpp3d,
             GetNMIPW(reference3d, floating3d)
         ));
         for (auto&& data : testData) {
@@ -80,13 +74,13 @@ public:
                 shared_ptr<Platform> platform{ new Platform(platformType) };
                 // Make a copy of the test data
                 auto td = data;
-                auto&& [testName, reference, floating, cpp, expected] = td;
+                auto&& [testName, reference, floating, expected] = td;
                 // Create the content creator
-                unique_ptr<F3dContentCreator> contentCreator{
-                    dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d))
+                unique_ptr<DefContentCreator> contentCreator{
+                    dynamic_cast<DefContentCreator*>(platform->CreateContentCreator(ContentType::Def))
                 };
                 // Create the content
-                unique_ptr<F3dContent> content{ contentCreator->Create(reference, floating, cpp) };
+                unique_ptr<DefContent> content{ contentCreator->Create(reference, floating) };
                 // Initialise the warped image using floating image
                 content->SetWarped(floating.disown());
                 // Create the measure
@@ -103,7 +97,7 @@ public:
     }
 
 protected:
-    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, double>;
+    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, double>;
     using TestCase = std::tuple<std::string, double, double>;
     inline static vector<TestCase> testCases;
 

@@ -2,7 +2,6 @@
 
 #include "Content.h"
 #include "_reg_common_cuda.h"
-#include "_reg_tools.h"
 
 class CudaContent: public virtual Content {
 public:

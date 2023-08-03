@@ -458,8 +458,7 @@ void reg_base<T>::CheckParameters() {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::InitialiseSimilarity() {
-    // TODO Move this function to reg_f3d
-    F3dContent& con = dynamic_cast<F3dContent&>(*this->con);
+    DefContent& con = dynamic_cast<DefContent&>(*this->con);
 
     if (measure_nmi)
         measure->Initialise(*measure_nmi, con);
@@ -604,8 +603,7 @@ double reg_base<T>::ComputeSimilarityMeasure() {
 template<class T>
 void reg_base<T>::GetVoxelBasedGradient() {
     // The voxel based gradient image is filled with zeros
-    // TODO Temporarily call F3dContent. This function will be moved to reg_f3d
-    dynamic_cast<F3dContent&>(*con).ZeroVoxelBasedMeasureGradient();
+    dynamic_cast<DefContent&>(*con).ZeroVoxelBasedMeasureGradient();
 
     // The intensity gradient is first computed
     //   if(measure_nmi || measure_ssd ||
@@ -725,7 +723,7 @@ void reg_base<T>::UseMIND(int timepoint, int offset) {
 template<class T>
 void reg_base<T>::UseMINDSSC(int timepoint, int offset) {
     if (!measure_mindssc)
-        measure_mindssc.reset(dynamic_cast<reg_mindssc*>(measure->Create(MeasureType::Mindssc)));
+        measure_mindssc.reset(dynamic_cast<reg_mindssc*>(measure->Create(MeasureType::MindSsc)));
     measure_mindssc->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
     measure_mindssc->SetDescriptorOffset(offset);
 #ifndef NDEBUG

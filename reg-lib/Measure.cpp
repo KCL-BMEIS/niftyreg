@@ -21,15 +21,16 @@ reg_measure* Measure::Create(const MeasureType& measureType) {
         return new reg_kld();
     case MeasureType::Mind:
         return new reg_mind();
-    case MeasureType::Mindssc:
+    case MeasureType::MindSsc:
         return new reg_mindssc();
     }
+    reg_print_fct_error("Measure::Create");
     reg_print_msg_error("Unsupported measure type");
     reg_exit();
     return nullptr;
 }
 /* *************************************************************** */
-void Measure::Initialise(reg_measure& measure, F3dContent& con, F3dContent *conBw) {
+void Measure::Initialise(reg_measure& measure, DefContent& con, DefContent *conBw) {
     measure.InitialiseMeasure(con.GetReference(),
                               con.GetFloating(),
                               con.GetReferenceMask(),

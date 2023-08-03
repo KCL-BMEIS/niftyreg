@@ -34,7 +34,3 @@ AladinContent::~AladinContent() {
         delete blockMatchingParams;
 }
 /* *************************************************************** */
-void AladinContent::SetCaptureRange(const int voxelCaptureRangeIn) {
-    blockMatchingParams->voxelCaptureRange = voxelCaptureRangeIn;
-}
-/* *************************************************************** */

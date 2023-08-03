@@ -13,7 +13,7 @@
 
 
 typedef std::tuple<std::string, NiftiImage, NiftiImage, int, float*> TestData;
-typedef std::tuple<unique_ptr<F3dContent>, unique_ptr<Platform>> ContentDesc;
+typedef std::tuple<unique_ptr<DefContent>, unique_ptr<Platform>> ContentDesc;
 
 TEST_CASE("Image gradient", "[ImageGradient]") {
     // Create a reference 2D image
@@ -157,17 +157,14 @@ TEST_CASE("Image gradient", "[ImageGradient]") {
     for (auto&& testCase : testCases) {
         // Retrieve test information
         auto&& [testName, reference, defField, interp, testResult] = testCase;
-        // Create the control point grid
-        NiftiImage controlPointGrid(CreateControlPointGrid(reference));
-
         // Accumulate all required contents with a vector
         vector<ContentDesc> contentDescs;
         for (auto&& platformType : PlatformTypes) {
             if (platformType == PlatformType::Cuda && interp != 1)
                 continue;   // CUDA platform only supports linear interpolation
             unique_ptr<Platform> platform{ new Platform(platformType) };
-            unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
-            unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
+            unique_ptr<DefContentCreator> contentCreator{ dynamic_cast<DefContentCreator*>(platform->CreateContentCreator(ContentType::Def)) };
+            unique_ptr<DefContent> content{ contentCreator->Create(reference, reference) };
             contentDescs.push_back({ std::move(content), std::move(platform) });
         }
 

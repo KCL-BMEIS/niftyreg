@@ -64,6 +64,7 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaCompute.cpp
     CudaContent.cpp
     CudaContext.cpp
+    CudaDefContent.cpp
     CudaF3dContent.cpp
     CudaKernelFactory.cpp
     CudaMeasure.cpp

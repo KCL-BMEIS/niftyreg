@@ -31,10 +31,6 @@ public:
         NiftiImage reference3d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating3d(dim, NIFTI_TYPE_FLOAT32);
 
-        // Create corresponding identify control point grids
-        NiftiImage cpp2d(CreateControlPointGrid(reference2d));
-        NiftiImage cpp3d(CreateControlPointGrid(reference3d));
-
         // Fill images with random values
         auto ref2dPtr = reference2d.data();
         auto flo2dPtr = floating2d.data();
@@ -57,7 +53,6 @@ public:
             "LNCC 2D -1",
             reference2d,
             floating2d,
-            cpp2d,
             -1.f,
             GetLNCCNoConv(1, reference2d, floating2d)
         ));
@@ -65,7 +60,6 @@ public:
             "LNCC 2D -1 same image",
             reference2d,
             reference2d,
-            cpp2d,
             -1.f,
             1.0
         ));
@@ -73,7 +67,6 @@ public:
             "LNCC 2D -5",
             reference2d,
             floating2d,
-            cpp2d,
             -5.f,
             GetLNCCNoConv(5, reference2d, floating2d)
         ));
@@ -81,7 +74,6 @@ public:
             "LNCC 2D -5 same image",
             reference2d,
             reference2d,
-            cpp2d,
             -5.f,
             1.0
         ));
@@ -90,7 +82,6 @@ public:
             "LNCC 2D -1 same image negated",
             reference2d,
             floating2d,
-            cpp2d,
             -1.f,
             1.0
         ));
@@ -98,7 +89,6 @@ public:
             "LNCC 2D -5 same image negated",
             reference2d,
             floating2d,
-            cpp2d,
             -5.f,
             1.0
         ));
@@ -106,7 +96,6 @@ public:
             "LNCC 3D -1",
             reference3d,
             floating3d,
-            cpp3d,
             -1.f,
             GetLNCCNoConv(1, reference3d, floating3d)
         ));
@@ -114,7 +103,6 @@ public:
             "LNCC 3D -1 same image",
             reference3d,
             reference3d,
-            cpp3d,
             -1.f,
             1.0
         ));
@@ -122,7 +110,6 @@ public:
             "LNCC 3D -5",
             reference3d,
             floating3d,
-            cpp3d,
             -5.f,
             GetLNCCNoConv(5, reference3d, floating3d)
         ));
@@ -130,7 +117,6 @@ public:
             "LNCC 3D -5 same image",
             reference3d,
             reference3d,
-            cpp3d,
             -5.f,
             1.0
         ));
@@ -139,7 +125,6 @@ public:
             "LNCC 3D -1 same image negated",
             reference3d,
             floating3d,
-            cpp3d,
             -1.f,
             1.0
         ));
@@ -147,7 +132,6 @@ public:
             "LNCC 3D -5 same image negated",
             reference3d,
             floating3d,
-            cpp3d,
             -5.f,
             1.0
         ));
@@ -157,13 +141,13 @@ public:
                 shared_ptr<Platform> platform{ new Platform(platformType) };
                 // Make a copy of the test data
                 auto td = data;
-                auto&& [testName, reference, floating, cpp, sigma, result] = td;
+                auto&& [testName, reference, floating, sigma, result] = td;
                 // Create the content creator
-                unique_ptr<F3dContentCreator> contentCreator{
-                    dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d))
+                unique_ptr<DefContentCreator> contentCreator{
+                    dynamic_cast<DefContentCreator*>(platform->CreateContentCreator(ContentType::Def))
                 };
                 // Create the content
-                unique_ptr<F3dContent> content{ contentCreator->Create(reference, floating, cpp) };
+                unique_ptr<DefContent> content{ contentCreator->Create(reference, floating) };
                 // Initialise the warped image using the nearest-neighbour interpolation
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 compute->ResampleImage(0, 0);
@@ -189,7 +173,7 @@ protected:
     };
 
     using LocalStats = std::tuple<double, double>;
-    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, float, double>;
+    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, float, double>;
     using TestCase = std::tuple<unique_ptr<Content>, unique_ptr<reg_lncc>, shared_ptr<Platform>, TestData>;
     inline static vector<TestCase> testCases;
 
@@ -312,7 +296,7 @@ TEST_CASE_METHOD(LNCCTest, "LNCC", "[GetSimilarityMeasureValue]") {
     for (auto&& testCase : testCases) {
         // Retrieve test information
         auto&& [content, measure, platform, testData] = testCase;
-        auto&& [testName, reference, floating, cpp, sigma, value] = testData;
+        auto&& [testName, reference, floating, sigma, value] = testData;
 
         SECTION(testName) {
             std::cout << "\n**************** Section " << testName << " ****************" << std::endl;

@@ -127,7 +127,7 @@ void Compute::UpdateControlPointPosition(float *currentDof,
 }
 /* *************************************************************** */
 void Compute::GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) {
-    F3dContent& con = dynamic_cast<F3dContent&>(this->con);
+    DefContent& con = dynamic_cast<DefContent&>(this->con);
     reg_getImageGradient(con.GetFloating(),
                          con.GetWarpedGradient(),
                          con.GetDeformationField(),

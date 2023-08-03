@@ -82,7 +82,6 @@ protected:
     unsigned levelToPerform;
     T gradientSmoothingSigma;
     T similarityWeight;
-    bool additive_mc_nmi;
     bool useConjGradient;
     bool useApproxGradient;
     bool verbose;

@@ -111,6 +111,7 @@ add_library(_reg_compute ${NIFTYREG_LIBRARY_TYPE}
   Compute.cpp
   AladinContent.cpp
   Content.cpp
+  DefContent.cpp
   F3dContent.cpp
   Platform.cpp
   Measure.cpp

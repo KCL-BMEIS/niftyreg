@@ -115,8 +115,8 @@ void CudaCompute::UpdateControlPointPosition(float *currentDof,
 /* *************************************************************** */
 void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) {
     // TODO Fix reg_getImageGradient_gpu to accept interpolation and activeTimepoint
-    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    reg_getImageGradient_gpu(con.F3dContent::GetFloating(),
+    CudaDefContent& con = dynamic_cast<CudaDefContent&>(this->con);
+    reg_getImageGradient_gpu(con.DefContent::GetFloating(),
                              con.GetFloatingCuda(),
                              con.GetDeformationFieldCuda(),
                              con.GetWarpedGradientCuda(),
@@ -179,7 +179,7 @@ void CudaCompute::VoxelCentricToNodeCentric(float weight) {
 void CudaCompute::ConvolveVoxelBasedMeasureGradient(float weight) {
     // TODO Implement this for CUDA
     // Use CPU temporarily
-    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
+    CudaDefContent& con = dynamic_cast<CudaDefContent&>(this->con);
     Compute::ConvolveImage(con.GetVoxelBasedMeasureGradient());
     // Transfer the data back to the CUDA device
     con.UpdateVoxelBasedMeasureGradient();
@@ -193,7 +193,7 @@ void CudaCompute::ExponentiateGradient(Content& conBwIn) {
     // Use CPU temporarily
     Compute::ExponentiateGradient(conBwIn);
     // Transfer the data back to the CUDA device
-    dynamic_cast<CudaF3dContent&>(con).UpdateVoxelBasedMeasureGradient();
+    dynamic_cast<CudaDefContent&>(con).UpdateVoxelBasedMeasureGradient();
 }
 /* *************************************************************** */
 void CudaCompute::UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ) {
