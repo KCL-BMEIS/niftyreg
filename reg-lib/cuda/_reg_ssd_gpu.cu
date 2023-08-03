@@ -44,12 +44,6 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
     reg_measure_gpu::InitialiseMeasure(refImg, refImgCuda, floImg, floImgCuda, refMask, refMaskCuda, activeVoxNum, warpedImg, warpedImgCuda,
                                        warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda, localWeightSim, floMask, floMaskCuda,
                                        warpedImgBw, warpedImgBwCuda, warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
-    // Check if a symmetric measure is required
-    if (this->isSymmetric) {
-        reg_print_fct_error("reg_ssd_gpu::InitialiseMeasure");
-        reg_print_msg_error("Symmetric scheme is not yet supported");
-        reg_exit();
-    }
     // Check that the input images have only one time point
     if (this->referenceImage->nt > 1 || this->floatingImage->nt > 1) {
         reg_print_fct_error("reg_ssd_gpu::InitialiseMeasure");
