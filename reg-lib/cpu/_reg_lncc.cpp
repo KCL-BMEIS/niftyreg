@@ -33,9 +33,8 @@ reg_lncc::reg_lncc(): reg_measure() {
 
     for (int i = 0; i < 255; ++i)
         kernelStandardDeviation[i] = -5.f;
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_lncc constructor called");
-#endif
+
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 reg_lncc::~reg_lncc() {
@@ -186,14 +185,10 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImg,
         // Allocate the array to store the mask of the backward image
         this->backwardMask = (int*)malloc(voxelNumber * sizeof(int));
     }
-#ifndef NDEBUG
-    char text[255];
-    reg_print_msg_debug("reg_lncc::InitialiseMeasure()");
-    for (int i = 0; i < this->referenceImage->nt; ++i) {
-        sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
-        reg_print_msg_debug(text);
-    }
-#endif
+
+    for (int i = 0; i < this->referenceImage->nt; ++i)
+        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeight[i]);
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class DataType>

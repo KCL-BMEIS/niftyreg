@@ -95,49 +95,47 @@ typedef struct
 
 void PetitUsage(char *exec)
 {
-    fprintf(stderr,"Usage:\t%s -in  <filename> [OPTIONS].\n",exec);
-    fprintf(stderr,"\tSee the help for more details (-h).\n");
-    return;
+    NR_INFO("Usage:\t" << exec << " -in  <filename> [OPTIONS]");
+    NR_INFO("\tSee the help for more details (-h)");
 }
+
 void Usage(char *exec)
 {
-    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-    printf("Usage:\t%s -in <filename> -out <filename> [OPTIONS].\n",exec);
-    printf("\t-in <filename>\tFilename of the input image image (mandatory)\n");
-    printf("* * OPTIONS * *\n");
-    printf("\t-out <filename>\t\tFilename out the output image [output.nii]\n");
-    printf("\t-float\t\t\tThe input image is converted to float\n");
-    printf("\t-down\t\t\tThe input image is downsampled 2 times\n");
-    printf("\t-smoS <float> <float> <float>\n\t\t\t\tThe input image is smoothed using a cubic b-spline kernel\n");
-    printf("\t-smoG <float> <float> <float>\n\t\t\t\tThe input image is smoothed using Gaussian kernel\n");
-    printf("\t-smoL <float> <float> <float>\n\t\t\t\tThe input label image is smoothed using Gaussian kernel\n");
-    printf("\t-add <filename/float>\tThis image (or value) is added to the input\n");
-    printf("\t-sub <filename/float>\tThis image (or value) is subtracted to the input\n");
-    printf("\t-mul <filename/float>\tThis image (or value) is multiplied to the input\n");
-    printf("\t-div <filename/float>\tThis image (or value) is divided to the input\n");
-    printf("\t-rms <filename>\t\tCompute the mean rms between both image\n");
-    printf("\t-bin \t\t\tBinarise the input image (val!=0?val=1:val=0)\n");
-    printf("\t-thr <float>\t\tThreshold the input image (val<thr?val=0:val=1)\n");
-    printf("\t-nan <filename>\t\tThis image is used to mask the input image.\n\t\t\t\tVoxels outside of the mask are set to nan\n");
-    printf("\t-iso\t\t\tThe resulting image is made isotropic\n");
-    printf("\t-chgres <float> <float> <float>\n\t\t\t\tResample the input image to the specified resolution (in mm)\n");
-    printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
-    printf("\t-rmNanInf <float>\tRemove the nan and inf from the input image and replace them by the specified value\n");
-    printf("\t-4d2rgb\t\t\tConvert a 4D (or 5D) to rgb nifti file\n");
-    printf("\t-testActiveBlocks\tGenerate an image highlighting the active blocks for reg_aladin (block variance is shown)\n");
-    printf("\t-mind\t\t\tCreate a MIND descriptor image\n");
-    printf("\t-mindssc\t\tCreate a MIND-SSC descriptor image\n");
-    printf("\t-interp\t\t\tInterpolation order to use to warp the floating image\n");
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_INFO("Usage:\t" << exec << " -in <filename> -out <filename> [OPTIONS]");
+    NR_INFO("\t-in <filename>\tFilename of the input image image (mandatory)");
+    NR_INFO("* * OPTIONS * *");
+    NR_INFO("\t-out <filename>\t\tFilename out the output image [output.nii]");
+    NR_INFO("\t-float\t\t\tThe input image is converted to float");
+    NR_INFO("\t-down\t\t\tThe input image is downsampled 2 times");
+    NR_INFO("\t-smoS <float> <float> <float>\n\t\t\t\tThe input image is smoothed using a cubic b-spline kernel");
+    NR_INFO("\t-smoG <float> <float> <float>\n\t\t\t\tThe input image is smoothed using Gaussian kernel");
+    NR_INFO("\t-smoL <float> <float> <float>\n\t\t\t\tThe input label image is smoothed using Gaussian kernel");
+    NR_INFO("\t-add <filename/float>\tThis image (or value) is added to the input");
+    NR_INFO("\t-sub <filename/float>\tThis image (or value) is subtracted to the input");
+    NR_INFO("\t-mul <filename/float>\tThis image (or value) is multiplied to the input");
+    NR_INFO("\t-div <filename/float>\tThis image (or value) is divided to the input");
+    NR_INFO("\t-rms <filename>\t\tCompute the mean rms between both image");
+    NR_INFO("\t-bin \t\t\tBinarise the input image (val!=0?val=1:val=0)");
+    NR_INFO("\t-thr <float>\t\tThreshold the input image (val<thr?val=0:val=1)");
+    NR_INFO("\t-nan <filename>\t\tThis image is used to mask the input image.\n\t\t\t\tVoxels outside of the mask are set to nan");
+    NR_INFO("\t-iso\t\t\tThe resulting image is made isotropic");
+    NR_INFO("\t-chgres <float> <float> <float>\n\t\t\t\tResample the input image to the specified resolution (in mm)");
+    NR_INFO("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively");
+    NR_INFO("\t-rmNanInf <float>\tRemove the nan and inf from the input image and replace them by the specified value");
+    NR_INFO("\t-4d2rgb\t\t\tConvert a 4D (or 5D) to rgb nifti file");
+    NR_INFO("\t-testActiveBlocks\tGenerate an image highlighting the active blocks for reg_aladin (block variance is shown)");
+    NR_INFO("\t-mind\t\t\tCreate a MIND descriptor image");
+    NR_INFO("\t-mindssc\t\tCreate a MIND-SSC descriptor image");
+    NR_INFO("\t-interp\t\t\tInterpolation order to use to warp the floating image");
 #ifdef _OPENMP
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]\n",
-          defaultOpenMPValue, omp_get_num_procs());
+   NR_INFO("\t-omp <int>\t\tNumber of threads to use with OpenMP. [" << defaultOpenMPValue << "/" << omp_get_num_procs() << "]");
 #endif
-   printf("\t--version\t\tPrint current version and exit (%s)\n",NR_VERSION);
-    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-    return;
+   NR_INFO("\t--version\t\tPrint current version and exit (" << NR_VERSION << ")");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 int main(int argc, char **argv)
@@ -153,7 +151,7 @@ int main(int argc, char **argv)
     }
 
 #ifdef _OPENMP
-    // Set the default number of thread
+    // Set the default number of threads
     int defaultOpenMPValue=omp_get_num_procs();
     if(getenv("OMP_NUM_THREADS")!=nullptr)
         defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
@@ -178,7 +176,7 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "--xml")==0)
         {
-            printf("%s",xml_tools);
+            NR_COUT << xml_tools << std::endl;
             return EXIT_SUCCESS;
         }
         else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
@@ -186,7 +184,7 @@ int main(int argc, char **argv)
 #ifdef _OPENMP
             omp_set_num_threads(atoi(argv[++i]));
 #else
-            reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+            NR_WARN("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
             ++i;
 #endif
         }
@@ -194,7 +192,7 @@ int main(int argc, char **argv)
                 strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
                 strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
         {
-            printf("%s\n",NR_VERSION);
+            NR_COUT << NR_VERSION << std::endl;
             return EXIT_SUCCESS;
         }
         else if(strcmp(argv[i], "-in") == 0 || strcmp(argv[i], "--in") == 0)
@@ -454,7 +452,7 @@ int main(int argc, char **argv)
         }
         else
         {
-            fprintf(stderr, "Err:\tParameter %s unknown.\n", argv[i]);
+            NR_ERROR("Unknown parameter: " << argv[i]);
             PetitUsage(argv[0]);
             return EXIT_FAILURE;
         }
@@ -466,7 +464,7 @@ int main(int argc, char **argv)
     nifti_image *image = reg_io_ReadImageFile(param->inputImageName);
     if(image == nullptr)
     {
-        fprintf(stderr,"** ERROR Error when reading the input image: %s\n",param->inputImageName);
+        NR_ERROR("Error when reading the input image: " << param->inputImageName);
         return EXIT_FAILURE;
     }
 
@@ -579,7 +577,7 @@ int main(int argc, char **argv)
             image2 = reg_io_ReadImageFile(param->operationImageName);
             if(image2 == nullptr)
             {
-                fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
+                NR_ERROR("Error when reading the image: " << param->operationImageName);
                 return EXIT_FAILURE;
             }
         }
@@ -620,8 +618,8 @@ int main(int argc, char **argv)
                 reg_tools_changeDatatype<double>(image2,NIFTI_TYPE_FLOAT64);
                 break;
             default:
-                reg_print_msg_error("Unsupported data type.");
-                reg_exit();
+                NR_ERROR("Unsupported data type!");
+                return EXIT_FAILURE;
             }
         }
 
@@ -678,7 +676,7 @@ int main(int argc, char **argv)
         nifti_image *image2 = reg_io_ReadImageFile(param->rmsImageName);
         if(image2 == nullptr)
         {
-            fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->rmsImageName);
+            NR_ERROR("Error when reading the image: " << param->rmsImageName);
             return EXIT_FAILURE;
         }
         // Check image dimension
@@ -691,12 +689,12 @@ int main(int argc, char **argv)
                 image->dim[6]!=image2->dim[6] ||
                 image->dim[7]!=image2->dim[7])
         {
-            fprintf(stderr,"Both images do not have the same dimension\n");
+            NR_ERROR("Both images do not have the same dimension");
             return EXIT_FAILURE;
         }
 
         double meanRMSerror = reg_tools_getMeanRMS(image, image2);
-        printf("%g\n", meanRMSerror);
+        NR_COUT << "Mean RMS error: " << meanRMSerror << std::endl;
         nifti_image_free(image2);
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
@@ -723,7 +721,7 @@ int main(int argc, char **argv)
         nifti_image *maskImage = reg_io_ReadImageFile(param->operationImageName);
         if(maskImage == nullptr)
         {
-            fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
+            NR_ERROR("Error when reading the image: " << param->operationImageName);
             return EXIT_FAILURE;
         }
 
@@ -792,11 +790,10 @@ int main(int argc, char **argv)
             }
         }
         else{
-            reg_print_msg_error("Nan and Inf value can only be removed when the input image is of float or double datatype");
+            NR_ERROR("Nan and Inf value can only be removed when the input image is of float or double datatype");
             return EXIT_FAILURE;
         }
-        printf("The input image contained %zu NaN, %zu Inf and %zu finite values\n",
-               nanNumber, infNumber, finNumber);
+        NR_COUT << "The input image contained " << nanNumber << " NaN, " << infNumber << " Inf and " << finNumber << " finite values" << std::endl;
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(image,param->outputImageName);
         else reg_io_WriteImageFile(image,"output.nii");
@@ -910,9 +907,7 @@ int main(int argc, char **argv)
                                   0.f,
                                   jacobian,
                                   0);
-#ifndef NDEBUG
-        reg_print_msg_debug("PSF resampling completed\n");
-#endif
+            NR_DEBUG("PSF resampling completed");
         }
         else{
             reg_resampleImage(image,
@@ -921,9 +916,7 @@ int main(int argc, char **argv)
                               nullptr,
                               param->interpOrder,
                               0.f);
-#ifndef NDEBUG
-        reg_print_msg_debug("Resampling completed\n");
-#endif
+            NR_DEBUG("Resampling completed");
         }
         free(jacobian);
         nifti_image_free(def);
@@ -1023,8 +1016,8 @@ int main(int argc, char **argv)
     if(flag->mindFlag)
     {
         if(image->ndim>3){
-            reg_print_msg_error("MIND only support 2D or 3D image for now");
-            reg_exit();
+            NR_ERROR("MIND only support 2D or 3D image for now");
+            return EXIT_FAILURE;
         }
         // Convert the input image to float if needed
         if(image->datatype!=NIFTI_TYPE_FLOAT32)
@@ -1050,8 +1043,8 @@ int main(int argc, char **argv)
     if(flag->mindSSCFlag)
     {
         if(image->ndim>3){
-            reg_print_msg_error("MIND-SSC only support 2D or 3D image for now");
-            reg_exit();
+            NR_ERROR("MIND-SSC only support 2D or 3D image for now");
+            return EXIT_FAILURE;
         }
         // Convert the input image to float if needed
         if(image->datatype!=NIFTI_TYPE_FLOAT32)

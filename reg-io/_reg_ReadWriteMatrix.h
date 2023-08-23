@@ -14,10 +14,7 @@
 
 #pragma once
 
-#include "niftilib/nifti1_io.h"
-//STD
-#include <fstream>
-#include <utility>
+#include "_reg_tools.h"
 
 /** @brief Read a text file that contains a affine transformation
  * and store it into a mat44 structure. This function can also read

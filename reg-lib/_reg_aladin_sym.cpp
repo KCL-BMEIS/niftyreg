@@ -6,14 +6,9 @@ template <class T>
 reg_aladin_sym<T>::reg_aladin_sym()
     :reg_aladin<T>::reg_aladin() {
     this->executableName = (char*)"reg_aladin_sym";
-
     this->affineTransformationBw.reset(new mat44);
-
     this->backwardBlockMatchingParams = nullptr;
-
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_aladin_sym constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -23,9 +18,7 @@ void reg_aladin_sym<T>::SetInputFloatingMask(NiftiImage inputFloatingMaskIn) {
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::InitialiseRegistration() {
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_aladin_sym::InitialiseRegistration() called");
-#endif
+    NR_FUNC_CALLED();
 
     reg_aladin<T>::InitialiseRegistration();
 
@@ -62,10 +55,9 @@ void reg_aladin_sym<T>::InitialiseRegistration() {
     }
 
     if (this->alignCentreMass == 1 && this->inputTransformName == nullptr) {
-        if (!this->inputReferenceMask && !this->inputFloatingMask) {
-            reg_print_msg_error("The masks' centre of mass can only be used when two masks are specified");
-            reg_exit();
-        }
+        if (!this->inputReferenceMask && !this->inputFloatingMask)
+            NR_FATAL_ERROR("The masks' centre of mass can only be used when two masks are specified");
+
         float referenceCentre[3] = { 0, 0, 0 };
         float referenceCount = 0;
         reg_tools_changeDatatype<float>(this->inputReferenceMask);
@@ -143,10 +135,9 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type) {
     this->bBlockMatchingKernel->template castTo<BlockMatchingKernel>()->Calculate();
     this->bLtsKernel->template castTo<LtsKernel>()->Calculate(type);
 
-#ifndef NDEBUG
-    reg_mat44_disp(this->affineTransformation.get(), (char*)"[NiftyReg DEBUG] pre-updated forward transformation matrix");
-    reg_mat44_disp(this->affineTransformationBw.get(), (char*)"[NiftyReg DEBUG] pre-updated backward transformation matrix");
-#endif
+    NR_MAT44_VERBOSE(*this->affineTransformation, "The pre-updated forward transformation matrix");
+    NR_MAT44_VERBOSE(*this->affineTransformationBw, "The pre-updated backward transformation matrix");
+
     // Forward and backward matrix are inverted
     mat44 fInverted = nifti_mat44_inverse(*this->affineTransformation);
     mat44 bInverted = nifti_mat44_inverse(*this->affineTransformationBw);
@@ -161,10 +152,9 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type) {
     }
     this->affineTransformation->m[3][3] = 1.f;
     this->affineTransformationBw->m[3][3] = 1.f;
-#ifndef NDEBUG
-    reg_mat44_disp(this->affineTransformation.get(), (char*)"[NiftyReg DEBUG] updated forward transformation matrix");
-    reg_mat44_disp(this->affineTransformationBw.get(), (char*)"[NiftyReg DEBUG] updated backward transformation matrix");
-#endif
+
+    NR_MAT44_VERBOSE(*this->affineTransformation, "The updated forward transformation matrix");
+    NR_MAT44_VERBOSE(*this->affineTransformationBw, "The updated backward transformation matrix");
 }
 /* *************************************************************** */
 template <class T>
@@ -214,46 +204,28 @@ void reg_aladin_sym<T>::DeallocateKernels() {
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::DebugPrintLevelInfoStart() {
-    char text[255];
-    sprintf(text, "Current level %i / %i", this->currentLevel + 1, this->numberOfLevels);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-            this->con->GetReference()->nx,
-            this->con->GetReference()->ny,
-            this->con->GetReference()->nz,
-            this->con->GetReference()->dx,
-            this->con->GetReference()->dy,
-            this->con->GetReference()->dz);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-            this->con->GetFloating()->nx,
-            this->con->GetFloating()->ny,
-            this->con->GetFloating()->nz,
-            this->con->GetFloating()->dx,
-            this->con->GetFloating()->dy,
-            this->con->GetFloating()->dz);
-    reg_print_info(this->executableName, text);
-    if (this->con->GetReference()->nz == 1) {
-        reg_print_info(this->executableName, "Block size = [4 4 1]");
-    } else reg_print_info(this->executableName, "Block size = [4 4 4]");
-    reg_print_info(this->executableName, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-    sprintf(text, "Forward Block number = [%i %i %i]", this->blockMatchingParams->blockNumber[0],
-            this->blockMatchingParams->blockNumber[1], this->blockMatchingParams->blockNumber[2]);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "Backward Block number = [%i %i %i]", this->backwardBlockMatchingParams->blockNumber[0],
-            this->backwardBlockMatchingParams->blockNumber[1], this->backwardBlockMatchingParams->blockNumber[2]);
-    reg_print_info(this->executableName, text);
-    reg_mat44_disp(this->affineTransformation.get(),
-                   (char*)"[reg_aladin_sym] Initial forward transformation matrix:");
-    reg_mat44_disp(this->affineTransformationBw.get(),
-                   (char*)"[reg_aladin_sym] Initial backward transformation matrix:");
-    reg_print_info(this->executableName, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    const nifti_image *ref = this->con->Content::GetReference();
+    const nifti_image *flo = this->con->Content::GetFloating();
+    NR_VERBOSE("Current level " << this->currentLevel + 1 << " / " << this->numberOfLevels);
+    NR_VERBOSE("Reference image size:\t" << ref->nx << "x" << ref->ny << "x" << ref->nz << " voxels\t" <<
+               ref->dx << "x" << ref->dy << "x" << ref->dz << " mm");
+    NR_VERBOSE("Floating image size:\t" << flo->nx << "x" << flo->ny << "x" << flo->nz << " voxels\t" <<
+               flo->dx << "x" << flo->dy << "x" << flo->dz << " mm");
+    NR_VERBOSE("Block size = [4 4 " << (ref->nz == 1 ? 1 : 4) << "]");
+    NR_VERBOSE("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_VERBOSE("Forward Block number = [" << this->blockMatchingParams->blockNumber[0] << " " <<
+               this->blockMatchingParams->blockNumber[1] << " " << this->blockMatchingParams->blockNumber[2] << "]");
+    NR_VERBOSE("Backward Block number = [" << this->backwardBlockMatchingParams->blockNumber[0] << " " <<
+               this->backwardBlockMatchingParams->blockNumber[1] << " " << this->backwardBlockMatchingParams->blockNumber[2] << "]");
+    NR_MAT44_VERBOSE(*this->affineTransformation, "Initial forward transformation matrix:");
+    NR_MAT44_VERBOSE(*this->affineTransformationBw, "Initial backward transformation matrix:");
+    NR_VERBOSE("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::DebugPrintLevelInfoEnd() {
-    reg_mat44_disp(this->affineTransformation.get(), (char*)"[reg_aladin_sym] Final forward transformation matrix:");
-    reg_mat44_disp(this->affineTransformationBw.get(), (char*)"[reg_aladin_sym] Final backward transformation matrix:");
+    NR_MAT44_VERBOSE(*this->affineTransformation, "Final forward transformation matrix:");
+    NR_MAT44_VERBOSE(*this->affineTransformationBw, "Final backward transformation matrix:");
 }
 /* *************************************************************** */
 template class reg_aladin_sym<float>;

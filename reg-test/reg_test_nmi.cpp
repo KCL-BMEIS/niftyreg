@@ -158,9 +158,9 @@ TEST_CASE_METHOD(NMITest, "NMI", "[unit]") {
         auto&& [testName, result, expected] = testCase;
 
         SECTION(testName) {
-            std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
+            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
             if (fabs(result - expected) > EPS) {
-                std::cout << "Result=" << result << " | Expected=" << expected << std::endl;
+                NR_COUT << "Result=" << result << " | Expected=" << expected << std::endl;
             }
             REQUIRE(fabs(result - expected) < EPS);
         }

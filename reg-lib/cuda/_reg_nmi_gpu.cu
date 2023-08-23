@@ -16,15 +16,11 @@
 
 /* *************************************************************** */
 reg_nmi_gpu::reg_nmi_gpu(): reg_nmi::reg_nmi() {
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_nmi_gpu constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 reg_nmi_gpu::~reg_nmi_gpu() {
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_nmi_gpu destructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
@@ -46,21 +42,13 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
                                        warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda, localWeightSim, floMask, floMaskCuda,
                                        warpedImgBw, warpedImgBwCuda, warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
     // Check if the input images have multiple timepoints
-    if (this->referenceTimePoint > 1 || this->floatingImage->nt > 1) {
-        reg_print_fct_error("reg_nmi_gpu::InitialiseMeasure");
-        reg_print_msg_error("Multiple timepoints are not yet supported");
-        reg_exit();
-    }
+    if (this->referenceTimePoint > 1 || this->floatingImage->nt > 1)
+        NR_FATAL_ERROR("Multiple timepoints are not yet supported");
     // The reference and floating images have to be updated on the device
     if (cudaCommon_transferNiftiToArrayOnDevice<float>(this->referenceImageCuda, this->referenceImage) ||
-        cudaCommon_transferNiftiToArrayOnDevice<float>(this->floatingImageCuda, this->floatingImage)) {
-        reg_print_fct_error("reg_nmi_gpu::InitialiseMeasure");
-        reg_print_msg_error("Error when transferring the reference or floating image");
-        reg_exit();
-    }
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_nmi_gpu::InitialiseMeasure called");
-#endif
+        cudaCommon_transferNiftiToArrayOnDevice<float>(this->floatingImageCuda, this->floatingImage))
+        NR_FATAL_ERROR("Error when transferring the reference or floating image");
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 double GetSimilarityMeasureValue(const nifti_image *referenceImage,

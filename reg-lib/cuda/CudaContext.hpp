@@ -39,4 +39,4 @@ private:
     void SetBlockSize(int major);
 };
 /* *************************************************************** */
-}   // namespace NiftyReg
+} // namespace NiftyReg

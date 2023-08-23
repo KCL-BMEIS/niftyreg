@@ -1,5 +1,4 @@
 #include "_reg_ReadWriteMatrix.h"
-#include "_reg_maths.h"
 #include <string>
 #include <filesystem>
 
@@ -24,16 +23,11 @@ void reg_tool_ReadAffineFile(mat44 *mat,
             if (i > 3) break;
         }
     } else {
-        char text[255]; sprintf(text, "The affine file can not be read: %s", fileName);
-        reg_print_fct_error("reg_tool_ReadAffineFile");
-        reg_print_msg_error(text);
-        reg_exit();
+        NR_FATAL_ERROR("The affine file can not be read: "s + fileName);
     }
     affineFile.close();
 
-#ifndef NDEBUG
-    reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Read affine transformation");
-#endif
+    NR_MAT44(*mat, "Read affine transformation");
 
     if (flirtFile) {
         mat44 absoluteReference;
@@ -46,19 +40,15 @@ void reg_tool_ReadAffineFile(mat44 *mat,
         //If the reference sform is defined, it is used; qform otherwise;
         mat44 *referenceMatrix;
         if (referenceImage->sform_code > 0) {
-            referenceMatrix = &(referenceImage->sto_xyz);
-#ifndef NDEBUG
-            reg_print_msg_debug("The reference sform matrix is defined and used");
-#endif
-        } else referenceMatrix = &(referenceImage->qto_xyz);
+            referenceMatrix = &referenceImage->sto_xyz;
+            NR_DEBUG("The reference sform matrix is defined and used");
+        } else referenceMatrix = &referenceImage->qto_xyz;
         //If the floating sform is defined, it is used; qform otherwise;
         mat44 *floatingMatrix;
         if (floatingImage->sform_code > 0) {
-#ifndef NDEBUG
-            reg_print_msg_debug(" The floating sform matrix is defined and used");
-#endif
-            floatingMatrix = &(floatingImage->sto_xyz);
-        } else floatingMatrix = &(floatingImage->qto_xyz);
+            NR_DEBUG("The floating sform matrix is defined and used");
+            floatingMatrix = &floatingImage->sto_xyz;
+        } else floatingMatrix = &floatingImage->qto_xyz;
 
         for (int i = 0; i < 3; i++) {
             absoluteReference.m[i][i] = sqrt(referenceMatrix->m[0][i] * referenceMatrix->m[0][i]
@@ -69,14 +59,13 @@ void reg_tool_ReadAffineFile(mat44 *mat,
                                             + floatingMatrix->m[2][i] * floatingMatrix->m[2][i]);
         }
         absoluteReference.m[3][3] = absoluteFloating.m[3][3] = 1.0;
-#ifndef NDEBUG
-        reg_print_msg_debug("An flirt affine file is assumed and is converted to a real word affine matrix");
-        reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Matrix read from the input file");
-        reg_mat44_disp(referenceMatrix, (char *)"[NiftyReg DEBUG] Reference Matrix");
-        reg_mat44_disp(floatingMatrix, (char *)"[NiftyReg DEBUG] Floating Matrix");
-        reg_mat44_disp(&(absoluteReference), (char *)"[NiftyReg DEBUG] Reference absolute Matrix");
-        reg_mat44_disp(&(absoluteFloating), (char *)"[NiftyReg DEBUG] Floating absolute Matrix");
-#endif
+
+        NR_DEBUG("An flirt affine file is assumed and is converted to a real word affine matrix");
+        NR_MAT44(*mat, "Matrix read from the input file");
+        NR_MAT44(*referenceMatrix, "Reference Matrix");
+        NR_MAT44(*floatingMatrix, "Floating Matrix");
+        NR_MAT44(absoluteReference, "Reference absolute Matrix");
+        NR_MAT44(absoluteFloating, "Floating absolute Matrix");
 
         absoluteFloating = nifti_mat44_inverse(absoluteFloating);
         *mat = nifti_mat44_inverse(*mat);
@@ -88,9 +77,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
         *mat = reg_mat44_mul(mat, &tmp);
     }
 
-#ifndef NDEBUG
-    reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Affine matrix");
-#endif
+    NR_MAT44(*mat, "Affine matrix");
 }
 /* *************************************************************** */
 void reg_tool_ReadAffineFile(mat44 *mat, char *fileName) {
@@ -99,18 +86,10 @@ void reg_tool_ReadAffineFile(mat44 *mat, char *fileName) {
     if (affineFile.is_open()) {
         int i = 0;
         double value1, value2, value3, value4;
-#ifndef NDEBUG
-        char text_header[255];
-        sprintf(text_header, "Affine matrix values:");
-        reg_print_msg_debug(text_header);
-#endif
+        NR_DEBUG("Affine matrix values:");
         while (!affineFile.eof()) {
             affineFile >> value1 >> value2 >> value3 >> value4;
-#ifndef NDEBUG
-            char text[255];
-            sprintf(text, "%f - %f - %f - %f", value1, value2, value3, value4);
-            reg_print_msg_debug(text);
-#endif
+            NR_DEBUG(value1 << " - " << value2 << " - " << value3 << " - " << value4);
             mat->m[i][0] = (float)value1;
             mat->m[i][1] = (float)value2;
             mat->m[i][2] = (float)value3;
@@ -119,10 +98,7 @@ void reg_tool_ReadAffineFile(mat44 *mat, char *fileName) {
             if (i > 3) break;
         }
     } else {
-        char text[255]; sprintf(text, "The affine file can not be read: %s", fileName);
-        reg_print_fct_error("reg_tool_ReadAffineFile");
-        reg_print_msg_error(text);
-        reg_exit();
+        NR_FATAL_ERROR("The affine file can not be read: "s + fileName);
     }
     affineFile.close();
 }
@@ -131,13 +107,9 @@ void reg_tool_WriteAffineFile(const mat44 *mat, const char *fileName) {
     // Check if the specified directory exists
     std::filesystem::path p(fileName);
     p = p.parent_path();
-    if (!std::filesystem::exists(p) && p != std::filesystem::path()) {
-        std::cerr << "The specified folder to save the following file does not exist:" << std::endl;
-        std::cerr << fileName << std::endl;
-        reg_exit();
-    }
-    FILE *affineFile;
-    affineFile = fopen(fileName, "w");
+    if (!std::filesystem::exists(p) && p != std::filesystem::path())
+        NR_FATAL_ERROR("The specified folder to save the following file does not exist: "s + fileName);
+    FILE *affineFile = fopen(fileName, "w");
     for (int i = 0; i < 4; i++)
         fprintf(affineFile, "%.7g %.7g %.7g %.7g\n", mat->m[i][0], mat->m[i][1], mat->m[i][2], mat->m[i][3]);
     fclose(affineFile);
@@ -169,11 +141,7 @@ std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename) {
         //
         matrixFile.close();
     } else {
-        char text[255];
-        sprintf(text, "The file can not be read: %s", filename);
-        reg_print_fct_error("reg_tool_ReadMatrixFile");
-        reg_print_msg_error(text);
-        reg_exit();
+        NR_FATAL_ERROR("The file can not be read: "s + filename);
     }
     return { nbLine, nbColumn };
 }
@@ -225,11 +193,7 @@ T** reg_tool_ReadMatrixFile(char *filename, size_t nbLine, size_t nbColumn) {
         }
         matrixFile.close();
     } else {
-        char text[255];
-        sprintf(text, "The matrix file can not be read: %s", filename);
-        reg_print_fct_error("reg_tool_ReadMatrixFile");
-        reg_print_msg_error(text);
-        reg_exit();
+        NR_FATAL_ERROR("The matrix file can not be read: "s + filename);
     }
 
     return mat;
@@ -255,16 +219,11 @@ mat44* reg_tool_ReadMat44File(char *fileName) {
             if (i > 3) break;
         }
     } else {
-        char text[255]; sprintf(text, "The mat44 file can not be read: %s", fileName);
-        reg_print_fct_error("reg_tool_ReadMat44File");
-        reg_print_msg_error(text);
-        reg_exit();
+        NR_FATAL_ERROR("The mat44 file can not be read: "s + fileName);
     }
     matrixFile.close();
 
-#ifndef NDEBUG
-    reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] mat44 matrix");
-#endif
+    NR_MAT44(*mat, "mat44 matrix");
 
     return mat;
 }

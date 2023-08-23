@@ -14,9 +14,7 @@
 
 /* *************************************************************** */
 reg_dti::reg_dti(): reg_measure() {
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_dti constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 // This function is directly the same as that used for reg_ssd
@@ -45,11 +43,8 @@ void reg_dti::InitialiseMeasure(nifti_image *refImg,
                                    voxelBasedGradBw);
 
     // Check that the input images have the same number of time point
-    if (this->referenceImage->nt != this->floatingImage->nt) {
-        reg_print_fct_error("reg_dti::InitialiseMeasure");
-        reg_print_msg_error("This number of time point should be the same for both input images");
-        reg_exit();
-    }
+    if (this->referenceImage->nt != this->floatingImage->nt)
+        NR_FATAL_ERROR("This number of time point should be the same for both input images");
 
     int j = 0;
     for (int i = 0; i < refImg->nt; ++i) {
@@ -57,19 +52,13 @@ void reg_dti::InitialiseMeasure(nifti_image *refImg,
         // any value > 0 indicates the 'time point' is active
         if (this->timePointWeight[i] > 0) {
             this->dtIndicies[j++] = i;
-#ifndef NDEBUG
-            reg_print_msg_debug("reg_dti::InitialiseMeasure()");
-            char text[255];
-            sprintf(text, "Active time point: %i", i);
-            reg_print_msg_debug(text);
-#endif
+            NR_DEBUG("Active time point: " << i);
         }
     }
-    if ((refImg->nz > 1 && j != 6) && (refImg->nz == 1 && j != 3)) {
-        reg_print_fct_error("reg_dti::InitialiseMeasure");
-        reg_print_msg_error("Unexpected number of DTI components");
-        reg_exit();
-    }
+    if ((refImg->nz > 1 && j != 6) && (refImg->nz == 1 && j != 3))
+        NR_FATAL_ERROR("Unexpected number of DTI components");
+
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class DataType>
@@ -194,8 +183,7 @@ void reg_getVoxelBasedDtiMeasureGradient(const nifti_image *referenceImage,
     const DataType *referenceIntensityZZ = &firstRefVox[voxelNumber * dtIndicies[5]];
 
     // THE FOLLOWING IS WRONG
-    reg_print_msg_error("ERROR IN THE DTI GRADIENT COMPUTATION - TO FIX");
-    reg_exit();
+    NR_FATAL_ERROR("ERROR IN THE DTI GRADIENT COMPUTATION - TO FIX");
     const size_t gradientVoxels = (size_t)warpedGradient->nu * voxelNumber;
     const DataType *firstGradVox = static_cast<DataType*>(warpedGradient->data);
     const DataType *spatialGradXX = &firstGradVox[gradientVoxels * dtIndicies[0]];

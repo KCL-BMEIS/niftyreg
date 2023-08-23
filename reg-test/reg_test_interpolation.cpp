@@ -223,7 +223,7 @@ TEST_CASE("Interpolation", "[Interpolation]") {
                 warped.disown();
                 for (size_t i = 0; i < nVoxels; ++i) {
                     const float warpedValue = warpedPtr[i];
-                    std::cout << i << " " << warpedValue << " " << testResult[i] << std::endl;
+                    NR_COUT << i << " " << warpedValue << " " << testResult[i] << std::endl;
                     REQUIRE(fabs(warpedValue - testResult[i]) < EPS);
                 }
             }

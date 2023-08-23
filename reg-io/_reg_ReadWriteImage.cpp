@@ -11,7 +11,6 @@
 
 #include "_reg_ReadWriteImage.h"
 #include "_reg_tools.h"
-#include "_reg_stringFormat.h"
 #include <filesystem>
 
 /* *************************************************************** */
@@ -50,8 +49,7 @@ int reg_io_checkFileFormat(const std::string& filename) {
         return NR_NRRD_FORMAT;
 #endif
     else {
-        reg_print_fct_warn("reg_io_checkFileFormat");
-        reg_print_msg_warn("No filename extension provided - the Nifti library is used by default");
+        NR_WARN_WFCT("No filename extension provided - the Nifti library is used by default");
     }
 
     return NR_NII_FORMAT;
@@ -124,11 +122,9 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename) {
     // Check if the specified directory exists
     std::filesystem::path p(filename);
     p = p.parent_path();
-    if (!std::filesystem::exists(p) && p != std::filesystem::path()) {
-        std::cerr << "The specified folder to save the following file does not exist:" << std::endl;
-        std::cerr << filename << std::endl;
-        reg_exit();
-    }
+    if (!std::filesystem::exists(p) && p != std::filesystem::path())
+        NR_FATAL_ERROR("The specified folder to save the following file does not exist: "s + filename);
+
     // First read the file format in order to use the correct library
     int fileFormat = reg_io_checkFileFormat(filename);
 
@@ -144,9 +140,7 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename) {
         // the filename is converted to nifti
         fname = filename;
         fname.replace(fname.find(".png"), 4, ".nii.gz");
-        reg_print_msg_warn("The file can not be saved as png and is converted to nifti");
-        char text[255]; sprintf(text, "%s -> %s", filename, fname.c_str());
-        reg_print_msg_warn(text);
+        NR_WARN("The file can not be saved as png and is converted to nifti " << filename << " -> " << fname);
         filename = fname.c_str();
         fileFormat = NR_NII_FORMAT;
     }
@@ -172,21 +166,21 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename) {
 /* *************************************************************** */
 template <class DataType>
 void reg_io_displayImageData1(nifti_image *image) {
-    reg_print_msg_debug("image values:");
-    DataType *data = static_cast<DataType *>(image->data);
-    std::string text;
+    NR_DEBUG("Image values:");
+    const DataType *data = static_cast<DataType*>(image->data);
+    const size_t nVoxelsPerVolume = NiftiImage::calcVoxelNumber(image, 3);
 
     size_t voxelIndex = 0;
     for (int z = 0; z < image->nz; z++) {
         for (int y = 0; y < image->ny; y++) {
             for (int x = 0; x < image->nx; x++) {
-                text = stringFormat("[%d - %d - %d] = [", x, y, z);
-                for (int tu = 0; tu < image->nt * image->nu; ++tu) {
-                    text = stringFormat("%s%g ", text.c_str(),
-                                        static_cast<double>(data[voxelIndex + tu * NiftiImage::calcVoxelNumber(image, 3)]));
-                }
-                text = stringFormat("%s]", text.c_str());
-                reg_print_msg_debug(text.c_str());
+                std::string text = "[" + std::to_string(x) + " - " + std::to_string(y) + " - " + std::to_string(z) + "] = [";
+                for (int tu = 0; tu < image->nt * image->nu; ++tu)
+                    text += std::to_string(static_cast<double>(data[voxelIndex + tu * nVoxelsPerVolume])) + " ";
+                if (text.back() == ' ')
+                    text.pop_back();
+                text += "]";
+                NR_DEBUG(text);
             }
         }
     }
@@ -219,9 +213,7 @@ void reg_io_displayImageData(nifti_image *image) {
         reg_io_displayImageData1<double>(image);
         break;
     default:
-        reg_print_fct_error("reg_io_displayImageData");
-        reg_print_msg_error("Unsupported datatype");
-        reg_exit();
+        NR_FATAL_ERROR("Unsupported datatype");
     }
 }
 /* *************************************************************** */

@@ -17,16 +17,13 @@ reg_measure* CudaMeasure::Create(const MeasureType& measureType) {
     case MeasureType::Kld:
         return new reg_kld_gpu();
     case MeasureType::Mind:
-        reg_print_msg_error("MIND measure type isn't implemented for GPU");
-        reg_exit();
+        NR_FATAL_ERROR("MIND measure type isn't implemented for GPU");
     case MeasureType::MindSsc:
-        reg_print_msg_error("MIND-SSC measure type isn't implemented for GPU");
-        reg_exit();
+        NR_FATAL_ERROR("MIND-SSC measure type isn't implemented for GPU");
+    default:
+        NR_FATAL_ERROR("Unsupported measure type");
+        return nullptr;
     }
-    reg_print_fct_error("CudaMeasure::Create");
-    reg_print_msg_error("Unsupported measure type");
-    reg_exit();
-    return nullptr;
 }
 /* *************************************************************** */
 void CudaMeasure::Initialise(reg_measure& measure, DefContent& con, DefContent *conBw) {

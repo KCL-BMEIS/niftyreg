@@ -26,10 +26,7 @@ reg_optimiser<T>::reg_optimiser() {
     this->bestObjFunctionValue = 0;
     this->intOpt = nullptr;
     this->gradientBw = nullptr;
-
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_optimiser<T>::reg_optimiser() called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -42,9 +39,7 @@ reg_optimiser<T>::~reg_optimiser() {
         free(this->bestDofBw);
         this->bestDofBw = nullptr;
     }
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_optimiser<T>::~reg_optimiser() called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -88,9 +83,7 @@ void reg_optimiser<T>::Initialise(size_t nvox,
     this->intOpt = intOpt;
     this->bestObjFunctionValue = this->currentObjFunctionValue = this->intOpt->GetObjectiveFunctionValue();
 
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_optimiser<T>::Initialise called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -150,15 +143,10 @@ void reg_optimiser<T>::Optimise(T maxLength, T smallLength, T& startLength) {
         this->currentObjFunctionValue = this->intOpt->GetObjectiveFunctionValue();
 
         // Check if the update lead to an improvement of the objective function
-        if (this->currentObjFunctionValue > this->bestObjFunctionValue) {
-#ifndef NDEBUG
-            char text[255];
-            sprintf(text, "[%i] objective function: %g | Increment %g | ACCEPTED",
-                    (int)this->currentIterationNumber,
-                    this->currentObjFunctionValue,
-                    currentLength);
-            reg_print_msg_debug(text);
-#endif
+        const bool isImproved = this->currentObjFunctionValue > this->bestObjFunctionValue;
+        NR_DEBUG("[" << this->currentIterationNumber << "] objective function: " << this->currentObjFunctionValue <<
+                 " | Increment " << currentLength << " | " << (isImproved ? "ACCEPTED" : "REJECTED"));
+        if (isImproved) {
             // Improvement - Save the new objective function value
             this->intOpt->UpdateBestObjFunctionValue();
             this->bestObjFunctionValue = this->currentObjFunctionValue;
@@ -170,14 +158,6 @@ void reg_optimiser<T>::Optimise(T maxLength, T smallLength, T& startLength) {
             // Save the current deformation parametrisation
             this->StoreCurrentDof();
         } else {
-#ifndef NDEBUG
-            char text[255];
-            sprintf(text, "[%i] objective function: %g | Increment %g | REJECTED",
-                    (int)this->currentIterationNumber,
-                    this->currentObjFunctionValue,
-                    currentLength);
-            reg_print_msg_debug(text);
-#endif
             // No improvement - Decrease the step size
             currentLength *= 0.5;
         }
@@ -196,9 +176,7 @@ reg_conjugateGradient<T>::reg_conjugateGradient(): reg_optimiser<T>::reg_optimis
     this->array1Bw = nullptr;
     this->array2 = nullptr;
     this->array2Bw = nullptr;
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_conjugateGradient<T>::reg_conjugateGradient() called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -219,9 +197,7 @@ reg_conjugateGradient<T>::~reg_conjugateGradient() {
         free(this->array2Bw);
         this->array2Bw = nullptr;
     }
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_conjugateGradient<T>::~reg_conjugateGradient() called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -252,9 +228,7 @@ void reg_conjugateGradient<T>::Initialise(size_t nvox,
         this->array2Bw = (T*)malloc(this->dofNumberBw * sizeof(T));
     }
 
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_conjugateGradient<T>::Initialise called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -278,9 +252,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
     T *array2PtrBw = this->array2Bw;
 
     if (this->firstCall) {
-#ifndef NDEBUG
-        reg_print_msg_debug("Conjugate gradient initialisation");
-#endif
+        NR_DEBUG("Conjugate gradient initialisation");
         // first conjugate gradient iteration
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -300,9 +272,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
         }
         this->firstCall = false;
     } else {
-#ifndef NDEBUG
-        reg_print_msg_debug("Conjugate gradient update");
-#endif
+        NR_DEBUG("Conjugate gradient update");
         double dgg = 0, gg = 0;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -427,19 +397,13 @@ void reg_lbfgs<T>::Initialise(size_t nvox,
     for (size_t i = 0; i < this->stepToKeep; ++i) {
         this->diffDof[i] = (T*)malloc(this->dofNumber * sizeof(T));
         this->diffGrad[i] = (T*)malloc(this->dofNumber * sizeof(T));
-        if (this->diffDof[i] == nullptr || this->diffGrad[i] == nullptr) {
-            reg_print_fct_error("reg_lbfgs<T>::Initialise");
-            reg_print_msg_error("Out of memory");
-            reg_exit();
-        }
+        if (this->diffDof[i] == nullptr || this->diffGrad[i] == nullptr)
+            NR_FATAL_ERROR("Out of memory");
     }
     this->oldDof = (T*)malloc(this->dofNumber * sizeof(T));
     this->oldGrad = (T*)malloc(this->dofNumber * sizeof(T));
-    if (this->oldDof == nullptr || this->oldGrad == nullptr) {
-        reg_print_fct_error("reg_lbfgs<T>::Initialise");
-        reg_print_msg_error("Out of memory");
-        reg_exit();
-    }
+    if (this->oldDof == nullptr || this->oldGrad == nullptr)
+        NR_FATAL_ERROR("Out of memory");
 }
 /* *************************************************************** */
 template <class T>

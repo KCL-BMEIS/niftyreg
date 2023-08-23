@@ -24,41 +24,37 @@ struct __attribute__((aligned(4))) float4 {
 /* *************************************************************** */
 namespace NiftyReg::Cuda::Internal {
 /* *************************************************************** */
-inline void SafeCall(const char *file, const int& line) {
+inline void SafeCall(const std::string& file, const int& line, const std::string& funcName) {
 #if CUDART_VERSION >= 3200
-	cudaError_t err = cudaPeekAtLastError();
+	const cudaError_t err = cudaPeekAtLastError();
 #else
-	cudaError_t err = cudaDeviceSynchronize();
+	const cudaError_t err = cudaDeviceSynchronize();
 #endif
-	if (err != cudaSuccess) {
-		fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", file, line, cudaGetErrorString(err));
-		reg_exit();
-	}
+	if (err != cudaSuccess)
+        NiftyReg::Internal::FatalError(file, line, funcName, "CUDA error: "s + cudaGetErrorString(err));
 }
 /* *************************************************************** */
-inline void CheckKernel(const char *file, const int& line, const dim3& grid, const dim3& block) {
+inline void CheckKernel(const std::string& file, const int& line, const std::string& funcName, const dim3& grid, const dim3& block) {
 #if CUDART_VERSION >= 3200
 	cudaDeviceSynchronize();
-	cudaError_t err = cudaPeekAtLastError();
+	const cudaError_t err = cudaPeekAtLastError();
 #else
-	cudaError_t err = cudaDeviceSynchronize();
+	const cudaError_t err = cudaDeviceSynchronize();
 #endif
 	if (err != cudaSuccess) {
-		fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", file, line, cudaGetErrorString(err));
-		fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", grid.x, grid.y, grid.z, block.x, block.y, block.z);
-		reg_exit();
+        NiftyReg::Internal::FatalError(file, line, funcName, "CUDA error: "s + cudaGetErrorString(err) +
+                "\n\tGrid size ["s + std::to_string(grid.x) + " "s + std::to_string(grid.y) + " "s + std::to_string(grid.z) +
+                "] - Block size ["s + std::to_string(block.x) + " "s + std::to_string(block.y) + " "s + std::to_string(block.z) + "]");
+	} else {
+        NR_DEBUG("CUDA kernel: "s + cudaGetErrorString(err) +
+                 " - Grid size ["s + std::to_string(grid.x) + " "s + std::to_string(grid.y) + " "s + std::to_string(grid.z) +
+                 "] - Block size ["s + std::to_string(block.x) + " "s + std::to_string(block.y) + " "s + std::to_string(block.z) + "]");
 	}
-#ifndef NDEBUG
-	else {
-		printf("[NiftyReg CUDA DEBUG] kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-			cudaGetErrorString(cudaGetLastError()), grid.x, grid.y, grid.z, block.x, block.y, block.z);
-	}
-#endif
 }
 /* *************************************************************** */
 } // namespace NiftyReg::Cuda::Internal
-#define NR_CUDA_SAFE_CALL(call) { call; NiftyReg::Cuda::Internal::SafeCall(__FILE__, __LINE__); }
-#define NR_CUDA_CHECK_KERNEL(grid, block) NiftyReg::Cuda::Internal::CheckKernel(__FILE__, __LINE__, grid, block)
+#define NR_CUDA_SAFE_CALL(call)             { call; NiftyReg::Cuda::Internal::SafeCall(__FILE__, __LINE__, NR_FUNCTION); }
+#define NR_CUDA_CHECK_KERNEL(grid, block)   NiftyReg::Cuda::Internal::CheckKernel(__FILE__, __LINE__, NR_FUNCTION, grid, block)
 /* *************************************************************** */
 extern "C++"
 template <class DataType>

@@ -2,7 +2,7 @@
 
 #include "_reg_maths_eigen.h"
 #include "_reg_maths.h"
-#include "niftilib/nifti1_io.h"
+#include "Debug.hpp"
 
 // Eigen headers are in there because of the nvcc preprocessing step
 #include "Eigen/Core"
@@ -20,11 +20,8 @@
 */
 template<class T>
 void svd(T **in, size_t size_m, size_t size_n, T * w, T **v) {
-   if (size_m == 0 || size_n == 0) {
-      reg_print_fct_error("svd");
-      reg_print_msg_error("The specified matrix is empty");
-      reg_exit();
-   }
+   if (size_m == 0 || size_n == 0)
+      NR_FATAL_ERROR("The specified matrix is empty");
 
 #ifdef _WIN32
    long sm, sn, sn2;
@@ -81,11 +78,8 @@ template void svd<double>(double **in, size_t m, size_t n, double * w, double **
 */
 template<class T>
 void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
-   if (in == nullptr) {
-      reg_print_fct_error("svd");
-      reg_print_msg_error("The specified matrix is empty");
-      reg_exit();
-   }
+   if (in == nullptr)
+      NR_FATAL_ERROR("The specified matrix is empty");
 
 #ifdef _WIN32
    long sm, sn, min_dim, i, j;
@@ -185,13 +179,9 @@ template void svd<double>(double **in, size_t size_m, size_t size_n, double ***U
 /* *************************************************************** */
 template<class T>
 T reg_matrix2DDet(T** mat, size_t m, size_t n) {
-   if (m != n) {
-      char text[255]; sprintf(text, "The matrix have to be square: [%zu %zu]",
-                              m, n);
-      reg_print_fct_error("reg_matrix2DDeterminant");
-      reg_print_msg_error(text);
-      reg_exit();
-   }
+   if (m != n)
+      NR_FATAL_ERROR("The matrix have to be square: [" + std::to_string(m) + " " + std::to_string(n) + "]");
+
    double res;
    if (m == 2) {
       res = static_cast<double>(mat[0][0]) * static_cast<double>(mat[1][1]) - static_cast<double>(mat[1][0]) * static_cast<double>(mat[0][1]);

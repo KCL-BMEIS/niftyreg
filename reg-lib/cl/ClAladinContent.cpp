@@ -236,34 +236,28 @@ template<class DataType>
 DataType ClAladinContent::FillWarpedImageData(float intensity, int datatype) {
     switch (datatype) {
     case NIFTI_TYPE_FLOAT32:
-        return static_cast<float>(intensity);
-        break;
+        return static_cast<DataType>(intensity);
     case NIFTI_TYPE_FLOAT64:
-        return static_cast<double>(intensity);
-        break;
+        return static_cast<DataType>(intensity);
     case NIFTI_TYPE_UINT8:
         if (intensity != intensity)
             intensity = 0;
         intensity = (intensity <= 255 ? reg_round(intensity) : 255); // 255=2^8-1
         return static_cast<unsigned char>(intensity > 0 ? reg_round(intensity) : 0);
-        break;
     case NIFTI_TYPE_UINT16:
         if (intensity != intensity)
             intensity = 0;
         intensity = (intensity <= 65535 ? reg_round(intensity) : 65535); // 65535=2^16-1
         return static_cast<unsigned short>(intensity > 0 ? reg_round(intensity) : 0);
-        break;
     case NIFTI_TYPE_UINT32:
         if (intensity != intensity)
             intensity = 0;
         intensity = (intensity <= 4294967295 ? reg_round(intensity) : 4294967295); // 4294967295=2^32-1
         return static_cast<unsigned>(intensity > 0 ? reg_round(intensity) : 0);
-        break;
     default:
         if (intensity != intensity)
             intensity = 0;
         return static_cast<DataType>(reg_round(intensity));
-        break;
     }
 }
 /* *************************************************************** */
@@ -272,11 +266,8 @@ void ClAladinContent::FillImageData(nifti_image *image, cl_mem memoryObject, int
     size_t size = image->nvox;
     float* buffer = nullptr;
     buffer = (float*)malloc(size * sizeof(float));
-    if (buffer == nullptr) {
-        reg_print_fct_error("ClAladinContent::FillImageData");
-        reg_print_msg_error("Memory allocation did not complete successfully. Exit.");
-        reg_exit();
-    }
+    if (buffer == nullptr)
+        NR_FATAL_ERROR("Memory allocation did not complete successfully");
 
     errNum = clEnqueueReadBuffer(commandQueue, memoryObject, CL_TRUE, 0,
                                  size * sizeof(float), buffer, 0, nullptr, nullptr);
@@ -319,10 +310,7 @@ void ClAladinContent::DownloadImage(nifti_image *image, cl_mem memoryObject, int
         FillImageData<int>(image, memoryObject, datatype);
         break;
     default:
-        reg_print_fct_error("ClAladinContent::DownloadImage");
-        reg_print_msg_error("Unsupported type");
-        reg_exit();
-        break;
+        NR_FATAL_ERROR("Unsupported type");
     }
 }
 /* *************************************************************** */

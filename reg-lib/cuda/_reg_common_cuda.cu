@@ -27,9 +27,7 @@ int cudaCommon_transferNiftiToNiftiOnDevice1(nifti_image *imageCuda, const nifti
 template <class DataType, class NiftiType>
 int cudaCommon_transferNiftiToArrayOnDevice1(DataType *arrayCuda, const nifti_image *img) {
     if (sizeof(DataType) != sizeof(NiftiType)) {
-        reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice1");
-        reg_print_msg_error("The host and device arrays are of different types");
-        return EXIT_FAILURE;
+        NR_FATAL_ERROR("The host and device arrays are of different types");
     } else {
         const size_t memSize = NiftiImage::calcVoxelNumber(img, 3) * sizeof(NiftiType);
         NR_CUDA_SAFE_CALL(cudaMemcpy(arrayCuda, img->data, memSize, cudaMemcpyHostToDevice));
@@ -40,11 +38,8 @@ int cudaCommon_transferNiftiToArrayOnDevice1(DataType *arrayCuda, const nifti_im
 template <class DataType>
 int cudaCommon_transferNiftiToArrayOnDevice(DataType *arrayCuda, const nifti_image *img) {
     if (sizeof(DataType) == sizeof(float4)) {
-        if ((img->datatype != NIFTI_TYPE_FLOAT32) || (img->dim[5] < 2) || (img->dim[4] > 1)) {
-            reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice");
-            reg_print_msg_error("The specified image is not a single precision deformation field image");
-            return EXIT_FAILURE;
-        }
+        if (img->datatype != NIFTI_TYPE_FLOAT32 || img->dim[5] < 2 || img->dim[4] > 1)
+            NR_FATAL_ERROR("The specified image is not a single precision deformation field image");
         const float *niftiImgValues = static_cast<float*>(img->data);
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
         unique_ptr<float4[]> array(new float4[voxelNumber]());
@@ -68,9 +63,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(DataType *arrayCuda, const nifti_ima
         case NIFTI_TYPE_FLOAT32:
             return cudaCommon_transferNiftiToArrayOnDevice1<DataType, float>(arrayCuda, img);
         default:
-            reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice");
-            reg_print_msg_error("The image data type is not supported");
-            return EXIT_FAILURE;
+            NR_FATAL_ERROR("The image data type is not supported");
         }
     }
     return EXIT_SUCCESS;
@@ -83,9 +76,7 @@ template int cudaCommon_transferNiftiToArrayOnDevice<float4>(float4*, const nift
 template <class DataType, class NiftiType>
 int cudaCommon_transferNiftiToArrayOnDevice1(DataType *array1Cuda, DataType *array2Cuda, const nifti_image *img) {
     if (sizeof(DataType) != sizeof(NiftiType)) {
-        reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice1");
-        reg_print_msg_error("The host and device arrays are of different types");
-        return EXIT_FAILURE;
+        NR_FATAL_ERROR("The host and device arrays are of different types");
     } else {
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
         const size_t memSize = voxelNumber * sizeof(DataType);
@@ -100,11 +91,8 @@ int cudaCommon_transferNiftiToArrayOnDevice1(DataType *array1Cuda, DataType *arr
 template <class DataType>
 int cudaCommon_transferNiftiToArrayOnDevice(DataType *array1Cuda, DataType *array2Cuda, const nifti_image *img) {
     if (sizeof(DataType) == sizeof(float4)) {
-        if ((img->datatype != NIFTI_TYPE_FLOAT32) || (img->dim[5] < 2) || (img->dim[4] > 1)) {
-            reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice");
-            reg_print_msg_error("The specified image is not a single precision deformation field image");
-            return EXIT_FAILURE;
-        }
+        if (img->datatype != NIFTI_TYPE_FLOAT32 || img->dim[5] < 2 || img->dim[4] > 1)
+            NR_FATAL_ERROR("The specified image is not a single precision deformation field image");
         const float *niftiImgValues = static_cast<float*>(img->data);
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
         unique_ptr<float4[]> array1(new float4[voxelNumber]());
@@ -138,9 +126,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(DataType *array1Cuda, DataType *arra
         case NIFTI_TYPE_FLOAT32:
             return cudaCommon_transferNiftiToArrayOnDevice1<DataType, float>(array1Cuda, array2Cuda, img);
         default:
-            reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice");
-            reg_print_msg_error("The image data type is not supported");
-            return EXIT_FAILURE;
+            NR_FATAL_ERROR("The image data type is not supported");
         }
     }
     return EXIT_SUCCESS;
@@ -152,9 +138,7 @@ template int cudaCommon_transferNiftiToArrayOnDevice<float4>(float4*, float4*, c
 template <class DataType, class NiftiType>
 int cudaCommon_transferNiftiToArrayOnDevice1(cudaArray *arrayCuda, const nifti_image *img) {
     if (sizeof(DataType) != sizeof(NiftiType)) {
-        reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice1");
-        reg_print_msg_error("The host and device arrays are of different types");
-        return EXIT_FAILURE;
+        NR_FATAL_ERROR("The host and device arrays are of different types");
     } else {
         cudaMemcpy3DParms copyParams{};
         copyParams.extent = make_cudaExtent(std::abs(img->dim[1]), std::abs(img->dim[2]), std::abs(img->dim[3]));
@@ -172,11 +156,8 @@ int cudaCommon_transferNiftiToArrayOnDevice1(cudaArray *arrayCuda, const nifti_i
 template <class DataType>
 int cudaCommon_transferNiftiToArrayOnDevice(cudaArray *arrayCuda, const nifti_image *img) {
     if (sizeof(DataType) == sizeof(float4)) {
-        if ((img->datatype != NIFTI_TYPE_FLOAT32) || (img->dim[5] < 2) || (img->dim[4] > 1)) {
-            reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice");
-            reg_print_msg_error("The specified image is not a single precision deformation field image");
-            return EXIT_FAILURE;
-        }
+        if (img->datatype != NIFTI_TYPE_FLOAT32 || img->dim[5] < 2 || img->dim[4] > 1)
+            NR_FATAL_ERROR("The specified image is not a single precision deformation field image");
         const float *niftiImgValues = static_cast<float*>(img->data);
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
         unique_ptr<float4[]> array(new float4[voxelNumber]());
@@ -208,9 +189,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(cudaArray *arrayCuda, const nifti_im
         case NIFTI_TYPE_FLOAT32:
             return cudaCommon_transferNiftiToArrayOnDevice1<DataType, float>(arrayCuda, img);
         default:
-            reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice");
-            reg_print_msg_error("The image data type is not supported");
-            return EXIT_FAILURE;
+            NR_FATAL_ERROR("The image data type is not supported");
         }
     }
     return EXIT_SUCCESS;
@@ -223,9 +202,7 @@ template int cudaCommon_transferNiftiToArrayOnDevice<float4>(cudaArray*, const n
 template <class DataType, class NiftiType>
 int cudaCommon_transferNiftiToArrayOnDevice1(cudaArray *array1Cuda, cudaArray *array2Cuda, const nifti_image *img) {
     if (sizeof(DataType) != sizeof(NiftiType)) {
-        reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice1");
-        reg_print_msg_error("The host and device arrays are of different types");
-        return EXIT_FAILURE;
+        NR_FATAL_ERROR("The host and device arrays are of different types");
     } else {
         NiftiType *array1 = static_cast<NiftiType*>(img->data);
         NiftiType *array2 = &array1[NiftiImage::calcVoxelNumber(img, 3)];
@@ -253,11 +230,8 @@ int cudaCommon_transferNiftiToArrayOnDevice1(cudaArray *array1Cuda, cudaArray *a
 template <class DataType>
 int cudaCommon_transferNiftiToArrayOnDevice(cudaArray *array1Cuda, cudaArray *array2Cuda, const nifti_image *img) {
     if (sizeof(DataType) == sizeof(float4)) {
-        if ((img->datatype != NIFTI_TYPE_FLOAT32) || (img->dim[5] < 2) || (img->dim[4] > 1)) {
-            reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice1");
-            reg_print_msg_error("The specified image is not a single precision deformation field image");
-            return EXIT_FAILURE;
-        }
+        if (img->datatype != NIFTI_TYPE_FLOAT32 || img->dim[5] < 2 || img->dim[4] > 1)
+            NR_FATAL_ERROR("The specified image is not a single precision deformation field image");
         const float *niftiImgValues = static_cast<float*>(img->data);
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
         unique_ptr<float4[]> array1(new float4[voxelNumber]());
@@ -307,9 +281,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(cudaArray *array1Cuda, cudaArray *ar
         case NIFTI_TYPE_FLOAT32:
             return cudaCommon_transferNiftiToArrayOnDevice1<DataType, float>(array1Cuda, array2Cuda, img);
         default:
-            reg_print_fct_error("cudaCommon_transferNiftiToArrayOnDevice1");
-            reg_print_msg_error("The image data type is not supported");
-            return EXIT_FAILURE;
+            NR_FATAL_ERROR("The image data type is not supported");
         }
     }
     return EXIT_SUCCESS;
@@ -384,9 +356,7 @@ template int cudaCommon_transferFromDeviceToCpu<double>(double*, const double*, 
 template <class DataType, class NiftiType>
 int cudaCommon_transferFromDeviceToNifti1(nifti_image *img, const DataType *arrayCuda) {
     if (sizeof(DataType) != sizeof(NiftiType)) {
-        reg_print_fct_error("cudaCommon_transferFromDeviceToNifti1");
-        reg_print_msg_error("The host and device arrays are of different types");
-        return EXIT_FAILURE;
+        NR_FATAL_ERROR("The host and device arrays are of different types");
     } else {
         NR_CUDA_SAFE_CALL(cudaMemcpy(img->data, arrayCuda, img->nvox * sizeof(DataType), cudaMemcpyDeviceToHost));
     }
@@ -397,11 +367,8 @@ template <class DataType>
 int cudaCommon_transferFromDeviceToNifti(nifti_image *img, const DataType *arrayCuda) {
     if (sizeof(DataType) == sizeof(float4)) {
         // A nifti 5D volume is expected
-        if (img->dim[0] < 5 || img->dim[4]>1 || img->dim[5] < 2 || img->datatype != NIFTI_TYPE_FLOAT32) {
-            reg_print_fct_error("cudaCommon_transferFromDeviceToNifti");
-            reg_print_msg_error("The nifti image is not a 5D volume");
-            return EXIT_FAILURE;
-        }
+        if (img->dim[0] < 5 || img->dim[4]>1 || img->dim[5] < 2 || img->datatype != NIFTI_TYPE_FLOAT32)
+            NR_FATAL_ERROR("The nifti image is not a 5D volume");
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
         thrust::device_ptr<const float4> arrayCudaPtr(reinterpret_cast<const float4*>(arrayCuda));
         const thrust::host_vector<float4> array(arrayCudaPtr, arrayCudaPtr + voxelNumber);
@@ -426,8 +393,7 @@ int cudaCommon_transferFromDeviceToNifti(nifti_image *img, const DataType *array
         case NIFTI_TYPE_FLOAT32:
             return cudaCommon_transferFromDeviceToNifti1<DataType, float>(img, arrayCuda);
         default:
-            reg_print_fct_error("cudaCommon_transferFromDeviceToNifti");
-            reg_print_msg_error("The image data type is not supported");
+            NR_FATAL_ERROR("The image data type is not supported");
             return EXIT_FAILURE;
         }
     }
@@ -438,11 +404,8 @@ template int cudaCommon_transferFromDeviceToNifti<float4>(nifti_image*, const fl
 /* *************************************************************** */
 template<>
 int cudaCommon_transferFromDeviceToNifti(nifti_image *img, const cudaArray *arrayCuda) {
-    if (img->datatype != NIFTI_TYPE_FLOAT32) {
-        reg_print_fct_error("cudaCommon_transferFromDeviceToNifti");
-        reg_print_msg_error("The image data type is not supported");
-        return EXIT_FAILURE;
-    }
+    if (img->datatype != NIFTI_TYPE_FLOAT32)
+        NR_FATAL_ERROR("The image data type is not supported");
     cudaMemcpy3DParms copyParams{};
     copyParams.extent = make_cudaExtent(std::abs(img->dim[1]), std::abs(img->dim[2]), std::abs(img->dim[3]));
     copyParams.srcArray = const_cast<cudaArray*>(arrayCuda);
@@ -458,9 +421,7 @@ int cudaCommon_transferFromDeviceToNifti(nifti_image *img, const cudaArray *arra
 template <class DataType, class NiftiType>
 int cudaCommon_transferFromDeviceToNifti1(nifti_image *img, const DataType *array1Cuda, const DataType *array2Cuda) {
     if (sizeof(DataType) != sizeof(NiftiType)) {
-        reg_print_fct_error("cudaCommon_transferFromDeviceToNifti1");
-        reg_print_msg_error("The host and device arrays are of different types");
-        return EXIT_FAILURE;
+        NR_FATAL_ERROR("The host and device arrays are of different types");
     } else {
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
         NiftiType *array1 = static_cast<NiftiType*>(img->data);
@@ -475,11 +436,8 @@ template <class DataType>
 int cudaCommon_transferFromDeviceToNifti(nifti_image *img, const DataType *array1Cuda, const DataType *array2Cuda) {
     if (sizeof(DataType) == sizeof(float4)) {
         // A nifti 5D volume is expected
-        if (img->dim[0] < 5 || img->dim[4]>1 || img->dim[5] < 2 || img->datatype != NIFTI_TYPE_FLOAT32) {
-            reg_print_fct_error("cudaCommon_transferFromDeviceToNifti");
-            reg_print_msg_error("The nifti image is not a 5D volume");
-            return EXIT_FAILURE;
-        }
+        if (img->dim[0] < 5 || img->dim[4]>1 || img->dim[5] < 2 || img->datatype != NIFTI_TYPE_FLOAT32)
+            NR_FATAL_ERROR("The nifti image is not a 5D volume");
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
         thrust::device_ptr<const float4> array1CudaPtr(reinterpret_cast<const float4*>(array1Cuda));
         thrust::device_ptr<const float4> array2CudaPtr(reinterpret_cast<const float4*>(array2Cuda));
@@ -522,8 +480,7 @@ int cudaCommon_transferFromDeviceToNifti(nifti_image *img, const DataType *array
         case NIFTI_TYPE_FLOAT32:
             return cudaCommon_transferFromDeviceToNifti1<DataType, float>(img, array1Cuda, array2Cuda);
         default:
-            reg_print_fct_error("cudaCommon_transferFromDeviceToNifti");
-            reg_print_msg_error("The image data type is not supported");
+            NR_FATAL_ERROR("The image data type is not supported");
             return EXIT_FAILURE;
         }
     }
@@ -615,9 +572,7 @@ UniqueTextureObjectPtr cudaCommon_createTextureObject(const void *devPtr,
         resDesc.res.array.array = static_cast<cudaArray*>(const_cast<void*>(devPtr));
         break;
     default:
-        reg_print_fct_error("cudaCommon_createTextureObject");
-        reg_print_msg_error("Unsupported resource type");
-        reg_exit();
+        NR_FATAL_ERROR("Unsupported resource type");
     }
 
     // Specify texture object parameters

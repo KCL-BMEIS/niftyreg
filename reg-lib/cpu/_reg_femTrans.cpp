@@ -11,7 +11,6 @@
  */
 
 #include "_reg_femTrans.h"
-#include "_reg_tools.h"
 
 float reg_getTetrahedronVolume(float *node1,float *node2,float *node3,float *node4)
 {

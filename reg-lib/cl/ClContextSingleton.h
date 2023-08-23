@@ -6,7 +6,7 @@
 #include <CL/cl.h>
 #endif
 
-#include "_reg_maths.h"
+#include "_reg_tools.h"
 
 #include <string>
 #include <iostream>
@@ -48,7 +48,7 @@ private:
 
     void Init();
     void PickCard(cl_uint deviceId);
-    void CheckDebugKernelInfo(cl_program program, cl_device_id devIdIn, char *message);
+    void CheckDebugKernelInfo(cl_program program, cl_device_id devIdIn, const char *message);
     void QueryGridDims();
 
     cl_context context;

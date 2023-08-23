@@ -24,7 +24,6 @@
 #include "_reg_ssd.h"
 #include "_reg_tools.h"
 #include "_reg_ReadWriteMatrix.h"
-#include "_reg_stringFormat.h"
 #include "Platform.h"
 #include "AffineDeformationFieldKernel.h"
 #include "ResampleImageKernel.h"
@@ -232,8 +231,7 @@ public:
     GetMacro(Interpolation, interpolation, int);
 
     virtual void SetInputFloatingMask(nifti_image*) {
-        reg_print_fct_warn("reg_aladin::SetInputFloatingMask()");
-        reg_print_msg_warn("Floating mask not used in the asymmetric global registration");
+        NR_WARN_WFCT("Floating mask not used in the asymmetric global registration");
     }
     void SetInterpolationToNearestNeighbor() {
         this->SetInterpolation(0);
@@ -249,7 +247,7 @@ public:
     }
 
     virtual int Check();
-    virtual int Print();
+    virtual void Print();
     virtual void Run();
 
     virtual void DebugPrintLevelInfoStart();

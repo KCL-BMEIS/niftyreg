@@ -142,14 +142,14 @@ TEST_CASE_METHOD(LTSTest, "Regression LTS", "[regression]") {
         auto&& [testName, matCpu, matCuda] = testCase;
 
         SECTION(testName) {
-            std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
+            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
             // Loop over the matrix values and ensure they are identical
             for (int i = 0; i < 4; ++i) {
                 for (int j = 0; j < 4; ++j) {
                     const auto mCpu = matCpu->m[i][j];
                     const auto mCuda = matCuda->m[i][j];
-                    std::cout << i << " " << j << " " << mCpu << " " << mCuda << std::endl;
+                    NR_COUT << i << " " << j << " " << mCpu << " " << mCuda << std::endl;
                     REQUIRE(fabs(mCpu - mCuda) < EPS);
                 }
             }

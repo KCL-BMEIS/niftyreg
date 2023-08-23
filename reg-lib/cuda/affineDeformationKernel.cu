@@ -88,11 +88,6 @@ void launchAffine(mat44 *affineTransformation,
    free(trans);
 
    uint3 dims_d = make_uint3(deformationField->nx, deformationField->ny, deformationField->nz);
-   affineKernel << <G1_b, B1_b >> >(*trans_d, *def_d, *mask_d, dims_d, NiftiImage::calcVoxelNumber(deformationField, 3), compose);
-
-#ifndef NDEBUG
+   affineKernel<<<G1_b, B1_b>>>(*trans_d, *def_d, *mask_d, dims_d, NiftiImage::calcVoxelNumber(deformationField, 3), compose);
    NR_CUDA_CHECK_KERNEL(G1_b, B1_b);
-#else
-   NR_CUDA_SAFE_CALL(cudaDeviceSynchronize());
-#endif
 }

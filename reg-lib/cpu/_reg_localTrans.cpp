@@ -139,16 +139,12 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
     mat44 referenceImageSpace = referenceImage->qto_xyz;
     if (referenceImage->sform_code > 0)
         referenceImageSpace = referenceImage->sto_xyz;
-#ifndef NDEBUG
-    reg_mat44_disp(&referenceImageSpace, (char*)"[NiftyReg DEBUG] Input reference image orientation");
-#endif
+    NR_MAT44(referenceImageSpace, "Input reference image orientation");
     // // Get the floating image space
     mat44 floatingImageSpace = floatingImage->qto_xyz;
     if (floatingImage->sform_code > 0)
         floatingImageSpace = floatingImage->sto_xyz;
-#ifndef NDEBUG
-    reg_mat44_disp(&floatingImageSpace, (char*)"[NiftyReg DEBUG] Input floating image orientation");
-#endif
+    NR_MAT44(floatingImageSpace, "Input floating image orientation");
     // Check if an affine transformation is specified
     mat44 halfForwardAffine, halfBackwardAffine;
     if (forwardAffineTrans != nullptr) {
@@ -162,7 +158,7 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
         halfBackwardAffine = reg_mat44_logm(&halfBackwardAffine);
         halfBackwardAffine = reg_mat44_mul(&halfBackwardAffine, .5f);
         halfBackwardAffine = reg_mat44_expm(&halfBackwardAffine);
-        reg_print_msg_warn("Note that the symmetry of the registration is affected by the input affine transformation");
+        NR_WARN("Note that the symmetry of the registration is affected by the input affine transformation");
     } else {
         reg_mat44_eye(&halfForwardAffine);
         reg_mat44_eye(&halfBackwardAffine);
@@ -340,9 +336,7 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
         forwardGridImage->ext_list[1].edata = (char*)calloc(forwardGridImage->ext_list[1].esize - 8, sizeof(float));
         memcpy(forwardGridImage->ext_list[0].edata, &halfForwardAffine, sizeof(mat44));
         memcpy(forwardGridImage->ext_list[1].edata, &halfForwardAffine, sizeof(mat44));
-#ifndef NDEBUG
-        reg_mat44_disp(&halfForwardAffine, (char*)"[NiftyReg DEBUG] Forward transformation half-affine");
-#endif
+        NR_MAT44(halfForwardAffine, "Forward transformation half-affine");
         // Create extensions to store the affine parametrisations for the backward transformation
         backwardGridImage->num_ext = 2;
         backwardGridImage->ext_list = (nifti1_extension*)malloc(2 * sizeof(nifti1_extension));
@@ -354,9 +348,7 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
         backwardGridImage->ext_list[1].edata = (char*)calloc(backwardGridImage->ext_list[1].esize - 8, sizeof(float));
         memcpy(backwardGridImage->ext_list[0].edata, &halfBackwardAffine, sizeof(mat44));
         memcpy(backwardGridImage->ext_list[1].edata, &halfBackwardAffine, sizeof(mat44));
-#ifndef NDEBUG
-        reg_mat44_disp(&halfBackwardAffine, (char*)"[NiftyReg DEBUG] Backward transformation half-affine");
-#endif
+        NR_MAT44(halfBackwardAffine, "Backward transformation half-affine");
     }
     // Initialise the grid with identity transformations
     reg_tools_multiplyValueToImage(forwardGridImage, forwardGridImage, 0.f);
@@ -1439,18 +1431,12 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
                                     bool composition,
                                     bool bspline,
                                     bool force_no_lut) {
-    if (splineControlPoint->datatype != deformationField->datatype) {
-        reg_print_fct_error("reg_spline_getDeformationField");
-        reg_print_msg_error("The spline control point image and the deformation field image are expected to be the same type");
-        reg_exit();
-    }
+    if (splineControlPoint->datatype != deformationField->datatype)
+        NR_FATAL_ERROR("The spline control point image and the deformation field image are expected to be of the same type");
 
 #if _USE_SSE
-    if (splineControlPoint->datatype != NIFTI_TYPE_FLOAT32) {
-        reg_print_fct_error("reg_spline_getDeformationField");
-        reg_print_msg_error("SSE computation has only been implemented for single precision");
-        reg_exit();
-    }
+    if (splineControlPoint->datatype != NIFTI_TYPE_FLOAT32)
+        NR_FATAL_ERROR("SSE computation has only been implemented for single precision");
 #endif
 
     bool MrPropre = false;
@@ -1473,9 +1459,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
 
     if (splineControlPoint->intent_p1 == LIN_SPLINE_GRID) {
         if (splineControlPoint->nz == 1) {
-            reg_print_fct_error("reg_linear_spline_getDeformationField");
-            reg_print_msg_error("No 2D implementation yet");
-            reg_exit();
+            NR_FATAL_ERROR("No 2D implementation yet");
         } else {
             switch (deformationField->datatype) {
             case NIFTI_TYPE_FLOAT32:
@@ -1485,9 +1469,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
                 reg_linear_spline_getDeformationField3D<double>(splineControlPoint, deformationField, mask, composition);
                 break;
             default:
-                reg_print_fct_error("reg_linear_spline_getDeformationField");
-                reg_print_msg_error("Only single or double precision is implemented for deformation field");
-                reg_exit();
+                NR_FATAL_ERROR("Only single or double precision is implemented for deformation field");
             }
         }
     } else {
@@ -1500,9 +1482,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
                 reg_cubic_spline_getDeformationField2D<double>(splineControlPoint, deformationField, mask, composition, bspline);
                 break;
             default:
-                reg_print_fct_error("reg_spline_getDeformationField");
-                reg_print_msg_error("Only single or double precision is implemented for deformation field");
-                reg_exit();
+                NR_FATAL_ERROR("Only single or double precision is implemented for deformation field");
             }
         } else {
             switch (deformationField->datatype) {
@@ -1513,9 +1493,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
                 reg_cubic_spline_getDeformationField3D<double>(splineControlPoint, deformationField, mask, composition, bspline, force_no_lut);
                 break;
             default:
-                reg_print_fct_error("reg_spline_getDeformationField");
-                reg_print_msg_error("Only single or double precision is implemented for deformation field");
-                reg_exit();
+                NR_FATAL_ERROR("Only single or double precision is implemented for deformation field");
             }
         }
     }
@@ -1686,11 +1664,8 @@ void reg_voxelCentric2NodeCentric(nifti_image * nodeImage,
                                   float weight,
                                   bool update,
                                   const mat44 * voxelToMillimetre) {
-    if (nodeImage->datatype != voxelImage->datatype) {
-        reg_print_fct_error("reg_voxelCentric2NodeCentric");
-        reg_print_msg_error("Both input images do not have the same type");
-        reg_exit();
-    }
+    if (nodeImage->datatype != voxelImage->datatype)
+        NR_FATAL_ERROR("Both input images are expected to have the same data type");
 
     switch (nodeImage->datatype) {
     case NIFTI_TYPE_FLOAT32:
@@ -1700,9 +1675,7 @@ void reg_voxelCentric2NodeCentric(nifti_image * nodeImage,
         reg_voxelCentric2NodeCentric<double>(nodeImage, voxelImage, weight, update, voxelToMillimetre);
         break;
     default:
-        reg_print_fct_error("reg_voxelCentric2NodeCentric");
-        reg_print_msg_error("Data type not supported");
-        reg_exit();
+        NR_FATAL_ERROR("Data type not supported");
     }
 }
 /* *************************************************************** */
@@ -2135,11 +2108,9 @@ void reg_spline_refineControlPointGrid3D(nifti_image *splineControlPoint, nifti_
 }
 /* *************************************************************** */
 extern "C++"
-void reg_spline_refineControlPointGrid(nifti_image * controlPointGrid,
-                                       nifti_image * referenceImage) {
-#ifndef NDEBUG
-    reg_print_msg_debug("Starting the refine the control point grid");
-#endif
+void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
+                                       nifti_image *referenceImage) {
+    NR_DEBUG("Starting the refine the control point grid");
     if (controlPointGrid->nz == 1) {
         switch (controlPointGrid->datatype) {
         case NIFTI_TYPE_FLOAT32:
@@ -2149,9 +2120,7 @@ void reg_spline_refineControlPointGrid(nifti_image * controlPointGrid,
             reg_spline_refineControlPointGrid2D<double>(controlPointGrid, referenceImage);
             break;
         default:
-            reg_print_fct_error("reg_spline_refineControlPointGrid");
-            reg_print_msg_error("Only single or double precision is implemented for the bending energy gradient");
-            reg_exit();
+            NR_FATAL_ERROR("Only single or double precision is implemented for the bending energy gradient");
         }
     } else {
         switch (controlPointGrid->datatype) {
@@ -2162,9 +2131,7 @@ void reg_spline_refineControlPointGrid(nifti_image * controlPointGrid,
             reg_spline_refineControlPointGrid3D<double>(controlPointGrid, referenceImage);
             break;
         default:
-            reg_print_fct_error("reg_spline_refineControlPointGrid");
-            reg_print_msg_error("Only single or double precision is implemented for the bending energy gradient");
-            reg_exit();
+            NR_FATAL_ERROR("Only single or double precision is implemented for the bending energy gradient");
         }
     }
     if (referenceImage != nullptr) {
@@ -2257,9 +2224,7 @@ void reg_spline_refineControlPointGrid(nifti_image * controlPointGrid,
             controlPointGrid->sto_xyz.m[2][3] = newOrigin[2];
         controlPointGrid->sto_ijk = nifti_mat44_inverse(controlPointGrid->sto_xyz);
     }
-#ifndef NDEBUG
-    reg_print_msg_debug("The control point grid has been refined");
-#endif
+    NR_DEBUG("The control point grid has been refined");
 }
 /* *************************************************************** */
 template <class DataType>
@@ -2486,11 +2451,8 @@ void reg_defField_compose3D(nifti_image *deformationField,
 void reg_defField_compose(nifti_image *deformationField,
                           nifti_image *dfToUpdate,
                           int *mask) {
-    if (deformationField->datatype != dfToUpdate->datatype) {
-        reg_print_fct_error("reg_defField_compose");
-        reg_print_msg_error("Both deformation fields are expected to have the same type");
-        reg_exit();
-    }
+    if (deformationField->datatype != dfToUpdate->datatype)
+        NR_FATAL_ERROR("Both deformation fields are expected to have the same type");
 
     bool freeMask = false;
     if (mask == nullptr) {
@@ -2507,9 +2469,7 @@ void reg_defField_compose(nifti_image *deformationField,
             reg_defField_compose2D<double>(deformationField, dfToUpdate, mask);
             break;
         default:
-            reg_print_fct_error("reg_defField_compose");
-            reg_print_msg_error("Deformation field pixel type unsupported");
-            reg_exit();
+            NR_FATAL_ERROR("Deformation field pixel type is unsupported");
         }
     } else {
         switch (deformationField->datatype) {
@@ -2520,9 +2480,7 @@ void reg_defField_compose(nifti_image *deformationField,
             reg_defField_compose3D<double>(deformationField, dfToUpdate, mask);
             break;
         default:
-            reg_print_fct_error("reg_defField_compose");
-            reg_print_msg_error("Deformation field pixel type unsupported");
-            reg_exit();
+            NR_FATAL_ERROR("Deformation field pixel type is unsupported");
         }
     }
 
@@ -3065,17 +3023,11 @@ void reg_defFieldInvert(nifti_image *inputDeformationField,
                         nifti_image *outputDeformationField,
                         float tolerance) {
     // Check the input image data types
-    if (inputDeformationField->datatype != outputDeformationField->datatype) {
-        reg_print_fct_error("reg_defFieldInvert");
-        reg_print_msg_error("Both deformation fields are expected to have the same data type");
-        reg_exit();
-    }
+    if (inputDeformationField->datatype != outputDeformationField->datatype)
+        NR_FATAL_ERROR("Both deformation fields are expected to have the same data type");
 
-    if (inputDeformationField->nu != 3) {
-        reg_print_fct_error("reg_defFieldInvert");
-        reg_print_msg_error("The function has only been implemented for 3D deformation field yet");
-        reg_exit();
-    }
+    if (inputDeformationField->nu != 3)
+        NR_FATAL_ERROR("The function has only been implemented for 3D deformation field yet");
 
     switch (inputDeformationField->datatype) {
     case NIFTI_TYPE_FLOAT32:
@@ -3086,9 +3038,7 @@ void reg_defFieldInvert(nifti_image *inputDeformationField,
         reg_defFieldInvert3D<double>
             (inputDeformationField, outputDeformationField, tolerance);
     default:
-        reg_print_fct_error("reg_defFieldInvert");
-        reg_print_msg_error("Deformation field pixel type unsupported");
-        reg_exit();
+        NR_FATAL_ERROR("Deformation field pixel type is unsupported");
     }
 }
 /* *************************************************************** */
@@ -3492,18 +3442,12 @@ int reg_spline_cppComposition(nifti_image *grid1,
                               bool bspline) {
     // REMINDER Grid2(x)=Grid1(Grid2(x))
 
-    if (grid1->datatype != grid2->datatype) {
-        reg_print_fct_error("reg_spline_cppComposition");
-        reg_print_msg_error("Both input images do not have the same type.");
-        reg_exit();
-    }
+    if (grid1->datatype != grid2->datatype)
+        NR_FATAL_ERROR("Both input images are expected to have the same data type");
 
 #if _USE_SSE
-    if (grid1->datatype != NIFTI_TYPE_FLOAT32) {
-        reg_print_fct_error("reg_spline_cppComposition");
-        reg_print_msg_error("SSE computation has only been implemented for single precision.");
-        reg_exit();
-    }
+    if (grid1->datatype != NIFTI_TYPE_FLOAT32)
+        NR_FATAL_ERROR("SSE computation has only been implemented for single precision");
 #endif
 
     if (grid1->nz > 1) {
@@ -3515,9 +3459,7 @@ int reg_spline_cppComposition(nifti_image *grid1,
             reg_spline_cppComposition_3D<double>(grid1, grid2, displacement1, displacement2, bspline);
             break;
         default:
-            reg_print_fct_error("reg_spline_cppComposition");
-            reg_print_msg_error("Only implemented for single or double floating images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double floating images");
         }
     } else {
         switch (grid1->datatype) {
@@ -3528,9 +3470,7 @@ int reg_spline_cppComposition(nifti_image *grid1,
             reg_spline_cppComposition_2D<double>(grid1, grid2, displacement1, displacement2, bspline);
             break;
         default:
-            reg_print_fct_error("reg_spline_cppComposition");
-            reg_print_msg_error("Only implemented for single or double floating images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double floating images");
         }
     }
     return EXIT_SUCCESS;
@@ -3539,11 +3479,8 @@ int reg_spline_cppComposition(nifti_image *grid1,
 void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              nifti_image *flowField) {
     // Check first if the velocity field is actually a velocity field
-    if (velocityFieldGrid->intent_p1 != SPLINE_VEL_GRID) {
-        reg_print_fct_error("reg_spline_getFlowFieldFromVelocityGrid");
-        reg_print_msg_error("The provide grid is not a velocity field");
-        reg_exit();
-    }
+    if (velocityFieldGrid->intent_p1 != SPLINE_VEL_GRID)
+        NR_FATAL_ERROR("The provide grid is not a velocity field");
 
     // Initialise the flow field with an identity transformation
     reg_tools_multiplyValueToImage(flowField, flowField, 0.f);
@@ -3572,11 +3509,8 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
                                                    nifti_image *deformationFieldImage,
                                                    bool updateStepNumber) {
     // Check first if the velocity field is actually a velocity field
-    if (flowFieldImage->intent_p1 != DEF_VEL_FIELD) {
-        reg_print_fct_error("reg_defField_getDeformationFieldFromFlowField");
-        reg_print_msg_error("The provide field is not a velocity field");
-        reg_exit();
-    }
+    if (flowFieldImage->intent_p1 != DEF_VEL_FIELD)
+        NR_FATAL_ERROR("The provide field is not a velocity field");
 
     // Remove the affine component from the flow field
     nifti_image *affineOnly = nullptr;
@@ -3614,12 +3548,8 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
         squaringNumber = squaringNumber < 6 ? 6 : squaringNumber;
         // Set the number of squaring step in the flow field
         if (fabs(flowFieldImage->intent_p2) != squaringNumber) {
-            char text[255];
-            sprintf(text, "Changing from %i to %i squaring step (equivalent to scaling down by %i)",
-                    static_cast<int>(reg_round(fabs(flowFieldImage->intent_p2))),
-                    abs(squaringNumber),
-                    (int)pow(2.0f, squaringNumber));
-            reg_print_msg_warn(text);
+            NR_WARN("Changing from " << (int)reg_round(fabs(flowFieldImage->intent_p2)) << " to " << abs(squaringNumber) <<
+                    " squaring step (equivalent to scaling down by " << (int)pow(2.0f, squaringNumber) << ")");
         }
         // Update the number of squaring step required
         if (flowFieldImage->intent_p2 >= 0)
@@ -3656,11 +3586,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
         // The computed scaled deformation field is copied over
         memcpy(deformationFieldImage->data, flowFieldImage->data,
                deformationFieldImage->nvox * deformationFieldImage->nbyper);
-#ifndef NDEBUG
-        char text[255];
-        sprintf(text, "Squaring (composition) step %u/%u", i + 1, squaringNumber);
-        reg_print_msg_debug(text);
-#endif
+        NR_DEBUG("Squaring (composition) step " << i + 1 << "/" << squaringNumber);
     }
     // The affine conponent of the transformation is restored
     if (affineOnly != nullptr) {
@@ -3710,11 +3636,7 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
         velocityFieldGrid->intent_p2 = flowField->intent_p2;
         // Deallocate the allocated flow field
         nifti_image_free(flowField);
-    } else {
-        reg_print_fct_error("reg_spline_getDeformationFieldFromVelocityGrid");
-        reg_print_msg_error("The provided input image is not a spline parametrised transformation");
-        reg_exit();
-    }
+    } else NR_FATAL_ERROR("The provided input image is not a spline parametrised transformation");
 }
 /* *************************************************************** */
 void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
@@ -3772,11 +3694,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
             reg_defField_compose(deformationFieldImage[i], // to apply
                                  deformationFieldImage[i + 1], // to update
                                  nullptr);
-#ifndef NDEBUG
-            char text[255];
-            sprintf(text, "Squaring (composition) step %u/%u", i + 1, squaringNumber);
-            reg_print_msg_debug(text);
-#endif
+            NR_DEBUG("Squaring (composition) step " << i + 1 << "/" << squaringNumber);
         }
         // The affine conponent of the transformation is restored
         if (affineOnly != nullptr) {
@@ -3797,11 +3715,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
                                                true);
             }
         }
-    } else {
-        reg_print_fct_error("reg_spline_getIntermediateDefFieldFromVelGrid");
-        reg_print_msg_error("The provided input image is not a spline parametrised transformation");
-        reg_exit();
-    }
+    } else NR_FATAL_ERROR("The provided input image is not a spline parametrised transformation");
 }
 /* *************************************************************** */
 template <class DataType>
@@ -3809,8 +3723,7 @@ void compute_lie_bracket(nifti_image *img1,
                          nifti_image *img2,
                          nifti_image *res,
                          bool use_jac) {
-    reg_print_msg_error("The compute_lie_bracket function needs updating");
-    reg_exit();
+    NR_FATAL_ERROR("The compute_lie_bracket function needs updating");
 #ifdef _WIN32
     long voxNumber = (long)NiftiImage::calcVoxelNumber(img1, 3);
 #else
@@ -3824,7 +3737,7 @@ void compute_lie_bracket(nifti_image *img1,
         reg_getDeformationFromDisplacement(img1);
         reg_getDeformationFromDisplacement(img2);
         // HERE TO DO
-        reg_exit();
+        NR_FATAL_ERROR("The function needs updating");
         //        reg_spline_GetJacobianMatrixFull(img1,img1,jacImg1);
         //        reg_spline_GetJacobianMatrixFull(img2,img2,jacImg2);
         reg_getDisplacementFromDeformation(img1);
@@ -3946,8 +3859,7 @@ void compute_BCH_update(nifti_image *img1, // current field
                          nifti_image *img2, // gradient
                          int type) {
     // To update
-    reg_print_msg_error("The compute_BCH_update function needs updating");
-    reg_exit();
+    NR_FATAL_ERROR("The compute_BCH_update function needs updating");
     DataType *res = (DataType*)malloc(img1->nvox * sizeof(DataType));
 
 #ifdef _WIN32
@@ -4037,11 +3949,8 @@ void compute_BCH_update(nifti_image *img1, // current field
 void compute_BCH_update(nifti_image *img1, // current field
                         nifti_image *img2, // gradient
                         int type) {
-    if (img1->datatype != img2->datatype) {
-        reg_print_fct_error("compute_BCH_update");
-        reg_print_msg_error("Both input images are expected to be of similar type");
-        reg_exit();
-    }
+    if (img1->datatype != img2->datatype)
+        NR_FATAL_ERROR("Both input images are expected to be of same type");
     switch (img1->datatype) {
     case NIFTI_TYPE_FLOAT32:
         compute_BCH_update<float>(img1, img2, type);
@@ -4050,9 +3959,7 @@ void compute_BCH_update(nifti_image *img1, // current field
         compute_BCH_update<double>(img1, img2, type);
         break;
     default:
-        reg_print_fct_error("compute_BCH_update");
-        reg_print_msg_error("Only implemented for single or double precision images");
-        reg_exit();
+        NR_FATAL_ERROR("Only implemented for single or double precision images");
     }
 }
 /* *************************************************************** */
@@ -4169,9 +4076,7 @@ void reg_spline_getDeconvolvedCoefficents(nifti_image *img) {
         reg_spline_getDeconvolvedCoefficents<double>(img);
         break;
     default:
-        reg_print_fct_error("reg_spline_getDeconvolvedCoefficents");
-        reg_print_msg_error("Only implemented for single or double precision images");
-        reg_exit();
+        NR_FATAL_ERROR("Only implemented for single or double precision images");
     }
 }
 /* *************************************************************** */

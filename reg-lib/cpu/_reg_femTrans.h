@@ -15,9 +15,7 @@
 
 #pragma once
 
-#include "niftilib/nifti1_io.h"
-#include <fstream>
-#include "_reg_maths.h"
+#include "_reg_tools.h"
 
 /** @brief Initialise multiples arrays to populate a dense deformation
  * field from a FEM parametrisation
@@ -36,8 +34,7 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
                                       float *nodePositions,
                                       nifti_image *deformationFieldImage,
                                       unsigned *closestNodes,
-                                      float *femInterpolationWeight
-                                     );
+                                      float *femInterpolationWeight);
 
 /** @brief A dense deformation field is filled using interpolation
  * from a coarse mesh
@@ -52,8 +49,7 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
 void reg_fem_getDeformationField(float *nodePositions,
                                  nifti_image *deformationFieldImage,
                                  unsigned *closestNodes,
-                                 float *femInterpolationWeight
-                                );
+                                 float *femInterpolationWeight);
 
 /** @brief Convert a dense gradient image into a mesh based gradient image
  * @param voxelBasedGradient Image that contains the gradient image

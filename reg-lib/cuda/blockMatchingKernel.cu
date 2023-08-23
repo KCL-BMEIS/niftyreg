@@ -338,10 +338,8 @@ void block_matching_method_gpu(const nifti_image *referenceImage,
                                const int *totalBlockCuda,
                                const int *maskCuda,
                                const float *refMatCuda) {
-    if (params->stepSize != 1 || params->voxelCaptureRange != 3) {
-        reg_print_msg_error("The block matching CUDA kernel supports only single step size!");
-        reg_exit();
-    }
+    if (params->stepSize != 1 || params->voxelCaptureRange != 3)
+        NR_FATAL_ERROR("The block matching CUDA kernel supports only single step size!");
 
     const int3 imageSize = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const uint3 blockSize = make_uint3(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);

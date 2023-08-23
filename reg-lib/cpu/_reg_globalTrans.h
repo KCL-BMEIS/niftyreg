@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include "niftilib/nifti1_io.h"
 #include "_reg_tools.h"
+
 /* *************************************************************** */
 /// @brief Structure that is used to store the distance between two corresponding voxel
 struct _reg_sorted_point3D

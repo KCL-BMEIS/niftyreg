@@ -125,7 +125,7 @@ TEST_CASE_METHOD(BMTest, "Regression BlockMatching", "[regression]") {
         auto&& [testName, blockMatchingParamsCpu, blockMatchingParamsCuda] = testCase;
 
         SECTION(testName) {
-            std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
+            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
             // Ensure both approaches retrieve the same number of voxels
             REQUIRE(blockMatchingParamsCpu->activeBlockNumber == blockMatchingParamsCuda->activeBlockNumber);
@@ -138,17 +138,15 @@ TEST_CASE_METHOD(BMTest, "Regression BlockMatching", "[regression]") {
                     const auto refPosCpu = blockMatchingParamsCpu->referencePosition[i];
                     const auto refPosCuda = blockMatchingParamsCuda->referencePosition[i];
                     if (fabs(refPosCpu - refPosCuda) > EPS) {
-                        std::cout << "Ref[" << b << "/" << blockMatchingParamsCpu->activeBlockNumber << ":" << d << "] CPU:";
-                        std::cout << refPosCpu << " | CUDA:" << refPosCuda << std::endl;
-                        std::cout.flush();
+                        NR_COUT << "Ref[" << b << "/" << blockMatchingParamsCpu->activeBlockNumber << ":" << d << "] CPU:";
+                        NR_COUT << refPosCpu << " | CUDA:" << refPosCuda << std::endl;
                     }
                     REQUIRE(fabs(refPosCpu - refPosCuda) < EPS);
                     const auto warPosCpu = blockMatchingParamsCpu->warpedPosition[i];
                     const auto warPosCuda = blockMatchingParamsCuda->warpedPosition[i];
                     if (fabs(warPosCpu - warPosCuda) > EPS) {
-                        std::cout << "War[" << b << "/" << blockMatchingParamsCpu->activeBlockNumber << ":" << d << "] CPU:";
-                        std::cout << warPosCpu << " | CUDA:" << warPosCuda << std::endl;
-                        std::cout.flush();
+                        NR_COUT << "War[" << b << "/" << blockMatchingParamsCpu->activeBlockNumber << ":" << d << "] CPU:";
+                        NR_COUT << warPosCpu << " | CUDA:" << warPosCuda << std::endl;
                     }
                     REQUIRE(fabs(warPosCpu - warPosCuda) < EPS);
                 }

@@ -299,9 +299,9 @@ TEST_CASE_METHOD(LNCCTest, "LNCC", "[GetSimilarityMeasureValue]") {
         auto&& [testName, reference, floating, sigma, value] = testData;
 
         SECTION(testName) {
-            std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
+            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
             const double lncc = measure->GetSimilarityMeasureValue();
-            std::cout << lncc << " " << value << std::endl;
+            NR_COUT << lncc << " " << value << std::endl;
             REQUIRE(fabs(lncc - value) < EPS);
         }
     }

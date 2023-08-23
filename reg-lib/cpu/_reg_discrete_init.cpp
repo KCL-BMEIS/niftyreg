@@ -17,11 +17,9 @@ reg_discrete_init::reg_discrete_init(reg_measure *_measure,
    this->regularisation_weight = _reg_weight;
    this->reg_max_it = _reg_max_it;
 
-   if(this->discrete_radius/this->discrete_increment !=
-      (float)this->discrete_radius/(float)this->discrete_increment){
-      reg_print_fct_error("reg_discrete_init:reg_discrete_init()");
-      reg_print_msg_error("The discrete_radius is expected to be a multiple of discretise_increment");
-   }
+   if (this->discrete_radius / this->discrete_increment !=
+       (float)this->discrete_radius / (float)this->discrete_increment)
+      NR_FATAL_ERROR("The discrete_radius is expected to be a multiple of discretise_increment");
 
    this->image_dim = this->referenceImage->nz > 1 ? 3 :2;
    this->label_1D_num = (this->discrete_radius / this->discrete_increment ) * 2 + 1;
@@ -136,9 +134,7 @@ void reg_discrete_init::GetDiscretisedMeasure()
                                 this->discretised_measures,
                                 this->discrete_radius,
                                 this->discrete_increment);
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_discrete_init::GetDiscretisedMeasure done");
-#endif
+   NR_FUNC_CALLED();
 }
 /*****************************************************/
 /*****************************************************/
@@ -156,9 +152,7 @@ void reg_discrete_init::GetOptimalLabel()
       if(current_optimal != opt_label)
          ++this->regularisation_convergence;
    }
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_discrete_init::getOptimalLabel done");
-#endif
+   NR_FUNC_CALLED();
 }
 /*****************************************************/
 /*****************************************************/
@@ -190,9 +184,7 @@ void reg_discrete_init::UpdateTransformation()
       }
    }
 
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_discrete_init::UpdateTransformation done");
-#endif
+   NR_FUNC_CALLED();
 }
 /*****************************************************/
 /*****************************************************/
@@ -363,24 +355,17 @@ void reg_discrete_init::GetRegularisedMeasure()
    } // z
    reg_getDeformationFromDisplacement(this->controlPointImage);
    reg_getDeformationFromDisplacement(this->input_transformation);
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_discrete_init::GetRegularisedMeasure done");
-#endif
+   NR_FUNC_CALLED();
 }
 /*****************************************************/
 /*****************************************************/
 void reg_discrete_init::Run()
 {
-   char text[255];
-   sprintf(text, "Control point number = %lu", this->node_number);
-   reg_print_info("reg_discrete_init", text);
-   sprintf(text, "Discretised radius (voxel) = %i", this->discrete_radius);
-   reg_print_info("reg_discrete_init", text);
-   sprintf(text, "Discretised step (voxel) = %i", this->discrete_increment);
-   reg_print_info("reg_discrete_init", text);
-   sprintf(text, "Discretised label number = %i", this->label_nD_num);
-   reg_print_info("reg_discrete_init", text);
-   // Store the intial transformation parametrisation
+   NR_VERBOSE("Control point number = " << this->node_number);
+   NR_VERBOSE("Discretised radius (voxel) = " << this->discrete_radius);
+   NR_VERBOSE("Discretised step (voxel) = " << this->discrete_increment);
+   NR_VERBOSE("Discretised label number = " << this->label_nD_num);
+   // Store the initial transformation parametrisation
    memcpy(this->input_transformation->data, this->controlPointImage->data,
           this->node_number*this->image_dim*sizeof(float));
    // Compute the discretised data term values
@@ -400,17 +385,13 @@ void reg_discrete_init::Run()
       this->GetRegularisedMeasure();
       this->GetOptimalLabel();
       this->UpdateTransformation();
-      sprintf(text, "Regularisation %i/%i - BE=%.2f - [%2.2f%%]",
-             i+1, this->reg_max_it,
-             reg_spline_approxBendingEnergy(this->controlPointImage),
-             100.f*(float)this->regularisation_convergence/this->node_number);
-      reg_print_info("reg_discrete_init", text);
+      NR_VERBOSE("Regularisation " << i+1 << "/" << this->reg_max_it <<
+                 " - BE=" << reg_spline_approxBendingEnergy(this->controlPointImage) <<
+                 " - [" << 100.f*(float)this->regularisation_convergence/this->node_number << "%]");
       //if(this->regularisation_convergence<this->node_number/100)
       //   break;
    }
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_discrete_init::Run done");
-#endif
+   NR_FUNC_CALLED();
 }
 /*****************************************************/
 /*****************************************************/

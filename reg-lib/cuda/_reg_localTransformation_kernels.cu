@@ -336,7 +336,7 @@ __global__ void reg_spline_getDeformationField3D(float4 *deformationField,
         // Z basis values
         extern __shared__ float yBasis[];   // Shared memory
         const unsigned sharedMemIndex = 4 * threadIdx.x;
-        // Compute the shared memory offset which corresponds to four times the number of thread per block
+        // Compute the shared memory offset which corresponds to four times the number of threads per block
         float *zBasis = &yBasis[4 * blockDim.x * blockDim.y * blockDim.z];
         float relative = (float)z / controlPointVoxelSpacing.z - (float)nodeAnte.z;
         if (relative < 0) relative = 0; // rounding error

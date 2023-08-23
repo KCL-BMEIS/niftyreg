@@ -15,17 +15,11 @@ CudaResampleImageKernel::CudaResampleImageKernel(Content *conIn) : ResampleImage
     mask_d = con->GetMask_d();
     floIJKMat_d = con->GetFloIJKMat_d();
 
-    if (floatingImage->datatype != warpedImage->datatype) {
-        reg_print_fct_error("CudaResampleImageKernel::CudaResampleImageKernel");
-        reg_print_msg_error("Floating and warped images should have the same data type. Exit.");
-        reg_exit();
-    }
+    if (floatingImage->datatype != warpedImage->datatype)
+        NR_FATAL_ERROR("Floating and warped images should have the same data type");
 
-    if (floatingImage->nt != warpedImage->nt) {
-        reg_print_fct_error("CudaResampleImageKernel::CudaResampleImageKernel");
-        reg_print_msg_error("Floating and warped images have different dimension along the time axis. Exit.");
-        reg_exit();
-    }
+    if (floatingImage->nt != warpedImage->nt)
+        NR_FATAL_ERROR("Floating and warped images have different dimensions along the time axis");
 }
 /* *************************************************************** */
 void CudaResampleImageKernel::Calculate(int interp,

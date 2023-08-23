@@ -221,9 +221,7 @@ void CudaContent::DownloadImage(nifti_image *image, float *memoryObject, int dat
         FillImageData<int>(image, memoryObject, datatype);
         break;
     default:
-        reg_print_fct_error("CudaContent::DownloadImage()");
-        reg_print_msg_error("Unsupported type");
-        break;
+        NR_FATAL_ERROR("Unsupported type");
     }
 }
 /* *************************************************************** */

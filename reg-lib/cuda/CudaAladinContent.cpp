@@ -20,10 +20,8 @@ CudaAladinContent::CudaAladinContent(nifti_image *referenceIn,
                   percentageOfBlocks,
                   inlierLts,
                   blockStepSize) {
-    if (bytesIn != sizeof(float)) {
-        reg_print_fct_warn("CudaAladinContent::CudaAladinContent");
-        reg_print_msg_warn("Datatype has been forced to float");
-    }
+    if (bytesIn != sizeof(float))
+        NR_WARN_WFCT("Datatype has been forced to float");
     InitVars();
     AllocateCuPtrs();
 }
@@ -305,8 +303,7 @@ void CudaAladinContent::DownloadImage(nifti_image *image, float *memoryObject, i
         FillImageData<int>(image, memoryObject, datatype);
         break;
     default:
-        std::cout << "CUDA: unsupported type" << std::endl;
-        break;
+        NR_FATAL_ERROR("CUDA: unsupported type");
     }
 }
 /* *************************************************************** */

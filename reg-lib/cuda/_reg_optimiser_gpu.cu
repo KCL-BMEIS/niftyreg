@@ -13,9 +13,7 @@ reg_optimiser_gpu::reg_optimiser_gpu(): reg_optimiser<float>::reg_optimiser() {
     this->bestDofBwCuda = nullptr;
     this->gradientCuda = nullptr;
     this->gradientBwCuda = nullptr;
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_optimiser_gpu::reg_optimiser_gpu() called\n");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 reg_optimiser_gpu::~reg_optimiser_gpu() {
@@ -27,9 +25,7 @@ reg_optimiser_gpu::~reg_optimiser_gpu() {
         cudaCommon_free(this->bestDofBwCuda);
         this->bestDofBwCuda = nullptr;
     }
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_optimiser_gpu::~reg_optimiser_gpu() called\n");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 void reg_optimiser_gpu::Initialise(size_t nvox,
@@ -56,11 +52,8 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
     this->gradientCuda = reinterpret_cast<float4*>(gradData);
 
     cudaCommon_free(this->bestDofCuda);
-    if (cudaCommon_allocateArrayToDevice(&this->bestDofCuda, this->GetVoxNumber())) {
-        reg_print_fct_error("reg_optimiser_gpu::Initialise()");
-        reg_print_msg_error("Error when allocating the best control point array on the GPU");
-        reg_exit();
-    }
+    if (cudaCommon_allocateArrayToDevice(&this->bestDofCuda, this->GetVoxNumber()))
+        NR_FATAL_ERROR("Error when allocating the best control point array on the GPU");
 
     this->isSymmetric = nvoxBw > 0 && cppDataBw && gradDataBw;
     if (this->isSymmetric) {
@@ -68,11 +61,8 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
         this->currentDofBwCuda = reinterpret_cast<float4*>(cppDataBw);
         this->gradientBwCuda = reinterpret_cast<float4*>(gradDataBw);
         cudaCommon_free(this->bestDofBwCuda);
-        if (cudaCommon_allocateArrayToDevice(&this->bestDofBwCuda, this->GetVoxNumberBw())) {
-            reg_print_fct_error("reg_optimiser_gpu::Initialise()");
-            reg_print_msg_error("Error when allocating the best control point backwards array on the GPU");
-            reg_exit();
-        }
+        if (cudaCommon_allocateArrayToDevice(&this->bestDofBwCuda, this->GetVoxNumberBw()))
+            NR_FATAL_ERROR("Error when allocating the best control point backwards array on the GPU");
     }
 
     this->StoreCurrentDof();
@@ -80,9 +70,7 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
     this->intOpt = intOpt;
     this->bestObjFunctionValue = this->currentObjFunctionValue = this->intOpt->GetObjectiveFunctionValue();
 
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_optimiser_gpu::Initialise() called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 void reg_optimiser_gpu::RestoreBestDof() {
@@ -110,9 +98,7 @@ reg_conjugateGradient_gpu::reg_conjugateGradient_gpu(): reg_optimiser_gpu::reg_o
     this->array1Bw = nullptr;
     this->array2 = nullptr;
     this->array2Bw = nullptr;
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_conjugateGradient_gpu::reg_conjugateGradient_gpu() called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() {
@@ -132,9 +118,7 @@ reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() {
         cudaCommon_free(this->array2Bw);
         this->array2Bw = nullptr;
     }
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 void reg_conjugateGradient_gpu::Initialise(size_t nvox,
@@ -154,23 +138,15 @@ void reg_conjugateGradient_gpu::Initialise(size_t nvox,
     this->firstCall = true;
     cudaCommon_free(this->array1); cudaCommon_free(this->array2);
     if (cudaCommon_allocateArrayToDevice<float4>(&this->array1, this->GetVoxNumber()) ||
-        cudaCommon_allocateArrayToDevice<float4>(&this->array2, this->GetVoxNumber())) {
-        reg_print_fct_error("reg_conjugateGradient_gpu::Initialise()");
-        reg_print_msg_error("Error when allocating the conjugate gradient array on the GPU");
-        reg_exit();
-    }
+        cudaCommon_allocateArrayToDevice<float4>(&this->array2, this->GetVoxNumber()))
+        NR_FATAL_ERROR("Error when allocating the conjugate gradient array on the GPU");
     if (this->isSymmetric) {
         cudaCommon_free(this->array1Bw); cudaCommon_free(this->array2Bw);
         if (cudaCommon_allocateArrayToDevice<float4>(&this->array1Bw, this->GetVoxNumberBw()) ||
-            cudaCommon_allocateArrayToDevice<float4>(&this->array2Bw, this->GetVoxNumberBw())) {
-            reg_print_fct_error("reg_conjugateGradient_gpu::Initialise()");
-            reg_print_msg_error("Error when allocating the conjugate gradient array backwards on the GPU");
-            reg_exit();
-        }
+            cudaCommon_allocateArrayToDevice<float4>(&this->array2Bw, this->GetVoxNumberBw()))
+            NR_FATAL_ERROR("Error when allocating the conjugate gradient array backwards on the GPU");
     }
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_conjugateGradient_gpu::Initialise() called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 void reg_conjugateGradient_gpu::UpdateGradientValues() {

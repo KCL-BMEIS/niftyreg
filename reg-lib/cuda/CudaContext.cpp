@@ -6,25 +6,17 @@ namespace NiftyReg {
 CudaContext::CudaContext() {
     // The CUDA card is setup
     cuInit(0);
-    int device_count = 0;
-    cudaGetDeviceCount(&device_count);
-#ifndef NDEBUG
-    char text[255];
-    sprintf(text, "[NiftyReg CUDA] %i card(s) detected\n", device_count);
-    reg_print_msg_debug(text);
-#endif
+    numDevices = 0;
+    cudaGetDeviceCount((int*)&numDevices);
+    NR_DEBUG(numDevices << " CUDA card(s) detected");
     cudaContext = nullptr;
-    numDevices = device_count;
     cudaIdx = 999;
     PickCard(cudaIdx);
 }
 /* *************************************************************** */
 void CudaContext::SetCudaIdx(unsigned cudaIdxIn) {
-    if (cudaIdxIn >= numDevices) {
-        reg_print_msg_error("The specified cuda card id is not defined");
-        reg_print_msg_error("Run reg_gpuinfo to get the proper id");
-        reg_exit();
-    }
+    if (cudaIdxIn >= numDevices)
+        NR_FATAL_ERROR("The specified CUDA card ID is not defined! Run reg_gpuinfo to get the proper id.");
     cudaIdx = cudaIdxIn;
     PickCard(cudaIdx);
 }
@@ -77,29 +69,22 @@ void CudaContext::PickCard(unsigned deviceId = 999) {
     NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device));
 
     if (deviceProp.major < 1) {
-        reg_print_msg_error("[NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
-        reg_exit();
+        NR_FATAL_ERROR("The specified graphics card does not exist");
     } else {
         size_t free = 0;
         size_t total = 0;
         cuMemGetInfo(&free, &total);
-        if (deviceProp.totalGlobalMem != total) {
-            fprintf(stderr, "[NiftyReg CUDA ERROR] The CUDA card %s does not seem to be available\n",
-                    deviceProp.name);
-            fprintf(stderr, "[NiftyReg CUDA ERROR] Expected total memory: %zu Mb - Recovered total memory: %zu Mb\n",
-                    deviceProp.totalGlobalMem / (1024 * 1024), total / (1024 * 1024));
-            reg_exit();
-        }
-#ifndef NDEBUG
-        printf("[NiftyReg CUDA] The following device is used: %s\n", deviceProp.name);
-        printf("[NiftyReg CUDA] It has %lu Mb free out of %lu Mb\n",
-               (unsigned long)(free / (1024 * 1024)), (unsigned long)(total / (1024 * 1024)));
-        printf("[NiftyReg CUDA] Card compute capability: %i.%i\n", deviceProp.major, deviceProp.minor);
-        printf("[NiftyReg CUDA] Shared memory size in bytes: %zu\n", deviceProp.sharedMemPerBlock);
-        printf("[NiftyReg CUDA] CUDA version %i\n", CUDART_VERSION);
-        printf("[NiftyReg CUDA] Card clock rate: %i MHz\n", deviceProp.clockRate / 1000);
-        printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n", deviceProp.multiProcessorCount);
-#endif
+        if (deviceProp.totalGlobalMem != total)
+            NR_FATAL_ERROR("The CUDA card "s + deviceProp.name + " does not seem to be available\n"s +
+                           "Expected total memory: "s + std::to_string(deviceProp.totalGlobalMem / (1024 * 1024)) +
+                           " MB - Recovered total memory: "s + std::to_string(total / (1024 * 1024)) + " MB");
+        NR_DEBUG("The following device is used: "s + deviceProp.name);
+        NR_DEBUG("It has "s + std::to_string(free / (1024 * 1024)) + " MB free out of "s + std::to_string(total / (1024 * 1024)) + " MB");
+        NR_DEBUG("The CUDA compute capability is "s + std::to_string(deviceProp.major) + "."s + std::to_string(deviceProp.minor));
+        NR_DEBUG("The shared memory size in bytes: "s + std::to_string(deviceProp.sharedMemPerBlock));
+        NR_DEBUG("The CUDA version is "s + std::to_string(CUDART_VERSION));
+        NR_DEBUG("The card clock rate is "s + std::to_string(deviceProp.clockRate / 1000) + " MHz");
+        NR_DEBUG("The card has "s + std::to_string(deviceProp.multiProcessorCount) + " multiprocessors");
         cudaIdx = max_gflops_device;
         cudaGetDeviceProperties(&deviceProp, cudaIdx);
         if (deviceProp.major > 1) {

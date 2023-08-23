@@ -237,7 +237,7 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate gradient", "[ConjugateGradien
         const std::string sectionName = testName + " " + platform->GetName() + " " + (optimiseX ? "X" : "noX") + " " + (optimiseY ? "Y" : "noY") + " " + (optimiseZ ? "Z" : "noZ") + " scale = " + std::to_string(scale);
 
         SECTION(sectionName) {
-            std::cout << "\n**************** UpdateControlPointPosition " << sectionName << " ****************" << std::endl;
+            NR_COUT << "\n**************** UpdateControlPointPosition " << sectionName << " ****************" << std::endl;
 
             // Set the control point grid
             NiftiImage img = content->GetControlPointGrid();
@@ -273,7 +273,7 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate gradient", "[ConjugateGradien
             for (size_t i = 0; i < controlPointGridExpected.nVoxels(); ++i) {
                 const float cppVal = cppPtr[i];
                 const float cppExpVal = cppExpPtr[i];
-                std::cout << i << " " << cppVal << " " << cppExpVal << std::endl;
+                NR_COUT << i << " " << cppVal << " " << cppExpVal << std::endl;
                 REQUIRE(fabs(cppVal - cppExpVal) < EPS);
             }
 
@@ -281,7 +281,7 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate gradient", "[ConjugateGradien
             // Only run once by discarding other optimiseX, optimiseY, optimiseZ combinations
             if (!optimiseX && !optimiseY && !optimiseZ) {
                 for (int isSymmetric = 0; isSymmetric < 2; isSymmetric++) {
-                    std::cout << "\n**************** UpdateGradientValues " << sectionName + (isSymmetric ? " Symmetric" : "") << " ****************" << std::endl;
+                    NR_COUT << "\n**************** UpdateGradientValues " << sectionName + (isSymmetric ? " Symmetric" : "") << " ****************" << std::endl;
 
                     // Create a random number generator
                     std::random_device rd;
@@ -335,12 +335,12 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate gradient", "[ConjugateGradien
                     for (size_t i = 0; i < transGrad.nVoxels(); ++i) {
                         const float gradVal = gradPtr[i];
                         const float gradExpVal = gradExpPtr[i];
-                        std::cout << i << " " << gradVal << " " << gradExpVal << std::endl;
+                        NR_COUT << i << " " << gradVal << " " << gradExpVal << std::endl;
                         REQUIRE(fabs(gradVal - gradExpVal) < EPS);
                         if (isSymmetric) {
                             const float gradBwVal = gradBwPtr[i];
                             const float gradExpBwVal = gradExpBwPtr[i];
-                            std::cout << i << " " << gradBwVal << " " << gradExpBwVal << " backwards" << std::endl;
+                            NR_COUT << i << " " << gradBwVal << " " << gradExpBwVal << " backwards" << std::endl;
                             REQUIRE(fabs(gradBwVal - gradExpBwVal) < EPS);
                         }
                     }

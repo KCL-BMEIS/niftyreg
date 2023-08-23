@@ -20,36 +20,24 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    FILE *pngFile=nullptr;
    pngFile = fopen(pngFileName, "rb");
    if(pngFile==nullptr)
-   {
-      char text[255];
-      sprintf(text, "Can not open the png file %s", pngFileName);
-      reg_print_fct_error("reg_io_readPNGfile");
-      reg_print_msg_error(text);
-      reg_exit();
-   }
+      NR_FATAL_ERROR("Can not open the png file: "s + pngFileName);
 
    uch sig[8];
    if (!fread(sig, 1, 8, pngFile))
-      reg_exit();
+      NR_FATAL_ERROR("Error when reading the png file: "s + pngFileName);
    if (!png_check_sig(sig, 8))
-      reg_exit();
+      NR_FATAL_ERROR("The png file is corrupted: "s + pngFileName);
    rewind(pngFile);
 
    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
    if (!png_ptr)
-   {
-      reg_print_fct_error("reg_io_readPNGfile");
-      reg_print_msg_error("Error when reading the png file - out of memory");
-      reg_exit();
-   }
+      NR_FATAL_ERROR("Error when reading the png file - out of memory");
 
    png_infop info_ptr = png_create_info_struct(png_ptr);
    if (!info_ptr)
    {
       png_destroy_read_struct(&png_ptr, nullptr, nullptr);
-      reg_print_fct_error("reg_io_readPNGfile");
-      reg_print_msg_error("Error when reading the png file - out of memory");
-      reg_exit();
+      NR_FATAL_ERROR("Error when reading the png file - out of memory");
    }
 
    png_init_io(png_ptr, pngFile);
@@ -84,17 +72,9 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    Channels = (int)png_get_channels(png_ptr, info_ptr);
 
    if(Channels > 3)
-   {
-      char text[255];
-      sprintf(text, "The PNG file has %i channels. Only the first three are considered for RGB to gray conversion.", Channels);
-      reg_print_fct_warn("reg_io_readPNGfile");
-      reg_print_msg_warn(text);
-   }
-   if(Channels == 2)
-   {
-      reg_print_fct_warn("reg_io_readPNGfile");
-      reg_print_msg_warn("The PNG file has 2 channels. They will be average into one single channel");
-   }
+      NR_WARN_WFCT("The PNG file has " << Channels << " channels. Only the first three are considered for RGB to gray conversion.");
+   else if(Channels == 2)
+      NR_WARN_WFCT("The PNG file has 2 channels. They will be average into one single channel");
 
    int dim[8]= {2,static_cast<int>(Width),static_cast<int>(Height),1,1,1,1,1};
    nifti_image *niiImage=nullptr;
@@ -103,7 +83,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
 
       uch *image_data;
       if ((image_data = (uch *)malloc(Width*Height*Channels*sizeof(uch))) == nullptr)
-         reg_exit();
+         NR_FATAL_ERROR("Error while allocating memory for the png file: "s + pngFileName);
 
       for (png_uint_32 i=0; i<Height; ++i)
       {
@@ -161,30 +141,17 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
 {
    // We first check the nifti image dimension
    if(image->nz>1 || image->nt>1 || image->nu>1 || image->nv>1 || image->nw>1)
-   {
-      reg_print_fct_error("reg_io_writePNGfile");
-      reg_print_msg_error("Image with dimension larger than 2 can be saved as png");
-      reg_exit();
-   }
+      NR_FATAL_ERROR("Image with dimension larger than 2 can be saved as png");
 
    // Check the min and max values of the nifti image
    float minValue = reg_tools_getMinValue(image, -1);
    float maxValue = reg_tools_getMaxValue(image, -1);
 
-   // Rescale the image intensites if  they are outside of the range
+   // Rescale the image intensities if they are outside of the range
    if(minValue<0 || maxValue>255)
    {
-      float newMinValue=0;
-      float newMaxValue=255;
-      reg_intensityRescale(image,
-                           0,
-                           newMinValue,
-                           newMaxValue);
-      char text[255];
-      sprintf(text, "The image intensities have been rescaled from [%g %g] to [0 255].",
-             minValue, maxValue);
-      reg_print_fct_warn("reg_io_writePNGfile");
-      reg_print_msg_warn(text);
+      reg_intensityRescale(image, 0, 0, 255);
+      NR_WARN_WFCT("The image intensities have been rescaled from [" << minValue << " " << maxValue << "] to [0 255].");
    }
 
    // The nifti image is converted as unsigned char if required
@@ -197,28 +164,17 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
    // Check first if the png file can be writen
    FILE *fp=fopen(filename, "wb");
    if(!fp)
-   {
-      char text[255];
-      sprintf(text,"The png file can not be written: %s", filename);
-      reg_print_fct_error("reg_io_writePNGfile");
-      reg_print_msg_error(text);
-      reg_exit();
-   }
+      NR_FATAL_ERROR("The png file can not be written: "s + filename);
+
    // The png file structures are created
    png_structp png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
    if (png_ptr==nullptr)
-   {
-      reg_print_fct_error("reg_io_writePNGfile");
-      reg_print_msg_error("The png pointer could not be created");
-      reg_exit();
-   }
+      NR_FATAL_ERROR("The png pointer could not be created");
+
    png_infop info_ptr = png_create_info_struct (png_ptr);
    if(info_ptr==nullptr)
-   {
-      reg_print_fct_error("reg_io_writePNGfile");
-      reg_print_msg_error("The png structure could not be created");
-      reg_exit();
-   }
+      NR_FATAL_ERROR("The png structure could not be created");
+
    // Set the png header information
    png_set_IHDR (png_ptr,
                  info_ptr,

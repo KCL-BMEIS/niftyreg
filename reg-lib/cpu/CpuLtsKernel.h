@@ -1,8 +1,6 @@
 #pragma once
 
 #include "LtsKernel.h"
-#include "_reg_blockMatching.h"
-#include "niftilib/nifti1_io.h"
 #include "AladinContent.h"
 
 class CpuLtsKernel: public LtsKernel {

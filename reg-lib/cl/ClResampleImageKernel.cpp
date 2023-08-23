@@ -9,30 +9,26 @@ ClResampleImageKernel::ClResampleImageKernel(Content *conIn) : ResampleImageKern
     ClAladinContent *con = static_cast<ClAladinContent*>(conIn);
 
     //path to kernel file
-    const char *niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");
-    const char *niftyreg_src_dir = getenv("NIFTYREG_SRC_DIR");
+    const char *nrInstallDir = getenv("NIFTYREG_INSTALL_DIR");
+    const char *nrSrcDir = getenv("NIFTYREG_SRC_DIR");
 
     std::string clInstallPath;
     std::string clSrcPath;
     //src dir
-    if (niftyreg_src_dir != nullptr) {
-        char opencl_kernel_path[255];
-        sprintf(opencl_kernel_path, "%s/reg-lib/cl/", niftyreg_src_dir);
-        clSrcPath = opencl_kernel_path;
+    if (nrSrcDir != nullptr) {
+        clSrcPath = nrSrcDir + "/reg-lib/cl/"s;
     } else clSrcPath = CL_KERNELS_SRC_PATH;
     //install dir
-    if (niftyreg_install_dir != nullptr) {
-        char opencl_kernel_path[255];
-        sprintf(opencl_kernel_path, "%s/include/cl/", niftyreg_install_dir);
-        clInstallPath = opencl_kernel_path;
+    if (nrInstallDir != nullptr) {
+        clInstallPath = nrInstallDir + "/include/cl/"s;
     } else clInstallPath = CL_KERNELS_PATH;
     std::string clKernel("resampleKernel.cl");
     //Let's check if we did an install
     std::string clKernelPath = (clInstallPath + clKernel);
     std::ifstream kernelFile(clKernelPath.c_str(), std::ios::in);
     if (kernelFile.is_open() == 0) {
-        //"clKernel.cl propbably not installed - let's use the src location"
-        clKernelPath = (clSrcPath + clKernel);
+        //"clKernel.cl probably not installed - let's use the src location"
+        clKernelPath = clSrcPath + clKernel;
     }
 
     //get opencl context params
@@ -63,11 +59,8 @@ void ClResampleImageKernel::Calculate(int interp,
                                       mat33 *jacMat) {
     cl_int errNum;
     // Define the DTI indices if required
-    if (dti_timepoint != nullptr || jacMat != nullptr) {
-        reg_print_fct_error("ClResampleImageKernel::calculate");
-        reg_print_msg_error("The DTI resampling has not yet been implemented with the OpenCL platform. Exit.");
-        reg_exit();
-    }
+    if (dti_timepoint != nullptr || jacMat != nullptr)
+        NR_FATAL_ERROR("The DTI resampling has not yet been implemented with the OpenCL platform");
 
     if (this->floatingImage->nz > 1) {
         this->kernel = clCreateKernel(program, "ResampleImage3D", &errNum);
@@ -75,9 +68,7 @@ void ClResampleImageKernel::Calculate(int interp,
         //2D case
         this->kernel = clCreateKernel(program, "ResampleImage2D", &errNum);
     } else {
-        reg_print_fct_error("ClResampleImageKernel::calculate");
-        reg_print_msg_error("The image dimension is not supported. Exit.");
-        reg_exit();
+        NR_FATAL_ERROR("The image dimension is not supported");
     }
     sContext->CheckErrNum(errNum, "Error setting kernel ResampleImage.");
 

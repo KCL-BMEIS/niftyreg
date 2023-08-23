@@ -35,4 +35,4 @@ void NormaliseGradient(float4 *imageCuda,
                        const bool& optimiseY,
                        const bool& optimiseZ);
 /* *************************************************************** */
-}   // namespace NiftyReg::Cuda
+} // namespace NiftyReg::Cuda

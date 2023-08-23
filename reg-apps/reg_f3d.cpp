@@ -27,115 +27,111 @@
 using PrecisionType = float;
 
 void PetitUsage(char *exec) {
-    char text[255];
-    reg_print_msg_error("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-    reg_print_msg_error("Fast Free-Form Deformation algorithm for non-rigid registration");
-    sprintf(text, "Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS]", exec);
-    reg_print_msg_error(text);
-    reg_print_msg_error("\tSee the help for more details (-h)");
-    reg_print_msg_error("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_INFO("Fast Free-Form Deformation algorithm for non-rigid registration");
+    NR_INFO("Usage:\t" << exec << " -ref <referenceImageName> -flo <floatingImageName> [OPTIONS]");
+    NR_INFO("\tSee the help for more details (-h)");
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 void Usage(char *exec) {
-    char text[255];
-    reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-    reg_print_info(exec, "Fast Free-Form Deformation (F3D) algorithm for non-rigid registration.");
-    reg_print_info(exec, "Based on Modat et al., \"Fast Free-Form Deformation using");
-    reg_print_info(exec, "graphics processing units\", CMPB, 2010");
-    reg_print_info(exec, "For any comment, please contact Marc Modat (m.modat@ucl.ac.uk)");
-    reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-    sprintf(text, "Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].", exec);
-    reg_print_info(exec, text);
-    reg_print_info(exec, "\t-ref <filename>\tFilename of the reference image (mandatory)");
-    reg_print_info(exec, "\t-flo <filename>\tFilename of the floating image (mandatory)");
-    reg_print_info(exec, "***************");
-    reg_print_info(exec, "*** OPTIONS ***");
-    reg_print_info(exec, "***************");
-    reg_print_info(exec, "*** Initial transformation options (One option will be considered):");
-    reg_print_info(exec, "\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=Floating)");
-    reg_print_info(exec, "\t-incpp <filename>\tFilename of the control point grid input");
-    reg_print_info(exec, "\t\t\t\tThe coarse spacing is defined by this file.");
-    reg_print_info(exec, "");
-    reg_print_info(exec, "*** Output options:");
-    reg_print_info(exec, "\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]");
-    reg_print_info(exec, "\t-res <filename> \tFilename of the resampled image [outputResult.nii]");
-    reg_print_info(exec, "");
-    reg_print_info(exec, "*** Input image options:");
-    reg_print_info(exec, "\t-rmask <filename>\t\tFilename of a mask image in the reference space");
-    reg_print_info(exec, "\t-smooR <float>\t\t\tSmooth the reference image using the specified sigma (mm) [0]");
-    reg_print_info(exec, "\t-smooF <float>\t\t\tSmooth the floating image using the specified sigma (mm) [0]");
-    reg_print_info(exec, "\t--rLwTh <float>\t\t\tLower threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*");
-    reg_print_info(exec, "\t--rUpTh <float>\t\t\tUpper threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*");
-    reg_print_info(exec, "\t--fLwTh <float>\t\t\tLower threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*");
-    reg_print_info(exec, "\t--fUpTh <float>\t\t\tUpper threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*");
-    reg_print_info(exec, "\t-rLwTh <timepoint> <float>\tLower threshold to apply to the reference image intensities [none]*");
-    reg_print_info(exec, "\t-rUpTh <timepoint> <float>\tUpper threshold to apply to the reference image intensities [none]*");
-    reg_print_info(exec, "\t-fLwTh <timepoint> <float>\tLower threshold to apply to the floating image intensities [none]*");
-    reg_print_info(exec, "\t-fUpTh <timepoint> <float>\tUpper threshold to apply to the floating image intensities [none]*");
-    reg_print_info(exec, "\t* The scl_slope and scl_inter from the nifti header are taken into account for the thresholds");
-    reg_print_info(exec, "");
-    reg_print_info(exec, "*** Spline options (All defined at full resolution):");
-    reg_print_info(exec, "\t-sx <float>\t\tFinal grid spacing along the x axis in mm (in voxel if negative value) [5 voxels]");
-    reg_print_info(exec, "\t-sy <float>\t\tFinal grid spacing along the y axis in mm (in voxel if negative value) [sx value]");
-    reg_print_info(exec, "\t-sz <float>\t\tFinal grid spacing along the z axis in mm (in voxel if negative value) [sx value]");
-    reg_print_info(exec, "");
-    reg_print_info(exec, "*** Regularisation options:");
-    reg_print_info(exec, "\t-be <float>\t\tWeight of the bending energy (second derivative of the transformation) penalty term [0.001]");
-    reg_print_info(exec, "\t-le <float>\t\tWeight of first order penalty term (symmetric and anti-symmetric part of the Jacobian) [0.01]");
-    reg_print_info(exec, "\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]");
-    reg_print_info(exec, "\t-noAppJL\t\tTo not approximate the JL value only at the control point position");
-    reg_print_info(exec, "\t-land <float> <file>\tUse of a set of landmarks which distance should be minimised");
-    reg_print_info(exec, "\t\t\t\tThe first argument corresponds to the weight given to this regularisation (between 0 and 1)");
-    reg_print_info(exec, "\t\t\t\tThe second argument corresponds to a text file containing the landmark positions in millimetre as");
-    reg_print_info(exec, "\t\t\t\t<refX> <refY> <refZ> <floX> <floY> <floZ>\\n for 3D images and");
-    reg_print_info(exec, "\t\t\t\t<refX> <refY> <floX> <floY>\\n for 2D images");
-    reg_print_info(exec, "");
-    reg_print_info(exec, "*** Measure of similarity options:");
-    reg_print_info(exec, "*** NMI with 64 bins is used except if specified otherwise");
-    reg_print_info(exec, "\t--nmi\t\t\tNMI. Used NMI even when one or several other measures are specified");
-    reg_print_info(exec, "\t--rbn <int>\t\tNMI. Number of bin to use for the reference image histogram. Identical value for every timepoint");
-    reg_print_info(exec, "\t--fbn <int>\t\tNMI. Number of bin to use for the floating image histogram. Identical value for every timepoint");
-    reg_print_info(exec, "\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the reference image histogram for the specified time point");
-    reg_print_info(exec, "\t-fbn <tp> <int>\t\tNMI. Number of bin to use for the floating image histogram for the specified time point");
-    reg_print_info(exec, "\t--lncc <float>\t\tLNCC. Standard deviation of the Gaussian kernel. Identical value for every timepoint");
-    reg_print_info(exec, "\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint");
-    reg_print_info(exec, "\t--ssd \t\t\tSSD. Used for all time points - images are normalized between 0 and 1 before computing the measure");
-    reg_print_info(exec, "\t-ssd <tp> \t\tSSD. Used for the specified timepoint - images are normalized between 0 and 1 before computing the measure");
-    reg_print_info(exec, "\t--ssdn \t\t\tSSD. Used for all time points - images are NOT normalized between 0 and 1 before computing the measure");
-    reg_print_info(exec, "\t-ssdn <tp> \t\tSSD. Used for the specified timepoint - images are NOT normalized between 0 and 1 before computing the measure");
-    reg_print_info(exec, "\t--mind <offset>\t\tMIND and the offset to use to compute the descriptor");
-    reg_print_info(exec, "\t--mindssc <offset>\tMIND-SCC and the offset to use to compute the descriptor");
-    reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
-    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
-    reg_print_info(exec, "\t* For the Kullback-Leibler divergence, reference and floating are expected to be probabilities");
-    reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98% ile");
-    reg_print_info(exec, "*** Options for setting the weights for each timepoint for each similarity");
-    reg_print_info(exec, "*** Note, the options above should be used first and will set a default weight of 1");
-    reg_print_info(exec, "*** The options below should be used afterwards to set the desired weight if different to 1");
-    reg_print_info(exec, "\t-nmiw <tp> <float>\tNMI Weight. Weight to use for the NMI similarity measure for the specified timepoint");
-    reg_print_info(exec, "\t-lnccw <tp> <float>\tLNCC Weight. Weight to use for the LNCC similarity measure for the specified timepoint");
-    reg_print_info(exec, "\t-ssdw <tp> <float>\tSSD Weight. Weight to use for the SSD similarity measure for the specified timepoint");
-    reg_print_info(exec, "\t-kldw <tp> <float>\tKLD Weight. Weight to use for the KLD similarity measure for the specified timepoint");
-    reg_print_info(exec, "\t-wSim <filename>\tWeight to apply to the measure of similarity at each voxel position");
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_INFO("Fast Free-Form Deformation (F3D) algorithm for non-rigid registration.");
+    NR_INFO("Based on Modat et al., \"Fast Free-Form Deformation using");
+    NR_INFO("graphics processing units\", CMPB, 2010");
+    NR_INFO("For any comment, please contact Marc Modat (m.modat@ucl.ac.uk)");
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_INFO("Usage:\t" << exec << " -ref <filename> -flo <filename> [OPTIONS]");
+    NR_INFO("\t-ref <filename>\tFilename of the reference image (mandatory)");
+    NR_INFO("\t-flo <filename>\tFilename of the floating image (mandatory)");
+    NR_INFO("***************");
+    NR_INFO("*** OPTIONS ***");
+    NR_INFO("***************");
+    NR_INFO("*** Initial transformation options (One option will be considered):");
+    NR_INFO("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=Floating)");
+    NR_INFO("\t-incpp <filename>\tFilename of the control point grid input");
+    NR_INFO("\t\t\t\tThe coarse spacing is defined by this file.");
+    NR_INFO("");
+    NR_INFO("*** Output options:");
+    NR_INFO("\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]");
+    NR_INFO("\t-res <filename> \tFilename of the resampled image [outputResult.nii]");
+    NR_INFO("");
+    NR_INFO("*** Input image options:");
+    NR_INFO("\t-rmask <filename>\t\tFilename of a mask image in the reference space");
+    NR_INFO("\t-smooR <float>\t\t\tSmooth the reference image using the specified sigma (mm) [0]");
+    NR_INFO("\t-smooF <float>\t\t\tSmooth the floating image using the specified sigma (mm) [0]");
+    NR_INFO("\t--rLwTh <float>\t\t\tLower threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*");
+    NR_INFO("\t--rUpTh <float>\t\t\tUpper threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*");
+    NR_INFO("\t--fLwTh <float>\t\t\tLower threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*");
+    NR_INFO("\t--fUpTh <float>\t\t\tUpper threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*");
+    NR_INFO("\t-rLwTh <timepoint> <float>\tLower threshold to apply to the reference image intensities [none]*");
+    NR_INFO("\t-rUpTh <timepoint> <float>\tUpper threshold to apply to the reference image intensities [none]*");
+    NR_INFO("\t-fLwTh <timepoint> <float>\tLower threshold to apply to the floating image intensities [none]*");
+    NR_INFO("\t-fUpTh <timepoint> <float>\tUpper threshold to apply to the floating image intensities [none]*");
+    NR_INFO("\t* The scl_slope and scl_inter from the nifti header are taken into account for the thresholds");
+    NR_INFO("");
+    NR_INFO("*** Spline options (All defined at full resolution):");
+    NR_INFO("\t-sx <float>\t\tFinal grid spacing along the x axis in mm (in voxel if negative value) [5 voxels]");
+    NR_INFO("\t-sy <float>\t\tFinal grid spacing along the y axis in mm (in voxel if negative value) [sx value]");
+    NR_INFO("\t-sz <float>\t\tFinal grid spacing along the z axis in mm (in voxel if negative value) [sx value]");
+    NR_INFO("");
+    NR_INFO("*** Regularisation options:");
+    NR_INFO("\t-be <float>\t\tWeight of the bending energy (second derivative of the transformation) penalty term [0.001]");
+    NR_INFO("\t-le <float>\t\tWeight of first order penalty term (symmetric and anti-symmetric part of the Jacobian) [0.01]");
+    NR_INFO("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]");
+    NR_INFO("\t-noAppJL\t\tTo not approximate the JL value only at the control point position");
+    NR_INFO("\t-land <float> <file>\tUse of a set of landmarks which distance should be minimised");
+    NR_INFO("\t\t\t\tThe first argument corresponds to the weight given to this regularisation (between 0 and 1)");
+    NR_INFO("\t\t\t\tThe second argument corresponds to a text file containing the landmark positions in millimetre as");
+    NR_INFO("\t\t\t\t<refX> <refY> <refZ> <floX> <floY> <floZ>\\n for 3D images and");
+    NR_INFO("\t\t\t\t<refX> <refY> <floX> <floY>\\n for 2D images");
+    NR_INFO("");
+    NR_INFO("*** Measure of similarity options:");
+    NR_INFO("*** NMI with 64 bins is used except if specified otherwise");
+    NR_INFO("\t--nmi\t\t\tNMI. Used NMI even when one or several other measures are specified");
+    NR_INFO("\t--rbn <int>\t\tNMI. Number of bin to use for the reference image histogram. Identical value for every timepoint");
+    NR_INFO("\t--fbn <int>\t\tNMI. Number of bin to use for the floating image histogram. Identical value for every timepoint");
+    NR_INFO("\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the reference image histogram for the specified time point");
+    NR_INFO("\t-fbn <tp> <int>\t\tNMI. Number of bin to use for the floating image histogram for the specified time point");
+    NR_INFO("\t--lncc <float>\t\tLNCC. Standard deviation of the Gaussian kernel. Identical value for every timepoint");
+    NR_INFO("\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint");
+    NR_INFO("\t--ssd \t\t\tSSD. Used for all time points - images are normalized between 0 and 1 before computing the measure");
+    NR_INFO("\t-ssd <tp> \t\tSSD. Used for the specified timepoint - images are normalized between 0 and 1 before computing the measure");
+    NR_INFO("\t--ssdn \t\t\tSSD. Used for all time points - images are NOT normalized between 0 and 1 before computing the measure");
+    NR_INFO("\t-ssdn <tp> \t\tSSD. Used for the specified timepoint - images are NOT normalized between 0 and 1 before computing the measure");
+    NR_INFO("\t--mind <offset>\t\tMIND and the offset to use to compute the descriptor");
+    NR_INFO("\t--mindssc <offset>\tMIND-SCC and the offset to use to compute the descriptor");
+    NR_INFO("\t--kld\t\t\tKLD. Used for all time points");
+    NR_INFO("\t-kld <tp>\t\tKLD. Used for the specified timepoint");
+    NR_INFO("\t* For the Kullback-Leibler divergence, reference and floating are expected to be probabilities");
+    NR_INFO("\t-rr\t\t\tIntensities are thresholded between the 2 and 98% ile");
+    NR_INFO("*** Options for setting the weights for each timepoint for each similarity");
+    NR_INFO("*** Note, the options above should be used first and will set a default weight of 1");
+    NR_INFO("*** The options below should be used afterwards to set the desired weight if different to 1");
+    NR_INFO("\t-nmiw <tp> <float>\tNMI Weight. Weight to use for the NMI similarity measure for the specified timepoint");
+    NR_INFO("\t-lnccw <tp> <float>\tLNCC Weight. Weight to use for the LNCC similarity measure for the specified timepoint");
+    NR_INFO("\t-ssdw <tp> <float>\tSSD Weight. Weight to use for the SSD similarity measure for the specified timepoint");
+    NR_INFO("\t-kldw <tp> <float>\tKLD Weight. Weight to use for the KLD similarity measure for the specified timepoint");
+    NR_INFO("\t-wSim <filename>\tWeight to apply to the measure of similarity at each voxel position");
 
-    // reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
-    reg_print_info(exec, "");
-    reg_print_info(exec, "*** Optimisation options:");
-    reg_print_info(exec, "\t-maxit <int>\t\tMaximal number of iteration at the final level [150]");
-    reg_print_info(exec, "\t-ln <int>\t\tNumber of level to perform [3]");
-    reg_print_info(exec, "\t-lp <int>\t\tOnly perform the first levels [ln]");
-    reg_print_info(exec, "\t-nopy\t\t\tDo not use a pyramidal approach");
-    reg_print_info(exec, "\t-noConj\t\t\tTo not use the conjugate gradient optimisation but a simple gradient ascent");
-    reg_print_info(exec, "\t-pert <int>\t\tTo add perturbation step(s) after each optimisation scheme");
-    reg_print_info(exec, "");
-    reg_print_info(exec, "*** F3D2 options:");
-    reg_print_info(exec, "\t-vel \t\t\tUse a velocity field integration to generate the deformation");
-    reg_print_info(exec, "\t-nogce \t\t\tDo not use the gradient accumulation through exponentiation");
-    reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space");
-    reg_print_info(exec, "");
+    // NR_INFO("\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
+    NR_INFO("");
+    NR_INFO("*** Optimisation options:");
+    NR_INFO("\t-maxit <int>\t\tMaximal number of iteration at the final level [150]");
+    NR_INFO("\t-ln <int>\t\tNumber of level to perform [3]");
+    NR_INFO("\t-lp <int>\t\tOnly perform the first levels [ln]");
+    NR_INFO("\t-nopy\t\t\tDo not use a pyramidal approach");
+    NR_INFO("\t-noConj\t\t\tTo not use the conjugate gradient optimisation but a simple gradient ascent");
+    NR_INFO("\t-pert <int>\t\tTo add perturbation step(s) after each optimisation scheme");
+    NR_INFO("");
+    NR_INFO("*** F3D2 options:");
+    NR_INFO("\t-vel \t\t\tUse a velocity field integration to generate the deformation");
+    NR_INFO("\t-nogce \t\t\tDo not use the gradient accumulation through exponentiation");
+    NR_INFO("\t-fmask <filename>\tFilename of a mask image in the floating space");
+    NR_INFO("");
 
     if (Platform::IsCudaEnabled() || Platform::IsOpenClEnabled()) {
-        reg_print_info(exec, "*** Platform options:");
+        NR_INFO("*** Platform options:");
         std::string platform = "\t-platf <uint>\t\tChoose platform: CPU=0 | ";
         if (Platform::IsCudaEnabled()) {
             platform += "Cuda=1";
@@ -145,36 +141,33 @@ void Usage(char *exec) {
         if (Platform::IsOpenClEnabled())
             platform += "OpenCL=2";
         platform += " [0]";
-        reg_print_info(exec, platform.c_str());
+        NR_INFO(platform);
 
-        reg_print_info(exec, "\t-gpuid <uint>\t\tChoose a custom gpu.");
-        reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
+        NR_INFO("\t-gpuid <uint>\t\tChoose a custom gpu.");
+        NR_INFO("\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
     }
 
 #ifdef _OPENMP
-    reg_print_info(exec, "");
-    reg_print_info(exec, "*** OpenMP-related options:");
+    NR_INFO("");
+    NR_INFO("*** OpenMP-related options:");
     int defaultOpenMPValue = omp_get_num_procs();
     if (getenv("OMP_NUM_THREADS") != nullptr)
         defaultOpenMPValue = atoi(getenv("OMP_NUM_THREADS"));
-    sprintf(text, "\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
-            defaultOpenMPValue, omp_get_num_procs());
-    reg_print_info(exec, text);
+    NR_INFO("\t-omp <int>\t\tNumber of threads to use with OpenMP. [" << defaultOpenMPValue << "/" << omp_get_num_procs() << "]");
 #endif
-    reg_print_info(exec, "");
-    reg_print_info(exec, "*** Other options:");
-    reg_print_info(exec, "\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]");
-    reg_print_info(exec, "\t-pad <float>\t\tPadding value [nan]");
-    reg_print_info(exec, "\t-voff\t\t\tTo turn verbose off");
-    reg_print_info(exec, "\t--version\t\tPrint current version and exit");
-    sprintf(text, "\t\t\t\t(%s)", NR_VERSION);
-    reg_print_info(exec, text);
-    reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_INFO("");
+    NR_INFO("*** Other options:");
+    NR_INFO("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]");
+    NR_INFO("\t-pad <float>\t\tPadding value [nan]");
+    NR_INFO("\t-voff\t\t\tTo turn verbose off");
+    NR_INFO("\t--version\t\tPrint current version and exit");
+    NR_INFO("\t\t\t\t(" << NR_VERSION << ")");
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 int main(int argc, char **argv) {
     if (argc == 1) {
-        PetitUsage((argv[0]));
+        PetitUsage(argv[0]);
         return EXIT_FAILURE;
     }
     time_t start;
@@ -182,7 +175,7 @@ int main(int argc, char **argv) {
     int verbose = true;
 
 #ifdef _OPENMP
-    // Set the default number of thread
+    // Set the default number of threads
     int defaultOpenMPValue = omp_get_num_procs();
     if (getenv("OMP_NUM_THREADS") != nullptr)
         defaultOpenMPValue = atoi(getenv("OMP_NUM_THREADS"));
@@ -206,13 +199,12 @@ int main(int argc, char **argv) {
             return EXIT_SUCCESS;
         }
         if (strcmp(argv[i], "--xml") == 0) {
-            printf("%s", xml_f3d);
+            NR_COUT << xml_f3d;
             return EXIT_SUCCESS;
         }
         if (strcmp(argv[i], "-voff") == 0) {
-#ifndef NDEBUG
-            reg_print_msg_debug("The verbose cannot be switch off in debug");
-#else
+            NR_DEBUG("The verbose cannot be switch off in debug");
+#ifdef NDEBUG
             verbose = false;
 #endif
         }
@@ -222,26 +214,13 @@ int main(int argc, char **argv) {
             strcmp(argv[i], "-v") == 0 ||
             strcmp(argv[i], "--v") == 0 ||
             strcmp(argv[i], "--version") == 0) {
-            printf("%s\n", NR_VERSION);
+            NR_COUT << NR_VERSION << std::endl;
             return EXIT_SUCCESS;
         }
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Output the command line
-#ifdef NDEBUG
-    if (verbose) {
-#endif
-        reg_print_info((argv[0]), "");
-        reg_print_info((argv[0]), "Command line:");
-        text = "\t";
-        for (int i = 0; i < argc; i++) {
-            text = stringFormat("%s %s", text.c_str(), argv[i]);
-        }
-        reg_print_info((argv[0]), text.c_str());
-        reg_print_info((argv[0]), "");
-#ifdef NDEBUG
-    }
-#endif
+    PrintCmdLine(argc, argv, verbose);
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Read the reference and floating image
@@ -250,30 +229,28 @@ int main(int argc, char **argv) {
         if ((strcmp(argv[i], "-ref") == 0) || (strcmp(argv[i], "-target") == 0) || (strcmp(argv[i], "--ref") == 0)) {
             referenceImage = reg_io_ReadImageFile(argv[++i]);
             if (!referenceImage) {
-                reg_print_msg_error("Error when reading the reference image:");
-                reg_print_msg_error(argv[i - 1]);
+                NR_ERROR("Error when reading the reference image: " << argv[i - 1]);
                 return EXIT_FAILURE;
             }
         }
         if ((strcmp(argv[i], "-flo") == 0) || (strcmp(argv[i], "-source") == 0) || (strcmp(argv[i], "--flo") == 0)) {
             floatingImage = reg_io_ReadImageFile(argv[++i]);
             if (!floatingImage) {
-                reg_print_msg_error("Error when reading the floating image:");
-                reg_print_msg_error(argv[i - 1]);
+                NR_ERROR("Error when reading the floating image: " << argv[i - 1]);
                 return EXIT_FAILURE;
             }
         }
     }
     // Check that both reference and floating image have been defined
     if (!referenceImage) {
-        reg_print_msg_error("Error. No reference image has been defined");
-        PetitUsage((argv[0]));
+        NR_ERROR("Error. No reference image has been defined");
+        PetitUsage(argv[0]);
         return EXIT_FAILURE;
     }
     // Read the floating image
     if (!floatingImage) {
-        reg_print_msg_error("Error. No floating image has been defined");
-        PetitUsage((argv[0]));
+        NR_ERROR("Error. No floating image has been defined");
+        PetitUsage(argv[0]);
         return EXIT_FAILURE;
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -287,17 +264,17 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "-platf") == 0 || strcmp(argv[i], "--platf") == 0) {
             PlatformType value{ atoi(argv[++i]) };
             if (value < PlatformType::Cpu || value > PlatformType::Cuda) {
-                reg_print_msg_error("The platform argument is expected to be 0 or 1 | 0=CPU 1=CUDA");
+                NR_ERROR("The platform argument is expected to be 0 or 1 | 0=CPU 1=CUDA");
                 return EXIT_FAILURE;
             }
             if (value == PlatformType::Cuda && !Platform::IsCudaEnabled()) {
-                reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
-                reg_print_msg_warn("The CPU platform is used");
+                NR_WARN("The current install of NiftyReg has not been compiled with CUDA");
+                NR_WARN("The CPU platform is used");
                 value = PlatformType::Cpu;
             }
             if (value == PlatformType::OpenCl && !Platform::IsOpenClEnabled()) {
-                reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
-                reg_print_msg_warn("The CPU platform is used");
+                NR_WARN("The current install of NiftyReg has not been compiled with OpenCL");
+                NR_WARN("The CPU platform is used");
                 value = PlatformType::Cpu;
             }
             platformType = value;
@@ -336,8 +313,7 @@ int main(int argc, char **argv) {
             if (FILE *aff = fopen(affineTransformationName, "r")) {
                 fclose(aff);
             } else {
-                reg_print_msg_error("The specified input affine file can not be read:");
-                reg_print_msg_error(affineTransformationName);
+                NR_ERROR("The specified input affine file can not be read: " << affineTransformationName);
                 return EXIT_FAILURE;
             }
             // Read the affine matrix
@@ -348,16 +324,14 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "-incpp") == 0 || (strcmp(argv[i], "--incpp") == 0)) {
             NiftiImage inputCCPImage = reg_io_ReadImageFile(argv[++i]);
             if (!inputCCPImage) {
-                reg_print_msg_error("Error when reading the input control point grid image:");
-                reg_print_msg_error(argv[i - 1]);
+                NR_ERROR("Error when reading the input control point grid image: " << argv[i - 1]);
                 return EXIT_FAILURE;
             }
             reg->SetControlPointGridImage(std::move(inputCCPImage));
         } else if ((strcmp(argv[i], "-rmask") == 0) || (strcmp(argv[i], "-tmask") == 0) || (strcmp(argv[i], "--rmask") == 0)) {
             NiftiImage referenceMaskImage = reg_io_ReadImageFile(argv[++i]);
             if (!referenceMaskImage) {
-                reg_print_msg_error("Error when reading the reference mask image:");
-                reg_print_msg_error(argv[i - 1]);
+                NR_ERROR("Error when reading the reference mask image: " << argv[i - 1]);
                 return EXIT_FAILURE;
             }
             reg->SetReferenceMask(std::move(referenceMaskImage));
@@ -423,13 +397,13 @@ int main(int argc, char **argv) {
             size_t landmarkNumber = inputMatrixSize.first;
             size_t n = inputMatrixSize.second;
             if (n == 4 && referenceImage->nz > 1) {
-                reg_print_msg_error("4 values per line are expected for 2D images");
+                NR_ERROR("4 values per line are expected for 2D images");
                 return EXIT_FAILURE;
             } else if (n == 6 && referenceImage->nz < 2) {
-                reg_print_msg_error("6 values per line are expected for 3D images");
+                NR_ERROR("6 values per line are expected for 3D images");
                 return EXIT_FAILURE;
             } else if (n != 4 && n != 6) {
-                reg_print_msg_error("4 or 6 values are expected per line");
+                NR_ERROR("4 or 6 values are expected per line");
                 return EXIT_FAILURE;
             }
             float **allLandmarks = reg_tool_ReadMatrixFile<float>(filename, landmarkNumber, n);
@@ -517,8 +491,8 @@ int main(int argc, char **argv) {
             int offset = atoi(argv[++i]);
             if (offset != -999999) { // Value specified by the CLI - to be ignored
                 if (referenceImage->nt > 1 || floatingImage->nt > 1) {
-                    reg_print_msg_error("reg_mind does not support multiple time point image");
-                    reg_exit();
+                    NR_ERROR("reg_mind does not support multiple time point image");
+                    return EXIT_FAILURE;
                 }
                 reg->UseMIND(0, offset);
             }
@@ -526,8 +500,8 @@ int main(int argc, char **argv) {
             int offset = atoi(argv[++i]);
             if (offset != -999999) { // Value specified by the CLI - to be ignored
                 if (referenceImage->nt > 1 || floatingImage->nt > 1) {
-                    reg_print_msg_error("reg_mindssc does not support multiple time point image");
-                    reg_exit();
+                    NR_ERROR("reg_mindssc does not support multiple time point image");
+                    return EXIT_FAILURE;
                 }
                 reg->UseMINDSSC(0, offset);
             }
@@ -607,8 +581,7 @@ int main(int argc, char **argv) {
                  (strcmp(argv[i], "--fmask") == 0) || (strcmp(argv[i], "--smask") == 0)) {
             NiftiImage floatingMaskImage = reg_io_ReadImageFile(argv[++i]);
             if (!floatingMaskImage) {
-                reg_print_msg_error("Error when reading the floating mask image:");
-                reg_print_msg_error(argv[i - 1]);
+                NR_ERROR("Error when reading the floating mask image: " << argv[i - 1]);
                 return EXIT_FAILURE;
             }
             reg->SetFloatingMask(std::move(floatingMaskImage));
@@ -633,7 +606,7 @@ int main(int argc, char **argv) {
 #ifdef _OPENMP
             omp_set_num_threads(atoi(argv[++i]));
 #else
-            reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+            NR_WARN("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
             ++i;
 #endif
         }
@@ -646,32 +619,25 @@ int main(int argc, char **argv) {
                  strcmp(argv[i], "-v") != 0 && strcmp(argv[i], "--v") != 0 &&
                  strcmp(argv[i], "-platf") != 0 && strcmp(argv[i], "--platf") != 0 &&
                  strcmp(argv[i], "-vel") != 0) {
-            reg_print_msg_error("\tParameter unknown:");
-            reg_print_msg_error(argv[i]);
-            PetitUsage((argv[0]));
+            NR_ERROR("\tUnknown parameter: " << argv[i]);
+            PetitUsage(argv[0]);
             return EXIT_FAILURE;
         }
     }
     if (useMeanLNCC)
         reg->SetLNCCKernelType(2);
 
-#ifndef NDEBUG
-    reg_print_msg_debug("*******************************************");
-    reg_print_msg_debug("*******************************************");
-    reg_print_msg_debug("NiftyReg has been compiled in DEBUG mode");
-    reg_print_msg_debug("Please re-run cmake to set the variable");
-    reg_print_msg_debug("CMAKE_BUILD_TYPE to \"Release\" if required");
-    reg_print_msg_debug("*******************************************");
-    reg_print_msg_debug("*******************************************");
-#endif
+    NR_DEBUG("*******************************************");
+    NR_DEBUG("*******************************************");
+    NR_DEBUG("NiftyReg has been compiled in DEBUG mode");
+    NR_DEBUG("Please re-run cmake to set the variable");
+    NR_DEBUG("CMAKE_BUILD_TYPE to \"Release\" if required");
+    NR_DEBUG("*******************************************");
+    NR_DEBUG("*******************************************");
 
 #ifdef _OPENMP
-    if (verbose) {
-        int maxThreadNumber = omp_get_max_threads();
-        text = stringFormat("OpenMP is used with %i thread(s)", maxThreadNumber);
-        reg_print_info((argv[0]), text.c_str());
-    }
-#endif // _OPENMP
+    NR_VERBOSE_APP("OpenMP is used with " << omp_get_max_threads() << " threads");
+#endif
 
     // Run the registration
     reg->Run();
@@ -742,19 +708,12 @@ int main(int argc, char **argv) {
     }
     reg_io_WriteImageFile(outputWarpedImages[0], outputWarpedImageName);
 
-#ifdef NDEBUG
-    if (verbose) {
-#endif
-        time_t end;
-        time(&end);
-        int minutes = (int)floorf((end - start) / 60.0f);
-        int seconds = ((int)(end - start) - 60 * minutes);
-        text = stringFormat("Registration performed in %i min %i sec", minutes, seconds);
-        reg_print_info((argv[0]), text.c_str());
-        reg_print_info((argv[0]), "Have a good day !");
-#ifdef NDEBUG
-    }
-#endif
+    time_t end;
+    time(&end);
+    const int minutes = static_cast<int>(floorf((end - start) / 60.0f));
+    const int seconds = static_cast<int>(end - start) - 60 * minutes;
+    NR_VERBOSE_APP("Registration performed in " << minutes << " min " << seconds << " sec");
+    NR_VERBOSE_APP("Have a good day!");
 
     return EXIT_SUCCESS;
 }

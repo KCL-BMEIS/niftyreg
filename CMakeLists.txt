@@ -73,9 +73,6 @@ option(USE_OPENCL "To use the OpenCL platform" OFF)
 option(USE_OPENMP "To use openMP for multi-CPU processing" ON)
 option(USE_SSE "To enable SEE computation in some case" ON)
 #-----------------------------------------------------------------------------
-option(USE_THROW_EXCEP "To throw exception rather than exit" OFF)
-mark_as_advanced(USE_THROW_EXCEP)
-#-----------------------------------------------------------------------------
 option(USE_NRRD "To use the NRRD file format" OFF)
 mark_as_advanced(USE_NRRD)
 #-----------------------------------------------------------------------------
@@ -206,10 +203,6 @@ if(BUILD_SHARED_LIBS)
 else(BUILD_SHARED_LIBS)
   set(NIFTYREG_LIBRARY_TYPE STATIC)
 endif(BUILD_SHARED_LIBS)
-#-----------------------------------------------------------------------------
-if(USE_THROW_EXCEP)
-  add_definitions(-DNR_THROW_EXCEP)
-endif(USE_THROW_EXCEP)
 #-----------------------------------------------------------------------------
 add_subdirectory(third-party)
 add_subdirectory(reg-io)

@@ -74,7 +74,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+         NR_ERROR("Unknown parameter: " << argv[i]);
          Usage(argv[0]);
          return 1;
       }

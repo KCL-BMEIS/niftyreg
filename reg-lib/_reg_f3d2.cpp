@@ -22,26 +22,19 @@ reg_f3d2<T>::reg_f3d2(int refTimePoint, int floTimePoint):
     bchUpdate = false;
     useGradientCumulativeExp = true;
     bchUpdateValue = 0;
-
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_f3d2 constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_f3d2<T>::SetFloatingMask(NiftiImage floatingMaskImageIn) {
     floatingMaskImage = floatingMaskImageIn;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::~SetFloatingMask");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_f3d2<T>::SetInverseConsistencyWeight(T w) {
     inverseConsistencyWeight = w;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::SetInverseConsistencyWeight");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -100,9 +93,7 @@ T reg_f3d2<T>::InitCurrentLevel(int currentLevel) {
     reg_f3d<T>::InitContent(reference, floating, referenceMask);
     InitContent(reference, floating, floatingMask);
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::InitCurrentLevel");
-#endif
+    NR_FUNC_CALLED();
     return maxStepSize;
 }
 /* *************************************************************** */
@@ -125,15 +116,10 @@ void reg_f3d2<T>::CheckParameters() {
     reg_f3d<T>::CheckParameters();
 
     // CHECK THE FLOATING MASK DIMENSION IF IT IS DEFINED
-    if (floatingMaskImage) {
-        if (this->inputFloating->nx != floatingMaskImage->nx ||
-            this->inputFloating->ny != floatingMaskImage->ny ||
-            this->inputFloating->nz != floatingMaskImage->nz) {
-            reg_print_fct_error("reg_f3d2<T>::CheckParameters()");
-            reg_print_msg_error("The floating image and its mask have different dimension");
-            reg_exit();
-        }
-    }
+    if (floatingMaskImage && (this->inputFloating->nx != floatingMaskImage->nx ||
+                              this->inputFloating->ny != floatingMaskImage->ny ||
+                              this->inputFloating->nz != floatingMaskImage->nz))
+        NR_FATAL_ERROR("The floating image and its mask have different dimension");
 
     // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
     T penaltySum = (this->bendingEnergyWeight + this->linearEnergyWeight + this->jacobianLogWeight +
@@ -147,9 +133,7 @@ void reg_f3d2<T>::CheckParameters() {
         this->landmarkRegWeight /= penaltySum;
     } else this->similarityWeight = 1 - penaltySum;
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::CheckParameters");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -159,18 +143,11 @@ void reg_f3d2<T>::GetDeformationField() {
     if (!this->optimiser)
         updateStepNumber = false;
 
-#ifndef NDEBUG
-    char text[255];
-    sprintf(text, "Velocity integration forward. Step number update=%i", updateStepNumber);
-    reg_print_msg_debug(text);
-#endif
+    NR_DEBUG("Velocity integration forward. Step number update=" << updateStepNumber);
     // The forward transformation is computed using the scaling-and-squaring approach
     this->compute->GetDefFieldFromVelocityGrid(updateStepNumber);
 
-#ifndef NDEBUG
-    sprintf(text, "Velocity integration backward. Step number update=%i", updateStepNumber);
-    reg_print_msg_debug(text);
-#endif
+    NR_DEBUG("Velocity integration backward. Step number update=" << updateStepNumber);
     // The number of step number is copied over from the forward transformation
     controlPointGridBw->intent_p2 = this->controlPointGrid->intent_p2;
     // The backward transformation is computed using the scaling-and-squaring approach
@@ -196,9 +173,7 @@ void reg_f3d2<T>::WarpFloatingImage(int inter) {
                           this->measure_dti->GetActiveTimepoints(),
                           backwardJacobianMatrix);*/
     }
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::WarpFloatingImage");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -216,76 +191,49 @@ double reg_f3d2<T>::ComputeJacobianBasedPenaltyTerm(int type) {
     unsigned it = 0;
     while (backwardPenaltyTerm != backwardPenaltyTerm && it < maxit) {
         backwardPenaltyTerm = computeBw->CorrectFolding(approx);
-#ifndef NDEBUG
-        reg_print_msg_debug("Folding correction - Backward transformation");
-#endif
+        NR_DEBUG("Folding correction - Backward transformation");
         it++;
     }
     if (type > 0 && it > 0) {
         if (backwardPenaltyTerm != backwardPenaltyTerm) {
             this->optimiser->RestoreBestDof();
-#ifndef NDEBUG
-            reg_print_fct_warn("reg_f3d2<T>::ComputeJacobianBasedPenaltyTerm()");
-            reg_print_msg_warn("The backward transformation folding correction scheme failed");
-#endif
+            NR_DEBUG("The backward transformation folding correction scheme failed");
         } else {
-#ifdef NDEBUG
-            if (this->verbose) {
-#endif
-                char text[255];
-                sprintf(text, "Backward transformation folding correction, %i step(s)", it);
-                reg_print_msg_debug(text);
-#ifdef NDEBUG
-            }
-#endif
+            NR_VERBOSE("Backward transformation folding correction, " << it << " step(s)");
         }
     }
     backwardPenaltyTerm *= this->jacobianLogWeight;
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::ComputeJacobianBasedPenaltyTerm");
-#endif
+    NR_FUNC_CALLED();
     return forwardPenaltyTerm + backwardPenaltyTerm;
 }
 /* *************************************************************** */
 template <class T>
 double reg_f3d2<T>::ComputeBendingEnergyPenaltyTerm() {
     if (this->bendingEnergyWeight <= 0) return 0;
-
-    double forwardPenaltyTerm = reg_f3d<T>::ComputeBendingEnergyPenaltyTerm();
-    double backwardPenaltyTerm = this->bendingEnergyWeight * computeBw->ApproxBendingEnergy();
-
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::ComputeBendingEnergyPenaltyTerm");
-#endif
+    const double forwardPenaltyTerm = reg_f3d<T>::ComputeBendingEnergyPenaltyTerm();
+    const double backwardPenaltyTerm = this->bendingEnergyWeight * computeBw->ApproxBendingEnergy();
+    NR_FUNC_CALLED();
     return forwardPenaltyTerm + backwardPenaltyTerm;
 }
 /* *************************************************************** */
 template <class T>
 double reg_f3d2<T>::ComputeLinearEnergyPenaltyTerm() {
     if (this->linearEnergyWeight <= 0) return 0;
-
-    double forwardPenaltyTerm = reg_f3d<T>::ComputeLinearEnergyPenaltyTerm();
-    double backwardPenaltyTerm = this->linearEnergyWeight * computeBw->ApproxLinearEnergy();
-
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::ComputeLinearEnergyPenaltyTerm");
-#endif
+    const double forwardPenaltyTerm = reg_f3d<T>::ComputeLinearEnergyPenaltyTerm();
+    const double backwardPenaltyTerm = this->linearEnergyWeight * computeBw->ApproxLinearEnergy();
+    NR_FUNC_CALLED();
     return forwardPenaltyTerm + backwardPenaltyTerm;
 }
 /* *************************************************************** */
 template <class T>
 double reg_f3d2<T>::ComputeLandmarkDistancePenaltyTerm() {
     if (this->landmarkRegWeight <= 0) return 0;
-
-    double forwardPenaltyTerm = reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm();
-    double backwardPenaltyTerm = this->landmarkRegWeight * computeBw->GetLandmarkDistance(this->landmarkRegNumber,
-                                                                                          this->landmarkFloating,
-                                                                                          this->landmarkReference);
-
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::ComputeLandmarkDistancePenaltyTerm");
-#endif
+    const double forwardPenaltyTerm = reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm();
+    const double backwardPenaltyTerm = this->landmarkRegWeight * computeBw->GetLandmarkDistance(this->landmarkRegNumber,
+                                                                                                this->landmarkFloating,
+                                                                                                this->landmarkReference);
+    NR_FUNC_CALLED();
     return forwardPenaltyTerm + backwardPenaltyTerm;
 }
 /* *************************************************************** */
@@ -349,9 +297,7 @@ void reg_f3d2<T>::GetVoxelBasedGradient() {
     // Exponentiate the gradients if required
     ExponentiateGradient();
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::GetVoxelBasedGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -362,59 +308,42 @@ void reg_f3d2<T>::GetSimilarityMeasureGradient() {
     // And the backward-node-based NMI gradient is extracted
     computeBw->ConvolveVoxelBasedMeasureGradient(this->similarityWeight);
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::GetSimilarityMeasureGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
 void reg_f3d2<T>::GetJacobianBasedGradient() {
     if (this->jacobianLogWeight <= 0) return;
-
     reg_f3d<T>::GetJacobianBasedGradient();
     computeBw->JacobianPenaltyTermGradient(this->jacobianLogWeight, this->jacobianLogApproximation);
-
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::GetJacobianBasedGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
 void reg_f3d2<T>::GetBendingEnergyGradient() {
     if (this->bendingEnergyWeight <= 0) return;
-
     reg_f3d<T>::GetBendingEnergyGradient();
     computeBw->ApproxBendingEnergyGradient(this->bendingEnergyWeight);
-
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::GetBendingEnergyGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
 void reg_f3d2<T>::GetLinearEnergyGradient() {
     if (this->linearEnergyWeight <= 0) return;
-
     reg_f3d<T>::GetLinearEnergyGradient();
     computeBw->ApproxLinearEnergyGradient(this->linearEnergyWeight);
-
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::GetLinearEnergyGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
 void reg_f3d2<T>::GetLandmarkDistanceGradient() {
     if (this->landmarkRegWeight <= 0) return;
-
     reg_f3d<T>::GetLandmarkDistanceGradient();
     computeBw->LandmarkDistanceGradient(this->landmarkRegNumber,
                                         this->landmarkFloating,
                                         this->landmarkReference,
                                         this->landmarkRegWeight);
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::GetLandmarkDistanceGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -424,20 +353,14 @@ void reg_f3d2<T>::SmoothGradient() {
     // The gradient is smoothed using a Gaussian kernel if it is required
     computeBw->SmoothGradient(this->gradientSmoothingSigma);
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::SmoothGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
 void reg_f3d2<T>::GetApproximatedGradient() {
     reg_f3d<T>::GetApproximatedGradient();
-
     computeBw->GetApproximatedGradient(*this);
-
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::GetApproximatedGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -452,21 +375,14 @@ T reg_f3d2<T>::NormaliseGradient() {
 
     // The largest value between the forward and backward gradient is kept
     const T maxGradLength = std::max(backwardMaxGradLength, forwardMaxGradLength);
-
-#ifndef NDEBUG
-    char text[255];
-    sprintf(text, "Objective function gradient maximal length: %g", maxGradLength);
-    reg_print_msg_debug(text);
-#endif
+    NR_DEBUG("Objective function gradient maximal length: " << maxGradLength);
 
     // The forward gradient is normalised
     this->compute->NormaliseGradient(maxGradLength, this->optimiseX, this->optimiseY, this->optimiseZ);
     // The backward gradient is normalised
     computeBw->NormaliseGradient(maxGradLength, this->optimiseX, this->optimiseY, this->optimiseZ);
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::NormaliseGradient");
-#endif
+    NR_FUNC_CALLED();
     // Returns the largest gradient distance
     return maxGradLength;
 }
@@ -495,37 +411,21 @@ void reg_f3d2<T>::GetObjectiveFunctionGradient() {
         GetLinearEnergyGradient();
         GetLandmarkDistanceGradient();
     }
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::GetObjectiveFunctionGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
 void reg_f3d2<T>::DisplayCurrentLevelParameters(int currentLevel) {
     reg_f3d<T>::DisplayCurrentLevelParameters(currentLevel);
-#ifdef NDEBUG
-    if (this->verbose) {
-#endif
-        char text[255];
-        reg_print_info(this->executableName, "Current backward control point image");
-        sprintf(text, "\t* image dimension: %i x %i x %i",
-                controlPointGridBw->nx, controlPointGridBw->ny, controlPointGridBw->nz);
-        reg_print_info(this->executableName, text);
-        sprintf(text, "\t* image spacing: %g x %g x %g mm",
-                controlPointGridBw->dx, controlPointGridBw->dy, controlPointGridBw->dz);
-        reg_print_info(this->executableName, text);
-#ifdef NDEBUG
-    }
-#endif
+    NR_VERBOSE("Current backward control point image");
+    NR_VERBOSE("\t* image dimension: " << controlPointGridBw->nx << " x " << controlPointGridBw->ny << " x " << controlPointGridBw->nz);
+    NR_VERBOSE("\t* image spacing: " << controlPointGridBw->dx << " x " << controlPointGridBw->dy << " x " << controlPointGridBw->dz << " mm");
 
-#ifndef NDEBUG
     if (controlPointGridBw->sform_code > 0)
-        reg_mat44_disp(&controlPointGridBw->sto_xyz, (char*)"[NiftyReg DEBUG] Backward CPP sform");
-    else reg_mat44_disp(&controlPointGridBw->qto_xyz, (char*)"[NiftyReg DEBUG] Backward CPP qform");
-#endif
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::DisplayCurrentLevelParameters");
-#endif
+        NR_MAT44_VERBOSE(controlPointGridBw->sto_xyz, "Backward CPP sform");
+    else NR_MAT44_VERBOSE(controlPointGridBw->qto_xyz, "Backward CPP qform");
+
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -538,60 +438,32 @@ void reg_f3d2<T>::SetOptimiser() {
                                                                       this->optimiseY,
                                                                       this->optimiseZ,
                                                                       conBw.get()));
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::SetOptimiser");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_f3d2<T>::PrintCurrentObjFunctionValue(T currentSize) {
-    if (!this->verbose) return;
-
-    char text[255];
-    sprintf(text, "[%i] Current objective function: %g",
-            (int)this->optimiser->GetCurrentIterationNumber(),
-            this->optimiser->GetBestObjFunctionValue());
-    sprintf(text + strlen(text), " = (wSIM)%g", this->bestWMeasure);
-    if (this->bendingEnergyWeight > 0)
-        sprintf(text + strlen(text), " - (wBE)%.2e", this->bestWBE);
-    if (this->linearEnergyWeight)
-        sprintf(text + strlen(text), " - (wLE)%.2e", this->bestWLE);
-    if (this->jacobianLogWeight > 0)
-        sprintf(text + strlen(text), " - (wJAC)%.2e", this->bestWJac);
-    if (this->landmarkRegWeight > 0)
-        sprintf(text + strlen(text), " - (wLAN)%.2e", this->bestWLand);
-    sprintf(text + strlen(text), " [+ %g mm]", currentSize);
-    reg_print_info(this->executableName, text);
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::PrintCurrentObjFunctionValue");
-#endif
+    reg_f3d<T>::PrintCurrentObjFunctionValue(currentSize);
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_f3d2<T>::UpdateBestObjFunctionValue() {
     reg_f3d<T>::UpdateBestObjFunctionValue();
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::UpdateBestObjFunctionValue");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_f3d2<T>::PrintInitialObjFunctionValue() {
-    if (!this->verbose) return;
     reg_f3d<T>::PrintInitialObjFunctionValue();
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::PrintInitialObjFunctionValue");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
 double reg_f3d2<T>::GetObjectiveFunctionValue() {
     this->currentWJac = ComputeJacobianBasedPenaltyTerm(1); // 20 iterations
-
     this->currentWBE = ComputeBendingEnergyPenaltyTerm();
-
     this->currentWLE = ComputeLinearEnergyPenaltyTerm();
-
     this->currentWLand = ComputeLandmarkDistancePenaltyTerm();
 
     // Compute initial similarity measure
@@ -601,17 +473,10 @@ double reg_f3d2<T>::GetObjectiveFunctionValue() {
         this->currentWMeasure = this->ComputeSimilarityMeasure();
     }
 
-#ifndef NDEBUG
-    char text[255];
-    sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wJac) %g | (wLan) %g",
-            this->currentWMeasure, this->currentWBE, this->currentWLE,
-            this->currentWJac, this->currentWLand);
-    reg_print_msg_debug(text);
-#endif
+    NR_DEBUG("(wMeasure) " << this->currentWMeasure << " | (wBE) " << this->currentWBE << " | (wLE) " << this->currentWLE <<
+             " | (wJac) " << this->currentWJac << " | (wLan) " << this->currentWLand);
+    NR_FUNC_CALLED();
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::GetObjectiveFunctionValue");
-#endif
     // Store the global objective function value
     return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac;
 }
@@ -641,16 +506,12 @@ void reg_f3d2<T>::InitialiseSimilarity() {
     if (this->measure_mindssc)
         this->measure->Initialise(*this->measure_mindssc, con, conBw.get());
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::InitialiseSimilarity");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 NiftiImage reg_f3d2<T>::GetBackwardControlPointPositionImage() {
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::GetBackwardControlPointPositionImage");
-#endif
+    NR_FUNC_CALLED();
     return controlPointGridBw;
 }
 /* *************************************************************** */
@@ -726,17 +587,8 @@ void reg_f3d2<T>::Initialise() {
         for (unsigned l = 0; l < imageCount; ++l)
             floatingMaskPyramid[l].reset(new int[this->floatingPyramid[l].nVoxelsPerVolume()]());
 
-#ifdef NDEBUG
-    if (this->verbose) {
-#endif
-        if (inverseConsistencyWeight > 0) {
-            char text[255];
-            sprintf(text, "Inverse consistency error penalty term weight: %g", inverseConsistencyWeight);
-            reg_print_info(this->executableName, text);
-        }
-#ifdef NDEBUG
-    }
-#endif
+    if (inverseConsistencyWeight > 0)
+        NR_VERBOSE("Inverse consistency error penalty term weight: "s + std::to_string(inverseConsistencyWeight));
 
     // Convert the control point grid into velocity field parametrisation
     this->controlPointGrid->intent_p1 = SPLINE_VEL_GRID;
@@ -747,9 +599,7 @@ void reg_f3d2<T>::Initialise() {
     if (this->affineTransformation)
         affineTransformationBw.reset(new mat44(nifti_mat44_inverse(*this->affineTransformation)));
 
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_f3d2::Initialise() done");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -757,20 +607,14 @@ void reg_f3d2<T>::ExponentiateGradient() {
     if (!useGradientCumulativeExp) return;
 
     // Exponentiate the forward gradient using the backward transformation
-#ifndef NDEBUG
-    reg_print_msg_debug("Update the forward measure gradient using a Dartel like approach");
-#endif
+    NR_DEBUG("Update the forward measure gradient using a Dartel like approach");
     this->compute->ExponentiateGradient(*conBw);
 
     /* Exponentiate the backward gradient using the forward transformation */
-#ifndef NDEBUG
-    reg_print_msg_debug("Update the backward measure gradient using a Dartel like approach");
-#endif
+    NR_DEBUG("Update the backward measure gradient using a Dartel like approach");
     computeBw->ExponentiateGradient(*this->con);
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::ExponentiateGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class T>
@@ -783,17 +627,13 @@ void reg_f3d2<T>::UpdateParameters(float scale) {
     // Note that the gradient has been integrated over the path of transformation previously
     if (bchUpdate) {
         // Forward update
-        reg_print_msg_warn("USING BCH FORWARD - TESTING ONLY");
-#ifndef NDEBUG
-        reg_print_msg_debug("Update the forward control point grid using BCH approximation");
-#endif
+        NR_WARN("USING BCH FORWARD - TESTING ONLY");
+        NR_DEBUG("Update the forward control point grid using BCH approximation");
         this->compute->BchUpdate(scale, bchUpdateValue);
 
         // Backward update
-        reg_print_msg_warn("USING BCH BACKWARD - TESTING ONLY");
-#ifndef NDEBUG
-        reg_print_msg_debug("Update the backward control point grid using BCH approximation");
-#endif
+        NR_WARN("USING BCH BACKWARD - TESTING ONLY");
+        NR_DEBUG("Update the backward control point grid using BCH approximation");
         computeBw->BchUpdate(scale, bchUpdateValue);
     } else {
         // Forward update
@@ -815,11 +655,8 @@ void reg_f3d2<T>::UpdateParameters(float scale) {
 template<class T>
 vector<NiftiImage> reg_f3d2<T>::GetWarpedImage() {
     // The initial images are used
-    if (!this->inputReference || !this->inputFloating || !this->controlPointGrid || !controlPointGridBw) {
-        reg_print_fct_error("reg_f3d2<T>::GetWarpedImage()");
-        reg_print_msg_error("The reference, floating and control point grid images have to be defined");
-        reg_exit();
-    }
+    if (!this->inputReference || !this->inputFloating || !this->controlPointGrid || !controlPointGridBw)
+        NR_FATAL_ERROR("The reference, floating and control point grid images have to be defined");
 
     InitCurrentLevel(-1);
 
@@ -832,9 +669,8 @@ vector<NiftiImage> reg_f3d2<T>::GetWarpedImage() {
     };
 
     DeinitCurrentLevel(-1);
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_f3d2<T>::GetWarpedImage");
-#endif
+
+    NR_FUNC_CALLED();
     return warpedImage;
 }
 /* *************************************************************** */

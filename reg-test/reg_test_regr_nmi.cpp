@@ -222,13 +222,13 @@ TEST_CASE_METHOD(NmiTest, "Regression NMI", "[regression]") {
         auto&& [testName, simMeasureCpu, simMeasureCuda, voxelBasedGradCpu, voxelBasedGradCuda] = testCase;
 
         SECTION(testName) {
-            std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
+            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
             // Increase the precision for the output
-            std::cout << std::fixed << std::setprecision(10);
+            NR_COUT << std::fixed << std::setprecision(10);
 
             // Check the similarity measure values
-            std::cout << "Similarity measure: " << simMeasureCpu << " " << simMeasureCuda << std::endl;
+            NR_COUT << "Similarity measure: " << simMeasureCpu << " " << simMeasureCuda << std::endl;
             REQUIRE(fabs(simMeasureCpu - simMeasureCuda) < EPS);
 
             // Check the voxel-based similarity measure gradients
@@ -237,7 +237,7 @@ TEST_CASE_METHOD(NmiTest, "Regression NMI", "[regression]") {
             for (size_t i = 0; i < voxelBasedGradCpu.nVoxels(); ++i) {
                 const float cpuVal = voxelBasedGradCpuPtr[i];
                 const float cudaVal = voxelBasedGradCudaPtr[i];
-                std::cout << i << " " << cpuVal << " " << cudaVal << std::endl;
+                NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
                 REQUIRE(fabs(cpuVal - cudaVal) < EPS);
             }
         }

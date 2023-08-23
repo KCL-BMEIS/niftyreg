@@ -32,37 +32,30 @@ __device__ double getSquareDistance3Dcu(float * first_point3D, float * second_po
                 ((double)first_point3D[2] - (double)second_point3D[2]));
 }
 /* *************************************************************** */
-void checkCublasStatus(cublasStatus_t status)
-{
-    if (status != CUBLAS_STATUS_SUCCESS) {
-        reg_print_fct_error("checkCublasStatus");
-        reg_print_msg_error("!!!! CUBLAS  error");
-        reg_exit(0);
-    }
+void checkCublasStatus(cublasStatus_t status) {
+    if (status != CUBLAS_STATUS_SUCCESS)
+        NR_FATAL_ERROR("CUBLAS error");
 }
 /* *************************************************************** */
 void checkCUSOLVERStatus(cusolverStatus_t status, char* msg) {
-
     if (status != CUSOLVER_STATUS_SUCCESS) {
-        if (status == CUSOLVER_STATUS_NOT_INITIALIZED) {
-            reg_print_fct_error("the library was not initialized.");
-        }
-        else if (status == CUSOLVER_STATUS_INTERNAL_ERROR) {
-            reg_print_fct_error(" an internal operation failed.");
-        }
-        reg_exit(0);
+        if (status == CUSOLVER_STATUS_NOT_INITIALIZED)
+            NR_FATAL_ERROR("The library was not initialized");
+        else if (status == CUSOLVER_STATUS_INTERNAL_ERROR)
+            NR_FATAL_ERROR("An internal operation failed");
+        NR_FATAL_ERROR("CUSOLVER error");
     }
 }
 /* *************************************************************** */
 void checkDevInfo(int *devInfo) {
-    int * hostDevInfo = (int*)malloc(sizeof(int));
+    int *hostDevInfo = (int*)malloc(sizeof(int));
     cudaMemcpy(hostDevInfo, devInfo, sizeof(int), cudaMemcpyDeviceToHost);
     if (hostDevInfo < 0)
-        printf("parameter: %d is wrong\n", hostDevInfo);
+        NR_ERROR("Parameter " << hostDevInfo << " is wrong");
     if (hostDevInfo > 0)
-        printf("%d superdiagonals of an intermediate bidiagonal form B did not converge to zero.\n", hostDevInfo);
+        NR_ERROR(hostDevInfo << " superdiagonals of an intermediate bidiagonal form B did not converge to zero");
     else
-        printf(" %d: operation successful\n", hostDevInfo);
+        NR_INFO(hostDevInfo << ": operation successful");
     free(hostDevInfo);
 }
 /* *************************************************************** */
@@ -172,21 +165,20 @@ __global__ void populateLengthsKernel(float* lengths, float* warped_d, float* ne
 __global__ void outputMatFlat(float* mat, const unsigned ldm, const unsigned n, char* msg)
 {
     for (int i = 0; i < ldm * n; ++i)
-        printf("%f | ", mat[i]);
-    printf("\n");
+        NR_COUT << mat[i] << " | ";
+    NR_COUT << std::endl;
 }
 /* *************************************************************** */
 //launched as 1 block 1 thread
 __global__ void outputMat(float* mat, const unsigned ldm, const unsigned n, char* msg)
 {
     for (int i = 0; i < ldm; ++i) {
-        printf("%d ", i);
-        for (int j = 0; j < n; ++j) {
-            printf("%f ", mat[IDX2C(i, j, ldm)]);
-        }
-        printf("\n");
+        NR_COUT << i << " ";
+        for (int j = 0; j < n; ++j)
+            NR_COUT << mat[IDX2C(i, j, ldm)] << " ";
+        NR_COUT << "\n";
     }
-    printf("\n");
+    NR_COUT << std::endl;
 }
 /* *************************************************************** */
 /*

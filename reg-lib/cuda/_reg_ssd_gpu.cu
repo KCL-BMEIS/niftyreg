@@ -16,15 +16,11 @@
 
 /* *************************************************************** */
 reg_ssd_gpu::reg_ssd_gpu(): reg_ssd::reg_ssd() {
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_ssd_gpu constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 reg_ssd_gpu::~reg_ssd_gpu() {
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_ssd_gpu destructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
@@ -45,14 +41,9 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
                                        warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda, localWeightSim, floMask, floMaskCuda,
                                        warpedImgBw, warpedImgBwCuda, warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
     // Check that the input images have only one time point
-    if (this->referenceImage->nt > 1 || this->floatingImage->nt > 1) {
-        reg_print_fct_error("reg_ssd_gpu::InitialiseMeasure");
-        reg_print_msg_error("Multiple timepoints are not yet supported");
-        reg_exit();
-    }
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_ssd_gpu::InitialiseMeasure()");
-#endif
+    if (this->referenceImage->nt > 1 || this->floatingImage->nt > 1)
+        NR_FATAL_ERROR("Multiple timepoints are not yet supported");
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 double reg_getSsdValue_gpu(const nifti_image *referenceImage,

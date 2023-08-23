@@ -18,9 +18,7 @@
 /* *************************************************************** */
 reg_ssd::reg_ssd(): reg_measure() {
     memset(this->normaliseTimePoint, 0, 255 * sizeof(bool));
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_ssd constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 void reg_ssd::InitialiseMeasure(nifti_image *refImg,
@@ -48,11 +46,8 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImg,
                                    voxelBasedGradBw);
 
     // Check that the input images have the same number of time point
-    if (this->referenceImage->nt != this->floatingImage->nt) {
-        reg_print_fct_error("reg_ssd::InitialiseMeasure");
-        reg_print_msg_error("This number of time point should be the same for both input images");
-        reg_exit();
-    }
+    if (this->referenceImage->nt != this->floatingImage->nt)
+        NR_FATAL_ERROR("This number of time point should be the same for both input images");
     // Input images are normalised between 0 and 1
     for (int i = 0; i < this->referenceImage->nt; ++i) {
         if (this->timePointWeight[i] > 0 && normaliseTimePoint[i]) {
@@ -76,20 +71,17 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImg,
         }
     }
 #ifdef MRF_USE_SAD
-    reg_print_msg_warn("SAD is used instead of SSD");
+    NR_WARN("SAD is used instead of SSD");
 #endif
 #ifndef NDEBUG
-    char text[255];
-    reg_print_msg_debug("reg_ssd::InitialiseMeasure()");
-    for (int i = 0; i < this->referenceImage->nt; ++i) {
-        sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
-        reg_print_msg_debug(text);
-    }
-    sprintf(text, "Normalize time point:");
+    for (int i = 0; i < this->referenceImage->nt; ++i)
+        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeight[i]);
+    std::string msg = "Normalize time point:";
     for (int i = 0; i < this->referenceImage->nt; ++i)
         if (this->normaliseTimePoint[i])
-            sprintf(text, "%s %i", text, i);
-    reg_print_msg_debug(text);
+            msg += " " + std::to_string(i);
+    NR_DEBUG(msg);
+    NR_FUNC_CALLED();
 #endif
 }
 /* *************************************************************** */
@@ -835,9 +827,7 @@ void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
                                                             this->warpedImage,
                                                             this->referenceMask);
         } else {
-            reg_print_fct_error("reg_ssd::GetDiscretisedValue");
-            reg_print_msg_error("Not implemented in 2D yet");
-            reg_exit();
+            NR_FATAL_ERROR("Not implemented in 2D yet");
         }
     }, NiftiImage::getFloatingDataType(this->referenceImage));
 }
