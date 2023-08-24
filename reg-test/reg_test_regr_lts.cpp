@@ -10,7 +10,7 @@
  *  LTS regression test to ensure the CPU and CUDA versions yield the same output
  */
 
-class LTSTest {
+class LtsTest {
 protected:
     using TestData = std::tuple<std::string, NiftiImage, NiftiImage, int, int>;
     using TestCase = std::tuple<std::string, unique_ptr<mat44>, unique_ptr<mat44>>;
@@ -18,7 +18,7 @@ protected:
     inline static vector<TestCase> testCases;
 
 public:
-    LTSTest() {
+    LtsTest() {
         if (!testCases.empty())
             return;
 
@@ -135,7 +135,7 @@ public:
     }
 };
 
-TEST_CASE_METHOD(LTSTest, "Regression LTS", "[regression]") {
+TEST_CASE_METHOD(LtsTest, "Regression LTS", "[regression]") {
     // Loop over all generated test cases
     for (auto&& testCase : this->testCases) {
         // Retrieve test information

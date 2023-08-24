@@ -11,9 +11,9 @@
     In 2D and 3D
 */
 
-class LNCCTest {
+class LnccTest {
 public:
-    LNCCTest() {
+    LnccTest() {
         if (!testCases.empty())
             return;
 
@@ -291,7 +291,7 @@ protected:
     }
 };
 
-TEST_CASE_METHOD(LNCCTest, "LNCC", "[GetSimilarityMeasureValue]") {
+TEST_CASE_METHOD(LnccTest, "LNCC", "[GetSimilarityMeasureValue]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information

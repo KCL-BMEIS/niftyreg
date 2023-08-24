@@ -10,9 +10,9 @@
     test function: NMI computation
 */
 
-class NMITest {
+class NmiTest {
 public:
-    NMITest() {
+    NmiTest() {
         if (!testCases.empty())
             return;
 
@@ -151,7 +151,7 @@ protected:
     }
 };
 
-TEST_CASE_METHOD(NMITest, "NMI", "[unit]") {
+TEST_CASE_METHOD(NmiTest, "NMI", "[unit]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information

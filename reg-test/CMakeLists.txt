@@ -123,7 +123,7 @@ set(EXEC_LIST reg_test_voxelCentricToNodeCentric ${EXEC_LIST})
 if(USE_CUDA)
   set(EXEC_LIST reg_test_regr_blockMatching ${EXEC_LIST})
   set(EXEC_LIST reg_test_regr_lts ${EXEC_LIST})
-  set(EXEC_LIST reg_test_regr_nmi ${EXEC_LIST})
+  set(EXEC_LIST reg_test_regr_measure ${EXEC_LIST})
 endif(USE_CUDA)
 
 
