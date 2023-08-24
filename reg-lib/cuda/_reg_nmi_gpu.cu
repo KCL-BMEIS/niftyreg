@@ -45,9 +45,8 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
     if (this->referenceTimePoint > 1 || this->floatingImage->nt > 1)
         NR_FATAL_ERROR("Multiple timepoints are not yet supported");
     // The reference and floating images have to be updated on the device
-    if (cudaCommon_transferNiftiToArrayOnDevice<float>(this->referenceImageCuda, this->referenceImage) ||
-        cudaCommon_transferNiftiToArrayOnDevice<float>(this->floatingImageCuda, this->floatingImage))
-        NR_FATAL_ERROR("Error when transferring the reference or floating image");
+    Cuda::TransferNiftiToDevice<float>(this->referenceImageCuda, this->referenceImage);
+    Cuda::TransferNiftiToDevice<float>(this->floatingImageCuda, this->floatingImage);
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
@@ -64,7 +63,7 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  const int *referenceMask,
                                  const int& referenceTimePoint) {
     // The NMI computation is performed on the host for now
-    cudaCommon_transferFromDeviceToNifti<float>(warpedImage, warpedImageCuda);
+    Cuda::TransferFromDeviceToNifti<float>(warpedImage, warpedImageCuda);
     reg_getNMIValue<float>(referenceImage,
                            warpedImage,
                            timePointWeight,
@@ -126,23 +125,23 @@ void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
                                       const double *entropies,
                                       const int& refBinning,
                                       const int& floBinning) {
-    auto blockSize = NiftyReg::CudaContext::GetBlockSize();
+    auto blockSize = CudaContext::GetBlockSize();
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
     const int3 imageSize = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const int binNumber = refBinning * floBinning + refBinning + floBinning;
     const float normalisedJE = (float)(entropies[2] * entropies[3]);
     const float nmi = (float)((entropies[0] + entropies[1]) / entropies[2]);
 
-    auto referenceImageTexture = cudaCommon_createTextureObject(referenceImageCuda, cudaResourceTypeArray, 0,
-                                                                cudaChannelFormatKindNone, 1, cudaFilterModePoint, true);
-    auto warpedImageTexture = cudaCommon_createTextureObject(warpedImageCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float),
-                                                             cudaChannelFormatKindFloat, 1);
-    auto warpedGradientTexture = cudaCommon_createTextureObject(warpedGradientCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float4),
-                                                                cudaChannelFormatKindFloat, 4);
-    auto histogramTexture = cudaCommon_createTextureObject(logJointHistogramCuda, cudaResourceTypeLinear, binNumber * sizeof(float),
-                                                           cudaChannelFormatKindFloat, 1);
-    auto maskTexture = cudaCommon_createTextureObject(maskCuda, cudaResourceTypeLinear, activeVoxelNumber * sizeof(int),
-                                                      cudaChannelFormatKindSigned, 1);
+    auto referenceImageTexture = Cuda::CreateTextureObject(referenceImageCuda, cudaResourceTypeArray, 0,
+                                                           cudaChannelFormatKindNone, 1, cudaFilterModePoint, true);
+    auto warpedImageTexture = Cuda::CreateTextureObject(warpedImageCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float),
+                                                        cudaChannelFormatKindFloat, 1);
+    auto warpedGradientTexture = Cuda::CreateTextureObject(warpedGradientCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float4),
+                                                           cudaChannelFormatKindFloat, 4);
+    auto histogramTexture = Cuda::CreateTextureObject(logJointHistogramCuda, cudaResourceTypeLinear, binNumber * sizeof(float),
+                                                      cudaChannelFormatKindFloat, 1);
+    auto maskTexture = Cuda::CreateTextureObject(maskCuda, cudaResourceTypeLinear, activeVoxelNumber * sizeof(int),
+                                                 cudaChannelFormatKindSigned, 1);
     NR_CUDA_SAFE_CALL(cudaMemset(voxelBasedGradientCuda, 0, voxelNumber * sizeof(float4)));
 
     if (referenceImage->nz > 1) {

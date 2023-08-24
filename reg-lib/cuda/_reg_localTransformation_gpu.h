@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "_reg_common_cuda.h"
+#include "CudaCommon.hpp"
 #include "_reg_maths.h"
 #include "_reg_tools_gpu.h"
 #include <limits>

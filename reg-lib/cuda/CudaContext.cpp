@@ -1,5 +1,5 @@
 #include "CudaContext.hpp"
-#include "_reg_common_cuda.h"
+#include "CudaCommon.hpp"
 
 namespace NiftyReg {
 /* *************************************************************** */

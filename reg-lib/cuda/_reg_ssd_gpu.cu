@@ -55,18 +55,18 @@ double reg_getSsdValue_gpu(const nifti_image *referenceImage,
     const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 
-    auto referenceTexture = cudaCommon_createTextureObject(referenceImageCuda, cudaResourceTypeArray, 0,
-                                                           cudaChannelFormatKindNone, 1, cudaFilterModePoint, true);
-    auto warpedTexture = cudaCommon_createTextureObject(warpedCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float),
-                                                        cudaChannelFormatKindFloat, 1);
-    auto maskTexture = cudaCommon_createTextureObject(maskCuda, cudaResourceTypeLinear, activeVoxelNumber * sizeof(int),
-                                                      cudaChannelFormatKindSigned, 1);
+    auto referenceTexture = Cuda::CreateTextureObject(referenceImageCuda, cudaResourceTypeArray, 0,
+                                                      cudaChannelFormatKindNone, 1, cudaFilterModePoint, true);
+    auto warpedTexture = Cuda::CreateTextureObject(warpedCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float),
+                                                   cudaChannelFormatKindFloat, 1);
+    auto maskTexture = Cuda::CreateTextureObject(maskCuda, cudaResourceTypeLinear, activeVoxelNumber * sizeof(int),
+                                                 cudaChannelFormatKindSigned, 1);
 
     // Create an array on the device to store the absolute difference values
     thrust::device_vector<float> absoluteValuesCuda(activeVoxelNumber);
 
     // Compute the absolute values
-    const unsigned blocks = NiftyReg::CudaContext::GetBlockSize()->reg_getSquaredDifference;
+    const unsigned blocks = CudaContext::GetBlockSize()->reg_getSquaredDifference;
     const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
@@ -111,19 +111,19 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
     const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 
-    auto referenceTexture = cudaCommon_createTextureObject(referenceImageCuda, cudaResourceTypeArray, 0,
-                                                           cudaChannelFormatKindNone, 1, cudaFilterModePoint, true);
-    auto warpedTexture = cudaCommon_createTextureObject(warpedCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float),
-                                                        cudaChannelFormatKindFloat, 1);
-    auto maskTexture = cudaCommon_createTextureObject(maskCuda, cudaResourceTypeLinear, activeVoxelNumber * sizeof(int),
-                                                      cudaChannelFormatKindSigned, 1);
-    auto spaGradientTexture = cudaCommon_createTextureObject(spaGradientCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float4),
-                                                             cudaChannelFormatKindFloat, 4);
+    auto referenceTexture = Cuda::CreateTextureObject(referenceImageCuda, cudaResourceTypeArray, 0,
+                                                      cudaChannelFormatKindNone, 1, cudaFilterModePoint, true);
+    auto warpedTexture = Cuda::CreateTextureObject(warpedCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float),
+                                                   cudaChannelFormatKindFloat, 1);
+    auto maskTexture = Cuda::CreateTextureObject(maskCuda, cudaResourceTypeLinear, activeVoxelNumber * sizeof(int),
+                                                 cudaChannelFormatKindSigned, 1);
+    auto spaGradientTexture = Cuda::CreateTextureObject(spaGradientCuda, cudaResourceTypeLinear, voxelNumber * sizeof(float4),
+                                                        cudaChannelFormatKindFloat, 4);
 
     // Set the gradient image to zero
     NR_CUDA_SAFE_CALL(cudaMemset(ssdGradientCuda, 0, voxelNumber * sizeof(float4)));
 
-    const unsigned blocks = NiftyReg::CudaContext::GetBlockSize()->reg_getSSDGradient;
+    const unsigned blocks = CudaContext::GetBlockSize()->reg_getSSDGradient;
     const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);

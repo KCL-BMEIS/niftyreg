@@ -24,44 +24,44 @@ CudaF3dContent::~CudaF3dContent() {
 }
 /* *************************************************************** */
 void CudaF3dContent::AllocateControlPointGrid() {
-    cudaCommon_allocateArrayToDevice(&controlPointGridCuda, controlPointGrid->dim);
-    cudaCommon_transferNiftiToArrayOnDevice(controlPointGridCuda, controlPointGrid);
+    Cuda::Allocate(&controlPointGridCuda, controlPointGrid->dim);
+    Cuda::TransferNiftiToDevice(controlPointGridCuda, controlPointGrid);
 }
 /* *************************************************************** */
 void CudaF3dContent::DeallocateControlPointGrid() {
     if (controlPointGridCuda) {
-        cudaCommon_free(controlPointGridCuda);
+        Cuda::Free(controlPointGridCuda);
         controlPointGridCuda = nullptr;
     }
 }
 /* *************************************************************** */
 void CudaF3dContent::AllocateTransformationGradient() {
-    cudaCommon_allocateArrayToDevice(&transformationGradientCuda, transformationGradient->dim);
+    Cuda::Allocate(&transformationGradientCuda, transformationGradient->dim);
 }
 /* *************************************************************** */
 void CudaF3dContent::DeallocateTransformationGradient() {
     if (transformationGradientCuda) {
-        cudaCommon_free(transformationGradientCuda);
+        Cuda::Free(transformationGradientCuda);
         transformationGradientCuda = nullptr;
     }
 }
 /* *************************************************************** */
 nifti_image* CudaF3dContent::GetControlPointGrid() {
-    cudaCommon_transferFromDeviceToNifti(controlPointGrid, controlPointGridCuda);
+    Cuda::TransferFromDeviceToNifti(controlPointGrid, controlPointGridCuda);
     return controlPointGrid;
 }
 /* *************************************************************** */
 void CudaF3dContent::UpdateControlPointGrid() {
-    cudaCommon_transferNiftiToArrayOnDevice(controlPointGridCuda, controlPointGrid);
+    Cuda::TransferNiftiToDevice(controlPointGridCuda, controlPointGrid);
 }
 /* *************************************************************** */
 nifti_image* CudaF3dContent::GetTransformationGradient() {
-    cudaCommon_transferFromDeviceToNifti(transformationGradient, transformationGradientCuda);
+    Cuda::TransferFromDeviceToNifti(transformationGradient, transformationGradientCuda);
     return transformationGradient;
 }
 /* *************************************************************** */
 void CudaF3dContent::UpdateTransformationGradient() {
-    cudaCommon_transferNiftiToArrayOnDevice(transformationGradientCuda, transformationGradient);
+    Cuda::TransferNiftiToDevice(transformationGradientCuda, transformationGradient);
 }
 /* *************************************************************** */
 void CudaF3dContent::ZeroTransformationGradient() {

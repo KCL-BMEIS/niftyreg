@@ -128,14 +128,14 @@ double CudaCompute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimi
     if (!optimiseX && !optimiseY && !optimiseZ) return 0;
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(con.F3dContent::GetTransformationGradient(), 3);
-    return NiftyReg::Cuda::GetMaximalLength(con.GetTransformationGradientCuda(), voxelsPerVolume, optimiseX, optimiseY, optimiseZ);
+    return Cuda::GetMaximalLength(con.GetTransformationGradientCuda(), voxelsPerVolume, optimiseX, optimiseY, optimiseZ);
 }
 /* *************************************************************** */
 void CudaCompute::NormaliseGradient(double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ) {
     if (maxGradLength == 0 || (!optimiseX && !optimiseY && !optimiseZ)) return;
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(con.F3dContent::GetTransformationGradient(), 3);
-    NiftyReg::Cuda::NormaliseGradient(con.GetTransformationGradientCuda(), voxelsPerVolume, static_cast<float>(maxGradLength), optimiseX, optimiseY, optimiseZ);
+    Cuda::NormaliseGradient(con.GetTransformationGradientCuda(), voxelsPerVolume, static_cast<float>(maxGradLength), optimiseX, optimiseY, optimiseZ);
 }
 /* *************************************************************** */
 void CudaCompute::SmoothGradient(float sigma) {

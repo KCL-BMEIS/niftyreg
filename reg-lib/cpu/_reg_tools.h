@@ -23,6 +23,7 @@
 #include "_reg_maths.h"
 #include "Debug.hpp"
 
+using namespace NiftyReg;
 using namespace std::string_literals;
 using std::unique_ptr;
 using std::shared_ptr;

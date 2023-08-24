@@ -1,6 +1,6 @@
 #pragma once
 
-#include "_reg_common_cuda.h"
+#include "CudaCommon.hpp"
 
 namespace NiftyReg::Cuda {
 /* *************************************************************** */

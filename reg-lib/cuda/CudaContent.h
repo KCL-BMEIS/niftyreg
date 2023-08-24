@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Content.h"
-#include "_reg_common_cuda.h"
+#include "CudaCommon.hpp"
 
 class CudaContent: public virtual Content {
 public:

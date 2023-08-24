@@ -7,9 +7,9 @@
 
 #pragma once
 
+#include "CudaCommon.hpp"
 #include "_reg_lncc.h"
 #include "_reg_dti.h"
-#include "_reg_common_cuda.h"
 #include "_reg_kld.h"
 
 /* *************************************************************** */

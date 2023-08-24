@@ -48,7 +48,7 @@ else(NOT COMPILE_RESULT_VAR)
     endif(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUAL "OFF")
 endif(NOT COMPILE_RESULT_VAR)
 #-----------------------------------------------------------------------------
-set(NAME _reg_common_cuda)
+set(NAME CudaCommon)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cu)
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
 install(TARGETS ${NAME}
@@ -85,7 +85,7 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     _reg_ssd_gpu.cu
     _reg_optimiser_gpu.cu
 )
-target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
+target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} CudaCommon)
 install(TARGETS ${NAME}
     RUNTIME DESTINATION lib
     LIBRARY DESTINATION lib

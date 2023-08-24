@@ -73,7 +73,7 @@ void Platform::SetGpuIdx(unsigned gpuIdxIn) {
     }
 #ifdef _USE_CUDA
     else if (platformType == PlatformType::Cuda) {
-        NiftyReg::CudaContext& cudaContext = NiftyReg::CudaContext::GetInstance();
+        CudaContext& cudaContext = CudaContext::GetInstance();
         if (gpuIdxIn != 999) {
             gpuIdx = gpuIdxIn;
             cudaContext.SetCudaIdx(gpuIdxIn);

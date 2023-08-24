@@ -5,7 +5,7 @@
 #include"_reg_resampling.h"
 #include"_reg_maths.h"
 #include "resampleKernel.h"
-#include "_reg_common_cuda.h"
+#include "CudaCommon.hpp"
 #include"_reg_tools.h"
 #include"_reg_ReadWriteImage.h"
 
