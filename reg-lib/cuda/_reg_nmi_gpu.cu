@@ -30,7 +30,7 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
                                     nifti_image *warpedImg, float *warpedImgCuda,
                                     nifti_image *warpedGrad, float4 *warpedGradCuda,
                                     nifti_image *voxelBasedGrad, float4 *voxelBasedGradCuda,
-                                    nifti_image *localWeightSim,
+                                    nifti_image *localWeightSim, float *localWeightSimCuda,
                                     int *floMask, int *floMaskCuda,
                                     nifti_image *warpedImgBw, float *warpedImgBwCuda,
                                     nifti_image *warpedGradBw, float4 *warpedGradBwCuda,
@@ -38,9 +38,10 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
     this->DeallocateHistogram();
     reg_nmi::InitialiseMeasure(refImg, floImg, refMask, warpedImg, warpedGrad, voxelBasedGrad,
                                localWeightSim, floMask, warpedImgBw, warpedGradBw, voxelBasedGradBw);
-    reg_measure_gpu::InitialiseMeasure(refImg, refImgCuda, floImg, floImgCuda, refMask, refMaskCuda, activeVoxNum, warpedImg, warpedImgCuda,
-                                       warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda, localWeightSim, floMask, floMaskCuda,
-                                       warpedImgBw, warpedImgBwCuda, warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
+    reg_measure_gpu::InitialiseMeasure(refImg, refImgCuda, floImg, floImgCuda, refMask, refMaskCuda, activeVoxNum,
+                                       warpedImg, warpedImgCuda, warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda,
+                                       localWeightSim, localWeightSimCuda, floMask, floMaskCuda, warpedImgBw, warpedImgBwCuda,
+                                       warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
     // Check if the input images have multiple timepoints
     if (this->referenceTimePoint > 1 || this->floatingImage->nt > 1)
         NR_FATAL_ERROR("Multiple timepoints are not yet supported");

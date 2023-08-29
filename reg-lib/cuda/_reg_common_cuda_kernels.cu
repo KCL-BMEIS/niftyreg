@@ -73,3 +73,14 @@ __device__ __inline__ void reg_div_cuda(const int num, const int denom, int& quo
     rem = num % denom;
 }
 /* *************************************************************** */
+__device__ __inline__ int3 reg_indexToDims_cuda(const int& index, const int3& dims) {
+    int quot = 0, rem;
+    if (dims.z > 1)
+        reg_div_cuda(index, dims.x * dims.y, quot, rem);
+    else rem = index;
+    const int z = quot;
+    reg_div_cuda(rem, dims.x, quot, rem);
+    const int y = quot, x = rem;
+    return { x, y, z };
+}
+/* *************************************************************** */

@@ -12,11 +12,26 @@ CudaDefContent::CudaDefContent(nifti_image *referenceIn,
     Content(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, sizeof(float)) {
     AllocateWarpedGradient();
     AllocateVoxelBasedMeasureGradient();
+    AllocateLocalWeightSim();
 }
 /* *************************************************************** */
 CudaDefContent::~CudaDefContent() {
     DeallocateWarpedGradient();
     DeallocateVoxelBasedMeasureGradient();
+    DeallocateLocalWeightSim();
+}
+/* *************************************************************** */
+void CudaDefContent::AllocateLocalWeightSim() {
+    if (!localWeightSim) return;
+    Cuda::Allocate(&localWeightSimCuda, localWeightSim->nvox);
+    Cuda::TransferNiftiToDevice(localWeightSimCuda, localWeightSim);
+}
+/* *************************************************************** */
+void CudaDefContent::DeallocateLocalWeightSim() {
+    if (localWeightSimCuda != nullptr) {
+        Cuda::Free(localWeightSimCuda);
+        localWeightSimCuda = nullptr;
+    }
 }
 /* *************************************************************** */
 void CudaDefContent::AllocateWarpedGradient() {
@@ -39,6 +54,11 @@ void CudaDefContent::DeallocateVoxelBasedMeasureGradient() {
         Cuda::Free(voxelBasedMeasureGradientCuda);
         voxelBasedMeasureGradientCuda = nullptr;
     }
+}
+/* *************************************************************** */
+nifti_image* CudaDefContent::GetLocalWeightSim() {
+    Cuda::TransferFromDeviceToNifti(localWeightSim, localWeightSimCuda);
+    return localWeightSim;
 }
 /* *************************************************************** */
 nifti_image* CudaDefContent::GetVoxelBasedMeasureGradient() {

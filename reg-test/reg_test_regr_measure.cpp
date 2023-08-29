@@ -13,7 +13,7 @@
 
 class MeasureTest {
 protected:
-    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, MeasureType, bool>;
+    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, NiftiImage, MeasureType, bool>;
     using TestCase = std::tuple<std::string, double, double, NiftiImage, NiftiImage>;
 
     inline static vector<TestCase> testCases;
@@ -27,33 +27,39 @@ public:
         std::mt19937 gen(0);
         std::uniform_real_distribution<float> distr(0, 1);
 
-        // Create 2D reference, floating and control point grid images
+        // Create 2D reference, floating, control point grid and local weight similarity images
         constexpr NiftiImage::dim_t size = 16;
         vector<NiftiImage::dim_t> dim{ size, size };
         NiftiImage reference2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage controlPointGrid2d(CreateControlPointGrid(reference2d));
+        NiftiImage localWeightSim2d(dim, NIFTI_TYPE_FLOAT32);
 
-        // Create 3D reference, floating and control point grid images
+        // Create 3D reference, floating, control point grid and local weight similarity images
         dim.push_back(size);
         NiftiImage reference3d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating3d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage controlPointGrid3d(CreateControlPointGrid(reference3d));
+        NiftiImage localWeightSim3d(dim, NIFTI_TYPE_FLOAT32);
 
         // Fill images with random values
         auto ref2dPtr = reference2d.data();
         auto flo2dPtr = floating2d.data();
+        auto localWeightSim2dPtr = localWeightSim2d.data();
         for (size_t i = 0; i < reference2d.nVoxels(); ++i) {
             ref2dPtr[i] = distr(gen);
             flo2dPtr[i] = distr(gen);
+            localWeightSim2dPtr[i] = distr(gen);
         }
 
         // Fill images with random values
         auto ref3dPtr = reference3d.data();
         auto flo3dPtr = floating3d.data();
+        auto localWeightSim3dPtr = localWeightSim3d.data();
         for (size_t i = 0; i < reference3d.nVoxels(); ++i) {
             ref3dPtr[i] = distr(gen);
             flo3dPtr[i] = distr(gen);
+            localWeightSim3dPtr[i] = distr(gen);
         }
 
         // Create the data container for the regression test
@@ -67,6 +73,7 @@ public:
                     reference2d,
                     floating2d,
                     controlPointGrid2d,
+                    localWeightSim2d,
                     measure,
                     sym
                 ));
@@ -75,6 +82,7 @@ public:
                     reference3d,
                     floating3d,
                     controlPointGrid3d,
+                    localWeightSim3d,
                     measure,
                     sym
                 ));
@@ -91,20 +99,21 @@ public:
 
         for (auto&& testData : testData) {
             // Get the test data
-            auto&& [testName, reference, floating, controlPointGrid, measureType, isSymmetric] = testData;
+            auto&& [testName, reference, floating, controlPointGrid, localWeightSim, measureType, isSymmetric] = testData;
 
             // Create images
             NiftiImage referenceCpu(reference), referenceCuda(reference);
             NiftiImage floatingCpu(floating), floatingCuda(floating);
             NiftiImage controlPointGridCpu(controlPointGrid), controlPointGridCuda(controlPointGrid);
             NiftiImage controlPointGridCpuBw(controlPointGrid), controlPointGridCudaBw(controlPointGrid);
+            NiftiImage localWeightSimCpu(localWeightSim), localWeightSimCuda(localWeightSim);
 
             // Create the contents
             unique_ptr<F3dContent> contentCpu{ new F3dContent(
                 referenceCpu,
                 floatingCpu,
                 controlPointGridCpu,
-                nullptr,
+                localWeightSimCpu,
                 nullptr,
                 nullptr,
                 sizeof(float)
@@ -113,7 +122,7 @@ public:
                 referenceCuda,
                 floatingCuda,
                 controlPointGridCuda,
-                nullptr,
+                localWeightSimCuda,
                 nullptr,
                 nullptr,
                 sizeof(float)

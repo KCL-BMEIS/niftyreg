@@ -35,6 +35,7 @@ public:
                                    nifti_image *voxelBasedGrad,
                                    float4 *voxelBasedGradCuda,
                                    nifti_image *localWeightSim = nullptr,
+                                   float *localWeightSimCuda = nullptr,
                                    int *floMask = nullptr,
                                    int *floMaskCuda = nullptr,
                                    nifti_image *warpedImgBw = nullptr,
@@ -54,6 +55,7 @@ public:
         this->warpedImageCuda = warpedImgCuda;
         this->warpedGradientCuda = warpedGradCuda;
         this->voxelBasedGradientCuda = voxelBasedGradCuda;
+        this->localWeightSimCuda = localWeightSimCuda;
         // Check if the symmetric mode is used
         if (floMask != nullptr && warpedImgBw != nullptr && warpedGradBw != nullptr && voxelBasedGradBw != nullptr &&
             floMaskCuda != nullptr && warpedImgBwCuda != nullptr && warpedGradBwCuda != nullptr && voxelBasedGradBwCuda != nullptr) {
@@ -80,6 +82,7 @@ protected:
     float *warpedImageCuda;
     float4 *warpedGradientCuda;
     float4 *voxelBasedGradientCuda;
+    float *localWeightSimCuda;
 
     int *floatingMaskCuda;
     float *warpedImageBwCuda;
@@ -110,6 +113,7 @@ public:
                                    nifti_image *voxelBasedGrad,
                                    float4 *voxelBasedGradCuda,
                                    nifti_image *localWeightSim = nullptr,
+                                   float *localWeightSimCuda = nullptr,
                                    int *floMask = nullptr,
                                    int *floMaskCuda = nullptr,
                                    nifti_image *warpedImgBw = nullptr,
@@ -151,6 +155,7 @@ public:
                                    nifti_image *voxelBasedGrad,
                                    float4 *voxelBasedGradCuda,
                                    nifti_image *localWeightSim = nullptr,
+                                   float *localWeightSimCuda = nullptr,
                                    int *floMask = nullptr,
                                    int *floMaskCuda = nullptr,
                                    nifti_image *warpedImgBw = nullptr,
@@ -192,6 +197,7 @@ public:
                                    nifti_image *voxelBasedGrad,
                                    float4 *voxelBasedGradCuda,
                                    nifti_image *localWeightSim = nullptr,
+                                   float *localWeightSimCuda = nullptr,
                                    int *floMask = nullptr,
                                    int *floMaskCuda = nullptr,
                                    nifti_image *warpedImgBw = nullptr,

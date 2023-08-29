@@ -399,7 +399,6 @@ double GetSimilarityMeasureValue(nifti_image *referenceImage,
                                  const double *timePointWeight,
                                  double *timePointWeightDescriptor,
                                  nifti_image *jacobianDetImage,
-                                 float *currentValue,
                                  const int& descriptorOffset,
                                  const int& referenceTimePoint,
                                  const int& mindType) {
@@ -428,7 +427,6 @@ double GetSimilarityMeasureValue(nifti_image *referenceImage,
                                                         timePointWeightDescriptor,
                                                         jacobianDetImage,
                                                         combinedMask.get(),
-                                                        currentValue,
                                                         nullptr);
             }, NiftiImage::getFloatingDataType(referenceImageDescriptor));
         }
@@ -445,7 +443,6 @@ double reg_mind::GetSimilarityMeasureValueFw() {
                                        this->timePointWeight,
                                        this->timePointWeightDescriptor,
                                        nullptr, // TODO this->forwardJacDetImagePointer,
-                                       this->currentValue,
                                        this->descriptorOffset,
                                        this->referenceTimePoint,
                                        this->mindType);
@@ -460,7 +457,6 @@ double reg_mind::GetSimilarityMeasureValueBw() {
                                        this->timePointWeight,
                                        this->timePointWeightDescriptor,
                                        nullptr, // TODO this->backwardJacDetImagePointer,
-                                       this->currentValue,
                                        this->descriptorOffset,
                                        this->referenceTimePoint,
                                        this->mindType);

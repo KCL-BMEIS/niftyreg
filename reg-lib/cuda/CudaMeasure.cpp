@@ -44,6 +44,7 @@ void CudaMeasure::Initialise(reg_measure& measure, DefContent& con, DefContent *
                                  cudaCon.DefContent::GetVoxelBasedMeasureGradient(),
                                  cudaCon.GetVoxelBasedMeasureGradientCuda(),
                                  cudaCon.DefContent::GetLocalWeightSim(),
+                                 cudaCon.GetLocalWeightSimCuda(),
                                  cudaConBw ? cudaConBw->Content::GetReferenceMask() : nullptr,
                                  cudaConBw ? cudaConBw->GetReferenceMaskCuda() : nullptr,
                                  cudaConBw ? cudaConBw->Content::GetWarped() : nullptr,
