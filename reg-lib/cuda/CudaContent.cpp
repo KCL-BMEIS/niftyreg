@@ -56,7 +56,7 @@ void CudaContent::DeallocateDeformationField() {
 }
 /* *************************************************************** */
 void CudaContent::AllocateWarped() {
-    Cuda::Allocate<float>(&warpedCuda, warped->dim);
+    Cuda::Allocate(&warpedCuda, warped->nvox);
 }
 /* *************************************************************** */
 void CudaContent::DeallocateWarped() {

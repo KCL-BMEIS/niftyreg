@@ -59,9 +59,6 @@ typedef enum {
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
-#ifndef isnan
-#define isnan(_X) _isnan(_X)
-#endif
 #if (_MSC_VER < 1900)
 #ifndef strtof
 #define strtof(_s, _t) (float) strtod(_s, _t)

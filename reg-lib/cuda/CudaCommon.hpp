@@ -85,6 +85,9 @@ void TransferNiftiToDevice(DataType*, const nifti_image*);
 template <class DataType>
 void TransferNiftiToDevice(DataType*, DataType*, const nifti_image*);
 /* *************************************************************** */
+template <class DataType>
+void TransferNiftiToDevice(DataType*, const DataType*, const size_t&);
+/* *************************************************************** */
 void TransferFromDeviceToNifti(nifti_image*, const cudaArray*);
 /* *************************************************************** */
 template <class DataType>
@@ -92,12 +95,6 @@ void TransferFromDeviceToNifti(nifti_image*, const DataType*);
 /* *************************************************************** */
 template <class DataType>
 void TransferFromDeviceToNifti(nifti_image*, const DataType*, const DataType*);
-/* *************************************************************** */
-template <class DataType>
-void TransferNiftiToDeviceSimple(DataType*, const nifti_image*);
-/* *************************************************************** */
-template <class DataType>
-void TransferNiftiToDeviceSimple(DataType*, const DataType*, const size_t&);
 /* *************************************************************** */
 template <class DataType>
 void TransferFromDeviceToHost(DataType*, const DataType*, const size_t&);

@@ -65,32 +65,32 @@ void CudaAladinContent::AllocateCuPtrs() {
     }
     if (referenceMask != nullptr) {
         Cuda::Allocate<int>(&mask_d, reference->nvox);
-        Cuda::TransferNiftiToDeviceSimple<int>(mask_d, referenceMask, reference->nvox);
+        Cuda::TransferNiftiToDevice(mask_d, referenceMask, reference->nvox);
     }
     if (reference != nullptr) {
         Cuda::Allocate<float>(&referenceImageArray_d, reference->nvox);
         Cuda::Allocate<float>(&referenceMat_d, sizeof(mat44) / sizeof(float));
 
-        Cuda::TransferNiftiToDeviceSimple<float>(referenceImageArray_d, reference);
+        Cuda::TransferNiftiToDevice(referenceImageArray_d, reference);
 
         float* targetMat = (float *)malloc(sizeof(mat44)); //freed
         mat44ToCptr(*GetXYZMatrix(*reference), targetMat);
-        Cuda::TransferNiftiToDeviceSimple<float>(referenceMat_d, targetMat, sizeof(mat44) / sizeof(float));
+        Cuda::TransferNiftiToDevice(referenceMat_d, targetMat, sizeof(mat44) / sizeof(float));
         free(targetMat);
     }
     if (warped != nullptr) {
         Cuda::Allocate<float>(&warpedImageArray_d, warped->nvox);
-        Cuda::TransferNiftiToDeviceSimple<float>(warpedImageArray_d, warped);
+        Cuda::TransferNiftiToDevice(warpedImageArray_d, warped);
     }
     if (deformationField != nullptr) {
         Cuda::Allocate<float>(&deformationFieldArray_d, deformationField->nvox);
-        Cuda::TransferNiftiToDeviceSimple<float>(deformationFieldArray_d, deformationField);
+        Cuda::TransferNiftiToDevice(deformationFieldArray_d, deformationField);
     }
     if (floating != nullptr) {
         Cuda::Allocate<float>(&floatingImageArray_d, floating->nvox);
         Cuda::Allocate<float>(&floIJKMat_d, sizeof(mat44) / sizeof(float));
 
-        Cuda::TransferNiftiToDeviceSimple<float>(floatingImageArray_d, floating);
+        Cuda::TransferNiftiToDevice(floatingImageArray_d, floating);
 
         float *sourceIJKMatrix_h = (float*)malloc(sizeof(mat44));
         mat44ToCptr(*GetIJKMatrix(*floating), sourceIJKMatrix_h);
@@ -109,7 +109,7 @@ void CudaAladinContent::AllocateCuPtrs() {
         }
         if (blockMatchingParams->totalBlock != nullptr) {
             Cuda::Allocate<int>(&totalBlock_d, blockMatchingParams->totalBlockNumber);
-            Cuda::TransferNiftiToDeviceSimple<int>(totalBlock_d, blockMatchingParams->totalBlock, blockMatchingParams->totalBlockNumber);
+            Cuda::TransferNiftiToDevice(totalBlock_d, blockMatchingParams->totalBlock, blockMatchingParams->totalBlockNumber);
         }
         /* // Removed until CUDA SVD is added back
         if (blockMatchingParams->activeBlockNumber > 0 ) {
@@ -169,7 +169,7 @@ void CudaAladinContent::SetDeformationField(nifti_image *deformationFieldIn) {
     AladinContent::SetDeformationField(deformationFieldIn);
 
     Cuda::Allocate<float>(&deformationFieldArray_d, deformationField->nvox);
-    Cuda::TransferNiftiToDeviceSimple<float>(deformationFieldArray_d, deformationField);
+    Cuda::TransferNiftiToDevice(deformationFieldArray_d, deformationField);
 }
 /* *************************************************************** */
 void CudaAladinContent::SetReferenceMask(int *referenceMaskIn) {
@@ -177,7 +177,7 @@ void CudaAladinContent::SetReferenceMask(int *referenceMaskIn) {
         Cuda::Free(mask_d);
     AladinContent::SetReferenceMask(referenceMaskIn);
     Cuda::Allocate<int>(&mask_d, reference->nvox);
-    Cuda::TransferNiftiToDeviceSimple<int>(mask_d, referenceMaskIn, reference->nvox);
+    Cuda::TransferNiftiToDevice(mask_d, referenceMaskIn, reference->nvox);
 }
 /* *************************************************************** */
 void CudaAladinContent::SetWarped(nifti_image *warped) {
@@ -187,7 +187,7 @@ void CudaAladinContent::SetWarped(nifti_image *warped) {
     reg_tools_changeDatatype<float>(warped);
 
     Cuda::Allocate<float>(&warpedImageArray_d, warped->nvox);
-    Cuda::TransferNiftiToDeviceSimple<float>(warpedImageArray_d, warped);
+    Cuda::TransferNiftiToDevice(warpedImageArray_d, warped);
 }
 /* *************************************************************** */
 void CudaAladinContent::SetBlockMatchingParams(_reg_blockMatchingParam* bmp) {

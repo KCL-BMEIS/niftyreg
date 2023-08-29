@@ -41,9 +41,9 @@ template <class DataType>
 void Allocate(DataType **arrayCuda, const size_t& nVoxels) {
     NR_CUDA_SAFE_CALL(cudaMalloc(arrayCuda, nVoxels * sizeof(DataType)));
 }
+template void Allocate<int>(int**, const size_t&);
 template void Allocate<float>(float**, const size_t&);
 template void Allocate<double>(double**, const size_t&);
-template void Allocate<int>(int**, const size_t&);
 template void Allocate<float4>(float4**, const size_t&); // for deformation field
 /* *************************************************************** */
 template <class DataType>
@@ -51,9 +51,9 @@ void Allocate(DataType **arrayCuda, const int *dim) {
     const size_t memSize = (size_t)std::abs(dim[1]) * (size_t)std::abs(dim[2]) * (size_t)std::abs(dim[3]) * sizeof(DataType);
     NR_CUDA_SAFE_CALL(cudaMalloc(arrayCuda, memSize));
 }
+template void Allocate<int>(int**, const int*);
 template void Allocate<float>(float**, const int*);
 template void Allocate<double>(double**, const int*);
-template void Allocate<int>(int**, const int*);
 template void Allocate<float4>(float4**, const int*); // for deformation field
 /* *************************************************************** */
 template <class DataType>
@@ -68,19 +68,17 @@ template void Allocate<float4>(float4**, float4**, const int*); // for deformati
 /* *************************************************************** */
 template <class DataType, class NiftiType>
 void TransferNiftiToDevice(cudaArray *arrayCuda, const nifti_image *img) {
-    if (sizeof(DataType) != sizeof(NiftiType)) {
+    if (sizeof(DataType) != sizeof(NiftiType))
         NR_FATAL_ERROR("The host and device arrays are of different types");
-    } else {
-        cudaMemcpy3DParms copyParams{};
-        copyParams.extent = make_cudaExtent(std::abs(img->dim[1]), std::abs(img->dim[2]), std::abs(img->dim[3]));
-        copyParams.srcPtr = make_cudaPitchedPtr(img->data,
-                                                copyParams.extent.width * sizeof(DataType),
-                                                copyParams.extent.width,
-                                                copyParams.extent.height);
-        copyParams.dstArray = arrayCuda;
-        copyParams.kind = cudaMemcpyHostToDevice;
-        NR_CUDA_SAFE_CALL(cudaMemcpy3D(&copyParams));
-    }
+    cudaMemcpy3DParms copyParams{};
+    copyParams.extent = make_cudaExtent(std::abs(img->dim[1]), std::abs(img->dim[2]), std::abs(img->dim[3]));
+    copyParams.srcPtr = make_cudaPitchedPtr(img->data,
+                                            copyParams.extent.width * sizeof(DataType),
+                                            copyParams.extent.width,
+                                            copyParams.extent.height);
+    copyParams.dstArray = arrayCuda;
+    copyParams.kind = cudaMemcpyHostToDevice;
+    NR_CUDA_SAFE_CALL(cudaMemcpy3D(&copyParams));
 }
 /* *************************************************************** */
 template <class DataType>
@@ -131,29 +129,27 @@ template void TransferNiftiToDevice<float4>(cudaArray*, const nifti_image*); // 
 /* *************************************************************** */
 template <class DataType, class NiftiType>
 void TransferNiftiToDevice(cudaArray *array1Cuda, cudaArray *array2Cuda, const nifti_image *img) {
-    if (sizeof(DataType) != sizeof(NiftiType)) {
+    if (sizeof(DataType) != sizeof(NiftiType))
         NR_FATAL_ERROR("The host and device arrays are of different types");
-    } else {
-        NiftiType *array1 = static_cast<NiftiType*>(img->data);
-        NiftiType *array2 = &array1[NiftiImage::calcVoxelNumber(img, 3)];
-        cudaMemcpy3DParms copyParams{};
-        copyParams.extent = make_cudaExtent(std::abs(img->dim[1]), std::abs(img->dim[2]), std::abs(img->dim[3]));
-        copyParams.kind = cudaMemcpyHostToDevice;
-        // First timepoint
-        copyParams.srcPtr = make_cudaPitchedPtr(array1,
-                                                copyParams.extent.width * sizeof(DataType),
-                                                copyParams.extent.width,
-                                                copyParams.extent.height);
-        copyParams.dstArray = array1Cuda;
-        NR_CUDA_SAFE_CALL(cudaMemcpy3D(&copyParams));
-        // Second timepoint
-        copyParams.srcPtr = make_cudaPitchedPtr(array2,
-                                                copyParams.extent.width * sizeof(DataType),
-                                                copyParams.extent.width,
-                                                copyParams.extent.height);
-        copyParams.dstArray = array2Cuda;
-        NR_CUDA_SAFE_CALL(cudaMemcpy3D(&copyParams));
-    }
+    NiftiType *array1 = static_cast<NiftiType*>(img->data);
+    NiftiType *array2 = &array1[NiftiImage::calcVoxelNumber(img, 3)];
+    cudaMemcpy3DParms copyParams{};
+    copyParams.extent = make_cudaExtent(std::abs(img->dim[1]), std::abs(img->dim[2]), std::abs(img->dim[3]));
+    copyParams.kind = cudaMemcpyHostToDevice;
+    // First timepoint
+    copyParams.srcPtr = make_cudaPitchedPtr(array1,
+                                            copyParams.extent.width * sizeof(DataType),
+                                            copyParams.extent.width,
+                                            copyParams.extent.height);
+    copyParams.dstArray = array1Cuda;
+    NR_CUDA_SAFE_CALL(cudaMemcpy3D(&copyParams));
+    // Second timepoint
+    copyParams.srcPtr = make_cudaPitchedPtr(array2,
+                                            copyParams.extent.width * sizeof(DataType),
+                                            copyParams.extent.width,
+                                            copyParams.extent.height);
+    copyParams.dstArray = array2Cuda;
+    NR_CUDA_SAFE_CALL(cudaMemcpy3D(&copyParams));
 }
 /* *************************************************************** */
 template <class DataType>
@@ -221,12 +217,9 @@ template void TransferNiftiToDevice<float4>(cudaArray*, cudaArray*, const nifti_
 /* *************************************************************** */
 template <class DataType, class NiftiType>
 void TransferNiftiToDevice(DataType *arrayCuda, const nifti_image *img) {
-    if (sizeof(DataType) != sizeof(NiftiType)) {
+    if (sizeof(DataType) != sizeof(NiftiType))
         NR_FATAL_ERROR("The host and device arrays are of different types");
-    } else {
-        const size_t memSize = NiftiImage::calcVoxelNumber(img, 3) * sizeof(NiftiType);
-        NR_CUDA_SAFE_CALL(cudaMemcpy(arrayCuda, img->data, memSize, cudaMemcpyHostToDevice));
-    }
+    NR_CUDA_SAFE_CALL(cudaMemcpy(arrayCuda, img->data, img->nvox * sizeof(NiftiType), cudaMemcpyHostToDevice));
 }
 /* *************************************************************** */
 template <class DataType>
@@ -262,23 +255,21 @@ void TransferNiftiToDevice(DataType *arrayCuda, const nifti_image *img) {
         }
     }
 }
-template void TransferNiftiToDevice<double>(double*, const nifti_image*);
-template void TransferNiftiToDevice<float>(float*, const nifti_image*);
 template void TransferNiftiToDevice<int>(int*, const nifti_image*);
+template void TransferNiftiToDevice<float>(float*, const nifti_image*);
+template void TransferNiftiToDevice<double>(double*, const nifti_image*);
 template void TransferNiftiToDevice<float4>(float4*, const nifti_image*);
 /* *************************************************************** */
 template <class DataType, class NiftiType>
 void TransferNiftiToDevice(DataType *array1Cuda, DataType *array2Cuda, const nifti_image *img) {
-    if (sizeof(DataType) != sizeof(NiftiType)) {
+    if (sizeof(DataType) != sizeof(NiftiType))
         NR_FATAL_ERROR("The host and device arrays are of different types");
-    } else {
-        const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
-        const size_t memSize = voxelNumber * sizeof(DataType);
-        const NiftiType *array1 = static_cast<NiftiType*>(img->data);
-        const NiftiType *array2 = &array1[voxelNumber];
-        NR_CUDA_SAFE_CALL(cudaMemcpy(array1Cuda, array1, memSize, cudaMemcpyHostToDevice));
-        NR_CUDA_SAFE_CALL(cudaMemcpy(array2Cuda, array2, memSize, cudaMemcpyHostToDevice));
-    }
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
+    const size_t memSize = voxelNumber * sizeof(DataType);
+    const NiftiType *array1 = static_cast<NiftiType*>(img->data);
+    const NiftiType *array2 = &array1[voxelNumber];
+    NR_CUDA_SAFE_CALL(cudaMemcpy(array1Cuda, array1, memSize, cudaMemcpyHostToDevice));
+    NR_CUDA_SAFE_CALL(cudaMemcpy(array2Cuda, array2, memSize, cudaMemcpyHostToDevice));
 }
 /* *************************************************************** */
 template <class DataType>
@@ -328,6 +319,14 @@ template void TransferNiftiToDevice<float>(float*, float*, const nifti_image*);
 template void TransferNiftiToDevice<double>(double*, double*, const nifti_image*);
 template void TransferNiftiToDevice<float4>(float4*, float4*, const nifti_image*); // for deformation field
 /* *************************************************************** */
+template <class DataType>
+void TransferNiftiToDevice(DataType *arrayCuda, const DataType *img, const size_t& nvox) {
+    NR_CUDA_SAFE_CALL(cudaMemcpy(arrayCuda, img, nvox * sizeof(DataType), cudaMemcpyHostToDevice));
+}
+template void TransferNiftiToDevice<int>(int*, const int*, const size_t&);
+template void TransferNiftiToDevice<float>(float*, const float*, const size_t&);
+template void TransferNiftiToDevice<double>(double*, const double*, const size_t&);
+/* *************************************************************** */
 void TransferFromDeviceToNifti(nifti_image *img, const cudaArray *arrayCuda) {
     if (img->datatype != NIFTI_TYPE_FLOAT32)
         NR_FATAL_ERROR("The image data type is not supported");
@@ -344,11 +343,9 @@ void TransferFromDeviceToNifti(nifti_image *img, const cudaArray *arrayCuda) {
 /* *************************************************************** */
 template <class DataType, class NiftiType>
 void TransferFromDeviceToNifti(nifti_image *img, const DataType *arrayCuda) {
-    if (sizeof(DataType) != sizeof(NiftiType)) {
+    if (sizeof(DataType) != sizeof(NiftiType))
         NR_FATAL_ERROR("The host and device arrays are of different types");
-    } else {
-        NR_CUDA_SAFE_CALL(cudaMemcpy(img->data, arrayCuda, img->nvox * sizeof(DataType), cudaMemcpyDeviceToHost));
-    }
+    NR_CUDA_SAFE_CALL(cudaMemcpy(img->data, arrayCuda, img->nvox * sizeof(DataType), cudaMemcpyDeviceToHost));
 }
 /* *************************************************************** */
 template <class DataType>
@@ -391,15 +388,13 @@ template void TransferFromDeviceToNifti<float4>(nifti_image*, const float4*); //
 /* *************************************************************** */
 template <class DataType, class NiftiType>
 void TransferFromDeviceToNifti(nifti_image *img, const DataType *array1Cuda, const DataType *array2Cuda) {
-    if (sizeof(DataType) != sizeof(NiftiType)) {
+    if (sizeof(DataType) != sizeof(NiftiType))
         NR_FATAL_ERROR("The host and device arrays are of different types");
-    } else {
-        const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
-        NiftiType *array1 = static_cast<NiftiType*>(img->data);
-        NiftiType *array2 = &array1[voxelNumber];
-        NR_CUDA_SAFE_CALL(cudaMemcpy(array1, array1Cuda, voxelNumber * sizeof(DataType), cudaMemcpyDeviceToHost));
-        NR_CUDA_SAFE_CALL(cudaMemcpy(array2, array2Cuda, voxelNumber * sizeof(DataType), cudaMemcpyDeviceToHost));
-    }
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
+    NiftiType *array1 = static_cast<NiftiType*>(img->data);
+    NiftiType *array2 = &array1[voxelNumber];
+    NR_CUDA_SAFE_CALL(cudaMemcpy(array1, array1Cuda, voxelNumber * sizeof(DataType), cudaMemcpyDeviceToHost));
+    NR_CUDA_SAFE_CALL(cudaMemcpy(array2, array2Cuda, voxelNumber * sizeof(DataType), cudaMemcpyDeviceToHost));
 }
 /* *************************************************************** */
 template <class DataType>
@@ -449,22 +444,6 @@ void TransferFromDeviceToNifti(nifti_image *img, const DataType *array1Cuda, con
 template void TransferFromDeviceToNifti<float>(nifti_image*, const float*, const float*);
 template void TransferFromDeviceToNifti<double>(nifti_image*, const double*, const double*);
 template void TransferFromDeviceToNifti<float4>(nifti_image*, const float4*, const float4*); // for deformation field
-/* *************************************************************** */
-template <class DataType>
-void TransferNiftiToDeviceSimple(DataType *arrayCuda, const nifti_image *img) {
-    NR_CUDA_SAFE_CALL(cudaMemcpy(arrayCuda, img->data, img->nvox * sizeof(DataType), cudaMemcpyHostToDevice));
-}
-template void TransferNiftiToDeviceSimple<int>(int*, const nifti_image*);
-template void TransferNiftiToDeviceSimple<float>(float*, const nifti_image*);
-template void TransferNiftiToDeviceSimple<double>(double*, const nifti_image*);
-/* *************************************************************** */
-template <class DataType>
-void TransferNiftiToDeviceSimple(DataType *arrayCuda, const DataType *img, const size_t& nvox) {
-    NR_CUDA_SAFE_CALL(cudaMemcpy(arrayCuda, img, nvox * sizeof(DataType), cudaMemcpyHostToDevice));
-}
-template void TransferNiftiToDeviceSimple<int>(int*, const int*, const size_t&);
-template void TransferNiftiToDeviceSimple<float>(float*, const float*, const size_t&);
-template void TransferNiftiToDeviceSimple<double>(double*, const double*, const size_t&);
 /* *************************************************************** */
 template <class DataType>
 void TransferFromDeviceToHost(DataType *array, const DataType *arrayCuda, const size_t& nElements) {

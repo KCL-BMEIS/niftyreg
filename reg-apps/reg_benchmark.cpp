@@ -186,9 +186,9 @@ int main(int argc, char **argv)
    float4 *deformationFieldImageArray_d;
    if(runGPU)
    {
-      Cuda::Allocate<float>(&targetImageArray_d, targetImage->dim);
+      Cuda::Allocate<float>(&targetImageArray_d, targetImage->nvox);
       Cuda::TransferNiftiToDevice<float>(targetImageArray_d, targetImage);
-      Cuda::Allocate<float>(&sourceImageArray_d, sourceImage->dim);
+      Cuda::Allocate<float>(&sourceImageArray_d, sourceImage->nvox);
       Cuda::TransferNiftiToDevice<float>(sourceImageArray_d,sourceImage);
       CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, targetImage->nvox*sizeof(int)));
       CUDA_SAFE_CALL(cudaMemcpy(targetMask_d, maskImage, targetImage->nvox*sizeof(int), cudaMemcpyHostToDevice));
