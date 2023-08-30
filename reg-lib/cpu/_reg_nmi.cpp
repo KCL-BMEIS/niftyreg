@@ -236,52 +236,21 @@ void reg_getNMIValue(const nifti_image *referenceImage,
             const DataType *warPtr = &warImagePtr[t * voxelNumber];
             for (size_t voxel = 0; voxel < voxelNumber; ++voxel) {
                 if (referenceMask[voxel] > -1) {
-                    const DataType& refValue = refPtr[voxel];
-                    const DataType& warValue = warPtr[voxel];
-                    if (refValue == refValue && warValue == warValue &&
-                        0 <= refValue && refValue < referenceBinNumber[t] &&
-                        0 <= warValue && warValue < floatingBinNumber[t]) {
-                        ++jointHistoProPtr[static_cast<int>(refValue) + static_cast<int>(warValue) * referenceBinNumber[t]];
-                    }
-                }
-            }
-            // Convolve the histogram with a cubic B-spline kernel
-            double kernel[3];
-            kernel[0] = kernel[2] = GetBasisSplineValue(-1.0);
-            kernel[1] = GetBasisSplineValue(0.0);
-            // Histogram is first smooth along the reference axis
-            memset(jointHistoLogPtr, 0, totalBinNumber[t] * sizeof(double));
-            for (int f = 0; f < floatingBinNumber[t]; ++f) {
-                for (int r = 0; r < referenceBinNumber[t]; ++r) {
-                    double value = 0;
-                    int index = r - 1;
-                    double *ptrHisto = &jointHistoProPtr[index + referenceBinNumber[t] * f];
-
-                    for (int it = 0; it < 3; it++) {
-                        if (-1 < index && index < referenceBinNumber[t]) {
-                            value += *ptrHisto * kernel[it];
+                    const DataType refValue = refPtr[voxel];
+                    const DataType warValue = warPtr[voxel];
+                    if (refValue == refValue && warValue == warValue){
+                        for(int r = int(refValue-1); r < int(refValue+3); ++r){
+                            if( 0 <= r && r < referenceBinNumber[t]){
+                                const double refBasis = GetBasisSplineValue(refValue - r);
+                                for(int w = int(warValue-1); w < int(warValue+3); ++w){
+                                    if( 0 <= w && w < floatingBinNumber[t]){
+                                        const double warBasis = GetBasisSplineValue(warValue - w);
+                                        jointHistoProPtr[r + w * referenceBinNumber[t]] += refBasis * warBasis;
+                                    }
+                                }
+                            }
                         }
-                        ++ptrHisto;
-                        ++index;
                     }
-                    jointHistoLogPtr[r + referenceBinNumber[t] * f] = value;
-                }
-            }
-            // Histogram is then smooth along the warped floating axis
-            for (int r = 0; r < referenceBinNumber[t]; ++r) {
-                for (int f = 0; f < floatingBinNumber[t]; ++f) {
-                    double value = 0.;
-                    int index = f - 1;
-                    double *ptrHisto = &jointHistoLogPtr[r + referenceBinNumber[t] * index];
-
-                    for (int it = 0; it < 3; it++) {
-                        if (-1 < index && index < floatingBinNumber[t]) {
-                            value += *ptrHisto * kernel[it];
-                        }
-                        ptrHisto += referenceBinNumber[t];
-                        ++index;
-                    }
-                    jointHistoProPtr[r + referenceBinNumber[t] * f] = value;
                 }
             }
             // Normalise the histogram
@@ -427,10 +396,10 @@ void reg_getVoxelBasedNmiGradient2d(const nifti_image *referenceImage,
                                     const double& timepointWeight) {
 #ifdef WIN32
     long i;
-    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 2);
 #else
     size_t i;
-    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 2);
 #endif
     // Pointers to the image data
     const DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
@@ -452,6 +421,7 @@ void reg_getVoxelBasedNmiGradient2d(const nifti_image *referenceImage,
     const double nmi = (entropyPtr[0] + entropyPtr[1]) / entropyPtr[2];
     const size_t referenceOffset = referenceBinNumber[currentTimepoint] * floatingBinNumber[currentTimepoint];
     const size_t floatingOffset = referenceOffset + referenceBinNumber[currentTimepoint];
+
     // Iterate over all voxel
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -472,9 +442,9 @@ void reg_getVoxelBasedNmiGradient2d(const nifti_image *referenceImage,
                             if (-1 < w && w < floatingBinNumber[currentTimepoint]) {
                                 const double commun = GetBasisSplineValue(refValue - r) *
                                     GetBasisSplineDerivativeValue(warValue - w);
-                                const double& jointLog = logHistoPtr[r + w * referenceBinNumber[currentTimepoint]];
-                                const double& refLog = logHistoPtr[r + referenceOffset];
-                                const double& warLog = logHistoPtr[w + floatingOffset];
+                                const double &jointLog = logHistoPtr[r + w * referenceBinNumber[currentTimepoint]];
+                                const double &refLog = logHistoPtr[r + referenceOffset];
+                                const double &warLog = logHistoPtr[w + floatingOffset];
                                 if (gradX == gradX) {
                                     jointDeriv[0] += commun * gradX * jointLog;
                                     refDeriv[0] += commun * gradX * refLog;

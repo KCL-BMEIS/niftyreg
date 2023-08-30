@@ -149,6 +149,8 @@ int main(int argc, char **argv)
     if (argc < 2)
     {
         PetitUsage(argv[0]);
+        free(param);
+        free(flag);
         return EXIT_FAILURE;
     }
 

@@ -28,6 +28,9 @@ Content::Content(nifti_image *referenceIn,
 Content::~Content() {
     DeallocateWarped();
     DeallocateDeformationField();
+#ifndef NDEBUG
+    reg_print_msg_debug("Content destructor called");
+#endif
 }
 /* *************************************************************** */
 void Content::AllocateWarped() {
@@ -75,10 +78,11 @@ void Content::AllocateDeformationField(size_t bytes) {
     deformationField->intent_code = NIFTI_INTENT_VECTOR;
     memset(deformationField->intent_name, 0, sizeof(deformationField->intent_name));
     strcpy(deformationField->intent_name, "NREG_TRANS");
-    deformationField->intent_p1 = DEF_FIELD;
+    deformationField->intent_p1 = DISP_FIELD;
     deformationField->scl_slope = 1;
     deformationField->scl_inter = 0;
     deformationField->data = calloc(deformationField->nvox, deformationField->nbyper);
+    reg_getDeformationFromDisplacement(deformationField);
 }
 /* *************************************************************** */
 void Content::DeallocateDeformationField() {
