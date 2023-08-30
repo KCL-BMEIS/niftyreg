@@ -1656,12 +1656,46 @@ public:
      * Return the dimensions of the pixels or voxels in the image
      * @return A vector of floating-point values giving the pixel width in each dimension
     **/
-    std::vector<pixdim_t> pixdim () const
+    std::vector<pixdim_t> pixDim () const
     {
         if (image == nullptr)
             return std::vector<pixdim_t>();
         else
             return std::vector<pixdim_t>(image->pixdim+1, image->pixdim+image->ndim+1);
+    }
+
+    /**
+     * Set a pixel dimension of the image
+     * @param dim The dimension to set
+     * @param value The new value of the dimension
+    */
+    void setPixDim (const Dim dim, const pixdim_t value)
+    {
+        if (image == nullptr)
+            return;
+        switch (dim) {
+        case Dim::X:
+            image->pixdim[1] = image->dx = value;
+            break;
+        case Dim::Y:
+            image->pixdim[2] = image->dy = value;
+            break;
+        case Dim::Z:
+            image->pixdim[3] = image->dz = value;
+            break;
+        case Dim::T:
+            image->pixdim[4] = image->dt = value;
+            break;
+        case Dim::U:
+            image->pixdim[5] = image->du = value;
+            break;
+        case Dim::V:
+            image->pixdim[6] = image->dv = value;
+            break;
+        case Dim::W:
+            image->pixdim[7] = image->dw = value;
+            break;
+        }
     }
 
     /**
