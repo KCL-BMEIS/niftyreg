@@ -20,21 +20,16 @@ reg_nmi::reg_nmi(): reg_measure() {
     this->jointHistogramProBw = nullptr;
     this->jointHistogramLogBw = nullptr;
     this->entropyValuesBw = nullptr;
-
     for (int i = 0; i < 255; ++i) {
         this->referenceBinNumber[i] = 68;
         this->floatingBinNumber[i] = 68;
     }
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_nmi constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 reg_nmi::~reg_nmi() {
     this->DeallocateHistogram();
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_nmi destructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 void reg_nmi::DeallocateHistogram() {
@@ -96,9 +91,7 @@ void reg_nmi::DeallocateHistogram() {
         free(this->entropyValuesBw);
     }
     this->entropyValuesBw = nullptr;
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_nmi::DeallocateHistogram called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 void reg_nmi::InitialiseMeasure(nifti_image *refImg,
@@ -164,14 +157,10 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImg,
             }
         }
     }
-#ifndef NDEBUG
-    char text[255];
-    reg_print_msg_debug("reg_nmi::InitialiseMeasure()");
-    for (int i = 0; i < this->referenceImage->nt; ++i) {
-        sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
-        reg_print_msg_debug(text);
-    }
-#endif
+
+    for (int i = 0; i < this->referenceImage->nt; ++i)
+        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeight[i]);
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 static double GetBasisSplineValue(double x) {
@@ -221,11 +210,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
     // Iterate over all active time points
     for (int t = 0; t < referenceImage->nt; ++t) {
         if (timePointWeight[t] > 0) {
-#ifndef NDEBUG
-            char text[255];
-            sprintf(text, "Computing NMI for time point %i", t);
-            reg_print_msg_debug(text);
-#endif
+            NR_DEBUG("Computing NMI for time point " << t);
             // Define some pointers to the current histograms
             double *jointHistoProPtr = jointHistogramPro[t];
             double *jointHistoLogPtr = jointHistogramLog[t];

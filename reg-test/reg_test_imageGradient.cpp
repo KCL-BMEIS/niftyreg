@@ -196,7 +196,7 @@ TEST_CASE("Image gradient", "[ImageGradient]") {
                 warpedGradient.disown();
                 for (size_t i = 0; i < nVoxels; ++i) {
                     const float warpedGradVal = warpedGradPtr[i];
-                    std::cout << i << " " << warpedGradVal << " " << testResult[i] << std::endl;
+                    NR_COUT << i << " " << warpedGradVal << " " << testResult[i] << std::endl;
                     REQUIRE(fabs(warpedGradVal - testResult[i]) < EPS);
                 }
             }

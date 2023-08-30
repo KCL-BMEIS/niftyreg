@@ -11,11 +11,8 @@ Content::Content(nifti_image *referenceIn,
     floating(floatingIn),
     referenceMask(referenceMaskIn),
     transformationMatrix(transformationMatrixIn) {
-    if (!referenceIn || !floatingIn) {
-        reg_print_fct_error("Content::Content()");
-        reg_print_msg_error("referenceIn or floatingIn can't be nullptr");
-        reg_exit();
-    }
+    if (!referenceIn || !floatingIn)
+        NR_FATAL_ERROR("referenceIn or floatingIn can't be nullptr");
     AllocateWarped();
     AllocateDeformationField(bytesIn);
     activeVoxelNumber = reference->nvox;
@@ -70,11 +67,8 @@ void Content::AllocateDeformationField(size_t bytes) {
         deformationField->datatype = NIFTI_TYPE_FLOAT32;
     else if (bytes == 8)
         deformationField->datatype = NIFTI_TYPE_FLOAT64;
-    else {
-        reg_print_fct_error("Content::AllocateDeformationField()");
-        reg_print_msg_error("Only float or double are expected for the deformation field");
-        reg_exit();
-    }
+    else
+        NR_FATAL_ERROR("Only float or double are expected for the deformation field");
     deformationField->intent_code = NIFTI_INTENT_VECTOR;
     memset(deformationField->intent_name, 0, sizeof(deformationField->intent_name));
     strcpy(deformationField->intent_name, "NREG_TRANS");

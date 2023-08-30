@@ -121,9 +121,7 @@ inline nifti1_image * convertImageV2to1 (nifti2_image *image)
 
     nifti1_image *result = (nifti1_image *) calloc(1, sizeof(nifti1_image));
 
-#ifndef NDEBUG
-    Rc_printf("Converting v2 image with pointer %p to v1 image with pointer %p\n", image, result);
-#endif
+    RN_DEBUG("Converting v2 image with pointer %p to v1 image with pointer %p", image, result);
 
     // We assume that each block of a given type is stored contiguously like an array - this should be the case, but may not be guaranteed
     std::transform(&image->ndim, &image->ndim + 16, &result->ndim, ElementConverter<int>());
@@ -177,9 +175,7 @@ inline nifti2_image * convertImageV1to2 (nifti1_image *image)
 
     nifti2_image *result = (nifti2_image *) calloc(1, sizeof(nifti2_image));
 
-#ifndef NDEBUG
-    Rc_printf("Converting v1 image with pointer %p to v2 image with pointer %p\n", image, result);
-#endif
+    RN_DEBUG("Converting v1 image with pointer %p to v2 image with pointer %p", image, result);
 
     std::transform(&image->ndim, &image->ndim + 16, &result->ndim, ElementConverter<int64_t>());
     result->nvox = static_cast<int64_t>(image->nvox);
@@ -403,7 +399,7 @@ inline void addAttributes (const SEXP pointer, const NiftiImage &source, const b
 
 #endif  // USING_R
 
-}       // internal namespace
+} // internal namespace
 
 template <typename Type, bool alpha>
 inline void NiftiImageData::ConcreteTypeHandler<Type,alpha>::minmax (void *ptr, const size_t length, double *min, double *max) const
@@ -729,10 +725,7 @@ inline void NiftiImage::acquire (nifti_image * const image)
             this->refCount = new int(1);
         else
             (*this->refCount)++;
-
-#ifndef NDEBUG
-        Rc_printf("Acquiring pointer %p (v%d; reference count is %d)\n", this->image, RNIFTI_NIFTILIB_VERSION, *this->refCount);
-#endif
+        RN_DEBUG("Acquiring pointer %p (v%d; reference count is %d)", this->image, RNIFTI_NIFTILIB_VERSION, *this->refCount);
     }
 }
 
@@ -743,9 +736,7 @@ inline void NiftiImage::release ()
         if (this->refCount != nullptr)
         {
             (*this->refCount)--;
-#ifndef NDEBUG
-            Rc_printf("Releasing pointer %p (v%d; reference count is %d)\n", this->image, RNIFTI_NIFTILIB_VERSION, *this->refCount);
-#endif
+            RN_DEBUG("Releasing pointer %p (v%d; reference count is %d)", this->image, RNIFTI_NIFTILIB_VERSION, *this->refCount);
             if (*this->refCount < 1)
             {
 #if RNIFTI_NIFTILIB_VERSION == 1
@@ -759,7 +750,7 @@ inline void NiftiImage::release ()
             }
         }
         else
-            Rc_printf("Releasing untracked object %p", this->image);
+            RN_DEBUG("Releasing untracked object %p", this->image);
     }
 }
 
@@ -1163,9 +1154,7 @@ inline NiftiImage::NiftiImage (const SEXP object, const bool readData, const boo
 #endif
     }
 
-#ifndef NDEBUG
-    Rc_printf("Creating NiftiImage (v%d) with pointer %p (from SEXP)\n", RNIFTI_NIFTILIB_VERSION, this->image);
-#endif
+    RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from SEXP)", RNIFTI_NIFTILIB_VERSION, this->image);
 }
 
 #endif // USING_R
@@ -1248,18 +1237,14 @@ inline NiftiImage::NiftiImage (const std::vector<dim_t> &dim, const int datatype
     : NiftiImage()
 {
     initFromDims(dim, datatype);
-#ifndef NDEBUG
-    Rc_printf("Creating NiftiImage (v%d) with pointer %p (from dims)\n", RNIFTI_NIFTILIB_VERSION, this->image);
-#endif
+    RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from dims)", RNIFTI_NIFTILIB_VERSION, this->image);
 }
 
 inline NiftiImage::NiftiImage (const std::vector<dim_t> &dim, const std::string &datatype)
     : NiftiImage()
 {
     initFromDims(dim, internal::stringToDatatype(datatype));
-#ifndef NDEBUG
-    Rc_printf("Creating NiftiImage (v%d) with pointer %p (from dims)\n", RNIFTI_NIFTILIB_VERSION, this->image);
-#endif
+    RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from dims)", RNIFTI_NIFTILIB_VERSION, this->image);
 }
 
 inline NiftiImage::NiftiImage (const std::string &path, const bool readData)
@@ -1276,9 +1261,7 @@ inline NiftiImage::NiftiImage (const std::string &path, const bool readData)
 
     correctDimensions();
 
-#ifndef NDEBUG
-    Rc_printf("Creating NiftiImage (v%d) with pointer %p (from string)\n", RNIFTI_NIFTILIB_VERSION, this->image);
-#endif
+    RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from string)", RNIFTI_NIFTILIB_VERSION, this->image);
 }
 
 inline NiftiImage::NiftiImage (const std::string &path, const std::vector<dim_t> &volumes)
@@ -1317,9 +1300,7 @@ inline NiftiImage::NiftiImage (const std::string &path, const std::vector<dim_t>
 
     correctDimensions();
 
-#ifndef NDEBUG
-    Rc_printf("Creating NiftiImage (v%d) with pointer %p (from string and volume vector)\n", RNIFTI_NIFTILIB_VERSION, this->image);
-#endif
+    RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from string and volume vector)", RNIFTI_NIFTILIB_VERSION, this->image);
 }
 
 inline void NiftiImage::updatePixdim (const std::vector<pixdim_t> &pixdim)

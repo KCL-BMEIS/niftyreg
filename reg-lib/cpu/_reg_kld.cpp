@@ -14,9 +14,7 @@
 
 /* *************************************************************** */
 reg_kld::reg_kld(): reg_measure() {
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_kld constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 void reg_kld::InitialiseMeasure(nifti_image *refImg,
@@ -44,34 +42,24 @@ void reg_kld::InitialiseMeasure(nifti_image *refImg,
                                    voxelBasedGradBw);
 
     // Check that the input images have the same number of time point
-    if (this->referenceImage->nt != this->floatingImage->nt) {
-        reg_print_fct_error("reg_kld::InitialiseMeasure");
-        reg_print_msg_error("This number of time point should be the same for both input images");
-        reg_exit();
-    }
-    // Input images are expected to be bounded between 0 and 1 as they
-    // are meant to be probabilities
+    if (this->referenceImage->nt != this->floatingImage->nt)
+        NR_FATAL_ERROR("This number of time point should be the same for both input images");
+
+    // Input images are expected to be bounded between 0 and 1 as they are meant to be probabilities
     for (int t = 0; t < this->referenceImage->nt; ++t) {
         if (this->timePointWeight[t] > 0) {
             const float minRef = reg_tools_getMinValue(this->referenceImage, t);
             const float maxRef = reg_tools_getMaxValue(this->referenceImage, t);
             const float minFlo = reg_tools_getMinValue(this->floatingImage, t);
             const float maxFlo = reg_tools_getMaxValue(this->floatingImage, t);
-            if (minRef < 0.f || minFlo < 0.f || maxRef > 1.f || maxFlo > 1.f) {
-                reg_print_fct_error("reg_kld::InitialiseMeasure");
-                reg_print_msg_error("The input images are expected to be probabilities to use the kld measure");
-                reg_exit();
-            }
+            if (minRef < 0.f || minFlo < 0.f || maxRef > 1.f || maxFlo > 1.f)
+                NR_FATAL_ERROR("The input images are expected to be probabilities to use the kld measure");
         }
     }
-#ifndef NDEBUG
-    char text[255];
-    reg_print_msg_debug("reg_kld::InitialiseMeasure()");
-    for (int i = 0; i < this->referenceImage->nt; ++i) {
-        sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
-        reg_print_msg_debug(text);
-    }
-#endif
+
+    for (int i = 0; i < this->referenceImage->nt; ++i)
+        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeight[i]);
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 /** @brief Computes and returns the KLD between two input image

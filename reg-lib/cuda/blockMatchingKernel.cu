@@ -338,21 +338,19 @@ void block_matching_method_gpu(const nifti_image *referenceImage,
                                const int *totalBlockCuda,
                                const int *maskCuda,
                                const float *refMatCuda) {
-    if (params->stepSize != 1 || params->voxelCaptureRange != 3) {
-        reg_print_msg_error("The block matching CUDA kernel supports only single step size!");
-        reg_exit();
-    }
+    if (params->stepSize != 1 || params->voxelCaptureRange != 3)
+        NR_FATAL_ERROR("The block matching CUDA kernel supports only single step size!");
 
     const int3 imageSize = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const uint3 blockSize = make_uint3(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
     const unsigned numBlocks = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
 
-    auto referenceTexture = cudaCommon_createTextureObject(referenceImageCuda, cudaResourceTypeLinear, referenceImage->nvox * sizeof(float),
-                                                           cudaChannelFormatKindFloat, 1);
-    auto warpedTexture = cudaCommon_createTextureObject(warpedImageCuda, cudaResourceTypeLinear, referenceImage->nvox * sizeof(float),
-                                                        cudaChannelFormatKindFloat, 1);
-    auto totalBlockTexture = cudaCommon_createTextureObject(totalBlockCuda, cudaResourceTypeLinear, numBlocks * sizeof(int),
-                                                            cudaChannelFormatKindSigned, 1);
+    auto referenceTexture = Cuda::CreateTextureObject(referenceImageCuda, cudaResourceTypeLinear, referenceImage->nvox * sizeof(float),
+                                                      cudaChannelFormatKindFloat, 1);
+    auto warpedTexture = Cuda::CreateTextureObject(warpedImageCuda, cudaResourceTypeLinear, referenceImage->nvox * sizeof(float),
+                                                   cudaChannelFormatKindFloat, 1);
+    auto totalBlockTexture = Cuda::CreateTextureObject(totalBlockCuda, cudaResourceTypeLinear, numBlocks * sizeof(int),
+                                                       cudaChannelFormatKindSigned, 1);
 
     unsigned definedBlock = 0, *definedBlockCuda;
     NR_CUDA_SAFE_CALL(cudaMalloc(&definedBlockCuda, sizeof(unsigned)));

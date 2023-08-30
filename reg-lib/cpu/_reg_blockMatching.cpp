@@ -260,29 +260,16 @@ void initialise_block_matching_method(nifti_image * reference,
       _reg_set_active_blocks<double>(reference, params, mask, runningOnGPU);
       break;
    default:
-      reg_print_fct_error("initialise_block_matching_method()");
-      reg_print_msg_error("The reference image data type is not supported");
-      reg_exit();
-      ;
+      NR_FATAL_ERROR("The reference image data type is not supported");
    }
-   if (params->activeBlockNumber < 2) {
-      reg_print_fct_error("initialise_block_matching_method()");
-      reg_print_msg_error("There are less than 2 active blocks");
-      reg_exit();
-   }
-#ifndef NDEBUG
-   char text[255];
-   sprintf(text, "There are %i active block(s) out of %i.",
-           params->activeBlockNumber, params->totalBlockNumber);
-   reg_print_msg_debug(text)
-      #endif
+   if (params->activeBlockNumber < 2)
+      NR_FATAL_ERROR("There are less than 2 active blocks");
+   NR_DEBUG("There are " << params->activeBlockNumber << " active block(s) out of " << params->totalBlockNumber);
          //params->activeBlock = (int *)malloc(params->activeBlockNumber * sizeof(int));
    params->referencePosition = (float *)malloc(params->activeBlockNumber * params->dim * sizeof(float));
    params->warpedPosition = (float *)malloc(params->activeBlockNumber * params->dim * sizeof(float));
 
-#ifndef NDEBUG
-   reg_print_msg_debug("block matching initialisation done.");
-#endif
+   NR_DEBUG("Block matching initialisation done");
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -704,10 +691,8 @@ void block_matching_method3D(nifti_image * reference,
 /* *************************************************************** */
 // Block matching interface function
 void block_matching_method(nifti_image * reference, nifti_image * warped, _reg_blockMatchingParam *params, int *mask) {
-   if (reference->datatype != warped->datatype) {
-      reg_print_fct_error("block_matching_method");
-      reg_print_msg_error("Both input images are expected to be of the same type");
-   }
+   if (reference->datatype != warped->datatype)
+      NR_FATAL_ERROR("Both input images are expected to be of the same type");
    if (reference->nz == 1) {
       switch (reference->datatype) {
       case NIFTI_TYPE_FLOAT64:
@@ -717,9 +702,7 @@ void block_matching_method(nifti_image * reference, nifti_image * warped, _reg_b
          block_matching_method2D<float>(reference, warped, params, mask);
          break;
       default:
-         reg_print_fct_error("block_matching_method");
-         reg_print_msg_error("The reference image data type is not supported");
-         reg_exit();
+         NR_FATAL_ERROR("The reference image data type is not supported");
       }
    } else {
       switch (reference->datatype) {
@@ -730,9 +713,7 @@ void block_matching_method(nifti_image * reference, nifti_image * warped, _reg_b
          block_matching_method3D<float>(reference, warped, params, mask);
          break;
       default:
-         reg_print_fct_error("block_matching_method");
-         reg_print_msg_error("The reference image data type is not supported");
-         reg_exit();
+         NR_FATAL_ERROR("The reference image data type is not supported");
       }
    }
 }
@@ -753,20 +734,14 @@ void optimize(_reg_blockMatchingParam *params,
          //3 = minimum number of correspondences needed
          if(params->definedActiveBlockNumber < 6)
          {
-            char text[255];
-            sprintf(text, "%i correspondences between blocks were found", params->definedActiveBlockNumber);
-            reg_print_msg_error(text);
-            reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate an affine transformation");
-            reg_exit();
+            NR_ERROR(std::to_string(params->definedActiveBlockNumber) + " correspondences between blocks were found");
+            NR_FATAL_ERROR("Not enough correspondences were found - it is impossible to estimate an affine transformation");
          }
       } else {
          if(params->definedActiveBlockNumber < 4)
          {
-            char text[255];
-            sprintf(text, "%i correspondences between blocks were found", params->definedActiveBlockNumber);
-            reg_print_msg_error(text);
-            reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate a rigid transformation");
-            reg_exit();
+            NR_ERROR(std::to_string(params->definedActiveBlockNumber) + " correspondences between blocks were found");
+            NR_FATAL_ERROR("Not enough correspondences were found - it is impossible to estimate a rigid transformation");
          }
       }
 
@@ -803,20 +778,14 @@ void optimize(_reg_blockMatchingParam *params,
          //4 = minimum number of correspondences needed
          if(params->definedActiveBlockNumber < 8)
          {
-            char text[255];
-            sprintf(text, "%i correspondences between blocks were found", params->definedActiveBlockNumber);
-            reg_print_msg_error(text);
-            reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate an affine transformation");
-            reg_exit();
+            NR_ERROR(std::to_string(params->definedActiveBlockNumber) + " correspondences between blocks were found");
+            NR_FATAL_ERROR("Not enough correspondences were found - it is impossible to estimate an affine transformation");
          }
       } else {
          if(params->definedActiveBlockNumber < 4)
          {
-            char text[255];
-            sprintf(text, "%i correspondences between blocks were found", params->definedActiveBlockNumber);
-            reg_print_msg_error(text);
-            reg_print_msg_error("Not enough correspondences were found - it is impossible to estimate a rigid transformation");
-            reg_exit();
+            NR_ERROR(std::to_string(params->definedActiveBlockNumber) + " correspondences between blocks were found");
+            NR_FATAL_ERROR("Not enough correspondences were found - it is impossible to estimate a rigid transformation");
          }
       }
 

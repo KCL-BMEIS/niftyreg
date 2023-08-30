@@ -1411,9 +1411,7 @@ public:
             refCount = source.refCount;
             acquire(source.image);
         }
-#ifndef NDEBUG
-        Rc_printf("Creating NiftiImage (v%d) with pointer %p (from NiftiImage)\n", RNIFTI_NIFTILIB_VERSION, this->image);
-#endif
+        RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from NiftiImage)", RNIFTI_NIFTILIB_VERSION, this->image);
     }
 
     /**
@@ -1424,9 +1422,7 @@ public:
         : NiftiImage()
     {
         swap(*this, source);
-#ifndef NDEBUG
-        Rc_printf("Acquiring NiftiImage (v%d) with pointer %p (from NiftiImage)\n", RNIFTI_NIFTILIB_VERSION, this->image);
-#endif
+        RN_DEBUG("Acquiring NiftiImage (v%d) with pointer %p (from NiftiImage)", RNIFTI_NIFTILIB_VERSION, this->image);
     }
 
     /**
@@ -1437,9 +1433,7 @@ public:
         : NiftiImage()
     {
         this->copy(source);
-#ifndef NDEBUG
-        Rc_printf("Creating NiftiImage (v%d) with pointer %p (from Block)\n", RNIFTI_NIFTILIB_VERSION, this->image);
-#endif
+        RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from Block)", RNIFTI_NIFTILIB_VERSION, this->image);
     }
 
     /**
@@ -1454,9 +1448,7 @@ public:
             this->copy(image, copy);
         else
             acquire(image);
-#ifndef NDEBUG
-        Rc_printf("Creating NiftiImage (v%d) with pointer %p (from pointer)\n", RNIFTI_NIFTILIB_VERSION, this->image);
-#endif
+        RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from pointer)", RNIFTI_NIFTILIB_VERSION, this->image);
     }
 
     /**
@@ -1559,9 +1551,7 @@ public:
     NiftiImage & operator= (const Block &source)
     {
         copy(source);
-#ifndef NDEBUG
-        Rc_printf("Creating NiftiImage (v%d) with pointer %p (from Block)\n", RNIFTI_NIFTILIB_VERSION, this->image);
-#endif
+        RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from Block)", RNIFTI_NIFTILIB_VERSION, this->image);
         return *this;
     }
 

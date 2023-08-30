@@ -52,10 +52,8 @@ public:
                                      float *discretisedValue,
                                      int discretiseRadius,
                                      int discretiseStep) override;
-protected:
-    float currentValue[255];
 
-private:
+protected:
     bool normaliseTimePoint[255];
 };
 /* *************************************************************** */
@@ -69,7 +67,6 @@ private:
  * pointer is set to nullptr
  * @param mask Array that contains a mask to specify which voxel
  * should be considered
- * @param currentValue Array that contains the current values
  * @param localWeightSim Image that contains the local weight similarity
  * @return Returns the computed sum squared difference
  */
@@ -79,7 +76,6 @@ double reg_getSsdValue(const nifti_image *referenceImage,
                        const double *timePointWeight,
                        const nifti_image *jacobianDetImage,
                        const int *mask,
-                       float *currentValue,
                        const nifti_image *localWeightSim);
 /* *************************************************************** */
 /** @brief Compute a voxel based gradient of the sum squared difference.

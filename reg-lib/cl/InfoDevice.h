@@ -36,7 +36,7 @@ public:
 				appendToString(deviceType & CL_DEVICE_TYPE_GPU, "CL_DEVICE_TYPE_GPU", clInfo);
 				appendToString(deviceType & CL_DEVICE_TYPE_ACCELERATOR, "CL_DEVICE_TYPE_ACCELERATOR", clInfo);
 				appendToString(deviceType & CL_DEVICE_TYPE_DEFAULT, "CL_DEVICE_TYPE_DEFAULT", clInfo);
-				std::cout << "[NiftyReg OPENCL] " << str << ": " << clInfo << std::endl;
+				NR_COUT << "[NiftyReg OPENCL] " << str << ": " << clInfo << std::endl;
 			}
 			break;
 		case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE: {
@@ -45,7 +45,7 @@ public:
 				appendToString(cacheType & CL_READ_ONLY_CACHE, "CL_READ_ONLY_CACHE", clInfo);
 				appendToString(cacheType & CL_READ_WRITE_CACHE, "CL_READ_WRITE_CACHE", clInfo);
 
-				std::cout << "[NiftyReg OPENCL] " << str << ": " << clInfo << std::endl;
+				NR_COUT << "[NiftyReg OPENCL] " << str << ": " << clInfo << std::endl;
 			}
 			break;
 		case CL_DEVICE_LOCAL_MEM_TYPE: {
@@ -53,7 +53,7 @@ public:
 				appendToString(localMemType & CL_LOCAL, "CL_LOCAL", clInfo);
 				appendToString(localMemType & CL_GLOBAL, "CL_GLOBAL", clInfo);
 
-				std::cout << "[NiftyReg OPENCL] " << str << ": " << clInfo << std::endl;
+				NR_COUT << "[NiftyReg OPENCL] " << str << ": " << clInfo << std::endl;
 			}
 			break;
 		case CL_DEVICE_EXECUTION_CAPABILITIES: {
@@ -63,7 +63,7 @@ public:
 				appendToString(execCapabilities & CL_EXEC_KERNEL, "CL_EXEC_KERNEL", clInfo);
 				appendToString(execCapabilities & CL_EXEC_NATIVE_KERNEL, "CL_EXEC_NATIVE_KERNEL", clInfo);
 
-				std::cout << "[NiftyReg OPENCL] " << str << ": " << clInfo << std::endl;
+				NR_COUT << "[NiftyReg OPENCL] " << str << ": " << clInfo << std::endl;
 			}
 			break;
 		case CL_DEVICE_QUEUE_PROPERTIES: {
@@ -71,17 +71,17 @@ public:
 				appendToString(*(reinterpret_cast<cl_device_exec_capabilities*>(field)) & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, "CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE", clInfo);
 				appendToString(*(reinterpret_cast<cl_device_exec_capabilities*>(field)) & CL_QUEUE_PROFILING_ENABLE, "CL_QUEUE_PROFILING_ENABLE", clInfo);
 
-				std::cout << "[NiftyReg OPENCL] " << str << ": " << clInfo << std::endl;
+				NR_COUT << "[NiftyReg OPENCL] " << str << ": " << clInfo << std::endl;
 			}
 			break;
 		case CL_DEVICE_MAX_WORK_ITEM_SIZES: {
 				cl_uint maxWorkItemDimensions;
 
 				sContext->CheckErrNum(clGetDeviceInfo(id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(cl_uint), &maxWorkItemDimensions, nullptr), "Failed to find OpenCL device info  CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS.");
-				std::cout << str << ":\t";
+				NR_COUT << str << ":\t";
 				for (cl_uint i = 0; i < maxWorkItemDimensions; i++)
-					std::cout << field[i] << " ";
-				std::cout << std::endl;
+					NR_COUT << field[i] << " ";
+				NR_COUT << std::endl;
 			}
 			break;
 
@@ -89,11 +89,11 @@ public:
 		case CL_DEVICE_VENDOR:
 		case CL_DRIVER_VERSION:
 		case CL_DEVICE_VERSION: {
-				std::cout << "[NiftyReg OPENCL] " << str << ": " << field << std::endl;
+				NR_COUT << "[NiftyReg OPENCL] " << str << ": " << field << std::endl;
 			}
 			break;
 		default:
-			std::cout << "[NiftyReg OPENCL] " << str << ": " << *field << std::endl;
+			NR_COUT << "[NiftyReg OPENCL] " << str << ": " << *field << std::endl;
 			break;
 		}
 	}
@@ -108,12 +108,12 @@ public:
 		switch (name) {
 		case CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE: {
 				if (errNum != CL_SUCCESS)  local = 1;
-				std::cout << "[NiftyReg OPENCL] Warp / wavefront" << ": " << local << std::endl;
+				NR_COUT << "[NiftyReg OPENCL] Warp / wavefront" << ": " << local << std::endl;
 			}
 			break;
 			break;
 		default:
-			std::cout << "[NiftyReg OPENCL] " << str << ": " << local << std::endl;
+			NR_COUT << "[NiftyReg OPENCL] " << str << ": " << local << std::endl;
 			break;
 		}
 	}

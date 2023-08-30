@@ -149,18 +149,13 @@ void GetMindImageDescriptor(const nifti_image *inputImage,
                             const int *mask,
                             const int& descriptorOffset,
                             const int& currentTimepoint) {
-    if (inputImage->datatype != mindImage->datatype) {
-        reg_print_fct_error("reg_mind::GetMindImageDescriptor");
-        reg_print_msg_error("The input image and the MIND image must have the same datatype");
-        reg_exit();
-    }
+    if (inputImage->datatype != mindImage->datatype)
+        NR_FATAL_ERROR("The input image and the MIND image must have the same datatype");
     std::visit([&](auto&& imgType) {
         using ImgType = std::decay_t<decltype(imgType)>;
         GetMindImageDescriptorCore<ImgType>(inputImage, mindImage, mask, descriptorOffset, currentTimepoint);
     }, NiftiImage::getFloatingDataType(inputImage));
-#ifndef NDEBUG
-    reg_print_fct_debug("GetMindImageDescriptor()");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template <class DataType>
@@ -278,18 +273,13 @@ void GetMindSscImageDescriptor(const nifti_image *inputImage,
                                const int *mask,
                                const int& descriptorOffset,
                                const int& currentTimepoint) {
-    if (inputImage->datatype != mindSscImage->datatype) {
-        reg_print_fct_error("reg_mindssc::GetMindSscImageDescriptor");
-        reg_print_msg_error("The input image and the MINDSSC image must have the same datatype!");
-        reg_exit();
-    }
+    if (inputImage->datatype != mindSscImage->datatype)
+        NR_FATAL_ERROR("The input image and the MINDSSC image must have the same datatype!");
     std::visit([&](auto&& imgType) {
         using ImgType = std::decay_t<decltype(imgType)>;
         GetMindSscImageDescriptorCore<ImgType>(inputImage, mindSscImage, mask, descriptorOffset, currentTimepoint);
     }, NiftiImage::getFloatingDataType(inputImage));
-#ifndef NDEBUG
-    reg_print_fct_debug("GetMindSscImageDescriptor()");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 reg_mind::reg_mind(): reg_ssd() {
@@ -299,9 +289,7 @@ reg_mind::reg_mind(): reg_ssd() {
     this->warpedReferenceImageDescriptor = nullptr;
     this->mindType = MIND_TYPE;
     this->descriptorOffset = 1;
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_mind constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 reg_mind::~reg_mind() {
@@ -369,10 +357,8 @@ void reg_mind::InitialiseMeasure(nifti_image *refImg,
                                                        this->warpedFloatingImageDescriptor->nbyper);
 
     if (this->isSymmetric) {
-        if (this->floatingImage->nt > 1 || this->warpedImageBw->nt > 1) {
-            reg_print_msg_error("reg_mind does not support multiple time point image");
-            reg_exit();
-        }
+        if (this->floatingImage->nt > 1 || this->warpedImageBw->nt > 1)
+            NR_FATAL_ERROR("reg_mind does not support multiple time point image");
         // Initialise the floating descriptor
         this->floatingImageDescriptor = nifti_copy_nim_info(this->floatingImage);
         this->floatingImageDescriptor->dim[0] = this->floatingImageDescriptor->ndim = 4;
@@ -396,13 +382,12 @@ void reg_mind::InitialiseMeasure(nifti_image *refImg,
     }
 
 #ifndef NDEBUG
-    char text[255];
-    reg_print_msg_debug("reg_mind::InitialiseMeasure()");
-    sprintf(text, "Active time point:");
+    std::string msg = "Active time point:";
     for (int i = 0; i < this->referenceImageDescriptor->nt; ++i)
         if (this->timePointWeightDescriptor[i] > 0)
-            sprintf(text, "%s %i", text, i);
-    reg_print_msg_debug(text);
+            msg += " " + std::to_string(i);
+    NR_DEBUG(msg);
+    NR_FUNC_CALLED();
 #endif
 }
 /* *************************************************************** */
@@ -414,16 +399,12 @@ double GetSimilarityMeasureValue(nifti_image *referenceImage,
                                  const double *timePointWeight,
                                  double *timePointWeightDescriptor,
                                  nifti_image *jacobianDetImage,
-                                 float *currentValue,
                                  const int& descriptorOffset,
                                  const int& referenceTimePoint,
                                  const int& mindType) {
     if (referenceImageDescriptor->datatype != NIFTI_TYPE_FLOAT32 &&
-        referenceImageDescriptor->datatype != NIFTI_TYPE_FLOAT64) {
-        reg_print_fct_error("reg_mind::GetSimilarityMeasureValue");
-        reg_print_msg_error("The reference image descriptor is expected to be of floating precision type");
-        reg_exit();
-    }
+        referenceImageDescriptor->datatype != NIFTI_TYPE_FLOAT64)
+        NR_FATAL_ERROR("The reference image descriptor is expected to be of floating precision type");
 
     double mind = 0;
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
@@ -446,7 +427,6 @@ double GetSimilarityMeasureValue(nifti_image *referenceImage,
                                                         timePointWeightDescriptor,
                                                         jacobianDetImage,
                                                         combinedMask.get(),
-                                                        currentValue,
                                                         nullptr);
             }, NiftiImage::getFloatingDataType(referenceImageDescriptor));
         }
@@ -463,7 +443,6 @@ double reg_mind::GetSimilarityMeasureValueFw() {
                                        this->timePointWeight,
                                        this->timePointWeightDescriptor,
                                        nullptr, // TODO this->forwardJacDetImagePointer,
-                                       this->currentValue,
                                        this->descriptorOffset,
                                        this->referenceTimePoint,
                                        this->mindType);
@@ -478,7 +457,6 @@ double reg_mind::GetSimilarityMeasureValueBw() {
                                        this->timePointWeight,
                                        this->timePointWeightDescriptor,
                                        nullptr, // TODO this->backwardJacDetImagePointer,
-                                       this->currentValue,
                                        this->descriptorOffset,
                                        this->referenceTimePoint,
                                        this->mindType);
@@ -560,14 +538,10 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) {
 /* *************************************************************** */
 reg_mindssc::reg_mindssc(): reg_mind() {
     this->mindType = MINDSSC_TYPE;
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_mindssc constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 reg_mindssc::~reg_mindssc() {
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_mindssc destructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */

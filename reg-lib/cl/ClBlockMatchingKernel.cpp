@@ -15,15 +15,11 @@ ClBlockMatchingKernel::ClBlockMatchingKernel(Content *conIn) : BlockMatchingKern
    std::string clSrcPath;
    //src dir
    if (niftyreg_src_dir != nullptr) {
-      char opencl_kernel_path[255];
-      sprintf(opencl_kernel_path, "%s/reg-lib/cl/", niftyreg_src_dir);
-      clSrcPath = opencl_kernel_path;
+      clSrcPath = niftyreg_src_dir + "/reg-lib/cl/"s;
    } else clSrcPath = CL_KERNELS_SRC_PATH;
    //install dir
    if (niftyreg_install_dir != nullptr) {
-      char opencl_kernel_path[255];
-      sprintf(opencl_kernel_path, "%s/include/cl/", niftyreg_install_dir);
-      clInstallPath = opencl_kernel_path;
+      clInstallPath = niftyreg_install_dir + "/include/cl/"s;
    } else clInstallPath = CL_KERNELS_PATH;
    std::string clKernel("blockMatchingKernel.cl");
    //Let's check if we did an install
@@ -65,10 +61,8 @@ ClBlockMatchingKernel::ClBlockMatchingKernel(Content *conIn) : BlockMatchingKern
 }
 /* *************************************************************** */
 void ClBlockMatchingKernel::Calculate() {
-   if (params->stepSize != 1 || params->voxelCaptureRange != 3) {
-      reg_print_msg_error("The block Mathching OpenCL kernel supports only a stepsize of 1");
-      reg_exit();
-   }
+   if (params->stepSize != 1 || params->voxelCaptureRange != 3)
+      NR_FATAL_ERROR("The block matching OpenCL kernel supports only a single step size");
    cl_int errNum;
    params->definedActiveBlockNumber = 0;
    cl_mem cldefinedBlock = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
@@ -123,10 +117,9 @@ void ClBlockMatchingKernel::Calculate() {
                                 &(params->definedActiveBlockNumber), 0, nullptr, nullptr);
    sContext->CheckErrNum(errNum, "Error reading  var after ClBlockMatchingKernel execution ");
 
-   if (params->definedActiveBlockNumber == 0) {
-      reg_print_msg_error("Unexpected error in the ClBlockMatchingKernel execution");
-      reg_exit();
-   }
+   if (params->definedActiveBlockNumber == 0)
+      NR_FATAL_ERROR("Unexpected error in the ClBlockMatchingKernel execution");
+
    clReleaseMemObject(cldefinedBlock);
 }
 /* *************************************************************** */

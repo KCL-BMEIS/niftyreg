@@ -1,6 +1,7 @@
-#include "_reg_openclinfo.h"
+#include <iostream>
+#include "InfoDevice.h"
 
-void showCLInfo(void)
+void showCLInfo()
 {
    ClContextSingleton *sContext = &ClContextSingleton::GetInstance();
    cl_uint numPlatforms = sContext->GetNumPlatforms();
@@ -9,13 +10,13 @@ void showCLInfo(void)
    {
       cl_uint numDevices = sContext->GetNumDevices();
       cl_device_id * devices = sContext->GetDevices();
-      printf("-----------------------------------\n");
-      printf("[NiftyReg OPENCL] %i device(s) detected\n", numDevices);
-      printf("-----------------------------------\n");
+      NR_COUT << "-----------------------------------" << std::endl;
+      NR_COUT << "[NiftyReg OPENCL] " << numDevices << "device(s) detected" << std::endl;
+      NR_COUT << "-----------------------------------" << std::endl;
       // Iterate through each device, displaying associated information
       for (cl_uint j = 0; j < numDevices; j++)
       {
-         printf("[NiftyReg OPENCL] Device id [%u]\n", (unsigned)j);
+         NR_COUT << "[NiftyReg OPENCL] Device id " << j << std::endl;
          DeviceLog<char >::show(devices[j], CL_DEVICE_NAME, "Device Name");
 //         DeviceLog<char >::show(devices[j], CL_DEVICE_VENDOR, "**** CL_DEVICE_VENDOR");
 //         DeviceLog<char >::show(devices[j], CL_DRIVER_VERSION, "**** CL_DRIVER_VERSION");
@@ -43,7 +44,7 @@ void showCLInfo(void)
 #else
          DeviceLog<int>::show(devices[j], CL_DEVICE_SINGLE_FP_CONFIG, "Device single config only");
 #endif
-         printf("-----------------------------------\n");
+         NR_COUT << "-----------------------------------" << std::endl;
       }
    }
 }

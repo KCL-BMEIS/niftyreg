@@ -7,9 +7,9 @@
 
 #pragma once
 
+#include "CudaCommon.hpp"
 #include "_reg_lncc.h"
 #include "_reg_dti.h"
-#include "_reg_common_cuda.h"
 #include "_reg_kld.h"
 
 /* *************************************************************** */
@@ -35,6 +35,7 @@ public:
                                    nifti_image *voxelBasedGrad,
                                    float4 *voxelBasedGradCuda,
                                    nifti_image *localWeightSim = nullptr,
+                                   float *localWeightSimCuda = nullptr,
                                    int *floMask = nullptr,
                                    int *floMaskCuda = nullptr,
                                    nifti_image *warpedImgBw = nullptr,
@@ -44,11 +45,8 @@ public:
                                    nifti_image *voxelBasedGradBw = nullptr,
                                    float4 *voxelBasedGradBwCuda = nullptr) {
         // Check that the input image are of type float
-        if (refImg->datatype != NIFTI_TYPE_FLOAT32 || warpedImg->datatype != NIFTI_TYPE_FLOAT32) {
-            reg_print_fct_error("reg_measure_gpu::InitialiseMeasure");
-            reg_print_msg_error("Only single precision is supported on the GPU");
-            reg_exit();
-        }
+        if (refImg->datatype != NIFTI_TYPE_FLOAT32 || warpedImg->datatype != NIFTI_TYPE_FLOAT32)
+            NR_FATAL_ERROR("Only single precision is supported on the GPU");
         // Bind the required pointers
         this->referenceImageCuda = refImgCuda;
         this->floatingImageCuda = floImgCuda;
@@ -57,14 +55,12 @@ public:
         this->warpedImageCuda = warpedImgCuda;
         this->warpedGradientCuda = warpedGradCuda;
         this->voxelBasedGradientCuda = voxelBasedGradCuda;
+        this->localWeightSimCuda = localWeightSimCuda;
         // Check if the symmetric mode is used
         if (floMask != nullptr && warpedImgBw != nullptr && warpedGradBw != nullptr && voxelBasedGradBw != nullptr &&
             floMaskCuda != nullptr && warpedImgBwCuda != nullptr && warpedGradBwCuda != nullptr && voxelBasedGradBwCuda != nullptr) {
-            if (floImg->datatype != NIFTI_TYPE_FLOAT32 || warpedImgBw->datatype != NIFTI_TYPE_FLOAT32) {
-                reg_print_fct_error("reg_measure_gpu::InitialiseMeasure");
-                reg_print_msg_error("Only single precision is supported on the GPU");
-                reg_exit();
-            }
+            if (floImg->datatype != NIFTI_TYPE_FLOAT32 || warpedImgBw->datatype != NIFTI_TYPE_FLOAT32)
+                NR_FATAL_ERROR("Only single precision is supported on the GPU");
             this->floatingMaskCuda = floMaskCuda;
             this->warpedImageBwCuda = warpedImgBwCuda;
             this->warpedGradientBwCuda = warpedGradBwCuda;
@@ -75,9 +71,7 @@ public:
             this->warpedGradientBwCuda = nullptr;
             this->voxelBasedGradientBwCuda = nullptr;
         }
-#ifndef NDEBUG
-        reg_print_msg_debug("reg_measure_gpu::InitialiseMeasure() called");
-#endif
+        NR_FUNC_CALLED();
     }
 
 protected:
@@ -88,6 +82,7 @@ protected:
     float *warpedImageCuda;
     float4 *warpedGradientCuda;
     float4 *voxelBasedGradientCuda;
+    float *localWeightSimCuda;
 
     int *floatingMaskCuda;
     float *warpedImageBwCuda;
@@ -99,9 +94,7 @@ class reg_lncc_gpu: public reg_lncc, public reg_measure_gpu {
 public:
     /// @brief reg_lncc class constructor
     reg_lncc_gpu() {
-        reg_print_fct_error("reg_lncc_gpu::reg_lncc_gpu");
-        reg_print_msg_error("CUDA CANNOT BE USED WITH LNCC YET");
-        reg_exit();
+        NR_FATAL_ERROR("CUDA CANNOT BE USED WITH LNCC YET");
     }
     /// @brief reg_lncc class destructor
     virtual ~reg_lncc_gpu() {}
@@ -120,6 +113,7 @@ public:
                                    nifti_image *voxelBasedGrad,
                                    float4 *voxelBasedGradCuda,
                                    nifti_image *localWeightSim = nullptr,
+                                   float *localWeightSimCuda = nullptr,
                                    int *floMask = nullptr,
                                    int *floMaskCuda = nullptr,
                                    nifti_image *warpedImgBw = nullptr,
@@ -142,9 +136,7 @@ class reg_kld_gpu: public reg_kld, public reg_measure_gpu {
 public:
     /// @brief reg_kld_gpu class constructor
     reg_kld_gpu() {
-        reg_print_fct_error("reg_kld_gpu::reg_kld_gpu");
-        reg_print_msg_error("CUDA CANNOT BE USED WITH KLD YET");
-        reg_exit();
+        NR_FATAL_ERROR("CUDA CANNOT BE USED WITH KLD YET");
     }
     /// @brief reg_kld_gpu class destructor
     virtual ~reg_kld_gpu() {}
@@ -163,6 +155,7 @@ public:
                                    nifti_image *voxelBasedGrad,
                                    float4 *voxelBasedGradCuda,
                                    nifti_image *localWeightSim = nullptr,
+                                   float *localWeightSimCuda = nullptr,
                                    int *floMask = nullptr,
                                    int *floMaskCuda = nullptr,
                                    nifti_image *warpedImgBw = nullptr,
@@ -185,9 +178,7 @@ class reg_dti_gpu: public reg_dti, public reg_measure_gpu {
 public:
     /// @brief reg_dti_gpu class constructor
     reg_dti_gpu() {
-        reg_print_fct_error("reg_dti_gpu::reg_dti_gpu");
-        reg_print_msg_error("CUDA CANNOT BE USED WITH DTI YET");
-        reg_exit();
+        NR_FATAL_ERROR("CUDA CANNOT BE USED WITH DTI YET");
     }
     /// @brief reg_dti_gpu class destructor
     virtual ~reg_dti_gpu() {}
@@ -206,6 +197,7 @@ public:
                                    nifti_image *voxelBasedGrad,
                                    float4 *voxelBasedGradCuda,
                                    nifti_image *localWeightSim = nullptr,
+                                   float *localWeightSimCuda = nullptr,
                                    int *floMask = nullptr,
                                    int *floMaskCuda = nullptr,
                                    nifti_image *warpedImgBw = nullptr,

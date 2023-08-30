@@ -445,7 +445,7 @@ TEST_CASE_METHOD(GetDeformationFieldTest, "Get deformation field", "[GetDeformat
         const std::string sectionName = testName + " " + platform->GetName() + " composition=" + std::to_string(composition) + " bspline=" + std::to_string(bspline);
 
         SECTION(sectionName) {
-            std::cout << "\n**************** Section " << sectionName << " ****************" << std::endl;
+            NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
 
             // Compute the deformation field
             unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
@@ -459,11 +459,11 @@ TEST_CASE_METHOD(GetDeformationFieldTest, "Get deformation field", "[GetDeformat
             const auto defFieldExpPtr = defFieldExp.data();
             defField.disown();
             // Increase the precision for the output
-            std::cout << std::fixed << std::setprecision(10);
+            NR_COUT << std::fixed << std::setprecision(10);
             for (size_t i = 0; i < defFieldExp.nVoxels(); ++i) {
                 const double defFieldVal = defFieldPtr[i];
                 const double defFieldExpVal = defFieldExpPtr[i];
-                std::cout << i << " " << defFieldVal << " " << defFieldExpVal << std::endl;
+                NR_COUT << i << " " << defFieldVal << " " << defFieldExpVal << std::endl;
                 REQUIRE(fabs(defFieldVal - defFieldExpVal) < EPS);
             }
             // Ensure the termination of content before CudaContext

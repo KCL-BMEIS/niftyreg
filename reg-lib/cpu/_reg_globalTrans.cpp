@@ -38,9 +38,7 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
       transformationMatrix = *affineTransformation;
    else transformationMatrix = reg_mat44_mul(affineTransformation, referenceMatrix);
 
-#ifndef NDEBUG
-   reg_mat44_disp(&transformationMatrix, (char *)"[NiftyReg DEBUG] Global affine transformation");
-#endif
+   NR_MAT44(transformationMatrix, "Global affine transformation");
 
    double voxel[3]={0,0,0}, position[3]={0,0,0};
    int x=0, y=0;
@@ -101,9 +99,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
       transformationMatrix = *affineTransformation;
    else transformationMatrix = reg_mat44_mul(affineTransformation, referenceMatrix);
 
-#ifndef NDEBUG
-   reg_mat44_disp(&transformationMatrix, (char *)"[NiftyReg DEBUG] Global affine transformation");
-#endif
+   NR_MAT44(transformationMatrix, "Global affine transformation");
 
    double voxel[3]={0,0,0}, position[3]={0,0,0};
    int x=0, y=0, z=0;
@@ -166,9 +162,7 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
          reg_affine_deformationField2D<double>(affineTransformation, deformationField, compose, tempMask);
          break;
       default:
-         reg_print_fct_error("reg_affine_getDeformationField");
-         reg_print_msg_error("The deformation field data type is not supported");
-         reg_exit();
+         NR_FATAL_ERROR("The deformation field data type is not supported");
       }
    }
    else
@@ -182,9 +176,7 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
          reg_affine_deformationField3D<double>(affineTransformation, deformationField, compose, tempMask);
          break;
       default:
-         reg_print_fct_error("reg_affine_getDeformationField");
-         reg_print_msg_error("The deformation field data type is not supported");
-         reg_exit();
+         NR_FATAL_ERROR("The deformation field data type is not supported");
       }
    }
    if(mask==nullptr)

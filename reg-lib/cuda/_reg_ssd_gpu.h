@@ -40,6 +40,7 @@ public:
                                    nifti_image *voxelBasedGrad,
                                    float4 *voxelBasedGradCuda,
                                    nifti_image *localWeightSim = nullptr,
+                                   float *localWeightSimCuda = nullptr,
                                    int *floMask = nullptr,
                                    int *floMaskCuda = nullptr,
                                    nifti_image *warpedImgBw = nullptr,

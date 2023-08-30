@@ -21,8 +21,8 @@ elseif(RUN_RESULT_VAR)
     return()
 else(NOT COMPILE_RESULT_VAR)
     message(STATUS "Found CUDA (v${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}) and a CUDA-enabled card (capability ${RUN_OUTPUT_VAR})")
-    # Set C++ standard version for CUDA
-    set(CUDA_NVCC_FLAGS "-std=c++17")
+    # Set C++ standard version for CUDA and enable extended lambdas
+    set(CUDA_NVCC_FLAGS "-std=c++17 --extended-lambda")
     #check cuda version and adjust compile flags
     if("${RUN_OUTPUT_VAR}" LESS "30")
         set(USE_CUDA OFF CACHE BOOL "To use the CUDA platform" FORCE)
@@ -48,7 +48,7 @@ else(NOT COMPILE_RESULT_VAR)
     endif(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUAL "OFF")
 endif(NOT COMPILE_RESULT_VAR)
 #-----------------------------------------------------------------------------
-set(NAME _reg_common_cuda)
+set(NAME CudaCommon)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cu)
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
 install(TARGETS ${NAME}
@@ -85,7 +85,7 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     _reg_ssd_gpu.cu
     _reg_optimiser_gpu.cu
 )
-target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_cuda)
+target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} CudaCommon)
 install(TARGETS ${NAME}
     RUNTIME DESTINATION lib
     LIBRARY DESTINATION lib

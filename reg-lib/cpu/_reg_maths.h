@@ -14,12 +14,6 @@
 
 #pragma once
 
-#include <limits>
-#include <stdio.h>
-#include <math.h>
-#include <iostream>
-#include <vector>
-#include <stdexcept>
 #include "RNifti.h"
 
 #ifdef _OPENMP
@@ -34,15 +28,14 @@
 #endif
 #endif
 
-typedef enum
-{
-   DEF_FIELD,
-   DISP_FIELD,
-   CUB_SPLINE_GRID,
-   DEF_VEL_FIELD,
-   DISP_VEL_FIELD,
-   SPLINE_VEL_GRID,
-   LIN_SPLINE_GRID
+typedef enum {
+    DEF_FIELD,
+    DISP_FIELD,
+    CUB_SPLINE_GRID,
+    DEF_VEL_FIELD,
+    DISP_VEL_FIELD,
+    SPLINE_VEL_GRID,
+    LIN_SPLINE_GRID
 } NREG_TRANS_TYPE;
 
 /* *************************************************************** */
@@ -60,44 +53,11 @@ typedef enum
 #define IMIN(a,b) (a < b ? a : b)
 #define SQR(a) (a==0.0 ? 0.0 : a*a)
 /* *************************************************************** */
-#ifdef RNIFTYREG
-#include <R.h>  // This may have to change to Rcpp.h or RcppEigen.h later
-#define reg_exit(){error("[NiftyReg] Fatal error");}
-#define reg_print_info(executable,text){Rprintf("[%s] %s\n", executable, text);}
-#define reg_print_fct_debug(text){Rprintf("[NiftyReg DEBUG] Function: %s called\n", text);}
-#define reg_print_msg_debug(text){Rprintf("[NiftyReg DEBUG] %s\n", text);}
-#define reg_print_fct_warn(text){REprintf("[NiftyReg WARNING] Function: %s\n", text);}
-#define reg_print_msg_warn(text){REprintf("[NiftyReg WARNING] %s\n", text);}
-#define reg_print_fct_error(text){REprintf("[NiftyReg ERROR] Function: %s\n", text);}
-#define reg_print_msg_error(text){REprintf("[NiftyReg ERROR] %s\n", text);}
-#else
-#ifdef NR_THROW_EXCEP
-#define reg_exit(){ \
-    throw std::runtime_error("[NiftyReg] Exception"); \
-}
-#else // NR_THROW_EXCEP
-#define reg_exit(){ \
-    fprintf(stderr,"[NiftyReg] Exit here. File: %s:%i\n",__FILE__, __LINE__); \
-    exit(1); \
-}
-#endif // NR_THROW_EXCEP
-#define reg_print_info(executable,text){printf("[%s] %s\n", executable, text);}
-#define reg_print_fct_debug(text){printf("[NiftyReg DEBUG] Function: %s called\n", text);}
-#define reg_print_msg_debug(text){printf("[NiftyReg DEBUG] %s\n", text);}
-#define reg_print_fct_warn(text){printf("[NiftyReg WARNING] Function: %s\n", text);}
-#define reg_print_msg_warn(text){printf("[NiftyReg WARNING] %s\n", text);}
-#define reg_print_fct_error(text){fprintf(stderr,"[NiftyReg ERROR] Function: %s\n", text);}
-#define reg_print_msg_error(text){fprintf(stderr,"[NiftyReg ERROR] %s\n", text);}
-#endif
-/* *************************************************************** */
 #if defined(_WIN32) && !defined(__CYGWIN__)
 #include <float.h>
 #include <time.h>
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
-#endif
-#ifndef isnan
-#define isnan(_X) _isnan(_X)
 #endif
 #if (_MSC_VER < 1900)
 #ifndef strtof
@@ -180,7 +140,7 @@ void reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect, T* res);
 mat33 reg_mat33_add(mat33 const* A, mat33 const* B);
 mat33 operator+(mat33 A, mat33 B);
 /* *************************************************************** */
-/** @brief Multipy two 3-by-3 matrices
+/** @brief Multiply two 3-by-3 matrices
 */
 mat33 reg_mat33_mul(mat33 const* A,
     mat33 const* B);
@@ -191,7 +151,7 @@ mat33 operator*(mat33 A,
 void reg_mat33_mul(mat44 const* mat, float const* in, float *out);
 void reg_mat33_mul(mat33 const* mat, float const* in, float *out);
 /* *************************************************************** */
-/** @brief Substract two 3-by-3 matrices
+/** @brief Subtract two 3-by-3 matrices
 */
 mat33 reg_mat33_minus(mat33 const* A, mat33 const* B);
 mat33 operator-(mat33 A, mat33 B);
@@ -230,14 +190,14 @@ bool operator==(mat44 A,mat44 B);
 /* *************************************************************** */
 bool operator!=(mat44 A,mat44 B);
 /* *************************************************************** */
-/** @brief Multipy two 4-by-4 matrices
+/** @brief Multiply two 4-by-4 matrices
  */
 mat44 reg_mat44_mul(mat44 const* A,
                     mat44 const* B);
 mat44 operator*(mat44 A,
                 mat44 B);
 /* *************************************************************** */
-/** @brief Multipy a vector with a 4-by-4 matrix
+/** @brief Multiply a vector with a 4-by-4 matrix
  */
 void reg_mat44_mul(mat44 const* mat,
                    float const* in,
@@ -247,7 +207,7 @@ void reg_mat44_mul(mat44 const* mat,
                    double const* in,
                    double *out);
 /* *************************************************************** */
-/** @brief Multipy a 4-by-4 matrix with a scalar
+/** @brief Multiply a 4-by-4 matrix with a scalar
  */
 mat44 reg_mat44_mul(mat44 const* mat,
                     double scalar);
@@ -257,7 +217,7 @@ mat44 reg_mat44_mul(mat44 const* mat,
 mat44 reg_mat44_add(mat44 const* A, mat44 const* B);
 mat44 operator+(mat44 A,mat44 B);
 /* *************************************************************** */
-/** @brief Substract two 4-by-4 matrices
+/** @brief Subtract two 4-by-4 matrices
  */
 mat44 reg_mat44_minus(mat44 const* A, mat44 const* B);
 mat44 operator-(mat44 A,mat44 B);
@@ -274,13 +234,11 @@ float reg_mat44_norm_inf(mat44 const* mat);
 /* *************************************************************** */
 /** @brief Display a mat44 matrix
  */
-void reg_mat44_disp(mat44 *mat,
-                    char * title);
+void reg_mat44_disp(const mat44& mat, const std::string& title);
 /* *************************************************************** */
 /** @brief Display a mat33 matrix
  */
-void reg_mat33_disp(mat33 *mat,
-                    char * title);
+void reg_mat33_disp(const mat33& mat, const std::string& title);
 /* *************************************************************** */
 double get_square_distance3D(float * first_point3D, float * second_point3D);
 /* *************************************************************** */

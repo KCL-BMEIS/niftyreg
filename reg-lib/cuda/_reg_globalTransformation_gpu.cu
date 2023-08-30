@@ -27,7 +27,7 @@ void reg_affine_positionField_gpu(const mat44 *affineMatrix,
     // Affine * TargetMat is constant
     const mat44 transformationMatrix = reg_mat44_mul(affineMatrix, targetMatrix);
 
-    const unsigned blocks = NiftyReg::CudaContext::GetBlockSize()->reg_affine_deformationField;
+    const unsigned blocks = CudaContext::GetBlockSize()->reg_affine_deformationField;
     const unsigned grids = (unsigned)ceil(sqrtf((float)targetImage->nvox / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);

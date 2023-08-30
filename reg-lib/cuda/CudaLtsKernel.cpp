@@ -34,10 +34,8 @@ void CudaLtsKernel::Calculate(bool affine) {
      cudaRuntimeGetVersion(cudaRunTimeVersion);
      cudaDriverGetVersion(cudaDriverVersion);
 
- #ifndef DEBUG
-     printf("CUDA RUNTIME VERSION=%i\n", *cudaRunTimeVersion);
-     printf("CUDA DRIVER VERSION=%i\n", *cudaDriverVersion);
- #endif
+     NR_DEBUG("CUDA runtime version=" << *cudaRunTimeVersion);
+     NR_DEBUG("CUDA driver version=" << *cudaDriverVersion);
 
      if (*cudaRunTimeVersion < 7050) {
          blockMatchingParams = con->GetBlockMatchingParams();

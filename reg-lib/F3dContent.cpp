@@ -11,11 +11,8 @@ F3dContent::F3dContent(nifti_image *referenceIn,
     DefContent(referenceIn, floatingIn, localWeightSimIn, referenceMaskIn, transformationMatrixIn, bytesIn),
     Content(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, bytesIn),
     controlPointGrid(controlPointGridIn) {
-    if (!controlPointGridIn) {
-        reg_print_fct_error("F3dContent::F3dContent()");
-        reg_print_msg_error("controlPointGridIn can't be nullptr");
-        reg_exit();
-    }
+    if (!controlPointGridIn)
+        NR_FATAL_ERROR("controlPointGridIn can't be nullptr");
     AllocateTransformationGradient();
 }
 /* *************************************************************** */

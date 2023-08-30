@@ -59,230 +59,172 @@ reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     landmarkReference = nullptr;
     landmarkFloating = nullptr;
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::reg_base");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceImage(NiftiImage inputReferenceIn) {
     inputReference = inputReferenceIn;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetReferenceImage");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingImage(NiftiImage inputFloatingIn) {
     inputFloating = inputFloatingIn;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetFloatingImage");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetMaximalIterationNumber(unsigned iter) {
     maxIterationNumber = iter;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetMaximalIterationNumber");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceMask(NiftiImage maskImageIn) {
     maskImage = maskImageIn;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetReferenceMask");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetAffineTransformation(const mat44& affineTransformationIn) {
     affineTransformation.reset(new mat44(affineTransformationIn));
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetAffineTransformation");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceSmoothingSigma(T referenceSmoothingSigmaIn) {
     referenceSmoothingSigma = referenceSmoothingSigmaIn;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetReferenceSmoothingSigma");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingSmoothingSigma(T floatingSmoothingSigmaIn) {
     floatingSmoothingSigma = floatingSmoothingSigmaIn;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetFloatingSmoothingSigma");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceThresholdUp(unsigned i, T t) {
     referenceThresholdUp[i] = t;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetReferenceThresholdUp");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceThresholdLow(unsigned i, T t) {
     referenceThresholdLow[i] = t;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetReferenceThresholdLow");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingThresholdUp(unsigned i, T t) {
     floatingThresholdUp[i] = t;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetFloatingThresholdUp");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingThresholdLow(unsigned i, T t) {
     floatingThresholdLow[i] = t;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetFloatingThresholdLow");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseRobustRange() {
     robustRange = true;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseRobustRange");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotUseRobustRange() {
     robustRange = false;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseRobustRange");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetWarpedPaddingValue(float warpedPaddingValueIn) {
     warpedPaddingValue = warpedPaddingValueIn;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetWarpedPaddingValue");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLevelNumber(unsigned levelNumberIn) {
-    if(levelNumberIn>0)
-    levelNumber = levelNumberIn;
-    else{
-        reg_print_msg_error("The number of level is expected to be strictly positive. Exit");
-        reg_exit();
-    }
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetLevelNumber");
-#endif
+    if (levelNumberIn > 0)
+        levelNumber = levelNumberIn;
+    else
+        NR_FATAL_ERROR("The number of level is expected to be strictly positive!");
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLevelToPerform(unsigned levelToPerformIn) {
     levelToPerform = levelToPerformIn;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetLevelToPerform");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetGradientSmoothingSigma(T gradientSmoothingSigmaIn) {
     gradientSmoothingSigma = gradientSmoothingSigmaIn;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetGradientSmoothingSigma");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseConjugateGradient() {
     useConjGradient = true;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseConjugateGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotUseConjugateGradient() {
     useConjGradient = false;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::DoNotUseConjugateGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseApproximatedGradient() {
     useApproxGradient = true;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseApproximatedGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotUseApproximatedGradient() {
     useApproxGradient = false;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::DoNotUseApproximatedGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::PrintOutInformation() {
     verbose = true;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::PrintOutInformation");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotPrintOutInformation() {
     verbose = false;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::DoNotPrintOutInformation");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotUsePyramidalApproach() {
     usePyramid = false;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::DoNotUsePyramidalApproach");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseNearestNeighborInterpolation() {
     interpolation = 0;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseNearestNeighborInterpolation");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseLinearInterpolation() {
     interpolation = 1;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseLinearInterpolation");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseCubicSplineInterpolation() {
     interpolation = 3;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseCubicSplineInterpolation");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -291,35 +233,22 @@ void reg_base<T>::SetLandmarkRegularisationParam(size_t n, float *r, float *f, f
     landmarkReference = r;
     landmarkFloating = f;
     landmarkRegWeight = w;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetLandmarkRegularisationParam");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::CheckParameters() {
     // Check if both input images are defined
-    if (!inputReference) {
-        reg_print_fct_error("reg_base::CheckParameters()");
-        reg_print_msg_error("The reference image is not defined");
-        reg_exit();
-    }
-    if (!inputFloating) {
-        reg_print_fct_error("reg_base::CheckParameters()");
-        reg_print_msg_error("The floating image is not defined");
-        reg_exit();
-    }
+    if (!inputReference)
+        NR_FATAL_ERROR("The reference image is not defined");
+    if (!inputFloating)
+        NR_FATAL_ERROR("The floating image is not defined");
 
     // Check the mask dimension if it is defined
-    if (maskImage) {
-        if (inputReference->nx != maskImage->nx ||
-            inputReference->ny != maskImage->ny ||
-            inputReference->nz != maskImage->nz) {
-            reg_print_fct_error("reg_base::CheckParameters()");
-            reg_print_msg_error("The reference and mask images have different dimension");
-            reg_exit();
-        }
-    }
+    if (maskImage && (inputReference->nx != maskImage->nx ||
+                      inputReference->ny != maskImage->ny ||
+                      inputReference->nz != maskImage->nz))
+        NR_FATAL_ERROR("The reference and mask images have different dimension");
 
     // Check the number of level to perform
     if (levelToPerform > 0) {
@@ -345,11 +274,8 @@ void reg_base<T>::CheckParameters() {
     //
     // Tests are ignored if using MIND or MINDSSC as they are not implemented for multi-channel or weighting
     if (!measure_mind && !measure_mindssc) {
-        if (inputFloating->nt != inputReference->nt) {
-            reg_print_fct_error("reg_base::CheckParameters()");
-            reg_print_msg_error("The reference and floating images have different numbers of channels (timepoints)");
-            reg_exit();
-        }
+        if (inputFloating->nt != inputReference->nt)
+            NR_FATAL_ERROR("The reference and floating images have different numbers of channels (timepoints)");
         unique_ptr<double[]> chanWeightSum(new double[inputReference->nt]());
         double simWeightSum, totWeightSum = 0.;
         double *nmiWeights = nullptr, *ssdWeights = nullptr, *kldWeights = nullptr, *lnccWeights = nullptr;
@@ -357,89 +283,57 @@ void reg_base<T>::CheckParameters() {
             nmiWeights = measure_nmi->GetTimepointsWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
-                if (nmiWeights[n] < 0) {
-                    char text[255];
-                    sprintf(text, "The NMI weight for timepoint %d has a negative value - weights must be positive", n);
-                    reg_print_fct_error("reg_base::CheckParameters()");
-                    reg_print_msg_error(text);
-                    reg_exit();
-                }
+                if (nmiWeights[n] < 0)
+                    NR_FATAL_ERROR("The NMI weight for timepoint " + std::to_string(n) + " has a negative value - weights must be positive");
                 chanWeightSum[n] += nmiWeights[n];
                 simWeightSum += nmiWeights[n];
                 totWeightSum += nmiWeights[n];
             }
-            if (simWeightSum == 0) {
-                reg_print_fct_warn("reg_base::CheckParameters()");
-                reg_print_msg_warn("The NMI similarity measure has a weight of 0 for all channels so will be ignored");
-            }
+            if (simWeightSum == 0)
+                NR_WARN_WFCT("The NMI similarity measure has a weight of 0 for all channels so will be ignored");
         }
         if (measure_ssd) {
             ssdWeights = measure_ssd->GetTimepointsWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
-                if (ssdWeights[n] < 0) {
-                    char text[255];
-                    sprintf(text, "The SSD weight for timepoint %d has a negative value - weights must be positive", n);
-                    reg_print_fct_error("reg_base::CheckParameters()");
-                    reg_print_msg_error(text);
-                    reg_exit();
-                }
+                if (ssdWeights[n] < 0)
+                    NR_FATAL_ERROR("The SSD weight for timepoint " + std::to_string(n) + " has a negative value - weights must be positive");
                 chanWeightSum[n] += ssdWeights[n];
                 simWeightSum += ssdWeights[n];
                 totWeightSum += ssdWeights[n];
             }
-            if (simWeightSum == 0) {
-                reg_print_fct_warn("reg_base::CheckParameters()");
-                reg_print_msg_warn("The SSD similarity measure has a weight of 0 for all channels so will be ignored");
-            }
+            if (simWeightSum == 0)
+                NR_WARN_WFCT("The SSD similarity measure has a weight of 0 for all channels so will be ignored");
         }
         if (measure_kld) {
             kldWeights = measure_kld->GetTimepointsWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
-                if (kldWeights[n] < 0) {
-                    char text[255];
-                    sprintf(text, "The KLD weight for timepoint %d has a negative value - weights must be positive", n);
-                    reg_print_fct_error("reg_base::CheckParameters()");
-                    reg_print_msg_error(text);
-                    reg_exit();
-                }
+                if (kldWeights[n] < 0)
+                    NR_FATAL_ERROR("The KLD weight for timepoint " + std::to_string(n) + " has a negative value - weights must be positive");
                 chanWeightSum[n] += kldWeights[n];
                 simWeightSum += kldWeights[n];
                 totWeightSum += kldWeights[n];
             }
-            if (simWeightSum == 0) {
-                reg_print_fct_warn("reg_base::CheckParameters()");
-                reg_print_msg_warn("The KLD similarity measure has a weight of 0 for all channels so will be ignored");
-            }
+            if (simWeightSum == 0)
+                NR_WARN_WFCT("The KLD similarity measure has a weight of 0 for all channels so will be ignored");
         }
         if (measure_lncc) {
             lnccWeights = measure_lncc->GetTimepointsWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
-                if (lnccWeights[n] < 0) {
-                    char text[255];
-                    sprintf(text, "The LNCC weight for timepoint %d has a negative value - weights must be positive", n);
-                    reg_print_fct_error("reg_base::CheckParameters()");
-                    reg_print_msg_error(text);
-                    reg_exit();
-                }
+                if (lnccWeights[n] < 0)
+                    NR_FATAL_ERROR("The LNCC weight for timepoint " + std::to_string(n) + " has a negative value - weights must be positive");
                 chanWeightSum[n] += lnccWeights[n];
                 simWeightSum += lnccWeights[n];
                 totWeightSum += lnccWeights[n];
             }
-            if (simWeightSum == 0) {
-                reg_print_fct_warn("reg_base::CheckParameters()");
-                reg_print_msg_warn("The LNCC similarity measure has a weight of 0 for all channels so will be ignored");
-            }
+            if (simWeightSum == 0)
+                NR_WARN_WFCT("The LNCC similarity measure has a weight of 0 for all channels so will be ignored");
         }
         for (int n = 0; n < inputReference->nt; n++) {
-            if (chanWeightSum[n] == 0) {
-                char text[255];
-                sprintf(text, "Channel %d has a weight of 0 for all similarity measures so will be ignored", n);
-                reg_print_fct_warn("reg_base::CheckParameters()");
-                reg_print_msg_warn(text);
-            }
+            if (chanWeightSum[n] == 0)
+                NR_WARN_WFCT("Channel " << n << " has a weight of 0 for all similarity measures so will be ignored");
             if (measure_nmi)
                 measure_nmi->SetTimepointWeight(n, nmiWeights[n] / totWeightSum);
             if (measure_ssd)
@@ -451,9 +345,7 @@ void reg_base<T>::CheckParameters() {
         }
     }
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::CheckParameters");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -481,9 +373,7 @@ void reg_base<T>::InitialiseSimilarity() {
     if (measure_mindssc)
         measure->Initialise(*measure_mindssc, con);
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::InitialiseSimilarity");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -565,9 +455,7 @@ void reg_base<T>::Initialise() {
     }
 
     initialised = true;
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::Initialise");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -594,9 +482,7 @@ double reg_base<T>::ComputeSimilarityMeasure() {
     if (measure_mindssc)
         measure += measure_mindssc->GetSimilarityMeasureValue();
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::ComputeSimilarityMeasure");
-#endif
+    NR_FUNC_CALLED();
     return similarityWeight * measure;
 }
 /* *************************************************************** */
@@ -651,9 +537,7 @@ void reg_base<T>::GetVoxelBasedGradient() {
             measure_mindssc->GetVoxelBasedSimilarityMeasureGradient(t);
     }
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::GetVoxelBasedGradient");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 //template<class T>
@@ -680,9 +564,7 @@ void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber) {
     // I am here adding 4 to the specified bin number to accommodate for
     // the spline support
     measure_nmi->SetReferenceBinNumber(refBinNumber + 4, timepoint);
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseNMISetReferenceBinNumber");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -693,9 +575,7 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber) {
     // I am here adding 4 to the specified bin number to accommodate for
     // the spline support
     measure_nmi->SetFloatingBinNumber(floBinNumber + 4, timepoint);
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseNMISetFloatingBinNumber");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -704,9 +584,7 @@ void reg_base<T>::UseSSD(int timepoint, bool normalise) {
         measure_ssd.reset(dynamic_cast<reg_ssd*>(measure->Create(MeasureType::Ssd)));
     measure_ssd->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
     measure_ssd->SetNormaliseTimepoint(timepoint, normalise);
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseSSD");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -715,9 +593,7 @@ void reg_base<T>::UseMIND(int timepoint, int offset) {
         measure_mind.reset(dynamic_cast<reg_mind*>(measure->Create(MeasureType::Mind)));
     measure_mind->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
     measure_mind->SetDescriptorOffset(offset);
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseMIND");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -726,9 +602,7 @@ void reg_base<T>::UseMINDSSC(int timepoint, int offset) {
         measure_mindssc.reset(dynamic_cast<reg_mindssc*>(measure->Create(MeasureType::MindSsc)));
     measure_mindssc->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
     measure_mindssc->SetDescriptorOffset(offset);
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseMINDSSC");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -736,9 +610,7 @@ void reg_base<T>::UseKLDivergence(int timepoint) {
     if (!measure_kld)
         measure_kld.reset(dynamic_cast<reg_kld*>(measure->Create(MeasureType::Kld)));
     measure_kld->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseKLDivergence");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -747,28 +619,20 @@ void reg_base<T>::UseLNCC(int timepoint, float stddev) {
         measure_lncc.reset(dynamic_cast<reg_lncc*>(measure->Create(MeasureType::Lncc)));
     measure_lncc->SetKernelStandardDeviation(timepoint, stddev);
     measure_lncc->SetTimepointWeight(timepoint, 1.0); // weight initially set to default value of 1.0
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseLNCC");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLNCCKernelType(int type) {
-    if (!measure_lncc) {
-        reg_print_fct_error("reg_base<T>::SetLNCCKernelType");
-        reg_print_msg_error("The LNCC object has to be created first");
-        reg_exit();
-    }
+    if (!measure_lncc)
+        NR_FATAL_ERROR("The LNCC object has to be created first");
     measure_lncc->SetKernelType(type);
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::SetLNCCKernelType");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseDTI(bool *timepoint) {
-    reg_print_msg_error("The use of DTI has been deactivated as it requires some refactoring");
-    reg_exit();
+    NR_FATAL_ERROR("The use of DTI has been deactivated as it requires some refactoring");
 
     if (!measure_dti)
         measure_dti.reset(dynamic_cast<reg_dti*>(measure->Create(MeasureType::Dti)));
@@ -776,48 +640,34 @@ void reg_base<T>::UseDTI(bool *timepoint) {
         if (timepoint[i])
             measure_dti->SetTimepointWeight(i, 1.0);  // weight set to 1.0 to indicate timepoint is active
     }
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::UseDTI");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetNMIWeight(int timepoint, double weight) {
-    if (!measure_nmi) {
-        reg_print_fct_error("reg_base<T>::SetNMIWeight");
-        reg_print_msg_error("The NMI object has to be created before the timepoint weights can be set");
-        reg_exit();
-    }
+    if (!measure_nmi)
+        NR_FATAL_ERROR("The NMI object has to be created before the timepoint weights can be set");
     measure_nmi->SetTimepointWeight(timepoint, weight);
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLNCCWeight(int timepoint, double weight) {
-    if (!measure_lncc) {
-        reg_print_fct_error("reg_base<T>::SetLNCCWeight");
-        reg_print_msg_error("The LNCC object has to be created before the timepoint weights can be set");
-        reg_exit();
-    }
+    if (!measure_lncc)
+        NR_FATAL_ERROR("The LNCC object has to be created before the timepoint weights can be set");
     measure_lncc->SetTimepointWeight(timepoint, weight);
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetSSDWeight(int timepoint, double weight) {
-    if (!measure_ssd) {
-        reg_print_fct_error("reg_base<T>::SetSSDWeight");
-        reg_print_msg_error("The SSD object has to be created before the timepoint weights can be set");
-        reg_exit();
-    }
+    if (!measure_ssd)
+        NR_FATAL_ERROR("The SSD object has to be created before the timepoint weights can be set");
     measure_ssd->SetTimepointWeight(timepoint, weight);
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetKLDWeight(int timepoint, double weight) {
-    if (!measure_kld) {
-        reg_print_fct_error("reg_base<T>::SetKLDWeight");
-        reg_print_msg_error("The KLD object has to be created before the timepoint weights can be set");
-        reg_exit();
-    }
+    if (!measure_kld)
+        NR_FATAL_ERROR("The KLD object has to be created before the timepoint weights can be set");
     measure_kld->SetTimepointWeight(timepoint, weight);
 }
 /* *************************************************************** */
@@ -847,9 +697,7 @@ void reg_base<T>::WarpFloatingImage(int inter) {
                           measure_dti->GetActiveTimepoints(),
                           forwardJacobianMatrix);*/
     }
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::WarpFloatingImage");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -870,23 +718,14 @@ void reg_base<T>::DeinitCurrentLevel(int currentLevel) {
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::Run() {
-#ifndef NDEBUG
-    char text[255];
-    sprintf(text, "%s::Run() called", executableName);
-    reg_print_msg_debug(text);
-#endif
+    NR_DEBUG(executableName << "::Run() called");
 
     Initialise();
-#ifdef NDEBUG
-    if (verbose) {
-#endif
-        reg_print_info(executableName, "***********************************************************");
-#ifdef NDEBUG
-    }
-#endif
+
+    NR_VERBOSE("***********************************************************");
 
     // Update the maximal number of iteration to perform per level
-    maxIterationNumber = maxIterationNumber * pow(2, levelToPerform - 1);
+    maxIterationNumber *= pow(2, levelToPerform - 1);
 
     // Loop over the different resolution level to perform
     for (int currentLevel = 0; currentLevel < levelToPerform; currentLevel++) {
@@ -912,7 +751,7 @@ void reg_base<T>::Run() {
             // Iterate until convergence or until the max number of iteration is reach
             while (currentSize) {
                 if (optimiser->GetCurrentIterationNumber() >= optimiser->GetMaxIterationNumber()) {
-                    reg_print_msg_warn("The current level reached the maximum number of iteration");
+                    NR_WARN("The current level reached the maximum number of iteration");
                     break;
                 }
 
@@ -935,18 +774,8 @@ void reg_base<T>::Run() {
             if (perturbation < perturbationNumber) {
                 optimiser->Perturbation(smallestSize);
                 currentSize = maxStepSize;
-#ifdef NDEBUG
-                if (verbose) {
-#endif
-                    char text[255];
-                    reg_print_info(executableName, "Perturbation Step - The number of iteration is reset to 0");
-                    sprintf(text, "Perturbation Step - Every control point positions is altered by [-%g %g]",
-                            smallestSize, smallestSize);
-                    reg_print_info(executableName, text);
-
-#ifdef NDEBUG
-                }
-#endif
+                NR_VERBOSE("Perturbation Step - The number of iteration is reset to 0");
+                NR_VERBOSE("Perturbation Step - Every control point positions is altered by [-" << smallestSize << " " << smallestSize << "]");
             }
         } // perturbation loop
 
@@ -956,21 +785,14 @@ void reg_base<T>::Run() {
         // Some cleaning is performed
         DeinitCurrentLevel(currentLevel);
 
-#ifdef NDEBUG
-        if (verbose) {
-#endif
-            reg_print_info(executableName, "Current registration level done");
-            reg_print_info(executableName, "***********************************************************");
-#ifdef NDEBUG
-        }
-#endif
+        NR_VERBOSE("Current registration level done");
+        NR_VERBOSE("***********************************************************");
+
         // Update the number of level for the next level
         maxIterationNumber /= 2;
     } // level levelToPerform
 
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_base<T>::Run");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template class reg_base<float>;

@@ -25,7 +25,6 @@
 #include "_reg_lncc.h"
 #include "_reg_tools.h"
 #include "_reg_ReadWriteImage.h"
-#include "_reg_stringFormat.h"
 #include "_reg_optimiser.h"
 #include "Platform.h"
 

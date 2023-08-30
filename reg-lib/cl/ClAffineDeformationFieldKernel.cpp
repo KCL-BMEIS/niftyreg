@@ -15,15 +15,11 @@ ClAffineDeformationFieldKernel::ClAffineDeformationFieldKernel(Content *conIn) :
     std::string clSrcPath;
     //src dir
     if (niftyreg_src_dir != nullptr) {
-        char opencl_kernel_path[255];
-        sprintf(opencl_kernel_path, "%s/reg-lib/cl/", niftyreg_src_dir);
-        clSrcPath = opencl_kernel_path;
+        clSrcPath = niftyreg_src_dir + "/reg-lib/cl/"s;
     } else clSrcPath = CL_KERNELS_SRC_PATH;
     //install dir
     if (niftyreg_install_dir != nullptr) {
-        char opencl_kernel_path[255];
-        sprintf(opencl_kernel_path, "%s/include/cl/", niftyreg_install_dir);
-        clInstallPath = opencl_kernel_path;
+        clInstallPath = niftyreg_install_dir + "/include/cl/"s;
     } else clInstallPath = CL_KERNELS_PATH;
 
     std::string clKernel("affineDeformationKernel.cl");

@@ -12,15 +12,12 @@
 
 #include "_reg_ssd.h"
 
-// #define USE_LOG_SSD
 // #define MRF_USE_SAD
 
 /* *************************************************************** */
 reg_ssd::reg_ssd(): reg_measure() {
     memset(this->normaliseTimePoint, 0, 255 * sizeof(bool));
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_ssd constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 void reg_ssd::InitialiseMeasure(nifti_image *refImg,
@@ -48,11 +45,8 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImg,
                                    voxelBasedGradBw);
 
     // Check that the input images have the same number of time point
-    if (this->referenceImage->nt != this->floatingImage->nt) {
-        reg_print_fct_error("reg_ssd::InitialiseMeasure");
-        reg_print_msg_error("This number of time point should be the same for both input images");
-        reg_exit();
-    }
+    if (this->referenceImage->nt != this->floatingImage->nt)
+        NR_FATAL_ERROR("This number of time point should be the same for both input images");
     // Input images are normalised between 0 and 1
     for (int i = 0; i < this->referenceImage->nt; ++i) {
         if (this->timePointWeight[i] > 0 && normaliseTimePoint[i]) {
@@ -76,20 +70,17 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImg,
         }
     }
 #ifdef MRF_USE_SAD
-    reg_print_msg_warn("SAD is used instead of SSD");
+    NR_WARN("SAD is used instead of SSD");
 #endif
 #ifndef NDEBUG
-    char text[255];
-    reg_print_msg_debug("reg_ssd::InitialiseMeasure()");
-    for (int i = 0; i < this->referenceImage->nt; ++i) {
-        sprintf(text, "Weight for timepoint %i: %f", i, this->timePointWeight[i]);
-        reg_print_msg_debug(text);
-    }
-    sprintf(text, "Normalize time point:");
+    for (int i = 0; i < this->referenceImage->nt; ++i)
+        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeight[i]);
+    std::string msg = "Normalize time point:";
     for (int i = 0; i < this->referenceImage->nt; ++i)
         if (this->normaliseTimePoint[i])
-            sprintf(text, "%s %i", text, i);
-    reg_print_msg_debug(text);
+            msg += " " + std::to_string(i);
+    NR_DEBUG(msg);
+    NR_FUNC_CALLED();
 #endif
 }
 /* *************************************************************** */
@@ -103,7 +94,6 @@ double reg_getSsdValue(const nifti_image *referenceImage,
                        const double *timePointWeight,
                        const nifti_image *jacobianDetImage,
                        const int *mask,
-                       float *currentValue,
                        const nifti_image *localWeightSim) {
 #ifdef _WIN32
     long voxel;
@@ -145,7 +135,7 @@ double reg_getSsdValue(const nifti_image *referenceImage,
 #ifdef MRF_USE_SAD
                         const double diff = fabs(refValue - warValue);
 #else
-                        const double diff = reg_pow2(refValue - warValue);
+                        const double diff = std::pow(refValue - warValue, 2.0);
 #endif
                         // Jacobian determinant modulation of the ssd if required
                         const DataType& val = jacDetPtr ? jacDetPtr[voxel] : (localWeightPtr ? localWeightPtr[voxel] : 1);
@@ -156,21 +146,19 @@ double reg_getSsdValue(const nifti_image *referenceImage,
             }
 
             ssdLocal *= timePointWeight[time];
-            currentValue[time] = static_cast<float>(-ssdLocal);
             ssdGlobal -= ssdLocal / n;
         }
     }
     return ssdGlobal;
 }
-template double reg_getSsdValue<float>(const nifti_image*, const nifti_image*, const double*, const nifti_image*, const int*, float*, const nifti_image*);
-template double reg_getSsdValue<double>(const nifti_image*, const nifti_image*, const double*, const nifti_image*, const int*, float*, const nifti_image*);
+template double reg_getSsdValue<float>(const nifti_image*, const nifti_image*, const double*, const nifti_image*, const int*, const nifti_image*);
+template double reg_getSsdValue<double>(const nifti_image*, const nifti_image*, const double*, const nifti_image*, const int*, const nifti_image*);
 /* *************************************************************** */
 double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  const nifti_image *warpedImage,
                                  const double *timePointWeight,
                                  const nifti_image *jacobianDetImage,
                                  const int *mask,
-                                 float *currentValue,
                                  const nifti_image *localWeightSim) {
     return std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
@@ -179,7 +167,6 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                                timePointWeight,
                                                jacobianDetImage,
                                                mask,
-                                               currentValue,
                                                localWeightSim);
     }, NiftiImage::getFloatingDataType(referenceImage));
 }
@@ -190,7 +177,6 @@ double reg_ssd::GetSimilarityMeasureValueFw() {
                                        this->timePointWeight,
                                        nullptr, // TODO this->forwardJacDetImagePointer,
                                        this->referenceMask,
-                                       this->currentValue,
                                        this->localWeightSim);
 }
 /* *************************************************************** */
@@ -200,7 +186,6 @@ double reg_ssd::GetSimilarityMeasureValueBw() {
                                        this->timePointWeight,
                                        nullptr, // TODO this->backwardJacDetImagePointer,
                                        this->floatingMask,
-                                       this->currentValue,
                                        nullptr);
 }
 /* *************************************************************** */
@@ -243,7 +228,7 @@ void reg_getVoxelBasedSsdGradient(const nifti_image *referenceImage,
     // Create a pointer to the local weight image if defined
     const DataType *localWeightPtr = localWeightSim ? static_cast<DataType*>(localWeightSim->data) : nullptr;
 
-    // find number of active voxels and correct weight
+    // Find number of active voxels and correct weight
     size_t activeVoxelNumber = 0;
     for (voxel = 0; voxel < voxelNumber; voxel++) {
         if (mask[voxel] > -1) {
@@ -835,9 +820,7 @@ void reg_ssd::GetDiscretisedValue(nifti_image *controlPointGridImage,
                                                             this->warpedImage,
                                                             this->referenceMask);
         } else {
-            reg_print_fct_error("reg_ssd::GetDiscretisedValue");
-            reg_print_msg_error("Not implemented in 2D yet");
-            reg_exit();
+            NR_FATAL_ERROR("Not implemented in 2D yet");
         }
     }, NiftiImage::getFloatingDataType(this->referenceImage));
 }

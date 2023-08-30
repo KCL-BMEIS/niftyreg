@@ -24,64 +24,60 @@
 using PrecisionType = float;
 
 void PetitUsage(char *exec) {
-    char text[255];
-    reg_print_msg_error("");
-    reg_print_msg_error("reg_aladin");
-    sprintf(text, "Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS]", exec);
-    reg_print_msg_error(text);
-    reg_print_msg_error("\tSee the help for more details (-h).");
-    reg_print_msg_error("");
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_INFO("reg_aladin");
+    NR_INFO("Usage:\t" << exec << " -ref <referenceImageName> -flo <floatingImageName> [OPTIONS]");
+    NR_INFO("\tSee the help for more details (-h).");
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 void Usage(char *exec) {
-    char text[255];
-    reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-    reg_print_info(exec, "Block Matching algorithm for global registration.");
-    reg_print_info(exec, "Based on Modat et al., \"Global image registration using a symmetric block-matching approach\"");
-    reg_print_info(exec, "J. Med. Img. 1(2) 024003, 2014, doi: 10.1117/1.JMI.1.2.024003");
-    reg_print_info(exec, "For any comment, please contact Marc Modat (m.modat@ucl.ac.uk)");
-    reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-    sprintf(text, "Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].", exec);
-    reg_print_info(exec, text);
-    reg_print_info(exec, "\t-ref <filename>\tReference image filename (also called Target or Fixed) (mandatory)");
-    reg_print_info(exec, "\t-flo <filename>\tFloating image filename (also called Source or moving) (mandatory)");
-    reg_print_info(exec, "");
-    reg_print_info(exec, "* * OPTIONS * *");
-    reg_print_info(exec, "\t-noSym \t\t\tThe symmetric version of the algorithm is used by default. Use this flag to disable it.");
-    reg_print_info(exec, "\t-rigOnly\t\tTo perform a rigid registration only. (Rigid+affine by default)");
-    reg_print_info(exec, "\t-affDirect\t\tDirectly optimize 12 DoF affine. (Default is rigid initially then affine)");
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_INFO("Block Matching algorithm for global registration.");
+    NR_INFO("Based on Modat et al., \"Global image registration using a symmetric block-matching approach\"");
+    NR_INFO("J. Med. Img. 1(2) 024003, 2014, doi: 10.1117/1.JMI.1.2.024003");
+    NR_INFO("For any comment, please contact Marc Modat (m.modat@ucl.ac.uk)");
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_INFO("Usage:\t" << exec << " -ref <filename> -flo <filename> [OPTIONS]");
+    NR_INFO("\t-ref <filename>\tReference image filename (also called Target or Fixed) (mandatory)");
+    NR_INFO("\t-flo <filename>\tFloating image filename (also called Source or Moving) (mandatory)");
+    NR_INFO("");
+    NR_INFO("* * OPTIONS * *");
+    NR_INFO("\t-noSym \t\t\tThe symmetric version of the algorithm is used by default. Use this flag to disable it.");
+    NR_INFO("\t-rigOnly\t\tTo perform a rigid registration only. (Rigid+affine by default)");
+    NR_INFO("\t-affDirect\t\tDirectly optimize 12 DoF affine. (Default is rigid initially then affine)");
 
-    reg_print_info(exec, "\t-aff <filename>\t\tFilename which contains the output affine transformation. [outputAffine.txt]");
-    reg_print_info(exec, "\t-inaff <filename>\tFilename which contains an input affine transformation. (Affine*Reference=Floating) [none]");
+    NR_INFO("\t-aff <filename>\t\tFilename which contains the output affine transformation. [outputAffine.txt]");
+    NR_INFO("\t-inaff <filename>\tFilename which contains an input affine transformation. (Affine*Reference=Floating) [none]");
 
-    reg_print_info(exec, "\t-rmask <filename>\tFilename of a mask image in the reference space.");
-    reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space. (Only used when symmetric turned on)");
-    reg_print_info(exec, "\t-res <filename>\t\tFilename of the resampled image. [outputResult.nii.gz]");
+    NR_INFO("\t-rmask <filename>\tFilename of a mask image in the reference space.");
+    NR_INFO("\t-fmask <filename>\tFilename of a mask image in the floating space. (Only used when symmetric turned on)");
+    NR_INFO("\t-res <filename>\t\tFilename of the resampled image. [outputResult.nii.gz]");
 
-    reg_print_info(exec, "\t-maxit <int>\t\tMaximal number of iterations of the trimmed least square approach to perform per level. [5]");
-    reg_print_info(exec, "\t-ln <int>\t\tNumber of levels to use to generate the pyramids for the coarse-to-fine approach. [3]");
-    reg_print_info(exec, "\t-lp <int>\t\tNumber of levels to use to run the registration once the pyramids have been created. [ln]");
+    NR_INFO("\t-maxit <int>\t\tMaximal number of iterations of the trimmed least square approach to perform per level. [5]");
+    NR_INFO("\t-ln <int>\t\tNumber of levels to use to generate the pyramids for the coarse-to-fine approach. [3]");
+    NR_INFO("\t-lp <int>\t\tNumber of levels to use to run the registration once the pyramids have been created. [ln]");
 
-    reg_print_info(exec, "\t-smooR <float>\t\tStandard deviation in mm (voxel if negative) of the Gaussian kernel used to smooth the Reference image. [0]");
-    reg_print_info(exec, "\t-smooF <float>\t\tStandard deviation in mm (voxel if negative) of the Gaussian kernel used to smooth the Floating image. [0]");
-    reg_print_info(exec, "\t-refLowThr <float>\tLower threshold value applied to the reference image. [0]");
-    reg_print_info(exec, "\t-refUpThr <float>\tUpper threshold value applied to the reference image. [0]");
-    reg_print_info(exec, "\t-floLowThr <float>\tLower threshold value applied to the floating image. [0]");
-    reg_print_info(exec, "\t-floUpThr <float>\tUpper threshold value applied to the floating image. [0]");
-    reg_print_info(exec, "\t-pad <float>\t\tPadding value [nan]");
+    NR_INFO("\t-smooR <float>\t\tStandard deviation in mm (voxel if negative) of the Gaussian kernel used to smooth the Reference image. [0]");
+    NR_INFO("\t-smooF <float>\t\tStandard deviation in mm (voxel if negative) of the Gaussian kernel used to smooth the Floating image. [0]");
+    NR_INFO("\t-refLowThr <float>\tLower threshold value applied to the reference image. [0]");
+    NR_INFO("\t-refUpThr <float>\tUpper threshold value applied to the reference image. [0]");
+    NR_INFO("\t-floLowThr <float>\tLower threshold value applied to the floating image. [0]");
+    NR_INFO("\t-floUpThr <float>\tUpper threshold value applied to the floating image. [0]");
+    NR_INFO("\t-pad <float>\t\tPadding value [nan]");
 
-    reg_print_info(exec, "\t-nac\t\t\tUse the nifti header origin to initialise the transformation. (Image centres are used by default)");
-    reg_print_info(exec, "\t-comm\t\t\tUse the input masks centre of mass to initialise the transformation. (Image centres are used by default)");
-    reg_print_info(exec, "\t-comi\t\t\tUse the input images centre of mass to initialise the transformation. (Image centres are used by default)");
-    reg_print_info(exec, "\t-interp\t\t\tInterpolation order to use internally to warp the floating image.");
-    reg_print_info(exec, "\t-iso\t\t\tMake floating and reference images isotropic if required.");
+    NR_INFO("\t-nac\t\t\tUse the nifti header origin to initialise the transformation. (Image centres are used by default)");
+    NR_INFO("\t-comm\t\t\tUse the input masks centre of mass to initialise the transformation. (Image centres are used by default)");
+    NR_INFO("\t-comi\t\t\tUse the input images centre of mass to initialise the transformation. (Image centres are used by default)");
+    NR_INFO("\t-interp\t\t\tInterpolation order to use internally to warp the floating image.");
+    NR_INFO("\t-iso\t\t\tMake floating and reference images isotropic if required.");
 
-    reg_print_info(exec, "\t-pv <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]");
-    reg_print_info(exec, "\t-pi <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]");
-    reg_print_info(exec, "\t-speeeeed\t\tGo faster");
+    NR_INFO("\t-pv <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]");
+    NR_INFO("\t-pi <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]");
+    NR_INFO("\t-speeeeed\t\tGo faster");
 
     if (Platform::IsCudaEnabled() || Platform::IsOpenClEnabled()) {
-        reg_print_info(exec, "*** Platform options:");
+        NR_INFO("*** Platform options:");
         std::string platform = "\t-platf <uint>\t\tChoose platform: CPU=0 | ";
         if (Platform::IsCudaEnabled()) {
             platform += "Cuda=1";
@@ -91,37 +87,31 @@ void Usage(char *exec) {
         if (Platform::IsOpenClEnabled())
             platform += "OpenCL=2";
         platform += " [0]";
-        reg_print_info(exec, platform.c_str());
+        NR_INFO(platform);
 
-        reg_print_info(exec, "\t-gpuid <uint>\t\tChoose a custom gpu.");
-        reg_print_info(exec, "\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
+        NR_INFO("\t-gpuid <uint>\t\tChoose a custom gpu.");
+        NR_INFO("\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
     }
 
-    //   reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
+    //   NR_INFO("\t-crv\t\t\tChoose custom capture range for the block matching alg");
 #ifdef _OPENMP
     int defaultOpenMPValue = omp_get_num_procs();
     if (getenv("OMP_NUM_THREADS") != nullptr)
         defaultOpenMPValue = atoi(getenv("OMP_NUM_THREADS"));
-    sprintf(text, "\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]",
-            defaultOpenMPValue, omp_get_num_procs());
-    reg_print_info(exec, text);
+    NR_INFO("\t-omp <int>\t\tNumber of threads to use with OpenMP. [" << defaultOpenMPValue << "/" << omp_get_num_procs() << "]");
 #endif
-    reg_print_info(exec, "\t-voff\t\t\tTurns verbose off [on]");
-    reg_print_info(exec, "");
-    reg_print_info(exec, "\t--version\t\tPrint current version and exit");
-    sprintf(text, "\t\t\t\t(%s)", NR_VERSION);
-    reg_print_info(exec, text);
-    reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_INFO("\t-voff\t\t\tTurns verbose off [on]");
+    NR_INFO("");
+    NR_INFO("\t--version\t\tPrint current version and exit");
+    NR_INFO("\t\t\t\t(" << NR_VERSION << ")");
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 int main(int argc, char **argv) {
     if (argc == 1) {
-        //PetitUsage(basename(argv[0])); //DO NOT WORK ON WINDOWS !
         PetitUsage(argv[0]);
         return EXIT_FAILURE;
     }
-
-    char text[2048];
 
     time_t start;
     time(&start);
@@ -176,7 +166,7 @@ int main(int argc, char **argv) {
     unsigned gpuIdx = 999;
 
 #ifdef _OPENMP
-    // Set the default number of thread
+    // Set the default number of threads
     int defaultOpenMPValue = omp_get_num_procs();
     if (getenv("OMP_NUM_THREADS") != nullptr)
         defaultOpenMPValue = atoi(getenv("OMP_NUM_THREADS"));
@@ -191,7 +181,7 @@ int main(int argc, char **argv) {
             Usage(argv[0]);
             return EXIT_SUCCESS;
         } else if (strcmp(argv[i], "--xml") == 0) {
-            printf("%s", xml_aladin);
+            NR_COUT << xml_aladin;
             return EXIT_SUCCESS;
         }
         if (strcmp(argv[i], "-version") == 0 ||
@@ -200,7 +190,7 @@ int main(int argc, char **argv) {
             strcmp(argv[i], "-v") == 0 ||
             strcmp(argv[i], "--v") == 0 ||
             strcmp(argv[i], "--version") == 0) {
-            printf("%s\n", NR_VERSION);
+            NR_COUT << NR_VERSION << std::endl;
             return EXIT_SUCCESS;
         } else if (strcmp(argv[i], "-ref") == 0 || strcmp(argv[i], "-target") == 0 || strcmp(argv[i], "--ref") == 0) {
             referenceImageName = argv[++i];
@@ -256,15 +246,15 @@ int main(int argc, char **argv) {
             alignCentreOfMass = 2;
         } else if (strcmp(argv[i], "-%v") == 0 || strcmp(argv[i], "-pv") == 0 || strcmp(argv[i], "--pv") == 0) {
             int value = atoi(argv[++i]);
-            if (value < 1 || value>100) {
-                reg_print_msg_error("The variance argument is expected to be an integer between 1 and 100");
+            if (value < 1 || value > 100) {
+                NR_ERROR("The variance argument is expected to be an integer between 1 and 100");
                 return EXIT_FAILURE;
             }
             blockPercentage = value;
         } else if (strcmp(argv[i], "-%i") == 0 || strcmp(argv[i], "-pi") == 0 || strcmp(argv[i], "--pi") == 0) {
             int value = atoi(argv[++i]);
-            if (value < 1 || value>100) {
-                reg_print_msg_error("The inlier argument is expected to be an integer between 1 and 100");
+            if (value < 1 || value > 100) {
+                NR_ERROR("The inlier argument is expected to be an integer between 1 and 100");
                 return EXIT_FAILURE;
             }
             inlierLts = value;
@@ -287,21 +277,24 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "-iso") == 0 || strcmp(argv[i], "--iso") == 0) {
             iso = true;
         } else if (strcmp(argv[i], "-voff") == 0 || strcmp(argv[i], "--voff") == 0) {
+            NR_DEBUG("The verbose cannot be switch off in debug");
+#ifdef NDEBUG
             verbose = false;
+#endif
         } else if (strcmp(argv[i], "-platf") == 0 || strcmp(argv[i], "--platf") == 0) {
             PlatformType value{ atoi(argv[++i]) };
             if (value < PlatformType::Cpu || value > PlatformType::OpenCl) {
-                reg_print_msg_error("The platform argument is expected to be 0, 1 or 2 | 0=CPU, 1=CUDA 2=OPENCL");
+                NR_ERROR("The platform argument is expected to be 0, 1 or 2 | 0=CPU, 1=CUDA 2=OPENCL");
                 return EXIT_FAILURE;
             }
             if (value == PlatformType::Cuda && !Platform::IsCudaEnabled()) {
-                reg_print_msg_warn("The current install of NiftyReg has not been compiled with CUDA");
-                reg_print_msg_warn("The CPU platform is used");
+                NR_WARN("The current install of NiftyReg has not been compiled with CUDA");
+                NR_WARN("The CPU platform is used");
                 value = PlatformType::Cpu;
             }
             if (value == PlatformType::OpenCl && !Platform::IsOpenClEnabled()) {
-                reg_print_msg_error("The current install of NiftyReg has not been compiled with OpenCL");
-                reg_print_msg_warn("The CPU platform is used");
+                NR_WARN("The current install of NiftyReg has not been compiled with OpenCL");
+                NR_WARN("The CPU platform is used");
                 value = PlatformType::Cpu;
             }
             platformType = value;
@@ -313,67 +306,50 @@ int main(int argc, char **argv) {
 #ifdef _OPENMP
             omp_set_num_threads(atoi(argv[++i]));
 #else
-            reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+            NR_WARN("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
             ++i;
 #endif
         } else {
-
-            sprintf(text, "Err:\tParameter %s unknown.", argv[i]);
-            reg_print_msg_error(text);
+            NR_ERROR("\tParameter " << argv[i] << " unknown!");
             PetitUsage(argv[0]);
             return EXIT_FAILURE;
         }
     }
 
     if (!referenceImageFlag || !floatingImageFlag) {
-        sprintf(text, "Err:\tThe reference and the floating image have to be defined.");
-        reg_print_msg_error(text);
+        NR_ERROR("The reference and the floating image have to be defined!");
         PetitUsage(argv[0]);
         return EXIT_FAILURE;
     }
 
     // Output the command line
-#ifdef NDEBUG
-    if (verbose) {
-#endif
-        reg_print_info((argv[0]), "");
-        reg_print_info((argv[0]), "Command line:");
-        sprintf(text, "\t");
-        for (int i = 0; i < argc; i++)
-            sprintf(text + strlen(text), " %s", argv[i]);
-        reg_print_info((argv[0]), text);
-        reg_print_info((argv[0]), "");
-#ifdef NDEBUG
-    }
-#endif
+    PrintCmdLine(argc, argv, verbose);
 
     unique_ptr<reg_aladin<PrecisionType>> reg;
     if (symFlag) {
         reg.reset(new reg_aladin_sym<PrecisionType>);
         if ((referenceMaskFlag && !floatingMaskName) || (!referenceMaskFlag && floatingMaskName)) {
-            reg_print_msg_warn("You have one image mask option turned on but not the other.");
-            reg_print_msg_warn("This will affect the degree of symmetry achieved.");
+            NR_WARN("You have one image mask option turned on but not the other.");
+            NR_WARN("This will affect the degree of symmetry achieved.");
         }
     } else {
         reg.reset(new reg_aladin<PrecisionType>);
         if (floatingMaskFlag) {
-            reg_print_msg_warn("Note: Floating mask flag only used in symmetric method. Ignoring this option");
+            NR_WARN("Note: Floating mask flag only used in symmetric method. Ignoring this option");
         }
     }
 
     /* Read the reference image and check its dimension */
     NiftiImage referenceHeader = reg_io_ReadImageFile(referenceImageName);
     if (!referenceHeader) {
-        sprintf(text, "Error when reading the reference image: %s", referenceImageName);
-        reg_print_msg_error(text);
+        NR_ERROR("Error when reading the reference image: " << referenceImageName);
         return EXIT_FAILURE;
     }
 
     /* Read the floating image and check its dimension */
     NiftiImage floatingHeader = reg_io_ReadImageFile(floatingImageName);
     if (!floatingHeader) {
-        sprintf(text, "Error when reading the floating image: %s", floatingImageName);
-        reg_print_msg_error(text);
+        NR_ERROR("Error when reading the floating image: " << floatingImageName);
         return EXIT_FAILURE;
     }
 
@@ -386,14 +362,13 @@ int main(int argc, char **argv) {
     if (referenceMaskFlag) {
         NiftiImage referenceMaskImage = reg_io_ReadImageFile(referenceMaskName);
         if (!referenceMaskImage) {
-            sprintf(text, "Error when reading the reference mask image: %s", referenceMaskName);
-            reg_print_msg_error(text);
+            NR_ERROR("Error when reading the reference mask image: " << referenceMaskName);
             return EXIT_FAILURE;
         }
         /* check the dimension */
         for (int i = 1; i <= referenceHeader->dim[0]; i++) {
             if (referenceHeader->dim[i] != referenceMaskImage->dim[i]) {
-                reg_print_msg_error("The reference image and its mask do not have the same dimension");
+                NR_ERROR("The reference image and its mask do not have the same dimension");
                 return EXIT_FAILURE;
             }
         }
@@ -404,14 +379,13 @@ int main(int argc, char **argv) {
     if (floatingMaskFlag && symFlag) {
         NiftiImage floatingMaskImage = reg_io_ReadImageFile(floatingMaskName);
         if (!floatingMaskImage) {
-            sprintf(text, "Error when reading the floating mask image: %s", floatingMaskName);
-            reg_print_msg_error(text);
+            NR_ERROR("Error when reading the floating mask image: " << floatingMaskName);
             return EXIT_FAILURE;
         }
         /* check the dimension */
         for (int i = 1; i <= floatingHeader->dim[0]; i++) {
             if (floatingHeader->dim[i] != floatingMaskImage->dim[i]) {
-                reg_print_msg_error("The floating image and its mask do not have the same dimension");
+                NR_ERROR("The floating image and its mask do not have the same dimension");
                 return EXIT_FAILURE;
             }
         }
@@ -458,23 +432,17 @@ int main(int argc, char **argv) {
     // Set the verbose type
     reg->SetVerbose(verbose);
 
-#ifndef NDEBUG
-    reg_print_msg_debug("*******************************************");
-    reg_print_msg_debug("*******************************************");
-    reg_print_msg_debug("NiftyReg has been compiled in DEBUG mode");
-    reg_print_msg_debug("Please re-run cmake to set the variable");
-    reg_print_msg_debug("CMAKE_BUILD_TYPE to \"Release\" if required");
-    reg_print_msg_debug("*******************************************");
-    reg_print_msg_debug("*******************************************");
-#endif
+    NR_DEBUG("*******************************************");
+    NR_DEBUG("*******************************************");
+    NR_DEBUG("NiftyReg has been compiled in DEBUG mode");
+    NR_DEBUG("Please re-run cmake to set the variable");
+    NR_DEBUG("CMAKE_BUILD_TYPE to \"Release\" if required");
+    NR_DEBUG("*******************************************");
+    NR_DEBUG("*******************************************");
 
 #ifdef _OPENMP
-    if (verbose) {
-        int maxThreadNumber = omp_get_max_threads();
-        sprintf(text, "OpenMP is used with %i thread(s)", maxThreadNumber);
-        reg_print_info((argv[0]), text);
-    }
-#endif // _OPENMP
+    NR_VERBOSE_APP("OpenMP is used with " << omp_get_max_threads() << " threads");
+#endif
 
     // Run the registration
     reg->Run();
@@ -490,18 +458,12 @@ int main(int argc, char **argv) {
     /* The affine transformation is saved */
     reg_tool_WriteAffineFile(reg->GetTransformationMatrix(), outputAffineName);
 
-#ifdef NDEBUG
-    if (verbose) {
-#endif
-        time_t end;
-        time(&end);
-        float minutes = floorf((end - start) / 60.0f);
-        float seconds = (end - start - 60 * minutes);
-        sprintf(text, "Registration performed in %i min %i sec", (int)minutes, (int)seconds);
-        reg_print_info((argv[0]), text);
-        reg_print_info((argv[0]), "Have a good day !");
-#ifdef NDEBUG
-    }
-#endif
+    time_t end;
+    time(&end);
+    const int minutes = static_cast<int>(floorf((end - start) / 60.0f));
+    const int seconds = static_cast<int>(end - start) - 60 * minutes;
+    NR_VERBOSE_APP("Registration performed in " << minutes << " min " << seconds << " sec");
+    NR_VERBOSE_APP("Have a good day!");
+
     return EXIT_SUCCESS;
 }

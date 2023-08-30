@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include "niftilib/nifti1_io.h"
 #include <string>
+#include "_reg_tools.h"
 
 #include "reg_png.h"
 #ifdef _USE_NRRD

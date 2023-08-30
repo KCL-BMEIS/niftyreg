@@ -140,19 +140,12 @@ T reg_tps<T>::GetTPSweight(T dist)
 template <class T>
 void reg_tps<T>::InitialiseTPS()
 {
-   size_t matrix_side=this->number + this->dim + 1;
-   T *matrixL=(T *)calloc(matrix_side*matrix_side,sizeof(T));
+   const size_t matrixSide=this->number + this->dim + 1;
+   T *matrixL=(T*)calloc(matrixSide*matrixSide,sizeof(T));
    if(matrixL==nullptr)
-   {
-      char text[255];
-      sprintf(text,"Size should be %g GB (%i x %i)",
-              (T)(matrix_side*matrix_side)*sizeof(T)/1000000000.f,
-              (int)matrix_side,(int)matrix_side);
-      reg_print_fct_error("reg_tps<T>::InitialiseTPS()");
-      reg_print_msg_error("Calloc failed, the TPS distance matrix is too large");
-      reg_print_msg_error(text);
-      reg_exit();
-   }
+      NR_FATAL_ERROR("Calloc failed, the TPS distance matrix is too large! Size should be " +
+                     std::to_string(matrixSide * matrixSide * sizeof(T) / 1000000000.f) + " GB (" +
+                     std::to_string(matrixSide) + " x " + std::to_string(matrixSide) + ")");
 
    // Distance matrix is computed
    double a=0.;
@@ -163,42 +156,42 @@ void reg_tps<T>::InitialiseTPS()
          T distance = this->GetTPSEuclideanDistance(i,j);
          a += distance * 2.;
          distance = this->GetTPSweight(distance);
-         matrixL[i*matrix_side+j]=matrixL[j*matrix_side+i]=distance;
+         matrixL[i*matrixSide+j]=matrixL[j*matrixSide+i]=distance;
       }
    }
    a/=(double)(this->number*this->number);
    a=(double)this->approxInter*a*a;
    for(size_t i=0; i<this->number; ++i)
    {
-      matrixL[i*matrix_side+i]=a;
+      matrixL[i*matrixSide+i]=a;
    }
    for(size_t i=0; i<this->number; ++i)
    {
-      matrixL[i*matrix_side+this->number]=matrixL[(this->number)*matrix_side+i]=1;
-      matrixL[i*matrix_side+this->number+1]=matrixL[(this->number+1)*matrix_side+i]=this->positionX[i];
-      matrixL[i*matrix_side+this->number+2]=matrixL[(this->number+2)*matrix_side+i]=this->positionY[i];
+      matrixL[i*matrixSide+this->number]=matrixL[(this->number)*matrixSide+i]=1;
+      matrixL[i*matrixSide+this->number+1]=matrixL[(this->number+1)*matrixSide+i]=this->positionX[i];
+      matrixL[i*matrixSide+this->number+2]=matrixL[(this->number+2)*matrixSide+i]=this->positionY[i];
       if(this->dim==3)
-         matrixL[i*matrix_side+this->number+3]=matrixL[(this->number+3)*matrix_side+i]=this->positionZ[i];
+         matrixL[i*matrixSide+this->number+3]=matrixL[(this->number+3)*matrixSide+i]=this->positionZ[i];
 
    }
-   for(size_t i=this->number; i<matrix_side; ++i)
+   for(size_t i=this->number; i<matrixSide; ++i)
    {
-      for(size_t j=this->number; j<matrix_side; ++j)
+      for(size_t j=this->number; j<matrixSide; ++j)
       {
-         matrixL[i*matrix_side+j]=0;
+         matrixL[i*matrixSide+j]=0;
       }
    }
 
    // Run the LU decomposition
-   size_t *index=(size_t *)calloc(matrix_side,sizeof(size_t));
-   reg_LUdecomposition<T>(matrixL, matrix_side, index);
+   size_t *index=(size_t *)calloc(matrixSide,sizeof(size_t));
+   reg_LUdecomposition<T>(matrixL, matrixSide, index);
 
    // Perform the multiplications
-   reg_matrixInvertMultiply<T>(matrixL, matrix_side, index, this->coefficientX);
-   reg_matrixInvertMultiply<T>(matrixL, matrix_side, index, this->coefficientY);
+   reg_matrixInvertMultiply<T>(matrixL, matrixSide, index, this->coefficientX);
+   reg_matrixInvertMultiply<T>(matrixL, matrixSide, index, this->coefficientY);
    if(this->dim==3)
    {
-      reg_matrixInvertMultiply<T>(matrixL, matrix_side, index, this->coefficientZ);
+      reg_matrixInvertMultiply<T>(matrixL, matrixSide, index, this->coefficientZ);
    }
 
    free(index);

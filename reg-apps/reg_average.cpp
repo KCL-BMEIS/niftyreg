@@ -32,46 +32,42 @@ typedef enum
 
 void usage(char *exec)
 {
-   char text[255];
-   reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-   reg_print_info(exec, "usage:");
-   sprintf(text, "\t%s <outputFileName> [OPTIONS]", exec);
-   reg_print_info(exec, text);
-   reg_print_info(exec, "\t-avg <inputAffineName1> <inputAffineName2> ... <inputAffineNameN>");
-   reg_print_info(exec, "\t\tIf the input are images, the intensities are averaged");
-   reg_print_info(exec, "\t\tIf the input are affine matrices, out=expm((logm(M1)+logm(M2)+...+logm(MN))/N)");
-   reg_print_info(exec, "");
-   reg_print_info(exec, "\t-avg_lts <AffineMat1> <AffineMat2> ... <AffineMatN> ");
-   reg_print_info(exec, "\t\tIt will estimate the robust average affine matrix by considering half of the matrices as ouliers.");
-   reg_print_info(exec, "");
-   reg_print_info(exec, "\t-avg_tran <referenceImage> <transformationFileName1> <floatingImage1> ... <transformationFileNameN> <floatingImageN> ");
-   reg_print_info(exec, "\t\tAll input images are resampled into the space of <reference image> and averaged");
-   reg_print_info(exec, "\t\tA cubic spline interpolation scheme is used for resampling");
-   reg_print_info(exec, "");
-   reg_print_info(exec, "\t-demean <referenceImage> <transformationFileName1> <floatingImage1> ...  <transformationFileNameN> <floatingImageN>");
-   reg_print_info(exec, "\t\tThe demean option enforces the mean of all transformations to be");
-   reg_print_info(exec, "\t\tidentity.");
-   reg_print_info(exec, "\t\tIf affine transformations are provided, only the non-rigid part is");
-   reg_print_info(exec, "\t\tconsidered after removing the rigid components.");
-   reg_print_info(exec, "\t\tIf non-linear transformation are provided the mean (euclidean) is ");
-   reg_print_info(exec, "\t\tremoved from all input transformations.");
-   reg_print_info(exec, "\t\tIf velocity field non-linear parametrisations are used, the affine");
-   reg_print_info(exec, "\t\tcomponent is discarded and the mean in the log space is removed.");
-   reg_print_info(exec, "");
-   reg_print_info(exec, "\t-demean_noaff <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>");
-   reg_print_info(exec, "\t\tSame as -demean expect that the specified affine is removed from the");
-   reg_print_info(exec, "\t\tnon-linear (euclidean) transformation.");
-   reg_print_info(exec, "\t--NN\t\tUse nearest neighbour interpolation - cubic is default");
-   reg_print_info(exec, "\t--LIN\t\tUse linear interpolation - cubic is default");
-   reg_print_info(exec, "\t--version\t\tPrint current version and exit");
-   sprintf(text, "\t\t\t\t(%s)",NR_VERSION);
-   reg_print_info(exec, text);
-   reg_print_info(exec, "");
-   reg_print_info(exec, "alternative usage:");
-   sprintf(text, "\t%s --cmd_file <textFile>", exec);
-   reg_print_info(exec, text);
-   reg_print_info(exec, "\t\tA text file that contains the full command is provided");
-   reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   NR_INFO("usage:");
+   NR_INFO("\t" << exec << " <outputFileName> [OPTIONS]");
+   NR_INFO("\t-avg <inputAffineName1> <inputAffineName2> ... <inputAffineNameN>");
+   NR_INFO("\t\tIf the input are images, the intensities are averaged");
+   NR_INFO("\t\tIf the input are affine matrices, out=expm((logm(M1)+logm(M2)+...+logm(MN))/N)");
+   NR_INFO("");
+   NR_INFO("\t-avg_lts <AffineMat1> <AffineMat2> ... <AffineMatN> ");
+   NR_INFO("\t\tIt will estimate the robust average affine matrix by considering half of the matrices as ouliers.");
+   NR_INFO("");
+   NR_INFO("\t-avg_tran <referenceImage> <transformationFileName1> <floatingImage1> ... <transformationFileNameN> <floatingImageN> ");
+   NR_INFO("\t\tAll input images are resampled into the space of <reference image> and averaged");
+   NR_INFO("\t\tA cubic spline interpolation scheme is used for resampling");
+   NR_INFO("");
+   NR_INFO("\t-demean <referenceImage> <transformationFileName1> <floatingImage1> ...  <transformationFileNameN> <floatingImageN>");
+   NR_INFO("\t\tThe demean option enforces the mean of all transformations to be");
+   NR_INFO("\t\tidentity.");
+   NR_INFO("\t\tIf affine transformations are provided, only the non-rigid part is");
+   NR_INFO("\t\tconsidered after removing the rigid components.");
+   NR_INFO("\t\tIf non-linear transformation are provided the mean (euclidean) is ");
+   NR_INFO("\t\tremoved from all input transformations.");
+   NR_INFO("\t\tIf velocity field non-linear parametrisations are used, the affine");
+   NR_INFO("\t\tcomponent is discarded and the mean in the log space is removed.");
+   NR_INFO("");
+   NR_INFO("\t-demean_noaff <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>");
+   NR_INFO("\t\tSame as -demean expect that the specified affine is removed from the");
+   NR_INFO("\t\tnon-linear (euclidean) transformation.");
+   NR_INFO("\t--NN\t\tUse nearest neighbour interpolation - cubic is default");
+   NR_INFO("\t--LIN\t\tUse linear interpolation - cubic is default");
+   NR_INFO("\t--version\t\tPrint current version and exit");
+   NR_INFO("\t\t\t\t(" << NR_VERSION << ")");
+   NR_INFO("");
+   NR_INFO("alternative usage:");
+   NR_INFO("\t" << exec << " --cmd_file <textFile>");
+   NR_INFO("\t\tA text file that contains the full command is provided");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 void average_norm_intensity(nifti_image *image)
@@ -93,7 +89,7 @@ int remove_nan_and_add(nifti_image *averageImage,
 {
    if(averageImage->nvox!=toAddImage->nvox || averageImage->nvox!=definedNumImage->nvox)
    {
-      reg_print_msg_error(" All images must have the same size");
+      NR_ERROR("All images must have the same size");
       return EXIT_FAILURE;
    }
    PrecisionType *avgImgPtr = static_cast<PrecisionType *>(averageImage->data);
@@ -303,8 +299,7 @@ int compute_nrr_demean(nifti_image *demean_field,
          reg_spline_getFlowFieldFromVelocityGrid(transformation,deformationField);
          break;
       default:
-         reg_print_msg_error("Unsupported transformation parametrisation type:");
-         reg_print_msg_error(transformation->fname);
+         NR_ERROR("Unsupported transformation parametrisation type: " << transformation->fname);
          return EXIT_FAILURE;
       }
       // The affine component is removed
@@ -359,9 +354,7 @@ int compute_average_image(nifti_image *averageImage,
    nifti_image *demeanField = nullptr;
    if(demean && inputAffName!=nullptr && inputNRRName==nullptr){
       demeanMatrix = compute_affine_demean(imageNumber, inputAffName);
-#ifndef NDEBUG
-      reg_print_msg_debug("Matrix to use for demeaning computed");
-#endif
+      NR_DEBUG("Matrix to use for demeaning computed");
    }
    if(demean && inputNRRName!=nullptr){
       demeanField=nifti_copy_nim_info(averageImage);
@@ -379,9 +372,7 @@ int compute_average_image(nifti_image *averageImage,
       demeanField->intent_p1=DISP_FIELD;
       demeanField->data=calloc(demeanField->nvox, demeanField->nbyper);
       compute_nrr_demean(demeanField, imageNumber, inputNRRName, inputAffName);
-#ifndef NDEBUG
-      reg_print_msg_debug("Displacement field to use for demeaning computed");
-#endif
+      NR_DEBUG("Displacement field to use for demeaning computed");
    }
 
    // Set the average image to zero
@@ -430,8 +421,9 @@ int compute_average_image(nifti_image *averageImage,
          case DEF_VEL_FIELD:
             reg_defField_compose(current_transformation,deformationField,nullptr);
             break;
-         default: reg_print_msg_error("Unsupported transformation type")
-                  reg_exit();
+         default:
+            NR_ERROR("Unsupported transformation type");
+            return EXIT_FAILURE;
          }
          nifti_image_free(current_transformation);
          if(demeanField!=nullptr){
@@ -446,9 +438,7 @@ int compute_average_image(nifti_image *averageImage,
                nifti_image_free(tempDef);
             }
             else reg_tools_subtractImageFromImage(deformationField,demeanField,deformationField);
-#ifndef NDEBUG
-            reg_print_msg_debug("Input non-linear transformation has been demeaned");
-#endif
+            NR_DEBUG("Input non-linear transformation has been demeaned");
          }
       }
       else if(inputAffName!=nullptr){
@@ -456,9 +446,7 @@ int compute_average_image(nifti_image *averageImage,
          reg_tool_ReadAffineFile(&current_affine,inputAffName[i]);
          if(demean && inputAffName!=nullptr && inputNRRName==nullptr){
             current_affine = demeanMatrix * current_affine;
-#ifndef NDEBUG
-      reg_print_msg_debug("Input affine transformation has been demeaned");
-#endif
+            NR_DEBUG("Input affine transformation has been demeaned");
          }
          reg_affine_getDeformationField(&current_affine, deformationField);
       }
@@ -500,7 +488,7 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
 #ifdef _OPENMP
-   // Set the default number of thread
+   // Set the default number of threads
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
@@ -526,14 +514,14 @@ int main(int argc, char **argv)
       // Check if the --xml information is required
       else if(strcmp(argv[i], "--xml")==0)
       {
-         printf("%s",xml_average);
+         NR_COUT << xml_average;
          return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
             strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",NR_VERSION);
+         NR_COUT << NR_VERSION << std::endl;
          return EXIT_SUCCESS;
       }
    }
@@ -545,9 +533,8 @@ int main(int argc, char **argv)
       char buffer[512];
       FILE *cmd_file = fopen(argv[2], "r+");
       if(cmd_file==nullptr){
-         reg_print_msg_error("Error when reading the provided command line file:");
-         reg_print_msg_error(argv[2]);
-         reg_exit();
+         NR_ERROR("Error when reading the provided command line file: " << argv[2]);
+         return EXIT_FAILURE;
       }
       // First path to extract the actual argument number
       while(fscanf(cmd_file," %511s", buffer)==1)
@@ -563,15 +550,7 @@ int main(int argc, char **argv)
             fscanf(cmd_file," %511s", buffer);
 #ifdef _OPENMP
             omp_set_num_threads(atoi(buffer));
-#else
-            reg_print_msg_warn("OpenMP flag detected and ignored.");
-#endif
-#ifndef NDEBUG
-            reg_print_msg_debug("OpenMP flag detected");
-#ifdef _OPENMP
-            reg_print_msg_debug("OpenMP core number set to:");
-            reg_print_msg_debug(buffer);
-#endif
+            NR_DEBUG("OpenMP core number set to: " << buffer);
 #endif
          }
          else{
@@ -587,13 +566,7 @@ int main(int argc, char **argv)
       arg_num_command = argc;
    }
 
-#ifndef NDEBUG
-   reg_print_msg_debug("command");
-   for(int i=0;i<arg_num_command;++i){
-      printf("%s ", pointer_to_command[i]);
-   }
-   printf("\n");
-#endif
+   PrintCmdLine(arg_num_command, pointer_to_command, true);
 
     // Set a variable to store the interpolation order, cubic is used by default
     int interpolation_order = 3;
@@ -663,9 +636,8 @@ int main(int argc, char **argv)
    }
    else
    {
-      reg_print_msg_error("unknow operation. Options are \"-avg\", \"-avg_lts\", \"-avg_tran\", ");
-      reg_print_msg_error("\"-demean\" or \"-demean_noaff\". Specified argument:");
-      reg_print_msg_error(pointer_to_command[2]);
+      NR_ERROR("Unknown operation. Options are \"-avg\", \"-avg_lts\", \"-avg_tran\", ");
+      NR_ERROR("\"-demean\" or \"-demean_noaff\". Specified argument:" << pointer_to_command[2]);
       usage(pointer_to_command[0]);
       return EXIT_FAILURE;
    }

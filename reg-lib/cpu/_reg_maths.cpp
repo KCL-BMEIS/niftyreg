@@ -1,7 +1,5 @@
 #include "_reg_maths.h"
-//STD
-#include <map>
-#include <vector>
+#include "Debug.hpp"
 
 #define mat(i,j,dim) mat[i*dim+j]
 
@@ -23,11 +21,7 @@ void reg_LUdecomposition(T *mat,
             if ((temp = fabs(mat(i, j, dim)))>big)
                 big = temp;
         if (big == 0.f)
-        {
-            reg_print_fct_error("reg_LUdecomposition");
-            reg_print_msg_error("Singular matrix");
-            reg_exit();
-        }
+            NR_FATAL_ERROR("Singular matrix");
         vv[i] = 1.0 / big;
     }
     for (j = 0; j < dim; ++j)
@@ -120,13 +114,8 @@ void reg_matrixMultiply(T *mat1,
 {
     // First check that the dimension are appropriate
     if (dim1[1] != dim2[0])
-    {
-        char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%zu %zu] [%zu %zu]",
-            dim1[0], dim1[1], dim2[0], dim2[1]);
-        reg_print_fct_error("reg_matrixMultiply");
-        reg_print_msg_error(text);
-        reg_exit();
-    }
+        NR_FATAL_ERROR("Matrices can not be multiplied due to their size: [" + std::to_string(dim1[0]) + " " +
+                       std::to_string(dim1[1]) + "] [" + std::to_string(dim2[0]) + " " + std::to_string(dim2[1]) + "]");
     size_t resDim[2] = {dim1[0], dim2[1]};
     // Allocate the result matrix
     if (res != nullptr)
@@ -233,13 +222,9 @@ template<class T>
 T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, bool transposeMat2) {
     if (transposeMat2 == false) {
         // First check that the dimension are appropriate
-        if (mat1Y != mat2X) {
-            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%zu %zu] [%zu %zu]",
-                mat1X, mat1Y, mat2X, mat2Y);
-            reg_print_fct_error("reg_matrix2DMultiply");
-            reg_print_msg_error(text);
-            reg_exit();
-        }
+        if (mat1Y != mat2X)
+            NR_FATAL_ERROR("Matrices can not be multiplied due to their size: [" + std::to_string(mat1X) + " " +
+                           std::to_string(mat1Y) + "] [" + std::to_string(mat2X) + " " + std::to_string(mat2Y) + "]");
 
         size_t nbElement = mat1Y;
         double resTemp = 0;
@@ -259,13 +244,10 @@ T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t 
     }
     else {
         // First check that the dimension are appropriate
-        if (mat1Y != mat2Y) {
-            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%zu %zu] [%zu %zu]",
-                mat1X, mat1Y, mat2Y, mat2X);
-            reg_print_fct_error("reg_matrix2DMultiply");
-            reg_print_msg_error(text);
-            reg_exit();
-        }
+        if (mat1Y != mat2Y)
+            NR_FATAL_ERROR("Matrices can not be multiplied due to their size: [" + std::to_string(mat1X) + " " +
+                           std::to_string(mat1Y) + "] [" + std::to_string(mat2Y) + " " + std::to_string(mat2X) + "]");
+
         size_t nbElement = mat1Y;
         double resTemp = 0;
         T** res = reg_matrix2DAllocate<T>(mat1X,mat2X);
@@ -290,13 +272,10 @@ template<class T>
 void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, T** resT, bool transposeMat2) {
     if (transposeMat2 == false) {
         // First check that the dimension are appropriate
-        if (mat1Y != mat2X) {
-            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%zu %zu] [%zu %zu]",
-                mat1X, mat1Y, mat2X, mat2Y);
-            reg_print_fct_error("reg_matrix2DMultiply");
-            reg_print_msg_error(text);
-            reg_exit();
-        }
+        if (mat1Y != mat2X)
+            NR_FATAL_ERROR("Matrices can not be multiplied due to their size: [" + std::to_string(mat1X) + " " +
+                           std::to_string(mat1Y) + "] [" + std::to_string(mat2X) + " " + std::to_string(mat2Y) + "]");
+
         size_t nbElement = mat1Y;
         double resTemp;
 
@@ -312,13 +291,10 @@ void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t
     }
     else {
         // First check that the dimension are appropriate
-        if (mat1Y != mat2Y) {
-            char text[255]; sprintf(text, "Matrices can not be multiplied due to their size: [%zu %zu] [%zu %zu]",
-                mat1X, mat1Y, mat2Y, mat2X);
-            reg_print_fct_error("reg_matrix2DMultiply");
-            reg_print_msg_error(text);
-            reg_exit();
-        }
+        if (mat1Y != mat2Y)
+            NR_FATAL_ERROR("Matrices can not be multiplied due to their size: [" + std::to_string(mat1X) + " " +
+                           std::to_string(mat1Y) + "] [" + std::to_string(mat2Y) + " " + std::to_string(mat2X) + "]");
+
         size_t nbElement = mat1Y;
         double resTemp;
 
@@ -943,21 +919,19 @@ mat44 reg_mat44_mul(mat44 const* A, double scalar)
     return out;
 }
 /* *************************************************************** */
-void reg_mat44_disp(mat44 *mat, char * title){
-    printf("%s:\n%.7g\t%.7g\t%.7g\t%.7g\n%.7g\t%.7g\t%.7g\t%.7g\n%.7g\t%.7g\t%.7g\t%.7g\n%.7g\t%.7g\t%.7g\t%.7g\n", title,
-        mat->m[0][0], mat->m[0][1], mat->m[0][2], mat->m[0][3],
-        mat->m[1][0], mat->m[1][1], mat->m[1][2], mat->m[1][3],
-        mat->m[2][0], mat->m[2][1], mat->m[2][2], mat->m[2][3],
-        mat->m[3][0], mat->m[3][1], mat->m[3][2], mat->m[3][3]);
+void reg_mat44_disp(const mat44& mat, const std::string& title) {
+    NR_COUT << title << ":\n"
+            << mat.m[0][0] << "\t" << mat.m[0][1] << "\t" << mat.m[0][2] << "\t" << mat.m[0][3] << "\n"
+            << mat.m[1][0] << "\t" << mat.m[1][1] << "\t" << mat.m[1][2] << "\t" << mat.m[1][3] << "\n"
+            << mat.m[2][0] << "\t" << mat.m[2][1] << "\t" << mat.m[2][2] << "\t" << mat.m[2][3] << "\n"
+            << mat.m[3][0] << "\t" << mat.m[3][1] << "\t" << mat.m[3][2] << "\t" << mat.m[3][3] << std::endl;
 }
-
 /* *************************************************************** */
-/* *************************************************************** */
-void reg_mat33_disp(mat33 *mat, char * title){
-    printf("%s:\n%g\t%g\t%g\n%g\t%g\t%g\n%g\t%g\t%g\n", title,
-        mat->m[0][0], mat->m[0][1], mat->m[0][2],
-        mat->m[1][0], mat->m[1][1], mat->m[1][2],
-        mat->m[2][0], mat->m[2][1], mat->m[2][2]);
+void reg_mat33_disp(const mat33& mat, const std::string& title){
+    NR_COUT << title << ":\n"
+            << mat.m[0][0] << "\t" << mat.m[0][1] << "\t" << mat.m[0][2] << "\n"
+            << mat.m[1][0] << "\t" << mat.m[1][1] << "\t" << mat.m[1][2] << "\n"
+            << mat.m[2][0] << "\t" << mat.m[2][1] << "\t" << mat.m[2][2] << std::endl;
 }
 /* *************************************************************** */
 //is it square distance or just distance?

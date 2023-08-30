@@ -178,9 +178,7 @@ void reg_mrf::Initialise()
    free(edgeWeightMatrix);
    free(index_neighbours);
    this->initialised = true;
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_mrf::Initilisation done.");
-#endif
+   NR_FUNC_CALLED();
 }
 /*****************************************************/
 float* reg_mrf::GetDiscretisedMeasurePtr()
@@ -255,7 +253,7 @@ void reg_mrf::GetDiscretisedMeasure()
    //
    if (myfile.is_open()) {
        // ok, proceed with output
-       std::cout<<"OK - file opened"<<std::endl;
+       NR_COUT<<"OK - file opened"<<std::endl;
        for(int i=0;i<32388174;i++){
            myfile.read(buffer, sizeof(float));
            this->discretised_measures[i]=atof(buffer);
@@ -275,9 +273,7 @@ for(int i=0;i<32388174;i++){
 }
 */
 //DEBUG
- #ifndef NDEBUG
-   reg_print_msg_debug("reg_mrf::GetDiscretisedMeasure done");
-#endif
+   NR_FUNC_CALLED();
 }
 /*****************************************************/
 void reg_mrf::GetOptimalLabel()
@@ -314,9 +310,7 @@ void reg_mrf::UpdateNodePositions()
          }
       }
    }
-#ifndef NDEBUG
-  reg_print_msg_debug("reg_mrf::Optimise done");
-#endif
+   NR_FUNC_CALLED();
 }
 /*****************************************************/
 void reg_mrf::Run()
@@ -565,9 +559,7 @@ void GetGraph_core2D(nifti_image* controlPointGridImage,
                      nifti_image *refImage,
                      int *mask)
 {
-   reg_print_fct_warn("GetGraph_core2D");
-   reg_print_msg_warn("No yet implemented");
-   reg_exit();
+   NR_ERROR("Not yet implemented");
 }
 /* *************************************************************** */
 void reg_mrf::GetGraph(float *edgeWeightMatrix, int *index_neighbours)
@@ -594,9 +586,7 @@ void reg_mrf::GetGraph(float *edgeWeightMatrix, int *index_neighbours)
                 );
          break;
       default:
-         reg_print_fct_error("reg_mrf::GetGraph");
-         reg_print_msg_error("Unsupported datatype");
-         reg_exit();
+         NR_FATAL_ERROR("Unsupported datatype");
       }
    } else {
       switch(this->referenceImage->datatype)
@@ -620,9 +610,7 @@ void reg_mrf::GetGraph(float *edgeWeightMatrix, int *index_neighbours)
                 );
          break;
       default:
-         reg_print_fct_error("reg_mrf::GetGraph");
-         reg_print_msg_error("Unsupported datatype");
-         reg_exit();
+         NR_FATAL_ERROR("Unsupported datatype");
       }
    }
 }
@@ -708,7 +696,6 @@ void reg_mrf::GetPrimsMST(float *edgeWeightMatrix,
    }
    //generate list of nodes ordered by tree depth
    std::sort(treeLevel,treeLevel+num_vertices);
-   //printf("max tree depth: %d, mincost: %f\n",treeLevel[num_vertices-1].first,mincost);
    for(int i=0;i<num_vertices;i++){
       orderedList[i]=treeLevel[i].second;
    }

@@ -45,11 +45,7 @@ Platform::Platform(const PlatformType& platformTypeIn) {
         kernelFactory = new ClKernelFactory();
     }
 #endif
-    else {
-        reg_print_fct_error("Platform::Platform");
-        reg_print_msg_error("Unsupported platform type");
-        reg_exit();
-    }
+    else NR_FATAL_ERROR("Unsupported platform type");
 }
 /* *************************************************************** */
 Platform::~Platform() {
@@ -77,7 +73,7 @@ void Platform::SetGpuIdx(unsigned gpuIdxIn) {
     }
 #ifdef _USE_CUDA
     else if (platformType == PlatformType::Cuda) {
-        NiftyReg::CudaContext& cudaContext = NiftyReg::CudaContext::GetInstance();
+        CudaContext& cudaContext = CudaContext::GetInstance();
         if (gpuIdxIn != 999) {
             gpuIdx = gpuIdxIn;
             cudaContext.SetCudaIdx(gpuIdxIn);
@@ -96,11 +92,8 @@ void Platform::SetGpuIdx(unsigned gpuIdxIn) {
         clContext.CheckErrNum(clGetDeviceInfo(clContext.GetDeviceId(), CL_DEVICE_TYPE, 0, nullptr, &paramValueSize), "Failed to find OpenCL device info ");
         cl_device_type *field = (cl_device_type *)alloca(sizeof(cl_device_type) * paramValueSize);
         clContext.CheckErrNum(clGetDeviceInfo(clContext.GetDeviceId(), CL_DEVICE_TYPE, paramValueSize, field, nullptr), "Failed to find OpenCL device info ");
-        if (CL_DEVICE_TYPE_CPU == *field) {
-            reg_print_fct_error("Platform::SetGpuIdx");
-            reg_print_msg_error("The OpenCL kernels only support GPU devices for now. Exit");
-            reg_exit();
-        }
+        if (CL_DEVICE_TYPE_CPU == *field)
+            NR_FATAL_ERROR("The OpenCL kernels only support GPU devices for now");
     }
 #endif
 }

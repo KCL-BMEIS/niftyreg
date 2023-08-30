@@ -31,3 +31,9 @@
 #define Rprintf(...) fprintf(stderr, __VA_ARGS__)
 
 #endif // USING_R
+
+#ifndef NDEBUG
+#define RN_DEBUG(format,...) Rc_printf("[RNifti DEBUG] " format "\n", __VA_ARGS__)
+#else
+#define RN_DEBUG(format,...)
+#endif

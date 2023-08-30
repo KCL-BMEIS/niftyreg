@@ -15,9 +15,7 @@ class reg_measure {
 public:
     /// @brief Measure class constructor
     reg_measure() {
-#ifndef NDEBUG
-        reg_print_msg_debug("reg_measure constructor called");
-#endif
+        NR_FUNC_CALLED();
     }
     /// @brief Measure class destructor
     virtual ~reg_measure() {}
@@ -55,9 +53,7 @@ public:
             this->warpedGradientBw = nullptr;
             this->voxelBasedGradientBw = nullptr;
         }
-#ifndef NDEBUG
-        reg_print_msg_debug("reg_measure::InitialiseMeasure()");
-#endif
+        NR_FUNC_CALLED();
     }
 
     /// @brief Returns the forward registration measure of similarity value
@@ -67,34 +63,20 @@ public:
     /// @brief Returns the registration measure of similarity value
     double GetSimilarityMeasureValue() {  // Do not override
         // Check that all the specified image are of the same datatype
-        if (this->referenceImage->datatype != NIFTI_TYPE_FLOAT32 && this->referenceImage->datatype != NIFTI_TYPE_FLOAT64) {
-            reg_print_fct_error("reg_measure::GetSimilarityMeasureValue()");
-            reg_print_msg_error("Input images are expected to be of floating precision type");
-            reg_exit();
-        }
-        if (this->warpedImage->datatype != this->referenceImage->datatype) {
-            reg_print_fct_error("reg_measure::GetSimilarityMeasureValue()");
-            reg_print_msg_error("Both input images are expected to have the same type");
-            reg_exit();
-        }
+        if (this->referenceImage->datatype != NIFTI_TYPE_FLOAT32 && this->referenceImage->datatype != NIFTI_TYPE_FLOAT64)
+            NR_FATAL_ERROR("Input images are expected to be of floating precision type");
+        if (this->warpedImage->datatype != this->referenceImage->datatype)
+            NR_FATAL_ERROR("Both input images are expected to have the same type");
         double sim = GetSimilarityMeasureValueFw();
         if (this->isSymmetric) {
             // Check that all the specified image are of the same datatype
-            if (this->floatingImage->datatype != NIFTI_TYPE_FLOAT32 && this->floatingImage->datatype != NIFTI_TYPE_FLOAT64) {
-                reg_print_fct_error("reg_measure::GetSimilarityMeasureValue()");
-                reg_print_msg_error("Input images are expected to be of floating precision type");
-                reg_exit();
-            }
-            if (this->floatingImage->datatype != this->warpedImageBw->datatype) {
-                reg_print_fct_error("reg_measure::GetSimilarityMeasureValue()");
-                reg_print_msg_error("Both input images are expected to have the same type");
-                reg_exit();
-            }
+            if (this->floatingImage->datatype != NIFTI_TYPE_FLOAT32 && this->floatingImage->datatype != NIFTI_TYPE_FLOAT64)
+                NR_FATAL_ERROR("Input images are expected to be of floating precision type");
+            if (this->floatingImage->datatype != this->warpedImageBw->datatype)
+                NR_FATAL_ERROR("Both input images are expected to have the same type");
             sim += GetSimilarityMeasureValueBw();
         }
-#ifndef NDEBUG
-        reg_print_msg_debug("reg_measure::GetSimilarityMeasureValue called");
-#endif
+        NR_FUNC_CALLED();
         return sim;
     }
 
@@ -105,57 +87,43 @@ public:
     /// @brief Compute the voxel-based measure of similarity gradient
     void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {  // Do not override
         // Check if the specified time point exists and is active
-        if (currentTimepoint < 0 || currentTimepoint >= this->referenceImage->nt) {
-            reg_print_fct_error("reg_measure::GetVoxelBasedSimilarityMeasureGradient");
-            reg_print_msg_error("The specified active timepoint is not defined in the ref/war images");
-            reg_exit();
-        }
+        if (currentTimepoint < 0 || currentTimepoint >= this->referenceImage->nt)
+            NR_FATAL_ERROR("The specified active timepoint is not defined in the ref/war images");
         if (this->timePointWeight[currentTimepoint] == 0)
             return;
         // Check if all required input images are of the same data type
         int dtype = this->referenceImage->datatype;
-        if (dtype != NIFTI_TYPE_FLOAT32 && dtype != NIFTI_TYPE_FLOAT64) {
-            reg_print_fct_error("reg_measure::GetVoxelBasedSimilarityMeasureGradient()");
-            reg_print_msg_error("Input images are expected to be of floating precision type");
-            reg_exit();
-        }
+        if (dtype != NIFTI_TYPE_FLOAT32 && dtype != NIFTI_TYPE_FLOAT64)
+            NR_FATAL_ERROR("Input images are expected to be of floating precision type");
         if (this->warpedImage->datatype != dtype ||
             this->warpedGradient->datatype != dtype ||
-            this->voxelBasedGradient->datatype != dtype) {
-            reg_print_fct_error("reg_measure::GetVoxelBasedSimilarityMeasureGradient()");
-            reg_print_msg_error("Input images are expected to be of the same type");
-            reg_exit();
-        }
+            this->voxelBasedGradient->datatype != dtype)
+            NR_FATAL_ERROR("Input images are expected to be of the same type");
         // Compute the gradient
         GetVoxelBasedSimilarityMeasureGradientFw(currentTimepoint);
         if (this->isSymmetric) {
             dtype = this->floatingImage->datatype;
-            if (dtype != NIFTI_TYPE_FLOAT32 && dtype != NIFTI_TYPE_FLOAT64) {
-                reg_print_fct_error("reg_measure::GetVoxelBasedSimilarityMeasureGradient()");
-                reg_print_msg_error("Input images are expected to be of floating precision type");
-                reg_exit();
-            }
+            if (dtype != NIFTI_TYPE_FLOAT32 && dtype != NIFTI_TYPE_FLOAT64)
+                NR_FATAL_ERROR("Input images are expected to be of floating precision type");
             if (this->warpedImageBw->datatype != dtype ||
                 this->warpedGradientBw->datatype != dtype ||
-                this->voxelBasedGradientBw->datatype != dtype) {
-                reg_print_fct_error("reg_measure::GetVoxelBasedSimilarityMeasureGradient()");
-                reg_print_msg_error("Input images are expected to be of the same type");
-                reg_exit();
-            }
+                this->voxelBasedGradientBw->datatype != dtype)
+                NR_FATAL_ERROR("Input images are expected to be of the same type");
             GetVoxelBasedSimilarityMeasureGradientBw(currentTimepoint);
         }
+        NR_FUNC_CALLED();
     }
     virtual void GetDiscretisedValue(nifti_image*, float*, int, int) {}
     virtual void SetTimepointWeight(int timepoint, double weight) {
         this->timePointWeight[timepoint] = weight;
     }
-    virtual double* GetTimepointsWeights(void) {
+    virtual double* GetTimepointsWeights() {
         return this->timePointWeight;
     }
-    virtual nifti_image* GetReferenceImage(void) {
+    virtual nifti_image* GetReferenceImage() {
         return this->referenceImage;
     }
-    virtual int* GetReferenceMask(void) {
+    virtual int* GetReferenceMask() {
         return this->referenceMask;
     }
 

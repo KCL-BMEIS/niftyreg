@@ -123,7 +123,7 @@ void z_error (m)
     char *m;
 {
     fprintf(stderr, "%s\n", m);
-    reg_exit();
+    exit(1);
 }
 #endif
 

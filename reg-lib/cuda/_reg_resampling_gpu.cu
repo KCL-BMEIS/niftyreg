@@ -21,17 +21,17 @@ void reg_resampleImage_gpu(const nifti_image *floatingImage,
                            const int *maskCuda,
                            const size_t& activeVoxelNumber,
                            const float& paddingValue) {
-    auto blockSize = NiftyReg::CudaContext::GetBlockSize();
+    auto blockSize = CudaContext::GetBlockSize();
     const int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 
     // Create the texture object for the floating image
-    auto floatingTexture = cudaCommon_createTextureObject(floatingImageCuda, cudaResourceTypeArray);
+    auto floatingTexture = Cuda::CreateTextureObject(floatingImageCuda, cudaResourceTypeArray);
     // Create the texture object for the deformation field
-    auto deformationFieldTexture = cudaCommon_createTextureObject(deformationFieldCuda, cudaResourceTypeLinear,
-                                                                  activeVoxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, cudaResourceTypeLinear,
+                                                             activeVoxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
     // Create the texture object for the mask
-    auto maskTexture = cudaCommon_createTextureObject(maskCuda, cudaResourceTypeLinear, activeVoxelNumber * sizeof(int),
-                                                      cudaChannelFormatKindSigned, 1);
+    auto maskTexture = Cuda::CreateTextureObject(maskCuda, cudaResourceTypeLinear, activeVoxelNumber * sizeof(int),
+                                                 cudaChannelFormatKindSigned, 1);
 
     // Bind the real to voxel matrix to the texture
     const mat44 floatingMatrix = floatingImage->sform_code > 0 ? floatingImage->sto_ijk : floatingImage->qto_ijk;
@@ -61,14 +61,14 @@ void reg_getImageGradient_gpu(const nifti_image *floatingImage,
                               float4 *warpedGradientCuda,
                               const size_t& activeVoxelNumber,
                               const float& paddingValue) {
-    auto blockSize = NiftyReg::CudaContext::GetBlockSize();
+    auto blockSize = CudaContext::GetBlockSize();
     const int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 
     // Create the texture object for the floating image
-    auto floatingTexture = cudaCommon_createTextureObject(floatingImageCuda, cudaResourceTypeArray);
+    auto floatingTexture = Cuda::CreateTextureObject(floatingImageCuda, cudaResourceTypeArray);
     // Create the texture object for the deformation field
-    auto deformationFieldTexture = cudaCommon_createTextureObject(deformationFieldCuda, cudaResourceTypeLinear,
-                                                                  activeVoxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, cudaResourceTypeLinear,
+                                                             activeVoxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
     // Bind the real to voxel matrix to the texture
     const mat44 floatingMatrix = floatingImage->sform_code > 0 ? floatingImage->sto_ijk : floatingImage->qto_ijk;

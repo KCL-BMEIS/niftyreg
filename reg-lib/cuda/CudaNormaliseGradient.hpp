@@ -1,6 +1,6 @@
 #pragma once
 
-#include "_reg_common_cuda.h"
+#include "CudaCommon.hpp"
 
 namespace NiftyReg::Cuda {
 /* *************************************************************** */
@@ -35,4 +35,4 @@ void NormaliseGradient(float4 *imageCuda,
                        const bool& optimiseY,
                        const bool& optimiseZ);
 /* *************************************************************** */
-}   // namespace NiftyReg::Cuda
+} // namespace NiftyReg::Cuda

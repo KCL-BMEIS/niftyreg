@@ -62,8 +62,8 @@ struct BlockSize {
     unsigned GetMaximalLength;
     unsigned reg_updateControlPointPosition;
     /* _reg_ssd_gpu */
-    unsigned reg_getSquaredDifference;
-    unsigned reg_getSSDGradient;
+    unsigned GetSsdValue;
+    unsigned GetSsdGradient;
     /* _reg_tools_gpu */
     unsigned reg_voxelCentric2NodeCentric;
     unsigned reg_convertNMIGradientFromVoxelToRealSpace;
@@ -127,8 +127,8 @@ struct BlockSize100: public BlockSize {
         GetMaximalLength = 384; // 04 reg - 24 smem
         reg_updateControlPointPosition = 384; // 08 reg - 24 smem
         /* _reg_ssd_gpu */
-        reg_getSquaredDifference = 320; // 12 reg - 24 smem - 08 cmem
-        reg_getSSDGradient = 320; // 12 reg - 24 smem - 08 cmem
+        GetSsdValue = 320; // 12 reg - 24 smem - 08 cmem
+        GetSsdGradient = 320; // 12 reg - 24 smem - 08 cmem
         /* _reg_tools_gpu */
         reg_voxelCentric2NodeCentric = 320; // 11 reg - 24 smem - 16 cmem
         reg_convertNMIGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
@@ -141,9 +141,7 @@ struct BlockSize100: public BlockSize {
         reg_resampleImage3D = 512; // 16 reg - 24 smem - 12 cmem
         reg_getImageGradient2D = 512; // 16 reg - 24 smem - 20 cmem - 24 lmem
         reg_getImageGradient3D = 320; // 24 reg - 24 smem - 16 cmem - 32 lmem
-#ifndef NDEBUG
-        printf("[NiftyReg DEBUG] NiftyReg_CudaBlock100 constructor called\n");
-#endif
+        NR_FUNC_CALLED();
     }
 };
 /* *************************************************************** */
@@ -196,8 +194,8 @@ struct BlockSize300: public BlockSize {
         GetMaximalLength = 1024; // 20 reg
         reg_updateControlPointPosition = 1024; // 22 reg
         /* _reg_ssd_gpu */
-        reg_getSquaredDifference = 768; // 34 reg
-        reg_getSSDGradient = 768; // 34 reg
+        GetSsdValue = 768; // 34 reg
+        GetSsdGradient = 768; // 34 reg
         /* _reg_tools_gpu */
         reg_voxelCentric2NodeCentric = 1024; // 23 reg
         reg_convertNMIGradientFromVoxelToRealSpace = 1024; // 23 reg
@@ -210,10 +208,8 @@ struct BlockSize300: public BlockSize {
         reg_resampleImage3D = 1024; // 24 reg
         reg_getImageGradient2D = 768; // 34 reg
         reg_getImageGradient3D = 768; // 34 reg
-#ifndef NDEBUG
-        printf("[NiftyReg DEBUG] BlockSize300 constructor called\n");
-#endif
+        NR_FUNC_CALLED();
     }
 };
 /* *************************************************************** */
-} // End namespace NiftyReg::Cuda
+} // namespace NiftyReg

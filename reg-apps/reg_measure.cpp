@@ -47,35 +47,33 @@ typedef struct
 
 void PetitUsage(char *exec)
 {
-   fprintf(stderr,"Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS].\n",exec);
-   fprintf(stderr,"\tSee the help for more details (-h).\n");
-   return;
+   NR_INFO("Usage:\t" << exec << " -ref <referenceImageName> -flo <floatingImageName> [OPTIONS]");
+   NR_INFO("\tSee the help for more details (-h)");
 }
+
 void Usage(char *exec)
 {
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].\n",exec);
-   printf("\t-ref <filename>\tFilename of the reference image (mandatory)\n");
-   printf("\t-flo <filename>\tFilename of the floating image (mandatory)\n");
-   printf("\t\tNote that the floating image is resampled into the reference\n");
-   printf("\t\timage space using the header informations.\n");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   NR_INFO("Usage:\t" << exec << " -ref <filename> -flo <filename> [OPTIONS]");
+   NR_INFO("\t-ref <filename>\tFilename of the reference image (mandatory)");
+   NR_INFO("\t-flo <filename>\tFilename of the floating image (mandatory)");
+   NR_INFO("\t\tNote that the floating image is resampled into the reference");
+   NR_INFO("\t\timage space using the header informations");
 
-   printf("* * OPTIONS * *\n");
-   printf("\t-ncc\t\tReturns the NCC value\n");
-   printf("\t-lncc\t\tReturns the LNCC value\n");
-   printf("\t-nmi\t\tReturns the NMI value (64 bins are used)\n");
-   printf("\t-ssd\t\tReturns the SSD value\n");
-   printf("\n\t-out\t\tText file output where to store the value(s).\n\t\t\tThe stdout is used by default\n");
+   NR_INFO("* * OPTIONS * *");
+   NR_INFO("\t-ncc\t\tReturns the NCC value");
+   NR_INFO("\t-lncc\t\tReturns the LNCC value");
+   NR_INFO("\t-nmi\t\tReturns the NMI value (64 bins are used)");
+   NR_INFO("\t-ssd\t\tReturns the SSD value");
+   NR_INFO("\n\t-out\t\tText file output where to store the value(s).\n\t\t\tThe stdout is used by default");
 #ifdef _OPENMP
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   printf("\t-omp <int>\tNumber of thread to use with OpenMP. [%i/%i]\n",
-          defaultOpenMPValue, omp_get_num_procs());
+   NR_INFO("\t-omp <int>\tNumber of threads to use with OpenMP. [" << defaultOpenMPValue << "/" << omp_get_num_procs() << "]");
 #endif
-   printf("\t--version\tPrint current version and exit (%s)\n",NR_VERSION);
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   return;
+   NR_INFO("\t--version\tPrint current version and exit (" << NR_VERSION << ")");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 int main(int argc, char **argv)
@@ -87,7 +85,7 @@ int main(int argc, char **argv)
    param->paddingValue=std::numeric_limits<float>::quiet_NaN();
 
 #ifdef _OPENMP
-   // Set the default number of thread
+   // Set the default number of threads
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
@@ -110,17 +108,12 @@ int main(int argc, char **argv)
          Usage(argv[0]);
          return EXIT_SUCCESS;
       }
-//      else if(strcmp(argv[i], "--xml")==0)
-//      {
-//         printf("%s",xml_measure);
-//         return exit_success;
-//      }
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
 #ifdef _OPENMP
          omp_set_num_threads(atoi(argv[++i]));
 #else
-         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         NR_WARN("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
          ++i;
 #endif
       }
@@ -131,7 +124,7 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--v")==0 ||
             strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",NR_VERSION);
+         NR_COUT << NR_VERSION << std::endl;
          return EXIT_SUCCESS;
       }
       else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||
@@ -201,7 +194,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+         NR_ERROR("Parameter unknown: " << argv[i]);
          PetitUsage(argv[0]);
          return EXIT_FAILURE;
       }
@@ -209,7 +202,7 @@ int main(int argc, char **argv)
 
    if(!flag->refImageFlag || !flag->floImageFlag)
    {
-      fprintf(stderr,"[NiftyReg ERROR] The reference and the floating image have both to be defined.\n");
+      NR_ERROR("The reference and the floating image have both to be defined");
       PetitUsage(argv[0]);
       return EXIT_FAILURE;
    }
@@ -218,7 +211,7 @@ int main(int argc, char **argv)
    NiftiImage refImage = reg_io_ReadImageFile(param->refImageName);
    if(!refImage)
    {
-      fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n", param->refImageName);
+      NR_ERROR("Error when reading the reference image: " << param->refImageName);
       return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(refImage);
@@ -227,7 +220,7 @@ int main(int argc, char **argv)
    NiftiImage floImage = reg_io_ReadImageFile(param->floImageName);
    if(!floImage)
    {
-      fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n", param->floImageName);
+      NR_ERROR("Error when reading the floating image: " << param->floImageName);
       return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(floImage);
@@ -240,7 +233,7 @@ int main(int argc, char **argv)
       NiftiImage refMaskImage = reg_io_ReadImageFile(param->refMaskImageName);
       if(!refMaskImage)
       {
-         fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference mask image: %s\n", param->refMaskImageName);
+         NR_ERROR("Error when reading the reference mask image: " << param->refMaskImageName);
          return EXIT_FAILURE;
       }
       reg_createMaskPyramid<float>(refMaskImage, refMasks, 1, 1);
@@ -307,7 +300,7 @@ int main(int argc, char **argv)
          }
       }
       if(refMaskVoxNumber==0)
-         fprintf(stderr, "No active voxel\n");
+         NR_ERROR("No active voxel");
       refMeanValue /= (double)refMaskVoxNumber;
       warMeanValue /= (double)refMaskVoxNumber;
       double refSTDValue =0.;
@@ -327,7 +320,7 @@ int main(int argc, char **argv)
             (double)refMaskVoxNumber;
       if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
-      else printf("NCC: %g\n", measure);
+      else NR_COUT << "NCC: " << measure << std::endl;
    }
    /* Compute the LNCC if required */
    if(flag->returnLNCCFlag){
@@ -343,7 +336,7 @@ int main(int argc, char **argv)
       double measure=lncc_object->GetSimilarityMeasureValue();
       if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
-      else printf("LNCC: %g\n", measure);
+      else NR_COUT << "LNCC: " << measure << std::endl;
       delete lncc_object;
    }
    /* Compute the NMI if required */
@@ -360,7 +353,7 @@ int main(int argc, char **argv)
       double measure=nmi_object->GetSimilarityMeasureValue();
       if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
-      else printf("NMI: %g\n", measure);
+      else NR_COUT << "NMI: " << measure << std::endl;
       delete nmi_object;
    }
    /* Compute the SSD if required */
@@ -378,7 +371,7 @@ int main(int argc, char **argv)
       double measure=ssd_object->GetSimilarityMeasureValue();
       if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
-      else printf("SSD: %g\n", measure);
+      else NR_COUT << "SSD: " << measure << std::endl;
       delete ssd_object;
    }
    /* Compute the MIND SSD if required */
@@ -395,7 +388,7 @@ int main(int argc, char **argv)
       double measure=mind_object->GetSimilarityMeasureValue();
       if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
-      else printf("MIND: %g\n", measure);
+      else NR_COUT << "MIND: " << measure << std::endl;
       delete mind_object;
    }
 

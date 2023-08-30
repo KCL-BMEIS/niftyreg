@@ -23,11 +23,10 @@ reg_measure* Measure::Create(const MeasureType& measureType) {
         return new reg_mind();
     case MeasureType::MindSsc:
         return new reg_mindssc();
+    default:
+        NR_FATAL_ERROR("Unsupported measure type");
+        return nullptr;
     }
-    reg_print_fct_error("Measure::Create");
-    reg_print_msg_error("Unsupported measure type");
-    reg_exit();
-    return nullptr;
 }
 /* *************************************************************** */
 void Measure::Initialise(reg_measure& measure, DefContent& con, DefContent *conBw) {

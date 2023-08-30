@@ -1,6 +1,6 @@
 #pragma once
 
-#include "niftilib/nifti1_io.h"
+#include "RNifti.h"
 
 /*
 extern "C++"

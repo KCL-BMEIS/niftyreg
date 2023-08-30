@@ -5,18 +5,21 @@
 #include <iomanip>
 
 /**
- *  NMI regression test to ensure the CPU and CUDA versions yield the same output
+ *  Measure regression tests to ensure the CPU and CUDA versions yield the same output
+ *  Test classes:
+ *   - NMI
+ *   - SSD
  */
 
-class NmiTest {
+class MeasureTest {
 protected:
-    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, bool>;
+    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, NiftiImage, MeasureType, bool>;
     using TestCase = std::tuple<std::string, double, double, NiftiImage, NiftiImage>;
 
     inline static vector<TestCase> testCases;
 
 public:
-    NmiTest() {
+    MeasureTest() {
         if (!testCases.empty())
             return;
 
@@ -24,52 +27,66 @@ public:
         std::mt19937 gen(0);
         std::uniform_real_distribution<float> distr(0, 1);
 
-        // Create 2D reference, floating and control point grid images
+        // Create 2D reference, floating, control point grid and local weight similarity images
         constexpr NiftiImage::dim_t size = 16;
         vector<NiftiImage::dim_t> dim{ size, size };
         NiftiImage reference2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage controlPointGrid2d(CreateControlPointGrid(reference2d));
+        NiftiImage localWeightSim2d(dim, NIFTI_TYPE_FLOAT32);
 
-        // Create 3D reference, floating and control point grid images
+        // Create 3D reference, floating, control point grid and local weight similarity images
         dim.push_back(size);
         NiftiImage reference3d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating3d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage controlPointGrid3d(CreateControlPointGrid(reference3d));
+        NiftiImage localWeightSim3d(dim, NIFTI_TYPE_FLOAT32);
 
         // Fill images with random values
         auto ref2dPtr = reference2d.data();
         auto flo2dPtr = floating2d.data();
+        auto localWeightSim2dPtr = localWeightSim2d.data();
         for (size_t i = 0; i < reference2d.nVoxels(); ++i) {
             ref2dPtr[i] = distr(gen);
             flo2dPtr[i] = distr(gen);
+            localWeightSim2dPtr[i] = distr(gen);
         }
 
         // Fill images with random values
         auto ref3dPtr = reference3d.data();
         auto flo3dPtr = floating3d.data();
+        auto localWeightSim3dPtr = localWeightSim3d.data();
         for (size_t i = 0; i < reference3d.nVoxels(); ++i) {
             ref3dPtr[i] = distr(gen);
             flo3dPtr[i] = distr(gen);
+            localWeightSim3dPtr[i] = distr(gen);
         }
 
         // Create the data container for the regression test
+        const std::string measureNames[]{ "NMI"s, "SSD"s, "DTI"s, "LNCC"s, "KLD"s, "MIND"s, "MINDSSC"s };
+        const MeasureType testMeasures[]{ MeasureType::Nmi, MeasureType::Ssd };
         vector<TestData> testData;
-        for (int sym = 0; sym < 2; ++sym) {
-            testData.emplace_back(TestData(
-                "2D"s + (sym ? " Symmetric" : ""),
-                reference2d,
-                floating2d,
-                controlPointGrid2d,
-                sym
-            ));
-            testData.emplace_back(TestData(
-                "3D"s + (sym ? " Symmetric" : ""),
-                reference3d,
-                floating3d,
-                controlPointGrid3d,
-                sym
-            ));
+        for (auto&& measure : testMeasures) {
+            for (int sym = 0; sym < 2; ++sym) {
+                testData.emplace_back(TestData(
+                    measureNames[(int)measure] + " 2D"s + (sym ? " Symmetric" : ""),
+                    reference2d,
+                    floating2d,
+                    controlPointGrid2d,
+                    localWeightSim2d,
+                    measure,
+                    sym
+                ));
+                testData.emplace_back(TestData(
+                    measureNames[(int)measure] + " 3D"s + (sym ? " Symmetric" : ""),
+                    reference3d,
+                    floating3d,
+                    controlPointGrid3d,
+                    localWeightSim3d,
+                    measure,
+                    sym
+                ));
+            }
         }
 
         // Create the platforms
@@ -77,25 +94,26 @@ public:
         Platform platformCuda(PlatformType::Cuda);
 
         // Create the measures
-        unique_ptr<Measure> measureCpu{ new Measure() };
-        unique_ptr<Measure> measureCuda{ new CudaMeasure() };
+        unique_ptr<Measure> measureCreatorCpu{ new Measure() };
+        unique_ptr<Measure> measureCreatorCuda{ new CudaMeasure() };
 
         for (auto&& testData : testData) {
             // Get the test data
-            auto&& [testName, reference, floating, controlPointGrid, isSymmetric] = testData;
+            auto&& [testName, reference, floating, controlPointGrid, localWeightSim, measureType, isSymmetric] = testData;
 
             // Create images
             NiftiImage referenceCpu(reference), referenceCuda(reference);
             NiftiImage floatingCpu(floating), floatingCuda(floating);
             NiftiImage controlPointGridCpu(controlPointGrid), controlPointGridCuda(controlPointGrid);
             NiftiImage controlPointGridCpuBw(controlPointGrid), controlPointGridCudaBw(controlPointGrid);
+            NiftiImage localWeightSimCpu(localWeightSim), localWeightSimCuda(localWeightSim);
 
             // Create the contents
             unique_ptr<F3dContent> contentCpu{ new F3dContent(
                 referenceCpu,
                 floatingCpu,
                 controlPointGridCpu,
-                nullptr,
+                localWeightSimCpu,
                 nullptr,
                 nullptr,
                 sizeof(float)
@@ -104,7 +122,7 @@ public:
                 referenceCuda,
                 floatingCuda,
                 controlPointGridCuda,
-                nullptr,
+                localWeightSimCuda,
                 nullptr,
                 nullptr,
                 sizeof(float)
@@ -140,17 +158,17 @@ public:
                 computeCudaBw.reset(platformCuda.CreateCompute(*contentCudaBw));
             }
 
-            // Create the NMI measures
-            unique_ptr<reg_nmi> nmiCpu{ dynamic_cast<reg_nmi*>(measureCpu->Create(MeasureType::Nmi)) };
-            unique_ptr<reg_nmi> nmiCuda{ dynamic_cast<reg_nmi*>(measureCuda->Create(MeasureType::Nmi)) };
+            // Create the measures
+            unique_ptr<reg_measure> measureCpu{ measureCreatorCpu->Create(measureType) };
+            unique_ptr<reg_measure> measureCuda{ measureCreatorCuda->Create(measureType) };
 
             // Initialise the measures
             for (int i = 0; i < referenceCpu->nt; ++i) {
-                nmiCpu->SetTimepointWeight(i, 1.0);
-                nmiCuda->SetTimepointWeight(i, 1.0);
+                measureCpu->SetTimepointWeight(i, 1.0);
+                measureCuda->SetTimepointWeight(i, 1.0);
             }
-            measureCpu->Initialise(*nmiCpu, *contentCpu, contentCpuBw.get());
-            measureCuda->Initialise(*nmiCuda, *contentCuda, contentCudaBw.get());
+            measureCreatorCpu->Initialise(*measureCpu, *contentCpu, contentCpuBw.get());
+            measureCreatorCuda->Initialise(*measureCuda, *contentCuda, contentCudaBw.get());
 
             // Compute the similarity measure value for CPU
             computeCpu->GetDeformationField(false, true);
@@ -159,7 +177,7 @@ public:
                 computeCpuBw->GetDeformationField(false, true);
                 computeCpuBw->ResampleImage(1, std::numeric_limits<float>::quiet_NaN());
             }
-            const double simMeasureCpu = nmiCpu->GetSimilarityMeasureValue();
+            const double simMeasureCpu = measureCpu->GetSimilarityMeasureValue();
 
             // Compute the similarity measure value for CUDA
             NiftiImage warpedCuda(contentCuda->F3dContent::GetWarped());
@@ -176,7 +194,7 @@ public:
                 // computeCudaBw->GetDeformationField(false, true);
                 // computeCudaBw->ResampleImage(1, std::numeric_limits<float>::quiet_NaN());
             }
-            const double simMeasureCuda = nmiCuda->GetSimilarityMeasureValue();
+            const double simMeasureCuda = measureCuda->GetSimilarityMeasureValue();
 
             // Compute the similarity measure gradient for CPU
             int timepoint = 0;
@@ -186,7 +204,7 @@ public:
                 contentCpuBw->ZeroVoxelBasedMeasureGradient();
                 computeCpuBw->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), timepoint);
             }
-            nmiCpu->GetVoxelBasedSimilarityMeasureGradient(timepoint);
+            measureCpu->GetVoxelBasedSimilarityMeasureGradient(timepoint);
 
             // Compute the similarity measure gradient for CUDA
             contentCuda->ZeroVoxelBasedMeasureGradient();
@@ -203,7 +221,7 @@ public:
                 warpedGradCudaBw.disown();
                 contentCudaBw->UpdateWarpedGradient();
             }
-            nmiCuda->GetVoxelBasedSimilarityMeasureGradient(timepoint);
+            measureCuda->GetVoxelBasedSimilarityMeasureGradient(timepoint);
 
             // Get the voxel-based similarity measure gradients
             NiftiImage voxelBasedGradCpu(contentCpu->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
@@ -215,20 +233,20 @@ public:
     }
 };
 
-TEST_CASE_METHOD(NmiTest, "Regression NMI", "[regression]") {
+TEST_CASE_METHOD(MeasureTest, "Regression Measure", "[regression]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
         auto&& [testName, simMeasureCpu, simMeasureCuda, voxelBasedGradCpu, voxelBasedGradCuda] = testCase;
 
         SECTION(testName) {
-            std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
+            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
             // Increase the precision for the output
-            std::cout << std::fixed << std::setprecision(10);
+            NR_COUT << std::fixed << std::setprecision(10);
 
             // Check the similarity measure values
-            std::cout << "Similarity measure: " << simMeasureCpu << " " << simMeasureCuda << std::endl;
+            NR_COUT << "Similarity measure: " << simMeasureCpu << " " << simMeasureCuda << std::endl;
             REQUIRE(fabs(simMeasureCpu - simMeasureCuda) < EPS);
 
             // Check the voxel-based similarity measure gradients
@@ -237,7 +255,7 @@ TEST_CASE_METHOD(NmiTest, "Regression NMI", "[regression]") {
             for (size_t i = 0; i < voxelBasedGradCpu.nVoxels(); ++i) {
                 const float cpuVal = voxelBasedGradCpuPtr[i];
                 const float cudaVal = voxelBasedGradCudaPtr[i];
-                std::cout << i << " " << cpuVal << " " << cudaVal << std::endl;
+                NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
                 REQUIRE(fabs(cpuVal - cudaVal) < EPS);
             }
         }

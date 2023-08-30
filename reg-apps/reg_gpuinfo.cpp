@@ -13,9 +13,10 @@ int main()
 {
 #ifdef _USE_CUDA
    showCUDAInfo();
+#else
 #ifndef _USE_OPENCL
-   reg_print_msg_warn("NiftyReg has not been compiled with CUDA or OpenCL");
-   reg_print_msg_warn("No GPU device information to display");
+   NR_WARN("NiftyReg has not been compiled with CUDA or OpenCL");
+   NR_WARN("No GPU device information to display");
 #endif
 #endif
 #ifdef _USE_OPENCL

@@ -14,7 +14,6 @@
 
 #pragma once
 
-#include "niftilib/nifti1_io.h"
 #include "_reg_tools.h"
 
 /* *************************************************************** */

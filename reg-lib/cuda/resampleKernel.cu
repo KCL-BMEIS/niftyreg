@@ -5,7 +5,7 @@
 #include"_reg_resampling.h"
 #include"_reg_maths.h"
 #include "resampleKernel.h"
-#include "_reg_common_cuda.h"
+#include "CudaCommon.hpp"
 #include"_reg_tools.h"
 #include"_reg_ReadWriteImage.h"
 
@@ -389,13 +389,9 @@ void launchResample(nifti_image *floatingImage,
 						  float **deformationFieldImage_d,
 						  int **mask_d,
 						  float **sourceIJKMatrix_d) {
-
 	// Define the DTI indices if required
-	if(dti_timepoint!=nullptr || jacMat!=nullptr){
-		reg_print_fct_error("launchResample");
-		reg_print_msg_error("The DTI resampling has not yet been implemented with the CUDA platform. Exit.");
-		reg_exit();
-	}
+	if (dti_timepoint != nullptr || jacMat != nullptr)
+		NR_FATAL_ERROR("The DTI resampling has not yet been implemented with the CUDA platform");
 
 	const size_t targetVoxelNumber = NiftiImage::calcVoxelNumber(warpedImage, 3);
 
@@ -413,35 +409,30 @@ void launchResample(nifti_image *floatingImage,
 	ulong2 voxelNumber = make_ulong2(targetVoxelNumber, NiftiImage::calcVoxelNumber(floatingImage, 3));
 	uint3 fi_xyz = make_uint3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 	uint2 wi_tu = make_uint2(warpedImage->nt, warpedImage->nu);
-	 if (floatingImage->nz > 1) {
-		  ResampleImage3D <<<mygrid, myblocks >>>(*floatingImage_d,
-																*deformationFieldImage_d,
-																*warpedImage_d,
-																*mask_d,
-																*sourceIJKMatrix_d,
-																voxelNumber,
-																fi_xyz,
-																wi_tu,
-																paddingValue,
-																interp);
-	 }
-	 else{
-		  ResampleImage2D <<<mygrid, myblocks >>>(*floatingImage_d,
-																*deformationFieldImage_d,
-																*warpedImage_d,
-																*mask_d,
-																*sourceIJKMatrix_d,
-																voxelNumber,
-																fi_xyz,
-																wi_tu,
-																paddingValue,
-																interp);
-	 }
-#ifndef NDEBUG
-	NR_CUDA_CHECK_KERNEL(mygrid, myblocks);
-#else
-	NR_CUDA_SAFE_CALL(cudaDeviceSynchronize());
-#endif
+    if (floatingImage->nz > 1) {
+        ResampleImage3D<<<mygrid, myblocks>>>(*floatingImage_d,
+                                              *deformationFieldImage_d,
+                                              *warpedImage_d,
+                                              *mask_d,
+                                              *sourceIJKMatrix_d,
+                                              voxelNumber,
+                                              fi_xyz,
+                                              wi_tu,
+                                              paddingValue,
+                                              interp);
+    } else {
+        ResampleImage2D<<<mygrid, myblocks>>>(*floatingImage_d,
+                                              *deformationFieldImage_d,
+                                              *warpedImage_d,
+                                              *mask_d,
+                                              *sourceIJKMatrix_d,
+                                              voxelNumber,
+                                              fi_xyz,
+                                              wi_tu,
+                                              paddingValue,
+                                              interp);
+    }
+    NR_CUDA_CHECK_KERNEL(mygrid, myblocks);
 }
 /* *************************************************************** */
 void identityConst()

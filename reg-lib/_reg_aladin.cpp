@@ -47,9 +47,7 @@ reg_aladin<T>::reg_aladin() {
     this->currentLevel = 0;
     this->gpuIdx = 999;
 
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_aladin constructor called");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
@@ -94,67 +92,37 @@ void reg_aladin<T>::SetVerbose(bool _verbose) {
 template<class T>
 int reg_aladin<T>::Check() {
     //This does all the initial checking
-    if (!this->inputReference) {
-        reg_print_fct_error("reg_aladin<T>::Check()");
-        reg_print_msg_error("No reference image has been specified or it can not be read");
-        return EXIT_FAILURE;
-    }
+    if (!this->inputReference)
+        NR_FATAL_ERROR("No reference image has been specified or it can not be read");
 
-    if (!this->inputFloating) {
-        reg_print_fct_error("reg_aladin<T>::Check()");
-        reg_print_msg_error("No floating image has been specified or it can not be read");
-        return EXIT_FAILURE;
-    }
+    if (!this->inputFloating)
+        NR_FATAL_ERROR("No floating image has been specified or it can not be read");
 
     return EXIT_SUCCESS;
 }
 /* *************************************************************** */
 template<class T>
-int reg_aladin<T>::Print() {
-    if (!this->inputReference) {
-        reg_print_fct_error("reg_aladin<T>::Print()");
-        reg_print_msg_error("No reference image has been specified");
-        return EXIT_FAILURE;
-    }
-    if (!this->inputFloating) {
-        reg_print_fct_error("reg_aladin<T>::Print()");
-        reg_print_msg_error("No floating image has been specified");
-        return EXIT_FAILURE;
-    }
+void reg_aladin<T>::Print() {
+    if (!this->inputReference)
+        NR_FATAL_ERROR("No reference image has been specified");
+    if (!this->inputFloating)
+        NR_FATAL_ERROR("No floating image has been specified");
 
     /* *********************************** */
     /* DISPLAY THE REGISTRATION PARAMETERS */
     /* *********************************** */
-#ifdef NDEBUG
-    if (this->verbose) {
-#endif
-        std::string text;
-        reg_print_info(this->executableName, "Parameters");
-        text = stringFormat("Platform: %s", this->platform->GetName().c_str());
-        reg_print_info(this->executableName, text.c_str());
-        text = stringFormat("Reference image name: %s", this->inputReference->fname);
-        reg_print_info(this->executableName, text.c_str());
-        text = stringFormat("\t%ix%ix%i voxels", this->inputReference->nx, this->inputReference->ny, this->inputReference->nz);
-        reg_print_info(this->executableName, text.c_str());
-        text = stringFormat("\t%gx%gx%g mm", this->inputReference->dx, this->inputReference->dy, this->inputReference->dz);
-        reg_print_info(this->executableName, text.c_str());
-        text = stringFormat("Floating image name: %s", this->inputFloating->fname);
-        reg_print_info(this->executableName, text.c_str());
-        text = stringFormat("\t%ix%ix%i voxels", this->inputFloating->nx, this->inputFloating->ny, this->inputFloating->nz);
-        reg_print_info(this->executableName, text.c_str());
-        text = stringFormat("\t%gx%gx%g mm", this->inputFloating->dx, this->inputFloating->dy, this->inputFloating->dz);
-        reg_print_info(this->executableName, text.c_str());
-        text = stringFormat("Maximum iteration number: %i", this->maxIterations);
-        reg_print_info(this->executableName, text.c_str());
-        text = stringFormat("\t(%i during the first level)", 2 * this->maxIterations);
-        reg_print_info(this->executableName, text.c_str());
-        text = stringFormat("Percentage of blocks: %i %%", this->blockPercentage);
-        reg_print_info(this->executableName, text.c_str());
-        reg_print_info(this->executableName, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-#ifdef NDEBUG
-    }
-#endif
-    return EXIT_SUCCESS;
+    NR_VERBOSE("Parameters");
+    NR_VERBOSE("Platform: " << this->platform->GetName());
+    NR_VERBOSE("Reference image name: " << this->inputReference->fname);
+    NR_VERBOSE("\t" << this->inputReference->nx << "x" << this->inputReference->ny << "x" << this->inputReference->nz << " voxels");
+    NR_VERBOSE("\t" << this->inputReference->dx << "x" << this->inputReference->dy << "x" << this->inputReference->dz << " mm");
+    NR_VERBOSE("Floating image name: " << this->inputFloating->fname);
+    NR_VERBOSE("\t" << this->inputFloating->nx << "x" << this->inputFloating->ny << "x" << this->inputFloating->nz << " voxels");
+    NR_VERBOSE("\t" << this->inputFloating->dx << "x" << this->inputFloating->dy << "x" << this->inputFloating->dz << " mm");
+    NR_VERBOSE("Maximum iteration number: " << this->maxIterations);
+    NR_VERBOSE("\t(" << this->maxIterations * 2 << " during the first level)");
+    NR_VERBOSE("Percentage of blocks: " << this->blockPercentage << "%");
+    NR_VERBOSE("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 /* *************************************************************** */
 template<class T>
@@ -164,9 +132,7 @@ void reg_aladin<T>::SetInputTransform(const char *filename) {
 /* *************************************************************** */
 template<class T>
 void reg_aladin<T>::InitialiseRegistration() {
-#ifndef NDEBUG
-    reg_print_fct_debug("reg_aladin::InitialiseRegistration()");
-#endif
+    NR_FUNC_CALLED();
 
     this->platform.reset(new Platform(this->platformType));
     this->platform->SetGpuIdx(this->gpuIdx);
@@ -233,10 +199,7 @@ void reg_aladin<T>::InitialiseRegistration() {
         if (FILE *aff = fopen(this->inputTransformName, "r")) {
             fclose(aff);
         } else {
-            std::string text = stringFormat("The specified input affine file (%s) can not be read", this->inputTransformName);
-            reg_print_fct_error("reg_aladin<T>::InitialiseRegistration()");
-            reg_print_msg_error(text.c_str());
-            reg_exit();
+            NR_FATAL_ERROR("The specified input affine file ("s + this->inputTransformName + ") can not be read");
         }
         reg_tool_ReadAffineFile(this->affineTransformation.get(), this->inputTransformName);
     } else { // No input affine transformation
@@ -366,10 +329,7 @@ template<class T>
 void reg_aladin<T>::UpdateTransformationMatrix(int type) {
     this->blockMatchingKernel->template castTo<BlockMatchingKernel>()->Calculate();
     this->ltsKernel->template castTo<LtsKernel>()->Calculate(type);
-
-#ifndef NDEBUG
-    reg_mat44_disp(this->affineTransformation.get(), (char*)"[NiftyReg DEBUG] updated forward matrix");
-#endif
+    NR_MAT44(*this->affineTransformation, "The updated forward matrix");
 }
 /* *************************************************************** */
 template<class T>
@@ -395,16 +355,10 @@ template<class T>
 void reg_aladin<T>::ResolveMatrix(unsigned iterations, const unsigned optimizationFlag) {
     unsigned iteration = 0;
     while (iteration < iterations) {
-#ifndef NDEBUG
-        char text[255];
-        sprintf(text, "%s - level: %i/%i - iteration %i/%i",
-                optimizationFlag ? (char*)"Affine" : (char*)"Rigid",
-                this->currentLevel + 1, this->numberOfLevels, iteration + 1, iterations);
-        reg_print_msg_debug(text);
-#endif
+        NR_DEBUG((optimizationFlag ? "Affine" : "Rigid") << " - level: " << this->currentLevel + 1 << "/" << this->numberOfLevels
+                 << " - iteration " << iteration + 1 << "/" << iterations);
         this->GetWarpedImage(this->interpolation, this->warpedPaddingValue);
         this->UpdateTransformationMatrix(optimizationFlag);
-
         iteration++;
     }
 }
@@ -424,24 +378,14 @@ void reg_aladin<T>::Run() {
         // All the blocks are used during the first level
         const unsigned maxNumberOfIterationToPerform = (currentLevel == 0) ? this->maxIterations * 2 : this->maxIterations;
 
-#ifdef NDEBUG
-        if (this->verbose) {
-#endif
-            this->DebugPrintLevelInfoStart();
-#ifdef NDEBUG
-        }
-#endif
+        this->DebugPrintLevelInfoStart();
 
-#ifndef NDEBUG
-        if (this->con->GetReference()->sform_code > 0)
-            reg_mat44_disp(&this->con->GetReference()->sto_xyz, (char*)"[NiftyReg DEBUG] Reference image matrix (sform sto_xyz)");
-        else
-            reg_mat44_disp(&this->con->GetReference()->qto_xyz, (char*)"[NiftyReg DEBUG] Reference image matrix (qform qto_xyz)");
-        if (this->con->GetFloating()->sform_code > 0)
-            reg_mat44_disp(&this->con->GetFloating()->sto_xyz, (char*)"[NiftyReg DEBUG] Floating image matrix (sform sto_xyz)");
-        else
-            reg_mat44_disp(&this->con->GetFloating()->qto_xyz, (char*)"[NiftyReg DEBUG] Floating image matrix (qform qto_xyz)");
-#endif
+        if (this->con->Content::GetReference()->sform_code > 0)
+            NR_MAT44(this->con->Content::GetReference()->sto_xyz, "Reference image matrix (sform sto_xyz)");
+        else NR_MAT44(this->con->Content::GetReference()->qto_xyz, "Reference image matrix (qform qto_xyz)");
+        if (this->con->Content::GetFloating()->sform_code > 0)
+            NR_MAT44(this->con->Content::GetFloating()->sto_xyz, "Floating image matrix (sform sto_xyz)");
+        else NR_MAT44(this->con->Content::GetFloating()->qto_xyz, "Floating image matrix (qform qto_xyz)");
 
         /* ****************** */
         /* Rigid registration */
@@ -462,30 +406,18 @@ void reg_aladin<T>::Run() {
         this->DeinitAladinContent();
         this->DeallocateCurrentInputImage();
 
-#ifdef NDEBUG
-        if (this->verbose) {
-#endif
-            this->DebugPrintLevelInfoEnd();
-            reg_print_info(this->executableName, "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
-#ifdef NDEBUG
-        }
-#endif
-
+        this->DebugPrintLevelInfoEnd();
+        NR_VERBOSE("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
     }
 
-#ifndef NDEBUG
-    reg_print_msg_debug("reg_aladin::Run() done");
-#endif
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 template<class T>
 NiftiImage reg_aladin<T>::GetFinalWarpedImage() {
     // The initial images are used
-    if (!this->inputReference || !this->inputFloating || !this->affineTransformation) {
-        reg_print_fct_error("reg_aladin::GetFinalWarpedImage()");
-        reg_print_msg_error("The reference, floating images and the transformation have to be defined");
-        reg_exit();
-    }
+    if (!this->inputReference || !this->inputFloating || !this->affineTransformation)
+        NR_FATAL_ERROR("The reference, floating images and the transformation have to be defined");
 
     unique_ptr<int[]> mask(new int[this->inputReference.nVoxelsPerVolume()]());
 
@@ -511,39 +443,24 @@ NiftiImage reg_aladin<T>::GetFinalWarpedImage() {
 /* *************************************************************** */
 template<class T>
 void reg_aladin<T>::DebugPrintLevelInfoStart() {
-    /* Display some parameters specific to the current level */
-    char text[255];
-    sprintf(text, "Current level %i / %i", this->currentLevel + 1, this->numberOfLevels);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-            this->con->GetReference()->nx,
-            this->con->GetReference()->ny,
-            this->con->GetReference()->nz,
-            this->con->GetReference()->dx,
-            this->con->GetReference()->dy,
-            this->con->GetReference()->dz);
-    reg_print_info(this->executableName, text);
-    sprintf(text, "floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
-            this->con->GetFloating()->nx,
-            this->con->GetFloating()->ny,
-            this->con->GetFloating()->nz,
-            this->con->GetFloating()->dx,
-            this->con->GetFloating()->dy,
-            this->con->GetFloating()->dz);
-    reg_print_info(this->executableName, text);
-    if (this->con->GetReference()->nz == 1) {
-        reg_print_info(this->executableName, "Block size = [4 4 1]");
-    } else reg_print_info(this->executableName, "Block size = [4 4 4]");
-    reg_print_info(this->executableName, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-    sprintf(text, "Block number = [%i %i %i]", this->blockMatchingParams->blockNumber[0],
-            this->blockMatchingParams->blockNumber[1], this->blockMatchingParams->blockNumber[2]);
-    reg_print_info(this->executableName, text);
-    reg_mat44_disp(this->affineTransformation.get(), (char*)"[reg_aladin] Initial transformation matrix:");
+    const nifti_image *ref = this->con->Content::GetReference();
+    const nifti_image *flo = this->con->Content::GetFloating();
+    NR_VERBOSE("Current level " << this->currentLevel + 1 << " / " << this->numberOfLevels);
+    NR_VERBOSE("Reference image size:\t" << ref->nx << "x" << ref->ny << "x" << ref->nz << " voxels\t" <<
+               ref->dx << "x" << ref->dy << "x" << ref->dz << " mm");
+    NR_VERBOSE("Floating image size:\t" << flo->nx << "x" << flo->ny << "x" << flo->nz << " voxels\t" <<
+               flo->dx << "x" << flo->dy << "x" << flo->dz << " mm");
+    NR_VERBOSE("Block size = [4 4 " << (ref->nz == 1 ? 1 : 4) << "]");
+    NR_VERBOSE("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_VERBOSE("Block number = [" << this->blockMatchingParams->blockNumber[0] << " " <<
+               this->blockMatchingParams->blockNumber[1] << " " << this->blockMatchingParams->blockNumber[2] << "]");
+    NR_MAT44_VERBOSE(*this->affineTransformation, "Initial transformation matrix:");
+    NR_VERBOSE("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 /* *************************************************************** */
 template<class T>
 void reg_aladin<T>::DebugPrintLevelInfoEnd() {
-    reg_mat44_disp(this->affineTransformation.get(), (char*)"[reg_aladin] Final transformation matrix:");
+    NR_MAT44_VERBOSE(*this->affineTransformation, "Final transformation matrix:");
 }
 /* *************************************************************** */
 template class reg_aladin<float>;

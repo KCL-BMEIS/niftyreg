@@ -10,9 +10,8 @@ public:
         case ContentType::Aladin:
             return new ClAladinContentCreator();
         default:
-            reg_print_fct_error("ClContentFactory::Produce");
-            reg_print_msg_error("Unsupported content type");
-            reg_exit();
+            NR_FATAL_ERROR("Unsupported content type");
+            return nullptr;
         }
     }
 };

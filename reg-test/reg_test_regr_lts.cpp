@@ -10,7 +10,7 @@
  *  LTS regression test to ensure the CPU and CUDA versions yield the same output
  */
 
-class LTSTest {
+class LtsTest {
 protected:
     using TestData = std::tuple<std::string, NiftiImage, NiftiImage, int, int>;
     using TestCase = std::tuple<std::string, unique_ptr<mat44>, unique_ptr<mat44>>;
@@ -18,7 +18,7 @@ protected:
     inline static vector<TestCase> testCases;
 
 public:
-    LTSTest() {
+    LtsTest() {
         if (!testCases.empty())
             return;
 
@@ -135,21 +135,21 @@ public:
     }
 };
 
-TEST_CASE_METHOD(LTSTest, "Regression LTS", "[regression]") {
+TEST_CASE_METHOD(LtsTest, "Regression LTS", "[regression]") {
     // Loop over all generated test cases
     for (auto&& testCase : this->testCases) {
         // Retrieve test information
         auto&& [testName, matCpu, matCuda] = testCase;
 
         SECTION(testName) {
-            std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
+            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
             // Loop over the matrix values and ensure they are identical
             for (int i = 0; i < 4; ++i) {
                 for (int j = 0; j < 4; ++j) {
                     const auto mCpu = matCpu->m[i][j];
                     const auto mCuda = matCuda->m[i][j];
-                    std::cout << i << " " << j << " " << mCpu << " " << mCuda << std::endl;
+                    NR_COUT << i << " " << j << " " << mCpu << " " << mCuda << std::endl;
                     REQUIRE(fabs(mCpu - mCuda) < EPS);
                 }
             }

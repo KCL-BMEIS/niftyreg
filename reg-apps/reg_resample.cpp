@@ -49,36 +49,34 @@ typedef struct
 
 void PetitUsage(char *exec)
 {
-   fprintf(stderr,"Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS].\n",exec);
-   fprintf(stderr,"\tSee the help for more details (-h).\n");
-   return;
+   NR_INFO("Usage:\t" << exec << " -ref <referenceImageName> -flo <floatingImageName> [OPTIONS]");
+   NR_INFO("\tSee the help for more details (-h)");
 }
+
 void Usage(char *exec)
 {
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].\n",exec);
-   printf("\t-ref <filename>\n\t\tFilename of the reference image (mandatory)\n");
-   printf("\t-flo <filename>\n\t\tFilename of the floating image (mandatory)\n\n");
-   printf("* * OPTIONS * *\n");
-   printf("\t-trans <filename>\n\t\tFilename of the file containing the transformation parametrisation (from reg_aladin, reg_f3d or reg_transform)\n");
-   printf("\t-res <filename>\n\t\tFilename of the resampled image [none]\n");
-   printf("\t-blank <filename>\n\t\tFilename of the resampled blank grid [none]\n");
-   printf("\t-inter <int>\n\t\tInterpolation order (0, 1, 3, 4)[3] (0=NN, 1=LIN; 3=CUB, 4=SINC)\n");
-   printf("\t-pad <int>\n\t\tInterpolation padding value [0]\n");
-   printf("\t-tensor\n\t\tThe last six timepoints of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]\n");
-   printf("\t-psf\n\t\tPerform the resampling in two steps to resample an image to a lower resolution [off]\n");
-   printf("\t-psf_alg <0/1>\n\t\tMinimise the matrix metric (0) or the determinant (1) when estimating the PSF [0]\n");
-   printf("\t-voff\n\t\tTurns verbose off [on]\n");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   NR_INFO("Usage:\t" << exec << " -ref <filename> -flo <filename> [OPTIONS]");
+   NR_INFO("\t-ref <filename>\n\t\tFilename of the reference image (mandatory)");
+   NR_INFO("\t-flo <filename>\n\t\tFilename of the floating image (mandatory)\n");
+   NR_INFO("* * OPTIONS * *");
+   NR_INFO("\t-trans <filename>\n\t\tFilename of the file containing the transformation parametrisation (from reg_aladin, reg_f3d or reg_transform)");
+   NR_INFO("\t-res <filename>\n\t\tFilename of the resampled image [none]");
+   NR_INFO("\t-blank <filename>\n\t\tFilename of the resampled blank grid [none]");
+   NR_INFO("\t-inter <int>\n\t\tInterpolation order (0, 1, 3, 4)[3] (0=NN, 1=LIN; 3=CUB, 4=SINC)");
+   NR_INFO("\t-pad <int>\n\t\tInterpolation padding value [0]");
+   NR_INFO("\t-tensor\n\t\tThe last six timepoints of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]");
+   NR_INFO("\t-psf\n\t\tPerform the resampling in two steps to resample an image to a lower resolution [off]");
+   NR_INFO("\t-psf_alg <0/1>\n\t\tMinimise the matrix metric (0) or the determinant (1) when estimating the PSF [0]");
+   NR_INFO("\t-voff\n\t\tTurns verbose off [on]");
 #ifdef _OPENMP
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   printf("\t-omp <int>\n\t\tNumber of thread to use with OpenMP. [%i/%i]\n",
-          defaultOpenMPValue, omp_get_num_procs());
+   NR_INFO("\t-omp <int>\n\t\tNumber of threads to use with OpenMP. [" << defaultOpenMPValue << "/" << omp_get_num_procs() << "]");
 #endif
-   printf("\t--version\n\t\tPrint current version and exit (%s)\n",NR_VERSION);
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   return;
+   NR_INFO("\t--version\n\t\tPrint current version and exit (" << NR_VERSION << ")");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 int main(int argc, char **argv)
@@ -92,7 +90,7 @@ int main(int argc, char **argv)
    bool verbose=true;
 
 #ifdef _OPENMP
-   // Set the default number of thread
+   // Set the default number of threads
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
@@ -117,7 +115,7 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "--xml")==0)
       {
-         printf("%s",xml_resample);
+         NR_COUT << xml_resample << std::endl;
          return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "-voff")==0)
@@ -129,7 +127,7 @@ int main(int argc, char **argv)
 #ifdef _OPENMP
          omp_set_num_threads(atoi(argv[++i]));
 #else
-         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         NR_WARN("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
          ++i;
 #endif
       }
@@ -140,7 +138,7 @@ int main(int argc, char **argv)
                strcmp(argv[i], "--v")==0 ||
                strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",NR_VERSION);
+         NR_COUT << NR_VERSION << std::endl;
          return EXIT_SUCCESS;
       }
       else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||
@@ -239,7 +237,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+         NR_ERROR("Unknown parameter: " << argv[i]);
          PetitUsage(argv[0]);
          return EXIT_FAILURE;
       }
@@ -247,7 +245,7 @@ int main(int argc, char **argv)
 
    if(!flag->referenceImageFlag || !flag->floatingImageFlag)
    {
-      fprintf(stderr,"[NiftyReg ERROR] The reference and the floating image have both to be defined.\n");
+      NR_ERROR("The reference and the floating image have both to be defined");
       PetitUsage(argv[0]);
       return EXIT_FAILURE;
    }
@@ -256,8 +254,7 @@ int main(int argc, char **argv)
    nifti_image *referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
    if(referenceImage == nullptr)
    {
-      fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",
-              param->referenceImageName);
+      NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
       return EXIT_FAILURE;
    }
 
@@ -265,28 +262,22 @@ int main(int argc, char **argv)
    nifti_image *floatingImage = reg_io_ReadImageFile(param->floatingImageName);
    if(floatingImage == nullptr)
    {
-      fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n",
-              param->floatingImageName);
+      NR_ERROR("Error when reading the floating image: " << param->floatingImageName);
       return EXIT_FAILURE;
    }
 
    /* *********************************** */
    /* DISPLAY THE RESAMPLING PARAMETERS */
    /* *********************************** */
-   if(verbose){
-      printf("\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-      printf("Command line:\n");
-      for(int i=0; i<argc; i++) printf(" %s", argv[i]);
-      printf("\n");
-      printf("Parameters\n");
-      printf("Reference image name: %s\n",referenceImage->fname);
-      printf("\t%ix%ix%i voxels, %i volumes\n",referenceImage->nx,referenceImage->ny,referenceImage->nz,referenceImage->nt);
-      printf("\t%gx%gx%g mm\n",referenceImage->dx,referenceImage->dy,referenceImage->dz);
-      printf("Floating image name: %s\n",floatingImage->fname);
-      printf("\t%ix%ix%i voxels, %i volumes\n",floatingImage->nx,floatingImage->ny,floatingImage->nz,floatingImage->nt);
-      printf("\t%gx%gx%g mm\n",floatingImage->dx,floatingImage->dy,floatingImage->dz);
-      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
-   }
+   PrintCmdLine(argc, argv, verbose);
+   NR_VERBOSE_APP("Parameters");
+   NR_VERBOSE_APP("Reference image name: " << referenceImage->fname);
+   NR_VERBOSE_APP("\t" << referenceImage->nx << "x" << referenceImage->ny << "x" << referenceImage->nz << " voxels, " << referenceImage->nt << " volumes");
+   NR_VERBOSE_APP("\t" << referenceImage->dx << "x" << referenceImage->dy << "x" << referenceImage->dz << " mm");
+   NR_VERBOSE_APP("Floating image name: " << floatingImage->fname);
+   NR_VERBOSE_APP("\t" << floatingImage->nx << "x" << floatingImage->ny << "x" << floatingImage->nz << " voxels, " << floatingImage->nt << " volumes");
+   NR_VERBOSE_APP("\t" << floatingImage->dx << "x" << floatingImage->dy << "x" << floatingImage->dz << " mm");
+   NR_VERBOSE_APP("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 
    /* *********************** */
    /* READ THE TRANSFORMATION */
@@ -302,8 +293,7 @@ int main(int argc, char **argv)
          inputTransformationImage=reg_io_ReadImageFile(param->inputTransName);
          if(inputTransformationImage==nullptr)
          {
-            fprintf(stderr, "[NiftyReg ERROR] Error when reading the provided transformation: %s\n",
-                    param->inputTransName);
+            NR_ERROR("Error when reading the provided transformation: " << param->inputTransName);
             return EXIT_FAILURE;
          }
       }
@@ -452,9 +442,7 @@ int main(int argc, char **argv)
 
       if((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor)
       {
-#ifndef NDEBUG
-         reg_print_msg_debug("DTI-based resampling\n");
-#endif
+         NR_DEBUG("DTI-based resampling");
          // Compute first the Jacobian matrices
          mat33 *jacobian = (mat33 *)malloc(NiftiImage::calcVoxelNumber(deformationFieldImage, 3) * sizeof(mat33));
          reg_defField_getJacobianMatrix(deformationFieldImage, jacobian);
@@ -486,9 +474,7 @@ int main(int argc, char **argv)
                                   param->paddingValue,
                                   jacobian,
                                   (char)round(param->PSF_Algorithm));
-#ifndef NDEBUG
-            reg_print_msg_debug("PSF resampling completed\n");
-#endif
+            NR_DEBUG("PSF resampling completed");
             free(jacobian);
          }
          else
@@ -506,8 +492,7 @@ int main(int argc, char **argv)
       strcpy (warpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
       reg_io_WriteImageFile(warpedImage,param->outputResultName);
 
-      if(verbose)
-         printf("[NiftyReg] Resampled image has been saved: %s\n", param->outputResultName);
+      NR_VERBOSE_APP("Resampled image has been saved: " << param->outputResultName);
       nifti_image_free(warpedImage);
    }
 
@@ -599,8 +584,7 @@ int main(int argc, char **argv)
       reg_io_WriteImageFile(warpedImage,param->outputBlankName);
       nifti_image_free(warpedImage);
       nifti_image_free(gridImage);
-      if(verbose)
-         printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputBlankName);
+      NR_VERBOSE_APP("Resampled grid has been saved: " << param->outputBlankName);
    }
 
    //   // Tell the CLI that we finished

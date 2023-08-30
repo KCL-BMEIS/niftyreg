@@ -19,19 +19,14 @@ reg_polyAffine<T>::reg_polyAffine(int refTimePoint,int floTimePoint)
    : reg_base<T>::reg_base(refTimePoint,floTimePoint)
 {
    this->executableName=(char *)"NiftyReg PolyAffine";
-
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_polyAffine constructor called");
-#endif
+   NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 reg_polyAffine<T>::~reg_polyAffine()
 {
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_polyAffine destructor called");
-#endif
+   NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 /* *************************************************************** */

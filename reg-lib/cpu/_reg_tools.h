@@ -21,7 +21,9 @@
 #include <algorithm>
 #include <functional>
 #include "_reg_maths.h"
+#include "Debug.hpp"
 
+using namespace NiftyReg;
 using namespace std::string_literals;
 using std::unique_ptr;
 using std::shared_ptr;
@@ -458,4 +460,7 @@ void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x
  * @return The duplicated image
  */
 nifti_image* nifti_dup(const nifti_image& image, const bool& copyData = true);
+/* *************************************************************** */
+/// @brief Prints the command line
+void PrintCmdLine(const int& argc, const char * const *argv, const bool& verbose);
 /* *************************************************************** */

@@ -74,7 +74,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+         NR_ERROR("Unknown parameter: " << argv[i]);
          Usage(argv[0]);
          return 1;
       }
@@ -186,10 +186,10 @@ int main(int argc, char **argv)
    float4 *deformationFieldImageArray_d;
    if(runGPU)
    {
-      if(cudaCommon_allocateArrayToDevice<float>(&targetImageArray_d, targetImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float>(targetImageArray_d, targetImage)) return 1;
-      if(cudaCommon_allocateArrayToDevice<float>(&sourceImageArray_d, sourceImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float>(sourceImageArray_d,sourceImage)) return 1;
+      Cuda::Allocate<float>(&targetImageArray_d, targetImage->nvox);
+      Cuda::TransferNiftiToDevice<float>(targetImageArray_d, targetImage);
+      Cuda::Allocate<float>(&sourceImageArray_d, sourceImage->nvox);
+      Cuda::TransferNiftiToDevice<float>(sourceImageArray_d,sourceImage);
       CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, targetImage->nvox*sizeof(int)));
       CUDA_SAFE_CALL(cudaMemcpy(targetMask_d, maskImage, targetImage->nvox*sizeof(int), cudaMemcpyHostToDevice));
       CUDA_SAFE_CALL(cudaMalloc((void **)&deformationFieldImageArray_d, targetImage->nvox*sizeof(float4)));
@@ -277,8 +277,8 @@ int main(int argc, char **argv)
    float4 *controlPointImageArray_d;
    if(runGPU)
    {
-      if(cudaCommon_allocateArrayToDevice<float4>(&controlPointImageArray_d, controlPointImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float4>(controlPointImageArray_d,controlPointImage)) return 1;
+      Cuda::Allocate<float4>(&controlPointImageArray_d, controlPointImage->dim);
+      Cuda::TransferNiftiToDevice<float4>(controlPointImageArray_d,controlPointImage);
    }
 #endif
    {
@@ -330,8 +330,8 @@ int main(int argc, char **argv)
    float4 *velocityFieldImageArray_d;
    if(runGPU)
    {
-      if(cudaCommon_allocateArrayToDevice<float4>(&velocityFieldImageArray_d, velocityFieldImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float4>(velocityFieldImageArray_d,velocityFieldImage)) return 1;
+      Cuda::Allocate<float4>(&velocityFieldImageArray_d, velocityFieldImage->dim);
+      Cuda::TransferNiftiToDevice<float4>(velocityFieldImageArray_d,velocityFieldImage);
    }
 #endif
    {
@@ -377,7 +377,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    float *resultImageArray_d;
    if(runGPU)
-      if(cudaCommon_allocateArrayToDevice<float>(&resultImageArray_d, targetImage->dim)) return 1;
+      Cuda::Allocate<float>(&resultImageArray_d, targetImage->dim);
 #endif
    {
       maxIt=100000 / dimension;
@@ -472,7 +472,7 @@ int main(int argc, char **argv)
          fprintf(outputFile, "GPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          printf("Spatial gradient ratio - %g time(s)\n", (float)cpuTime/(float)gpuTime);
          fprintf(outputFile, "Spatial gradient ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
-         cudaCommon_free(sourceImageArray_d);
+         Cuda::Free(sourceImageArray_d);
       }
 #endif
       printf("Spatial gradient done\n\n");
@@ -482,7 +482,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free(deformationFieldImageArray_d);
+      Cuda::Free(deformationFieldImageArray_d);
    }
 #endif
 
@@ -504,9 +504,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    float4 *voxelNMIGradientArray_d;
    if(runGPU)
-   {
-      if(cudaCommon_allocateArrayToDevice(&voxelNMIGradientArray_d, resultImage->dim)) return 1;
-   }
+      Cuda::Allocate(&voxelNMIGradientArray_d, resultImage->dim);
 #endif
    {
       maxIt=100000 / dimension;
@@ -566,7 +564,7 @@ int main(int argc, char **argv)
          fprintf(outputFile, "GPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          printf("Voxel-based NMI gradient ratio - %g time(s)\n", (float)cpuTime/(float)gpuTime);
          fprintf(outputFile, "Voxel-based NMI gradient ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
-         cudaCommon_free(logJointHistogram_d);
+         Cuda::Free(logJointHistogram_d);
       }
       CUDA_SAFE_CALL(cudaFree(targetMask_d));
 #endif
@@ -576,7 +574,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free(resultGradientArray_d);
+      Cuda::Free(resultGradientArray_d);
    }
 #endif
 
@@ -584,9 +582,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    float4 *nodeNMIGradientArray_d;
    if(runGPU)
-   {
-      if(cudaCommon_allocateArrayToDevice(&nodeNMIGradientArray_d, controlPointImage->dim)) return 1;
-   }
+      Cuda::Allocate(&nodeNMIGradientArray_d, controlPointImage->dim);
 #endif
    {
       maxIt=10000 / dimension;
@@ -638,8 +634,8 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free(voxelNMIGradientArray_d);
-      cudaCommon_free(nodeNMIGradientArray_d);
+      Cuda::Free(voxelNMIGradientArray_d);
+      Cuda::Free(nodeNMIGradientArray_d);
    }
 #endif
 
@@ -796,7 +792,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free(controlPointImageArray_d );
+      Cuda::Free(controlPointImageArray_d );
    }
 #endif
 
@@ -862,9 +858,9 @@ int main(int argc, char **argv)
          fprintf(outputFile, "GPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
          printf("Block-Matching ratio - %g time(s)\n", (float)cpuTime/(float)gpuTime);
          fprintf(outputFile, "Block-Matching ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
-         cudaCommon_free(targetPosition_d);
-         cudaCommon_free(resultPosition_d);
-         cudaCommon_free(activeBlock_d);
+         Cuda::Free(targetPosition_d);
+         Cuda::Free(resultPosition_d);
+         Cuda::Free(activeBlock_d);
       }
 #endif
       printf("Block-matching done\n");
@@ -887,8 +883,8 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free(targetImageArray_d);
-      cudaCommon_free(resultImageArray_d);
+      Cuda::Free(targetImageArray_d);
+      Cuda::Free(resultImageArray_d);
    }
 #endif
 

@@ -161,9 +161,8 @@ double reg_spline_approxBendingEnergy(const nifti_image *splineControlPoint) {
         case NIFTI_TYPE_FLOAT64:
             return reg_spline_approxBendingEnergyValue2D<double>(splineControlPoint);
         default:
-            reg_print_fct_error("reg_spline_approxBendingEnergy");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
+            return 0;
         }
     } else {
         switch (splineControlPoint->datatype) {
@@ -172,9 +171,8 @@ double reg_spline_approxBendingEnergy(const nifti_image *splineControlPoint) {
         case NIFTI_TYPE_FLOAT64:
             return reg_spline_approxBendingEnergyValue3D<double>(splineControlPoint);
         default:
-            reg_print_fct_error("reg_spline_approxBendingEnergy");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
+            return 0;
         }
     }
 }
@@ -457,11 +455,9 @@ extern "C++"
 void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
                                             nifti_image *gradientImage,
                                             float weight) {
-    if (splineControlPoint->datatype != gradientImage->datatype) {
-        reg_print_fct_error("reg_spline_approxBendingEnergyGradient");
-        reg_print_msg_error("The input images are expected to have the same type");
-        reg_exit();
-    }
+    if (splineControlPoint->datatype != gradientImage->datatype)
+        NR_FATAL_ERROR("The input images are expected to have the same type");
+
     if (splineControlPoint->nz == 1) {
         switch (splineControlPoint->datatype) {
         case NIFTI_TYPE_FLOAT32:
@@ -471,9 +467,7 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
             reg_spline_approxBendingEnergyGradient2D<double>(splineControlPoint, gradientImage, weight);
             break;
         default:
-            reg_print_fct_error("reg_spline_approxBendingEnergyGradient");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
         }
     } else {
         switch (splineControlPoint->datatype) {
@@ -484,9 +478,7 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
             reg_spline_approxBendingEnergyGradient3D<double>(splineControlPoint, gradientImage, weight);
             break;
         default:
-            reg_print_fct_error("reg_spline_approxBendingEnergyGradient");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
         }
     }
 }
@@ -664,9 +656,8 @@ double reg_spline_approxLinearEnergy(const nifti_image *splineControlPoint) {
         case NIFTI_TYPE_FLOAT64:
             return reg_spline_approxLinearEnergyValue3D<double>(splineControlPoint);
         default:
-            reg_print_fct_error("reg_spline_approxLinearEnergyValue3D");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
+            return 0;
         }
     } else {
         switch (splineControlPoint->datatype) {
@@ -675,9 +666,8 @@ double reg_spline_approxLinearEnergy(const nifti_image *splineControlPoint) {
         case NIFTI_TYPE_FLOAT64:
             return reg_spline_approxLinearEnergyValue2D<double>(splineControlPoint);
         default:
-            reg_print_fct_error("reg_spline_approxLinearEnergyValue2D");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
+            return 0;
         }
     }
 }
@@ -875,9 +865,8 @@ double reg_spline_linearEnergy(const nifti_image *referenceImage,
         case NIFTI_TYPE_FLOAT64:
             return reg_spline_linearEnergyValue3D<double>(referenceImage, splineControlPoint);
         default:
-            reg_print_fct_error("reg_spline_linearEnergyValue3D");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
+            return 0;
         }
     } else {
         switch (splineControlPoint->datatype) {
@@ -886,9 +875,8 @@ double reg_spline_linearEnergy(const nifti_image *referenceImage,
         case NIFTI_TYPE_FLOAT64:
             return reg_spline_linearEnergyValue2D<double>(referenceImage, splineControlPoint);
         default:
-            reg_print_fct_error("reg_spline_approxLinearEnergyValue2D");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
+            return 0;
         }
     }
 }
@@ -1107,11 +1095,9 @@ void reg_spline_linearEnergyGradient(const nifti_image *referenceImage,
                                      const nifti_image *splineControlPoint,
                                      nifti_image *gradientImage,
                                      float weight) {
-    if (splineControlPoint->datatype != gradientImage->datatype) {
-        reg_print_fct_error("reg_spline_linearEnergyGradient");
-        reg_print_msg_error("Input images are expected to have the same datatype");
-        reg_exit();
-    }
+    if (splineControlPoint->datatype != gradientImage->datatype)
+        NR_FATAL_ERROR("Input images are expected to have the same datatype");
+
     if (splineControlPoint->nz > 1) {
         switch (splineControlPoint->datatype) {
         case NIFTI_TYPE_FLOAT32:
@@ -1121,9 +1107,7 @@ void reg_spline_linearEnergyGradient(const nifti_image *referenceImage,
             reg_spline_linearEnergyGradient3D<double>(referenceImage, splineControlPoint, gradientImage, weight);
             break;
         default:
-            reg_print_fct_error("reg_spline_linearEnergyGradient3D");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
         }
     } else {
         switch (splineControlPoint->datatype) {
@@ -1134,9 +1118,7 @@ void reg_spline_linearEnergyGradient(const nifti_image *referenceImage,
             reg_spline_linearEnergyGradient2D<double>(referenceImage, splineControlPoint, gradientImage, weight);
             break;
         default:
-            reg_print_fct_error("reg_spline_linearEnergyGradient2D");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
         }
     }
 }
@@ -1345,11 +1327,9 @@ void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoi
 void reg_spline_approxLinearEnergyGradient(const nifti_image *splineControlPoint,
                                            nifti_image *gradientImage,
                                            float weight) {
-    if (splineControlPoint->datatype != gradientImage->datatype) {
-        reg_print_fct_error("reg_spline_linearEnergyGradient");
-        reg_print_msg_error("Input images are expected to have the same datatype");
-        reg_exit();
-    }
+    if (splineControlPoint->datatype != gradientImage->datatype)
+        NR_FATAL_ERROR("Input images are expected to have the same datatype");
+
     if (splineControlPoint->nz > 1) {
         switch (splineControlPoint->datatype) {
         case NIFTI_TYPE_FLOAT32:
@@ -1359,9 +1339,7 @@ void reg_spline_approxLinearEnergyGradient(const nifti_image *splineControlPoint
             reg_spline_approxLinearEnergyGradient3D<double>(splineControlPoint, gradientImage, weight);
             break;
         default:
-            reg_print_fct_error("reg_spline_linearEnergyGradient");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
         }
     } else {
         switch (splineControlPoint->datatype) {
@@ -1372,9 +1350,7 @@ void reg_spline_approxLinearEnergyGradient(const nifti_image *splineControlPoint
             reg_spline_approxLinearEnergyGradient2D<double>(splineControlPoint, gradientImage, weight);
             break;
         default:
-            reg_print_fct_error("reg_spline_linearEnergyGradient");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
         }
     }
 }
@@ -1528,9 +1504,8 @@ double reg_defField_linearEnergy(const nifti_image *deformationField) {
         case NIFTI_TYPE_FLOAT64:
             return reg_defField_linearEnergyValue3D<double>(deformationField);
         default:
-            reg_print_fct_error("reg_defField_linearEnergyValue3D");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
+            return 0;
         }
     } else {
         switch (deformationField->datatype) {
@@ -1539,9 +1514,8 @@ double reg_defField_linearEnergy(const nifti_image *deformationField) {
         case NIFTI_TYPE_FLOAT64:
             return reg_defField_linearEnergyValue2D<double>(deformationField);
         default:
-            reg_print_fct_error("reg_defField_linearEnergyValue2D");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
+            return 0;
         }
     }
 }
@@ -1725,9 +1699,7 @@ void reg_defField_linearEnergyGradient(const nifti_image *deformationField,
             reg_defField_linearEnergyGradient3D<double>(deformationField, gradientImage, weight);
             break;
         default:
-            reg_print_fct_error("reg_defField_linearEnergyGradient3D");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
         }
     } else {
         switch (deformationField->datatype) {
@@ -1738,9 +1710,7 @@ void reg_defField_linearEnergyGradient(const nifti_image *deformationField,
             reg_defField_linearEnergyGradient2D<double>(deformationField, gradientImage, weight);
             break;
         default:
-            reg_print_fct_error("reg_defField_linearEnergyGradient2D");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
         }
     }
 }
@@ -1826,15 +1796,9 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
             if (imageDim > 2)
                 constraintValue += reg_pow2(flo_position[2] - def_position[2]);
         } else {
-            char warning_text[255];
-            if (imageDim > 2)
-                sprintf(warning_text, "The current landmark at position %g %g %g is ignored",
-                        ref_position[0], ref_position[1], ref_position[2]);
-            else
-                sprintf(warning_text, "The current landmark at position %g %g is ignored",
-                        ref_position[0], ref_position[1]);
-            reg_print_msg_warn(warning_text);
-            reg_print_msg_warn("as it is not in the space of the reference image");
+            NR_WARN("The current landmark at position " << ref_position[0] << " " <<
+                    ref_position[1] << (imageDim > 2 ? " "s + std::to_string(ref_position[2]) : "") <<
+                    " is ignored as it is not in the space of the reference image");
         }
     }
     return constraintValue;
@@ -1844,11 +1808,8 @@ double reg_spline_getLandmarkDistance(const nifti_image *controlPointImage,
                                       size_t landmarkNumber,
                                       float *landmarkReference,
                                       float *landmarkFloating) {
-    if (controlPointImage->intent_p1 != CUB_SPLINE_GRID) {
-        reg_print_fct_error("reg_spline_getLandmarkDistance");
-        reg_print_msg_error("This function is only implemented for control point grid within an Euclidean setting for now");
-        reg_exit();
-    }
+    if (controlPointImage->intent_p1 != CUB_SPLINE_GRID)
+        NR_FATAL_ERROR("This function is only implemented for control point grid within an Euclidean setting for now");
     switch (controlPointImage->datatype) {
     case NIFTI_TYPE_FLOAT32:
         return reg_spline_getLandmarkDistance_core<float>(controlPointImage, landmarkNumber, landmarkReference, landmarkFloating);
@@ -1857,9 +1818,8 @@ double reg_spline_getLandmarkDistance(const nifti_image *controlPointImage,
         return reg_spline_getLandmarkDistance_core<double>(controlPointImage, landmarkNumber, landmarkReference, landmarkFloating);
         break;
     default:
-        reg_print_fct_error("reg_spline_getLandmarkDistance_core");
-        reg_print_msg_error("Only implemented for single or double precision images");
-        reg_exit();
+        NR_FATAL_ERROR("Only implemented for single or double precision images");
+        return 0;
     }
 }
 /* *************************************************************** */
@@ -1972,15 +1932,9 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
                 }
             }
         } else {
-            char warning_text[255];
-            if (imageDim > 2)
-                sprintf(warning_text, "The current landmark at position %g %g %g is ignored",
-                        ref_position[0], ref_position[1], ref_position[2]);
-            else
-                sprintf(warning_text, "The current landmark at position %g %g is ignored",
-                        ref_position[0], ref_position[1]);
-            reg_print_msg_warn(warning_text);
-            reg_print_msg_warn("as it is not in the space of the reference image");
+            NR_WARN("The current landmark at position " << ref_position[0] << " " <<
+                    ref_position[1] << (imageDim > 2 ? " "s + std::to_string(ref_position[2]) : "") <<
+                    " is ignored as it is not in the space of the reference image");
         }
     }
 }
@@ -1991,11 +1945,9 @@ void reg_spline_getLandmarkDistanceGradient(const nifti_image *controlPointImage
                                             float *landmarkReference,
                                             float *landmarkFloating,
                                             float weight) {
-    if (controlPointImage->intent_p1 != CUB_SPLINE_GRID) {
-        reg_print_fct_error("reg_spline_getLandmarkDistanceGradient");
-        reg_print_msg_error("This function is only implemented for control point grid within an Euclidean setting for now");
-        reg_exit();
-    }
+    if (controlPointImage->intent_p1 != CUB_SPLINE_GRID)
+        NR_FATAL_ERROR("This function is only implemented for control point grid within an Euclidean setting for now");
+
     switch (controlPointImage->datatype) {
     case NIFTI_TYPE_FLOAT32:
         reg_spline_getLandmarkDistanceGradient_core<float>
@@ -2006,9 +1958,7 @@ void reg_spline_getLandmarkDistanceGradient(const nifti_image *controlPointImage
             (controlPointImage, gradientImage, landmarkNumber, landmarkReference, landmarkFloating, weight);
         break;
     default:
-        reg_print_fct_error("reg_spline_getLandmarkDistanceGradient_core");
-        reg_print_msg_error("Only implemented for single or double precision images");
-        reg_exit();
+        NR_FATAL_ERROR("Only implemented for single or double precision images");
     }
 }
 /* *************************************************************** */
@@ -2100,14 +2050,12 @@ double reg_spline_approxLinearPairwise(nifti_image *splineControlPoint) {
         case NIFTI_TYPE_FLOAT64:
             return reg_spline_approxLinearPairwise3D<double>(splineControlPoint);
         default:
-            reg_print_fct_error("reg_spline_approxLinearPairwise");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
+            return 0;
         }
     } else {
-        reg_print_fct_error("reg_spline_approxLinearPairwise");
-        reg_print_msg_error("Not implemented in 2D yet");
-        reg_exit();
+        NR_FATAL_ERROR("Not implemented in 2D yet");
+        return 0;
     }
 }
 /* *************************************************************** */
@@ -2215,11 +2163,9 @@ void reg_spline_approxLinearPairwiseGradient3D(nifti_image *splineControlPoint,
 void reg_spline_approxLinearPairwiseGradient(nifti_image *splineControlPoint,
                                              nifti_image *gradientImage,
                                              float weight) {
-    if (splineControlPoint->datatype != gradientImage->datatype) {
-        reg_print_fct_error("reg_spline_approxLinearPairwiseGradient");
-        reg_print_msg_error("Input images are expected to have the same datatype");
-        reg_exit();
-    }
+    if (splineControlPoint->datatype != gradientImage->datatype)
+        NR_FATAL_ERROR("Input images are expected to have the same datatype");
+
     if (splineControlPoint->nz > 1) {
         switch (splineControlPoint->datatype) {
         case NIFTI_TYPE_FLOAT32:
@@ -2229,14 +2175,10 @@ void reg_spline_approxLinearPairwiseGradient(nifti_image *splineControlPoint,
             reg_spline_approxLinearPairwiseGradient3D<double>(splineControlPoint, gradientImage, weight);
             break;
         default:
-            reg_print_fct_error("reg_spline_linearEnergyGradient");
-            reg_print_msg_error("Only implemented for single or double precision images");
-            reg_exit();
+            NR_FATAL_ERROR("Only implemented for single or double precision images");
         }
     } else {
-        reg_print_fct_error("reg_spline_approxLinearPairwiseGradient");
-        reg_print_msg_error("Not implemented for 2D images yet");
-        reg_exit();
+        NR_FATAL_ERROR("Not implemented for 2D images yet");
     }
 }
 /* *************************************************************** */

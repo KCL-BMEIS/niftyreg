@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "_reg_common_cuda.h"
+#include "CudaCommon.hpp"
 
 extern "C++"
 void reg_affine_positionField_gpu(const mat44 *affineMatrix,

@@ -223,7 +223,7 @@ TEST_CASE_METHOD(VoxelCentricToNodeCentricTest, "Voxel centric to node centric",
         const std::string sectionName = testName + " " + platform->GetName() + " weight=" + std::to_string(weight);
 
         SECTION(sectionName) {
-            std::cout << "\n**************** Section " << sectionName << " ****************" << std::endl;
+            NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
             // Set the matrices required for computation
             nifti_image *floating = content->Content::GetFloating();
             if (floating->sform_code > 0)
@@ -261,7 +261,7 @@ TEST_CASE_METHOD(VoxelCentricToNodeCentricTest, "Voxel centric to node centric",
             for (size_t i = 0; i < transGradExp.nVoxels(); ++i) {
                 const float transGradVal = transGradPtr[i];
                 const float transGradExpVal = transGradExpPtr[i];
-                std::cout << i << " " << transGradVal << " " << transGradExpVal << std::endl;
+                NR_COUT << i << " " << transGradVal << " " << transGradExpVal << std::endl;
                 REQUIRE(fabs(transGradVal - transGradExpVal) < EPS);
             }
             // Ensure the termination of content before CudaContext

@@ -10,9 +10,9 @@
     test function: NMI computation
 */
 
-class NMITest {
+class NmiTest {
 public:
-    NMITest() {
+    NmiTest() {
         if (!testCases.empty())
             return;
 
@@ -151,16 +151,16 @@ protected:
     }
 };
 
-TEST_CASE_METHOD(NMITest, "NMI", "[unit]") {
+TEST_CASE_METHOD(NmiTest, "NMI", "[unit]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
         auto&& [testName, result, expected] = testCase;
 
         SECTION(testName) {
-            std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
+            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
             if (fabs(result - expected) > EPS) {
-                std::cout << "Result=" << result << " | Expected=" << expected << std::endl;
+                NR_COUT << "Result=" << result << " | Expected=" << expected << std::endl;
             }
             REQUIRE(fabs(result - expected) < EPS);
         }
