@@ -499,8 +499,8 @@ int main(int argc, char **argv)
         reg_tools_changeDatatype<float>(image);
         nifti_image *normImage = nifti_dup(*image);
         reg_heapSort(static_cast<float *>(normImage->data), normImage->nvox);
-        float minValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(03*(int)normImage->nvox/100))];
-        float maxValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(97*(int)normImage->nvox/100))];
+        float minValue = static_cast<float *>(normImage->data)[Floor(03*(int)normImage->nvox/100)];
+        float maxValue = static_cast<float *>(normImage->data)[Floor(97*(int)normImage->nvox/100)];
         reg_tools_subtractValueFromImage(image,normImage,minValue);
         reg_tools_divideValueToImage(normImage,normImage,maxValue-minValue);
         if(flag->outputImageFlag)
@@ -957,7 +957,7 @@ int main(int argc, char **argv)
                 for(int y=0; y<image->ny; ++y){
                     for(int x=0; x<image->nx; ++x){
                         size_t outIndex = ((z*image->ny+y)*image->nx+x)*image->nt*image->nu+t;
-                        outPtr[outIndex] = reg_round(*inPtr);
+                        outPtr[outIndex] = Round(*inPtr);
                         ++inPtr;
                     }
                 }
@@ -1000,8 +1000,8 @@ int main(int argc, char **argv)
                     float value = *inPtr * 255.f;
                     size_t outIndex = ((z*image->ny+y)*image->nx+x)*3;
                     if (value > 0)
-                        outPtr[outIndex] = static_cast<unsigned char>(reg_round(value>255?255:value));
-                    else outPtr[outIndex+1] = static_cast<unsigned char>(reg_round(-value<-255?-255:-value));
+                        outPtr[outIndex] = static_cast<unsigned char>(Round(value>255?255:value));
+                    else outPtr[outIndex+1] = static_cast<unsigned char>(Round(-value<-255?-255:-value));
                     outPtr[outIndex+2] = 0;
                     ++inPtr;
                 }
@@ -1133,7 +1133,7 @@ int main(int argc, char **argv)
                                         size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
                                         for(size_t x=vx;x<vx+4;++x){
                                             if(x<(size_t)outputImage->nx){
-                                                variance += reg_pow2(meanValue - inPtr[voxelIndex]);
+                                                variance += Square(meanValue - inPtr[voxelIndex]);
                                             }
                                             voxelIndex++;
                                         } // x

@@ -177,7 +177,7 @@ void reg_initialiseConjugateGradient_gpu(float4 *gradientImageCuda,
                                                           nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
     const unsigned blocks = CudaContext::GetBlockSize()->reg_initialiseConjugateGradient;
-    const unsigned grids = (unsigned)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
 
@@ -219,7 +219,7 @@ void reg_getConjugateGradient_gpu(float4 *gradientImageCuda,
 
     // gam = sum((grad+g)*grad)/sum(HxG);
     unsigned blocks = CudaContext::GetBlockSize()->reg_getConjugateGradient1;
-    unsigned grids = (unsigned)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    unsigned grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
     dim3 blockDims(blocks, 1, 1);
     dim3 gridDims(grids, grids, 1);
 
@@ -232,7 +232,7 @@ void reg_getConjugateGradient_gpu(float4 *gradientImageCuda,
                                              make_double2(0, 0), thrust::plus<double2>(), Float2Sum());
     float gam = static_cast<float>(gg.x / gg.y);
     if (isSymmetric) {
-        grids = (unsigned)reg_ceil(sqrtf((float)nVoxelsBw / (float)blocks));
+        grids = (unsigned)Ceil(sqrtf((float)nVoxelsBw / (float)blocks));
         gridDims = dim3(blocks, 1, 1);
         blockDims = dim3(grids, grids, 1);
         thrust::device_vector<float2> sumsBwCuda(nVoxelsBw + nVoxelsBw % 2);  // Make it even for thrust::inner_product
@@ -246,13 +246,13 @@ void reg_getConjugateGradient_gpu(float4 *gradientImageCuda,
     }
 
     blocks = (unsigned)CudaContext::GetBlockSize()->reg_getConjugateGradient2;
-    grids = (unsigned)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
     gridDims = dim3(blocks, 1, 1);
     blockDims = dim3(grids, grids, 1);
     reg_getConjugateGradient2_kernel<<<blockDims, gridDims>>>(gradientImageCuda, conjugateGCuda, conjugateHCuda, (unsigned)nVoxels, gam);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     if (isSymmetric) {
-        grids = (unsigned)reg_ceil(sqrtf((float)nVoxelsBw / (float)blocks));
+        grids = (unsigned)Ceil(sqrtf((float)nVoxelsBw / (float)blocks));
         gridDims = dim3(blocks, 1, 1);
         blockDims = dim3(grids, grids, 1);
         reg_getConjugateGradient2_kernel<<<blockDims, gridDims>>>(gradientImageBwCuda, conjugateGBwCuda, conjugateHBwCuda, (unsigned)nVoxelsBw, gam);
@@ -274,7 +274,7 @@ void reg_updateControlPointPosition_gpu(const size_t& nVoxels,
                                                           nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
     const unsigned blocks = (unsigned)CudaContext::GetBlockSize()->reg_updateControlPointPosition;
-    const unsigned grids = (unsigned)reg_ceil(sqrtf((float)nVoxels / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
     const dim3 blockDims(blocks, 1, 1);
     const dim3 gridDims(grids, grids, 1);
     reg_updateControlPointPosition_kernel<<<gridDims, blockDims>>>(controlPointImageCuda, *bestControlPointTexture, *gradientImageTexture, (unsigned)nVoxels, scale, optimiseX, optimiseY, optimiseZ);

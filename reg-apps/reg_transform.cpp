@@ -464,7 +464,7 @@ int main(int argc, char **argv)
          }
          else
          {
-            switch(static_cast<int>(reg_round(inputTransformationImage->intent_p1)))
+            switch(Round(inputTransformationImage->intent_p1))
             {
             case DEF_FIELD:
                NR_INFO("The specified transformation is a deformation field:");
@@ -693,7 +693,7 @@ int main(int argc, char **argv)
          {
             reg_affine_getDeformationField(affine1Trans,output1TransImage);
          }
-         else switch(reg_round(input1TransImage->intent_p1))
+         else switch(Round(input1TransImage->intent_p1))
          {
          case LIN_SPLINE_GRID:
          case CUB_SPLINE_GRID:
@@ -763,7 +763,7 @@ int main(int argc, char **argv)
          }
          else
          {
-            switch(reg_round(input2TransImage->intent_p1))
+            switch(Round(input2TransImage->intent_p1))
             {
             case LIN_SPLINE_GRID:
             case CUB_SPLINE_GRID:
@@ -953,7 +953,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         switch(static_cast<int>(reg_round(inputTransformationImage->intent_p1)))
+         switch(Round(inputTransformationImage->intent_p1))
          {
          case DEF_FIELD:
             NR_INFO("The specified transformation is a deformation field:");
@@ -1155,7 +1155,7 @@ int main(int argc, char **argv)
             NR_ERROR("Error when reading the input image: " << param->inputTransName);
             return EXIT_FAILURE;
          }
-         switch(reg_round(inputTransImage->intent_p1))
+         switch(Round(inputTransImage->intent_p1))
          {
          case LIN_SPLINE_GRID:
          case CUB_SPLINE_GRID:
@@ -1290,7 +1290,7 @@ int main(int argc, char **argv)
      outputTransImage->scl_inter = 0.f;
      outputTransImage->data = malloc(outputTransImage->nvox*outputTransImage->nbyper);
       // Invert the provided
-      switch(reg_round(inputTransImage->intent_p1))
+      switch(Round(inputTransImage->intent_p1))
       {
       case DEF_FIELD:
          reg_defFieldInvert(inputTransImage,outputTransImage,1.0e-6f);

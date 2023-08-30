@@ -355,9 +355,9 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
 
    // Compute the block size
    int blockSize[3]={
-      (int)reg_ceil(controlPointGridImage->dx / refImage->dx),
-      (int)reg_ceil(controlPointGridImage->dy / refImage->dy),
-      (int)reg_ceil(controlPointGridImage->dz / refImage->dz),
+      Ceil(controlPointGridImage->dx / refImage->dx),
+      Ceil(controlPointGridImage->dy / refImage->dy),
+      Ceil(controlPointGridImage->dz / refImage->dz),
    };
    int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
    // Allocate some static memory
@@ -378,9 +378,9 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
             gridVox[0] = cpx;
             // Compute the corresponding image voxel position
             reg_mat44_mul(&grid2img_vox, gridVox, imageVox);
-            imageVox[0]=reg_round(imageVox[0]);
-            imageVox[1]=reg_round(imageVox[1]);
-            imageVox[2]=reg_round(imageVox[2]);
+            imageVox[0]=Round(imageVox[0]);
+            imageVox[1]=Round(imageVox[1]);
+            imageVox[2]=Round(imageVox[2]);
             //DEBUG
             //imageVox[0]=gridVox[0]*controlPointGridImage->dx / refImage->dx;
             //imageVox[1]=gridVox[1]*controlPointGridImage->dy / refImage->dy;
@@ -436,9 +436,9 @@ void GetGraph_core3D(nifti_image* controlPointGridImage,
                   //DEBUG
                   // Compute the corresponding image voxel position
                   reg_mat44_mul(&grid2img_vox, gridVox, imageVox);
-                  imageVox[0]=reg_round(imageVox[0]);
-                  imageVox[1]=reg_round(imageVox[1]);
-                  imageVox[2]=reg_round(imageVox[2]);
+                  imageVox[0]=Round(imageVox[0]);
+                  imageVox[1]=Round(imageVox[1]);
+                  imageVox[2]=Round(imageVox[2]);
                   //DEBUG
                   //imageVox[0]=gridVox[0]*controlPointGridImage->dx / refImage->dx;
                   //imageVox[1]=gridVox[1]*controlPointGridImage->dy / refImage->dy;
@@ -624,9 +624,9 @@ void reg_mrf::GetPrimsMST(float *edgeWeightMatrix,
 
    //DEBUG
    //int blockSize[3]={
-   //    (int)reg_ceil(controlPointImage->dx / referenceImage->dx),
-   //    (int)reg_ceil(controlPointImage->dy / referenceImage->dy),
-   //    (int)reg_ceil(controlPointImage->dz / referenceImage->dz),
+   //    Ceil(controlPointImage->dx / referenceImage->dx),
+   //    Ceil(controlPointImage->dy / referenceImage->dy),
+   //    Ceil(controlPointImage->dz / referenceImage->dz),
    //};
    //size_t sz=NiftiImage::calcVoxelNumber(referenceImage, 3);
    //int m=referenceImage->nx;

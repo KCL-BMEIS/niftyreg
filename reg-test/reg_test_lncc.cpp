@@ -207,13 +207,13 @@ protected:
 
         for (int z = -kernel.radius[2]; z <= kernel.radius[2]; z++) {
             const float z_value = static_cast<float>(
-                exp(-(z * z) / (2.0 * reg_pow2(kernelStdVoxel))) / (kernelStdVoxel * 2.506628274631));
+                exp(-(z * z) / (2.0 * Square(kernelStdVoxel))) / (kernelStdVoxel * 2.506628274631));
             for (int y = -kernel.radius[1]; y <= kernel.radius[1]; y++) {
                 const float y_value = static_cast<float>(
-                    exp(-(y * y) / (2.0 * reg_pow2(kernelStdVoxel))) / (kernelStdVoxel * 2.506628274631));
+                    exp(-(y * y) / (2.0 * Square(kernelStdVoxel))) / (kernelStdVoxel * 2.506628274631));
                 for (int x = -kernel.radius[0]; x <= kernel.radius[0]; x++) {
                     const float x_value = static_cast<float>(
-                        exp(-(x * x) / (2.0 * reg_pow2(kernelStdVoxel))) / (kernelStdVoxel * 2.506628274631));
+                        exp(-(x * x) / (2.0 * Square(kernelStdVoxel))) / (kernelStdVoxel * 2.506628274631));
                     *kernelPtr++ = x_value * y_value * z_value;
                 }
             }

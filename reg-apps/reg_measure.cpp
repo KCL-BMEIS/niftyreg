@@ -308,8 +308,8 @@ int main(int argc, char **argv)
       double measure=0.;
       for(size_t i=0; i<refImage->nvox; ++i){
          if(refMask[i]>-1 && refPtr[i]==refPtr[i] && warPtr[i]==warPtr[i]){
-            refSTDValue += reg_pow2((double)refPtr[i] - refMeanValue);
-            warSTDValue += reg_pow2((double)warPtr[i] - warMeanValue);
+            refSTDValue += Square((double)refPtr[i] - refMeanValue);
+            warSTDValue += Square((double)warPtr[i] - warMeanValue);
             measure += ((double)refPtr[i] - refMeanValue) *
                   ((double)warPtr[i] - warMeanValue);
          }

@@ -398,9 +398,9 @@ void ResampleImage3D(const nifti_image *floatingImage,
                 // real -> voxel; floating space
                 reg_mat44_mul(floatingIJKMatrix, world, position);
 
-                previous[0] = static_cast<int>(reg_floor(position[0]));
-                previous[1] = static_cast<int>(reg_floor(position[1]));
-                previous[2] = static_cast<int>(reg_floor(position[2]));
+                previous[0] = Floor(position[0]);
+                previous[1] = Floor(position[1]);
+                previous[2] = Floor(position[2]);
 
                 relative[0] = static_cast<double>(position[0]) - static_cast<double>(previous[0]);
                 relative[1] = static_cast<double>(position[1]) - static_cast<double>(previous[1]);
@@ -469,25 +469,25 @@ void ResampleImage3D(const nifti_image *floatingImage,
             case NIFTI_TYPE_UINT8:
                 if (intensity != intensity)
                     intensity = 0;
-                intensity = (intensity <= 255 ? reg_round(intensity) : 255); // 255=2^8-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                intensity = (intensity <= 255 ? Round(intensity) : 255); // 255=2^8-1
+                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                 break;
             case NIFTI_TYPE_UINT16:
                 if (intensity != intensity)
                     intensity = 0;
-                intensity = (intensity <= 65535 ? reg_round(intensity) : 65535); // 65535=2^16-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                intensity = (intensity <= 65535 ? Round(intensity) : 65535); // 65535=2^16-1
+                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                 break;
             case NIFTI_TYPE_UINT32:
                 if (intensity != intensity)
                     intensity = 0;
-                intensity = (intensity <= 4294967295 ? reg_round(intensity) : 4294967295); // 4294967295=2^32-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                intensity = (intensity <= 4294967295 ? Round(intensity) : 4294967295); // 4294967295=2^32-1
+                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                 break;
             default:
                 if (intensity != intensity)
                     intensity = 0;
-                warpedIntensity[index] = static_cast<FloatingType>(reg_round(intensity));
+                warpedIntensity[index] = static_cast<FloatingType>(Round(intensity));
                 break;
             }
         }
@@ -578,8 +578,8 @@ void ResampleImage2D(const nifti_image *floatingImage,
                 // real -> voxel; floating space
                 reg_mat44_mul(floatingIJKMatrix, world, position);
 
-                previous[0] = static_cast<int>(reg_floor(position[0]));
-                previous[1] = static_cast<int>(reg_floor(position[1]));
+                previous[0] = Floor(position[0]);
+                previous[1] = Floor(position[1]);
 
                 relative[0] = static_cast<double>(position[0]) - static_cast<double>(previous[0]);
                 relative[1] = static_cast<double>(position[1]) - static_cast<double>(previous[1]);
@@ -615,19 +615,19 @@ void ResampleImage2D(const nifti_image *floatingImage,
                     warpedIntensity[index] = static_cast<FloatingType>(intensity);
                     break;
                 case NIFTI_TYPE_UINT8:
-                    intensity = (intensity <= 255 ? reg_round(intensity) : 255); // 255=2^8-1
-                    warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                    intensity = (intensity <= 255 ? Round(intensity) : 255); // 255=2^8-1
+                    warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                     break;
                 case NIFTI_TYPE_UINT16:
-                    intensity = (intensity <= 65535 ? reg_round(intensity) : 65535); // 65535=2^16-1
-                    warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                    intensity = (intensity <= 65535 ? Round(intensity) : 65535); // 65535=2^16-1
+                    warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                     break;
                 case NIFTI_TYPE_UINT32:
-                    intensity = (intensity <= 4294967295 ? reg_round(intensity) : 4294967295); // 4294967295=2^32-1
-                    warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                    intensity = (intensity <= 4294967295 ? Round(intensity) : 4294967295); // 4294967295=2^32-1
+                    warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                     break;
                 default:
-                    warpedIntensity[index] = static_cast<FloatingType>(reg_round(intensity));
+                    warpedIntensity[index] = static_cast<FloatingType>(Round(intensity));
                     break;
                 }
             }
@@ -871,13 +871,13 @@ void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
 
                             // Interpolate (trilinearly) the deformation field for non-integer positions
                             float scalling = 1.0f;
-                            currentAPre = (float)(reg_floor(currentA + (shiftSamp[0] / warpedImage->pixdim[1]) * scalling));
+                            currentAPre = (float)Floor(currentA + (shiftSamp[0] / warpedImage->pixdim[1]) * scalling);
                             currentARel = currentA + (shiftSamp[0] / warpedImage->pixdim[1] * scalling) - (float)(currentAPre);
 
-                            currentBPre = (float)(reg_floor(currentB + (shiftSamp[1] / warpedImage->pixdim[2])));
+                            currentBPre = (float)Floor(currentB + (shiftSamp[1] / warpedImage->pixdim[2]));
                             currentBRel = currentB + (shiftSamp[1] / warpedImage->pixdim[2] * scalling) - (float)(currentBPre);
 
-                            currentCPre = (float)(reg_floor(currentC + (shiftSamp[2] / warpedImage->pixdim[3] * scalling)));
+                            currentCPre = (float)Floor(currentC + (shiftSamp[2] / warpedImage->pixdim[3] * scalling));
                             currentCRel = currentC + (shiftSamp[2] / warpedImage->pixdim[3] * scalling) - (float)(currentCPre);
 
                             // Interpolate the PSF world coordinates
@@ -923,9 +923,9 @@ void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
                                     // real -> voxel; floating space
                                     reg_mat44_mul(floatingIJKMatrix, psfWorld, position);
 
-                                    previous[0] = static_cast<int>(reg_floor(position[0]));
-                                    previous[1] = static_cast<int>(reg_floor(position[1]));
-                                    previous[2] = static_cast<int>(reg_floor(position[2]));
+                                    previous[0] = Floor(position[0]);
+                                    previous[1] = Floor(position[1]);
+                                    previous[2] = Floor(position[2]);
 
                                     relative[0] = position[0] - static_cast<double>(previous[0]);
                                     relative[1] = position[1] - static_cast<double>(previous[1]);
@@ -987,25 +987,25 @@ void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
             case NIFTI_TYPE_UINT8:
                 if (intensity != intensity)
                     intensity = 0;
-                intensity = (intensity <= 255 ? reg_round(intensity) : 255); // 255=2^8-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                intensity = (intensity <= 255 ? Round(intensity) : 255); // 255=2^8-1
+                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                 break;
             case NIFTI_TYPE_UINT16:
                 if (intensity != intensity)
                     intensity = 0;
-                intensity = (intensity <= 65535 ? reg_round(intensity) : 65535); // 65535=2^16-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                intensity = (intensity <= 65535 ? Round(intensity) : 65535); // 65535=2^16-1
+                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                 break;
             case NIFTI_TYPE_UINT32:
                 if (intensity != intensity)
                     intensity = 0;
-                intensity = (intensity <= 4294967295 ? reg_round(intensity) : 4294967295); // 4294967295=2^32-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                intensity = (intensity <= 4294967295 ? Round(intensity) : 4294967295); // 4294967295=2^32-1
+                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                 break;
             default:
                 if (intensity != intensity)
                     intensity = 0;
-                warpedIntensity[index] = static_cast<FloatingType>(reg_round(intensity));
+                warpedIntensity[index] = static_cast<FloatingType>(Round(intensity));
                 break;
             }
         }
@@ -1062,11 +1062,11 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
     }
     for (int j = 0; j < 3; j++) {
         for (int i = 0; i < 3; i++) {
-            T.m[j][j] += reg_pow2(warpedMatrix->m[i][j]);
-            S.m[j][j] += reg_pow2(floatingMatrix->m[i][j]);
+            T.m[j][j] += Square(warpedMatrix->m[i][j]);
+            S.m[j][j] += Square(floatingMatrix->m[i][j]);
         }
-        T.m[j][j] = reg_pow2(sqrtf(T.m[j][j]) / fwhmToStd) / 2.0f;
-        S.m[j][j] = reg_pow2(sqrtf(S.m[j][j]) / fwhmToStd) / 2.0f;
+        T.m[j][j] = Square(sqrtf(T.m[j][j]) / fwhmToStd) / 2.0f;
+        S.m[j][j] = Square(sqrtf(S.m[j][j]) / fwhmToStd) / 2.0f;
     }
 
     // Define the kernel to use
@@ -1274,13 +1274,13 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
 
                                 if (psfWeight != 0.f) { // If the relative weight is above 0
                                     // Interpolate (trilinearly) the deformation field for non-integer positions
-                                    currentAPre = (size_t)(currentA + (size_t)reg_floor(psf_xyz[0] / (float)warpedImage->pixdim[1]));
+                                    currentAPre = (size_t)(currentA + (size_t)Floor(psf_xyz[0] / (float)warpedImage->pixdim[1]));
                                     currentARel = (float)currentA + (float)(psf_xyz[0] / (float)warpedImage->pixdim[1]) - (float)(currentAPre);
 
-                                    currentBPre = (size_t)(currentB + (size_t)reg_floor(psf_xyz[1] / (float)warpedImage->pixdim[2]));
+                                    currentBPre = (size_t)(currentB + (size_t)Floor(psf_xyz[1] / (float)warpedImage->pixdim[2]));
                                     currentBRel = (float)currentB + (float)(psf_xyz[1] / (float)warpedImage->pixdim[2]) - (float)(currentBPre);
 
-                                    currentCPre = (size_t)(currentC + (size_t)reg_floor(psf_xyz[2] / (float)warpedImage->pixdim[3]));
+                                    currentCPre = (size_t)(currentC + (size_t)Floor(psf_xyz[2] / (float)warpedImage->pixdim[3]));
                                     currentCRel = (float)currentC + (float)(psf_xyz[2] / (float)warpedImage->pixdim[3]) - (float)(currentCPre);
 
                                     // Interpolate the PSF world coordinates
@@ -1325,9 +1325,9 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
                                         // real -> voxel; floating space
                                         reg_mat44_mul(floatingIJKMatrix, psfWorld, position);
 
-                                        previous[0] = static_cast<int>(reg_floor(position[0]));
-                                        previous[1] = static_cast<int>(reg_floor(position[1]));
-                                        previous[2] = static_cast<int>(reg_floor(position[2]));
+                                        previous[0] = Floor(position[0]);
+                                        previous[1] = Floor(position[1]);
+                                        previous[2] = Floor(position[2]);
 
                                         relative[0] = position[0] - static_cast<double>(previous[0]);
                                         relative[1] = position[1] - static_cast<double>(previous[1]);
@@ -1391,37 +1391,37 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
             case NIFTI_TYPE_UINT8:
                 if (intensity != intensity)
                     intensity = 0;
-                intensity = (intensity <= 255 ? reg_round(intensity) : 255); // 255=2^8-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                intensity = (intensity <= 255 ? Round(intensity) : 255); // 255=2^8-1
+                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                 break;
             case NIFTI_TYPE_UINT16:
                 if (intensity != intensity)
                     intensity = 0;
-                intensity = (intensity <= 65535 ? reg_round(intensity) : 65535); // 65535=2^16-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                intensity = (intensity <= 65535 ? Round(intensity) : 65535); // 65535=2^16-1
+                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                 break;
             case NIFTI_TYPE_UINT32:
                 if (intensity != intensity)
                     intensity = 0;
-                intensity = (intensity <= 4294967295 ? reg_round(intensity) : 4294967295); // 4294967295=2^32-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? reg_round(intensity) : 0);
+                intensity = (intensity <= 4294967295 ? Round(intensity) : 4294967295); // 4294967295=2^32-1
+                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
                 break;
             case NIFTI_TYPE_INT16:
                 if (intensity != intensity)
                     intensity = 0;
-                intensity = (intensity <= 32767 ? reg_round(intensity) : 32767); // 32767=2^15-1
+                intensity = (intensity <= 32767 ? Round(intensity) : 32767); // 32767=2^15-1
                 warpedIntensity[index] = static_cast<FloatingType>(intensity);
                 break;
             case NIFTI_TYPE_INT32:
                 if (intensity != intensity)
                     intensity = 0;
-                intensity = (intensity <= 2147483647 ? reg_round(intensity) : 2147483647); // 2147483647=2^31-1
+                intensity = (intensity <= 2147483647 ? Round(intensity) : 2147483647); // 2147483647=2^31-1
                 warpedIntensity[index] = static_cast<FloatingType>(intensity);
                 break;
             default:
                 if (intensity != intensity)
                     intensity = 0;
-                warpedIntensity[index] = static_cast<FloatingType>(reg_round(intensity));
+                warpedIntensity[index] = static_cast<FloatingType>(Round(intensity));
                 break;
             }
         }
@@ -1577,10 +1577,10 @@ void reg_bilinearResampleGradient(const nifti_image *floatingImage,
                 floating_mm_to_voxel->m[1][3];
 
             // Extract the floating value using bilinear interpolation
-            anteIntX[0] = static_cast<int>(reg_floor(xFloCoord));
-            anteIntX[1] = static_cast<int>(reg_ceil(xFloCoord));
-            anteIntY[0] = static_cast<int>(reg_floor(yFloCoord));
-            anteIntY[1] = static_cast<int>(reg_ceil(yFloCoord));
+            anteIntX[0] = Floor(xFloCoord);
+            anteIntX[1] = Ceil(xFloCoord);
+            anteIntY[0] = Floor(yFloCoord);
+            anteIntY[1] = Ceil(yFloCoord);
             val_x = 0;
             val_y = 0;
             basisX[1] = fabs(xFloCoord - (DataType)anteIntX[0]);
@@ -1757,12 +1757,12 @@ void reg_trilinearResampleGradient(const nifti_image *floatingImage,
                     floating_mm_to_voxel->m[2][3];
 
                 // Extract the floating value using bilinear interpolation
-                anteIntX[0] = static_cast<int>(reg_floor(xFloCoord));
-                anteIntX[1] = static_cast<int>(reg_ceil(xFloCoord));
-                anteIntY[0] = static_cast<int>(reg_floor(yFloCoord));
-                anteIntY[1] = static_cast<int>(reg_ceil(yFloCoord));
-                anteIntZ[0] = static_cast<int>(reg_floor(zFloCoord));
-                anteIntZ[1] = static_cast<int>(reg_ceil(zFloCoord));
+                anteIntX[0] = Floor(xFloCoord);
+                anteIntX[1] = Ceil(xFloCoord);
+                anteIntY[0] = Floor(yFloCoord);
+                anteIntY[1] = Ceil(yFloCoord);
+                anteIntZ[0] = Floor(zFloCoord);
+                anteIntZ[1] = Ceil(zFloCoord);
                 val_x = 0;
                 val_y = 0;
                 val_z = 0;
@@ -1983,9 +1983,9 @@ void TrilinearImageGradient(const nifti_image *floatingImage,
             /* real -> voxel; floating space */
             reg_mat44_mul(floatingIJKMatrix, world, position);
 
-            previous[0] = static_cast<int>(reg_floor(position[0]));
-            previous[1] = static_cast<int>(reg_floor(position[1]));
-            previous[2] = static_cast<int>(reg_floor(position[2]));
+            previous[0] = Floor(position[0]);
+            previous[1] = Floor(position[1]);
+            previous[2] = Floor(position[2]);
             // basis values along the x axis
             relative = position[0] - (FieldType)previous[0];
             xBasis[0] = (FieldType)(1.0 - relative);
@@ -2150,8 +2150,8 @@ void BilinearImageGradient(const nifti_image *floatingImage,
             position[0] = world[0] * floatingIJKMatrix->m[0][0] + world[1] * floatingIJKMatrix->m[0][1] + floatingIJKMatrix->m[0][3];
             position[1] = world[0] * floatingIJKMatrix->m[1][0] + world[1] * floatingIJKMatrix->m[1][1] + floatingIJKMatrix->m[1][3];
 
-            previous[0] = static_cast<int>(reg_floor(position[0]));
-            previous[1] = static_cast<int>(reg_floor(position[1]));
+            previous[0] = Floor(position[0]);
+            previous[1] = Floor(position[1]);
             // basis values along the x axis
             relative = position[0] - (FieldType)previous[0];
             relative = relative > 0 ? relative : 0;
@@ -2260,9 +2260,9 @@ void CubicSplineImageGradient3D(const nifti_image *floatingImage,
             /* real -> voxel; floating space */
             reg_mat44_mul(floatingIJKMatrix, world, position);
 
-            previous[0] = static_cast<int>(reg_floor(position[0]));
-            previous[1] = static_cast<int>(reg_floor(position[1]));
-            previous[2] = static_cast<int>(reg_floor(position[2]));
+            previous[0] = Floor(position[0]);
+            previous[1] = Floor(position[1]);
+            previous[2] = Floor(position[2]);
 
             // basis values along the x axis
             relative = position[0] - (FieldType)previous[0];
@@ -2397,8 +2397,8 @@ void CubicSplineImageGradient2D(const nifti_image *floatingImage,
             position[0] = world[0] * floatingIJKMatrix->m[0][0] + world[1] * floatingIJKMatrix->m[0][1] + floatingIJKMatrix->m[0][3];
             position[1] = world[0] * floatingIJKMatrix->m[1][0] + world[1] * floatingIJKMatrix->m[1][1] + floatingIJKMatrix->m[1][3];
 
-            previous[0] = static_cast<int>(reg_floor(position[0]));
-            previous[1] = static_cast<int>(reg_floor(position[1]));
+            previous[0] = Floor(position[0]);
+            previous[1] = Floor(position[1]);
             // basis values along the x axis
             relative = position[0] - (FieldType)previous[0];
             relative = relative > 0 ? relative : 0;

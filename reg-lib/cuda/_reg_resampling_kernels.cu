@@ -42,7 +42,7 @@ __global__ void reg_resampleImage2D_kernel(float *resultArray,
                               floatingMatrix.m[1][3]);
 
         // Compute the linear interpolation
-        const int2 previous = { reg_floor(voxelDeformation.x), reg_floor(voxelDeformation.y) };
+        const int2 previous = { Floor(voxelDeformation.x), Floor(voxelDeformation.y) };
         const float2 relative = { voxelDeformation.x - previous.x, voxelDeformation.y - previous.y };
         float xBasis[2], yBasis[2];
         InterpLinearKernel(relative.x, xBasis);
@@ -99,7 +99,7 @@ __global__ void reg_resampleImage3D_kernel(float *resultArray,
                               floatingMatrix.m[2][3]);
 
         // Compute the linear interpolation
-        const int3 previous = { reg_floor(voxelDeformation.x), reg_floor(voxelDeformation.y), reg_floor(voxelDeformation.z) };
+        const int3 previous = { Floor(voxelDeformation.x), Floor(voxelDeformation.y), Floor(voxelDeformation.z) };
         const float3 relative = { voxelDeformation.x - previous.x, voxelDeformation.y - previous.y, voxelDeformation.z - previous.z };
         float xBasis[2], yBasis[2], zBasis[2];
         InterpLinearKernel(relative.x, xBasis);
@@ -153,7 +153,7 @@ __global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
                               floatingMatrix.m[1][3]);
 
         // Compute the gradient
-        const int2 previous = { reg_floor(voxelDeformation.x), reg_floor(voxelDeformation.y) };
+        const int2 previous = { Floor(voxelDeformation.x), Floor(voxelDeformation.y) };
         float xBasis[2], yBasis[2];
         const float2 relative = { voxelDeformation.x - previous.x, voxelDeformation.y - previous.y };
         InterpLinearKernel(relative.x, xBasis);
@@ -210,7 +210,7 @@ __global__ void reg_getImageGradient3D_kernel(float4 *gradientArray,
                               floatingMatrix.m[2][3]);
 
         // Compute the gradient
-        const int3 previous = { reg_floor(voxelDeformation.x), reg_floor(voxelDeformation.y), reg_floor(voxelDeformation.z) };
+        const int3 previous = { Floor(voxelDeformation.x), Floor(voxelDeformation.y), Floor(voxelDeformation.z) };
         float xBasis[2], yBasis[2], zBasis[2];
         const float3 relative = { voxelDeformation.x - previous.x, voxelDeformation.y - previous.y, voxelDeformation.z - previous.z };
         InterpLinearKernel(relative.x, xBasis);

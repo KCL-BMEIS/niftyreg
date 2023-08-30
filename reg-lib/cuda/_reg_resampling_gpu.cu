@@ -38,7 +38,7 @@ void reg_resampleImage_gpu(const nifti_image *floatingImage,
 
     if (floatingImage->nz > 1) {
         const unsigned blocks = blockSize->reg_resampleImage3D;
-        const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_resampleImage3D_kernel<<<gridDims, blockDims>>>(warpedImageCuda, *floatingTexture, *deformationFieldTexture, *maskTexture,
@@ -46,7 +46,7 @@ void reg_resampleImage_gpu(const nifti_image *floatingImage,
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = blockSize->reg_resampleImage2D;
-        const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_resampleImage2D_kernel<<<gridDims, blockDims>>>(warpedImageCuda, *floatingTexture, *deformationFieldTexture, *maskTexture,
@@ -75,7 +75,7 @@ void reg_getImageGradient_gpu(const nifti_image *floatingImage,
 
     if (floatingImage->nz > 1) {
         const unsigned blocks = blockSize->reg_getImageGradient3D;
-        const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_getImageGradient3D_kernel<<<gridDims, blockDims>>>(warpedGradientCuda, *floatingTexture, *deformationFieldTexture,
@@ -83,7 +83,7 @@ void reg_getImageGradient_gpu(const nifti_image *floatingImage,
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = blockSize->reg_getImageGradient2D;
-        const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_getImageGradient2D_kernel<<<gridDims, blockDims>>>(warpedGradientCuda, *floatingTexture, *deformationFieldTexture,

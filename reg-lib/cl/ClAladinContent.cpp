@@ -242,22 +242,22 @@ DataType ClAladinContent::FillWarpedImageData(float intensity, int datatype) {
     case NIFTI_TYPE_UINT8:
         if (intensity != intensity)
             intensity = 0;
-        intensity = (intensity <= 255 ? reg_round(intensity) : 255); // 255=2^8-1
-        return static_cast<unsigned char>(intensity > 0 ? reg_round(intensity) : 0);
+        intensity = (intensity <= 255 ? Round(intensity) : 255); // 255=2^8-1
+        return static_cast<unsigned char>(intensity > 0 ? Round(intensity) : 0);
     case NIFTI_TYPE_UINT16:
         if (intensity != intensity)
             intensity = 0;
-        intensity = (intensity <= 65535 ? reg_round(intensity) : 65535); // 65535=2^16-1
-        return static_cast<unsigned short>(intensity > 0 ? reg_round(intensity) : 0);
+        intensity = (intensity <= 65535 ? Round(intensity) : 65535); // 65535=2^16-1
+        return static_cast<unsigned short>(intensity > 0 ? Round(intensity) : 0);
     case NIFTI_TYPE_UINT32:
         if (intensity != intensity)
             intensity = 0;
-        intensity = (intensity <= 4294967295 ? reg_round(intensity) : 4294967295); // 4294967295=2^32-1
-        return static_cast<unsigned>(intensity > 0 ? reg_round(intensity) : 0);
+        intensity = (intensity <= 4294967295 ? Round(intensity) : 4294967295); // 4294967295=2^32-1
+        return static_cast<unsigned>(intensity > 0 ? Round(intensity) : 0);
     default:
         if (intensity != intensity)
             intensity = 0;
-        return static_cast<DataType>(reg_round(intensity));
+        return static_cast<DataType>(Round(intensity));
     }
 }
 /* *************************************************************** */

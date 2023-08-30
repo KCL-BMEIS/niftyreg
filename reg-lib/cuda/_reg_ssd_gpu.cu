@@ -79,7 +79,7 @@ double reg_getSsdValue_gpu(const nifti_image *referenceImage,
 
     // Compute the absolute values
     const unsigned blocks = CudaContext::GetBlockSize()->GetSsdValue;
-    const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     Cuda::GetSsdValueKernel<<<gridDims, blockDims>>>(ssdSum.data().get(), ssdCount.data().get(), *referenceTexture,
@@ -152,7 +152,7 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
     const float adjustedWeight = timepointWeight / static_cast<float>(validVoxelNumber);
 
     const unsigned blocks = CudaContext::GetBlockSize()->GetSsdGradient;
-    const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     Cuda::GetSsdGradientKernel<<<gridDims, blockDims>>>(ssdGradientCuda, *referenceTexture, *warpedTexture, *maskTexture,

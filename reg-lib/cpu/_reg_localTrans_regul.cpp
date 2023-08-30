@@ -549,7 +549,7 @@ double reg_spline_approxLinearEnergyValue2D(const nifti_image *splineControlPoin
             currentValue = 0;
             for (b = 0; b < 2; b++) {
                 for (a = 0; a < 2; a++) {
-                    currentValue += reg_pow2(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
+                    currentValue += Square(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
                 }
             }
             constraintValue += currentValue;
@@ -638,7 +638,7 @@ double reg_spline_approxLinearEnergyValue3D(const nifti_image *splineControlPoin
                 currentValue = 0;
                 for (b = 0; b < 3; b++) {
                     for (a = 0; a < 3; a++) {
-                        currentValue += reg_pow2(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
+                        currentValue += Square(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
                     }
                 }
                 constraintValue += currentValue;
@@ -746,7 +746,7 @@ double reg_spline_linearEnergyValue2D(const nifti_image *referenceImage,
             currentValue = 0;
             for (b = 0; b < 2; b++) {
                 for (a = 0; a < 2; a++) {
-                    currentValue += reg_pow2(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
+                    currentValue += Square(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
                 }
             }
             constraintValue += currentValue;
@@ -846,7 +846,7 @@ double reg_spline_linearEnergyValue3D(const nifti_image *referenceImage,
                 currentValue = 0;
                 for (b = 0; b < 3; b++) {
                     for (a = 0; a < 3; a++) {
-                        currentValue += reg_pow2(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
+                        currentValue += Square(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
                     }
                 }
                 constraintValue += currentValue;
@@ -1409,7 +1409,7 @@ double reg_defField_linearEnergyValue2D(const nifti_image *deformationField) {
             currentValue = 0;
             for (b = 0; b < 2; b++) {
                 for (a = 0; a < 2; a++) {
-                    currentValue += reg_pow2(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
+                    currentValue += Square(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
                 }
             }
             constraintValue += currentValue;
@@ -1486,7 +1486,7 @@ double reg_defField_linearEnergyValue3D(const nifti_image *deformationField) {
                 currentValue = 0;
                 for (b = 0; b < 3; b++) {
                     for (a = 0; a < 3; a++) {
-                        currentValue += reg_pow2(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
+                        currentValue += Square(0.5 * (matrix.m[a][b] + matrix.m[b][a])); // symmetric part
                     }
                 }
                 constraintValue += currentValue;
@@ -1754,9 +1754,9 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
         reg_mat44_mul(gridRealToVox, ref_position, def_position);
 
         // Extract the corresponding nodes
-        previous[0] = static_cast<int>(reg_floor(def_position[0])) - 1;
-        previous[1] = static_cast<int>(reg_floor(def_position[1])) - 1;
-        previous[2] = static_cast<int>(reg_floor(def_position[2])) - 1;
+        previous[0] = Floor(def_position[0]) - 1;
+        previous[1] = Floor(def_position[1]) - 1;
+        previous[2] = Floor(def_position[2]) - 1;
         // Check that the specified landmark belongs to the input image
         if (previous[0] > -1 && previous[0] + 3 < controlPointImage->nx &&
             previous[1] > -1 && previous[1] + 3 < controlPointImage->ny &&
@@ -1791,10 +1791,10 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
                     }
                 }
             }
-            constraintValue += reg_pow2(flo_position[0] - def_position[0]);
-            constraintValue += reg_pow2(flo_position[1] - def_position[1]);
+            constraintValue += Square(flo_position[0] - def_position[0]);
+            constraintValue += Square(flo_position[1] - def_position[1]);
             if (imageDim > 2)
-                constraintValue += reg_pow2(flo_position[2] - def_position[2]);
+                constraintValue += Square(flo_position[2] - def_position[2]);
         } else {
             NR_WARN("The current landmark at position " << ref_position[0] << " " <<
                     ref_position[1] << (imageDim > 2 ? " "s + std::to_string(ref_position[2]) : "") <<
@@ -1867,9 +1867,9 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
         reg_mat44_mul(gridRealToVox, ref_position, def_position);
         if (imageDim == 2) def_position[2] = 0;
         // Extract the corresponding nodes
-        previous[0] = static_cast<int>(reg_floor(def_position[0])) - 1;
-        previous[1] = static_cast<int>(reg_floor(def_position[1])) - 1;
-        previous[2] = static_cast<int>(reg_floor(def_position[2])) - 1;
+        previous[0] = Floor(def_position[0]) - 1;
+        previous[1] = Floor(def_position[1]) - 1;
+        previous[2] = Floor(def_position[2]) - 1;
         // Check that the specified landmark belongs to the input image
         if (previous[0] > -1 && previous[0] + 3 < controlPointImage->nx &&
             previous[1] > -1 && previous[1] + 3 < controlPointImage->ny &&
@@ -1994,45 +1994,45 @@ double reg_spline_approxLinearPairwise3D(nifti_image *splineControlPoint) {
                     neigbCP[0] = splinePtrX[index - 1];
                     neigbCP[1] = splinePtrY[index - 1];
                     neigbCP[2] = splinePtrZ[index - 1];
-                    constraintValue += (reg_pow2(centralCP[0] - neigbCP[0]) + reg_pow2(centralCP[1] - neigbCP[1]) +
-                                        reg_pow2(centralCP[2] - neigbCP[2])) / splineControlPoint->dx;
+                    constraintValue += (Square(centralCP[0] - neigbCP[0]) + Square(centralCP[1] - neigbCP[1]) +
+                                        Square(centralCP[2] - neigbCP[2])) / splineControlPoint->dx;
                 }
                 if (x < splineControlPoint->nx - 1) {
                     neigbCP[0] = splinePtrX[index + 1];
                     neigbCP[1] = splinePtrY[index + 1];
                     neigbCP[2] = splinePtrZ[index + 1];
-                    constraintValue += (reg_pow2(centralCP[0] - neigbCP[0]) + reg_pow2(centralCP[1] - neigbCP[1]) +
-                                        reg_pow2(centralCP[2] - neigbCP[2])) / splineControlPoint->dx;
+                    constraintValue += (Square(centralCP[0] - neigbCP[0]) + Square(centralCP[1] - neigbCP[1]) +
+                                        Square(centralCP[2] - neigbCP[2])) / splineControlPoint->dx;
                 }
 
                 if (y > 0) {
                     neigbCP[0] = splinePtrX[index - splineControlPoint->nx];
                     neigbCP[1] = splinePtrY[index - splineControlPoint->nx];
                     neigbCP[2] = splinePtrZ[index - splineControlPoint->nx];
-                    constraintValue += (reg_pow2(centralCP[0] - neigbCP[0]) + reg_pow2(centralCP[1] - neigbCP[1]) +
-                                        reg_pow2(centralCP[2] - neigbCP[2])) / splineControlPoint->dy;
+                    constraintValue += (Square(centralCP[0] - neigbCP[0]) + Square(centralCP[1] - neigbCP[1]) +
+                                        Square(centralCP[2] - neigbCP[2])) / splineControlPoint->dy;
                 }
                 if (y < splineControlPoint->ny - 1) {
                     neigbCP[0] = splinePtrX[index + splineControlPoint->nx];
                     neigbCP[1] = splinePtrY[index + splineControlPoint->nx];
                     neigbCP[2] = splinePtrZ[index + splineControlPoint->nx];
-                    constraintValue += (reg_pow2(centralCP[0] - neigbCP[0]) + reg_pow2(centralCP[1] - neigbCP[1]) +
-                                        reg_pow2(centralCP[2] - neigbCP[2])) / splineControlPoint->dy;
+                    constraintValue += (Square(centralCP[0] - neigbCP[0]) + Square(centralCP[1] - neigbCP[1]) +
+                                        Square(centralCP[2] - neigbCP[2])) / splineControlPoint->dy;
                 }
 
                 if (z > 0) {
                     neigbCP[0] = splinePtrX[index - splineControlPoint->nx * splineControlPoint->ny];
                     neigbCP[1] = splinePtrY[index - splineControlPoint->nx * splineControlPoint->ny];
                     neigbCP[2] = splinePtrZ[index - splineControlPoint->nx * splineControlPoint->ny];
-                    constraintValue += (reg_pow2(centralCP[0] - neigbCP[0]) + reg_pow2(centralCP[1] - neigbCP[1]) +
-                                        reg_pow2(centralCP[2] - neigbCP[2])) / splineControlPoint->dz;
+                    constraintValue += (Square(centralCP[0] - neigbCP[0]) + Square(centralCP[1] - neigbCP[1]) +
+                                        Square(centralCP[2] - neigbCP[2])) / splineControlPoint->dz;
                 }
                 if (z < splineControlPoint->nz - 1) {
                     neigbCP[0] = splinePtrX[index + splineControlPoint->nx * splineControlPoint->ny];
                     neigbCP[1] = splinePtrY[index + splineControlPoint->nx * splineControlPoint->ny];
                     neigbCP[2] = splinePtrZ[index + splineControlPoint->nx * splineControlPoint->ny];
-                    constraintValue += (reg_pow2(centralCP[0] - neigbCP[0]) + reg_pow2(centralCP[1] - neigbCP[1]) +
-                                        reg_pow2(centralCP[2] - neigbCP[2])) / splineControlPoint->dz;
+                    constraintValue += (Square(centralCP[0] - neigbCP[0]) + Square(centralCP[1] - neigbCP[1]) +
+                                        Square(centralCP[2] - neigbCP[2])) / splineControlPoint->dz;
                 }
                 index++;
             } // x

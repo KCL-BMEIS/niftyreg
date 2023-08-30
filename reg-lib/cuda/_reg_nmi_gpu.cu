@@ -147,7 +147,7 @@ void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
 
     if (referenceImage->nz > 1) {
         const unsigned blocks = blockSize->reg_getVoxelBasedNMIGradientUsingPW3D;
-        const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_getVoxelBasedNMIGradientUsingPW3D_kernel<<<gridDims, blockDims>>>(voxelBasedGradientCuda, *referenceImageTexture, *warpedImageTexture,
@@ -157,7 +157,7 @@ void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = blockSize->reg_getVoxelBasedNMIGradientUsingPW2D;
-        const unsigned grids = (unsigned)ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_getVoxelBasedNMIGradientUsingPW2D_kernel<<<gridDims, blockDims>>>(voxelBasedGradientCuda, *referenceImageTexture, *warpedImageTexture,

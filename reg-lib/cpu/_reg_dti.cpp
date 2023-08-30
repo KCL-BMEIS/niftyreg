@@ -113,8 +113,8 @@ double reg_getDtiMeasureValue(const nifti_image *referenceImage,
                 const DataType rXZ = referenceIntensityXZ[voxel] - warpedIntensityXZ[voxel];
                 const DataType rYZ = referenceIntensityYZ[voxel] - warpedIntensityYZ[voxel];
                 const DataType rZZ = referenceIntensityZZ[voxel] - warpedIntensityZZ[voxel];
-                dtiCost -= twoThirds * (reg_pow2(rXX) + reg_pow2(rYY) + reg_pow2(rZZ))
-                    + 2.0 * (reg_pow2(rXY) + reg_pow2(rXZ) + reg_pow2(rYZ))
+                dtiCost -= twoThirds * (Square(rXX) + Square(rYY) + Square(rZZ))
+                    + 2.0 * (Square(rXY) + Square(rXZ) + Square(rYZ))
                     - twoThirds * (rXX * rYY + rXX * rZZ + rYY * rZZ);
                 n++;
             } // check if values are defined

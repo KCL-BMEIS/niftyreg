@@ -352,9 +352,9 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
 
     // Compute the block size
     int blockSize[3] = {
-        (int)reg_ceil(controlPointGridImage->dx / refImage->dx),
-        (int)reg_ceil(controlPointGridImage->dy / refImage->dy),
-        (int)reg_ceil(controlPointGridImage->dz / refImage->dz),
+        Ceil(controlPointGridImage->dx / refImage->dx),
+        Ceil(controlPointGridImage->dy / refImage->dy),
+        Ceil(controlPointGridImage->dz / refImage->dz),
     };
     int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
     int currentControlPoint = 0;
@@ -413,9 +413,9 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                 gridVox[0] = cpx;
                 // Compute the corresponding image voxel position
                 reg_mat44_mul(&grid2img_vox, gridVox, imageVox);
-                imageVox[0] = reg_round(imageVox[0]);
-                imageVox[1] = reg_round(imageVox[1]);
-                imageVox[2] = reg_round(imageVox[2]);
+                imageVox[0] = Round(imageVox[0]);
+                imageVox[1] = Round(imageVox[1]);
+                imageVox[2] = Round(imageVox[2]);
 
                 // Extract the block in the reference image
                 blockIndex = 0;
@@ -487,7 +487,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
 #ifdef MRF_USE_SAD
                                                 currentValue = fabs(warpedValue - refBlockValue[blockIndex]);
 #else
-                                                currentValue = reg_pow2(warpedValue - refBlockValue[blockIndex]);
+                                                currentValue = Square(warpedValue - refBlockValue[blockIndex]);
 #endif
                                                 if (currentValue == currentValue) {
                                                     currentSum -= currentValue;
@@ -546,7 +546,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                                         // Check if the value is defined
                                         if (discretisedValuePtr[label2] == discretisedValuePtr[label2]) {
                                             // compute the distance between label and label2
-                                            current_distance = reg_pow2(label_x - label2_x) + reg_pow2(label_y - label2_y) + reg_pow2(label_z - label2_z);
+                                            current_distance = Square(label_x - label2_x) + Square(label_y - label2_y) + Square(label_z - label2_z);
                                             if (current_distance < min_distance) {
                                                 min_distance = current_distance;
                                                 discretisedValuePtr[label] = discretisedValuePtr[label2];
@@ -594,9 +594,9 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
 
     // Compute the block size
     const int blockSize[3] = {
-        (int)reg_ceil(controlPointGridImage->dx / refImage->dx),
-        (int)reg_ceil(controlPointGridImage->dy / refImage->dy),
-        (int)reg_ceil(controlPointGridImage->dz / refImage->dz),
+        Ceil(controlPointGridImage->dx / refImage->dx),
+        Ceil(controlPointGridImage->dy / refImage->dy),
+        Ceil(controlPointGridImage->dz / refImage->dz),
     };
     int voxelBlockNumber = blockSize[0] * blockSize[1] * blockSize[2];
     int voxelBlockNumber_t = blockSize[0] * blockSize[1] * blockSize[2] * refImage->nt;
@@ -646,9 +646,9 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
 
                 // Compute the corresponding image voxel position
                 reg_mat44_mul(&grid2img_vox, gridVox, imageVox);
-                imageVox[0] = static_cast<float>(reg_round(imageVox[0]));
-                imageVox[1] = static_cast<float>(reg_round(imageVox[1]));
-                imageVox[2] = static_cast<float>(reg_round(imageVox[2]));
+                imageVox[0] = static_cast<float>(Round(imageVox[0]));
+                imageVox[1] = static_cast<float>(Round(imageVox[1]));
+                imageVox[2] = static_cast<float>(Round(imageVox[2]));
 
                 //INIT
                 for (idBlock = 0; idBlock < voxelBlockNumber_t; idBlock++) {
@@ -702,13 +702,13 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
 #ifdef MRF_USE_SAD
                                                         currentValue = fabs(warImgPtr[voxIndex_t] - refBlockValue[tid][blockIndex_t]);
 #else
-                                                        currentValue = static_cast<float>(reg_pow2(warImgPtr[voxIndex_t] - refBlockValue[tid][blockIndex_t]));
+                                                        currentValue = static_cast<float>(Square(warImgPtr[voxIndex_t] - refBlockValue[tid][blockIndex_t]));
 #endif
                                                     } else {
 #ifdef MRF_USE_SAD
                                                         currentValue = fabs(0 - refBlockValue[tid][blockIndex_t]);
 #else
-                                                        currentValue = reg_pow2(0 - refBlockValue[tid][blockIndex_t]);
+                                                        currentValue = Square(0 - refBlockValue[tid][blockIndex_t]);
 #endif
                                                     }
 
@@ -724,7 +724,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
 #ifdef MRF_USE_SAD
                                                     currentValue = fabs(0 - refBlockValue[tid][blockIndex_t]);
 #else
-                                                    currentValue = reg_pow2(0 - refBlockValue[tid][blockIndex_t]);
+                                                    currentValue = Square(0 - refBlockValue[tid][blockIndex_t]);
 #endif
                                                     if (currentValue == currentValue) {
                                                         currentSum -= currentValue;
@@ -785,7 +785,7 @@ void GetDiscretisedValueSSD_core3D_2(nifti_image *controlPointGridImage,
                                         // Check if the value is defined
                                         if (discretisedValuePtr[label2] == discretisedValuePtr[label2]) {
                                             // compute the distance between label and label2
-                                            current_distance = static_cast<float>(reg_pow2(label_x - label2_x) + reg_pow2(label_y - label2_y) + reg_pow2(label_z - label2_z));
+                                            current_distance = static_cast<float>(Square(label_x - label2_x) + Square(label_y - label2_y) + Square(label_z - label2_z));
                                             if (current_distance < min_distance) {
                                                 min_distance = current_distance;
                                                 discretisedValuePtr[label] = discretisedValuePtr[label2];

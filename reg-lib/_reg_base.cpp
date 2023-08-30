@@ -398,9 +398,9 @@ void reg_base<T>::Initialise() {
         reg_heapSort(refDataPtr, tmpReference->nvox);
         // Update the reference threshold values if no value has been setup by the user
         if (referenceThresholdLow[0] == std::numeric_limits<T>::lowest())
-            referenceThresholdLow[0] = refDataPtr[(int)reg_round((float)tmpReference->nvox * 0.02f)];
+            referenceThresholdLow[0] = refDataPtr[Round((float)tmpReference->nvox * 0.02f)];
         if (referenceThresholdUp[0] == std::numeric_limits<T>::max())
-            referenceThresholdUp[0] = refDataPtr[(int)reg_round((float)tmpReference->nvox * 0.98f)];
+            referenceThresholdUp[0] = refDataPtr[Round((float)tmpReference->nvox * 0.98f)];
 
         // Create a copy of the floating image to extract the robust range
         NiftiImage tmpFloating = inputFloating;
@@ -410,9 +410,9 @@ void reg_base<T>::Initialise() {
         reg_heapSort(floDataPtr, tmpFloating->nvox);
         // Update the floating threshold values if no value has been setup by the user
         if (floatingThresholdLow[0] == std::numeric_limits<T>::lowest())
-            floatingThresholdLow[0] = floDataPtr[(int)reg_round((float)tmpFloating->nvox * 0.02f)];
+            floatingThresholdLow[0] = floDataPtr[Round((float)tmpFloating->nvox * 0.02f)];
         if (floatingThresholdUp[0] == std::numeric_limits<T>::max())
-            floatingThresholdUp[0] = floDataPtr[(int)reg_round((float)tmpFloating->nvox * 0.98f)];
+            floatingThresholdUp[0] = floDataPtr[Round((float)tmpFloating->nvox * 0.98f)];
     }
 
     // FINEST LEVEL OF REGISTRATION

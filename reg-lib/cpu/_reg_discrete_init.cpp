@@ -329,24 +329,24 @@ void reg_discrete_init::GetRegularisedMeasure()
                this->regularised_measures[measure_index] =
                      (1.f-this->regularisation_weight-this->l2_weight) * this->discretised_measures[measure_index] -
                      this->regularisation_weight * (
-                     reg_pow2(XX_x + valX * _basisXX) +
-                     reg_pow2(XX_y + valY * _basisXX) +
-                     reg_pow2(XX_z + valZ * _basisXX) +
-                     reg_pow2(YY_x + valX * _basisYY) +
-                     reg_pow2(YY_y + valY * _basisYY) +
-                     reg_pow2(YY_z + valZ * _basisYY) +
-                     reg_pow2(ZZ_x + valX * _basisZZ) +
-                     reg_pow2(ZZ_y + valY * _basisZZ) +
-                     reg_pow2(ZZ_z + valZ * _basisZZ) + 2.0 * (
-                     reg_pow2(XY_x + valX * _basisXY) +
-                     reg_pow2(XY_y + valY * _basisXY) +
-                     reg_pow2(XY_z + valZ * _basisXY) +
-                     reg_pow2(XZ_x + valX * _basisXZ) +
-                     reg_pow2(XZ_y + valY * _basisXZ) +
-                     reg_pow2(XZ_z + valZ * _basisXZ) +
-                     reg_pow2(YZ_x + valX * _basisYZ) +
-                     reg_pow2(YZ_y + valY * _basisYZ) +
-                     reg_pow2(YZ_z + valZ * _basisYZ)
+                     Square(XX_x + valX * _basisXX) +
+                     Square(XX_y + valY * _basisXX) +
+                     Square(XX_z + valZ * _basisXX) +
+                     Square(YY_x + valX * _basisYY) +
+                     Square(YY_y + valY * _basisYY) +
+                     Square(YY_z + valZ * _basisYY) +
+                     Square(ZZ_x + valX * _basisZZ) +
+                     Square(ZZ_y + valY * _basisZZ) +
+                     Square(ZZ_z + valZ * _basisZZ) + 2.0 * (
+                     Square(XY_x + valX * _basisXY) +
+                     Square(XY_y + valY * _basisXY) +
+                     Square(XY_z + valZ * _basisXY) +
+                     Square(XZ_x + valX * _basisXZ) +
+                     Square(XZ_y + valY * _basisXZ) +
+                     Square(XZ_z + valZ * _basisXZ) +
+                     Square(YZ_x + valX * _basisYZ) +
+                     Square(YZ_y + valY * _basisYZ) +
+                     Square(YZ_z + valZ * _basisYZ)
                      ) ) - this->l2_weight * this->l2_penalisation[label];
             } // label
             ++node;

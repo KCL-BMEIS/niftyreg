@@ -141,9 +141,9 @@ public:
         float ratio[3] = { nodeGrad->dx, nodeGrad->dy, nodeGrad->dz };
         for (int i = 0; i < (is3d ? 3 : 2); ++i) {
             if (nodeGrad->sform_code > 0) {
-                ratio[i] = sqrt(reg_pow2(nodeGrad->sto_xyz.m[i][0]) +
-                                reg_pow2(nodeGrad->sto_xyz.m[i][1]) +
-                                reg_pow2(nodeGrad->sto_xyz.m[i][2]));
+                ratio[i] = sqrt(Square(nodeGrad->sto_xyz.m[i][0]) +
+                                Square(nodeGrad->sto_xyz.m[i][1]) +
+                                Square(nodeGrad->sto_xyz.m[i][2]));
             }
             ratio[i] /= voxelGrad->pixdim[i + 1];
             weight *= ratio[i];
@@ -159,7 +159,7 @@ public:
                     reg_mat44_mul(&transformation, nodeCoord, voxelCoord);
                     // Linear interpolation
                     DataType basisX[2], basisY[2], basisZ[2];
-                    const int pre[3] = { (int)reg_floor(voxelCoord[0]), (int)reg_floor(voxelCoord[1]), (int)reg_floor(voxelCoord[2]) };
+                    const int pre[3] = { Floor(voxelCoord[0]), Floor(voxelCoord[1]), Floor(voxelCoord[2]) };
                     basisX[1] = voxelCoord[0] - static_cast<DataType>(pre[0]);
                     basisX[0] = static_cast<DataType>(1) - basisX[1];
                     basisY[1] = voxelCoord[1] - static_cast<DataType>(pre[1]);

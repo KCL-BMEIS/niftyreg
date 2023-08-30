@@ -60,16 +60,16 @@ void reg_voxelCentric2NodeCentric_gpu(const nifti_image *nodeImage,
     float ratio[3] = { nodeImage->dx, nodeImage->dy, nodeImage->dz };
     for (int i = 0; i < (is3d ? 3 : 2); ++i) {
         if (nodeImage->sform_code > 0) {
-            ratio[i] = sqrt(reg_pow2(nodeImage->sto_xyz.m[i][0]) +
-                            reg_pow2(nodeImage->sto_xyz.m[i][1]) +
-                            reg_pow2(nodeImage->sto_xyz.m[i][2]));
+            ratio[i] = sqrt(Square(nodeImage->sto_xyz.m[i][0]) +
+                            Square(nodeImage->sto_xyz.m[i][1]) +
+                            Square(nodeImage->sto_xyz.m[i][2]));
         }
         ratio[i] /= voxelImage->pixdim[i + 1];
         weight *= ratio[i];
     }
 
     const unsigned blocks = CudaContext::GetBlockSize()->reg_voxelCentric2NodeCentric;
-    const unsigned grids = (unsigned)ceil(sqrtf((float)nodeNumber / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)nodeNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     reg_voxelCentric2NodeCentric_kernel<<<gridDims, blockDims>>>(nodeImageCuda, *voxelImageTexture, (unsigned)nodeNumber, nodeImageDims,
@@ -82,7 +82,7 @@ void reg_convertNMIGradientFromVoxelToRealSpace_gpu(const mat44 *sourceMatrixXYZ
                                                     float4 *nmiGradientCuda) {
     const size_t nodeNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const unsigned blocks = CudaContext::GetBlockSize()->reg_convertNMIGradientFromVoxelToRealSpace;
-    const unsigned grids = (unsigned)ceil(sqrtf((float)nodeNumber / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)nodeNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     reg_convertNMIGradientFromVoxelToRealSpace_kernel<<<gridDims, blockDims>>>(nmiGradientCuda, *sourceMatrixXYZ, (unsigned)nodeNumber);
@@ -109,7 +109,7 @@ void reg_gaussianSmoothing_gpu(const nifti_image *image,
             float currentSigma;
             if (sigma > 0) currentSigma = sigma / image->pixdim[n];
             else currentSigma = fabs(sigma); // voxel based if negative value
-            const int radius = (int)ceil(currentSigma * 3.0f);
+            const int radius = (int)Ceil(currentSigma * 3.0f);
             if (radius > 0) {
                 const int kernelSize = 1 + radius * 2;
                 float *kernel;
@@ -142,7 +142,7 @@ void reg_gaussianSmoothing_gpu(const nifti_image *image,
                 switch (n) {
                 case 1:
                     blocks = blockSize->reg_ApplyConvolutionWindowAlongX;
-                    grids = (unsigned)ceil(sqrtf((float)voxelNumber / (float)blocks));
+                    grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
                     gridDims = dim3(grids, grids, 1);
                     blockDims = dim3(blocks, 1, 1);
                     reg_applyConvolutionWindowAlongX_kernel<<<gridDims, blockDims>>>(smoothedImage, *imageTexture, *kernelTexture,
@@ -151,7 +151,7 @@ void reg_gaussianSmoothing_gpu(const nifti_image *image,
                     break;
                 case 2:
                     blocks = blockSize->reg_ApplyConvolutionWindowAlongY;
-                    grids = (unsigned)ceil(sqrtf((float)voxelNumber / (float)blocks));
+                    grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
                     gridDims = dim3(grids, grids, 1);
                     blockDims = dim3(blocks, 1, 1);
                     reg_applyConvolutionWindowAlongY_kernel<<<gridDims, blockDims>>>(smoothedImage, *imageTexture, *kernelTexture,
@@ -160,7 +160,7 @@ void reg_gaussianSmoothing_gpu(const nifti_image *image,
                     break;
                 case 3:
                     blocks = blockSize->reg_ApplyConvolutionWindowAlongZ;
-                    grids = (unsigned)ceil(sqrtf((float)voxelNumber / (float)blocks));
+                    grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
                     gridDims = dim3(grids, grids, 1);
                     blockDims = dim3(blocks, 1, 1);
                     reg_applyConvolutionWindowAlongZ_kernel<<<gridDims, blockDims>>>(smoothedImage, *imageTexture, *kernelTexture,
@@ -185,7 +185,7 @@ void reg_smoothImageForCubicSpline_gpu(const nifti_image *image,
 
     for (int n = 0; n < 3; n++) {
         if (spacingVoxel[n] > 0 && image->dim[n + 1] > 1) {
-            int radius = static_cast<int>(reg_ceil(2.0 * spacingVoxel[n]));
+            int radius = Ceil(2.0 * spacingVoxel[n]);
             int kernelSize = 1 + radius * 2;
 
             float *kernel;
@@ -220,7 +220,7 @@ void reg_smoothImageForCubicSpline_gpu(const nifti_image *image,
             switch (n) {
             case 0:
                 blocks = blockSize->reg_ApplyConvolutionWindowAlongX;
-                grids = (unsigned)ceil(sqrtf((float)voxelNumber / (float)blocks));
+                grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
                 gridDims = dim3(grids, grids, 1);
                 blockDims = dim3(blocks, 1, 1);
                 reg_applyConvolutionWindowAlongX_kernel<<<gridDims, blockDims>>>(smoothedImage, *imageTexture, *kernelTexture,
@@ -229,7 +229,7 @@ void reg_smoothImageForCubicSpline_gpu(const nifti_image *image,
                 break;
             case 1:
                 blocks = blockSize->reg_ApplyConvolutionWindowAlongY;
-                grids = (unsigned)ceil(sqrtf((float)voxelNumber / (float)blocks));
+                grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
                 gridDims = dim3(grids, grids, 1);
                 blockDims = dim3(blocks, 1, 1);
                 reg_applyConvolutionWindowAlongY_kernel<<<gridDims, blockDims>>>(smoothedImage, *imageTexture, *kernelTexture,
@@ -238,7 +238,7 @@ void reg_smoothImageForCubicSpline_gpu(const nifti_image *image,
                 break;
             case 2:
                 blocks = blockSize->reg_ApplyConvolutionWindowAlongZ;
-                grids = (unsigned)ceil(sqrtf((float)voxelNumber / (float)blocks));
+                grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
                 gridDims = dim3(grids, grids, 1);
                 blockDims = dim3(blocks, 1, 1);
                 reg_applyConvolutionWindowAlongZ_kernel<<<gridDims, blockDims>>>(smoothedImage, *imageTexture, *kernelTexture,
@@ -255,7 +255,7 @@ void reg_smoothImageForCubicSpline_gpu(const nifti_image *image,
 /* *************************************************************** */
 void reg_multiplyValue_gpu(const size_t& count, float4 *arrayCuda, const float& value) {
     const unsigned blocks = CudaContext::GetBlockSize()->reg_arithmetic;
-    const unsigned grids = (unsigned)ceil(sqrtf((float)count / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
     const dim3 blockDims = dim3(blocks, 1, 1);
     reg_multiplyValue_kernel_float4<<<gridDims, blockDims>>>(arrayCuda, value, (unsigned)count);
@@ -264,7 +264,7 @@ void reg_multiplyValue_gpu(const size_t& count, float4 *arrayCuda, const float& 
 /* *************************************************************** */
 void reg_addValue_gpu(const size_t& count, float4 *arrayCuda, const float& value) {
     const unsigned blocks = CudaContext::GetBlockSize()->reg_arithmetic;
-    const unsigned grids = (unsigned)ceil(sqrtf((float)count / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
     const dim3 blockDims = dim3(blocks, 1, 1);
     reg_addValue_kernel_float4<<<gridDims, blockDims>>>(arrayCuda, value, (unsigned)count);
@@ -273,7 +273,7 @@ void reg_addValue_gpu(const size_t& count, float4 *arrayCuda, const float& value
 /* *************************************************************** */
 void reg_multiplyArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cuda) {
     const unsigned blocks = CudaContext::GetBlockSize()->reg_arithmetic;
-    const unsigned grids = (unsigned)ceil(sqrtf((float)count / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
     const dim3 blockDims = dim3(blocks, 1, 1);
     reg_multiplyArrays_kernel_float4<<<gridDims, blockDims>>>(array1Cuda, array2Cuda, (unsigned)count);
@@ -282,7 +282,7 @@ void reg_multiplyArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *arr
 /* *************************************************************** */
 void reg_addArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cuda) {
     const unsigned blocks = CudaContext::GetBlockSize()->reg_arithmetic;
-    const unsigned grids = (unsigned)ceil(sqrtf((float)count / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
     const dim3 blockDims = dim3(blocks, 1, 1);
     reg_addArrays_kernel_float4<<<gridDims, blockDims>>>(array1Cuda, array2Cuda, (unsigned)count);
@@ -291,7 +291,7 @@ void reg_addArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cu
 /* *************************************************************** */
 void reg_fillMaskArray_gpu(int *arrayCuda, const size_t& count) {
     const unsigned blocks = CudaContext::GetBlockSize()->reg_arithmetic;
-    const unsigned grids = (unsigned)ceil(sqrtf((float)count / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
     const dim3 blockDims = dim3(blocks, 1, 1);
     reg_fillMaskArray_kernel<<<gridDims, blockDims>>>(arrayCuda, (unsigned)count);

@@ -1,5 +1,4 @@
-#include "_reg_maths.h"
-#include "Debug.hpp"
+#include "_reg_tools.h"
 
 #define mat(i,j,dim) mat[i*dim+j]
 
@@ -937,15 +936,15 @@ void reg_mat33_disp(const mat33& mat, const std::string& title){
 //is it square distance or just distance?
 // Helper function: Get the square of the Euclidean distance
 double get_square_distance3D(float * first_point3D, float * second_point3D) {
-    return sqrt(reg_pow2(first_point3D[0] - second_point3D[0]) +
-          reg_pow2(first_point3D[1] - second_point3D[1]) +
-          reg_pow2(first_point3D[2] - second_point3D[2]));
+    return sqrt(Square(first_point3D[0] - second_point3D[0]) +
+          Square(first_point3D[1] - second_point3D[1]) +
+          Square(first_point3D[2] - second_point3D[2]));
 }
 /* *************************************************************** */
 //is it square distance or just distance?
 double get_square_distance2D(float * first_point2D, float * second_point2D) {
-    return sqrt(reg_pow2(first_point2D[0] - second_point2D[0]) +
-          reg_pow2(first_point2D[1] - second_point2D[1]));
+    return sqrt(Square(first_point2D[0] - second_point2D[0]) +
+          Square(first_point2D[1] - second_point2D[1]));
 }
 /* *************************************************************** */
 // Calculate pythagorean distance
@@ -957,7 +956,7 @@ T pythag(T a, T b)
     absb = fabs(b);
 
     if (absa > absb)
-        return (T)(absa * sqrt(1.0f + SQR(absb / absa)));
+        return (T)(absa * sqrt(1.0f + Square(absb / absa)));
     else
-        return (absb == 0.0f ? 0.0f : (T)(absb * sqrt(1.0f + SQR(absa / absb))));
+        return (absb == 0.0f ? 0.0f : (T)(absb * sqrt(1.0f + Square(absa / absb))));
 }

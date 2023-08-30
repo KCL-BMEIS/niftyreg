@@ -34,7 +34,7 @@ __global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeImageCuda,
 
         // Linear interpolation
         float basisX[2], basisY[2], basisZ[2], interpolatedValue[3]{};
-        const int pre[3] = { reg_floor(voxelCoord[0]), reg_floor(voxelCoord[1]), reg_floor(voxelCoord[2]) };
+        const int pre[3] = { Floor(voxelCoord[0]), Floor(voxelCoord[1]), Floor(voxelCoord[2]) };
         basisX[1] = voxelCoord[0] - static_cast<float>(pre[0]);
         basisX[0] = 1.f - basisX[1];
         basisY[1] = voxelCoord[1] - static_cast<float>(pre[1]);

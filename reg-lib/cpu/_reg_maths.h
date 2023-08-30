@@ -28,6 +28,15 @@
 #endif
 #endif
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
+#ifdef __CUDACC__
+#define DEVICE  __host__ __device__
+#else
+#define DEVICE
+#endif
+
 typedef enum {
     DEF_FIELD,
     DISP_FIELD,
@@ -39,46 +48,29 @@ typedef enum {
 } NREG_TRANS_TYPE;
 
 /* *************************************************************** */
-#define reg_pow2(a) ((a)*(a))
-#define reg_ceil(a) (ceil(a))
-#define reg_round(a) ((a)>0.0 ?(int)((a)+0.5):(int)((a)-0.5))
-#ifdef _WIN32
-#define reg_floor(a) ((a)>0?(int)(a):(int)((a)-1))
-#define reg_floor_size_t(a) ((a)>0?(long)(a):(long)((a)-1))
-#else
-#define reg_floor(a) ((a)>=0?(int)(a):floor(a))
-#endif
-#define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
-#define FMAX(a,b) (a > b ? a : b)
-#define IMIN(a,b) (a < b ? a : b)
-#define SQR(a) (a==0.0 ? 0.0 : a*a)
+namespace NiftyReg {
 /* *************************************************************** */
-#if defined(_WIN32) && !defined(__CYGWIN__)
-#include <float.h>
-#include <time.h>
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-#if (_MSC_VER < 1900)
-#ifndef strtof
-#define strtof(_s, _t) (float) strtod(_s, _t)
-#endif
-#endif
-template<class PrecisionType> inline int round(PrecisionType x)
-{
-   return int(x > 0.0 ? (x + 0.5) : (x - 0.5));
+// The functions in the standard library are slower; so, these are implemented
+template<typename T>
+DEVICE inline T Square(const T& x) {
+    return x * x;
 }
-#if _MSC_VER < 1800 //test if visual studio version older than 2013
-template<typename T>inline bool isinf(T value)
-{
-   return std::numeric_limits<T>::has_infinity && value == std::numeric_limits<T>::infinity();
+template<typename T>
+DEVICE inline int Floor(const T& x) {
+    const int i = static_cast<int>(x);
+    return i - (x < i);
 }
-#endif
-inline int fabs(int _x)
-{
-   return (int)fabs((float)(_x));
+template<typename T>
+DEVICE inline int Ceil(const T& x) {
+    const int i = static_cast<int>(x);
+    return i + (x > i);
 }
-#endif // If on windows...
+template<typename T>
+DEVICE inline int Round(const T& x) {
+    return static_cast<int>(x + (x >= 0 ? 0.5 : -0.5));
+}
+/* *************************************************************** */
+} // namespace NiftyReg
 /* *************************************************************** */
 extern "C++" template <class T>
 void reg_LUdecomposition(T *inputMatrix,
@@ -97,9 +89,6 @@ void reg_matrixInvertMultiply(T *mat,
                               size_t dim,
                               size_t *index,
                               T *vec);
-/* *************************************************************** */
-/* *************************************************************** */
-/* *************************************************************** */
 /* *************************************************************** */
 extern "C++" template<class T>
 T* reg_matrix1DAllocate(size_t arraySize);
@@ -131,9 +120,6 @@ extern "C++" template<class T>
 T* reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect);
 extern "C++" template<class T>
 void reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect, T* res);
-/* *************************************************************** */
-/* *************************************************************** */
-/* *************************************************************** */
 /* *************************************************************** */
 /** @brief Add two 3-by-3 matrices
 */
@@ -184,7 +170,6 @@ void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
 /* *************************************************************** */
 extern "C++" template <class T>
 void reg_heapSort(T *array_tmp,int blockNum);
-/* *************************************************************** */
 /* *************************************************************** */
 bool operator==(mat44 A,mat44 B);
 /* *************************************************************** */

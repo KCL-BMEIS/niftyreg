@@ -30,7 +30,7 @@ float NiftyReg::Cuda::GetMaximalLength(const float4 *imageCuda,
     NR_CUDA_SAFE_CALL(cudaMalloc(&dists, nVoxels * sizeof(float)));
 
     const unsigned threads = CudaContext::GetBlockSize()->GetMaximalLength;
-    const unsigned blocks = static_cast<unsigned>(reg_ceil(sqrtf(static_cast<float>(nVoxels) / static_cast<float>(threads))));
+    const unsigned blocks = static_cast<unsigned>(Ceil(sqrtf(static_cast<float>(nVoxels) / static_cast<float>(threads))));
     dim3 blockDims(threads, 1, 1);
     dim3 gridDims(blocks, blocks, 1);
     GetMaximalLengthKernel<<<gridDims, blockDims>>>(dists, *imageTexture, static_cast<unsigned>(nVoxels), optimiseX, optimiseY, optimiseZ);
@@ -65,7 +65,7 @@ void NiftyReg::Cuda::NormaliseGradient(float4 *imageCuda,
                                        const bool& optimiseY,
                                        const bool& optimiseZ) {
     const unsigned threads = CudaContext::GetBlockSize()->reg_arithmetic;
-    const unsigned blocks = static_cast<unsigned>(ceil(sqrtf(static_cast<float>(nVoxels) / static_cast<float>(threads))));
+    const unsigned blocks = static_cast<unsigned>(Ceil(sqrtf(static_cast<float>(nVoxels) / static_cast<float>(threads))));
     const dim3 blockDims(threads, 1, 1);
     const dim3 gridDims(blocks, blocks, 1);
     NormaliseGradientKernel<<<gridDims, blockDims>>>(imageCuda, static_cast<unsigned>(nVoxels), 1 / maxGradLength, optimiseX, optimiseY, optimiseZ);

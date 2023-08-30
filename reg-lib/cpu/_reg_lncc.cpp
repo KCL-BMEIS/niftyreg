@@ -240,8 +240,8 @@ void UpdateLocalStatImages(const nifti_image *refImage,
 #endif
     for (voxel = 0; voxel < voxelNumber; ++voxel) {
         // G*(I^2) - (G*I)^2
-        sdevImgPtr[voxel] = sqrt(sdevImgPtr[voxel] - reg_pow2(meanImgPtr[voxel]));
-        warSdevPtr[voxel] = sqrt(warSdevPtr[voxel] - reg_pow2(warMeanPtr[voxel]));
+        sdevImgPtr[voxel] = sqrt(sdevImgPtr[voxel] - Square(meanImgPtr[voxel]));
+        warSdevPtr[voxel] = sqrt(warSdevPtr[voxel] - Square(warMeanPtr[voxel]));
         // Stabilise the computation
         if (sdevImgPtr[voxel] < 1.e-06) sdevImgPtr[voxel] = 0;
         if (warSdevPtr[voxel] < 1.e-06) warSdevPtr[voxel] = 0;

@@ -258,18 +258,18 @@ void reg_getRealImageSpacing(nifti_image *image, float *spacingValues) {
     indexVoxel2[1] = indexVoxel2[2] = 0;
     indexVoxel2[0] = 1;
     reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-    spacingValues[0] = sqrtf(reg_pow2(realVoxel1[0] - realVoxel2[0]) + reg_pow2(realVoxel1[1] - realVoxel2[1]) + reg_pow2(realVoxel1[2] - realVoxel2[2]));
+    spacingValues[0] = sqrtf(Square(realVoxel1[0] - realVoxel2[0]) + Square(realVoxel1[1] - realVoxel2[1]) + Square(realVoxel1[2] - realVoxel2[2]));
 
     indexVoxel2[0] = indexVoxel2[2] = 0;
     indexVoxel2[1] = 1;
     reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-    spacingValues[1] = sqrtf(reg_pow2(realVoxel1[0] - realVoxel2[0]) + reg_pow2(realVoxel1[1] - realVoxel2[1]) + reg_pow2(realVoxel1[2] - realVoxel2[2]));
+    spacingValues[1] = sqrtf(Square(realVoxel1[0] - realVoxel2[0]) + Square(realVoxel1[1] - realVoxel2[1]) + Square(realVoxel1[2] - realVoxel2[2]));
 
     if (image->nz > 1) {
         indexVoxel2[0] = indexVoxel2[1] = 0;
         indexVoxel2[2] = 1;
         reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-        spacingValues[2] = sqrtf(reg_pow2(realVoxel1[0] - realVoxel2[0]) + reg_pow2(realVoxel1[1] - realVoxel2[1]) + reg_pow2(realVoxel1[2] - realVoxel2[2]));
+        spacingValues[2] = sqrtf(Square(realVoxel1[0] - realVoxel2[0]) + Square(realVoxel1[1] - realVoxel2[1]) + Square(realVoxel1[2] - realVoxel2[2]));
     }
 }
 /* *************************************************************** */
@@ -905,7 +905,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                             for (int i = -radius; i <= radius; i++) {
                                 // 2.506... = sqrt(2*pi)
                                 // temp contains the sigma in voxel
-                                kernel[radius + i] = static_cast<float>(exp(-(i * i) / (2.0 * reg_pow2(temp))) / (temp * 2.506628274631));
+                                kernel[radius + i] = static_cast<float>(exp(-(i * i) / (2.0 * Square(temp))) / (temp * 2.506628274631));
                                 kernelSum += kernel[radius + i];
                             }
                         } else if (kernelType == LINEAR_KERNEL) {
@@ -1373,7 +1373,7 @@ void reg_downsampleImage(nifti_image *image, int type, bool *downsampleAxis) {
     int oldDim[4];
     for (int i = 1; i < 4; i++) {
         oldDim[i] = image->dim[i];
-        if (image->dim[i] > 1 && downsampleAxis[i]) image->dim[i] = static_cast<int>(reg_ceil(image->dim[i] / 2.0));
+        if (image->dim[i] > 1 && downsampleAxis[i]) image->dim[i] = Ceil(image->dim[i] / 2.0);
         if (image->pixdim[i] > 0 && downsampleAxis[i]) image->pixdim[i] = image->pixdim[i] * 2.0f;
     }
     image->nx = image->dim[1];
@@ -1451,9 +1451,9 @@ void reg_downsampleImage(nifti_image *image, int type, bool *downsampleAxis) {
                         z * image->qto_xyz.m[2][2] +
                         image->qto_xyz.m[2][3];
                     // Extract the position in voxel in the old image;
-                    position[0] = (int)reg_round(real[0] * real2Voxel_qform.m[0][0] + real[1] * real2Voxel_qform.m[0][1] + real[2] * real2Voxel_qform.m[0][2] + real2Voxel_qform.m[0][3]);
-                    position[1] = (int)reg_round(real[0] * real2Voxel_qform.m[1][0] + real[1] * real2Voxel_qform.m[1][1] + real[2] * real2Voxel_qform.m[1][2] + real2Voxel_qform.m[1][3]);
-                    position[2] = (int)reg_round(real[0] * real2Voxel_qform.m[2][0] + real[1] * real2Voxel_qform.m[2][1] + real[2] * real2Voxel_qform.m[2][2] + real2Voxel_qform.m[2][3]);
+                    position[0] = Round(real[0] * real2Voxel_qform.m[0][0] + real[1] * real2Voxel_qform.m[0][1] + real[2] * real2Voxel_qform.m[0][2] + real2Voxel_qform.m[0][3]);
+                    position[1] = Round(real[0] * real2Voxel_qform.m[1][0] + real[1] * real2Voxel_qform.m[1][1] + real[2] * real2Voxel_qform.m[1][2] + real2Voxel_qform.m[1][3]);
+                    position[2] = Round(real[0] * real2Voxel_qform.m[2][0] + real[1] * real2Voxel_qform.m[2][1] + real[2] * real2Voxel_qform.m[2][2] + real2Voxel_qform.m[2][3]);
                     if (oldDim[3] == 1) position[2] = 0;
                     // Nearest neighbour is used as downsampling ratio is constant
                     intensity = std::numeric_limits<ImageType>::quiet_NaN();
