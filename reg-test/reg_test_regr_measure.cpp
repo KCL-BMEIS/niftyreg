@@ -255,8 +255,10 @@ TEST_CASE_METHOD(MeasureTest, "Regression Measure", "[regression]") {
             for (size_t i = 0; i < voxelBasedGradCpu.nVoxels(); ++i) {
                 const float cpuVal = voxelBasedGradCpuPtr[i];
                 const float cudaVal = voxelBasedGradCudaPtr[i];
-                NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
-                REQUIRE(fabs(cpuVal - cudaVal) < EPS);
+                const double diff = fabs(cpuVal - cudaVal);
+                if(diff>EPS)
+                    NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
+                REQUIRE(diff < EPS);
             }
         }
     }

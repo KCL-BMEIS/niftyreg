@@ -25,9 +25,6 @@ Content::Content(nifti_image *referenceIn,
 Content::~Content() {
     DeallocateWarped();
     DeallocateDeformationField();
-#ifndef NDEBUG
-    reg_print_msg_debug("Content destructor called");
-#endif
 }
 /* *************************************************************** */
 void Content::AllocateWarped() {

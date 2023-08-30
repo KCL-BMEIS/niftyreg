@@ -122,6 +122,8 @@ void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
     controlPointGridImage->intent_code = NIFTI_INTENT_VECTOR;
     memset(controlPointGridImage->intent_name, 0, 16);
     strcpy(controlPointGridImage->intent_name, "NREG_TRANS");
+    // Set to be the identity transformation by default
+    reg_getDeformationFromDisplacement(controlPointGridImage);
     controlPointGridImage->intent_p1 = CUB_SPLINE_GRID;
 }
 template void reg_createControlPointGrid<float>(NiftiImage&, const NiftiImage&, const float*);
