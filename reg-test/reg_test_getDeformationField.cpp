@@ -15,6 +15,7 @@
 class GetDeformationFieldTest {
 protected:
     using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage>;
+    using TestDataComp = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, NiftiImage>;
     using TestCase = std::tuple<std::string, NiftiImage, NiftiImage>;
 
     inline static vector<TestCase> testCases;
@@ -50,14 +51,14 @@ public:
         testData.emplace_back(TestData(
             "2D ID",
             reference2d,
-            NiftiImage(controlPointGrid2d),
-            NiftiImage(deformationField2d)
+            controlPointGrid2d,
+            deformationField2d
         ));
         testData.emplace_back(TestData(
             "3D ID",
             reference3d,
-            NiftiImage(controlPointGrid3d),
-            NiftiImage(deformationField3d)
+            controlPointGrid3d,
+            deformationField3d
         ));
 
         // Translation transformation tests - translation of 2 along each axis
@@ -77,14 +78,14 @@ public:
         testData.emplace_back(TestData(
             "2D Trans",
             reference2d,
-            NiftiImage(controlPointGrid2d),
-            NiftiImage(deformationField2d)
+            controlPointGrid2d,
+            deformationField2d
         ));
         testData.emplace_back(TestData(
             "3D Trans",
             reference3d,
-            NiftiImage(controlPointGrid3d),
-            NiftiImage(deformationField3d)
+            controlPointGrid3d,
+            deformationField3d
         ));
 
         // Scaling transformation tests
@@ -100,17 +101,17 @@ public:
         testData.emplace_back(TestData(
             "2D scaling",
             reference2d,
-            NiftiImage(controlPointGrid2d),
-            NiftiImage(deformationField2d)
+            (controlPointGrid2d),
+            (deformationField2d)
         ));
         testData.emplace_back(TestData(
             "3D scaling",
             reference3d,
-            NiftiImage(controlPointGrid3d),
-            NiftiImage(deformationField3d)
+            controlPointGrid3d,
+            deformationField3d
         ));
 
-        // Add platforms, composition, and bspline to the test data
+        // Run the actual computation with the provided input data
         for (auto&& data : testData) {
             for (auto&& platformType : PlatformTypes) {
                 shared_ptr<Platform> platform{ new Platform(platformType) };
@@ -128,6 +129,81 @@ public:
                 testCases.push_back({testName + " " + platform->GetName(), defFieldExp, expectedField});
             }
         }
+
+        // Data container for the test data related to composition
+        vector<TestDataComp> testDataComp;
+
+        // Ensures composition of identity transformation yield identity
+        NiftiImage deformationFieldInput2d = CreateDeformationField(reference2d);
+        NiftiImage deformationFieldInput3d = CreateDeformationField(reference3d);
+        reg_tools_multiplyValueToImage(deformationField2d, deformationField2d, 0.f);
+        reg_tools_multiplyValueToImage(deformationField3d, deformationField3d, 0.f);
+        reg_tools_multiplyValueToImage(controlPointGrid2d, controlPointGrid2d, 0.f);
+        reg_tools_multiplyValueToImage(controlPointGrid3d, controlPointGrid3d, 0.f);
+        reg_getDeformationFromDisplacement(deformationField2d);
+        reg_getDeformationFromDisplacement(deformationField3d);
+        reg_getDeformationFromDisplacement(controlPointGrid2d);
+        reg_getDeformationFromDisplacement(controlPointGrid3d);
+        testDataComp.emplace_back(TestDataComp(
+            "2D composition ID",
+            reference3d,
+            controlPointGrid2d,
+            deformationFieldInput2d,
+            deformationField2d
+        ));
+        testDataComp.emplace_back(TestDataComp(
+            "3D composition ID",
+            reference3d,
+            controlPointGrid3d,
+            deformationFieldInput3d,
+            deformationField3d
+        ));
+
+        // Ensures composition from zooming and and out goes back identity ID
+        float * def2dInPtr = static_cast<float *>(deformationFieldInput2d->data);
+        float * def3dInPtr = static_cast<float *>(deformationFieldInput3d->data);
+        for(size_t i=0; i<controlPointGrid2d.nVoxels(); i++)
+            cpp2dPtr[i] *= 1.1f;
+        for(size_t i=0; i<controlPointGrid3d.nVoxels(); i++)
+            cpp3dPtr[i] *= 1.1f;
+        for(size_t i=0; i<deformationFieldInput2d.nVoxels(); i++)
+            def2dInPtr[i] /= 1.1f;
+        for(size_t i=0; i<deformationFieldInput3d.nVoxels(); i++)
+            def3dInPtr[i] /= 1.1f;
+        testDataComp.emplace_back(TestDataComp(
+            "2D composition scaling",
+            reference3d,
+            controlPointGrid2d,
+            deformationFieldInput2d,
+            deformationField2d
+        ));
+        testDataComp.emplace_back(TestDataComp(
+            "3D composition scaling",
+            reference3d,
+            controlPointGrid3d,
+            deformationFieldInput3d,
+            deformationField3d
+        ));
+
+        for (auto&& data : testDataComp) {
+            for (auto&& platformType : {PlatformType::Cpu}) {
+                shared_ptr<Platform> platform{ new Platform(platformType) };
+                unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
+                auto&& [testName, reference, controlPointGrid, inputField, expectedField] = data;
+                // Add content
+                unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
+                content->SetDeformationField(NiftiImage(inputField).disown());
+                // Add compute
+                unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
+                // Compute the deformation field
+                compute->GetDeformationField(true, true); // with composition - use bspline
+                // Retrieve the deformation field
+                NiftiImage defFieldExp(content->GetDeformationField(), NiftiImage::Copy::Image);
+                // Check the results
+                testCases.push_back({testName + " " + platform->GetName(), defFieldExp, expectedField});
+            }
+        }
+
     }
 };
 
