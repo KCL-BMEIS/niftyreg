@@ -73,8 +73,7 @@ public:
                 // Create the platform
                 shared_ptr<Platform> platform{ new Platform(platformType) };
                 // Make a copy of the test data
-                auto td = data;
-                auto&& [testName, reference, floating, expected] = td;
+                auto [testName, reference, floating, expected] = data;
                 // Create the content creator
                 unique_ptr<DefContentCreator> contentCreator{
                     dynamic_cast<DefContentCreator*>(platform->CreateContentCreator(ContentType::Def))

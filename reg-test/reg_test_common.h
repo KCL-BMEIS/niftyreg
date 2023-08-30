@@ -34,7 +34,7 @@ void InterpCubicSplineKernel(T relative, T (&basis)[4], T (&derivative)[4]) {
 
 NiftiImage CreateControlPointGrid(const NiftiImage& reference) {
     // Set the spacing for the control point grid to 2 voxel along each axis
-    float gridSpacing[3] = { reference->dx*2, reference->dy*2, reference->dz*2};
+    float gridSpacing[3] = { reference->dx * 2, reference->dy * 2, reference->dz * 2 };
 
     // Create and allocate the control point image
     NiftiImage controlPointGrid;
@@ -43,22 +43,20 @@ NiftiImage CreateControlPointGrid(const NiftiImage& reference) {
     return controlPointGrid;
 }
 
-NiftiImage CreateDeformationField(const NiftiImage &reference) {
+NiftiImage CreateDeformationField(const NiftiImage& reference) {
     // Create and allocate a deformation field
-    NiftiImage deformationField;
-    deformationField = nifti_copy_nim_info(reference);
-    deformationField->dim[0] = deformationField->ndim = 5;
+    NiftiImage deformationField(reference, NiftiImage::Copy::ImageInfo);
+    deformationField.setDim(NiftiDim::NDim, 5);
     if (reference->dim[0] == 2)
-        deformationField->dim[3] = deformationField->nz = 1;
-    deformationField->dim[4] = deformationField->nt = 1;
-    deformationField->pixdim[4] = deformationField->dt = 1;
-    deformationField->dim[5] = deformationField->nu = reference->nz > 1 ? 3 : 2;
-    deformationField->pixdim[5] = deformationField->du = 1;
-    deformationField->dim[6] = deformationField->nv = 1;
-    deformationField->pixdim[6] = deformationField->dv = 1;
-    deformationField->dim[7] = deformationField->nw = 1;
-    deformationField->pixdim[7] = deformationField->dw = 1;
-    deformationField->nvox = NiftiImage::calcVoxelNumber(deformationField, deformationField->ndim);
+        deformationField.setDim(NiftiDim::Z, 1);
+    deformationField.setDim(NiftiDim::T, 1);
+    deformationField.setPixDim(NiftiDim::T, 1);
+    deformationField.setDim(NiftiDim::U, reference->nz > 1 ? 3 : 2);
+    deformationField.setPixDim(NiftiDim::U, 1);
+    deformationField.setDim(NiftiDim::V, 1);
+    deformationField.setPixDim(NiftiDim::V, 1);
+    deformationField.setDim(NiftiDim::W, 1);
+    deformationField.setPixDim(NiftiDim::W, 1);
     deformationField->datatype = NIFTI_TYPE_FLOAT32;
     deformationField->intent_code = NIFTI_INTENT_VECTOR;
     memset(deformationField->intent_name, 0, sizeof(deformationField->intent_name));
@@ -66,7 +64,7 @@ NiftiImage CreateDeformationField(const NiftiImage &reference) {
     deformationField->intent_p1 = DISP_FIELD;
     deformationField->scl_slope = 1;
     deformationField->scl_inter = 0;
-    deformationField->data = calloc(deformationField->nvox, deformationField->nbyper);
+    deformationField.realloc();
     reg_getDeformationFromDisplacement(deformationField);
     return deformationField;
 }

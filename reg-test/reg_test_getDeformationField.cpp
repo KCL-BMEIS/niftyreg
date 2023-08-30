@@ -62,19 +62,19 @@ public:
         ));
 
         // Translation transformation tests - translation of 2 along each axis
-        float * cpp2dPtr = static_cast<float *>(controlPointGrid2d->data);
-        float * cpp3dPtr = static_cast<float *>(controlPointGrid3d->data);
-        float * def2dPtr = static_cast<float *>(deformationField2d->data);
-        float * def3dPtr = static_cast<float *>(deformationField3d->data);
-        for(size_t i=0; i<controlPointGrid2d.nVoxels(); i++)
+        float *cpp2dPtr = static_cast<float*>(controlPointGrid2d->data);
+        float *cpp3dPtr = static_cast<float*>(controlPointGrid3d->data);
+        float *def2dPtr = static_cast<float*>(deformationField2d->data);
+        float *def3dPtr = static_cast<float*>(deformationField3d->data);
+        for (size_t i = 0; i < controlPointGrid2d.nVoxels(); i++)
             cpp2dPtr[i] += 2.f;
-        for(size_t i=0; i<controlPointGrid3d.nVoxels(); i++)
+        for (size_t i = 0; i < controlPointGrid3d.nVoxels(); i++)
             cpp3dPtr[i] += 2.f;
-        for(size_t i=0; i<deformationField2d.nVoxels(); i++)
+        for (size_t i = 0; i < deformationField2d.nVoxels(); i++)
             def2dPtr[i] += 2.f;
-        for(size_t i=0; i<deformationField3d.nVoxels(); i++)
+        for (size_t i = 0; i < deformationField3d.nVoxels(); i++)
             def3dPtr[i] += 2.f;
-        
+
         testData.emplace_back(TestData(
             "2D Trans",
             reference2d,
@@ -89,14 +89,14 @@ public:
         ));
 
         // Scaling transformation tests
-        for(size_t i=0; i<controlPointGrid2d.nVoxels(); i++)
-            cpp2dPtr[i] = (cpp2dPtr[i]-2.f) * 1.1f;
-        for(size_t i=0; i<controlPointGrid3d.nVoxels(); i++)
-            cpp3dPtr[i] = (cpp3dPtr[i]-2.f) * 1.1f;
-        for(size_t i=0; i<deformationField2d.nVoxels(); i++)
-            def2dPtr[i] = (def2dPtr[i]-2.f) * 1.1f;
-        for(size_t i=0; i<deformationField3d.nVoxels(); i++)
-            def3dPtr[i] = (def3dPtr[i]-2.f) * 1.1f;
+        for (size_t i = 0; i < controlPointGrid2d.nVoxels(); i++)
+            cpp2dPtr[i] = (cpp2dPtr[i] - 2.f) * 1.1f;
+        for (size_t i = 0; i < controlPointGrid3d.nVoxels(); i++)
+            cpp3dPtr[i] = (cpp3dPtr[i] - 2.f) * 1.1f;
+        for (size_t i = 0; i < deformationField2d.nVoxels(); i++)
+            def2dPtr[i] = (def2dPtr[i] - 2.f) * 1.1f;
+        for (size_t i = 0; i < deformationField3d.nVoxels(); i++)
+            def3dPtr[i] = (def3dPtr[i] - 2.f) * 1.1f;
 
         testData.emplace_back(TestData(
             "2D scaling",
@@ -116,7 +116,8 @@ public:
             for (auto&& platformType : PlatformTypes) {
                 shared_ptr<Platform> platform{ new Platform(platformType) };
                 unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
-                auto&& [testName, reference, controlPointGrid, expectedField] = data;
+                // Make a copy of the test data
+                auto [testName, reference, controlPointGrid, defFieldExp] = data;
                 // Add content
                 unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
                 // Add compute
@@ -124,9 +125,9 @@ public:
                 // Compute the deformation field
                 compute->GetDeformationField(false, true); // no composition - use bspline
                 // Retrieve the deformation field
-                NiftiImage defFieldExp(content->GetDeformationField(), NiftiImage::Copy::Image);
-                // Check the results
-                testCases.push_back({testName + " " + platform->GetName(), defFieldExp, expectedField});
+                NiftiImage defField(content->GetDeformationField(), NiftiImage::Copy::Image);
+                // Save for testing
+                testCases.push_back({ testName + " " + platform->GetName(), std::move(defField), std::move(defFieldExp) });
             }
         }
 
@@ -160,15 +161,15 @@ public:
         ));
 
         // Ensures composition from zooming and and out goes back identity ID
-        float * def2dInPtr = static_cast<float *>(deformationFieldInput2d->data);
-        float * def3dInPtr = static_cast<float *>(deformationFieldInput3d->data);
-        for(size_t i=0; i<controlPointGrid2d.nVoxels(); i++)
+        float *def2dInPtr = static_cast<float*>(deformationFieldInput2d->data);
+        float *def3dInPtr = static_cast<float*>(deformationFieldInput3d->data);
+        for (size_t i = 0; i < controlPointGrid2d.nVoxels(); i++)
             cpp2dPtr[i] *= 1.1f;
-        for(size_t i=0; i<controlPointGrid3d.nVoxels(); i++)
+        for (size_t i = 0; i < controlPointGrid3d.nVoxels(); i++)
             cpp3dPtr[i] *= 1.1f;
-        for(size_t i=0; i<deformationFieldInput2d.nVoxels(); i++)
+        for (size_t i = 0; i < deformationFieldInput2d.nVoxels(); i++)
             def2dInPtr[i] /= 1.1f;
-        for(size_t i=0; i<deformationFieldInput3d.nVoxels(); i++)
+        for (size_t i = 0; i < deformationFieldInput3d.nVoxels(); i++)
             def3dInPtr[i] /= 1.1f;
         testDataComp.emplace_back(TestDataComp(
             "2D composition scaling",
@@ -186,21 +187,22 @@ public:
         ));
 
         for (auto&& data : testDataComp) {
-            for (auto&& platformType : {PlatformType::Cpu}) {
+            for (auto&& platformType : { PlatformType::Cpu }) {
                 shared_ptr<Platform> platform{ new Platform(platformType) };
                 unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
-                auto&& [testName, reference, controlPointGrid, inputField, expectedField] = data;
+                // Make a copy of the test data
+                auto [testName, reference, controlPointGrid, defField, defFieldExp] = data;
                 // Add content
                 unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
-                content->SetDeformationField(NiftiImage(inputField).disown());
+                content->SetDeformationField(defField.disown());
                 // Add compute
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 // Compute the deformation field
                 compute->GetDeformationField(true, true); // with composition - use bspline
                 // Retrieve the deformation field
-                NiftiImage defFieldExp(content->GetDeformationField(), NiftiImage::Copy::Image);
-                // Check the results
-                testCases.push_back({testName + " " + platform->GetName(), defFieldExp, expectedField});
+                defField = NiftiImage(content->GetDeformationField(), NiftiImage::Copy::Image);
+                // Save for testing
+                testCases.push_back({ testName + " " + platform->GetName(), std::move(defField), std::move(defFieldExp) });
             }
         }
 
@@ -214,16 +216,16 @@ TEST_CASE_METHOD(GetDeformationFieldTest, "Deformation field from b-spline grid"
         auto&& [testName, result, expected] = testCase;
 
         SECTION(testName) {
-            std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
-            float *resPtr = static_cast<float *>(result->data);
-            float *expPtr = static_cast<float *>(expected->data);
-            for(unsigned i=0; i<expected.nVoxels();++i){
+            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
+            float *resPtr = static_cast<float*>(result->data);
+            float *expPtr = static_cast<float*>(expected->data);
+            for (unsigned i = 0; i < expected.nVoxels(); ++i) {
                 const double diff = fabs(resPtr[i] - expPtr[i]);
-                if (diff > EPS){
-                    std::cout << "[i]=" << i;
-                    std::cout << " | diff=" << diff;
-                    std::cout << " | Result=" << resPtr[i];
-                    std::cout << " | Expected=" << expPtr[i] << std::endl;
+                if (diff > EPS) {
+                    NR_COUT << "[i]=" << i;
+                    NR_COUT << " | diff=" << diff;
+                    NR_COUT << " | Result=" << resPtr[i];
+                    NR_COUT << " | Expected=" << expPtr[i] << std::endl;
                 }
                 REQUIRE(diff < EPS);
             }

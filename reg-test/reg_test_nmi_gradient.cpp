@@ -10,7 +10,7 @@
 /*
     This test file contains the following unit tests:
     test function: NMI gradient.
-    The anylitical formulation is compared against an approximation
+    The analytical formulation is compared against an approximation
 */
 
 class NMIGradientTest {
@@ -25,7 +25,7 @@ public:
         // Default bin value is 68 (64+4 for Parzen windowing)
         const unsigned binNumber = 8;
         const float padding = 2; //std::numeric_limits<float>::quiet_NaN();
-        std::uniform_real_distribution<float> distr(2, binNumber-3);
+        std::uniform_real_distribution<float> distr(2, binNumber - 3);
 
         // Create reference and floating 2D images
         vector<NiftiImage::dim_t> dim{ 4, 4 };
@@ -38,13 +38,12 @@ public:
         NiftiImage floating3d(dim, NIFTI_TYPE_FLOAT32);
 
         // Fill images with random values
-        auto ref2dPtr = static_cast<float *>(reference2d->data);
-        auto flo2dPtr = static_cast<float *>(floating2d->data);
+        auto ref2dPtr = reference2d.data();
+        auto flo2dPtr = floating2d.data();
         // Ensure at least one pixel contains the max and one the min
         ref2dPtr[0] = flo2dPtr[1] = 2.f;
-        ref2dPtr[1] = flo2dPtr[0] = binNumber-3;
-        for (size_t i = 2; i < reference2d.nVoxels(); ++i)
-        {
+        ref2dPtr[1] = flo2dPtr[0] = binNumber - 3;
+        for (size_t i = 2; i < reference2d.nVoxels(); ++i) {
             ref2dPtr[i] = distr(gen);
             flo2dPtr[i] = distr(gen);
         }
@@ -54,7 +53,7 @@ public:
         auto flo3dPtr = floating3d.data();
         // Ensure at least one pixel contains the max and one the min
         ref3dPtr[0] = flo3dPtr[1] = 2.f;
-        ref3dPtr[1] = flo3dPtr[0] = binNumber-3;
+        ref3dPtr[1] = flo3dPtr[0] = binNumber - 3;
         for (size_t i = 2; i < reference3d.nVoxels(); ++i) {
             ref3dPtr[i] = distr(gen);
             flo3dPtr[i] = distr(gen);
@@ -76,8 +75,8 @@ public:
             for (auto&& platformType : PlatformTypes) {
                 // Create the platform
                 shared_ptr<Platform> platform{ new Platform(platformType) };
-                auto td = data;
-                auto&& [testName, reference, floating] = td;
+                // Make a copy of the test data
+                auto [testName, reference, floating] = data;
                 // Create the content creator
                 unique_ptr<DefContentCreator> contentCreator{
                     dynamic_cast<DefContentCreator*>(platform->CreateContentCreator(ContentType::Def))
@@ -85,8 +84,8 @@ public:
                 // Create the content
                 unique_ptr<DefContent> content{ contentCreator->Create(reference, floating) };
                 // Add some displacements to the deformation field to avoid grid effect
-                float *defPtr = static_cast<float *>(content->GetDeformationField()->data);
-                for(unsigned index=0; index<content->GetDeformationField()->nvox;++index)
+                float *defPtr = static_cast<float*>(content->GetDeformationField()->data);
+                for (size_t index = 0; index < content->GetDeformationField()->nvox; ++index)
                     defPtr[index] += 0.1f;
                 // Compute the warped image given the current transformation
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
@@ -108,7 +107,7 @@ public:
                 // Apply perturbations to each value in the deformation field
                 float *gradPtr = static_cast<float *>(expectedGradientImage->data);
                 const float delta = 0.00001;
-                for(unsigned index=0; index<expectedGradientImage.nVoxels();++index){
+                for (unsigned index = 0; index < expectedGradientImage.nVoxels(); ++index) {
                     float current_value = defPtr[index];
                     // compute the NMI when removing delta(s)
                     defPtr[index] = current_value - delta;
@@ -122,8 +121,7 @@ public:
                     gradPtr[index] = -(nmi_post - nmi_pre) / (2. * delta);
                     defPtr[index] = current_value;
                 }
-                testCases.push_back({testName + " " + platform->GetName(),
-                                     std::move(gradientImage), std::move(expectedGradientImage)});
+                testCases.push_back({ testName + " " + platform->GetName(), std::move(gradientImage), std::move(expectedGradientImage) });
             }
         }
     }
@@ -141,29 +139,29 @@ TEST_CASE_METHOD(NMIGradientTest, "NMI Gradient", "[unit]") {
         auto&& [testName, result, expected] = testCase;
 
         SECTION(testName) {
-            std::cout << "\n**************** Section " << testName << " ****************" << std::endl;
+            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
-            float *resPtr = static_cast<float *>(result->data);
-            float *expPtr = static_cast<float *>(expected->data);
+            float *resPtr = static_cast<float*>(result->data);
+            float *expPtr = static_cast<float*>(expected->data);
             float resMean = reg_tools_getMeanValue(result);
             float expMean = reg_tools_getMeanValue(expected);
-            float resStdd = reg_tools_getSTDValue(result);
-            float expStdd = reg_tools_getSTDValue(expected);
+            float resStd = reg_tools_getSTDValue(result);
+            float expStd = reg_tools_getSTDValue(expected);
             double corr = 0;
-            for(unsigned i=0; i<expected.nVoxels();++i)
-                corr += (resPtr[i]-resMean)*(expPtr[i]-expMean);
-            
-            corr /= resStdd*expStdd*result.nVoxels();
-            std::cout << "Correlation = " << corr << std::endl;
+            for (size_t i = 0; i < expected.nVoxels(); ++i)
+                corr += (resPtr[i] - resMean) * (expPtr[i] - expMean);
+
+            corr /= resStd * expStd * result.nVoxels();
+            NR_COUT << "Correlation = " << corr << std::endl;
             const double norm = std::max(fabs(reg_tools_getMinValue(expected, 0)),
                                          fabs(reg_tools_getMaxValue(expected, 0)));
-            for(unsigned i=0; i<expected.nVoxels();++i){
-                const double ratio = fabs(resPtr[i] - expPtr[i])/norm;
-                if (ratio > .1){
-                    std::cout << "[i]=" << i;
-                    std::cout << " | ratio=" << ratio;
-                    std::cout << " | Result=" << resPtr[i];
-                    std::cout << " | Expected=" << expPtr[i] << std::endl;
+            for (size_t i = 0; i < expected.nVoxels(); ++i) {
+                const double ratio = fabs(resPtr[i] - expPtr[i]) / norm;
+                if (ratio > .1) {
+                    NR_COUT << "[i]=" << i;
+                    NR_COUT << " | ratio=" << ratio;
+                    NR_COUT << " | Result=" << resPtr[i];
+                    NR_COUT << " | Expected=" << expPtr[i] << std::endl;
                 }
             }
             REQUIRE(corr > 0.99);

@@ -105,7 +105,7 @@ public:
         for (auto&& data : testData) {
             for (auto&& platformType : PlatformTypes) {
                 // Make a copy of the test data
-                auto&& [testName, reference, controlPointGrid, expected] = data;
+                auto [testName, reference, controlPointGrid, expected] = data;
                 // Add content
                 shared_ptr<Platform> platform{ new Platform(platformType) };
                 unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
