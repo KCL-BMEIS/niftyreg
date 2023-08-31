@@ -40,6 +40,9 @@ NiftiImage CreateControlPointGrid(const NiftiImage& reference) {
     NiftiImage controlPointGrid;
     reg_createControlPointGrid<float>(controlPointGrid, reference, gridSpacing);
 
+    // The control point position image is initialised with an identity transformation
+    reg_getDeformationFromDisplacement(controlPointGrid);
+
     return controlPointGrid;
 }
 
