@@ -1,5 +1,5 @@
 /*
- *  _reg_affineTransformation_gpu.cu
+ *  _reg_globalTransformation_gpu.cu
  *
  *
  *  Created by Marc Modat on 25/03/2009.
@@ -14,9 +14,9 @@
 #include "_reg_globalTransformation_kernels.cu"
 
 /* *************************************************************** */
-void reg_affine_positionField_gpu(const mat44 *affineMatrix,
-                                  const nifti_image *targetImage,
-                                  float4 *deformationFieldCuda) {
+void reg_affine_getDeformationField_gpu(const mat44 *affineMatrix,
+                                        const nifti_image *targetImage,
+                                        float4 *deformationFieldCuda) {
     const int3 imageSize = make_int3(targetImage->nx, targetImage->ny, targetImage->nz);
     const size_t voxelNumber = targetImage->nvox;
 
@@ -27,11 +27,11 @@ void reg_affine_positionField_gpu(const mat44 *affineMatrix,
     // Affine * TargetMat is constant
     const mat44 transformationMatrix = reg_mat44_mul(affineMatrix, targetMatrix);
 
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_affine_deformationField;
+    const unsigned blocks = CudaContext::GetBlockSize()->reg_affine_getDeformationField;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)targetImage->nvox / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
-    reg_affine_deformationField_kernel<<<gridDims, blockDims>>>(deformationFieldCuda, transformationMatrix, imageSize, (unsigned)voxelNumber);
+    reg_affine_getDeformationField_kernel<<<gridDims, blockDims>>>(deformationFieldCuda, transformationMatrix, imageSize, (unsigned)voxelNumber);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */

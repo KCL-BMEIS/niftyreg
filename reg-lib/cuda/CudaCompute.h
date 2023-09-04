@@ -23,7 +23,7 @@ public:
     virtual void NormaliseGradient(double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ) override;
     virtual void SmoothGradient(float sigma) override;
     virtual void GetApproximatedGradient(InterfaceOptimiser& opt) override;
-    virtual void GetDefFieldFromVelocityGrid(bool updateStepNumber) override;
+    virtual void GetDefFieldFromVelocityGrid(const bool updateStepNumber) override;
     virtual void ConvolveVoxelBasedMeasureGradient(float weight) override;
     virtual void ExponentiateGradient(Content& conBw) override;
     virtual void UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ) override;

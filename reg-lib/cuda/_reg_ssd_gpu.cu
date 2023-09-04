@@ -12,7 +12,6 @@
 
 #include "_reg_ssd_gpu.h"
 #include "_reg_ssd_kernels.cu"
-#include <thrust/device_vector.h>
 
 /* *************************************************************** */
 reg_ssd_gpu::reg_ssd_gpu(): reg_ssd::reg_ssd() {

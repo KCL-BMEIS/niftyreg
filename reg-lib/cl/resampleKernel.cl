@@ -168,12 +168,6 @@ __inline real_t interpLoop3D(__global float* floatingIntensity,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-__inline int cl_reg_floor(real_t a)
-{
-    return a > 0.0 ? (int)a : (int)(a - 1);
-}
-/* *************************************************************** */
-/* *************************************************************** */
 __inline void reg_mat44_mul_cl(__global float const* mat,
     float const* in,
     float *out)
@@ -241,8 +235,8 @@ __kernel void ResampleImage2D(__global float* floatingImage,
                 // real -> voxel; floating space
                 reg_mat44_mul_cl(sourceIJKMatrix, world, position);
 
-                previous[0] = cl_reg_floor(position[0]);
-                previous[1] = cl_reg_floor(position[1]);
+                previous[0] = Floor(position[0]);
+                previous[1] = Floor(position[1]);
 
                 relative[0] = (real_t)position[0] - (real_t)(previous[0]);
                 relative[1] = (real_t)position[1] - (real_t)(previous[1]);
@@ -333,9 +327,9 @@ __kernel void ResampleImage3D(__global float* floatingImage,
                 // real -> voxel; floating space
                 reg_mat44_mul_cl(sourceIJKMatrix, world, position);
 
-                previous[0] = cl_reg_floor(position[0]);
-                previous[1] = cl_reg_floor(position[1]);
-                previous[2] = cl_reg_floor(position[2]);
+                previous[0] = Floor(position[0]);
+                previous[1] = Floor(position[1]);
+                previous[2] = Floor(position[2]);
 
                 relative[0] = (real_t)position[0] - (real_t)(previous[0]);
                 relative[1] = (real_t)position[1] - (real_t)(previous[1]);

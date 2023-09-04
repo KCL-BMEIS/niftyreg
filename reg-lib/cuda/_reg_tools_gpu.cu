@@ -254,7 +254,7 @@ void reg_smoothImageForCubicSpline_gpu(const nifti_image *image,
 }
 /* *************************************************************** */
 void reg_multiplyValue_gpu(const size_t& count, float4 *arrayCuda, const float& value) {
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_arithmetic;
+    const unsigned blocks = CudaContext::GetBlockSize()->Arithmetic;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
     const dim3 blockDims = dim3(blocks, 1, 1);
@@ -263,7 +263,7 @@ void reg_multiplyValue_gpu(const size_t& count, float4 *arrayCuda, const float& 
 }
 /* *************************************************************** */
 void reg_addValue_gpu(const size_t& count, float4 *arrayCuda, const float& value) {
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_arithmetic;
+    const unsigned blocks = CudaContext::GetBlockSize()->Arithmetic;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
     const dim3 blockDims = dim3(blocks, 1, 1);
@@ -272,7 +272,7 @@ void reg_addValue_gpu(const size_t& count, float4 *arrayCuda, const float& value
 }
 /* *************************************************************** */
 void reg_multiplyArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cuda) {
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_arithmetic;
+    const unsigned blocks = CudaContext::GetBlockSize()->Arithmetic;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
     const dim3 blockDims = dim3(blocks, 1, 1);
@@ -281,7 +281,7 @@ void reg_multiplyArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *arr
 }
 /* *************************************************************** */
 void reg_addArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cuda) {
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_arithmetic;
+    const unsigned blocks = CudaContext::GetBlockSize()->Arithmetic;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
     const dim3 blockDims = dim3(blocks, 1, 1);
@@ -290,7 +290,7 @@ void reg_addArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cu
 }
 /* *************************************************************** */
 void reg_fillMaskArray_gpu(int *arrayCuda, const size_t& count) {
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_arithmetic;
+    const unsigned blocks = CudaContext::GetBlockSize()->Arithmetic;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
     const dim3 blockDims = dim3(blocks, 1, 1);
@@ -300,16 +300,16 @@ void reg_fillMaskArray_gpu(int *arrayCuda, const size_t& count) {
 /* *************************************************************** */
 float reg_sumReduction_gpu(float *arrayCuda, const size_t& size) {
     thrust::device_ptr<float> dptr(arrayCuda);
-    return thrust::reduce(dptr, dptr + size, 0.f, thrust::plus<float>());
+    return thrust::reduce(thrust::device, dptr, dptr + size, 0.f, thrust::plus<float>());
 }
 /* *************************************************************** */
 float reg_maxReduction_gpu(float *arrayCuda, const size_t& size) {
     thrust::device_ptr<float> dptr(arrayCuda);
-    return thrust::reduce(dptr, dptr + size, 0.f, thrust::maximum<float>());
+    return thrust::reduce(thrust::device, dptr, dptr + size, 0.f, thrust::maximum<float>());
 }
 /* *************************************************************** */
 float reg_minReduction_gpu(float *arrayCuda, const size_t& size) {
     thrust::device_ptr<float> dptr(arrayCuda);
-    return thrust::reduce(dptr, dptr + size, 0.f, thrust::minimum<float>());
+    return thrust::reduce(thrust::device, dptr, dptr + size, 0.f, thrust::minimum<float>());
 }
 /* *************************************************************** */

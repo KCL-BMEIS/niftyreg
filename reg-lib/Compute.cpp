@@ -222,7 +222,7 @@ void Compute::GetApproximatedGradient(InterfaceOptimiser& opt) {
     }, NiftiImage::getFloatingDataType(controlPointGrid));
 }
 /* *************************************************************** */
-void Compute::GetDefFieldFromVelocityGrid(bool updateStepNumber) {
+void Compute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
     F3dContent& con = dynamic_cast<F3dContent&>(this->con);
     reg_spline_getDefFieldFromVelocityGrid(con.GetControlPointGrid(),
                                            con.GetDeformationField(),

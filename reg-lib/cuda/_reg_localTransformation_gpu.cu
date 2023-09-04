@@ -19,8 +19,8 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
                                         const float4 *controlPointImageCuda,
                                         float4 *deformationFieldCuda,
                                         const int *maskCuda,
-                                        const size_t& activeVoxelNumber,
-                                        const bool& bspline) {
+                                        const size_t activeVoxelNumber,
+                                        const bool bspline) {
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -35,7 +35,7 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
 
     if (referenceImage->nz > 1) {
         const unsigned blocks = CudaContext::GetBlockSize()->reg_spline_getDeformationField3D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)activeVoxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         // 8 floats of shared memory are allocated per thread
@@ -50,7 +50,7 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = CudaContext::GetBlockSize()->reg_spline_getDeformationField2D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)activeVoxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         // 4 floats of shared memory are allocated per thread
@@ -81,7 +81,7 @@ float reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage, c
         secondDerivativeValuesSize = 6 * controlPointGridSize;
         NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValuesCuda, secondDerivativeValuesSize));
         const unsigned blocks = blockSize->reg_spline_getApproxSecondDerivatives3D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_getApproxSecondDerivatives3D<<<gridDims, blockDims>>>(secondDerivativeValuesCuda, *controlPointTexture,
@@ -91,7 +91,7 @@ float reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage, c
         secondDerivativeValuesSize = 3 * controlPointGridSize;
         NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValuesCuda, secondDerivativeValuesSize));
         const unsigned blocks = blockSize->reg_spline_getApproxSecondDerivatives2D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_getApproxSecondDerivatives2D<<<gridDims, blockDims>>>(secondDerivativeValuesCuda, *controlPointTexture,
@@ -106,7 +106,7 @@ float reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage, c
                                                               secondDerivativeValuesSize, cudaChannelFormatKindFloat, 4);
     if (controlPointImage->nz > 1) {
         const unsigned blocks = blockSize->reg_spline_getApproxBendingEnergy3D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_getApproxBendingEnergy3D_kernel<<<gridDims, blockDims>>>(penaltyTermCuda, *secondDerivativesTexture,
@@ -114,7 +114,7 @@ float reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage, c
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = blockSize->reg_spline_getApproxBendingEnergy2D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_getApproxBendingEnergy2D_kernel<<<gridDims, blockDims>>>(penaltyTermCuda, *secondDerivativesTexture,
@@ -148,7 +148,7 @@ void reg_spline_approxBendingEnergyGradient_gpu(const nifti_image *controlPointI
         secondDerivativeValuesSize = 6 * controlPointGridSize * sizeof(float4);
         NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValuesCuda, secondDerivativeValuesSize));
         const unsigned blocks = blockSize->reg_spline_getApproxSecondDerivatives3D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_getApproxSecondDerivatives3D<<<gridDims, blockDims>>>(secondDerivativeValuesCuda, *controlPointTexture,
@@ -158,7 +158,7 @@ void reg_spline_approxBendingEnergyGradient_gpu(const nifti_image *controlPointI
         secondDerivativeValuesSize = 3 * controlPointGridSize * sizeof(float4);
         NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValuesCuda, secondDerivativeValuesSize));
         const unsigned blocks = blockSize->reg_spline_getApproxSecondDerivatives2D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_getApproxSecondDerivatives2D<<<gridDims, blockDims>>>(secondDerivativeValuesCuda, *controlPointTexture,
@@ -172,7 +172,7 @@ void reg_spline_approxBendingEnergyGradient_gpu(const nifti_image *controlPointI
                                                               secondDerivativeValuesSize, cudaChannelFormatKindFloat, 4);
     if (controlPointImage->nz > 1) {
         const unsigned blocks = blockSize->reg_spline_getApproxBendingEnergyGradient3D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_getApproxBendingEnergyGradient3D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *secondDerivativesTexture,
@@ -181,7 +181,7 @@ void reg_spline_approxBendingEnergyGradient_gpu(const nifti_image *controlPointI
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = blockSize->reg_spline_getApproxBendingEnergyGradient2D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_getApproxBendingEnergyGradient2D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *secondDerivativesTexture,
@@ -208,7 +208,7 @@ void reg_spline_ComputeApproxJacobianValues(const nifti_image *controlPointImage
     // The Jacobian matrix is computed for every control point
     if (controlPointImage->nz > 1) {
         const unsigned blocks = blockSize->reg_spline_getApproxJacobianValues3D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_getApproxJacobianValues3D_kernel<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
@@ -216,7 +216,7 @@ void reg_spline_ComputeApproxJacobianValues(const nifti_image *controlPointImage
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = blockSize->reg_spline_getApproxJacobianValues2D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_getApproxJacobianValues2D_kernel<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
@@ -245,7 +245,7 @@ void reg_spline_ComputeJacobianValues(const nifti_image *controlPointImage,
     // The Jacobian matrix is computed for every voxel
     if (controlPointImage->nz > 1) {
         const unsigned blocks = blockSize->reg_spline_getJacobianValues3D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)voxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         // 8 floats of shared memory are allocated per thread
@@ -256,7 +256,7 @@ void reg_spline_ComputeJacobianValues(const nifti_image *controlPointImage,
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = blockSize->reg_spline_getJacobianValues2D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)voxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_getJacobianValues2D_kernel<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
@@ -269,7 +269,7 @@ void reg_spline_ComputeJacobianValues(const nifti_image *controlPointImage,
 double reg_spline_getJacobianPenaltyTerm_gpu(const nifti_image *referenceImage,
                                              const nifti_image *controlPointImage,
                                              const float4 *controlPointImageCuda,
-                                             const bool& approx) {
+                                             const bool approx) {
     // The Jacobian matrices and determinants are computed
     float *jacobianMatricesCuda, *jacobianDetCuda;
     size_t jacNumber; double jacSum;
@@ -294,7 +294,7 @@ double reg_spline_getJacobianPenaltyTerm_gpu(const nifti_image *referenceImage,
 
     // The Jacobian determinant are squared and logged (might not be english but will do)
     const unsigned blocks = CudaContext::GetBlockSize()->reg_spline_logSquaredValues;
-    const unsigned grids = (unsigned)ceilf(sqrtf((float)jacNumber / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)jacNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     reg_spline_logSquaredValues_kernel<<<gridDims, blockDims>>>(jacobianDetCuda, (unsigned)jacNumber);
@@ -310,8 +310,8 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceI
                                                    const nifti_image *controlPointImage,
                                                    const float4 *controlPointImageCuda,
                                                    float4 *transGradientCuda,
-                                                   const float& jacobianWeight,
-                                                   const bool& approx) {
+                                                   const float jacobianWeight,
+                                                   const bool approx) {
     auto blockSize = CudaContext::GetBlockSize();
 
     // The Jacobian matrices and determinants are computed
@@ -348,7 +348,7 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceI
     if (approx) {
         if (controlPointImage->nz > 1) {
             const unsigned blocks = blockSize->reg_spline_computeApproxJacGradient3D;
-            const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+            const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             reg_spline_computeApproxJacGradient3D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
@@ -357,7 +357,7 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceI
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         } else {
             const unsigned blocks = blockSize->reg_spline_computeApproxJacGradient2D;
-            const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+            const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             reg_spline_computeApproxJacGradient2D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
@@ -372,7 +372,7 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceI
                                                             controlPointImage->dz / referenceImage->dz);
         if (controlPointImage->nz > 1) {
             const unsigned blocks = blockSize->reg_spline_computeJacGradient3D;
-            const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+            const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             reg_spline_computeJacGradient3D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
@@ -382,7 +382,7 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceI
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         } else {
             const unsigned blocks = blockSize->reg_spline_computeJacGradient2D;
-            const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+            const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             reg_spline_computeJacGradient2D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
@@ -399,7 +399,7 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceI
 double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
                                      const nifti_image *controlPointImage,
                                      float4 *controlPointImageCuda,
-                                     const bool& approx) {
+                                     const bool approx) {
     auto blockSize = CudaContext::GetBlockSize();
 
     // The Jacobian matrices and determinants are computed
@@ -429,7 +429,7 @@ double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
     NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDet2Cuda, jacobianDetSize));
     NR_CUDA_SAFE_CALL(cudaMemcpy(jacobianDet2Cuda, jacobianDetCuda, jacobianDetSize, cudaMemcpyDeviceToDevice));
     const unsigned blocks = blockSize->reg_spline_logSquaredValues;
-    const unsigned grids = (unsigned)ceilf(sqrtf((float)jacNumber / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)jacNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     reg_spline_logSquaredValues_kernel<<<gridDims, blockDims>>>(jacobianDet2Cuda, (unsigned)jacNumber);
@@ -460,7 +460,7 @@ double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
                                                              cudaChannelFormatKindFloat, 1);
     if (approx) {
         const unsigned blocks = blockSize->reg_spline_approxCorrectFolding3D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_approxCorrectFolding3D_kernel<<<gridDims, blockDims>>>(controlPointImageCuda, *jacobianDeterminantTexture,
@@ -473,7 +473,7 @@ double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
                                                             controlPointImage->dy / referenceImage->dy,
                                                             controlPointImage->dz / referenceImage->dz);
         const unsigned blocks = blockSize->reg_spline_correctFolding3D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_spline_correctFolding3D_kernel<<<gridDims, blockDims>>>(controlPointImageCuda, *jacobianDeterminantTexture,
@@ -487,14 +487,14 @@ double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
     return std::numeric_limits<double>::quiet_NaN();
 }
 /* *************************************************************** */
-void reg_getDeformationFromDisplacement_gpu(const nifti_image *image, float4 *imageCuda, const bool& reverse = false) {
+void reg_getDeformationFromDisplacement_gpu(const nifti_image *image, float4 *imageCuda, const bool reverse = false) {
     // Bind the qform or sform
-    const mat44 affineMatrix = image->sform_code > 0 ? image->sto_xyz : image->qto_xyz;
+    const mat44& affineMatrix = image->sform_code > 0 ? image->sto_xyz : image->qto_xyz;
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
-    const int3 imageDim = make_int3(image->nx, image->ny, image->nz);
+    const int3 imageDim{ image->nx, image->ny, image->nz };
 
     const unsigned blocks = CudaContext::GetBlockSize()->reg_getDeformationFromDisplacement;
-    const unsigned grids = (unsigned)ceilf(sqrtf((float)voxelNumber / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     reg_getDeformationFromDisplacement3D_kernel<<<gridDims, blockDims>>>(imageCuda, imageDim, (unsigned)voxelNumber, affineMatrix, reverse);
@@ -552,18 +552,18 @@ void reg_getDeformationFieldFromVelocityGrid_gpu(const nifti_image *controlPoint
 void reg_defField_compose_gpu(const nifti_image *deformationField,
                               const float4 *deformationFieldCuda,
                               float4 *deformationFieldCudaOut,
-                              const size_t& activeVoxelNumber) {
+                              const size_t activeVoxelNumber) {
     auto blockSize = CudaContext::GetBlockSize();
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
-    const int3 referenceImageDim = make_int3(deformationField->nx, deformationField->ny, deformationField->nz);
-    const mat44 affineMatrixB = deformationField->sform_code > 0 ? deformationField->sto_ijk : deformationField->qto_ijk;
-    const mat44 affineMatrixC = deformationField->sform_code > 0 ? deformationField->sto_xyz : deformationField->qto_xyz;
+    const int3 referenceImageDim{ deformationField->nx, deformationField->ny, deformationField->nz };
+    const mat44& affineMatrixB = deformationField->sform_code > 0 ? deformationField->sto_ijk : deformationField->qto_ijk;
+    const mat44& affineMatrixC = deformationField->sform_code > 0 ? deformationField->sto_xyz : deformationField->qto_xyz;
     auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, cudaResourceTypeLinear,
                                                              activeVoxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
     if (deformationField->nz > 1) {
         const unsigned blocks = blockSize->reg_defField_compose3D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)voxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_defField_compose3D_kernel<<<gridDims, blockDims>>>(deformationFieldCudaOut, *deformationFieldTexture, referenceImageDim,
@@ -571,7 +571,7 @@ void reg_defField_compose_gpu(const nifti_image *deformationField,
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = blockSize->reg_defField_compose2D;
-        const unsigned grids = (unsigned)ceilf(sqrtf((float)voxelNumber / (float)blocks));
+        const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         reg_defField_compose2D_kernel<<<gridDims, blockDims>>>(deformationFieldCudaOut, *deformationFieldTexture, referenceImageDim,
@@ -590,7 +590,7 @@ void reg_defField_getJacobianMatrix_gpu(const nifti_image *deformationField,
                                                              voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
     const unsigned blocks = CudaContext::GetBlockSize()->reg_defField_getJacobianMatrix;
-    const unsigned grids = (unsigned)ceilf(sqrtf((float)voxelNumber / (float)blocks));
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     reg_defField_getJacobianMatrix3D_kernel<<<gridDims, blockDims>>>(jacobianMatricesCuda, *deformationFieldTexture, referenceImageDim,

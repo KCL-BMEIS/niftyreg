@@ -30,7 +30,7 @@ struct BlockSize {
     unsigned reg_getVoxelBasedNMIGradientUsingPW3D;
     unsigned reg_getVoxelBasedNMIGradientUsingPW2x2;
     /* _reg_globalTransformation_gpu */
-    unsigned reg_affine_deformationField;
+    unsigned reg_affine_getDeformationField;
     /* _reg_localTransformation_gpu */
     unsigned reg_spline_getDeformationField2D;
     unsigned reg_spline_getDeformationField3D;
@@ -70,7 +70,7 @@ struct BlockSize {
     unsigned reg_ApplyConvolutionWindowAlongX;
     unsigned reg_ApplyConvolutionWindowAlongY;
     unsigned reg_ApplyConvolutionWindowAlongZ;
-    unsigned reg_arithmetic;
+    unsigned Arithmetic;
     /* _reg_resampling_gpu */
     unsigned reg_resampleImage2D;
     unsigned reg_resampleImage3D;
@@ -95,7 +95,7 @@ struct BlockSize100: public BlockSize {
         reg_getVoxelBasedNMIGradientUsingPW3D = 320; // 25 reg - 24 smem - 32 cmem
         reg_getVoxelBasedNMIGradientUsingPW2x2 = 192; // 42 reg - 24 smem - 36 cmem
         /* _reg_globalTransformation_gpu */
-        reg_affine_deformationField = 512; // 16 reg - 24 smem
+        reg_affine_getDeformationField = 512; // 16 reg - 24 smem
         /* _reg_localTransformation_gpu */
         reg_spline_getDeformationField2D = 384; // 20 reg - 6168 smem - 28 cmem
         reg_spline_getDeformationField3D = 192; // 37 reg - 6168 smem - 28 cmem
@@ -135,7 +135,7 @@ struct BlockSize100: public BlockSize {
         reg_ApplyConvolutionWindowAlongX = 512; // 14 reg - 28 smem - 08 cmem
         reg_ApplyConvolutionWindowAlongY = 512; // 14 reg - 28 smem - 08 cmem
         reg_ApplyConvolutionWindowAlongZ = 512; // 15 reg - 28 smem - 08 cmem
-        reg_arithmetic = 384; // 5 reg - 24 smem
+        Arithmetic = 384; // 5 reg - 24 smem
         /* _reg_resampling_gpu */
         reg_resampleImage2D = 320; // 10 reg - 24 smem - 12 cmem
         reg_resampleImage3D = 512; // 16 reg - 24 smem - 12 cmem
@@ -162,7 +162,7 @@ struct BlockSize300: public BlockSize {
         reg_getVoxelBasedNMIGradientUsingPW3D = 640; // 45 reg
         reg_getVoxelBasedNMIGradientUsingPW2x2 = 576; // 55 reg
         /* _reg_globalTransformation_gpu */
-        reg_affine_deformationField = 1024; // 23 reg
+        reg_affine_getDeformationField = 1024; // 23 reg
         /* _reg_localTransformation_gpu */
         reg_spline_getDeformationField2D = 768; // 34 reg
         reg_spline_getDeformationField3D = 768; // 34 reg
@@ -202,7 +202,7 @@ struct BlockSize300: public BlockSize {
         reg_ApplyConvolutionWindowAlongX = 1024; // 25 reg
         reg_ApplyConvolutionWindowAlongY = 1024; // 25 reg
         reg_ApplyConvolutionWindowAlongZ = 1024; // 25 reg
-        reg_arithmetic = 1024; //
+        Arithmetic = 1024; //
         /* _reg_resampling_gpu */
         reg_resampleImage2D = 1024; // 23 reg
         reg_resampleImage3D = 1024; // 24 reg

@@ -1,5 +1,5 @@
 /*
- *  _reg_affineTransformation.h
+ *  _reg_globalTransformation_gpu.h
  *
  *
  *  Created by Marc Modat on 25/03/2009.
@@ -14,7 +14,6 @@
 
 #include "CudaCommon.hpp"
 
-extern "C++"
-void reg_affine_positionField_gpu(const mat44 *affineMatrix,
-                                  const nifti_image *targetImage,
-                                  float4 *deformationFieldCuda);
+void reg_affine_getDeformationField_gpu(const mat44 *affineMatrix,
+                                        const nifti_image *targetImage,
+                                        float4 *deformationFieldCuda);

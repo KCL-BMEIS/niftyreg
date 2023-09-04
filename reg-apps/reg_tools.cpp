@@ -806,10 +806,10 @@ int main(int argc, char **argv)
         // Define the size of the new image
         int newDim[8];
         for(size_t i=0; i<8; ++i) newDim[i]=image->dim[i];
-        newDim[1]=(int)ceilf((float)image->dim[1]*image->pixdim[1]/param->pixdimX);
-        newDim[2]=(int)ceilf((float)image->dim[2]*image->pixdim[2]/param->pixdimY);
+        newDim[1]=Ceil((float)image->dim[1]*image->pixdim[1]/param->pixdimX);
+        newDim[2]=Ceil((float)image->dim[2]*image->pixdim[2]/param->pixdimY);
         if(image->nz>1)
-            newDim[3]=(int)ceilf((float)image->dim[3]*image->pixdim[3]/param->pixdimZ);
+            newDim[3]=Ceil((float)image->dim[3]*image->pixdim[3]/param->pixdimZ);
         // Create the new image
         nifti_image *newImg=nifti_make_new_nim(newDim,image->datatype,true);
         newImg->pixdim[1]=newImg->dx=param->pixdimX;

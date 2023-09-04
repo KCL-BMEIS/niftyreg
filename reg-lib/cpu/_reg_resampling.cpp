@@ -2654,7 +2654,7 @@ nifti_image* reg_makeIsotropic(nifti_image *img, int inter) {
     for (size_t i = 0; i < 8; ++i) newDim[i] = img->dim[i];
     for (size_t i = 1; i < 4; ++i) {
         if (i < static_cast<size_t>(img->dim[0] + 1))
-            newDim[i] = (int)ceilf(img->dim[i] * img->pixdim[i] / smallestPixDim);
+            newDim[i] = Ceil(img->dim[i] * img->pixdim[i] / smallestPixDim);
     }
     // Create the new image
     nifti_image *newImg = nifti_make_new_nim(newDim, img->datatype, true);

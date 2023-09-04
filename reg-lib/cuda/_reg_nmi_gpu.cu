@@ -12,7 +12,6 @@
 
 #include "_reg_nmi_gpu.h"
 #include "_reg_nmi_kernels.cu"
-#include <thrust/device_vector.h>
 
 /* *************************************************************** */
 reg_nmi_gpu::reg_nmi_gpu(): reg_nmi::reg_nmi() {

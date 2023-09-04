@@ -460,7 +460,7 @@ int main(int argc, char **argv) {
 
     time_t end;
     time(&end);
-    const int minutes = static_cast<int>(floorf((end - start) / 60.0f));
+    const int minutes = Floor((end - start) / 60.0f);
     const int seconds = static_cast<int>(end - start) - 60 * minutes;
     NR_VERBOSE_APP("Registration performed in " << minutes << " min " << seconds << " sec");
     NR_VERBOSE_APP("Have a good day!");

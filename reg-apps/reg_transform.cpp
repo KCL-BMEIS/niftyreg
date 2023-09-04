@@ -538,7 +538,7 @@ int main(int argc, char **argv)
       }
       // Save the generated transformation
       reg_io_WriteImageFile(outputTransformationImage,param->outputTransName);
-      switch(static_cast<int>(round(outputTransformationImage->intent_p1)))
+      switch(Round(outputTransformationImage->intent_p1))
       {
       case DEF_FIELD:
          NR_INFO("The deformation field has been saved as:");

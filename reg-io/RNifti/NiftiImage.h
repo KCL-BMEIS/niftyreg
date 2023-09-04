@@ -1365,15 +1365,15 @@ protected:
 
     /**
      * Modify the pixel dimensions, and potentially the xform matrices to match
-     * @param pixdim Vector of new pixel dimensions
+     * @param pixDims Vector of new pixel dimensions
     **/
-    void updatePixdim (const std::vector<pixdim_t> &pixdim);
+    void updatePixDim (const std::vector<pixdim_t> &pixDims);
 
     /**
      * Modify the pixel dimension units
-     * @param pixunits Vector of new pixel units, specified using their standard abbreviations
+     * @param pixUnits Vector of new pixel units, specified using their standard abbreviations
     **/
-    void setPixunits (const std::vector<std::string> &pixunits);
+    void setPixUnits (const std::vector<std::string> &pixUnits);
 
 public:
     /**
@@ -1668,7 +1668,7 @@ public:
      * Set a pixel dimension of the image
      * @param dim The dimension to set
      * @param value The new value of the dimension
-    */
+    **/
     void setPixDim (const Dim dim, const pixdim_t value)
     {
         if (image == nullptr)

@@ -10,8 +10,6 @@
  */
 
 #include "CudaCommon.hpp"
-#include <thrust/host_vector.h>
-#include <thrust/device_ptr.h>
 
 /* *************************************************************** */
 namespace NiftyReg::Cuda {

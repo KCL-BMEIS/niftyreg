@@ -18,9 +18,9 @@ CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Content *conI
 void CudaAffineDeformationFieldKernel::Calculate(bool compose) {
    launchAffine(this->affineTransformation,
                 this->deformationFieldImage,
-                &deformationFieldArray_d,
-                &mask_d,
-                &transformationMatrix_d,
+                deformationFieldArray_d,
+                mask_d,
+                transformationMatrix_d,
                 compose);
 }
 /* *************************************************************** */

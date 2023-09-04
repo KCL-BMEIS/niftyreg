@@ -80,6 +80,7 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     ../AladinContent.cpp
     _reg_resampling_gpu.cu
     _reg_tools_gpu.cu
+    _reg_globalTransformation_gpu.cu
     _reg_localTransformation_gpu.cu
     _reg_nmi_gpu.cu
     _reg_ssd_gpu.cu

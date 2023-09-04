@@ -865,7 +865,7 @@ __global__ void reg_spline_getJacobianValues2D_kernel(float *jacobianMatrices,
         const int y = quot, x = rem;
 
         // the "nearest previous" node is determined [0,0,0]
-        const int2 nodeAnte = { (int)floorf((float)x / controlPointSpacing.x), (int)floorf((float)y / controlPointSpacing.y) };
+        const int2 nodeAnte = { Floor((float)x / controlPointSpacing.x), Floor((float)y / controlPointSpacing.y) };
 
         float xBasis[4], yBasis[4], xFirst[4], yFirst[4], relative;
 
@@ -937,9 +937,9 @@ __global__ void reg_spline_getJacobianValues3D_kernel(float *jacobianMatrices,
 
         // the "nearest previous" node is determined [0,0,0]
         const int3 nodeAnte = {
-            (int)floorf((float)x / controlPointSpacing.x),
-            (int)floorf((float)y / controlPointSpacing.y),
-            (int)floorf((float)z / controlPointSpacing.z)
+            Floor((float)x / controlPointSpacing.x),
+            Floor((float)y / controlPointSpacing.y),
+            Floor((float)z / controlPointSpacing.z)
         };
 
         extern __shared__ float yFirst[];
@@ -1193,14 +1193,14 @@ __global__ void reg_spline_computeJacGradient2D_kernel(float4 *gradient,
         const int y = quot, x = rem;
 
         float2 jacobianGradient{};
-        for (int pixelY = (int)ceilf((y - 3) * controlPointVoxelSpacing.y); pixelY <= (int)ceilf((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
+        for (int pixelY = Ceil((y - 3) * controlPointVoxelSpacing.y); pixelY <= Ceil((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
             if (-1 < pixelY && pixelY < referenceImageDim.y) {
                 const int yPre = (int)((float)pixelY / controlPointVoxelSpacing.y);
                 float basis = (float)pixelY / controlPointVoxelSpacing.y - (float)yPre;
                 float yBasis, yFirst;
                 GetBSplineBasisValue(basis, y - yPre, &yBasis, &yFirst);
 
-                for (int pixelX = (int)ceilf((x - 3) * controlPointVoxelSpacing.x); pixelX <= (int)ceilf((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
+                for (int pixelX = Ceil((x - 3) * controlPointVoxelSpacing.x); pixelX <= Ceil((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
                     if (-1 < pixelX && pixelX < referenceImageDim.x && (yFirst != 0.f || yBasis != 0.f)) {
                         const int xPre = (int)((float)pixelX / controlPointVoxelSpacing.x);
                         basis = (float)pixelX / controlPointVoxelSpacing.x - (float)xPre;
@@ -1250,21 +1250,21 @@ __global__ void reg_spline_computeJacGradient3D_kernel(float4 *gradient,
         const int y = quot, x = rem;
 
         float3 jacobianGradient{};
-        for (int pixelZ = (int)ceilf((z - 3) * controlPointVoxelSpacing.z); pixelZ <= (int)ceilf((z + 1) * controlPointVoxelSpacing.z); ++pixelZ) {
+        for (int pixelZ = Ceil((z - 3) * controlPointVoxelSpacing.z); pixelZ <= Ceil((z + 1) * controlPointVoxelSpacing.z); ++pixelZ) {
             if (-1 < pixelZ && pixelZ < referenceImageDim.z) {
                 const int zPre = (int)((float)pixelZ / controlPointVoxelSpacing.z);
                 float basis = (float)pixelZ / controlPointVoxelSpacing.z - (float)zPre;
                 float zBasis, zFirst;
                 GetBSplineBasisValue(basis, z - zPre, &zBasis, &zFirst);
 
-                for (int pixelY = (int)ceilf((y - 3) * controlPointVoxelSpacing.y); pixelY <= (int)ceilf((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
+                for (int pixelY = Ceil((y - 3) * controlPointVoxelSpacing.y); pixelY <= Ceil((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
                     if (-1 < pixelY && pixelY < referenceImageDim.y && (zFirst != 0.f || zBasis != 0.f)) {
                         const int yPre = (int)((float)pixelY / controlPointVoxelSpacing.y);
                         basis = (float)pixelY / controlPointVoxelSpacing.y - (float)yPre;
                         float yBasis, yFirst;
                         GetBSplineBasisValue(basis, y - yPre, &yBasis, &yFirst);
 
-                        for (int pixelX = (int)ceilf((x - 3) * controlPointVoxelSpacing.x); pixelX <= (int)ceilf((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
+                        for (int pixelX = Ceil((x - 3) * controlPointVoxelSpacing.x); pixelX <= Ceil((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
                             if (-1 < pixelX && pixelX < referenceImageDim.x && (yFirst != 0.f || yBasis != 0.f)) {
                                 const int xPre = (int)((float)pixelX / controlPointVoxelSpacing.x);
                                 basis = (float)pixelX / controlPointVoxelSpacing.x - (float)xPre;
@@ -1396,11 +1396,11 @@ __global__ void reg_spline_correctFolding3D_kernel(float4 *controlPointGrid,
         const int y = quot, x = rem;
 
         float3 foldingCorrection{};
-        for (int pixelZ = (int)ceilf((z - 3) * controlPointVoxelSpacing.z); pixelZ < (int)ceilf((z + 1) * controlPointVoxelSpacing.z); ++pixelZ) {
+        for (int pixelZ = Ceil((z - 3) * controlPointVoxelSpacing.z); pixelZ < Ceil((z + 1) * controlPointVoxelSpacing.z); ++pixelZ) {
             if (-1 < pixelZ && pixelZ < referenceImageDim.z) {
-                for (int pixelY = (int)ceilf((y - 3) * controlPointVoxelSpacing.y); pixelY < (int)ceilf((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
+                for (int pixelY = Ceil((y - 3) * controlPointVoxelSpacing.y); pixelY < Ceil((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
                     if (-1 < pixelY && pixelY < referenceImageDim.y) {
-                        for (int pixelX = (int)ceilf((x - 3) * controlPointVoxelSpacing.x); pixelX < (int)ceilf((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
+                        for (int pixelX = Ceil((x - 3) * controlPointVoxelSpacing.x); pixelX < Ceil((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
                             if (-1 < pixelX && pixelX < referenceImageDim.x) {
                                 int jacIndex = (pixelZ * referenceImageDim.y + pixelY) * referenceImageDim.x + pixelX;
                                 float detJac = tex1Dfetch<float>(jacobianDeterminantTexture, jacIndex);
@@ -1500,7 +1500,7 @@ __global__ void reg_defField_compose2D_kernel(float4 *deformationField,
         };
 
         // Linear interpolation
-        const int2 ante = { (int)floorf(voxelPosition.x), (int)floorf(voxelPosition.y) };
+        const int2 ante = { Floor(voxelPosition.x), Floor(voxelPosition.y) };
         float relX[2], relY[2];
         relX[1] = voxelPosition.x - (float)ante.x; relX[0] = 1.f - relX[1];
         relY[1] = voxelPosition.y - (float)ante.y; relY[0] = 1.f - relY[1];
@@ -1544,7 +1544,7 @@ __global__ void reg_defField_compose3D_kernel(float4 *deformationField,
         };
 
         // Linear interpolation
-        const int3 ante = { (int)floorf(voxelPosition.x), (int)floorf(voxelPosition.y), (int)floorf(voxelPosition.z) };
+        const int3 ante = { Floor(voxelPosition.x), Floor(voxelPosition.y), Floor(voxelPosition.z) };
         float relX[2], relY[2], relZ[2];
         relX[1] = voxelPosition.x - (float)ante.x; relX[0] = 1.f - relX[1];
         relY[1] = voxelPosition.y - (float)ante.y; relY[0] = 1.f - relY[1];

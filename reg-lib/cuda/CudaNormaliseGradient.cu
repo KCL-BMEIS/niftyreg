@@ -64,7 +64,7 @@ void NiftyReg::Cuda::NormaliseGradient(float4 *imageCuda,
                                        const bool& optimiseX,
                                        const bool& optimiseY,
                                        const bool& optimiseZ) {
-    const unsigned threads = CudaContext::GetBlockSize()->reg_arithmetic;
+    const unsigned threads = CudaContext::GetBlockSize()->Arithmetic;
     const unsigned blocks = static_cast<unsigned>(Ceil(sqrtf(static_cast<float>(nVoxels) / static_cast<float>(threads))));
     const dim3 blockDims(threads, 1, 1);
     const dim3 gridDims(blocks, blocks, 1);

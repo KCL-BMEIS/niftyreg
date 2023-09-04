@@ -1886,13 +1886,18 @@ DataType reg_tools_getMinMaxValue(const nifti_image *image, int timepoint, bool 
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
     const float sclSlope = image->scl_slope == 0 ? 1 : image->scl_slope;
 
+    // The min/max function
+    const DataType& (*minMax)(const DataType&, const DataType&);
+    if (calcMin) minMax = std::min<DataType>;
+    else minMax = std::max<DataType>;
+
     for (int time = 0; time < image->nt; ++time) {
         if (time == timepoint || timepoint == -1) {
             for (int u = 0; u < image->nu; ++u) {
                 const DataType *currentVolumePtr = &imgPtr[(u * image->nt + time) * voxelNumber];
                 for (size_t i = 0; i < voxelNumber; ++i) {
                     DataType currentVal = (DataType)((float)currentVolumePtr[i] * sclSlope + image->scl_inter);
-                    retValue = calcMin ? std::min(currentVal, retValue) : std::max(currentVal, retValue);
+                    retValue = minMax(currentVal, retValue);
                 }
             }
         }
@@ -2045,11 +2050,11 @@ void reg_flipAxis(const nifti_image *image, void **outputArray, const std::strin
         }
     }
 
-    // Define the reading and writting pointers
+    // Define the reading and writing pointers
     const DataType *inputPtr = static_cast<const DataType*>(image->data);
     DataType *outputPtr = static_cast<DataType*>(*outputArray);
 
-    // Copy the data and flipp axis if required
+    // Copy the data and flip axis if required
     for (int w = 0, w2 = start[6]; w < image->nw; ++w, w2 += increment[6]) {
         size_t index_w = w2 * image->nx * image->ny * image->nz * image->nt * image->nu * image->nv;
         for (int v = 0, v2 = start[5]; v < image->nv; ++v, v2 += increment[5]) {

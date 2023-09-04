@@ -3,10 +3,6 @@
 #include "cublas_v2.h"
 #include "cusolverDn.h"
 
-#include <thrust/device_vector.h>
-#include <thrust/device_ptr.h>
-#include <thrust/gather.h>
-#include <thrust/sort.h>
 #include <cmath>
 
 #include "_reg_maths.h"

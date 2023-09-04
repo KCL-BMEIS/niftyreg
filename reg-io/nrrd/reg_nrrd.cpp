@@ -205,7 +205,7 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
       if(niiImage->ndim>=3)
          qform_orientation_matrix.m[2][3]=niiImage->qoffset_z=nrrdImage->spaceOrigin[2];
 
-      // Flipp the orientation to fit ITK's filters
+      // Flip the orientation to fit ITK's filters
       qform_orientation_matrix.m[0][0] *= -1.0f;
       qform_orientation_matrix.m[1][1] *= -1.0f;
 

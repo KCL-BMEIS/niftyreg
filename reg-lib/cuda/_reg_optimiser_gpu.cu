@@ -1,9 +1,6 @@
 #include "_reg_optimiser_gpu.h"
 #include "_reg_optimiser_kernels.cu"
 #include "_reg_common_cuda_kernels.cu"
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
-#include <thrust/inner_product.h>
 
 /* *************************************************************** */
 reg_optimiser_gpu::reg_optimiser_gpu(): reg_optimiser<float>::reg_optimiser() {
@@ -172,7 +169,7 @@ void reg_conjugateGradient_gpu::Perturbation(float length) {
 void reg_initialiseConjugateGradient_gpu(float4 *gradientImageCuda,
                                          float4 *conjugateGCuda,
                                          float4 *conjugateHCuda,
-                                         const size_t& nVoxels) {
+                                         const size_t nVoxels) {
     auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, cudaResourceTypeLinear,
                                                           nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
@@ -195,12 +192,12 @@ struct Float2Sum {
 void reg_getConjugateGradient_gpu(float4 *gradientImageCuda,
                                   float4 *conjugateGCuda,
                                   float4 *conjugateHCuda,
-                                  const size_t& nVoxels,
-                                  const bool& isSymmetric,
+                                  const size_t nVoxels,
+                                  const bool isSymmetric,
                                   float4 *gradientImageBwCuda,
                                   float4 *conjugateGBwCuda,
                                   float4 *conjugateHBwCuda,
-                                  const size_t& nVoxelsBw) {
+                                  const size_t nVoxelsBw) {
     auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, cudaResourceTypeLinear,
                                                           nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
     auto conjugateGTexture = Cuda::CreateTextureObject(conjugateGCuda, cudaResourceTypeLinear,
@@ -260,14 +257,14 @@ void reg_getConjugateGradient_gpu(float4 *gradientImageCuda,
     }
 }
 /* *************************************************************** */
-void reg_updateControlPointPosition_gpu(const size_t& nVoxels,
+void reg_updateControlPointPosition_gpu(const size_t nVoxels,
                                         float4 *controlPointImageCuda,
                                         const float4 *bestControlPointCuda,
                                         const float4 *gradientImageCuda,
-                                        const float& scale,
-                                        const bool& optimiseX,
-                                        const bool& optimiseY,
-                                        const bool& optimiseZ) {
+                                        const float scale,
+                                        const bool optimiseX,
+                                        const bool optimiseY,
+                                        const bool optimiseZ) {
     auto bestControlPointTexture = Cuda::CreateTextureObject(bestControlPointCuda, cudaResourceTypeLinear,
                                                              nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
     auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, cudaResourceTypeLinear,
@@ -277,7 +274,8 @@ void reg_updateControlPointPosition_gpu(const size_t& nVoxels,
     const unsigned grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
     const dim3 blockDims(blocks, 1, 1);
     const dim3 gridDims(grids, grids, 1);
-    reg_updateControlPointPosition_kernel<<<gridDims, blockDims>>>(controlPointImageCuda, *bestControlPointTexture, *gradientImageTexture, (unsigned)nVoxels, scale, optimiseX, optimiseY, optimiseZ);
+    reg_updateControlPointPosition_kernel<<<gridDims, blockDims>>>(controlPointImageCuda, *bestControlPointTexture, *gradientImageTexture,
+                                                                   (unsigned)nVoxels, scale, optimiseX, optimiseY, optimiseZ);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */

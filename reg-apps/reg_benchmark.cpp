@@ -122,9 +122,9 @@ int main(int argc, char **argv)
 
    // A control point image is created
    dim_img[0]=5;
-   dim_img[1]=(int)floor(targetImage->nx*targetImage->dx/gridSpacing)+4;
-   dim_img[2]=(int)floor(targetImage->ny*targetImage->dy/gridSpacing)+4;
-   dim_img[3]=(int)floor(targetImage->nz*targetImage->dz/gridSpacing)+4;
+   dim_img[1]=Floor(targetImage->nx*targetImage->dx/gridSpacing)+4;
+   dim_img[2]=Floor(targetImage->ny*targetImage->dy/gridSpacing)+4;
+   dim_img[3]=Floor(targetImage->nz*targetImage->dz/gridSpacing)+4;
    dim_img[5]=3;
    dim_img[4]=dim_img[6]=dim_img[7]=1;
    nifti_image *controlPointImage = nifti_make_new_nim(dim_img, NIFTI_TYPE_FLOAT32, true);
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf( "CPU - %i affine deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i affine deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -255,13 +255,13 @@ int main(int argc, char **argv)
          time(&start);
          for(int i=0; i<maxIt; ++i)
          {
-            reg_affine_positionField_gpu(   affineTransformation,
-                                            targetImage,
-                                            &deformationFieldImageArray_d);
+            reg_affine_getDeformationField_gpu(affineTransformation,
+                                               targetImage,
+                                               &deformationFieldImageArray_d);
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i affine deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i affine deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -295,7 +295,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i spline deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i spline deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -314,7 +314,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i spline deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i spline deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -345,7 +345,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i scaling-and-squaring - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i scaling-and-squarings - %i min %i sec\n", maxIt, minutes, seconds);
@@ -362,7 +362,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i scaling-and-squaring - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i scaling-and-squarings - %i min %i sec\n", maxIt, minutes, seconds);
@@ -395,7 +395,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i linear interpolation computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i linear interpolation computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -416,7 +416,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i linear interpolation computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i linear interpolation computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -447,7 +447,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -466,7 +466,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -525,7 +525,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -558,7 +558,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -588,9 +588,9 @@ int main(int argc, char **argv)
       maxIt=10000 / dimension;
 //        maxIt=1;
       int smoothingRadius[3];
-      smoothingRadius[0] = (int)floor( 2.0*controlPointImage->dx/targetImage->dx );
-      smoothingRadius[1] = (int)floor( 2.0*controlPointImage->dy/targetImage->dy );
-      smoothingRadius[2] = (int)floor( 2.0*controlPointImage->dz/targetImage->dz );
+      smoothingRadius[0] = Floor( 2.0*controlPointImage->dx/targetImage->dx );
+      smoothingRadius[1] = Floor( 2.0*controlPointImage->dy/targetImage->dy );
+      smoothingRadius[2] = Floor( 2.0*controlPointImage->dz/targetImage->dz );
       time(&start);
       for(int i=0; i<maxIt; ++i)
       {
@@ -599,7 +599,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i node-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i node-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -620,7 +620,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i node-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i node-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -650,7 +650,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i BE computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i BE computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -665,7 +665,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i BE computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i BE computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -690,7 +690,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -708,7 +708,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -729,7 +729,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -743,7 +743,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -764,7 +764,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i Approx. |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i Approx. |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -778,7 +778,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i Approx. |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i Approx. |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -831,7 +831,7 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -852,7 +852,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);

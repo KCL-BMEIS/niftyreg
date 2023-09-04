@@ -989,7 +989,7 @@ inline void NiftiImage::initFromMriImage (const Rcpp::RObject &object, const boo
         this->image->pixdim[i+1] = std::abs(pixdimVector[i]);
 
     const std::vector<std::string> pixunitsVector = mriImage.field("voxelDimUnits");
-    setPixunits(pixunitsVector);
+    setPixUnits(pixunitsVector);
 
     if (xform.rows() != 4 || xform.cols() != 4)
         this->image->qform_code = this->image->sform_code = 0;
@@ -1074,7 +1074,7 @@ inline void NiftiImage::initFromArray (const Rcpp::RObject &object, const bool c
     if (object.hasAttribute("pixunits"))
     {
         const std::vector<std::string> pixunitsVector = object.attr("pixunits");
-        setPixunits(pixunitsVector);
+        setPixUnits(pixunitsVector);
     }
 }
 
@@ -1303,23 +1303,23 @@ inline NiftiImage::NiftiImage (const std::string &path, const std::vector<dim_t>
     RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from string and volume vector)", RNIFTI_NIFTILIB_VERSION, this->image);
 }
 
-inline void NiftiImage::updatePixdim (const std::vector<pixdim_t> &pixdim)
+inline void NiftiImage::updatePixDim (const std::vector<pixdim_t> &pixDims)
 {
     const int nDims = image->dim[0];
-    const std::vector<pixdim_t> origPixdim(image->pixdim+1, image->pixdim+4);
+    const std::vector<pixdim_t> origPixDims(image->pixdim+1, image->pixdim+4);
 
     for (int i=1; i<8; i++)
         image->pixdim[i] = 0.0;
 
-    const int pixdimLength = static_cast<int>(pixdim.size());
+    const int pixdimLength = static_cast<int>(pixDims.size());
     for (int i=0; i<std::min(pixdimLength,nDims); i++)
-        image->pixdim[i+1] = pixdim[i];
+        image->pixdim[i+1] = pixDims[i];
 
-    if (!std::equal(origPixdim.begin(), origPixdim.begin() + std::min(3,nDims), pixdim.begin()))
+    if (!std::equal(origPixDims.begin(), origPixDims.begin() + std::min(3,nDims), pixDims.begin()))
     {
         Xform::Matrix scaleMatrix = Xform::Matrix::eye();
         for (int i=0; i<std::min(pixdimLength,3); i++)
-            scaleMatrix(i,i) = pixdim[i] / origPixdim[i];
+            scaleMatrix(i,i) = pixDims[i] / origPixDims[i];
 
         if (image->qform_code > 0)
             this->qform() = qform().matrix() * scaleMatrix;
@@ -1328,27 +1328,27 @@ inline void NiftiImage::updatePixdim (const std::vector<pixdim_t> &pixdim)
     }
 }
 
-inline void NiftiImage::setPixunits (const std::vector<std::string> &pixunits)
+inline void NiftiImage::setPixUnits (const std::vector<std::string> &pixUnits)
 {
-    for (size_t i=0; i<pixunits.size(); i++)
+    for (size_t i=0; i<pixUnits.size(); i++)
     {
-        if (pixunits[i] == "m")
+        if (pixUnits[i] == "m")
             image->xyz_units = NIFTI_UNITS_METER;
-        else if (pixunits[i] == "mm")
+        else if (pixUnits[i] == "mm")
             image->xyz_units = NIFTI_UNITS_MM;
-        else if (pixunits[i] == "um")
+        else if (pixUnits[i] == "um")
             image->xyz_units = NIFTI_UNITS_MICRON;
-        else if (pixunits[i] == "s")
+        else if (pixUnits[i] == "s")
             image->time_units = NIFTI_UNITS_SEC;
-        else if (pixunits[i] == "ms")
+        else if (pixUnits[i] == "ms")
             image->time_units = NIFTI_UNITS_MSEC;
-        else if (pixunits[i] == "us")
+        else if (pixUnits[i] == "us")
             image->time_units = NIFTI_UNITS_USEC;
-        else if (pixunits[i] == "Hz")
+        else if (pixUnits[i] == "Hz")
             image->time_units = NIFTI_UNITS_HZ;
-        else if (pixunits[i] == "ppm")
+        else if (pixUnits[i] == "ppm")
             image->time_units = NIFTI_UNITS_PPM;
-        else if (pixunits[i] == "rad/s")
+        else if (pixUnits[i] == "rad/s")
             image->time_units = NIFTI_UNITS_RADS;
     }
 }
@@ -1366,7 +1366,7 @@ inline NiftiImage & NiftiImage::rescale (const std::vector<pixdim_t> &scales)
         }
     }
 
-    updatePixdim(pixdim);
+    updatePixDim(pixdim);
 
     // Data vector is now the wrong size, so drop it
 #if RNIFTI_NIFTILIB_VERSION == 1
@@ -1685,13 +1685,13 @@ inline NiftiImage & NiftiImage::update (const Rcpp::RObject &object)
         if (object.hasAttribute("pixdim"))
         {
             const std::vector<pixdim_t> pixdimVector = object.attr("pixdim");
-            updatePixdim(pixdimVector);
+            updatePixDim(pixdimVector);
         }
 
         if (object.hasAttribute("pixunits"))
         {
             const std::vector<std::string> pixunitsVector = object.attr("pixunits");
-            setPixunits(pixunitsVector);
+            setPixUnits(pixunitsVector);
         }
 
         // This library function clobbers dim[0] if the last dimension is unitary; we undo that here

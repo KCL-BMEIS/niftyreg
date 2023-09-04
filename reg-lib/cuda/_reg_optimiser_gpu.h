@@ -93,30 +93,27 @@ public:
     virtual void Perturbation(float length) override;
 };
 /* *************************************************************** */
-extern "C++"
 void reg_initialiseConjugateGradient_gpu(float4 *gradientImageCuda,
                                          float4 *conjugateGCuda,
                                          float4 *conjugateHCuda,
-                                         const size_t& nVoxels);
+                                         const size_t nVoxels);
 /* *************************************************************** */
-extern "C++"
 void reg_getConjugateGradient_gpu(float4 *gradientImageCuda,
                                   float4 *conjugateGCuda,
                                   float4 *conjugateHCuda,
-                                  const size_t& nVoxels,
-                                  const bool& isSymmetric,
+                                  const size_t nVoxels,
+                                  const bool isSymmetric,
                                   float4 *gradientImageBwCuda,
                                   float4 *conjugateGBwCuda,
                                   float4 *conjugateHBwCuda,
-                                  const size_t& nVoxelsBw);
+                                  const size_t nVoxelsBw);
 /* *************************************************************** */
-extern "C++"
-void reg_updateControlPointPosition_gpu(const size_t& nVoxels,
+void reg_updateControlPointPosition_gpu(const size_t nVoxels,
                                         float4 *controlPointImageCuda,
                                         const float4 *bestControlPointCuda,
                                         const float4 *gradientImageCuda,
-                                        const float& scale,
-                                        const bool& optimiseX,
-                                        const bool& optimiseY,
-                                        const bool& optimiseZ);
+                                        const float scale,
+                                        const bool optimiseX,
+                                        const bool optimiseY,
+                                        const bool optimiseZ);
 /* *************************************************************** */

@@ -11,6 +11,15 @@
 
 #include <cuda_runtime.h>
 #include <cuda.h>
+#include <thrust/device_ptr.h>
+#include <thrust/device_vector.h>
+#include <thrust/execution_policy.h>
+#include <thrust/gather.h>
+#include <thrust/host_vector.h>
+#include <thrust/inner_product.h>
+#include <thrust/reduce.h>
+#include <thrust/sequence.h>
+#include <thrust/sort.h>
 #include "_reg_tools.h"
 #include "CudaContext.hpp"
 

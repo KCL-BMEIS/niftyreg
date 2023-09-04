@@ -1,26 +1,5 @@
-#include <stdio.h>
-#include <assert.h>
-#include <cuda_runtime.h>
-#include <cuda.h>
-#include"_reg_resampling.h"
-#include"_reg_maths.h"
-#include "CudaCommon.hpp"
-#include"_reg_tools.h"
-#include"_reg_ReadWriteImage.h"
-#include <thrust/sort.h>
-#include <thrust/device_vector.h>
-#include <thrust/device_ptr.h>
-#include <thrust/gather.h>
-#include "affineDeformationKernel.h"
-//CUDA affine kernel
-/* *************************************************************** */
-__device__ __inline__ void getPosition(float* position, float* matrix, double* voxel, const unsigned idx)
-{
-   position[idx] = (float) ((double) matrix[idx * 4 + 0] * voxel[0] +
-         (double) matrix[idx * 4 + 1] * voxel[1] +
-         (double) matrix[idx * 4 + 2] * voxel[2] +
-         (double) matrix[idx * 4 + 3]);
-}
+#include"_reg_tools_gpu.h"
+
 /* *************************************************************** */
 __device__ __inline__ double getPosition(float* matrix, double* voxel, const unsigned idx)
 {
@@ -31,20 +10,20 @@ __device__ __inline__ double getPosition(float* matrix, double* voxel, const uns
           (double)matrix[index];
 }
 /* *************************************************************** */
-__global__ void affineKernel(float* transformationMatrix,
-                             float* defField,
-                             int* mask,
+__global__ void affineKernel(float *transformationMatrix,
+                             float *defField,
+                             const int *mask,
                              const uint3 dims,
-                             const unsigned long voxelNumber,
+                             const unsigned voxelNumber,
                              const bool composition)
 {
    // Get the current coordinate
    const unsigned x = blockIdx.x * blockDim.x + threadIdx.x;
    const unsigned y = blockIdx.y * blockDim.y + threadIdx.y;
    const unsigned z = blockIdx.z * blockDim.z + threadIdx.z;
-   const unsigned long index = x + dims.x * (y + z * dims.y);
+   const unsigned index = x + dims.x * (y + z * dims.y);
 
-   if (z<dims.z && y<dims.y && x<dims.x &&  mask[index] >= 0)
+   if (z<dims.z && y<dims.y && x<dims.x && mask[index] >= 0)
    {
       double voxel[3];
       float *deformationFieldPtrX = &defField[index];
@@ -64,9 +43,9 @@ __global__ void affineKernel(float* transformationMatrix,
 /* *************************************************************** */
 void launchAffine(mat44 *affineTransformation,
                   nifti_image *deformationField,
-                  float **def_d,
-                  int **mask_d,
-                  float **trans_d,
+                  float *def_d,
+                  const int *mask_d,
+                  float *trans_d,
                   bool compose) {
 
    const unsigned xThreads = 8;
@@ -84,10 +63,10 @@ void launchAffine(mat44 *affineTransformation,
    const mat44 *targetMatrix = (deformationField->sform_code > 0) ? &(deformationField->sto_xyz) : &(deformationField->qto_xyz);
    mat44 transformationMatrix = compose ? *affineTransformation : reg_mat44_mul(affineTransformation, targetMatrix);
    mat44ToCptr(transformationMatrix, trans);
-   NR_CUDA_SAFE_CALL(cudaMemcpy(*trans_d, trans, 16 * sizeof(float), cudaMemcpyHostToDevice));
+   NR_CUDA_SAFE_CALL(cudaMemcpy(trans_d, trans, 16 * sizeof(float), cudaMemcpyHostToDevice));
    free(trans);
 
    uint3 dims_d = make_uint3(deformationField->nx, deformationField->ny, deformationField->nz);
-   affineKernel<<<G1_b, B1_b>>>(*trans_d, *def_d, *mask_d, dims_d, NiftiImage::calcVoxelNumber(deformationField, 3), compose);
+   affineKernel<<<G1_b, B1_b>>>(trans_d, def_d, mask_d, dims_d, (unsigned)NiftiImage::calcVoxelNumber(deformationField, 3), compose);
    NR_CUDA_CHECK_KERNEL(G1_b, B1_b);
 }

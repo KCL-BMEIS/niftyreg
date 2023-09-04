@@ -152,7 +152,7 @@ void reg_defFieldInvert(nifti_image *inputDeformationField,
 extern "C++"
 void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
                                                    nifti_image *deformationFieldImage,
-                                                   bool updateStepNumber);
+                                                   const bool updateStepNumber);
 /* *************************************************************** */
 /** @brief The deformation field (img2) is computed by integrating
  * a velocity Grid (img1)
@@ -164,7 +164,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
 extern "C++"
 void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                             nifti_image *deformationFieldImage,
-                                            bool updateStepNumber);
+                                            const bool updateStepNumber);
 /* *************************************************************** */
 extern "C++"
 void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
@@ -181,12 +181,12 @@ void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
 /* *********************************************** */
 
 /* *************************************************************** */
-/** @brief This function compute the BCH update using an initial verlocity field
+/** @brief This function compute the BCH update using an initial velocity field
  * and its gradient.
  * @param img1 Image that contains the velocity field parametrisation
  * This image is updated
  * @param img2 This image contains the gradient to use
- * @param type The type encodes the number of component of the serie
+ * @param type The type encodes the number of component of the series
  * to be considered:
  * 0 - w=u+v
  * 1 - w=u+v+0.5*[u,v]

@@ -25,7 +25,7 @@ public:
     virtual void NormaliseGradient(double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ);
     virtual void SmoothGradient(float sigma);
     virtual void GetApproximatedGradient(InterfaceOptimiser& opt);
-    virtual void GetDefFieldFromVelocityGrid(bool updateStepNumber);
+    virtual void GetDefFieldFromVelocityGrid(const bool updateStepNumber);
     virtual void ConvolveVoxelBasedMeasureGradient(float weight);
     virtual void ExponentiateGradient(Content& conBw);
     virtual void UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ);
