@@ -2144,6 +2144,19 @@ public:
     }
 
     /**
+     * Set the intent name of the image
+     * @param name A string giving the new intent name
+    **/
+    void setIntentName(const std::string& name) {
+        if (image != nullptr)
+        {
+            constexpr size_t intentNameLength = sizeof(image->intent_name) / sizeof(*image->intent_name);
+            std::fill_n(image->intent_name, intentNameLength, 0);
+            std::copy_n(name.begin(), std::min(name.length(), intentNameLength - 1), image->intent_name);
+        }
+    }
+
+    /**
      * Write the image to a NIfTI-1 file
      * @param fileName The file name to write to, with appropriate suffix (e.g. ".nii.gz")
      * @param datatype The datatype to use when writing the file
