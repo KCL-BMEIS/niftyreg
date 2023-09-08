@@ -364,8 +364,8 @@ template void reg_createSymmetricControlPointGrids<float>(NiftiImage&, NiftiImag
 template void reg_createSymmetricControlPointGrids<double>(NiftiImage&, NiftiImage&, const NiftiImage&, const NiftiImage&, const mat44*, const float*);
 /* *************************************************************** */
 extern "C++" template <class DataType>
-void reg_createDeformationField(NiftiImage & deformationFieldImage,
-                                const NiftiImage & referenceImage) {
+void reg_createDeformationField(NiftiImage& deformationFieldImage,
+                                const nifti_image *referenceImage) {
     // The header information from the reference image are copied over
     deformationFieldImage = nifti_copy_nim_info(referenceImage);
     // The dimension are updated to store the deformation vector along U index
@@ -398,8 +398,8 @@ void reg_createDeformationField(NiftiImage & deformationFieldImage,
     // The displacement field is converted into a deformation field
     reg_getDeformationFromDisplacement(deformationFieldImage);
 }
-template void reg_createDeformationField<float>(NiftiImage&, const NiftiImage&);
-template void reg_createDeformationField<double>(NiftiImage&, const NiftiImage&);
+template void reg_createDeformationField<float>(NiftiImage&, const nifti_image*);
+template void reg_createDeformationField<double>(NiftiImage&, const nifti_image*);
 /* *************************************************************** */
 template<class DataType>
 void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,

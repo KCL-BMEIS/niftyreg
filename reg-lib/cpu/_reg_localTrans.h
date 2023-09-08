@@ -55,8 +55,8 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
 * size and orientation.
 */
 extern "C++" template <class DataType>
-void reg_createDeformationField(NiftiImage & deformationFieldImage,
-                                const NiftiImage & referenceImage);
+void reg_createDeformationField(NiftiImage& deformationFieldImage,
+                                const nifti_image *referenceImage);
 /* *************************************************************** */
 /** @brief Compute a dense deformation field in the space of a reference
  * image from a grid of control point.
