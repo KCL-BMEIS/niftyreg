@@ -176,13 +176,14 @@ void reg_f3d<T>::Initialise() {
         if (this->referencePyramid[0]->nz > 1)
             gridSpacing[2] = spacingInMillimetre[2] * powf(2, this->levelNumber - 1);
 
-        // Create and allocate the control point image
+        // Create and allocate the control point image - by default the transformation is initialised
+        // to an identity transformation
         reg_createControlPointGrid<T>(controlPointGrid, this->referencePyramid[0], gridSpacing);
 
-        // The control point position image is initialised with the affine transformation
-        if (!this->affineTransformation) {
-            reg_getDeformationFromDisplacement(controlPointGrid);
-        } else reg_affine_getDeformationField(this->affineTransformation.get(), controlPointGrid);
+        // The control point grid is updated with an identity transformation
+        if (this->affineTransformation) {
+            reg_affine_getDeformationField(this->affineTransformation.get(), controlPointGrid);
+        }
     } else {
         // The control point grid image is initialised with the provided grid
         controlPointGrid = inputControlPointGrid;
@@ -419,15 +420,16 @@ void reg_f3d<T>::DisplayCurrentLevelParameters(int currentLevel) {
     NR_VERBOSE("\t* image dimension: " << controlPointGrid->nx << " x " << controlPointGrid->ny << " x " << controlPointGrid->nz);
     NR_VERBOSE("\t* image spacing: " << controlPointGrid->dx << " x " << controlPointGrid->dy << " x " << controlPointGrid->dz << " mm");
 
+    // Input matrices are only printed out in debug
     if (reference->sform_code > 0)
-        NR_MAT44_VERBOSE(reference->sto_xyz, "Reference sform");
-    else NR_MAT44_VERBOSE(reference->qto_xyz, "Reference qform");
+        NR_MAT44_DEBUG(reference->sto_xyz, "Reference sform");
+    else NR_MAT44_DEBUG(reference->qto_xyz, "Reference qform");
     if (floating->sform_code > 0)
-        NR_MAT44_VERBOSE(floating->sto_xyz, "Floating sform");
-    else NR_MAT44_VERBOSE(floating->qto_xyz, "Floating qform");
+        NR_MAT44_DEBUG(floating->sto_xyz, "Floating sform");
+    else NR_MAT44_DEBUG(floating->qto_xyz, "Floating qform");
     if (controlPointGrid->sform_code > 0)
-        NR_MAT44_VERBOSE(controlPointGrid->sto_xyz, "CPP sform");
-    else NR_MAT44_VERBOSE(controlPointGrid->qto_xyz, "CPP qform");
+        NR_MAT44_DEBUG(controlPointGrid->sto_xyz, "CPP sform");
+    else NR_MAT44_DEBUG(controlPointGrid->qto_xyz, "CPP qform");
 
     NR_FUNC_CALLED();
 }

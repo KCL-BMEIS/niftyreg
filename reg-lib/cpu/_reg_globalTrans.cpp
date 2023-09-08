@@ -38,8 +38,6 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
       transformationMatrix = *affineTransformation;
    else transformationMatrix = reg_mat44_mul(affineTransformation, referenceMatrix);
 
-   NR_MAT44(transformationMatrix, "Global affine transformation");
-
    double voxel[3]={0,0,0}, position[3]={0,0,0};
    int x=0, y=0;
    size_t index=0;
@@ -98,8 +96,6 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
    if(composition)
       transformationMatrix = *affineTransformation;
    else transformationMatrix = reg_mat44_mul(affineTransformation, referenceMatrix);
-
-   NR_MAT44(transformationMatrix, "Global affine transformation");
 
    double voxel[3]={0,0,0}, position[3]={0,0,0};
    int x=0, y=0, z=0;

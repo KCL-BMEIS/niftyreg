@@ -65,11 +65,21 @@ public:
     virtual unsigned short* GetFloatingBinNumber() {
         return this->floatingBinNumber;
     }
+    virtual void SetApproximatePW(bool val) {
+        this->approximatePW = val;
+    }
+    virtual void ApproximatePW() {
+        this->approximatePW = true;
+    }
+    virtual void DoNotApproximatePW() {
+        this->approximatePW = false;
+    }
 
 protected:
     unsigned short referenceBinNumber[255];
     unsigned short floatingBinNumber[255];
     unsigned short totalBinNumber[255];
+    bool approximatePW;
     double **jointHistogramPro;
     double **jointHistogramLog;
     double **entropyValues;
@@ -90,7 +100,8 @@ void reg_getNMIValue(const nifti_image *referenceImage,
                      double **jointHistogramLog,
                      double **jointHistogramPro,
                      double **entropyValues,
-                     const int *referenceMask);
+                     const int *referenceMask,
+                     const bool approximation=true);
 /* *************************************************************** */
 // Simple class to dynamically manage an array of pointers
 // Needed for multi channel NMI
