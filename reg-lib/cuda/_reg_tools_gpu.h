@@ -44,8 +44,6 @@ void reg_multiplyArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *arr
 /* *************************************************************** */
 void reg_addArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cuda);
 /* *************************************************************** */
-void reg_fillMaskArray_gpu(int *arrayCuda, const size_t& count);
-/* *************************************************************** */
 float reg_sumReduction_gpu(float *arrayCuda, const size_t& size);
 /* *************************************************************** */
 float reg_maxReduction_gpu(float *arrayCuda, const size_t& size);

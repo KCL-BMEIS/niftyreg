@@ -154,15 +154,13 @@ void CudaCompute::GetApproximatedGradient(InterfaceOptimiser& opt) {
     Compute::GetApproximatedGradient(opt);
 }
 /* *************************************************************** */
-void CudaCompute::GetDefFieldFromVelocityGrid(bool updateStepNumber) {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
-    Compute::GetDefFieldFromVelocityGrid(updateStepNumber);
-    // Transfer the data back to the CUDA device
+void CudaCompute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    // TODO update only the required ones
-    con.UpdateControlPointGrid();
-    con.UpdateDeformationField();
+    reg_spline_getDefFieldFromVelocityGrid_gpu(con.F3dContent::GetControlPointGrid(),
+                                               con.F3dContent::GetDeformationField(),
+                                               con.GetControlPointGridCuda(),
+                                               con.GetDeformationFieldCuda(),
+                                               updateStepNumber);
 }
 /* *************************************************************** */
 void CudaCompute::VoxelCentricToNodeCentric(float weight) {

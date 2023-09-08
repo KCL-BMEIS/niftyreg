@@ -12,6 +12,7 @@
 
 #include "_reg_localTransformation_gpu.h"
 #include "_reg_localTransformation_kernels.cu"
+#include "_reg_globalTransformation_gpu.h"
 
 /* *************************************************************** */
 void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
@@ -505,48 +506,36 @@ void reg_getDisplacementFromDeformation_gpu(const nifti_image *image, float4 *im
     reg_getDeformationFromDisplacement_gpu(image, imageCuda, true);
 }
 /* *************************************************************** */
-void reg_getDeformationFieldFromVelocityGrid_gpu(const nifti_image *controlPointImage,
-                                                 const nifti_image *deformationField,
-                                                 const float4 *controlPointImageCuda,
-                                                 float4 *deformationFieldCuda) {
-    const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
+void reg_spline_getFlowFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
+                                                 const nifti_image *flowField,
+                                                 float4 *velocityFieldGridCuda,
+                                                 float4 *flowFieldCuda,
+                                                 const int *maskCuda,
+                                                 const size_t activeVoxelNumber) {
+    // Check first if the velocity field is actually a velocity field
+    if (velocityFieldGrid->intent_p1 != SPLINE_VEL_GRID)
+        NR_FATAL_ERROR("The provided grid is not a velocity field");
 
-    // Create a mask array where no voxel are excluded
-    int *maskCuda = nullptr;
-    NR_CUDA_SAFE_CALL(cudaMalloc(&maskCuda, voxelNumber * sizeof(int)));
-    reg_fillMaskArray_gpu(maskCuda, voxelNumber);
+    // Initialise the flow field with an identity transformation
+    reg_getDeformationFromDisplacement_gpu(flowField, flowFieldCuda);
 
-    // Define some variables for the deformation fields
-    float4 *tempDefCuda = nullptr;
-    NR_CUDA_SAFE_CALL(cudaMalloc(&tempDefCuda, voxelNumber * sizeof(float4)));
+    // fake the number of extension here to avoid the second half of the affine
+    const auto oldNumExt = velocityFieldGrid->num_ext;
+    if (oldNumExt > 1)
+        velocityFieldGrid->num_ext = 1;
 
-    // The deformation field is computed
-    reg_spline_getDeformationField_gpu(controlPointImage, deformationField, controlPointImageCuda,
-                                       deformationFieldCuda, maskCuda, voxelNumber, true); // non-interpolant spline is used
+    // Copy over the number of required squaring steps
+    // The initial flow field is generated using cubic B-Spline interpolation/approximation
+    // TODO Composition is needed
+    reg_spline_getDeformationField_gpu(velocityFieldGrid,
+                                       flowField,
+                                       velocityFieldGridCuda,
+                                       flowFieldCuda,
+                                       maskCuda,
+                                       activeVoxelNumber,
+                                       true); // bspline
 
-    // The deformation field is converted into a displacement field
-    reg_getDisplacementFromDeformation_gpu(deformationField, deformationFieldCuda);
-
-    // Scaling of the deformation field
-    const unsigned squaringNumber = (unsigned)fabs(controlPointImage->intent_p1);
-    const float scalingValue = pow(2.f, (float)squaringNumber);
-    // Backward/forward deformation field is scaled down
-    reg_multiplyValue_gpu((int)voxelNumber, deformationFieldCuda, (controlPointImage->intent_p1 < 0  ? -1.f : 1.f) / scalingValue);
-
-    // The displacement field is converted back into a deformation field
-    reg_getDeformationFromDisplacement_gpu(deformationField, deformationFieldCuda);
-
-    // The deformation field is squared
-    for (unsigned i = 0; i < squaringNumber; ++i) {
-        // The deformation field arrays are updated
-        NR_CUDA_SAFE_CALL(cudaMemcpy(tempDefCuda, deformationFieldCuda, voxelNumber * sizeof(float4), cudaMemcpyDeviceToDevice));
-
-        // The deformation fields are composed
-        reg_defField_compose_gpu(deformationField, tempDefCuda, deformationFieldCuda, voxelNumber);
-    }
-
-    NR_CUDA_SAFE_CALL(cudaFree(tempDefCuda));
-    NR_CUDA_SAFE_CALL(cudaFree(maskCuda));
+    velocityFieldGrid->num_ext = oldNumExt;
 }
 /* *************************************************************** */
 void reg_defField_compose_gpu(const nifti_image *deformationField,
@@ -578,6 +567,137 @@ void reg_defField_compose_gpu(const nifti_image *deformationField,
                                                                (unsigned)voxelNumber, affineMatrixB, affineMatrixC);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
+}
+/* *************************************************************** */
+void reg_defField_getDeformationFieldFromFlowField_gpu(nifti_image *flowField,
+                                                       nifti_image *deformationField,
+                                                       float4 *flowFieldCuda,
+                                                       float4 *deformationFieldCuda,
+                                                       const int *maskCuda,
+                                                       const bool updateStepNumber) {
+    // Check first if the velocity field is actually a velocity field
+    if (flowField->intent_p1 != DEF_VEL_FIELD)
+        NR_FATAL_ERROR("The provided field is not a velocity field");
+
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
+
+    // Remove the affine component from the flow field
+    NiftiImage affineOnly;
+    thrust::device_vector<float4> affineOnlyCuda;
+    if (flowField->num_ext > 0) {
+        if (flowField->ext_list[0].edata != nullptr) {
+            // Create a field that contains the affine component only
+            affineOnly = NiftiImage(deformationField, NiftiImage::Copy::ImageInfo);
+            affineOnlyCuda.resize(voxelNumber);
+            reg_affine_getDeformationField_gpu(reinterpret_cast<mat44*>(flowField->ext_list[0].edata),
+                                               affineOnly, affineOnlyCuda.data().get());
+            reg_subtractImages_gpu(flowField, flowFieldCuda, affineOnlyCuda.data().get());
+        }
+    } else reg_getDisplacementFromDeformation_gpu(flowField, flowFieldCuda);
+
+    // Compute the number of scaling value to ensure unfolded transformation
+    int squaringNumber = 1;
+    if (updateStepNumber || flowField->intent_p2 == 0) {
+        // Check the largest value
+        float extrema = fabsf(reg_getMinValue_gpu(flowField, flowFieldCuda, -1));
+        const float temp = reg_getMaxValue_gpu(flowField, flowFieldCuda, -1);
+        extrema = std::max(extrema, temp);
+        // Check the values for scaling purpose
+        float maxLength;
+        if (deformationField->nz > 1)
+            maxLength = 0.28f;  // sqrt(0.5^2/3)
+        else maxLength = 0.35f; // sqrt(0.5^2/2)
+        while (extrema / pow(2.0f, squaringNumber) >= maxLength)
+            squaringNumber++;
+        // The minimal number of step is set to 6 by default
+        squaringNumber = squaringNumber < 6 ? 6 : squaringNumber;
+        // Set the number of squaring step in the flow field
+        if (fabs(flowField->intent_p2) != squaringNumber)
+            NR_WARN("Changing from " << Round(fabs(flowField->intent_p2)) << " to " << abs(squaringNumber) <<
+                    " squaring step (equivalent to scaling down by " << (int)pow(2.0f, squaringNumber) << ")");
+        // Update the number of squaring step required
+        flowField->intent_p2 = static_cast<float>(flowField->intent_p2 >= 0 ? squaringNumber : -squaringNumber);
+    } else squaringNumber = static_cast<int>(fabsf(flowField->intent_p2));
+
+    // The displacement field is scaled
+    const float scalingValue = 1.f / pow(2.f, static_cast<float>(std::abs(squaringNumber)));
+    // Backward/forward deformation field is scaled down
+    reg_multiplyValue_gpu(voxelNumber, flowFieldCuda, flowField->intent_p2 < 0 ? -scalingValue : scalingValue);
+
+    // Conversion from displacement to deformation
+    reg_getDeformationFromDisplacement_gpu(flowField, flowFieldCuda);
+
+    // The computed scaled deformation field is copied over
+    thrust::copy(thrust::device, flowFieldCuda, flowFieldCuda + voxelNumber, deformationFieldCuda);
+
+    // The deformation field is squared
+    for (int i = 0; i < squaringNumber; ++i) {
+        // The deformation field is applied to itself
+        reg_defField_compose_gpu(deformationField, deformationFieldCuda, flowFieldCuda, voxelNumber);
+        // The computed scaled deformation field is copied over
+        thrust::copy(thrust::device, flowFieldCuda, flowFieldCuda + voxelNumber, deformationFieldCuda);
+        NR_DEBUG("Squaring (composition) step " << i + 1 << "/" << squaringNumber);
+    }
+    // The affine component of the transformation is restored
+    if (affineOnly) {
+        reg_getDisplacementFromDeformation_gpu(deformationField, deformationFieldCuda);
+        reg_addImages_gpu(deformationField, deformationFieldCuda, affineOnlyCuda.data().get());
+    }
+    deformationField->intent_p1 = DEF_FIELD;
+    deformationField->intent_p2 = 0;
+    // If required an affine component is composed
+    // TODO Composition is needed
+    if (flowField->num_ext > 1)
+        reg_affine_getDeformationField_gpu(reinterpret_cast<mat44*>(flowField->ext_list[1].edata),
+                                           deformationField, deformationFieldCuda);
+}
+/* *************************************************************** */
+void reg_spline_getDefFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
+                                                nifti_image *deformationField,
+                                                float4 *velocityFieldGridCuda,
+                                                float4 *deformationFieldCuda,
+                                                const bool updateStepNumber) {
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
+
+    // Create a mask array where no voxel is excluded
+    thrust::device_vector<int> maskCuda(voxelNumber);
+    thrust::sequence(maskCuda.begin(), maskCuda.end());
+
+    // Clean any extension in the deformation field as it is unexpected
+    nifti_free_extensions(deformationField);
+
+    // Check if the velocity field is actually a velocity field
+    if (velocityFieldGrid->intent_p1 == CUB_SPLINE_GRID) {
+        // Use the spline approximation to generate the deformation field
+        reg_spline_getDeformationField_gpu(velocityFieldGrid,
+                                           deformationField,
+                                           velocityFieldGridCuda,
+                                           deformationFieldCuda,
+                                           maskCuda.data().get(),
+                                           voxelNumber,
+                                           true); // bspline
+    } else if (velocityFieldGrid->intent_p1 == SPLINE_VEL_GRID) {
+        // Create an image to store the flow field
+        NiftiImage flowField(deformationField, NiftiImage::Copy::ImageInfo);
+        flowField.setIntentName("NREG_TRANS"s);
+        flowField->intent_code = NIFTI_INTENT_VECTOR;
+        flowField->intent_p1 = DEF_VEL_FIELD;
+        flowField->intent_p2 = velocityFieldGrid->intent_p2;
+        if (velocityFieldGrid->num_ext > 0)
+            nifti_copy_extensions(flowField, velocityFieldGrid);
+
+        // Allocate CUDA memory for the flow field
+        thrust::device_vector<float4> flowFieldCuda(flowField.nVoxelsPerVolume());
+
+        // Generate the velocity field
+        reg_spline_getFlowFieldFromVelocityGrid_gpu(velocityFieldGrid, flowField, velocityFieldGridCuda,
+                                                    flowFieldCuda.data().get(), maskCuda.data().get(), voxelNumber);
+        // Exponentiate the flow field
+        reg_defField_getDeformationFieldFromFlowField_gpu(flowField, deformationField, flowFieldCuda.data().get(),
+                                                          deformationFieldCuda, maskCuda.data().get(), updateStepNumber);
+        // Update the number of step required. No action otherwise
+        velocityFieldGrid->intent_p2 = flowField->intent_p2;
+    } else NR_FATAL_ERROR("The provided input image is not a spline parametrised transformation");
 }
 /* *************************************************************** */
 void reg_defField_getJacobianMatrix_gpu(const nifti_image *deformationField,

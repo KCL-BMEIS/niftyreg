@@ -272,9 +272,3 @@ __global__ void reg_addArrays_kernel_float4(float4 *array1, float4 *array2, cons
     }
 }
 /* *************************************************************** */
-__global__ void reg_fillMaskArray_kernel(int *array, const unsigned count) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < count)
-        array[tid] = tid;
-}
-/* *************************************************************** */

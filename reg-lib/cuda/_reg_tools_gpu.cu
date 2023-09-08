@@ -289,15 +289,6 @@ void reg_addArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cu
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
-void reg_fillMaskArray_gpu(int *arrayCuda, const size_t& count) {
-    const unsigned blocks = CudaContext::GetBlockSize()->Arithmetic;
-    const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
-    const dim3 gridDims = dim3(grids, grids, 1);
-    const dim3 blockDims = dim3(blocks, 1, 1);
-    reg_fillMaskArray_kernel<<<gridDims, blockDims>>>(arrayCuda, (unsigned)count);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-}
-/* *************************************************************** */
 float reg_sumReduction_gpu(float *arrayCuda, const size_t& size) {
     thrust::device_ptr<float> dptr(arrayCuda);
     return thrust::reduce(thrust::device, dptr, dptr + size, 0.f, thrust::plus<float>());
