@@ -22,6 +22,7 @@
 #include <thrust/sort.h>
 #include "_reg_tools.h"
 #include "CudaContext.hpp"
+#include "FloatOps.hpp"
 
 /* *************************************************************** */
 #ifndef __VECTOR_TYPES_H__
