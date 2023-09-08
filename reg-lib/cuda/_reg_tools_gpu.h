@@ -60,3 +60,7 @@ void reg_multiplyImages_gpu(const nifti_image *img, float4 *img1Cuda, const floa
 /* *************************************************************** */
 void reg_divideImages_gpu(const nifti_image *img, float4 *img1Cuda, const float4 *img2Cuda);
 /* *************************************************************** */
+float reg_getMinValue_gpu(const nifti_image *img, const float4 *imgCuda, const int timePoint = -1);
+/* *************************************************************** */
+float reg_getMaxValue_gpu(const nifti_image *img, const float4 *imgCuda, const int timePoint = -1);
+/* *************************************************************** */

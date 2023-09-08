@@ -335,3 +335,56 @@ void reg_divideImages_gpu(const nifti_image *img, float4 *img1Cuda, const float4
     reg_operationOnImages_gpu(img, img1Cuda, img2Cuda, thrust::divides<float4>());
 }
 /* *************************************************************** */
+DEVICE static float Min(const float& lhs, const float& rhs) {
+    return lhs < rhs ? lhs : rhs;
+}
+DEVICE static float Max(const float& lhs, const float& rhs) {
+    return lhs > rhs ? lhs : rhs;
+}
+using MinMaxFunc = decltype(&Min);
+__device__ static MinMaxFunc minCuda = Min;
+__device__ static MinMaxFunc maxCuda = Max;
+/* *************************************************************** */
+float reg_getMinMaxValue_gpu(const nifti_image *img, const float4 *imgCuda, const int timePoint, const bool calcMin) {
+    if (timePoint < -1 || timePoint >= img->nt)
+        NR_FATAL_ERROR("The required time point does not exist");
+
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
+    const int timePoints = std::clamp(timePoint > -1 ? timePoint : int(NiftiImage::calcVoxelNumber(img, 7) / voxelNumber), 1, 4);
+    const float initValue = calcMin ? std::numeric_limits<float>::max() : std::numeric_limits<float>::lowest();
+    float4 result{ initValue, initValue, initValue, initValue };
+
+    // Set the min/max functions
+    MinMaxFunc minMaxCuda, minMax = calcMin ? Min : Max;
+    cudaMemcpyFromSymbol(&minMaxCuda, calcMin ? minCuda : maxCuda, sizeof(MinMaxFunc));
+
+    result = thrust::reduce(thrust::device, imgCuda, imgCuda + voxelNumber, make_float4(initValue, initValue, initValue, initValue),
+                            [=]__device__(const float4& lhs, const float4& rhs) {
+        float4 result{ initValue, initValue, initValue, initValue };
+        switch (timePoints) {
+        case 4:
+            result.w = minMaxCuda(lhs.w, rhs.w);
+            if (timePoint > -1) break;
+        case 3:
+            result.z = minMaxCuda(lhs.z, rhs.z);
+            if (timePoint > -1) break;
+        case 2:
+            result.y = minMaxCuda(lhs.y, rhs.y);
+            if (timePoint > -1) break;
+        case 1:
+            result.x = minMaxCuda(lhs.x, rhs.x);
+        }
+        return result;
+    });
+
+    return minMax(minMax(result.x, result.y), minMax(result.z, result.w));
+}
+/* *************************************************************** */
+float reg_getMinValue_gpu(const nifti_image *img, const float4 *imgCuda, const int timePoint) {
+    return reg_getMinMaxValue_gpu(img, imgCuda, timePoint, true);
+}
+/* *************************************************************** */
+float reg_getMaxValue_gpu(const nifti_image *img, const float4 *imgCuda, const int timePoint) {
+    return reg_getMinMaxValue_gpu(img, imgCuda, timePoint, false);
+}
+/* *************************************************************** */
