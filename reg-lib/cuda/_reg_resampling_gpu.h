@@ -15,7 +15,6 @@
 #include "CudaCommon.hpp"
 
 /* *************************************************************** */
-extern "C++"
 void reg_resampleImage_gpu(const nifti_image *floatingImage,
                            float *warpedImageCuda,
                            const cudaArray *floatingImageCuda,
@@ -24,7 +23,6 @@ void reg_resampleImage_gpu(const nifti_image *floatingImage,
                            const size_t& activeVoxelNumber,
                            const float& paddingValue);
 /* *************************************************************** */
-extern "C++"
 void reg_getImageGradient_gpu(const nifti_image *floatingImage,
                               const cudaArray *floatingImageCuda,
                               const float4 *deformationFieldCuda,

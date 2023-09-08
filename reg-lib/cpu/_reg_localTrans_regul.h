@@ -23,7 +23,6 @@
  * parametrisation
  * @return The normalised bending energy. Normalised by the number of voxel
  */
-extern "C++"
 double reg_spline_approxBendingEnergy(const nifti_image *controlPointGridImage);
 /* *************************************************************** */
 /** @brief Compute and return the approximated (at the control point position)
@@ -35,7 +34,6 @@ double reg_spline_approxBendingEnergy(const nifti_image *controlPointGridImage);
  * at every control point position.
  * @param weight Scalar which will be multiplied by the bending-energy gradient
  */
-extern "C++"
 void reg_spline_approxBendingEnergyGradient(nifti_image *controlPointGridImage,
                                             nifti_image *gradientImage,
                                             float weight);
@@ -45,7 +43,6 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *controlPointGridImage,
  * parametrisation
  * @return The normalised linear energy. Normalised by the number of voxel
  */
-extern "C++"
 double reg_spline_linearEnergy(const nifti_image *referenceImage,
                                const nifti_image *controlPointGridImage);
 /* *************************************************************** */
@@ -55,7 +52,6 @@ double reg_spline_linearEnergy(const nifti_image *referenceImage,
  * parametrisation
  * @return The normalised linear energy. Normalised by the number of voxel
  */
-extern "C++"
 double reg_spline_approxLinearEnergy(const nifti_image *controlPointGridImage);
 /* *************************************************************** */
 /** @brief Compute the gradient of the linear elastic energy terms
@@ -69,7 +65,6 @@ double reg_spline_approxLinearEnergy(const nifti_image *controlPointGridImage);
  * current values
  * @param weight Weight to apply to the term of the penalty
  */
-extern "C++"
 void reg_spline_linearEnergyGradient(const nifti_image *referenceImage,
                                      const nifti_image *controlPointGridImage,
                                      nifti_image *gradientImage,
@@ -85,7 +80,6 @@ void reg_spline_linearEnergyGradient(const nifti_image *referenceImage,
  * current values
  * @param weight Weight to apply to the term of the penalty
  */
-extern "C++"
 void reg_spline_approxLinearEnergyGradient(const nifti_image *controlPointGridImage,
                                            nifti_image *gradientImage,
                                            float weight);
@@ -94,14 +88,12 @@ void reg_spline_approxLinearEnergyGradient(const nifti_image *controlPointGridIm
  * @param deformationField Image that contains the transformation.
  * @return The normalised linear energy. Normalised by the number of voxel
  */
-extern "C++"
 double reg_defField_linearEnergy(const nifti_image *deformationField);
 /* *************************************************************** */
 /** @brief Compute and return the linear elastic energy terms.
  * @param deformationField Image that contains the transformation.
  * @param weight Weight to apply to the term of the penalty
  */
-extern "C++"
 void reg_defField_linearEnergyGradient(const nifti_image *deformationField,
                                        nifti_image *gradientImage,
                                        float weight);
@@ -114,7 +106,6 @@ void reg_defField_linearEnergyGradient(const nifti_image *deformationField,
  * @param landmarkReference Landmark in the reference image
  * @param landmarkFloating Landmark in the floating image
  */
-extern "C++"
 double reg_spline_getLandmarkDistance(const nifti_image *controlPointImage,
                                       size_t landmarkNumber,
                                       float *landmarkReference,
@@ -131,7 +122,6 @@ double reg_spline_getLandmarkDistance(const nifti_image *controlPointImage,
  * @param landmarkFloating Landmark in the floating image
  * @param weight weight to apply to the gradient
  */
-extern "C++"
 void reg_spline_getLandmarkDistanceGradient(const nifti_image *controlPointImage,
                                             nifti_image *gradientImage,
                                             size_t landmarkNumber,
@@ -144,11 +134,9 @@ void reg_spline_getLandmarkDistanceGradient(const nifti_image *controlPointImage
  * parametrisation
  * @return The normalised pairwise energy. Normalised by the number of voxel
  */
-extern "C++"
 void reg_spline_approxLinearPairwiseGradient(nifti_image *controlPointGridImage,
                                              nifti_image *gradientImage,
                                              float weight);
 /* *************************************************************** */
-extern "C++"
 double reg_spline_approxLinearPairwise(nifti_image *controlPointGridImage);
 /* *************************************************************** */

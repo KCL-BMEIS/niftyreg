@@ -72,53 +72,53 @@ DEVICE inline int Round(const T& x) {
 /* *************************************************************** */
 } // namespace NiftyReg
 /* *************************************************************** */
-extern "C++" template <class T>
+template <class T>
 void reg_LUdecomposition(T *inputMatrix,
                          size_t dim,
                          size_t *index);
 /* *************************************************************** */
-extern "C++" template <class T>
+template <class T>
 void reg_matrixMultiply(T *mat1,
                         T *mat2,
                         size_t *dim1,
                         size_t *dim2,
                         T * &res);
 /* *************************************************************** */
-extern "C++" template <class T>
+template <class T>
 void reg_matrixInvertMultiply(T *mat,
                               size_t dim,
                               size_t *index,
                               T *vec);
 /* *************************************************************** */
-extern "C++" template<class T>
+template<class T>
 T* reg_matrix1DAllocate(size_t arraySize);
 /* *************************************************************** */
-extern "C++" template<class T>
+template<class T>
 T* reg_matrix1DAllocateAndInitToZero(size_t arraySize);
 /* *************************************************************** */
-extern "C++" template<class T>
+template<class T>
 void reg_matrix1DDeallocate(T* mat);
 /* *************************************************************** */
-extern "C++" template<class T>
+template<class T>
 T** reg_matrix2DAllocate(size_t arraySizeX, size_t arraySizeY);
 /* *************************************************************** */
-extern "C++" template<class T>
+template<class T>
 T** reg_matrix2DAllocateAndInitToZero(size_t arraySizeX, size_t arraySizeY);
 /* *************************************************************** */
-extern "C++" template<class T>
+template<class T>
 void reg_matrix2DDeallocate(size_t arraySizeX, T** mat);
 /* *************************************************************** */
-extern "C++" template<class T>
+template<class T>
 T** reg_matrix2DTranspose(T** mat, size_t arraySizeX, size_t arraySizeY);
 /* *************************************************************** */
-extern "C++" template<class T>
+template<class T>
 T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, bool transposeMat2);
-extern "C++" template<class T>
+template<class T>
 void reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, T** res, bool transposeMat2);
 /* *************************************************************** */
-extern "C++" template<class T>
+template<class T>
 T* reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect);
-extern "C++" template<class T>
+template<class T>
 void reg_matrix2DVectorMultiply(T** mat, size_t m, size_t n, T* vect, T* res);
 /* *************************************************************** */
 /** @brief Add two 3-by-3 matrices
@@ -165,10 +165,9 @@ void reg_mat33_to_nan(mat33 *A);
 /** @brief Transform a mat44 to a mat33 matrix
 */
 mat33 reg_mat44_to_mat33(mat44 const* A);
-extern "C++"
 void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
 /* *************************************************************** */
-extern "C++" template <class T>
+template <class T>
 void reg_heapSort(T *array_tmp,int blockNum);
 /* *************************************************************** */
 bool operator==(mat44 A,mat44 B);

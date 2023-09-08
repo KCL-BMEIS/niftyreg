@@ -27,7 +27,6 @@
  * @param maskCuda The mask image on the device.
  * @param refMatCuda The reference image transformation matrix on the device.
  */
-extern "C++"
 void block_matching_method_gpu(const nifti_image *referenceImage,
                                _reg_blockMatchingParam *params,
                                const float *referenceImageCuda,

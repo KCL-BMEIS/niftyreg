@@ -74,7 +74,6 @@ void Content::AllocateDeformationField(size_t bytes) {
     deformationField->scl_slope = 1;
     deformationField->scl_inter = 0;
     deformationField->data = calloc(deformationField->nvox, deformationField->nbyper);
-    reg_tools_multiplyValueToImage(deformationField, deformationField, 0.f);
     // Convert to an identity deformation field
     reg_getDeformationFromDisplacement(deformationField);
 }

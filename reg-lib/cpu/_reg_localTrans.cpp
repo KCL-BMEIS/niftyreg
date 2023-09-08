@@ -35,15 +35,13 @@ void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
     controlPointGridImage->cal_min = 0;
     controlPointGridImage->cal_max = 0;
     controlPointGridImage->pixdim[0] = 1.0f;
-    controlPointGridImage->pixdim[1] = controlPointGridImage->dx = spacing[0];
-    controlPointGridImage->pixdim[2] = controlPointGridImage->dy = spacing[1];
-    if (referenceImage->nz == 1) {
-        controlPointGridImage->pixdim[3] = controlPointGridImage->dz = 1.0f;
-    } else controlPointGridImage->pixdim[3] = controlPointGridImage->dz = spacing[2];
-    controlPointGridImage->pixdim[4] = controlPointGridImage->dt = 1.0f;
-    controlPointGridImage->pixdim[5] = controlPointGridImage->du = 1.0f;
-    controlPointGridImage->pixdim[6] = controlPointGridImage->dv = 1.0f;
-    controlPointGridImage->pixdim[7] = controlPointGridImage->dw = 1.0f;
+    controlPointGridImage.setPixDim(NiftiDim::X, spacing[0]);
+    controlPointGridImage.setPixDim(NiftiDim::Y, spacing[1]);
+    controlPointGridImage.setPixDim(NiftiDim::Z, referenceImage->nz > 1 ? spacing[2] : 1.0f);
+    controlPointGridImage.setPixDim(NiftiDim::T, 1.0f);
+    controlPointGridImage.setPixDim(NiftiDim::U, 1.0f);
+    controlPointGridImage.setPixDim(NiftiDim::V, 1.0f);
+    controlPointGridImage.setPixDim(NiftiDim::W, 1.0f);
 
     // Reproduce the orientation of the reference image and add a one voxel shift
     if (referenceImage->qform_code + referenceImage->sform_code > 0) {
@@ -80,7 +78,7 @@ void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
     originIndex[1] = -1.0f;
     originIndex[2] = 0.0f;
     if (referenceImage->nz > 1) originIndex[2] = -1.0f;
-    reg_mat44_mul(&(controlPointGridImage->qto_xyz), originIndex, originReal);
+    reg_mat44_mul(&controlPointGridImage->qto_xyz, originIndex, originReal);
     controlPointGridImage->qto_xyz.m[0][3] = controlPointGridImage->qoffset_x = originReal[0];
     controlPointGridImage->qto_xyz.m[1][3] = controlPointGridImage->qoffset_y = originReal[1];
     controlPointGridImage->qto_xyz.m[2][3] = controlPointGridImage->qoffset_z = originReal[2];
@@ -112,7 +110,7 @@ void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
         controlPointGridImage->sto_xyz.m[3][3] = referenceImage->sto_xyz.m[3][3];
 
         // Origin is shifted from 1 control point in the sform
-        reg_mat44_mul(&(controlPointGridImage->sto_xyz), originIndex, originReal);
+        reg_mat44_mul(&controlPointGridImage->sto_xyz, originIndex, originReal);
         controlPointGridImage->sto_xyz.m[0][3] = originReal[0];
         controlPointGridImage->sto_xyz.m[1][3] = originReal[1];
         controlPointGridImage->sto_xyz.m[2][3] = originReal[2];
@@ -120,11 +118,9 @@ void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
     }
 
     // The grid is initialised with an identity transformation
-    reg_tools_multiplyValueToImage(controlPointGridImage, controlPointGridImage, 0.f);
     reg_getDeformationFromDisplacement(controlPointGridImage);
     controlPointGridImage->intent_code = NIFTI_INTENT_VECTOR;
-    memset(controlPointGridImage->intent_name, 0, 16);
-    strcpy(controlPointGridImage->intent_name, "NREG_TRANS");
+    controlPointGridImage.setIntentName("NREG_TRANS"s);
     controlPointGridImage->intent_p1 = CUB_SPLINE_GRID;
 }
 template void reg_createControlPointGrid<float>(NiftiImage&, const NiftiImage&, const float*);
@@ -142,12 +138,12 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
     mat44 referenceImageSpace = referenceImage->qto_xyz;
     if (referenceImage->sform_code > 0)
         referenceImageSpace = referenceImage->sto_xyz;
-    NR_MAT44(referenceImageSpace, "Input reference image orientation");
+    NR_MAT44_DEBUG(referenceImageSpace, "Input reference image orientation");
     // // Get the floating image space
     mat44 floatingImageSpace = floatingImage->qto_xyz;
     if (floatingImage->sform_code > 0)
         floatingImageSpace = floatingImage->sto_xyz;
-    NR_MAT44(floatingImageSpace, "Input floating image orientation");
+    NR_MAT44_DEBUG(floatingImageSpace, "Input floating image orientation");
     // Check if an affine transformation is specified
     mat44 halfForwardAffine, halfBackwardAffine;
     if (forwardAffineTrans != nullptr) {
@@ -290,10 +286,12 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
     backwardGridImage = NiftiImage(dims, sizeof(DataType) == sizeof(float) ? NIFTI_TYPE_FLOAT32 : NIFTI_TYPE_FLOAT64);
 
     // Set the control point grid spacing
-    forwardGridImage->pixdim[1] = forwardGridImage->dx = backwardGridImage->pixdim[1] = backwardGridImage->dx = spacing[0];
-    forwardGridImage->pixdim[2] = forwardGridImage->dy = backwardGridImage->pixdim[2] = backwardGridImage->dy = spacing[1];
-    if (referenceImage->nz > 1)
-        forwardGridImage->pixdim[3] = forwardGridImage->dz = backwardGridImage->pixdim[3] = backwardGridImage->dz = spacing[2];
+    forwardGridImage.setPixDim(NiftiDim::X, spacing[0]);
+    backwardGridImage.setPixDim(NiftiDim::X, spacing[0]);
+    forwardGridImage.setPixDim(NiftiDim::Y, spacing[1]);
+    backwardGridImage.setPixDim(NiftiDim::Y, spacing[1]);
+    forwardGridImage.setPixDim(NiftiDim::Z, referenceImage->nz > 1 ? spacing[2] : 1.0f);
+    backwardGridImage.setPixDim(NiftiDim::Z, referenceImage->nz > 1 ? spacing[2] : 1.0f);
     // Set the control point grid image orientation
     forwardGridImage->qform_code = backwardGridImage->qform_code = 0;
     forwardGridImage->sform_code = backwardGridImage->sform_code = 1;
@@ -313,10 +311,8 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
     forwardGridImage->sto_ijk = backwardGridImage->sto_ijk = nifti_mat44_inverse(forwardGridImage->sto_xyz);
     // Set the intent type
     forwardGridImage->intent_code = backwardGridImage->intent_code = NIFTI_INTENT_VECTOR;
-    memset(forwardGridImage->intent_name, 0, 16);
-    memset(backwardGridImage->intent_name, 0, 16);
-    strcpy(forwardGridImage->intent_name, "NREG_TRANS");
-    strcpy(backwardGridImage->intent_name, "NREG_TRANS");
+    forwardGridImage.setIntentName("NREG_TRANS"s);
+    backwardGridImage.setIntentName("NREG_TRANS"s);
     forwardGridImage->intent_p1 = backwardGridImage->intent_p1 = CUB_SPLINE_GRID;
     // Set the affine matrices
     mat44 identity;
@@ -339,7 +335,7 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
         forwardGridImage->ext_list[1].edata = (char*)calloc(forwardGridImage->ext_list[1].esize - 8, sizeof(float));
         memcpy(forwardGridImage->ext_list[0].edata, &halfForwardAffine, sizeof(mat44));
         memcpy(forwardGridImage->ext_list[1].edata, &halfForwardAffine, sizeof(mat44));
-        NR_MAT44(halfForwardAffine, "Forward transformation half-affine");
+        NR_MAT44_DEBUG(halfForwardAffine, "Forward transformation half-affine");
         // Create extensions to store the affine parametrisations for the backward transformation
         backwardGridImage->num_ext = 2;
         backwardGridImage->ext_list = (nifti1_extension*)malloc(2 * sizeof(nifti1_extension));
@@ -351,11 +347,8 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
         backwardGridImage->ext_list[1].edata = (char*)calloc(backwardGridImage->ext_list[1].esize - 8, sizeof(float));
         memcpy(backwardGridImage->ext_list[0].edata, &halfBackwardAffine, sizeof(mat44));
         memcpy(backwardGridImage->ext_list[1].edata, &halfBackwardAffine, sizeof(mat44));
-        NR_MAT44(halfBackwardAffine, "Backward transformation half-affine");
+        NR_MAT44_DEBUG(halfBackwardAffine, "Backward transformation half-affine");
     }
-    // Initialise the grid with identity transformations
-    reg_tools_multiplyValueToImage(forwardGridImage, forwardGridImage, 0.f);
-    reg_tools_multiplyValueToImage(backwardGridImage, backwardGridImage, 0.f);
     // Convert the parametrisations into deformation fields
     reg_getDeformationFromDisplacement(forwardGridImage);
     reg_getDeformationFromDisplacement(backwardGridImage);
@@ -363,11 +356,11 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
 template void reg_createSymmetricControlPointGrids<float>(NiftiImage&, NiftiImage&, const NiftiImage&, const NiftiImage&, const mat44*, const float*);
 template void reg_createSymmetricControlPointGrids<double>(NiftiImage&, NiftiImage&, const NiftiImage&, const NiftiImage&, const mat44*, const float*);
 /* *************************************************************** */
-extern "C++" template <class DataType>
+template <class DataType>
 void reg_createDeformationField(NiftiImage& deformationFieldImage,
                                 const nifti_image *referenceImage) {
     // The header information from the reference image are copied over
-    deformationFieldImage = nifti_copy_nim_info(referenceImage);
+    deformationFieldImage = NiftiImage(const_cast<nifti_image*>(referenceImage), NiftiImage::Copy::ImageInfo);
     // The dimension are updated to store the deformation vector along U index
     // in a 5D image
     deformationFieldImage.setDim(NiftiDim::NDim, 5);
@@ -390,10 +383,8 @@ void reg_createDeformationField(NiftiImage& deformationFieldImage,
     deformationFieldImage->scl_slope = 1;
     deformationFieldImage->scl_inter = 0;
 
-    // The data is allocated given the new size
+    // The data is allocated given the new size and filled in with zero to represent an identity displacement field
     deformationFieldImage.realloc();
-    // The image is filled in with zero to represent an identity displacement field
-    reg_tools_multiplyValueToImage(deformationFieldImage, deformationFieldImage, 0.f);
     deformationFieldImage->intent_p1 = DISP_FIELD;
     // The displacement field is converted into a deformation field
     reg_getDeformationFromDisplacement(deformationFieldImage);
@@ -1699,7 +1690,6 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
     } // loop over z
 }
 /* *************************************************************** */
-extern "C++"
 void reg_voxelCentric2NodeCentric(nifti_image * nodeImage,
                                   nifti_image * voxelImage,
                                   float weight,
@@ -2148,7 +2138,6 @@ void reg_spline_refineControlPointGrid3D(nifti_image *splineControlPoint, nifti_
     free(oldGrid);
 }
 /* *************************************************************** */
-extern "C++"
 void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
                                        nifti_image *referenceImage) {
     NR_DEBUG("Starting the refine the control point grid");

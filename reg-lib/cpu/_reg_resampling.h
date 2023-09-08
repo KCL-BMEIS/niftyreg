@@ -33,7 +33,6 @@
  * @param dtIndicies Array of 6 integers that correspond to the "time" indicies of the diffusion tensor
  * components in the order xx,yy,zz,xy,xz,yz. If there are no DT images, pass an array of -1's
  */
-extern "C++"
 void reg_resampleImage(nifti_image *floatingImage,
                        nifti_image *warpedImage,
                        const nifti_image *deformationField,
@@ -43,7 +42,6 @@ void reg_resampleImage(nifti_image *floatingImage,
                        const bool *dtiTimepoint = nullptr,
                        const mat33 *jacMat = nullptr);
 /* *************************************************************** */
-extern "C++"
 void reg_resampleImage_PSF(const nifti_image *floatingImage,
                            nifti_image *warpedImage,
                            const nifti_image *deformationField,
@@ -53,14 +51,12 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
                            const mat33 *jacMat,
                            const char& algorithm);
 /* *************************************************************** */
-extern "C++"
 void reg_resampleGradient(const nifti_image *gradientImage,
                           nifti_image *warpedGradient,
                           const nifti_image *deformationField,
                           const int& interp,
                           const float& paddingValue);
 /* *************************************************************** */
-extern "C++"
 void reg_getImageGradient(nifti_image *floatingImage,
                           nifti_image *warpedGradient,
                           const nifti_image *deformationField,
@@ -72,13 +68,11 @@ void reg_getImageGradient(nifti_image *floatingImage,
                           const mat33 *jacMat = nullptr,
                           const nifti_image *warpedImage = nullptr);
 /* *************************************************************** */
-extern "C++"
 void reg_getImageGradient_symDiff(const nifti_image *img,
                                   nifti_image *gradImg,
                                   const int *mask,
                                   const float& paddingValue,
                                   const int& timepoint);
 /* *************************************************************** */
-extern "C++"
 nifti_image* reg_makeIsotropic(nifti_image*, int);
 /* *************************************************************** */

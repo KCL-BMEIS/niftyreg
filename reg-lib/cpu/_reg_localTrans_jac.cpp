@@ -1200,7 +1200,6 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
    return;
 }
 /* *************************************************************** */
-extern "C++"
 double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
                                          nifti_image *referenceImage,
                                          bool approximation,
@@ -1831,7 +1830,6 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
    free(jacobianDeterminant);
 }
 /* *************************************************************** */
-extern "C++"
 void reg_spline_getJacobianPenaltyTermGradient(nifti_image *splineControlPoint,
                                                nifti_image *referenceImage,
                                                nifti_image *gradientImage,
@@ -2435,7 +2433,6 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
    return std::numeric_limits<double>::quiet_NaN();
 }
 /* *************************************************************** */
-extern "C++"
 double reg_spline_correctFolding(nifti_image *splineControlPoint,
                                  nifti_image *referenceImage,
                                  bool approx)

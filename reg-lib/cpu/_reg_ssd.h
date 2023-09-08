@@ -70,7 +70,7 @@ protected:
  * @param localWeightSim Image that contains the local weight similarity
  * @return Returns the computed sum squared difference
  */
-extern "C++" template <class DataType>
+template <class DataType>
 double reg_getSsdValue(const nifti_image *referenceImage,
                        const nifti_image *warpedImage,
                        const double *timePointWeight,
@@ -94,7 +94,7 @@ double reg_getSsdValue(const nifti_image *referenceImage,
  * @param timepointWeight Weight of the specified time point
  * @param localWeightSim Image that contains the local weight similarity
  */
-extern "C++" template <class DataType>
+template <class DataType>
 void reg_getVoxelBasedSsdGradient(const nifti_image *referenceImage,
                                   const nifti_image *warpedImage,
                                   const nifti_image *warpedGradient,

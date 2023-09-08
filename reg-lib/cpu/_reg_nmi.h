@@ -65,9 +65,6 @@ public:
     virtual unsigned short* GetFloatingBinNumber() {
         return this->floatingBinNumber;
     }
-    virtual void SetApproximatePW(bool val) {
-        this->approximatePW = val;
-    }
     virtual void ApproximatePW() {
         this->approximatePW = true;
     }
@@ -76,10 +73,10 @@ public:
     }
 
 protected:
+    bool approximatePW;
     unsigned short referenceBinNumber[255];
     unsigned short floatingBinNumber[255];
     unsigned short totalBinNumber[255];
-    bool approximatePW;
     double **jointHistogramPro;
     double **jointHistogramLog;
     double **entropyValues;
@@ -90,7 +87,7 @@ protected:
     void DeallocateHistogram();
 };
 /* *************************************************************** */
-extern "C++" template <class DataType>
+template <class DataType>
 void reg_getNMIValue(const nifti_image *referenceImage,
                      const nifti_image *warpedImage,
                      const double *timePointWeight,
@@ -251,7 +248,6 @@ protected:
 };
 /* *************************************************************** */
 /// Multi channel NMI version - Entropy
-extern "C++"
 void reg_getMultiChannelNmiValue(nifti_image *referenceImages,
                                  nifti_image *warpedImages,
                                  unsigned *referenceBins, // should be an array of size num_reference_volumes
@@ -263,7 +259,6 @@ void reg_getMultiChannelNmiValue(nifti_image *referenceImages,
                                  bool approx);
 /* *************************************************************** */
 /// Multi channel NMI version - Gradient
-extern "C++"
 void reg_getVoxelBasedMultiChannelNmiGradient2D(nifti_image *referenceImages,
                                                 nifti_image *warpedImages,
                                                 nifti_image *warpedImageGradient,
@@ -276,7 +271,6 @@ void reg_getVoxelBasedMultiChannelNmiGradient2D(nifti_image *referenceImages,
                                                 bool approx);
 /* *************************************************************** */
 /// Multi channel NMI version - Gradient
-extern "C++"
 void reg_getVoxelBasedMultiChannelNmiGradient3D(nifti_image *referenceImages,
                                                 nifti_image *warpedImages,
                                                 nifti_image *warpedImageGradient,

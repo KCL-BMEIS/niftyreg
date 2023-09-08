@@ -75,7 +75,6 @@ typedef struct _reg_sorted_point2D _reg_sorted_point2D;
  * @param deformationField Image that contains the deformation field
  * that is being updated
  */
-extern "C++"
 void reg_affine_getDeformationField(mat44 *affine,
                                     nifti_image *deformationField,
                                     bool compose=false,

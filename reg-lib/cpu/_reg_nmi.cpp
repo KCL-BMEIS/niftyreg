@@ -225,8 +225,8 @@ void reg_getNMIValue(const nifti_image *referenceImage,
                 // No approximation is used for the Parzen windowing
                 for (size_t voxel = 0; voxel < voxelNumber; ++voxel) {
                     if (referenceMask[voxel] > -1) {
-                        const DataType refValue = refPtr[voxel];
-                        const DataType warValue = warPtr[voxel];
+                        const DataType& refValue = refPtr[voxel];
+                        const DataType& warValue = warPtr[voxel];
                         if (refValue == refValue && warValue == warValue) {
                             for (int r = int(refValue - 1); r < int(refValue + 3); ++r) {
                                 if (0 <= r && r < referenceBinNumber[t]) {
@@ -242,8 +242,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
                         }
                     }
                 }
-            }
-            else {
+            } else {
                 // An approximation is used for the Parzen windowing. First intensities are binarised then
                 // the histogram is convolved with a spine kernel function.
                 for (size_t voxel = 0; voxel < voxelNumber; ++voxel) {
@@ -267,12 +266,11 @@ void reg_getNMIValue(const nifti_image *referenceImage,
                     for (int r = 0; r < referenceBinNumber[t]; ++r) {
                         double value = 0;
                         int index = r - 1;
-                        double* ptrHisto = &jointHistoProPtr[index + referenceBinNumber[t] * f];
+                        double *ptrHisto = &jointHistoProPtr[index + referenceBinNumber[t] * f];
 
                         for (int it = 0; it < 3; it++) {
-                            if (-1 < index && index < referenceBinNumber[t]) {
+                            if (-1 < index && index < referenceBinNumber[t])
                                 value += *ptrHisto * kernel[it];
-                            }
                             ++ptrHisto;
                             ++index;
                         }
@@ -282,14 +280,13 @@ void reg_getNMIValue(const nifti_image *referenceImage,
                 // Histogram is then smooth along the warped floating axis
                 for (int r = 0; r < referenceBinNumber[t]; ++r) {
                     for (int f = 0; f < floatingBinNumber[t]; ++f) {
-                        double value = 0.;
+                        double value = 0;
                         int index = f - 1;
-                        double* ptrHisto = &jointHistoLogPtr[r + referenceBinNumber[t] * index];
+                        double *ptrHisto = &jointHistoLogPtr[r + referenceBinNumber[t] * index];
 
                         for (int it = 0; it < 3; it++) {
-                            if (-1 < index && index < floatingBinNumber[t]) {
+                            if (-1 < index && index < floatingBinNumber[t])
                                 value += *ptrHisto * kernel[it];
-                            }
                             ptrHisto += referenceBinNumber[t];
                             ++index;
                         }
@@ -298,7 +295,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
                 }
             }
             // Normalise the histogram
-            double activeVoxel = 0.f;
+            double activeVoxel = 0;
             for (int i = 0; i < totalBinNumber[t]; ++i)
                 activeVoxel += jointHistoProPtr[i];
             entropyValues[t][3] = activeVoxel;
@@ -306,7 +303,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
                 jointHistoProPtr[i] /= activeVoxel;
             // Marginalise over the reference axis
             for (int r = 0; r < referenceBinNumber[t]; ++r) {
-                double sum = 0.;
+                double sum = 0;
                 int index = r;
                 for (int f = 0; f < floatingBinNumber[t]; ++f) {
                     sum += jointHistoProPtr[index];
@@ -317,7 +314,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
             }
             // Marginalise over the warped floating axis
             for (int f = 0; f < floatingBinNumber[t]; ++f) {
-                double sum = 0.;
+                double sum = 0;
                 int index = referenceBinNumber[t] * f;
                 for (int r = 0; r < referenceBinNumber[t]; ++r) {
                     sum += jointHistoProPtr[index];
@@ -328,7 +325,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
             // Set the log values to zero
             memset(jointHistoLogPtr, 0, totalBinNumber[t] * sizeof(double));
             // Compute the entropy of the reference image
-            double referenceEntropy = 0.;
+            double referenceEntropy = 0;
             for (int r = 0; r < referenceBinNumber[t]; ++r) {
                 double valPro = jointHistoProPtr[referenceBinNumber[t] * floatingBinNumber[t] + r];
                 if (valPro > 0) {
@@ -339,7 +336,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
             }
             entropyValues[t][0] = referenceEntropy;
             // Compute the entropy of the warped floating image
-            double warpedEntropy = 0.;
+            double warpedEntropy = 0;
             for (int f = 0; f < floatingBinNumber[t]; ++f) {
                 double valPro = jointHistoProPtr[referenceBinNumber[t] * floatingBinNumber[t] +
                     referenceBinNumber[t] + f];
@@ -351,7 +348,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
             }
             entropyValues[t][1] = warpedEntropy;
             // Compute the joint entropy
-            double jointEntropy = 0.;
+            double jointEntropy = 0;
             for (int i = 0; i < referenceBinNumber[t] * floatingBinNumber[t]; ++i) {
                 double valPro = jointHistoProPtr[i];
                 if (valPro > 0) {
@@ -375,7 +372,7 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  double **jointHistogramPro,
                                  double **entropyValues,
                                  const int *referenceMask,
-                                 const int& referenceTimePoint,
+                                 const int referenceTimePoint,
                                  const bool approximatePW) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
@@ -440,8 +437,8 @@ void reg_getVoxelBasedNmiGradient2d(const nifti_image *referenceImage,
                                     const nifti_image *warpedGradient,
                                     nifti_image *measureGradientImage,
                                     const int *referenceMask,
-                                    const int& currentTimepoint,
-                                    const double& timepointWeight) {
+                                    const int currentTimepoint,
+                                    const double timepointWeight) {
 #ifdef WIN32
     long i;
     const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 2);
@@ -526,8 +523,8 @@ void reg_getVoxelBasedNmiGradient3d(const nifti_image *referenceImage,
                                     const nifti_image *warpedGradient,
                                     nifti_image *measureGradientImage,
                                     const int *referenceMask,
-                                    const int& currentTimepoint,
-                                    const double& timepointWeight) {
+                                    const int currentTimepoint,
+                                    const double timepointWeight) {
 #ifdef WIN32
     long i;
     const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
@@ -619,8 +616,8 @@ void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
                                             const nifti_image *warpedGradient,
                                             nifti_image *voxelBasedGradient,
                                             const int *referenceMask,
-                                            const int& currentTimepoint,
-                                            const double& timepointWeight) {
+                                            const int currentTimepoint,
+                                            const double timepointWeight) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
         auto GetVoxelBasedNmiGradient = referenceImage->nz > 1 ? reg_getVoxelBasedNmiGradient3d<RefImgDataType> : reg_getVoxelBasedNmiGradient2d<RefImgDataType>;

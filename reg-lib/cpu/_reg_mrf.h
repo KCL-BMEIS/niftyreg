@@ -102,23 +102,18 @@ private:
    bool initialised; ///< Variable to access if the object has been initialised
 };
 /********************************************************************************************************/
-extern "C++"
 template <class DataType>
 void GetGraph_core3D(nifti_image* controlPointGridImage,
                      float* edgeWeightMatrix,
                      float* index_neighbours,
                      nifti_image *refImage,
                      int *mask);
-extern "C++"
 template <class DataType>
 void GetGraph_core2D(nifti_image* controlPointGridImage,
                      float* edgeWeightMatrix,
                      float* index_neighbours,
                      nifti_image *refImage,
                      int *mask);
-
-extern "C++"
 void dt1sq(float *val,int* ind,int len,float offset,int k,int* v,float* z,float* f,int* ind1);
-extern "C++"
 void dt3x(float* r,int* indr,int rl,float dx,float dy,float dz);
 /********************************************************************************************************/

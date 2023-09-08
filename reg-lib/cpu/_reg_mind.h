@@ -71,14 +71,12 @@ public:
     virtual ~reg_mindssc();
 };
 /* *************************************************************** */
-extern "C++"
 void GetMindImageDescriptor(const nifti_image *inputImage,
                             nifti_image *mindImage,
                             const int *mask,
                             const int& descriptorOffset,
                             const int& currentTimepoint);
 /* *************************************************************** */
-extern "C++"
 void GetMindSscImageDescriptor(const nifti_image *inputImage,
                                nifti_image *mindSscImage,
                                const int *mask,

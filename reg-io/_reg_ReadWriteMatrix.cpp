@@ -27,7 +27,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
     }
     affineFile.close();
 
-    NR_MAT44(*mat, "Read affine transformation");
+    NR_MAT44_DEBUG(*mat, "Read affine transformation");
 
     if (flirtFile) {
         mat44 absoluteReference;
@@ -61,11 +61,11 @@ void reg_tool_ReadAffineFile(mat44 *mat,
         absoluteReference.m[3][3] = absoluteFloating.m[3][3] = 1.0;
 
         NR_DEBUG("An flirt affine file is assumed and is converted to a real word affine matrix");
-        NR_MAT44(*mat, "Matrix read from the input file");
-        NR_MAT44(*referenceMatrix, "Reference Matrix");
-        NR_MAT44(*floatingMatrix, "Floating Matrix");
-        NR_MAT44(absoluteReference, "Reference absolute Matrix");
-        NR_MAT44(absoluteFloating, "Floating absolute Matrix");
+        NR_MAT44_DEBUG(*mat, "Matrix read from the input file");
+        NR_MAT44_DEBUG(*referenceMatrix, "Reference Matrix");
+        NR_MAT44_DEBUG(*floatingMatrix, "Floating Matrix");
+        NR_MAT44_DEBUG(absoluteReference, "Reference absolute Matrix");
+        NR_MAT44_DEBUG(absoluteFloating, "Floating absolute Matrix");
 
         absoluteFloating = nifti_mat44_inverse(absoluteFloating);
         *mat = nifti_mat44_inverse(*mat);
@@ -77,7 +77,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
         *mat = reg_mat44_mul(mat, &tmp);
     }
 
-    NR_MAT44(*mat, "Affine matrix");
+    NR_MAT44_DEBUG(*mat, "Affine matrix");
 }
 /* *************************************************************** */
 void reg_tool_ReadAffineFile(mat44 *mat, char *fileName) {
@@ -223,7 +223,7 @@ mat44* reg_tool_ReadMat44File(char *fileName) {
     }
     matrixFile.close();
 
-    NR_MAT44(*mat, "mat44 matrix");
+    NR_MAT44_DEBUG(*mat, "mat44 matrix");
 
     return mat;
 }

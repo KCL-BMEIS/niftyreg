@@ -46,7 +46,6 @@ typedef enum {
  * both qform_code and sform_code are set to zero.
  * @param image Input image to check and correct if necessary
  */
-extern "C++"
 void reg_checkAndCorrectDimension(nifti_image *image);
 /* *************************************************************** */
 /** @brief Check if the specified filename corresponds to an image.
@@ -54,7 +53,6 @@ void reg_checkAndCorrectDimension(nifti_image *image);
  * @return True is the specified filename corresponds to an image,
  * false otherwise.
  */
-extern "C++"
 bool reg_isAnImageFileName(const char *name);
 /* *************************************************************** */
 /** @brief Rescale an input image between two user-defined values.
@@ -65,7 +63,6 @@ bool reg_isAnImageFileName(const char *name);
  * @param lowThr Intensity to use as lower threshold
  * @param upThr Intensity to use as higher threshold
  */
-extern "C++"
 void reg_intensityRescale(nifti_image *image,
                           int timepoint,
                           float newMin,
@@ -75,14 +72,12 @@ void reg_intensityRescale(nifti_image *image,
  * the intensity values
  * @param image Image to be updated
  */
-extern "C++"
 void reg_tools_removeSCLInfo(nifti_image *img);
 /* *************************************************************** */
 /** @brief reg_getRealImageSpacing
  * @param image image
  * @param spacingValues spacingValues
  */
-extern "C++"
 void reg_getRealImageSpacing(nifti_image *image,
                              float *spacingValues);
 /* *************************************************************** */
@@ -93,7 +88,6 @@ void reg_getRealImageSpacing(nifti_image *image,
  * @param axis Boolean array to specify which axis have to be
  * smoothed. The array follow the dim array of the nifti header.
  */
-extern "C++"
 void reg_tools_kernelConvolution(nifti_image *image,
                                  const float *sigma,
                                  const int& kernelType,
@@ -110,7 +104,6 @@ void reg_tools_kernelConvolution(nifti_image *image,
  * @param timePoint Boolean array to specify which timepoints have to be
  * smoothed.
  */
-extern "C++"
 void reg_tools_labelKernelConvolution(nifti_image *image,
                                       float varianceX,
                                       float varianceY,
@@ -126,7 +119,7 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
  * @param axis Boolean array to specify which axis have to be
  * downsampled. The array follow the dim array of the nifti header.
  */
-extern "C++" template <class PrecisionType>
+template <class PrecisionType>
 void reg_downsampleImage(nifti_image *image,
                          int type,
                          bool *axis);
@@ -137,7 +130,7 @@ void reg_downsampleImage(nifti_image *image,
  * @return Scalar value that corresponds to the longest
  * euclidean distance
  */
-extern "C++" template <class PrecisionType>
+template <class PrecisionType>
 PrecisionType reg_getMaximalLength(const nifti_image *image,
                                    const bool& optimiseX,
                                    const bool& optimiseY,
@@ -146,7 +139,7 @@ PrecisionType reg_getMaximalLength(const nifti_image *image,
 /** @brief Change the datatype of a nifti image
  * @param image Image to be updated.
  */
-extern "C++" template <class NewType>
+template <class NewType>
 void reg_tools_changeDatatype(nifti_image *image,
                               int type = -1);
 /* *************************************************************** */
@@ -156,7 +149,6 @@ void reg_tools_changeDatatype(nifti_image *image,
  * @param out Result image that contains the result of the operation
  * between the first and second image.
  */
-extern "C++"
 void reg_tools_addImageToImage(const nifti_image *img1,
                                const nifti_image *img2,
                                nifti_image *out);
@@ -167,7 +159,6 @@ void reg_tools_addImageToImage(const nifti_image *img1,
  * @param out Result image that contains the result of the operation
  * between the first and second image.
  */
-extern "C++"
 void reg_tools_subtractImageFromImage(const nifti_image *img1,
                                       const nifti_image *img2,
                                       nifti_image *out);
@@ -178,7 +169,6 @@ void reg_tools_subtractImageFromImage(const nifti_image *img1,
  * @param out Result image that contains the result of the operation
  * between the first and second image.
  */
-extern "C++"
 void reg_tools_multiplyImageToImage(const nifti_image *img1,
                                     const nifti_image *img2,
                                     nifti_image *out);
@@ -189,7 +179,6 @@ void reg_tools_multiplyImageToImage(const nifti_image *img1,
  * @param out Result image that contains the result of the operation
  * between the first and second image.
  */
-extern "C++"
 void reg_tools_divideImageToImage(const nifti_image *img1,
                                   const nifti_image *img2,
                                   nifti_image *out);
@@ -199,7 +188,6 @@ void reg_tools_divideImageToImage(const nifti_image *img1,
  * @param out Result image that contains the result of the operation.
  * @param val Value to be added to input image
  */
-extern "C++"
 void reg_tools_addValueToImage(const nifti_image *img,
                                nifti_image *out,
                                const double& val);
@@ -209,7 +197,6 @@ void reg_tools_addValueToImage(const nifti_image *img,
  * @param out Result image that contains the result of the operation.
  * @param val Value to be subtracted from input image
  */
-extern "C++"
 void reg_tools_subtractValueFromImage(const nifti_image *img,
                                       nifti_image *out,
                                       const double& val);
@@ -219,7 +206,6 @@ void reg_tools_subtractValueFromImage(const nifti_image *img,
  * @param out Result image that contains the result of the operation.
  * @param val Value to be multiplied to input image
  */
-extern "C++"
 void reg_tools_multiplyValueToImage(const nifti_image *img,
                                     nifti_image *out,
                                     const double& val);
@@ -229,7 +215,6 @@ void reg_tools_multiplyValueToImage(const nifti_image *img,
  * @param out Result image that contains the result of the operation.
  * @param val Value to be divided to input image
  */
-extern "C++"
 void reg_tools_divideValueToImage(const nifti_image *img,
                                   nifti_image *out,
                                   const double& val);
@@ -238,7 +223,6 @@ void reg_tools_divideValueToImage(const nifti_image *img,
  * from 0 are set to 1, 0 otherwise.
  * @param img Image that will be binarise inline
  */
-extern "C++"
 void reg_tools_binarise_image(nifti_image *img);
 /* *************************************************************** */
 /** @brief Binarise an input image. The binarisation is
@@ -249,7 +233,6 @@ void reg_tools_binarise_image(nifti_image *img);
  * All values bellow thr are set to 0. All values equal
  * or bellow thr are set to 1
  */
-extern "C++"
 void reg_tools_binarise_image(nifti_image *img,
                               float thr);
 /* *************************************************************** */
@@ -260,7 +243,6 @@ void reg_tools_binarise_image(nifti_image *img,
  * @param array The data array from the input nifti image
  * is binarised and stored in this array.
  */
-extern "C++"
 void reg_tools_binaryImage2int(const nifti_image *img,
                                int *array);
 /* *************************************************************** */
@@ -270,7 +252,6 @@ void reg_tools_binaryImage2int(const nifti_image *img,
  * @param imgB Input vector image
  * @return Mean root mean squared error values returned
  */
-extern "C++"
 double reg_tools_getMeanRMS(const nifti_image *imgA,
                             const nifti_image *imgB);
 /* *************************************************************** */
@@ -281,7 +262,6 @@ double reg_tools_getMeanRMS(const nifti_image *imgA,
  * have to be set to NaN
  * @param res Output image
  */
-extern "C++"
 int reg_tools_nanMask_image(const nifti_image *img,
                             const nifti_image *mask,
                             nifti_image *res);
@@ -291,7 +271,6 @@ int reg_tools_nanMask_image(const nifti_image *img,
  * @param img Input image
  * @param mask Input mask which is updated in place
  */
-extern "C++"
 int reg_tools_removeNanFromMask(const nifti_image *image, int *mask);
 /* *************************************************************** */
 /** @brief Get the minimal value of an image
@@ -299,7 +278,6 @@ int reg_tools_removeNanFromMask(const nifti_image *image, int *mask);
  * @param timepoint active time point. All time points are used if set to -1
  * @return min value
  */
-extern "C++"
 float reg_tools_getMinValue(const nifti_image *img, int timepoint);
 /* *************************************************************** */
 /** @brief Get the maximal value of an image
@@ -307,21 +285,18 @@ float reg_tools_getMinValue(const nifti_image *img, int timepoint);
  * @param timepoint active time point. All time points are used if set to -1
  * @return max value
  */
-extern "C++"
 float reg_tools_getMaxValue(const nifti_image *img, int timepoint);
 /* *************************************************************** */
 /** @brief Get the mean value of an image
  * @param img Input image
  * @return mean value
  */
-extern "C++"
 float reg_tools_getMeanValue(const nifti_image *img);
 /* *************************************************************** */
 /** @brief Get the std value of an image
  * @param img Input image
  * @return std value
  */
-extern "C++"
 float reg_tools_getSTDValue(const nifti_image *img);
 /* *************************************************************** */
 /** @brief Generate a pyramid from an input image.
@@ -333,7 +308,7 @@ float reg_tools_getSTDValue(const nifti_image *img);
  * @param levelToPerform Number to level that will be perform during
  * the registration.
  */
-extern "C++" template<class DataType>
+template<class DataType>
 void reg_createImagePyramid(const NiftiImage& input,
                             vector<NiftiImage>& pyramid,
                             unsigned levelNumber,
@@ -348,7 +323,7 @@ void reg_createImagePyramid(const NiftiImage& input,
  * @param levelToPerform Number to level that will be perform during
  * the registration.
  */
-extern "C++" template<class DataType>
+template<class DataType>
 void reg_createMaskPyramid(const NiftiImage& input,
                            vector<unique_ptr<int[]>>& pyramid,
                            unsigned levelNumber,
@@ -364,7 +339,7 @@ void reg_createMaskPyramid(const NiftiImage& input,
  * @param upThr Upper threshold value. All Value above the threshold
  * are set to the threshold value.
  */
-extern "C++" template<class T>
+template<class T>
 void reg_thresholdImage(nifti_image *image,
                         T lowThr,
                         T upThr);
@@ -376,7 +351,6 @@ void reg_thresholdImage(nifti_image *image,
  * @param cmd String that contains the letter(s) of the axis
  * to flip (xyztuvw)
  */
-extern "C++"
 void reg_flipAxis(const nifti_image *image,
                   void **outputArray,
                   const std::string& cmd);
@@ -387,7 +361,6 @@ void reg_flipAxis(const nifti_image *image,
  * @param image Image that contains a deformation field and will be
  * converted into a displacement field
  */
-extern "C++"
 int reg_getDisplacementFromDeformation(nifti_image *image);
 /* *************************************************************** */
 /** @brief This function converts an image containing a displacement field
@@ -396,7 +369,6 @@ int reg_getDisplacementFromDeformation(nifti_image *image);
  * @param image Image that contains a deformation field and will be
  * converted into a displacement field
  */
-extern "C++"
 int reg_getDeformationFromDisplacement(nifti_image *image);
 /* *************************************************************** */
 /** @brief Set the gradient value along specified direction to zero
@@ -405,7 +377,6 @@ int reg_getDeformationFromDisplacement(nifti_image *image);
  * @param yAxis Boolean to specified if the y-axis has to be zeroed
  * @param zAxis Boolean to specified if the z-axis has to be zeroed
  */
-extern "C++"
 void reg_setGradientToZero(nifti_image *image,
                            bool xAxis,
                            bool yAxis,
@@ -416,7 +387,7 @@ void reg_setGradientToZero(nifti_image *image,
  * The returned value is the largest value computed as ((A/B)-1)
  * If A or B are zeros then the (A-B) value is returned.
  */
-extern "C++" template<class DataType>
+template<class DataType>
 double reg_test_compare_arrays(const DataType *ptrA,
                                const DataType *ptrB,
                                size_t nvox);
@@ -425,31 +396,25 @@ double reg_test_compare_arrays(const DataType *ptrA,
  * The returned value is the largest value computed as ((A/B)-1)
  * If A or B are zeros then the (A-B) value is returned.
  */
-extern "C++"
 double reg_test_compare_images(const nifti_image *imgA,
                                const nifti_image *imgB);
 /* *************************************************************** */
 /** @brief The absolute operator is applied to the input image
  */
-extern "C++"
 void reg_tools_abs_image(nifti_image *img);
 /* *************************************************************** */
-extern "C++"
 void mat44ToCptr(const mat44& mat, float *cMat);
 /* *************************************************************** */
-extern "C++"
 void cPtrToMat44(mat44 *mat, const float *cMat);
 /* *************************************************************** */
-extern "C++"
 void mat33ToCptr(const mat33 *mat, float *cMat, const unsigned numMats);
 /* *************************************************************** */
-extern "C++"
 void cPtrToMat33(mat33 *mat, const float *cMat);
 /* *************************************************************** */
-extern "C++" template<typename T>
+template<typename T>
 void matmnToCptr(const T **mat, T *cMat, unsigned m, unsigned n);
 /* *************************************************************** */
-extern "C++" template<typename T>
+template<typename T>
 void cPtrToMatmn(T **mat, const T *cMat, unsigned m, unsigned n);
 /* *************************************************************** */
 void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x, int& y, int& z);

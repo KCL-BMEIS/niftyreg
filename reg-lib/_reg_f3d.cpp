@@ -181,9 +181,8 @@ void reg_f3d<T>::Initialise() {
         reg_createControlPointGrid<T>(controlPointGrid, this->referencePyramid[0], gridSpacing);
 
         // The control point grid is updated with an identity transformation
-        if (this->affineTransformation) {
+        if (this->affineTransformation)
             reg_affine_getDeformationField(this->affineTransformation.get(), controlPointGrid);
-        }
     } else {
         // The control point grid image is initialised with the provided grid
         controlPointGrid = inputControlPointGrid;

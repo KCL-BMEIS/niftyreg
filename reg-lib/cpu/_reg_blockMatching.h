@@ -88,7 +88,6 @@ struct _reg_blockMatchingParam
  * image to consider for the registration
  * @param runningOnGPU Has to be set to true if the registration has to be performed on the GPU
  */
-extern "C++"
 void initialise_block_matching_method(nifti_image * referenceImage,
                                       _reg_blockMatchingParam *params,
                                       int percentToKeep_block,
@@ -104,7 +103,6 @@ void initialise_block_matching_method(nifti_image * referenceImage,
  * relevant information
  * @param mask Mask array where only voxel defined as active are considered
  */
-extern "C++"
 void block_matching_method(nifti_image * referenceImage,
                            nifti_image * warpedImage,
                            _reg_blockMatchingParam *params,

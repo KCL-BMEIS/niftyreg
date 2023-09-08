@@ -329,7 +329,7 @@ template<class T>
 void reg_aladin<T>::UpdateTransformationMatrix(int type) {
     this->blockMatchingKernel->template castTo<BlockMatchingKernel>()->Calculate();
     this->ltsKernel->template castTo<LtsKernel>()->Calculate(type);
-    NR_MAT44(*this->affineTransformation, "The updated forward matrix");
+    NR_MAT44_DEBUG(*this->affineTransformation, "The updated forward matrix");
 }
 /* *************************************************************** */
 template<class T>
@@ -381,11 +381,11 @@ void reg_aladin<T>::Run() {
         this->DebugPrintLevelInfoStart();
 
         if (this->con->Content::GetReference()->sform_code > 0)
-            NR_MAT44(this->con->Content::GetReference()->sto_xyz, "Reference image matrix (sform sto_xyz)");
-        else NR_MAT44(this->con->Content::GetReference()->qto_xyz, "Reference image matrix (qform qto_xyz)");
+            NR_MAT44_DEBUG(this->con->Content::GetReference()->sto_xyz, "Reference image matrix (sform sto_xyz)");
+        else NR_MAT44_DEBUG(this->con->Content::GetReference()->qto_xyz, "Reference image matrix (qform qto_xyz)");
         if (this->con->Content::GetFloating()->sform_code > 0)
-            NR_MAT44(this->con->Content::GetFloating()->sto_xyz, "Floating image matrix (sform sto_xyz)");
-        else NR_MAT44(this->con->Content::GetFloating()->qto_xyz, "Floating image matrix (qform qto_xyz)");
+            NR_MAT44_DEBUG(this->con->Content::GetFloating()->sto_xyz, "Floating image matrix (sform sto_xyz)");
+        else NR_MAT44_DEBUG(this->con->Content::GetFloating()->qto_xyz, "Floating image matrix (qform qto_xyz)");
 
         /* ****************** */
         /* Rigid registration */

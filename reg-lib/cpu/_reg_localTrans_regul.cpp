@@ -152,7 +152,6 @@ double reg_spline_approxBendingEnergyValue3D(const nifti_image *splineControlPoi
     return constraintValue / (double)splineControlPoint->nvox;
 }
 /* *************************************************************** */
-extern "C++"
 double reg_spline_approxBendingEnergy(const nifti_image *splineControlPoint) {
     if (splineControlPoint->nz == 1) {
         switch (splineControlPoint->datatype) {
@@ -451,7 +450,6 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
     reg_getDeformationFromDisplacement(splineControlPoint);
 }
 /* *************************************************************** */
-extern "C++"
 void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
                                             nifti_image *gradientImage,
                                             float weight) {

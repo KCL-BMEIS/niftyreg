@@ -31,7 +31,6 @@
  * @param flirtFile If this flag is set to true the matrix is converted
  * from a Flirt (FSL) parametrisation to a standard parametrisation
  */
-extern "C++"
 void reg_tool_ReadAffineFile(mat44 *mat,
                              nifti_image *referenceImage,
                              nifti_image *floatingImage,
@@ -44,7 +43,6 @@ void reg_tool_ReadAffineFile(mat44 *mat,
 * @param mat structure that store the affine transformation matrix
 * @param filename Filename of the text file that contains the matrix to read
 **/
-extern "C++"
 void reg_tool_ReadAffineFile(mat44 *mat,
                              char *filename);
 
@@ -54,14 +52,12 @@ void reg_tool_ReadAffineFile(mat44 *mat,
 * @param filename Filename of the text file that contains the matrix to read
 * @return mat44 structure that store the matrix
 **/
-extern "C++"
 mat44* reg_tool_ReadMat44File(char *fileName);
 
 /** @brief This function save a 4-by-4 matrix to the disk as a text file
  * @param mat Matrix to be saved on the disk
  * @param filename Name of the text file to save on the disk
  */
-extern "C++"
 void reg_tool_WriteAffineFile(const mat44 *mat,
                               const char *fileName);
 
@@ -70,7 +66,6 @@ void reg_tool_WriteAffineFile(const mat44 *mat,
 * @param filename Filename of the text file that contains the matrix to read
 * @return pair of values that contains the matrix size
 **/
-extern "C++"
 std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename);
 /**
 * @brief Read a file that contains a m-by-n matrix and store it into
@@ -80,7 +75,7 @@ std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename);
 * @param nbColumn number of column of the input matrix
 * @return a pointer to a 2D array that points the read matrix
 **/
-extern "C++" template <class T>
+template <class T>
 T** reg_tool_ReadMatrixFile(char *filename,
                             size_t nbLine,
                             size_t nbColumn);
@@ -92,7 +87,7 @@ T** reg_tool_ReadMatrixFile(char *filename,
 * @param nbLine number of line of the input matrix
 * @param nbColumn number of column of the input matrix
 **/
-extern "C++" template <class T>
+template <class T>
 void reg_tool_WriteMatrixFile(char *filename,
                               T **mat,
                               size_t nbLine,

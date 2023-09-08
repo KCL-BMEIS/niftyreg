@@ -16,50 +16,50 @@
 #include "_reg_tools.h"
 
 
-extern "C++" template<class DataType>
+template<class DataType>
 void get_BSplineBasisValues(DataType basis,
                             DataType *values);
-extern "C++" template<class DataType>
+template<class DataType>
 void get_BSplineBasisValues(DataType basis,
                             DataType *values,
                             DataType *first);
-extern "C++" template<class DataType>
+template<class DataType>
 void get_BSplineBasisValues(DataType basis,
                             DataType *values,
                             DataType *first,
                             DataType *second);
 
 
-extern "C++" template<class DataType>
+template<class DataType>
 void get_BSplineBasisValue(DataType basis,
                            int index,
                            DataType &value);
-extern "C++" template<class DataType>
+template<class DataType>
 void get_BSplineBasisValue(DataType basis,
                            int index,
                            DataType &value,
                            DataType &first);
-extern "C++" template<class DataType>
+template<class DataType>
 void get_BSplineBasisValue(DataType basis,
                            int index,
                            DataType &value,
                            DataType &first,
                            DataType &second);
 
-extern "C++" template <class DataType>
+template <class DataType>
 void set_first_order_basis_values(DataType *basisX,
                                   DataType *basisY);
 
-extern "C++" template <class DataType>
+template <class DataType>
 void set_first_order_basis_values(DataType *basisX,
                                   DataType *basisY,
                                   DataType *basisZ);
 
-extern "C++" template <class DataType>
+template <class DataType>
 void set_second_order_bspline_basis_values(DataType *basisXX,
                                            DataType *basisYY,
                                            DataType *basisXY);
-extern "C++" template <class DataType>
+template <class DataType>
 void set_second_order_bspline_basis_values(DataType *basisXX,
                                            DataType *basisYY,
                                            DataType *basisZZ,
@@ -68,20 +68,20 @@ void set_second_order_bspline_basis_values(DataType *basisXX,
                                            DataType *basisXZ);
 
 
-extern "C++" template<class DataType>
+template<class DataType>
 void get_SplineBasisValues(DataType basis,
                            DataType *values);
-extern "C++" template<class DataType>
+template<class DataType>
 void get_SplineBasisValues(DataType basis,
                            DataType *values,
                            DataType *first);
-extern "C++" template<class DataType>
+template<class DataType>
 void get_SplineBasisValues(DataType basis,
                            DataType *values,
                            DataType *first,
                            DataType *second);
 
-extern "C++" template <class DataType>
+template <class DataType>
 void get_SlidedValues(DataType &defX,
                       DataType &defY,
                       int X,
@@ -91,7 +91,7 @@ void get_SlidedValues(DataType &defX,
                       mat44 *df_voxel2Real,
                       int *dim,
                       bool displacement);
-extern "C++" template <class DataType>
+template <class DataType>
 void get_SlidedValues(DataType &defX,
                       DataType &defY,
                       DataType &defZ,
@@ -106,7 +106,7 @@ void get_SlidedValues(DataType &defX,
                       bool displacement);
 
 
-extern "C++" template <class DataType>
+template <class DataType>
 void get_GridValues(int startX,
                     int startY,
                     nifti_image *splineControlPoint,
@@ -116,7 +116,7 @@ void get_GridValues(int startX,
                     DataType *dispY,
                     bool approx,
                     bool displacement);
-extern "C++" template <class DataType>
+template <class DataType>
 void get_GridValues(int startX,
                     int startY,
                     int startZ,
