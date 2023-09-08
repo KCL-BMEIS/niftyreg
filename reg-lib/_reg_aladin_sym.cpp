@@ -135,8 +135,8 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type) {
     this->bBlockMatchingKernel->template castTo<BlockMatchingKernel>()->Calculate();
     this->bLtsKernel->template castTo<LtsKernel>()->Calculate(type);
 
-    NR_MAT44_VERBOSE(*this->affineTransformation, "The pre-updated forward transformation matrix");
-    NR_MAT44_VERBOSE(*this->affineTransformationBw, "The pre-updated backward transformation matrix");
+    NR_MAT44_DEBUG(*this->affineTransformation, "The pre-updated forward transformation matrix");
+    NR_MAT44_DEBUG(*this->affineTransformationBw, "The pre-updated backward transformation matrix");
 
     // Forward and backward matrix are inverted
     mat44 fInverted = nifti_mat44_inverse(*this->affineTransformation);
@@ -153,8 +153,8 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type) {
     this->affineTransformation->m[3][3] = 1.f;
     this->affineTransformationBw->m[3][3] = 1.f;
 
-    NR_MAT44_VERBOSE(*this->affineTransformation, "The updated forward transformation matrix");
-    NR_MAT44_VERBOSE(*this->affineTransformationBw, "The updated backward transformation matrix");
+    NR_MAT44_DEBUG(*this->affineTransformation, "The updated forward transformation matrix");
+    NR_MAT44_DEBUG(*this->affineTransformationBw, "The updated backward transformation matrix");
 }
 /* *************************************************************** */
 template <class T>

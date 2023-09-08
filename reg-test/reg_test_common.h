@@ -37,37 +37,18 @@ NiftiImage CreateControlPointGrid(const NiftiImage& reference) {
     float gridSpacing[3] = { reference->dx * 2, reference->dy * 2, reference->dz * 2 };
 
     // Create and allocate the control point image
+    // It is initialised with an identity transformation by default
     NiftiImage controlPointGrid;
     reg_createControlPointGrid<float>(controlPointGrid, reference, gridSpacing);
-
-    // The control point position image is initialised with an identity transformation
-    reg_getDeformationFromDisplacement(controlPointGrid);
 
     return controlPointGrid;
 }
 
 NiftiImage CreateDeformationField(const NiftiImage& reference) {
     // Create and allocate a deformation field
-    NiftiImage deformationField(reference, NiftiImage::Copy::ImageInfo);
-    deformationField.setDim(NiftiDim::NDim, 5);
-    if (reference->dim[0] == 2)
-        deformationField.setDim(NiftiDim::Z, 1);
-    deformationField.setDim(NiftiDim::T, 1);
-    deformationField.setPixDim(NiftiDim::T, 1);
-    deformationField.setDim(NiftiDim::U, reference->nz > 1 ? 3 : 2);
-    deformationField.setPixDim(NiftiDim::U, 1);
-    deformationField.setDim(NiftiDim::V, 1);
-    deformationField.setPixDim(NiftiDim::V, 1);
-    deformationField.setDim(NiftiDim::W, 1);
-    deformationField.setPixDim(NiftiDim::W, 1);
-    deformationField->datatype = NIFTI_TYPE_FLOAT32;
-    deformationField->intent_code = NIFTI_INTENT_VECTOR;
-    memset(deformationField->intent_name, 0, sizeof(deformationField->intent_name));
-    strcpy(deformationField->intent_name, "NREG_TRANS");
-    deformationField->intent_p1 = DISP_FIELD;
-    deformationField->scl_slope = 1;
-    deformationField->scl_inter = 0;
-    deformationField.realloc();
-    reg_getDeformationFromDisplacement(deformationField);
+    // It is initialised with an identity transformation by default
+    NiftiImage deformationField;
+    reg_createDeformationField<float>(deformationField, reference);
+
     return deformationField;
 }

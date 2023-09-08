@@ -20,6 +20,7 @@ reg_nmi::reg_nmi(): reg_measure() {
     this->jointHistogramProBw = nullptr;
     this->jointHistogramLogBw = nullptr;
     this->entropyValuesBw = nullptr;
+    this->approximatePW = true;
     for (int i = 0; i < 255; ++i) {
         this->referenceBinNumber[i] = 68;
         this->floatingBinNumber[i] = 68;
@@ -201,7 +202,8 @@ void reg_getNMIValue(const nifti_image *referenceImage,
                      double **jointHistogramLog,
                      double **jointHistogramPro,
                      double **entropyValues,
-                     const int *referenceMask) {
+                     const int *referenceMask,
+                     const bool approximation) {
     // Create pointers to the image data arrays
     const DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
     const DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
@@ -216,25 +218,82 @@ void reg_getNMIValue(const nifti_image *referenceImage,
             double *jointHistoLogPtr = jointHistogramLog[t];
             // Empty the joint histogram
             memset(jointHistoProPtr, 0, totalBinNumber[t] * sizeof(double));
-            // Fill the joint histograms using an approximation
+            // Fill the joint histograms
             const DataType *refPtr = &refImagePtr[t * voxelNumber];
             const DataType *warPtr = &warImagePtr[t * voxelNumber];
-            for (size_t voxel = 0; voxel < voxelNumber; ++voxel) {
-                if (referenceMask[voxel] > -1) {
-                    const DataType refValue = refPtr[voxel];
-                    const DataType warValue = warPtr[voxel];
-                    if (refValue == refValue && warValue == warValue){
-                        for(int r = int(refValue-1); r < int(refValue+3); ++r){
-                            if( 0 <= r && r < referenceBinNumber[t]){
-                                const double refBasis = GetBasisSplineValue(refValue - r);
-                                for(int w = int(warValue-1); w < int(warValue+3); ++w){
-                                    if( 0 <= w && w < floatingBinNumber[t]){
-                                        const double warBasis = GetBasisSplineValue(warValue - w);
-                                        jointHistoProPtr[r + w * referenceBinNumber[t]] += refBasis * warBasis;
+            if (approximation == false) {
+                // No approximation is used for the Parzen windowing
+                for (size_t voxel = 0; voxel < voxelNumber; ++voxel) {
+                    if (referenceMask[voxel] > -1) {
+                        const DataType refValue = refPtr[voxel];
+                        const DataType warValue = warPtr[voxel];
+                        if (refValue == refValue && warValue == warValue) {
+                            for (int r = int(refValue - 1); r < int(refValue + 3); ++r) {
+                                if (0 <= r && r < referenceBinNumber[t]) {
+                                    const double refBasis = GetBasisSplineValue(refValue - r);
+                                    for (int w = int(warValue - 1); w < int(warValue + 3); ++w) {
+                                        if (0 <= w && w < floatingBinNumber[t]) {
+                                            const double warBasis = GetBasisSplineValue(warValue - w);
+                                            jointHistoProPtr[r + w * referenceBinNumber[t]] += refBasis * warBasis;
+                                        }
                                     }
                                 }
                             }
                         }
+                    }
+                }
+            }
+            else {
+                // An approximation is used for the Parzen windowing. First intensities are binarised then
+                // the histogram is convolved with a spine kernel function.
+                for (size_t voxel = 0; voxel < voxelNumber; ++voxel) {
+                    if (referenceMask[voxel] > -1) {
+                        const DataType& refValue = refPtr[voxel];
+                        const DataType& warValue = warPtr[voxel];
+                        if (refValue == refValue && warValue == warValue &&
+                            0 <= refValue && refValue < referenceBinNumber[t] &&
+                            0 <= warValue && warValue < floatingBinNumber[t]) {
+                            ++jointHistoProPtr[static_cast<int>(refValue) + static_cast<int>(warValue) * referenceBinNumber[t]];
+                        }
+                    }
+                }
+                // Convolve the histogram with a cubic B-spline kernel
+                double kernel[3];
+                kernel[0] = kernel[2] = GetBasisSplineValue(-1.0);
+                kernel[1] = GetBasisSplineValue(0.0);
+                // Histogram is first smooth along the reference axis
+                memset(jointHistoLogPtr, 0, totalBinNumber[t] * sizeof(double));
+                for (int f = 0; f < floatingBinNumber[t]; ++f) {
+                    for (int r = 0; r < referenceBinNumber[t]; ++r) {
+                        double value = 0;
+                        int index = r - 1;
+                        double* ptrHisto = &jointHistoProPtr[index + referenceBinNumber[t] * f];
+
+                        for (int it = 0; it < 3; it++) {
+                            if (-1 < index && index < referenceBinNumber[t]) {
+                                value += *ptrHisto * kernel[it];
+                            }
+                            ++ptrHisto;
+                            ++index;
+                        }
+                        jointHistoLogPtr[r + referenceBinNumber[t] * f] = value;
+                    }
+                }
+                // Histogram is then smooth along the warped floating axis
+                for (int r = 0; r < referenceBinNumber[t]; ++r) {
+                    for (int f = 0; f < floatingBinNumber[t]; ++f) {
+                        double value = 0.;
+                        int index = f - 1;
+                        double* ptrHisto = &jointHistoLogPtr[r + referenceBinNumber[t] * index];
+
+                        for (int it = 0; it < 3; it++) {
+                            if (-1 < index && index < floatingBinNumber[t]) {
+                                value += *ptrHisto * kernel[it];
+                            }
+                            ptrHisto += referenceBinNumber[t];
+                            ++index;
+                        }
+                        jointHistoProPtr[r + referenceBinNumber[t] * f] = value;
                     }
                 }
             }
@@ -316,7 +375,8 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  double **jointHistogramPro,
                                  double **entropyValues,
                                  const int *referenceMask,
-                                 const int& referenceTimePoint) {
+                                 const int& referenceTimePoint,
+                                 const bool approximatePW) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
         reg_getNMIValue<RefImgDataType>(referenceImage,
@@ -328,7 +388,8 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                         jointHistogramLog,
                                         jointHistogramPro,
                                         entropyValues,
-                                        referenceMask);
+                                        referenceMask,
+                                        approximatePW);
     }, NiftiImage::getFloatingDataType(referenceImage));
 
     double nmi = 0;
@@ -350,7 +411,8 @@ double reg_nmi::GetSimilarityMeasureValueFw() {
                                        this->jointHistogramPro,
                                        this->entropyValues,
                                        this->referenceMask,
-                                       this->referenceTimePoint);
+                                       this->referenceTimePoint,
+                                       this->approximatePW);
 }
 /* *************************************************************** */
 double reg_nmi::GetSimilarityMeasureValueBw() {
@@ -364,7 +426,8 @@ double reg_nmi::GetSimilarityMeasureValueBw() {
                                        this->jointHistogramProBw,
                                        this->entropyValuesBw,
                                        this->floatingMask,
-                                       this->referenceTimePoint);
+                                       this->referenceTimePoint,
+                                       this->approximatePW);
 }
 /* *************************************************************** */
 template <class DataType>

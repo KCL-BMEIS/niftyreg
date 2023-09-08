@@ -382,23 +382,8 @@ int compute_average_image(nifti_image *averageImage,
    // Loop over all input images
    for(size_t i=0; i<imageNumber; ++i){
       // Generate a deformation field defined by the average final
-      nifti_image *deformationField=nifti_copy_nim_info(averageImage);
-      deformationField->ndim=deformationField->dim[0]=5;
-      deformationField->nt=deformationField->dim[4]=1;
-      deformationField->nu=deformationField->dim[5]=deformationField->nz>1?3:2;
-      deformationField->nvox=NiftiImage::calcVoxelNumber(deformationField, deformationField->ndim);
-      deformationField->nbyper=sizeof(float);
-      deformationField->datatype=NIFTI_TYPE_FLOAT32;
-      deformationField->intent_code=NIFTI_INTENT_VECTOR;
-      memset(deformationField->intent_name, 0, 16);
-      strcpy(deformationField->intent_name,"NREG_TRANS");
-      deformationField->scl_slope=1.f;
-      deformationField->scl_inter=0.f;
-      deformationField->intent_p1=DISP_FIELD;
-      deformationField->data=calloc(deformationField->nvox, deformationField->nbyper);
-      reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
-      // Set the transformation to identity
-      reg_getDeformationFromDisplacement(deformationField);
+      NiftiImage deformationField;
+      reg_createDeformationField<float>(deformationField, averageImage);
       // Compute the transformation if required
       if(inputNRRName!=nullptr){
          nifti_image *current_transformation = reg_io_ReadImageFile(inputNRRName[i]);
@@ -465,7 +450,6 @@ int compute_average_image(nifti_image *averageImage,
                         nullptr,
                         interpolation_order,
                         std::numeric_limits<float>::quiet_NaN());
-      nifti_image_free(deformationField);
       nifti_image_free(current_input_image);
       // Add the image to the average
       remove_nan_and_add(averageImage, warpedImage, definedValue);

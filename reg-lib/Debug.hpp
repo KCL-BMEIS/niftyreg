@@ -58,8 +58,8 @@ inline std::string StripFunctionName(const std::string& funcName) {
 #else
 #define NR_FUNC_CALLED()
 #define NR_DEBUG(msg)
-#define NR_VERBOSE(msg)     if (this->verbose) NR_COUT << "[NiftyReg DEBUG] " << msg << std::endl
-#define NR_VERBOSE_APP(msg) if (verbose) NR_COUT << "[NiftyReg DEBUG] " << msg << std::endl
+#define NR_VERBOSE(msg)     if (this->verbose) NR_COUT << "[NiftyReg INFO] " << msg << std::endl
+#define NR_VERBOSE_APP(msg) if (verbose) NR_COUT << "[NiftyReg INFO] " << msg << std::endl
 #endif
 /* *************************************************************** */
 #define NR_WARN(msg)        NR_COUT << "[NiftyReg WARNING] " << msg << std::endl
@@ -68,14 +68,19 @@ inline std::string StripFunctionName(const std::string& funcName) {
 #define NR_INFO(msg)        NR_COUT << "[NiftyReg INFO] " << msg << std::endl
 /* *************************************************************** */
 #ifndef NDEBUG
-#define NR_MAT33(mat, title)            reg_mat33_disp(mat, "[NiftyReg DEBUG] "s + (title))
-#define NR_MAT33_VERBOSE(mat, title)    NR_MAT33(mat, title)
-#define NR_MAT44(mat, title)            reg_mat44_disp(mat, "[NiftyReg DEBUG] "s + (title))
-#define NR_MAT44_VERBOSE(mat, title)    NR_MAT44(mat, title)
+#define NR_MAT33(mat, title)          reg_mat33_disp(mat, "[NiftyReg DEBUG] "s + (title))
+#define NR_MAT44(mat, title)          reg_mat44_disp(mat, "[NiftyReg DEBUG] "s + (title))
+#define NR_MAT33_DEBUG(mat, title)    NR_MAT33(mat, title)
+#define NR_MAT44_DEBUG(mat, title)    NR_MAT44(mat, title)
+#define NR_MAT33_VERBOSE(mat, title)  NR_MAT33(mat, title)
+#define NR_MAT44_VERBOSE(mat, title)  NR_MAT44(mat, title)
 #else
-#define NR_MAT33(mat, title)
-#define NR_MAT33_VERBOSE(mat, title)    if (this->verbose) reg_mat33_disp(mat, "[NiftyReg DEBUG] "s + (title))
-#define NR_MAT44(mat, title)
-#define NR_MAT44_VERBOSE(mat, title)    if (this->verbose) reg_mat44_disp(mat, "[NiftyReg DEBUG] "s + (title))
+#define NR_MAT33(mat, title)          reg_mat33_disp(mat, title)
+#define NR_MAT44(mat, title)          reg_mat44_disp(mat, title)
+#define NR_MAT33_DEBUG(mat, title)    
+#define NR_MAT44_DEBUG(mat, title)    
+#define NR_MAT33_VERBOSE(mat, title)  if (this->verbose) NR_MAT33(mat, "[NiftyReg INFO] "s + (title))
+#define NR_MAT44_VERBOSE(mat, title)  if (this->verbose) NR_MAT44(mat, "[NiftyReg INFO] "s + (title))
+
 #endif
 /* *************************************************************** */

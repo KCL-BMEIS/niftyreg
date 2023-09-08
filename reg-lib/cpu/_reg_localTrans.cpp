@@ -119,6 +119,9 @@ void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
         controlPointGridImage->sto_ijk = nifti_mat44_inverse(controlPointGridImage->sto_xyz);
     }
 
+    // The grid is initialised with an identity transformation
+    reg_tools_multiplyValueToImage(controlPointGridImage, controlPointGridImage, 0.f);
+    reg_getDeformationFromDisplacement(controlPointGridImage);
     controlPointGridImage->intent_code = NIFTI_INTENT_VECTOR;
     memset(controlPointGridImage->intent_name, 0, 16);
     strcpy(controlPointGridImage->intent_name, "NREG_TRANS");
@@ -359,6 +362,44 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
 }
 template void reg_createSymmetricControlPointGrids<float>(NiftiImage&, NiftiImage&, const NiftiImage&, const NiftiImage&, const mat44*, const float*);
 template void reg_createSymmetricControlPointGrids<double>(NiftiImage&, NiftiImage&, const NiftiImage&, const NiftiImage&, const mat44*, const float*);
+/* *************************************************************** */
+extern "C++" template <class DataType>
+void reg_createDeformationField(NiftiImage & deformationFieldImage,
+                                const NiftiImage & referenceImage) {
+    // The header information from the reference image are copied over
+    deformationFieldImage = nifti_copy_nim_info(referenceImage);
+    // The dimension are updated to store the deformation vector along U index
+    // in a 5D image
+    deformationFieldImage.setDim(NiftiDim::NDim, 5);
+    if (referenceImage->dim[0] == 2)
+        deformationFieldImage.setDim(NiftiDim::Z, 1);
+    deformationFieldImage.setDim(NiftiDim::T, 1);
+    deformationFieldImage.setPixDim(NiftiDim::T, 1);
+    deformationFieldImage.setDim(NiftiDim::U, referenceImage->nz > 1 ? 3 : 2);
+    deformationFieldImage.setPixDim(NiftiDim::U, 1);
+    deformationFieldImage.setDim(NiftiDim::V, 1);
+    deformationFieldImage.setPixDim(NiftiDim::V, 1);
+    deformationFieldImage.setDim(NiftiDim::W, 1);
+    deformationFieldImage.setPixDim(NiftiDim::W, 1);
+    // The deformation stores floating scalar
+    deformationFieldImage->datatype = sizeof(DataType) == sizeof(float) ? NIFTI_TYPE_FLOAT32 : NIFTI_TYPE_FLOAT64;
+    deformationFieldImage->nbyper = sizeof(DataType);
+    deformationFieldImage->intent_code = NIFTI_INTENT_VECTOR;
+    memset(deformationFieldImage->intent_name, 0, sizeof(deformationFieldImage->intent_name));
+    strcpy(deformationFieldImage->intent_name, "NREG_TRANS");
+    deformationFieldImage->scl_slope = 1;
+    deformationFieldImage->scl_inter = 0;
+
+    // The data is allocated given the new size
+    deformationFieldImage.realloc();
+    // The image is filled in with zero to represent an identity displacement field
+    reg_tools_multiplyValueToImage(deformationFieldImage, deformationFieldImage, 0.f);
+    deformationFieldImage->intent_p1 = DISP_FIELD;
+    // The displacement field is converted into a deformation field
+    reg_getDeformationFromDisplacement(deformationFieldImage);
+}
+template void reg_createDeformationField<float>(NiftiImage&, const NiftiImage&);
+template void reg_createDeformationField<double>(NiftiImage&, const NiftiImage&);
 /* *************************************************************** */
 template<class DataType>
 void reg_linear_spline_getDeformationField3D(nifti_image *splineControlPoint,

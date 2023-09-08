@@ -422,8 +422,8 @@ void reg_f3d2<T>::DisplayCurrentLevelParameters(int currentLevel) {
     NR_VERBOSE("\t* image spacing: " << controlPointGridBw->dx << " x " << controlPointGridBw->dy << " x " << controlPointGridBw->dz << " mm");
 
     if (controlPointGridBw->sform_code > 0)
-        NR_MAT44_VERBOSE(controlPointGridBw->sto_xyz, "Backward CPP sform");
-    else NR_MAT44_VERBOSE(controlPointGridBw->qto_xyz, "Backward CPP qform");
+        NR_MAT44_DEBUG(controlPointGridBw->sto_xyz, "Backward CPP sform");
+    else NR_MAT44_DEBUG(controlPointGridBw->qto_xyz, "Backward CPP qform");
 
     NR_FUNC_CALLED();
 }

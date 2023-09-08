@@ -95,6 +95,7 @@ public:
                 unique_ptr<Measure> measure{ platform->CreateMeasure() };
                 // Use NMI as a measure
                 unique_ptr<reg_nmi> measure_nmi{ dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)) };
+                measure_nmi->DoNotApproximatePW();
                 measure_nmi->SetTimepointWeight(0, 1.0); // weight initially set to default value of 1.0
                 measure_nmi->SetRefAndFloatBinNumbers(binNumber, binNumber, 0);
                 measure->Initialise(*measure_nmi, *content);

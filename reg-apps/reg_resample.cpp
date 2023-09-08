@@ -277,7 +277,7 @@ int main(int argc, char **argv)
    NR_VERBOSE_APP("Floating image name: " << floatingImage->fname);
    NR_VERBOSE_APP("\t" << floatingImage->nx << "x" << floatingImage->ny << "x" << floatingImage->nz << " voxels, " << floatingImage->nt << " volumes");
    NR_VERBOSE_APP("\t" << floatingImage->dx << "x" << floatingImage->dy << "x" << floatingImage->dz << " mm");
-   NR_VERBOSE_APP("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+   NR_VERBOSE_APP("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 
    /* *********************** */
    /* READ THE TRANSFORMATION */
@@ -313,9 +313,6 @@ int main(int argc, char **argv)
    // Create a deformation field
    nifti_image *deformationFieldImage = nifti_copy_nim_info(referenceImage);
    deformationFieldImage->dim[0]=deformationFieldImage->ndim=5;
-   deformationFieldImage->dim[1]=deformationFieldImage->nx=referenceImage->nx;
-   deformationFieldImage->dim[2]=deformationFieldImage->ny=referenceImage->ny;
-   deformationFieldImage->dim[3]=deformationFieldImage->nz=referenceImage->nz;
    deformationFieldImage->dim[4]=deformationFieldImage->nt=1;
    deformationFieldImage->pixdim[4]=deformationFieldImage->dt=1.0;
    deformationFieldImage->dim[5]=deformationFieldImage->nu=referenceImage->nz>1?3:2;
@@ -336,10 +333,14 @@ int main(int argc, char **argv)
    }
    deformationFieldImage->data = calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
 
-   // Initialise the deformation field with an identity transformation
+   // Initialise as a displacement field with an identity transformation
+   deformationFieldImage->intent_code = NIFTI_INTENT_VECTOR;
+   memset(deformationFieldImage->intent_name, 0, 16);
+   strcpy(deformationFieldImage->intent_name, "NREG_TRANS");
+   deformationFieldImage->intent_p1 = DISP_FIELD;
    reg_tools_multiplyValueToImage(deformationFieldImage,deformationFieldImage,0.f);
+   // Convert it then to an deformation field with identity
    reg_getDeformationFromDisplacement(deformationFieldImage);
-   deformationFieldImage->intent_p1=DEF_FIELD;
 
    // Compute the transformation to apply
    if(inputTransformationImage!=nullptr)
@@ -348,40 +349,51 @@ int main(int argc, char **argv)
       {
       case LIN_SPLINE_GRID:
       case CUB_SPLINE_GRID:
-         reg_spline_getDeformationField(inputTransformationImage,
-                                        deformationFieldImage,
-                                        nullptr,
-                                        false,
-                                        true);
-         break;
+          NR_VERBOSE_APP("Input transformation is a cubic spline grid");
+          reg_spline_getDeformationField(inputTransformationImage,
+              deformationFieldImage,
+              nullptr, // no mask
+              true, // composition is used,
+              true); // b-spline are used
+          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
+          break;
       case DISP_VEL_FIELD:
-         reg_getDeformationFromDisplacement(inputTransformationImage);
+          NR_VERBOSE_APP("Input transformation is a displacement velocity field");
+          reg_getDeformationFromDisplacement(inputTransformationImage);
+          NR_VERBOSE_APP("Input transformation is converted to a deformation velocity field");
       case DEF_VEL_FIELD:
          {
-            nifti_image *tempFlowField = nifti_dup(*deformationFieldImage);
-            reg_defField_compose(inputTransformationImage,
-                                 tempFlowField,
-                                 nullptr);
-            tempFlowField->intent_p1=inputTransformationImage->intent_p1;
-            tempFlowField->intent_p2=inputTransformationImage->intent_p2;
-            reg_defField_getDeformationFieldFromFlowField(tempFlowField,
-                                                          deformationFieldImage,
-                                                          false);
-            nifti_image_free(tempFlowField);
-         }
-         break;
+          NR_VERBOSE_APP("Input transformation is a deformation velocity field");
+          nifti_image *tempFlowField = nifti_dup(*deformationFieldImage);
+          reg_defField_compose(inputTransformationImage,
+                               tempFlowField,
+                               nullptr);
+          tempFlowField->intent_p1=inputTransformationImage->intent_p1;
+          tempFlowField->intent_p2=inputTransformationImage->intent_p2;
+          reg_defField_getDeformationFieldFromFlowField(tempFlowField,
+                                                        deformationFieldImage,
+                                                        false);
+          nifti_image_free(tempFlowField);
+          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
+          }
+          break;
       case SPLINE_VEL_GRID:
-         reg_spline_getDefFieldFromVelocityGrid(inputTransformationImage,
+          NR_VERBOSE_APP("Input transformation is a spine velocity grid");
+          reg_spline_getDefFieldFromVelocityGrid(inputTransformationImage,
                                                 deformationFieldImage,
                                                 false);
-         break;
+          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
+          break;
       case DISP_FIELD:
-         reg_getDeformationFromDisplacement(inputTransformationImage);
+          NR_VERBOSE_APP("Input transformation is a displacement field");
+          reg_getDeformationFromDisplacement(inputTransformationImage);
+          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
       default:
-         reg_defField_compose(inputTransformationImage,
-                              deformationFieldImage,
-                              nullptr);
-         break;
+          NR_VERBOSE_APP("Input transformation is a deformation field");
+          reg_defField_compose(inputTransformationImage,
+                               deformationFieldImage,
+                               nullptr);
+          break;
       }
       nifti_image_free(inputTransformationImage);
       inputTransformationImage=nullptr;
