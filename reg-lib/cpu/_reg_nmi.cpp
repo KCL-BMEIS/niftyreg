@@ -164,29 +164,32 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImg,
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-static double GetBasisSplineValue(double x) {
+template<class PrecisionType>
+PrecisionType GetBasisSplineValue(PrecisionType x) {
     x = fabs(x);
-    double value = 0;
-    if (x < 2.0) {
-        if (x < 1.0)
-            value = 2.0 / 3.0 + (0.5 * x - 1.0) * x * x;
+    PrecisionType value = 0;
+    if (x < 2.f) {
+        if (x < 1.f)
+            value = 2.f / 3.f + (0.5f * x - 1.f) * x * x;
         else {
-            x -= 2.0;
-            value = -x * x * x / 6.0;
+            x -= 2.f;
+            value = -x * x * x / 6.f;
         }
     }
     return value;
 }
 /* *************************************************************** */
-static double GetBasisSplineDerivativeValue(double ori) {
-    double x = fabs(ori), value = 0;
-    if (x < 2.0) {
-        if (x < 1.0)
-            value = (1.5 * x - 2.0) * ori;
+template<class PrecisionType>
+PrecisionType GetBasisSplineDerivativeValue(PrecisionType ori) {
+    PrecisionType x = fabs(ori);
+    PrecisionType value = 0;
+    if (x < 2.f) {
+        if (x < 1.f)
+            value = (1.5f * x - 2.f) * ori;
         else {
-            x -= 2.0;
-            value = -0.5 * x * x;
-            if (ori < 0.0) value = -value;
+            x -= 2.f;
+            value = -0.5f * x * x;
+            if (ori < 0) value = -value;
         }
     }
     return value;
@@ -485,11 +488,11 @@ void reg_getVoxelBasedNmiGradient2d(const nifti_image *referenceImage,
                     if (-1 < r && r < referenceBinNumber[currentTimepoint]) {
                         for (int w = int(warValue - 1.f); w < int(warValue + 3.f); ++w) {
                             if (-1 < w && w < floatingBinNumber[currentTimepoint]) {
-                                const double commun = GetBasisSplineValue(refValue - r) *
-                                    GetBasisSplineDerivativeValue(warValue - w);
-                                const double &jointLog = logHistoPtr[r + w * referenceBinNumber[currentTimepoint]];
-                                const double &refLog = logHistoPtr[r + referenceOffset];
-                                const double &warLog = logHistoPtr[w + floatingOffset];
+                                const double commun = GetBasisSplineValue<double>(refValue - r) *
+                                    GetBasisSplineDerivativeValue<double>(warValue - w);
+                                const double& jointLog = logHistoPtr[r + w * referenceBinNumber[currentTimepoint]];
+                                const double& refLog = logHistoPtr[r + referenceOffset];
+                                const double& warLog = logHistoPtr[w + floatingOffset];
                                 if (gradX == gradX) {
                                     jointDeriv[0] += commun * gradX * jointLog;
                                     refDeriv[0] += commun * gradX * refLog;
@@ -572,8 +575,8 @@ void reg_getVoxelBasedNmiGradient3d(const nifti_image *referenceImage,
                     if (-1 < r && r < referenceBinNumber[currentTimepoint]) {
                         for (int w = int(warValue - 1.f); w < int(warValue + 3.f); ++w) {
                             if (-1 < w && w < floatingBinNumber[currentTimepoint]) {
-                                const double commun = GetBasisSplineValue(refValue - r) *
-                                    GetBasisSplineDerivativeValue(warValue - w);
+                                const double commun = GetBasisSplineValue<double>(refValue - r) *
+                                    GetBasisSplineDerivativeValue<double>(warValue - w);
                                 const double& jointLog = logHistoPtr[r + w * referenceBinNumber[currentTimepoint]];
                                 const double& refLog = logHistoPtr[r + referenceOffset];
                                 const double& warLog = logHistoPtr[w + floatingOffset];
