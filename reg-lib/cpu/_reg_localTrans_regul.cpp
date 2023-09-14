@@ -1126,89 +1126,61 @@ void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoi
                                              nifti_image *gradientImage,
                                              float weight) {
     const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 2);
-    int x, y, a, b, i, index;
 
-    // Create pointers to the spline coefficients
+    // Create the pointers
     const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
     const DataType *splinePtrY = &splinePtrX[nodeNumber];
-
-    // Store the basis values since they are constant as the value is approximated
-    // at the control point positions only
-    DataType basisX[9];
-    DataType basisY[9];
-    set_first_order_basis_values(basisX, basisY);
-
-    // Matrix to use to convert the gradient from mm to voxel
-    mat33 reorientation;
-    if (splineControlPoint->sform_code > 0)
-        reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
-    else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
-    mat33 inv_reorientation = nifti_mat33_inverse(reorientation);
-
-    DataType splineCoeffX;
-    DataType splineCoeffY;
-
-    mat33 matrix, R;
-
     DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
     DataType *gradientYPtr = &gradientXPtr[nodeNumber];
 
-    DataType approxRatio = (DataType)weight / (DataType)nodeNumber;
-    DataType gradValues[2];
+    // Store the basis values since they are constant as the value is approximated
+    // at the control point positions only
+    DataType basisX[9], basisY[9];
+    set_first_order_basis_values(basisX, basisY);
 
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(splineControlPoint, splinePtrX, splinePtrY, \
-    basisX, basisY, reorientation, inv_reorientation, \
-    gradientXPtr, gradientYPtr, approxRatio) \
-    private(x, a, b, i, index, gradValues, \
-    splineCoeffX, splineCoeffY, matrix, R)
-#endif
-    for (y = 1; y < splineControlPoint->ny - 1; y++) {
-        for (x = 1; x < splineControlPoint->nx - 1; x++) {
-            memset(&matrix, 0, sizeof(mat33));
-            matrix.m[2][2] = 1;
+    // Matrix to use to convert the gradient from mm to voxel
+    const mat33 reorientation = reg_mat44_to_mat33(splineControlPoint->sform_code > 0 ? &splineControlPoint->sto_ijk : &splineControlPoint->qto_ijk);
+    const mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
-            i = 0;
-            for (b = -1; b < 2; b++) {
-                for (a = -1; a < 2; a++) {
-                    index = (y + b) * splineControlPoint->nx + x + a;
-                    splineCoeffX = splinePtrX[index];
-                    splineCoeffY = splinePtrY[index];
+    const DataType approxRatio = weight / static_cast<DataType>(nodeNumber);
 
-                    matrix.m[0][0] += basisX[i] * splineCoeffX;
-                    matrix.m[1][0] += basisY[i] * splineCoeffX;
+    for (int y = 1; y < splineControlPoint->ny - 1; y++) {
+        for (int x = 1; x < splineControlPoint->nx - 1; x++) {
+            mat33 matrix{ 0, 0, 0, 0, 0, 0, 0, 0, 1 };
 
-                    matrix.m[0][1] += basisX[i] * splineCoeffY;
-                    matrix.m[1][1] += basisY[i] * splineCoeffY;
+            int i = 0;
+            for (int b = -1; b < 2; b++) {
+                for (int a = -1; a < 2; a++) {
+                    const int index = (y + b) * splineControlPoint->nx + x + a;
+                    const DataType& splineCoeffX = splinePtrX[index];
+                    const DataType& splineCoeffY = splinePtrY[index];
+
+                    matrix.m[0][0] += static_cast<float>(basisX[i] * splineCoeffX);
+                    matrix.m[1][0] += static_cast<float>(basisY[i] * splineCoeffX);
+
+                    matrix.m[0][1] += static_cast<float>(basisX[i] * splineCoeffY);
+                    matrix.m[1][1] += static_cast<float>(basisY[i] * splineCoeffY);
                     ++i;
                 } // a
             } // b
             // Convert from mm to voxel
             matrix = nifti_mat33_mul(reorientation, matrix);
             // Removing the rotation component
-            R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-            matrix = nifti_mat33_mul(R, matrix);
+            const mat33 r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+            matrix = nifti_mat33_mul(r, matrix);
             // Convert to displacement
-            --matrix.m[0][0];
-            --matrix.m[1][1];
+            matrix.m[0][0]--;
+            matrix.m[1][1]--;
             i = 8;
-            for (b = -1; b < 2; b++) {
-                for (a = -1; a < 2; a++) {
-                    index = (y + b) * splineControlPoint->nx + x + a;
-                    gradValues[0] = -2.0 * matrix.m[0][0] * basisX[i];
-                    gradValues[1] = -2.0 * matrix.m[1][1] * basisY[i];
+            for (int b = -1; b < 2; b++) {
+                for (int a = -1; a < 2; a++) {
+                    const DataType gradValues[2]{ -2.f * matrix.m[0][0] * basisX[i], -2.f * matrix.m[1][1] * basisY[i] };
+                    const int index = (y + b) * splineControlPoint->nx + x + a;
 
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-                    gradientXPtr[index] += approxRatio * (inv_reorientation.m[0][0] * gradValues[0] +
-                                                          inv_reorientation.m[0][1] * gradValues[1]);
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-                    gradientYPtr[index] += approxRatio * (inv_reorientation.m[1][0] * gradValues[0] +
-                                                          inv_reorientation.m[1][1] * gradValues[1]);
+                    gradientXPtr[index] += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
+                                                          invReorientation.m[0][1] * gradValues[1]);
+                    gradientYPtr[index] += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
+                                                          invReorientation.m[1][1] * gradValues[1]);
                     --i;
                 } // a
             } // b
