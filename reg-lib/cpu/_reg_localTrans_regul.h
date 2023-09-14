@@ -61,7 +61,7 @@ double reg_spline_approxLinearEnergy(const nifti_image *controlPointGridImage);
  * parametrisation
  * @param gradientImage Image of similar size than the control point
  * grid and that contains the gradient of the objective function.
- * The gradient of the linear elasticily terms are added to the
+ * The gradient of the linear elasticity terms are added to the
  * current values
  * @param weight Weight to apply to the term of the penalty
  */

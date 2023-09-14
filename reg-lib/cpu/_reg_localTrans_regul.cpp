@@ -237,15 +237,15 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
             *derivativeValuesPtr++ = XX_y;
             *derivativeValuesPtr++ = YY_x;
             *derivativeValuesPtr++ = YY_y;
-            *derivativeValuesPtr++ = (DataType)(2.0 * XY_x);
-            *derivativeValuesPtr++ = (DataType)(2.0 * XY_y);
+            *derivativeValuesPtr++ = 2.f * XY_x;
+            *derivativeValuesPtr++ = 2.f * XY_y;
         }
     }
 
     DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
     DataType *gradientYPtr = &gradientXPtr[nodeNumber];
 
-    DataType approxRatio = (DataType)weight / (DataType)nodeNumber;
+    DataType approxRatio = weight / static_cast<DataType>(nodeNumber);
     DataType gradientValue[2];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -392,7 +392,7 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
     DataType *gradientYPtr = &gradientXPtr[nodeNumber];
     DataType *gradientZPtr = &gradientYPtr[nodeNumber];
 
-    DataType approxRatio = (DataType)weight / (DataType)nodeNumber;
+    DataType approxRatio = weight / static_cast<DataType>(nodeNumber);
     DataType gradientValue[3];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -501,7 +501,7 @@ double reg_spline_approxLinearEnergyValue2D(const nifti_image *splineControlPoin
     DataType splineCoeffX;
     DataType splineCoeffY;
 
-    mat33 matrix, R;
+    mat33 matrix, r;
 
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
@@ -513,7 +513,7 @@ double reg_spline_approxLinearEnergyValue2D(const nifti_image *splineControlPoin
 #pragma omp parallel for default(none) \
     shared(splinePtrX, splinePtrY, splineControlPoint, \
     basisX, basisY, reorientation) \
-    private(x, a, b, i, index, matrix, R, \
+    private(x, a, b, i, index, matrix, r, \
     splineCoeffX, splineCoeffY, currentValue) \
     reduction(+:constraintValue)
 #endif
@@ -528,18 +528,18 @@ double reg_spline_approxLinearEnergyValue2D(const nifti_image *splineControlPoin
                     index = (y + b) * splineControlPoint->nx + x + a;
                     splineCoeffX = splinePtrX[index];
                     splineCoeffY = splinePtrY[index];
-                    matrix.m[0][0] += basisX[i] * splineCoeffX;
-                    matrix.m[1][0] += basisY[i] * splineCoeffX;
-                    matrix.m[0][1] += basisX[i] * splineCoeffY;
-                    matrix.m[1][1] += basisY[i] * splineCoeffY;
+                    matrix.m[0][0] += static_cast<float>(basisX[i] * splineCoeffX);
+                    matrix.m[1][0] += static_cast<float>(basisY[i] * splineCoeffX);
+                    matrix.m[0][1] += static_cast<float>(basisX[i] * splineCoeffY);
+                    matrix.m[1][1] += static_cast<float>(basisY[i] * splineCoeffY);
                     ++i;
                 }
             }
             // Convert from mm to voxel
             matrix = nifti_mat33_mul(reorientation, matrix);
             // Removing the rotation component
-            R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-            matrix = nifti_mat33_mul(R, matrix);
+            r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+            matrix = nifti_mat33_mul(r, matrix);
             // Convert to displacement
             --matrix.m[0][0];
             --matrix.m[1][1];
@@ -578,7 +578,7 @@ double reg_spline_approxLinearEnergyValue3D(const nifti_image *splineControlPoin
     DataType splineCoeffY;
     DataType splineCoeffZ;
 
-    mat33 matrix, R;
+    mat33 matrix, r;
 
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
@@ -590,7 +590,7 @@ double reg_spline_approxLinearEnergyValue3D(const nifti_image *splineControlPoin
 #pragma omp parallel for default(none) \
     shared(splinePtrX, splinePtrY, splinePtrZ, splineControlPoint, \
     basisX, basisY, basisZ, reorientation) \
-    private(x, y, a, b, c, i, index, matrix, R, \
+    private(x, y, a, b, c, i, index, matrix, r, \
     splineCoeffX, splineCoeffY, splineCoeffZ, currentValue) \
     reduction(+:constraintValue)
 #endif
@@ -608,17 +608,17 @@ double reg_spline_approxLinearEnergyValue3D(const nifti_image *splineControlPoin
                             splineCoeffY = splinePtrY[index];
                             splineCoeffZ = splinePtrZ[index];
 
-                            matrix.m[0][0] += basisX[i] * splineCoeffX;
-                            matrix.m[1][0] += basisY[i] * splineCoeffX;
-                            matrix.m[2][0] += basisZ[i] * splineCoeffX;
+                            matrix.m[0][0] += static_cast<float>(basisX[i] * splineCoeffX);
+                            matrix.m[1][0] += static_cast<float>(basisY[i] * splineCoeffX);
+                            matrix.m[2][0] += static_cast<float>(basisZ[i] * splineCoeffX);
 
-                            matrix.m[0][1] += basisX[i] * splineCoeffY;
-                            matrix.m[1][1] += basisY[i] * splineCoeffY;
-                            matrix.m[2][1] += basisZ[i] * splineCoeffY;
+                            matrix.m[0][1] += static_cast<float>(basisX[i] * splineCoeffY);
+                            matrix.m[1][1] += static_cast<float>(basisY[i] * splineCoeffY);
+                            matrix.m[2][1] += static_cast<float>(basisZ[i] * splineCoeffY);
 
-                            matrix.m[0][2] += basisX[i] * splineCoeffZ;
-                            matrix.m[1][2] += basisY[i] * splineCoeffZ;
-                            matrix.m[2][2] += basisZ[i] * splineCoeffZ;
+                            matrix.m[0][2] += static_cast<float>(basisX[i] * splineCoeffZ);
+                            matrix.m[1][2] += static_cast<float>(basisY[i] * splineCoeffZ);
+                            matrix.m[2][2] += static_cast<float>(basisZ[i] * splineCoeffZ);
                             ++i;
                         }
                     }
@@ -626,8 +626,8 @@ double reg_spline_approxLinearEnergyValue3D(const nifti_image *splineControlPoin
                 // Convert from mm to voxel
                 matrix = nifti_mat33_mul(reorientation, matrix);
                 // Removing the rotation component
-                R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-                matrix = nifti_mat33_mul(R, matrix);
+                r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+                matrix = nifti_mat33_mul(r, matrix);
                 // Convert to displacement
                 --matrix.m[0][0];
                 --matrix.m[1][1];
@@ -696,7 +696,7 @@ double reg_spline_linearEnergyValue2D(const nifti_image *referenceImage,
     DataType basisX[4], basisY[4];
     DataType firstX[4], firstY[4];
 
-    mat33 matrix, R;
+    mat33 matrix, r;
 
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
@@ -725,18 +725,18 @@ double reg_spline_linearEnergyValue2D(const nifti_image *referenceImage,
                     splineCoeffX = splinePtrX[index];
                     splineCoeffY = splinePtrY[index];
 
-                    matrix.m[0][0] += firstX[a] * basisY[b] * splineCoeffX;
-                    matrix.m[1][0] += basisX[a] * firstY[b] * splineCoeffX;
+                    matrix.m[0][0] += static_cast<float>(firstX[a] * basisY[b] * splineCoeffX);
+                    matrix.m[1][0] += static_cast<float>(basisX[a] * firstY[b] * splineCoeffX);
 
-                    matrix.m[0][1] += firstX[a] * basisY[b] * splineCoeffY;
-                    matrix.m[1][1] += basisX[a] * firstY[b] * splineCoeffY;
+                    matrix.m[0][1] += static_cast<float>(firstX[a] * basisY[b] * splineCoeffY);
+                    matrix.m[1][1] += static_cast<float>(basisX[a] * firstY[b] * splineCoeffY);
                 }
             }
             // Convert from mm to voxel
             matrix = nifti_mat33_mul(reorientation, matrix);
             // Removing the rotation component
-            R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-            matrix = nifti_mat33_mul(R, matrix);
+            r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+            matrix = nifti_mat33_mul(r, matrix);
             // Convert to displacement
             --matrix.m[0][0];
             --matrix.m[1][1];
@@ -781,7 +781,7 @@ double reg_spline_linearEnergyValue3D(const nifti_image *referenceImage,
     DataType basisX[4], basisY[4], basisZ[4];
     DataType firstX[4], firstY[4], firstZ[4];
 
-    mat33 matrix, R;
+    mat33 matrix, r;
 
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
@@ -817,25 +817,25 @@ double reg_spline_linearEnergyValue3D(const nifti_image *referenceImage,
                             splineCoeffY = splinePtrY[index];
                             splineCoeffZ = splinePtrZ[index];
 
-                            matrix.m[0][0] += firstX[a] * basisY[b] * basisZ[c] * splineCoeffX;
-                            matrix.m[1][0] += basisX[a] * firstY[b] * basisZ[c] * splineCoeffX;
-                            matrix.m[2][0] += basisX[a] * basisY[b] * firstZ[c] * splineCoeffX;
+                            matrix.m[0][0] += static_cast<float>(firstX[a] * basisY[b] * basisZ[c] * splineCoeffX);
+                            matrix.m[1][0] += static_cast<float>(basisX[a] * firstY[b] * basisZ[c] * splineCoeffX);
+                            matrix.m[2][0] += static_cast<float>(basisX[a] * basisY[b] * firstZ[c] * splineCoeffX);
 
-                            matrix.m[0][1] += firstX[a] * basisY[b] * basisZ[c] * splineCoeffY;
-                            matrix.m[1][1] += basisX[a] * firstY[b] * basisZ[c] * splineCoeffY;
-                            matrix.m[2][1] += basisX[a] * basisY[b] * firstZ[c] * splineCoeffY;
+                            matrix.m[0][1] += static_cast<float>(firstX[a] * basisY[b] * basisZ[c] * splineCoeffY);
+                            matrix.m[1][1] += static_cast<float>(basisX[a] * firstY[b] * basisZ[c] * splineCoeffY);
+                            matrix.m[2][1] += static_cast<float>(basisX[a] * basisY[b] * firstZ[c] * splineCoeffY);
 
-                            matrix.m[0][2] += firstX[a] * basisY[b] * basisZ[c] * splineCoeffZ;
-                            matrix.m[1][2] += basisX[a] * firstY[b] * basisZ[c] * splineCoeffZ;
-                            matrix.m[2][2] += basisX[a] * basisY[b] * firstZ[c] * splineCoeffZ;
+                            matrix.m[0][2] += static_cast<float>(firstX[a] * basisY[b] * basisZ[c] * splineCoeffZ);
+                            matrix.m[1][2] += static_cast<float>(basisX[a] * firstY[b] * basisZ[c] * splineCoeffZ);
+                            matrix.m[2][2] += static_cast<float>(basisX[a] * basisY[b] * firstZ[c] * splineCoeffZ);
                         }
                     }
                 }
                 // Convert from mm to voxel
                 matrix = nifti_mat33_mul(reorientation, matrix);
                 // Removing the rotation component
-                R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-                matrix = nifti_mat33_mul(R, matrix);
+                r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+                matrix = nifti_mat33_mul(r, matrix);
                 // Convert to displacement
                 --matrix.m[0][0];
                 --matrix.m[1][1];
@@ -904,12 +904,12 @@ void reg_spline_linearEnergyGradient2D(const nifti_image *referenceImage,
     DataType basisX[4], basisY[4];
     DataType firstX[4], firstY[4];
 
-    mat33 matrix, R;
+    mat33 matrix, r;
 
     DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
     DataType *gradientYPtr = &gradientXPtr[nodeNumber];
 
-    DataType approxRatio = (DataType)weight / (DataType)voxelNumber;
+    DataType approxRatio = weight / static_cast<DataType>(voxelNumber);
     DataType gradValues[2];
 
     // Matrix to use to convert the gradient from mm to voxel
@@ -917,7 +917,7 @@ void reg_spline_linearEnergyGradient2D(const nifti_image *referenceImage,
     if (splineControlPoint->sform_code > 0)
         reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
     else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
-    mat33 inv_reorientation = nifti_mat33_inverse(reorientation);
+    mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
     // Loop over all voxels
     for (y = 0; y < referenceImage->ny; ++y) {
@@ -940,30 +940,30 @@ void reg_spline_linearEnergyGradient2D(const nifti_image *referenceImage,
                     splineCoeffX = splinePtrX[index];
                     splineCoeffY = splinePtrY[index];
 
-                    matrix.m[0][0] += firstX[a] * basisY[b] * splineCoeffX;
-                    matrix.m[1][0] += basisX[a] * firstY[b] * splineCoeffX;
+                    matrix.m[0][0] += static_cast<float>(firstX[a] * basisY[b] * splineCoeffX);
+                    matrix.m[1][0] += static_cast<float>(basisX[a] * firstY[b] * splineCoeffX);
 
-                    matrix.m[0][1] += firstX[a] * basisY[b] * splineCoeffY;
-                    matrix.m[1][1] += basisX[a] * firstY[b] * splineCoeffY;
+                    matrix.m[0][1] += static_cast<float>(firstX[a] * basisY[b] * splineCoeffY);
+                    matrix.m[1][1] += static_cast<float>(basisX[a] * firstY[b] * splineCoeffY);
                 }
             }
             // Convert from mm to voxel
             matrix = nifti_mat33_mul(reorientation, matrix);
             // Removing the rotation component
-            R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-            matrix = nifti_mat33_mul(R, matrix);
+            r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+            matrix = nifti_mat33_mul(r, matrix);
             // Convert to displacement
             --matrix.m[0][0];
             --matrix.m[1][1];
             for (b = 0; b < 4; b++) {
                 for (a = 0; a < 4; a++) {
                     index = (yPre + b) * splineControlPoint->nx + xPre + a;
-                    gradValues[0] = -2.0 * matrix.m[0][0] * firstX[3 - a] * basisY[3 - b];
-                    gradValues[1] = -2.0 * matrix.m[1][1] * basisX[3 - a] * firstY[3 - b];
-                    gradientXPtr[index] += approxRatio * (inv_reorientation.m[0][0] * gradValues[0] +
-                                                          inv_reorientation.m[0][1] * gradValues[1]);
-                    gradientYPtr[index] += approxRatio * (inv_reorientation.m[1][0] * gradValues[0] +
-                                                          inv_reorientation.m[1][1] * gradValues[1]);
+                    gradValues[0] = -2.f * matrix.m[0][0] * firstX[3 - a] * basisY[3 - b];
+                    gradValues[1] = -2.f * matrix.m[1][1] * basisX[3 - a] * firstY[3 - b];
+                    gradientXPtr[index] += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
+                                                          invReorientation.m[0][1] * gradValues[1]);
+                    gradientYPtr[index] += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
+                                                          invReorientation.m[1][1] * gradValues[1]);
                 } // a
             } // b
         }
@@ -997,13 +997,13 @@ void reg_spline_linearEnergyGradient3D(const nifti_image *referenceImage,
     DataType basisX[4], basisY[4], basisZ[4];
     DataType firstX[4], firstY[4], firstZ[4];
 
-    mat33 matrix, R;
+    mat33 matrix, r;
 
     DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
     DataType *gradientYPtr = &gradientXPtr[nodeNumber];
     DataType *gradientZPtr = &gradientYPtr[nodeNumber];
 
-    DataType approxRatio = (DataType)weight / (DataType)voxelNumber;
+    DataType approxRatio = weight / static_cast<DataType>(voxelNumber);
     DataType gradValues[3];
 
     // Matrix to use to convert the gradient from mm to voxel
@@ -1011,7 +1011,7 @@ void reg_spline_linearEnergyGradient3D(const nifti_image *referenceImage,
     if (splineControlPoint->sform_code > 0)
         reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
     else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
-    mat33 inv_reorientation = nifti_mat33_inverse(reorientation);
+    mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
     // Loop over all voxels
     for (z = 0; z < referenceImage->nz; ++z) {
@@ -1042,25 +1042,25 @@ void reg_spline_linearEnergyGradient3D(const nifti_image *referenceImage,
                             splineCoeffY = splinePtrY[index];
                             splineCoeffZ = splinePtrZ[index];
 
-                            matrix.m[0][0] += firstX[a] * basisY[b] * basisZ[c] * splineCoeffX;
-                            matrix.m[1][0] += basisX[a] * firstY[b] * basisZ[c] * splineCoeffX;
-                            matrix.m[2][0] += basisX[a] * basisY[b] * firstZ[c] * splineCoeffX;
+                            matrix.m[0][0] += static_cast<float>(firstX[a] * basisY[b] * basisZ[c] * splineCoeffX);
+                            matrix.m[1][0] += static_cast<float>(basisX[a] * firstY[b] * basisZ[c] * splineCoeffX);
+                            matrix.m[2][0] += static_cast<float>(basisX[a] * basisY[b] * firstZ[c] * splineCoeffX);
 
-                            matrix.m[0][1] += firstX[a] * basisY[b] * basisZ[c] * splineCoeffY;
-                            matrix.m[1][1] += basisX[a] * firstY[b] * basisZ[c] * splineCoeffY;
-                            matrix.m[2][1] += basisX[a] * basisY[b] * firstZ[c] * splineCoeffY;
+                            matrix.m[0][1] += static_cast<float>(firstX[a] * basisY[b] * basisZ[c] * splineCoeffY);
+                            matrix.m[1][1] += static_cast<float>(basisX[a] * firstY[b] * basisZ[c] * splineCoeffY);
+                            matrix.m[2][1] += static_cast<float>(basisX[a] * basisY[b] * firstZ[c] * splineCoeffY);
 
-                            matrix.m[0][2] += firstX[a] * basisY[b] * basisZ[c] * splineCoeffZ;
-                            matrix.m[1][2] += basisX[a] * firstY[b] * basisZ[c] * splineCoeffZ;
-                            matrix.m[2][2] += basisX[a] * basisY[b] * firstZ[c] * splineCoeffZ;
+                            matrix.m[0][2] += static_cast<float>(firstX[a] * basisY[b] * basisZ[c] * splineCoeffZ);
+                            matrix.m[1][2] += static_cast<float>(basisX[a] * firstY[b] * basisZ[c] * splineCoeffZ);
+                            matrix.m[2][2] += static_cast<float>(basisX[a] * basisY[b] * firstZ[c] * splineCoeffZ);
                         }
                     }
                 }
                 // Convert from mm to voxel
                 matrix = nifti_mat33_mul(reorientation, matrix);
                 // Removing the rotation component
-                R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-                matrix = nifti_mat33_mul(R, matrix);
+                r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+                matrix = nifti_mat33_mul(r, matrix);
                 // Convert to displacement
                 --matrix.m[0][0];
                 --matrix.m[1][1];
@@ -1069,18 +1069,18 @@ void reg_spline_linearEnergyGradient3D(const nifti_image *referenceImage,
                     for (b = 0; b < 4; b++) {
                         for (a = 0; a < 4; a++) {
                             index = ((zPre + c) * splineControlPoint->ny + yPre + b) * splineControlPoint->nx + xPre + a;
-                            gradValues[0] = -2.0 * matrix.m[0][0] * firstX[3 - a] * basisY[3 - b] * basisZ[3 - c];
-                            gradValues[1] = -2.0 * matrix.m[1][1] * basisX[3 - a] * firstY[3 - b] * basisZ[3 - c];
-                            gradValues[2] = -2.0 * matrix.m[2][2] * basisX[3 - a] * basisY[3 - b] * firstZ[3 - c];
-                            gradientXPtr[index] += approxRatio * (inv_reorientation.m[0][0] * gradValues[0] +
-                                                                  inv_reorientation.m[0][1] * gradValues[1] +
-                                                                  inv_reorientation.m[0][2] * gradValues[2]);
-                            gradientYPtr[index] += approxRatio * (inv_reorientation.m[1][0] * gradValues[0] +
-                                                                  inv_reorientation.m[1][1] * gradValues[1] +
-                                                                  inv_reorientation.m[1][2] * gradValues[2]);
-                            gradientZPtr[index] += approxRatio * (inv_reorientation.m[2][0] * gradValues[0] +
-                                                                  inv_reorientation.m[2][1] * gradValues[1] +
-                                                                  inv_reorientation.m[2][2] * gradValues[2]);
+                            gradValues[0] = -2.f * matrix.m[0][0] * firstX[3 - a] * basisY[3 - b] * basisZ[3 - c];
+                            gradValues[1] = -2.f * matrix.m[1][1] * basisX[3 - a] * firstY[3 - b] * basisZ[3 - c];
+                            gradValues[2] = -2.f * matrix.m[2][2] * basisX[3 - a] * basisY[3 - b] * firstZ[3 - c];
+                            gradientXPtr[index] += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
+                                                                  invReorientation.m[0][1] * gradValues[1] +
+                                                                  invReorientation.m[0][2] * gradValues[2]);
+                            gradientYPtr[index] += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
+                                                                  invReorientation.m[1][1] * gradValues[1] +
+                                                                  invReorientation.m[1][2] * gradValues[2]);
+                            gradientZPtr[index] += approxRatio * (invReorientation.m[2][0] * gradValues[0] +
+                                                                  invReorientation.m[2][1] * gradValues[1] +
+                                                                  invReorientation.m[2][2] * gradValues[2]);
                         } // a
                     } // b
                 } // c
@@ -1193,65 +1193,50 @@ void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoi
                                              nifti_image *gradientImage,
                                              float weight) {
     const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
-    int x, y, z, a, b, c, i, index;
 
-    // Create pointers to the spline coefficients
+    // Create the pointers
     const DataType *splinePtrX = static_cast<DataType*>(splineControlPoint->data);
     const DataType *splinePtrY = &splinePtrX[nodeNumber];
     const DataType *splinePtrZ = &splinePtrY[nodeNumber];
-
-    // Store the basis values since they are constant as the value is approximated
-    // at the control point positions only
-    DataType basisX[27];
-    DataType basisY[27];
-    DataType basisZ[27];
-    set_first_order_basis_values(basisX, basisY, basisZ);
-
-    // Matrix to use to convert the gradient from mm to voxel
-    mat33 reorientation;
-    if (splineControlPoint->sform_code > 0)
-        reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
-    else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
-    mat33 inv_reorientation = nifti_mat33_inverse(reorientation);
-
-    DataType splineCoeffX;
-    DataType splineCoeffY;
-    DataType splineCoeffZ;
-
-    mat33 matrix, R;
-
     DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
     DataType *gradientYPtr = &gradientXPtr[nodeNumber];
     DataType *gradientZPtr = &gradientYPtr[nodeNumber];
 
-    DataType approxRatio = (DataType)weight / (DataType)(nodeNumber);
-    DataType gradValues[3];
+    // Store the basis values since they are constant as the value is approximated
+    // at the control point positions only
+    DataType basisX[27], basisY[27], basisZ[27];
+    set_first_order_basis_values(basisX, basisY, basisZ);
 
-    for (z = 1; z < splineControlPoint->nz - 1; z++) {
-        for (y = 1; y < splineControlPoint->ny - 1; y++) {
-            for (x = 1; x < splineControlPoint->nx - 1; x++) {
-                memset(&matrix, 0, sizeof(mat33));
+    // Matrix to use to convert the gradient from mm to voxel
+    const mat33 reorientation = reg_mat44_to_mat33(splineControlPoint->sform_code > 0 ? &splineControlPoint->sto_ijk : &splineControlPoint->qto_ijk);
+    const mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
-                i = 0;
-                for (c = -1; c < 2; c++) {
-                    for (b = -1; b < 2; b++) {
-                        for (a = -1; a < 2; a++) {
-                            index = ((z + c) * splineControlPoint->ny + y + b) * splineControlPoint->nx + x + a;
-                            splineCoeffX = splinePtrX[index];
-                            splineCoeffY = splinePtrY[index];
-                            splineCoeffZ = splinePtrZ[index];
+    const DataType approxRatio = weight / static_cast<DataType>(nodeNumber);
 
-                            matrix.m[0][0] += basisX[i] * splineCoeffX;
-                            matrix.m[1][0] += basisY[i] * splineCoeffX;
-                            matrix.m[2][0] += basisZ[i] * splineCoeffX;
+    for (int z = 1; z < splineControlPoint->nz - 1; z++) {
+        for (int y = 1; y < splineControlPoint->ny - 1; y++) {
+            for (int x = 1; x < splineControlPoint->nx - 1; x++) {
+                mat33 matrix{};
+                int i = 0;
+                for (int c = -1; c < 2; c++) {
+                    for (int b = -1; b < 2; b++) {
+                        for (int a = -1; a < 2; a++) {
+                            const int index = ((z + c) * splineControlPoint->ny + y + b) * splineControlPoint->nx + x + a;
+                            const DataType& splineCoeffX = splinePtrX[index];
+                            const DataType& splineCoeffY = splinePtrY[index];
+                            const DataType& splineCoeffZ = splinePtrZ[index];
 
-                            matrix.m[0][1] += basisX[i] * splineCoeffY;
-                            matrix.m[1][1] += basisY[i] * splineCoeffY;
-                            matrix.m[2][1] += basisZ[i] * splineCoeffY;
+                            matrix.m[0][0] += static_cast<float>(basisX[i] * splineCoeffX);
+                            matrix.m[1][0] += static_cast<float>(basisY[i] * splineCoeffX);
+                            matrix.m[2][0] += static_cast<float>(basisZ[i] * splineCoeffX);
 
-                            matrix.m[0][2] += basisX[i] * splineCoeffZ;
-                            matrix.m[1][2] += basisY[i] * splineCoeffZ;
-                            matrix.m[2][2] += basisZ[i] * splineCoeffZ;
+                            matrix.m[0][1] += static_cast<float>(basisX[i] * splineCoeffY);
+                            matrix.m[1][1] += static_cast<float>(basisY[i] * splineCoeffY);
+                            matrix.m[2][1] += static_cast<float>(basisZ[i] * splineCoeffY);
+
+                            matrix.m[0][2] += static_cast<float>(basisX[i] * splineCoeffZ);
+                            matrix.m[1][2] += static_cast<float>(basisY[i] * splineCoeffZ);
+                            matrix.m[2][2] += static_cast<float>(basisZ[i] * splineCoeffZ);
                             ++i;
                         }
                     }
@@ -1259,32 +1244,30 @@ void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoi
                 // Convert from mm to voxel
                 matrix = nifti_mat33_mul(reorientation, matrix);
                 // Removing the rotation component
-                R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-                matrix = nifti_mat33_mul(R, matrix);
+                const mat33 r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+                matrix = nifti_mat33_mul(r, matrix);
                 // Convert to displacement
-                --matrix.m[0][0];
-                --matrix.m[1][1];
-                --matrix.m[2][2];
+                matrix.m[0][0]--;
+                matrix.m[1][1]--;
+                matrix.m[2][2]--;
                 i = 26;
-                for (c = -1; c < 2; c++) {
-                    for (b = -1; b < 2; b++) {
-                        for (a = -1; a < 2; a++) {
-                            index = ((z + c) * splineControlPoint->ny + y + b) * splineControlPoint->nx + x + a;
-                            gradValues[0] = -2.0 * matrix.m[0][0] * basisX[i];
-                            gradValues[1] = -2.0 * matrix.m[1][1] * basisY[i];
-                            gradValues[2] = -2.0 * matrix.m[2][2] * basisZ[i];
+                for (int c = -1; c < 2; c++) {
+                    for (int b = -1; b < 2; b++) {
+                        for (int a = -1; a < 2; a++) {
+                            const int index = ((z + c) * splineControlPoint->ny + y + b) * splineControlPoint->nx + x + a;
+                            const DataType gradValues[3]{ -2.f * matrix.m[0][0] * basisX[i],
+                                                          -2.f * matrix.m[1][1] * basisY[i],
+                                                          -2.f * matrix.m[2][2] * basisZ[i] };
 
-                            gradientXPtr[index] += approxRatio * (inv_reorientation.m[0][0] * gradValues[0] +
-                                                                  inv_reorientation.m[0][1] * gradValues[1] +
-                                                                  inv_reorientation.m[0][2] * gradValues[2]);
-
-                            gradientYPtr[index] += approxRatio * (inv_reorientation.m[1][0] * gradValues[0] +
-                                                                  inv_reorientation.m[1][1] * gradValues[1] +
-                                                                  inv_reorientation.m[1][2] * gradValues[2]);
-
-                            gradientZPtr[index] += approxRatio * (inv_reorientation.m[2][0] * gradValues[0] +
-                                                                  inv_reorientation.m[2][1] * gradValues[1] +
-                                                                  inv_reorientation.m[2][2] * gradValues[2]);
+                            gradientXPtr[index] += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
+                                                                  invReorientation.m[0][1] * gradValues[1] +
+                                                                  invReorientation.m[0][2] * gradValues[2]);
+                            gradientYPtr[index] += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
+                                                                  invReorientation.m[1][1] * gradValues[1] +
+                                                                  invReorientation.m[1][2] * gradValues[2]);
+                            gradientZPtr[index] += approxRatio * (invReorientation.m[2][0] * gradValues[0] +
+                                                                  invReorientation.m[2][1] * gradValues[1] +
+                                                                  invReorientation.m[2][2] * gradValues[2]);
                             --i;
                         } // a
                     } // b
@@ -1340,7 +1323,7 @@ double reg_defField_linearEnergyValue2D(const nifti_image *deformationField) {
     const DataType *defPtrY = &defPtrX[voxelNumber];
     DataType defX, defY;
 
-    mat33 matrix, R;
+    mat33 matrix, r;
 
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
@@ -1361,17 +1344,17 @@ double reg_defField_linearEnergyValue2D(const nifti_image *deformationField) {
                     defX = defPtrX[index];
                     defY = defPtrY[index];
 
-                    matrix.m[0][0] += first[a] * basis[b] * defX;
-                    matrix.m[1][0] += basis[a] * first[b] * defX;
-                    matrix.m[0][1] += first[a] * basis[b] * defY;
-                    matrix.m[1][1] += basis[a] * first[b] * defY;
+                    matrix.m[0][0] += static_cast<float>(first[a] * basis[b] * defX);
+                    matrix.m[1][0] += static_cast<float>(basis[a] * first[b] * defX);
+                    matrix.m[0][1] += static_cast<float>(first[a] * basis[b] * defY);
+                    matrix.m[1][1] += static_cast<float>(basis[a] * first[b] * defY);
                 }
             }
             // Convert from mm to voxel
             matrix = nifti_mat33_mul(reorientation, matrix);
             // Removing the rotation component
-            R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-            matrix = nifti_mat33_mul(R, matrix);
+            r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+            matrix = nifti_mat33_mul(r, matrix);
             // Convert to displacement
             --matrix.m[0][0];
             --matrix.m[1][1];
@@ -1404,7 +1387,7 @@ double reg_defField_linearEnergyValue3D(const nifti_image *deformationField) {
     const DataType *defPtrZ = &defPtrY[voxelNumber];
     DataType defX, defY, defZ;
 
-    mat33 matrix, R;
+    mat33 matrix, r;
 
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
@@ -1429,25 +1412,25 @@ double reg_defField_linearEnergyValue3D(const nifti_image *deformationField) {
                             defY = defPtrY[index];
                             defZ = defPtrZ[index];
 
-                            matrix.m[0][0] += first[a] * basis[b] * basis[c] * defX;
-                            matrix.m[1][0] += basis[a] * first[b] * basis[c] * defX;
-                            matrix.m[2][0] += basis[a] * basis[b] * first[c] * defX;
+                            matrix.m[0][0] += static_cast<float>(first[a] * basis[b] * basis[c] * defX);
+                            matrix.m[1][0] += static_cast<float>(basis[a] * first[b] * basis[c] * defX);
+                            matrix.m[2][0] += static_cast<float>(basis[a] * basis[b] * first[c] * defX);
 
-                            matrix.m[0][1] += first[a] * basis[b] * basis[c] * defY;
-                            matrix.m[1][1] += basis[a] * first[b] * basis[c] * defY;
-                            matrix.m[2][1] += basis[a] * basis[b] * first[c] * defY;
+                            matrix.m[0][1] += static_cast<float>(first[a] * basis[b] * basis[c] * defY);
+                            matrix.m[1][1] += static_cast<float>(basis[a] * first[b] * basis[c] * defY);
+                            matrix.m[2][1] += static_cast<float>(basis[a] * basis[b] * first[c] * defY);
 
-                            matrix.m[0][2] += first[a] * basis[b] * basis[c] * defZ;
-                            matrix.m[1][2] += basis[a] * first[b] * basis[c] * defZ;
-                            matrix.m[2][2] += basis[a] * basis[b] * first[c] * defZ;
+                            matrix.m[0][2] += static_cast<float>(first[a] * basis[b] * basis[c] * defZ);
+                            matrix.m[1][2] += static_cast<float>(basis[a] * first[b] * basis[c] * defZ);
+                            matrix.m[2][2] += static_cast<float>(basis[a] * basis[b] * first[c] * defZ);
                         }
                     }
                 }
                 // Convert from mm to voxel
                 matrix = nifti_mat33_mul(reorientation, matrix);
                 // Removing the rotation component
-                R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-                matrix = nifti_mat33_mul(R, matrix);
+                r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+                matrix = nifti_mat33_mul(r, matrix);
                 // Convert to displacement
                 --matrix.m[0][0];
                 --matrix.m[1][1];
@@ -1504,12 +1487,12 @@ void reg_defField_linearEnergyGradient2D(const nifti_image *deformationField,
     const DataType *defPtrY = &defPtrX[voxelNumber];
     DataType defX, defY;
 
-    mat33 matrix, R;
+    mat33 matrix, r;
 
     DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
     DataType *gradientYPtr = &gradientXPtr[voxelNumber];
 
-    DataType approxRatio = (DataType)weight / (DataType)voxelNumber;
+    DataType approxRatio = weight / static_cast<DataType>(voxelNumber);
     DataType gradValues[2];
 
     // Matrix to use to convert the gradient from mm to voxel
@@ -1517,7 +1500,7 @@ void reg_defField_linearEnergyGradient2D(const nifti_image *deformationField,
     if (deformationField->sform_code > 0)
         reorientation = reg_mat44_to_mat33(&deformationField->sto_ijk);
     else reorientation = reg_mat44_to_mat33(&deformationField->qto_ijk);
-    mat33 inv_reorientation = nifti_mat33_inverse(reorientation);
+    mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
     for (y = 0; y < deformationField->ny; ++y) {
         Y = (y != deformationField->ny - 1) ? y : y - 1;
@@ -1532,17 +1515,17 @@ void reg_defField_linearEnergyGradient2D(const nifti_image *deformationField,
                     defX = defPtrX[index];
                     defY = defPtrY[index];
 
-                    matrix.m[0][0] += first[a] * basis[b] * defX;
-                    matrix.m[1][0] += basis[a] * first[b] * defX;
-                    matrix.m[0][1] += first[a] * basis[b] * defY;
-                    matrix.m[1][1] += basis[a] * first[b] * defY;
+                    matrix.m[0][0] += static_cast<float>(first[a] * basis[b] * defX);
+                    matrix.m[1][0] += static_cast<float>(basis[a] * first[b] * defX);
+                    matrix.m[0][1] += static_cast<float>(first[a] * basis[b] * defY);
+                    matrix.m[1][1] += static_cast<float>(basis[a] * first[b] * defY);
                 }
             }
             // Convert from mm to voxel
             matrix = nifti_mat33_mul(reorientation, matrix);
             // Removing the rotation component
-            R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-            matrix = nifti_mat33_mul(R, matrix);
+            r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+            matrix = nifti_mat33_mul(r, matrix);
             // Convert to displacement
             --matrix.m[0][0];
             --matrix.m[1][1];
@@ -1550,12 +1533,12 @@ void reg_defField_linearEnergyGradient2D(const nifti_image *deformationField,
             for (b = 0; b < 2; b++) {
                 for (a = 0; a < 2; a++) {
                     index = (Y + b) * deformationField->nx + X + a;
-                    gradValues[0] = -2.0 * matrix.m[0][0] * first[1 - a] * basis[1 - b];
-                    gradValues[1] = -2.0 * matrix.m[1][1] * basis[1 - a] * first[1 - b];
-                    gradientXPtr[index] += approxRatio * (inv_reorientation.m[0][0] * gradValues[0] +
-                                                          inv_reorientation.m[0][1] * gradValues[1]);
-                    gradientYPtr[index] += approxRatio * (inv_reorientation.m[1][0] * gradValues[0] +
-                                                          inv_reorientation.m[1][1] * gradValues[1]);
+                    gradValues[0] = -2.f * matrix.m[0][0] * first[1 - a] * basis[1 - b];
+                    gradValues[1] = -2.f * matrix.m[1][1] * basis[1 - a] * first[1 - b];
+                    gradientXPtr[index] += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
+                                                          invReorientation.m[0][1] * gradValues[1]);
+                    gradientYPtr[index] += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
+                                                          invReorientation.m[1][1] * gradValues[1]);
                 } // a
             } // b
         }
@@ -1577,13 +1560,13 @@ void reg_defField_linearEnergyGradient3D(const nifti_image *deformationField,
     const DataType *defPtrZ = &defPtrY[voxelNumber];
     DataType defX, defY, defZ;
 
-    mat33 matrix, R;
+    mat33 matrix, r;
 
     DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
     DataType *gradientYPtr = &gradientXPtr[voxelNumber];
     DataType *gradientZPtr = &gradientYPtr[voxelNumber];
 
-    DataType approxRatio = (DataType)weight / (DataType)voxelNumber;
+    DataType approxRatio = weight / static_cast<DataType>(voxelNumber);
     DataType gradValues[3];
 
     // Matrix to use to convert the gradient from mm to voxel
@@ -1591,7 +1574,7 @@ void reg_defField_linearEnergyGradient3D(const nifti_image *deformationField,
     if (deformationField->sform_code > 0)
         reorientation = reg_mat44_to_mat33(&deformationField->sto_ijk);
     else reorientation = reg_mat44_to_mat33(&deformationField->qto_ijk);
-    mat33 inv_reorientation = nifti_mat33_inverse(reorientation);
+    mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
     for (z = 0; z < deformationField->nz; ++z) {
         Z = (z != deformationField->nz - 1) ? z : z - 1;
@@ -1610,25 +1593,25 @@ void reg_defField_linearEnergyGradient3D(const nifti_image *deformationField,
                             defY = defPtrY[index];
                             defZ = defPtrZ[index];
 
-                            matrix.m[0][0] += first[a] * basis[b] * basis[c] * defX;
-                            matrix.m[1][0] += basis[a] * first[b] * basis[c] * defX;
-                            matrix.m[2][0] += basis[a] * basis[b] * first[c] * defX;
+                            matrix.m[0][0] += static_cast<float>(first[a] * basis[b] * basis[c] * defX);
+                            matrix.m[1][0] += static_cast<float>(basis[a] * first[b] * basis[c] * defX);
+                            matrix.m[2][0] += static_cast<float>(basis[a] * basis[b] * first[c] * defX);
 
-                            matrix.m[0][1] += first[a] * basis[b] * basis[c] * defY;
-                            matrix.m[1][1] += basis[a] * first[b] * basis[c] * defY;
-                            matrix.m[2][1] += basis[a] * basis[b] * first[c] * defY;
+                            matrix.m[0][1] += static_cast<float>(first[a] * basis[b] * basis[c] * defY);
+                            matrix.m[1][1] += static_cast<float>(basis[a] * first[b] * basis[c] * defY);
+                            matrix.m[2][1] += static_cast<float>(basis[a] * basis[b] * first[c] * defY);
 
-                            matrix.m[0][2] += first[a] * basis[b] * basis[c] * defZ;
-                            matrix.m[1][2] += basis[a] * first[b] * basis[c] * defZ;
-                            matrix.m[2][2] += basis[a] * basis[b] * first[c] * defZ;
+                            matrix.m[0][2] += static_cast<float>(first[a] * basis[b] * basis[c] * defZ);
+                            matrix.m[1][2] += static_cast<float>(basis[a] * first[b] * basis[c] * defZ);
+                            matrix.m[2][2] += static_cast<float>(basis[a] * basis[b] * first[c] * defZ);
                         }
                     }
                 }
                 // Convert from mm to voxel
                 matrix = nifti_mat33_mul(reorientation, matrix);
                 // Removing the rotation component
-                R = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-                matrix = nifti_mat33_mul(R, matrix);
+                r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
+                matrix = nifti_mat33_mul(r, matrix);
                 // Convert to displacement
                 --matrix.m[0][0];
                 --matrix.m[1][1];
@@ -1637,18 +1620,18 @@ void reg_defField_linearEnergyGradient3D(const nifti_image *deformationField,
                     for (b = 0; b < 2; b++) {
                         for (a = 0; a < 2; a++) {
                             index = ((Z + c) * deformationField->ny + Y + b) * deformationField->nx + X + a;
-                            gradValues[0] = -2.0 * matrix.m[0][0] * first[1 - a] * basis[1 - b] * basis[1 - c];
-                            gradValues[1] = -2.0 * matrix.m[1][1] * basis[1 - a] * first[1 - b] * basis[1 - c];
-                            gradValues[2] = -2.0 * matrix.m[2][2] * basis[1 - a] * basis[1 - b] * first[1 - c];
-                            gradientXPtr[index] += approxRatio * (inv_reorientation.m[0][0] * gradValues[0] +
-                                                                  inv_reorientation.m[0][1] * gradValues[1] +
-                                                                  inv_reorientation.m[0][2] * gradValues[2]);
-                            gradientYPtr[index] += approxRatio * (inv_reorientation.m[1][0] * gradValues[0] +
-                                                                  inv_reorientation.m[1][1] * gradValues[1] +
-                                                                  inv_reorientation.m[1][2] * gradValues[2]);
-                            gradientZPtr[index] += approxRatio * (inv_reorientation.m[2][0] * gradValues[0] +
-                                                                  inv_reorientation.m[2][1] * gradValues[1] +
-                                                                  inv_reorientation.m[2][2] * gradValues[2]);
+                            gradValues[0] = -2.f * matrix.m[0][0] * first[1 - a] * basis[1 - b] * basis[1 - c];
+                            gradValues[1] = -2.f * matrix.m[1][1] * basis[1 - a] * first[1 - b] * basis[1 - c];
+                            gradValues[2] = -2.f * matrix.m[2][2] * basis[1 - a] * basis[1 - b] * first[1 - c];
+                            gradientXPtr[index] += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
+                                                                  invReorientation.m[0][1] * gradValues[1] +
+                                                                  invReorientation.m[0][2] * gradValues[2]);
+                            gradientYPtr[index] += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
+                                                                  invReorientation.m[1][1] * gradValues[1] +
+                                                                  invReorientation.m[1][2] * gradValues[2]);
+                            gradientZPtr[index] += approxRatio * (invReorientation.m[2][0] * gradValues[0] +
+                                                                  invReorientation.m[2][1] * gradValues[1] +
+                                                                  invReorientation.m[2][2] * gradValues[2]);
                         } // a
                     } // b
                 } // c
@@ -1694,9 +1677,9 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     double constraintValue = 0;
     size_t l, index;
-    float ref_position[4];
-    float def_position[4];
-    float flo_position[4];
+    float refPosition[4];
+    float defPosition[4];
+    float floPosition[4];
     int previous[3], a, b, c;
     DataType basisX[4], basisY[4], basisZ[4], basis;
     const mat44 *gridRealToVox = &(controlPointImage->qto_ijk);
@@ -1711,33 +1694,33 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
     // Loop over all landmarks
     for (l = 0; l < landmarkNumber; ++l) {
         // fetch the initial positions
-        ref_position[0] = landmarkReference[l * imageDim];
-        flo_position[0] = landmarkFloating[l * imageDim];
-        ref_position[1] = landmarkReference[l * imageDim + 1];
-        flo_position[1] = landmarkFloating[l * imageDim + 1];
+        refPosition[0] = landmarkReference[l * imageDim];
+        floPosition[0] = landmarkFloating[l * imageDim];
+        refPosition[1] = landmarkReference[l * imageDim + 1];
+        floPosition[1] = landmarkFloating[l * imageDim + 1];
         if (imageDim > 2) {
-            ref_position[2] = landmarkReference[l * imageDim + 2];
-            flo_position[2] = landmarkFloating[l * imageDim + 2];
-        } else ref_position[2] = flo_position[2] = 0;
-        ref_position[3] = flo_position[3] = 1;
+            refPosition[2] = landmarkReference[l * imageDim + 2];
+            floPosition[2] = landmarkFloating[l * imageDim + 2];
+        } else refPosition[2] = floPosition[2] = 0;
+        refPosition[3] = floPosition[3] = 1;
         // Convert the reference position to voxel in the control point grid space
-        reg_mat44_mul(gridRealToVox, ref_position, def_position);
+        reg_mat44_mul(gridRealToVox, refPosition, defPosition);
 
         // Extract the corresponding nodes
-        previous[0] = Floor(def_position[0]) - 1;
-        previous[1] = Floor(def_position[1]) - 1;
-        previous[2] = Floor(def_position[2]) - 1;
+        previous[0] = Floor(defPosition[0]) - 1;
+        previous[1] = Floor(defPosition[1]) - 1;
+        previous[2] = Floor(defPosition[2]) - 1;
         // Check that the specified landmark belongs to the input image
         if (previous[0] > -1 && previous[0] + 3 < controlPointImage->nx &&
             previous[1] > -1 && previous[1] + 3 < controlPointImage->ny &&
             ((previous[2] > -1 && previous[2] + 3 < controlPointImage->nz) || imageDim == 2)) {
             // Extract the corresponding basis values
-            get_BSplineBasisValues<DataType>(def_position[0] - 1 - (DataType)previous[0], basisX);
-            get_BSplineBasisValues<DataType>(def_position[1] - 1 - (DataType)previous[1], basisY);
-            get_BSplineBasisValues<DataType>(def_position[2] - 1 - (DataType)previous[2], basisZ);
-            def_position[0] = 0;
-            def_position[1] = 0;
-            def_position[2] = 0;
+            get_BSplineBasisValues<DataType>(defPosition[0] - 1 - (DataType)previous[0], basisX);
+            get_BSplineBasisValues<DataType>(defPosition[1] - 1 - (DataType)previous[1], basisY);
+            get_BSplineBasisValues<DataType>(defPosition[2] - 1 - (DataType)previous[2], basisZ);
+            defPosition[0] = 0;
+            defPosition[1] = 0;
+            defPosition[2] = 0;
             if (imageDim > 2) {
                 for (c = 0; c < 4; ++c) {
                     for (b = 0; b < 4; ++b) {
@@ -1745,9 +1728,9 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
                             index = ((previous[2] + c) * controlPointImage->ny + previous[1] + b) *
                                 controlPointImage->nx + previous[0] + a;
                             basis = basisX[a] * basisY[b] * basisZ[c];
-                            def_position[0] += gridPtrX[index] * basis;
-                            def_position[1] += gridPtrY[index] * basis;
-                            def_position[2] += gridPtrZ[index] * basis;
+                            defPosition[0] += static_cast<float>(gridPtrX[index] * basis);
+                            defPosition[1] += static_cast<float>(gridPtrY[index] * basis);
+                            defPosition[2] += static_cast<float>(gridPtrZ[index] * basis);
                         }
                     }
                 }
@@ -1756,18 +1739,18 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
                     for (a = 0; a < 4; ++a) {
                         index = (previous[1] + b) * controlPointImage->nx + previous[0] + a;
                         basis = basisX[a] * basisY[b];
-                        def_position[0] += gridPtrX[index] * basis;
-                        def_position[1] += gridPtrY[index] * basis;
+                        defPosition[0] += static_cast<float>(gridPtrX[index] * basis);
+                        defPosition[1] += static_cast<float>(gridPtrY[index] * basis);
                     }
                 }
             }
-            constraintValue += Square(flo_position[0] - def_position[0]);
-            constraintValue += Square(flo_position[1] - def_position[1]);
+            constraintValue += Square(floPosition[0] - defPosition[0]);
+            constraintValue += Square(floPosition[1] - defPosition[1]);
             if (imageDim > 2)
-                constraintValue += Square(flo_position[2] - def_position[2]);
+                constraintValue += Square(floPosition[2] - defPosition[2]);
         } else {
-            NR_WARN("The current landmark at position " << ref_position[0] << " " <<
-                    ref_position[1] << (imageDim > 2 ? " "s + std::to_string(ref_position[2]) : "") <<
+            NR_WARN("The current landmark at position " << refPosition[0] << " " <<
+                    refPosition[1] << (imageDim > 2 ? " "s + std::to_string(refPosition[2]) : "") <<
                     " is ignored as it is not in the space of the reference image");
         }
     }
@@ -1803,9 +1786,9 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
     const int imageDim = controlPointImage->nz > 1 ? 3 : 2;
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     size_t l, index;
-    float ref_position[3];
-    float def_position[3];
-    float flo_position[3];
+    float refPosition[3];
+    float defPosition[3];
+    float floPosition[3];
     int previous[3], a, b, c;
     DataType basisX[4], basisY[4], basisZ[4], basis;
     const mat44 *gridRealToVox = &(controlPointImage->qto_ijk);
@@ -1825,32 +1808,32 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
     // Loop over all landmarks
     for (l = 0; l < landmarkNumber; ++l) {
         // fetch the initial positions
-        ref_position[0] = landmarkReference[l * imageDim];
-        flo_position[0] = landmarkFloating[l * imageDim];
-        ref_position[1] = landmarkReference[l * imageDim + 1];
-        flo_position[1] = landmarkFloating[l * imageDim + 1];
+        refPosition[0] = landmarkReference[l * imageDim];
+        floPosition[0] = landmarkFloating[l * imageDim];
+        refPosition[1] = landmarkReference[l * imageDim + 1];
+        floPosition[1] = landmarkFloating[l * imageDim + 1];
         if (imageDim > 2) {
-            ref_position[2] = landmarkReference[l * imageDim + 2];
-            flo_position[2] = landmarkFloating[l * imageDim + 2];
-        } else ref_position[2] = flo_position[2] = 0;
+            refPosition[2] = landmarkReference[l * imageDim + 2];
+            floPosition[2] = landmarkFloating[l * imageDim + 2];
+        } else refPosition[2] = floPosition[2] = 0;
         // Convert the reference position to voxel in the control point grid space
-        reg_mat44_mul(gridRealToVox, ref_position, def_position);
-        if (imageDim == 2) def_position[2] = 0;
+        reg_mat44_mul(gridRealToVox, refPosition, defPosition);
+        if (imageDim == 2) defPosition[2] = 0;
         // Extract the corresponding nodes
-        previous[0] = Floor(def_position[0]) - 1;
-        previous[1] = Floor(def_position[1]) - 1;
-        previous[2] = Floor(def_position[2]) - 1;
+        previous[0] = Floor(defPosition[0]) - 1;
+        previous[1] = Floor(defPosition[1]) - 1;
+        previous[2] = Floor(defPosition[2]) - 1;
         // Check that the specified landmark belongs to the input image
         if (previous[0] > -1 && previous[0] + 3 < controlPointImage->nx &&
             previous[1] > -1 && previous[1] + 3 < controlPointImage->ny &&
             ((previous[2] > -1 && previous[2] + 3 < controlPointImage->nz) || imageDim == 2)) {
             // Extract the corresponding basis values
-            get_BSplineBasisValues<DataType>(def_position[0] - 1 - (DataType)previous[0], basisX);
-            get_BSplineBasisValues<DataType>(def_position[1] - 1 - (DataType)previous[1], basisY);
-            get_BSplineBasisValues<DataType>(def_position[2] - 1 - (DataType)previous[2], basisZ);
-            def_position[0] = 0;
-            def_position[1] = 0;
-            def_position[2] = 0;
+            get_BSplineBasisValues<DataType>(defPosition[0] - 1 - (DataType)previous[0], basisX);
+            get_BSplineBasisValues<DataType>(defPosition[1] - 1 - (DataType)previous[1], basisY);
+            get_BSplineBasisValues<DataType>(defPosition[2] - 1 - (DataType)previous[2], basisZ);
+            defPosition[0] = 0;
+            defPosition[1] = 0;
+            defPosition[2] = 0;
             if (imageDim > 2) {
                 for (c = 0; c < 4; ++c) {
                     for (b = 0; b < 4; ++b) {
@@ -1858,9 +1841,9 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
                             index = ((previous[2] + c) * controlPointImage->ny + previous[1] + b) *
                                 controlPointImage->nx + previous[0] + a;
                             basis = basisX[a] * basisY[b] * basisZ[c];
-                            def_position[0] += gridPtrX[index] * basis;
-                            def_position[1] += gridPtrY[index] * basis;
-                            def_position[2] += gridPtrZ[index] * basis;
+                            defPosition[0] += static_cast<float>(gridPtrX[index] * basis);
+                            defPosition[1] += static_cast<float>(gridPtrY[index] * basis);
+                            defPosition[2] += static_cast<float>(gridPtrZ[index] * basis);
                         }
                     }
                 }
@@ -1869,15 +1852,15 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
                     for (a = 0; a < 4; ++a) {
                         index = (previous[1] + b) * controlPointImage->nx + previous[0] + a;
                         basis = basisX[a] * basisY[b];
-                        def_position[0] += gridPtrX[index] * basis;
-                        def_position[1] += gridPtrY[index] * basis;
+                        defPosition[0] += static_cast<float>(gridPtrX[index] * basis);
+                        defPosition[1] += static_cast<float>(gridPtrY[index] * basis);
                     }
                 }
             }
-            def_position[0] = flo_position[0] - def_position[0];
-            def_position[1] = flo_position[1] - def_position[1];
+            defPosition[0] = floPosition[0] - defPosition[0];
+            defPosition[1] = floPosition[1] - defPosition[1];
             if (imageDim > 2)
-                def_position[2] = flo_position[2] - def_position[2];
+                defPosition[2] = floPosition[2] - defPosition[2];
             if (imageDim > 2) {
                 for (c = 0; c < 4; ++c) {
                     for (b = 0; b < 4; ++b) {
@@ -1885,9 +1868,9 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
                             index = ((previous[2] + c) * controlPointImage->ny + previous[1] + b) *
                                 controlPointImage->nx + previous[0] + a;
                             basis = basisX[a] * basisY[b] * basisZ[c] * weight;
-                            gradPtrX[index] -= def_position[0] * basis;
-                            gradPtrY[index] -= def_position[1] * basis;
-                            gradPtrZ[index] -= def_position[2] * basis;
+                            gradPtrX[index] -= defPosition[0] * basis;
+                            gradPtrY[index] -= defPosition[1] * basis;
+                            gradPtrZ[index] -= defPosition[2] * basis;
                         }
                     }
                 }
@@ -1896,14 +1879,14 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
                     for (a = 0; a < 4; ++a) {
                         index = (previous[1] + b) * controlPointImage->nx + previous[0] + a;
                         basis = basisX[a] * basisY[b] * weight;
-                        gradPtrX[index] -= def_position[0] * basis;
-                        gradPtrY[index] -= def_position[1] * basis;
+                        gradPtrX[index] -= defPosition[0] * basis;
+                        gradPtrY[index] -= defPosition[1] * basis;
                     }
                 }
             }
         } else {
-            NR_WARN("The current landmark at position " << ref_position[0] << " " <<
-                    ref_position[1] << (imageDim > 2 ? " "s + std::to_string(ref_position[2]) : "") <<
+            NR_WARN("The current landmark at position " << refPosition[0] << " " <<
+                    refPosition[1] << (imageDim > 2 ? " "s + std::to_string(refPosition[2]) : "") <<
                     " is ignored as it is not in the space of the reference image");
         }
     }
@@ -2051,7 +2034,7 @@ void reg_spline_approxLinearPairwiseGradient3D(nifti_image *splineControlPoint,
 
     double grad_values[3];
 
-    DataType approxRatio = (DataType)weight / (DataType)nodeNumber;
+    DataType approxRatio = weight / static_cast<DataType>(nodeNumber);
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, x, y, centralCP, neigbCP, grad_values) \

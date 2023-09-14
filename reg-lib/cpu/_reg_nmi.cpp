@@ -165,7 +165,7 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImg,
 }
 /* *************************************************************** */
 template<class PrecisionType>
-PrecisionType GetBasisSplineValue(PrecisionType x) {
+static PrecisionType GetBasisSplineValue(PrecisionType x) {
     x = fabs(x);
     PrecisionType value = 0;
     if (x < 2.f) {
@@ -180,7 +180,7 @@ PrecisionType GetBasisSplineValue(PrecisionType x) {
 }
 /* *************************************************************** */
 template<class PrecisionType>
-PrecisionType GetBasisSplineDerivativeValue(PrecisionType ori) {
+static PrecisionType GetBasisSplineDerivativeValue(PrecisionType ori) {
     PrecisionType x = fabs(ori);
     PrecisionType value = 0;
     if (x < 2.f) {
