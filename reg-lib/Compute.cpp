@@ -56,14 +56,14 @@ double Compute::ApproxLinearEnergy() {
 /* *************************************************************** */
 void Compute::ApproxLinearEnergyGradient(float weight) {
     F3dContent& con = dynamic_cast<F3dContent&>(this->con);
-    reg_spline_approxLinearEnergyGradient(con.F3dContent::GetControlPointGrid(),
+    reg_spline_approxLinearEnergyGradient(con.GetControlPointGrid(),
                                           con.GetTransformationGradient(),
                                           weight);
 }
 /* *************************************************************** */
 double Compute::GetLandmarkDistance(size_t landmarkNumber, float *landmarkReference, float *landmarkFloating) {
     F3dContent& con = dynamic_cast<F3dContent&>(this->con);
-    return reg_spline_getLandmarkDistance(con.F3dContent::GetControlPointGrid(),
+    return reg_spline_getLandmarkDistance(con.GetControlPointGrid(),
                                           landmarkNumber,
                                           landmarkReference,
                                           landmarkFloating);
@@ -71,7 +71,7 @@ double Compute::GetLandmarkDistance(size_t landmarkNumber, float *landmarkRefere
 /* *************************************************************** */
 void Compute::LandmarkDistanceGradient(size_t landmarkNumber, float *landmarkReference, float *landmarkFloating, float weight) {
     F3dContent& con = dynamic_cast<F3dContent&>(this->con);
-    reg_spline_getLandmarkDistanceGradient(con.F3dContent::GetControlPointGrid(),
+    reg_spline_getLandmarkDistanceGradient(con.GetControlPointGrid(),
                                            con.GetTransformationGradient(),
                                            landmarkNumber,
                                            landmarkReference,
