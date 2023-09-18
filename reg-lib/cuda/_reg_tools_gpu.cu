@@ -350,7 +350,7 @@ float reg_getMinMaxValue_gpu(const nifti_image *img, const float4 *imgCuda, cons
     cudaMemcpyFromSymbol(&minMaxCuda, calcMin ? minCuda : maxCuda, sizeof(MinMaxFunc));
 
     result = thrust::reduce(thrust::device, imgCuda, imgCuda + voxelNumber, make_float4(initValue, initValue, initValue, initValue),
-                            [=]__device__(const float4& lhs, const float4& rhs) {
+                            [=]DEVICE(const float4& lhs, const float4& rhs) {
         float4 result{ initValue, initValue, initValue, initValue };
         switch (timePoints) {
         case 4:
