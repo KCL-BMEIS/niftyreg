@@ -13,6 +13,7 @@
 #include "_reg_localTransformation_gpu.h"
 #include "_reg_localTransformation_kernels.cu"
 #include "_reg_globalTransformation_gpu.h"
+#include "_reg_splineBasis.h"
 
 /* *************************************************************** */
 void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
@@ -715,6 +716,58 @@ void reg_defField_getJacobianMatrix_gpu(const nifti_image *deformationField,
     const dim3 blockDims(blocks, 1, 1);
     reg_defField_getJacobianMatrix3D_kernel<<<gridDims, blockDims>>>(jacobianMatricesCuda, *deformationFieldTexture, referenceImageDim,
                                                                      (unsigned)voxelNumber, reorientation);
+    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+}
+/* *************************************************************** */
+void reg_spline_approxLinearEnergyGradient_gpu(const nifti_image *controlPointGrid,
+                                               const float4 *controlPointGridCuda,
+                                               float4 *transGradCuda,
+                                               const float weight) {
+    const int3 cppDims = make_int3(controlPointGrid->nx, controlPointGrid->ny, controlPointGrid->nz);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
+    const float approxRatio = weight / static_cast<float>(voxelNumber);
+
+    // Matrix to use to convert the gradient from mm to voxel
+    const mat33 reorientation = reg_mat44_to_mat33(controlPointGrid->sform_code > 0 ? &controlPointGrid->sto_ijk : &controlPointGrid->qto_ijk);
+    const mat33 invReorientation = nifti_mat33_inverse(reorientation);
+
+    // Store the basis values since they are constant as the value is approximated at the control point positions only
+    Basis2d basis2d; Basis3d basis3d;
+    if (controlPointGrid->nz > 1)
+        set_first_order_basis_values(basis3d.x, basis3d.y, basis3d.z);
+    else
+        set_first_order_basis_values(basis2d.x, basis2d.y);
+
+    // Kernel dims
+    const unsigned blocks = CudaContext::GetBlockSize()->reg_spline_approxLinearEnergyGradient;
+    const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
+    const dim3 gridDims(grids, grids, 1);
+    const dim3 blockDims(blocks, 1, 1);
+
+    // Create the variable to store the displacement matrices
+    thrust::device_vector<mat33> dispMatricesCuda(voxelNumber);
+
+    // Create the textures
+    auto controlPointTexture = Cuda::CreateTextureObject(controlPointGridCuda, cudaResourceTypeLinear,
+                                                         voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto dispMatricesTexture = Cuda::CreateTextureObject(dispMatricesCuda.data().get(), cudaResourceTypeLinear,
+                                                         voxelNumber * sizeof(mat33), cudaChannelFormatKindFloat, 1);
+
+    if (controlPointGrid->nz > 1) {
+        // Create the displacement matrices
+        reg_spline_createDisplacementMatrices3d_kernel<<<gridDims, blockDims>>>(dispMatricesCuda.data().get(), *controlPointTexture,
+                                                                                cppDims, basis3d, reorientation);
+        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+        reg_spline_approxLinearEnergyGradient3d_kernel<<<gridDims, blockDims>>>(transGradCuda, *dispMatricesTexture, cppDims,
+                                                                                approxRatio, basis3d, invReorientation);
+    } else {
+        // Create the displacement matrices
+        reg_spline_createDisplacementMatrices2d_kernel<<<gridDims, blockDims>>>(dispMatricesCuda.data().get(), *controlPointTexture,
+                                                                                cppDims, basis2d, reorientation);
+        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+        reg_spline_approxLinearEnergyGradient2d_kernel<<<gridDims, blockDims>>>(transGradCuda, *dispMatricesTexture, cppDims,
+                                                                                approxRatio, basis2d, invReorientation);
+    }
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */

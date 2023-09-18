@@ -63,3 +63,8 @@ void reg_defField_getJacobianMatrix_gpu(const nifti_image *deformationField,
                                         const float4 *deformationFieldCuda,
                                         float *jacobianMatricesCuda);
 /* *************************************************************** */
+void reg_spline_approxLinearEnergyGradient_gpu(const nifti_image *controlPointGrid,
+                                               const float4 *controlPointGridCuda,
+                                               float4 *transGradCuda,
+                                               const float weight);
+/* *************************************************************** */

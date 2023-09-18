@@ -42,6 +42,7 @@ struct BlockSize {
     unsigned reg_spline_getApproxBendingEnergyGradient3D;
     unsigned reg_spline_getApproxJacobianValues2D;
     unsigned reg_spline_getApproxJacobianValues3D;
+    unsigned reg_spline_approxLinearEnergyGradient;
     unsigned reg_spline_getJacobianValues2D;
     unsigned reg_spline_getJacobianValues3D;
     unsigned reg_spline_logSquaredValues;
@@ -107,6 +108,7 @@ struct BlockSize100: public BlockSize {
         reg_spline_getApproxBendingEnergyGradient3D = 256; // 27 reg - 672 smem - 108 cmem
         reg_spline_getApproxJacobianValues2D = 384; // 17 reg - 104 smem - 36 cmem
         reg_spline_getApproxJacobianValues3D = 256; // 27 reg - 356 smem - 108 cmem
+        reg_spline_approxLinearEnergyGradient = 384; // 40 reg
         reg_spline_getJacobianValues2D = 256; // 29 reg - 32 smem - 16 cmem - 32 lmem
         reg_spline_getJacobianValues3D = 192; // 41 reg - 6176 smem - 20 cmem - 32 lmem
         reg_spline_logSquaredValues = 384; // 07 reg - 24 smem - 36 cmem
@@ -174,6 +176,7 @@ struct BlockSize300: public BlockSize {
         reg_spline_getApproxBendingEnergyGradient3D = 768; // 33 reg
         reg_spline_getApproxJacobianValues2D = 768; // 34 reg
         reg_spline_getApproxJacobianValues3D = 640; // 46 reg
+        reg_spline_approxLinearEnergyGradient = 768; // 40 reg
         reg_spline_getJacobianValues2D = 768; // 34 reg
         reg_spline_getJacobianValues3D = 768; // 34 reg
         reg_spline_logSquaredValues = 1024; // 23 reg

@@ -1634,3 +1634,170 @@ __global__ void reg_defField_getJacobianMatrix3D_kernel(float *jacobianMatrices,
     }
 }
 /* *************************************************************** */
+struct Basis2d {
+    float x[9], y[9];
+};
+struct Basis3d {
+    float x[27], y[27], z[27];
+};
+/* *************************************************************** */
+__global__ void reg_spline_createDisplacementMatrices2d_kernel(mat33 *dispMatrices,
+                                                               cudaTextureObject_t controlPointGridTexture,
+                                                               const int3 cppDims,
+                                                               const Basis2d basis,
+                                                               const mat33 reorientation) {
+    const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto&& [x, y, z] = reg_indexToDims_cuda((int)index, cppDims);
+    if (x < 1 || x >= cppDims.x - 1 || y < 1 || y >= cppDims.y - 1) return;
+
+    mat33 matrix{ 0, 0, 0, 0, 0, 0, 0, 0, 1 };
+    for (int b = -1, basInd = 0; b < 2; b++) {
+        const int yInd = (y + b) * cppDims.x;
+        for (int a = -1; a < 2; a++, basInd++) {
+            const int index = yInd + x + a;
+            const float4 splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, index);
+
+            matrix.m[0][0] += basis.x[basInd] * splineCoeff.x;
+            matrix.m[1][0] += basis.y[basInd] * splineCoeff.x;
+
+            matrix.m[0][1] += basis.x[basInd] * splineCoeff.y;
+            matrix.m[1][1] += basis.y[basInd] * splineCoeff.y;
+        }
+    }
+    // Convert from mm to voxel
+    matrix = reg_mat33_mul_cuda(reorientation, matrix);
+    // Removing the rotation component
+    const mat33 r = reg_mat33_inverse_cuda(reg_mat33_polar_cuda(matrix));
+    matrix = reg_mat33_mul_cuda(r, matrix);
+    // Convert to displacement
+    matrix.m[0][0]--; matrix.m[1][1]--;
+    dispMatrices[index] = matrix;
+}
+/* *************************************************************** */
+__global__ void reg_spline_createDisplacementMatrices3d_kernel(mat33 *dispMatrices,
+                                                               cudaTextureObject_t controlPointGridTexture,
+                                                               const int3 cppDims,
+                                                               const Basis3d basis,
+                                                               const mat33 reorientation) {
+    const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto&& [x, y, z] = reg_indexToDims_cuda((int)index, cppDims);
+    if (x < 1 || x >= cppDims.x - 1 || y < 1 || y >= cppDims.y - 1 || z < 1 || z >= cppDims.z - 1) return;
+
+    mat33 matrix{};
+    for (int c = -1, basInd = 0; c < 2; c++) {
+        const int zInd = (z + c) * cppDims.y;
+        for (int b = -1; b < 2; b++) {
+            const int yInd = (zInd + y + b) * cppDims.x;
+            for (int a = -1; a < 2; a++, basInd++) {
+                const int index = yInd + x + a;
+                const float4 splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, index);
+
+                matrix.m[0][0] += basis.x[basInd] * splineCoeff.x;
+                matrix.m[1][0] += basis.y[basInd] * splineCoeff.x;
+                matrix.m[2][0] += basis.z[basInd] * splineCoeff.x;
+
+                matrix.m[0][1] += basis.x[basInd] * splineCoeff.y;
+                matrix.m[1][1] += basis.y[basInd] * splineCoeff.y;
+                matrix.m[2][1] += basis.z[basInd] * splineCoeff.y;
+
+                matrix.m[0][2] += basis.x[basInd] * splineCoeff.z;
+                matrix.m[1][2] += basis.y[basInd] * splineCoeff.z;
+                matrix.m[2][2] += basis.z[basInd] * splineCoeff.z;
+            }
+        }
+    }
+    // Convert from mm to voxel
+    matrix = reg_mat33_mul_cuda(reorientation, matrix);
+    // Removing the rotation component
+    const mat33 r = reg_mat33_inverse_cuda(reg_mat33_polar_cuda(matrix));
+    matrix = reg_mat33_mul_cuda(r, matrix);
+    // Convert to displacement
+    matrix.m[0][0]--; matrix.m[1][1]--; matrix.m[2][2]--;
+    dispMatrices[index] = matrix;
+}
+/* *************************************************************** */
+__global__ void reg_spline_approxLinearEnergyGradient2d_kernel(float4 *transGradient,
+                                                               cudaTextureObject_t dispMatricesTexture,
+                                                               const int3 cppDims,
+                                                               const float approxRatio,
+                                                               const Basis2d basis,
+                                                               const mat33 invReorientation) {
+    const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto&& [x, y, z] = reg_indexToDims_cuda((int)index, cppDims);
+    auto gradVal = transGradient[index];
+
+    for (int b = -1, basInd = 0; b < 2; b++) {
+        int yInd = y + b;
+        if (yInd < 1 || yInd >= cppDims.y - 1) {
+            basInd += 3;
+            continue;
+        }
+        yInd *= cppDims.x;
+        for (int a = -1; a < 2; a++, basInd++) {
+            const int xInd = x + a;
+            if (xInd < 1 || xInd >= cppDims.x - 1) continue;
+            const int matInd = (yInd + xInd) * 9;   // Multiply with the item count of mat33
+            const float dispMatrix[2]{ tex1Dfetch<float>(dispMatricesTexture, matInd),       // m[0][0]
+                                       tex1Dfetch<float>(dispMatricesTexture, matInd + 4) }; // m[1][1]
+            const float gradValues[2]{ -2.f * dispMatrix[0] * basis.x[basInd],
+                                       -2.f * dispMatrix[1] * basis.y[basInd] };
+
+            gradVal.x += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
+                                        invReorientation.m[0][1] * gradValues[1]);
+            gradVal.y += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
+                                        invReorientation.m[1][1] * gradValues[1]);
+        }
+    }
+    transGradient[index] = gradVal;
+}
+/* *************************************************************** */
+__global__ void reg_spline_approxLinearEnergyGradient3d_kernel(float4 *transGradient,
+                                                               cudaTextureObject_t dispMatricesTexture,
+                                                               const int3 cppDims,
+                                                               const float approxRatio,
+                                                               const Basis3d basis,
+                                                               const mat33 invReorientation) {
+    const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto&& [x, y, z] = reg_indexToDims_cuda((int)index, cppDims);
+    auto gradVal = transGradient[index];
+
+    for (int c = -1, basInd = 0; c < 2; c++) {
+        int zInd = z + c;
+        if (zInd < 1 || zInd >= cppDims.z - 1) {
+            basInd += 9;
+            continue;
+        }
+        zInd *= cppDims.y;
+        for (int b = -1; b < 2; b++) {
+            int yInd = y + b;
+            if (yInd < 1 || yInd >= cppDims.y - 1) {
+                basInd += 3;
+                continue;
+            }
+            yInd = (zInd + yInd) * cppDims.x;
+            for (int a = -1; a < 2; a++, basInd++) {
+                const int xInd = x + a;
+                if (xInd < 1 || xInd >= cppDims.x - 1) continue;
+                const int matInd = (yInd + xInd) * 9;   // Multiply with the item count of mat33
+                const float dispMatrix[3]{ tex1Dfetch<float>(dispMatricesTexture, matInd),       // m[0][0]
+                                           tex1Dfetch<float>(dispMatricesTexture, matInd + 4),   // m[1][1]
+                                           tex1Dfetch<float>(dispMatricesTexture, matInd + 8) }; // m[2][2]
+                const float gradValues[3]{ -2.f * dispMatrix[0] * basis.x[basInd],
+                                           -2.f * dispMatrix[1] * basis.y[basInd],
+                                           -2.f * dispMatrix[2] * basis.z[basInd] };
+
+                gradVal.x += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
+                                            invReorientation.m[0][1] * gradValues[1] +
+                                            invReorientation.m[0][2] * gradValues[2]);
+                gradVal.y += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
+                                            invReorientation.m[1][1] * gradValues[1] +
+                                            invReorientation.m[1][2] * gradValues[2]);
+                gradVal.z += approxRatio * (invReorientation.m[2][0] * gradValues[0] +
+                                            invReorientation.m[2][1] * gradValues[1] +
+                                            invReorientation.m[2][2] * gradValues[2]);
+            }
+        }
+    }
+    transGradient[index] = gradVal;
+}
+/* *************************************************************** */

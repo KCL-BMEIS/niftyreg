@@ -63,11 +63,11 @@ double CudaCompute::ApproxLinearEnergy() {
 }
 /* *************************************************************** */
 void CudaCompute::ApproxLinearEnergyGradient(float weight) {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
-    Compute::ApproxLinearEnergyGradient(weight);
-    // Transfer the data back to the CUDA device
-    dynamic_cast<CudaF3dContent&>(con).UpdateTransformationGradient();
+    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
+    reg_spline_approxLinearEnergyGradient_gpu(con.F3dContent::GetControlPointGrid(),
+                                              con.GetControlPointGridCuda(),
+                                              con.GetTransformationGradientCuda(),
+                                              weight);
 }
 /* *************************************************************** */
 double CudaCompute::GetLandmarkDistance(size_t landmarkNumber, float *landmarkReference, float *landmarkFloating) {
