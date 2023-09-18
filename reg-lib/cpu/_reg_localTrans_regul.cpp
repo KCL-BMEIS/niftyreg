@@ -1169,8 +1169,7 @@ void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoi
             const mat33 r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
             matrix = nifti_mat33_mul(r, matrix);
             // Convert to displacement
-            matrix.m[0][0]--;
-            matrix.m[1][1]--;
+            matrix.m[0][0]--; matrix.m[1][1]--;
             i = 8;
             for (int b = -1; b < 2; b++) {
                 for (int a = -1; a < 2; a++) {
@@ -1247,9 +1246,7 @@ void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoi
                 const mat33 r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
                 matrix = nifti_mat33_mul(r, matrix);
                 // Convert to displacement
-                matrix.m[0][0]--;
-                matrix.m[1][1]--;
-                matrix.m[2][2]--;
+                matrix.m[0][0]--; matrix.m[1][1]--; matrix.m[2][2]--;
                 i = 26;
                 for (int c = -1; c < 2; c++) {
                     for (int b = -1; b < 2; b++) {

@@ -2,7 +2,6 @@
 #undef _USE_OPENCL
 
 #include "reg_test_common.h"
-#include <iomanip>
 
 /*
     This test file contains the following unit tests:

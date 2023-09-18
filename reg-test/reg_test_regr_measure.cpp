@@ -2,7 +2,6 @@
 #include "_reg_nmi.h"
 #include "CudaF3dContent.h"
 #include "CudaMeasure.h"
-#include <iomanip>
 
 /**
  *  Measure regression tests to ensure the CPU and CUDA versions yield the same output
@@ -256,7 +255,7 @@ TEST_CASE_METHOD(MeasureTest, "Regression Measure", "[regression]") {
                 const float cpuVal = voxelBasedGradCpuPtr[i];
                 const float cudaVal = voxelBasedGradCudaPtr[i];
                 const double diff = fabs(cpuVal - cudaVal);
-                if(diff>EPS)
+                if (diff > EPS)
                     NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
                 REQUIRE(diff < EPS);
             }
