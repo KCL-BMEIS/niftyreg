@@ -3,13 +3,14 @@
 #include "CudaF3dContent.h"
 
 /**
- *  Approximate linear energy gradient regression test to ensure the CPU and CUDA versions yield the same output
+ *  Approximate linear energy and approximate linear energy gradient regression tests
+ *  to ensure the CPU and CUDA versions yield the same output
 **/
 
 class ApproxLinearEnergyGradient {
 protected:
     using TestData = std::tuple<std::string, NiftiImage&, NiftiImage&, NiftiImage&, float>;
-    using TestCase = std::tuple<std::string, NiftiImage, NiftiImage>;
+    using TestCase = std::tuple<std::string, double, double, NiftiImage, NiftiImage>;
 
     inline static vector<TestCase> testCases;
 
@@ -19,50 +20,51 @@ public:
             return;
 
         // Create a random number generator
-        std::mt19937 gen(0);
+        std::random_device rd;
+        std::mt19937 gen(rd());
         std::uniform_real_distribution<float> distr(0, 1);
 
-        // Create 2D reference, floating, control point grid and local weight similarity images
+        // Create 2D reference, floating and control point grid images
         constexpr NiftiImage::dim_t size = 16;
         vector<NiftiImage::dim_t> dim{ size, size };
         NiftiImage reference2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating2d(dim, NIFTI_TYPE_FLOAT32);
-        NiftiImage controlPointGrid2d(CreateControlPointGrid(reference2d));
+        NiftiImage controlPointGrid = CreateControlPointGrid(reference2d);
+        NiftiImage controlPointGrid2d[3]{ controlPointGrid, controlPointGrid, controlPointGrid };
 
-        // Create 3D reference, floating, control point grid and local weight similarity images
+        // Create 3D reference, floating and control point grid images
         dim.push_back(size);
         NiftiImage reference3d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating3d(dim, NIFTI_TYPE_FLOAT32);
-        NiftiImage controlPointGrid3d(CreateControlPointGrid(reference3d));
+        controlPointGrid = CreateControlPointGrid(reference3d);
+        NiftiImage controlPointGrid3d[3]{ controlPointGrid, controlPointGrid, controlPointGrid };
 
-        // Fill the control point grid 2d with random values
-        auto controlPointGrid2dPtr = controlPointGrid2d.data();
-        for (size_t i = 0; i < controlPointGrid2d.nVoxels(); ++i) {
-            controlPointGrid2dPtr[i] = distr(gen);
-        }
-
-        // Fill the control point grid 3d with random values
-        auto controlPointGrid3dPtr = controlPointGrid3d.data();
-        for (size_t i = 0; i < controlPointGrid3d.nVoxels(); ++i) {
-            controlPointGrid3dPtr[i] = distr(gen);
+        // Fill control point grids with random values
+        for (int i = 0; i < 3; i++) {
+            auto controlPointGridPtr = controlPointGrid2d[i].data();
+            for (size_t j = 0; j < controlPointGrid2d[i].nVoxels(); j++)
+                controlPointGridPtr[j] = distr(gen);
+            controlPointGridPtr = controlPointGrid3d[i].data();
+            for (size_t j = 0; j < controlPointGrid3d[i].nVoxels(); j++)
+                controlPointGridPtr[j] = distr(gen);
         }
 
         // Create the data container for the regression test
         vector<TestData> testData;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 3; i++) {
             const float weight = distr(gen);
             testData.emplace_back(TestData(
                 "2D weight: "s + std::to_string(weight),
                 reference2d,
                 floating2d,
-                controlPointGrid2d,
+                controlPointGrid2d[i],
                 weight
             ));
             testData.emplace_back(TestData(
                 "3D weight: "s + std::to_string(weight),
                 reference3d,
                 floating3d,
-                controlPointGrid3d,
+                controlPointGrid3d[i],
                 weight
             ));
         }
@@ -104,6 +106,10 @@ public:
             unique_ptr<Compute> computeCpu{ platformCpu.CreateCompute(*contentCpu) };
             unique_ptr<Compute> computeCuda{ platformCuda.CreateCompute(*contentCuda) };
 
+            // Compute the approximate linear energy for CPU and CUDA
+            const double approxLinearEnergyCpu = computeCpu->ApproxLinearEnergy();
+            const double approxLinearEnergyCuda = computeCuda->ApproxLinearEnergy();
+
             // Compute the approximate linear energy gradient for CPU and CUDA
             computeCpu->ApproxLinearEnergyGradient(weight);
             computeCuda->ApproxLinearEnergyGradient(weight);
@@ -113,7 +119,7 @@ public:
             NiftiImage transGradCuda(contentCuda->GetTransformationGradient(), NiftiImage::Copy::Image);
 
             // Save for testing
-            testCases.push_back({ testName, std::move(transGradCpu), std::move(transGradCuda) });
+            testCases.push_back({ testName, approxLinearEnergyCpu, approxLinearEnergyCuda, std::move(transGradCpu), std::move(transGradCuda) });
         }
     }
 };
@@ -122,13 +128,17 @@ TEST_CASE_METHOD(ApproxLinearEnergyGradient, "Regression Approximate Linear Ener
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
-        auto&& [testName, transGradCpu, transGradCuda] = testCase;
+        auto&& [testName, approxLinearEnergyCpu, approxLinearEnergyCuda, transGradCpu, transGradCuda] = testCase;
 
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
             // Increase the precision for the output
             NR_COUT << std::fixed << std::setprecision(10);
+
+            // Check the approximate linear energy
+            NR_COUT << "Approx Linear Energy: " << approxLinearEnergyCpu << " " << approxLinearEnergyCuda << std::endl;
+            REQUIRE(fabs(approxLinearEnergyCpu - approxLinearEnergyCuda) < EPS);
 
             // Check the transformation gradients
             const auto transGradCpuPtr = transGradCpu.data();
