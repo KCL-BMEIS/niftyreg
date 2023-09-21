@@ -57,17 +57,19 @@ void CudaCompute::ApproxBendingEnergyGradient(float weight) {
 }
 /* *************************************************************** */
 double CudaCompute::ApproxLinearEnergy() {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
-    return Compute::ApproxLinearEnergy();
+    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
+    const nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
+    auto approxLinearEnergy = controlPointGrid->nz > 1 ? reg_spline_approxLinearEnergy_gpu<true> :
+                                                         reg_spline_approxLinearEnergy_gpu<false>;
+    return approxLinearEnergy(controlPointGrid, con.GetControlPointGridCuda());
 }
 /* *************************************************************** */
 void CudaCompute::ApproxLinearEnergyGradient(float weight) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    reg_spline_approxLinearEnergyGradient_gpu(con.F3dContent::GetControlPointGrid(),
-                                              con.GetControlPointGridCuda(),
-                                              con.GetTransformationGradientCuda(),
-                                              weight);
+    const nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
+    auto approxLinearEnergyGradient = controlPointGrid->nz > 1 ? reg_spline_approxLinearEnergyGradient_gpu<true> :
+                                                                 reg_spline_approxLinearEnergyGradient_gpu<false>;
+    approxLinearEnergyGradient(controlPointGrid, con.GetControlPointGridCuda(), con.GetTransformationGradientCuda(), weight);
 }
 /* *************************************************************** */
 double CudaCompute::GetLandmarkDistance(size_t landmarkNumber, float *landmarkReference, float *landmarkFloating) {

@@ -719,6 +719,42 @@ void reg_defField_getJacobianMatrix_gpu(const nifti_image *deformationField,
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
+template<bool is3d>
+double reg_spline_approxLinearEnergy_gpu(const nifti_image *controlPointGrid,
+                                         const float4 *controlPointGridCuda) {
+    const int3 cppDims = make_int3(controlPointGrid->nx, controlPointGrid->ny, controlPointGrid->nz);
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
+
+    // Matrix to use to convert the gradient from mm to voxel
+    const mat33 reorientation = reg_mat44_to_mat33(controlPointGrid->sform_code > 0 ? &controlPointGrid->sto_ijk : &controlPointGrid->qto_ijk);
+
+    // Store the basis values since they are constant as the value is approximated at the control point positions only
+    Basis basis;
+    if constexpr (is3d)
+        set_first_order_basis_values(basis.x, basis.y, basis.z);
+    else
+        set_first_order_basis_values(basis.x, basis.y);
+
+    // Create the control point texture
+    auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointGridCuda, cudaResourceTypeLinear,
+                                                            voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto controlPointTexture = *controlPointTexturePtr;
+
+    constexpr int matSize = is3d ? 3 : 2;
+    thrust::counting_iterator<unsigned> index(0);
+    return thrust::transform_reduce(thrust::device, index, index + voxelNumber, [=]__device__(const unsigned index) {
+        const mat33 matrix = CreateDisplacementMatrix<is3d>(index, controlPointTexture, cppDims, basis, reorientation);
+        double currentValue = 0;
+        for (int b = 0; b < matSize; b++)
+            for (int a = 0; a < matSize; a++)
+                currentValue += Square(0.5 * (matrix.m[a][b] + matrix.m[b][a]));
+        return currentValue;
+    }, 0.0, thrust::plus<double>()) / static_cast<double>(controlPointGrid->nvox);
+}
+template double reg_spline_approxLinearEnergy_gpu<false>(const nifti_image*, const float4*);
+template double reg_spline_approxLinearEnergy_gpu<true>(const nifti_image*, const float4*);
+/* *************************************************************** */
+template<bool is3d>
 void reg_spline_approxLinearEnergyGradient_gpu(const nifti_image *controlPointGrid,
                                                const float4 *controlPointGridCuda,
                                                float4 *transGradCuda,
@@ -732,11 +768,11 @@ void reg_spline_approxLinearEnergyGradient_gpu(const nifti_image *controlPointGr
     const mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
     // Store the basis values since they are constant as the value is approximated at the control point positions only
-    Basis2d basis2d; Basis3d basis3d;
-    if (controlPointGrid->nz > 1)
-        set_first_order_basis_values(basis3d.x, basis3d.y, basis3d.z);
+    Basis basis;
+    if constexpr (is3d)
+        set_first_order_basis_values(basis.x, basis.y, basis.z);
     else
-        set_first_order_basis_values(basis2d.x, basis2d.y);
+        set_first_order_basis_values(basis.x, basis.y);
 
     // Kernel dims
     const unsigned blocks = CudaContext::GetBlockSize()->reg_spline_approxLinearEnergyGradient;
@@ -753,21 +789,16 @@ void reg_spline_approxLinearEnergyGradient_gpu(const nifti_image *controlPointGr
     auto dispMatricesTexture = Cuda::CreateTextureObject(dispMatricesCuda.data().get(), cudaResourceTypeLinear,
                                                          voxelNumber * sizeof(mat33), cudaChannelFormatKindFloat, 1);
 
-    if (controlPointGrid->nz > 1) {
-        // Create the displacement matrices
-        reg_spline_createDisplacementMatrices3d_kernel<<<gridDims, blockDims>>>(dispMatricesCuda.data().get(), *controlPointTexture,
-                                                                                cppDims, basis3d, reorientation);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-        reg_spline_approxLinearEnergyGradient3d_kernel<<<gridDims, blockDims>>>(transGradCuda, *dispMatricesTexture, cppDims,
-                                                                                approxRatio, basis3d, invReorientation);
-    } else {
-        // Create the displacement matrices
-        reg_spline_createDisplacementMatrices2d_kernel<<<gridDims, blockDims>>>(dispMatricesCuda.data().get(), *controlPointTexture,
-                                                                                cppDims, basis2d, reorientation);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-        reg_spline_approxLinearEnergyGradient2d_kernel<<<gridDims, blockDims>>>(transGradCuda, *dispMatricesTexture, cppDims,
-                                                                                approxRatio, basis2d, invReorientation);
-    }
+    // Create the displacement matrices
+    reg_spline_createDisplacementMatrices_kernel<is3d><<<gridDims, blockDims>>>(dispMatricesCuda.data().get(), *controlPointTexture,
+                                                                                cppDims, basis, reorientation);
+    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+
+    // Compute the gradient
+    reg_spline_approxLinearEnergyGradient_kernel<is3d><<<gridDims, blockDims>>>(transGradCuda, *dispMatricesTexture, cppDims,
+                                                                                approxRatio, basis, invReorientation);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
+template void reg_spline_approxLinearEnergyGradient_gpu<false>(const nifti_image*, const float4*, float4*, const float);
+template void reg_spline_approxLinearEnergyGradient_gpu<true>(const nifti_image*, const float4*, float4*, const float);
 /* *************************************************************** */
