@@ -791,12 +791,12 @@ void reg_spline_approxLinearEnergyGradient_gpu(const nifti_image *controlPointGr
 
     // Create the displacement matrices
     reg_spline_createDisplacementMatrices_kernel<is3d><<<gridDims, blockDims>>>(dispMatricesCuda.data().get(), *controlPointTexture,
-                                                                                cppDims, basis, reorientation);
+                                                                                cppDims, basis, reorientation, (unsigned)voxelNumber);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 
     // Compute the gradient
     reg_spline_approxLinearEnergyGradient_kernel<is3d><<<gridDims, blockDims>>>(transGradCuda, *dispMatricesTexture, cppDims,
-                                                                                approxRatio, basis, invReorientation);
+                                                                                approxRatio, basis, invReorientation, (unsigned)voxelNumber);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 template void reg_spline_approxLinearEnergyGradient_gpu<false>(const nifti_image*, const float4*, float4*, const float);

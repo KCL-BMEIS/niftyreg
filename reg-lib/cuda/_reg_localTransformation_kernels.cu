@@ -1704,9 +1704,11 @@ __global__ void reg_spline_createDisplacementMatrices_kernel(mat33 *dispMatrices
                                                              cudaTextureObject_t controlPointGridTexture,
                                                              const int3 cppDims,
                                                              const Basis basis,
-                                                             const mat33 reorientation) {
+                                                             const mat33 reorientation,
+                                                             const unsigned voxelNumber) {
     const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    dispMatrices[index] = CreateDisplacementMatrix<is3d>(index, controlPointGridTexture, cppDims, basis, reorientation);
+    if (index < voxelNumber)
+        dispMatrices[index] = CreateDisplacementMatrix<is3d>(index, controlPointGridTexture, cppDims, basis, reorientation);
 }
 /* *************************************************************** */
 template<bool is3d>
@@ -1715,8 +1717,10 @@ __global__ void reg_spline_approxLinearEnergyGradient_kernel(float4 *transGradie
                                                              const int3 cppDims,
                                                              const float approxRatio,
                                                              const Basis basis,
-                                                             const mat33 invReorientation) {
+                                                             const mat33 invReorientation,
+                                                             const unsigned voxelNumber) {
     const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index >= voxelNumber) return;
     const auto&& [x, y, z] = reg_indexToDims_cuda((int)index, cppDims);
     auto gradVal = transGradient[index];
 
