@@ -833,10 +833,11 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                  const float *sigma,
                                  const int& kernelType,
                                  const int *mask,
-                                 const bool *timePoint,
+                                 const bool *timePoints,
                                  const bool *axis) {
     if (image->nx > 2048 || image->ny > 2048 || image->nz > 2048)
-        NR_FATAL_ERROR("This function does not support images with dimension > 2048");
+        NR_FATAL_ERROR("This function does not support images with dimensions larger than 2048");
+
 #ifdef WIN32
     long index;
     const long voxelNumber = (long)NiftiImage::calcVoxelNumber(image, 3);
@@ -844,37 +845,36 @@ void reg_tools_kernelConvolution(nifti_image *image,
     size_t index;
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
 #endif
-    DataType *imagePtr = static_cast<DataType*>(image->data);
-    int imageDim[3] = { image->nx, image->ny, image->nz };
 
-    bool *nanImagePtr = (bool*)calloc(voxelNumber, sizeof(bool));
-    float *densityPtr = (float*)calloc(voxelNumber, sizeof(float));
+    DataType *imagePtr = static_cast<DataType*>(image->data);
+    const int imageDims[3]{ image->nx, image->ny, image->nz };
+
+    unique_ptr<bool[]> nanImagePtr{ new bool[voxelNumber]() };
+    unique_ptr<float[]> densityPtr{ new float[voxelNumber]() };
 
     // Loop over the dimension higher than 3
     for (int t = 0; t < image->nt * image->nu; t++) {
-        if (timePoint[t]) {
+        if (timePoints[t]) {
             DataType *intensityPtr = &imagePtr[t * voxelNumber];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(densityPtr, intensityPtr, mask, nanImagePtr, voxelNumber)
 #endif
             for (index = 0; index < voxelNumber; index++) {
-                densityPtr[index] = intensityPtr[index] == intensityPtr[index] ? 1.f : 0;
-                densityPtr[index] *= mask[index] >= 0 ? 1 : 0;
-                nanImagePtr[index] = static_cast<bool>(densityPtr[index]);
-                if (nanImagePtr[index] == 0)
-                    intensityPtr[index] = 0;
+                densityPtr[index] = mask[index] >= 0 && intensityPtr[index] == intensityPtr[index] ? 1.f : 0;
+                nanImagePtr[index] = !static_cast<bool>(densityPtr[index]);
+                if (nanImagePtr[index]) intensityPtr[index] = 0;
             }
             // Loop over the x, y and z dimensions
             for (int n = 0; n < 3; n++) {
                 if (axis[n] && image->dim[n] > 1) {
                     double temp;
                     if (sigma[t] > 0) temp = sigma[t] / image->pixdim[n + 1]; // mm to voxel
-                    else temp = fabs(sigma[t]); // voxel based if negative value
+                    else temp = fabs(sigma[t]); // voxel-based if negative value
                     int radius = 0;
                     // Define the kernel size
                     if (kernelType == MEAN_KERNEL || kernelType == LINEAR_KERNEL) {
-                        // Mean  or linear filtering
+                        // Mean or linear filtering
                         radius = static_cast<int>(temp);
                     } else if (kernelType == GAUSSIAN_KERNEL) {
                         // Gaussian kernel
@@ -895,8 +895,10 @@ void reg_tools_kernelConvolution(nifti_image *image,
                             for (int i = -radius; i <= radius; i++) {
                                 // temp contains the kernel node spacing
                                 double relative = fabs(i / temp);
-                                if (relative < 1.0) kernel[i + radius] = static_cast<float>(2.0 / 3.0 - relative * relative + 0.5 * relative * relative * relative);
-                                else if (relative < 2.0) kernel[i + radius] = static_cast<float>(-(relative - 2.0) * (relative - 2.0) * (relative - 2.0) / 6.0);
+                                if (relative < 1.0)
+                                    kernel[i + radius] = static_cast<float>(2.0 / 3.0 - Square(relative) + 0.5 * Cube(relative));
+                                else if (relative < 2.0)
+                                    kernel[i + radius] = static_cast<float>(-Cube(relative - 2.0) / 6.0);
                                 else kernel[i + radius] = 0;
                                 kernelSum += kernel[i + radius];
                             }
@@ -905,7 +907,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                             for (int i = -radius; i <= radius; i++) {
                                 // 2.506... = sqrt(2*pi)
                                 // temp contains the sigma in voxel
-                                kernel[radius + i] = static_cast<float>(exp(-(i * i) / (2.0 * Square(temp))) / (temp * 2.506628274631));
+                                kernel[radius + i] = static_cast<float>(exp(-Square(i) / (2.0 * Square(temp))) / (temp * 2.506628274631));
                                 kernelSum += kernel[radius + i];
                             }
                         } else if (kernelType == LINEAR_KERNEL) {
@@ -914,7 +916,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                 kernel[radius + i] = 1.f - fabs(i / static_cast<float>(radius));
                                 kernelSum += kernel[radius + i];
                             }
-                        } else if (kernelType == MEAN_KERNEL && imageDim[2] == 1) {
+                        } else if (kernelType == MEAN_KERNEL && imageDims[2] == 1) {
                             // Compute the mean kernel
                             for (int i = -radius; i <= radius; i++) {
                                 kernel[radius + i] = 1.f;
@@ -922,22 +924,22 @@ void reg_tools_kernelConvolution(nifti_image *image,
                             }
                         }
                         // No kernel is required for the mean filtering
-                        // No need for kernel normalisation as this is handle by the density function
+                        // No need for kernel normalisation as this is handled by the density function
                         NR_DEBUG("Convolution type[" << kernelType << "] dim[" << n << "] tp[" << t << "] radius[" << radius << "] kernelSum[" << kernelSum << "]");
 
                         int planeNumber, planeIndex, lineOffset;
                         int lineIndex, shiftPre, shiftPst, k;
                         switch (n) {
                         case 0:
-                            planeNumber = imageDim[1] * imageDim[2];
+                            planeNumber = imageDims[1] * imageDims[2];
                             lineOffset = 1;
                             break;
                         case 1:
-                            planeNumber = imageDim[0] * imageDim[2];
-                            lineOffset = imageDim[0];
+                            planeNumber = imageDims[0] * imageDims[2];
+                            lineOffset = imageDims[0];
                             break;
                         case 2:
-                            planeNumber = imageDim[0] * imageDim[1];
+                            planeNumber = imageDims[0] * imageDims[1];
                             lineOffset = planeNumber;
                             break;
                         }
@@ -949,8 +951,8 @@ void reg_tools_kernelConvolution(nifti_image *image,
                         float *currentDensityPtr = nullptr;
                         DataType bufferIntensity[2048];
                         float bufferDensity[2048];
-                        double bufferIntensitycur = 0;
-                        double bufferDensitycur = 0;
+                        double bufferIntensityCur = 0;
+                        double bufferDensityCur = 0;
 
 #ifdef _USE_SSE
                         union {
@@ -963,31 +965,27 @@ void reg_tools_kernelConvolution(nifti_image *image,
 #ifdef _OPENMP
 #ifdef _USE_SSE
 #pragma omp parallel for default(none) \
-   shared(imageDim, intensityPtr, densityPtr, radius, kernel, lineOffset, n, \
-   planeNumber,kernelSum) \
-   private(realIndex,currentIntensityPtr,currentDensityPtr,lineIndex,bufferIntensity, \
-   bufferDensity,shiftPre,shiftPst,kernelPtr,kernelValue,densitySum,intensitySum, \
-   k, bufferIntensitycur,bufferDensitycur, \
+   shared(imageDims, intensityPtr, densityPtr, radius, kernel, lineOffset, n, planeNumber, kernelSum) \
+   private(realIndex, currentIntensityPtr, currentDensityPtr, lineIndex, bufferIntensity, \
+   bufferDensity, shiftPre, shiftPst, kernelPtr, kernelValue, densitySum, intensitySum, \
+   k, bufferIntensityCur, bufferDensityCur, \
    kernel_sse, intensity_sse, density_sse, intensity_sum_sse, density_sum_sse)
 #else
 #pragma omp parallel for default(none) \
-   shared(imageDim, intensityPtr, densityPtr, radius, kernel, lineOffset, n, \
-   planeNumber,kernelSum) \
-   private(realIndex,currentIntensityPtr,currentDensityPtr,lineIndex,bufferIntensity, \
-   bufferDensity,shiftPre,shiftPst,kernelPtr,kernelValue,densitySum,intensitySum, \
-   k, bufferIntensitycur,bufferDensitycur)
+   shared(imageDims, intensityPtr, densityPtr, radius, kernel, lineOffset, n, planeNumber, kernelSum) \
+   private(realIndex, currentIntensityPtr, currentDensityPtr, lineIndex, bufferIntensity, \
+   bufferDensity, shiftPre, shiftPst, kernelPtr, kernelValue, densitySum, intensitySum, \
+   k, bufferIntensityCur, bufferDensityCur)
 #endif
 #endif // _OPENMP
                         // Loop over the different voxel
                         for (planeIndex = 0; planeIndex < planeNumber; ++planeIndex) {
                             switch (n) {
                             case 0:
-                                realIndex = planeIndex * imageDim[0];
+                                realIndex = planeIndex * imageDims[0];
                                 break;
                             case 1:
-                                realIndex = (planeIndex / imageDim[0]) *
-                                    imageDim[0] * imageDim[1] +
-                                    planeIndex % imageDim[0];
+                                realIndex = (planeIndex / imageDims[0]) * imageDims[0] * imageDims[1] + planeIndex % imageDims[0];
                                 break;
                             case 2:
                                 realIndex = planeIndex;
@@ -998,15 +996,15 @@ void reg_tools_kernelConvolution(nifti_image *image,
                             // Fetch the current line into a stack buffer
                             currentIntensityPtr = &intensityPtr[realIndex];
                             currentDensityPtr = &densityPtr[realIndex];
-                            for (lineIndex = 0; lineIndex < imageDim[n]; ++lineIndex) {
+                            for (lineIndex = 0; lineIndex < imageDims[n]; ++lineIndex) {
                                 bufferIntensity[lineIndex] = *currentIntensityPtr;
                                 bufferDensity[lineIndex] = *currentDensityPtr;
                                 currentIntensityPtr += lineOffset;
                                 currentDensityPtr += lineOffset;
                             }
                             if (kernelSum > 0) {
-                                // Perform the kernel convolution along 1 line
-                                for (lineIndex = 0; lineIndex < imageDim[n]; ++lineIndex) {
+                                // Perform the kernel convolution along one line
+                                for (lineIndex = 0; lineIndex < imageDims[n]; ++lineIndex) {
                                     // Define the kernel boundaries
                                     shiftPre = lineIndex - radius;
                                     shiftPst = lineIndex + radius + 1;
@@ -1014,7 +1012,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                         kernelPtr = &kernel[-shiftPre];
                                         shiftPre = 0;
                                     } else kernelPtr = &kernel[0];
-                                    if (shiftPst > imageDim[n]) shiftPst = imageDim[n];
+                                    if (shiftPst > imageDims[n]) shiftPst = imageDims[n];
                                     // Set the current values to zero
                                     // Increment the current value by performing the weighted sum
 #ifdef _USE_SSE
@@ -1066,33 +1064,32 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                 } // line convolution
                             } // kernel sum
                             else {
-                                for (lineIndex = 1; lineIndex < imageDim[n]; ++lineIndex) {
+                                for (lineIndex = 1; lineIndex < imageDims[n]; ++lineIndex) {
                                     bufferIntensity[lineIndex] += bufferIntensity[lineIndex - 1];
                                     bufferDensity[lineIndex] += bufferDensity[lineIndex - 1];
                                 }
                                 shiftPre = -radius - 1;
                                 shiftPst = radius;
-                                for (lineIndex = 0; lineIndex < imageDim[n]; ++lineIndex, ++shiftPre, ++shiftPst) {
+                                for (lineIndex = 0; lineIndex < imageDims[n]; ++lineIndex, ++shiftPre, ++shiftPst) {
                                     if (shiftPre > -1) {
-                                        if (shiftPst < imageDim[n]) {
-                                            bufferIntensitycur = bufferIntensity[shiftPre] - bufferIntensity[shiftPst];
-                                            bufferDensitycur = bufferDensity[shiftPre] - bufferDensity[shiftPst];
+                                        if (shiftPst < imageDims[n]) {
+                                            bufferIntensityCur = bufferIntensity[shiftPre] - bufferIntensity[shiftPst];
+                                            bufferDensityCur = bufferDensity[shiftPre] - bufferDensity[shiftPst];
                                         } else {
-                                            bufferIntensitycur = bufferIntensity[shiftPre] - bufferIntensity[imageDim[n] - 1];
-                                            bufferDensitycur = bufferDensity[shiftPre] - bufferDensity[imageDim[n] - 1];
+                                            bufferIntensityCur = bufferIntensity[shiftPre] - bufferIntensity[imageDims[n] - 1];
+                                            bufferDensityCur = bufferDensity[shiftPre] - bufferDensity[imageDims[n] - 1];
                                         }
                                     } else {
-                                        if (shiftPst < imageDim[n]) {
-                                            bufferIntensitycur = -bufferIntensity[shiftPst];
-                                            bufferDensitycur = -bufferDensity[shiftPst];
+                                        if (shiftPst < imageDims[n]) {
+                                            bufferIntensityCur = -bufferIntensity[shiftPst];
+                                            bufferDensityCur = -bufferDensity[shiftPst];
                                         } else {
-                                            bufferIntensitycur = 0;
-                                            bufferDensitycur = 0;
+                                            bufferIntensityCur = 0;
+                                            bufferDensityCur = 0;
                                         }
                                     }
-                                    intensityPtr[realIndex] = static_cast<DataType>(bufferIntensitycur);
-                                    densityPtr[realIndex] = static_cast<float>(bufferDensitycur);
-
+                                    intensityPtr[realIndex] = static_cast<DataType>(bufferIntensityCur);
+                                    densityPtr[realIndex] = static_cast<float>(bufferDensityCur);
                                     realIndex += lineOffset;
                                 } // line convolution of mean filter
                             } // No kernel computation
@@ -1106,14 +1103,12 @@ void reg_tools_kernelConvolution(nifti_image *image,
    shared(voxelNumber, intensityPtr, densityPtr, nanImagePtr)
 #endif
             for (index = 0; index < voxelNumber; ++index) {
-                if (nanImagePtr[index] != 0)
-                    intensityPtr[index] = static_cast<DataType>((float)intensityPtr[index] / densityPtr[index]);
-                else intensityPtr[index] = std::numeric_limits<DataType>::quiet_NaN();
+                if (nanImagePtr[index])
+                    intensityPtr[index] = std::numeric_limits<DataType>::quiet_NaN();
+                else intensityPtr[index] = static_cast<DataType>(intensityPtr[index] / densityPtr[index]);
             }
         } // check if the time point is active
     } // loop over the time points
-    free(nanImagePtr);
-    free(densityPtr);
 }
 /* *************************************************************** */
 template <class DataType>
@@ -1122,7 +1117,7 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
                                            float varianceY,
                                            float varianceZ,
                                            int *mask,
-                                           bool *timePoint) {
+                                           bool *timePoints) {
     if (image->nx > 2048 || image->ny > 2048 || image->nz > 2048)
         NR_FATAL_ERROR("This function does not support images with dimension > 2048");
 #ifdef WIN32
@@ -1134,13 +1129,13 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
 #endif
     DataType *imagePtr = static_cast<DataType*>(image->data);
 
-    const int activeTimePointNumber = image->nt * image->nu;
-    bool *activeTimePoint = (bool*)calloc(activeTimePointNumber, sizeof(bool));
+    const int activeTimePointCount = image->nt * image->nu;
+    bool *activeTimePoints = (bool*)calloc(activeTimePointCount, sizeof(bool));
     // Check if input time points and masks are nullptr
-    if (timePoint == nullptr) {
+    if (timePoints == nullptr) {
         // All time points are considered as active
-        for (int i = 0; i < activeTimePointNumber; i++) activeTimePoint[i] = true;
-    } else for (int i = 0; i < activeTimePointNumber; i++) activeTimePoint[i] = timePoint[i];
+        for (int i = 0; i < activeTimePointCount; i++) activeTimePoints[i] = true;
+    } else for (int i = 0; i < activeTimePointCount; i++) activeTimePoints[i] = timePoints[i];
 
     int *currentMask = nullptr;
     if (mask == nullptr) {
@@ -1156,8 +1151,8 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
     typedef typename std::map<DataType, float>::iterator DataPointMapIt;
 
     // Loop over the dimension higher than 3
-    for (int t = 0; t < activeTimePointNumber; t++) {
-        if (activeTimePoint[t]) {
+    for (int t = 0; t < activeTimePointCount; t++) {
+        if (activeTimePoints[t]) {
             DataType *intensityPtr = &imagePtr[t * voxelNumber];
             for (index = 0; index < voxelNumber; index++) {
                 nanImagePtr[index] = (intensityPtr[index] == intensityPtr[index]) ? true : false;
@@ -1268,7 +1263,7 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
 
     free(tmpImagePtr);
     free(currentMask);
-    free(activeTimePoint);
+    free(activeTimePoints);
     free(nanImagePtr);
 }
 /* *************************************************************** */
@@ -1277,31 +1272,31 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
                                       float varianceY,
                                       float varianceZ,
                                       int *mask,
-                                      bool *timePoint) {
+                                      bool *timePoints) {
     switch (image->datatype) {
     case NIFTI_TYPE_UINT8:
-        reg_tools_labelKernelConvolution_core<unsigned char>(image, varianceX, varianceY, varianceZ, mask, timePoint);
+        reg_tools_labelKernelConvolution_core<unsigned char>(image, varianceX, varianceY, varianceZ, mask, timePoints);
         break;
     case NIFTI_TYPE_INT8:
-        reg_tools_labelKernelConvolution_core<char>(image, varianceX, varianceY, varianceZ, mask, timePoint);
+        reg_tools_labelKernelConvolution_core<char>(image, varianceX, varianceY, varianceZ, mask, timePoints);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_tools_labelKernelConvolution_core<unsigned short>(image, varianceX, varianceY, varianceZ, mask, timePoint);
+        reg_tools_labelKernelConvolution_core<unsigned short>(image, varianceX, varianceY, varianceZ, mask, timePoints);
         break;
     case NIFTI_TYPE_INT16:
-        reg_tools_labelKernelConvolution_core<short>(image, varianceX, varianceY, varianceZ, mask, timePoint);
+        reg_tools_labelKernelConvolution_core<short>(image, varianceX, varianceY, varianceZ, mask, timePoints);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_labelKernelConvolution_core<unsigned>(image, varianceX, varianceY, varianceZ, mask, timePoint);
+        reg_tools_labelKernelConvolution_core<unsigned>(image, varianceX, varianceY, varianceZ, mask, timePoints);
         break;
     case NIFTI_TYPE_INT32:
-        reg_tools_labelKernelConvolution_core<int>(image, varianceX, varianceY, varianceZ, mask, timePoint);
+        reg_tools_labelKernelConvolution_core<int>(image, varianceX, varianceY, varianceZ, mask, timePoints);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_tools_labelKernelConvolution_core<float>(image, varianceX, varianceY, varianceZ, mask, timePoint);
+        reg_tools_labelKernelConvolution_core<float>(image, varianceX, varianceY, varianceZ, mask, timePoints);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_tools_labelKernelConvolution_core<double>(image, varianceX, varianceY, varianceZ, mask, timePoint);
+        reg_tools_labelKernelConvolution_core<double>(image, varianceX, varianceY, varianceZ, mask, timePoints);
         break;
     default:
         NR_FATAL_ERROR("The image data type is not supported");
@@ -1312,7 +1307,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                  const float *sigma,
                                  const int& kernelType,
                                  const int *mask,
-                                 const bool *timePoint,
+                                 const bool *timePoints,
                                  const bool *axis) {
     if (image->datatype != NIFTI_TYPE_FLOAT32 && image->datatype != NIFTI_TYPE_FLOAT64)
         NR_FATAL_ERROR("The image is expected to be of floating precision type");
@@ -1320,18 +1315,18 @@ void reg_tools_kernelConvolution(nifti_image *image,
     if (image->nt <= 0) image->nt = image->dim[4] = 1;
     if (image->nu <= 0) image->nu = image->dim[5] = 1;
 
-    unique_ptr<bool[]> axisToSmooth{ new bool[3] };
+    bool axisToSmooth[3];
     if (axis == nullptr) {
         // All axis are smoothed by default
-        for (int i = 0; i < 3; i++) axisToSmooth[i] = true;
+        axisToSmooth[0] = axisToSmooth[1] = axisToSmooth[2] = true;
     } else for (int i = 0; i < 3; i++) axisToSmooth[i] = axis[i];
 
-    const int activeTimePointNumber = image->nt * image->nu;
-    unique_ptr<bool[]> activeTimePoint{ new bool[activeTimePointNumber] };
-    if (timePoint == nullptr) {
+    const int activeTimePointCount = image->nt * image->nu;
+    unique_ptr<bool[]> activeTimePoints{ new bool[activeTimePointCount] };
+    if (timePoints == nullptr) {
         // All time points are considered as active
-        for (int i = 0; i < activeTimePointNumber; i++) activeTimePoint[i] = true;
-    } else for (int i = 0; i < activeTimePointNumber; i++) activeTimePoint[i] = timePoint[i];
+        for (int i = 0; i < activeTimePointCount; i++) activeTimePoints[i] = true;
+    } else for (int i = 0; i < activeTimePointCount; i++) activeTimePoints[i] = timePoints[i];
 
     unique_ptr<int[]> currentMask;
     if (!mask) {
@@ -1341,7 +1336,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
 
     std::visit([&](auto&& imgDataType) {
         using ImgDataType = std::decay_t<decltype(imgDataType)>;
-        reg_tools_kernelConvolution<ImgDataType>(image, sigma, kernelType, mask, activeTimePoint.get(), axisToSmooth.get());
+        reg_tools_kernelConvolution<ImgDataType>(image, sigma, kernelType, mask, activeTimePoints.get(), axisToSmooth);
     }, NiftiImage::getFloatingDataType(image));
 }
 /* *************************************************************** */

@@ -482,6 +482,7 @@ void reg_f3d<T>::SetOptimiser() {
 template<class T>
 void reg_f3d<T>::SmoothGradient() {
     // The gradient is smoothed using a Gaussian kernel if it is required
+    if (this->gradientSmoothingSigma == 0) return;
     this->compute->SmoothGradient(this->gradientSmoothingSigma);
     NR_FUNC_CALLED();
 }

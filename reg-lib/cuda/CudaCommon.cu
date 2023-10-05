@@ -82,22 +82,23 @@ void TransferNiftiToDevice(cudaArray *arrayCuda, const nifti_image *img) {
 template <class DataType>
 void TransferNiftiToDevice(cudaArray *arrayCuda, const nifti_image *img) {
     if (sizeof(DataType) == sizeof(float4)) {
-        if (img->datatype != NIFTI_TYPE_FLOAT32 || img->dim[5] < 2 || img->dim[4] > 1)
-            NR_FATAL_ERROR("The specified image is not a single precision deformation field image");
+        if (img->datatype != NIFTI_TYPE_FLOAT32)
+            NR_FATAL_ERROR("The specified image is not a single precision image");
         const float *niftiImgValues = static_cast<float*>(img->data);
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
+        const auto timePointCount = img->dim[4] * img->dim[5];
         unique_ptr<float4[]> array(new float4[voxelNumber]());
         for (size_t i = 0; i < voxelNumber; i++)
             array[i].x = *niftiImgValues++;
-        if (img->dim[5] >= 2) {
+        if (timePointCount >= 2) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array[i].y = *niftiImgValues++;
         }
-        if (img->dim[5] >= 3) {
+        if (timePointCount >= 3) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array[i].z = *niftiImgValues++;
         }
-        if (img->dim[5] >= 4) {
+        if (timePointCount >= 4) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array[i].w = *niftiImgValues++;
         }
@@ -153,29 +154,30 @@ void TransferNiftiToDevice(cudaArray *array1Cuda, cudaArray *array2Cuda, const n
 template <class DataType>
 void TransferNiftiToDevice(cudaArray *array1Cuda, cudaArray *array2Cuda, const nifti_image *img) {
     if (sizeof(DataType) == sizeof(float4)) {
-        if (img->datatype != NIFTI_TYPE_FLOAT32 || img->dim[5] < 2 || img->dim[4] > 1)
-            NR_FATAL_ERROR("The specified image is not a single precision deformation field image");
+        if (img->datatype != NIFTI_TYPE_FLOAT32)
+            NR_FATAL_ERROR("The specified image is not a single precision image");
         const float *niftiImgValues = static_cast<float*>(img->data);
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
+        const auto timePointCount = img->dim[4] * img->dim[5];
         unique_ptr<float4[]> array1(new float4[voxelNumber]());
         unique_ptr<float4[]> array2(new float4[voxelNumber]());
         for (size_t i = 0; i < voxelNumber; i++)
             array1[i].x = *niftiImgValues++;
         for (size_t i = 0; i < voxelNumber; i++)
             array2[i].x = *niftiImgValues++;
-        if (img->dim[5] >= 2) {
+        if (timePointCount >= 2) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array1[i].y = *niftiImgValues++;
             for (size_t i = 0; i < voxelNumber; i++)
                 array2[i].y = *niftiImgValues++;
         }
-        if (img->dim[5] >= 3) {
+        if (timePointCount >= 3) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array1[i].z = *niftiImgValues++;
             for (size_t i = 0; i < voxelNumber; i++)
                 array2[i].z = *niftiImgValues++;
         }
-        if (img->dim[5] >= 4) {
+        if (timePointCount >= 4) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array1[i].w = *niftiImgValues++;
             for (size_t i = 0; i < voxelNumber; i++)
@@ -223,22 +225,23 @@ void TransferNiftiToDevice(DataType *arrayCuda, const nifti_image *img) {
 template <class DataType>
 void TransferNiftiToDevice(DataType *arrayCuda, const nifti_image *img) {
     if (sizeof(DataType) == sizeof(float4)) {
-        if (img->datatype != NIFTI_TYPE_FLOAT32 || img->dim[5] < 2 || img->dim[4] > 1)
-            NR_FATAL_ERROR("The specified image is not a single precision deformation field image");
+        if (img->datatype != NIFTI_TYPE_FLOAT32)
+            NR_FATAL_ERROR("The specified image is not a single precision image");
         const float *niftiImgValues = static_cast<float*>(img->data);
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
+        const auto timePointCount = img->dim[4] * img->dim[5];
         unique_ptr<float4[]> array(new float4[voxelNumber]());
         for (size_t i = 0; i < voxelNumber; i++)
             array[i].x = *niftiImgValues++;
-        if (img->dim[5] >= 2) {
+        if (timePointCount >= 2) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array[i].y = *niftiImgValues++;
         }
-        if (img->dim[5] >= 3) {
+        if (timePointCount >= 3) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array[i].z = *niftiImgValues++;
         }
-        if (img->dim[5] >= 4) {
+        if (timePointCount >= 4) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array[i].w = *niftiImgValues++;
         }
@@ -273,29 +276,30 @@ void TransferNiftiToDevice(DataType *array1Cuda, DataType *array2Cuda, const nif
 template <class DataType>
 void TransferNiftiToDevice(DataType *array1Cuda, DataType *array2Cuda, const nifti_image *img) {
     if (sizeof(DataType) == sizeof(float4)) {
-        if (img->datatype != NIFTI_TYPE_FLOAT32 || img->dim[5] < 2 || img->dim[4] > 1)
-            NR_FATAL_ERROR("The specified image is not a single precision deformation field image");
+        if (img->datatype != NIFTI_TYPE_FLOAT32)
+            NR_FATAL_ERROR("The specified image is not a single precision image");
         const float *niftiImgValues = static_cast<float*>(img->data);
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
+        const auto timePointCount = img->dim[4] * img->dim[5];
         unique_ptr<float4[]> array1(new float4[voxelNumber]());
         unique_ptr<float4[]> array2(new float4[voxelNumber]());
         for (size_t i = 0; i < voxelNumber; i++)
             array1[i].x = *niftiImgValues++;
         for (size_t i = 0; i < voxelNumber; i++)
             array2[i].x = *niftiImgValues++;
-        if (img->dim[5] >= 2) {
+        if (timePointCount >= 2) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array1[i].y = *niftiImgValues++;
             for (size_t i = 0; i < voxelNumber; i++)
                 array2[i].y = *niftiImgValues++;
         }
-        if (img->dim[5] >= 3) {
+        if (timePointCount >= 3) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array1[i].z = *niftiImgValues++;
             for (size_t i = 0; i < voxelNumber; i++)
                 array2[i].z = *niftiImgValues++;
         }
-        if (img->dim[5] >= 4) {
+        if (timePointCount >= 4) {
             for (size_t i = 0; i < voxelNumber; i++)
                 array1[i].w = *niftiImgValues++;
             for (size_t i = 0; i < voxelNumber; i++)
@@ -350,23 +354,24 @@ template <class DataType>
 void TransferFromDeviceToNifti(nifti_image *img, const DataType *arrayCuda) {
     if (sizeof(DataType) == sizeof(float4)) {
         // A nifti 5D volume is expected
-        if (img->dim[0] < 5 || img->dim[4]>1 || img->dim[5] < 2 || img->datatype != NIFTI_TYPE_FLOAT32)
-            NR_FATAL_ERROR("The nifti image is not a 5D volume");
+        if (img->datatype != NIFTI_TYPE_FLOAT32)
+            NR_FATAL_ERROR("The specified image is not a single precision image");
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
+        const auto timePointCount = img->dim[4] * img->dim[5];
         thrust::device_ptr<const float4> arrayCudaPtr(reinterpret_cast<const float4*>(arrayCuda));
         const thrust::host_vector<float4> array(arrayCudaPtr, arrayCudaPtr + voxelNumber);
         float *niftiImgValues = static_cast<float*>(img->data);
         for (size_t i = 0; i < voxelNumber; i++)
             *niftiImgValues++ = array[i].x;
-        if (img->dim[5] >= 2) {
+        if (timePointCount >= 2) {
             for (size_t i = 0; i < voxelNumber; i++)
                 *niftiImgValues++ = array[i].y;
         }
-        if (img->dim[5] >= 3) {
+        if (timePointCount >= 3) {
             for (size_t i = 0; i < voxelNumber; i++)
                 *niftiImgValues++ = array[i].z;
         }
-        if (img->dim[5] >= 4) {
+        if (timePointCount >= 4) {
             for (size_t i = 0; i < voxelNumber; i++)
                 *niftiImgValues++ = array[i].w;
         }
@@ -399,9 +404,10 @@ template <class DataType>
 void TransferFromDeviceToNifti(nifti_image *img, const DataType *array1Cuda, const DataType *array2Cuda) {
     if (sizeof(DataType) == sizeof(float4)) {
         // A nifti 5D volume is expected
-        if (img->dim[0] < 5 || img->dim[4]>1 || img->dim[5] < 2 || img->datatype != NIFTI_TYPE_FLOAT32)
-            NR_FATAL_ERROR("The nifti image is not a 5D volume");
+        if (img->datatype != NIFTI_TYPE_FLOAT32)
+            NR_FATAL_ERROR("The specified image is not a single precision image");
         const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
+        const auto timePointCount = img->dim[4] * img->dim[5];
         thrust::device_ptr<const float4> array1CudaPtr(reinterpret_cast<const float4*>(array1Cuda));
         thrust::device_ptr<const float4> array2CudaPtr(reinterpret_cast<const float4*>(array2Cuda));
         const thrust::host_vector<float4> array1(array1CudaPtr, array1CudaPtr + voxelNumber);
@@ -411,19 +417,19 @@ void TransferFromDeviceToNifti(nifti_image *img, const DataType *array1Cuda, con
             *niftiImgValues++ = array1[i].x;
         for (size_t i = 0; i < voxelNumber; i++)
             *niftiImgValues++ = array2[i].x;
-        if (img->dim[5] >= 2) {
+        if (timePointCount >= 2) {
             for (size_t i = 0; i < voxelNumber; i++)
                 *niftiImgValues++ = array1[i].y;
             for (size_t i = 0; i < voxelNumber; i++)
                 *niftiImgValues++ = array2[i].y;
         }
-        if (img->dim[5] >= 3) {
+        if (timePointCount >= 3) {
             for (size_t i = 0; i < voxelNumber; i++)
                 *niftiImgValues++ = array1[i].z;
             for (size_t i = 0; i < voxelNumber; i++)
                 *niftiImgValues++ = array2[i].z;
         }
-        if (img->dim[5] >= 4) {
+        if (timePointCount >= 4) {
             for (size_t i = 0; i < voxelNumber; i++)
                 *niftiImgValues++ = array1[i].w;
             for (size_t i = 0; i < voxelNumber; i++)

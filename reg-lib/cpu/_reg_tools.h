@@ -81,10 +81,14 @@ void reg_tools_removeSCLInfo(nifti_image *img);
 void reg_getRealImageSpacing(nifti_image *image,
                              float *spacingValues);
 /* *************************************************************** */
-/** @brief Smooth an image using a Gaussian kernel
+/** @brief Smooth an image using a specified kernel
  * @param image Image to be smoothed
- * @param sigma Standard deviation of the Gaussian kernel
- * to use. The kernel is bounded between +/- 3 sigma.
+ * @param sigma Standard deviation of the kernel to use.
+ * The kernel is bounded between +/- 3 sigma.
+ * @param kernelType Type of kernel to use.
+ * @param mask An integer mask over which the smoothing should occur.
+ * @param timePoints Boolean array to specify which time points have to be
+ * smoothed. The array follow the dim array of the nifti header.
  * @param axis Boolean array to specify which axis have to be
  * smoothed. The array follow the dim array of the nifti header.
  */
@@ -100,8 +104,8 @@ void reg_tools_kernelConvolution(nifti_image *image,
  * @param varianceX The variance of the Gaussian kernel in X
  * @param varianceY The variance of the Gaussian kernel in Y
  * @param varianceZ The variance of the Gaussian kernel in Z
- * @param mask An integer mask over which the Gaussian smoothing should occur
- * @param timePoint Boolean array to specify which timepoints have to be
+ * @param mask An integer mask over which the Gaussian smoothing should occur.
+ * @param timePoints Boolean array to specify which time points have to be
  * smoothed.
  */
 void reg_tools_labelKernelConvolution(nifti_image *image,
@@ -109,7 +113,7 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
                                       float varianceY,
                                       float varianceZ,
                                       int *mask = nullptr,
-                                      bool *timePoint = nullptr);
+                                      bool *timePoints = nullptr);
 /* *************************************************************** */
 /** @brief Downsample an image by a ratio of two
  * @param image Image to be downsampled

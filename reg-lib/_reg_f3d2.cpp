@@ -348,11 +348,10 @@ void reg_f3d2<T>::GetLandmarkDistanceGradient() {
 /* *************************************************************** */
 template <class T>
 void reg_f3d2<T>::SmoothGradient() {
-    reg_f3d<T>::SmoothGradient();
-
     // The gradient is smoothed using a Gaussian kernel if it is required
+    if (this->gradientSmoothingSigma == 0) return;
+    reg_f3d<T>::SmoothGradient();
     computeBw->SmoothGradient(this->gradientSmoothingSigma);
-
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */

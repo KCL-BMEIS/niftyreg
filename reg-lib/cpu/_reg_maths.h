@@ -56,6 +56,10 @@ DEVICE inline T Square(const T& x) {
     return x * x;
 }
 template<typename T>
+DEVICE inline T Cube(const T& x) {
+    return x * x * x;
+}
+template<typename T>
 DEVICE inline int Floor(const T& x) {
     const int i = static_cast<int>(x);
     return i - (x < i);

@@ -71,7 +71,7 @@ option(BUILD_TESTING "To build the unit tests" OFF)
 option(USE_CUDA "To use the CUDA platform" OFF)
 option(USE_OPENCL "To use the OpenCL platform" OFF)
 option(USE_OPENMP "To use openMP for multi-CPU processing" ON)
-option(USE_SSE "To enable SEE computation in some case" ON)
+option(USE_SSE "To enable SSE computation in some case" ON)
 #-----------------------------------------------------------------------------
 option(USE_NRRD "To use the NRRD file format" OFF)
 mark_as_advanced(USE_NRRD)

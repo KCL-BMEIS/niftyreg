@@ -7,7 +7,7 @@
  *  to ensure the CPU and CUDA versions yield the same output
 **/
 
-class ApproxLinearEnergyGradient {
+class ApproxLinearEnergyGradientTest {
 protected:
     using TestData = std::tuple<std::string, NiftiImage&, NiftiImage&, NiftiImage&, float>;
     using TestCase = std::tuple<std::string, double, double, NiftiImage, NiftiImage>;
@@ -15,7 +15,7 @@ protected:
     inline static vector<TestCase> testCases;
 
 public:
-    ApproxLinearEnergyGradient() {
+    ApproxLinearEnergyGradientTest() {
         if (!testCases.empty())
             return;
 
@@ -124,7 +124,7 @@ public:
     }
 };
 
-TEST_CASE_METHOD(ApproxLinearEnergyGradient, "Regression Approximate Linear Energy Gradient", "[regression]") {
+TEST_CASE_METHOD(ApproxLinearEnergyGradientTest, "Regression Approximate Linear Energy Gradient", "[regression]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
