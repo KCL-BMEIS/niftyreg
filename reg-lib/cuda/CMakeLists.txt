@@ -21,8 +21,8 @@ elseif(RUN_RESULT_VAR)
     return()
 else(NOT COMPILE_RESULT_VAR)
     message(STATUS "Found CUDA (v${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}) and a CUDA-enabled card (capability ${RUN_OUTPUT_VAR})")
-    # Set C++ standard version for CUDA and enable extended lambdas
-    set(CUDA_NVCC_FLAGS "-std=c++17 --extended-lambda")
+    # Set C++ standard version for CUDA, and enable extended lambdas and relaxed constexpr support
+    set(CUDA_NVCC_FLAGS "-std=c++17 --extended-lambda --expt-relaxed-constexpr")
     #check cuda version and adjust compile flags
     if("${RUN_OUTPUT_VAR}" LESS "30")
         set(USE_CUDA OFF CACHE BOOL "To use the CUDA platform" FORCE)
@@ -66,6 +66,7 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaContext.cpp
     CudaDefContent.cpp
     CudaF3dContent.cpp
+    CudaKernelConvolution.cu
     CudaKernelFactory.cpp
     CudaMeasure.cpp
     affineDeformationKernel.cu

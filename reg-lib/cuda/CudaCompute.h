@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Compute.h"
+#include "CudaCommon.hpp"
 
 class CudaCompute: public Compute {
 public:
@@ -34,4 +35,7 @@ public:
 protected:
 #endif
     virtual void VoxelCentricToNodeCentric(float weight) override;
+
+private:
+    void ConvolveImage(const nifti_image*, float4*);
 };

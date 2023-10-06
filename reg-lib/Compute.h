@@ -35,13 +35,12 @@ public:
 protected:
     Content& con;
 
-    void ConvolveImage(nifti_image*);
-
 #ifdef NR_TESTING
 public:
 #endif
     virtual void VoxelCentricToNodeCentric(float weight);
 
 private:
+    void ConvolveImage(nifti_image*);
     nifti_image* ScaleGradient(const nifti_image&, float);
 };

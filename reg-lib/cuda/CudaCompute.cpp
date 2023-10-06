@@ -1,5 +1,6 @@
 #include "CudaCompute.h"
 #include "CudaF3dContent.h"
+#include "CudaKernelConvolution.hpp"
 #include "CudaNormaliseGradient.hpp"
 #include "_reg_resampling_gpu.h"
 #include "_reg_localTransformation_gpu.h"
@@ -141,13 +142,10 @@ void CudaCompute::NormaliseGradient(double maxGradLength, bool optimiseX, bool o
 }
 /* *************************************************************** */
 void CudaCompute::SmoothGradient(float sigma) {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
-    if (sigma != 0) {
-        Compute::SmoothGradient(sigma);
-        // Update the changes for GPU
-        dynamic_cast<CudaF3dContent&>(con).UpdateTransformationGradient();
-    }
+    if (sigma == 0) return;
+    sigma = fabs(sigma);
+    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
+    Cuda::KernelConvolution(con.F3dContent::GetTransformationGradient(), con.GetTransformationGradientCuda(), &sigma, GAUSSIAN_KERNEL);
 }
 /* *************************************************************** */
 void CudaCompute::GetApproximatedGradient(InterfaceOptimiser& opt) {
@@ -165,6 +163,42 @@ void CudaCompute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
                                                updateStepNumber);
 }
 /* *************************************************************** */
+void CudaCompute::ConvolveImage(const nifti_image *image, float4 *imageCuda) {
+    const nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
+    constexpr int kernelType = CUBIC_SPLINE_KERNEL;
+    float currentNodeSpacing[3];
+    currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dx;
+    bool activeAxis[3] = { 1, 0, 0 };
+    Cuda::KernelConvolution(image,
+                            imageCuda,
+                            currentNodeSpacing,
+                            kernelType,
+                            nullptr, // all volumes are considered as active
+                            activeAxis);
+    // Convolution along the y axis
+    currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dy;
+    activeAxis[0] = 0;
+    activeAxis[1] = 1;
+    Cuda::KernelConvolution(image,
+                            imageCuda,
+                            currentNodeSpacing,
+                            kernelType,
+                            nullptr, // all volumes are considered as active
+                            activeAxis);
+    // Convolution along the z axis if required
+    if (image->nz > 1) {
+        currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dz;
+        activeAxis[1] = 0;
+        activeAxis[2] = 1;
+        Cuda::KernelConvolution(image,
+                                imageCuda,
+                                currentNodeSpacing,
+                                kernelType,
+                                nullptr, // all volumes are considered as active
+                                activeAxis);
+    }
+}
+/* *************************************************************** */
 void CudaCompute::VoxelCentricToNodeCentric(float weight) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     const mat44 *reorientation = Content::GetIJKMatrix(*con.Content::GetFloating());
@@ -177,13 +211,8 @@ void CudaCompute::VoxelCentricToNodeCentric(float weight) {
 }
 /* *************************************************************** */
 void CudaCompute::ConvolveVoxelBasedMeasureGradient(float weight) {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
     CudaDefContent& con = dynamic_cast<CudaDefContent&>(this->con);
-    Compute::ConvolveImage(con.GetVoxelBasedMeasureGradient());
-    // Transfer the data back to the CUDA device
-    con.UpdateVoxelBasedMeasureGradient();
-
+    ConvolveImage(con.DefContent::GetVoxelBasedMeasureGradient(), con.GetVoxelBasedMeasureGradientCuda());
     // The node-based NMI gradient is extracted from the voxel-based gradient
     VoxelCentricToNodeCentric(weight);
 }

@@ -231,7 +231,7 @@ void Compute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
 /* *************************************************************** */
 void Compute::ConvolveImage(nifti_image *image) {
     const nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
-    const int kernelType = CUBIC_SPLINE_KERNEL;
+    constexpr int kernelType = CUBIC_SPLINE_KERNEL;
     float currentNodeSpacing[3];
     currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dx;
     bool activeAxis[3] = { 1, 0, 0 };
@@ -278,7 +278,6 @@ void Compute::VoxelCentricToNodeCentric(float weight) {
 void Compute::ConvolveVoxelBasedMeasureGradient(float weight) {
     F3dContent& con = dynamic_cast<F3dContent&>(this->con);
     ConvolveImage(con.GetVoxelBasedMeasureGradient());
-
     // The node-based NMI gradient is extracted from the voxel-based gradient
     VoxelCentricToNodeCentric(weight);
 }
