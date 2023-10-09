@@ -4,6 +4,7 @@
 #include <array>
 #include <random>
 #include <iomanip>
+#include <numeric>
 #include <catch2/catch_test_macros.hpp>
 #include "_reg_lncc.h"
 #include "_reg_localTrans.h"

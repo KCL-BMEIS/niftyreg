@@ -89,7 +89,7 @@ void reg_getRealImageSpacing(nifti_image *image,
  * @param mask An integer mask over which the smoothing should occur.
  * @param timePoints Boolean array to specify which time points have to be
  * smoothed. The array follow the dim array of the nifti header.
- * @param axis Boolean array to specify which axis have to be
+ * @param axes Boolean array to specify which axes have to be
  * smoothed. The array follow the dim array of the nifti header.
  */
 void reg_tools_kernelConvolution(nifti_image *image,
@@ -97,7 +97,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                  const int& kernelType,
                                  const int *mask = nullptr,
                                  const bool *timePoints = nullptr,
-                                 const bool *axis = nullptr);
+                                 const bool *axes = nullptr);
 /* *************************************************************** */
 /** @brief Smooth a label image using a Gaussian kernel
  * @param image Image to be smoothed
@@ -120,13 +120,13 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
  * @param type The image is first smoothed  using a Gaussian
  * kernel of 0.7 voxel standard deviation before being downsample
  * if type is set to true.
- * @param axis Boolean array to specify which axis have to be
+ * @param axes Boolean array to specify which axes have to be
  * downsampled. The array follow the dim array of the nifti header.
  */
 template <class PrecisionType>
 void reg_downsampleImage(nifti_image *image,
                          int type,
-                         bool *axis);
+                         bool *axes);
 /* *************************************************************** */
 /** @brief Returns the maximal euclidean distance from a
  * deformation field image

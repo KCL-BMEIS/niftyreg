@@ -13,7 +13,7 @@ namespace NiftyReg::Cuda {
  * @param kernelType Type of kernel to use.
  * @param timePoints Boolean array to specify which time points have to be
  * smoothed. The array follow the dim array of the nifti header.
- * @param axis Boolean array to specify which axis have to be
+ * @param axes Boolean array to specify which axes have to be
  * smoothed. The array follow the dim array of the nifti header.
  */
 void KernelConvolution(const nifti_image *image,
@@ -21,7 +21,7 @@ void KernelConvolution(const nifti_image *image,
                        const float *sigma,
                        const int kernelType,
                        const bool *timePoints = nullptr,
-                       const bool *axis = nullptr);
+                       const bool *axes = nullptr);
 /* *************************************************************** */
 }
 /* *************************************************************** */

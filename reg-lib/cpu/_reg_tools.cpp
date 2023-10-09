@@ -834,7 +834,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                  const int& kernelType,
                                  const int *mask,
                                  const bool *timePoints,
-                                 const bool *axis) {
+                                 const bool *axes) {
     if (image->nx > 2048 || image->ny > 2048 || image->nz > 2048)
         NR_FATAL_ERROR("This function does not support images with dimensions larger than 2048");
 
@@ -867,7 +867,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
             }
             // Loop over the x, y and z dimensions
             for (int n = 0; n < 3; n++) {
-                if (axis[n] && image->dim[n] > 1) {
+                if (axes[n] && image->dim[n] > 1) {
                     double temp;
                     if (sigma[t] > 0) temp = sigma[t] / image->pixdim[n + 1]; // mm to voxel
                     else temp = fabs(sigma[t]); // voxel-based if negative value
@@ -1308,18 +1308,18 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                  const int& kernelType,
                                  const int *mask,
                                  const bool *timePoints,
-                                 const bool *axis) {
+                                 const bool *axes) {
     if (image->datatype != NIFTI_TYPE_FLOAT32 && image->datatype != NIFTI_TYPE_FLOAT64)
         NR_FATAL_ERROR("The image is expected to be of floating precision type");
 
     if (image->nt <= 0) image->nt = image->dim[4] = 1;
     if (image->nu <= 0) image->nu = image->dim[5] = 1;
 
-    bool axisToSmooth[3];
-    if (axis == nullptr) {
-        // All axis are smoothed by default
-        axisToSmooth[0] = axisToSmooth[1] = axisToSmooth[2] = true;
-    } else for (int i = 0; i < 3; i++) axisToSmooth[i] = axis[i];
+    bool axesToSmooth[3];
+    if (axes == nullptr) {
+        // All axes are smoothed by default
+        axesToSmooth[0] = axesToSmooth[1] = axesToSmooth[2] = true;
+    } else for (int i = 0; i < 3; i++) axesToSmooth[i] = axes[i];
 
     const int activeTimePointCount = image->nt * image->nu;
     unique_ptr<bool[]> activeTimePoints{ new bool[activeTimePointCount] };
@@ -1336,7 +1336,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
 
     std::visit([&](auto&& imgDataType) {
         using ImgDataType = std::decay_t<decltype(imgDataType)>;
-        reg_tools_kernelConvolution<ImgDataType>(image, sigma, kernelType, mask, activeTimePoints.get(), axisToSmooth);
+        reg_tools_kernelConvolution<ImgDataType>(image, sigma, kernelType, mask, activeTimePoints.get(), axesToSmooth);
     }, NiftiImage::getFloatingDataType(image));
 }
 /* *************************************************************** */

@@ -6,15 +6,15 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                                        const float *sigma,
                                        const int kernelType,
                                        const bool *timePoints,
-                                       const bool *axis) {
+                                       const bool *axes) {
     if (image->nx > 2048 || image->ny > 2048 || image->nz > 2048)
         NR_FATAL_ERROR("This function does not support images with dimensions larger than 2048");
 
-    bool axisToSmooth[3];
-    if (axis == nullptr) {
-        // All axis are smoothed by default
-        axisToSmooth[0] = axisToSmooth[1] = axisToSmooth[2] = true;
-    } else for (int i = 0; i < 3; i++) axisToSmooth[i] = axis[i];
+    bool axesToSmooth[3];
+    if (axes == nullptr) {
+        // All axes are smoothed by default
+        axesToSmooth[0] = axesToSmooth[1] = axesToSmooth[2] = true;
+    } else for (int i = 0; i < 3; i++) axesToSmooth[i] = axes[i];
 
     const auto activeTimePointCount = std::min(image->nt * image->nu, 4);
     bool activeTimePoints[4]{}; // 4 is the maximum number of time points
@@ -49,7 +49,7 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
 
         // Loop over the x, y and z dimensions
         for (int n = 0; n < 3; n++) {
-            if (!axisToSmooth[n] || image->dim[n] <= 1) continue;
+            if (!axesToSmooth[n] || image->dim[n] <= 1) continue;
 
             double temp;
             if (sigma[t] > 0) temp = sigma[t] / image->pixdim[n + 1]; // mm to voxel
