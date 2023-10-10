@@ -9,7 +9,7 @@ public:
     CudaConvolutionKernel() : ConvolutionKernel() {}
     void Calculate(nifti_image *image,
                    float *sigma,
-                   int kernelType,
+                   ConvKernelType kernelType,
                    int *mask = nullptr,
                    bool *timePoints = nullptr,
                    bool *axis = nullptr);

@@ -520,24 +520,24 @@ int main(int argc, char **argv)
         bool boolX[3]= {1,0,0};
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) kernelSize[i]=param->smoothValueX;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,nullptr,timePoint,boolX);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Mean,nullptr,timePoint,boolX);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,nullptr,timePoint,boolX);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,nullptr,timePoint,boolX);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Cubic,nullptr,timePoint,boolX);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Gaussian,nullptr,timePoint,boolX);
         bool boolY[3]= {0,1,0};
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) kernelSize[i]=param->smoothValueY;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,nullptr,timePoint,boolY);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Mean,nullptr,timePoint,boolY);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,nullptr,timePoint,boolY);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,nullptr,timePoint,boolY);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Cubic,nullptr,timePoint,boolY);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Gaussian,nullptr,timePoint,boolY);
         bool boolZ[3]= {0,0,1};
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) kernelSize[i]=param->smoothValueZ;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,nullptr,timePoint,boolZ);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Mean,nullptr,timePoint,boolZ);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,nullptr,timePoint,boolZ);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,nullptr,timePoint,boolZ);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Cubic,nullptr,timePoint,boolZ);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Gaussian,nullptr,timePoint,boolZ);
         delete []kernelSize;
         delete []timePoint;
         if(flag->outputImageFlag)

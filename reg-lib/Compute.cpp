@@ -187,7 +187,7 @@ void Compute::NormaliseGradient(double maxGradLength, bool optimiseX, bool optim
 void Compute::SmoothGradient(float sigma) {
     if (sigma != 0) {
         sigma = fabs(sigma);
-        reg_tools_kernelConvolution(dynamic_cast<F3dContent&>(con).GetTransformationGradient(), &sigma, GAUSSIAN_KERNEL);
+        reg_tools_kernelConvolution(dynamic_cast<F3dContent&>(con).GetTransformationGradient(), &sigma, ConvKernelType::Gaussian);
     }
 }
 /* *************************************************************** */
@@ -231,7 +231,7 @@ void Compute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
 /* *************************************************************** */
 void Compute::ConvolveImage(nifti_image *image) {
     const nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
-    constexpr int kernelType = CUBIC_SPLINE_KERNEL;
+    constexpr ConvKernelType kernelType = ConvKernelType::Cubic;
     float currentNodeSpacing[3];
     currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dx;
     bool activeAxis[3] = { 1, 0, 0 };

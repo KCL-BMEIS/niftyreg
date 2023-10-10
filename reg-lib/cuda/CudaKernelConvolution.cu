@@ -4,7 +4,7 @@
 void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                                        float4 *imageCuda,
                                        const float *sigma,
-                                       const int kernelType,
+                                       const ConvKernelType kernelType,
                                        const bool *timePoints,
                                        const bool *axes) {
     if (image->nx > 2048 || image->ny > 2048 || image->nz > 2048)
@@ -56,13 +56,13 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
             else temp = fabs(sigma[t]); // voxel-based if negative value
             int radius = 0;
             // Define the kernel size
-            if (kernelType == MEAN_KERNEL || kernelType == LINEAR_KERNEL) {
+            if (kernelType == ConvKernelType::Mean || kernelType == ConvKernelType::Linear) {
                 // Mean or linear filtering
                 radius = static_cast<int>(temp);
-            } else if (kernelType == GAUSSIAN_KERNEL) {
+            } else if (kernelType == ConvKernelType::Gaussian) {
                 // Gaussian kernel
                 radius = static_cast<int>(temp * 3.0);
-            } else if (kernelType == CUBIC_SPLINE_KERNEL) {
+            } else if (kernelType == ConvKernelType::Cubic) {
                 // Spline kernel
                 radius = static_cast<int>(temp * 2.0);
             } else {
@@ -74,7 +74,7 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
             vector<float> kernel(2 * radius + 1);
             double kernelSum = 0;
             // Fill the kernel
-            if (kernelType == CUBIC_SPLINE_KERNEL) {
+            if (kernelType == ConvKernelType::Cubic) {
                 // Compute the Cubic Spline kernel
                 for (int i = -radius; i <= radius; i++) {
                     // temp contains the kernel node spacing
@@ -86,7 +86,7 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                     else kernel[i + radius] = 0;
                     kernelSum += kernel[i + radius];
                 }
-            } else if (kernelType == GAUSSIAN_KERNEL) {
+            } else if (kernelType == ConvKernelType::Gaussian) {
                 // Compute the Gaussian kernel
                 for (int i = -radius; i <= radius; i++) {
                     // 2.506... = sqrt(2*pi)
@@ -94,13 +94,13 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                     kernel[i + radius] = static_cast<float>(exp(-Square(i) / (2.0 * Square(temp))) / (temp * 2.506628274631));
                     kernelSum += kernel[i + radius];
                 }
-            } else if (kernelType == LINEAR_KERNEL) {
+            } else if (kernelType == ConvKernelType::Linear) {
                 // Compute the linear kernel
                 for (int i = -radius; i <= radius; i++) {
                     kernel[i + radius] = 1.f - fabs(i / static_cast<float>(radius));
                     kernelSum += kernel[i + radius];
                 }
-            } else if (kernelType == MEAN_KERNEL && imageDims.z == 1) {
+            } else if (kernelType == ConvKernelType::Mean && imageDims.z == 1) {
                 // Compute the mean kernel
                 for (int i = -radius; i <= radius; i++) {
                     kernel[i + radius] = 1.f;
@@ -109,7 +109,7 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
             }
             // No kernel is required for the mean filtering
             // No need for kernel normalisation as this is handled by the density function
-            NR_DEBUG("Convolution type[" << kernelType << "] dim[" << n << "] tp[" << t << "] radius[" << radius << "] kernelSum[" << kernelSum << "]");
+            NR_DEBUG("Convolution type[" << int(kernelType) << "] dim[" << n << "] tp[" << t << "] radius[" << radius << "] kernelSum[" << kernelSum << "]");
 
             int planeCount, lineOffset;
             switch (n) {

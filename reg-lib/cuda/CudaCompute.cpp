@@ -145,7 +145,7 @@ void CudaCompute::SmoothGradient(float sigma) {
     if (sigma == 0) return;
     sigma = fabs(sigma);
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    Cuda::KernelConvolution(con.F3dContent::GetTransformationGradient(), con.GetTransformationGradientCuda(), &sigma, GAUSSIAN_KERNEL);
+    Cuda::KernelConvolution(con.F3dContent::GetTransformationGradient(), con.GetTransformationGradientCuda(), &sigma, ConvKernelType::Gaussian);
 }
 /* *************************************************************** */
 void CudaCompute::GetApproximatedGradient(InterfaceOptimiser& opt) {
@@ -165,7 +165,7 @@ void CudaCompute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
 /* *************************************************************** */
 void CudaCompute::ConvolveImage(const nifti_image *image, float4 *imageCuda) {
     const nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
-    constexpr int kernelType = CUBIC_SPLINE_KERNEL;
+    constexpr ConvKernelType kernelType = ConvKernelType::Cubic;
     float currentNodeSpacing[3];
     currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dx;
     bool activeAxis[3] = { 1, 0, 0 };

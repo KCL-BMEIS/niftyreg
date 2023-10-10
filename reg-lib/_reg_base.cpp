@@ -434,7 +434,7 @@ void reg_base<T>::Initialise() {
             for (int i = 1; i < referencePyramid[l]->nt; ++i)
                 active[i] = false;
             sigma[0] = referenceSmoothingSigma;
-            reg_tools_kernelConvolution(referencePyramid[l], sigma.get(), GAUSSIAN_KERNEL, nullptr, active.get());
+            reg_tools_kernelConvolution(referencePyramid[l], sigma.get(), ConvKernelType::Gaussian, nullptr, active.get());
         }
         if (floatingSmoothingSigma != 0) {
             // Only the first image is smoothed
@@ -444,7 +444,7 @@ void reg_base<T>::Initialise() {
             for (int i = 1; i < floatingPyramid[l]->nt; ++i)
                 active[i] = false;
             sigma[0] = floatingSmoothingSigma;
-            reg_tools_kernelConvolution(floatingPyramid[l], sigma.get(), GAUSSIAN_KERNEL, nullptr, active.get());
+            reg_tools_kernelConvolution(floatingPyramid[l], sigma.get(), ConvKernelType::Gaussian, nullptr, active.get());
         }
     }
 
@@ -623,7 +623,7 @@ void reg_base<T>::UseLNCC(int timepoint, float stddev) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_base<T>::SetLNCCKernelType(int type) {
+void reg_base<T>::SetLNCCKernelType(ConvKernelType type) {
     if (!measure_lncc)
         NR_FATAL_ERROR("The LNCC object has to be created first");
     measure_lncc->SetKernelType(type);

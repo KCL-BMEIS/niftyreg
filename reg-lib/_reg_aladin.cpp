@@ -174,7 +174,7 @@ void reg_aladin<T>::InitialiseRegistration() {
             for (int i = 1; i < this->referencePyramid[l]->nt; ++i)
                 active[i] = false;
             sigma[0] = this->referenceSigma;
-            convolutionKernel->castTo<ConvolutionKernel>()->Calculate(this->referencePyramid[l], sigma.get(), 0, nullptr, active.get());
+            convolutionKernel->castTo<ConvolutionKernel>()->Calculate(this->referencePyramid[l], sigma.get(), ConvKernelType::Mean, nullptr, active.get());
         }
         if (this->floatingSigma != 0) {
             // Only the first image is smoothed
@@ -184,7 +184,7 @@ void reg_aladin<T>::InitialiseRegistration() {
             for (int i = 1; i < this->floatingPyramid[l]->nt; ++i)
                 active[i] = false;
             sigma[0] = this->floatingSigma;
-            convolutionKernel->castTo<ConvolutionKernel>()->Calculate(this->floatingPyramid[l], sigma.get(), 0, nullptr, active.get());
+            convolutionKernel->castTo<ConvolutionKernel>()->Calculate(this->floatingPyramid[l], sigma.get(), ConvKernelType::Mean, nullptr, active.get());
         }
     }
 

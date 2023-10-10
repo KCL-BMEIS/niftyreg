@@ -29,7 +29,7 @@ reg_lncc::reg_lncc(): reg_measure() {
     this->backwardMask = nullptr;
 
     // Gaussian kernel is used by default
-    this->kernelType = GAUSSIAN_KERNEL;
+    this->kernelType = ConvKernelType::Gaussian;
 
     for (int i = 0; i < 255; ++i)
         kernelStandardDeviation[i] = -5.f;
@@ -201,8 +201,8 @@ void UpdateLocalStatImages(const nifti_image *refImage,
                            const int *refMask,
                            int *combinedMask,
                            const float *kernelStandardDeviation,
-                           const int& kernelType,
-                           const int& currentTimepoint) {
+                           const ConvKernelType kernelType,
+                           const int currentTimepoint) {
     // Generate the combined mask to ignore all NaN values
 #ifdef _WIN32
     long voxel;
@@ -258,8 +258,8 @@ double reg_getLnccValue(const nifti_image *referenceImage,
                         const int *combinedMask,
                         const float *kernelStandardDeviation,
                         nifti_image *correlationImage,
-                        const int& kernelType,
-                        const int& currentTimepoint) {
+                        const ConvKernelType kernelType,
+                        const int currentTimepoint) {
 #ifdef _WIN32
     long voxel;
     const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
@@ -318,8 +318,8 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  int *forwardMask,
                                  const float *kernelStandardDeviation,
                                  nifti_image *correlationImage,
-                                 const int& kernelType,
-                                 const int& referenceTimePoint,
+                                 const ConvKernelType kernelType,
+                                 const int referenceTimePoint,
                                  const double *timePointWeight) {
     double lncc = 0;
     for (int currentTimepoint = 0; currentTimepoint < referenceTimePoint; ++currentTimepoint) {
@@ -401,9 +401,9 @@ void reg_getVoxelBasedLnccGradient(const nifti_image *referenceImage,
                                    nifti_image *correlationImage,
                                    const nifti_image *warpedGradient,
                                    nifti_image *measureGradient,
-                                   const int& kernelType,
-                                   const int& currentTimepoint,
-                                   const double& timepointWeight) {
+                                   const ConvKernelType kernelType,
+                                   const int currentTimepoint,
+                                   const double timepointWeight) {
 #ifdef _WIN32
     long voxel;
     long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
@@ -529,9 +529,9 @@ void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
                                             nifti_image *correlationImage,
                                             const nifti_image *warpedGradient,
                                             nifti_image *measureGradient,
-                                            const int& kernelType,
-                                            const int& currentTimepoint,
-                                            const double& timepointWeight) {
+                                            const ConvKernelType kernelType,
+                                            const int currentTimepoint,
+                                            const double timepointWeight) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
         // Compute the mean and variance of the reference and warped floating

@@ -121,7 +121,7 @@ protected:
                 *jhPtr++ = jh[i][j] / ref.nVoxels();
         // Apply a convolution to mimic the parzen windowing
         float sigma[1] = { 1.f };
-        reg_tools_kernelConvolution(jointHistogram, sigma, CUBIC_SPLINE_KERNEL);
+        reg_tools_kernelConvolution(jointHistogram, sigma, ConvKernelType::Cubic);
         // Restore the jh array
         jhPtr = static_cast<double*>(jointHistogram->data);
         for (unsigned i = 0; i < 68; ++i)

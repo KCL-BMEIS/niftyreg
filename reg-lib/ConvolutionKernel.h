@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Kernel.h"
-#include "RNifti.h"
+#include "_reg_tools.h"
 
 class ConvolutionKernel: public Kernel {
 public:
@@ -10,5 +10,5 @@ public:
     }
     ConvolutionKernel() : Kernel() {}
     virtual ~ConvolutionKernel() {}
-    virtual void Calculate(nifti_image *image, float *sigma, int kernelType, int *mask = nullptr, bool *timePoints = nullptr, bool *axis = nullptr) = 0;
+    virtual void Calculate(nifti_image *image, float *sigma, ConvKernelType kernelType, int *mask = nullptr, bool *timePoints = nullptr, bool *axis = nullptr) = 0;
 };

@@ -6,5 +6,5 @@
 class CpuConvolutionKernel: public ConvolutionKernel {
 public:
     CpuConvolutionKernel() : ConvolutionKernel() {}
-    void Calculate(nifti_image *image, float *sigma, int kernelType, int *mask = nullptr, bool *timePoints = nullptr, bool *axis = nullptr);
+    void Calculate(nifti_image *image, float *sigma, ConvKernelType kernelType, int *mask = nullptr, bool *timePoints = nullptr, bool *axis = nullptr);
 };

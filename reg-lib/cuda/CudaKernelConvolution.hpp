@@ -19,7 +19,7 @@ namespace NiftyReg::Cuda {
 void KernelConvolution(const nifti_image *image,
                        float4 *imageCuda,
                        const float *sigma,
-                       const int kernelType,
+                       const ConvKernelType kernelType,
                        const bool *timePoints = nullptr,
                        const bool *axes = nullptr);
 /* *************************************************************** */

@@ -625,7 +625,7 @@ int main(int argc, char **argv) {
         }
     }
     if (useMeanLNCC)
-        reg->SetLNCCKernelType(2);
+        reg->SetLNCCKernelType(ConvKernelType::Gaussian);
 
     NR_DEBUG("*******************************************");
     NR_DEBUG("*******************************************");

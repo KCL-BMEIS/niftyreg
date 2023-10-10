@@ -334,9 +334,9 @@ template void reg_thresholdImage<double>(nifti_image*, double, double);
 /* *************************************************************** */
 template <class PrecisionType, class DataType>
 PrecisionType reg_getMaximalLength(const nifti_image *image,
-                                   const bool& optimiseX,
-                                   const bool& optimiseY,
-                                   const bool& optimiseZ) {
+                                   const bool optimiseX,
+                                   const bool optimiseY,
+                                   const bool optimiseZ) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
     const DataType *dataPtrX = static_cast<DataType*>(image->data);
     const DataType *dataPtrY = &dataPtrX[voxelNumber];
@@ -354,9 +354,9 @@ PrecisionType reg_getMaximalLength(const nifti_image *image,
 /* *************************************************************** */
 template <class PrecisionType>
 PrecisionType reg_getMaximalLength(const nifti_image *image,
-                                   const bool& optimiseX,
-                                   const bool& optimiseY,
-                                   const bool& optimiseZ) {
+                                   const bool optimiseX,
+                                   const bool optimiseY,
+                                   const bool optimiseZ) {
     switch (image->datatype) {
     case NIFTI_TYPE_FLOAT32:
         return reg_getMaximalLength<PrecisionType, float>(image, optimiseX, optimiseY, image->nz > 1 ? optimiseZ : false);
@@ -367,8 +367,8 @@ PrecisionType reg_getMaximalLength(const nifti_image *image,
     }
     return EXIT_SUCCESS;
 }
-template float reg_getMaximalLength<float>(const nifti_image*, const bool&, const bool&, const bool&);
-template double reg_getMaximalLength<double>(const nifti_image*, const bool&, const bool&, const bool&);
+template float reg_getMaximalLength<float>(const nifti_image*, const bool, const bool, const bool);
+template double reg_getMaximalLength<double>(const nifti_image*, const bool, const bool, const bool);
 /* *************************************************************** */
 template <class NewType, class DataType>
 void reg_tools_changeDatatype(nifti_image *image, int type) {
@@ -650,7 +650,7 @@ void reg_tools_divideImageToImage(const nifti_image *img1,
 template <class Type>
 void reg_tools_operationValueToImage(const nifti_image *img,
                                      nifti_image *res,
-                                     const double& val,
+                                     const double val,
                                      const Operation& operation) {
     const Type *imgPtr = static_cast<Type*>(img->data);
     Type *resPtr = static_cast<Type*>(res->data);
@@ -678,7 +678,7 @@ void reg_tools_operationValueToImage(const nifti_image *img,
 /* *************************************************************** */
 void reg_tools_addValueToImage(const nifti_image *img,
                                nifti_image *res,
-                               const double& val) {
+                               const double val) {
     if (img->datatype != res->datatype)
         NR_FATAL_ERROR("Input and output image are expected to be of the same type");
     if (img->nvox != res->nvox)
@@ -716,7 +716,7 @@ void reg_tools_addValueToImage(const nifti_image *img,
 /* *************************************************************** */
 void reg_tools_subtractValueFromImage(const nifti_image *img,
                                       nifti_image *res,
-                                      const double& val) {
+                                      const double val) {
     if (img->datatype != res->datatype)
         NR_FATAL_ERROR("Input and output image are expected to be of the same type");
     if (img->nvox != res->nvox)
@@ -754,7 +754,7 @@ void reg_tools_subtractValueFromImage(const nifti_image *img,
 /* *************************************************************** */
 void reg_tools_multiplyValueToImage(const nifti_image *img,
                                     nifti_image *res,
-                                    const double& val) {
+                                    const double val) {
     if (img->datatype != res->datatype)
         NR_FATAL_ERROR("Input and output image are expected to be of the same type");
     if (img->nvox != res->nvox)
@@ -792,7 +792,7 @@ void reg_tools_multiplyValueToImage(const nifti_image *img,
 /* *************************************************************** */
 void reg_tools_divideValueToImage(const nifti_image *img,
                                   nifti_image *res,
-                                  const double& val) {
+                                  const double val) {
     if (img->datatype != res->datatype)
         NR_FATAL_ERROR("Input and output image are expected to be of the same type");
     if (img->nvox != res->nvox)
@@ -831,7 +831,7 @@ void reg_tools_divideValueToImage(const nifti_image *img,
 template <class DataType>
 void reg_tools_kernelConvolution(nifti_image *image,
                                  const float *sigma,
-                                 const int& kernelType,
+                                 const ConvKernelType kernelType,
                                  const int *mask,
                                  const bool *timePoints,
                                  const bool *axes) {
@@ -873,13 +873,13 @@ void reg_tools_kernelConvolution(nifti_image *image,
                     else temp = fabs(sigma[t]); // voxel-based if negative value
                     int radius = 0;
                     // Define the kernel size
-                    if (kernelType == MEAN_KERNEL || kernelType == LINEAR_KERNEL) {
+                    if (kernelType == ConvKernelType::Mean || kernelType == ConvKernelType::Linear) {
                         // Mean or linear filtering
                         radius = static_cast<int>(temp);
-                    } else if (kernelType == GAUSSIAN_KERNEL) {
+                    } else if (kernelType == ConvKernelType::Gaussian) {
                         // Gaussian kernel
                         radius = static_cast<int>(temp * 3.0f);
-                    } else if (kernelType == CUBIC_SPLINE_KERNEL) {
+                    } else if (kernelType == ConvKernelType::Cubic) {
                         // Spline kernel
                         radius = static_cast<int>(temp * 2.0f);
                     } else {
@@ -890,7 +890,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                         float kernel[4096];
                         double kernelSum = 0;
                         // Fill the kernel
-                        if (kernelType == CUBIC_SPLINE_KERNEL) {
+                        if (kernelType == ConvKernelType::Cubic) {
                             // Compute the Cubic Spline kernel
                             for (int i = -radius; i <= radius; i++) {
                                 // temp contains the kernel node spacing
@@ -902,7 +902,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                 else kernel[i + radius] = 0;
                                 kernelSum += kernel[i + radius];
                             }
-                        } else if (kernelType == GAUSSIAN_KERNEL) {
+                        } else if (kernelType == ConvKernelType::Gaussian) {
                             // Compute the Gaussian kernel
                             for (int i = -radius; i <= radius; i++) {
                                 // 2.506... = sqrt(2*pi)
@@ -910,13 +910,13 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                 kernel[radius + i] = static_cast<float>(exp(-Square(i) / (2.0 * Square(temp))) / (temp * 2.506628274631));
                                 kernelSum += kernel[radius + i];
                             }
-                        } else if (kernelType == LINEAR_KERNEL) {
+                        } else if (kernelType == ConvKernelType::Linear) {
                             // Compute the linear kernel
                             for (int i = -radius; i <= radius; i++) {
                                 kernel[radius + i] = 1.f - fabs(i / static_cast<float>(radius));
                                 kernelSum += kernel[radius + i];
                             }
-                        } else if (kernelType == MEAN_KERNEL && imageDims[2] == 1) {
+                        } else if (kernelType == ConvKernelType::Mean && imageDims[2] == 1) {
                             // Compute the mean kernel
                             for (int i = -radius; i <= radius; i++) {
                                 kernel[radius + i] = 1.f;
@@ -925,7 +925,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                         }
                         // No kernel is required for the mean filtering
                         // No need for kernel normalisation as this is handled by the density function
-                        NR_DEBUG("Convolution type[" << kernelType << "] dim[" << n << "] tp[" << t << "] radius[" << radius << "] kernelSum[" << kernelSum << "]");
+                        NR_DEBUG("Convolution type[" << int(kernelType) << "] dim[" << n << "] tp[" << t << "] radius[" << radius << "] kernelSum[" << kernelSum << "]");
 
                         int planeNumber, planeIndex, lineOffset;
                         int lineIndex, shiftPre, shiftPst, k;
@@ -1305,7 +1305,7 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
 /* *************************************************************** */
 void reg_tools_kernelConvolution(nifti_image *image,
                                  const float *sigma,
-                                 const int& kernelType,
+                                 const ConvKernelType kernelType,
                                  const int *mask,
                                  const bool *timePoints,
                                  const bool *axes) {
@@ -1346,7 +1346,7 @@ void reg_downsampleImage(nifti_image *image, int type, bool *downsampleAxis) {
         /* the input image is first smooth */
         float *sigma = new float[image->nt];
         for (int i = 0; i < image->nt; ++i) sigma[i] = -0.7355f;
-        reg_tools_kernelConvolution(image, sigma, GAUSSIAN_KERNEL);
+        reg_tools_kernelConvolution(image, sigma, ConvKernelType::Gaussian);
         delete[] sigma;
     }
 
@@ -2556,7 +2556,7 @@ void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x
     z = index;
 }
 /* *************************************************************** */
-nifti_image* nifti_dup(const nifti_image& image, const bool& copyData) {
+nifti_image* nifti_dup(const nifti_image& image, const bool copyData) {
     nifti_image *newImage = nifti_copy_nim_info(&image);
     newImage->data = calloc(image.nvox, image.nbyper);
     if (copyData)
@@ -2564,7 +2564,7 @@ nifti_image* nifti_dup(const nifti_image& image, const bool& copyData) {
     return newImage;
 }
 /* *************************************************************** */
-void PrintCmdLine(const int& argc, const char * const *argv, const bool& verbose) {
+void PrintCmdLine(const int& argc, const char * const *argv, const bool verbose) {
 #ifdef NDEBUG
     if (!verbose) return;
 #endif

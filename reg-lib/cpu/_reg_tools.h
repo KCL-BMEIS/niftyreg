@@ -32,12 +32,7 @@ using RNifti::NiftiImage;
 using RNifti::NiftiImageData;
 using NiftiDim = NiftiImage::Dim;
 
-typedef enum {
-    MEAN_KERNEL,
-    LINEAR_KERNEL,
-    GAUSSIAN_KERNEL,
-    CUBIC_SPLINE_KERNEL
-} NREG_CONV_KERNEL_TYPE;
+enum class ConvKernelType { Mean, Linear, Gaussian, Cubic };
 
 /* *************************************************************** */
 /** @brief This function check some header parameters and correct them in
@@ -94,7 +89,7 @@ void reg_getRealImageSpacing(nifti_image *image,
  */
 void reg_tools_kernelConvolution(nifti_image *image,
                                  const float *sigma,
-                                 const int& kernelType,
+                                 const ConvKernelType kernelType,
                                  const int *mask = nullptr,
                                  const bool *timePoints = nullptr,
                                  const bool *axes = nullptr);
@@ -136,9 +131,9 @@ void reg_downsampleImage(nifti_image *image,
  */
 template <class PrecisionType>
 PrecisionType reg_getMaximalLength(const nifti_image *image,
-                                   const bool& optimiseX,
-                                   const bool& optimiseY,
-                                   const bool& optimiseZ);
+                                   const bool optimiseX,
+                                   const bool optimiseY,
+                                   const bool optimiseZ);
 /* *************************************************************** */
 /** @brief Change the datatype of a nifti image
  * @param image Image to be updated.
@@ -194,7 +189,7 @@ void reg_tools_divideImageToImage(const nifti_image *img1,
  */
 void reg_tools_addValueToImage(const nifti_image *img,
                                nifti_image *out,
-                               const double& val);
+                               const double val);
 /* *************************************************************** */
 /** @brief Subtract a scalar from all image intensity
  * @param img Input image
@@ -203,7 +198,7 @@ void reg_tools_addValueToImage(const nifti_image *img,
  */
 void reg_tools_subtractValueFromImage(const nifti_image *img,
                                       nifti_image *out,
-                                      const double& val);
+                                      const double val);
 /* *************************************************************** */
 /** @brief Multiply a scalar to all image intensity
  * @param img Input image
@@ -212,7 +207,7 @@ void reg_tools_subtractValueFromImage(const nifti_image *img,
  */
 void reg_tools_multiplyValueToImage(const nifti_image *img,
                                     nifti_image *out,
-                                    const double& val);
+                                    const double val);
 /* *************************************************************** */
 /** @brief Divide a scalar to all image intensity
  * @param img Input image
@@ -221,7 +216,7 @@ void reg_tools_multiplyValueToImage(const nifti_image *img,
  */
 void reg_tools_divideValueToImage(const nifti_image *img,
                                   nifti_image *out,
-                                  const double& val);
+                                  const double val);
 /* *************************************************************** */
 /** @brief Binarise an input image. All values different
  * from 0 are set to 1, 0 otherwise.
@@ -428,8 +423,8 @@ void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x
  * @param copyData Boolean to specify if the image data should be copied
  * @return The duplicated image
  */
-nifti_image* nifti_dup(const nifti_image& image, const bool& copyData = true);
+nifti_image* nifti_dup(const nifti_image& image, const bool copyData = true);
 /* *************************************************************** */
 /// @brief Prints the command line
-void PrintCmdLine(const int& argc, const char * const *argv, const bool& verbose);
+void PrintCmdLine(const int& argc, const char * const *argv, const bool verbose);
 /* *************************************************************** */

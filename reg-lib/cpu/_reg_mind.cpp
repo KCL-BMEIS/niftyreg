@@ -100,7 +100,7 @@ void GetMindImageDescriptorCore(const nifti_image *inputImage,
         ShiftImage<DataType>(currentInputImage, shiftedImage, mask, rSamplingX[i], rSamplingY[i], rSamplingZ[i]);
         reg_tools_subtractImageFromImage(currentInputImage, shiftedImage, diffImage);
         reg_tools_multiplyImageToImage(diffImage, diffImage, diffImage);
-        reg_tools_kernelConvolution(diffImage, &sigma, GAUSSIAN_KERNEL, mask);
+        reg_tools_kernelConvolution(diffImage, &sigma, ConvKernelType::Gaussian, mask);
         reg_tools_addImageToImage(meanImage, diffImage, meanImage);
         // Store the current descriptor
         const size_t index = i * diffImage->nvox;
@@ -217,7 +217,7 @@ void GetMindSscImageDescriptorCore(const nifti_image *inputImage,
         ShiftImage<DataType>(currentInputImage, shiftedImage, mask, rSamplingX[i], rSamplingY[i], rSamplingZ[i]);
         reg_tools_subtractImageFromImage(currentInputImage, shiftedImage, diffImage);
         reg_tools_multiplyImageToImage(diffImage, diffImage, diffImage);
-        reg_tools_kernelConvolution(diffImage, &sigma, GAUSSIAN_KERNEL, mask);
+        reg_tools_kernelConvolution(diffImage, &sigma, ConvKernelType::Gaussian, mask);
 
         for (int j = 0; j < 2; j++) {
             ShiftImage<DataType>(diffImage, diffImageShifted, maskDiffImage, tx[compteurId], ty[compteurId], tz[compteurId]);

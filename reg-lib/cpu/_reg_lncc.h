@@ -47,7 +47,7 @@ public:
         this->kernelStandardDeviation[t] = stddev;
     }
     /// @brief Set the kernel type
-    virtual void SetKernelType(int t) {
+    virtual void SetKernelType(ConvKernelType t) {
         this->kernelType = t;
     }
 
@@ -67,6 +67,6 @@ protected:
     nifti_image *warpedSdevImageBw;
     int *backwardMask;
 
-    int kernelType;
+    ConvKernelType kernelType;
 };
 /* *************************************************************** */

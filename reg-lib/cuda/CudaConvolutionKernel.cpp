@@ -4,7 +4,7 @@
 /* *************************************************************** */
 void CudaConvolutionKernel::Calculate(nifti_image *image,
                                       float *sigma,
-                                      int kernelType,
+                                      ConvKernelType kernelType,
                                       int *mask,
                                       bool *timePoint,
                                       bool *axis) {

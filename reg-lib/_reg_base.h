@@ -169,7 +169,7 @@ public:
     virtual void UseKLDivergence(int);
     virtual void UseDTI(bool*);
     virtual void UseLNCC(int, float);
-    virtual void SetLNCCKernelType(int type);
+    virtual void SetLNCCKernelType(ConvKernelType type);
     virtual void SetLocalWeightSim(NiftiImage);
 
     virtual void SetNMIWeight(int, double);
