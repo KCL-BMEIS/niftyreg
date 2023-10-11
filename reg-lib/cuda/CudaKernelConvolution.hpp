@@ -16,10 +16,10 @@ namespace NiftyReg::Cuda {
  * @param axes Boolean array to specify which axes have to be
  * smoothed. The array follow the dim array of the nifti header.
  */
+template<ConvKernelType kernelType>
 void KernelConvolution(const nifti_image *image,
                        float4 *imageCuda,
                        const float *sigma,
-                       const ConvKernelType kernelType,
                        const bool *timePoints = nullptr,
                        const bool *axes = nullptr);
 /* *************************************************************** */

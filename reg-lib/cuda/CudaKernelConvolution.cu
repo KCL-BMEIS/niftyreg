@@ -1,10 +1,10 @@
 #include "CudaKernelConvolution.hpp"
 
 /* *************************************************************** */
+template<ConvKernelType kernelType>
 void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                                        float4 *imageCuda,
                                        const float *sigma,
-                                       const ConvKernelType kernelType,
                                        const bool *timePoints,
                                        const bool *axes) {
     if (image->nx > 2048 || image->ny > 2048 || image->nz > 2048)
@@ -35,16 +35,27 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
     float *bufferIntensityCudaPtr = bufferIntensityCuda.data().get();
     float *bufferDensityCudaPtr = bufferDensityCuda.data().get();
 
+    // Create texture objects
+    auto imageTexturePtr = Cuda::CreateTextureObject(imageCuda, cudaResourceTypeLinear,
+                                                     voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 1);
+    auto densityTexturePtr = Cuda::CreateTextureObject(densityCudaPtr, cudaResourceTypeLinear,
+                                                       voxelNumber * sizeof(float), cudaChannelFormatKindFloat, 1);
+    auto nanImageTexturePtr = Cuda::CreateTextureObject(nanImageCudaPtr, cudaResourceTypeLinear,
+                                                        voxelNumber * sizeof(bool), cudaChannelFormatKindUnsigned, 1);
+    auto imageTexture = *imageTexturePtr;
+    auto densityTexture = *densityTexturePtr;
+    auto nanImageTexture = *nanImageTexturePtr;
+
     for (int t = 0; t < activeTimePointCount; t++) {
         if (!activeTimePoints[t]) continue;
 
         thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxelNumber, [=]__device__(const size_t index) {
-            float& intensityVal = reinterpret_cast<float*>(&imageCuda[index])[t];
+            const float& intensityVal = tex1Dfetch<float>(imageTexture, index * 4 + t);
             float& densityVal = densityCudaPtr[index];
             bool& nanImageVal = nanImageCudaPtr[index];
             densityVal = intensityVal == intensityVal ? 1.f : 0;
             nanImageVal = !static_cast<bool>(densityVal);
-            if (nanImageVal) intensityVal = 0;
+            if (nanImageVal) reinterpret_cast<float*>(&imageCuda[index])[t] = 0;
         });
 
         // Loop over the x, y and z dimensions
@@ -56,25 +67,20 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
             else temp = fabs(sigma[t]); // voxel-based if negative value
             int radius = 0;
             // Define the kernel size
-            if (kernelType == ConvKernelType::Mean || kernelType == ConvKernelType::Linear) {
-                // Mean or linear filtering
+            if constexpr (kernelType == ConvKernelType::Mean || kernelType == ConvKernelType::Linear)
                 radius = static_cast<int>(temp);
-            } else if (kernelType == ConvKernelType::Gaussian) {
-                // Gaussian kernel
+            else if constexpr (kernelType == ConvKernelType::Gaussian)
                 radius = static_cast<int>(temp * 3.0);
-            } else if (kernelType == ConvKernelType::Cubic) {
-                // Spline kernel
+            else if constexpr (kernelType == ConvKernelType::Cubic)
                 radius = static_cast<int>(temp * 2.0);
-            } else {
-                NR_FATAL_ERROR("Unknown kernel type");
-            }
+            else NR_FATAL_ERROR("Unknown kernel type");
             if (radius <= 0) continue;
 
             // Allocate the kernel
             vector<float> kernel(2 * radius + 1);
             double kernelSum = 0;
             // Fill the kernel
-            if (kernelType == ConvKernelType::Cubic) {
+            if constexpr (kernelType == ConvKernelType::Cubic) {
                 // Compute the Cubic Spline kernel
                 for (int i = -radius; i <= radius; i++) {
                     // temp contains the kernel node spacing
@@ -86,7 +92,7 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                     else kernel[i + radius] = 0;
                     kernelSum += kernel[i + radius];
                 }
-            } else if (kernelType == ConvKernelType::Gaussian) {
+            } else if constexpr (kernelType == ConvKernelType::Gaussian) {
                 // Compute the Gaussian kernel
                 for (int i = -radius; i <= radius; i++) {
                     // 2.506... = sqrt(2*pi)
@@ -94,17 +100,19 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                     kernel[i + radius] = static_cast<float>(exp(-Square(i) / (2.0 * Square(temp))) / (temp * 2.506628274631));
                     kernelSum += kernel[i + radius];
                 }
-            } else if (kernelType == ConvKernelType::Linear) {
+            } else if constexpr (kernelType == ConvKernelType::Linear) {
                 // Compute the linear kernel
                 for (int i = -radius; i <= radius; i++) {
                     kernel[i + radius] = 1.f - fabs(i / static_cast<float>(radius));
                     kernelSum += kernel[i + radius];
                 }
-            } else if (kernelType == ConvKernelType::Mean && imageDims.z == 1) {
-                // Compute the mean kernel
-                for (int i = -radius; i <= radius; i++) {
-                    kernel[i + radius] = 1.f;
-                    kernelSum += kernel[i + radius];
+            } else if constexpr (kernelType == ConvKernelType::Mean) {
+                if (imageDims.z == 1) {
+                    // Compute the mean kernel
+                    for (int i = -radius; i <= radius; i++) {
+                        kernel[i + radius] = 1.f;
+                        kernelSum += kernel[i + radius];
+                    }
                 }
             }
             // No kernel is required for the mean filtering
@@ -127,9 +135,17 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                 break;
             }
 
-            thrust::device_vector<float> kernelCuda(kernel.begin(), kernel.end());
-            float *kernelCudaPtr = kernelCuda.data().get();
             const int imageDim = reinterpret_cast<const int*>(&imageDims)[n];
+            // Create the kernel texture
+            thrust::device_vector<float> kernelCuda;
+            Cuda::UniqueTextureObjectPtr kernelTexturePtr(nullptr, nullptr);
+            cudaTextureObject_t kernelTexture = 0;
+            if (kernelSum > 0) {
+                kernelCuda = kernel;
+                kernelTexturePtr = std::move(Cuda::CreateTextureObject(kernelCuda.data().get(), cudaResourceTypeLinear,
+                                                                       kernel.size() * sizeof(float), cudaChannelFormatKindFloat, 1));
+                kernelTexture = *kernelTexturePtr;
+            }
 
             // Loop over the different voxel
             thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), planeCount, [=]__device__(const int planeIndex) {
@@ -146,49 +162,45 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                     break;
                 }
                 // Fetch the current line into a stack buffer
-                float *bufferIntensityPtr = &bufferIntensityCudaPtr[planeIndex * imageDim];
-                float *bufferDensityPtr = &bufferDensityCudaPtr[planeIndex * imageDim];
-                float4 *currentIntensityPtr = &imageCuda[realIndex];
-                float *currentDensityPtr = &densityCudaPtr[realIndex];
-                for (int lineIndex = 0; lineIndex < imageDim; ++lineIndex) {
-                    bufferIntensityPtr[lineIndex] = reinterpret_cast<float*>(currentIntensityPtr)[t];
-                    bufferDensityPtr[lineIndex] = *currentDensityPtr;
-                    currentIntensityPtr += lineOffset;
-                    currentDensityPtr += lineOffset;
+                const auto bufferIndex = planeIndex * imageDim;
+                float *bufferIntensityPtr = &bufferIntensityCudaPtr[bufferIndex];
+                float *bufferDensityPtr = &bufferDensityCudaPtr[bufferIndex];
+                for (int lineIndex = 0, index = realIndex; lineIndex < imageDim; lineIndex++, index += lineOffset) {
+                    bufferIntensityPtr[lineIndex] = tex1Dfetch<float>(imageTexture, index * 4 + t);
+                    bufferDensityPtr[lineIndex] = tex1Dfetch<float>(densityTexture, index);
                 }
                 if (kernelSum > 0) {
                     // Perform the kernel convolution along 1 line
-                    for (int lineIndex = 0; lineIndex < imageDim; ++lineIndex) {
+                    for (int lineIndex = 0; lineIndex < imageDim; lineIndex++, realIndex += lineOffset) {
                         // Define the kernel boundaries
                         int shiftPre = lineIndex - radius;
                         int shiftPst = lineIndex + radius + 1;
-                        float *kernelPtr;
+                        int kernelIndex = 0;
                         if (shiftPre < 0) {
-                            kernelPtr = &kernelCudaPtr[-shiftPre];
+                            kernelIndex = -shiftPre;
                             shiftPre = 0;
-                        } else kernelPtr = kernelCudaPtr;
+                        }
                         if (shiftPst > imageDim) shiftPst = imageDim;
                         // Set the current values to zero
                         // Increment the current value by performing the weighted sum
                         double intensitySum = 0, densitySum = 0;
-                        for (int k = shiftPre; k < shiftPst; ++k) {
-                            float& kernelValue = *kernelPtr++;
+                        for (int k = shiftPre; k < shiftPst; k++, kernelIndex++) {
+                            const float& kernelValue = tex1Dfetch<float>(kernelTexture, kernelIndex);
                             intensitySum += kernelValue * bufferIntensityPtr[k];
                             densitySum += kernelValue * bufferDensityPtr[k];
                         }
                         // Store the computed value in place
                         reinterpret_cast<float*>(&imageCuda[realIndex])[t] = static_cast<float>(intensitySum);
                         densityCudaPtr[realIndex] = static_cast<float>(densitySum);
-                        realIndex += lineOffset;
                     } // line convolution
                 } else { // kernelSum <= 0
-                    for (int lineIndex = 1; lineIndex < imageDim; ++lineIndex) {
+                    for (int lineIndex = 1; lineIndex < imageDim; lineIndex++) {
                         bufferIntensityPtr[lineIndex] += bufferIntensityPtr[lineIndex - 1];
                         bufferDensityPtr[lineIndex] += bufferDensityPtr[lineIndex - 1];
                     }
                     int shiftPre = -radius - 1;
                     int shiftPst = radius;
-                    for (int lineIndex = 0; lineIndex < imageDim; ++lineIndex, ++shiftPre, ++shiftPst) {
+                    for (int lineIndex = 0; lineIndex < imageDim; lineIndex++, shiftPre++, shiftPst++, realIndex += lineOffset) {
                         float bufferIntensityCur, bufferDensityCur;
                         if (shiftPre > -1) {
                             if (shiftPst < imageDim) {
@@ -209,7 +221,6 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                         }
                         reinterpret_cast<float*>(&imageCuda[realIndex])[t] = bufferIntensityCur;
                         densityCudaPtr[realIndex] = bufferDensityCur;
-                        realIndex += lineOffset;
                     } // line convolution of mean filter
                 } // No kernel computation
             }); // pixel in starting plane
@@ -217,11 +228,19 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
 
         // Normalise per time point
         thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxelNumber, [=]__device__(const size_t index) {
-            float& intensityVal = reinterpret_cast<float*>(&imageCuda[index])[t];
-            const float& densityVal = densityCudaPtr[index];
-            const bool& nanImageVal = nanImageCudaPtr[index];
-            intensityVal = nanImageVal ? std::numeric_limits<float>::quiet_NaN() : intensityVal / densityVal;
+            const bool& nanImageVal = tex1Dfetch<char>(nanImageTexture, index);
+            if (nanImageVal) {
+                reinterpret_cast<float*>(&imageCuda[index])[t] = std::numeric_limits<float>::quiet_NaN();
+            } else {
+                const float& intensityVal = tex1Dfetch<float>(imageTexture, index * 4 + t);
+                const float& densityVal = tex1Dfetch<float>(densityTexture, index);
+                reinterpret_cast<float*>(&imageCuda[index])[t] = intensityVal / densityVal;
+            }
         });
     } // check if the time point is active
 }
+template void NiftyReg::Cuda::KernelConvolution<ConvKernelType::Mean>(const nifti_image*, float4*, const float*, const bool*, const bool*);
+template void NiftyReg::Cuda::KernelConvolution<ConvKernelType::Linear>(const nifti_image*, float4*, const float*, const bool*, const bool*);
+template void NiftyReg::Cuda::KernelConvolution<ConvKernelType::Gaussian>(const nifti_image*, float4*, const float*, const bool*, const bool*);
+template void NiftyReg::Cuda::KernelConvolution<ConvKernelType::Cubic>(const nifti_image*, float4*, const float*, const bool*, const bool*);
 /* *************************************************************** */

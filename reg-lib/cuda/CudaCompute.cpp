@@ -145,7 +145,7 @@ void CudaCompute::SmoothGradient(float sigma) {
     if (sigma == 0) return;
     sigma = fabs(sigma);
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    Cuda::KernelConvolution(con.F3dContent::GetTransformationGradient(), con.GetTransformationGradientCuda(), &sigma, ConvKernelType::Gaussian);
+    Cuda::KernelConvolution<ConvKernelType::Gaussian>(con.F3dContent::GetTransformationGradient(), con.GetTransformationGradientCuda(), &sigma);
 }
 /* *************************************************************** */
 void CudaCompute::GetApproximatedGradient(InterfaceOptimiser& opt) {
@@ -169,33 +169,30 @@ void CudaCompute::ConvolveImage(const nifti_image *image, float4 *imageCuda) {
     float currentNodeSpacing[3];
     currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dx;
     bool activeAxis[3] = { 1, 0, 0 };
-    Cuda::KernelConvolution(image,
-                            imageCuda,
-                            currentNodeSpacing,
-                            kernelType,
-                            nullptr, // all volumes are considered as active
-                            activeAxis);
+    Cuda::KernelConvolution<kernelType>(image,
+                                        imageCuda,
+                                        currentNodeSpacing,
+                                        nullptr, // all volumes are considered as active
+                                        activeAxis);
     // Convolution along the y axis
     currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dy;
     activeAxis[0] = 0;
     activeAxis[1] = 1;
-    Cuda::KernelConvolution(image,
-                            imageCuda,
-                            currentNodeSpacing,
-                            kernelType,
-                            nullptr, // all volumes are considered as active
-                            activeAxis);
+    Cuda::KernelConvolution<kernelType>(image,
+                                        imageCuda,
+                                        currentNodeSpacing,
+                                        nullptr, // all volumes are considered as active
+                                        activeAxis);
     // Convolution along the z axis if required
     if (image->nz > 1) {
         currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dz;
         activeAxis[1] = 0;
         activeAxis[2] = 1;
-        Cuda::KernelConvolution(image,
-                                imageCuda,
-                                currentNodeSpacing,
-                                kernelType,
-                                nullptr, // all volumes are considered as active
-                                activeAxis);
+        Cuda::KernelConvolution<kernelType>(image,
+                                            imageCuda,
+                                            currentNodeSpacing,
+                                            nullptr, // all volumes are considered as active
+                                            activeAxis);
     }
 }
 /* *************************************************************** */

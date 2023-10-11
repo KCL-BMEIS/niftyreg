@@ -124,9 +124,17 @@ public:
             contentCpu->SetDeformationField(imageCpu.disown());
             contentCuda->SetDeformationField(imageCuda.disown());
 
+            // Create the kernel convolution function for CUDA
+            auto cudaKernelConvolution = Cuda::KernelConvolution<ConvKernelType(0)>;
+            switch (kernelType) {
+            case 1: cudaKernelConvolution = Cuda::KernelConvolution<ConvKernelType(1)>; break;
+            case 2: cudaKernelConvolution = Cuda::KernelConvolution<ConvKernelType(2)>; break;
+            case 3: cudaKernelConvolution = Cuda::KernelConvolution<ConvKernelType(3)>; break;
+            }
+
             // Compute the kernel convolution for CPU and CUDA
             reg_tools_kernelConvolution(contentCpu->GetDeformationField(), sigmaValues.data(), ConvKernelType(kernelType), nullptr, activeTimePoints, activeAxes);
-            Cuda::KernelConvolution(contentCuda->Content::GetDeformationField(), contentCuda->GetDeformationFieldCuda(), sigmaValues.data(), ConvKernelType(kernelType), activeTimePoints, activeAxes);
+            cudaKernelConvolution(contentCuda->Content::GetDeformationField(), contentCuda->GetDeformationFieldCuda(), sigmaValues.data(), activeTimePoints, activeAxes);
 
             // Get the images
             imageCpu = NiftiImage(contentCpu->GetDeformationField(), NiftiImage::Copy::Image);
