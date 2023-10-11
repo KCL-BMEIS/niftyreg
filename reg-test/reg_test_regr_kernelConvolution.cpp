@@ -79,9 +79,8 @@ public:
                                      { true, true, true } };
 
         // Add the time points and axes to the latest test data
-        auto latestTestData = testData.end() - timePointCount;
-        for (int i = 0; i < timePointCount; i++) {
-            auto&& [testName, image, sigmaValues, kernelType, activeTimePoints, activeAxes] = latestTestData[i];
+        for (int i = 0, latestIndex = int(testData.size()) - timePointCount; i < timePointCount; i++, latestIndex++) {
+            auto&& [testName, image, sigmaValues, kernelType, activeTimePoints, activeAxes] = testData[latestIndex];
             const std::string timePointsStr = std::accumulate(timePoints[i], timePoints[i] + 4, ""s, strConcat);
             const std::string axesStr = std::accumulate(axes[i], axes[i] + 3, ""s, strConcat);
             testData.emplace_back(TestData(
