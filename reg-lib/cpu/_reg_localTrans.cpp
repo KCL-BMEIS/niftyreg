@@ -2258,10 +2258,10 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
 }
 /* *************************************************************** */
 template <class DataType>
-void reg_defField_compose2D(nifti_image *deformationField,
+void reg_defField_compose2D(const nifti_image *deformationField,
                             nifti_image *dfToUpdate,
-                            int *mask) {
-    const size_t DFVoxelNumber = NiftiImage::calcVoxelNumber(deformationField, 2);
+                            const int *mask) {
+    const size_t dfVoxelNumber = NiftiImage::calcVoxelNumber(deformationField, 2);
 #ifdef _WIN32
     long i;
     const long warVoxelNumber = (long)NiftiImage::calcVoxelNumber(dfToUpdate, 2);
@@ -2269,14 +2269,14 @@ void reg_defField_compose2D(nifti_image *deformationField,
     size_t i;
     const size_t warVoxelNumber = NiftiImage::calcVoxelNumber(dfToUpdate, 2);
 #endif
-    DataType *defPtrX = static_cast<DataType*>(deformationField->data);
-    DataType *defPtrY = &defPtrX[DFVoxelNumber];
+    const DataType *defPtrX = static_cast<DataType*>(deformationField->data);
+    const DataType *defPtrY = &defPtrX[dfVoxelNumber];
 
     DataType *resPtrX = static_cast<DataType*>(dfToUpdate->data);
     DataType *resPtrY = &resPtrX[warVoxelNumber];
 
     const mat44 *df_real2Voxel;
-    mat44 *df_voxel2Real;
+    const mat44 *df_voxel2Real;
     if (deformationField->sform_code > 0) {
         df_real2Voxel = &dfToUpdate->sto_ijk;
         df_voxel2Real = &deformationField->sto_xyz;
@@ -2302,12 +2302,14 @@ void reg_defField_compose2D(nifti_image *deformationField,
             realDefY = resPtrY[i];
 
             // Conversion from real to voxel in the deformation field
-            voxelX = realDefX * df_real2Voxel->m[0][0]
-                + realDefY * df_real2Voxel->m[0][1]
-                + df_real2Voxel->m[0][3];
-            voxelY = realDefX * df_real2Voxel->m[1][0]
-                + realDefY * df_real2Voxel->m[1][1]
-                + df_real2Voxel->m[1][3];
+            voxelX =
+                realDefX * df_real2Voxel->m[0][0] +
+                realDefY * df_real2Voxel->m[0][1] +
+                df_real2Voxel->m[0][3];
+            voxelY =
+                realDefX * df_real2Voxel->m[1][0] +
+                realDefY * df_real2Voxel->m[1][1] +
+                df_real2Voxel->m[1][3];
 
             // Linear interpolation to compute the new deformation
             pre[0] = Floor(voxelX);
@@ -2316,12 +2318,12 @@ void reg_defField_compose2D(nifti_image *deformationField,
             relX[0] = 1.f - relX[1];
             relY[1] = voxelY - static_cast<DataType>(pre[1]);
             relY[0] = 1.f - relY[1];
-            realDefX = realDefY = 0.f;
+            realDefX = realDefY = 0;
             for (b = 0; b < 2; ++b) {
                 for (a = 0; a < 2; ++a) {
                     basis = relX[a] * relY[b];
-                    if (pre[0] + a > -1 && pre[0] + a<deformationField->nx &&
-                        pre[1] + b>-1 && pre[1] + b < deformationField->ny) {
+                    if (pre[0] + a > -1 && pre[0] + a < deformationField->nx &&
+                        pre[1] + b > -1 && pre[1] + b < deformationField->ny) {
                         // Uses the deformation field if voxel is in its space
                         index = (pre[1] + b) * deformationField->nx + pre[0] + a;
                         defX = defPtrX[index];
@@ -2349,11 +2351,10 @@ void reg_defField_compose2D(nifti_image *deformationField,
 }
 /* *************************************************************** */
 template <class DataType>
-void reg_defField_compose3D(nifti_image *deformationField,
+void reg_defField_compose3D(const nifti_image *deformationField,
                             nifti_image *dfToUpdate,
-                            int *mask) {
-    const int DefFieldDim[3] = { deformationField->nx, deformationField->ny, deformationField->nz };
-    const size_t DFVoxelNumber = (size_t)DefFieldDim[0] * DefFieldDim[1] * DefFieldDim[2];
+                            const int *mask) {
+    const size_t dfVoxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
 #ifdef _WIN32
     long i;
     const long warVoxelNumber = (long)NiftiImage::calcVoxelNumber(dfToUpdate, 3);
@@ -2361,10 +2362,9 @@ void reg_defField_compose3D(nifti_image *deformationField,
     size_t i;
     const size_t warVoxelNumber = NiftiImage::calcVoxelNumber(dfToUpdate, 3);
 #endif
-
-    DataType *defPtrX = static_cast<DataType*>(deformationField->data);
-    DataType *defPtrY = &defPtrX[DFVoxelNumber];
-    DataType *defPtrZ = &defPtrY[DFVoxelNumber];
+    const DataType *defPtrX = static_cast<DataType*>(deformationField->data);
+    const DataType *defPtrY = &defPtrX[dfVoxelNumber];
+    const DataType *defPtrZ = &defPtrY[dfVoxelNumber];
 
     DataType *resPtrX = static_cast<DataType*>(dfToUpdate->data);
     DataType *resPtrY = &resPtrX[warVoxelNumber];
@@ -2375,7 +2375,7 @@ void reg_defField_compose3D(nifti_image *deformationField,
 #else
     mat44 df_real2Voxel __attribute__((aligned(16)));
 #endif
-    mat44 *df_voxel2Real;
+    const mat44 *df_voxel2Real;
     if (deformationField->sform_code > 0) {
         df_real2Voxel = deformationField->sto_ijk;
         df_voxel2Real = &deformationField->sto_xyz;
@@ -2391,7 +2391,7 @@ void reg_defField_compose3D(nifti_image *deformationField,
     bool inY, inZ;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, DefFieldDim, \
+   shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, \
    defPtrX, defPtrY, defPtrZ, resPtrX, resPtrY, resPtrZ, deformationField) \
    private(a, b, c, currentX, currentY, currentZ, index, tempIndex, pre, \
    realDef, voxel, tempBasis, defX, defY, defZ, relX, relY, relZ, basis, inY, inZ)
@@ -2429,21 +2429,21 @@ void reg_defField_compose3D(nifti_image *deformationField,
             relY[0] = 1.f - relY[1];
             relZ[1] = voxel[2] - static_cast<DataType>(pre[2]);
             relZ[0] = 1.f - relZ[1];
-            realDef[0] = realDef[1] = realDef[2] = 0.;
+            realDef[0] = realDef[1] = realDef[2] = 0;
             for (c = 0; c < 2; ++c) {
                 currentZ = pre[2] + c;
-                tempIndex = currentZ * DefFieldDim[0] * DefFieldDim[1];
-                if (currentZ > -1 && currentZ < DefFieldDim[2]) inZ = true;
+                tempIndex = currentZ * deformationField->nx * deformationField->ny;
+                if (currentZ > -1 && currentZ < deformationField->nz) inZ = true;
                 else inZ = false;
                 for (b = 0; b < 2; ++b) {
                     currentY = pre[1] + b;
-                    index = tempIndex + currentY * DefFieldDim[0] + pre[0];
+                    index = tempIndex + currentY * deformationField->nx + pre[0];
                     tempBasis = relY[b] * relZ[c];
-                    if (currentY > -1 && currentY < DefFieldDim[1]) inY = true;
+                    if (currentY > -1 && currentY < deformationField->ny) inY = true;
                     else inY = false;
                     for (a = 0; a < 2; ++a) {
                         currentX = pre[0] + a;
-                        if (currentX > -1 && currentX < DefFieldDim[0] && inY && inZ) {
+                        if (currentX > -1 && currentX < deformationField->nx && inY && inZ) {
                             // Uses the deformation field if voxel is in its space
                             defX = defPtrX[index];
                             defY = defPtrY[index];
@@ -2478,43 +2478,23 @@ void reg_defField_compose3D(nifti_image *deformationField,
     }// loop over every voxel
 }
 /* *************************************************************** */
-void reg_defField_compose(nifti_image *deformationField,
+void reg_defField_compose(const nifti_image *deformationField,
                           nifti_image *dfToUpdate,
-                          int *mask) {
+                          const int *mask) {
     if (deformationField->datatype != dfToUpdate->datatype)
         NR_FATAL_ERROR("Both deformation fields are expected to have the same type");
 
-    bool freeMask = false;
-    if (mask == nullptr) {
-        mask = (int*)calloc(NiftiImage::calcVoxelNumber(dfToUpdate, 3), sizeof(int));
-        freeMask = true;
+    unique_ptr<int[]> currentMask;
+    if (!mask) {
+        currentMask.reset(new int[NiftiImage::calcVoxelNumber(dfToUpdate, 3)]());
+        mask = currentMask.get();
     }
 
-    if (dfToUpdate->nu == 2) {
-        switch (deformationField->datatype) {
-        case NIFTI_TYPE_FLOAT32:
-            reg_defField_compose2D<float>(deformationField, dfToUpdate, mask);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            reg_defField_compose2D<double>(deformationField, dfToUpdate, mask);
-            break;
-        default:
-            NR_FATAL_ERROR("Deformation field pixel type is unsupported");
-        }
-    } else {
-        switch (deformationField->datatype) {
-        case NIFTI_TYPE_FLOAT32:
-            reg_defField_compose3D<float>(deformationField, dfToUpdate, mask);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            reg_defField_compose3D<double>(deformationField, dfToUpdate, mask);
-            break;
-        default:
-            NR_FATAL_ERROR("Deformation field pixel type is unsupported");
-        }
-    }
-
-    if (freeMask) free(mask);
+    std::visit([&](auto&& defFieldDataType) {
+        using DefFieldDataType = std::decay_t<decltype(defFieldDataType)>;
+        auto defFieldCompose = dfToUpdate->nu == 2 ? reg_defField_compose2D<DefFieldDataType> : reg_defField_compose3D<DefFieldDataType>;
+        defFieldCompose(deformationField, dfToUpdate, mask);
+    }, NiftiImage::getFloatingDataType(deformationField));
 }
 /* *************************************************************** */
 /// @brief Internal data structure to pass user data into optimizer that get passed to cost_function

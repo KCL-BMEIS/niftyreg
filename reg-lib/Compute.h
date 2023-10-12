@@ -38,6 +38,7 @@ protected:
 #ifdef NR_TESTING
 public:
 #endif
+    virtual void DefFieldCompose(const nifti_image *defField);
     virtual void VoxelCentricToNodeCentric(float weight);
 
 private:

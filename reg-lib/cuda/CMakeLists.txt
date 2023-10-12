@@ -61,7 +61,7 @@ set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
 set(NAME _reg_cuda_kernels)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaAladinContent.cpp
-    CudaCompute.cpp
+    CudaCompute.cu
     CudaContent.cpp
     CudaContext.cpp
     CudaDefContent.cpp

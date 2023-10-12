@@ -541,15 +541,14 @@ void reg_spline_getFlowFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
 /* *************************************************************** */
 void reg_defField_compose_gpu(const nifti_image *deformationField,
                               const float4 *deformationFieldCuda,
-                              float4 *deformationFieldCudaOut,
-                              const size_t activeVoxelNumber) {
+                              float4 *deformationFieldCudaOut) {
     auto blockSize = CudaContext::GetBlockSize();
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
     const int3 referenceImageDim{ deformationField->nx, deformationField->ny, deformationField->nz };
     const mat44& affineMatrixB = deformationField->sform_code > 0 ? deformationField->sto_ijk : deformationField->qto_ijk;
     const mat44& affineMatrixC = deformationField->sform_code > 0 ? deformationField->sto_xyz : deformationField->qto_xyz;
     auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, cudaResourceTypeLinear,
-                                                             activeVoxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+                                                             voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
 
     if (deformationField->nz > 1) {
         const unsigned blocks = blockSize->reg_defField_compose3D;
@@ -634,7 +633,7 @@ void reg_defField_getDeformationFieldFromFlowField_gpu(nifti_image *flowField,
     // The deformation field is squared
     for (int i = 0; i < squaringNumber; ++i) {
         // The deformation field is applied to itself
-        reg_defField_compose_gpu(deformationField, deformationFieldCuda, flowFieldCuda, voxelNumber);
+        reg_defField_compose_gpu(deformationField, deformationFieldCuda, flowFieldCuda);
         // The computed scaled deformation field is copied over
         thrust::copy(thrust::device, flowFieldCuda, flowFieldCuda + voxelNumber, deformationFieldCuda);
         NR_DEBUG("Squaring (composition) step " << i + 1 << "/" << squaringNumber);

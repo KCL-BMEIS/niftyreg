@@ -84,26 +84,26 @@ void get_SplineBasisValues(DataType basis,
 template <class DataType>
 void get_SlidedValues(DataType &defX,
                       DataType &defY,
-                      int X,
-                      int Y,
-                      DataType *defPtrX,
-                      DataType *defPtrY,
-                      mat44 *df_voxel2Real,
-                      int *dim,
-                      bool displacement);
+                      const int X,
+                      const int Y,
+                      const DataType *defPtrX,
+                      const DataType *defPtrY,
+                      const mat44 *df_voxel2Real,
+                      const int *dim,
+                      const bool displacement);
 template <class DataType>
 void get_SlidedValues(DataType &defX,
                       DataType &defY,
                       DataType &defZ,
-                      int X,
-                      int Y,
-                      int Z,
-                      DataType *defPtrX,
-                      DataType *defPtrY,
-                      DataType *defPtrZ,
-                      mat44 *df_voxel2Real,
-                      int *dim,
-                      bool displacement);
+                      const int X,
+                      const int Y,
+                      const int Z,
+                      const DataType *defPtrX,
+                      const DataType *defPtrY,
+                      const DataType *defPtrZ,
+                      const mat44 *df_voxel2Real,
+                      const int *dim,
+                      const bool displacement);
 
 
 template <class DataType>

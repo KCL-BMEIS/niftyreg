@@ -460,13 +460,13 @@ template void set_second_order_bspline_basis_values<double>(double*, double*, do
 template <class DataType>
 void get_SlidedValues(DataType& defX,
                       DataType& defY,
-                      int X,
-                      int Y,
-                      DataType *defPtrX,
-                      DataType *defPtrY,
-                      mat44 *df_voxel2Real,
-                      int *dim,
-                      bool displacement) {
+                      const int X,
+                      const int Y,
+                      const DataType *defPtrX,
+                      const DataType *defPtrY,
+                      const mat44 *df_voxel2Real,
+                      const int *dim,
+                      const bool displacement) {
     int newX = X;
     int newY = Y;
     if (X < 0) {
@@ -493,22 +493,22 @@ void get_SlidedValues(DataType& defX,
     defX = defPtrX[index] + shiftValueX;
     defY = defPtrY[index] + shiftValueY;
 }
-template void get_SlidedValues<float>(float&, float&, int, int, float*, float*, mat44*, int*, bool);
-template void get_SlidedValues<double>(double&, double&, int, int, double*, double*, mat44*, int*, bool);
+template void get_SlidedValues<float>(float&, float&, const int, const int, const float*, const float*, const mat44*, const int*, const bool);
+template void get_SlidedValues<double>(double&, double&, const int, const int, const double*, const double*, const mat44*, const int*, const bool);
 /* *************************************************************** */
 template <class DataType>
 void get_SlidedValues(DataType& defX,
                       DataType& defY,
                       DataType& defZ,
-                      int X,
-                      int Y,
-                      int Z,
-                      DataType *defPtrX,
-                      DataType *defPtrY,
-                      DataType *defPtrZ,
-                      mat44 *df_voxel2Real,
-                      int *dim,
-                      bool displacement) {
+                      const int X,
+                      const int Y,
+                      const int Z,
+                      const DataType *defPtrX,
+                      const DataType *defPtrY,
+                      const DataType *defPtrZ,
+                      const mat44 *df_voxel2Real,
+                      const int *dim,
+                      const bool displacement) {
     int newX = X;
     int newY = Y;
     int newZ = Z;
@@ -552,8 +552,8 @@ void get_SlidedValues(DataType& defX,
     defY = defPtrY[index] + shiftValueY;
     defZ = defPtrZ[index] + shiftValueZ;
 }
-template void get_SlidedValues<float>(float&, float&, float&, int, int, int, float*, float*, float*, mat44*, int*, bool);
-template void get_SlidedValues<double>(double&, double&, double&, int, int, int, double*, double*, double*, mat44*, int*, bool);
+template void get_SlidedValues<float>(float&, float&, float&, const int, const int, const int, const float*, const float*, const float*, const mat44*, const int*, const bool);
+template void get_SlidedValues<double>(double&, double&, double&, const int, const int, const int, const double*, const double*, const double*, const mat44*, const int*, const bool);
 /* *************************************************************** */
 template <class DataType>
 void get_GridValues(int startX,

@@ -409,3 +409,7 @@ void Compute::SymmetriseVelocityFields(Content& conBwIn) {
     nifti_image_free(warpedTransBw);
 }
 /* *************************************************************** */
+void Compute::DefFieldCompose(const nifti_image *defField) {
+    reg_defField_compose(defField, con.GetDeformationField(), nullptr);
+}
+/* *************************************************************** */

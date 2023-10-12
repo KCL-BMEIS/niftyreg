@@ -50,8 +50,7 @@ double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
 /* *************************************************************** */
 void reg_defField_compose_gpu(const nifti_image *deformationField,
                               const float4 *deformationFieldCuda,
-                              float4 *deformationFieldOutCuda,
-                              const size_t activeVoxelNumber);
+                              float4 *deformationFieldOutCuda);
 /* *************************************************************** */
 void reg_spline_getDefFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
                                                 nifti_image *deformationField,

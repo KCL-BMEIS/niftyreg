@@ -247,3 +247,11 @@ void CudaCompute::SymmetriseVelocityFields(Content& conBwIn) {
     dynamic_cast<CudaF3dContent&>(conBwIn).UpdateControlPointGrid();
 }
 /* *************************************************************** */
+void CudaCompute::DefFieldCompose(const nifti_image *defField) {
+    CudaContent& con = dynamic_cast<CudaContent&>(this->con);
+    const size_t& voxelNumber = NiftiImage::calcVoxelNumber(defField, 3);
+    thrust::device_vector<float4> defFieldCuda(voxelNumber);
+    Cuda::TransferNiftiToDevice(defFieldCuda.data().get(), defField);
+    reg_defField_compose_gpu(defField, defFieldCuda.data().get(), con.GetDeformationFieldCuda());
+}
+/* *************************************************************** */

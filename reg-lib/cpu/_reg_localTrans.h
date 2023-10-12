@@ -131,12 +131,12 @@ int reg_spline_cppComposition(nifti_image *grid1,
  * @param dfToUpdate Image that contains the deformation field that
  * is being updated
  * @param mask Mask overlaid on the dfToUpdate field where only voxel
- * within the mask will be updated. All positive values in the maks
+ * within the mask will be updated. All positive values in the mask
  * are considered as belonging to the mask.
  */
-void reg_defField_compose(nifti_image *deformationField,
+void reg_defField_compose(const nifti_image *deformationField,
                           nifti_image *dfToUpdate,
-                          int *mask);
+                          const int *mask);
 /* *************************************************************** */
 /** @brief Compute the inverse of a deformation field
  * @author Marcel van Herk (CMIC / NKI / AVL)
