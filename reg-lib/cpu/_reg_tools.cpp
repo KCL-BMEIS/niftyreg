@@ -1872,18 +1872,18 @@ int reg_tools_removeNanFromMask(const nifti_image *image, int *mask) {
 }
 /* *************************************************************** */
 template <class DataType>
-DataType reg_tools_getMinMaxValue(const nifti_image *image, int timepoint, bool calcMin = true) {
+DataType reg_tools_getMinMaxValue(const nifti_image *image, int timepoint, bool isMin = true) {
     if (timepoint < -1 || timepoint >= image->nt)
         NR_FATAL_ERROR("The required time point does not exist");
 
     const DataType *imgPtr = static_cast<DataType*>(image->data);
-    DataType retValue = calcMin ? std::numeric_limits<DataType>::max() : std::numeric_limits<DataType>::lowest();
+    DataType retValue = isMin ? std::numeric_limits<DataType>::max() : std::numeric_limits<DataType>::lowest();
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
     const float sclSlope = image->scl_slope == 0 ? 1 : image->scl_slope;
 
     // The min/max function
     const DataType& (*minMax)(const DataType&, const DataType&);
-    if (calcMin) minMax = std::min<DataType>;
+    if (isMin) minMax = std::min<DataType>;
     else minMax = std::max<DataType>;
 
     for (int time = 0; time < image->nt; ++time) {

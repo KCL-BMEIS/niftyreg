@@ -326,56 +326,72 @@ void reg_divideImages_gpu(const nifti_image *img, float4 *img1Cuda, const float4
     reg_operationOnImages_gpu(img, img1Cuda, img2Cuda, thrust::divides<float4>());
 }
 /* *************************************************************** */
-DEVICE static float Min(const float& lhs, const float& rhs) {
-    return lhs < rhs ? lhs : rhs;
+template<bool isMin>
+DEVICE static inline float MinMax(const float& lhs, const float& rhs) {
+    if constexpr (isMin) return lhs < rhs ? lhs : rhs;
+    else return lhs > rhs ? lhs : rhs;
 }
-DEVICE static float Max(const float& lhs, const float& rhs) {
-    return lhs > rhs ? lhs : rhs;
-}
-using MinMaxFunc = decltype(&Min);
-__device__ static MinMaxFunc minCuda = Min;
-__device__ static MinMaxFunc maxCuda = Max;
 /* *************************************************************** */
-float reg_getMinMaxValue_gpu(const nifti_image *img, const float4 *imgCuda, const int timePoint, const bool calcMin) {
-    if (timePoint < -1 || timePoint >= img->nt)
-        NR_FATAL_ERROR("The required time point does not exist");
-
+template<bool isMin, bool isSingleTimePoint, int timePoints>
+inline float reg_getMinMaxValue_gpu(const nifti_image *img, const float4 *imgCuda) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
-    const int timePoints = std::clamp(timePoint > -1 ? timePoint : int(NiftiImage::calcVoxelNumber(img, 7) / voxelNumber), 1, 4);
-    const float initValue = calcMin ? std::numeric_limits<float>::max() : std::numeric_limits<float>::lowest();
-    float4 result{ initValue, initValue, initValue, initValue };
+    constexpr float initVal = isMin ? std::numeric_limits<float>::max() : std::numeric_limits<float>::lowest();
 
-    // Set the min/max functions
-    MinMaxFunc minMaxCuda, minMax = calcMin ? Min : Max;
-    cudaMemcpyFromSymbol(&minMaxCuda, calcMin ? minCuda : maxCuda, sizeof(MinMaxFunc));
-
-    result = thrust::reduce(thrust::device, imgCuda, imgCuda + voxelNumber, make_float4(initValue, initValue, initValue, initValue),
-                            [=]DEVICE(const float4& lhs, const float4& rhs) {
-        float4 result{ initValue, initValue, initValue, initValue };
+    const float4 result = thrust::reduce(thrust::device, imgCuda, imgCuda + voxelNumber, make_float4(initVal, initVal, initVal, initVal),
+                                         [=]DEVICE(const float4& lhs, const float4& rhs) {
+        float4 result{ initVal, initVal, initVal, initVal };
         switch (timePoints) {
         case 4:
-            result.w = minMaxCuda(lhs.w, rhs.w);
-            if (timePoint > -1) break;
+            result.w = MinMax<isMin>(lhs.w, rhs.w);
+            if constexpr (isSingleTimePoint) break;
         case 3:
-            result.z = minMaxCuda(lhs.z, rhs.z);
-            if (timePoint > -1) break;
+            result.z = MinMax<isMin>(lhs.z, rhs.z);
+            if constexpr (isSingleTimePoint) break;
         case 2:
-            result.y = minMaxCuda(lhs.y, rhs.y);
-            if (timePoint > -1) break;
+            result.y = MinMax<isMin>(lhs.y, rhs.y);
+            if constexpr (isSingleTimePoint) break;
         case 1:
-            result.x = minMaxCuda(lhs.x, rhs.x);
+            result.x = MinMax<isMin>(lhs.x, rhs.x);
         }
         return result;
     });
 
-    return minMax(minMax(result.x, result.y), minMax(result.z, result.w));
+    return MinMax<isMin>(MinMax<isMin>(result.x, result.y), MinMax<isMin>(result.z, result.w));
+}
+/* *************************************************************** */
+template<bool isMin, bool isSingleTimePoint>
+inline float reg_getMinMaxValue_gpu(const nifti_image *img, const float4 *imgCuda, const int timePoints) {
+    auto getMinMaxValue = reg_getMinMaxValue_gpu<isMin, isSingleTimePoint, 1>;
+    switch (timePoints) {
+    case 2:
+        getMinMaxValue = reg_getMinMaxValue_gpu<isMin, isSingleTimePoint, 2>;
+        break;
+    case 3:
+        getMinMaxValue = reg_getMinMaxValue_gpu<isMin, isSingleTimePoint, 3>;
+        break;
+    case 4:
+        getMinMaxValue = reg_getMinMaxValue_gpu<isMin, isSingleTimePoint, 4>;
+        break;
+    }
+    return getMinMaxValue(img, imgCuda);
+}
+/* *************************************************************** */
+template<bool isMin>
+inline float reg_getMinMaxValue_gpu(const nifti_image *img, const float4 *imgCuda, const int timePoint) {
+    if (timePoint < -1 || timePoint >= img->nt)
+        NR_FATAL_ERROR("The required time point does not exist");
+    const bool isSingleTimePoint = timePoint > -1;
+    const int timePoints = std::clamp(isSingleTimePoint ? timePoint + 1 : img->nt * img->nu, 1, 4);
+    auto getMinMaxValue = reg_getMinMaxValue_gpu<isMin, false>;
+    if (isSingleTimePoint) getMinMaxValue = reg_getMinMaxValue_gpu<isMin, true>;
+    return getMinMaxValue(img, imgCuda, timePoints);
 }
 /* *************************************************************** */
 float reg_getMinValue_gpu(const nifti_image *img, const float4 *imgCuda, const int timePoint) {
-    return reg_getMinMaxValue_gpu(img, imgCuda, timePoint, true);
+    return reg_getMinMaxValue_gpu<true>(img, imgCuda, timePoint);
 }
 /* *************************************************************** */
 float reg_getMaxValue_gpu(const nifti_image *img, const float4 *imgCuda, const int timePoint) {
-    return reg_getMinMaxValue_gpu(img, imgCuda, timePoint, false);
+    return reg_getMinMaxValue_gpu<false>(img, imgCuda, timePoint);
 }
 /* *************************************************************** */
