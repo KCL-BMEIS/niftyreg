@@ -140,14 +140,19 @@ __device__ __inline__ void reg_div_cuda(const int num, const int denom, int& quo
     rem = num % denom;
 }
 /* *************************************************************** */
+template<bool is3d>
 __device__ __inline__ int3 reg_indexToDims_cuda(const int index, const int3& dims) {
     int quot = 0, rem;
-    if (dims.z > 1)
+    if constexpr (is3d)
         reg_div_cuda(index, dims.x * dims.y, quot, rem);
     else rem = index;
     const int z = quot;
     reg_div_cuda(rem, dims.x, quot, rem);
-    const int y = quot, x = rem;
+    const int& y = quot, &x = rem;
     return { x, y, z };
+}
+/* *************************************************************** */
+__device__ __inline__ int3 reg_indexToDims_cuda(const int index, const int3& dims) {
+    return dims.z > 1 ? reg_indexToDims_cuda<true>(index, dims) : reg_indexToDims_cuda<false>(index, dims);
 }
 /* *************************************************************** */

@@ -22,6 +22,7 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
                                         float4 *deformationFieldCuda,
                                         const int *maskCuda,
                                         const size_t activeVoxelNumber,
+                                        const bool composition,
                                         const bool bspline) {
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
@@ -35,6 +36,13 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
     auto maskTexture = Cuda::CreateTextureObject(maskCuda, cudaResourceTypeLinear,
                                                  activeVoxelNumber * sizeof(int), cudaChannelFormatKindSigned, 1);
 
+    // Get the reference matrix if composition is required
+    thrust::device_vector<mat44> referenceMatrix;
+    if (composition) {
+        const mat44 *refMatPtr = controlPointImage->sform_code > 0 ? &controlPointImage->sto_ijk : &controlPointImage->qto_ijk;
+        referenceMatrix = thrust::device_vector<mat44>(refMatPtr, refMatPtr + 1);
+    }
+
     if (referenceImage->nz > 1) {
         const unsigned blocks = CudaContext::GetBlockSize()->reg_spline_getDeformationField3D;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
@@ -44,10 +52,12 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
         reg_spline_getDeformationField3D<<<gridDims, blockDims, blocks * 8 * sizeof(float)>>>(deformationFieldCuda,
                                                                                               *controlPointTexture,
                                                                                               *maskTexture,
+                                                                                              referenceMatrix.data().get(),
                                                                                               referenceImageDim,
                                                                                               controlPointImageDim,
                                                                                               controlPointVoxelSpacing,
                                                                                               (unsigned)activeVoxelNumber,
+                                                                                              composition,
                                                                                               bspline);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
@@ -59,10 +69,12 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
         reg_spline_getDeformationField2D<<<gridDims, blockDims, blocks * 4 * sizeof(float)>>>(deformationFieldCuda,
                                                                                               *controlPointTexture,
                                                                                               *maskTexture,
+                                                                                              referenceMatrix.data().get(),
                                                                                               referenceImageDim,
                                                                                               controlPointImageDim,
                                                                                               controlPointVoxelSpacing,
                                                                                               (unsigned)activeVoxelNumber,
+                                                                                              composition,
                                                                                               bspline);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
@@ -527,13 +539,13 @@ void reg_spline_getFlowFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
 
     // Copy over the number of required squaring steps
     // The initial flow field is generated using cubic B-Spline interpolation/approximation
-    // TODO Composition is needed
     reg_spline_getDeformationField_gpu(velocityFieldGrid,
                                        flowField,
                                        velocityFieldGridCuda,
                                        flowFieldCuda,
                                        maskCuda,
                                        activeVoxelNumber,
+                                       true,  // composition
                                        true); // bspline
 
     velocityFieldGrid->num_ext = oldNumExt;
@@ -675,6 +687,7 @@ void reg_spline_getDefFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
                                            deformationFieldCuda,
                                            maskCuda.data().get(),
                                            voxelNumber,
+                                           false, // composition
                                            true); // bspline
     } else if (velocityFieldGrid->intent_p1 == SPLINE_VEL_GRID) {
         // Create an image to store the flow field

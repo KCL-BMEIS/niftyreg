@@ -73,7 +73,7 @@ void reg_spline_getDeformationField(nifti_image *controlPointGridImage,
                                     int *mask = nullptr,
                                     bool composition = false,
                                     bool bspline = true,
-                                    bool force_no_lut = false);
+                                    bool forceNoLut = false);
 /* *************************************************************** */
 /** @brief Upsample an image from voxel space to node space using
  * millimetre correspondences.

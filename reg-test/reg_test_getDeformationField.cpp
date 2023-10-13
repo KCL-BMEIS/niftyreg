@@ -141,7 +141,7 @@ public:
         reg_getDeformationFromDisplacement(controlPointGrid3d);
         testDataComp.emplace_back(TestDataComp(
             "2D Composition ID",
-            reference3d,
+            reference2d,
             controlPointGrid2d,
             defField2d,
             expDefField2d
@@ -167,7 +167,7 @@ public:
             defField3dPtr[i] /= 1.1f;
         testDataComp.emplace_back(TestDataComp(
             "2D Composition Scaling",
-            reference3d,
+            reference2d,
             controlPointGrid2d,
             defField2d,
             expDefField2d
@@ -181,7 +181,7 @@ public:
         ));
 
         for (auto&& data : testDataComp) {
-            for (auto&& platformType : { PlatformType::Cpu }) { // Test only on CPU
+            for (auto&& platformType : PlatformTypes) {
                 unique_ptr<Platform> platform{ new Platform(platformType) };
                 unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
                 // Make a copy of the test data

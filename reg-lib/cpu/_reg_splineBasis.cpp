@@ -460,36 +460,34 @@ template void set_second_order_bspline_basis_values<double>(double*, double*, do
 template <class DataType>
 void get_SlidedValues(DataType& defX,
                       DataType& defY,
-                      const int X,
-                      const int Y,
+                      const int x,
+                      const int y,
                       const DataType *defPtrX,
                       const DataType *defPtrY,
-                      const mat44 *df_voxel2Real,
+                      const mat44 *dfVoxel2Real,
                       const int *dim,
                       const bool displacement) {
-    int newX = X;
-    int newY = Y;
-    if (X < 0) {
+    int newX = x;
+    if (x < 0)
         newX = 0;
-    } else if (X >= dim[1]) {
+    else if (x >= dim[1])
         newX = dim[1] - 1;
-    }
-    if (Y < 0) {
+
+    int newY = y;
+    if (y < 0)
         newY = 0;
-    } else if (Y >= dim[2]) {
+    else if (y >= dim[2])
         newY = dim[2] - 1;
-    }
+
     DataType shiftValueX = 0;
     DataType shiftValueY = 0;
     if (!displacement) {
-        int shiftIndexX = X - newX;
-        int shiftIndexY = Y - newY;
-        shiftValueX = shiftIndexX * df_voxel2Real->m[0][0] +
-            shiftIndexY * df_voxel2Real->m[0][1];
-        shiftValueY = shiftIndexX * df_voxel2Real->m[1][0] +
-            shiftIndexY * df_voxel2Real->m[1][1];
+        const int shiftIndexX = x - newX;
+        const int shiftIndexY = y - newY;
+        shiftValueX = shiftIndexX * dfVoxel2Real->m[0][0] + shiftIndexY * dfVoxel2Real->m[0][1];
+        shiftValueY = shiftIndexX * dfVoxel2Real->m[1][0] + shiftIndexY * dfVoxel2Real->m[1][1];
     }
-    size_t index = newY * dim[1] + newX;
+    const int index = newY * dim[1] + newX;
     defX = defPtrX[index] + shiftValueX;
     defY = defPtrY[index] + shiftValueY;
 }
@@ -500,54 +498,54 @@ template <class DataType>
 void get_SlidedValues(DataType& defX,
                       DataType& defY,
                       DataType& defZ,
-                      const int X,
-                      const int Y,
-                      const int Z,
+                      const int x,
+                      const int y,
+                      const int z,
                       const DataType *defPtrX,
                       const DataType *defPtrY,
                       const DataType *defPtrZ,
-                      const mat44 *df_voxel2Real,
+                      const mat44 *dfVoxel2Real,
                       const int *dim,
                       const bool displacement) {
-    int newX = X;
-    int newY = Y;
-    int newZ = Z;
-    if (X < 0) {
+    int newX = x;
+    if (x < 0)
         newX = 0;
-    } else if (X >= dim[1]) {
+    else if (x >= dim[1])
         newX = dim[1] - 1;
-    }
-    if (Y < 0) {
+
+    int newY = y;
+    if (y < 0)
         newY = 0;
-    } else if (Y >= dim[2]) {
+    else if (y >= dim[2])
         newY = dim[2] - 1;
-    }
-    if (Z < 0) {
+
+    int newZ = z;
+    if (z < 0)
         newZ = 0;
-    } else if (Z >= dim[3]) {
+    else if (z >= dim[3])
         newZ = dim[3] - 1;
-    }
+
     DataType shiftValueX = 0;
     DataType shiftValueY = 0;
     DataType shiftValueZ = 0;
     if (!displacement) {
-        int shiftIndexX = X - newX;
-        int shiftIndexY = Y - newY;
-        int shiftIndexZ = Z - newZ;
+        const int shiftIndexX = x - newX;
+        const int shiftIndexY = y - newY;
+        const int shiftIndexZ = z - newZ;
         shiftValueX =
-            shiftIndexX * df_voxel2Real->m[0][0] +
-            shiftIndexY * df_voxel2Real->m[0][1] +
-            shiftIndexZ * df_voxel2Real->m[0][2];
+            shiftIndexX * dfVoxel2Real->m[0][0] +
+            shiftIndexY * dfVoxel2Real->m[0][1] +
+            shiftIndexZ * dfVoxel2Real->m[0][2];
         shiftValueY =
-            shiftIndexX * df_voxel2Real->m[1][0] +
-            shiftIndexY * df_voxel2Real->m[1][1] +
-            shiftIndexZ * df_voxel2Real->m[1][2];
+            shiftIndexX * dfVoxel2Real->m[1][0] +
+            shiftIndexY * dfVoxel2Real->m[1][1] +
+            shiftIndexZ * dfVoxel2Real->m[1][2];
         shiftValueZ =
-            shiftIndexX * df_voxel2Real->m[2][0] +
-            shiftIndexY * df_voxel2Real->m[2][1] +
-            shiftIndexZ * df_voxel2Real->m[2][2];
+            shiftIndexX * dfVoxel2Real->m[2][0] +
+            shiftIndexY * dfVoxel2Real->m[2][1] +
+            shiftIndexZ * dfVoxel2Real->m[2][2];
     }
-    size_t index = (newZ * dim[2] + newY) * dim[1] + newX;
+    const int index = (newZ * dim[2] + newY) * dim[1] + newX;
     defX = defPtrX[index] + shiftValueX;
     defY = defPtrY[index] + shiftValueY;
     defZ = defPtrZ[index] + shiftValueZ;

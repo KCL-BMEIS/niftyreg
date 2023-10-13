@@ -88,7 +88,6 @@ void CudaCompute::LandmarkDistanceGradient(size_t landmarkNumber, float *landmar
 }
 /* *************************************************************** */
 void CudaCompute::GetDeformationField(bool composition, bool bspline) {
-    // TODO Fix reg_spline_getDeformationField_gpu to accept composition
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     reg_spline_getDeformationField_gpu(con.F3dContent::GetControlPointGrid(),
                                        con.F3dContent::GetReference(),
@@ -96,6 +95,7 @@ void CudaCompute::GetDeformationField(bool composition, bool bspline) {
                                        con.GetDeformationFieldCuda(),
                                        con.GetReferenceMaskCuda(),
                                        con.GetActiveVoxelNumber(),
+                                       composition,
                                        bspline);
 }
 /* *************************************************************** */

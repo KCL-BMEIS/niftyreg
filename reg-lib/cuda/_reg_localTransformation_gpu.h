@@ -21,6 +21,7 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
                                         float4 *deformationFieldCuda,
                                         const int *maskCuda,
                                         const size_t activeVoxelNumber,
+                                        const bool composition,
                                         const bool bspline);
 /* *************************************************************** */
 float reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage,
