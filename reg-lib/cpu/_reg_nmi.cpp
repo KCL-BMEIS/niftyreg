@@ -376,7 +376,7 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  double **entropyValues,
                                  const int *referenceMask,
                                  const int referenceTimePoint,
-                                 const bool approximatePW) {
+                                 const bool approximation) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
         reg_getNMIValue<RefImgDataType>(referenceImage,
@@ -389,7 +389,7 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                         jointHistogramPro,
                                         entropyValues,
                                         referenceMask,
-                                        approximatePW);
+                                        approximation);
     }, NiftiImage::getFloatingDataType(referenceImage));
 
     double nmi = 0;

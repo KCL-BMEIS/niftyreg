@@ -46,6 +46,7 @@ void CudaContent::DeallocateImages() {
 /* *************************************************************** */
 void CudaContent::AllocateDeformationField() {
     Cuda::Allocate(&deformationFieldCuda, deformationField->dim);
+    UpdateDeformationField();
 }
 /* *************************************************************** */
 void CudaContent::DeallocateDeformationField() {

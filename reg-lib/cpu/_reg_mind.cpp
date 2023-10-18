@@ -399,9 +399,9 @@ double GetSimilarityMeasureValue(nifti_image *referenceImage,
                                  const double *timePointWeight,
                                  double *timePointWeightDescriptor,
                                  nifti_image *jacobianDetImage,
-                                 const int& descriptorOffset,
-                                 const int& referenceTimePoint,
-                                 const int& mindType) {
+                                 const int descriptorOffset,
+                                 const int referenceTimePoint,
+                                 const int mindType) {
     if (referenceImageDescriptor->datatype != NIFTI_TYPE_FLOAT32 &&
         referenceImageDescriptor->datatype != NIFTI_TYPE_FLOAT64)
         NR_FATAL_ERROR("The reference image descriptor is expected to be of floating precision type");
@@ -469,10 +469,10 @@ void GetVoxelBasedSimilarityMeasureGradient(nifti_image *referenceImage,
                                             nifti_image *warpedGradient,
                                             nifti_image *warpedFloatingImageDescriptor,
                                             nifti_image *voxelBasedGradient,
-                                            const int& mindType,
-                                            const int& descriptorOffset,
-                                            const int& descriptorNumber,
-                                            const int& currentTimepoint) {
+                                            const int mindType,
+                                            const int descriptorOffset,
+                                            const int descriptorNumber,
+                                            const int currentTimepoint) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
     vector<int> combinedMask(referenceMask, referenceMask + voxelNumber);
     reg_tools_removeNanFromMask(referenceImage, combinedMask.data());

@@ -26,7 +26,7 @@
  * @param deformationField Vector field image that contains the dense correspondences
  * @param mask Array that contains information about the mask. Only voxel with mask value different
  * from zero are being considered. If nullptr, all voxels are considered
- * @param interp Interpolation type. 0, 1 or 3 correspond to nearest neighbor, linear or cubic
+ * @param interpolation Interpolation type. 0, 1 or 3 correspond to nearest neighbor, linear or cubic
  * interpolation
  * @param paddingValue Value to be used for padding when the correspondences are outside of the
  * reference image space.
@@ -37,8 +37,8 @@ void reg_resampleImage(nifti_image *floatingImage,
                        nifti_image *warpedImage,
                        const nifti_image *deformationField,
                        const int *mask,
-                       const int& interp,
-                       const float& paddingValue,
+                       const int interpolation,
+                       const float paddingValue,
                        const bool *dtiTimepoint = nullptr,
                        const mat33 *jacMat = nullptr);
 /* *************************************************************** */
@@ -46,24 +46,24 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
                            nifti_image *warpedImage,
                            const nifti_image *deformationField,
                            const int *mask,
-                           const int& interp,
-                           const float& paddingValue,
+                           const int interpolation,
+                           const float paddingValue,
                            const mat33 *jacMat,
-                           const char& algorithm);
+                           const char algorithm);
 /* *************************************************************** */
 void reg_resampleGradient(const nifti_image *gradientImage,
                           nifti_image *warpedGradient,
                           const nifti_image *deformationField,
-                          const int& interp,
-                          const float& paddingValue);
+                          const int interpolation,
+                          const float paddingValue);
 /* *************************************************************** */
 void reg_getImageGradient(nifti_image *floatingImage,
                           nifti_image *warpedGradient,
                           const nifti_image *deformationField,
                           const int *mask,
-                          const int& interp,
-                          const float& paddingValue,
-                          const int& activeTimepoint,
+                          const int interpolation,
+                          const float paddingValue,
+                          const int activeTimepoint,
                           const bool *dtiTimepoint = nullptr,
                           const mat33 *jacMat = nullptr,
                           const nifti_image *warpedImage = nullptr);
@@ -71,8 +71,8 @@ void reg_getImageGradient(nifti_image *floatingImage,
 void reg_getImageGradient_symDiff(const nifti_image *img,
                                   nifti_image *gradImg,
                                   const int *mask,
-                                  const float& paddingValue,
-                                  const int& timepoint);
+                                  const float paddingValue,
+                                  const int timepoint);
 /* *************************************************************** */
 nifti_image* reg_makeIsotropic(nifti_image*, int);
 /* *************************************************************** */

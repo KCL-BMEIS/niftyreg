@@ -7,7 +7,7 @@
 #include "_reg_optimiser_gpu.h"
 
 /* *************************************************************** */
-void CudaCompute::ResampleImage(int inter, float paddingValue) {
+void CudaCompute::ResampleImage(int interpolation, float paddingValue) {
     CudaContent& con = dynamic_cast<CudaContent&>(this->con);
     reg_resampleImage_gpu(con.Content::GetFloating(),
                           con.GetWarpedCuda(),
@@ -15,6 +15,7 @@ void CudaCompute::ResampleImage(int inter, float paddingValue) {
                           con.GetDeformationFieldCuda(),
                           con.GetReferenceMaskCuda(),
                           con.GetActiveVoxelNumber(),
+                          interpolation,
                           paddingValue);
 }
 /* *************************************************************** */
@@ -117,13 +118,14 @@ void CudaCompute::UpdateControlPointPosition(float *currentDof,
 }
 /* *************************************************************** */
 void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) {
-    // TODO Fix reg_getImageGradient_gpu to accept interpolation and activeTimepoint
+    // TODO Fix reg_getImageGradient_gpu to accept activeTimepoint
     CudaDefContent& con = dynamic_cast<CudaDefContent&>(this->con);
     reg_getImageGradient_gpu(con.DefContent::GetFloating(),
                              con.GetFloatingCuda(),
                              con.GetDeformationFieldCuda(),
                              con.GetWarpedGradientCuda(),
                              con.GetActiveVoxelNumber(),
+                             interpolation,
                              paddingValue);
 }
 /* *************************************************************** */

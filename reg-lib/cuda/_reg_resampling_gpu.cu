@@ -19,8 +19,12 @@ void reg_resampleImage_gpu(const nifti_image *floatingImage,
                            const cudaArray *floatingImageCuda,
                            const float4 *deformationFieldCuda,
                            const int *maskCuda,
-                           const size_t& activeVoxelNumber,
-                           const float& paddingValue) {
+                           const size_t activeVoxelNumber,
+                           const int interpolation,
+                           const float paddingValue) {
+    if (interpolation != 1)
+        NR_FATAL_ERROR("Only linear interpolation is supported on the GPU");
+
     auto blockSize = CudaContext::GetBlockSize();
     const int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 
@@ -59,10 +63,15 @@ void reg_getImageGradient_gpu(const nifti_image *floatingImage,
                               const cudaArray *floatingImageCuda,
                               const float4 *deformationFieldCuda,
                               float4 *warpedGradientCuda,
-                              const size_t& activeVoxelNumber,
-                              const float& paddingValue) {
+                              const size_t activeVoxelNumber,
+                              const int interpolation,
+                              float paddingValue) {
+    if (interpolation != 1)
+        NR_FATAL_ERROR("Only linear interpolation is supported on the GPU");
+
     auto blockSize = CudaContext::GetBlockSize();
     const int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
+    if (paddingValue != paddingValue) paddingValue = 0;
 
     // Create the texture object for the floating image
     auto floatingTexture = Cuda::CreateTextureObject(floatingImageCuda, cudaResourceTypeArray);

@@ -25,7 +25,7 @@ CudaF3dContent::~CudaF3dContent() {
 /* *************************************************************** */
 void CudaF3dContent::AllocateControlPointGrid() {
     Cuda::Allocate(&controlPointGridCuda, controlPointGrid->dim);
-    Cuda::TransferNiftiToDevice(controlPointGridCuda, controlPointGrid);
+    UpdateControlPointGrid();
 }
 /* *************************************************************** */
 void CudaF3dContent::DeallocateControlPointGrid() {

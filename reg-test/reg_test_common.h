@@ -8,9 +8,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include "_reg_lncc.h"
 #include "_reg_localTrans.h"
+#include "_reg_nmi.h"
+#include "AffineDeformationFieldKernel.h"
 #include "Platform.h"
 #include "ResampleImageKernel.h"
-#include "AffineDeformationFieldKernel.h"
 
 
 template<typename T>
@@ -36,7 +37,7 @@ void InterpCubicSplineKernel(T relative, T (&basis)[4], T (&derivative)[4]) {
 
 NiftiImage CreateControlPointGrid(const NiftiImage& reference) {
     // Set the spacing for the control point grid to 2 voxel along each axis
-    float gridSpacing[3] = { reference->dx * 2, reference->dy * 2, reference->dz * 2 };
+    const float gridSpacing[3] = { reference->dx * 2, reference->dy * 2, reference->dz * 2 };
 
     // Create and allocate the control point image
     // It is initialised with an identity transformation by default

@@ -68,7 +68,7 @@ public:
         for (auto&& measure : testMeasures) {
             for (int sym = 0; sym < 2; ++sym) {
                 testData.emplace_back(TestData(
-                    measureNames[(int)measure] + " 2D"s + (sym ? " Symmetric" : ""),
+                    measureNames[int(measure)] + " 2D"s + (sym ? " Symmetric" : ""),
                     reference2d,
                     floating2d,
                     controlPointGrid2d,
@@ -77,7 +77,7 @@ public:
                     sym
                 ));
                 testData.emplace_back(TestData(
-                    measureNames[(int)measure] + " 3D"s + (sym ? " Symmetric" : ""),
+                    measureNames[int(measure)] + " 3D"s + (sym ? " Symmetric" : ""),
                     reference3d,
                     floating3d,
                     controlPointGrid3d,
@@ -196,7 +196,7 @@ public:
             const double simMeasureCuda = measureCuda->GetSimilarityMeasureValue();
 
             // Compute the similarity measure gradient for CPU
-            int timepoint = 0;
+            constexpr int timepoint = 0;
             contentCpu->ZeroVoxelBasedMeasureGradient();
             computeCpu->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), timepoint);
             if (isSymmetric) {

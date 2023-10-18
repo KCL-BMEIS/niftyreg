@@ -61,7 +61,9 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  double **jointHistogramPro,
                                  double **entropyValues,
                                  const int *referenceMask,
-                                 const int& referenceTimePoint) {
+                                 const int referenceTimePoint,
+                                 const bool approximation) {
+    // TODO: Implement the NMI computation for CUDA
     // The NMI computation is performed on the host for now
     Cuda::TransferFromDeviceToNifti<float>(warpedImage, warpedImageCuda);
     reg_getNMIValue<float>(referenceImage,
@@ -73,7 +75,8 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                            jointHistogramLog,
                            jointHistogramPro,
                            entropyValues,
-                           referenceMask);
+                           referenceMask,
+                           approximation);
 
     double nmi = 0;
     for (int t = 0; t < referenceTimePoint; ++t) {
@@ -95,7 +98,8 @@ double reg_nmi_gpu::GetSimilarityMeasureValueFw() {
                                        this->jointHistogramPro,
                                        this->entropyValues,
                                        this->referenceMask,
-                                       this->referenceTimePoint);
+                                       this->referenceTimePoint,
+                                       this->approximatePW);
 }
 /* *************************************************************** */
 double reg_nmi_gpu::GetSimilarityMeasureValueBw() {
@@ -110,7 +114,8 @@ double reg_nmi_gpu::GetSimilarityMeasureValueBw() {
                                        this->jointHistogramProBw,
                                        this->entropyValuesBw,
                                        this->floatingMask,
-                                       this->referenceTimePoint);
+                                       this->referenceTimePoint,
+                                       this->approximatePW);
 }
 /* *************************************************************** */
 /// Called when we only have one target and one source image
@@ -121,10 +126,10 @@ void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
                                       const float *logJointHistogramCuda,
                                       float4 *voxelBasedGradientCuda,
                                       const int *maskCuda,
-                                      const size_t& activeVoxelNumber,
+                                      const size_t activeVoxelNumber,
                                       const double *entropies,
-                                      const int& refBinning,
-                                      const int& floBinning) {
+                                      const int refBinning,
+                                      const int floBinning) {
     auto blockSize = CudaContext::GetBlockSize();
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
     const int3 imageSize = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);

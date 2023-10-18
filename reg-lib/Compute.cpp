@@ -5,12 +5,12 @@
 #include "_reg_localTrans_regul.h"
 
 /* *************************************************************** */
-void Compute::ResampleImage(int inter, float paddingValue) {
+void Compute::ResampleImage(int interpolation, float paddingValue) {
     reg_resampleImage(con.GetFloating(),
                       con.GetWarped(),
                       con.GetDeformationField(),
                       con.GetReferenceMask(),
-                      inter,
+                      interpolation,
                       paddingValue);
 }
 /* *************************************************************** */

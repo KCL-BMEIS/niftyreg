@@ -1,4 +1,4 @@
-// OpenCL and CUDA are not supported for this test yet
+// OpenCL is not supported for this test yet
 #undef _USE_OPENCL
 
 #include "reg_test_common.h"
@@ -158,10 +158,10 @@ TEST_CASE_METHOD(NmiTest, "NMI", "[unit]") {
 
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
-            if (fabs(result - expected) > EPS) {
+            const auto diff = abs(result - expected);
+            if (diff > EPS)
                 NR_COUT << "Result=" << result << " | Expected=" << expected << std::endl;
-            }
-            REQUIRE(fabs(result - expected) < EPS);
+            REQUIRE(diff < EPS);
         }
     }
 }

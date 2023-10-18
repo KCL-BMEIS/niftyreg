@@ -122,8 +122,8 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
         memcpy(*originalFloatingData, floatingImage->data, floatingImage->nvox * sizeof(DataType));
         NR_DEBUG("The floating image data has been copied");
 
-        /* As the tensor has 6 unique components that we need to worry about, read them out
-      for the floating image. */
+        // As the tensor has 6 unique components that we need to worry about, read them out
+        // for the floating image.
         DataType *firstVox = static_cast<DataType*>(floatingImage->data);
         // CAUTION: Here the tensor is assumed to be encoding in lower triangular order
         DataType *floatingIntensityXX = &firstVox[floatingVoxelNumber * dtIndicies[0]];
@@ -318,8 +318,8 @@ void ResampleImage3D(const nifti_image *floatingImage,
                      const nifti_image *deformationField,
                      nifti_image *warpedImage,
                      const int *mask,
-                     const FieldType& paddingValue,
-                     const int& kernel) {
+                     const FieldType paddingValue,
+                     const int kernel) {
 #ifdef _WIN32
     long  index;
     const long warpedVoxelNumber = (long)NiftiImage::calcVoxelNumber(warpedImage, 3);
@@ -499,8 +499,8 @@ void ResampleImage2D(const nifti_image *floatingImage,
                      const nifti_image *deformationField,
                      nifti_image *warpedImage,
                      const int *mask,
-                     const FieldType& paddingValue,
-                     const int& kernel) {
+                     const FieldType paddingValue,
+                     const int kernel) {
 #ifdef _WIN32
     long  index;
     const long warpedVoxelNumber = (long)NiftiImage::calcVoxelNumber(warpedImage, 2);
@@ -640,7 +640,7 @@ void ResampleImage2D(const nifti_image *floatingImage,
  * a deformation field. The affine transformation has to be in
  * real coordinate and the deformation field is in mm in the space
  * of the reference image.
- * interp can be either 0, 1 or 3 meaning nearest neighbor, linear
+ * interpolation can be either 0, 1 or 3 meaning nearest neighbor, linear
  * or cubic spline interpolation.
  * every voxel which is not fully in the floating image takes the
  * backgreg_round value. The dtIndicies are an array of size 6
@@ -652,8 +652,8 @@ void reg_resampleImage(nifti_image *floatingImage,
                        nifti_image *warpedImage,
                        const nifti_image *deformationFieldImage,
                        const int *mask,
-                       const int& interp,
-                       const FieldType& paddingValue,
+                       const int interpolation,
+                       const FieldType paddingValue,
                        const int *dtIndicies,
                        const mat33 *jacMat) {
     // The floating image data is copied in case one deal with DTI
@@ -668,14 +668,14 @@ void reg_resampleImage(nifti_image *floatingImage,
                                                  warpedImage,
                                                  mask,
                                                  paddingValue,
-                                                 interp);
+                                                 interpolation);
     } else {
         ResampleImage2D<FloatingType, FieldType>(floatingImage,
                                                  deformationFieldImage,
                                                  warpedImage,
                                                  mask,
                                                  paddingValue,
-                                                 interp);
+                                                 interpolation);
     }
     // The temporary logged floating array is deleted and the original restored
     if (originalFloatingData != nullptr) {
@@ -692,8 +692,8 @@ void reg_resampleImage(nifti_image *floatingImage,
                        nifti_image *warpedImage,
                        const nifti_image *deformationField,
                        const int *mask,
-                       const int& interp,
-                       const float& paddingValue,
+                       const int interpolation,
+                       const float paddingValue,
                        const bool *dtiTimepoint,
                        const mat33 *jacMat) {
     if (floatingImage->datatype != warpedImage->datatype)
@@ -733,7 +733,7 @@ void reg_resampleImage(nifti_image *floatingImage,
                                                             warpedImage,
                                                             deformationField,
                                                             mask,
-                                                            interp,
+                                                            interpolation,
                                                             paddingValue,
                                                             dtIndicies,
                                                             jacMat);
@@ -748,8 +748,8 @@ void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
                               const nifti_image *deformationField,
                               nifti_image *warpedImage,
                               const int *mask,
-                              const FieldType& paddingValue,
-                              const int& kernel) {
+                              const FieldType paddingValue,
+                              const int kernel) {
 #ifdef _WIN32
     long index;
     const long warpedVoxelNumber = (long)NiftiImage::calcVoxelNumber(warpedImage, 3);
@@ -1017,10 +1017,10 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
                          const nifti_image *deformationField,
                          nifti_image *warpedImage,
                          const int *mask,
-                         const FieldType& paddingValue,
-                         const int& kernel,
+                         const FieldType paddingValue,
+                         const int kernel,
                          const mat33 *jacMat,
-                         const char& algorithm) {
+                         const char algorithm) {
 #ifdef _WIN32
     long index;
     const long warpedVoxelNumber = (long)NiftiImage::calcVoxelNumber(warpedImage, 3);
@@ -1433,10 +1433,10 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
                             nifti_image *warpedImage,
                             const nifti_image *deformationFieldImage,
                             const int *mask,
-                            const int& interp,
-                            const FieldType& paddingValue,
+                            const int interpolation,
+                            const FieldType paddingValue,
                             const mat33 *jacMat,
-                            const char& algorithm) {
+                            const char algorithm) {
     // The deformation field contains the position in the real world
     if (deformationFieldImage->nu > 2) {
         if (algorithm == 2) {
@@ -1446,7 +1446,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
                                                               warpedImage,
                                                               mask,
                                                               paddingValue,
-                                                              interp);
+                                                              interpolation);
         } else {
             NR_DEBUG("Running ResampleImage3D_PSF");
             ResampleImage3D_PSF<FloatingType, FieldType>(floatingImage,
@@ -1454,7 +1454,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
                                                          warpedImage,
                                                          mask,
                                                          paddingValue,
-                                                         interp,
+                                                         interpolation,
                                                          jacMat,
                                                          algorithm);
         }
@@ -1467,10 +1467,10 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
                            nifti_image *warpedImage,
                            const nifti_image *deformationField,
                            const int *mask,
-                           const int& interp,
-                           const float& paddingValue,
+                           const int interpolation,
+                           const float paddingValue,
                            const mat33 *jacMat,
-                           const char& algorithm) {
+                           const char algorithm) {
     if (floatingImage->datatype != warpedImage->datatype)
         NR_FATAL_ERROR("The floating and warped image should have the same data type");
     if (floatingImage->nt != warpedImage->nt)
@@ -1493,7 +1493,7 @@ void reg_resampleImage_PSF(const nifti_image *floatingImage,
                                                                 warpedImage,
                                                                 deformationField,
                                                                 mask,
-                                                                interp,
+                                                                interpolation,
                                                                 paddingValue,
                                                                 jacMat,
                                                                 algorithm);
@@ -1507,7 +1507,7 @@ template <class DataType>
 void reg_bilinearResampleGradient(const nifti_image *floatingImage,
                                   nifti_image *warpedImage,
                                   const nifti_image *deformationField,
-                                  const float& paddingValue) {
+                                  const float paddingValue) {
     const size_t floatingVoxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
     const size_t warpedVoxelNumber = NiftiImage::calcVoxelNumber(warpedImage, 3);
     const DataType *floatingIntensityX = static_cast<DataType*>(floatingImage->data);
@@ -1672,7 +1672,7 @@ template <class DataType>
 void reg_trilinearResampleGradient(const nifti_image *floatingImage,
                                    nifti_image *warpedImage,
                                    const nifti_image *deformationField,
-                                   const float& paddingValue) {
+                                   const float paddingValue) {
     const size_t floatingVoxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
     const size_t warpedVoxelNumber = NiftiImage::calcVoxelNumber(warpedImage, 3);
     const size_t deformationFieldVoxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
@@ -1893,9 +1893,9 @@ void reg_trilinearResampleGradient(const nifti_image *floatingImage,
 void reg_resampleGradient(const nifti_image *floatingImage,
                           nifti_image *warpedImage,
                           const nifti_image *deformationField,
-                          const int& interp,
-                          const float& paddingValue) {
-    if (interp != 1)
+                          const int interpolation,
+                          const float paddingValue) {
+    if (interpolation != 1)
         NR_FATAL_ERROR("Only linear interpolation is supported");
     if (floatingImage->datatype != warpedImage->datatype || floatingImage->datatype != deformationField->datatype)
         NR_FATAL_ERROR("Input images are expected to have the same type");
@@ -1923,8 +1923,8 @@ void TrilinearImageGradient(const nifti_image *floatingImage,
                             const nifti_image *deformationField,
                             nifti_image *warpedGradient,
                             const int *mask,
-                            const float& paddingValue,
-                            const int& activeTimepoint) {
+                            const float paddingValue,
+                            const int activeTimepoint) {
     if (activeTimepoint < 0 || activeTimepoint >= floatingImage->nt)
         NR_FATAL_ERROR("The specified active timepoint is not defined in the floating image");
 #ifdef _WIN32
@@ -2092,8 +2092,8 @@ void BilinearImageGradient(const nifti_image *floatingImage,
                            const nifti_image *deformationField,
                            nifti_image *warpedGradient,
                            const int *mask,
-                           const float& paddingValue,
-                           const int& activeTimepoint) {
+                           const float paddingValue,
+                           const int activeTimepoint) {
     if (activeTimepoint < 0 || activeTimepoint >= floatingImage->nt)
         NR_FATAL_ERROR("The specified active timepoint is not defined in the floating image");
 #ifdef _WIN32
@@ -2202,8 +2202,8 @@ void CubicSplineImageGradient3D(const nifti_image *floatingImage,
                                 const nifti_image *deformationField,
                                 nifti_image *warpedGradient,
                                 const int *mask,
-                                const float& paddingValue,
-                                const int& activeTimepoint) {
+                                const float paddingValue,
+                                const int activeTimepoint) {
     if (activeTimepoint < 0 || activeTimepoint >= floatingImage->nt)
         NR_FATAL_ERROR("The specified active timepoint is not defined in the floating image");
 #ifdef _WIN32
@@ -2343,8 +2343,8 @@ void CubicSplineImageGradient2D(const nifti_image *floatingImage,
                                 const nifti_image *deformationField,
                                 nifti_image *warpedGradient,
                                 const int *mask,
-                                const float& paddingValue,
-                                const int& activeTimepoint) {
+                                const float paddingValue,
+                                const int activeTimepoint) {
     if (activeTimepoint < 0 || activeTimepoint >= floatingImage->nt)
         NR_FATAL_ERROR("The specified active timepoint is not defined in the floating image");
 #ifdef _WIN32
@@ -2453,9 +2453,9 @@ void reg_getImageGradient(nifti_image *floatingImage,
                           nifti_image *warpedGradient,
                           const nifti_image *deformationField,
                           const int *mask,
-                          const int& interp,
-                          const float& paddingValue,
-                          const int& activeTimepoint,
+                          const int interpolation,
+                          const float paddingValue,
+                          const int activeTimepoint,
                           const int *dtIndicies,
                           const mat33 *jacMat,
                           const nifti_image *warpedImage = nullptr) {
@@ -2464,7 +2464,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
     // The DTI are logged
     reg_dti_resampling_preprocessing<FloatingType>(floatingImage, &originalFloatingData, dtIndicies);
     /* The deformation field contains the position in the real world */
-    if (interp == 3) {
+    if (interpolation == 3) {
         if (deformationField->nu > 2) {
             CubicSplineImageGradient3D<FloatingType, GradientType, FieldType>(floatingImage,
                                                                               deformationField,
@@ -2511,9 +2511,9 @@ void reg_getImageGradient(nifti_image *floatingImage,
                           nifti_image *warpedGradient,
                           const nifti_image *deformationField,
                           const int *mask,
-                          const int& interp,
-                          const float& paddingValue,
-                          const int& activeTimepoint,
+                          const int interpolation,
+                          const float paddingValue,
+                          const int activeTimepoint,
                           const bool *dtiTimepoint,
                           const mat33 *jacMat,
                           const nifti_image *warpedImage) {
@@ -2553,7 +2553,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
                                                                                    warpedGradient,
                                                                                    deformationField,
                                                                                    mask,
-                                                                                   interp,
+                                                                                   interpolation,
                                                                                    paddingValue,
                                                                                    activeTimepoint,
                                                                                    dtIndicies,
@@ -2569,8 +2569,8 @@ template<class DataType>
 void reg_getImageGradient_symDiff(const nifti_image *img,
                                   nifti_image *gradImg,
                                   const int *mask,
-                                  const float& paddingValue,
-                                  const int& timepoint) {
+                                  const float paddingValue,
+                                  const int timepoint) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
 
     int dimImg = img->nz > 1 ? 3 : 2;
@@ -2630,8 +2630,8 @@ void reg_getImageGradient_symDiff(const nifti_image *img,
 void reg_getImageGradient_symDiff(const nifti_image *img,
                                   nifti_image *gradImg,
                                   const int *mask,
-                                  const float& paddingValue,
-                                  const int& timepoint) {
+                                  const float paddingValue,
+                                  const int timepoint) {
     if (img->datatype != gradImg->datatype)
         NR_FATAL_ERROR("Input images are expected to be of the same type");
     if (img->datatype != NIFTI_TYPE_FLOAT32 && img->datatype != NIFTI_TYPE_FLOAT64)

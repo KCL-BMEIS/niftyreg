@@ -101,7 +101,7 @@ void reg_getVoxelBasedSsdGradient(const nifti_image *referenceImage,
                                   nifti_image *measureGradientImage,
                                   const nifti_image *jacobianDetImage,
                                   const int *mask,
-                                  const int& currentTimepoint,
-                                  const double& timepointWeight,
+                                  const int currentTimepoint,
+                                  const double timepointWeight,
                                   const nifti_image *localWeightSim);
 /* *************************************************************** */

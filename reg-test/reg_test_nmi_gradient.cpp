@@ -3,9 +3,6 @@
 #undef _USE_CUDA
 
 #include "reg_test_common.h"
-#include "_reg_tools.h"
-#include "_reg_ReadWriteImage.h"
-#include "_reg_nmi.h"
 
 /*
     This test file contains the following unit tests:
@@ -23,17 +20,18 @@ public:
         std::mt19937 gen(0);
         // Images will be rescaled between 2 and bin-3
         // Default bin value is 68 (64+4 for Parzen windowing)
-        const unsigned binNumber = 8;
-        const float padding = 2; //std::numeric_limits<float>::quiet_NaN();
+        constexpr unsigned binNumber = 8;
+        constexpr float padding = 2; //std::numeric_limits<float>::quiet_NaN();
         std::uniform_real_distribution<float> distr(2, binNumber - 3);
 
         // Create reference and floating 2D images
-        vector<NiftiImage::dim_t> dim{ 4, 4 };
+        constexpr NiftiImage::dim_t dimSize = 4;
+        vector<NiftiImage::dim_t> dim{ dimSize, dimSize };
         NiftiImage reference2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating2d(dim, NIFTI_TYPE_FLOAT32);
 
         // Create reference and floating 3D images
-        dim.push_back(4);
+        dim.push_back(dimSize);
         NiftiImage reference3d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating3d(dim, NIFTI_TYPE_FLOAT32);
 
@@ -74,7 +72,7 @@ public:
         for (auto&& data : testData) {
             for (auto&& platformType : PlatformTypes) {
                 // Create the platform
-                shared_ptr<Platform> platform{ new Platform(platformType) };
+                unique_ptr<Platform> platform{ new Platform(platformType) };
                 // Make a copy of the test data
                 auto [testName, reference, floating] = data;
                 // Create the content creator
@@ -122,7 +120,7 @@ public:
                     gradPtr[index] = -(nmi_post - nmi_pre) / (2. * delta);
                     defPtr[index] = current_value;
                 }
-                testCases.push_back({ testName + " " + platform->GetName(), std::move(gradientImage), std::move(expectedGradientImage) });
+                testCases.push_back({ testName + " "s + platform->GetName(), std::move(gradientImage), std::move(expectedGradientImage) });
             }
         }
     }
@@ -157,7 +155,7 @@ TEST_CASE_METHOD(NMIGradientTest, "NMI Gradient", "[unit]") {
             const double norm = std::max(fabs(reg_tools_getMinValue(expected, 0)),
                                          fabs(reg_tools_getMaxValue(expected, 0)));
             for (size_t i = 0; i < expected.nVoxels(); ++i) {
-                const double ratio = fabs(resPtr[i] - expPtr[i]) / norm;
+                const double ratio = abs(resPtr[i] - expPtr[i]) / norm;
                 if (ratio > .1) {
                     NR_COUT << "[i]=" << i;
                     NR_COUT << " | ratio=" << ratio;

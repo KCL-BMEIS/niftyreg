@@ -8,7 +8,7 @@ public:
     Compute() = delete;
     Compute(Content& conIn): con(conIn) {}
 
-    virtual void ResampleImage(int inter, float paddingValue);
+    virtual void ResampleImage(int interpolation, float paddingValue);
     virtual double GetJacobianPenaltyTerm(bool approx);
     virtual void JacobianPenaltyTermGradient(float weight, bool approx);
     virtual double CorrectFolding(bool approx);

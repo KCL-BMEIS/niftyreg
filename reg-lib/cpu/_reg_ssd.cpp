@@ -196,8 +196,8 @@ void reg_getVoxelBasedSsdGradient(const nifti_image *referenceImage,
                                   nifti_image *measureGradientImage,
                                   const nifti_image *jacobianDetImage,
                                   const int *mask,
-                                  const int& currentTimepoint,
-                                  const double& timepointWeight,
+                                  const int currentTimepoint,
+                                  const double timepointWeight,
                                   const nifti_image *localWeightSim) {
     // Create pointers to the reference and warped images
 #ifdef _WIN32
@@ -275,8 +275,8 @@ void reg_getVoxelBasedSsdGradient(const nifti_image *referenceImage,
         }
     }
 }
-template void reg_getVoxelBasedSsdGradient<float>(const nifti_image*, const nifti_image*, const nifti_image*, nifti_image*, const nifti_image*, const int*, const int&, const double&, const nifti_image*);
-template void reg_getVoxelBasedSsdGradient<double>(const nifti_image*, const nifti_image*, const nifti_image*, nifti_image*, const nifti_image*, const int*, const int&, const double&, const nifti_image*);
+template void reg_getVoxelBasedSsdGradient<float>(const nifti_image*, const nifti_image*, const nifti_image*, nifti_image*, const nifti_image*, const int*, const int, const double, const nifti_image*);
+template void reg_getVoxelBasedSsdGradient<double>(const nifti_image*, const nifti_image*, const nifti_image*, nifti_image*, const nifti_image*, const int*, const int, const double, const nifti_image*);
 /* *************************************************************** */
 void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
                                             const nifti_image *warpedImage,
@@ -284,8 +284,8 @@ void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
                                             nifti_image *voxelBasedGradient,
                                             const nifti_image *jacobianDetImage,
                                             const int *mask,
-                                            const int& currentTimepoint,
-                                            const double& timepointWeight,
+                                            const int currentTimepoint,
+                                            const double timepointWeight,
                                             const nifti_image *localWeightSim) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;

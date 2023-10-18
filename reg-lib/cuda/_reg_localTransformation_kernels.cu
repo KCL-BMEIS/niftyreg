@@ -310,7 +310,7 @@ __device__ float4 GetSlidedValues(int x, int y, int z,
 __global__ void reg_spline_getDeformationField3D(float4 *deformationField,
                                                  cudaTextureObject_t controlPointTexture,
                                                  cudaTextureObject_t maskTexture,
-                                                 const mat44 *referenceMatrix,
+                                                 const mat44 *realToVoxel,
                                                  const int3 referenceImageDim,
                                                  const int3 controlPointImageDim,
                                                  const float3 controlPointVoxelSpacing,
@@ -329,18 +329,18 @@ __global__ void reg_spline_getDeformationField3D(float4 *deformationField,
         const float4 node = deformationField[tid];
 
         // From real to pixel position in the CPP
-        const float xVoxel = (referenceMatrix->m[0][0] * node.x +
-                              referenceMatrix->m[0][1] * node.y +
-                              referenceMatrix->m[0][2] * node.z +
-                              referenceMatrix->m[0][3]);
-        const float yVoxel = (referenceMatrix->m[1][0] * node.x +
-                              referenceMatrix->m[1][1] * node.y +
-                              referenceMatrix->m[1][2] * node.z +
-                              referenceMatrix->m[1][3]);
-        const float zVoxel = (referenceMatrix->m[2][0] * node.x +
-                              referenceMatrix->m[2][1] * node.y +
-                              referenceMatrix->m[2][2] * node.z +
-                              referenceMatrix->m[2][3]);
+        const float xVoxel = (realToVoxel->m[0][0] * node.x +
+                              realToVoxel->m[0][1] * node.y +
+                              realToVoxel->m[0][2] * node.z +
+                              realToVoxel->m[0][3]);
+        const float yVoxel = (realToVoxel->m[1][0] * node.x +
+                              realToVoxel->m[1][1] * node.y +
+                              realToVoxel->m[1][2] * node.z +
+                              realToVoxel->m[1][3]);
+        const float zVoxel = (realToVoxel->m[2][0] * node.x +
+                              realToVoxel->m[2][1] * node.y +
+                              realToVoxel->m[2][2] * node.z +
+                              realToVoxel->m[2][3]);
 
         if (xVoxel < 0 || xVoxel >= referenceImageDim.x ||
             yVoxel < 0 || yVoxel >= referenceImageDim.y ||
@@ -417,7 +417,7 @@ __global__ void reg_spline_getDeformationField3D(float4 *deformationField,
 __global__ void reg_spline_getDeformationField2D(float4 *deformationField,
                                                  cudaTextureObject_t controlPointTexture,
                                                  cudaTextureObject_t maskTexture,
-                                                 const mat44 *referenceMatrix,
+                                                 const mat44 *realToVoxel,
                                                  const int3 referenceImageDim,
                                                  const int3 controlPointImageDim,
                                                  const float3 controlPointVoxelSpacing,
@@ -436,12 +436,12 @@ __global__ void reg_spline_getDeformationField2D(float4 *deformationField,
         const float4 node = deformationField[tid];
 
         // From real to pixel position in the CPP
-        const float xVoxel = (referenceMatrix->m[0][0] * node.x +
-                              referenceMatrix->m[0][1] * node.y +
-                              referenceMatrix->m[0][3]);
-        const float yVoxel = (referenceMatrix->m[1][0] * node.x +
-                              referenceMatrix->m[1][1] * node.y +
-                              referenceMatrix->m[1][3]);
+        const float xVoxel = (realToVoxel->m[0][0] * node.x +
+                              realToVoxel->m[0][1] * node.y +
+                              realToVoxel->m[0][3]);
+        const float yVoxel = (realToVoxel->m[1][0] * node.x +
+                              realToVoxel->m[1][1] * node.y +
+                              realToVoxel->m[1][3]);
 
         if (xVoxel < 0 || xVoxel >= referenceImageDim.x ||
             yVoxel < 0 || yVoxel >= referenceImageDim.y) return;

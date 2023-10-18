@@ -173,8 +173,8 @@ void reg_getKLDivergenceVoxelBasedGradient(const nifti_image *referenceImage,
                                            nifti_image *measureGradient,
                                            const nifti_image *jacobianDetImg,
                                            const int *mask,
-                                           const int& currentTimepoint,
-                                           const double& timepointWeight) {
+                                           const int currentTimepoint,
+                                           const double timepointWeight) {
 #ifdef _WIN32
     long voxel;
     const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);

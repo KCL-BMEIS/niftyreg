@@ -37,10 +37,10 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
                                                  activeVoxelNumber * sizeof(int), cudaChannelFormatKindSigned, 1);
 
     // Get the reference matrix if composition is required
-    thrust::device_vector<mat44> referenceMatrix;
+    thrust::device_vector<mat44> realToVoxel;
     if (composition) {
-        const mat44 *refMatPtr = controlPointImage->sform_code > 0 ? &controlPointImage->sto_ijk : &controlPointImage->qto_ijk;
-        referenceMatrix = thrust::device_vector<mat44>(refMatPtr, refMatPtr + 1);
+        const mat44 *matPtr = controlPointImage->sform_code > 0 ? &controlPointImage->sto_ijk : &controlPointImage->qto_ijk;
+        realToVoxel = thrust::device_vector<mat44>(matPtr, matPtr + 1);
     }
 
     if (referenceImage->nz > 1) {
@@ -52,7 +52,7 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
         reg_spline_getDeformationField3D<<<gridDims, blockDims, blocks * 8 * sizeof(float)>>>(deformationFieldCuda,
                                                                                               *controlPointTexture,
                                                                                               *maskTexture,
-                                                                                              referenceMatrix.data().get(),
+                                                                                              realToVoxel.data().get(),
                                                                                               referenceImageDim,
                                                                                               controlPointImageDim,
                                                                                               controlPointVoxelSpacing,
@@ -69,7 +69,7 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
         reg_spline_getDeformationField2D<<<gridDims, blockDims, blocks * 4 * sizeof(float)>>>(deformationFieldCuda,
                                                                                               *controlPointTexture,
                                                                                               *maskTexture,
-                                                                                              referenceMatrix.data().get(),
+                                                                                              realToVoxel.data().get(),
                                                                                               referenceImageDim,
                                                                                               controlPointImageDim,
                                                                                               controlPointVoxelSpacing,

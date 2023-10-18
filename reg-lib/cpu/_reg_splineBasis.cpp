@@ -158,11 +158,10 @@ template <class DataType>
 void set_first_order_basis_values(DataType *basisX, DataType *basisY) {
     double BASIS[4], FIRST[4]; get_BSplineBasisValues<double>(0, BASIS, FIRST);
     int index = 0;
-    for (int y = 0; y < 3; ++y) {
-        for (int x = 0; x < 3; ++x) {
-            basisX[index] = FIRST[x] * BASIS[y];
-            basisY[index] = BASIS[x] * FIRST[y];
-            index++;
+    for (int y = 0; y < 3; y++) {
+        for (int x = 0; x < 3; x++, index++) {
+            basisX[index] = static_cast<DataType>(FIRST[x] * BASIS[y]);
+            basisY[index] = static_cast<DataType>(BASIS[x] * FIRST[y]);
         }
     }
 }
@@ -464,7 +463,7 @@ void get_SlidedValues(DataType& defX,
                       const int y,
                       const DataType *defPtrX,
                       const DataType *defPtrY,
-                      const mat44 *dfVoxel2Real,
+                      const mat44 *dfVoxelToReal,
                       const int *dim,
                       const bool displacement) {
     int newX = x;
@@ -484,8 +483,8 @@ void get_SlidedValues(DataType& defX,
     if (!displacement) {
         const int shiftIndexX = x - newX;
         const int shiftIndexY = y - newY;
-        shiftValueX = shiftIndexX * dfVoxel2Real->m[0][0] + shiftIndexY * dfVoxel2Real->m[0][1];
-        shiftValueY = shiftIndexX * dfVoxel2Real->m[1][0] + shiftIndexY * dfVoxel2Real->m[1][1];
+        shiftValueX = shiftIndexX * dfVoxelToReal->m[0][0] + shiftIndexY * dfVoxelToReal->m[0][1];
+        shiftValueY = shiftIndexX * dfVoxelToReal->m[1][0] + shiftIndexY * dfVoxelToReal->m[1][1];
     }
     const int index = newY * dim[1] + newX;
     defX = defPtrX[index] + shiftValueX;
@@ -504,7 +503,7 @@ void get_SlidedValues(DataType& defX,
                       const DataType *defPtrX,
                       const DataType *defPtrY,
                       const DataType *defPtrZ,
-                      const mat44 *dfVoxel2Real,
+                      const mat44 *dfVoxelToReal,
                       const int *dim,
                       const bool displacement) {
     int newX = x;
@@ -533,17 +532,17 @@ void get_SlidedValues(DataType& defX,
         const int shiftIndexY = y - newY;
         const int shiftIndexZ = z - newZ;
         shiftValueX =
-            shiftIndexX * dfVoxel2Real->m[0][0] +
-            shiftIndexY * dfVoxel2Real->m[0][1] +
-            shiftIndexZ * dfVoxel2Real->m[0][2];
+            shiftIndexX * dfVoxelToReal->m[0][0] +
+            shiftIndexY * dfVoxelToReal->m[0][1] +
+            shiftIndexZ * dfVoxelToReal->m[0][2];
         shiftValueY =
-            shiftIndexX * dfVoxel2Real->m[1][0] +
-            shiftIndexY * dfVoxel2Real->m[1][1] +
-            shiftIndexZ * dfVoxel2Real->m[1][2];
+            shiftIndexX * dfVoxelToReal->m[1][0] +
+            shiftIndexY * dfVoxelToReal->m[1][1] +
+            shiftIndexZ * dfVoxelToReal->m[1][2];
         shiftValueZ =
-            shiftIndexX * dfVoxel2Real->m[2][0] +
-            shiftIndexY * dfVoxel2Real->m[2][1] +
-            shiftIndexZ * dfVoxel2Real->m[2][2];
+            shiftIndexX * dfVoxelToReal->m[2][0] +
+            shiftIndexY * dfVoxelToReal->m[2][1] +
+            shiftIndexZ * dfVoxelToReal->m[2][2];
     }
     const int index = (newZ * dim[2] + newY) * dim[1] + newX;
     defX = defPtrX[index] + shiftValueX;
@@ -570,10 +569,7 @@ void get_GridValues(int startX,
     size_t coord = 0;
     DataType *xxPtr = nullptr, *yyPtr = nullptr;
 
-    mat44 *voxel2realMatrix = nullptr;
-    if (splineControlPoint->sform_code > 0)
-        voxel2realMatrix = &splineControlPoint->sto_xyz;
-    else voxel2realMatrix = &splineControlPoint->qto_xyz;
+    const mat44 *voxelToReal = splineControlPoint->sform_code > 0 ? &splineControlPoint->sto_xyz : &splineControlPoint->qto_xyz;
 
     for (int Y = startY; Y < startY + range; Y++) {
         bool out = false;
@@ -582,7 +578,7 @@ void get_GridValues(int startX,
             xxPtr = &splineX[index];
             yyPtr = &splineY[index];
         } else out = true;
-        for (int X = startX; X < startX + range; X++) {
+        for (int X = startX; X < startX + range; X++, coord++) {
             if (X > -1 && X < splineControlPoint->nx && out == false) {
                 dispX[coord] = xxPtr[X];
                 dispY[coord] = yyPtr[X];
@@ -593,11 +589,10 @@ void get_GridValues(int startX,
                                            Y,
                                            splineX,
                                            splineY,
-                                           voxel2realMatrix,
+                                           voxelToReal,
                                            splineControlPoint->dim,
                                            displacement);
             }
-            coord++;
         }
     }
 }
@@ -626,10 +621,7 @@ void get_GridValues(int startX,
     DataType *xPtr = nullptr, *yPtr = nullptr, *zPtr = nullptr;
     DataType *xxPtr = nullptr, *yyPtr = nullptr, *zzPtr = nullptr;
 
-    mat44 *voxel2realMatrix = nullptr;
-    if (splineControlPoint->sform_code > 0)
-        voxel2realMatrix = &splineControlPoint->sto_xyz;
-    else voxel2realMatrix = &splineControlPoint->qto_xyz;
+    const mat44 *voxelToReal = splineControlPoint->sform_code > 0 ? &splineControlPoint->sto_xyz : &splineControlPoint->qto_xyz;
 
     for (int Z = startZ; Z < startZ + range; Z++) {
         bool out = false;
@@ -646,7 +638,7 @@ void get_GridValues(int startX,
                 yyPtr = &yPtr[index];
                 zzPtr = &zPtr[index];
             } else out = true;
-            for (int X = startX; X < startX + range; X++) {
+            for (int X = startX; X < startX + range; X++, coord++) {
                 if (X > -1 && X < splineControlPoint->nx && out == false) {
                     dispX[coord] = xxPtr[X];
                     dispY[coord] = yyPtr[X];
@@ -661,11 +653,10 @@ void get_GridValues(int startX,
                                                splineX,
                                                splineY,
                                                splineZ,
-                                               voxel2realMatrix,
+                                               voxelToReal,
                                                splineControlPoint->dim,
                                                displacement);
                 }
-                coord++;
             } // X
         } // Y
     } // Z

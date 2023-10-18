@@ -98,7 +98,7 @@ void reg_getNMIValue(const nifti_image *referenceImage,
                      double **jointHistogramPro,
                      double **entropyValues,
                      const int *referenceMask,
-                     const bool approximation=true);
+                     const bool approximation);
 /* *************************************************************** */
 // Simple class to dynamically manage an array of pointers
 // Needed for multi channel NMI

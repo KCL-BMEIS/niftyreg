@@ -144,7 +144,7 @@ __global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
         float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, tid);
 
         // Get the voxel-based deformation in the floating space
-        float3 voxelDeformation;
+        float2 voxelDeformation;
         voxelDeformation.x = (floatingMatrix.m[0][0] * realDeformation.x +
                               floatingMatrix.m[0][1] * realDeformation.y +
                               floatingMatrix.m[0][3]);
@@ -158,7 +158,7 @@ __global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
         const float2 relative = { voxelDeformation.x - previous.x, voxelDeformation.y - previous.y };
         InterpLinearKernel(relative.x, xBasis);
         InterpLinearKernel(relative.y, yBasis);
-        const float deriv[] = { -1.0f, 1.0f };
+        constexpr float deriv[] = { -1.0f, 1.0f };
 
         float4 gradientValue{};
         for (short b = 0; b < 2; b++) {
@@ -177,6 +177,11 @@ __global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
             gradientValue.x += tempValueX.x * yBasis[b];
             gradientValue.y += tempValueX.y * deriv[b];
         }
+
+        if (gradientValue.x != gradientValue.x)
+            gradientValue.x = 0;
+        if (gradientValue.y != gradientValue.y)
+            gradientValue.y = 0;
 
         gradientArray[tid] = gradientValue;
     }
@@ -216,7 +221,7 @@ __global__ void reg_getImageGradient3D_kernel(float4 *gradientArray,
         InterpLinearKernel(relative.x, xBasis);
         InterpLinearKernel(relative.y, yBasis);
         InterpLinearKernel(relative.z, zBasis);
-        const float deriv[] = { -1.0f, 1.0f };
+        constexpr float deriv[] = { -1.0f, 1.0f };
 
         float4 gradientValue{};
         for (short c = 0; c < 2; c++) {
@@ -243,6 +248,13 @@ __global__ void reg_getImageGradient3D_kernel(float4 *gradientArray,
             gradientValue.y += tempValueY.y * zBasis[c];
             gradientValue.z += tempValueY.z * deriv[c];
         }
+
+        if (gradientValue.x != gradientValue.x)
+            gradientValue.x = 0;
+        if (gradientValue.y != gradientValue.y)
+            gradientValue.y = 0;
+        if (gradientValue.z != gradientValue.z)
+            gradientValue.z = 0;
 
         gradientArray[tid] = gradientValue;
     }
