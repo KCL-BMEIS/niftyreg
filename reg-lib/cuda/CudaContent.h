@@ -31,15 +31,17 @@ public:
 
 protected:
     cudaArray *referenceCuda = nullptr;
+    Cuda::UniquePtr<cudaArray> referenceCudaManaged;
     cudaArray *floatingCuda = nullptr;
+    Cuda::UniquePtr<cudaArray> floatingCudaManaged;
     float4 *deformationFieldCuda = nullptr;
     int *referenceMaskCuda = nullptr;
     float *transformationMatrixCuda = nullptr;
     float *warpedCuda = nullptr;
 
 private:
-    void AllocateImages();
-    void DeallocateImages();
+    void AllocateReference();
+    void AllocateFloating();
     void AllocateDeformationField();
     void DeallocateDeformationField();
     void AllocateWarped();
@@ -47,6 +49,11 @@ private:
     template<class DataType> DataType CastImageData(float intensity, int datatype);
     template<class DataType> void FillImageData(nifti_image *image, float *memoryObject, int datatype);
     void DownloadImage(nifti_image *image, float *memoryObject, int datatype);
+    void SetReferenceCuda(cudaArray *referenceCudaIn) { referenceCudaManaged = nullptr; referenceCuda = referenceCudaIn; }
+    void SetFloatingCuda(cudaArray *floatingCudaIn) { floatingCudaManaged = nullptr; floatingCuda = floatingCudaIn; }
+
+    // Friend classes
+    friend class CudaF3d2ContentCreator;
 
 #ifdef NR_TESTING
 public:

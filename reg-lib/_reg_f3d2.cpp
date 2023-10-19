@@ -38,10 +38,15 @@ void reg_f3d2<T>::SetInverseConsistencyWeight(T w) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_f3d2<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
-    unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d)) };
-    conBw.reset(contentCreator->Create(floating, reference, controlPointGridBw, nullptr, mask, affineTransformationBw.get(), sizeof(T)));
-    computeBw.reset(this->platform->CreateCompute(*conBw));
+void reg_f3d2<T>::InitContent(nifti_image *reference, nifti_image *floating, int *referenceMask, int *floatingMask) {
+    unique_ptr<F3d2ContentCreator> contentCreator{ dynamic_cast<F3d2ContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d2)) };
+    auto&& [con, conBw] = contentCreator->Create(reference, floating, this->controlPointGrid, controlPointGridBw,
+                                                 this->localWeightSimInput, referenceMask, floatingMask,
+                                                 this->affineTransformation.get(), affineTransformationBw.get(), sizeof(T));
+    this->con.reset(con);
+    this->conBw.reset(conBw);
+    this->compute.reset(this->platform->CreateCompute(*con));
+    this->computeBw.reset(this->platform->CreateCompute(*conBw));
 }
 /* *************************************************************** */
 template <class T>
@@ -90,8 +95,7 @@ T reg_f3d2<T>::InitCurrentLevel(int currentLevel) {
         }
     }
 
-    reg_f3d<T>::InitContent(reference, floating, referenceMask);
-    InitContent(reference, floating, floatingMask);
+    InitContent(reference, floating, referenceMask, floatingMask);
 
     NR_FUNC_CALLED();
     return maxStepSize;

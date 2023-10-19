@@ -55,7 +55,7 @@ protected:
     virtual void PrintCurrentObjFunctionValue(T) override;
     virtual void UpdateBestObjFunctionValue() override;
     virtual double GetObjectiveFunctionValue() override;
-    void InitContent(nifti_image*, nifti_image*, int*);
+    void InitContent(nifti_image*, nifti_image*, int*, int*);
     virtual T InitCurrentLevel(int) override;
     virtual void DeinitCurrentLevel(int) override;
     virtual void UpdateParameters(float) override;

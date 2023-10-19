@@ -118,6 +118,14 @@ void Free(cudaArray*);
 template <class DataType>
 void Free(DataType*);
 /* *************************************************************** */
+namespace Internal {
+template <class T>
+struct UniquePtrDeleter { void operator()(T *ptr) const { Free(ptr); } };
+}
+/* *************************************************************** */
+template <class T>
+using UniquePtr = unique_ptr<T, Internal::UniquePtrDeleter<T>>;
+/* *************************************************************** */
 using UniqueTextureObjectPtr = unique_ptr<cudaTextureObject_t, void(*)(cudaTextureObject_t*)>;
 /* *************************************************************** */
 UniqueTextureObjectPtr CreateTextureObject(const void *devPtr,

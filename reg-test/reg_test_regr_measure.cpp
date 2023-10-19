@@ -96,6 +96,10 @@ public:
         unique_ptr<Measure> measureCreatorCpu{ new Measure() };
         unique_ptr<Measure> measureCreatorCuda{ new CudaMeasure() };
 
+        // Create the content creators
+        unique_ptr<F3d2ContentCreator> contentCreatorCpu{ dynamic_cast<F3d2ContentCreator*>(platformCpu.CreateContentCreator(ContentType::F3d2)) };
+        unique_ptr<F3d2ContentCreator> contentCreatorCuda{ dynamic_cast<F3d2ContentCreator*>(platformCuda.CreateContentCreator(ContentType::F3d2)) };
+
         for (auto&& testData : testData) {
             // Get the test data
             auto&& [testName, reference, floating, controlPointGrid, localWeightSim, measureType, isSymmetric] = testData;
@@ -108,45 +112,16 @@ public:
             NiftiImage localWeightSimCpu(localWeightSim), localWeightSimCuda(localWeightSim);
 
             // Create the contents
-            unique_ptr<F3dContent> contentCpu{ new F3dContent(
-                referenceCpu,
-                floatingCpu,
-                controlPointGridCpu,
-                localWeightSimCpu,
-                nullptr,
-                nullptr,
-                sizeof(float)
-            ) };
-            unique_ptr<F3dContent> contentCuda{ new CudaF3dContent(
-                referenceCuda,
-                floatingCuda,
-                controlPointGridCuda,
-                localWeightSimCuda,
-                nullptr,
-                nullptr,
-                sizeof(float)
-            ) };
-            unique_ptr<F3dContent> contentCpuBw, contentCudaBw;
-            if (isSymmetric) {
-                contentCpuBw.reset(new F3dContent(
-                    floatingCpu,
-                    referenceCpu,
-                    controlPointGridCpuBw,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    sizeof(float)
-                ));
-                contentCudaBw.reset(new CudaF3dContent(
-                    floatingCuda,
-                    referenceCuda,
-                    controlPointGridCudaBw,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    sizeof(float)
-                ));
+            auto contentsCpu = contentCreatorCpu->Create(referenceCpu, floatingCpu, controlPointGridCpu, controlPointGridCpuBw, localWeightSimCpu, nullptr, nullptr, nullptr, nullptr, sizeof(float));
+            auto contentsCuda = contentCreatorCuda->Create(referenceCuda, floatingCuda, controlPointGridCuda, controlPointGridCudaBw, localWeightSimCuda, nullptr, nullptr, nullptr, nullptr, sizeof(float));
+            if (!isSymmetric) {
+                delete contentsCpu.second;
+                delete contentsCuda.second;
+                contentsCpu.second = nullptr;
+                contentsCuda.second = nullptr;
             }
+            unique_ptr<F3dContent> contentCpu{ contentsCpu.first }, contentCpuBw{ contentsCpu.second };
+            unique_ptr<F3dContent> contentCuda{ contentsCuda.first }, contentCudaBw{ contentsCuda.second };
 
             // Create the computes
             unique_ptr<Compute> computeCpu{ platformCpu.CreateCompute(*contentCpu) };

@@ -7,7 +7,8 @@ CudaContent::CudaContent(nifti_image *referenceIn,
                          mat44 *transformationMatrixIn,
                          size_t bytesIn):
     Content(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, sizeof(float)) {
-    AllocateImages();
+    AllocateReference();
+    AllocateFloating();
     AllocateWarped();
     AllocateDeformationField();
     SetReferenceMask(referenceMask);
@@ -15,33 +16,26 @@ CudaContent::CudaContent(nifti_image *referenceIn,
 }
 /* *************************************************************** */
 CudaContent::~CudaContent() {
-    DeallocateImages();
     DeallocateWarped();
     DeallocateDeformationField();
     SetReferenceMask(nullptr);
     SetTransformationMatrix(nullptr);
 }
 /* *************************************************************** */
-void CudaContent::AllocateImages() {
+void CudaContent::AllocateReference() {
     if (reference->nbyper != NIFTI_TYPE_FLOAT32)
         reg_tools_changeDatatype<float>(reference);
-    if (floating->nbyper != NIFTI_TYPE_FLOAT32)
-        reg_tools_changeDatatype<float>(floating);
     Cuda::Allocate<float>(&referenceCuda, reference->dim);
+    referenceCudaManaged.reset(referenceCuda);
     Cuda::TransferNiftiToDevice<float>(referenceCuda, reference);
-    Cuda::Allocate<float>(&floatingCuda, floating->dim);
-    Cuda::TransferNiftiToDevice<float>(floatingCuda, floating);
 }
 /* *************************************************************** */
-void CudaContent::DeallocateImages() {
-    if (referenceCuda) {
-        Cuda::Free(referenceCuda);
-        referenceCuda = nullptr;
-    }
-    if (floatingCuda) {
-        Cuda::Free(floatingCuda);
-        floatingCuda = nullptr;
-    }
+void CudaContent::AllocateFloating() {
+    if (floating->nbyper != NIFTI_TYPE_FLOAT32)
+        reg_tools_changeDatatype<float>(floating);
+    Cuda::Allocate<float>(&floatingCuda, floating->dim);
+    floatingCudaManaged.reset(floatingCuda);
+    Cuda::TransferNiftiToDevice<float>(floatingCuda, floating);
 }
 /* *************************************************************** */
 void CudaContent::AllocateDeformationField() {
@@ -99,7 +93,7 @@ void CudaContent::SetReferenceMask(int *referenceMaskIn) {
 
     if (!referenceMask) return;
 
-    int *targetMask;
+    decltype(referenceMask) targetMask;
     NR_CUDA_SAFE_CALL(cudaMallocHost(&targetMask, reference->nvox * sizeof(*targetMask)));
     int *targetMaskPtr = targetMask;
     activeVoxelNumber = 0;
