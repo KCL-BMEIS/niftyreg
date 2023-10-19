@@ -1,6 +1,5 @@
-// OpenCL and CUDA are not supported for this test yet
+// OpenCL is not supported for this test yet
 #undef _USE_OPENCL
-#undef _USE_CUDA
 
 #include "reg_test_common.h"
 
@@ -82,9 +81,11 @@ public:
                 // Create the content
                 unique_ptr<DefContent> content{ contentCreator->Create(reference, floating) };
                 // Add some displacements to the deformation field to avoid grid effect
-                float *defPtr = static_cast<float*>(content->GetDeformationField()->data);
-                for (size_t index = 0; index < content->GetDeformationField()->nvox; ++index)
+                nifti_image *defField = content->Content::GetDeformationField();
+                float *defPtr = static_cast<float*>(defField->data);
+                for (size_t index = 0; index < defField->nvox; ++index)
                     defPtr[index] += 0.1f;
+                content->UpdateDeformationField();
                 // Compute the warped image given the current transformation
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 compute->ResampleImage(1, padding);
@@ -104,21 +105,23 @@ public:
                 // Create an image to store the expected gradient values
                 NiftiImage expectedGradientImage(content->GetDeformationField(), NiftiImage::Copy::Image);
                 // Apply perturbations to each value in the deformation field
-                float *gradPtr = static_cast<float *>(expectedGradientImage->data);
-                const float delta = 0.00001;
-                for (unsigned index = 0; index < expectedGradientImage.nVoxels(); ++index) {
-                    float current_value = defPtr[index];
-                    // compute the NMI when removing delta(s)
-                    defPtr[index] = current_value - delta;
+                float *gradPtr = static_cast<float*>(expectedGradientImage->data);
+                constexpr float delta = 0.00001f;
+                for (auto index = 0; index < expectedGradientImage.nVoxels(); ++index) {
+                    const float orgDefValue = defPtr[index];
+                    // Compute the NMI when removing delta(s)
+                    defPtr[index] = orgDefValue - delta;
+                    content->UpdateDeformationField();
                     compute->ResampleImage(1, padding);
-                    const double nmi_pre = measure_nmi->GetSimilarityMeasureValue();
-                    // compute the NMI when adding delta(s)
-                    defPtr[index] = current_value + delta;
+                    const double nmiPre = measure_nmi->GetSimilarityMeasureValue();
+                    // Compute the NMI when adding delta(s)
+                    defPtr[index] = orgDefValue + delta;
+                    content->UpdateDeformationField();
                     compute->ResampleImage(1, padding);
-                    const double nmi_post = measure_nmi->GetSimilarityMeasureValue();
+                    const double nmiPost = measure_nmi->GetSimilarityMeasureValue();
                     // Compute the difference
-                    gradPtr[index] = -(nmi_post - nmi_pre) / (2. * delta);
-                    defPtr[index] = current_value;
+                    gradPtr[index] = float(-(nmiPost - nmiPre) / (2.0 * delta));
+                    defPtr[index] = orgDefValue;
                 }
                 testCases.push_back({ testName + " "s + platform->GetName(), std::move(gradientImage), std::move(expectedGradientImage) });
             }
