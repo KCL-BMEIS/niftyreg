@@ -204,14 +204,17 @@ else(BUILD_SHARED_LIBS)
   set(NIFTYREG_LIBRARY_TYPE STATIC)
 endif(BUILD_SHARED_LIBS)
 #-----------------------------------------------------------------------------
+if(BUILD_TESTING)
+  enable_testing()
+  add_definitions(-DBUILD_TESTS)
+endif(BUILD_TESTING)
+#-----------------------------------------------------------------------------
 add_subdirectory(third-party)
 add_subdirectory(reg-io)
 add_subdirectory(reg-lib)
 add_subdirectory(reg-apps)
 add_subdirectory(cmake)
-#-----------------------------------------------------------------------------
 if(BUILD_TESTING)
-  enable_testing()
   add_subdirectory(${CMAKE_SOURCE_DIR}/reg-test)
 endif(BUILD_TESTING)
 #-----------------------------------------------------------------------------

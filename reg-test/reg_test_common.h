@@ -1,5 +1,5 @@
 #define NR_TESTING  // Enable testing
-#define EPS     0.000001
+#define EPS     0.000001f
 
 #include <array>
 #include <random>

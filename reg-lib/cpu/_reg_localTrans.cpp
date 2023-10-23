@@ -13,6 +13,10 @@
 #include "_reg_localTrans.h"
 #include "_reg_maths_eigen.h"
 
+#ifdef BUILD_TESTS
+#undef _USE_SSE
+#endif
+
 /* *************************************************************** */
 template <class DataType>
 void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
@@ -681,11 +685,9 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                         }
 #if _USE_SSE
                         coord = 0;
-                        for (b = 0; b < 4; b++) {
-                            for (a = 0; a < 4; a++) {
+                        for (b = 0; b < 4; b++)
+                            for (a = 0; a < 4; a++)
                                 xyBasis.f[coord++] = xBasis[a] * yBasis[b];
-                            }
-                        }
 
                         tempX = _mm_set_ps1(0);
                         tempY = _mm_set_ps1(0);
