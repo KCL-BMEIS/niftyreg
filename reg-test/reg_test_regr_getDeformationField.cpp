@@ -1,5 +1,5 @@
 // OpenCL is not supported for this test
-#undef _USE_OPENCL
+#undef USE_OPENCL
 
 #include "reg_test_common.h"
 

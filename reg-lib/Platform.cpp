@@ -1,6 +1,6 @@
 #include "Platform.h"
 #include "CpuKernelFactory.h"
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
 #include "CudaContext.hpp"
 #include "CudaF3dContent.h"
 #include "CudaComputeFactory.h"
@@ -9,7 +9,7 @@
 #include "CudaMeasureFactory.h"
 #include "_reg_optimiser_gpu.h"
 #endif
-#ifdef _USE_OPENCL
+#ifdef USE_OPENCL
 #include "ClContextSingleton.h"
 #include "ClComputeFactory.h"
 #include "ClContentCreatorFactory.h"
@@ -26,7 +26,7 @@ Platform::Platform(const PlatformType& platformTypeIn) {
         kernelFactory = new CpuKernelFactory();
         measureFactory = new MeasureFactory();
     }
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
     else if (platformType == PlatformType::Cuda) {
         platformName = "CUDA";
         SetGpuIdx(999);
@@ -36,7 +36,7 @@ Platform::Platform(const PlatformType& platformTypeIn) {
         measureFactory = new CudaMeasureFactory();
     }
 #endif
-#ifdef _USE_OPENCL
+#ifdef USE_OPENCL
     else if (platformType == PlatformType::OpenCl) {
         platformName = "OpenCL";
         SetGpuIdx(999);
@@ -71,7 +71,7 @@ void Platform::SetGpuIdx(unsigned gpuIdxIn) {
     if (platformType == PlatformType::Cpu) {
         gpuIdx = 999;
     }
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
     else if (platformType == PlatformType::Cuda) {
         CudaContext& cudaContext = CudaContext::GetInstance();
         if (gpuIdxIn != 999) {
@@ -80,7 +80,7 @@ void Platform::SetGpuIdx(unsigned gpuIdxIn) {
         }
     }
 #endif
-#ifdef _USE_OPENCL
+#ifdef USE_OPENCL
     else if (platformType == PlatformType::OpenCl) {
         ClContextSingleton& clContext = ClContextSingleton::GetInstance();
         if (gpuIdxIn != 999) {
@@ -138,7 +138,7 @@ reg_optimiser<Type>* Platform::CreateOptimiser(F3dContent& con,
             transformationGradientDataBw = (Type*)conBw->GetTransformationGradient()->data;
         }
     }
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
     else if (platformType == PlatformType::Cuda) {
         optimiser = dynamic_cast<reg_optimiser<Type>*>(useConjGradient ? new reg_conjugateGradient_gpu() : new reg_optimiser_gpu());
         controlPointGridData = (Type*)dynamic_cast<CudaF3dContent&>(con).GetControlPointGridCuda();

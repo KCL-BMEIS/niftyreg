@@ -11,7 +11,7 @@
  */
 
 // OpenCL isn't supported!
-#undef _USE_OPENCL
+#undef USE_OPENCL
 
 #include "_reg_ReadWriteImage.h"
 #include "_reg_ReadWriteMatrix.h"

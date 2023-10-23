@@ -42,7 +42,7 @@ int reg_io_checkFileFormat(const std::string& filename) {
         return NR_NII_FORMAT;
     else if (filename.find(".png") != std::string::npos)
         return NR_PNG_FORMAT;
-#ifdef _USE_NRRD
+#ifdef USE_NRRD
     else if (filename.find(".nrrd") != std::string::npos)
         return NR_NRRD_FORMAT;
     else if (filename.find(".nhdr") != std::string::npos)
@@ -72,7 +72,7 @@ nifti_image* reg_io_ReadImageFile(const char *filename) {
         image = reg_io_readPNGfile(filename, true);
         reg_hack_filename(image, filename);
         break;
-#ifdef _USE_NRRD
+#ifdef USE_NRRD
     case NR_NRRD_FORMAT:
         Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
         image = reg_io_nrdd2nifti(nrrdImage);
@@ -103,7 +103,7 @@ nifti_image* reg_io_ReadImageHeader(const char *filename) {
         image = reg_io_readPNGfile(filename, false);
         reg_hack_filename(image, filename);
         break;
-#ifdef _USE_NRRD
+#ifdef USE_NRRD
     case NR_NRRD_FORMAT:
         Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
         image = reg_io_nrdd2nifti(nrrdImage);
@@ -154,7 +154,7 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename) {
     case NR_PNG_FORMAT:
         reg_io_writePNGfile(image, filename);
         break;
-#ifdef _USE_NRRD
+#ifdef USE_NRRD
     case NR_NRRD_FORMAT:
         Nrrd *nrrdImage = reg_io_nifti2nrrd(image);
         reg_io_writeNRRDfile(nrrdImage, filename);

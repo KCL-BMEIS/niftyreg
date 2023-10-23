@@ -10,10 +10,10 @@
 enum class PlatformType { Cpu, Cuda, OpenCl };
 constexpr PlatformType PlatformTypes[] = {
     PlatformType::Cpu,
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
     PlatformType::Cuda,
 #endif
-#ifdef _USE_OPENCL
+#ifdef USE_OPENCL
     PlatformType::OpenCl
 #endif
 };
@@ -43,13 +43,13 @@ public:
                                          F3dContent *conBw = nullptr) const;
 
     static constexpr bool IsCudaEnabled() {
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
         return true;
 #endif
         return false;
     }
     static constexpr bool IsOpenClEnabled() {
-#ifdef _USE_OPENCL
+#ifdef USE_OPENCL
         return true;
 #endif
         return false;

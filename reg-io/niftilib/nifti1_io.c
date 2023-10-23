@@ -1,4 +1,4 @@
-#define _NIFTI1_IO_C_
+#define NIFTI1_IO_C
 
 #include "niftilib/nifti1_io.h"   /* typedefs, prototypes, macros, etc. */
 
@@ -192,7 +192,7 @@ static char const * const gni_history[] =
   "\n",
   "1.3  09 Feb 2005 [rickr]\n"
   "   - nifti1.h: added doxygen comments for extension structs\n"
-  "   - nifti1_io.h: put most #defines in #ifdef _NIFTI1_IO_C_ block\n"
+  "   - nifti1_io.h: put most #defines in #ifdef NIFTI1_IO_C block\n"
   "   - added a doxygen-style description to every exported function\n"
   "   - added doxygen-style comments within some functions\n"
   "   - re-exported many znzFile functions that I had made static\n"
@@ -7188,7 +7188,7 @@ static int make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
    dim_index = nim->dim[0];
    while( dim_index > 0 ){
       prods[len] = 1;
-      while( dim_index > 0 && 
+      while( dim_index > 0 &&
              (nim->dim[dim_index] == 1 || dims[dim_index] == -1) ){
          prods[len] *= nim->dim[dim_index];
          dim_index--;

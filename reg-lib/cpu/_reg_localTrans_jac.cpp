@@ -12,7 +12,7 @@
 
 #include "_reg_localTrans_jac.h"
 
-#define _USE_SQUARE_LOG_JAC
+#define USE_SQUARE_LOG_JAC
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -643,7 +643,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
       // Allocate variables that are used in both scenarii
       int pre[3], oldPre[3], incr0;
       DataType basis, xBasis[4], xFirst[4], yBasis[4], yFirst[4], zBasis[4], zFirst[4];
-#if _USE_SSE
+#if USE_SSE
       union
       {
          __m128 m;
@@ -805,7 +805,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                   basis = gridCoord[2] - pre[2];
                   get_BSplineBasisValues<DataType>(basis, zBasis, zFirst);
                   // Compute the 64 basis values and the corresponding derivatives
-#if _USE_SSE
+#if USE_SSE
                   val.f[0]=yBasis[0];
                   val.f[1]=yBasis[1];
                   val.f[2]=yBasis[2];
@@ -862,7 +862,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                   // Fetch the required coefficients
                   if(oldPre[0]!=pre[0] || oldPre[1]!=pre[1] || oldPre[2]!=pre[2])
                   {
-#ifdef _USE_SSE
+#ifdef USE_SSE
                      get_GridValues<DataType>(pre[0]-1,
                            pre[1]-1,
                            pre[2]-1,
@@ -876,7 +876,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                            false, // no approx
                            false // not disp
                            );
-#else // _USE_SSE
+#else // USE_SSE
                      get_GridValues<DataType>(pre[0]-1,
                            pre[1]-1,
                            pre[2]-1,
@@ -890,13 +890,13 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                            false, // no approx
                            false // not disp
                            );
-#endif // _USE_SSE
+#endif // USE_SSE
                      oldPre[0]=pre[0];
                      oldPre[1]=pre[1];
                      oldPre[2]=pre[2];
                   }
                   // Compute the Jacobian matrix
-#if _USE_SSE
+#if USE_SSE
                   tempX_x =  _mm_set_ps1(0);
                   tempX_y =  _mm_set_ps1(0);
                   tempX_z =  _mm_set_ps1(0);
@@ -973,7 +973,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
       {
          // The grid is assumed to be aligned with the reference image
 #ifdef _OPENMP
-#ifdef _USE_SSE
+#ifdef USE_SSE
 #pragma omp parallel for default(none) \
    shared(referenceImage, gridVoxelSpacing, splineControlPoint, \
    coeffPtrX, coeffPtrY, coeffPtrZ,reorientation, JacobianMatrices, \
@@ -1015,7 +1015,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                if(basis<0) basis=0; //rounding error
                get_BSplineBasisValues<DataType>(basis, yBasis, yFirst);
 
-#if _USE_SSE
+#if USE_SSE
                val.f[0]=yBasis[0];
                val.f[1]=yBasis[1];
                val.f[2]=yBasis[2];
@@ -1055,7 +1055,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                   if(basis<0) basis=0; //rounding error
                   get_BSplineBasisValues<DataType>(basis, xBasis, xFirst);
 
-#if _USE_SSE
+#if USE_SSE
                   val.f[0]=xBasis[0];
                   val.f[1]=xBasis[1];
                   val.f[2]=xBasis[2];
@@ -1091,7 +1091,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
 
                   if(oldPre[0]!=pre[0] || oldPre[1]!=pre[1] || oldPre[2]!=pre[2])
                   {
-#ifdef _USE_SSE
+#ifdef USE_SSE
                      get_GridValues<DataType>(pre[0],
                            pre[1],
                            pre[2],
@@ -1105,7 +1105,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                            false, // no approx
                            false // not disp
                            );
-#else // _USE_SSE
+#else // USE_SSE
                      get_GridValues<DataType>(pre[0],
                            pre[1],
                            pre[2],
@@ -1119,12 +1119,12 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                            false, // no approx
                            false // not disp
                            );
-#endif // _USE_SSE
+#endif // USE_SSE
                      oldPre[0]=pre[0];
                      oldPre[1]=pre[1];
                      oldPre[2]=pre[2];
                   }
-#if _USE_SSE
+#if USE_SSE
                   tempX_x =  _mm_set_ps1(0);
                   tempX_y =  _mm_set_ps1(0);
                   tempX_z =  _mm_set_ps1(0);
@@ -1278,7 +1278,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
          for(size_t i=0; i<detNumber; ++i)
          {
             double logDet = log(jacDetPtr[i]);
-#ifdef _USE_SQUARE_LOG_JAC
+#ifdef USE_SQUARE_LOG_JAC
             penaltySum += logDet * logDet;
 #else
             penaltySum += fasb(logDet);
@@ -1292,7 +1292,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
          for(size_t i=0; i<detNumber; ++i)
          {
             double logDet = log(jacDetPtr[i]);
-#ifdef _USE_SQUARE_LOG_JAC
+#ifdef USE_SQUARE_LOG_JAC
             penaltySum += logDet * logDet;
 #else
             penaltySum += fasb(logDet);
@@ -1410,7 +1410,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
                         if(detJac>0)
                         {
                            jacobianMatrix = jacobianMatrices[jacIndex];
-#ifdef _USE_SQUARE_LOG_JAC
+#ifdef USE_SQUARE_LOG_JAC
                            detJac = 2.0*log(detJac) / detJac;
 #else
                            detJac = (log(detJac)>0?1.0:-1.0) / detJac;
@@ -1513,7 +1513,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
                               basisValues[1] = xBasis * yFirst ;
 
                               jacobianMatrix = jacobianMatrices[jacIndex];
-#ifdef _USE_SQUARE_LOG_JAC
+#ifdef USE_SQUARE_LOG_JAC
                               detJac= 2.0*log(detJac) / detJac;
 #else
                               detJac = (log(detJac)>0?1.0:-1.0) / detJac;
@@ -1661,7 +1661,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
                                  if(detJac>0)
                                  {
                                     jacobianMatrix = jacobianMatrices[jacIndex];
-#ifdef _USE_SQUARE_LOG_JAC
+#ifdef USE_SQUARE_LOG_JAC
                                     detJac = 2.0*log(detJac) / detJac;
 #else
                                     detJac = (log(detJac)>0?1.0:-1.0) / detJac;
@@ -1787,7 +1787,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
                                        basisValues[2] = xBasis * yBasis * zFirst ;
 
                                        jacobianMatrix = jacobianMatrices[jacIndex];
-#ifdef _USE_SQUARE_LOG_JAC
+#ifdef USE_SQUARE_LOG_JAC
                                        detJac= 2.0*log(detJac) / detJac;
 #else
                                        detJac = (log(detJac)>0?1.0:-1.0) / detJac;
@@ -1931,7 +1931,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
    for(i=0; i< jacobianNumber; i++)
    {
       logDet = log(jacobianDeterminant[i]);
-#ifdef _USE_SQUARE_LOG_JAC
+#ifdef USE_SQUARE_LOG_JAC
       penaltyTerm += logDet*logDet;
 #else
       penaltyTerm +=  fabs(log(logDet));
@@ -2180,7 +2180,7 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
    for(i=0; i< jacobianNumber; i++)
    {
       logDet = log(jacobianDeterminant[i]);
-#ifdef _USE_SQUARE_LOG_JAC
+#ifdef USE_SQUARE_LOG_JAC
       penaltyTerm += logDet*logDet;
 #else
       penaltyTerm +=  fabs(log(logDet));

@@ -18,7 +18,7 @@
 #include "_reg_tools.h"
 
 #include "reg_png.h"
-#ifdef _USE_NRRD
+#ifdef USE_NRRD
 #include "reg_nrrd.h"
 #endif
 /** @defgroup NIFTYREG_FILEFORMAT_TYPE
@@ -27,7 +27,7 @@
  */
 #define NR_NII_FORMAT 0
 #define NR_PNG_FORMAT 1
-#ifdef _USE_NRRD
+#ifdef USE_NRRD
 #define NR_NRRD_FORMAT 2
 #endif
 /* @} */

@@ -20,7 +20,7 @@
 #include <omp.h>
 #endif
 
-#if _USE_SSE
+#if USE_SSE
 #include <emmintrin.h>
 #include <xmmintrin.h>
 #ifdef __SSE3__

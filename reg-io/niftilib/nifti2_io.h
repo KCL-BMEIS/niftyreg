@@ -756,9 +756,9 @@ int    nifti_valid_header_size(int ni_ver, int whine);
 #endif
 
 /*------------------------------------------------------------------------*/
-/*-- the rest of these apply only to nifti2_io.c, check for _NIFTI2_IO_C_ */
+/*-- the rest of these apply only to nifti2_io.c, check for NIFTI2_IO_C */
 
-#ifdef _NIFTI2_IO_C_
+#ifdef NIFTI2_IO_C
 
 typedef struct {
     int debug;               /*!< debug level for status reports  */
@@ -817,7 +817,7 @@ typedef struct {
 #undef NIFTI_IS_16_BIT_INT
 #define NIFTI_IS_16_BIT_INT(x) ((x) <= 32767 && (x) >= -32768)
 
-#endif  /* _NIFTI2_IO_C_ section */
+#endif  /* NIFTI2_IO_C section */
 /*------------------------------------------------------------------------*/
 
 /*=================*/

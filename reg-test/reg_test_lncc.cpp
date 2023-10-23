@@ -1,6 +1,6 @@
 // OpenCL and CUDA are not supported for this test yet
-#undef _USE_OPENCL
-#undef _USE_CUDA
+#undef USE_OPENCL
+#undef USE_CUDA
 
 #include "reg_test_common.h"
 #include "_reg_lncc.h"

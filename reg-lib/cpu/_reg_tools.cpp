@@ -954,7 +954,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                         double bufferIntensityCur = 0;
                         double bufferDensityCur = 0;
 
-#ifdef _USE_SSE
+#ifdef USE_SSE
                         union {
                             __m128 m;
                             float f[4];
@@ -963,7 +963,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
 #endif
 
 #ifdef _OPENMP
-#ifdef _USE_SSE
+#ifdef USE_SSE
 #pragma omp parallel for default(none) \
    shared(imageDims, intensityPtr, densityPtr, radius, kernel, lineOffset, n, planeNumber, kernelSum) \
    private(realIndex, currentIntensityPtr, currentDensityPtr, lineIndex, bufferIntensity, \
@@ -1015,7 +1015,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                     if (shiftPst > imageDims[n]) shiftPst = imageDims[n];
                                     // Set the current values to zero
                                     // Increment the current value by performing the weighted sum
-#ifdef _USE_SSE
+#ifdef USE_SSE
                                     intensity_sum_sse.m = _mm_set_ps1(0);
                                     density_sum_sse.m = _mm_set_ps1(0);
                                     k = shiftPre;

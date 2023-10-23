@@ -517,9 +517,9 @@ int    valid_nifti_extensions(const nifti_image *nim);
 #endif
 
 /*------------------------------------------------------------------------*/
-/*-- the rest of these apply only to nifti1_io.c, check for _NIFTI1_IO_C_ */
+/*-- the rest of these apply only to nifti1_io.c, check for NIFTI1_IO_C */
 /*                                                    Feb 9, 2005 [rickr] */
-#ifdef _NIFTI1_IO_C_
+#ifdef NIFTI1_IO_C
 
 typedef struct {
     int debug;               /*!< debug level for status reports  */
@@ -574,7 +574,7 @@ typedef struct {
 
 #define LNI_MAX_NIA_EXT_LEN 100000  /* consider a longer extension invalid */
 
-#endif  /* _NIFTI1_IO_C_ section */
+#endif  /* NIFTI1_IO_C section */
 /*------------------------------------------------------------------------*/
 
 /*=================*/

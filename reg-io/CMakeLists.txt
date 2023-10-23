@@ -17,7 +17,7 @@ set(LIBRARIES reg_nifti reg_png)
 
 # Build the NRRD file format library if required
 if(USE_NRRD)
-  add_definitions(-D_USE_NRRD)
+  add_definitions(-DUSE_NRRD)
   subdirs(nrrd)
   set(LIBRARIES ${LIBRARIES} reg_nrrd)
 endif(USE_NRRD)

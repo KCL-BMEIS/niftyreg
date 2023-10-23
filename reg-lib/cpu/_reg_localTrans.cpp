@@ -14,7 +14,7 @@
 #include "_reg_maths_eigen.h"
 
 #ifdef BUILD_TESTS
-#undef _USE_SSE
+#undef USE_SSE
 #endif
 
 /* *************************************************************** */
@@ -559,7 +559,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                             int *mask,
                                             bool composition,
                                             bool bspline) {
-#if _USE_SSE
+#if USE_SSE
     union {
         __m128 m;
         float f[4];
@@ -596,13 +596,13 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
         DataType f[16] __attribute__((aligned(16)));
     } xyBasis;
 #endif // _WIN32
-#else // _USE_SSE
+#else // USE_SSE
     DataType xBasis[4];
     DataType yBasis[4];
     DataType xyBasis[16];
     DataType xControlPointCoordinates[16];
     DataType yControlPointCoordinates[16];
-#endif // _USE_SSE
+#endif // USE_SSE
 
     DataType *controlPointPtrX = static_cast<DataType*>(splineControlPoint->data);
     DataType *controlPointPtrY = &controlPointPtrX[NiftiImage::calcVoxelNumber(splineControlPoint, 2)];
@@ -659,7 +659,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                         yVoxel >= 0 && yVoxel <= deformationField->ny - 1) {
                         // The control point positions are extracted
                         if (oldXpre != xPre || oldYpre != yPre) {
-#ifdef _USE_SSE
+#ifdef USE_SSE
                             get_GridValues<DataType>(xPre,
                                                      yPre,
                                                      splineControlPoint,
@@ -669,7 +669,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                                      yControlPointCoordinates.f,
                                                      false,  // no approximation
                                                      false); // not a displacement field
-#else // _USE_SSE
+#else // USE_SSE
                             get_GridValues<DataType>(xPre,
                                                      yPre,
                                                      splineControlPoint,
@@ -679,11 +679,11 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                                      yControlPointCoordinates,
                                                      false,  // no approximation
                                                      false); // not a displacement field
-#endif // _USE_SSE
+#endif // USE_SSE
                             oldXpre = xPre;
                             oldYpre = yPre;
                         }
-#if _USE_SSE
+#if USE_SSE
                         coord = 0;
                         for (b = 0; b < 4; b++)
                             for (a = 0; a < 4; a++)
@@ -722,14 +722,14 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
         }
     } else { // starting deformation field is blank - !composition
 #ifdef _OPENMP
-#ifdef _USE_SSE
+#ifdef USE_SSE
 #pragma  omp parallel for default(none) \
    shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
    controlPointPtrY, mask, fieldPtrX, fieldPtrY, bspline) \
    private(x, a, xPre, yPre, oldXpre, oldYpre, index, xReal, yReal, basis, \
    val, xBasis, yBasis, tempCurrent, xyBasis, tempX, tempY, \
    xControlPointCoordinates, yControlPointCoordinates)
-#else // _USE_SSE
+#else // USE_SSE
 #pragma  omp parallel for default(none) \
    shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
    controlPointPtrY, mask, fieldPtrX, fieldPtrY, bspline) \
@@ -753,7 +753,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                 if (basis < 0) basis = 0; // rounding error
                 if (bspline) get_BSplineBasisValues<DataType>(basis, xBasis);
                 else get_SplineBasisValues<DataType>(basis, xBasis);
-#if _USE_SSE
+#if USE_SSE
                 val.f[0] = static_cast<float>(xBasis[0]);
                 val.f[1] = static_cast<float>(xBasis[1]);
                 val.f[2] = static_cast<float>(xBasis[2]);
@@ -773,7 +773,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                 }
 #endif
                 if (oldXpre != xPre || oldYpre != yPre) {
-#ifdef _USE_SSE
+#ifdef USE_SSE
                     get_GridValues<DataType>(xPre,
                                              yPre,
                                              splineControlPoint,
@@ -783,7 +783,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                              yControlPointCoordinates.f,
                                              false,  // no approximation
                                              false); // not a deformation field
-#else // _USE_SSE
+#else // USE_SSE
                     get_GridValues<DataType>(xPre,
                                              yPre,
                                              splineControlPoint,
@@ -793,7 +793,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                              yControlPointCoordinates,
                                              false,  // no approximation
                                              false); // not a deformation field
-#endif // _USE_SSE
+#endif // USE_SSE
                     oldXpre = xPre;
                     oldYpre = yPre;
                 }
@@ -802,7 +802,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                 yReal = 0;
 
                 if (mask[index] > -1) {
-#if _USE_SSE
+#if USE_SSE
                     tempX = _mm_set_ps1(0);
                     tempY = _mm_set_ps1(0);
                     //addition and multiplication of the 64 basis value and CP displacement for each axis
@@ -837,7 +837,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                             bool composition,
                                             bool bspline,
                                             bool forceNoLut = false) {
-#if _USE_SSE
+#if USE_SSE
     union {
         __m128 m;
         float f[4];
@@ -876,14 +876,14 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
         DataType f[16] __attribute__((aligned(16)));
     } zControlPointCoordinates;
 #endif // _WIN32
-#else // _USE_SSE
+#else // USE_SSE
     DataType temp[4];
     DataType zBasis[4];
     DataType xControlPointCoordinates[64];
     DataType yControlPointCoordinates[64];
     DataType zControlPointCoordinates[64];
     int coord;
-#endif // _USE_SSE
+#endif // USE_SSE
 
     const size_t splineControlPointVoxelNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
     DataType *controlPointPtrX = static_cast<DataType*>(splineControlPoint->data);
@@ -906,7 +906,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
         if (splineControlPoint->sform_code > 0)
             referenceMatrix_real_to_voxel = splineControlPoint->sto_ijk;
         else referenceMatrix_real_to_voxel = splineControlPoint->qto_ijk;
-#ifdef _USE_SSE
+#ifdef USE_SSE
 #ifdef _WIN32
         __declspec(align(16)) DataType xBasis[4];
         __declspec(align(16)) DataType yBasis[4];
@@ -914,14 +914,14 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
         DataType xBasis[4] __attribute__((aligned(16)));
         DataType yBasis[4] __attribute__((aligned(16)));
 #endif
-#else // _USE_SSE
+#else // USE_SSE
         DataType xBasis[4], yBasis[4];
-#endif // _USE_SSE
+#endif // USE_SSE
 
         DataType voxel[3];
 
 #ifdef _OPENMP
-#ifdef _USE_SSE
+#ifdef USE_SSE
 #pragma omp parallel for default(none) \
    private(x, y, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
    index, voxel, basis, xBasis, yBasis, zBasis, xControlPointCoordinates, \
@@ -939,7 +939,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
    shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, referenceMatrix_real_to_voxel, \
    bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
    splineControlPoint, mask)
-#endif // _USE_SSE
+#endif // USE_SSE
 #endif // _OPENMP
         for (z = 0; z < deformationField->nz; z++) {
             index = z * deformationField->nx * deformationField->ny;
@@ -990,7 +990,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
                         // The control point positions are extracted
                         if (xPre != oldPreX || yPre != oldPreY || zPre != oldPreZ) {
-#ifdef _USE_SSE
+#ifdef USE_SSE
                             get_GridValues<DataType>(xPre,
                                                      yPre,
                                                      zPre,
@@ -1003,7 +1003,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                                      zControlPointCoordinates.f,
                                                      false,  // no approximation
                                                      false); // not a deformation field
-#else // _USE_SSE
+#else // USE_SSE
                             get_GridValues<DataType>(xPre,
                                                      yPre,
                                                      zPre,
@@ -1016,13 +1016,13 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                                      zControlPointCoordinates,
                                                      false,  // no approximation
                                                      false); // not a deformation field
-#endif // _USE_SSE
+#endif // USE_SSE
                             oldPreX = xPre;
                             oldPreY = yPre;
                             oldPreZ = zPre;
                         }
 
-#if _USE_SSE
+#if USE_SSE
                         tempX = _mm_set_ps1(0);
                         tempY = _mm_set_ps1(0);
                         tempZ = _mm_set_ps1(0);
@@ -1083,7 +1083,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
         gridVoxelSpacing[1] = splineControlPoint->dy / deformationField->dy;
         gridVoxelSpacing[2] = splineControlPoint->dz / deformationField->dz;
 
-#ifdef _USE_SSE
+#ifdef USE_SSE
 #ifdef _WIN32
         union u1 {
             __m128 m[4];
@@ -1103,9 +1103,9 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
             DataType f[64] __attribute__((aligned(16)));
         } xyzBasis;
 #endif // _WIN32
-#else // _USE_SSE
+#else // USE_SSE
         DataType yzBasis[16], xyzBasis[64];
-#endif // _USE_SSE
+#endif // USE_SSE
 
         // Assess if lookup table can be used
         if (gridVoxelSpacing[0] == 5. && gridVoxelSpacing[0] == 5. && gridVoxelSpacing[0] == 5. && forceNoLut == false) {
@@ -1114,15 +1114,15 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
             // Compute and store all required coefficients
             int coeff_index;
 #ifdef _OPENMP
-#ifdef _USE_SSE
+#ifdef USE_SSE
 #pragma omp parallel for default(none) \
     private(x, y, a, coeff_index, basis, zBasis, temp, val, tempCurrent, yzBasis) \
     shared(coefficients, bspline)
-#else //  _USE_SSE
+#else //  USE_SSE
 #pragma omp parallel for default(none) \
     private(x, y, a, coeff_index, basis, zBasis, temp, yzBasis, coord) \
     shared(coefficients, bspline)
-#endif // _USE_SSE
+#endif // USE_SSE
 #endif // _OPENMP
             for (z = 0; z < 5; ++z) {
                 coeff_index = z * 5 * 5 * 64;
@@ -1133,7 +1133,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                     basis = static_cast<DataType>(y) / 5.f;
                     if (bspline) get_BSplineBasisValues<DataType>(basis, temp);
                     else get_SplineBasisValues<DataType>(basis, temp);
-#if _USE_SSE
+#if USE_SSE
                     val.f[0] = static_cast<float>(temp[0]);
                     val.f[1] = static_cast<float>(temp[1]);
                     val.f[2] = static_cast<float>(temp[2]);
@@ -1157,7 +1157,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                         basis = static_cast<DataType>(x) / 5.f;
                         if (bspline) get_BSplineBasisValues<DataType>(basis, temp);
                         else get_SplineBasisValues<DataType>(basis, temp);
-#if _USE_SSE
+#if USE_SSE
                         val.f[0] = static_cast<float>(temp[0]);
                         val.f[1] = static_cast<float>(temp[1]);
                         val.f[2] = static_cast<float>(temp[2]);
@@ -1184,11 +1184,11 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
             } // z
 
             // Loop over block of 5x5x5 voxels
-#if _USE_SSE
+#if USE_SSE
             int coord;
 #endif // USE_SSE
 #ifdef _OPENMP
-#ifdef _USE_SSE
+#ifdef USE_SSE
 #pragma omp parallel for default(none) \
    private(x, y, z, a, b, c, xPre, yPre, real, \
    index, coeff_index, coord, tempX, tempY, tempZ, val,\
@@ -1196,7 +1196,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
    shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
    gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
    coefficients)
-#else //  _USE_SSE
+#else //  USE_SSE
 #pragma omp parallel for default(none) \
    private(x, y, z, a, b, c, xPre, yPre, real, \
    index, coeff_index, coord, basis, \
@@ -1204,12 +1204,12 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
    shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
    gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
    coefficients)
-#endif // _USE_SSE
+#endif // USE_SSE
 #endif // _OPENMP
             for (zPre = 0; zPre < splineControlPoint->nz - 3; zPre++) {
                 for (yPre = 0; yPre < splineControlPoint->ny - 3; yPre++) {
                     for (xPre = 0; xPre < splineControlPoint->nx - 3; xPre++) {
-#if _USE_SSE
+#if USE_SSE
                         get_GridValues<DataType>(xPre,
                                                  yPre,
                                                  zPre,
@@ -1222,7 +1222,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                                  zControlPointCoordinates.f,
                                                  false,  // no approximation
                                                  false); // not a deformation field
-#else // _USE_SSE
+#else // USE_SSE
                         get_GridValues<DataType>(xPre,
                                                  yPre,
                                                  zPre,
@@ -1235,7 +1235,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                                  zControlPointCoordinates,
                                                  false,  // no approximation
                                                  false); // not a deformation field
-#endif // _USE_SSE
+#endif // USE_SSE
                         coeff_index = 0;
                         for (c = 0; c < 5; ++c) {
                             z = zPre * 5 + c;
@@ -1247,7 +1247,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                         for (a = 0; a < 5; ++a) {
                                             x = xPre * 5 + a;
                                             if (x<deformationField->nx && mask[index]>-1) {
-#if _USE_SSE
+#if USE_SSE
                                                 tempX = _mm_set_ps1(0);
                                                 tempY = _mm_set_ps1(0);
                                                 tempZ = _mm_set_ps1(0);
@@ -1276,7 +1276,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                                 val.m = tempZ;
                                                 real[2] = val.f[0] + val.f[1] + val.f[2] + val.f[3];
 #endif
-#else // _USE_SSE
+#else // USE_SSE
                                                 real[0] = real[1] = real[2] = 0;
                                                 for (coord = 0; coord < 64; ++coord) {
                                                     basis = coefficients[coeff_index++];
@@ -1284,7 +1284,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                                     real[1] += yControlPointCoordinates[coord] * basis;
                                                     real[2] += zControlPointCoordinates[coord] * basis;
                                                 }
-#endif // _USE_SSE
+#endif // USE_SSE
                                                 fieldPtrX[index] = real[0];
                                                 fieldPtrY[index] = real[1];
                                                 fieldPtrZ[index] = real[2];
@@ -1304,7 +1304,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
             free(coefficients);
         } else { // if spacings!=5 voxels
 #ifdef _OPENMP
-#ifdef _USE_SSE
+#ifdef USE_SSE
 #pragma omp parallel for default(none) \
     private(x, y, a, xPre, yPre, zPre, real, \
     index, basis, xyzBasis, yzBasis, zBasis, temp, xControlPointCoordinates, \
@@ -1313,14 +1313,14 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
     temp_basis_sse, basis_sse, val, tempCurrent) \
     shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
     gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ)
-#else //  _USE_SSE
+#else //  USE_SSE
 #pragma omp parallel for default(none) \
     private(x, y, a, xPre, yPre, zPre, real, \
     index, basis, xyzBasis, yzBasis, zBasis, temp, xControlPointCoordinates, \
     yControlPointCoordinates, zControlPointCoordinates, oldBasis, coord) \
     shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
     gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ)
-#endif // _USE_SSE
+#endif // USE_SSE
 #endif // _OPENMP
             for (z = 0; z < deformationField->nz; z++) {
                 index = z * deformationField->nx * deformationField->ny;
@@ -1338,7 +1338,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                     if (basis < 0) basis = 0; //rounding error
                     if (bspline) get_BSplineBasisValues<DataType>(basis, temp);
                     else get_SplineBasisValues<DataType>(basis, temp);
-#if _USE_SSE
+#if USE_SSE
                     val.f[0] = static_cast<float>(temp[0]);
                     val.f[1] = static_cast<float>(temp[1]);
                     val.f[2] = static_cast<float>(temp[2]);
@@ -1363,7 +1363,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                         if (basis < 0) basis = 0; //rounding error
                         if (bspline) get_BSplineBasisValues<DataType>(basis, temp);
                         else get_SplineBasisValues<DataType>(basis, temp);
-#if _USE_SSE
+#if USE_SSE
                         val.f[0] = static_cast<float>(temp[0]);
                         val.f[1] = static_cast<float>(temp[1]);
                         val.f[2] = static_cast<float>(temp[2]);
@@ -1383,7 +1383,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                         }
 #endif
                         if (basis <= oldBasis || x == 0) {
-#ifdef _USE_SSE
+#ifdef USE_SSE
                             get_GridValues<DataType>(xPre,
                                                      yPre,
                                                      zPre,
@@ -1396,7 +1396,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                                      zControlPointCoordinates.f,
                                                      false,  // no approximation
                                                      false); // not a deformation field
-#else // _USE_SSE
+#else // USE_SSE
                             get_GridValues<DataType>(xPre,
                                                      yPre,
                                                      zPre,
@@ -1409,7 +1409,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                                      zControlPointCoordinates,
                                                      false,  // no approximation
                                                      false); // not a deformation field
-#endif // _USE_SSE
+#endif // USE_SSE
                         }
                         oldBasis = basis;
 
@@ -1418,7 +1418,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
                         real[2] = 0;
 
                         if (mask[index] > -1) {
-#if _USE_SSE
+#if USE_SSE
                             tempX = _mm_set_ps1(0);
                             tempY = _mm_set_ps1(0);
                             tempZ = _mm_set_ps1(0);
@@ -1463,7 +1463,7 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
     if (splineControlPoint->datatype != deformationField->datatype)
         NR_FATAL_ERROR("The spline control point image and the deformation field image are expected to be of the same type");
 
-#if _USE_SSE
+#if USE_SSE
     if (splineControlPoint->datatype != NIFTI_TYPE_FLOAT32)
         NR_FATAL_ERROR("SSE computation has only been implemented for single precision");
 #endif
@@ -3056,12 +3056,12 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
                                   bool bspline) {
     // REMINDER Grid2(x)=Grid1(Grid2(x))
 
-#if _USE_SSE
+#if USE_SSE
     union {
         __m128 m;
         float f[4];
     } val;
-#endif // _USE_SSE
+#endif // USE_SSE
 
     DataType *outCPPPtrX = static_cast<DataType*>(grid2->data);
     DataType *outCPPPtrY = &outCPPPtrX[NiftiImage::calcVoxelNumber(grid2, 2)];
@@ -3074,18 +3074,18 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
 #ifdef _WIN32
     __declspec(align(16)) DataType xBasis[4];
     __declspec(align(16)) DataType yBasis[4];
-#if _USE_SSE
+#if USE_SSE
     __declspec(align(16)) DataType xyBasis[16];
-#endif  //_USE_SSE
+#endif  //USE_SSE
 
     __declspec(align(16)) DataType xControlPointCoordinates[16];
     __declspec(align(16)) DataType yControlPointCoordinates[16];
 #else // _WIN32
     DataType xBasis[4] __attribute__((aligned(16)));
     DataType yBasis[4] __attribute__((aligned(16)));
-#if _USE_SSE
+#if USE_SSE
     DataType xyBasis[16] __attribute__((aligned(16)));
-#endif  //_USE_SSE
+#endif  //USE_SSE
 
     DataType xControlPointCoordinates[16] __attribute__((aligned(16)));
     DataType yControlPointCoordinates[16] __attribute__((aligned(16)));
@@ -3153,7 +3153,7 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
                                      displacement1); // displacement field?
             xReal = 0;
             yReal = 0;
-#if _USE_SSE
+#if USE_SSE
             coord = 0;
             for (unsigned b = 0; b < 4; b++) {
                 for (unsigned a = 0; a < 4; a++) {
@@ -3206,7 +3206,7 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
                                   bool displacement2,
                                   bool bspline) {
     // REMINDER Grid2(x)=Grid1(Grid2(x))
-#if _USE_SSE
+#if USE_SSE
     union {
         __m128 m;
         float f[4];
@@ -3272,7 +3272,7 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
     else matrix_voxel_to_real2 = &grid2->qto_xyz;
 
 #ifdef _OPENMP
-#ifdef _USE_SSE
+#ifdef USE_SSE
 #pragma omp parallel for default(none) \
    shared(grid1, grid2, displacement1, displacement2, matrix_voxel_to_real2, matrix_real_to_voxel1, \
    outCPPPtrX, outCPPPtrY, outCPPPtrZ, controlPointPtrX, controlPointPtrY, controlPointPtrZ, bspline) \
@@ -3380,7 +3380,7 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
                 xReal = 0;
                 yReal = 0;
                 zReal = 0;
-#if _USE_SSE
+#if USE_SSE
                 val.f[0] = static_cast<float>(xBasis[0]);
                 val.f[1] = static_cast<float>(xBasis[1]);
                 val.f[2] = static_cast<float>(xBasis[2]);
@@ -3450,7 +3450,7 @@ int reg_spline_cppComposition(nifti_image *grid1,
     if (grid1->datatype != grid2->datatype)
         NR_FATAL_ERROR("Both input images are expected to have the same data type");
 
-#if _USE_SSE
+#if USE_SSE
     if (grid1->datatype != NIFTI_TYPE_FLOAT32)
         NR_FATAL_ERROR("SSE computation has only been implemented for single precision");
 #endif
