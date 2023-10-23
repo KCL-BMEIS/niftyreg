@@ -1,10 +1,7 @@
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
   add_subdirectory(cuda)
-  set(NR_CUDA_LIBRARIES
-    CudaCommon
-    _reg_cuda_kernels
-  )
+  set(NR_CUDA_LIBRARIES _reg_cuda_kernels)
 endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 if(USE_OPENCL)

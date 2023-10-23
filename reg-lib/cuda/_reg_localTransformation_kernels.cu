@@ -14,40 +14,40 @@
 
 /* *************************************************************** */
 __device__ void GetBasisBSplineValues(const double basis, float *values) {
-    const double ff = basis * basis;
-    const double fff = basis * basis * basis;
+    const double ff = Square(basis);
+    const double fff = Cube(basis);
     const double mf = 1.0 - basis;
-    values[0] = static_cast<float>(mf * mf * mf / 6.0);
+    values[0] = static_cast<float>(Cube(mf) / 6.0);
     values[1] = static_cast<float>((3.0 * fff - 6.0 * ff + 4.0) / 6.0);
     values[2] = static_cast<float>((-3.0 * fff + 3.0 * ff + 3.0 * basis + 1.0) / 6.0);
     values[3] = static_cast<float>(fff / 6.0);
 }
 /* *************************************************************** */
-__device__ void GetFirstBSplineValues(const float& basis, float *values, float *first) {
+__device__ void GetFirstBSplineValues(const float basis, float *values, float *first) {
     GetBasisBSplineValues(basis, values);
-    first[3] = basis * basis / 2.f;
+    first[3] = Square(basis) / 2.f;
     first[0] = basis - 0.5f - first[3];
     first[2] = 1.f + first[0] - 2.f * first[3];
     first[1] = -first[0] - first[2] - first[3];
 }
 /* *************************************************************** */
-__device__ void GetBasisSplineValues(const float& basis, float *values) {
-    const float ff = basis * basis;
+__device__ void GetBasisSplineValues(const float basis, float *values) {
+    const float ff = Square(basis);
     values[0] = (basis * ((2.f - basis) * basis - 1.f)) / 2.f;
     values[1] = (ff * (3.f * basis - 5.f) + 2.f) / 2.f;
     values[2] = (basis * ((4.f - 3.f * basis) * basis + 1.f)) / 2.f;
     values[3] = (basis - 1.f) * ff / 2.f;
 }
 /* *************************************************************** */
-__device__ void GetBasisSplineValuesX(const float& basis, float4 *values) {
-    const float ff = basis * basis;
+__device__ void GetBasisSplineValuesX(const float basis, float4 *values) {
+    const float ff = Square(basis);
     values->x = (basis * ((2.f - basis) * basis - 1.f)) / 2.f;
     values->y = (ff * (3.f * basis - 5.f) + 2.f) / 2.f;
     values->z = (basis * ((4.f - 3.f * basis) * basis + 1.f)) / 2.f;
     values->w = (basis - 1.f) * ff / 2.f;
 }
 /* *************************************************************** */
-__device__ void GetBSplineBasisValue(const float& basis, const int& index, float *value, float *first) {
+__device__ void GetBSplineBasisValue(const float basis, const int index, float *value, float *first) {
     switch (index) {
     case 0:
         *value = (1.f - basis) * (1.f - basis) * (1.f - basis) / 6.f;
@@ -72,7 +72,7 @@ __device__ void GetBSplineBasisValue(const float& basis, const int& index, float
     }
 }
 /* *************************************************************** */
-__device__ void GetFirstDerivativeBasisValues2D(const int& index, float *xBasis, float *yBasis) {
+__device__ void GetFirstDerivativeBasisValues2D(const int index, float *xBasis, float *yBasis) {
     switch (index) {
     case 0: xBasis[0] = -0.0833333f; yBasis[0] = -0.0833333f; break;
     case 1: xBasis[1] = 0.f; yBasis[1] = -0.333333f; break;
@@ -86,7 +86,7 @@ __device__ void GetFirstDerivativeBasisValues2D(const int& index, float *xBasis,
     }
 }
 /* *************************************************************** */
-__device__ void GetFirstDerivativeBasisValues3D(const int& index, float *xBasis, float *yBasis, float *zBasis) {
+__device__ void GetFirstDerivativeBasisValues3D(const int index, float *xBasis, float *yBasis, float *zBasis) {
     switch (index) {
     case 0: xBasis[0] = -0.013889f; yBasis[0] = -0.013889f; zBasis[0] = -0.013889f; break;
     case 1: xBasis[1] = 0.000000f; yBasis[1] = -0.055556f; zBasis[1] = -0.055556f; break;
@@ -118,7 +118,7 @@ __device__ void GetFirstDerivativeBasisValues3D(const int& index, float *xBasis,
     }
 }
 /* *************************************************************** */
-__device__ void GetSecondDerivativeBasisValues2D(const int& index, float *xxBasis, float *yyBasis, float *xyBasis) {
+__device__ void GetSecondDerivativeBasisValues2D(const int index, float *xxBasis, float *yyBasis, float *xyBasis) {
     switch (index) {
     case 0: xxBasis[0] = 0.166667f; yyBasis[0] = 0.166667f; xyBasis[0] = 0.25f; break;
     case 1: xxBasis[1] = -0.333333f; yyBasis[1] = 0.666667f; xyBasis[1] = -0.f; break;
@@ -132,7 +132,7 @@ __device__ void GetSecondDerivativeBasisValues2D(const int& index, float *xxBasi
     }
 }
 /* *************************************************************** */
-__device__ void GetSecondDerivativeBasisValues3D(const int& index,
+__device__ void GetSecondDerivativeBasisValues3D(const int index,
                                                  float *xxBasis,
                                                  float *yyBasis,
                                                  float *zzBasis,

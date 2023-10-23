@@ -11,7 +11,8 @@
  */
 
 /* *************************************************************** */
-__inline__ __device__ void InterpLinearKernel(float relative, float (&basis)[2]) {
+template<typename T>
+__inline__ __device__ void InterpLinearKernel(T relative, T (&basis)[2]) {
     if (relative < 0)
         relative = 0;  // reg_rounding error
     basis[1] = relative;

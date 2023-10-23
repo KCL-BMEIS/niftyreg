@@ -33,10 +33,10 @@ else(NOT COMPILE_RESULT_VAR)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_${CAPABILITY_CODE},code=sm_${CAPABILITY_CODE}")
     # If desired, add PIC flags
     if(CMAKE_POSITION_INDEPENDENT_CODE AND DEFINED CMAKE_C_COMPILE_OPTIONS_PIC)
-        # add (undocumented) CMake flag that should tell the host compiler to generate position independent code
+        # Add (undocumented) CMake flag that should tell the host compiler to generate position independent code
         set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --compiler-options ${CMAKE_C_COMPILE_OPTIONS_PIC}")
     endif()
-    #adjust for debug and release versions
+    # Adjust for debug and release versions
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --ptxas-options=-v -g -G")
     else(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -48,19 +48,10 @@ else(NOT COMPILE_RESULT_VAR)
     endif(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUAL "OFF")
 endif(NOT COMPILE_RESULT_VAR)
 #-----------------------------------------------------------------------------
-set(NAME CudaCommon)
-cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.cu)
-target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
-install(TARGETS ${NAME}
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-)
-set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};${NAME}")
-#-----------------------------------------------------------------------------
 set(NAME _reg_cuda_kernels)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaAladinContent.cpp
+    CudaCommon.cu
     CudaCompute.cu
     CudaContent.cpp
     CudaContext.cpp
@@ -87,7 +78,7 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     _reg_ssd_gpu.cu
     _reg_optimiser_gpu.cu
 )
-target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} CudaCommon)
+target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
 install(TARGETS ${NAME}
     RUNTIME DESTINATION lib
     LIBRARY DESTINATION lib

@@ -364,6 +364,8 @@ void reg_getNMIValue(const nifti_image *referenceImage,
         } // if active time point
     } // iterate over all time point in the reference image
 }
+template void reg_getNMIValue<float>(const nifti_image*, const nifti_image*, const double*, const unsigned short*, const unsigned short*, const unsigned short*, double**, double**, double**, const int*, const bool);
+template void reg_getNMIValue<double>(const nifti_image*, const nifti_image*, const double*, const unsigned short*, const unsigned short*, const unsigned short*, double**, double**, double**, const int*, const bool);
 /* *************************************************************** */
 double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  const nifti_image *warpedImage,

@@ -10,7 +10,6 @@
  *
  */
 
-#include <cmath>
 #include "_reg_localTrans.h"
 #include "_reg_maths_eigen.h"
 
@@ -605,7 +604,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
     DataType *controlPointPtrY = &controlPointPtrX[NiftiImage::calcVoxelNumber(splineControlPoint, 2)];
 
     DataType *fieldPtrX = static_cast<DataType*>(deformationField->data);
-    DataType *fieldPtrY = &fieldPtrX[NiftiImage::calcVoxelNumber(deformationField, 3)];
+    DataType *fieldPtrY = &fieldPtrX[NiftiImage::calcVoxelNumber(deformationField, 2)];
 
     DataType gridVoxelSpacing[2];
     gridVoxelSpacing[0] = splineControlPoint->dx / deformationField->dx;
@@ -624,65 +623,62 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
 
         for (y = 0; y < deformationField->ny; y++) {
             index = y * deformationField->nx;
-            oldXpre = oldYpre = 99999999;
+            oldXpre = oldYpre = -99;
             for (x = 0; x < deformationField->nx; x++) {
-                // The previous position at the current pixel position is read
-                xReal = static_cast<DataType>(fieldPtrX[index]);
-                yReal = static_cast<DataType>(fieldPtrY[index]);
+                if (mask[index] > -1) {
+                    // The previous position at the current pixel position is read
+                    xReal = fieldPtrX[index];
+                    yReal = fieldPtrY[index];
 
-                // From real to pixel position in the CPP
-                xVoxel = referenceMatrix_real_to_voxel->m[0][0] * xReal
-                    + referenceMatrix_real_to_voxel->m[0][1] * yReal
-                    + referenceMatrix_real_to_voxel->m[0][3];
-                yVoxel = referenceMatrix_real_to_voxel->m[1][0] * xReal
-                    + referenceMatrix_real_to_voxel->m[1][1] * yReal
-                    + referenceMatrix_real_to_voxel->m[1][3];
+                    // From real to pixel position in the CPP
+                    xVoxel = referenceMatrix_real_to_voxel->m[0][0] * xReal
+                        + referenceMatrix_real_to_voxel->m[0][1] * yReal
+                        + referenceMatrix_real_to_voxel->m[0][3];
+                    yVoxel = referenceMatrix_real_to_voxel->m[1][0] * xReal
+                        + referenceMatrix_real_to_voxel->m[1][1] * yReal
+                        + referenceMatrix_real_to_voxel->m[1][3];
 
-                // The spline coefficients are computed
-                xPre = Floor(xVoxel);
-                basis = xVoxel - static_cast<DataType>(xPre--);
-                if (basis < 0) basis = 0; //rounding error
-                if (bspline) get_BSplineBasisValues<DataType>(basis, xBasis);
-                else get_SplineBasisValues<DataType>(basis, xBasis);
+                    // The spline coefficients are computed
+                    xPre = Floor(xVoxel);
+                    basis = xVoxel - static_cast<DataType>(xPre--);
+                    if (basis < 0) basis = 0; //rounding error
+                    if (bspline) get_BSplineBasisValues<DataType>(basis, xBasis);
+                    else get_SplineBasisValues<DataType>(basis, xBasis);
 
-                yPre = Floor(yVoxel);
-                basis = yVoxel - static_cast<DataType>(yPre--);
-                if (basis < 0) basis = 0; //rounding error
-                if (bspline) get_BSplineBasisValues<DataType>(basis, yBasis);
-                else get_SplineBasisValues<DataType>(basis, yBasis);
+                    yPre = Floor(yVoxel);
+                    basis = yVoxel - static_cast<DataType>(yPre--);
+                    if (basis < 0) basis = 0; //rounding error
+                    if (bspline) get_BSplineBasisValues<DataType>(basis, yBasis);
+                    else get_SplineBasisValues<DataType>(basis, yBasis);
 
-                if (xVoxel >= 0 && xVoxel <= deformationField->nx - 1 &&
-                    yVoxel >= 0 && yVoxel <= deformationField->ny - 1) {
-                    // The control point positions are extracted
-                    if (oldXpre != xPre || oldYpre != yPre) {
+                    if (xVoxel >= 0 && xVoxel <= deformationField->nx - 1 &&
+                        yVoxel >= 0 && yVoxel <= deformationField->ny - 1) {
+                        // The control point positions are extracted
+                        if (oldXpre != xPre || oldYpre != yPre) {
 #ifdef _USE_SSE
-                        get_GridValues<DataType>(xPre,
-                                                 yPre,
-                                                 splineControlPoint,
-                                                 controlPointPtrX,
-                                                 controlPointPtrY,
-                                                 xControlPointCoordinates.f,
-                                                 yControlPointCoordinates.f,
-                                                 false,  // no approximation
-                                                 false); // not a displacement field
+                            get_GridValues<DataType>(xPre,
+                                                     yPre,
+                                                     splineControlPoint,
+                                                     controlPointPtrX,
+                                                     controlPointPtrY,
+                                                     xControlPointCoordinates.f,
+                                                     yControlPointCoordinates.f,
+                                                     false,  // no approximation
+                                                     false); // not a displacement field
 #else // _USE_SSE
-                        get_GridValues<DataType>(xPre,
-                                                 yPre,
-                                                 splineControlPoint,
-                                                 controlPointPtrX,
-                                                 controlPointPtrY,
-                                                 xControlPointCoordinates,
-                                                 yControlPointCoordinates,
-                                                 false,  // no approximation
-                                                 false); // not a displacement field
+                            get_GridValues<DataType>(xPre,
+                                                     yPre,
+                                                     splineControlPoint,
+                                                     controlPointPtrX,
+                                                     controlPointPtrY,
+                                                     xControlPointCoordinates,
+                                                     yControlPointCoordinates,
+                                                     false,  // no approximation
+                                                     false); // not a displacement field
 #endif // _USE_SSE
-                        oldXpre = xPre;
-                        oldYpre = yPre;
-                    }
-                    xReal = 0;
-                    yReal = 0;
-
-                    if (mask[index] > -1) {
+                            oldXpre = xPre;
+                            oldYpre = yPre;
+                        }
 #if _USE_SSE
                         coord = 0;
                         for (b = 0; b < 4; b++) {
@@ -704,6 +700,8 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
                         val.m = tempY;
                         yReal = val.f[0] + val.f[1] + val.f[2] + val.f[3];
 #else
+                        xReal = 0;
+                        yReal = 0;
                         for (b = 0; b < 4; b++) {
                             for (a = 0; a < 4; a++) {
                                 DataType tempValue = xBasis[a] * yBasis[b];
@@ -714,8 +712,8 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
 #endif
                     }
 
-                    fieldPtrX[index] = (DataType)xReal;
-                    fieldPtrY[index] = (DataType)yReal;
+                    fieldPtrX[index] = xReal;
+                    fieldPtrY[index] = yReal;
                 }
                 index++;
             }
@@ -739,7 +737,7 @@ void reg_cubic_spline_getDeformationField2D(nifti_image *splineControlPoint,
 #endif // _OPENMP
         for (y = 0; y < deformationField->ny; y++) {
             index = y * deformationField->nx;
-            oldXpre = oldYpre = 9999999;
+            oldXpre = oldYpre = -99;
 
             yPre = static_cast<int>(static_cast<DataType>(y) / gridVoxelSpacing[1]);
             basis = static_cast<DataType>(y) / gridVoxelSpacing[1] - static_cast<DataType>(yPre);
@@ -943,9 +941,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 #endif // _OPENMP
         for (z = 0; z < deformationField->nz; z++) {
             index = z * deformationField->nx * deformationField->ny;
-            oldPreX = -99;
-            oldPreY = -99;
-            oldPreZ = -99;
+            oldPreX = oldPreY = oldPreZ = -99;
             for (y = 0; y < deformationField->ny; y++) {
                 for (x = 0; x < deformationField->nx; x++) {
                     if (mask[index] > -1) {
