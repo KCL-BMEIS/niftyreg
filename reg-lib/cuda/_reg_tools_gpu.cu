@@ -47,12 +47,15 @@ void reg_voxelCentricToNodeCentric_gpu(const nifti_image *nodeImage,
     // The information has to be reoriented
     // Voxel to millimetre contains the orientation of the image that is used
     // to compute the spatial gradient (floating image)
-    mat33 reorientation = reg_mat44_to_mat33(voxelToMillimetre);
-    if (nodeImage->num_ext > 0 && nodeImage->ext_list[0].edata) {
-        mat33 temp = reg_mat44_to_mat33(reinterpret_cast<mat44*>(nodeImage->ext_list[0].edata));
-        temp = nifti_mat33_inverse(temp);
-        reorientation = nifti_mat33_mul(temp, reorientation);
-    }
+    mat33 reorientation;
+    if (voxelToMillimetre) {
+        reorientation = reg_mat44_to_mat33(voxelToMillimetre);
+        if (nodeImage->num_ext > 0 && nodeImage->ext_list[0].edata) {
+            mat33 temp = reg_mat44_to_mat33(reinterpret_cast<mat44*>(nodeImage->ext_list[0].edata));
+            temp = nifti_mat33_inverse(temp);
+            reorientation = nifti_mat33_mul(temp, reorientation);
+        }
+    } else reg_mat33_eye(&reorientation);
     // The information has to be weighted
     float ratio[3] = { nodeImage->dx, nodeImage->dy, nodeImage->dz };
     for (int i = 0; i < (is3d ? 3 : 2); ++i) {
@@ -69,8 +72,9 @@ void reg_voxelCentricToNodeCentric_gpu(const nifti_image *nodeImage,
     const unsigned grids = (unsigned)Ceil(sqrtf((float)nodeNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
-    reg_voxelCentric2NodeCentric_kernel<<<gridDims, blockDims>>>(nodeImageCuda, *voxelImageTexture, (unsigned)nodeNumber, nodeImageDims,
-                                                                 voxelImageDims, is3d, weight, transformation, reorientation);
+    auto voxelCentricToNodeCentricKernel = is3d ? reg_voxelCentricToNodeCentric_kernel<true> : reg_voxelCentricToNodeCentric_kernel<false>;
+    voxelCentricToNodeCentricKernel<<<gridDims, blockDims>>>(nodeImageCuda, *voxelImageTexture, (unsigned)nodeNumber, nodeImageDims,
+                                                             voxelImageDims, weight, transformation, reorientation);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */

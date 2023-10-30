@@ -13,7 +13,7 @@
 class VoxelCentricToNodeCentricTest {
 protected:
     using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage>;
-    using TestCase = std::tuple<unique_ptr<Platform>, unique_ptr<F3dContent>, TestData, std::array<mat44, 4>, float>;
+    using TestCase = std::tuple<std::string, NiftiImage, NiftiImage>;
 
     inline static vector<TestCase> testCases;
 
@@ -85,11 +85,44 @@ public:
                 unique_ptr<Platform> platform{ new Platform(platformType) };
                 unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
                 // Make a copy of the test data
-                auto td = testData;
-                auto&& [testName, reference, controlPointGrid, voxelBasedMeasureGradient] = td;
-                // Add content
+                auto [testName, reference, controlPointGrid, voxelBasedMeasureGradient] = testData;
+                // Create the content
                 unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
-                testCases.push_back({ std::move(platform), std::move(content), std::move(td), matrices, distr(gen) });
+
+                // Set the matrices required for computation
+                nifti_image *floating = content->Content::GetFloating();
+                if (floating->sform_code > 0)
+                    floating->sto_ijk = matrices[0];
+                else floating->qto_ijk = matrices[0];
+                NiftiImage transGrad = content->F3dContent::GetTransformationGradient();
+                static int sfc = 0;
+                transGrad->sform_code = sfc++ % 2;
+                if (transGrad->sform_code > 0)
+                    transGrad->sto_xyz = matrices[1];
+                else transGrad->qto_xyz = matrices[1];
+                const mat44 invMatrix = nifti_mat44_inverse(matrices[2]);
+                nifti_add_extension(transGrad, reinterpret_cast<const char*>(&invMatrix), sizeof(invMatrix), NIFTI_ECODE_IGNORE);
+
+                // Set the voxel-based measure gradient to host the computation
+                NiftiImage voxelGrad = content->F3dContent::GetVoxelBasedMeasureGradient();
+                if (voxelGrad->sform_code > 0)
+                    voxelGrad->sto_ijk = matrices[3];
+                else voxelGrad->qto_ijk = matrices[3];
+                voxelGrad.copyData(voxelBasedMeasureGradient);
+                content->UpdateVoxelBasedMeasureGradient();
+
+                // Compute the expected node-based NMI gradient
+                const float weight = distr(gen);
+                NiftiImage expTransGrad(transGrad, NiftiImage::Copy::ImageInfoAndAllocData);
+                VoxelCentricToNodeCentric<float>(floating, expTransGrad, voxelGrad, weight);
+                transGrad.disown(); voxelGrad.disown();
+
+                // Extract the node-based NMI gradient from the voxel-based NMI gradient
+                unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
+                compute->VoxelCentricToNodeCentric(weight);
+                transGrad = NiftiImage(content->GetTransformationGradient(), NiftiImage::Copy::Image);
+
+                testCases.push_back({ testName + " "s + platform->GetName() + " Weight="s + std::to_string(weight), std::move(transGrad), std::move(expTransGrad) });
             }
         }
     }
@@ -214,58 +247,33 @@ public:
     }
 };
 
-TEST_CASE_METHOD(VoxelCentricToNodeCentricTest, "Voxel centric to node centric", "[VoxelCentricToNodeCentric]") {
+TEST_CASE_METHOD(VoxelCentricToNodeCentricTest, "Voxel Centric to Node Centric", "[unit]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
-        auto&& [platform, content, testData, matrices, weight] = testCase;
-        auto&& [testName, reference, controlPointGrid, voxelBasedMeasureGradient] = testData;
-        const std::string sectionName = testName + " " + platform->GetName() + " weight=" + std::to_string(weight);
+        auto&& [sectionName, transGrad, expTransGrad] = testCase;
 
         SECTION(sectionName) {
             NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
-            // Set the matrices required for computation
-            nifti_image *floating = content->Content::GetFloating();
-            if (floating->sform_code > 0)
-                floating->sto_ijk = matrices[0];
-            else floating->qto_ijk = matrices[0];
-            NiftiImage transGrad = content->F3dContent::GetTransformationGradient();
-            static int sfc = 0;
-            transGrad->sform_code = sfc++ % 2;
-            if (transGrad->sform_code > 0)
-                transGrad->sto_xyz = matrices[1];
-            else transGrad->qto_xyz = matrices[1];
-            const mat44 invMatrix = nifti_mat44_inverse(matrices[2]);
-            nifti_add_extension(transGrad, reinterpret_cast<const char*>(&invMatrix), sizeof(invMatrix), NIFTI_ECODE_IGNORE);
 
-            // Set the voxel-based measure gradient to host the computation
-            NiftiImage voxelGrad = content->F3dContent::GetVoxelBasedMeasureGradient();
-            if (voxelGrad->sform_code > 0)
-                voxelGrad->sto_ijk = matrices[3];
-            else voxelGrad->qto_ijk = matrices[3];
-            voxelGrad.copyData(voxelBasedMeasureGradient);
-            content->UpdateVoxelBasedMeasureGradient();
-
-            // Extract the node-based NMI gradient from the voxel-based NMI gradient
-            unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
-            compute->VoxelCentricToNodeCentric(weight);
-            NiftiImage transGradExp(transGrad, NiftiImage::Copy::ImageInfoAndAllocData);
-            VoxelCentricToNodeCentric<float>(floating, transGradExp, voxelGrad, weight);
-            transGrad.disown(); voxelGrad.disown();
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
 
             // Check the results
-            transGrad = content->GetTransformationGradient();
             const auto transGradPtr = transGrad.data();
-            const auto transGradExpPtr = transGradExp.data();
-            transGrad.disown();
-            for (size_t i = 0; i < transGradExp.nVoxels(); ++i) {
+            const auto expTransGradPtr = expTransGrad.data();
+            for (size_t i = 0; i < expTransGrad.nVoxels(); ++i) {
                 const float transGradVal = transGradPtr[i];
-                const float transGradExpVal = transGradExpPtr[i];
-                NR_COUT << i << " " << transGradVal << " " << transGradExpVal << std::endl;
-                REQUIRE(fabs(transGradVal - transGradExpVal) < EPS);
+                const float expTransGradVal = expTransGradPtr[i];
+                const float diff = abs(transGradVal - expTransGradVal);
+                if (diff > 0) {
+                    NR_COUT << "[i]=" << i;
+                    NR_COUT << " | diff=" << diff;
+                    NR_COUT << " | Result=" << transGradVal;
+                    NR_COUT << " | Expected=" << expTransGradVal << std::endl;
+                }
+                REQUIRE(diff < EPS);
             }
-            // Ensure the termination of content before CudaContext
-            content.reset();
         }
     }
 }
