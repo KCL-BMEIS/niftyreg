@@ -209,8 +209,8 @@ struct BlockSize300: public BlockSize {
         /* _reg_resampling_gpu */
         reg_resampleImage2D = 1024; // 23 reg
         reg_resampleImage3D = 1024; // 24 reg
-        reg_getImageGradient2D = 768; // 34 reg
-        reg_getImageGradient3D = 768; // 34 reg
+        reg_getImageGradient2D = 1024; // 34 reg
+        reg_getImageGradient3D = 1024; // 34 reg
         NR_FUNC_CALLED();
     }
 };
