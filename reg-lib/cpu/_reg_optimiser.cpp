@@ -258,17 +258,15 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
 #pragma omp parallel for default(none) \
     shared(num,array1Ptr,array2Ptr,gradientPtr)
 #endif
-        for (i = 0; i < num; i++) {
+        for (i = 0; i < num; i++)
             array2Ptr[i] = array1Ptr[i] = -gradientPtr[i];
-        }
         if (this->isSymmetric) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(numBw,array1PtrBw,array2PtrBw,gradientPtrBw)
 #endif
-            for (i = 0; i < numBw; i++) {
+            for (i = 0; i < numBw; i++)
                 array2PtrBw[i] = array1PtrBw[i] = -gradientPtrBw[i];
-            }
         }
         this->firstCall = false;
     } else {
@@ -277,8 +275,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(num,array1Ptr,array2Ptr,gradientPtr) \
-    reduction(+:gg) \
-    reduction(+:dgg)
+    reduction(+:gg, dgg)
 #endif
         for (i = 0; i < num; i++) {
             gg += array2Ptr[i] * array1Ptr[i];

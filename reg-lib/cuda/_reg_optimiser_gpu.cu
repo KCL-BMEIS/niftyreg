@@ -144,11 +144,13 @@ void reg_conjugateGradient_gpu::Initialise(size_t nvox,
 /* *************************************************************** */
 void reg_conjugateGradient_gpu::UpdateGradientValues() {
     if (this->firstCall) {
+        NR_DEBUG("Conjugate gradient initialisation");
         reg_initialiseConjugateGradient_gpu(this->gradientCuda, this->array1, this->array2, this->GetVoxNumber());
         if (this->isSymmetric)
             reg_initialiseConjugateGradient_gpu(this->gradientBwCuda, this->array1Bw, this->array2Bw, this->GetVoxNumberBw());
         this->firstCall = false;
     } else {
+        NR_DEBUG("Conjugate gradient update");
         reg_getConjugateGradient_gpu(this->gradientCuda, this->array1, this->array2, this->GetVoxNumber(),
                                      this->isSymmetric, this->gradientBwCuda, this->array1Bw, this->array2Bw, this->GetVoxNumberBw());
     }

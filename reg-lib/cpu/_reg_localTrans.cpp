@@ -1538,11 +1538,11 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 template<class DataType>
-void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
-                                       nifti_image *voxelImage,
-                                       float weight,
-                                       bool update,
-                                       const mat44 *voxelToMillimetre) {
+void reg_voxelCentricToNodeCentric(nifti_image *nodeImage,
+                                   nifti_image *voxelImage,
+                                   float weight,
+                                   bool update,
+                                   const mat44 *voxelToMillimetre) {
     const size_t nodeNumber = NiftiImage::calcVoxelNumber(nodeImage, 3);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(voxelImage, 3);
     DataType *nodePtrX = static_cast<DataType*>(nodeImage->data);
@@ -1603,8 +1603,7 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
         weight *= ratio[i];
     }
     // For each node, the corresponding voxel is computed
-    float nodeCoord[3];
-    float voxelCoord[3];
+    float nodeCoord[3], voxelCoord[3];
     for (int z = 0; z < nodeImage->nz; z++) {
         nodeCoord[2] = static_cast<float>(z);
         for (int y = 0; y < nodeImage->ny; y++) {
@@ -1685,20 +1684,20 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
     } // loop over z
 }
 /* *************************************************************** */
-void reg_voxelCentric2NodeCentric(nifti_image * nodeImage,
-                                  nifti_image * voxelImage,
-                                  float weight,
-                                  bool update,
-                                  const mat44 * voxelToMillimetre) {
+void reg_voxelCentricToNodeCentric(nifti_image *nodeImage,
+                                   nifti_image *voxelImage,
+                                   float weight,
+                                   bool update,
+                                   const mat44 *voxelToMillimetre) {
     if (nodeImage->datatype != voxelImage->datatype)
         NR_FATAL_ERROR("Both input images are expected to have the same data type");
 
     switch (nodeImage->datatype) {
     case NIFTI_TYPE_FLOAT32:
-        reg_voxelCentric2NodeCentric<float>(nodeImage, voxelImage, weight, update, voxelToMillimetre);
+        reg_voxelCentricToNodeCentric<float>(nodeImage, voxelImage, weight, update, voxelToMillimetre);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_voxelCentric2NodeCentric<double>(nodeImage, voxelImage, weight, update, voxelToMillimetre);
+        reg_voxelCentricToNodeCentric<double>(nodeImage, voxelImage, weight, update, voxelToMillimetre);
         break;
     default:
         NR_FATAL_ERROR("Data type not supported");

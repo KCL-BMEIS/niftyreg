@@ -103,10 +103,10 @@ void CudaCompute::GetDeformationField(bool composition, bool bspline) {
 void CudaCompute::UpdateControlPointPosition(float *currentDof,
                                              const float *bestDof,
                                              const float *gradient,
-                                             const float& scale,
-                                             const bool& optimiseX,
-                                             const bool& optimiseY,
-                                             const bool& optimiseZ) {
+                                             const float scale,
+                                             const bool optimiseX,
+                                             const bool optimiseY,
+                                             const bool optimiseZ) {
     reg_updateControlPointPosition_gpu(NiftiImage::calcVoxelNumber(dynamic_cast<CudaF3dContent&>(con).F3dContent::GetControlPointGrid(), 3),
                                        reinterpret_cast<float4*>(currentDof),
                                        reinterpret_cast<const float4*>(bestDof),
@@ -201,12 +201,12 @@ void CudaCompute::ConvolveImage(const nifti_image *image, float4 *imageCuda) {
 void CudaCompute::VoxelCentricToNodeCentric(float weight) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     const mat44 *reorientation = Content::GetIJKMatrix(*con.Content::GetFloating());
-    reg_voxelCentric2NodeCentric_gpu(con.F3dContent::GetTransformationGradient(),
-                                     con.F3dContent::GetVoxelBasedMeasureGradient(),
-                                     con.GetTransformationGradientCuda(),
-                                     con.GetVoxelBasedMeasureGradientCuda(),
-                                     weight,
-                                     reorientation);
+    reg_voxelCentricToNodeCentric_gpu(con.F3dContent::GetTransformationGradient(),
+                                      con.F3dContent::GetVoxelBasedMeasureGradient(),
+                                      con.GetTransformationGradientCuda(),
+                                      con.GetVoxelBasedMeasureGradientCuda(),
+                                      weight,
+                                      reorientation);
 }
 /* *************************************************************** */
 void CudaCompute::ConvolveVoxelBasedMeasureGradient(float weight) {

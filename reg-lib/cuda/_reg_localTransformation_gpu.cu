@@ -181,7 +181,7 @@ void reg_spline_approxBendingEnergyGradient_gpu(const nifti_image *controlPointI
     }
 
     // Compute the gradient
-    bendingEnergyWeight *= 1.f / (float)controlPointNumber;
+    bendingEnergyWeight /= (float)controlPointNumber;
     auto secondDerivativesTexture = Cuda::CreateTextureObject(secondDerivativeValuesCuda, cudaResourceTypeLinear,
                                                               secondDerivativeValuesSize, cudaChannelFormatKindFloat, 4);
     if (controlPointImage->nz > 1) {

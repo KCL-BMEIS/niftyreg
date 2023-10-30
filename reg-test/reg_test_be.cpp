@@ -27,13 +27,10 @@ public:
         std::mt19937 gen(0);
         std::uniform_real_distribution<float> distr(-1, 1);
 
-        // Create a 2D reference image
-        vector<NiftiImage::dim_t> dim{ 4, 4 };
-        NiftiImage reference2d(dim, NIFTI_TYPE_FLOAT32);
-
-        // Create a 3D reference image
-        dim.push_back(4);
-        NiftiImage reference3d(dim, NIFTI_TYPE_FLOAT32);
+        // Create 2D and 3D reference images
+        constexpr NiftiImage::dim_t dimSize = 4;
+        NiftiImage reference2d({ dimSize, dimSize }, NIFTI_TYPE_FLOAT32);
+        NiftiImage reference3d({ dimSize, dimSize, dimSize }, NIFTI_TYPE_FLOAT32);
 
         // Create 2D and 3D control point grids
         NiftiImage controlPointGrid2d = CreateControlPointGrid(reference2d);
@@ -44,20 +41,20 @@ public:
         testData.emplace_back(TestData(
             "BE identity 2D",
             reference2d,
-            NiftiImage(controlPointGrid2d),
+            controlPointGrid2d,
             0.f
         ));
         testData.emplace_back(TestData(
             "BE identity 3D",
             reference3d,
-            NiftiImage(controlPointGrid3d),
+            controlPointGrid3d,
             0.f
         ));
         // Add random values to the control point grid coefficients
         // No += or + operator for RNifti::NiftiImageData:Element
         // so reverting to old school for now
         float *cpp2dPtr = static_cast<float*>(controlPointGrid2d->data);
-        float *cpp3dPtr = static_cast<float *>(controlPointGrid3d->data);
+        float *cpp3dPtr = static_cast<float*>(controlPointGrid3d->data);
         for (size_t i = 0; i < controlPointGrid2d.nVoxels(); ++i)
             cpp2dPtr[i] += distr(gen);
         for (size_t i = 0; i < controlPointGrid3d.nVoxels(); ++i)
@@ -66,13 +63,13 @@ public:
         testData.emplace_back(TestData(
             "BE random 2D",
             reference2d,
-            NiftiImage(controlPointGrid2d),
+            controlPointGrid2d,
             this->GetBe2d(controlPointGrid2d)
         ));
         testData.emplace_back(TestData(
             "BE random 3D",
             reference3d,
-            NiftiImage(controlPointGrid3d),
+            controlPointGrid3d,
             this->GetBe3d(controlPointGrid3d)
         ));
 
@@ -90,13 +87,13 @@ public:
         testData.emplace_back(TestData(
             "BE scaling 2D",
             reference2d,
-            NiftiImage(controlPointGrid2d),
+            controlPointGrid2d,
             0.f
         ));
         testData.emplace_back(TestData(
             "BE scaling 3D",
             reference3d,
-            NiftiImage(controlPointGrid3d),
+            controlPointGrid3d,
             0.f
         ));
 
@@ -123,7 +120,7 @@ public:
         // The BSpine basis values are known since the control points all have a relative position equal to 0
         float basis[3], first[3], second[3];
         basis[0] = 1.f / 6.f; basis[1] = 4.f / 6.f; basis[2] = 1.f / 6.f;
-        first[0] = -.5f; first[1] = 0.f; first[2] = .5f;
+        first[0] = -0.5f; first[1] = 0.f; first[2] = 0.5f;
         second[0] = 1.f; second[1] = -2.f; second[2] = 1.f;
 
         // the first and last control points along each axis are
@@ -148,11 +145,10 @@ public:
                         XY_y += y_val * first[i] * first[j];
                     }
                 }
-                be += XX_x * XX_x + YY_x * YY_x + XX_y * XX_y + YY_y * YY_y + \
-                    2. * XY_x * XY_x + 2. * XY_y * XY_y;
+                be += XX_x * XX_x + YY_x * YY_x + XX_y * XX_y + YY_y * YY_y + 2.0 * XY_x * XY_x + 2.0 * XY_y * XY_y;
             }
         }
-        return (float)(be / (double)cpp.nVoxels());
+        return float(be / (double)cpp.nVoxels());
     }
 
     float GetBe3d(const NiftiImage& cpp) {
@@ -162,7 +158,7 @@ public:
         // The BSpine basis values are known since the control points all have a relative position equal to 0
         float basis[3], first[3], second[3];
         basis[0] = 1.f / 6.f; basis[1] = 4.f / 6.f; basis[2] = 1.f / 6.f;
-        first[0] = -.5f; first[1] = 0.f; first[2] = .5f;
+        first[0] = -0.5f; first[1] = 0.f; first[2] = 0.5f;
         second[0] = 1.f; second[1] = -2.f; second[2] = 1.f;
 
         const auto cppPtr = cpp.data();
@@ -207,13 +203,13 @@ public:
                     be += XX_x * XX_x + YY_x * YY_x + ZZ_x * ZZ_x + \
                         XX_y * XX_y + YY_y * YY_y + ZZ_y * ZZ_y + \
                         XX_z * XX_z + YY_z * YY_z + ZZ_z * ZZ_z + \
-                        2. * XY_x * XY_x + 2. * YZ_x * YZ_x + 2. * XZ_x * XZ_x + \
-                        2. * XY_y * XY_y + 2. * YZ_y * YZ_y + 2. * XZ_y * XZ_y + \
-                        2. * XY_z * XY_z + 2. * YZ_z * YZ_z + 2. * XZ_z * XZ_z;
+                        2.0 * XY_x * XY_x + 2.0 * YZ_x * YZ_x + 2.0 * XZ_x * XZ_x + \
+                        2.0 * XY_y * XY_y + 2.0 * YZ_y * YZ_y + 2.0 * XZ_y * XZ_y + \
+                        2.0 * XY_z * XY_z + 2.0 * YZ_z * YZ_z + 2.0 * XZ_z * XZ_z;
                 }
             }
         }
-        return (float)(be / (double)cpp.nVoxels());
+        return float(be / (double)cpp.nVoxels());
     }
 };
 

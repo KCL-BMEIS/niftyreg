@@ -367,18 +367,18 @@ void reg_getNMIValue(const nifti_image *referenceImage,
 template void reg_getNMIValue<float>(const nifti_image*, const nifti_image*, const double*, const unsigned short*, const unsigned short*, const unsigned short*, double**, double**, double**, const int*, const bool);
 template void reg_getNMIValue<double>(const nifti_image*, const nifti_image*, const double*, const unsigned short*, const unsigned short*, const unsigned short*, double**, double**, double**, const int*, const bool);
 /* *************************************************************** */
-double GetSimilarityMeasureValue(const nifti_image *referenceImage,
-                                 const nifti_image *warpedImage,
-                                 const double *timePointWeight,
-                                 const unsigned short *referenceBinNumber,
-                                 const unsigned short *floatingBinNumber,
-                                 const unsigned short *totalBinNumber,
-                                 double **jointHistogramLog,
-                                 double **jointHistogramPro,
-                                 double **entropyValues,
-                                 const int *referenceMask,
-                                 const int referenceTimePoint,
-                                 const bool approximation) {
+static double GetSimilarityMeasureValue(const nifti_image *referenceImage,
+                                        const nifti_image *warpedImage,
+                                        const double *timePointWeight,
+                                        const unsigned short *referenceBinNumber,
+                                        const unsigned short *floatingBinNumber,
+                                        const unsigned short *totalBinNumber,
+                                        double **jointHistogramLog,
+                                        double **jointHistogramPro,
+                                        double **entropyValues,
+                                        const int *referenceMask,
+                                        const int referenceTimePoint,
+                                        const bool approximation) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
         reg_getNMIValue<RefImgDataType>(referenceImage,
@@ -433,17 +433,17 @@ double reg_nmi::GetSimilarityMeasureValueBw() {
 }
 /* *************************************************************** */
 template <class DataType>
-void reg_getVoxelBasedNmiGradient2d(const nifti_image *referenceImage,
-                                    const nifti_image *warpedImage,
-                                    const unsigned short *referenceBinNumber,
-                                    const unsigned short *floatingBinNumber,
-                                    const double *const *jointHistogramLog,
-                                    const double *const *entropyValues,
-                                    const nifti_image *warpedGradient,
-                                    nifti_image *measureGradientImage,
-                                    const int *referenceMask,
-                                    const int currentTimepoint,
-                                    const double timepointWeight) {
+static void reg_getVoxelBasedNmiGradient2d(const nifti_image *referenceImage,
+                                           const nifti_image *warpedImage,
+                                           const unsigned short *referenceBinNumber,
+                                           const unsigned short *floatingBinNumber,
+                                           const double *const *jointHistogramLog,
+                                           const double *const *entropyValues,
+                                           const nifti_image *warpedGradient,
+                                           nifti_image *measureGradientImage,
+                                           const int *referenceMask,
+                                           const int currentTimepoint,
+                                           const double timepointWeight) {
 #ifdef WIN32
     long i;
     const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 2);
@@ -519,17 +519,17 @@ void reg_getVoxelBasedNmiGradient2d(const nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template <class DataType>
-void reg_getVoxelBasedNmiGradient3d(const nifti_image *referenceImage,
-                                    const nifti_image *warpedImage,
-                                    const unsigned short *referenceBinNumber,
-                                    const unsigned short *floatingBinNumber,
-                                    const double *const *jointHistogramLog,
-                                    const double *const *entropyValues,
-                                    const nifti_image *warpedGradient,
-                                    nifti_image *measureGradientImage,
-                                    const int *referenceMask,
-                                    const int currentTimepoint,
-                                    const double timepointWeight) {
+static void reg_getVoxelBasedNmiGradient3d(const nifti_image *referenceImage,
+                                           const nifti_image *warpedImage,
+                                           const unsigned short *referenceBinNumber,
+                                           const unsigned short *floatingBinNumber,
+                                           const double *const *jointHistogramLog,
+                                           const double *const *entropyValues,
+                                           const nifti_image *warpedGradient,
+                                           nifti_image *measureGradientImage,
+                                           const int *referenceMask,
+                                           const int currentTimepoint,
+                                           const double timepointWeight) {
 #ifdef WIN32
     long i;
     const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
@@ -612,17 +612,17 @@ void reg_getVoxelBasedNmiGradient3d(const nifti_image *referenceImage,
     } // loop over all voxel
 }
 /* *************************************************************** */
-void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
-                                            const nifti_image *warpedImage,
-                                            const unsigned short *referenceBinNumber,
-                                            const unsigned short *floatingBinNumber,
-                                            const double *const *jointHistogramLog,
-                                            const double *const *entropyValues,
-                                            const nifti_image *warpedGradient,
-                                            nifti_image *voxelBasedGradient,
-                                            const int *referenceMask,
-                                            const int currentTimepoint,
-                                            const double timepointWeight) {
+static void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
+                                                   const nifti_image *warpedImage,
+                                                   const unsigned short *referenceBinNumber,
+                                                   const unsigned short *floatingBinNumber,
+                                                   const double *const *jointHistogramLog,
+                                                   const double *const *entropyValues,
+                                                   const nifti_image *warpedGradient,
+                                                   nifti_image *voxelBasedGradient,
+                                                   const int *referenceMask,
+                                                   const int currentTimepoint,
+                                                   const double timepointWeight) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
         auto GetVoxelBasedNmiGradient = referenceImage->nz > 1 ? reg_getVoxelBasedNmiGradient3d<RefImgDataType> : reg_getVoxelBasedNmiGradient2d<RefImgDataType>;

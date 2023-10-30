@@ -87,11 +87,11 @@ void reg_spline_getDeformationField(nifti_image *controlPointGridImage,
  * @param update The values in node image will be incremented if
  * update is set to true; a blank node image is considered otherwise
  */
-void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
-                                  nifti_image *voxelImage,
-                                  float weight,
-                                  bool update,
-                                  const mat44 *voxelToMillimetre = nullptr);
+void reg_voxelCentricToNodeCentric(nifti_image *nodeImage,
+                                   nifti_image *voxelImage,
+                                   float weight,
+                                   bool update,
+                                   const mat44 *voxelToMillimetre = nullptr);
 /* *************************************************************** */
 /** @brief Refine a grid of control points
  * @param referenceImage Image that defined the space of the reference

@@ -183,6 +183,9 @@ TEST_CASE_METHOD(NormaliseGradientTest, "Normalise gradient", "[NormaliseGradien
         SECTION(sectionName) {
             NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
 
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
+
             // Set the transformation gradient image to host the computation
             NiftiImage transGrad = content->GetTransformationGradient();
             transGrad.copyData(testGrad);
@@ -208,8 +211,10 @@ TEST_CASE_METHOD(NormaliseGradientTest, "Normalise gradient", "[NormaliseGradien
             for (size_t i = 0; i < testGrad.nVoxels(); ++i) {
                 const float transGradVal = transGradPtr[i];
                 const float testGradVal = testGradPtr[i];
-                NR_COUT << i << " " << transGradVal << " " << testGradVal << std::endl;
-                REQUIRE(fabs(transGradVal - testGradVal) < EPS);
+                const float diff = abs(transGradVal - testGradVal);
+                if (diff > EPS)
+                    NR_COUT << i << " " << transGradVal << " " << testGradVal << std::endl;
+                REQUIRE(diff < EPS);
             }
             // Ensure the termination of content before CudaContext
             content.reset();

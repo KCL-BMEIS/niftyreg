@@ -62,15 +62,14 @@ __global__ void reg_updateControlPointPosition_kernel(float4 *controlPointImageC
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < nVoxels) {
         float4 value = controlPointImageCuda[tid];
-        const float4 bestValue = tex1Dfetch<float4>(bestControlPointTexture, tid);
-        const float4 gradValue = tex1Dfetch<float4>(gradientImageTexture, tid);
+        const float4& bestValue = tex1Dfetch<float4>(bestControlPointTexture, tid);
+        const float4& gradValue = tex1Dfetch<float4>(gradientImageTexture, tid);
         if (optimiseX)
             value.x = bestValue.x + scale * gradValue.x;
         if (optimiseY)
             value.y = bestValue.y + scale * gradValue.y;
         if (optimiseZ)
             value.z = bestValue.z + scale * gradValue.z;
-        value.w = 0;
         controlPointImageCuda[tid] = value;
     }
 }

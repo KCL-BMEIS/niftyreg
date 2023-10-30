@@ -91,11 +91,11 @@ void Compute::GetDeformationField(bool composition, bool bspline) {
 void Compute::UpdateControlPointPosition(float *currentDof,
                                          const float *bestDof,
                                          const float *gradient,
-                                         const float& scale,
-                                         const bool& optimiseX,
-                                         const bool& optimiseY,
-                                         const bool& optimiseZ) {
-    const nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(con).GetControlPointGrid();
+                                         const float scale,
+                                         const bool optimiseX,
+                                         const bool optimiseY,
+                                         const bool optimiseZ) {
+    const nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
     if (optimiseX && optimiseY && optimiseZ) {
         // Update the values for all axis displacement
         for (size_t i = 0; i < controlPointGrid->nvox; ++i)
@@ -268,11 +268,11 @@ void Compute::ConvolveImage(nifti_image *image) {
 void Compute::VoxelCentricToNodeCentric(float weight) {
     F3dContent& con = dynamic_cast<F3dContent&>(this->con);
     mat44 *reorientation = Content::GetIJKMatrix(*con.GetFloating());
-    reg_voxelCentric2NodeCentric(con.GetTransformationGradient(),
-                                 con.GetVoxelBasedMeasureGradient(),
-                                 weight,
-                                 false, // no update
-                                 reorientation);
+    reg_voxelCentricToNodeCentric(con.GetTransformationGradient(),
+                                  con.GetVoxelBasedMeasureGradient(),
+                                  weight,
+                                  false, // no update
+                                  reorientation);
 }
 /* *************************************************************** */
 void Compute::ConvolveVoxelBasedMeasureGradient(float weight) {

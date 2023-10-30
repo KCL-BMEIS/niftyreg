@@ -16,12 +16,12 @@
 #include "_reg_tools.h"
 
 /* *************************************************************** */
-void reg_voxelCentric2NodeCentric_gpu(const nifti_image *nodeImage,
-                                      const nifti_image *voxelImage,
-                                      float4 *nodeImageCuda,
-                                      float4 *voxelImageCuda,
-                                      float weight,
-                                      const mat44 *voxelToMillimetre);
+void reg_voxelCentricToNodeCentric_gpu(const nifti_image *nodeImage,
+                                       const nifti_image *voxelImage,
+                                       float4 *nodeImageCuda,
+                                       float4 *voxelImageCuda,
+                                       float weight,
+                                       const mat44 *voxelToMillimetre = nullptr);
 /* *************************************************************** */
 void reg_convertNMIGradientFromVoxelToRealSpace_gpu(const mat44 *sourceMatrixXYZ,
                                                     const nifti_image *controlPointImage,

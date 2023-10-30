@@ -147,7 +147,6 @@ void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
                                                       cudaChannelFormatKindFloat, 1);
     auto maskTexture = Cuda::CreateTextureObject(maskCuda, cudaResourceTypeLinear, activeVoxelNumber * sizeof(int),
                                                  cudaChannelFormatKindSigned, 1);
-    NR_CUDA_SAFE_CALL(cudaMemset(voxelBasedGradientCuda, 0, voxelNumber * sizeof(float4)));
 
     if (referenceImage->nz > 1) {
         const unsigned blocks = blockSize->reg_getVoxelBasedNMIGradientUsingPW3D;

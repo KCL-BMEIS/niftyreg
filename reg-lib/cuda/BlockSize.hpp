@@ -66,7 +66,7 @@ struct BlockSize {
     unsigned GetSsdValue;
     unsigned GetSsdGradient;
     /* _reg_tools_gpu */
-    unsigned reg_voxelCentric2NodeCentric;
+    unsigned reg_voxelCentricToNodeCentric;
     unsigned reg_convertNMIGradientFromVoxelToRealSpace;
     unsigned reg_ApplyConvolutionWindowAlongX;
     unsigned reg_ApplyConvolutionWindowAlongY;
@@ -132,7 +132,7 @@ struct BlockSize100: public BlockSize {
         GetSsdValue = 320; // 12 reg - 24 smem - 08 cmem
         GetSsdGradient = 320; // 12 reg - 24 smem - 08 cmem
         /* _reg_tools_gpu */
-        reg_voxelCentric2NodeCentric = 320; // 11 reg - 24 smem - 16 cmem
+        reg_voxelCentricToNodeCentric = 320; // 11 reg - 24 smem - 16 cmem
         reg_convertNMIGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
         reg_ApplyConvolutionWindowAlongX = 512; // 14 reg - 28 smem - 08 cmem
         reg_ApplyConvolutionWindowAlongY = 512; // 14 reg - 28 smem - 08 cmem
@@ -166,8 +166,8 @@ struct BlockSize300: public BlockSize {
         /* _reg_globalTransformation_gpu */
         reg_affine_getDeformationField = 1024; // 23 reg
         /* _reg_localTransformation_gpu */
-        reg_spline_getDeformationField2D = 768; // 34 reg
-        reg_spline_getDeformationField3D = 768; // 34 reg
+        reg_spline_getDeformationField2D = 1024; // 34 reg
+        reg_spline_getDeformationField3D = 1024; // 34 reg
         reg_spline_getApproxSecondDerivatives2D = 1024; // 25 reg
         reg_spline_getApproxSecondDerivatives3D = 768; // 34 reg
         reg_spline_getApproxBendingEnergy2D = 1024; // 23 reg
@@ -200,7 +200,7 @@ struct BlockSize300: public BlockSize {
         GetSsdValue = 768; // 34 reg
         GetSsdGradient = 768; // 34 reg
         /* _reg_tools_gpu */
-        reg_voxelCentric2NodeCentric = 1024; // 23 reg
+        reg_voxelCentricToNodeCentric = 1024; // 23 reg
         reg_convertNMIGradientFromVoxelToRealSpace = 1024; // 23 reg
         reg_ApplyConvolutionWindowAlongX = 1024; // 25 reg
         reg_ApplyConvolutionWindowAlongY = 1024; // 25 reg
