@@ -132,7 +132,9 @@ void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int ac
 double CudaCompute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ) {
     if (!optimiseX && !optimiseY && !optimiseZ) return 0;
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(con.F3dContent::GetTransformationGradient(), 3);
+    nifti_image *transGrad = con.F3dContent::GetTransformationGradient();
+    const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(transGrad, 3);
+    if (transGrad->nz <= 1) optimiseZ = false;
     return Cuda::GetMaximalLength(con.GetTransformationGradientCuda(), voxelsPerVolume, optimiseX, optimiseY, optimiseZ);
 }
 /* *************************************************************** */

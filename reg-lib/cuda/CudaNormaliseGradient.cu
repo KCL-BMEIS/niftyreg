@@ -2,19 +2,37 @@
 #include "_reg_tools_gpu.h"
 
 /* *************************************************************** */
-__global__ static void GetMaximalLengthKernel(float *dists,
-                                              cudaTextureObject_t imageTexture,
-                                              const unsigned nVoxels,
-                                              const bool optimiseX,
-                                              const bool optimiseY,
-                                              const bool optimiseZ) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < nVoxels) {
-        float4 gradValue = tex1Dfetch<float4>(imageTexture, tid);
-        dists[tid] = sqrtf((optimiseX ? Square(gradValue.x) : 0) +
-                           (optimiseY ? Square(gradValue.y) : 0) +
-                           (optimiseZ ? Square(gradValue.z) : 0));
-    }
+template<bool optimiseX, bool optimiseY, bool optimiseZ>
+float GetMaximalLength(const float4 *imageCuda, const size_t nVoxels) {
+    auto imageTexturePtr = Cuda::CreateTextureObject(imageCuda, cudaResourceTypeLinear,
+                                                     nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto imageTexture = *imageTexturePtr;
+    thrust::counting_iterator<unsigned> index(0);
+    return thrust::transform_reduce(thrust::device, index, index + nVoxels, [=]__device__(const unsigned index) {
+        const float4& val = tex1Dfetch<float4>(imageTexture, index);
+        return sqrtf((optimiseX ? Square(val.x) : 0) +
+                     (optimiseY ? Square(val.y) : 0) +
+                     (optimiseZ ? Square(val.z) : 0));
+    }, 0.f, thrust::maximum<float>());
+}
+/* *************************************************************** */
+template<bool optimiseX, bool optimiseY>
+static inline float GetMaximalLength(const float4 *imageCuda,
+                                     const size_t nVoxels,
+                                     const bool optimiseZ) {
+    auto getMaximalLength = GetMaximalLength<optimiseX, optimiseY, true>;
+    if (!optimiseZ) getMaximalLength = GetMaximalLength<optimiseX, optimiseY, false>;
+    return getMaximalLength(imageCuda, nVoxels);
+}
+/* *************************************************************** */
+template<bool optimiseX>
+static inline float GetMaximalLength(const float4 *imageCuda,
+                                     const size_t nVoxels,
+                                     const bool optimiseY,
+                                     const bool optimiseZ) {
+    auto getMaximalLength = GetMaximalLength<optimiseX, true>;
+    if (!optimiseY) getMaximalLength = GetMaximalLength<optimiseX, false>;
+    return getMaximalLength(imageCuda, nVoxels, optimiseZ);
 }
 /* *************************************************************** */
 float NiftyReg::Cuda::GetMaximalLength(const float4 *imageCuda,
@@ -22,24 +40,9 @@ float NiftyReg::Cuda::GetMaximalLength(const float4 *imageCuda,
                                        const bool optimiseX,
                                        const bool optimiseY,
                                        const bool optimiseZ) {
-    // Create a texture object for the imageCuda
-    auto imageTexture = Cuda::CreateTextureObject(imageCuda, cudaResourceTypeLinear,
-                                                  nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
-
-    float *dists = nullptr;
-    NR_CUDA_SAFE_CALL(cudaMalloc(&dists, nVoxels * sizeof(float)));
-
-    const unsigned threads = CudaContext::GetBlockSize()->GetMaximalLength;
-    const unsigned blocks = static_cast<unsigned>(Ceil(sqrtf(static_cast<float>(nVoxels) / static_cast<float>(threads))));
-    dim3 blockDims(threads, 1, 1);
-    dim3 gridDims(blocks, blocks, 1);
-    GetMaximalLengthKernel<<<gridDims, blockDims>>>(dists, *imageTexture, static_cast<unsigned>(nVoxels), optimiseX, optimiseY, optimiseZ);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-
-    const float maxDistance = reg_maxReduction_gpu(dists, nVoxels);
-    NR_CUDA_SAFE_CALL(cudaFree(dists));
-
-    return maxDistance;
+    auto getMaximalLength = ::GetMaximalLength<true>;
+    if (!optimiseX) getMaximalLength = ::GetMaximalLength<false>;
+    return getMaximalLength(imageCuda, nVoxels, optimiseY, optimiseZ);
 }
 /* *************************************************************** */
 template<bool optimiseX, bool optimiseY, bool optimiseZ>
