@@ -11,17 +11,17 @@ __global__ static void GetMaximalLengthKernel(float *dists,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < nVoxels) {
         float4 gradValue = tex1Dfetch<float4>(imageTexture, tid);
-        dists[tid] = sqrtf((optimiseX ? gradValue.x * gradValue.x : 0) +
-                           (optimiseY ? gradValue.y * gradValue.y : 0) +
-                           (optimiseZ ? gradValue.z * gradValue.z : 0));
+        dists[tid] = sqrtf((optimiseX ? Square(gradValue.x) : 0) +
+                           (optimiseY ? Square(gradValue.y) : 0) +
+                           (optimiseZ ? Square(gradValue.z) : 0));
     }
 }
 /* *************************************************************** */
 float NiftyReg::Cuda::GetMaximalLength(const float4 *imageCuda,
-                                       const size_t& nVoxels,
-                                       const bool& optimiseX,
-                                       const bool& optimiseY,
-                                       const bool& optimiseZ) {
+                                       const size_t nVoxels,
+                                       const bool optimiseX,
+                                       const bool optimiseY,
+                                       const bool optimiseZ) {
     // Create a texture object for the imageCuda
     auto imageTexture = Cuda::CreateTextureObject(imageCuda, cudaResourceTypeLinear,
                                                   nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
@@ -42,33 +42,49 @@ float NiftyReg::Cuda::GetMaximalLength(const float4 *imageCuda,
     return maxDistance;
 }
 /* *************************************************************** */
-__global__ static void NormaliseGradientKernel(float4 *imageCuda,
-                                               const unsigned nVoxels,
-                                               const float maxGradLenInv,
-                                               const bool optimiseX,
-                                               const bool optimiseY,
-                                               const bool optimiseZ) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < nVoxels) {
-        float4 grad = imageCuda[tid];
-        imageCuda[tid] = make_float4(optimiseX ? grad.x * maxGradLenInv : 0,
-                                     optimiseY ? grad.y * maxGradLenInv : 0,
-                                     optimiseZ ? grad.z * maxGradLenInv : 0,
-                                     grad.w);
-    }
+template<bool optimiseX, bool optimiseY, bool optimiseZ>
+void NormaliseGradient(float4 *imageCuda, const size_t nVoxels, const double maxGradLengthInv) {
+    auto imageTexturePtr = Cuda::CreateTextureObject(imageCuda, cudaResourceTypeLinear,
+                                                     nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto imageTexture = *imageTexturePtr;
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), nVoxels, [=]__device__(const unsigned index) {
+        const float4& val = tex1Dfetch<float4>(imageTexture, index);
+        imageCuda[index] = make_float4(optimiseX ? val.x * maxGradLengthInv : 0,
+                                       optimiseY ? val.y * maxGradLengthInv : 0,
+                                       optimiseZ ? val.z * maxGradLengthInv : 0,
+                                       val.w);
+    });
+}
+/* *************************************************************** */
+template<bool optimiseX, bool optimiseY>
+static inline void NormaliseGradient(float4 *imageCuda,
+                                     const size_t nVoxels,
+                                     const double maxGradLengthInv,
+                                     const bool optimiseZ) {
+    auto normaliseGradient = NormaliseGradient<optimiseX, optimiseY, true>;
+    if (!optimiseZ) normaliseGradient = NormaliseGradient<optimiseX, optimiseY, false>;
+    normaliseGradient(imageCuda, nVoxels, maxGradLengthInv);
+}
+/* *************************************************************** */
+template<bool optimiseX>
+static inline void NormaliseGradient(float4 *imageCuda,
+                                     const size_t nVoxels,
+                                     const double maxGradLengthInv,
+                                     const bool optimiseY,
+                                     const bool optimiseZ) {
+    auto normaliseGradient = NormaliseGradient<optimiseX, true>;
+    if (!optimiseY) normaliseGradient = NormaliseGradient<optimiseX, false>;
+    normaliseGradient(imageCuda, nVoxels, maxGradLengthInv, optimiseZ);
 }
 /* *************************************************************** */
 void NiftyReg::Cuda::NormaliseGradient(float4 *imageCuda,
-                                       const size_t& nVoxels,
-                                       const float& maxGradLength,
-                                       const bool& optimiseX,
-                                       const bool& optimiseY,
-                                       const bool& optimiseZ) {
-    const unsigned threads = CudaContext::GetBlockSize()->Arithmetic;
-    const unsigned blocks = static_cast<unsigned>(Ceil(sqrtf(static_cast<float>(nVoxels) / static_cast<float>(threads))));
-    const dim3 blockDims(threads, 1, 1);
-    const dim3 gridDims(blocks, blocks, 1);
-    NormaliseGradientKernel<<<gridDims, blockDims>>>(imageCuda, static_cast<unsigned>(nVoxels), 1 / maxGradLength, optimiseX, optimiseY, optimiseZ);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+                                       const size_t nVoxels,
+                                       const double maxGradLength,
+                                       const bool optimiseX,
+                                       const bool optimiseY,
+                                       const bool optimiseZ) {
+    auto normaliseGradient = ::NormaliseGradient<true>;
+    if (!optimiseX) normaliseGradient = ::NormaliseGradient<false>;
+    normaliseGradient(imageCuda, nVoxels, 1.0 / maxGradLength, optimiseY, optimiseZ);
 }
 /* *************************************************************** */

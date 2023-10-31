@@ -72,7 +72,7 @@ public:
                         testName += " "s + platform->GetName() + " Composition="s + std::to_string(composition) + " Bspline="s + std::to_string(bspline);
                         unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
                         unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
-                        NiftiImage expDefField(content->GetDeformationField(), NiftiImage::Copy::Image);
+                        NiftiImage expDefField(content->Content::GetDeformationField(), NiftiImage::Copy::Image);
                         // Compute the deformation field
                         compute->GetDeformationField(composition, bspline);
                         NiftiImage defField(content->GetDeformationField(), NiftiImage::Copy::Image);
@@ -556,10 +556,10 @@ TEST_CASE_METHOD(GetDeformationFieldTest, "Regression Deformation Field from B-s
 
             // Check the results
             const auto defFieldPtr = defField.data();
-            const auto defFieldExpPtr = expDefField.data();
+            const auto expDefFieldPtr = expDefField.data();
             for (auto i = 0; i < expDefField.nVoxels(); i++) {
                 const float defFieldVal = defFieldPtr[i];
-                const float expDefFieldVal = defFieldExpPtr[i];
+                const float expDefFieldVal = expDefFieldPtr[i];
                 const float diff = abs(defFieldVal - expDefFieldVal);
                 if (diff > 0) {
                     NR_COUT << "[i]=" << i;

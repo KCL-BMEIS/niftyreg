@@ -14,10 +14,10 @@ namespace NiftyReg::Cuda {
  * @return The maximal value of the gradient image
 */
 float GetMaximalLength(const float4 *imageCuda,
-                       const size_t& nVoxels,
-                       const bool& optimiseX,
-                       const bool& optimiseY,
-                       const bool& optimiseZ);
+                       const size_t nVoxels,
+                       const bool optimiseX,
+                       const bool optimiseY,
+                       const bool optimiseZ);
 /* *************************************************************** */
 /**
  * @brief Normalise the gradient image
@@ -29,10 +29,10 @@ float GetMaximalLength(const float4 *imageCuda,
  * @param optimiseZ Flag to indicate if the z component of the gradient is optimised
 */
 void NormaliseGradient(float4 *imageCuda,
-                       const size_t& nVoxels,
-                       const float& maxGradLength,
-                       const bool& optimiseX,
-                       const bool& optimiseY,
-                       const bool& optimiseZ);
+                       const size_t nVoxels,
+                       const double maxGradLength,
+                       const bool optimiseX,
+                       const bool optimiseY,
+                       const bool optimiseZ);
 /* *************************************************************** */
 } // namespace NiftyReg::Cuda

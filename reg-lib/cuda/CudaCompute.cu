@@ -120,7 +120,7 @@ void CudaCompute::UpdateControlPointPosition(float *currentDof,
 void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) {
     // TODO Fix reg_getImageGradient_gpu to accept activeTimepoint
     CudaDefContent& con = dynamic_cast<CudaDefContent&>(this->con);
-    reg_getImageGradient_gpu(con.DefContent::GetFloating(),
+    reg_getImageGradient_gpu(con.Content::GetFloating(),
                              con.GetFloatingCuda(),
                              con.GetDeformationFieldCuda(),
                              con.GetWarpedGradientCuda(),
@@ -139,8 +139,10 @@ double CudaCompute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimi
 void CudaCompute::NormaliseGradient(double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ) {
     if (maxGradLength == 0 || (!optimiseX && !optimiseY && !optimiseZ)) return;
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(con.F3dContent::GetTransformationGradient(), 3);
-    Cuda::NormaliseGradient(con.GetTransformationGradientCuda(), voxelsPerVolume, static_cast<float>(maxGradLength), optimiseX, optimiseY, optimiseZ);
+    nifti_image *transGrad = con.F3dContent::GetTransformationGradient();
+    const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(transGrad, 3);
+    if (transGrad->nz <= 1) optimiseZ = false;
+    Cuda::NormaliseGradient(con.GetTransformationGradientCuda(), voxelsPerVolume, maxGradLength, optimiseX, optimiseY, optimiseZ);
 }
 /* *************************************************************** */
 void CudaCompute::SmoothGradient(float sigma) {
