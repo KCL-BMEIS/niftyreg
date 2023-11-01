@@ -118,7 +118,7 @@ public:
     }
 };
 
-TEST_CASE_METHOD(BMTest, "Regression BlockMatching", "[regression]") {
+TEST_CASE_METHOD(BMTest, "Regression Block Matching", "[regression]") {
     // Loop over all generated test cases
     for (auto&& testCase : this->testCases) {
         // Retrieve test information
@@ -127,28 +127,32 @@ TEST_CASE_METHOD(BMTest, "Regression BlockMatching", "[regression]") {
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
+
             // Ensure both approaches retrieve the same number of voxels
             REQUIRE(blockMatchingParamsCpu->activeBlockNumber == blockMatchingParamsCuda->activeBlockNumber);
 
             // Loop over the block and ensure all values are identical
             for (int b = 0; b < blockMatchingParamsCpu->activeBlockNumber; ++b) {
                 for (int d = 0; d < (int)blockMatchingParamsCpu->dim; ++d) {
-
                     const int i = b * (int)blockMatchingParamsCpu->dim + d;
                     const auto refPosCpu = blockMatchingParamsCpu->referencePosition[i];
                     const auto refPosCuda = blockMatchingParamsCuda->referencePosition[i];
-                    if (fabs(refPosCpu - refPosCuda) > EPS) {
+                    auto diff = abs(refPosCpu - refPosCuda);
+                    if (diff > 0) {
                         NR_COUT << "Ref[" << b << "/" << blockMatchingParamsCpu->activeBlockNumber << ":" << d << "] CPU:";
                         NR_COUT << refPosCpu << " | CUDA:" << refPosCuda << std::endl;
                     }
-                    REQUIRE(fabs(refPosCpu - refPosCuda) < EPS);
+                    REQUIRE(diff == 0);
                     const auto warPosCpu = blockMatchingParamsCpu->warpedPosition[i];
                     const auto warPosCuda = blockMatchingParamsCuda->warpedPosition[i];
-                    if (fabs(warPosCpu - warPosCuda) > EPS) {
+                    diff = abs(warPosCpu - warPosCuda);
+                    if (diff > 0) {
                         NR_COUT << "War[" << b << "/" << blockMatchingParamsCpu->activeBlockNumber << ":" << d << "] CPU:";
                         NR_COUT << warPosCpu << " | CUDA:" << warPosCuda << std::endl;
                     }
-                    REQUIRE(fabs(warPosCpu - warPosCuda) < EPS);
+                    REQUIRE(diff == 0);
                 }
             }
         }

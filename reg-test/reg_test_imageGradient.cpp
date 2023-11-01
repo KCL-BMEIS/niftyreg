@@ -15,7 +15,7 @@
 typedef std::tuple<std::string, NiftiImage, NiftiImage, int, float*> TestData;
 typedef std::tuple<unique_ptr<DefContent>, unique_ptr<Platform>> ContentDesc;
 
-TEST_CASE("Image gradient", "[ImageGradient]") {
+TEST_CASE("Image Gradient", "[unit]") {
     // Create a reference 2D image
     vector<NiftiImage::dim_t> dimFlo{ 4, 4 };
     NiftiImage reference2d(dimFlo, NIFTI_TYPE_FLOAT32);
@@ -171,7 +171,13 @@ TEST_CASE("Image gradient", "[ImageGradient]") {
         // Loop over all possibles contents for each test
         for (auto&& contentDesc : contentDescs) {
             auto&& [content, platform] = contentDesc;
-            SECTION(testName + " " + platform->GetName()) {
+            const std::string sectionName = testName + " " + platform->GetName();
+            SECTION(sectionName) {
+                NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
+
+                // Increase the precision for the output
+                NR_COUT << std::fixed << std::setprecision(10);
+
                 // Set the warped gradient image to host the computation
                 NiftiImage warpedGradient(content->GetWarpedGradient());
                 warpedGradient.setDim(NiftiDim::NDim, defField->ndim);
@@ -196,8 +202,10 @@ TEST_CASE("Image gradient", "[ImageGradient]") {
                 warpedGradient.disown();
                 for (size_t i = 0; i < nVoxels; ++i) {
                     const float warpedGradVal = warpedGradPtr[i];
-                    NR_COUT << i << " " << warpedGradVal << " " << testResult[i] << std::endl;
-                    REQUIRE(fabs(warpedGradVal - testResult[i]) < EPS);
+                    const auto diff = abs(warpedGradVal - testResult[i]);
+                    if (diff > 0)
+                        NR_COUT << i << " " << warpedGradVal << " " << testResult[i] << std::endl;
+                    REQUIRE(diff < EPS);
                 }
             }
         }

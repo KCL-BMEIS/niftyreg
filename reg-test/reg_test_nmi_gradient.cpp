@@ -143,6 +143,9 @@ TEST_CASE_METHOD(NMIGradientTest, "NMI Gradient", "[unit]") {
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
+
             float *resPtr = static_cast<float*>(result->data);
             float *expPtr = static_cast<float*>(expected->data);
             float resMean = reg_tools_getMeanValue(result);

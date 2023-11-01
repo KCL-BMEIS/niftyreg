@@ -154,7 +154,7 @@ public:
     }
 };
 
-TEST_CASE_METHOD(BMTest, "BlockMatching", "[unit]") {
+TEST_CASE_METHOD(BMTest, "Block Matching", "[unit]") {
     // Loop over all generated test cases
     for (auto&& testCase : this->testCases) {
         // Retrieve test information
@@ -163,16 +163,20 @@ TEST_CASE_METHOD(BMTest, "BlockMatching", "[unit]") {
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
+
             // Loop over the block and ensure all values are identical
             for (int b = 0; b < blockMatchingParams->activeBlockNumber; ++b) {
                 for (int d = 0; d < (int)blockMatchingParams->dim; ++d) {
                     const int i = b * (int)blockMatchingParams->dim + d;
                     const auto diffPos = blockMatchingParams->warpedPosition[i] - blockMatchingParams->referencePosition[i];
-                    if (fabs(diffPos - OFFSET) > EPS) {
+                    const auto diff = abs(diffPos - OFFSET);
+                    if (diff > 0) {
                         NR_COUT << "[" << b << "/" << blockMatchingParams->activeBlockNumber << ":" << d << "] ";
                         NR_COUT << diffPos << std::endl;
                     }
-                    REQUIRE(fabs(diffPos - OFFSET) < EPS);
+                    REQUIRE(diff < EPS);
                 }
             }
         }

@@ -228,7 +228,7 @@ public:
     virtual void UpdateBestObjFunctionValue() {}
 };
 
-TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate gradient", "[ConjugateGradient]") {
+TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
@@ -238,6 +238,9 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate gradient", "[ConjugateGradien
 
         SECTION(sectionName) {
             NR_COUT << "\n**************** UpdateControlPointPosition " << sectionName << " ****************" << std::endl;
+
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
 
             // Set the control point grid
             NiftiImage img = content->GetControlPointGrid();
@@ -273,8 +276,10 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate gradient", "[ConjugateGradien
             for (size_t i = 0; i < controlPointGridExpected.nVoxels(); ++i) {
                 const float cppVal = cppPtr[i];
                 const float cppExpVal = cppExpPtr[i];
-                NR_COUT << i << " " << cppVal << " " << cppExpVal << std::endl;
-                REQUIRE(fabs(cppVal - cppExpVal) < EPS);
+                const auto diff = abs(cppVal - cppExpVal);
+                if (diff > 0)
+                    NR_COUT << i << " " << cppVal << " " << cppExpVal << std::endl;
+                REQUIRE(diff == 0);
             }
 
             // Update the gradient values
@@ -335,13 +340,17 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate gradient", "[ConjugateGradien
                     for (size_t i = 0; i < transGrad.nVoxels(); ++i) {
                         const float gradVal = gradPtr[i];
                         const float gradExpVal = gradExpPtr[i];
-                        NR_COUT << i << " " << gradVal << " " << gradExpVal << std::endl;
-                        REQUIRE(fabs(gradVal - gradExpVal) < EPS);
+                        const auto diff = abs(gradVal - gradExpVal);
+                        if (diff > EPS)
+                            NR_COUT << i << " " << gradVal << " " << gradExpVal << std::endl;
+                        REQUIRE(diff < EPS);
                         if (isSymmetric) {
                             const float gradBwVal = gradBwPtr[i];
                             const float gradExpBwVal = gradExpBwPtr[i];
-                            NR_COUT << i << " " << gradBwVal << " " << gradExpBwVal << " backwards" << std::endl;
-                            REQUIRE(fabs(gradBwVal - gradExpBwVal) < EPS);
+                            const auto diff = abs(gradBwVal - gradExpBwVal);
+                            if (diff > EPS)
+                                NR_COUT << i << " " << gradBwVal << " " << gradExpBwVal << " backwards" << std::endl;
+                            REQUIRE(diff < EPS);
                         }
                     }
                 }

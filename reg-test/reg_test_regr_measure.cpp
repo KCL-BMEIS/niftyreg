@@ -154,19 +154,11 @@ public:
             const double simMeasureCpu = measureCpu->GetSimilarityMeasureValue();
 
             // Compute the similarity measure value for CUDA
-            NiftiImage warpedCuda(contentCuda->F3dContent::GetWarped());
-            warpedCuda.copyData(contentCpu->GetWarped());
-            warpedCuda.disown();
-            contentCuda->UpdateWarped();
-            // computeCuda->GetDeformationField(false, true);
-            // computeCuda->ResampleImage(1, std::numeric_limits<float>::quiet_NaN());
+            computeCuda->GetDeformationField(false, true);
+            computeCuda->ResampleImage(1, std::numeric_limits<float>::quiet_NaN());
             if (isSymmetric) {
-                NiftiImage warpedCudaBw(contentCudaBw->F3dContent::GetWarped());
-                warpedCudaBw.copyData(contentCpuBw->GetWarped());
-                warpedCudaBw.disown();
-                contentCudaBw->UpdateWarped();
-                // computeCudaBw->GetDeformationField(false, true);
-                // computeCudaBw->ResampleImage(1, std::numeric_limits<float>::quiet_NaN());
+                computeCudaBw->GetDeformationField(false, true);
+                computeCudaBw->ResampleImage(1, std::numeric_limits<float>::quiet_NaN());
             }
             const double simMeasureCuda = measureCuda->GetSimilarityMeasureValue();
 
@@ -182,18 +174,10 @@ public:
 
             // Compute the similarity measure gradient for CUDA
             contentCuda->ZeroVoxelBasedMeasureGradient();
-            // computeCuda->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), timepoint);
-            NiftiImage warpedGradCuda(contentCuda->F3dContent::GetWarpedGradient());
-            warpedGradCuda.copyData(contentCpu->GetWarpedGradient());
-            warpedGradCuda.disown();
-            contentCuda->UpdateWarpedGradient();
+            computeCuda->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), timepoint);
             if (isSymmetric) {
                 contentCudaBw->ZeroVoxelBasedMeasureGradient();
-                // computeCudaBw->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), timepoint);
-                NiftiImage warpedGradCudaBw(contentCudaBw->F3dContent::GetWarpedGradient());
-                warpedGradCudaBw.copyData(contentCpuBw->GetWarpedGradient());
-                warpedGradCudaBw.disown();
-                contentCudaBw->UpdateWarpedGradient();
+                computeCudaBw->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), timepoint);
             }
             measureCuda->GetVoxelBasedSimilarityMeasureGradient(timepoint);
 

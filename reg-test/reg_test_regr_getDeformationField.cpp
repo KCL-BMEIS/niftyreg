@@ -567,7 +567,7 @@ TEST_CASE_METHOD(GetDeformationFieldTest, "Regression Deformation Field from B-s
                     NR_COUT << " | Result=" << defFieldVal;
                     NR_COUT << " | Expected=" << expDefFieldVal << std::endl;
                 }
-                REQUIRE(diff < EPS);
+                REQUIRE(diff == 0);
             }
         }
     }

@@ -201,7 +201,7 @@ public:
     }
 };
 
-TEST_CASE_METHOD(GetDeformationFieldTest, "Deformation field from b-spline grid", "[unit]") {
+TEST_CASE_METHOD(GetDeformationFieldTest, "Deformation Field from B-spline Grid", "[unit]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
@@ -209,13 +209,17 @@ TEST_CASE_METHOD(GetDeformationFieldTest, "Deformation field from b-spline grid"
 
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
+
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
+
             const auto resPtr = result.data();
             const auto expPtr = expected.data();
             for (auto i = 0; i < expected.nVoxels(); i++) {
                 const float resVal = resPtr[i];
                 const float expVal = expPtr[i];
                 const float diff = abs(resVal - expVal);
-                if (diff > EPS) {
+                if (diff > 0) {
                     NR_COUT << "[i]=" << i;
                     NR_COUT << " | diff=" << diff;
                     NR_COUT << " | Result=" << resVal;

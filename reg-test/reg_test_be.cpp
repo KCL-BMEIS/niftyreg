@@ -221,10 +221,14 @@ TEST_CASE_METHOD(BendingEnergyTest, "Bending Energy", "[unit]") {
 
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
-            // if (fabs(result - expected) > EPS){
-            NR_COUT << "Result=" << result << " | Expected=" << expected << std::endl;
-            // }
-            REQUIRE(fabs(result - expected) < EPS);
+
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
+
+            const auto diff = abs(result - expected);
+            if (diff > 0)
+                NR_COUT << "Result=" << result << " | Expected=" << expected << std::endl;
+            REQUIRE(diff < EPS);
         }
     }
 }

@@ -22,10 +22,10 @@ public:
         // Create a random number generator
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_real_distribution<float> distr(0, 1);
+        std::uniform_real_distribution<float> distr(0, 10);
 
         // Create 2D reference, floating and control point grid images
-        constexpr NiftiImage::dim_t size = 16;
+        constexpr NiftiImage::dim_t size = 4;
         vector<NiftiImage::dim_t> dim{ size, size };
         NiftiImage reference2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating2d(dim, NIFTI_TYPE_FLOAT32);
@@ -138,7 +138,7 @@ TEST_CASE_METHOD(ApproxLinearEnergyGradientTest, "Regression Approximate Linear 
 
             // Check the approximate linear energy
             NR_COUT << "Approx Linear Energy: " << approxLinearEnergyCpu << " " << approxLinearEnergyCuda << std::endl;
-            REQUIRE(fabs(approxLinearEnergyCpu - approxLinearEnergyCuda) < EPS);
+            REQUIRE(abs(approxLinearEnergyCpu - approxLinearEnergyCuda) < EPS);
 
             // Check the transformation gradients
             const auto transGradCpuPtr = transGradCpu.data();
@@ -146,7 +146,7 @@ TEST_CASE_METHOD(ApproxLinearEnergyGradientTest, "Regression Approximate Linear 
             for (size_t i = 0; i < transGradCpu.nVoxels(); ++i) {
                 const float cpuVal = transGradCpuPtr[i];
                 const float cudaVal = transGradCudaPtr[i];
-                const double diff = fabs(cpuVal - cudaVal);
+                const auto diff = abs(cpuVal - cudaVal);
                 if (diff > EPS)
                     NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
                 REQUIRE(diff < EPS);

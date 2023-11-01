@@ -88,7 +88,7 @@ public:
                 unique_ptr<reg_nmi> measure_nmi{ dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)) };
                 measure_nmi->SetTimepointWeight(0, 1.0); // weight initially set to default value of 1.0
                 measure->Initialise(*measure_nmi, *content);
-                double nmi = measure_nmi->GetSimilarityMeasureValue();
+                const double nmi = measure_nmi->GetSimilarityMeasureValue();
 
                 testCases.push_back({ testName + " " + platform->GetName(), nmi, expected });
             }
@@ -158,8 +158,12 @@ TEST_CASE_METHOD(NmiTest, "NMI", "[unit]") {
 
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
+
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
+
             const auto diff = abs(result - expected);
-            if (diff > EPS)
+            if (diff > 0)
                 NR_COUT << "Result=" << result << " | Expected=" << expected << std::endl;
             REQUIRE(diff < EPS);
         }

@@ -192,7 +192,7 @@ public:
     }
 };
 
-TEST_CASE_METHOD(NormaliseGradientTest, "Normalise gradient", "[NormaliseGradient]") {
+TEST_CASE_METHOD(NormaliseGradientTest, "Normalise Gradient", "[unit]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information

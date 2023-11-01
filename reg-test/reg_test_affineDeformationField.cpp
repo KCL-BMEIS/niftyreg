@@ -13,7 +13,7 @@
 typedef std::tuple<std::string, nifti_image*, mat44*, float*, float*, float*> TestData;
 typedef std::tuple<unique_ptr<AladinContent>, unique_ptr<Platform>> ContentDesc;
 
-TEST_CASE("Affine deformation field", "[AffineDefField]") {
+TEST_CASE("Affine Deformation Field", "[unit]") {
     // Create a reference 2D image
     int dim[8] = { 2, 2, 2, 1, 1, 1, 1, 1 };
     nifti_image *reference2d = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
@@ -157,7 +157,10 @@ TEST_CASE("Affine deformation field", "[AffineDefField]") {
         // Loop over all possibles contents for each test
         for (auto&& contentDesc : contentDescs) {
             auto&& [content, platform] = contentDesc;
-            SECTION(testName + " " + platform->GetName()) {
+            const std::string sectionName = testName + " " + platform->GetName();
+            SECTION(sectionName) {
+                NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
+
                 // Do the calculation
                 unique_ptr<Kernel> affineDeformKernel{ platform->CreateKernel(AffineDeformationFieldKernel::GetName(), content.get()) };
                 affineDeformKernel->castTo<AffineDeformationFieldKernel>()->Calculate();

@@ -144,13 +144,18 @@ TEST_CASE_METHOD(LtsTest, "Regression LTS", "[regression]") {
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
+
             // Loop over the matrix values and ensure they are identical
             for (int i = 0; i < 4; ++i) {
                 for (int j = 0; j < 4; ++j) {
                     const auto mCpu = matCpu->m[i][j];
                     const auto mCuda = matCuda->m[i][j];
-                    NR_COUT << i << " " << j << " " << mCpu << " " << mCuda << std::endl;
-                    REQUIRE(fabs(mCpu - mCuda) < EPS);
+                    const auto diff = abs(mCpu - mCuda);
+                    if (diff > 0)
+                        NR_COUT << i << " " << j << " " << mCpu << " " << mCuda << std::endl;
+                    REQUIRE(diff == 0);
                 }
             }
         }

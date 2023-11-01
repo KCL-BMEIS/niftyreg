@@ -148,7 +148,7 @@ public:
     }
 };
 
-TEST_CASE_METHOD(ComposeDeformationFieldTest, "Compose deformation field", "[unit]") {
+TEST_CASE_METHOD(ComposeDeformationFieldTest, "Compose Deformation Field", "[unit]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
@@ -167,7 +167,7 @@ TEST_CASE_METHOD(ComposeDeformationFieldTest, "Compose deformation field", "[uni
                 const float resVal = resPtr[i];
                 const float expVal = expPtr[i];
                 const float diff = abs(resVal - expVal);
-                if (diff > EPS) {
+                if (diff > 0) {
                     std::cout << "[i]=" << i;
                     std::cout << " | diff=" << diff;
                     std::cout << " | Result=" << resVal;

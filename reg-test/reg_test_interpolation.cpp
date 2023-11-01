@@ -16,7 +16,7 @@
 typedef std::tuple<std::string, NiftiImage, NiftiImage, int, float*> TestData;
 typedef std::tuple<unique_ptr<Content>, shared_ptr<Platform>> ContentDesc;
 
-TEST_CASE("Interpolation", "[Interpolation]") {
+TEST_CASE("Interpolation", "[unit]") {
     // Create a reference 2D image
     vector<NiftiImage::dim_t> dimFlo{ 4, 4 };
     NiftiImage reference2d(dimFlo, NIFTI_TYPE_FLOAT32);
@@ -193,7 +193,13 @@ TEST_CASE("Interpolation", "[Interpolation]") {
             auto&& [content, platform] = contentDesc;
             const bool isAladinContent = dynamic_cast<AladinContent*>(content.get());
             auto contentName = isAladinContent ? "Aladin" : "Base";
-            SECTION(testName + " " + platform->GetName() + " - " + contentName) {
+            const std::string sectionName = testName + " " + platform->GetName() + " - " + contentName;
+            SECTION(sectionName) {
+                NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
+
+                // Increase the precision for the output
+                NR_COUT << std::fixed << std::setprecision(10);
+
                 // Create and set a warped image to host the computation
                 NiftiImage warped(defField, NiftiImage::Copy::ImageInfo);
                 warped.setDim(NiftiDim::NDim, defField->nu);
@@ -223,8 +229,10 @@ TEST_CASE("Interpolation", "[Interpolation]") {
                 warped.disown();
                 for (size_t i = 0; i < nVoxels; ++i) {
                     const float warpedValue = warpedPtr[i];
-                    NR_COUT << i << " " << warpedValue << " " << testResult[i] << std::endl;
-                    REQUIRE(fabs(warpedValue - testResult[i]) < EPS);
+                    const float diff = abs(warpedValue - testResult[i]);
+                    if (diff > 0)
+                        NR_COUT << i << " " << warpedValue << " " << testResult[i] << std::endl;
+                    REQUIRE(diff < EPS);
                 }
             }
         }

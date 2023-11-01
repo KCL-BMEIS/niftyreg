@@ -138,10 +138,9 @@ public:
         for (auto&& data : testData) {
             for (auto&& platformType : PlatformTypes) {
                 // Create the platform
-                shared_ptr<Platform> platform{ new Platform(platformType) };
+                unique_ptr<Platform> platform{ new Platform(platformType) };
                 // Make a copy of the test data
-                auto td = data;
-                auto&& [testName, reference, floating, sigma, result] = td;
+                auto [testName, reference, floating, sigma, expLncc] = data;
                 // Create the content creator
                 unique_ptr<DefContentCreator> contentCreator{
                     dynamic_cast<DefContentCreator*>(platform->CreateContentCreator(ContentType::Def))
@@ -159,8 +158,9 @@ public:
                 measure_lncc->SetKernelStandardDeviation(0, sigma);
                 measure_lncc->SetTimepointWeight(0, 1.0); // weight initially set to default value of 1.0
                 measure->Initialise(*measure_lncc, *content);
-
-                testCases.push_back({ std::move(content), std::move(measure_lncc), platform, std::move(td) });
+                const double lncc = measure_lncc->GetSimilarityMeasureValue();
+                // Save for testing
+                testCases.push_back({ testName, lncc, expLncc });
             }
         }
     }
@@ -174,7 +174,7 @@ protected:
 
     using LocalStats = std::tuple<double, double>;
     using TestData = std::tuple<std::string, NiftiImage, NiftiImage, float, double>;
-    using TestCase = std::tuple<unique_ptr<Content>, unique_ptr<reg_lncc>, shared_ptr<Platform>, TestData>;
+    using TestCase = std::tuple<std::string, double, double>;
     inline static vector<TestCase> testCases;
 
     double GetLNCCNoConv(int kernelStd, const NiftiImage& ref, const NiftiImage& flo) {
@@ -192,7 +192,7 @@ protected:
         return lncc / voxelNumber;
     }
 
-    Kernel InitialiseKernel(const NiftiImage& ref, const float& kernelStdVoxel) {
+    Kernel InitialiseKernel(const NiftiImage& ref, const float kernelStdVoxel) {
         Kernel kernel;
         kernel.radius[0] = static_cast<int>(3.f * kernelStdVoxel);
         kernel.radius[1] = static_cast<int>(3.f * kernelStdVoxel);
@@ -222,7 +222,7 @@ protected:
         return kernel;
     }
 
-    LocalStats GetLocalMeans(const int& x, const int& y, const int& z, const Kernel& kernel,
+    LocalStats GetLocalMeans(const int x, const int y, const int z, const Kernel& kernel,
                              const NiftiImage& ref, const NiftiImage& flo) {
         double meanRef = 0, meanFlo = 0, kernelSum = 0;
         const float *kernelPtr = kernel.ptr.get();
@@ -252,7 +252,7 @@ protected:
         return LocalStats(meanRef / kernelSum, meanFlo / kernelSum);
     }
 
-    double GetLocalCC(const int& x, const int& y, const int& z, const Kernel& kernel,
+    double GetLocalCC(const int x, const int y, const int z, const Kernel& kernel,
                       const NiftiImage& ref, const NiftiImage& flo, const LocalStats& means) {
         const float *kernelPtr = kernel.ptr.get();
         const auto refPtr = ref.data();
@@ -291,18 +291,22 @@ protected:
     }
 };
 
-TEST_CASE_METHOD(LnccTest, "LNCC", "[GetSimilarityMeasureValue]") {
+TEST_CASE_METHOD(LnccTest, "LNCC", "[unit][GetSimilarityMeasureValue]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
-        auto&& [content, measure, platform, testData] = testCase;
-        auto&& [testName, reference, floating, sigma, value] = testData;
+        auto&& [testName, lncc, expLncc] = testCase;
 
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
-            const double lncc = measure->GetSimilarityMeasureValue();
-            NR_COUT << lncc << " " << value << std::endl;
-            REQUIRE(fabs(lncc - value) < EPS);
+
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
+
+            const double diff = abs(lncc - expLncc);
+            if (diff > 0)
+                NR_COUT << lncc << " " << expLncc << std::endl;
+            REQUIRE(diff < EPS);
         }
     }
 }
