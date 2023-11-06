@@ -1,13 +1,12 @@
 #include "reg_test_common.h"
-#include "_reg_nmi.h"
 #include "CudaF3dContent.h"
 
 /**
- *  Approximate linear energy and approximate linear energy gradient regression tests
+ *  Approximate bending energy and approximate bending energy gradient regression tests
  *  to ensure the CPU and CUDA versions yield the same output
 **/
 
-class ApproxLinearEnergyGradientTest {
+class ApproxBendingEnergyGradientTest {
 protected:
     using TestData = std::tuple<std::string, NiftiImage&, NiftiImage&, NiftiImage&, float>;
     using TestCase = std::tuple<std::string, double, double, NiftiImage, NiftiImage>;
@@ -15,13 +14,12 @@ protected:
     inline static vector<TestCase> testCases;
 
 public:
-    ApproxLinearEnergyGradientTest() {
+    ApproxBendingEnergyGradientTest() {
         if (!testCases.empty())
             return;
 
         // Create a random number generator
-        std::random_device rd;
-        std::mt19937 gen(rd());
+        std::mt19937 gen(0);
         std::uniform_real_distribution<float> distr(0, 10);
 
         // Create 2D reference, floating and control point grid images
@@ -106,29 +104,29 @@ public:
             unique_ptr<Compute> computeCpu{ platformCpu.CreateCompute(*contentCpu) };
             unique_ptr<Compute> computeCuda{ platformCuda.CreateCompute(*contentCuda) };
 
-            // Compute the approximate linear energy for CPU and CUDA
-            const double approxLinearEnergyCpu = computeCpu->ApproxLinearEnergy();
-            const double approxLinearEnergyCuda = computeCuda->ApproxLinearEnergy();
+            // Compute the approximate bending energy for CPU and CUDA
+            const double approxBendingEnergyCpu = computeCpu->ApproxBendingEnergy();
+            const double approxBendingEnergyCuda = computeCuda->ApproxBendingEnergy();
 
-            // Compute the approximate linear energy gradient for CPU and CUDA
-            computeCpu->ApproxLinearEnergyGradient(weight);
-            computeCuda->ApproxLinearEnergyGradient(weight);
+            // Compute the approximate bending energy gradient for CPU and CUDA
+            computeCpu->ApproxBendingEnergyGradient(weight);
+            computeCuda->ApproxBendingEnergyGradient(weight);
 
             // Get the transformation gradients
             NiftiImage transGradCpu(contentCpu->GetTransformationGradient(), NiftiImage::Copy::Image);
             NiftiImage transGradCuda(contentCuda->GetTransformationGradient(), NiftiImage::Copy::Image);
 
             // Save for testing
-            testCases.push_back({ testName, approxLinearEnergyCpu, approxLinearEnergyCuda, std::move(transGradCpu), std::move(transGradCuda) });
+            testCases.push_back({ testName, approxBendingEnergyCpu, approxBendingEnergyCuda, std::move(transGradCpu), std::move(transGradCuda) });
         }
     }
 };
 
-TEST_CASE_METHOD(ApproxLinearEnergyGradientTest, "Regression Approximate Linear Energy Gradient", "[regression]") {
+TEST_CASE_METHOD(ApproxBendingEnergyGradientTest, "Regression Approximate Bending Energy Gradient", "[regression]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
-        auto&& [testName, approxLinearEnergyCpu, approxLinearEnergyCuda, transGradCpu, transGradCuda] = testCase;
+        auto&& [testName, approxBendingEnergyCpu, approxBendingEnergyCuda, transGradCpu, transGradCuda] = testCase;
 
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
@@ -136,9 +134,9 @@ TEST_CASE_METHOD(ApproxLinearEnergyGradientTest, "Regression Approximate Linear 
             // Increase the precision for the output
             NR_COUT << std::fixed << std::setprecision(10);
 
-            // Check the approximate linear energy values
-            NR_COUT << "Approx Linear Energy: " << approxLinearEnergyCpu << " " << approxLinearEnergyCuda << std::endl;
-            REQUIRE(abs(approxLinearEnergyCpu - approxLinearEnergyCuda) < EPS);
+            // Check the approximate bending energy values
+            NR_COUT << "Approx Bending Energy: " << approxBendingEnergyCpu << " " << approxBendingEnergyCuda << std::endl;
+            REQUIRE(abs(approxBendingEnergyCpu - approxBendingEnergyCuda) < EPS);
 
             // Check the transformation gradients
             const auto transGradCpuPtr = transGradCpu.data();
@@ -147,7 +145,7 @@ TEST_CASE_METHOD(ApproxLinearEnergyGradientTest, "Regression Approximate Linear 
                 const float cpuVal = transGradCpuPtr[i];
                 const float cudaVal = transGradCudaPtr[i];
                 const auto diff = abs(cpuVal - cudaVal);
-                if (diff > EPS)
+                if (diff > 0)
                     NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
                 REQUIRE(diff < EPS);
             }
