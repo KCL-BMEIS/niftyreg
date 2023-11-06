@@ -16,4 +16,5 @@
 
 void reg_affine_getDeformationField_gpu(const mat44 *affineMatrix,
                                         const nifti_image *targetImage,
-                                        float4 *deformationFieldCuda);
+                                        float4 *deformationFieldCuda,
+                                        const bool composition = false);

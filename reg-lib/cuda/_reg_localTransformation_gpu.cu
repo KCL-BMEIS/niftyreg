@@ -80,131 +80,211 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
     }
 }
 /* *************************************************************** */
-float reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage, const float4 *controlPointImageCuda) {
-    auto blockSize = CudaContext::GetBlockSize();
-    const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
-    const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
-    const size_t controlPointGridSize = controlPointNumber * sizeof(float4);
-    auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, cudaResourceTypeLinear,
-                                                         controlPointGridSize, cudaChannelFormatKindFloat, 4);
+template<bool is3d>
+struct Basis2nd {
+    float xx[27], yy[27], zz[27], xy[27], yz[27], xz[27];
+};
+template<>
+struct Basis2nd<false> {
+    float xx[9], yy[9], xy[9];
+};
+template<bool is3d>
+struct SecondDerivative {
+    using Type = float3;
+    using TextureType = float4; // Due to float3 is not allowed for textures
+    Type xx, yy, zz, xy, yz, xz;
+};
+template<>
+struct SecondDerivative<false> {
+    using Type = float2;
+    using TextureType = float2;
+    Type xx, yy, xy;
+};
+/* *************************************************************** */
+template<bool is3d, bool isGradient>
+__device__ SecondDerivative<is3d> GetApproxSecondDerivative(const unsigned index,
+                                                            cudaTextureObject_t controlPointTexture,
+                                                            const int3& controlPointImageDim,
+                                                            const Basis2nd<is3d>& basis) {
+    auto&& [x, y, z] = reg_indexToDims_cuda<is3d>(index, controlPointImageDim);
+    if (!isGradient && (x < 1 || x >= controlPointImageDim.x - 1 ||
+                        y < 1 || y >= controlPointImageDim.y - 1 ||
+                        (is3d && (z < 1 || z >= controlPointImageDim.z - 1)))) return {};
 
-    // First compute all the second derivatives
-    float4 *secondDerivativeValuesCuda;
-    size_t secondDerivativeValuesSize;
-    if (controlPointImage->nz > 1) {
-        secondDerivativeValuesSize = 6 * controlPointGridSize;
-        NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValuesCuda, secondDerivativeValuesSize));
-        const unsigned blocks = blockSize->reg_spline_getApproxSecondDerivatives3D;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        reg_spline_getApproxSecondDerivatives3D<<<gridDims, blockDims>>>(secondDerivativeValuesCuda, *controlPointTexture,
-                                                                         controlPointImageDim, (unsigned)controlPointNumber);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+    SecondDerivative<is3d> secondDerivative{};
+    if constexpr (is3d) {
+        for (int c = z - 1, basInd = 0; c < z + 2; c++) {
+            if (isGradient && (c < 0 || c >= controlPointImageDim.z)) { basInd += 9; continue; }
+            const int indexZ = c * controlPointImageDim.y;
+            for (int b = y - 1; b < y + 2; b++) {
+                if (isGradient && (b < 0 || b >= controlPointImageDim.y)) { basInd += 3; continue; }
+                int indexXYZ = (indexZ + b) * controlPointImageDim.x + x - 1;
+                for (int a = x - 1; a < x + 2; a++, basInd++, indexXYZ++) {
+                    if (isGradient && (a < 0 || a >= controlPointImageDim.x)) continue;
+                    const float3& controlPointValue = make_float3(tex1Dfetch<float4>(controlPointTexture, indexXYZ));
+                    secondDerivative.xx = secondDerivative.xx + basis.xx[basInd] * controlPointValue;
+                    secondDerivative.yy = secondDerivative.yy + basis.yy[basInd] * controlPointValue;
+                    secondDerivative.zz = secondDerivative.zz + basis.zz[basInd] * controlPointValue;
+                    secondDerivative.xy = secondDerivative.xy + basis.xy[basInd] * controlPointValue;
+                    secondDerivative.yz = secondDerivative.yz + basis.yz[basInd] * controlPointValue;
+                    secondDerivative.xz = secondDerivative.xz + basis.xz[basInd] * controlPointValue;
+                }
+            }
+        }
     } else {
-        secondDerivativeValuesSize = 3 * controlPointGridSize;
-        NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValuesCuda, secondDerivativeValuesSize));
-        const unsigned blocks = blockSize->reg_spline_getApproxSecondDerivatives2D;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        reg_spline_getApproxSecondDerivatives2D<<<gridDims, blockDims>>>(secondDerivativeValuesCuda, *controlPointTexture,
-                                                                         controlPointImageDim, (unsigned)controlPointNumber);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+        for (int b = y - 1, basInd = 0; b < y + 2; b++) {
+            if (isGradient && (b < 0 || b >= controlPointImageDim.y)) { basInd += 3; continue; }
+            int indexXY = b * controlPointImageDim.x + x - 1;
+            for (int a = x - 1; a < x + 2; a++, basInd++, indexXY++) {
+                if (isGradient && (a < 0 || a >= controlPointImageDim.x)) continue;
+                const float2& controlPointValue = make_float2(tex1Dfetch<float4>(controlPointTexture, indexXY));
+                secondDerivative.xx = secondDerivative.xx + basis.xx[basInd] * controlPointValue;
+                secondDerivative.yy = secondDerivative.yy + basis.yy[basInd] * controlPointValue;
+                secondDerivative.xy = secondDerivative.xy + basis.xy[basInd] * controlPointValue;
+            }
+        }
     }
-
-    // Compute the bending energy from the second derivatives
-    float *penaltyTermCuda;
-    NR_CUDA_SAFE_CALL(cudaMalloc(&penaltyTermCuda, controlPointNumber * sizeof(float)));
-    auto secondDerivativesTexture = Cuda::CreateTextureObject(secondDerivativeValuesCuda, cudaResourceTypeLinear,
-                                                              secondDerivativeValuesSize, cudaChannelFormatKindFloat, 4);
-    if (controlPointImage->nz > 1) {
-        const unsigned blocks = blockSize->reg_spline_getApproxBendingEnergy3D;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        reg_spline_getApproxBendingEnergy3D_kernel<<<gridDims, blockDims>>>(penaltyTermCuda, *secondDerivativesTexture,
-                                                                            (unsigned)controlPointNumber);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-    } else {
-        const unsigned blocks = blockSize->reg_spline_getApproxBendingEnergy2D;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        reg_spline_getApproxBendingEnergy2D_kernel<<<gridDims, blockDims>>>(penaltyTermCuda, *secondDerivativesTexture,
-                                                                            (unsigned)controlPointNumber);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-    }
-    NR_CUDA_SAFE_CALL(cudaFree(secondDerivativeValuesCuda));
-
-    // Compute the mean bending energy value
-    double penaltyValue = reg_sumReduction_gpu(penaltyTermCuda, controlPointNumber);
-    NR_CUDA_SAFE_CALL(cudaFree(penaltyTermCuda));
-
-    return (float)(penaltyValue / (double)controlPointImage->nvox);
+    return secondDerivative;
 }
 /* *************************************************************** */
-void reg_spline_approxBendingEnergyGradient_gpu(const nifti_image *controlPointImage,
-                                                const float4 *controlPointImageCuda,
+template<bool is3d>
+double reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage, const float4 *controlPointImageCuda) {
+    const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
+    const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
+    auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, cudaResourceTypeLinear,
+                                                            controlPointNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto controlPointTexture = *controlPointTexturePtr;
+
+    // Get the constant basis values
+    Basis2nd<is3d> basis;
+    if constexpr (is3d)
+        set_second_order_bspline_basis_values(basis.xx, basis.yy, basis.zz, basis.xy, basis.yz, basis.xz);
+    else
+        set_second_order_bspline_basis_values(basis.xx, basis.yy, basis.xy);
+
+    thrust::counting_iterator<unsigned> index(0);
+    return thrust::transform_reduce(thrust::device, index, index + controlPointNumber, [=]__device__(const unsigned index) {
+        const auto& secondDerivative = GetApproxSecondDerivative<is3d, false>(index, controlPointTexture, controlPointImageDim, basis);
+        if constexpr (is3d)
+            return (Square(secondDerivative.xx.x) + Square(secondDerivative.xx.y) + Square(secondDerivative.xx.z) +
+                    Square(secondDerivative.yy.x) + Square(secondDerivative.yy.y) + Square(secondDerivative.yy.z) +
+                    Square(secondDerivative.zz.x) + Square(secondDerivative.zz.y) + Square(secondDerivative.zz.z) +
+                    2.f * (Square(secondDerivative.xy.x) + Square(secondDerivative.xy.y) + Square(secondDerivative.xy.z) +
+                           Square(secondDerivative.yz.x) + Square(secondDerivative.yz.y) + Square(secondDerivative.yz.z) +
+                           Square(secondDerivative.xz.x) + Square(secondDerivative.xz.y) + Square(secondDerivative.xz.z)));
+        else
+            return (Square(secondDerivative.xx.x) + Square(secondDerivative.xx.y) + Square(secondDerivative.yy.x) +
+                    Square(secondDerivative.yy.y) + 2.f * (Square(secondDerivative.xy.x) + Square(secondDerivative.xy.y)));
+    }, 0.0, thrust::plus<double>()) / static_cast<double>(controlPointImage->nvox);
+}
+template double reg_spline_approxBendingEnergy_gpu<false>(const nifti_image*, const float4*);
+template double reg_spline_approxBendingEnergy_gpu<true>(const nifti_image*, const float4*);
+/* *************************************************************** */
+template<bool is3d>
+void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
+                                                float4 *controlPointImageCuda,
                                                 float4 *transGradientCuda,
                                                 float bendingEnergyWeight) {
     auto blockSize = CudaContext::GetBlockSize();
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
-    const size_t controlPointGridSize = controlPointNumber * sizeof(float4);
-    auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, cudaResourceTypeLinear,
-                                                         controlPointGridSize, cudaChannelFormatKindFloat, 4);
+    auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, cudaResourceTypeLinear,
+                                                            controlPointNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto controlPointTexture = *controlPointTexturePtr;
+
+    // Get the constant basis values
+    Basis2nd<is3d> basis;
+    if constexpr (is3d)
+        set_second_order_bspline_basis_values(basis.xx, basis.yy, basis.zz, basis.xy, basis.yz, basis.xz);
+    else
+        set_second_order_bspline_basis_values(basis.xx, basis.yy, basis.xy);
+
+    reg_getDisplacementFromDeformation_gpu(controlPointImage, controlPointImageCuda);
 
     // First compute all the second derivatives
-    float4 *secondDerivativeValuesCuda;
-    size_t secondDerivativeValuesSize;
-    if (controlPointImage->nz > 1) {
-        secondDerivativeValuesSize = 6 * controlPointGridSize * sizeof(float4);
-        NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValuesCuda, secondDerivativeValuesSize));
-        const unsigned blocks = blockSize->reg_spline_getApproxSecondDerivatives3D;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        reg_spline_getApproxSecondDerivatives3D<<<gridDims, blockDims>>>(secondDerivativeValuesCuda, *controlPointTexture,
-                                                                         controlPointImageDim, (unsigned)controlPointNumber);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-    } else {
-        secondDerivativeValuesSize = 3 * controlPointGridSize * sizeof(float4);
-        NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValuesCuda, secondDerivativeValuesSize));
-        const unsigned blocks = blockSize->reg_spline_getApproxSecondDerivatives2D;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        reg_spline_getApproxSecondDerivatives2D<<<gridDims, blockDims>>>(secondDerivativeValuesCuda, *controlPointTexture,
-                                                                         controlPointImageDim, (unsigned)controlPointNumber);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-    }
+    thrust::device_vector<typename SecondDerivative<is3d>::TextureType> secondDerivativesCudaVec((is3d ? 6 : 3) * controlPointNumber);
+    auto secondDerivativesCuda = secondDerivativesCudaVec.data().get();
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), controlPointNumber,
+                       [controlPointTexture, controlPointImageDim, basis, secondDerivativesCuda]__device__(const unsigned index) {
+        const auto& secondDerivative = GetApproxSecondDerivative<is3d, true>(index, controlPointTexture, controlPointImageDim, basis);
+        if constexpr (is3d) {
+            int derInd = 6 * index;
+            secondDerivativesCuda[derInd++] = make_float4(secondDerivative.xx);
+            secondDerivativesCuda[derInd++] = make_float4(secondDerivative.yy);
+            secondDerivativesCuda[derInd++] = make_float4(secondDerivative.zz);
+            secondDerivativesCuda[derInd++] = make_float4(2.f * secondDerivative.xy);
+            secondDerivativesCuda[derInd++] = make_float4(2.f * secondDerivative.yz);
+            secondDerivativesCuda[derInd] = make_float4(2.f * secondDerivative.xz);
+        } else {
+            int derInd = 3 * index;
+            secondDerivativesCuda[derInd++] = secondDerivative.xx;
+            secondDerivativesCuda[derInd++] = secondDerivative.yy;
+            secondDerivativesCuda[derInd] = 2.f * secondDerivative.xy;
+        }
+    });
+
+    auto secondDerivativesTexturePtr = Cuda::CreateTextureObject(secondDerivativesCuda, cudaResourceTypeLinear,
+                                                                 secondDerivativesCudaVec.size() * sizeof(typename SecondDerivative<is3d>::TextureType),
+                                                                 cudaChannelFormatKindFloat, sizeof(typename SecondDerivative<is3d>::TextureType) / sizeof(float));
+    auto secondDerivativesTexture = *secondDerivativesTexturePtr;
 
     // Compute the gradient
-    bendingEnergyWeight /= (float)controlPointNumber;
-    auto secondDerivativesTexture = Cuda::CreateTextureObject(secondDerivativeValuesCuda, cudaResourceTypeLinear,
-                                                              secondDerivativeValuesSize, cudaChannelFormatKindFloat, 4);
-    if (controlPointImage->nz > 1) {
-        const unsigned blocks = blockSize->reg_spline_getApproxBendingEnergyGradient3D;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        reg_spline_getApproxBendingEnergyGradient3D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *secondDerivativesTexture,
-                                                                                    controlPointImageDim, (unsigned)controlPointNumber,
-                                                                                    bendingEnergyWeight);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-    } else {
-        const unsigned blocks = blockSize->reg_spline_getApproxBendingEnergyGradient2D;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        reg_spline_getApproxBendingEnergyGradient2D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *secondDerivativesTexture,
-                                                                                    controlPointImageDim, (unsigned)controlPointNumber,
-                                                                                    bendingEnergyWeight);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-    }
-    NR_CUDA_SAFE_CALL(cudaFree(secondDerivativeValuesCuda));
+    const float approxRatio = bendingEnergyWeight / (float)controlPointNumber;
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), controlPointNumber,
+                       [controlPointImageDim, basis, secondDerivativesTexture, transGradientCuda, approxRatio]__device__(const unsigned index) {
+        auto&& [x, y, z] = reg_indexToDims_cuda<is3d>(index, controlPointImageDim);
+        typename SecondDerivative<is3d>::Type gradientValue{};
+        if constexpr (is3d) {
+            for (int c = z - 1, basInd = 0; c < z + 2; c++) {
+                if (c < 0 || c >= controlPointImageDim.z) { basInd += 9; continue; }
+                const int indexZ = c * controlPointImageDim.y;
+                for (int b = y - 1; b < y + 2; b++) {
+                    if (b < 0 || b >= controlPointImageDim.y) { basInd += 3; continue; }
+                    int indexXYZ = ((indexZ + b) * controlPointImageDim.x + x - 1) * 6;
+                    for (int a = x - 1; a < x + 2; a++, basInd++) {
+                        if (a < 0 || a >= controlPointImageDim.x) { indexXYZ += 6; continue; }
+                        const float3& secondDerivativeXX = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        gradientValue = gradientValue + secondDerivativeXX * basis.xx[basInd];
+                        const float3& secondDerivativeYY = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        gradientValue = gradientValue + secondDerivativeYY * basis.yy[basInd];
+                        const float3& secondDerivativeZZ = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        gradientValue = gradientValue + secondDerivativeZZ * basis.zz[basInd];
+                        const float3& secondDerivativeXY = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        gradientValue = gradientValue + secondDerivativeXY * basis.xy[basInd];
+                        const float3& secondDerivativeYZ = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        gradientValue = gradientValue + secondDerivativeYZ * basis.yz[basInd];
+                        const float3& secondDerivativeXZ = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        gradientValue = gradientValue + secondDerivativeXZ * basis.xz[basInd];
+                    }
+                }
+            }
+        } else {
+            for (int b = y - 1, basInd = 0; b < y + 2; b++) {
+                if (b < 0 || b >= controlPointImageDim.y) { basInd += 3; continue; }
+                int indexXY = (b * controlPointImageDim.x + x - 1) * 3;
+                for (int a = x - 1; a < x + 2; a++, basInd++) {
+                    if (a < 0 || a >= controlPointImageDim.x) { indexXY += 3; continue; }
+                    const float2& secondDerivativeXX = tex1Dfetch<float2>(secondDerivativesTexture, indexXY++);
+                    gradientValue = gradientValue + secondDerivativeXX * basis.xx[basInd];
+                    const float2& secondDerivativeYY = tex1Dfetch<float2>(secondDerivativesTexture, indexXY++);
+                    gradientValue = gradientValue + secondDerivativeYY * basis.yy[basInd];
+                    const float2& secondDerivativeXY = tex1Dfetch<float2>(secondDerivativesTexture, indexXY++);
+                    gradientValue = gradientValue + secondDerivativeXY * basis.xy[basInd];
+                }
+            }
+        }
+        float4 nodeGradVal = transGradientCuda[index];
+        nodeGradVal.x += approxRatio * gradientValue.x;
+        nodeGradVal.y += approxRatio * gradientValue.y;
+        if constexpr (is3d)
+            nodeGradVal.z += approxRatio * gradientValue.z;
+        transGradientCuda[index] = nodeGradVal;
+    });
+
+    reg_getDeformationFromDisplacement_gpu(controlPointImage, controlPointImageCuda);
 }
+template void reg_spline_approxBendingEnergyGradient_gpu<false>(nifti_image*, float4*, float4*, float);
+template void reg_spline_approxBendingEnergyGradient_gpu<true>(nifti_image*, float4*, float4*, float);
 /* *************************************************************** */
 void reg_spline_ComputeApproxJacobianValues(const nifti_image *controlPointImage,
                                             const float4 *controlPointImageCuda,
@@ -501,26 +581,61 @@ double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
     return std::numeric_limits<double>::quiet_NaN();
 }
 /* *************************************************************** */
-void reg_getDeformationFromDisplacement_gpu(const nifti_image *image, float4 *imageCuda, const bool reverse = false) {
+template<bool is3d, bool reverse = false>
+void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageCuda) {
     // Bind the qform or sform
     const mat44& affineMatrix = image->sform_code > 0 ? image->sto_xyz : image->qto_xyz;
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
     const int3 imageDim{ image->nx, image->ny, image->nz };
 
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_getDeformationFromDisplacement;
-    const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
-    const dim3 gridDims(grids, grids, 1);
-    const dim3 blockDims(blocks, 1, 1);
-    reg_getDeformationFromDisplacement3D_kernel<<<gridDims, blockDims>>>(imageCuda, imageDim, (unsigned)voxelNumber, affineMatrix, reverse);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), voxelNumber, [=]__device__(const unsigned index) {
+        auto&& [x, y, z] = reg_indexToDims_cuda<is3d>(index, imageDim);
+
+        const float4 initialPosition = {
+            float(x) * affineMatrix.m[0][0] + float(y) * affineMatrix.m[0][1] + (is3d ? float(z) * affineMatrix.m[0][2] : 0.f) + affineMatrix.m[0][3],
+            float(x) * affineMatrix.m[1][0] + float(y) * affineMatrix.m[1][1] + (is3d ? float(z) * affineMatrix.m[1][2] : 0.f) + affineMatrix.m[1][3],
+            is3d ? float(x) * affineMatrix.m[2][0] + float(y) * affineMatrix.m[2][1] + float(z) * affineMatrix.m[2][2] + affineMatrix.m[2][3] : 0.f,
+            0.f
+        };
+
+        // If reverse, gets displacement from deformation
+        imageCuda[index] = reverse ? imageCuda[index] - initialPosition : imageCuda[index] + initialPosition;
+    });
+
+    image->intent_code = NIFTI_INTENT_VECTOR;
+    memset(image->intent_name, 0, 16);
+    strcpy(image->intent_name, "NREG_TRANS");
+    if constexpr (reverse) {
+        if (image->intent_p1 == DEF_FIELD)
+            image->intent_p1 = DISP_FIELD;
+        else if (image->intent_p1 == DEF_VEL_FIELD)
+            image->intent_p1 = DISP_VEL_FIELD;
+    } else {
+        if (image->intent_p1 == DISP_FIELD)
+            image->intent_p1 = DEF_FIELD;
+        else if (image->intent_p1 == DISP_VEL_FIELD)
+            image->intent_p1 = DEF_VEL_FIELD;
+    }
 }
 /* *************************************************************** */
-void reg_getDisplacementFromDeformation_gpu(const nifti_image *image, float4 *imageCuda) {
-    reg_getDeformationFromDisplacement_gpu(image, imageCuda, true);
+void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageCuda) {
+    if (image->nu == 2)
+        reg_getDeformationFromDisplacement_gpu<false>(image, imageCuda);
+    else if (image->nu == 3)
+        reg_getDeformationFromDisplacement_gpu<true>(image, imageCuda);
+    else NR_FATAL_ERROR("Only implemented for 2D or 3D deformation fields");
+}
+/* *************************************************************** */
+void reg_getDisplacementFromDeformation_gpu(nifti_image *image, float4 *imageCuda) {
+    if (image->nu == 2)
+        reg_getDeformationFromDisplacement_gpu<false, true>(image, imageCuda);
+    else if (image->nu == 3)
+        reg_getDeformationFromDisplacement_gpu<true, true>(image, imageCuda);
+    else NR_FATAL_ERROR("Only implemented for 2D or 3D deformation fields");
 }
 /* *************************************************************** */
 void reg_spline_getFlowFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
-                                                 const nifti_image *flowField,
+                                                 nifti_image *flowField,
                                                  float4 *velocityFieldGridCuda,
                                                  float4 *flowFieldCuda,
                                                  const int *maskCuda,
@@ -530,6 +645,7 @@ void reg_spline_getFlowFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
         NR_FATAL_ERROR("The provided grid is not a velocity field");
 
     // Initialise the flow field with an identity transformation
+    flowField->intent_p1 = DISP_VEL_FIELD;
     reg_getDeformationFromDisplacement_gpu(flowField, flowFieldCuda);
 
     // fake the number of extension here to avoid the second half of the affine
@@ -538,6 +654,7 @@ void reg_spline_getFlowFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
         velocityFieldGrid->num_ext = 1;
 
     // Copy over the number of required squaring steps
+    flowField->intent_p2 = velocityFieldGrid->intent_p2;
     // The initial flow field is generated using cubic B-Spline interpolation/approximation
     reg_spline_getDeformationField_gpu(velocityFieldGrid,
                                        flowField,
@@ -658,10 +775,9 @@ void reg_defField_getDeformationFieldFromFlowField_gpu(nifti_image *flowField,
     deformationField->intent_p1 = DEF_FIELD;
     deformationField->intent_p2 = 0;
     // If required an affine component is composed
-    // TODO Composition is needed
     if (flowField->num_ext > 1)
         reg_affine_getDeformationField_gpu(reinterpret_cast<mat44*>(flowField->ext_list[1].edata),
-                                           deformationField, deformationFieldCuda);
+                                           deformationField, deformationFieldCuda, true);
 }
 /* *************************************************************** */
 void reg_spline_getDefFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
@@ -741,7 +857,7 @@ double reg_spline_approxLinearEnergy_gpu(const nifti_image *controlPointGrid,
     const mat33 reorientation = reg_mat44_to_mat33(controlPointGrid->sform_code > 0 ? &controlPointGrid->sto_ijk : &controlPointGrid->qto_ijk);
 
     // Store the basis values since they are constant as the value is approximated at the control point positions only
-    Basis basis;
+    Basis1st<is3d> basis;
     if constexpr (is3d)
         set_first_order_basis_values(basis.x, basis.y, basis.z);
     else
@@ -780,7 +896,7 @@ void reg_spline_approxLinearEnergyGradient_gpu(const nifti_image *controlPointGr
     const mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
     // Store the basis values since they are constant as the value is approximated at the control point positions only
-    Basis basis;
+    Basis1st<is3d> basis;
     if constexpr (is3d)
         set_first_order_basis_values(basis.x, basis.y, basis.z);
     else

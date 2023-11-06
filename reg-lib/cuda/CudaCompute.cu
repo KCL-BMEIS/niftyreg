@@ -47,15 +47,21 @@ double CudaCompute::CorrectFolding(bool approx) {
 /* *************************************************************** */
 double CudaCompute::ApproxBendingEnergy() {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    return reg_spline_approxBendingEnergy_gpu(con.F3dContent::GetControlPointGrid(), con.GetControlPointGridCuda());
+    const nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
+    auto approxBendingEnergy = controlPointGrid->nz > 1 ? reg_spline_approxBendingEnergy_gpu<true> :
+                                                          reg_spline_approxBendingEnergy_gpu<false>;
+    return approxBendingEnergy(controlPointGrid, con.GetControlPointGridCuda());
 }
 /* *************************************************************** */
 void CudaCompute::ApproxBendingEnergyGradient(float weight) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    reg_spline_approxBendingEnergyGradient_gpu(con.F3dContent::GetControlPointGrid(),
-                                               con.GetControlPointGridCuda(),
-                                               con.GetTransformationGradientCuda(),
-                                               weight);
+    nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
+    auto approxBendingEnergyGradient = controlPointGrid->nz > 1 ? reg_spline_approxBendingEnergyGradient_gpu<true> :
+                                                                  reg_spline_approxBendingEnergyGradient_gpu<false>;
+    approxBendingEnergyGradient(controlPointGrid,
+                                con.GetControlPointGridCuda(),
+                                con.GetTransformationGradientCuda(),
+                                weight);
 }
 /* *************************************************************** */
 double CudaCompute::ApproxLinearEnergy() {

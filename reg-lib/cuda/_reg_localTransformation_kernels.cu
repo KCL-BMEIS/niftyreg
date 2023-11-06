@@ -39,14 +39,6 @@ __device__ void GetBasisSplineValues(const float basis, float *values) {
     values[3] = (basis - 1.f) * ff / 2.f;
 }
 /* *************************************************************** */
-__device__ void GetBasisSplineValuesX(const float basis, float4 *values) {
-    const float ff = Square(basis);
-    values->x = (basis * ((2.f - basis) * basis - 1.f)) / 2.f;
-    values->y = (ff * (3.f * basis - 5.f) + 2.f) / 2.f;
-    values->z = (basis * ((4.f - 3.f * basis) * basis + 1.f)) / 2.f;
-    values->w = (basis - 1.f) * ff / 2.f;
-}
-/* *************************************************************** */
 __device__ void GetBSplineBasisValue(const float basis, const int index, float *value, float *first) {
     switch (index) {
     case 0:
@@ -115,139 +107,6 @@ __device__ void GetFirstDerivativeBasisValues3D(const int index, float *xBasis, 
     case 24: xBasis[24] = -0.013889f; yBasis[24] = 0.013889f; zBasis[24] = 0.013889f; break;
     case 25: xBasis[25] = 0.000000f; yBasis[25] = 0.055556f; zBasis[25] = 0.055556f; break;
     case 26: xBasis[26] = 0.013889f; yBasis[26] = 0.013889f; zBasis[26] = 0.013889f; break;
-    }
-}
-/* *************************************************************** */
-__device__ void GetSecondDerivativeBasisValues2D(const int index, float *xxBasis, float *yyBasis, float *xyBasis) {
-    switch (index) {
-    case 0: xxBasis[0] = 0.166667f; yyBasis[0] = 0.166667f; xyBasis[0] = 0.25f; break;
-    case 1: xxBasis[1] = -0.333333f; yyBasis[1] = 0.666667f; xyBasis[1] = -0.f; break;
-    case 2: xxBasis[2] = 0.166667f; yyBasis[2] = 0.166667f; xyBasis[2] = -0.25f; break;
-    case 3: xxBasis[3] = 0.666667f; yyBasis[3] = -0.333333f; xyBasis[3] = -0.f; break;
-    case 4: xxBasis[4] = -1.33333f; yyBasis[4] = -1.33333f; xyBasis[4] = 0.f; break;
-    case 5: xxBasis[5] = 0.666667f; yyBasis[5] = -0.333333f; xyBasis[5] = 0.f; break;
-    case 6: xxBasis[6] = 0.166667f; yyBasis[6] = 0.166667f; xyBasis[6] = -0.25f; break;
-    case 7: xxBasis[7] = -0.333333f; yyBasis[7] = 0.666667f; xyBasis[7] = 0.f; break;
-    case 8: xxBasis[8] = 0.166667f; yyBasis[8] = 0.166667f; xyBasis[8] = 0.25f; break;
-    }
-}
-/* *************************************************************** */
-__device__ void GetSecondDerivativeBasisValues3D(const int index,
-                                                 float *xxBasis,
-                                                 float *yyBasis,
-                                                 float *zzBasis,
-                                                 float *xyBasis,
-                                                 float *yzBasis,
-                                                 float *xzBasis) {
-    switch (index) {
-    case 0:
-        xxBasis[0] = 0.027778f; yyBasis[0] = 0.027778f; zzBasis[0] = 0.027778f;
-        xyBasis[0] = 0.041667f; yzBasis[0] = 0.041667f; xzBasis[0] = 0.041667f;
-        break;
-    case 1:
-        xxBasis[1] = -0.055556f; yyBasis[1] = 0.111111f; zzBasis[1] = 0.111111f;
-        xyBasis[1] = -0.000000f; yzBasis[1] = 0.166667f; xzBasis[1] = -0.000000f;
-        break;
-    case 2:
-        xxBasis[2] = 0.027778f; yyBasis[2] = 0.027778f; zzBasis[2] = 0.027778f;
-        xyBasis[2] = -0.041667f; yzBasis[2] = 0.041667f; xzBasis[2] = -0.041667f;
-        break;
-    case 3:
-        xxBasis[3] = 0.111111f; yyBasis[3] = -0.055556f; zzBasis[3] = 0.111111f;
-        xyBasis[3] = -0.000000f; yzBasis[3] = -0.000000f; xzBasis[3] = 0.166667f;
-        break;
-    case 4:
-        xxBasis[4] = -0.222222f; yyBasis[4] = -0.222222f; zzBasis[4] = 0.444444f;
-        xyBasis[4] = 0.000000f; yzBasis[4] = -0.000000f; xzBasis[4] = -0.000000f;
-        break;
-    case 5:
-        xxBasis[5] = 0.111111f; yyBasis[5] = -0.055556f; zzBasis[5] = 0.111111f;
-        xyBasis[5] = 0.000000f; yzBasis[5] = -0.000000f; xzBasis[5] = -0.166667f;
-        break;
-    case 6:
-        xxBasis[6] = 0.027778f; yyBasis[6] = 0.027778f; zzBasis[6] = 0.027778f;
-        xyBasis[6] = -0.041667f; yzBasis[6] = -0.041667f; xzBasis[6] = 0.041667f;
-        break;
-    case 7:
-        xxBasis[7] = -0.055556f; yyBasis[7] = 0.111111f; zzBasis[7] = 0.111111f;
-        xyBasis[7] = 0.000000f; yzBasis[7] = -0.166667f; xzBasis[7] = -0.000000f;
-        break;
-    case 8:
-        xxBasis[8] = 0.027778f; yyBasis[8] = 0.027778f; zzBasis[8] = 0.027778f;
-        xyBasis[8] = 0.041667f; yzBasis[8] = -0.041667f; xzBasis[8] = -0.041667f;
-        break;
-    case 9:
-        xxBasis[9] = 0.111111f; yyBasis[9] = 0.111111f; zzBasis[9] = -0.055556f;
-        xyBasis[9] = 0.166667f; yzBasis[9] = -0.000000f; xzBasis[9] = -0.000000f;
-        break;
-    case 10:
-        xxBasis[10] = -0.222222f; yyBasis[10] = 0.444444f; zzBasis[10] = -0.222222f;
-        xyBasis[10] = -0.000000f; yzBasis[10] = -0.000000f; xzBasis[10] = 0.000000f;
-        break;
-    case 11:
-        xxBasis[11] = 0.111111f; yyBasis[11] = 0.111111f; zzBasis[11] = -0.055556f;
-        xyBasis[11] = -0.166667f; yzBasis[11] = -0.000000f; xzBasis[11] = 0.000000f;
-        break;
-    case 12:
-        xxBasis[12] = 0.444444f; yyBasis[12] = -0.222222f; zzBasis[12] = -0.222222f;
-        xyBasis[12] = -0.000000f; yzBasis[12] = 0.000000f; xzBasis[12] = -0.000000f;
-        break;
-    case 13:
-        xxBasis[13] = -0.888889f; yyBasis[13] = -0.888889f; zzBasis[13] = -0.888889f;
-        xyBasis[13] = 0.000000f; yzBasis[13] = 0.000000f; xzBasis[13] = 0.000000f;
-        break;
-    case 14:
-        xxBasis[14] = 0.444444f; yyBasis[14] = -0.222222f; zzBasis[14] = -0.222222f;
-        xyBasis[14] = 0.000000f; yzBasis[14] = 0.000000f; xzBasis[14] = 0.000000f;
-        break;
-    case 15:
-        xxBasis[15] = 0.111111f; yyBasis[15] = 0.111111f; zzBasis[15] = -0.055556f;
-        xyBasis[15] = -0.166667f; yzBasis[15] = 0.000000f; xzBasis[15] = -0.000000f;
-        break;
-    case 16:
-        xxBasis[16] = -0.222222f; yyBasis[16] = 0.444444f; zzBasis[16] = -0.222222f;
-        xyBasis[16] = 0.000000f; yzBasis[16] = 0.000000f; xzBasis[16] = 0.000000f;
-        break;
-    case 17:
-        xxBasis[17] = 0.111111f; yyBasis[17] = 0.111111f; zzBasis[17] = -0.055556f;
-        xyBasis[17] = 0.166667f; yzBasis[17] = 0.000000f; xzBasis[17] = 0.000000f;
-        break;
-    case 18:
-        xxBasis[18] = 0.027778f; yyBasis[18] = 0.027778f; zzBasis[18] = 0.027778f;
-        xyBasis[18] = 0.041667f; yzBasis[18] = -0.041667f; xzBasis[18] = -0.041667f;
-        break;
-    case 19:
-        xxBasis[19] = -0.055556f; yyBasis[19] = 0.111111f; zzBasis[19] = 0.111111f;
-        xyBasis[19] = -0.000000f; yzBasis[19] = -0.166667f; xzBasis[19] = 0.000000f;
-        break;
-    case 20:
-        xxBasis[20] = 0.027778f; yyBasis[20] = 0.027778f; zzBasis[20] = 0.027778f;
-        xyBasis[20] = -0.041667f; yzBasis[20] = -0.041667f; xzBasis[20] = 0.041667f;
-        break;
-    case 21:
-        xxBasis[21] = 0.111111f; yyBasis[21] = -0.055556f; zzBasis[21] = 0.111111f;
-        xyBasis[21] = -0.000000f; yzBasis[21] = 0.000000f; xzBasis[21] = -0.166667f;
-        break;
-    case 22:
-        xxBasis[22] = -0.222222f; yyBasis[22] = -0.222222f; zzBasis[22] = 0.444444f;
-        xyBasis[22] = 0.000000f; yzBasis[22] = 0.000000f; xzBasis[22] = 0.000000f;
-        break;
-    case 23:
-        xxBasis[23] = 0.111111f; yyBasis[23] = -0.055556f; zzBasis[23] = 0.111111f;
-        xyBasis[23] = 0.000000f; yzBasis[23] = 0.000000f; xzBasis[23] = 0.166667f;
-        break;
-    case 24:
-        xxBasis[24] = 0.027778f; yyBasis[24] = 0.027778f; zzBasis[24] = 0.027778f;
-        xyBasis[24] = -0.041667f; yzBasis[24] = 0.041667f; xzBasis[24] = -0.041667f;
-        break;
-    case 25:
-        xxBasis[25] = -0.055556f; yyBasis[25] = 0.111111f; zzBasis[25] = 0.111111f;
-        xyBasis[25] = 0.000000f; yzBasis[25] = 0.166667f; xzBasis[25] = 0.000000f;
-        break;
-    case 26:
-        xxBasis[26] = 0.027778f; yyBasis[26] = 0.027778f; zzBasis[26] = 0.027778f;
-        xyBasis[26] = 0.041667f; yzBasis[26] = 0.041667f; xzBasis[26] = 0.041667f;
-        break;
     }
 }
 /* *************************************************************** */
@@ -461,250 +320,6 @@ __global__ void reg_spline_getDeformationField2D(float4 *deformationField,
         }
     }
     deformationField[tid] = displacement;
-}
-/* *************************************************************** */
-__global__ void reg_spline_getApproxSecondDerivatives2D(float4 *secondDerivativeValues,
-                                                        cudaTextureObject_t controlPointTexture,
-                                                        const int3 controlPointImageDim,
-                                                        const unsigned controlPointNumber) {
-    __shared__ float xxbasis[9];
-    __shared__ float yybasis[9];
-    __shared__ float xybasis[9];
-
-    if (threadIdx.x < 9)
-        GetSecondDerivativeBasisValues2D(threadIdx.x, xxbasis, yybasis, xybasis);
-    __syncthreads();
-
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < controlPointNumber) {
-        int quot, rem;
-        reg_div_cuda(tid, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
-
-        float4 xx{}, yy{}, xy{};
-        unsigned tempIndex;
-        if (0 < x && x < controlPointImageDim.x - 1 && 0 < y && y < controlPointImageDim.y - 1) {
-            tempIndex = 0;
-            for (int b = y - 1; b < y + 2; ++b) {
-                for (int a = x - 1; a < x + 2; ++a) {
-                    const int indexXY = b * controlPointImageDim.x + a;
-                    const float4 controlPointValues = tex1Dfetch<float4>(controlPointTexture, indexXY);
-                    xx.x += xxbasis[tempIndex] * controlPointValues.x;
-                    xx.y += xxbasis[tempIndex] * controlPointValues.y;
-                    yy.x += yybasis[tempIndex] * controlPointValues.x;
-                    yy.y += yybasis[tempIndex] * controlPointValues.y;
-                    xy.x += xybasis[tempIndex] * controlPointValues.x;
-                    xy.y += xybasis[tempIndex] * controlPointValues.y;
-                    tempIndex++;
-                }
-            }
-        }
-
-        tempIndex = 3 * tid;
-        secondDerivativeValues[tempIndex++] = xx;
-        secondDerivativeValues[tempIndex++] = yy;
-        secondDerivativeValues[tempIndex] = xy;
-    }
-}
-/* *************************************************************** */
-__global__ void reg_spline_getApproxSecondDerivatives3D(float4 *secondDerivativeValues,
-                                                        cudaTextureObject_t controlPointTexture,
-                                                        const int3 controlPointImageDim,
-                                                        const unsigned controlPointNumber) {
-    __shared__ float xxbasis[27];
-    __shared__ float yybasis[27];
-    __shared__ float zzbasis[27];
-    __shared__ float xybasis[27];
-    __shared__ float yzbasis[27];
-    __shared__ float xzbasis[27];
-
-    if (threadIdx.x < 27)
-        GetSecondDerivativeBasisValues3D(threadIdx.x, xxbasis, yybasis, zzbasis, xybasis, yzbasis, xzbasis);
-    __syncthreads();
-
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < controlPointNumber) {
-        int tempIndex = tid;
-        int quot, rem;
-        reg_div_cuda(tempIndex, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
-        const int z = quot;
-        reg_div_cuda(rem, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
-
-        float4 xx{}, yy{}, zz{}, xy{}, yz{}, xz{};
-        if (0 < x && x < controlPointImageDim.x - 1 && 0 < y && y < controlPointImageDim.y - 1 && 0 < z && z < controlPointImageDim.z - 1) {
-            tempIndex = 0;
-            for (int c = z - 1; c < z + 2; ++c) {
-                for (int b = y - 1; b < y + 2; ++b) {
-                    for (int a = x - 1; a < x + 2; ++a) {
-                        const int indexXYZ = (c * controlPointImageDim.y + b) * controlPointImageDim.x + a;
-                        const float4 controlPointValues = tex1Dfetch<float4>(controlPointTexture, indexXYZ);
-                        xx = xx + xxbasis[tempIndex] * controlPointValues;
-                        yy = yy + yybasis[tempIndex] * controlPointValues;
-                        zz = zz + zzbasis[tempIndex] * controlPointValues;
-                        xy = xy + xybasis[tempIndex] * controlPointValues;
-                        yz = yz + yzbasis[tempIndex] * controlPointValues;
-                        xz = xz + xzbasis[tempIndex] * controlPointValues;
-                        tempIndex++;
-                    }
-                }
-            }
-        }
-
-        tempIndex = 6 * tid;
-        secondDerivativeValues[tempIndex++] = xx;
-        secondDerivativeValues[tempIndex++] = yy;
-        secondDerivativeValues[tempIndex++] = zz;
-        secondDerivativeValues[tempIndex++] = xy;
-        secondDerivativeValues[tempIndex++] = yz;
-        secondDerivativeValues[tempIndex] = xz;
-    }
-}
-/* *************************************************************** */
-__global__ void reg_spline_getApproxBendingEnergy2D_kernel(float *penaltyTerm,
-                                                           cudaTextureObject_t secondDerivativesTexture,
-                                                           const unsigned controlPointNumber) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < controlPointNumber) {
-        unsigned index = tid * 3;
-        float4 xx = tex1Dfetch<float4>(secondDerivativesTexture, index++);  xx = xx * xx;
-        float4 yy = tex1Dfetch<float4>(secondDerivativesTexture, index++);  yy = yy * yy;
-        float4 xy = tex1Dfetch<float4>(secondDerivativesTexture, index++);  xy = xy * xy;
-        penaltyTerm[tid] = xx.x + xx.y + yy.x + yy.y + 2.f * (xy.x + xy.y);
-    }
-}
-/* *************************************************************** */
-__global__ void reg_spline_getApproxBendingEnergy3D_kernel(float *penaltyTerm,
-                                                           cudaTextureObject_t secondDerivativesTexture,
-                                                           const unsigned controlPointNumber) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < controlPointNumber) {
-        unsigned index = tid * 6;
-        float4 xx = tex1Dfetch<float4>(secondDerivativesTexture, index++);  xx = xx * xx;
-        float4 yy = tex1Dfetch<float4>(secondDerivativesTexture, index++);  yy = yy * yy;
-        float4 zz = tex1Dfetch<float4>(secondDerivativesTexture, index++);  zz = zz * zz;
-        float4 xy = tex1Dfetch<float4>(secondDerivativesTexture, index++);  xy = xy * xy;
-        float4 yz = tex1Dfetch<float4>(secondDerivativesTexture, index++);  yz = yz * yz;
-        float4 xz = tex1Dfetch<float4>(secondDerivativesTexture, index);    xz = xz * xz;
-        penaltyTerm[tid] = xx.x + xx.y + xx.z + yy.x + yy.y + yy.z + zz.x + zz.y + zz.z +
-            2.f * (xy.x + xy.y + xy.z + yz.x + yz.y + yz.z + xz.x + xz.y + xz.z);
-    }
-}
-/* *************************************************************** */
-__global__ void reg_spline_getApproxBendingEnergyGradient2D_kernel(float4 *nodeGradient,
-                                                                   cudaTextureObject_t secondDerivativesTexture,
-                                                                   const int3 controlPointImageDim,
-                                                                   const unsigned controlPointNumber,
-                                                                   const float weight) {
-    __shared__ float xxbasis[9];
-    __shared__ float yybasis[9];
-    __shared__ float xybasis[9];
-
-    if (threadIdx.x < 9)
-        GetSecondDerivativeBasisValues2D(threadIdx.x, xxbasis, yybasis, xybasis);
-    __syncthreads();
-
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < controlPointNumber) {
-        int quot, rem;
-        reg_div_cuda(tid, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
-
-        float2 gradientValue{};
-        float4 secondDerivativeValues;
-        int coord = 0;
-        for (int b = y - 1; b < y + 2; ++b) {
-            for (int a = x - 1; a < x + 2; ++a) {
-                if (-1 < a && a < controlPointImageDim.x && -1 < b && b < controlPointImageDim.y) {
-                    int indexXY = 3 * (b * controlPointImageDim.x + a);
-                    secondDerivativeValues = tex1Dfetch<float4>(secondDerivativesTexture, indexXY++); // XX
-                    gradientValue.x += secondDerivativeValues.x * xxbasis[coord];
-                    gradientValue.y += secondDerivativeValues.y * xxbasis[coord];
-                    secondDerivativeValues = tex1Dfetch<float4>(secondDerivativesTexture, indexXY++); // YY
-                    gradientValue.x += secondDerivativeValues.x * yybasis[coord];
-                    gradientValue.y += secondDerivativeValues.y * yybasis[coord];
-                    secondDerivativeValues = 2.f * tex1Dfetch<float4>(secondDerivativesTexture, indexXY); // XY
-                    gradientValue.x += secondDerivativeValues.x * xybasis[coord];
-                    gradientValue.y += secondDerivativeValues.y * xybasis[coord];
-                }
-                coord++;
-            }
-        }
-
-        nodeGradient[tid].x += weight * gradientValue.x;
-        nodeGradient[tid].y += weight * gradientValue.y;
-    }
-}
-/* *************************************************************** */
-__global__ void reg_spline_getApproxBendingEnergyGradient3D_kernel(float4 *nodeGradient,
-                                                                   cudaTextureObject_t secondDerivativesTexture,
-                                                                   const int3 controlPointImageDim,
-                                                                   const unsigned controlPointNumber,
-                                                                   const float weight) {
-    __shared__ float xxbasis[27];
-    __shared__ float yybasis[27];
-    __shared__ float zzbasis[27];
-    __shared__ float xybasis[27];
-    __shared__ float yzbasis[27];
-    __shared__ float xzbasis[27];
-
-    if (threadIdx.x < 27)
-        GetSecondDerivativeBasisValues3D(threadIdx.x, xxbasis, yybasis, zzbasis, xybasis, yzbasis, xzbasis);
-    __syncthreads();
-
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < controlPointNumber) {
-        int quot, rem;
-        reg_div_cuda(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
-        const int z = quot;
-        reg_div_cuda(rem, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
-
-        float3 gradientValue{};
-        float4 secondDerivativeValues;
-        int coord = 0;
-        for (int c = z - 1; c < z + 2; ++c) {
-            for (int b = y - 1; b < y + 2; ++b) {
-                for (int a = x - 1; a < x + 2; ++a) {
-                    if (-1 < a && a < controlPointImageDim.x && -1 < b && b < controlPointImageDim.y && -1 < c && c < controlPointImageDim.z) {
-                        unsigned indexXYZ = 6 * ((c * controlPointImageDim.y + b) * controlPointImageDim.x + a);
-                        secondDerivativeValues = tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++); // XX
-                        gradientValue.x += secondDerivativeValues.x * xxbasis[coord];
-                        gradientValue.y += secondDerivativeValues.y * xxbasis[coord];
-                        gradientValue.z += secondDerivativeValues.z * xxbasis[coord];
-                        secondDerivativeValues = tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++); // YY
-                        gradientValue.x += secondDerivativeValues.x * yybasis[coord];
-                        gradientValue.y += secondDerivativeValues.y * yybasis[coord];
-                        gradientValue.z += secondDerivativeValues.z * yybasis[coord];
-                        secondDerivativeValues = tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++); // ZZ
-                        gradientValue.x += secondDerivativeValues.x * zzbasis[coord];
-                        gradientValue.y += secondDerivativeValues.y * zzbasis[coord];
-                        gradientValue.z += secondDerivativeValues.z * zzbasis[coord];
-                        secondDerivativeValues = 2.f * tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++); // XY
-                        gradientValue.x += secondDerivativeValues.x * xybasis[coord];
-                        gradientValue.y += secondDerivativeValues.y * xybasis[coord];
-                        gradientValue.z += secondDerivativeValues.z * xybasis[coord];
-                        secondDerivativeValues = 2.f * tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++); // YZ
-                        gradientValue.x += secondDerivativeValues.x * yzbasis[coord];
-                        gradientValue.y += secondDerivativeValues.y * yzbasis[coord];
-                        gradientValue.z += secondDerivativeValues.z * yzbasis[coord];
-                        secondDerivativeValues = 2.f * tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ); // XZ
-                        gradientValue.x += secondDerivativeValues.x * xzbasis[coord];
-                        gradientValue.y += secondDerivativeValues.y * xzbasis[coord];
-                        gradientValue.z += secondDerivativeValues.z * xzbasis[coord];
-                    }
-                    coord++;
-                }
-            }
-        }
-        gradientValue = weight * gradientValue;
-
-        float4 metricGradientValue = nodeGradient[tid];
-        metricGradientValue.x += gradientValue.x;
-        metricGradientValue.y += gradientValue.y;
-        metricGradientValue.z += gradientValue.z;
-        nodeGradient[tid] = metricGradientValue;
-    }
 }
 /* *************************************************************** */
 __global__ void reg_spline_getApproxJacobianValues2D_kernel(float *jacobianMatrices,
@@ -1464,31 +1079,6 @@ __global__ void reg_spline_correctFolding3D_kernel(float4 *controlPointGrid,
     }
 }
 /* *************************************************************** */
-__global__ void reg_getDeformationFromDisplacement3D_kernel(float4 *image,
-                                                            const int3 imageDim,
-                                                            const unsigned voxelNumber,
-                                                            const mat44 affineMatrix,
-                                                            const bool reverse = false) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < voxelNumber) {
-        int quot, rem;
-        reg_div_cuda(tid, imageDim.x * imageDim.y, quot, rem);
-        const int z = quot;
-        reg_div_cuda(rem, imageDim.x, quot, rem);
-        const int y = quot, x = rem;
-
-        const float4 initialPosition = {
-            x * affineMatrix.m[0][0] + y * affineMatrix.m[0][1] + z * affineMatrix.m[0][2] + affineMatrix.m[0][3],
-            x * affineMatrix.m[1][0] + y * affineMatrix.m[1][1] + z * affineMatrix.m[1][2] + affineMatrix.m[1][3],
-            x * affineMatrix.m[2][0] + y * affineMatrix.m[2][1] + z * affineMatrix.m[2][2] + affineMatrix.m[2][3],
-            0.f
-        };
-
-        // If reverse, gets displacement from deformation
-        image[tid] = image[tid] + (reverse ? -1 : 1) * initialPosition;
-    }
-}
-/* *************************************************************** */
 __global__ void reg_defField_compose2D_kernel(float4 *deformationField,
                                               cudaTextureObject_t deformationFieldTexture,
                                               const int3 referenceImageDim,
@@ -1643,15 +1233,20 @@ __global__ void reg_defField_getJacobianMatrix3D_kernel(float *jacobianMatrices,
     }
 }
 /* *************************************************************** */
-struct Basis {
+template<bool is3d>
+struct Basis1st {
     float x[27], y[27], z[27];
+};
+template<>
+struct Basis1st<false> {
+    float x[9], y[9];
 };
 /* *************************************************************** */
 template<bool is3d>
 __device__ static mat33 CreateDisplacementMatrix(const unsigned index,
                                                  cudaTextureObject_t controlPointGridTexture,
                                                  const int3& cppDims,
-                                                 const Basis& basis,
+                                                 const Basis1st<is3d>& basis,
                                                  const mat33& reorientation) {
     const auto&& [x, y, z] = reg_indexToDims_cuda<is3d>((int)index, cppDims);
     if (x < 1 || x >= cppDims.x - 1 || y < 1 || y >= cppDims.y - 1 ||
@@ -1665,7 +1260,7 @@ __device__ static mat33 CreateDisplacementMatrix(const unsigned index,
                 const int yInd = (zInd + y + b) * cppDims.x;
                 for (int a = -1; a < 2; a++, basInd++) {
                     const int index = yInd + x + a;
-                    const float4 splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, index);
+                    const float4& splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, index);
 
                     matrix.m[0][0] += basis.x[basInd] * splineCoeff.x;
                     matrix.m[1][0] += basis.y[basInd] * splineCoeff.x;
@@ -1687,7 +1282,7 @@ __device__ static mat33 CreateDisplacementMatrix(const unsigned index,
             const int yInd = (y + b) * cppDims.x;
             for (int a = -1; a < 2; a++, basInd++) {
                 const int index = yInd + x + a;
-                const float4 splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, index);
+                const float4& splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, index);
 
                 matrix.m[0][0] += basis.x[basInd] * splineCoeff.x;
                 matrix.m[1][0] += basis.y[basInd] * splineCoeff.x;
@@ -1712,7 +1307,7 @@ template<bool is3d>
 __global__ void reg_spline_createDisplacementMatrices_kernel(mat33 *dispMatrices,
                                                              cudaTextureObject_t controlPointGridTexture,
                                                              const int3 cppDims,
-                                                             const Basis basis,
+                                                             const Basis1st<is3d> basis,
                                                              const mat33 reorientation,
                                                              const unsigned voxelNumber) {
     const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
@@ -1725,7 +1320,7 @@ __global__ void reg_spline_approxLinearEnergyGradient_kernel(float4 *transGradie
                                                              cudaTextureObject_t dispMatricesTexture,
                                                              const int3 cppDims,
                                                              const float approxRatio,
-                                                             const Basis basis,
+                                                             const Basis1st<is3d> basis,
                                                              const mat33 invReorientation,
                                                              const unsigned voxelNumber) {
     const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;

@@ -156,3 +156,15 @@ __device__ __inline__ double2 operator+(const double2& a, const double2& b) {
     return { a.x + b.x, a.y + b.y };
 }
 /* *************************************************************** */
+__device__ __inline__ float2 make_float2(const float4& a) {
+    return { a.x, a.y };
+}
+/* *************************************************************** */
+__device__ __inline__ float3 make_float3(const float4& a) {
+    return { a.x, a.y, a.z };
+}
+/* *************************************************************** */
+__device__ __inline__ float4 make_float4(const float3& a) {
+    return { a.x, a.y, a.z, 0.f };
+}
+/* *************************************************************** */

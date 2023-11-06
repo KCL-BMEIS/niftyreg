@@ -15,6 +15,10 @@
 #include "_reg_tools_gpu.h"
 
 /* *************************************************************** */
+void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageCuda);
+/* *************************************************************** */
+void reg_getDisplacementFromDeformation_gpu(nifti_image *image, float4 *imageCuda);
+/* *************************************************************** */
 void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
                                         const nifti_image *referenceImage,
                                         const float4 *controlPointImageCuda,
@@ -24,11 +28,13 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
                                         const bool composition,
                                         const bool bspline);
 /* *************************************************************** */
-float reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage,
-                                         const float4 *controlPointImageCuda);
+template<bool is3d>
+double reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage,
+                                          const float4 *controlPointImageCuda);
 /* *************************************************************** */
-void reg_spline_approxBendingEnergyGradient_gpu(const nifti_image *controlPointImage,
-                                                const float4 *controlPointImageCuda,
+template<bool is3d>
+void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
+                                                float4 *controlPointImageCuda,
                                                 float4 *transGradientCuda,
                                                 float bendingEnergyWeight);
 /* *************************************************************** */

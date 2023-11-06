@@ -16,7 +16,12 @@
 /* *************************************************************** */
 void reg_affine_getDeformationField_gpu(const mat44 *affineMatrix,
                                         const nifti_image *targetImage,
-                                        float4 *deformationFieldCuda) {
+                                        float4 *deformationFieldCuda,
+                                        const bool composition) {
+    // TODO Implement composition
+    if (composition)
+        NR_FATAL_ERROR("Composition is not implemented on the GPU");
+
     const int3 imageSize = make_int3(targetImage->nx, targetImage->ny, targetImage->nz);
     const size_t voxelNumber = targetImage->nvox;
 
