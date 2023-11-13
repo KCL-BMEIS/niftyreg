@@ -14,8 +14,8 @@
 namespace NiftyReg {
 /* *************************************************************** */
 struct BlockSize {
-    unsigned reg_getVoxelBasedNMIGradientUsingPW2D;
-    unsigned reg_getVoxelBasedNMIGradientUsingPW3D;
+    unsigned reg_getVoxelBasedNmiGradientUsingPw2D;
+    unsigned reg_getVoxelBasedNmiGradientUsingPw3D;
     unsigned reg_affine_getDeformationField;
     unsigned reg_spline_getDeformationField2D;
     unsigned reg_spline_getDeformationField3D;
@@ -41,7 +41,7 @@ struct BlockSize {
     unsigned GetSsdValue;
     unsigned GetSsdGradient;
     unsigned reg_voxelCentricToNodeCentric;
-    unsigned reg_convertNMIGradientFromVoxelToRealSpace;
+    unsigned reg_convertNmiGradientFromVoxelToRealSpace;
     unsigned reg_ApplyConvolutionWindowAlongX;
     unsigned reg_ApplyConvolutionWindowAlongY;
     unsigned reg_ApplyConvolutionWindowAlongZ;
@@ -54,8 +54,8 @@ struct BlockSize {
 /* *************************************************************** */
 struct BlockSize100: public BlockSize {
     BlockSize100() {
-        reg_getVoxelBasedNMIGradientUsingPW2D = 384; // 21 reg - 24 smem - 32 cmem
-        reg_getVoxelBasedNMIGradientUsingPW3D = 320; // 25 reg - 24 smem - 32 cmem
+        reg_getVoxelBasedNmiGradientUsingPw2D = 384; // 21 reg - 24 smem - 32 cmem
+        reg_getVoxelBasedNmiGradientUsingPw3D = 320; // 25 reg - 24 smem - 32 cmem
         reg_affine_getDeformationField = 512; // 16 reg - 24 smem
         reg_spline_getDeformationField2D = 384; // 20 reg - 6168 smem - 28 cmem
         reg_spline_getDeformationField3D = 192; // 37 reg - 6168 smem - 28 cmem
@@ -81,7 +81,7 @@ struct BlockSize100: public BlockSize {
         GetSsdValue = 320; // 12 reg - 24 smem - 08 cmem
         GetSsdGradient = 320; // 12 reg - 24 smem - 08 cmem
         reg_voxelCentricToNodeCentric = 320; // 11 reg - 24 smem - 16 cmem
-        reg_convertNMIGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
+        reg_convertNmiGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
         reg_ApplyConvolutionWindowAlongX = 512; // 14 reg - 28 smem - 08 cmem
         reg_ApplyConvolutionWindowAlongY = 512; // 14 reg - 28 smem - 08 cmem
         reg_ApplyConvolutionWindowAlongZ = 512; // 15 reg - 28 smem - 08 cmem
@@ -96,8 +96,8 @@ struct BlockSize100: public BlockSize {
 /* *************************************************************** */
 struct BlockSize300: public BlockSize {
     BlockSize300() {
-        reg_getVoxelBasedNMIGradientUsingPW2D = 768; // 38 reg
-        reg_getVoxelBasedNMIGradientUsingPW3D = 640; // 45 reg
+        reg_getVoxelBasedNmiGradientUsingPw2D = 768; // 38 reg
+        reg_getVoxelBasedNmiGradientUsingPw3D = 640; // 45 reg
         reg_affine_getDeformationField = 1024; // 23 reg
         reg_spline_getDeformationField2D = 1024; // 34 reg
         reg_spline_getDeformationField3D = 1024; // 34 reg
@@ -123,7 +123,7 @@ struct BlockSize300: public BlockSize {
         GetSsdValue = 768; // 34 reg
         GetSsdGradient = 768; // 34 reg
         reg_voxelCentricToNodeCentric = 1024; // 23 reg
-        reg_convertNMIGradientFromVoxelToRealSpace = 1024; // 23 reg
+        reg_convertNmiGradientFromVoxelToRealSpace = 1024; // 23 reg
         reg_ApplyConvolutionWindowAlongX = 1024; // 25 reg
         reg_ApplyConvolutionWindowAlongY = 1024; // 25 reg
         reg_ApplyConvolutionWindowAlongZ = 1024; // 25 reg

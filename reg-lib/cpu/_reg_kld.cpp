@@ -46,8 +46,8 @@ void reg_kld::InitialiseMeasure(nifti_image *refImg,
         NR_FATAL_ERROR("This number of time point should be the same for both input images");
 
     // Input images are expected to be bounded between 0 and 1 as they are meant to be probabilities
-    for (int t = 0; t < this->referenceImage->nt; ++t) {
-        if (this->timePointWeight[t] > 0) {
+    for (int t = 0; t < this->referenceTimePoints; ++t) {
+        if (this->timePointWeights[t] > 0) {
             const float minRef = reg_tools_getMinValue(this->referenceImage, t);
             const float maxRef = reg_tools_getMaxValue(this->referenceImage, t);
             const float minFlo = reg_tools_getMinValue(this->floatingImage, t);
@@ -57,15 +57,15 @@ void reg_kld::InitialiseMeasure(nifti_image *refImg,
         }
     }
 
-    for (int i = 0; i < this->referenceImage->nt; ++i)
-        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeight[i]);
+    for (int i = 0; i < this->referenceTimePoints; ++i)
+        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeights[i]);
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
 /** @brief Computes and returns the KLD between two input image
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
- * @param timePointWeight Array that contains the weight of each time point
+ * @param timePointWeights Array that contains the weight of each time point
  * @param jacobianDetImg Image that contains the Jacobian
  * determinant of a transformation at every voxel position. This
  * image is used to modulate the KLD. The argument is ignored if the
@@ -77,7 +77,7 @@ void reg_kld::InitialiseMeasure(nifti_image *refImg,
 template <class DataType>
 double reg_getKLDivergence(const nifti_image *referenceImage,
                            const nifti_image *warpedImage,
-                           const double *timePointWeight,
+                           const double *timePointWeights,
                            const nifti_image *jacobianDetImg,
                            const int *mask) {
 #ifdef _WIN32
@@ -94,7 +94,7 @@ double reg_getKLDivergence(const nifti_image *referenceImage,
     double measure = 0, measureTp = 0, num = 0;
 
     for (int time = 0; time < referenceImage->nt; ++time) {
-        if (timePointWeight[time] > 0) {
+        if (timePointWeights[time] > 0) {
             const DataType *currentRefPtr = &refPtr[time * voxelNumber];
             const DataType *currentWarPtr = &warPtr[time * voxelNumber];
 #ifdef _OPENMP
@@ -114,7 +114,7 @@ double reg_getKLDivergence(const nifti_image *referenceImage,
                     }
                 }
             }
-            measure += measureTp * timePointWeight[time] / num;
+            measure += measureTp * timePointWeights[time] / num;
         }
     }
     return measure;
@@ -122,14 +122,14 @@ double reg_getKLDivergence(const nifti_image *referenceImage,
 /* *************************************************************** */
 double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  const nifti_image *warpedImage,
-                                 const double *timePointWeight,
+                                 const double *timePointWeights,
                                  const nifti_image *jacobianDetImg,
                                  const int *mask) {
     return std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
         return reg_getKLDivergence<RefImgDataType>(referenceImage,
                                                    warpedImage,
-                                                   timePointWeight,
+                                                   timePointWeights,
                                                    jacobianDetImg,
                                                    mask);
     }, NiftiImage::getFloatingDataType(referenceImage));
@@ -138,7 +138,7 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
 double reg_kld::GetSimilarityMeasureValueFw() {
     return ::GetSimilarityMeasureValue(this->referenceImage,
                                        this->warpedImage,
-                                       this->timePointWeight,
+                                       this->timePointWeights,
                                        nullptr, // TODO this->forwardJacDetImagePointer,
                                        this->referenceMask);
 }
@@ -146,7 +146,7 @@ double reg_kld::GetSimilarityMeasureValueFw() {
 double reg_kld::GetSimilarityMeasureValueBw() {
     return ::GetSimilarityMeasureValue(this->floatingImage,
                                        this->warpedImageBw,
-                                       this->timePointWeight,
+                                       this->timePointWeights,
                                        nullptr, // TODO this->backwardJacDetImagePointer,
                                        this->floatingMask);
 }
@@ -163,7 +163,7 @@ double reg_kld::GetSimilarityMeasureValueBw() {
  * pointer is set to nullptr
  * @param mask Array that contains a mask to specify which voxel
  * should be considered
- * @param currentTimepoint Specified which time point volumes have to be considered
+ * @param currentTimePoint Specified which time point volumes have to be considered
  * @param timepointWeight Weight of the current time point
  */
 template <class DataType>
@@ -173,7 +173,7 @@ void reg_getKLDivergenceVoxelBasedGradient(const nifti_image *referenceImage,
                                            nifti_image *measureGradient,
                                            const nifti_image *jacobianDetImg,
                                            const int *mask,
-                                           const int currentTimepoint,
+                                           const int currentTimePoint,
                                            const double timepointWeight) {
 #ifdef _WIN32
     long voxel;
@@ -184,8 +184,8 @@ void reg_getKLDivergenceVoxelBasedGradient(const nifti_image *referenceImage,
 #endif
     const DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
     const DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
-    const DataType *currentRefPtr = &refImagePtr[currentTimepoint * voxelNumber];
-    const DataType *currentWarPtr = &warImagePtr[currentTimepoint * voxelNumber];
+    const DataType *currentRefPtr = &refImagePtr[currentTimePoint * voxelNumber];
+    const DataType *currentWarPtr = &warImagePtr[currentTimePoint * voxelNumber];
     const DataType *jacPtr = jacobianDetImg ? static_cast<DataType*>(jacobianDetImg->data) : nullptr;
 
     // Create pointers to the spatial gradient of the current warped volume
@@ -262,7 +262,7 @@ void GetVoxelBasedSimilarityMeasureGradient(nifti_image *referenceImage,
                                             nifti_image *voxelBasedGradient,
                                             nifti_image *jacobianDetImg,
                                             int *mask,
-                                            int currentTimepoint,
+                                            int currentTimePoint,
                                             double timepointWeight) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
@@ -272,30 +272,30 @@ void GetVoxelBasedSimilarityMeasureGradient(nifti_image *referenceImage,
                                                               voxelBasedGradient,
                                                               jacobianDetImg,
                                                               mask,
-                                                              currentTimepoint,
+                                                              currentTimePoint,
                                                               timepointWeight);
     }, NiftiImage::getFloatingDataType(referenceImage));
 }
 /* *************************************************************** */
-void reg_kld::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) {
+void reg_kld::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) {
     ::GetVoxelBasedSimilarityMeasureGradient(this->referenceImage,
                                              this->warpedImage,
                                              this->warpedGradient,
                                              this->voxelBasedGradient,
                                              nullptr, // TODO this->forwardJacDetImagePointer,
                                              this->referenceMask,
-                                             currentTimepoint,
-                                             this->timePointWeight[currentTimepoint]);
+                                             currentTimePoint,
+                                             this->timePointWeights[currentTimePoint]);
 }
 /* *************************************************************** */
-void reg_kld::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) {
+void reg_kld::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) {
     ::GetVoxelBasedSimilarityMeasureGradient(this->floatingImage,
                                              this->warpedImageBw,
                                              this->warpedGradientBw,
                                              this->voxelBasedGradientBw,
                                              nullptr, // TODO this->backwardJacDetImagePointer,
                                              this->floatingMask,
-                                             currentTimepoint,
-                                             this->timePointWeight[currentTimepoint]);
+                                             currentTimePoint,
+                                             this->timePointWeights[currentTimePoint]);
 }
 /* *************************************************************** */

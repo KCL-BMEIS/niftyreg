@@ -15,8 +15,8 @@
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
-reg_polyAffine<T>::reg_polyAffine(int refTimePoint,int floTimePoint)
-   : reg_base<T>::reg_base(refTimePoint,floTimePoint)
+reg_polyAffine<T>::reg_polyAffine(int refTimePoints,int floTimePoints)
+   : reg_base<T>::reg_base(refTimePoints,floTimePoints)
 {
    this->executableName=(char *)"NiftyReg PolyAffine";
    NR_FUNC_CALLED();

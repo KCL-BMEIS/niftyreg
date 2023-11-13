@@ -100,8 +100,8 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImg,
                                    warpedGradBw,
                                    voxelBasedGradBw);
 
-    for (int i = 0; i < this->referenceImage->nt; ++i) {
-        if (this->timePointWeight[i] > 0) {
+    for (int i = 0; i < this->referenceTimePoints; ++i) {
+        if (this->timePointWeights[i] > 0) {
             reg_intensityRescale(this->referenceImage, i, 0.f, 1.f);
             reg_intensityRescale(this->floatingImage, i, 0.f, 1.f);
         }
@@ -186,8 +186,8 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImg,
         this->backwardMask = (int*)malloc(voxelNumber * sizeof(int));
     }
 
-    for (int i = 0; i < this->referenceImage->nt; ++i)
-        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeight[i]);
+    for (int i = 0; i < this->referenceTimePoints; ++i)
+        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeights[i]);
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
@@ -202,7 +202,7 @@ void UpdateLocalStatImages(const nifti_image *refImage,
                            int *combinedMask,
                            const float *kernelStandardDeviation,
                            const ConvKernelType kernelType,
-                           const int currentTimepoint) {
+                           const int currentTimePoint) {
     // Generate the combined mask to ignore all NaN values
 #ifdef _WIN32
     long voxel;
@@ -218,8 +218,8 @@ void UpdateLocalStatImages(const nifti_image *refImage,
     const DataType *origRefPtr = static_cast<DataType*>(refImage->data);
     DataType *meanImgPtr = static_cast<DataType*>(meanImage->data);
     DataType *sdevImgPtr = static_cast<DataType*>(sdevImage->data);
-    memcpy(meanImgPtr, &origRefPtr[currentTimepoint * voxelNumber], voxelNumber * refImage->nbyper);
-    memcpy(sdevImgPtr, &origRefPtr[currentTimepoint * voxelNumber], voxelNumber * refImage->nbyper);
+    memcpy(meanImgPtr, &origRefPtr[currentTimePoint * voxelNumber], voxelNumber * refImage->nbyper);
+    memcpy(sdevImgPtr, &origRefPtr[currentTimePoint * voxelNumber], voxelNumber * refImage->nbyper);
 
     reg_tools_multiplyImageToImage(sdevImage, sdevImage, sdevImage);
     reg_tools_kernelConvolution(meanImage, kernelStandardDeviation, kernelType, combinedMask);
@@ -228,8 +228,8 @@ void UpdateLocalStatImages(const nifti_image *refImage,
     const DataType *origWarPtr = static_cast<DataType*>(warImage->data);
     DataType *warMeanPtr = static_cast<DataType*>(warpedMeanImage->data);
     DataType *warSdevPtr = static_cast<DataType*>(warpedSdevImage->data);
-    memcpy(warMeanPtr, &origWarPtr[currentTimepoint * voxelNumber], voxelNumber * warImage->nbyper);
-    memcpy(warSdevPtr, &origWarPtr[currentTimepoint * voxelNumber], voxelNumber * warImage->nbyper);
+    memcpy(warMeanPtr, &origWarPtr[currentTimePoint * voxelNumber], voxelNumber * warImage->nbyper);
+    memcpy(warSdevPtr, &origWarPtr[currentTimePoint * voxelNumber], voxelNumber * warImage->nbyper);
 
     reg_tools_multiplyImageToImage(warpedSdevImage, warpedSdevImage, warpedSdevImage);
     reg_tools_kernelConvolution(warpedMeanImage, kernelStandardDeviation, kernelType, combinedMask);
@@ -259,7 +259,7 @@ double reg_getLnccValue(const nifti_image *referenceImage,
                         const float *kernelStandardDeviation,
                         nifti_image *correlationImage,
                         const ConvKernelType kernelType,
-                        const int currentTimepoint) {
+                        const int currentTimePoint) {
 #ifdef _WIN32
     long voxel;
     const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
@@ -269,10 +269,10 @@ double reg_getLnccValue(const nifti_image *referenceImage,
 #endif
     // Compute the local correlation
     const DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
-    const DataType *currentRefPtr = &refImagePtr[currentTimepoint * voxelNumber];
+    const DataType *currentRefPtr = &refImagePtr[currentTimePoint * voxelNumber];
 
     const DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
-    const DataType *currentWarPtr = &warImagePtr[currentTimepoint * voxelNumber];
+    const DataType *currentWarPtr = &warImagePtr[currentTimePoint * voxelNumber];
 
     const DataType *meanImgPtr = static_cast<DataType*>(meanImage->data);
     const DataType *warMeanPtr = static_cast<DataType*>(warpedMeanImage->data);
@@ -319,11 +319,11 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  const float *kernelStandardDeviation,
                                  nifti_image *correlationImage,
                                  const ConvKernelType kernelType,
-                                 const int referenceTimePoint,
-                                 const double *timePointWeight) {
+                                 const int referenceTimePoints,
+                                 const double *timePointWeights) {
     double lncc = 0;
-    for (int currentTimepoint = 0; currentTimepoint < referenceTimePoint; ++currentTimepoint) {
-        if (timePointWeight[currentTimepoint] > 0) {
+    for (int currentTimePoint = 0; currentTimePoint < referenceTimePoints; ++currentTimePoint) {
+        if (timePointWeights[currentTimePoint] > 0) {
             const double tp = std::visit([&](auto&& refImgDataType) {
                 using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
                 // Compute the mean and variance of the reference and warped floating
@@ -337,7 +337,7 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                                       forwardMask,
                                                       kernelStandardDeviation,
                                                       kernelType,
-                                                      currentTimepoint);
+                                                      currentTimePoint);
                 // Compute the LNCC value
                 return reg_getLnccValue<RefImgDataType>(referenceImage,
                                                         meanImage,
@@ -349,9 +349,9 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                                         kernelStandardDeviation,
                                                         correlationImage,
                                                         kernelType,
-                                                        currentTimepoint);
+                                                        currentTimePoint);
             }, NiftiImage::getFloatingDataType(referenceImage));
-            lncc += tp * timePointWeight[currentTimepoint];
+            lncc += tp * timePointWeights[currentTimePoint];
         }
     }
     return lncc;
@@ -369,8 +369,8 @@ double reg_lncc::GetSimilarityMeasureValueFw() {
                                        this->kernelStandardDeviation,
                                        this->correlationImage,
                                        this->kernelType,
-                                       this->referenceTimePoint,
-                                       this->timePointWeight);
+                                       this->referenceTimePoints,
+                                       this->timePointWeights);
 }
 /* *************************************************************** */
 double reg_lncc::GetSimilarityMeasureValueBw() {
@@ -385,8 +385,8 @@ double reg_lncc::GetSimilarityMeasureValueBw() {
                                        this->kernelStandardDeviation,
                                        this->correlationImageBw,
                                        this->kernelType,
-                                       this->referenceTimePoint,
-                                       this->timePointWeight);
+                                       this->referenceTimePoints,
+                                       this->timePointWeights);
 }
 /* *************************************************************** */
 template <class DataType>
@@ -402,7 +402,7 @@ void reg_getVoxelBasedLnccGradient(const nifti_image *referenceImage,
                                    const nifti_image *warpedGradient,
                                    nifti_image *measureGradient,
                                    const ConvKernelType kernelType,
-                                   const int currentTimepoint,
+                                   const int currentTimePoint,
                                    const double timepointWeight) {
 #ifdef _WIN32
     long voxel;
@@ -413,10 +413,10 @@ void reg_getVoxelBasedLnccGradient(const nifti_image *referenceImage,
 #endif
     // Compute the local correlation
     const DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
-    const DataType *currentRefPtr = &refImagePtr[currentTimepoint * voxelNumber];
+    const DataType *currentRefPtr = &refImagePtr[currentTimePoint * voxelNumber];
 
     const DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
-    const DataType *currentWarPtr = &warImagePtr[currentTimepoint * voxelNumber];
+    const DataType *currentWarPtr = &warImagePtr[currentTimePoint * voxelNumber];
 
     const DataType *meanImgPtr = static_cast<DataType*>(meanImage->data);
     DataType *warMeanPtr = static_cast<DataType*>(warpedMeanImage->data);
@@ -530,7 +530,7 @@ void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
                                             const nifti_image *warpedGradient,
                                             nifti_image *measureGradient,
                                             const ConvKernelType kernelType,
-                                            const int currentTimepoint,
+                                            const int currentTimePoint,
                                             const double timepointWeight) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
@@ -545,7 +545,7 @@ void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
                                               forwardMask,
                                               kernelStandardDeviation,
                                               kernelType,
-                                              currentTimepoint);
+                                              currentTimePoint);
         // Compute the LNCC gradient
         reg_getVoxelBasedLnccGradient<RefImgDataType>(referenceImage,
                                                       meanImage,
@@ -559,12 +559,12 @@ void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
                                                       warpedGradient,
                                                       measureGradient,
                                                       kernelType,
-                                                      currentTimepoint,
+                                                      currentTimePoint,
                                                       timepointWeight);
     }, NiftiImage::getFloatingDataType(referenceImage));
 }
 /* *************************************************************** */
-void reg_lncc::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) {
+void reg_lncc::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) {
     ::GetVoxelBasedSimilarityMeasureGradient(this->referenceImage,
                                              this->meanImage,
                                              this->sdevImage,
@@ -578,11 +578,11 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) {
                                              this->warpedGradient,
                                              this->voxelBasedGradient,
                                              this->kernelType,
-                                             currentTimepoint,
-                                             this->timePointWeight[currentTimepoint]);
+                                             currentTimePoint,
+                                             this->timePointWeights[currentTimePoint]);
 }
 /* *************************************************************** */
-void reg_lncc::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) {
+void reg_lncc::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) {
     ::GetVoxelBasedSimilarityMeasureGradient(this->floatingImage,
                                              this->meanImageBw,
                                              this->sdevImageBw,
@@ -596,7 +596,7 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) {
                                              this->warpedGradientBw,
                                              this->voxelBasedGradientBw,
                                              this->kernelType,
-                                             currentTimepoint,
-                                             this->timePointWeight[currentTimepoint]);
+                                             currentTimePoint,
+                                             this->timePointWeights[currentTimePoint]);
 }
 /* *************************************************************** */

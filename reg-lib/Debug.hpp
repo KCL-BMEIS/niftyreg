@@ -16,7 +16,7 @@
 /* *************************************************************** */
 namespace NiftyReg::Internal {
 /* *************************************************************** */
-inline void FatalError(const std::string& fileName, const int& line, const std::string& funcName, const std::string& msg) {
+inline void FatalError(const std::string& fileName, const int line, const std::string& funcName, const std::string& msg) {
     const std::string errMsg = "[NiftyReg ERROR] File: " + fileName + ":" + std::to_string(line) + "\n" +
                                "[NiftyReg ERROR] Function: " + funcName + "\n" +
                                "[NiftyReg ERROR] " + msg + "\n";

@@ -63,8 +63,8 @@ protected:
     NiftiImage localWeightSimInput;
 
     char *executableName;
-    int referenceTimePoint;
-    int floatingTimePoint;
+    int referenceTimePoints;
+    int floatingTimePoints;
     NiftiImage inputReference;
     NiftiImage inputFloating;
     NiftiImage maskImage;
@@ -133,7 +133,7 @@ protected:
     virtual void CorrectTransformation() = 0;
 
 public:
-    reg_base(int refTimePoint, int floTimePoint);
+    reg_base(int refTimePoints, int floTimePoints);
 
     virtual void Run();
     virtual vector<NiftiImage> GetWarpedImage() = 0;

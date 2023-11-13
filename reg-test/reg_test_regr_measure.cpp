@@ -138,8 +138,8 @@ public:
 
             // Initialise the measures
             for (int i = 0; i < referenceCpu->nt; ++i) {
-                measureCpu->SetTimepointWeight(i, 1.0);
-                measureCuda->SetTimepointWeight(i, 1.0);
+                measureCpu->SetTimePointWeight(i, 1.0);
+                measureCuda->SetTimePointWeight(i, 1.0);
             }
             measureCreatorCpu->Initialise(*measureCpu, *contentCpu, contentCpuBw.get());
             measureCreatorCuda->Initialise(*measureCuda, *contentCuda, contentCudaBw.get());
@@ -213,7 +213,7 @@ TEST_CASE_METHOD(MeasureTest, "Regression Measure", "[regression]") {
             for (size_t i = 0; i < voxelBasedGradCpu.nVoxels(); ++i) {
                 const float cpuVal = voxelBasedGradCpuPtr[i];
                 const float cudaVal = voxelBasedGradCudaPtr[i];
-                const double diff = fabs(cpuVal - cudaVal);
+                const float diff = fabs(cpuVal - cudaVal);
                 if (diff > EPS)
                     NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
                 REQUIRE(diff < EPS);

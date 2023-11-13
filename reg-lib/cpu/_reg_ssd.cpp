@@ -48,8 +48,8 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImg,
     if (this->referenceImage->nt != this->floatingImage->nt)
         NR_FATAL_ERROR("This number of time point should be the same for both input images");
     // Input images are normalised between 0 and 1
-    for (int i = 0; i < this->referenceImage->nt; ++i) {
-        if (this->timePointWeight[i] > 0 && normaliseTimePoint[i]) {
+    for (int i = 0; i < this->referenceTimePoints; ++i) {
+        if (this->timePointWeights[i] > 0 && normaliseTimePoint[i]) {
             //sets max value over both images to be 1 and min value over both images to be 0
             //scales values such that identical values in the images are still identical after scaling
             float maxF = reg_tools_getMaxValue(this->floatingImage, i);
@@ -73,10 +73,10 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImg,
     NR_WARN("SAD is used instead of SSD");
 #endif
 #ifndef NDEBUG
-    for (int i = 0; i < this->referenceImage->nt; ++i)
-        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeight[i]);
+    for (int i = 0; i < this->referenceTimePoints; ++i)
+        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeights[i]);
     std::string msg = "Normalize time point:";
-    for (int i = 0; i < this->referenceImage->nt; ++i)
+    for (int i = 0; i < this->referenceTimePoints; ++i)
         if (this->normaliseTimePoint[i])
             msg += " " + std::to_string(i);
     NR_DEBUG(msg);
@@ -91,7 +91,8 @@ void reg_ssd::SetNormaliseTimepoint(int timepoint, bool normalise) {
 template<class DataType>
 double reg_getSsdValue(const nifti_image *referenceImage,
                        const nifti_image *warpedImage,
-                       const double *timePointWeight,
+                       const double *timePointWeights,
+                       const int referenceTimePoints,
                        const nifti_image *jacobianDetImage,
                        const int *mask,
                        const nifti_image *localWeightSim) {
@@ -113,8 +114,8 @@ double reg_getSsdValue(const nifti_image *referenceImage,
     double ssdGlobal = 0;
 
     // Loop over the different time points
-    for (int time = 0; time < referenceImage->nt; ++time) {
-        if (timePointWeight[time] > 0) {
+    for (int time = 0; time < referenceTimePoints; ++time) {
+        if (timePointWeights[time] > 0) {
             // Create pointers to the current time point of the reference and warped images
             const DataType *currentRefPtr = &referencePtr[time * voxelNumber];
             const DataType *currentWarPtr = &warpedPtr[time * voxelNumber];
@@ -145,18 +146,19 @@ double reg_getSsdValue(const nifti_image *referenceImage,
                 }
             }
 
-            ssdLocal *= timePointWeight[time];
+            ssdLocal *= timePointWeights[time];
             ssdGlobal -= ssdLocal / n;
         }
     }
     return ssdGlobal;
 }
-template double reg_getSsdValue<float>(const nifti_image*, const nifti_image*, const double*, const nifti_image*, const int*, const nifti_image*);
-template double reg_getSsdValue<double>(const nifti_image*, const nifti_image*, const double*, const nifti_image*, const int*, const nifti_image*);
+template double reg_getSsdValue<float>(const nifti_image*, const nifti_image*, const double*, const int, const nifti_image*, const int*, const nifti_image*);
+template double reg_getSsdValue<double>(const nifti_image*, const nifti_image*, const double*, const int, const nifti_image*, const int*, const nifti_image*);
 /* *************************************************************** */
 double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  const nifti_image *warpedImage,
-                                 const double *timePointWeight,
+                                 const double *timePointWeights,
+                                 const int referenceTimePoints,
                                  const nifti_image *jacobianDetImage,
                                  const int *mask,
                                  const nifti_image *localWeightSim) {
@@ -164,7 +166,8 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
         return reg_getSsdValue<RefImgDataType>(referenceImage,
                                                warpedImage,
-                                               timePointWeight,
+                                               timePointWeights,
+                                               referenceTimePoints,
                                                jacobianDetImage,
                                                mask,
                                                localWeightSim);
@@ -174,7 +177,8 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
 double reg_ssd::GetSimilarityMeasureValueFw() {
     return ::GetSimilarityMeasureValue(this->referenceImage,
                                        this->warpedImage,
-                                       this->timePointWeight,
+                                       this->timePointWeights,
+                                       this->referenceTimePoints,
                                        nullptr, // TODO this->forwardJacDetImagePointer,
                                        this->referenceMask,
                                        this->localWeightSim);
@@ -183,7 +187,8 @@ double reg_ssd::GetSimilarityMeasureValueFw() {
 double reg_ssd::GetSimilarityMeasureValueBw() {
     return ::GetSimilarityMeasureValue(this->floatingImage,
                                        this->warpedImageBw,
-                                       this->timePointWeight,
+                                       this->timePointWeights,
+                                       this->referenceTimePoints,
                                        nullptr, // TODO this->backwardJacDetImagePointer,
                                        this->floatingMask,
                                        nullptr);
@@ -196,8 +201,8 @@ void reg_getVoxelBasedSsdGradient(const nifti_image *referenceImage,
                                   nifti_image *measureGradientImage,
                                   const nifti_image *jacobianDetImage,
                                   const int *mask,
-                                  const int currentTimepoint,
-                                  const double timepointWeight,
+                                  const int currentTimePoint,
+                                  const double timePointWeight,
                                   const nifti_image *localWeightSim) {
     // Create pointers to the reference and warped images
 #ifdef _WIN32
@@ -209,9 +214,9 @@ void reg_getVoxelBasedSsdGradient(const nifti_image *referenceImage,
 #endif
     // Pointers to the image data
     const DataType *refImagePtr = static_cast<DataType*>(referenceImage->data);
-    const DataType *currentRefPtr = &refImagePtr[currentTimepoint * voxelNumber];
+    const DataType *currentRefPtr = &refImagePtr[currentTimePoint * voxelNumber];
     const DataType *warImagePtr = static_cast<DataType*>(warpedImage->data);
-    const DataType *currentWarPtr = &warImagePtr[currentTimepoint * voxelNumber];
+    const DataType *currentWarPtr = &warImagePtr[currentTimePoint * voxelNumber];
 
     // Pointers to the spatial gradient of the warped image
     const DataType *spatialGradPtrX = static_cast<DataType*>(warpedGradient->data);
@@ -236,7 +241,7 @@ void reg_getVoxelBasedSsdGradient(const nifti_image *referenceImage,
                 activeVoxelNumber++;
         }
     }
-    const double adjustedWeight = timepointWeight / activeVoxelNumber;
+    const double adjustedWeight = timePointWeight / activeVoxelNumber;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -284,8 +289,8 @@ void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
                                             nifti_image *voxelBasedGradient,
                                             const nifti_image *jacobianDetImage,
                                             const int *mask,
-                                            const int currentTimepoint,
-                                            const double timepointWeight,
+                                            const int currentTimePoint,
+                                            const double timePointWeight,
                                             const nifti_image *localWeightSim) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
@@ -295,33 +300,33 @@ void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
                                                      voxelBasedGradient,
                                                      jacobianDetImage,
                                                      mask,
-                                                     currentTimepoint,
-                                                     timepointWeight,
+                                                     currentTimePoint,
+                                                     timePointWeight,
                                                      localWeightSim);
     }, NiftiImage::getFloatingDataType(referenceImage));
 }
 /* *************************************************************** */
-void reg_ssd::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) {
+void reg_ssd::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) {
     ::GetVoxelBasedSimilarityMeasureGradient(this->referenceImage,
                                              this->warpedImage,
                                              this->warpedGradient,
                                              this->voxelBasedGradient,
                                              nullptr, // TODO this->forwardJacDetImagePointer,
                                              this->referenceMask,
-                                             currentTimepoint,
-                                             this->timePointWeight[currentTimepoint],
+                                             currentTimePoint,
+                                             this->timePointWeights[currentTimePoint],
                                              this->localWeightSim);
 }
 /* *************************************************************** */
-void reg_ssd::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) {
+void reg_ssd::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) {
     ::GetVoxelBasedSimilarityMeasureGradient(this->floatingImage,
                                              this->warpedImageBw,
                                              this->warpedGradientBw,
                                              this->voxelBasedGradientBw,
                                              nullptr, // TODO this->backwardJacDetImagePointer,
                                              this->floatingMask,
-                                             currentTimepoint,
-                                             this->timePointWeight[currentTimepoint],
+                                             currentTimePoint,
+                                             this->timePointWeights[currentTimePoint],
                                              nullptr);
 }
 /* *************************************************************** */

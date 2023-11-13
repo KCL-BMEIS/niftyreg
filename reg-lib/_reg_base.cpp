@@ -14,7 +14,7 @@
 
 /* *************************************************************** */
 template<class T>
-reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
+reg_base<T>::reg_base(int refTimePoints, int floTimePoints) {
     SetPlatformType(PlatformType::Cpu);
 
     maxIterationNumber = 150;
@@ -28,19 +28,19 @@ reg_base<T>::reg_base(int refTimePoint, int floTimePoint) {
     similarityWeight = 0; // automatically set depending of the penalty term weights
 
     executableName = (char*)"NiftyReg BASE";
-    referenceTimePoint = refTimePoint;
-    floatingTimePoint = floTimePoint;
+    referenceTimePoints = refTimePoints;
+    floatingTimePoints = floTimePoints;
     referenceSmoothingSigma = 0;
     floatingSmoothingSigma = 0;
 
-    referenceThresholdLow.reset(new T[referenceTimePoint]);
-    std::fill(referenceThresholdLow.get(), referenceThresholdLow.get() + referenceTimePoint, std::numeric_limits<T>::lowest());
-    referenceThresholdUp.reset(new T[referenceTimePoint]);
-    std::fill(referenceThresholdUp.get(), referenceThresholdUp.get() + referenceTimePoint, std::numeric_limits<T>::max());
-    floatingThresholdLow.reset(new T[floatingTimePoint]);
-    std::fill(floatingThresholdLow.get(), floatingThresholdLow.get() + floatingTimePoint, std::numeric_limits<T>::lowest());
-    floatingThresholdUp.reset(new T[floatingTimePoint]);
-    std::fill(floatingThresholdUp.get(), floatingThresholdUp.get() + floatingTimePoint, std::numeric_limits<T>::max());
+    referenceThresholdLow.reset(new T[referenceTimePoints]);
+    std::fill(referenceThresholdLow.get(), referenceThresholdLow.get() + referenceTimePoints, std::numeric_limits<T>::lowest());
+    referenceThresholdUp.reset(new T[referenceTimePoints]);
+    std::fill(referenceThresholdUp.get(), referenceThresholdUp.get() + referenceTimePoints, std::numeric_limits<T>::max());
+    floatingThresholdLow.reset(new T[floatingTimePoints]);
+    std::fill(floatingThresholdLow.get(), floatingThresholdLow.get() + floatingTimePoints, std::numeric_limits<T>::lowest());
+    floatingThresholdUp.reset(new T[floatingTimePoints]);
+    std::fill(floatingThresholdUp.get(), floatingThresholdUp.get() + floatingTimePoints, std::numeric_limits<T>::max());
 
     robustRange = false;
     warpedPaddingValue = std::numeric_limits<T>::quiet_NaN();
@@ -262,7 +262,7 @@ void reg_base<T>::CheckParameters() {
         !measure_kld && !measure_mind && !measure_mindssc) {
         measure_nmi.reset(dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)));
         for (int i = 0; i < inputReference->nt; ++i)
-            measure_nmi->SetTimepointWeight(i, 1.0);
+            measure_nmi->SetTimePointWeight(i, 1.0);
     }
 
     // Check that images have same number of channels (timepoints)
@@ -280,7 +280,7 @@ void reg_base<T>::CheckParameters() {
         double simWeightSum, totWeightSum = 0.;
         double *nmiWeights = nullptr, *ssdWeights = nullptr, *kldWeights = nullptr, *lnccWeights = nullptr;
         if (measure_nmi) {
-            nmiWeights = measure_nmi->GetTimepointsWeights();
+            nmiWeights = measure_nmi->GetTimePointWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
                 if (nmiWeights[n] < 0)
@@ -293,7 +293,7 @@ void reg_base<T>::CheckParameters() {
                 NR_WARN_WFCT("The NMI similarity measure has a weight of 0 for all channels so will be ignored");
         }
         if (measure_ssd) {
-            ssdWeights = measure_ssd->GetTimepointsWeights();
+            ssdWeights = measure_ssd->GetTimePointWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
                 if (ssdWeights[n] < 0)
@@ -306,7 +306,7 @@ void reg_base<T>::CheckParameters() {
                 NR_WARN_WFCT("The SSD similarity measure has a weight of 0 for all channels so will be ignored");
         }
         if (measure_kld) {
-            kldWeights = measure_kld->GetTimepointsWeights();
+            kldWeights = measure_kld->GetTimePointWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
                 if (kldWeights[n] < 0)
@@ -319,7 +319,7 @@ void reg_base<T>::CheckParameters() {
                 NR_WARN_WFCT("The KLD similarity measure has a weight of 0 for all channels so will be ignored");
         }
         if (measure_lncc) {
-            lnccWeights = measure_lncc->GetTimepointsWeights();
+            lnccWeights = measure_lncc->GetTimePointWeights();
             simWeightSum = 0;
             for (int n = 0; n < inputReference->nt; n++) {
                 if (lnccWeights[n] < 0)
@@ -335,13 +335,13 @@ void reg_base<T>::CheckParameters() {
             if (chanWeightSum[n] == 0)
                 NR_WARN_WFCT("Channel " << n << " has a weight of 0 for all similarity measures so will be ignored");
             if (measure_nmi)
-                measure_nmi->SetTimepointWeight(n, nmiWeights[n] / totWeightSum);
+                measure_nmi->SetTimePointWeight(n, nmiWeights[n] / totWeightSum);
             if (measure_ssd)
-                measure_ssd->SetTimepointWeight(n, ssdWeights[n] / totWeightSum);
+                measure_ssd->SetTimePointWeight(n, ssdWeights[n] / totWeightSum);
             if (measure_kld)
-                measure_kld->SetTimepointWeight(n, kldWeights[n] / totWeightSum);
+                measure_kld->SetTimePointWeight(n, kldWeights[n] / totWeightSum);
             if (measure_lncc)
-                measure_lncc->SetTimepointWeight(n, lnccWeights[n] / totWeightSum);
+                measure_lncc->SetTimePointWeight(n, lnccWeights[n] / totWeightSum);
         }
     }
 
@@ -560,7 +560,7 @@ template<class T>
 void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber) {
     if (!measure_nmi)
         measure_nmi.reset(dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)));
-    measure_nmi->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
+    measure_nmi->SetTimePointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
     // I am here adding 4 to the specified bin number to accommodate for
     // the spline support
     measure_nmi->SetReferenceBinNumber(refBinNumber + 4, timepoint);
@@ -571,7 +571,7 @@ template<class T>
 void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber) {
     if (!measure_nmi)
         measure_nmi.reset(dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)));
-    measure_nmi->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
+    measure_nmi->SetTimePointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
     // I am here adding 4 to the specified bin number to accommodate for
     // the spline support
     measure_nmi->SetFloatingBinNumber(floBinNumber + 4, timepoint);
@@ -582,7 +582,7 @@ template<class T>
 void reg_base<T>::UseSSD(int timepoint, bool normalise) {
     if (!measure_ssd)
         measure_ssd.reset(dynamic_cast<reg_ssd*>(measure->Create(MeasureType::Ssd)));
-    measure_ssd->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
+    measure_ssd->SetTimePointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
     measure_ssd->SetNormaliseTimepoint(timepoint, normalise);
     NR_FUNC_CALLED();
 }
@@ -591,7 +591,7 @@ template<class T>
 void reg_base<T>::UseMIND(int timepoint, int offset) {
     if (!measure_mind)
         measure_mind.reset(dynamic_cast<reg_mind*>(measure->Create(MeasureType::Mind)));
-    measure_mind->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
+    measure_mind->SetTimePointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
     measure_mind->SetDescriptorOffset(offset);
     NR_FUNC_CALLED();
 }
@@ -600,7 +600,7 @@ template<class T>
 void reg_base<T>::UseMINDSSC(int timepoint, int offset) {
     if (!measure_mindssc)
         measure_mindssc.reset(dynamic_cast<reg_mindssc*>(measure->Create(MeasureType::MindSsc)));
-    measure_mindssc->SetTimepointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
+    measure_mindssc->SetTimePointWeight(timepoint, 1.0);//weight set to 1.0 to indicate timepoint is active
     measure_mindssc->SetDescriptorOffset(offset);
     NR_FUNC_CALLED();
 }
@@ -609,7 +609,7 @@ template<class T>
 void reg_base<T>::UseKLDivergence(int timepoint) {
     if (!measure_kld)
         measure_kld.reset(dynamic_cast<reg_kld*>(measure->Create(MeasureType::Kld)));
-    measure_kld->SetTimepointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
+    measure_kld->SetTimePointWeight(timepoint, 1.0);//weight initially set to default value of 1.0
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
@@ -618,7 +618,7 @@ void reg_base<T>::UseLNCC(int timepoint, float stddev) {
     if (!measure_lncc)
         measure_lncc.reset(dynamic_cast<reg_lncc*>(measure->Create(MeasureType::Lncc)));
     measure_lncc->SetKernelStandardDeviation(timepoint, stddev);
-    measure_lncc->SetTimepointWeight(timepoint, 1.0); // weight initially set to default value of 1.0
+    measure_lncc->SetTimePointWeight(timepoint, 1.0); // weight initially set to default value of 1.0
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
@@ -638,7 +638,7 @@ void reg_base<T>::UseDTI(bool *timepoint) {
         measure_dti.reset(dynamic_cast<reg_dti*>(measure->Create(MeasureType::Dti)));
     for (int i = 0; i < inputReference->nt; ++i) {
         if (timepoint[i])
-            measure_dti->SetTimepointWeight(i, 1.0);  // weight set to 1.0 to indicate timepoint is active
+            measure_dti->SetTimePointWeight(i, 1.0);  // weight set to 1.0 to indicate timepoint is active
     }
     NR_FUNC_CALLED();
 }
@@ -647,28 +647,28 @@ template<class T>
 void reg_base<T>::SetNMIWeight(int timepoint, double weight) {
     if (!measure_nmi)
         NR_FATAL_ERROR("The NMI object has to be created before the timepoint weights can be set");
-    measure_nmi->SetTimepointWeight(timepoint, weight);
+    measure_nmi->SetTimePointWeight(timepoint, weight);
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLNCCWeight(int timepoint, double weight) {
     if (!measure_lncc)
         NR_FATAL_ERROR("The LNCC object has to be created before the timepoint weights can be set");
-    measure_lncc->SetTimepointWeight(timepoint, weight);
+    measure_lncc->SetTimePointWeight(timepoint, weight);
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetSSDWeight(int timepoint, double weight) {
     if (!measure_ssd)
         NR_FATAL_ERROR("The SSD object has to be created before the timepoint weights can be set");
-    measure_ssd->SetTimepointWeight(timepoint, weight);
+    measure_ssd->SetTimePointWeight(timepoint, weight);
 }
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::SetKLDWeight(int timepoint, double weight) {
     if (!measure_kld)
         NR_FATAL_ERROR("The KLD object has to be created before the timepoint weights can be set");
-    measure_kld->SetTimepointWeight(timepoint, weight);
+    measure_kld->SetTimePointWeight(timepoint, weight);
 }
 /* *************************************************************** */
 template<class T>

@@ -60,13 +60,13 @@ public:
             "NMI 2D",
             reference2d,
             floating2d,
-            GetNMIPW(reference2d, floating2d)
+            GetNmiPw(reference2d, floating2d)
         ));
         testData.emplace_back(TestData(
             "NMI 3D",
             reference3d,
             floating3d,
-            GetNMIPW(reference3d, floating3d)
+            GetNmiPw(reference3d, floating3d)
         ));
         for (auto&& data : testData) {
             for (auto&& platformType : PlatformTypes) {
@@ -86,7 +86,7 @@ public:
                 unique_ptr<Measure> measure{ platform->CreateMeasure() };
                 // Use NMI as a measure
                 unique_ptr<reg_nmi> measure_nmi{ dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)) };
-                measure_nmi->SetTimepointWeight(0, 1.0); // weight initially set to default value of 1.0
+                measure_nmi->SetTimePointWeight(0, 1.0); // weight initially set to default value of 1.0
                 measure->Initialise(*measure_nmi, *content);
                 const double nmi = measure_nmi->GetSimilarityMeasureValue();
 
@@ -100,7 +100,7 @@ protected:
     using TestCase = std::tuple<std::string, double, double>;
     inline static vector<TestCase> testCases;
 
-    double GetNMIPW(const NiftiImage& ref, const NiftiImage& flo) {
+    double GetNmiPw(const NiftiImage& ref, const NiftiImage& flo) {
         // Allocate a joint histogram and fill it with zeros
         double jh[68][68];
         for (unsigned i = 0; i < 68; ++i)

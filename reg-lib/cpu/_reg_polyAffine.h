@@ -34,7 +34,7 @@ protected:
    void DeallocateTransformationGradient();
 
 public:
-   reg_polyAffine(int refTimePoint,int floTimePoint);
+   reg_polyAffine(int refTimePoints,int floTimePoints);
    ~reg_polyAffine();
 };
 

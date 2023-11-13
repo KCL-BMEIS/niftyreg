@@ -15,8 +15,8 @@
 
 /* *************************************************************** */
 template<class T>
-reg_f3d<T>::reg_f3d(int refTimePoint, int floTimePoint):
-    reg_base<T>::reg_base(refTimePoint, floTimePoint) {
+reg_f3d<T>::reg_f3d(int refTimePoints, int floTimePoints):
+    reg_base<T>::reg_base(refTimePoints, floTimePoints) {
 
     this->executableName = (char*)"NiftyReg F3D";
     bendingEnergyWeight = 0.001;
@@ -207,7 +207,7 @@ void reg_f3d<T>::Initialise() {
         NR_VERBOSE("\t* intensity threshold for timepoint " << i << "/" << this->inputReference->nt - 1 << ": [" <<
                    this->referenceThresholdLow[i] << " " << this->referenceThresholdUp[i] << "]");
         if (this->measure_nmi) {
-            if (this->measure_nmi->GetTimepointsWeights()[i] > 0) {
+            if (this->measure_nmi->GetTimePointWeights()[i] > 0) {
                 NR_VERBOSE("\t* binning size for timepoint " << i << "/" << this->inputReference->nt - 1 << ": " <<
                            this->measure_nmi->GetReferenceBinNumber()[i] - 4);
             }
@@ -225,7 +225,7 @@ void reg_f3d<T>::Initialise() {
         NR_VERBOSE("\t* intensity threshold for timepoint " << i << "/" << this->inputFloating->nt - 1 << ": [" <<
                    this->floatingThresholdLow[i] << " " << this->floatingThresholdUp[i] << "]");
         if (this->measure_nmi) {
-            if (this->measure_nmi->GetTimepointsWeights()[i] > 0) {
+            if (this->measure_nmi->GetTimePointWeights()[i] > 0) {
                 NR_VERBOSE("\t* binning size for timepoint " << i << "/" << this->inputFloating->nt - 1 << ": " <<
                            this->measure_nmi->GetFloatingBinNumber()[i] - 4);
             }

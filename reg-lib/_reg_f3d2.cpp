@@ -15,8 +15,8 @@
 
 /* *************************************************************** */
 template <class T>
-reg_f3d2<T>::reg_f3d2(int refTimePoint, int floTimePoint):
-    reg_f3d<T>::reg_f3d(refTimePoint, floTimePoint) {
+reg_f3d2<T>::reg_f3d2(int refTimePoints, int floTimePoints):
+    reg_f3d<T>::reg_f3d(refTimePoints, floTimePoints) {
     this->executableName = (char*)"NiftyReg F3D2";
     inverseConsistencyWeight = 0;
     bchUpdate = false;

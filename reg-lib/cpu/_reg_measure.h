@@ -8,7 +8,6 @@
 #pragma once
 
 #include "_reg_tools.h"
-#include <time.h>
 
 /// @brief Class common to all measure of similarity classes
 class reg_measure {
@@ -34,7 +33,7 @@ public:
                                    nifti_image *voxelBasedGradBw = nullptr) {
         this->isSymmetric = false;
         this->referenceImage = refImg;
-        this->referenceTimePoint = this->referenceImage->nt;
+        this->referenceTimePoints = this->referenceImage->nt;
         this->floatingImage = floImg;
         this->referenceMask = refMask;
         this->warpedImage = warpedImg;
@@ -81,15 +80,15 @@ public:
     }
 
     /// @brief Compute the forward voxel-based measure of similarity gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) = 0;
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) = 0;
     /// @brief Compute the backward voxel-based measure of similarity gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) = 0;
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) = 0;
     /// @brief Compute the voxel-based measure of similarity gradient
-    void GetVoxelBasedSimilarityMeasureGradient(int currentTimepoint) {  // Do not override
+    void GetVoxelBasedSimilarityMeasureGradient(int currentTimePoint) {  // Do not override
         // Check if the specified time point exists and is active
-        if (currentTimepoint < 0 || currentTimepoint >= this->referenceImage->nt)
-            NR_FATAL_ERROR("The specified active timepoint is not defined in the ref/war images");
-        if (this->timePointWeight[currentTimepoint] == 0)
+        if (currentTimePoint < 0 || currentTimePoint >= this->referenceTimePoints)
+            NR_FATAL_ERROR("The specified active time point is not defined in the ref/war images");
+        if (this->timePointWeights[currentTimePoint] == 0)
             return;
         // Check if all required input images are of the same data type
         int dtype = this->referenceImage->datatype;
@@ -100,7 +99,7 @@ public:
             this->voxelBasedGradient->datatype != dtype)
             NR_FATAL_ERROR("Input images are expected to be of the same type");
         // Compute the gradient
-        GetVoxelBasedSimilarityMeasureGradientFw(currentTimepoint);
+        GetVoxelBasedSimilarityMeasureGradientFw(currentTimePoint);
         if (this->isSymmetric) {
             dtype = this->floatingImage->datatype;
             if (dtype != NIFTI_TYPE_FLOAT32 && dtype != NIFTI_TYPE_FLOAT64)
@@ -109,16 +108,16 @@ public:
                 this->warpedGradientBw->datatype != dtype ||
                 this->voxelBasedGradientBw->datatype != dtype)
                 NR_FATAL_ERROR("Input images are expected to be of the same type");
-            GetVoxelBasedSimilarityMeasureGradientBw(currentTimepoint);
+            GetVoxelBasedSimilarityMeasureGradientBw(currentTimePoint);
         }
         NR_FUNC_CALLED();
     }
     virtual void GetDiscretisedValue(nifti_image*, float*, int, int) {}
-    virtual void SetTimepointWeight(int timepoint, double weight) {
-        this->timePointWeight[timepoint] = weight;
+    virtual void SetTimePointWeight(int timePoint, double weight) {
+        this->timePointWeights[timePoint] = weight;
     }
-    virtual double* GetTimepointsWeights() {
-        return this->timePointWeight;
+    virtual double* GetTimePointWeights() {
+        return this->timePointWeights;
     }
     virtual nifti_image* GetReferenceImage() {
         return this->referenceImage;
@@ -142,6 +141,6 @@ protected:
     nifti_image *warpedGradientBw;
     nifti_image *voxelBasedGradientBw;
 
-    double timePointWeight[255] = {0};
-    int referenceTimePoint;
+    double timePointWeights[255]{};
+    int referenceTimePoints;
 };

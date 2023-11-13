@@ -42,7 +42,7 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
                                        localWeightSim, localWeightSimCuda, floMask, floMaskCuda, warpedImgBw, warpedImgBwCuda,
                                        warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
     // Check if the input images have multiple timepoints
-    if (this->referenceTimePoint > 1 || this->floatingImage->nt > 1)
+    if (this->referenceTimePoints > 1 || this->floatingImage->nt > 1)
         NR_FATAL_ERROR("Multiple timepoints are not yet supported");
     // The reference and floating images have to be updated on the device
     Cuda::TransferNiftiToDevice<float>(this->referenceImageCuda, this->referenceImage);
@@ -53,7 +53,7 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
 double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  nifti_image *warpedImage,
                                  const float *warpedImageCuda,
-                                 const double *timePointWeight,
+                                 const double *timePointWeights,
                                  const unsigned short *referenceBinNumber,
                                  const unsigned short *floatingBinNumber,
                                  const unsigned short *totalBinNumber,
@@ -61,14 +61,15 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                  double **jointHistogramPro,
                                  double **entropyValues,
                                  const int *referenceMask,
-                                 const int referenceTimePoint,
+                                 const int referenceTimePoints,
                                  const bool approximation) {
     // TODO: Implement the NMI computation for CUDA
     // The NMI computation is performed on the host for now
     Cuda::TransferFromDeviceToNifti<float>(warpedImage, warpedImageCuda);
-    reg_getNMIValue<float>(referenceImage,
+    reg_getNmiValue<float>(referenceImage,
                            warpedImage,
-                           timePointWeight,
+                           timePointWeights,
+                           referenceTimePoints,
                            referenceBinNumber,
                            floatingBinNumber,
                            totalBinNumber,
@@ -79,9 +80,9 @@ double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                            approximation);
 
     double nmi = 0;
-    for (int t = 0; t < referenceTimePoint; ++t) {
-        if (timePointWeight[t] > 0)
-            nmi += timePointWeight[t] * (entropyValues[t][0] + entropyValues[t][1]) / entropyValues[t][2];
+    for (int t = 0; t < referenceTimePoints; ++t) {
+        if (timePointWeights[t] > 0)
+            nmi += timePointWeights[t] * (entropyValues[t][0] + entropyValues[t][1]) / entropyValues[t][2];
     }
     return nmi;
 }
@@ -90,7 +91,7 @@ double reg_nmi_gpu::GetSimilarityMeasureValueFw() {
     return ::GetSimilarityMeasureValue(this->referenceImage,
                                        this->warpedImage,
                                        this->warpedImageCuda,
-                                       this->timePointWeight,
+                                       this->timePointWeights,
                                        this->referenceBinNumber,
                                        this->floatingBinNumber,
                                        this->totalBinNumber,
@@ -98,15 +99,15 @@ double reg_nmi_gpu::GetSimilarityMeasureValueFw() {
                                        this->jointHistogramPro,
                                        this->entropyValues,
                                        this->referenceMask,
-                                       this->referenceTimePoint,
-                                       this->approximatePW);
+                                       this->referenceTimePoints,
+                                       this->approximatePw);
 }
 /* *************************************************************** */
 double reg_nmi_gpu::GetSimilarityMeasureValueBw() {
     return ::GetSimilarityMeasureValue(this->floatingImage,
                                        this->warpedImageBw,
                                        this->warpedImageBwCuda,
-                                       this->timePointWeight,
+                                       this->timePointWeights,
                                        this->floatingBinNumber,
                                        this->referenceBinNumber,
                                        this->totalBinNumber,
@@ -114,12 +115,12 @@ double reg_nmi_gpu::GetSimilarityMeasureValueBw() {
                                        this->jointHistogramProBw,
                                        this->entropyValuesBw,
                                        this->floatingMask,
-                                       this->referenceTimePoint,
-                                       this->approximatePW);
+                                       this->referenceTimePoints,
+                                       this->approximatePw);
 }
 /* *************************************************************** */
 /// Called when we only have one target and one source image
-void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
+void reg_getVoxelBasedNmiGradient_gpu(const nifti_image *referenceImage,
                                       const cudaArray *referenceImageCuda,
                                       const float *warpedImageCuda,
                                       const float4 *warpedGradientCuda,
@@ -149,21 +150,21 @@ void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
                                                  cudaChannelFormatKindSigned, 1);
 
     if (referenceImage->nz > 1) {
-        const unsigned blocks = blockSize->reg_getVoxelBasedNMIGradientUsingPW3D;
+        const unsigned blocks = blockSize->reg_getVoxelBasedNmiGradientUsingPw3D;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
-        reg_getVoxelBasedNMIGradientUsingPW3D_kernel<<<gridDims, blockDims>>>(voxelBasedGradientCuda, *referenceImageTexture, *warpedImageTexture,
+        reg_getVoxelBasedNmiGradientUsingPw3D_kernel<<<gridDims, blockDims>>>(voxelBasedGradientCuda, *referenceImageTexture, *warpedImageTexture,
                                                                               *warpedGradientTexture, *histogramTexture, *maskTexture,
                                                                               imageSize, refBinning, floBinning, normalisedJE, nmi,
                                                                               (unsigned)activeVoxelNumber);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
-        const unsigned blocks = blockSize->reg_getVoxelBasedNMIGradientUsingPW2D;
+        const unsigned blocks = blockSize->reg_getVoxelBasedNmiGradientUsingPw2D;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
-        reg_getVoxelBasedNMIGradientUsingPW2D_kernel<<<gridDims, blockDims>>>(voxelBasedGradientCuda, *referenceImageTexture, *warpedImageTexture,
+        reg_getVoxelBasedNmiGradientUsingPw2D_kernel<<<gridDims, blockDims>>>(voxelBasedGradientCuda, *referenceImageTexture, *warpedImageTexture,
                                                                               *warpedGradientTexture, *histogramTexture, *maskTexture,
                                                                               imageSize, refBinning, floBinning, normalisedJE, nmi,
                                                                               (unsigned)activeVoxelNumber);
@@ -171,7 +172,7 @@ void reg_getVoxelBasedNMIGradient_gpu(const nifti_image *referenceImage,
     }
 }
 /* *************************************************************** */
-void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) {
+void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) {
     // Call compute similarity measure to calculate joint histogram
     this->GetSimilarityMeasureValue();
 
@@ -179,7 +180,7 @@ void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint)
     thrust::device_vector<float> jointHistogramLogCuda(this->jointHistogramLog[0], this->jointHistogramLog[0] + this->totalBinNumber[0]);
 
     // The gradient of the NMI is computed on the GPU
-    reg_getVoxelBasedNMIGradient_gpu(this->referenceImage,
+    reg_getVoxelBasedNmiGradient_gpu(this->referenceImage,
                                      this->referenceImageCuda,
                                      this->warpedImageCuda,
                                      this->warpedGradientCuda,
@@ -192,12 +193,12 @@ void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint)
                                      this->floatingBinNumber[0]);
 }
 /* *************************************************************** */
-void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) {
+void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) {
     // The latest joint histogram is transferred onto the GPU
     thrust::device_vector<float> jointHistogramLogCudaBw(this->jointHistogramLogBw[0], this->jointHistogramLogBw[0] + this->totalBinNumber[0]);
 
     // The gradient of the NMI is computed on the GPU
-    reg_getVoxelBasedNMIGradient_gpu(this->floatingImage,
+    reg_getVoxelBasedNmiGradient_gpu(this->floatingImage,
                                      this->floatingImageCuda,
                                      this->warpedImageBwCuda,
                                      this->warpedGradientBwCuda,

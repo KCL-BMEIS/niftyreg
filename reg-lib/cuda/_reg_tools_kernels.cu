@@ -68,7 +68,7 @@ __global__ void reg_voxelCentricToNodeCentric_kernel(float4 *nodeImageCuda,
     nodeImageCuda[tid] = { reorientedValue[0], reorientedValue[1], reorientedValue[2], 0 };
 }
 /* *************************************************************** */
-__global__ void reg_convertNMIGradientFromVoxelToRealSpace_kernel(float4 *gradient, const mat44 matrix, const unsigned nodeNumber) {
+__global__ void reg_convertNmiGradientFromVoxelToRealSpace_kernel(float4 *gradient, const mat44 matrix, const unsigned nodeNumber) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < nodeNumber) {
         const float4 voxelGradient = gradient[tid];

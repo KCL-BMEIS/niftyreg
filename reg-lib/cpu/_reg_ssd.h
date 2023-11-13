@@ -44,9 +44,9 @@ public:
     /// @brief Returns the ssd value backwards
     virtual double GetSimilarityMeasureValueBw() override;
     /// @brief Compute the voxel-based ssd gradient forwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) override;
     /// @brief Compute the voxel-based ssd gradient backwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) override;
     /// @brief Here
     virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
                                      float *discretisedValue,
@@ -60,7 +60,7 @@ protected:
 /** @brief Computes and returns the SSD between two input images
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
- * @param timePointWeight Array that contains the weight of each time point
+ * @param timePointWeights Array that contains the weight of each time point
  * @param jacobianDetImage Image that contains the Jacobian
  * determinant of a transformation at every voxel position. This
  * image is used to modulate the SSD. The argument is ignored if the
@@ -73,7 +73,8 @@ protected:
 template <class DataType>
 double reg_getSsdValue(const nifti_image *referenceImage,
                        const nifti_image *warpedImage,
-                       const double *timePointWeight,
+                       const double *timePointWeights,
+                       const int referenceTimePoints,
                        const nifti_image *jacobianDetImage,
                        const int *mask,
                        const nifti_image *localWeightSim);
@@ -90,7 +91,7 @@ double reg_getSsdValue(const nifti_image *referenceImage,
  * pointer is set to nullptr
  * @param mask Array that contains a mask to specify which voxel
  * should be considered
- * @param currentTimepoint Specifies which time point volumes have to be considered
+ * @param currentTimePoint Specifies which time point volumes have to be considered
  * @param timepointWeight Weight of the specified time point
  * @param localWeightSim Image that contains the local weight similarity
  */
@@ -101,7 +102,7 @@ void reg_getVoxelBasedSsdGradient(const nifti_image *referenceImage,
                                   nifti_image *measureGradientImage,
                                   const nifti_image *jacobianDetImage,
                                   const int *mask,
-                                  const int currentTimepoint,
+                                  const int currentTimePoint,
                                   const double timepointWeight,
                                   const nifti_image *localWeightSim);
 /* *************************************************************** */

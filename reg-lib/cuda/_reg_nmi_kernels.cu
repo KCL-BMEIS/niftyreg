@@ -44,7 +44,7 @@ __device__ float GetBasisSplineDerivativeValue(const float& ori) {
     return value;
 }
 /* *************************************************************** */
-__global__ void reg_getVoxelBasedNMIGradientUsingPW2D_kernel(float4 *voxelBasedGradient,
+__global__ void reg_getVoxelBasedNmiGradientUsingPw2D_kernel(float4 *voxelBasedGradient,
                                                              cudaTextureObject_t referenceImageTexture,
                                                              cudaTextureObject_t warpedImageTexture,
                                                              cudaTextureObject_t warpedGradientTexture,
@@ -121,7 +121,7 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW2D_kernel(float4 *voxelBasedG
     }
 }
 /* *************************************************************** */
-__global__ void reg_getVoxelBasedNMIGradientUsingPW3D_kernel(float4 *voxelBasedGradient,
+__global__ void reg_getVoxelBasedNmiGradientUsingPw3D_kernel(float4 *voxelBasedGradient,
                                                              cudaTextureObject_t referenceImageTexture,
                                                              cudaTextureObject_t warpedImageTexture,
                                                              cudaTextureObject_t warpedGradientTexture,
@@ -210,7 +210,7 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW3D_kernel(float4 *voxelBasedG
 }
 /* *************************************************************** */
 // Multichannel NMI gradient. Hardcoded for 2x2 NMI channels.
-/* __global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelBasedGradient) {
+/* __global__ void reg_getVoxelBasedNmiGradientUsingPw2x2_kernel(float4 *voxelBasedGradient) {
     const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < c_ActiveVoxelNumber) {
         const int targetIndex = tex1Dfetch(maskTexture, tid);

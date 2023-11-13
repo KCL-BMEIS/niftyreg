@@ -42,9 +42,9 @@ public:
     /// @brief Returns the dti value backwards
     virtual double GetSimilarityMeasureValueBw() override;
     /// @brief Compute the voxel-based gradient for DTI images forwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) override;
     /// @brief Compute the voxel-based gradient for DTI images backwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) override;
 
 protected:
     // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ

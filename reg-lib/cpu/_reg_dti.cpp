@@ -48,9 +48,9 @@ void reg_dti::InitialiseMeasure(nifti_image *refImg,
 
     int j = 0;
     for (int i = 0; i < refImg->nt; ++i) {
-        // JM - note, the specific value of timePointWeight is not used for DTI images
+        // JM - note, the specific value of timePointWeights is not used for DTI images
         // any value > 0 indicates the 'time point' is active
-        if (this->timePointWeight[i] > 0) {
+        if (this->timePointWeights[i] > 0) {
             this->dtIndicies[j++] = i;
             NR_DEBUG("Active time point: " << i);
         }
@@ -258,7 +258,7 @@ void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
     }, NiftiImage::getFloatingDataType(referenceImage));
 }
 /* *************************************************************** */
-void reg_dti::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) {
+void reg_dti::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) {
     ::GetVoxelBasedSimilarityMeasureGradient(this->referenceImage,
                                              this->warpedImage,
                                              this->warpedGradient,
@@ -267,7 +267,7 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) {
                                              this->dtIndicies);
 }
 /* *************************************************************** */
-void reg_dti::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) {
+void reg_dti::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) {
     ::GetVoxelBasedSimilarityMeasureGradient(this->floatingImage,
                                              this->warpedImageBw,
                                              this->warpedGradientBw,

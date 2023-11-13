@@ -66,7 +66,7 @@ protected:
     virtual void ExponentiateGradient();
 
 public:
-    reg_f3d2(int refTimePoint, int floTimePoint);
+    reg_f3d2(int refTimePoints, int floTimePoints);
 
     virtual NiftiImage GetBackwardControlPointPositionImage() override;
     virtual vector<NiftiImage> GetWarpedImage() override;

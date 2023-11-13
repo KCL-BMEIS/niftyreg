@@ -43,9 +43,9 @@ public:
     /// @brief Returns the nmi value backwards
     virtual double GetSimilarityMeasureValueBw() override;
     /// @brief Compute the voxel-based nmi gradient forwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) override;
     /// @brief Compute the voxel-based nmi gradient backwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) override;
 
     virtual void SetRefAndFloatBinNumbers(unsigned short refBinNumber,
                                           unsigned short floBinNumber,
@@ -65,15 +65,15 @@ public:
     virtual unsigned short* GetFloatingBinNumber() {
         return this->floatingBinNumber;
     }
-    virtual void ApproximatePW() {
-        this->approximatePW = true;
+    virtual void ApproximatePw() {
+        this->approximatePw = true;
     }
-    virtual void DoNotApproximatePW() {
-        this->approximatePW = false;
+    virtual void DoNotApproximatePw() {
+        this->approximatePw = false;
     }
 
 protected:
-    bool approximatePW;
+    bool approximatePw;
     unsigned short referenceBinNumber[255];
     unsigned short floatingBinNumber[255];
     unsigned short totalBinNumber[255];
@@ -88,9 +88,10 @@ protected:
 };
 /* *************************************************************** */
 template <class DataType>
-void reg_getNMIValue(const nifti_image *referenceImage,
+void reg_getNmiValue(const nifti_image *referenceImage,
                      const nifti_image *warpedImage,
                      const double *timePointWeight,
+                     const int referenceTimePoints,
                      const unsigned short *referenceBinNumber,
                      const unsigned short *floatingBinNumber,
                      const unsigned short *totalBinNumber,
@@ -231,9 +232,9 @@ public:
     virtual double GetSimilarityMeasureValueBw() override { return 0; }
 
     /// @brief Compute the voxel-based nmi gradient forwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override {}
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) override {}
     /// @brief Compute the voxel-based nmi gradient backwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override {}
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) override {}
 
 protected:
     unsigned short referenceBinNumber[255];

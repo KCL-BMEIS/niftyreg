@@ -170,14 +170,14 @@ int main(int argc, char **argv)
    resultGradientImage->datatype = NIFTI_TYPE_FLOAT32;
    resultGradientImage->nbyper = sizeof(float);
    resultGradientImage->data = calloc(resultGradientImage->nvox, resultGradientImage->nbyper);
-   nifti_image *voxelNMIGradientImage = nifti_copy_nim_info(deformationFieldImage);
-   voxelNMIGradientImage->datatype = NIFTI_TYPE_FLOAT32;
-   voxelNMIGradientImage->nbyper = sizeof(float);
-   voxelNMIGradientImage->data = calloc(voxelNMIGradientImage->nvox, voxelNMIGradientImage->nbyper);
-   nifti_image *nodeNMIGradientImage = nifti_copy_nim_info(controlPointImage);
-   nodeNMIGradientImage->datatype = NIFTI_TYPE_FLOAT32;
-   nodeNMIGradientImage->nbyper = sizeof(float);
-   nodeNMIGradientImage->data = calloc(nodeNMIGradientImage->nvox, nodeNMIGradientImage->nbyper);
+   nifti_image *voxelNmiGradientImage = nifti_copy_nim_info(deformationFieldImage);
+   voxelNmiGradientImage->datatype = NIFTI_TYPE_FLOAT32;
+   voxelNmiGradientImage->nbyper = sizeof(float);
+   voxelNmiGradientImage->data = calloc(voxelNmiGradientImage->nvox, voxelNmiGradientImage->nbyper);
+   nifti_image *nodeNmiGradientImage = nifti_copy_nim_info(controlPointImage);
+   nodeNmiGradientImage->datatype = NIFTI_TYPE_FLOAT32;
+   nodeNmiGradientImage->nbyper = sizeof(float);
+   nodeNmiGradientImage->data = calloc(nodeNmiGradientImage->nvox, nodeNmiGradientImage->nbyper);
 
 #ifdef USE_CUDA
    float *targetImageArray_d;
@@ -502,9 +502,9 @@ int main(int argc, char **argv)
 
    // VOXEL-BASED NMI GRADIENT COMPUTATION
 #ifdef USE_CUDA
-   float4 *voxelNMIGradientArray_d;
+   float4 *voxelNmiGradientArray_d;
    if(runGPU)
-      Cuda::Allocate(&voxelNMIGradientArray_d, resultImage->dim);
+      Cuda::Allocate(&voxelNmiGradientArray_d, resultImage->dim);
 #endif
    {
       maxIt=100000 / dimension;
@@ -512,7 +512,7 @@ int main(int argc, char **argv)
       time(&start);
       for(int i=0; i<maxIt; ++i)
       {
-         reg_getVoxelBasedNMIGradientUsingPW<double>(targetImage,
+         reg_getVoxelBasedNmiGradientUsingPw<double>(targetImage,
                resultImage,
                2,
                resultGradientImage,
@@ -520,7 +520,7 @@ int main(int argc, char **argv)
                &binning,
                logJointHistogram,
                entropies,
-               voxelNMIGradientImage,
+               voxelNmiGradientImage,
                maskImage);
       }
       time(&end);
@@ -544,13 +544,13 @@ int main(int argc, char **argv)
          time(&start);
          for(int i=0; i<maxIt; ++i)
          {
-            reg_getVoxelBasedNMIGradientUsingPW_gpu(targetImage,
+            reg_getVoxelBasedNmiGradientUsingPw_gpu(targetImage,
                                                     resultImage,
                                                     &targetImageArray_d,
                                                     &resultImageArray_d,
                                                     &resultGradientArray_d,
                                                     &logJointHistogram_d,
-                                                    &voxelNMIGradientArray_d,
+                                                    &voxelNmiGradientArray_d,
                                                     &targetMask_d,
                                                     targetImage->nvox,
                                                     entropies,
@@ -580,9 +580,9 @@ int main(int argc, char **argv)
 
    // NODE-BASED NMI GRADIENT COMPUTATION
 #ifdef USE_CUDA
-   float4 *nodeNMIGradientArray_d;
+   float4 *nodeNmiGradientArray_d;
    if(runGPU)
-      Cuda::Allocate(&nodeNMIGradientArray_d, controlPointImage->dim);
+      Cuda::Allocate(&nodeNmiGradientArray_d, controlPointImage->dim);
 #endif
    {
       maxIt=10000 / dimension;
@@ -594,8 +594,8 @@ int main(int argc, char **argv)
       time(&start);
       for(int i=0; i<maxIt; ++i)
       {
-         reg_smoothImageForCubicSpline<float>(voxelNMIGradientImage,smoothingRadius);
-         reg_voxelCentricToNodeCentric(nodeNMIGradientImage,voxelNMIGradientImage,1.0f);
+         reg_smoothImageForCubicSpline<float>(voxelNmiGradientImage,smoothingRadius);
+         reg_voxelCentricToNodeCentric(nodeNmiGradientImage,voxelNmiGradientImage,1.0f);
       }
       time(&end);
       cpuTime=(end-start);
@@ -610,12 +610,12 @@ int main(int argc, char **argv)
          for(int i=0; i<maxIt; ++i)
          {
             reg_smoothImageForCubicSpline_gpu(resultImage,
-                                              &voxelNMIGradientArray_d,
+                                              &voxelNmiGradientArray_d,
                                               smoothingRadius);
             reg_voxelCentricToNodeCentric_gpu(targetImage,
                                               controlPointImage,
-                                              &voxelNMIGradientArray_d,
-                                              &nodeNMIGradientArray_d,
+                                              &voxelNmiGradientArray_d,
+                                              &nodeNmiGradientArray_d,
                                               1.0f);
          }
          time(&end);
@@ -634,8 +634,8 @@ int main(int argc, char **argv)
 #ifdef USE_CUDA
    if(runGPU)
    {
-      Cuda::Free(voxelNMIGradientArray_d);
-      Cuda::Free(nodeNMIGradientArray_d);
+      Cuda::Free(voxelNmiGradientArray_d);
+      Cuda::Free(nodeNmiGradientArray_d);
    }
 #endif
 
@@ -685,7 +685,7 @@ int main(int argc, char **argv)
       {
          reg_bspline_bendingEnergyGradient<float>(   controlPointImage,
                targetImage,
-               nodeNMIGradientImage,
+               nodeNmiGradientImage,
                0.01f);
       }
       time(&end);
@@ -703,7 +703,7 @@ int main(int argc, char **argv)
             reg_bspline_ApproxBendingEnergyGradient_gpu(targetImage,
                   controlPointImage,
                   &controlPointImageArray_d,
-                  &nodeNMIGradientArray_d,
+                  &nodeNmiGradientArray_d,
                   0.01f);
          }
          time(&end);
@@ -874,8 +874,8 @@ int main(int argc, char **argv)
    nifti_image_free(controlPointImage);
    nifti_image_free(deformationFieldImage);
    nifti_image_free(resultGradientImage);
-   nifti_image_free(voxelNMIGradientImage);
-   nifti_image_free(nodeNMIGradientImage);
+   nifti_image_free(voxelNmiGradientImage);
+   nifti_image_free(nodeNmiGradientImage);
    free(maskImage);
    free(probaJointHistogram);
    free(logJointHistogram);

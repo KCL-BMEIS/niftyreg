@@ -156,7 +156,7 @@ public:
                 // Use LNCC as a measure
                 unique_ptr<reg_lncc> measure_lncc{ dynamic_cast<reg_lncc*>(measure->Create(MeasureType::Lncc)) };
                 measure_lncc->SetKernelStandardDeviation(0, sigma);
-                measure_lncc->SetTimepointWeight(0, 1.0); // weight initially set to default value of 1.0
+                measure_lncc->SetTimePointWeight(0, 1.0); // weight initially set to default value of 1.0
                 measure->Initialise(*measure_lncc, *content);
                 const double lncc = measure_lncc->GetSimilarityMeasureValue();
                 // Save for testing

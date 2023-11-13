@@ -63,7 +63,7 @@ protected:
     virtual void GetLandmarkDistanceGradient();
 
 public:
-    reg_f3d(int refTimePoint, int floTimePoint);
+    reg_f3d(int refTimePoints, int floTimePoints);
 
     virtual NiftiImage GetControlPointPositionImage();
     virtual vector<NiftiImage> GetWarpedImage() override;

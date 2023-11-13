@@ -23,7 +23,7 @@ void reg_voxelCentricToNodeCentric_gpu(const nifti_image *nodeImage,
                                        float weight,
                                        const mat44 *voxelToMillimetre = nullptr);
 /* *************************************************************** */
-void reg_convertNMIGradientFromVoxelToRealSpace_gpu(const mat44 *sourceMatrixXYZ,
+void reg_convertNmiGradientFromVoxelToRealSpace_gpu(const mat44 *sourceMatrixXYZ,
                                                     const nifti_image *controlPointImage,
                                                     float4 *nmiGradientCuda);
 /* *************************************************************** */

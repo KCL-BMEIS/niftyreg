@@ -42,10 +42,10 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
                                        warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
     // Check that the input images have only one time point
     if (this->referenceImage->nt > 1 || this->floatingImage->nt > 1)
-        NR_FATAL_ERROR("Multiple timepoints are not yet supported");
+        NR_FATAL_ERROR("Multiple time points are not yet supported");
     // Check if the reference and floating images need to be updated
-    for (int i = 0; i < this->referenceImage->nt; ++i)
-        if (this->timePointWeight[i] > 0 && normaliseTimePoint[i]) {
+    for (int i = 0; i < this->referenceTimePoints; ++i)
+        if (this->timePointWeights[i] > 0 && normaliseTimePoint[i]) {
             Cuda::TransferNiftiToDevice<float>(this->referenceImageCuda, this->referenceImage);
             Cuda::TransferNiftiToDevice<float>(this->floatingImageCuda, this->floatingImage);
             break;
@@ -160,7 +160,7 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
-void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) {
+void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) {
     reg_getVoxelBasedSsdGradient_gpu(this->referenceImage,
                                      this->referenceImageCuda,
                                      this->warpedImageCuda,
@@ -169,10 +169,10 @@ void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint)
                                      this->voxelBasedGradientCuda,
                                      this->referenceMaskCuda,
                                      this->activeVoxelNumber,
-                                     static_cast<float>(this->timePointWeight[currentTimepoint]));
+                                     static_cast<float>(this->timePointWeights[currentTimePoint]));
 }
 /* *************************************************************** */
-void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) {
+void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) {
     reg_getVoxelBasedSsdGradient_gpu(this->floatingImage,
                                      this->floatingImageCuda,
                                      this->warpedImageBwCuda,
@@ -181,6 +181,6 @@ void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint)
                                      this->voxelBasedGradientBwCuda,
                                      this->floatingMaskCuda,
                                      this->activeVoxelNumber,
-                                     static_cast<float>(this->timePointWeight[currentTimepoint]));
+                                     static_cast<float>(this->timePointWeights[currentTimePoint]));
 }
 /* *************************************************************** */

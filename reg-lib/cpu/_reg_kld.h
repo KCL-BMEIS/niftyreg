@@ -39,8 +39,8 @@ public:
     /// @brief Returns the kld value backwards
     virtual double GetSimilarityMeasureValueBw() override;
     /// @brief Compute the voxel-based kld gradient forwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) override;
     /// @brief Compute the voxel-based kld gradient backwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimepoint) override;
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) override;
 };
 /* *************************************************************** */

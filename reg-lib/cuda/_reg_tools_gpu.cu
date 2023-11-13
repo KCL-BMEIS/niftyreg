@@ -78,15 +78,15 @@ void reg_voxelCentricToNodeCentric_gpu(const nifti_image *nodeImage,
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
-void reg_convertNMIGradientFromVoxelToRealSpace_gpu(const mat44 *sourceMatrixXYZ,
+void reg_convertNmiGradientFromVoxelToRealSpace_gpu(const mat44 *sourceMatrixXYZ,
                                                     const nifti_image *controlPointImage,
                                                     float4 *nmiGradientCuda) {
     const size_t nodeNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_convertNMIGradientFromVoxelToRealSpace;
+    const unsigned blocks = CudaContext::GetBlockSize()->reg_convertNmiGradientFromVoxelToRealSpace;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)nodeNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
-    reg_convertNMIGradientFromVoxelToRealSpace_kernel<<<gridDims, blockDims>>>(nmiGradientCuda, *sourceMatrixXYZ, (unsigned)nodeNumber);
+    reg_convertNmiGradientFromVoxelToRealSpace_kernel<<<gridDims, blockDims>>>(nmiGradientCuda, *sourceMatrixXYZ, (unsigned)nodeNumber);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
