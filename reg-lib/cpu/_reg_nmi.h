@@ -87,20 +87,6 @@ protected:
     void DeallocateHistogram();
 };
 /* *************************************************************** */
-template <class DataType>
-void reg_getNmiValue(const nifti_image *referenceImage,
-                     const nifti_image *warpedImage,
-                     const double *timePointWeight,
-                     const int referenceTimePoints,
-                     const unsigned short *referenceBinNumber,
-                     const unsigned short *floatingBinNumber,
-                     const unsigned short *totalBinNumber,
-                     double **jointHistogramLog,
-                     double **jointHistogramPro,
-                     double **entropyValues,
-                     const int *referenceMask,
-                     const bool approximation);
-/* *************************************************************** */
 // Simple class to dynamically manage an array of pointers
 // Needed for multi channel NMI
 template<class DataTYPE>
@@ -282,4 +268,35 @@ void reg_getVoxelBasedMultiChannelNmiGradient3D(nifti_image *referenceImages,
                                                 nifti_image *nmiGradientImage,
                                                 int *mask,
                                                 bool approx);
+/* *************************************************************** */
+template<class PrecisionType>
+DEVICE constexpr PrecisionType GetBasisSplineValue(PrecisionType x) {
+    x = x < 0 ? -x : x;
+    PrecisionType value = 0;
+    if (x < 2.f) {
+        if (x < 1.f)
+            value = 2.f / 3.f + (0.5f * x - 1.f) * x * x;
+        else {
+            x -= 2.f;
+            value = -x * x * x / 6.f;
+        }
+    }
+    return value;
+}
+/* *************************************************************** */
+template<class PrecisionType>
+DEVICE constexpr PrecisionType GetBasisSplineDerivativeValue(const PrecisionType origX) {
+    PrecisionType x = origX < 0 ? -origX : origX;
+    PrecisionType value = 0;
+    if (x < 2.f) {
+        if (x < 1.f)
+            value = (1.5f * x - 2.f) * origX;
+        else {
+            x -= 2.f;
+            value = -0.5f * x * x;
+            if (origX < 0) value = -value;
+        }
+    }
+    return value;
+}
 /* *************************************************************** */

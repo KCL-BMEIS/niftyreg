@@ -164,37 +164,6 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImg,
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-template<class PrecisionType>
-static PrecisionType GetBasisSplineValue(PrecisionType x) {
-    x = fabs(x);
-    PrecisionType value = 0;
-    if (x < 2.f) {
-        if (x < 1.f)
-            value = 2.f / 3.f + (0.5f * x - 1.f) * x * x;
-        else {
-            x -= 2.f;
-            value = -x * x * x / 6.f;
-        }
-    }
-    return value;
-}
-/* *************************************************************** */
-template<class PrecisionType>
-static PrecisionType GetBasisSplineDerivativeValue(PrecisionType ori) {
-    PrecisionType x = fabs(ori);
-    PrecisionType value = 0;
-    if (x < 2.f) {
-        if (x < 1.f)
-            value = (1.5f * x - 2.f) * ori;
-        else {
-            x -= 2.f;
-            value = -0.5f * x * x;
-            if (ori < 0) value = -value;
-        }
-    }
-    return value;
-}
-/* *************************************************************** */
 template <class DataType>
 void reg_getNmiValue(const nifti_image *referenceImage,
                      const nifti_image *warpedImage,
@@ -261,9 +230,7 @@ void reg_getNmiValue(const nifti_image *referenceImage,
                     }
                 }
                 // Convolve the histogram with a cubic B-spline kernel
-                double kernel[3];
-                kernel[0] = kernel[2] = GetBasisSplineValue(-1.0);
-                kernel[1] = GetBasisSplineValue(0.0);
+                constexpr double kernel[3]{ GetBasisSplineValue(-1.0), GetBasisSplineValue(0.0), GetBasisSplineValue(-1.0) };
                 // Histogram is first smooth along the reference axis
                 memset(jointHistoLogPtr, 0, totalBinNumber[t] * sizeof(double));
                 for (int f = 0; f < floatingBinNumber[t]; ++f) {
@@ -361,8 +328,6 @@ void reg_getNmiValue(const nifti_image *referenceImage,
         } // if active time point
     } // iterate over all time point in the reference image
 }
-template void reg_getNmiValue<float>(const nifti_image*, const nifti_image*, const double*, const int, const unsigned short*, const unsigned short*, const unsigned short*, double**, double**, double**, const int*, const bool);
-template void reg_getNmiValue<double>(const nifti_image*, const nifti_image*, const double*, const int, const unsigned short*, const unsigned short*, const unsigned short*, double**, double**, double**, const int*, const bool);
 /* *************************************************************** */
 static double GetSimilarityMeasureValue(const nifti_image *referenceImage,
                                         const nifti_image *warpedImage,

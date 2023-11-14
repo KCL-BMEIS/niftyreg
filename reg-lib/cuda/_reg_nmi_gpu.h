@@ -56,6 +56,12 @@ public:
     virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) override;
     /// @brief Compute the voxel-based nmi gradient backwards
     virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) override;
+
+protected:
+    vector<thrust::device_vector<double>> jointHistogramLogCudaVecs;
+    vector<thrust::device_vector<double>> jointHistogramProCudaVecs;
+    vector<thrust::device_vector<double>> jointHistogramLogBwCudaVecs;
+    vector<thrust::device_vector<double>> jointHistogramProBwCudaVecs;
 };
 /* *************************************************************** */
 /// @brief NMI measure of similarity class
