@@ -14,8 +14,6 @@
 namespace NiftyReg {
 /* *************************************************************** */
 struct BlockSize {
-    unsigned reg_getVoxelBasedNmiGradientUsingPw2D;
-    unsigned reg_getVoxelBasedNmiGradientUsingPw3D;
     unsigned reg_affine_getDeformationField;
     unsigned reg_spline_getDeformationField2D;
     unsigned reg_spline_getDeformationField3D;
@@ -54,8 +52,6 @@ struct BlockSize {
 /* *************************************************************** */
 struct BlockSize100: public BlockSize {
     BlockSize100() {
-        reg_getVoxelBasedNmiGradientUsingPw2D = 384; // 21 reg - 24 smem - 32 cmem
-        reg_getVoxelBasedNmiGradientUsingPw3D = 320; // 25 reg - 24 smem - 32 cmem
         reg_affine_getDeformationField = 512; // 16 reg - 24 smem
         reg_spline_getDeformationField2D = 384; // 20 reg - 6168 smem - 28 cmem
         reg_spline_getDeformationField3D = 192; // 37 reg - 6168 smem - 28 cmem
@@ -96,8 +92,6 @@ struct BlockSize100: public BlockSize {
 /* *************************************************************** */
 struct BlockSize300: public BlockSize {
     BlockSize300() {
-        reg_getVoxelBasedNmiGradientUsingPw2D = 768; // 38 reg
-        reg_getVoxelBasedNmiGradientUsingPw3D = 640; // 45 reg
         reg_affine_getDeformationField = 1024; // 23 reg
         reg_spline_getDeformationField2D = 1024; // 34 reg
         reg_spline_getDeformationField3D = 1024; // 34 reg
