@@ -28,14 +28,15 @@ public:
 
         // Create 2D reference, floating, control point grid and local weight similarity images
         constexpr NiftiImage::dim_t size = 16;
-        vector<NiftiImage::dim_t> dim{ size, size };
+        constexpr NiftiImage::dim_t timePoints = 1;
+        vector<NiftiImage::dim_t> dim{ size, size, 1, timePoints };
         NiftiImage reference2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage controlPointGrid2d(CreateControlPointGrid(reference2d));
         NiftiImage localWeightSim2d(dim, NIFTI_TYPE_FLOAT32);
 
         // Create 3D reference, floating, control point grid and local weight similarity images
-        dim.push_back(size);
+        dim[2] = size;
         NiftiImage reference3d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating3d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage controlPointGrid3d(CreateControlPointGrid(reference3d));
@@ -63,7 +64,7 @@ public:
 
         // Create the data container for the regression test
         const std::string measureNames[]{ "NMI"s, "SSD"s, "DTI"s, "LNCC"s, "KLD"s, "MIND"s, "MINDSSC"s };
-        const MeasureType testMeasures[]{ MeasureType::Nmi, MeasureType::Ssd };
+        constexpr MeasureType testMeasures[]{ MeasureType::Nmi, MeasureType::Ssd };
         vector<TestData> testData;
         for (auto&& measure : testMeasures) {
             for (int sym = 0; sym < 2; ++sym) {
@@ -137,9 +138,9 @@ public:
             unique_ptr<reg_measure> measureCuda{ measureCreatorCuda->Create(measureType) };
 
             // Initialise the measures
-            for (int i = 0; i < referenceCpu->nt; ++i) {
-                measureCpu->SetTimePointWeight(i, 1.0);
-                measureCuda->SetTimePointWeight(i, 1.0);
+            for (int t = 0; t < referenceCpu->nt; t++) {
+                measureCpu->SetTimePointWeight(t, 1.0);
+                measureCuda->SetTimePointWeight(t, 1.0);
             }
             measureCreatorCpu->Initialise(*measureCpu, *contentCpu, contentCpuBw.get());
             measureCreatorCuda->Initialise(*measureCuda, *contentCuda, contentCudaBw.get());
@@ -162,24 +163,26 @@ public:
             }
             const double simMeasureCuda = measureCuda->GetSimilarityMeasureValue();
 
-            // Compute the similarity measure gradient for CPU
-            constexpr int timepoint = 0;
+            // Compute the similarity measure gradients
             contentCpu->ZeroVoxelBasedMeasureGradient();
-            computeCpu->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), timepoint);
+            contentCuda->ZeroVoxelBasedMeasureGradient();
             if (isSymmetric) {
                 contentCpuBw->ZeroVoxelBasedMeasureGradient();
-                computeCpuBw->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), timepoint);
-            }
-            measureCpu->GetVoxelBasedSimilarityMeasureGradient(timepoint);
-
-            // Compute the similarity measure gradient for CUDA
-            contentCuda->ZeroVoxelBasedMeasureGradient();
-            computeCuda->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), timepoint);
-            if (isSymmetric) {
                 contentCudaBw->ZeroVoxelBasedMeasureGradient();
-                computeCudaBw->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), timepoint);
             }
-            measureCuda->GetVoxelBasedSimilarityMeasureGradient(timepoint);
+            for (int t = 0; t < referenceCpu->nt; t++) {
+                // Compute the similarity measure gradient for CPU
+                computeCpu->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), t);
+                if (isSymmetric)
+                    computeCpuBw->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), t);
+                measureCpu->GetVoxelBasedSimilarityMeasureGradient(t);
+
+                // Compute the similarity measure gradient for CUDA
+                computeCuda->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), t);
+                if (isSymmetric)
+                    computeCudaBw->GetImageGradient(1, std::numeric_limits<float>::quiet_NaN(), t);
+                measureCuda->GetVoxelBasedSimilarityMeasureGradient(t);
+            }
 
             // Get the voxel-based similarity measure gradients
             NiftiImage voxelBasedGradCpu(contentCpu->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
