@@ -446,7 +446,7 @@ template void reg_tools_changeDatatype<double>(nifti_image*, int);
 struct Operation {
     enum class Type { Add, Subtract, Multiply, Divide } type;
     Operation(Type type) : type(type) {}
-    double operator()(const double& lhs, const double& rhs) const {
+    double operator()(const double lhs, const double rhs) const {
         switch (type) {
         case Type::Add:
             return lhs + rhs;
@@ -2564,7 +2564,7 @@ nifti_image* nifti_dup(const nifti_image& image, const bool copyData) {
     return newImage;
 }
 /* *************************************************************** */
-void PrintCmdLine(const int& argc, const char * const *argv, const bool verbose) {
+void PrintCmdLine(const int argc, const char *const *argv, const bool verbose) {
 #ifdef NDEBUG
     if (!verbose) return;
 #endif

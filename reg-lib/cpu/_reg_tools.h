@@ -426,5 +426,5 @@ void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x
 nifti_image* nifti_dup(const nifti_image& image, const bool copyData = true);
 /* *************************************************************** */
 /// @brief Prints the command line
-void PrintCmdLine(const int& argc, const char * const *argv, const bool verbose);
+void PrintCmdLine(const int argc, const char *const *argv, const bool verbose);
 /* *************************************************************** */

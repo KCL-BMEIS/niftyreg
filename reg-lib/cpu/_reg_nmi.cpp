@@ -198,8 +198,8 @@ void reg_getNmiValue(const nifti_image *referenceImage,
                 // No approximation is used for the Parzen windowing
                 for (size_t voxel = 0; voxel < voxelNumber; ++voxel) {
                     if (referenceMask[voxel] > -1) {
-                        const DataType& refValue = refPtr[voxel];
-                        const DataType& warValue = warPtr[voxel];
+                        const DataType refValue = refPtr[voxel];
+                        const DataType warValue = warPtr[voxel];
                         if (refValue == refValue && warValue == warValue) {
                             for (int r = int(refValue - 1); r < int(refValue + 3); ++r) {
                                 if (0 <= r && r < referenceBinNumber[t]) {
@@ -220,8 +220,8 @@ void reg_getNmiValue(const nifti_image *referenceImage,
                 // the histogram is convolved with a spine kernel function.
                 for (size_t voxel = 0; voxel < voxelNumber; ++voxel) {
                     if (referenceMask[voxel] > -1) {
-                        const DataType& refValue = refPtr[voxel];
-                        const DataType& warValue = warPtr[voxel];
+                        const DataType refValue = refPtr[voxel];
+                        const DataType warValue = warPtr[voxel];
                         if (refValue == refValue && warValue == warValue &&
                             0 <= refValue && refValue < referenceBinNumber[t] &&
                             0 <= warValue && warValue < floatingBinNumber[t]) {
@@ -295,9 +295,9 @@ void reg_getNmiValue(const nifti_image *referenceImage,
             // Compute the entropy of the reference image
             double referenceEntropy = 0;
             for (int r = 0; r < referenceBinNumber[t]; ++r) {
-                const double& valPro = jointHistoProPtr[referenceBinNumber[t] * floatingBinNumber[t] + r];
+                const double valPro = jointHistoProPtr[referenceBinNumber[t] * floatingBinNumber[t] + r];
                 if (valPro > 0) {
-                    const double& valLog = log(valPro);
+                    const double valLog = log(valPro);
                     referenceEntropy -= valPro * valLog;
                     jointHistoLogPtr[referenceBinNumber[t] * floatingBinNumber[t] + r] = valLog;
                 }
@@ -306,9 +306,9 @@ void reg_getNmiValue(const nifti_image *referenceImage,
             // Compute the entropy of the warped floating image
             double warpedEntropy = 0;
             for (int f = 0; f < floatingBinNumber[t]; ++f) {
-                const double& valPro = jointHistoProPtr[referenceBinNumber[t] * floatingBinNumber[t] + referenceBinNumber[t] + f];
+                const double valPro = jointHistoProPtr[referenceBinNumber[t] * floatingBinNumber[t] + referenceBinNumber[t] + f];
                 if (valPro > 0) {
-                    const double& valLog = log(valPro);
+                    const double valLog = log(valPro);
                     warpedEntropy -= valPro * valLog;
                     jointHistoLogPtr[referenceBinNumber[t] * floatingBinNumber[t] + referenceBinNumber[t] + f] = valLog;
                 }
@@ -317,9 +317,9 @@ void reg_getNmiValue(const nifti_image *referenceImage,
             // Compute the joint entropy
             double jointEntropy = 0;
             for (int i = 0; i < referenceBinNumber[t] * floatingBinNumber[t]; ++i) {
-                const double& valPro = jointHistoProPtr[i];
+                const double valPro = jointHistoProPtr[i];
                 if (valPro > 0) {
-                    const double& valLog = log(valPro);
+                    const double valLog = log(valPro);
                     jointEntropy -= valPro * valLog;
                     jointHistoLogPtr[i] = valLog;
                 }
@@ -455,9 +455,9 @@ static void reg_getVoxelBasedNmiGradient2d(const nifti_image *referenceImage,
                             if (-1 < w && w < floatingBinNumber[currentTimePoint]) {
                                 const double common = GetBasisSplineValue<double>(refValue - r) *
                                     GetBasisSplineDerivativeValue<double>(warValue - w);
-                                const double& jointLog = logHistoPtr[r + w * referenceBinNumber[currentTimePoint]];
-                                const double& refLog = logHistoPtr[r + referenceOffset];
-                                const double& warLog = logHistoPtr[w + floatingOffset];
+                                const double jointLog = logHistoPtr[r + w * referenceBinNumber[currentTimePoint]];
+                                const double refLog = logHistoPtr[r + referenceOffset];
+                                const double warLog = logHistoPtr[w + floatingOffset];
                                 if (gradX == gradX) {
                                     jointDeriv[0] += common * gradX * jointLog;
                                     refDeriv[0] += common * gradX * refLog;
@@ -542,9 +542,9 @@ static void reg_getVoxelBasedNmiGradient3d(const nifti_image *referenceImage,
                             if (-1 < w && w < floatingBinNumber[currentTimePoint]) {
                                 const double common = GetBasisSplineValue<double>(refValue - r) *
                                     GetBasisSplineDerivativeValue<double>(warValue - w);
-                                const double& jointLog = logHistoPtr[r + w * referenceBinNumber[currentTimePoint]];
-                                const double& refLog = logHistoPtr[r + referenceOffset];
-                                const double& warLog = logHistoPtr[w + floatingOffset];
+                                const double jointLog = logHistoPtr[r + w * referenceBinNumber[currentTimePoint]];
+                                const double refLog = logHistoPtr[r + referenceOffset];
+                                const double warLog = logHistoPtr[w + floatingOffset];
                                 if (gradX == gradX) {
                                     refDeriv[0] += common * gradX * refLog;
                                     warDeriv[0] += common * gradX * warLog;

@@ -117,8 +117,8 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
                                       const float *localWeightSimCuda,
                                       float4 *ssdGradientCuda,
                                       const int *maskCuda,
-                                      const size_t& activeVoxelNumber,
-                                      const float& timepointWeight) {
+                                      const size_t activeVoxelNumber,
+                                      const float timepointWeight) {
     // Copy the constant memory variables
     const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);

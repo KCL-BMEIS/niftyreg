@@ -31,7 +31,7 @@ __global__ void reg_resampleImage2D_kernel(float *resultArray,
     if (tid >= activeVoxelNumber) return;
     // Get the real world deformation in the floating space
     const int tid2 = tex1Dfetch<int>(maskTexture, tid);
-    float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, tid);
+    const float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, tid);
 
     // Get the voxel-based deformation in the floating space
     double2 voxelDeformation;

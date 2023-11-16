@@ -121,7 +121,7 @@ __device__ SecondDerivative<is3d> GetApproxSecondDerivative(const unsigned index
                 int indexXYZ = (indexZ + b) * controlPointImageDim.x + x - 1;
                 for (int a = x - 1; a < x + 2; a++, basInd++, indexXYZ++) {
                     if (isGradient && (a < 0 || a >= controlPointImageDim.x)) continue;
-                    const float3& controlPointValue = make_float3(tex1Dfetch<float4>(controlPointTexture, indexXYZ));
+                    const float3 controlPointValue = make_float3(tex1Dfetch<float4>(controlPointTexture, indexXYZ));
                     secondDerivative.xx = secondDerivative.xx + basis.xx[basInd] * controlPointValue;
                     secondDerivative.yy = secondDerivative.yy + basis.yy[basInd] * controlPointValue;
                     secondDerivative.zz = secondDerivative.zz + basis.zz[basInd] * controlPointValue;
@@ -137,7 +137,7 @@ __device__ SecondDerivative<is3d> GetApproxSecondDerivative(const unsigned index
             int indexXY = b * controlPointImageDim.x + x - 1;
             for (int a = x - 1; a < x + 2; a++, basInd++, indexXY++) {
                 if (isGradient && (a < 0 || a >= controlPointImageDim.x)) continue;
-                const float2& controlPointValue = make_float2(tex1Dfetch<float4>(controlPointTexture, indexXY));
+                const float2 controlPointValue = make_float2(tex1Dfetch<float4>(controlPointTexture, indexXY));
                 secondDerivative.xx = secondDerivative.xx + basis.xx[basInd] * controlPointValue;
                 secondDerivative.yy = secondDerivative.yy + basis.yy[basInd] * controlPointValue;
                 secondDerivative.xy = secondDerivative.xy + basis.xy[basInd] * controlPointValue;
@@ -243,17 +243,17 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
                     int indexXYZ = ((indexZ + b) * controlPointImageDim.x + x - 1) * 6;
                     for (int a = x - 1; a < x + 2; a++, basInd++) {
                         if (a < 0 || a >= controlPointImageDim.x) { indexXYZ += 6; continue; }
-                        const float3& secondDerivativeXX = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        const float3 secondDerivativeXX = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
                         gradientValue = gradientValue + secondDerivativeXX * basis.xx[basInd];
-                        const float3& secondDerivativeYY = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        const float3 secondDerivativeYY = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
                         gradientValue = gradientValue + secondDerivativeYY * basis.yy[basInd];
-                        const float3& secondDerivativeZZ = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        const float3 secondDerivativeZZ = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
                         gradientValue = gradientValue + secondDerivativeZZ * basis.zz[basInd];
-                        const float3& secondDerivativeXY = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        const float3 secondDerivativeXY = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
                         gradientValue = gradientValue + secondDerivativeXY * basis.xy[basInd];
-                        const float3& secondDerivativeYZ = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        const float3 secondDerivativeYZ = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
                         gradientValue = gradientValue + secondDerivativeYZ * basis.yz[basInd];
-                        const float3& secondDerivativeXZ = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
+                        const float3 secondDerivativeXZ = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
                         gradientValue = gradientValue + secondDerivativeXZ * basis.xz[basInd];
                     }
                 }
@@ -264,11 +264,11 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
                 int indexXY = (b * controlPointImageDim.x + x - 1) * 3;
                 for (int a = x - 1; a < x + 2; a++, basInd++) {
                     if (a < 0 || a >= controlPointImageDim.x) { indexXY += 3; continue; }
-                    const float2& secondDerivativeXX = tex1Dfetch<float2>(secondDerivativesTexture, indexXY++);
+                    const float2 secondDerivativeXX = tex1Dfetch<float2>(secondDerivativesTexture, indexXY++);
                     gradientValue = gradientValue + secondDerivativeXX * basis.xx[basInd];
-                    const float2& secondDerivativeYY = tex1Dfetch<float2>(secondDerivativesTexture, indexXY++);
+                    const float2 secondDerivativeYY = tex1Dfetch<float2>(secondDerivativesTexture, indexXY++);
                     gradientValue = gradientValue + secondDerivativeYY * basis.yy[basInd];
-                    const float2& secondDerivativeXY = tex1Dfetch<float2>(secondDerivativesTexture, indexXY++);
+                    const float2 secondDerivativeXY = tex1Dfetch<float2>(secondDerivativesTexture, indexXY++);
                     gradientValue = gradientValue + secondDerivativeXY * basis.xy[basInd];
                 }
             }

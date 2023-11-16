@@ -1152,8 +1152,8 @@ void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoi
             for (int b = -1; b < 2; b++) {
                 for (int a = -1; a < 2; a++) {
                     const int index = (y + b) * splineControlPoint->nx + x + a;
-                    const DataType& splineCoeffX = splinePtrX[index];
-                    const DataType& splineCoeffY = splinePtrY[index];
+                    const DataType splineCoeffX = splinePtrX[index];
+                    const DataType splineCoeffY = splinePtrY[index];
 
                     matrix.m[0][0] += static_cast<float>(basisX[i] * splineCoeffX);
                     matrix.m[1][0] += static_cast<float>(basisY[i] * splineCoeffX);
@@ -1221,9 +1221,9 @@ void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoi
                     for (int b = -1; b < 2; b++) {
                         for (int a = -1; a < 2; a++) {
                             const int index = ((z + c) * splineControlPoint->ny + y + b) * splineControlPoint->nx + x + a;
-                            const DataType& splineCoeffX = splinePtrX[index];
-                            const DataType& splineCoeffY = splinePtrY[index];
-                            const DataType& splineCoeffZ = splinePtrZ[index];
+                            const DataType splineCoeffX = splinePtrX[index];
+                            const DataType splineCoeffY = splinePtrY[index];
+                            const DataType splineCoeffZ = splinePtrZ[index];
 
                             matrix.m[0][0] += static_cast<float>(basisX[i] * splineCoeffX);
                             matrix.m[1][0] += static_cast<float>(basisY[i] * splineCoeffX);

@@ -20,7 +20,7 @@ constexpr PlatformType PlatformTypes[] = {
 
 class Platform {
 public:
-    Platform(const PlatformType& platformTypeIn);
+    Platform(const PlatformType platformTypeIn);
     ~Platform();
 
     std::string GetName() const;
@@ -29,7 +29,7 @@ public:
     void SetGpuIdx(unsigned gpuIdxIn);
 
     Compute* CreateCompute(Content& con) const;
-    ContentCreator* CreateContentCreator(const ContentType& conType = ContentType::Base) const;
+    ContentCreator* CreateContentCreator(const ContentType conType = ContentType::Base) const;
     Kernel* CreateKernel(const std::string& name, Content *con) const;
     Measure* CreateMeasure() const;
     template<typename Type>

@@ -2021,7 +2021,7 @@ public:
      * @param dimCount Number of dimensions to consider
      * @return The number of voxels in the image
      */
-    static size_t calcVoxelNumber(const nifti_image *image, const int& dimCount) {
+    static size_t calcVoxelNumber(const nifti_image *image, const int dimCount) {
         if (image == nullptr)
             return 0;
         size_t voxelNumber = 1;

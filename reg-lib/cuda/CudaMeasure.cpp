@@ -4,7 +4,7 @@
 #include "_reg_ssd_gpu.h"
 
 /* *************************************************************** */
-reg_measure* CudaMeasure::Create(const MeasureType& measureType) {
+reg_measure* CudaMeasure::Create(const MeasureType measureType) {
     switch (measureType) {
     case MeasureType::Nmi:
         return new reg_nmi_gpu();

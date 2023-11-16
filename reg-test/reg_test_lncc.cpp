@@ -237,7 +237,7 @@ protected:
                         for (int i = -kernel.radius[0]; i <= kernel.radius[0]; i++) {
                             int xx = x + i;
                             if (0 <= xx && xx < ref->nx) {
-                                const double& kernelValue = *kernelPtr;
+                                const double kernelValue = *kernelPtr;
                                 const int index = (zz * ref->ny + yy) * ref->nx + xx;
                                 meanRef += kernelValue * static_cast<double>(refPtr[index]);
                                 meanFlo += kernelValue * static_cast<double>(floPtr[index]);
@@ -257,7 +257,7 @@ protected:
         const float *kernelPtr = kernel.ptr.get();
         const auto refPtr = ref.data();
         const auto floPtr = flo.data();
-        const auto& [meanRef, meanFlo] = means;
+        const auto [meanRef, meanFlo] = means;
         double varRef = 0, varFlo = 0, wdiff = 0, kernelSum = 0;
         for (int k = -kernel.radius[2]; k <= kernel.radius[2]; k++) {
             int zz = z + k;

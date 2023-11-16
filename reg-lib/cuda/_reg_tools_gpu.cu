@@ -92,7 +92,7 @@ void reg_convertNmiGradientFromVoxelToRealSpace_gpu(const mat44 *sourceMatrixXYZ
 /* *************************************************************** */
 void reg_gaussianSmoothing_gpu(const nifti_image *image,
                                float4 *imageCuda,
-                               const float& sigma,
+                               const float sigma,
                                const bool smoothXYZ[8]) {
     auto blockSize = CudaContext::GetBlockSize();
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
@@ -254,7 +254,7 @@ void reg_smoothImageForCubicSpline_gpu(const nifti_image *image,
     }
 }
 /* *************************************************************** */
-void reg_multiplyValue_gpu(const size_t& count, float4 *arrayCuda, const float& value) {
+void reg_multiplyValue_gpu(const size_t count, float4 *arrayCuda, const float value) {
     const unsigned blocks = CudaContext::GetBlockSize()->Arithmetic;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
@@ -263,7 +263,7 @@ void reg_multiplyValue_gpu(const size_t& count, float4 *arrayCuda, const float& 
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
-void reg_addValue_gpu(const size_t& count, float4 *arrayCuda, const float& value) {
+void reg_addValue_gpu(const size_t count, float4 *arrayCuda, const float value) {
     const unsigned blocks = CudaContext::GetBlockSize()->Arithmetic;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
@@ -272,7 +272,7 @@ void reg_addValue_gpu(const size_t& count, float4 *arrayCuda, const float& value
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
-void reg_multiplyArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cuda) {
+void reg_multiplyArrays_gpu(const size_t count, float4 *array1Cuda, float4 *array2Cuda) {
     const unsigned blocks = CudaContext::GetBlockSize()->Arithmetic;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
@@ -281,7 +281,7 @@ void reg_multiplyArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *arr
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
-void reg_addArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cuda) {
+void reg_addArrays_gpu(const size_t count, float4 *array1Cuda, float4 *array2Cuda) {
     const unsigned blocks = CudaContext::GetBlockSize()->Arithmetic;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)count / (float)blocks));
     const dim3 gridDims = dim3(grids, grids, 1);
@@ -290,17 +290,17 @@ void reg_addArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cu
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
-float reg_sumReduction_gpu(float *arrayCuda, const size_t& size) {
+float reg_sumReduction_gpu(float *arrayCuda, const size_t size) {
     thrust::device_ptr<float> dptr(arrayCuda);
     return thrust::reduce(thrust::device, dptr, dptr + size, 0.f, thrust::plus<float>());
 }
 /* *************************************************************** */
-float reg_maxReduction_gpu(float *arrayCuda, const size_t& size) {
+float reg_maxReduction_gpu(float *arrayCuda, const size_t size) {
     thrust::device_ptr<float> dptr(arrayCuda);
     return thrust::reduce(thrust::device, dptr, dptr + size, 0.f, thrust::maximum<float>());
 }
 /* *************************************************************** */
-float reg_minReduction_gpu(float *arrayCuda, const size_t& size) {
+float reg_minReduction_gpu(float *arrayCuda, const size_t size) {
     thrust::device_ptr<float> dptr(arrayCuda);
     return thrust::reduce(thrust::device, dptr, dptr + size, 0.f, thrust::minimum<float>());
 }
@@ -328,7 +328,7 @@ void reg_divideImages_gpu(const nifti_image *img, float4 *img1Cuda, const float4
 }
 /* *************************************************************** */
 template<bool isMin>
-DEVICE static inline float MinMax(const float& lhs, const float& rhs) {
+DEVICE static inline float MinMax(const float lhs, const float rhs) {
     if constexpr (isMin) return lhs < rhs ? lhs : rhs;
     else return lhs > rhs ? lhs : rhs;
 }

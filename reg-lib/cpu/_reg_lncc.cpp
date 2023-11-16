@@ -441,10 +441,10 @@ void reg_getVoxelBasedLnccGradient(const nifti_image *referenceImage,
     for (voxel = 0; voxel < voxelNumber; ++voxel) {
         // Check if the current voxel belongs to the mask
         if (combinedMask[voxel] > -1) {
-            const double& refMeanValue = meanImgPtr[voxel];
-            const double& warMeanValue = warMeanPtr[voxel];
-            const double& refSdevValue = sdevImgPtr[voxel];
-            const double& warSdevValue = warSdevPtr[voxel];
+            const double refMeanValue = meanImgPtr[voxel];
+            const double warMeanValue = warMeanPtr[voxel];
+            const double refSdevValue = sdevImgPtr[voxel];
+            const double warSdevValue = warSdevPtr[voxel];
             const double correlaValue = correlationPtr[voxel] - (refMeanValue * warMeanValue);
             double temp1 = 1.0 / (refSdevValue * warSdevValue);
             double temp2 = correlaValue / (refSdevValue * warSdevValue * warSdevValue * warSdevValue);
@@ -511,7 +511,7 @@ void reg_getVoxelBasedLnccGradient(const nifti_image *referenceImage,
     shared(voxelNumber, measureGradPtrX)
 #endif
     for (voxel = 0; voxel < voxelNumber; ++voxel) {
-        const DataType& val = measureGradPtrX[voxel];
+        const DataType val = measureGradPtrX[voxel];
         if (val != val || isinf(val))
             measureGradPtrX[voxel] = 0;
     }

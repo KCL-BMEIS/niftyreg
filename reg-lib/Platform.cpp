@@ -17,7 +17,7 @@
 #endif
 
 /* *************************************************************** */
-Platform::Platform(const PlatformType& platformTypeIn) {
+Platform::Platform(const PlatformType platformTypeIn) {
     platformType = platformTypeIn;
     if (platformType == PlatformType::Cpu) {
         platformName = "CPU";
@@ -102,7 +102,7 @@ Compute* Platform::CreateCompute(Content& con) const {
     return computeFactory->Produce(con);
 }
 /* *************************************************************** */
-ContentCreator* Platform::CreateContentCreator(const ContentType& conType) const {
+ContentCreator* Platform::CreateContentCreator(const ContentType conType) const {
     return contentCreatorFactory->Produce(conType);
 }
 /* *************************************************************** */

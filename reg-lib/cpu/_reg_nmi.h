@@ -108,8 +108,8 @@ public:
     }
 
 private:
-    void operator=(const SafeArray &) {};
-    SafeArray(const SafeArray &) {};
+    void operator=(const SafeArray&) {};
+    SafeArray(const SafeArray&) {};
 
     DataTYPE *data;
 };
@@ -141,7 +141,7 @@ public:
     }
 
     /// Gets the index or iterator for the specified loop.
-    const T &operator [](int index) const {
+    const T& operator [](int index) const {
         return (current[index]);
     }
 

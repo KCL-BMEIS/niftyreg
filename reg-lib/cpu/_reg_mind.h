@@ -74,12 +74,12 @@ public:
 void GetMindImageDescriptor(const nifti_image *inputImage,
                             nifti_image *mindImage,
                             const int *mask,
-                            const int& descriptorOffset,
-                            const int& currentTimePoint);
+                            const int descriptorOffset,
+                            const int currentTimePoint);
 /* *************************************************************** */
 void GetMindSscImageDescriptor(const nifti_image *inputImage,
                                nifti_image *mindSscImage,
                                const int *mask,
-                               const int& descriptorOffset,
-                               const int& currentTimePoint);
+                               const int descriptorOffset,
+                               const int currentTimePoint);
 /* *************************************************************** */

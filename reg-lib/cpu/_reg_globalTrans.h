@@ -37,7 +37,7 @@ struct _reg_sorted_point3D
         warped[2] = r[2];
     }
 
-    bool operator <(const _reg_sorted_point3D &sp) const
+    bool operator <(const _reg_sorted_point3D& sp) const
     {
         return (sp.distance < distance);
     }
@@ -61,7 +61,7 @@ struct _reg_sorted_point2D
         warped[0] = r[0];
         warped[1] = r[1];
     }
-    bool operator <(const _reg_sorted_point2D &sp) const
+    bool operator <(const _reg_sorted_point2D& sp) const
     {
         return (sp.distance < distance);
     }

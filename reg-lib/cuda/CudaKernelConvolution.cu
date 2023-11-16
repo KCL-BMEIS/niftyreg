@@ -50,7 +50,7 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
         if (!activeTimePoints[t]) continue;
 
         thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxelNumber, [=]__device__(const size_t index) {
-            const float& intensityVal = tex1Dfetch<float>(imageTexture, index * 4 + t);
+            const float intensityVal = tex1Dfetch<float>(imageTexture, index * 4 + t);
             float& densityVal = densityCudaPtr[index];
             bool& nanImageVal = nanImageCudaPtr[index];
             densityVal = intensityVal == intensityVal ? 1.f : 0;
@@ -185,7 +185,7 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                         // Increment the current value by performing the weighted sum
                         double intensitySum = 0, densitySum = 0;
                         for (int k = shiftPre; k < shiftPst; k++, kernelIndex++) {
-                            const float& kernelValue = tex1Dfetch<float>(kernelTexture, kernelIndex);
+                            const float kernelValue = tex1Dfetch<float>(kernelTexture, kernelIndex);
                             intensitySum += kernelValue * bufferIntensityPtr[k];
                             densitySum += kernelValue * bufferDensityPtr[k];
                         }
@@ -228,12 +228,12 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
 
         // Normalise per time point
         thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxelNumber, [=]__device__(const size_t index) {
-            const bool& nanImageVal = tex1Dfetch<char>(nanImageTexture, index);
+            const bool nanImageVal = tex1Dfetch<char>(nanImageTexture, index);
             if (nanImageVal) {
                 reinterpret_cast<float*>(&imageCuda[index])[t] = std::numeric_limits<float>::quiet_NaN();
             } else {
-                const float& intensityVal = tex1Dfetch<float>(imageTexture, index * 4 + t);
-                const float& densityVal = tex1Dfetch<float>(densityTexture, index);
+                const float intensityVal = tex1Dfetch<float>(imageTexture, index * 4 + t);
+                const float densityVal = tex1Dfetch<float>(densityTexture, index);
                 reinterpret_cast<float*>(&imageCuda[index])[t] = intensityVal / densityVal;
             }
         });

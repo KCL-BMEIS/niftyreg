@@ -152,7 +152,7 @@ __device__ __inline__ int3 reg_indexToDims_cuda(const int index, const int3& dim
     else rem = index;
     const int z = quot;
     reg_div_cuda(rem, dims.x, quot, rem);
-    const int& y = quot, &x = rem;
+    const int y = quot, x = rem;
     return { x, y, z };
 }
 /* *************************************************************** */

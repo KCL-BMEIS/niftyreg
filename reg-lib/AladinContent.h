@@ -36,6 +36,6 @@ public:
 protected:
 #endif
     // Functions for testing
-    virtual void SetCaptureRange(const int& captureRangeIn) { blockMatchingParams->voxelCaptureRange = captureRangeIn; }
+    virtual void SetCaptureRange(const int captureRangeIn) { blockMatchingParams->voxelCaptureRange = captureRangeIn; }
     virtual void SetBlockMatchingParams(_reg_blockMatchingParam *bmp) { blockMatchingParams = bmp; }
 };

@@ -131,10 +131,10 @@ public:
     void UpdateControlPointPosition(NiftiImage& currentDof,
                                     const NiftiImage& bestDof,
                                     const NiftiImage& gradient,
-                                    const float& scale,
-                                    const bool& optimiseX,
-                                    const bool& optimiseY,
-                                    const bool& optimiseZ) {
+                                    const float scale,
+                                    const bool optimiseX,
+                                    const bool optimiseY,
+                                    const bool optimiseZ) {
         // Update the values for the x-axis displacement
         if (optimiseX) {
             auto currentDofPtr = currentDof.data(0);
@@ -161,7 +161,7 @@ public:
         }
     }
 
-    void UpdateGradientValues(NiftiImage& gradient, const bool& firstCall, const bool& isSymmetric, NiftiImage *gradientBw) {
+    void UpdateGradientValues(NiftiImage& gradient, const bool firstCall, const bool isSymmetric, NiftiImage *gradientBw) {
         // Create array1 and array2
         static NiftiImage array1, array1Bw;
         static NiftiImage array2, array2Bw;

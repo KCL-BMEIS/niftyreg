@@ -37,7 +37,7 @@ namespace NiftyReg::Cuda {
 /* *************************************************************** */
 namespace Internal {
 /* *************************************************************** */
-inline void SafeCall(const std::string& file, const int& line, const std::string& funcName) {
+inline void SafeCall(const std::string& file, const int line, const std::string& funcName) {
 #if CUDART_VERSION >= 3200
 	const cudaError_t err = cudaPeekAtLastError();
 #else
@@ -47,7 +47,7 @@ inline void SafeCall(const std::string& file, const int& line, const std::string
         NiftyReg::Internal::FatalError(file, line, funcName, "CUDA error: "s + cudaGetErrorString(err));
 }
 /* *************************************************************** */
-inline void CheckKernel(const std::string& file, const int& line, const std::string& funcName, const dim3& grid, const dim3& block) {
+inline void CheckKernel(const std::string& file, const int line, const std::string& funcName, const dim3& grid, const dim3& block) {
 #if CUDART_VERSION >= 3200
 	cudaDeviceSynchronize();
 	const cudaError_t err = cudaPeekAtLastError();

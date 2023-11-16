@@ -7,7 +7,7 @@
 #include "_reg_mind.h"
 
 /* *************************************************************** */
-reg_measure* Measure::Create(const MeasureType& measureType) {
+reg_measure* Measure::Create(const MeasureType measureType) {
     switch (measureType) {
     case MeasureType::Nmi:
         return new reg_nmi();

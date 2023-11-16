@@ -32,6 +32,7 @@
 *.app
 
 # IDE
+.devcontainer
 .idea
 .vscode
 .vs

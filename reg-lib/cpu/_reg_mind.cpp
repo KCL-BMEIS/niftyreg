@@ -17,9 +17,9 @@ template <class DataType>
 void ShiftImage(const nifti_image *inputImage,
                 nifti_image *shiftedImage,
                 const int *mask,
-                const int& tx,
-                const int& ty,
-                const int& tz) {
+                const int tx,
+                const int ty,
+                const int tz) {
     const DataType* inputData = static_cast<DataType*>(inputImage->data);
     DataType* shiftImageData = static_cast<DataType*>(shiftedImage->data);
 #ifdef _OPENMP
@@ -57,8 +57,8 @@ template <class DataType>
 void GetMindImageDescriptorCore(const nifti_image *inputImage,
                                 nifti_image *mindImage,
                                 const int *mask,
-                                const int& descriptorOffset,
-                                const int& currentTimePoint) {
+                                const int descriptorOffset,
+                                const int currentTimePoint) {
 #ifdef WIN32
     long voxelIndex;
     const long voxelNumber = (long)NiftiImage::calcVoxelNumber(inputImage, 3);
@@ -131,7 +131,7 @@ void GetMindImageDescriptorCore(const nifti_image *inputImage,
 
             mindIndex = voxelIndex;
             for (int t = 0; t < samplingNbr; t++) {
-                const DataType& descValue = mindImgDataPtr[mindIndex];
+                const DataType descValue = mindImgDataPtr[mindIndex];
                 mindImgDataPtr[mindIndex] = descValue / maxDesc;
                 mindIndex += voxelNumber;
             }
@@ -147,8 +147,8 @@ void GetMindImageDescriptorCore(const nifti_image *inputImage,
 void GetMindImageDescriptor(const nifti_image *inputImage,
                             nifti_image *mindImage,
                             const int *mask,
-                            const int& descriptorOffset,
-                            const int& currentTimePoint) {
+                            const int descriptorOffset,
+                            const int currentTimePoint) {
     if (inputImage->datatype != mindImage->datatype)
         NR_FATAL_ERROR("The input image and the MIND image must have the same datatype");
     std::visit([&](auto&& imgType) {
@@ -162,8 +162,8 @@ template <class DataType>
 void GetMindSscImageDescriptorCore(const nifti_image *inputImage,
                                    nifti_image *mindSscImage,
                                    const int *mask,
-                                   const int& descriptorOffset,
-                                   const int& currentTimePoint) {
+                                   const int descriptorOffset,
+                                   const int currentTimePoint) {
 #ifdef WIN32
     long voxelIndex;
     const long voxelNumber = (long)NiftiImage::calcVoxelNumber(inputImage, 3);
@@ -253,7 +253,7 @@ void GetMindSscImageDescriptorCore(const nifti_image *inputImage,
 
             mindIndex = voxelIndex;
             for (int t = 0; t < lengthDescriptor; t++) {
-                const DataType& descValue = mindSscImgDataPtr[mindIndex];
+                const DataType descValue = mindSscImgDataPtr[mindIndex];
                 mindSscImgDataPtr[mindIndex] = descValue / maxDesc;
                 mindIndex += voxelNumber;
             }
@@ -271,8 +271,8 @@ void GetMindSscImageDescriptorCore(const nifti_image *inputImage,
 void GetMindSscImageDescriptor(const nifti_image *inputImage,
                                nifti_image *mindSscImage,
                                const int *mask,
-                               const int& descriptorOffset,
-                               const int& currentTimePoint) {
+                               const int descriptorOffset,
+                               const int currentTimePoint) {
     if (inputImage->datatype != mindSscImage->datatype)
         NR_FATAL_ERROR("The input image and the MINDSSC image must have the same datatype!");
     std::visit([&](auto&& imgType) {

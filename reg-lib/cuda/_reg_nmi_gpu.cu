@@ -53,7 +53,7 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, cudaArray *refImgCuda,
         this->jointHistogramLogBwCudaVecs.resize(this->referenceTimePoints);
         this->jointHistogramProBwCudaVecs.resize(this->referenceTimePoints);
     }
-    for (int i = 0; i < this->referenceTimePoints; ++i) {
+    for (int i = 0; i < this->referenceTimePoints; i++) {
         if (this->timePointWeights[i] > 0) {
             this->jointHistogramLogCudaVecs[i].resize(this->totalBinNumber[i]);
             this->jointHistogramProCudaVecs[i].resize(this->totalBinNumber[i]);
@@ -92,9 +92,9 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
     for (int t = 0; t < referenceTimePoints; t++) {
         if (timePointWeights[t] <= 0) continue;
         NR_DEBUG("Computing NMI for time point " << t);
-        const auto& curTotalBinNumber = totalBinNumber[t];
-        const auto& curRefBinNumber = referenceBinNumber[t];
-        const auto& curFloBinNumber = floatingBinNumber[t];
+        const auto curTotalBinNumber = totalBinNumber[t];
+        const auto curRefBinNumber = referenceBinNumber[t];
+        const auto curFloBinNumber = floatingBinNumber[t];
         // Define the current histograms
         thrust::fill(thrust::device, jointHistogramLogCudaVecs[t].begin(), jointHistogramLogCudaVecs[t].end(), 0.0);
         thrust::fill(thrust::device, jointHistogramProCudaVecs[t].begin(), jointHistogramProCudaVecs[t].end(), 0.0);
@@ -116,10 +116,10 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
                 if (refValue != refValue) return;
                 for (int r = int(refValue - 1); r < int(refValue + 3); r++) {
                     if (0 <= r && r < curRefBinNumber) {
-                        const double& refBasis = GetBasisSplineValue<double>(refValue - r);
-                        for (int w = int(warValue - 1); w < int(warValue + 3); w++) {
+                        const double refBasis = GetBasisSplineValue<double>(refValue - r);
+                        for (int w = int(warValue) - 1; w < int(warValue) + 3; w++) {
                             if (0 <= w && w < curFloBinNumber) {
-                                const double& warBasis = GetBasisSplineValue<double>(warValue - w);
+                                const double warBasis = GetBasisSplineValue<double>(warValue - w);
                                 atomicAdd(&jointHistogramProCuda[r + w * curRefBinNumber], refBasis * warBasis);
                             }
                         }
@@ -170,7 +170,7 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
             });
         }
         // Normalise the histogram
-        const double& activeVoxel = thrust::reduce(thrust::device, jointHistogramProCudaVecs[t].begin(), jointHistogramProCudaVecs[t].end(), 0.0, thrust::plus<double>());
+        const double activeVoxel = thrust::reduce(thrust::device, jointHistogramProCudaVecs[t].begin(), jointHistogramProCudaVecs[t].end(), 0.0, thrust::plus<double>());
         entropyValues[t][3] = activeVoxel;
         thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), curTotalBinNumber, [=]__device__(const unsigned index) {
             jointHistogramProCuda[index] /= activeVoxel;
@@ -194,9 +194,9 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
         // Compute the entropy of the reference image
         thrust::counting_iterator<unsigned short> it(0);
         entropyValues[t][0] = thrust::transform_reduce(thrust::device, it, it + curRefBinNumber, [=]__device__(const unsigned short r) {
-            const double& valPro = jointHistogramProCuda[curRefBinNumber * curFloBinNumber + r];
+            const double valPro = jointHistogramProCuda[curRefBinNumber * curFloBinNumber + r];
             if (valPro > 0) {
-                const double& valLog = log(valPro);
+                const double valLog = log(valPro);
                 jointHistogramLogCuda[curRefBinNumber * curFloBinNumber + r] = valLog;
                 return -valPro * valLog;
             } else return 0.0;
@@ -204,9 +204,9 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
         // Compute the entropy of the warped floating image
         it = thrust::counting_iterator<unsigned short>(0);
         entropyValues[t][1] = thrust::transform_reduce(thrust::device, it, it + curFloBinNumber, [=]__device__(const unsigned short f) {
-            const double& valPro = jointHistogramProCuda[curRefBinNumber * curFloBinNumber + curRefBinNumber + f];
+            const double valPro = jointHistogramProCuda[curRefBinNumber * curFloBinNumber + curRefBinNumber + f];
             if (valPro > 0) {
-                const double& valLog = log(valPro);
+                const double valLog = log(valPro);
                 jointHistogramLogCuda[curRefBinNumber * curFloBinNumber + curRefBinNumber + f] = valLog;
                 return -valPro * valLog;
             } else return 0.0;
@@ -214,9 +214,9 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
         // Compute the joint entropy
         it = thrust::counting_iterator<unsigned short>(0);
         entropyValues[t][2] = thrust::transform_reduce(thrust::device, it, it + curRefBinNumber * curFloBinNumber, [=]__device__(const unsigned short index) {
-            const double& valPro = jointHistogramProCuda[index];
+            const double valPro = jointHistogramProCuda[index];
             if (valPro > 0) {
-                const double& valLog = log(valPro);
+                const double valLog = log(valPro);
                 jointHistogramLogCuda[index] = valLog;
                 return -valPro * valLog;
             } else return 0.0;

@@ -10,7 +10,7 @@ enum class ContentType { Base, Aladin, Def, F3d, F3d2 };
 
 class ContentCreatorFactory {
 public:
-    virtual ContentCreator* Produce(const ContentType& conType) {
+    virtual ContentCreator* Produce(const ContentType conType) {
         switch (conType) {
         case ContentType::Base:
             return new ContentCreator();

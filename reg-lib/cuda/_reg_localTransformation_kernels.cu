@@ -128,9 +128,9 @@ __device__ float4 GetSlidedValues(int x, int y,
 
     x -= newX;
     y -= newY;
-    const float4& slidedValues = make_float4(x * affineMatrix.m[0][0] + y * affineMatrix.m[0][1],
-                                             x * affineMatrix.m[1][0] + y * affineMatrix.m[1][1],
-                                             0.f, 0.f);
+    const float4 slidedValues = make_float4(x * affineMatrix.m[0][0] + y * affineMatrix.m[0][1],
+                                            x * affineMatrix.m[1][0] + y * affineMatrix.m[1][1],
+                                            0.f, 0.f);
     return slidedValues + tex1Dfetch<float4>(deformationFieldTexture, newY * referenceImageDim.x + newX);
 }
 /* *************************************************************** */
@@ -159,10 +159,10 @@ __device__ float4 GetSlidedValues(int x, int y, int z,
     x -= newX;
     y -= newY;
     z -= newZ;
-    const float4& slidedValues = make_float4(x * affineMatrix.m[0][0] + y * affineMatrix.m[0][1] + z * affineMatrix.m[0][2],
-                                             x * affineMatrix.m[1][0] + y * affineMatrix.m[1][1] + z * affineMatrix.m[1][2],
-                                             x * affineMatrix.m[2][0] + y * affineMatrix.m[2][1] + z * affineMatrix.m[2][2],
-                                             0.f);
+    const float4 slidedValues = make_float4(x * affineMatrix.m[0][0] + y * affineMatrix.m[0][1] + z * affineMatrix.m[0][2],
+                                            x * affineMatrix.m[1][0] + y * affineMatrix.m[1][1] + z * affineMatrix.m[1][2],
+                                            x * affineMatrix.m[2][0] + y * affineMatrix.m[2][1] + z * affineMatrix.m[2][2],
+                                            0.f);
     return slidedValues + tex1Dfetch<float4>(deformationFieldTexture, (newZ * referenceImageDim.y + newY) * referenceImageDim.x + newX);
 }
 /* *************************************************************** */
@@ -207,7 +207,7 @@ __global__ void reg_spline_getDeformationField3D(float4 *deformationField,
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--), zVoxel - float(nodePre.z--) };
     } else { // starting deformation field is blank - !composition
         const int tid2 = tex1Dfetch<int>(maskTexture, tid);
-        const auto&& [x, y, z] = reg_indexToDims_cuda<true>(tid2, referenceImageDim);
+        const auto [x, y, z] = reg_indexToDims_cuda<true>(tid2, referenceImageDim);
         // The "nearest previous" node is determined [0,0,0]
         const float xVoxel = float(x) / controlPointVoxelSpacing.x;
         const float yVoxel = float(y) / controlPointVoxelSpacing.y;
@@ -243,7 +243,7 @@ __global__ void reg_spline_getDeformationField3D(float4 *deformationField,
             int indexXYZ = indexYZ + nodePre.x;
             const float basisY = yBasis[sharedMemIndex + b];
             for (char a = 0; a < 4; a++, indexXYZ++) {
-                const float4& nodeCoeff = tex1Dfetch<float4>(controlPointTexture, indexXYZ);
+                const float4 nodeCoeff = tex1Dfetch<float4>(controlPointTexture, indexXYZ);
                 const float xyzBasis = xBasis[a] * basisY * basisZ;
                 displacement.x += xyzBasis * nodeCoeff.x;
                 displacement.y += xyzBasis * nodeCoeff.y;
@@ -288,7 +288,7 @@ __global__ void reg_spline_getDeformationField2D(float4 *deformationField,
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--) };
     } else { // starting deformation field is blank - !composition
         const int tid2 = tex1Dfetch<int>(maskTexture, tid);
-        const auto&& [x, y, z] = reg_indexToDims_cuda<false>(tid2, referenceImageDim);
+        const auto [x, y, z] = reg_indexToDims_cuda<false>(tid2, referenceImageDim);
         // The "nearest previous" node is determined [0,0,0]
         const float xVoxel = float(x) / controlPointVoxelSpacing.x;
         const float yVoxel = float(y) / controlPointVoxelSpacing.y;
@@ -313,7 +313,7 @@ __global__ void reg_spline_getDeformationField2D(float4 *deformationField,
         int index = (nodePre.y + b) * controlPointImageDim.x + nodePre.x;
         const float basis = yBasis[sharedMemIndex + b];
         for (char a = 0; a < 4; a++, index++) {
-            const float4& nodeCoeff = tex1Dfetch<float4>(controlPointTexture, index);
+            const float4 nodeCoeff = tex1Dfetch<float4>(controlPointTexture, index);
             const float xyBasis = xBasis[a] * basis;
             displacement.x += xyBasis * nodeCoeff.x;
             displacement.y += xyBasis * nodeCoeff.y;
@@ -1248,7 +1248,7 @@ __device__ static mat33 CreateDisplacementMatrix(const unsigned index,
                                                  const int3& cppDims,
                                                  const Basis1st<is3d>& basis,
                                                  const mat33& reorientation) {
-    const auto&& [x, y, z] = reg_indexToDims_cuda<is3d>((int)index, cppDims);
+    const auto [x, y, z] = reg_indexToDims_cuda<is3d>((int)index, cppDims);
     if (x < 1 || x >= cppDims.x - 1 || y < 1 || y >= cppDims.y - 1 ||
         (is3d && (z < 1 || z >= cppDims.z - 1))) return {};
 
@@ -1260,7 +1260,7 @@ __device__ static mat33 CreateDisplacementMatrix(const unsigned index,
                 const int yInd = (zInd + y + b) * cppDims.x;
                 for (int a = -1; a < 2; a++, basInd++) {
                     const int index = yInd + x + a;
-                    const float4& splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, index);
+                    const float4 splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, index);
 
                     matrix.m[0][0] += basis.x[basInd] * splineCoeff.x;
                     matrix.m[1][0] += basis.y[basInd] * splineCoeff.x;
@@ -1282,7 +1282,7 @@ __device__ static mat33 CreateDisplacementMatrix(const unsigned index,
             const int yInd = (y + b) * cppDims.x;
             for (int a = -1; a < 2; a++, basInd++) {
                 const int index = yInd + x + a;
-                const float4& splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, index);
+                const float4 splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, index);
 
                 matrix.m[0][0] += basis.x[basInd] * splineCoeff.x;
                 matrix.m[1][0] += basis.y[basInd] * splineCoeff.x;
@@ -1325,7 +1325,7 @@ __global__ void reg_spline_approxLinearEnergyGradient_kernel(float4 *transGradie
                                                              const unsigned voxelNumber) {
     const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (index >= voxelNumber) return;
-    const auto&& [x, y, z] = reg_indexToDims_cuda<is3d>((int)index, cppDims);
+    const auto [x, y, z] = reg_indexToDims_cuda<is3d>((int)index, cppDims);
     auto gradVal = transGradient[index];
 
     if constexpr (is3d) {

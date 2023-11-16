@@ -139,7 +139,7 @@ double reg_getSsdValue(const nifti_image *referenceImage,
                         const double diff = std::pow(refValue - warValue, 2.0);
 #endif
                         // Jacobian determinant modulation of the ssd if required
-                        const DataType& val = jacDetPtr ? jacDetPtr[voxel] : (localWeightPtr ? localWeightPtr[voxel] : 1);
+                        const DataType val = jacDetPtr ? jacDetPtr[voxel] : (localWeightPtr ? localWeightPtr[voxel] : 1);
                         ssdLocal += diff * val;
                         n += val;
                     }

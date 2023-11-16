@@ -9,7 +9,7 @@ float GetMaximalLength(const float4 *imageCuda, const size_t nVoxels) {
     auto imageTexture = *imageTexturePtr;
     thrust::counting_iterator<unsigned> index(0);
     return thrust::transform_reduce(thrust::device, index, index + nVoxels, [=]__device__(const unsigned index) {
-        const float4& val = tex1Dfetch<float4>(imageTexture, index);
+        const float4 val = tex1Dfetch<float4>(imageTexture, index);
         return sqrtf((optimiseX ? Square(val.x) : 0) +
                      (optimiseY ? Square(val.y) : 0) +
                      (optimiseZ ? Square(val.z) : 0));
@@ -51,7 +51,7 @@ void NormaliseGradient(float4 *imageCuda, const size_t nVoxels, const double max
                                                      nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
     auto imageTexture = *imageTexturePtr;
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), nVoxels, [=]__device__(const unsigned index) {
-        const float4& val = tex1Dfetch<float4>(imageTexture, index);
+        const float4 val = tex1Dfetch<float4>(imageTexture, index);
         imageCuda[index] = make_float4(optimiseX ? val.x * maxGradLengthInv : 0,
                                        optimiseY ? val.y * maxGradLengthInv : 0,
                                        optimiseZ ? val.z * maxGradLengthInv : 0,

@@ -29,26 +29,26 @@ void reg_convertNmiGradientFromVoxelToRealSpace_gpu(const mat44 *sourceMatrixXYZ
 /* *************************************************************** */
 void reg_gaussianSmoothing_gpu(const nifti_image *image,
                                float4 *imageCuda,
-                               const float& sigma,
+                               const float sigma,
                                const bool axisToSmooth[8]);
 /* *************************************************************** */
 void reg_smoothImageForCubicSpline_gpu(const nifti_image *image,
                                        float4 *imageCuda,
                                        const float *smoothingRadius);
 /* *************************************************************** */
-void reg_multiplyValue_gpu(const size_t& count, float4 *arrayCuda, const float& value);
+void reg_multiplyValue_gpu(const size_t count, float4 *arrayCuda, const float value);
 /* *************************************************************** */
-void reg_addValue_gpu(const size_t& count, float4 *arrayCuda, const float& value);
+void reg_addValue_gpu(const size_t count, float4 *arrayCuda, const float value);
 /* *************************************************************** */
-void reg_multiplyArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cuda);
+void reg_multiplyArrays_gpu(const size_t count, float4 *array1Cuda, float4 *array2Cuda);
 /* *************************************************************** */
-void reg_addArrays_gpu(const size_t& count, float4 *array1Cuda, float4 *array2Cuda);
+void reg_addArrays_gpu(const size_t count, float4 *array1Cuda, float4 *array2Cuda);
 /* *************************************************************** */
-float reg_sumReduction_gpu(float *arrayCuda, const size_t& size);
+float reg_sumReduction_gpu(float *arrayCuda, const size_t size);
 /* *************************************************************** */
-float reg_maxReduction_gpu(float *arrayCuda, const size_t& size);
+float reg_maxReduction_gpu(float *arrayCuda, const size_t size);
 /* *************************************************************** */
-float reg_minReduction_gpu(float *arrayCuda, const size_t& size);
+float reg_minReduction_gpu(float *arrayCuda, const size_t size);
 /* *************************************************************** */
 void reg_addImages_gpu(const nifti_image *img, float4 *img1Cuda, const float4 *img2Cuda);
 /* *************************************************************** */

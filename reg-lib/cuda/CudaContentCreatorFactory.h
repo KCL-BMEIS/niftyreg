@@ -9,7 +9,7 @@
 
 class CudaContentCreatorFactory: public ContentCreatorFactory {
 public:
-    virtual ContentCreator* Produce(const ContentType& conType) override {
+    virtual ContentCreator* Produce(const ContentType conType) override {
         switch (conType) {
         case ContentType::Base:
             return new CudaContentCreator();

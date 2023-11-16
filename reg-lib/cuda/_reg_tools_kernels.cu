@@ -51,7 +51,7 @@ __global__ void reg_voxelCentricToNodeCentric_kernel(float4 *nodeImageCuda,
                             const int index = (indexZ * voxelImageDims.y + indexY) * voxelImageDims.x + indexX;
                             float linearWeight = basisX[a] * basisY[b];
                             if constexpr (is3d) linearWeight *= basisZ[c];
-                            const float4& voxelValue = tex1Dfetch<float4>(voxelImageTexture, index);
+                            const float4 voxelValue = tex1Dfetch<float4>(voxelImageTexture, index);
                             interpolatedValue[0] += linearWeight * voxelValue.x;
                             interpolatedValue[1] += linearWeight * voxelValue.y;
                             if constexpr (is3d)

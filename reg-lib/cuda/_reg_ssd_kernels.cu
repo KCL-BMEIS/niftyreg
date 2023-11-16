@@ -73,7 +73,12 @@ __global__ void GetSsdGradientKernel(float4 *ssdGradient,
 
         const float val = localWeightSimTexture ? tex1Dfetch<float>(localWeightSimTexture, index) : 1.f;
         const float common = -2.f * (refValue - warValue) * adjustedWeight * val;
-        ssdGradient[index] = ssdGradient[index] + make_float4(common * spaGradientValue.x, common * spaGradientValue.y, common * spaGradientValue.z, 0.f);
+
+        float4 ssdGradientValue = ssdGradient[index];
+        ssdGradientValue.x += common * spaGradientValue.x;
+        ssdGradientValue.y += common * spaGradientValue.y;
+        ssdGradientValue.z += common * spaGradientValue.z;
+        ssdGradient[index] = ssdGradientValue;
     }
 }
 /* *************************************************************** */

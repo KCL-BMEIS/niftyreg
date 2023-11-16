@@ -232,13 +232,13 @@ void reg_getKLDivergenceVoxelBasedGradient(const nifti_image *referenceImage,
                     tempValue *= jacPtr[voxel];
 
                 // Ensure that gradient of the warpedImage image along x-axis is not NaN
-                const double& tempGradX = currentGradPtrX[voxel];
+                const double tempGradX = currentGradPtrX[voxel];
                 if (tempGradX == tempGradX)
                     // Update the gradient along the x-axis
                     measureGradPtrX[voxel] -= static_cast<DataType>(tempValue * tempGradX);
 
                 // Ensure that gradient of the warpedImage image along y-axis is not NaN
-                const double& tempGradY = currentGradPtrY[voxel];
+                const double tempGradY = currentGradPtrY[voxel];
                 if (tempGradY == tempGradY)
                     // Update the gradient along the y-axis
                     measureGradPtrY[voxel] -= static_cast<DataType>(tempValue * tempGradY);
@@ -246,7 +246,7 @@ void reg_getKLDivergenceVoxelBasedGradient(const nifti_image *referenceImage,
                 // Check if the current images are 3D
                 if (referenceImage->nz > 1) {
                     // Ensure that gradient of the warpedImage image along z-axis is not NaN
-                    const double& tempGradZ = currentGradPtrZ[voxel];
+                    const double tempGradZ = currentGradPtrZ[voxel];
                     if (tempGradZ == tempGradZ)
                         // Update the gradient along the z-axis
                         measureGradPtrZ[voxel] -= static_cast<DataType>(tempValue * tempGradZ);

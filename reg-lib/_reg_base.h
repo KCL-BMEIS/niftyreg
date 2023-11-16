@@ -141,11 +141,11 @@ public:
     virtual bool GetSymmetricStatus() { return false; }
 
     // Platform
-    virtual void SetPlatformType(const PlatformType& platformType) {
+    virtual void SetPlatformType(const PlatformType platformType) {
         platform.reset(new Platform(platformType));
         measure.reset(platform->CreateMeasure());
     }
-    virtual void SetGpuIdx(const unsigned& gpuIdx) { platform->SetGpuIdx(gpuIdx); }
+    virtual void SetGpuIdx(const unsigned gpuIdx) { platform->SetGpuIdx(gpuIdx); }
 
     // Optimisation-related functions
     virtual void SetMaximalIterationNumber(unsigned);

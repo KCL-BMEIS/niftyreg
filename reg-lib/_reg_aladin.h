@@ -169,7 +169,7 @@ public:
     }
     NiftiImage GetFinalWarpedImage();
 
-    void SetPlatformType(const PlatformType& platformTypeIn) {
+    void SetPlatformType(const PlatformType platformTypeIn) {
         this->platformType = platformTypeIn;
     }
     void SetGpuIdx(unsigned gpuIdxIn) {
