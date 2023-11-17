@@ -31,10 +31,8 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
                                                         controlPointImage->dy / referenceImage->dy,
                                                         controlPointImage->dz / referenceImage->dz);
 
-    auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, cudaResourceTypeLinear,
-                                                         controlPointNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
-    auto maskTexture = Cuda::CreateTextureObject(maskCuda, cudaResourceTypeLinear,
-                                                 activeVoxelNumber * sizeof(int), cudaChannelFormatKindSigned, 1);
+    auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
+    auto maskTexture = Cuda::CreateTextureObject(maskCuda, activeVoxelNumber, cudaChannelFormatKindSigned, 1);
 
     // Get the reference matrix if composition is required
     thrust::device_vector<mat44> realToVoxel;
@@ -151,8 +149,7 @@ template<bool is3d>
 double reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage, const float4 *controlPointImageCuda) {
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
-    auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, cudaResourceTypeLinear,
-                                                            controlPointNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
     auto controlPointTexture = *controlPointTexturePtr;
 
     // Get the constant basis values
@@ -188,8 +185,7 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
     auto blockSize = CudaContext::GetBlockSize();
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
-    auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, cudaResourceTypeLinear,
-                                                            controlPointNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
     auto controlPointTexture = *controlPointTexturePtr;
 
     // Get the constant basis values
@@ -223,9 +219,8 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
         }
     });
 
-    auto secondDerivativesTexturePtr = Cuda::CreateTextureObject(secondDerivativesCuda, cudaResourceTypeLinear,
-                                                                 secondDerivativesCudaVec.size() * sizeof(typename SecondDerivative<is3d>::TextureType),
-                                                                 cudaChannelFormatKindFloat, sizeof(typename SecondDerivative<is3d>::TextureType) / sizeof(float));
+    auto secondDerivativesTexturePtr = Cuda::CreateTextureObject(secondDerivativesCuda, secondDerivativesCudaVec.size(), cudaChannelFormatKindFloat,
+                                                                 sizeof(typename SecondDerivative<is3d>::TextureType) / sizeof(float));
     auto secondDerivativesTexture = *secondDerivativesTexturePtr;
 
     // Compute the gradient
@@ -293,8 +288,7 @@ void reg_spline_ComputeApproxJacobianValues(const nifti_image *controlPointImage
     auto blockSize = CudaContext::GetBlockSize();
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
-    auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, cudaResourceTypeLinear,
-                                                         controlPointNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
 
     // Need to reorient the Jacobian matrix using the header information - real to voxel conversion
     const mat33 reorientation = reg_mat44_to_mat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_xyz : &controlPointImage->qto_xyz);
@@ -330,8 +324,7 @@ void reg_spline_ComputeJacobianValues(const nifti_image *controlPointImage,
     const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
     const float3 controlPointSpacing = make_float3(controlPointImage->dx, controlPointImage->dy, controlPointImage->dz);
-    auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, cudaResourceTypeLinear,
-                                                         controlPointNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
 
     // Need to reorient the Jacobian matrix using the header information - real to voxel conversion
     const mat33 reorientation = reg_mat44_to_mat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_xyz : &controlPointImage->qto_xyz);
@@ -434,10 +427,8 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceI
     const float3 weight = make_float3(referenceImage->dx * jacobianWeight / ((float)jacNumber * controlPointImage->dx),
                                       referenceImage->dy * jacobianWeight / ((float)jacNumber * controlPointImage->dy),
                                       referenceImage->dz * jacobianWeight / ((float)jacNumber * controlPointImage->dz));
-    auto jacobianDeterminantTexture = Cuda::CreateTextureObject(jacobianDetCuda, cudaResourceTypeLinear, jacNumber * sizeof(float),
-                                                                cudaChannelFormatKindFloat, 1);
-    auto jacobianMatricesTexture = Cuda::CreateTextureObject(jacobianMatricesCuda, cudaResourceTypeLinear,
-                                                             (controlPointImage->nz > 1 ? 9 : 4) * jacNumber * sizeof(float),
+    auto jacobianDeterminantTexture = Cuda::CreateTextureObject(jacobianDetCuda, jacNumber, cudaChannelFormatKindFloat, 1);
+    auto jacobianMatricesTexture = Cuda::CreateTextureObject(jacobianMatricesCuda, (controlPointImage->nz > 1 ? 9 : 4) * jacNumber,
                                                              cudaChannelFormatKindFloat, 1);
     if (approx) {
         if (controlPointImage->nz > 1) {
@@ -498,22 +489,20 @@ double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
 
     // The Jacobian matrices and determinants are computed
     float *jacobianMatricesCuda, *jacobianDetCuda;
-    size_t jacobianDetSize, jacobianMatricesSize;
-    size_t jacNumber; double jacSum;
+    size_t jacobianDetSize, jacNumber;
+    double jacSum;
     if (approx) {
         jacNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
         jacSum = (controlPointImage->nx - 2) * (controlPointImage->ny - 2) * (controlPointImage->nz - 2);
         jacobianDetSize = jacNumber * sizeof(float);
-        jacobianMatricesSize = 9 * jacobianDetSize;
-        NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatricesCuda, jacobianMatricesSize));
+        NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatricesCuda, 9 * jacobianDetSize));
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDetCuda, jacobianDetSize));
         reg_spline_ComputeApproxJacobianValues(controlPointImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
     } else {
         jacNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
         jacSum = static_cast<double>(jacNumber);
         jacobianDetSize = jacNumber * sizeof(float);
-        jacobianMatricesSize = 9 * jacobianDetSize;
-        NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatricesCuda, jacobianMatricesSize));
+        NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatricesCuda, 9 * jacobianDetSize));
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDetCuda, jacobianDetSize));
         reg_spline_ComputeJacobianValues(controlPointImage, referenceImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
     }
@@ -548,10 +537,8 @@ double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
     const float3 controlPointSpacing = make_float3(controlPointImage->dx, controlPointImage->dy, controlPointImage->dz);
-    auto jacobianDeterminantTexture = Cuda::CreateTextureObject(jacobianDetCuda, cudaResourceTypeLinear, jacobianDetSize,
-                                                                cudaChannelFormatKindFloat, 1);
-    auto jacobianMatricesTexture = Cuda::CreateTextureObject(jacobianMatricesCuda, cudaResourceTypeLinear, jacobianMatricesSize,
-                                                             cudaChannelFormatKindFloat, 1);
+    auto jacobianDeterminantTexture = Cuda::CreateTextureObject(jacobianDetCuda, jacNumber, cudaChannelFormatKindFloat, 1);
+    auto jacobianMatricesTexture = Cuda::CreateTextureObject(jacobianMatricesCuda, 9 * jacNumber, cudaChannelFormatKindFloat, 1);
     if (approx) {
         const unsigned blocks = blockSize->reg_spline_approxCorrectFolding3D;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
@@ -676,8 +663,7 @@ void reg_defField_compose_gpu(const nifti_image *deformationField,
     const int3 referenceImageDim{ deformationField->nx, deformationField->ny, deformationField->nz };
     const mat44& affineMatrixB = deformationField->sform_code > 0 ? deformationField->sto_ijk : deformationField->qto_ijk;
     const mat44& affineMatrixC = deformationField->sform_code > 0 ? deformationField->sto_xyz : deformationField->qto_xyz;
-    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, cudaResourceTypeLinear,
-                                                             voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
 
     if (deformationField->nz > 1) {
         const unsigned blocks = blockSize->reg_defField_compose3D;
@@ -835,8 +821,7 @@ void reg_defField_getJacobianMatrix_gpu(const nifti_image *deformationField,
     const int3 referenceImageDim = make_int3(deformationField->nx, deformationField->ny, deformationField->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
     const mat33 reorientation = reg_mat44_to_mat33(deformationField->sform_code > 0 ? &deformationField->sto_xyz : &deformationField->qto_xyz);
-    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, cudaResourceTypeLinear,
-                                                             voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
 
     const unsigned blocks = CudaContext::GetBlockSize()->reg_defField_getJacobianMatrix;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
@@ -864,8 +849,7 @@ double reg_spline_approxLinearEnergy_gpu(const nifti_image *controlPointGrid,
         set_first_order_basis_values(basis.x, basis.y);
 
     // Create the control point texture
-    auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointGridCuda, cudaResourceTypeLinear,
-                                                            voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointGridCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
     auto controlPointTexture = *controlPointTexturePtr;
 
     constexpr int matSize = is3d ? 3 : 2;
@@ -912,10 +896,8 @@ void reg_spline_approxLinearEnergyGradient_gpu(const nifti_image *controlPointGr
     thrust::device_vector<mat33> dispMatricesCuda(voxelNumber);
 
     // Create the textures
-    auto controlPointTexture = Cuda::CreateTextureObject(controlPointGridCuda, cudaResourceTypeLinear,
-                                                         voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
-    auto dispMatricesTexture = Cuda::CreateTextureObject(dispMatricesCuda.data().get(), cudaResourceTypeLinear,
-                                                         voxelNumber * sizeof(mat33), cudaChannelFormatKindFloat, 1);
+    auto controlPointTexture = Cuda::CreateTextureObject(controlPointGridCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+    auto dispMatricesTexture = Cuda::CreateTextureObject(dispMatricesCuda.data().get(), voxelNumber, cudaChannelFormatKindFloat, 1);
 
     // Create the displacement matrices
     reg_spline_createDisplacementMatrices_kernel<is3d><<<gridDims, blockDims>>>(dispMatricesCuda.data().get(), *controlPointTexture,

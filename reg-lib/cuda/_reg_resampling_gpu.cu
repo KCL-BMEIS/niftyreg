@@ -16,7 +16,7 @@
 /* *************************************************************** */
 void reg_resampleImage_gpu(const nifti_image *floatingImage,
                            float *warpedImageCuda,
-                           const cudaArray *floatingImageCuda,
+                           const float *floatingImageCuda,
                            const float4 *deformationFieldCuda,
                            const int *maskCuda,
                            const size_t activeVoxelNumber,
@@ -26,16 +26,15 @@ void reg_resampleImage_gpu(const nifti_image *floatingImage,
         NR_FATAL_ERROR("Only linear interpolation is supported on the GPU");
 
     auto blockSize = CudaContext::GetBlockSize();
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
     const int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 
     // Create the texture object for the floating image
-    auto floatingTexture = Cuda::CreateTextureObject(floatingImageCuda, cudaResourceTypeArray);
+    auto floatingTexture = Cuda::CreateTextureObject(floatingImageCuda, voxelNumber, cudaChannelFormatKindFloat, 1);
     // Create the texture object for the deformation field
-    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, cudaResourceTypeLinear,
-                                                             activeVoxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, activeVoxelNumber, cudaChannelFormatKindFloat, 4);
     // Create the texture object for the mask
-    auto maskTexture = Cuda::CreateTextureObject(maskCuda, cudaResourceTypeLinear, activeVoxelNumber * sizeof(int),
-                                                 cudaChannelFormatKindSigned, 1);
+    auto maskTexture = Cuda::CreateTextureObject(maskCuda, activeVoxelNumber, cudaChannelFormatKindSigned, 1);
 
     // Bind the real to voxel matrix to the texture
     const mat44 floatingMatrix = floatingImage->sform_code > 0 ? floatingImage->sto_ijk : floatingImage->qto_ijk;
@@ -60,7 +59,7 @@ void reg_resampleImage_gpu(const nifti_image *floatingImage,
 }
 /* *************************************************************** */
 void reg_getImageGradient_gpu(const nifti_image *floatingImage,
-                              const cudaArray *floatingImageCuda,
+                              const float *floatingImageCuda,
                               const float4 *deformationFieldCuda,
                               float4 *warpedGradientCuda,
                               const size_t activeVoxelNumber,
@@ -70,14 +69,14 @@ void reg_getImageGradient_gpu(const nifti_image *floatingImage,
         NR_FATAL_ERROR("Only linear interpolation is supported on the GPU");
 
     auto blockSize = CudaContext::GetBlockSize();
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
     const int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
     if (paddingValue != paddingValue) paddingValue = 0;
 
     // Create the texture object for the floating image
-    auto floatingTexture = Cuda::CreateTextureObject(floatingImageCuda, cudaResourceTypeArray);
+    auto floatingTexture = Cuda::CreateTextureObject(floatingImageCuda, voxelNumber, cudaChannelFormatKindFloat, 1);
     // Create the texture object for the deformation field
-    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, cudaResourceTypeLinear,
-                                                             activeVoxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, activeVoxelNumber, cudaChannelFormatKindFloat, 4);
 
     // Bind the real to voxel matrix to the texture
     const mat44 floatingMatrix = floatingImage->sform_code > 0 ? floatingImage->sto_ijk : floatingImage->qto_ijk;

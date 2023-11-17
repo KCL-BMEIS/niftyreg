@@ -18,8 +18,8 @@ public:
     // Getters
     virtual nifti_image* GetDeformationField() override;
     virtual nifti_image* GetWarped() override;
-    virtual cudaArray* GetReferenceCuda() { return referenceCuda; }
-    virtual cudaArray* GetFloatingCuda() { return floatingCuda; }
+    virtual float* GetReferenceCuda() { return referenceCuda; }
+    virtual float* GetFloatingCuda() { return floatingCuda; }
     virtual float4* GetDeformationFieldCuda() { return deformationFieldCuda; }
     virtual int* GetReferenceMaskCuda() { return referenceMaskCuda; }
     virtual float* GetTransformationMatrixCuda() { return transformationMatrixCuda; }
@@ -30,10 +30,10 @@ public:
     virtual void UpdateWarped() override;
 
 protected:
-    cudaArray *referenceCuda = nullptr;
-    Cuda::UniquePtr<cudaArray> referenceCudaManaged;
-    cudaArray *floatingCuda = nullptr;
-    Cuda::UniquePtr<cudaArray> floatingCudaManaged;
+    float *referenceCuda = nullptr;
+    Cuda::UniquePtr<float> referenceCudaManaged;
+    float *floatingCuda = nullptr;
+    Cuda::UniquePtr<float> floatingCudaManaged;
     float4 *deformationFieldCuda = nullptr;
     int *referenceMaskCuda = nullptr;
     float *transformationMatrixCuda = nullptr;
@@ -49,8 +49,8 @@ private:
     template<class DataType> DataType CastImageData(float intensity, int datatype);
     template<class DataType> void FillImageData(nifti_image *image, float *memoryObject, int datatype);
     void DownloadImage(nifti_image *image, float *memoryObject, int datatype);
-    void SetReferenceCuda(cudaArray *referenceCudaIn) { referenceCudaManaged = nullptr; referenceCuda = referenceCudaIn; }
-    void SetFloatingCuda(cudaArray *floatingCudaIn) { floatingCudaManaged = nullptr; floatingCuda = floatingCudaIn; }
+    void SetReferenceCuda(float *referenceCudaIn) { referenceCudaManaged = nullptr; referenceCuda = referenceCudaIn; }
+    void SetFloatingCuda(float *floatingCudaIn) { floatingCudaManaged = nullptr; floatingCuda = floatingCudaIn; }
 
     // Friend classes
     friend class CudaF3d2ContentCreator;

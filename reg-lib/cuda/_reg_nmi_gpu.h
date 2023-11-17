@@ -26,9 +26,9 @@ public:
 
     /// @brief Initialise the reg_nmi_gpu object
     virtual void InitialiseMeasure(nifti_image *refImg,
-                                   cudaArray *refImgCuda,
+                                   float *refImgCuda,
                                    nifti_image *floImg,
-                                   cudaArray *floImgCuda,
+                                   float *floImgCuda,
                                    int *refMask,
                                    int *refMaskCuda,
                                    size_t activeVoxNum,
@@ -68,9 +68,9 @@ protected:
 class reg_multichannel_nmi_gpu: public reg_multichannel_nmi, public reg_measure_gpu {
 public:
     void InitialiseMeasure(nifti_image *refImg,
-                           cudaArray *refImgCuda,
+                           float *refImgCuda,
                            nifti_image *floImg,
-                           cudaArray *floImgCuda,
+                           float *floImgCuda,
                            int *refMask,
                            int *refMaskCuda,
                            size_t activeVoxNum,

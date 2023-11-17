@@ -17,7 +17,7 @@
 /* *************************************************************** */
 void reg_resampleImage_gpu(const nifti_image *floatingImage,
                            float *warpedImageCuda,
-                           const cudaArray *floatingImageCuda,
+                           const float *floatingImageCuda,
                            const float4 *deformationFieldCuda,
                            const int *maskCuda,
                            const size_t activeVoxelNumber,
@@ -25,7 +25,7 @@ void reg_resampleImage_gpu(const nifti_image *floatingImage,
                            const float paddingValue);
 /* *************************************************************** */
 void reg_getImageGradient_gpu(const nifti_image *floatingImage,
-                              const cudaArray *floatingImageCuda,
+                              const float *floatingImageCuda,
                               const float4 *deformationFieldCuda,
                               float4 *warpedGradientCuda,
                               const size_t activeVoxelNumber,

@@ -345,12 +345,9 @@ void block_matching_method_gpu(const nifti_image *referenceImage,
     const uint3 blockSize = make_uint3(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
     const unsigned numBlocks = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
 
-    auto referenceTexture = Cuda::CreateTextureObject(referenceImageCuda, cudaResourceTypeLinear, referenceImage->nvox * sizeof(float),
-                                                      cudaChannelFormatKindFloat, 1);
-    auto warpedTexture = Cuda::CreateTextureObject(warpedImageCuda, cudaResourceTypeLinear, referenceImage->nvox * sizeof(float),
-                                                   cudaChannelFormatKindFloat, 1);
-    auto totalBlockTexture = Cuda::CreateTextureObject(totalBlockCuda, cudaResourceTypeLinear, numBlocks * sizeof(int),
-                                                       cudaChannelFormatKindSigned, 1);
+    auto referenceTexture = Cuda::CreateTextureObject(referenceImageCuda, referenceImage->nvox, cudaChannelFormatKindFloat, 1);
+    auto warpedTexture = Cuda::CreateTextureObject(warpedImageCuda, referenceImage->nvox, cudaChannelFormatKindFloat, 1);
+    auto totalBlockTexture = Cuda::CreateTextureObject(totalBlockCuda, numBlocks, cudaChannelFormatKindSigned, 1);
 
     unsigned definedBlock = 0, *definedBlockCuda;
     NR_CUDA_SAFE_CALL(cudaMalloc(&definedBlockCuda, sizeof(unsigned)));

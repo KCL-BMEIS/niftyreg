@@ -26,8 +26,7 @@ void reg_voxelCentricToNodeCentric_gpu(const nifti_image *nodeImage,
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(voxelImage, 3);
     const int3 nodeImageDims = make_int3(nodeImage->nx, nodeImage->ny, nodeImage->nz);
     const int3 voxelImageDims = make_int3(voxelImage->nx, voxelImage->ny, voxelImage->nz);
-    auto voxelImageTexture = Cuda::CreateTextureObject(voxelImageCuda, cudaResourceTypeLinear,
-                                                       voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto voxelImageTexture = Cuda::CreateTextureObject(voxelImageCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
 
     // The transformation between the image and the grid
     mat44 transformation;
@@ -133,10 +132,8 @@ void reg_gaussianSmoothing_gpu(const nifti_image *image,
                 float4 *smoothedImage;
                 NR_CUDA_SAFE_CALL(cudaMalloc(&smoothedImage, voxelNumber * sizeof(float4)));
 
-                auto imageTexture = Cuda::CreateTextureObject(imageCuda, cudaResourceTypeLinear,
-                                                              voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
-                auto kernelTexture = Cuda::CreateTextureObject(kernelCuda, cudaResourceTypeLinear,
-                                                               kernelSize * sizeof(float), cudaChannelFormatKindFloat, 1);
+                auto imageTexture = Cuda::CreateTextureObject(imageCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+                auto kernelTexture = Cuda::CreateTextureObject(kernelCuda, kernelSize, cudaChannelFormatKindFloat, 1);
 
                 unsigned blocks, grids;
                 dim3 blockDims, gridDims;
@@ -208,10 +205,8 @@ void reg_smoothImageForCubicSpline_gpu(const nifti_image *image,
             NR_CUDA_SAFE_CALL(cudaMemcpy(kernelCuda, kernel, kernelSize * sizeof(float), cudaMemcpyHostToDevice));
             NR_CUDA_SAFE_CALL(cudaFreeHost(kernel));
 
-            auto imageTexture = Cuda::CreateTextureObject(imageCuda, cudaResourceTypeLinear,
-                                                          voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 4);
-            auto kernelTexture = Cuda::CreateTextureObject(kernelCuda, cudaResourceTypeLinear,
-                                                           kernelSize * sizeof(float), cudaChannelFormatKindFloat, 1);
+            auto imageTexture = Cuda::CreateTextureObject(imageCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+            auto kernelTexture = Cuda::CreateTextureObject(kernelCuda, kernelSize, cudaChannelFormatKindFloat, 1);
 
             float4 *smoothedImage;
             NR_CUDA_SAFE_CALL(cudaMalloc(&smoothedImage, voxelNumber * sizeof(float4)));

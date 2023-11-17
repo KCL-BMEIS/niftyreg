@@ -4,8 +4,7 @@
 /* *************************************************************** */
 template<bool optimiseX, bool optimiseY, bool optimiseZ>
 float GetMaximalLength(const float4 *imageCuda, const size_t nVoxels) {
-    auto imageTexturePtr = Cuda::CreateTextureObject(imageCuda, cudaResourceTypeLinear,
-                                                     nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto imageTexturePtr = Cuda::CreateTextureObject(imageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
     auto imageTexture = *imageTexturePtr;
     thrust::counting_iterator<unsigned> index(0);
     return thrust::transform_reduce(thrust::device, index, index + nVoxels, [=]__device__(const unsigned index) {
@@ -47,8 +46,7 @@ float NiftyReg::Cuda::GetMaximalLength(const float4 *imageCuda,
 /* *************************************************************** */
 template<bool optimiseX, bool optimiseY, bool optimiseZ>
 void NormaliseGradient(float4 *imageCuda, const size_t nVoxels, const double maxGradLengthInv) {
-    auto imageTexturePtr = Cuda::CreateTextureObject(imageCuda, cudaResourceTypeLinear,
-                                                     nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto imageTexturePtr = Cuda::CreateTextureObject(imageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
     auto imageTexture = *imageTexturePtr;
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), nVoxels, [=]__device__(const unsigned index) {
         const float4 val = tex1Dfetch<float4>(imageTexture, index);

@@ -181,18 +181,18 @@ int main(int argc, char **argv)
 
 #ifdef USE_CUDA
    float *targetImageArray_d;
-   cudaArray *sourceImageArray_d;
+   float *sourceImageArray_d;
    int *targetMask_d;
    float4 *deformationFieldImageArray_d;
    if(runGPU)
    {
-      Cuda::Allocate<float>(&targetImageArray_d, targetImage->nvox);
-      Cuda::TransferNiftiToDevice<float>(targetImageArray_d, targetImage);
+      Cuda::Allocate(&targetImageArray_d, targetImage->nvox);
+      Cuda::TransferNiftiToDevice(targetImageArray_d, targetImage);
       Cuda::Allocate<float>(&sourceImageArray_d, sourceImage->nvox);
-      Cuda::TransferNiftiToDevice<float>(sourceImageArray_d,sourceImage);
-      CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, targetImage->nvox*sizeof(int)));
+      Cuda::TransferNiftiToDevice(sourceImageArray_d,sourceImage);
+      CUDA_SAFE_CALL(cudaMalloc((void**)&targetMask_d, targetImage->nvox*sizeof(int)));
       CUDA_SAFE_CALL(cudaMemcpy(targetMask_d, maskImage, targetImage->nvox*sizeof(int), cudaMemcpyHostToDevice));
-      CUDA_SAFE_CALL(cudaMalloc((void **)&deformationFieldImageArray_d, targetImage->nvox*sizeof(float4)));
+      CUDA_SAFE_CALL(cudaMalloc((void**)&deformationFieldImageArray_d, targetImage->nvox*sizeof(float4)));
    }
 #endif
 
@@ -277,8 +277,8 @@ int main(int argc, char **argv)
    float4 *controlPointImageArray_d;
    if(runGPU)
    {
-      Cuda::Allocate<float4>(&controlPointImageArray_d, controlPointImage->dim);
-      Cuda::TransferNiftiToDevice<float4>(controlPointImageArray_d,controlPointImage);
+      Cuda::Allocate(&controlPointImageArray_d, controlPointImage->dim);
+      Cuda::TransferNiftiToDevice(controlPointImageArray_d, controlPointImage);
    }
 #endif
    {
@@ -330,8 +330,8 @@ int main(int argc, char **argv)
    float4 *velocityFieldImageArray_d;
    if(runGPU)
    {
-      Cuda::Allocate<float4>(&velocityFieldImageArray_d, velocityFieldImage->dim);
-      Cuda::TransferNiftiToDevice<float4>(velocityFieldImageArray_d,velocityFieldImage);
+      Cuda::Allocate(&velocityFieldImageArray_d, velocityFieldImage->dim);
+      Cuda::TransferNiftiToDevice(velocityFieldImageArray_d, velocityFieldImage);
    }
 #endif
    {

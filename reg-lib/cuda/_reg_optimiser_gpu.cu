@@ -172,8 +172,7 @@ void reg_initialiseConjugateGradient_gpu(float4 *gradientImageCuda,
                                          float4 *conjugateGCuda,
                                          float4 *conjugateHCuda,
                                          const size_t nVoxels) {
-    auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, cudaResourceTypeLinear,
-                                                          nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
 
     const unsigned blocks = CudaContext::GetBlockSize()->reg_initialiseConjugateGradient;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
@@ -200,20 +199,14 @@ void reg_getConjugateGradient_gpu(float4 *gradientImageCuda,
                                   float4 *conjugateGBwCuda,
                                   float4 *conjugateHBwCuda,
                                   const size_t nVoxelsBw) {
-    auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, cudaResourceTypeLinear,
-                                                          nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
-    auto conjugateGTexture = Cuda::CreateTextureObject(conjugateGCuda, cudaResourceTypeLinear,
-                                                       nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
-    auto conjugateHTexture = Cuda::CreateTextureObject(conjugateHCuda, cudaResourceTypeLinear,
-                                                       nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
-    Cuda::UniqueTextureObjectPtr gradientImageBwTexture(nullptr, nullptr), conjugateGBwTexture(nullptr, nullptr), conjugateHBwTexture(nullptr, nullptr);
+    auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
+    auto conjugateGTexture = Cuda::CreateTextureObject(conjugateGCuda, nVoxels, cudaChannelFormatKindFloat, 4);
+    auto conjugateHTexture = Cuda::CreateTextureObject(conjugateHCuda, nVoxels, cudaChannelFormatKindFloat, 4);
+    Cuda::UniqueTextureObjectPtr gradientImageBwTexture, conjugateGBwTexture, conjugateHBwTexture;
     if (isSymmetric) {
-        gradientImageBwTexture = std::move(Cuda::CreateTextureObject(gradientImageBwCuda, cudaResourceTypeLinear,
-                                                                     nVoxelsBw * sizeof(float4), cudaChannelFormatKindFloat, 4));
-        conjugateGBwTexture = std::move(Cuda::CreateTextureObject(conjugateGBwCuda, cudaResourceTypeLinear,
-                                                                  nVoxelsBw * sizeof(float4), cudaChannelFormatKindFloat, 4));
-        conjugateHBwTexture = std::move(Cuda::CreateTextureObject(conjugateHBwCuda, cudaResourceTypeLinear,
-                                                                  nVoxelsBw * sizeof(float4), cudaChannelFormatKindFloat, 4));
+        gradientImageBwTexture = Cuda::CreateTextureObject(gradientImageBwCuda, nVoxelsBw, cudaChannelFormatKindFloat, 4);
+        conjugateGBwTexture = Cuda::CreateTextureObject(conjugateGBwCuda, nVoxelsBw, cudaChannelFormatKindFloat, 4);
+        conjugateHBwTexture = Cuda::CreateTextureObject(conjugateHBwCuda, nVoxelsBw, cudaChannelFormatKindFloat, 4);
     }
 
     // gam = sum((grad+g)*grad)/sum(HxG);
@@ -267,10 +260,8 @@ void reg_updateControlPointPosition_gpu(const size_t nVoxels,
                                         const bool optimiseX,
                                         const bool optimiseY,
                                         const bool optimiseZ) {
-    auto bestControlPointTexture = Cuda::CreateTextureObject(bestControlPointCuda, cudaResourceTypeLinear,
-                                                             nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
-    auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, cudaResourceTypeLinear,
-                                                          nVoxels * sizeof(float4), cudaChannelFormatKindFloat, 4);
+    auto bestControlPointTexture = Cuda::CreateTextureObject(bestControlPointCuda, nVoxels, cudaChannelFormatKindFloat, 4);
+    auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
 
     const unsigned blocks = (unsigned)CudaContext::GetBlockSize()->reg_updateControlPointPosition;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));

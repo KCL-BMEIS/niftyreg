@@ -36,12 +36,9 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
     float *bufferDensityCudaPtr = bufferDensityCuda.data().get();
 
     // Create texture objects
-    auto imageTexturePtr = Cuda::CreateTextureObject(imageCuda, cudaResourceTypeLinear,
-                                                     voxelNumber * sizeof(float4), cudaChannelFormatKindFloat, 1);
-    auto densityTexturePtr = Cuda::CreateTextureObject(densityCudaPtr, cudaResourceTypeLinear,
-                                                       voxelNumber * sizeof(float), cudaChannelFormatKindFloat, 1);
-    auto nanImageTexturePtr = Cuda::CreateTextureObject(nanImageCudaPtr, cudaResourceTypeLinear,
-                                                        voxelNumber * sizeof(bool), cudaChannelFormatKindUnsigned, 1);
+    auto imageTexturePtr = Cuda::CreateTextureObject(imageCuda, voxelNumber, cudaChannelFormatKindFloat, 1);
+    auto densityTexturePtr = Cuda::CreateTextureObject(densityCudaPtr, voxelNumber, cudaChannelFormatKindFloat, 1);
+    auto nanImageTexturePtr = Cuda::CreateTextureObject(nanImageCudaPtr, voxelNumber, cudaChannelFormatKindUnsigned, 1);
     auto imageTexture = *imageTexturePtr;
     auto densityTexture = *densityTexturePtr;
     auto nanImageTexture = *nanImageTexturePtr;
@@ -138,12 +135,11 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
             const int imageDim = reinterpret_cast<const int*>(&imageDims)[n];
             // Create the kernel texture
             thrust::device_vector<float> kernelCuda;
-            Cuda::UniqueTextureObjectPtr kernelTexturePtr(nullptr, nullptr);
+            Cuda::UniqueTextureObjectPtr kernelTexturePtr;
             cudaTextureObject_t kernelTexture = 0;
             if (kernelSum > 0) {
                 kernelCuda = kernel;
-                kernelTexturePtr = std::move(Cuda::CreateTextureObject(kernelCuda.data().get(), cudaResourceTypeLinear,
-                                                                       kernel.size() * sizeof(float), cudaChannelFormatKindFloat, 1));
+                kernelTexturePtr = Cuda::CreateTextureObject(kernelCuda.data().get(), kernel.size(), cudaChannelFormatKindFloat, 1);
                 kernelTexture = *kernelTexturePtr;
             }
 

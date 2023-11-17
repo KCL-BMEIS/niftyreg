@@ -69,53 +69,37 @@ inline void CheckKernel(const std::string& file, const int line, const std::stri
 #define NR_CUDA_SAFE_CALL(call)             { call; NiftyReg::Cuda::Internal::SafeCall(__FILE__, __LINE__, NR_FUNCTION); }
 #define NR_CUDA_CHECK_KERNEL(grid, block)   NiftyReg::Cuda::Internal::CheckKernel(__FILE__, __LINE__, NR_FUNCTION, grid, block)
 /* *************************************************************** */
-template <class DataType>
-void Allocate(cudaArray**, const int*);
+template<class DataType>
+void Allocate(DataType**, const size_t);
 /* *************************************************************** */
-template <class DataType>
-void Allocate(cudaArray**, cudaArray**, const int*);
-/* *************************************************************** */
-template <class DataType>
-void Allocate(DataType**, const size_t&);
-/* *************************************************************** */
-template <class DataType>
+template<class DataType>
 void Allocate(DataType**, const int*);
 /* *************************************************************** */
-template <class DataType>
+template<class DataType>
 void Allocate(DataType**, DataType**, const int*);
 /* *************************************************************** */
-template <class DataType>
-void TransferNiftiToDevice(cudaArray*, const nifti_image*);
-/* *************************************************************** */
-template <class DataType>
-void TransferNiftiToDevice(cudaArray*, cudaArray*, const nifti_image*);
-/* *************************************************************** */
-template <class DataType>
+template<class DataType>
 void TransferNiftiToDevice(DataType*, const nifti_image*);
 /* *************************************************************** */
-template <class DataType>
+template<class DataType>
 void TransferNiftiToDevice(DataType*, DataType*, const nifti_image*);
 /* *************************************************************** */
-template <class DataType>
-void TransferNiftiToDevice(DataType*, const DataType*, const size_t&);
+template<class DataType>
+void TransferNiftiToDevice(DataType*, const DataType*, const size_t);
 /* *************************************************************** */
-void TransferFromDeviceToNifti(nifti_image*, const cudaArray*);
-/* *************************************************************** */
-template <class DataType>
+template<class DataType>
 void TransferFromDeviceToNifti(nifti_image*, const DataType*);
 /* *************************************************************** */
-template <class DataType>
+template<class DataType>
 void TransferFromDeviceToNifti(nifti_image*, const DataType*, const DataType*);
 /* *************************************************************** */
-template <class DataType>
-void TransferFromDeviceToHost(DataType*, const DataType*, const size_t&);
+template<class DataType>
+void TransferFromDeviceToHost(DataType*, const DataType*, const size_t);
 /* *************************************************************** */
-template <class DataType>
-void TransferFromHostToDevice(DataType*, const DataType*, const size_t&);
+template<class DataType>
+void TransferFromHostToDevice(DataType*, const DataType*, const size_t);
 /* *************************************************************** */
-void Free(cudaArray*);
-/* *************************************************************** */
-template <class DataType>
+template<class DataType>
 void Free(DataType*);
 /* *************************************************************** */
 namespace Internal {
@@ -123,18 +107,16 @@ template <class T>
 struct UniquePtrDeleter { void operator()(T *ptr) const { Free(ptr); } };
 }
 /* *************************************************************** */
-template <class T>
+template<class T>
 using UniquePtr = unique_ptr<T, Internal::UniquePtrDeleter<T>>;
 /* *************************************************************** */
-using UniqueTextureObjectPtr = unique_ptr<cudaTextureObject_t, void(*)(cudaTextureObject_t*)>;
+using UniqueTextureObjectPtr = UniquePtr<cudaTextureObject_t>;
 /* *************************************************************** */
-UniqueTextureObjectPtr CreateTextureObject(const void *devPtr,
-                                           const cudaResourceType& resType,
-                                           const size_t& size = 0,
-                                           const cudaChannelFormatKind& channelFormat = cudaChannelFormatKindNone,
-                                           const unsigned& channelCount = 1,
-                                           const cudaTextureFilterMode& filterMode = cudaFilterModePoint,
-                                           const bool& normalizedCoordinates = false);
+template<class DataType>
+UniqueTextureObjectPtr CreateTextureObject(const DataType *devPtr,
+                                           const size_t count,
+                                           const cudaChannelFormatKind channelFormat,
+                                           const unsigned channelCount);
 /* *************************************************************** */
 } // namespace NiftyReg::Cuda
 /* *************************************************************** */

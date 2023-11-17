@@ -27,9 +27,9 @@ public:
 
     /// @brief Initialise the reg_ssd object
     virtual void InitialiseMeasure(nifti_image *refImg,
-                                   cudaArray *refImgCuda,
+                                   float *refImgCuda,
                                    nifti_image *floImg,
-                                   cudaArray *floImgCuda,
+                                   float *floImgCuda,
                                    int *refMask,
                                    int *refMaskCuda,
                                    size_t activeVoxNum,

@@ -31,12 +31,11 @@ __global__ void GetSsdValueKernel(float *ssdSum,
     if (tid < activeVoxelNumber) {
         const int index = tex1Dfetch<int>(maskTexture, tid);
 
+        const float refValue = tex1Dfetch<float>(referenceTexture, index);
+        if (refValue != refValue) return;
+
         const float warValue = tex1Dfetch<float>(warpedTexture, index);
         if (warValue != warValue) return;
-
-        const auto&& [x, y, z] = reg_indexToDims_cuda(index, referenceImageDim);
-        const float refValue = tex3D<float>(referenceTexture, x, y, z);
-        if (refValue != refValue) return;
 
         const float val = localWeightSimTexture ? tex1Dfetch<float>(localWeightSimTexture, index) : 1.f;
         const float diff = refValue - warValue;
@@ -58,6 +57,9 @@ __global__ void GetSsdGradientKernel(float4 *ssdGradient,
     if (tid < activeVoxelNumber) {
         const int index = tex1Dfetch<int>(maskTexture, tid);
 
+        const float refValue = tex1Dfetch<float>(referenceTexture, index);
+        if (refValue != refValue) return;
+
         const float warValue = tex1Dfetch<float>(warpedTexture, index);
         if (warValue != warValue) return;
 
@@ -66,10 +68,6 @@ __global__ void GetSsdGradientKernel(float4 *ssdGradient,
             spaGradientValue.y != spaGradientValue.y ||
             spaGradientValue.z != spaGradientValue.z)
             return;
-
-        const auto&& [x, y, z] = reg_indexToDims_cuda(index, referenceImageDim);
-        const float refValue = tex3D<float>(referenceTexture, x, y, z);
-        if (refValue != refValue) return;
 
         const float val = localWeightSimTexture ? tex1Dfetch<float>(localWeightSimTexture, index) : 1.f;
         const float common = -2.f * (refValue - warValue) * adjustedWeight * val;

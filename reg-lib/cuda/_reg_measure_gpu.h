@@ -22,9 +22,9 @@ public:
     virtual ~reg_measure_gpu() {}
 
     virtual void InitialiseMeasure(nifti_image *refImg,
-                                   cudaArray *refImgCuda,
+                                   float *refImgCuda,
                                    nifti_image *floImg,
-                                   cudaArray *floImgCuda,
+                                   float *floImgCuda,
                                    int *refMask,
                                    int *refMaskCuda,
                                    size_t activeVoxNum,
@@ -75,8 +75,8 @@ public:
     }
 
 protected:
-    cudaArray *referenceImageCuda;
-    cudaArray *floatingImageCuda;
+    float *referenceImageCuda;
+    float *floatingImageCuda;
     int *referenceMaskCuda;
     size_t activeVoxelNumber;
     float *warpedImageCuda;
@@ -100,9 +100,9 @@ public:
     virtual ~reg_lncc_gpu() {}
 
     virtual void InitialiseMeasure(nifti_image *refImg,
-                                   cudaArray *refImgCuda,
+                                   float *refImgCuda,
                                    nifti_image *floImg,
-                                   cudaArray *floImgCuda,
+                                   float *floImgCuda,
                                    int *refMask,
                                    int *refMaskCuda,
                                    size_t activeVoxNum,
@@ -142,9 +142,9 @@ public:
     virtual ~reg_kld_gpu() {}
 
     virtual void InitialiseMeasure(nifti_image *refImg,
-                                   cudaArray *refImgCuda,
+                                   float *refImgCuda,
                                    nifti_image *floImg,
-                                   cudaArray *floImgCuda,
+                                   float *floImgCuda,
                                    int *refMask,
                                    int *refMaskCuda,
                                    size_t activeVoxNum,
@@ -184,9 +184,9 @@ public:
     virtual ~reg_dti_gpu() {}
 
     virtual void InitialiseMeasure(nifti_image *refImg,
-                                   cudaArray *refImgCuda,
+                                   float *refImgCuda,
                                    nifti_image *floImg,
-                                   cudaArray *floImgCuda,
+                                   float *floImgCuda,
                                    int *refMask,
                                    int *refMaskCuda,
                                    size_t activeVoxNum,

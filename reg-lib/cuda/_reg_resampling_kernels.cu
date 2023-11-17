@@ -50,13 +50,15 @@ __global__ void reg_resampleImage2D_kernel(float *resultArray,
     InterpLinearKernel(relative.y, yBasis);
 
     double intensity = 0;
-    for (char b = 0; b < 2; b++) {
+    int indexY = previous.y * floatingDim.x + previous.x;
+    for (char b = 0; b < 2; b++, indexY += floatingDim.x) {
         const int y = previous.y + b;
+        int index = indexY;
         double xTempNewValue = 0;
-        for (char a = 0; a < 2; a++) {
+        for (char a = 0; a < 2; a++, index++) {
             const int x = previous.x + a;
             if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y) {
-                xTempNewValue += tex3D<float>(floatingTexture, x, y, 0) * xBasis[a];
+                xTempNewValue += tex1Dfetch<float>(floatingTexture, index) * xBasis[a];
             } else {
                 // Padding value
                 xTempNewValue += paddingValue * xBasis[a];
@@ -78,13 +80,12 @@ __global__ void reg_resampleImage3D_kernel(float *resultArray,
                                            const float paddingValue) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid >= activeVoxelNumber) return;
-    const int tid2 = tex1Dfetch<int>(maskTexture, tid);
-
     // Get the real world deformation in the floating space
-    float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, tid);
+    const int tid2 = tex1Dfetch<int>(maskTexture, tid);
+    const float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, tid);
 
     // Get the voxel-based deformation in the floating space
-    float3 voxelDeformation;
+    double3 voxelDeformation;
     voxelDeformation.x = (double(floatingMatrix.m[0][0]) * double(realDeformation.x) +
                           double(floatingMatrix.m[0][1]) * double(realDeformation.y) +
                           double(floatingMatrix.m[0][2]) * double(realDeformation.z) +
@@ -109,14 +110,16 @@ __global__ void reg_resampleImage3D_kernel(float *resultArray,
     double intensity = 0;
     for (char c = 0; c < 2; c++) {
         const int z = previous.z + c;
+        int indexYZ = (z * floatingDim.y + previous.y) * floatingDim.x;
         double yTempNewValue = 0;
-        for (char b = 0; b < 2; b++) {
+        for (char b = 0; b < 2; b++, indexYZ += floatingDim.x) {
             const int y = previous.y + b;
+            int index = indexYZ + previous.x;
             double xTempNewValue = 0;
-            for (char a = 0; a < 2; a++) {
+            for (char a = 0; a < 2; a++, index++) {
                 const int x = previous.x + a;
                 if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y && -1 < z && z < floatingDim.z) {
-                    xTempNewValue += tex3D<float>(floatingTexture, x, y, z) * xBasis[a];
+                    xTempNewValue += tex1Dfetch<float>(floatingTexture, index) * xBasis[a];
                 } else {
                     // Padding value
                     xTempNewValue += paddingValue * xBasis[a];
@@ -160,15 +163,17 @@ __global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
     constexpr float deriv[] = { -1.0f, 1.0f };
 
     float4 gradientValue{};
-    for (char b = 0; b < 2; b++) {
-        float2 tempValueX{};
+    int indexY = previous.y * floatingDim.x + previous.x;
+    for (char b = 0; b < 2; b++, indexY += floatingDim.x) {
         const int y = previous.y + b;
-        for (char a = 0; a < 2; a++) {
+        int index = indexY;
+        float2 tempValueX{};
+        for (char a = 0; a < 2; a++, index++) {
             const int x = previous.x + a;
             float intensity = paddingValue;
 
             if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y)
-                intensity = tex3D<float>(floatingTexture, x, y, 0);
+                intensity = tex1Dfetch<float>(floatingTexture, index);
 
             tempValueX.x += intensity * deriv[a];
             tempValueX.y += intensity * xBasis[a];
@@ -219,16 +224,18 @@ __global__ void reg_getImageGradient3D_kernel(float4 *gradientArray,
     float4 gradientValue{};
     for (char c = 0; c < 2; c++) {
         const int z = previous.z + c;
+        int indexYZ = (z * floatingDim.y + previous.y) * floatingDim.x;
         float3 tempValueY{};
-        for (char b = 0; b < 2; b++) {
-            float2 tempValueX{};
+        for (char b = 0; b < 2; b++, indexYZ += floatingDim.x) {
             const int y = previous.y + b;
-            for (char a = 0; a < 2; a++) {
+            int index = indexYZ + previous.x;
+            float2 tempValueX{};
+            for (char a = 0; a < 2; a++, index++) {
                 const int x = previous.x + a;
                 float intensity = paddingValue;
 
                 if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y && -1 < z && z < floatingDim.z)
-                    intensity = tex3D<float>(floatingTexture, x, y, z);
+                    intensity = tex1Dfetch<float>(floatingTexture, index);
 
                 tempValueX.x += intensity * deriv[a];
                 tempValueX.y += intensity * xBasis[a];

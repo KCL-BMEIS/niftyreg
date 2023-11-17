@@ -25,17 +25,17 @@ CudaContent::~CudaContent() {
 void CudaContent::AllocateReference() {
     if (reference->nbyper != NIFTI_TYPE_FLOAT32)
         reg_tools_changeDatatype<float>(reference);
-    Cuda::Allocate<float>(&referenceCuda, reference->dim);
+    Cuda::Allocate(&referenceCuda, reference->nvox);
     referenceCudaManaged.reset(referenceCuda);
-    Cuda::TransferNiftiToDevice<float>(referenceCuda, reference);
+    Cuda::TransferNiftiToDevice(referenceCuda, reference);
 }
 /* *************************************************************** */
 void CudaContent::AllocateFloating() {
     if (floating->nbyper != NIFTI_TYPE_FLOAT32)
         reg_tools_changeDatatype<float>(floating);
-    Cuda::Allocate<float>(&floatingCuda, floating->dim);
+    Cuda::Allocate(&floatingCuda, floating->nvox);
     floatingCudaManaged.reset(floatingCuda);
-    Cuda::TransferNiftiToDevice<float>(floatingCuda, floating);
+    Cuda::TransferNiftiToDevice(floatingCuda, floating);
 }
 /* *************************************************************** */
 void CudaContent::AllocateDeformationField() {
