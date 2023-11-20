@@ -28,7 +28,7 @@ public:
 
         // Create 2D reference, floating, control point grid and local weight similarity images
         constexpr NiftiImage::dim_t size = 16;
-        constexpr NiftiImage::dim_t timePoints = 1;
+        constexpr NiftiImage::dim_t timePoints = 2;
         vector<NiftiImage::dim_t> dim{ size, size, 1, timePoints };
         NiftiImage reference2d(dim, NIFTI_TYPE_FLOAT32);
         NiftiImage floating2d(dim, NIFTI_TYPE_FLOAT32);
@@ -139,8 +139,8 @@ public:
 
             // Initialise the measures
             for (int t = 0; t < referenceCpu->nt; t++) {
-                measureCpu->SetTimePointWeight(t, 1.0);
-                measureCuda->SetTimePointWeight(t, 1.0);
+                measureCpu->SetTimePointWeight(t, 1.5);
+                measureCuda->SetTimePointWeight(t, 1.5);
             }
             measureCreatorCpu->Initialise(*measureCpu, *contentCpu, contentCpuBw.get());
             measureCreatorCuda->Initialise(*measureCuda, *contentCuda, contentCudaBw.get());

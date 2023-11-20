@@ -91,22 +91,21 @@ void CudaContent::SetReferenceMask(int *referenceMaskIn) {
         referenceMaskCuda = nullptr;
     }
 
+    activeVoxelNumber = 0;
     if (!referenceMask) return;
 
-    decltype(referenceMask) targetMask;
-    NR_CUDA_SAFE_CALL(cudaMallocHost(&targetMask, reference->nvox * sizeof(*targetMask)));
-    int *targetMaskPtr = targetMask;
-    activeVoxelNumber = 0;
-    for (size_t i = 0; i < reference->nvox; i++) {
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(reference, 3);
+    thrust::host_vector<int> mask(voxelNumber);
+    int *maskPtr = mask.data();
+    for (size_t i = 0; i < voxelNumber; i++) {
         if (referenceMask[i] != -1) {
-            *targetMaskPtr++ = i;
+            *maskPtr++ = static_cast<int>(i);
             activeVoxelNumber++;
         }
     }
 
     Cuda::Allocate(&referenceMaskCuda, activeVoxelNumber);
-    NR_CUDA_SAFE_CALL(cudaMemcpy(referenceMaskCuda, targetMask, activeVoxelNumber * sizeof(*targetMask), cudaMemcpyHostToDevice));
-    NR_CUDA_SAFE_CALL(cudaFreeHost(targetMask));
+    thrust::copy_n(mask.begin(), activeVoxelNumber, thrust::device_ptr<int>(referenceMaskCuda));
 }
 /* *************************************************************** */
 void CudaContent::SetTransformationMatrix(mat44 *transformationMatrixIn) {

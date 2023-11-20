@@ -15,20 +15,27 @@
 #include "CudaCommon.hpp"
 
 /* *************************************************************** */
-void reg_resampleImage_gpu(const nifti_image *floatingImage,
-                           float *warpedImageCuda,
-                           const float *floatingImageCuda,
-                           const float4 *deformationFieldCuda,
-                           const int *maskCuda,
-                           const size_t activeVoxelNumber,
-                           const int interpolation,
-                           const float paddingValue);
+namespace NiftyReg::Cuda {
 /* *************************************************************** */
-void reg_getImageGradient_gpu(const nifti_image *floatingImage,
-                              const float *floatingImageCuda,
-                              const float4 *deformationFieldCuda,
-                              float4 *warpedGradientCuda,
-                              const size_t activeVoxelNumber,
-                              const int interpolation,
-                              float paddingValue);
+template<bool is3d>
+void ResampleImage(const nifti_image *floatingImage,
+                   const float *floatingImageCuda,
+                   const nifti_image *warpedImage,
+                   float *warpedImageCuda,
+                   const float4 *deformationFieldCuda,
+                   const int *maskCuda,
+                   const size_t activeVoxelNumber,
+                   const int interpolation,
+                   const float paddingValue);
+/* *************************************************************** */
+void GetImageGradient(const nifti_image *floatingImage,
+                      const float *floatingImageCuda,
+                      const float4 *deformationFieldCuda,
+                      float4 *warpedGradientCuda,
+                      const size_t activeVoxelNumber,
+                      const int interpolation,
+                      float paddingValue,
+                      const int activeTimePoint);
+/* *************************************************************** */
+} // namespace NiftyReg::Cuda
 /* *************************************************************** */

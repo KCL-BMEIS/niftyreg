@@ -15,7 +15,7 @@ Content::Content(nifti_image *referenceIn,
         NR_FATAL_ERROR("referenceIn or floatingIn can't be nullptr");
     AllocateWarped();
     AllocateDeformationField(bytesIn);
-    activeVoxelNumber = reference->nvox;
+    activeVoxelNumber = NiftiImage::calcVoxelNumber(reference, 3);
     if (!referenceMask) {
         referenceMaskManaged.reset(new int[activeVoxelNumber]());
         referenceMask = referenceMaskManaged.get();

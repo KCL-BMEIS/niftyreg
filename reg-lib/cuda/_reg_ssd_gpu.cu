@@ -11,7 +11,6 @@
  */
 
 #include "_reg_ssd_gpu.h"
-#include "_reg_ssd_kernels.cu"
 
 /* *************************************************************** */
 reg_ssd_gpu::reg_ssd_gpu(): reg_ssd::reg_ssd() {
@@ -40,9 +39,6 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImg, float *refImgCuda,
                                        warpedImg, warpedImgCuda, warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda,
                                        localWeightSim, localWeightSimCuda, floMask, floMaskCuda, warpedImgBw, warpedImgBwCuda,
                                        warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
-    // Check that the input images have only one time point
-    if (this->referenceImage->nt > 1 || this->floatingImage->nt > 1)
-        NR_FATAL_ERROR("Multiple time points are not yet supported");
     // Check if the reference and floating images need to be updated
     for (int i = 0; i < this->referenceTimePoints; ++i)
         if (this->timePointWeights[i] > 0 && normaliseTimePoint[i]) {
@@ -58,33 +54,39 @@ double reg_getSsdValue_gpu(const nifti_image *referenceImage,
                            const float *warpedCuda,
                            const float *localWeightSimCuda,
                            const int *maskCuda,
-                           const size_t activeVoxelNumber) {
-    // Copy the constant memory variables
+                           const size_t activeVoxelNumber,
+                           const double *timePointWeights,
+                           const int referenceTimePoints) {
     const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 
-    auto referenceTexture = Cuda::CreateTextureObject(referenceImageCuda, voxelNumber, cudaChannelFormatKindFloat, 1);
-    auto warpedTexture = Cuda::CreateTextureObject(warpedCuda, voxelNumber, cudaChannelFormatKindFloat, 1);
-    auto maskTexture = Cuda::CreateTextureObject(maskCuda, activeVoxelNumber, cudaChannelFormatKindSigned, 1);
-    Cuda::UniqueTextureObjectPtr localWeightSimTexture;
-    if (localWeightSimCuda)
-        localWeightSimTexture = Cuda::CreateTextureObject(localWeightSimCuda, voxelNumber, cudaChannelFormatKindFloat, 1);
+    Cuda::UniqueTextureObjectPtr localWeightSimTexturePtr; cudaTextureObject_t localWeightSimTexture = 0;
+    if (localWeightSimCuda) {
+        localWeightSimTexturePtr = Cuda::CreateTextureObject(localWeightSimCuda, voxelNumber, cudaChannelFormatKindFloat, 1);
+        localWeightSimTexture = *localWeightSimTexturePtr;
+    }
 
-    // Create an array on the device to store the absolute difference values
-    thrust::device_vector<float> ssdSum(1), ssdCount(1);
+    double ssd = 0.0;
+    for (int t = 0; t < referenceTimePoints; t++) {
+        auto referenceTexturePtr = Cuda::CreateTextureObject(referenceImageCuda + t * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
+        auto warpedTexturePtr = Cuda::CreateTextureObject(warpedCuda + t * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
+        auto referenceTexture = *referenceTexturePtr;
+        auto warpedTexture = *warpedTexturePtr;
 
-    // Compute the absolute values
-    const unsigned blocks = CudaContext::GetBlockSize()->GetSsdValue;
-    const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
-    const dim3 gridDims(grids, grids, 1);
-    const dim3 blockDims(blocks, 1, 1);
-    Cuda::GetSsdValueKernel<<<gridDims, blockDims>>>(ssdSum.data().get(), ssdCount.data().get(), *referenceTexture,
-                                                     *warpedTexture, localWeightSimCuda ? *localWeightSimTexture : 0,
-                                                     *maskTexture, referenceImageDim, (unsigned)activeVoxelNumber);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+        const auto ssdAndCount = thrust::transform_reduce(thrust::device, maskCuda, maskCuda + activeVoxelNumber, [=]__device__(const int index) -> double2 {
+            const double refValue = tex1Dfetch<float>(referenceTexture, index);
+            if (refValue != refValue) return {};
 
-    // Calculate the SSD
-    const float ssd = ssdSum[0] / ssdCount[0];
+            const double warValue = tex1Dfetch<float>(warpedTexture, index);
+            if (warValue != warValue) return {};
+
+            const double weight = localWeightSimTexture ? tex1Dfetch<float>(localWeightSimTexture, index) : 1.f;
+            const double diff = refValue - warValue;
+            return { Square(diff) * weight, weight };  // ssd and count
+        }, make_double2(0.0, 0.0), thrust::plus<double2>());
+
+        ssd += (ssdAndCount.x * timePointWeights[t]) / ssdAndCount.y;
+    }
 
     return -ssd;
 }
@@ -95,7 +97,9 @@ double reg_ssd_gpu::GetSimilarityMeasureValueFw() {
                                this->warpedImageCuda,
                                this->localWeightSimCuda,
                                this->referenceMaskCuda,
-                               this->activeVoxelNumber);
+                               this->activeVoxelNumber,
+                               this->timePointWeights,
+                               this->referenceTimePoints);
 }
 /* *************************************************************** */
 double reg_ssd_gpu::GetSimilarityMeasureValueBw() {
@@ -104,7 +108,9 @@ double reg_ssd_gpu::GetSimilarityMeasureValueBw() {
                                this->warpedImageBwCuda,
                                nullptr,
                                this->floatingMaskCuda,
-                               this->activeVoxelNumber);
+                               this->activeVoxelNumber,
+                               this->timePointWeights,
+                               this->referenceTimePoints);
 }
 /* *************************************************************** */
 void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
@@ -115,39 +121,58 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
                                       float4 *ssdGradientCuda,
                                       const int *maskCuda,
                                       const size_t activeVoxelNumber,
-                                      const float timePointWeight) {
-    // Copy the constant memory variables
+                                      const double timePointWeight,
+                                      const int currentTimePoint) {
     const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 
-    auto referenceTexturePtr = Cuda::CreateTextureObject(referenceImageCuda, voxelNumber, cudaChannelFormatKindFloat, 1);
-    auto warpedTexturePtr = Cuda::CreateTextureObject(warpedCuda, voxelNumber, cudaChannelFormatKindFloat, 1);
-    auto maskTexturePtr = Cuda::CreateTextureObject(maskCuda, activeVoxelNumber, cudaChannelFormatKindSigned, 1);
+    auto referenceTexturePtr = Cuda::CreateTextureObject(referenceImageCuda + currentTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
+    auto warpedTexturePtr = Cuda::CreateTextureObject(warpedCuda + currentTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
     auto spatialGradTexturePtr = Cuda::CreateTextureObject(spatialGradCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
-    Cuda::UniqueTextureObjectPtr localWeightSimTexturePtr;
-    if (localWeightSimCuda)
+    auto referenceTexture = *referenceTexturePtr;
+    auto warpedTexture = *warpedTexturePtr;
+    auto spatialGradTexture = *spatialGradTexturePtr;
+    Cuda::UniqueTextureObjectPtr localWeightSimTexturePtr; cudaTextureObject_t localWeightSimTexture = 0;
+    if (localWeightSimCuda) {
         localWeightSimTexturePtr = Cuda::CreateTextureObject(localWeightSimCuda, voxelNumber, cudaChannelFormatKindFloat, 1);
+        localWeightSimTexture = *localWeightSimTexturePtr;
+    }
 
     // Find number of valid voxels and correct weight
-    const auto referenceTexture = *referenceTexturePtr;
-    const auto warpedTexture = *warpedTexturePtr;
-    const size_t validVoxelNumber = thrust::count_if(thrust::device, maskCuda, maskCuda + activeVoxelNumber, [=]__device__(const int index) {
+    const auto validVoxelNumber = thrust::count_if(thrust::device, maskCuda, maskCuda + activeVoxelNumber, [=]__device__(const int index) {
         const float refValue = tex1Dfetch<float>(referenceTexture, index);
         if (refValue != refValue) return false;
         const float warValue = tex1Dfetch<float>(warpedTexture, index);
         if (warValue != warValue) return false;
         return true;
     });
-    const float adjustedWeight = timePointWeight / static_cast<float>(validVoxelNumber);
+    const double adjustedWeight = timePointWeight / validVoxelNumber;
 
-    const unsigned blocks = CudaContext::GetBlockSize()->GetSsdGradient;
-    const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
-    const dim3 gridDims(grids, grids, 1);
-    const dim3 blockDims(blocks, 1, 1);
-    Cuda::GetSsdGradientKernel<<<gridDims, blockDims>>>(ssdGradientCuda, *referenceTexturePtr, *warpedTexturePtr, *maskTexturePtr,
-                                                        *spatialGradTexturePtr, localWeightSimCuda ? *localWeightSimTexturePtr : 0,
-                                                        referenceImageDim, adjustedWeight, (unsigned)activeVoxelNumber);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+    // Calculate the SSD gradient
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), activeVoxelNumber, [=]__device__(const int index) {
+        const int voxel = maskCuda[index];
+
+        const double refValue = tex1Dfetch<float>(referenceTexture, voxel);
+        if (refValue != refValue) return;
+
+        const double warValue = tex1Dfetch<float>(warpedTexture, voxel);
+        if (warValue != warValue) return;
+
+        const float4 spaGradientValue = tex1Dfetch<float4>(spatialGradTexture, index);
+        if (spaGradientValue.x != spaGradientValue.x ||
+            spaGradientValue.y != spaGradientValue.y ||
+            spaGradientValue.z != spaGradientValue.z)
+            return;
+
+        const double weight = localWeightSimTexture ? tex1Dfetch<float>(localWeightSimTexture, voxel) : 1.f;
+        const double common = -2.0 * (refValue - warValue) * adjustedWeight * weight;
+
+        float4 ssdGradientValue = ssdGradientCuda[voxel];
+        ssdGradientValue.x += common * spaGradientValue.x;
+        ssdGradientValue.y += common * spaGradientValue.y;
+        ssdGradientValue.z += common * spaGradientValue.z;
+        ssdGradientCuda[voxel] = ssdGradientValue;
+    });
 }
 /* *************************************************************** */
 void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) {
@@ -159,7 +184,8 @@ void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint)
                                      this->voxelBasedGradientCuda,
                                      this->referenceMaskCuda,
                                      this->activeVoxelNumber,
-                                     static_cast<float>(this->timePointWeights[currentTimePoint]));
+                                     this->timePointWeights[currentTimePoint],
+                                     currentTimePoint);
 }
 /* *************************************************************** */
 void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) {
@@ -171,6 +197,7 @@ void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint)
                                      this->voxelBasedGradientBwCuda,
                                      this->floatingMaskCuda,
                                      this->activeVoxelNumber,
-                                     static_cast<float>(this->timePointWeights[currentTimePoint]));
+                                     this->timePointWeights[currentTimePoint],
+                                     currentTimePoint);
 }
 /* *************************************************************** */

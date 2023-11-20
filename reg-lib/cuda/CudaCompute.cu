@@ -9,14 +9,17 @@
 /* *************************************************************** */
 void CudaCompute::ResampleImage(int interpolation, float paddingValue) {
     CudaContent& con = dynamic_cast<CudaContent&>(this->con);
-    reg_resampleImage_gpu(con.Content::GetFloating(),
-                          con.GetWarpedCuda(),
-                          con.GetFloatingCuda(),
-                          con.GetDeformationFieldCuda(),
-                          con.GetReferenceMaskCuda(),
-                          con.GetActiveVoxelNumber(),
-                          interpolation,
-                          paddingValue);
+    const nifti_image *floating = con.Content::GetFloating();
+    auto resampleImage = floating->nz > 1 ? Cuda::ResampleImage<true> : Cuda::ResampleImage<false>;
+    resampleImage(floating,
+                  con.GetFloatingCuda(),
+                  con.Content::GetWarped(),
+                  con.GetWarpedCuda(),
+                  con.GetDeformationFieldCuda(),
+                  con.GetReferenceMaskCuda(),
+                  con.GetActiveVoxelNumber(),
+                  interpolation,
+                  paddingValue);
 }
 /* *************************************************************** */
 double CudaCompute::GetJacobianPenaltyTerm(bool approx) {
@@ -124,15 +127,15 @@ void CudaCompute::UpdateControlPointPosition(float *currentDof,
 }
 /* *************************************************************** */
 void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimePoint) {
-    // TODO Fix reg_getImageGradient_gpu to accept activeTimePoint
     CudaDefContent& con = dynamic_cast<CudaDefContent&>(this->con);
-    reg_getImageGradient_gpu(con.Content::GetFloating(),
-                             con.GetFloatingCuda(),
-                             con.GetDeformationFieldCuda(),
-                             con.GetWarpedGradientCuda(),
-                             con.GetActiveVoxelNumber(),
-                             interpolation,
-                             paddingValue);
+    Cuda::GetImageGradient(con.Content::GetFloating(),
+                           con.GetFloatingCuda(),
+                           con.GetDeformationFieldCuda(),
+                           con.GetWarpedGradientCuda(),
+                           con.GetActiveVoxelNumber(),
+                           interpolation,
+                           paddingValue,
+                           activeTimePoint);
 }
 /* *************************************************************** */
 double CudaCompute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ) {

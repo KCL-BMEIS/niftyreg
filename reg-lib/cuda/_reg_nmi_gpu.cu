@@ -40,9 +40,6 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, float *refImgCuda,
                                        warpedImg, warpedImgCuda, warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda,
                                        localWeightSim, localWeightSimCuda, floMask, floMaskCuda, warpedImgBw, warpedImgBwCuda,
                                        warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
-    // Check if the input images have multiple time points
-    if (this->referenceTimePoints > 1 || this->floatingImage->nt > 1)
-        NR_FATAL_ERROR("Multiple time points are not yet supported");
     // The reference and floating images have to be updated on the device
     Cuda::TransferNiftiToDevice(this->referenceImageCuda, this->referenceImage);
     Cuda::TransferNiftiToDevice(this->floatingImageCuda, this->floatingImage);
@@ -82,8 +79,6 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
                          const bool approximation) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
     const int3 referenceImageDims = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
-    auto maskTexturePtr = Cuda::CreateTextureObject(maskCuda, activeVoxelNumber, cudaChannelFormatKindSigned, 1);
-    auto maskTexture = *maskTexturePtr;
 
     // Iterate over all active time points
     for (int t = 0; t < referenceTimePoints; t++) {
@@ -105,11 +100,10 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
         // Fill the joint histograms
         if (approximation == false) {
             // No approximation is used for the Parzen windowing
-            thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), activeVoxelNumber, [=]__device__(const unsigned index) {
-                const int voxel = tex1Dfetch<int>(maskTexture, index);
-                const float refValue = tex1Dfetch<float>(referenceImageTexture, voxel);
+            thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
+                const float refValue = tex1Dfetch<float>(referenceImageTexture, index);
                 if (refValue != refValue) return;
-                const float warValue = tex1Dfetch<float>(warpedImageTexture, voxel);
+                const float warValue = tex1Dfetch<float>(warpedImageTexture, index);
                 if (warValue != warValue) return;
                 for (int r = int(refValue) - 1; r < int(refValue) + 3; r++) {
                     if (0 <= r && r < curRefBinNumber) {
@@ -126,11 +120,10 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
         } else {
             // An approximation is used for the Parzen windowing. First intensities are binarised then
             // the histogram is convolved with a spine kernel function.
-            thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), activeVoxelNumber, [=]__device__(const unsigned index) {
-                const int voxel = tex1Dfetch<int>(maskTexture, index);
-                const float refValue = tex1Dfetch<float>(referenceImageTexture, voxel);
+            thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
+                const float refValue = tex1Dfetch<float>(referenceImageTexture, index);
                 if (refValue != refValue) return;
-                const float warValue = tex1Dfetch<float>(warpedImageTexture, voxel);
+                const float warValue = tex1Dfetch<float>(warpedImageTexture, index);
                 if (warValue != warValue) return;
                 if (0 <= refValue && refValue < curRefBinNumber && 0 <= warValue && warValue < curFloBinNumber)
                     atomicAdd(&jointHistogramProCuda[int(refValue) + int(warValue) * curRefBinNumber], 1.0);
@@ -323,17 +316,15 @@ void reg_getVoxelBasedNmiGradient_gpu(const nifti_image *referenceImage,
     auto referenceImageTexturePtr = Cuda::CreateTextureObject(referenceImageCuda + currentTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
     auto warpedImageTexturePtr = Cuda::CreateTextureObject(warpedImageCuda + currentTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
     auto warpedGradientTexturePtr = Cuda::CreateTextureObject(warpedGradientCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
-    auto maskTexturePtr = Cuda::CreateTextureObject(maskCuda, activeVoxelNumber, cudaChannelFormatKindSigned, 1);
     auto referenceImageTexture = *referenceImageTexturePtr;
     auto warpedImageTexture = *warpedImageTexturePtr;
     auto warpedGradientTexture = *warpedGradientTexturePtr;
-    auto maskTexture = *maskTexturePtr;
 
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), activeVoxelNumber, [=]__device__(const unsigned index) {
-        const int targetIndex = tex1Dfetch<int>(maskTexture, index);
-        const float refValue = tex1Dfetch<float>(referenceImageTexture, targetIndex);
+        const int voxel = maskCuda[index];
+        const float refValue = tex1Dfetch<float>(referenceImageTexture, voxel);
         if (refValue != refValue) return;
-        const float warValue = tex1Dfetch<float>(warpedImageTexture, targetIndex);
+        const float warValue = tex1Dfetch<float>(warpedImageTexture, voxel);
         if (warValue != warValue) return;
         const float4 warGradValue = tex1Dfetch<float4>(warpedGradientTexture, index);
 
@@ -376,12 +367,12 @@ void reg_getVoxelBasedNmiGradient_gpu(const nifti_image *referenceImage,
         }
 
         // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
-        float4 gradValue = voxelBasedGradientCuda[targetIndex];
+        float4 gradValue = voxelBasedGradientCuda[voxel];
         gradValue.x += static_cast<float>(timePointWeight * (refDeriv.x + warDeriv.x - nmi * jointDeriv.x) / normalisedJE);
         gradValue.y += static_cast<float>(timePointWeight * (refDeriv.y + warDeriv.y - nmi * jointDeriv.y) / normalisedJE);
         if constexpr (is3d)
             gradValue.z += static_cast<float>(timePointWeight * (refDeriv.z + warDeriv.z - nmi * jointDeriv.z) / normalisedJE);
-        voxelBasedGradientCuda[targetIndex] = gradValue;
+        voxelBasedGradientCuda[voxel] = gradValue;
     });
 }
 /* *************************************************************** */

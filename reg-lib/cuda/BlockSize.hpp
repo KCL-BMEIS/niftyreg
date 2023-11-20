@@ -36,8 +36,6 @@ struct BlockSize {
     unsigned reg_getConjugateGradient1;
     unsigned reg_getConjugateGradient2;
     unsigned reg_updateControlPointPosition;
-    unsigned GetSsdValue;
-    unsigned GetSsdGradient;
     unsigned reg_voxelCentricToNodeCentric;
     unsigned reg_convertNmiGradientFromVoxelToRealSpace;
     unsigned reg_ApplyConvolutionWindowAlongX;
@@ -74,8 +72,6 @@ struct BlockSize100: public BlockSize {
         reg_getConjugateGradient1 = 320; // 12 reg - 24 smem
         reg_getConjugateGradient2 = 384; // 10 reg - 40 smem
         reg_updateControlPointPosition = 384; // 08 reg - 24 smem
-        GetSsdValue = 320; // 12 reg - 24 smem - 08 cmem
-        GetSsdGradient = 320; // 12 reg - 24 smem - 08 cmem
         reg_voxelCentricToNodeCentric = 320; // 11 reg - 24 smem - 16 cmem
         reg_convertNmiGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
         reg_ApplyConvolutionWindowAlongX = 512; // 14 reg - 28 smem - 08 cmem
@@ -114,8 +110,6 @@ struct BlockSize300: public BlockSize {
         reg_getConjugateGradient1 = 1024; // 22 reg
         reg_getConjugateGradient2 = 1024; // 25 reg
         reg_updateControlPointPosition = 1024; // 22 reg
-        GetSsdValue = 768; // 34 reg
-        GetSsdGradient = 768; // 34 reg
         reg_voxelCentricToNodeCentric = 1024; // 23 reg
         reg_convertNmiGradientFromVoxelToRealSpace = 1024; // 23 reg
         reg_ApplyConvolutionWindowAlongX = 1024; // 25 reg

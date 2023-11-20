@@ -11,22 +11,24 @@
  */
 
 /* *************************************************************** */
+namespace NiftyReg::Cuda {
+/* *************************************************************** */
 template<typename T>
-__inline__ __device__ void InterpLinearKernel(T relative, T (&basis)[2]) {
+__inline__ __device__ constexpr void InterpLinearKernel(T relative, T (&basis)[2]) {
     if (relative < 0)
         relative = 0;  // reg_rounding error
     basis[1] = relative;
     basis[0] = 1.f - relative;
 }
 /* *************************************************************** */
-__global__ void reg_resampleImage2D_kernel(float *resultArray,
-                                           cudaTextureObject_t floatingTexture,
-                                           cudaTextureObject_t deformationFieldTexture,
-                                           cudaTextureObject_t maskTexture,
-                                           const mat44 floatingMatrix,
-                                           const int3 floatingDim,
-                                           const unsigned activeVoxelNumber,
-                                           const float paddingValue) {
+__global__ void ResampleImage2D(float *resultArray,
+                                cudaTextureObject_t floatingTexture,
+                                cudaTextureObject_t deformationFieldTexture,
+                                cudaTextureObject_t maskTexture,
+                                const mat44 floatingMatrix,
+                                const int3 floatingDim,
+                                const unsigned activeVoxelNumber,
+                                const float paddingValue) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid >= activeVoxelNumber) return;
     // Get the real world deformation in the floating space
@@ -70,14 +72,14 @@ __global__ void reg_resampleImage2D_kernel(float *resultArray,
     resultArray[tid2] = intensity;
 }
 /* *************************************************************** */
-__global__ void reg_resampleImage3D_kernel(float *resultArray,
-                                           cudaTextureObject_t floatingTexture,
-                                           cudaTextureObject_t deformationFieldTexture,
-                                           cudaTextureObject_t maskTexture,
-                                           const mat44 floatingMatrix,
-                                           const int3 floatingDim,
-                                           const unsigned activeVoxelNumber,
-                                           const float paddingValue) {
+__global__ void ResampleImage3D(float *resultArray,
+                                cudaTextureObject_t floatingTexture,
+                                cudaTextureObject_t deformationFieldTexture,
+                                cudaTextureObject_t maskTexture,
+                                const mat44 floatingMatrix,
+                                const int3 floatingDim,
+                                const unsigned activeVoxelNumber,
+                                const float paddingValue) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid >= activeVoxelNumber) return;
     // Get the real world deformation in the floating space
@@ -133,13 +135,13 @@ __global__ void reg_resampleImage3D_kernel(float *resultArray,
     resultArray[tid2] = intensity;
 }
 /* *************************************************************** */
-__global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
-                                              cudaTextureObject_t floatingTexture,
-                                              cudaTextureObject_t deformationFieldTexture,
-                                              const mat44 floatingMatrix,
-                                              const int3 floatingDim,
-                                              const unsigned activeVoxelNumber,
-                                              const float paddingValue) {
+__global__ void GetImageGradient2D(float4 *gradientArray,
+                                   cudaTextureObject_t floatingTexture,
+                                   cudaTextureObject_t deformationFieldTexture,
+                                   const mat44 floatingMatrix,
+                                   const int3 floatingDim,
+                                   const unsigned activeVoxelNumber,
+                                   const float paddingValue) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid >= activeVoxelNumber) return;
     // Get the real world deformation in the floating space
@@ -185,13 +187,13 @@ __global__ void reg_getImageGradient2D_kernel(float4 *gradientArray,
     gradientArray[tid] = gradientValue;
 }
 /* *************************************************************** */
-__global__ void reg_getImageGradient3D_kernel(float4 *gradientArray,
-                                              cudaTextureObject_t floatingTexture,
-                                              cudaTextureObject_t deformationFieldTexture,
-                                              const mat44 floatingMatrix,
-                                              const int3 floatingDim,
-                                              const unsigned activeVoxelNumber,
-                                              const float paddingValue) {
+__global__ void GetImageGradient3D(float4 *gradientArray,
+                                   cudaTextureObject_t floatingTexture,
+                                   cudaTextureObject_t deformationFieldTexture,
+                                   const mat44 floatingMatrix,
+                                   const int3 floatingDim,
+                                   const unsigned activeVoxelNumber,
+                                   const float paddingValue) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid >= activeVoxelNumber) return;
     // Get the real world deformation in the floating space
@@ -251,4 +253,6 @@ __global__ void reg_getImageGradient3D_kernel(float4 *gradientArray,
 
     gradientArray[tid] = gradientValue;
 }
+/* *************************************************************** */
+} // namespace NiftyReg::Cuda
 /* *************************************************************** */
