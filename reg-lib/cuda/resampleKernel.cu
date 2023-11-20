@@ -377,7 +377,7 @@ void launchResample(nifti_image *floatingImage,
 						  nifti_image *warpedImage,
 						  int interp,
 						  float paddingValue,
-						  bool *dti_timepoint,
+						  bool *dtiTimePoint,
 						  mat33 *jacMat,
 						  float **floatingImage_d,
 						  float **warpedImage_d,
@@ -385,7 +385,7 @@ void launchResample(nifti_image *floatingImage,
 						  int **mask_d,
 						  float **sourceIJKMatrix_d) {
 	// Define the DTI indices if required
-	if (dti_timepoint != nullptr || jacMat != nullptr)
+	if (dtiTimePoint != nullptr || jacMat != nullptr)
 		NR_FATAL_ERROR("The DTI resampling has not yet been implemented with the CUDA platform");
 
 	const size_t targetVoxelNumber = NiftiImage::calcVoxelNumber(warpedImage, 3);

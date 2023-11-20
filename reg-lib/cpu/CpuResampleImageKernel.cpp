@@ -12,7 +12,7 @@ CpuResampleImageKernel::CpuResampleImageKernel(Content *conIn) : ResampleImageKe
 /* *************************************************************** */
 void CpuResampleImageKernel::Calculate(int interp,
                                        float paddingValue,
-                                       bool *dti_timepoint,
+                                       bool *dtiTimePoint,
                                        mat33 * jacMat) {
     reg_resampleImage(floatingImage,
                       warpedImage,
@@ -20,7 +20,7 @@ void CpuResampleImageKernel::Calculate(int interp,
                       mask,
                       interp,
                       paddingValue,
-                      dti_timepoint,
+                      dtiTimePoint,
                       jacMat);
 }
 /* *************************************************************** */

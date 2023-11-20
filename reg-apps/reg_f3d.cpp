@@ -60,14 +60,14 @@ void Usage(char *exec) {
     NR_INFO("\t-rmask <filename>\t\tFilename of a mask image in the reference space");
     NR_INFO("\t-smooR <float>\t\t\tSmooth the reference image using the specified sigma (mm) [0]");
     NR_INFO("\t-smooF <float>\t\t\tSmooth the floating image using the specified sigma (mm) [0]");
-    NR_INFO("\t--rLwTh <float>\t\t\tLower threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*");
-    NR_INFO("\t--rUpTh <float>\t\t\tUpper threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*");
-    NR_INFO("\t--fLwTh <float>\t\t\tLower threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*");
-    NR_INFO("\t--fUpTh <float>\t\t\tUpper threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*");
-    NR_INFO("\t-rLwTh <timepoint> <float>\tLower threshold to apply to the reference image intensities [none]*");
-    NR_INFO("\t-rUpTh <timepoint> <float>\tUpper threshold to apply to the reference image intensities [none]*");
-    NR_INFO("\t-fLwTh <timepoint> <float>\tLower threshold to apply to the floating image intensities [none]*");
-    NR_INFO("\t-fUpTh <timepoint> <float>\tUpper threshold to apply to the floating image intensities [none]*");
+    NR_INFO("\t--rLwTh <float>\t\t\tLower threshold to apply to the reference image intensities [none]. Identical value for every time point.*");
+    NR_INFO("\t--rUpTh <float>\t\t\tUpper threshold to apply to the reference image intensities [none]. Identical value for every time point.*");
+    NR_INFO("\t--fLwTh <float>\t\t\tLower threshold to apply to the floating image intensities [none]. Identical value for every time point.*");
+    NR_INFO("\t--fUpTh <float>\t\t\tUpper threshold to apply to the floating image intensities [none]. Identical value for every time point.*");
+    NR_INFO("\t-rLwTh <tp> <float>\tLower threshold to apply to the reference image intensities [none]*");
+    NR_INFO("\t-rUpTh <tp> <float>\tUpper threshold to apply to the reference image intensities [none]*");
+    NR_INFO("\t-fLwTh <tp> <float>\tLower threshold to apply to the floating image intensities [none]*");
+    NR_INFO("\t-fUpTh <tp> <float>\tUpper threshold to apply to the floating image intensities [none]*");
     NR_INFO("\t* The scl_slope and scl_inter from the nifti header are taken into account for the thresholds");
     NR_INFO("");
     NR_INFO("*** Spline options (All defined at full resolution):");
@@ -89,29 +89,29 @@ void Usage(char *exec) {
     NR_INFO("*** Measure of similarity options:");
     NR_INFO("*** NMI with 64 bins is used except if specified otherwise");
     NR_INFO("\t--nmi\t\t\tNMI. Used NMI even when one or several other measures are specified");
-    NR_INFO("\t--rbn <int>\t\tNMI. Number of bin to use for the reference image histogram. Identical value for every timepoint");
-    NR_INFO("\t--fbn <int>\t\tNMI. Number of bin to use for the floating image histogram. Identical value for every timepoint");
+    NR_INFO("\t--rbn <int>\t\tNMI. Number of bin to use for the reference image histogram. Identical value for every time point");
+    NR_INFO("\t--fbn <int>\t\tNMI. Number of bin to use for the floating image histogram. Identical value for every time point");
     NR_INFO("\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the reference image histogram for the specified time point");
     NR_INFO("\t-fbn <tp> <int>\t\tNMI. Number of bin to use for the floating image histogram for the specified time point");
-    NR_INFO("\t--lncc <float>\t\tLNCC. Standard deviation of the Gaussian kernel. Identical value for every timepoint");
-    NR_INFO("\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint");
+    NR_INFO("\t--lncc <float>\t\tLNCC. Standard deviation of the Gaussian kernel. Identical value for every time point");
+    NR_INFO("\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified time point");
     NR_INFO("\t--ssd \t\t\tSSD. Used for all time points - images are normalized between 0 and 1 before computing the measure");
-    NR_INFO("\t-ssd <tp> \t\tSSD. Used for the specified timepoint - images are normalized between 0 and 1 before computing the measure");
+    NR_INFO("\t-ssd <tp> \t\tSSD. Used for the specified time point - images are normalized between 0 and 1 before computing the measure");
     NR_INFO("\t--ssdn \t\t\tSSD. Used for all time points - images are NOT normalized between 0 and 1 before computing the measure");
-    NR_INFO("\t-ssdn <tp> \t\tSSD. Used for the specified timepoint - images are NOT normalized between 0 and 1 before computing the measure");
+    NR_INFO("\t-ssdn <tp> \t\tSSD. Used for the specified time point - images are NOT normalized between 0 and 1 before computing the measure");
     NR_INFO("\t--mind <offset>\t\tMIND and the offset to use to compute the descriptor");
     NR_INFO("\t--mindssc <offset>\tMIND-SCC and the offset to use to compute the descriptor");
     NR_INFO("\t--kld\t\t\tKLD. Used for all time points");
-    NR_INFO("\t-kld <tp>\t\tKLD. Used for the specified timepoint");
+    NR_INFO("\t-kld <tp>\t\tKLD. Used for the specified time point");
     NR_INFO("\t* For the Kullback-Leibler divergence, reference and floating are expected to be probabilities");
     NR_INFO("\t-rr\t\t\tIntensities are thresholded between the 2 and 98% ile");
-    NR_INFO("*** Options for setting the weights for each timepoint for each similarity");
+    NR_INFO("*** Options for setting the weights for each time point for each similarity");
     NR_INFO("*** Note, the options above should be used first and will set a default weight of 1");
     NR_INFO("*** The options below should be used afterwards to set the desired weight if different to 1");
-    NR_INFO("\t-nmiw <tp> <float>\tNMI Weight. Weight to use for the NMI similarity measure for the specified timepoint");
-    NR_INFO("\t-lnccw <tp> <float>\tLNCC Weight. Weight to use for the LNCC similarity measure for the specified timepoint");
-    NR_INFO("\t-ssdw <tp> <float>\tSSD Weight. Weight to use for the SSD similarity measure for the specified timepoint");
-    NR_INFO("\t-kldw <tp> <float>\tKLD Weight. Weight to use for the KLD similarity measure for the specified timepoint");
+    NR_INFO("\t-nmiw <tp> <float>\tNMI Weight. Weight to use for the NMI similarity measure for the specified time point");
+    NR_INFO("\t-lnccw <tp> <float>\tLNCC Weight. Weight to use for the LNCC similarity measure for the specified time point");
+    NR_INFO("\t-ssdw <tp> <float>\tSSD Weight. Weight to use for the SSD similarity measure for the specified time point");
+    NR_INFO("\t-kldw <tp> <float>\tKLD Weight. Weight to use for the KLD similarity measure for the specified time point");
     NR_INFO("\t-wSim <filename>\tWeight to apply to the measure of similarity at each voxel position");
 
     // NR_INFO("\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
@@ -472,17 +472,17 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "--smoothGrad") == 0) {
             reg->SetGradientSmoothingSigma((PrecisionType)atof(argv[++i]));
         } else if (strcmp(argv[i], "-ssd") == 0) {
-            int timepoint = atoi(argv[++i]);
+            int timePoint = atoi(argv[++i]);
             bool normalise = 1;
-            reg->UseSSD(timepoint, normalise);
+            reg->UseSSD(timePoint, normalise);
         } else if (strcmp(argv[i], "--ssd") == 0) {
             bool normalise = 1;
             for (int t = 0; t < floatingImage->nt; ++t)
                 reg->UseSSD(t, normalise);
         } else if (strcmp(argv[i], "-ssdn") == 0) {
-            int timepoint = atoi(argv[++i]);
+            int timePoint = atoi(argv[++i]);
             bool normalise = 0;
-            reg->UseSSD(timepoint, normalise);
+            reg->UseSSD(timePoint, normalise);
         } else if (strcmp(argv[i], "--ssdn") == 0) {
             bool normalise = 0;
             for (int t = 0; t < floatingImage->nt; ++t)

@@ -1,5 +1,5 @@
 /*
- *  _reg_resampling_gpu.h
+ *  CudaResampling.hpp
  *
  *
  *  Created by Marc Modat on 24/03/2009.

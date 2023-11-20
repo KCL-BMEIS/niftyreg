@@ -187,7 +187,7 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImg,
     }
 
     for (int i = 0; i < this->referenceTimePoints; ++i)
-        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeights[i]);
+        NR_DEBUG("Weight for time point " << i << ": " << this->timePointWeights[i]);
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
@@ -403,7 +403,7 @@ void reg_getVoxelBasedLnccGradient(const nifti_image *referenceImage,
                                    nifti_image *measureGradient,
                                    const ConvKernelType kernelType,
                                    const int currentTimePoint,
-                                   const double timepointWeight) {
+                                   const double timePointWeight) {
 #ifdef _WIN32
     long voxel;
     long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
@@ -468,7 +468,7 @@ void reg_getVoxelBasedLnccGradient(const nifti_image *referenceImage,
     }
 
     //adjust weight for number of voxels
-    const double adjustedWeight = timepointWeight / activeVoxelNumber;
+    const double adjustedWeight = timePointWeight / activeVoxelNumber;
 
     // Smooth the newly computed values
     reg_tools_kernelConvolution(warpedMeanImage, kernelStandardDeviation, kernelType, combinedMask);
@@ -531,7 +531,7 @@ void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
                                             nifti_image *measureGradient,
                                             const ConvKernelType kernelType,
                                             const int currentTimePoint,
-                                            const double timepointWeight) {
+                                            const double timePointWeight) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
         // Compute the mean and variance of the reference and warped floating
@@ -560,7 +560,7 @@ void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
                                                       measureGradient,
                                                       kernelType,
                                                       currentTimePoint,
-                                                      timepointWeight);
+                                                      timePointWeight);
     }, NiftiImage::getFloatingDataType(referenceImage));
 }
 /* *************************************************************** */

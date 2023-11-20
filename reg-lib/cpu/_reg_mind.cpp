@@ -69,7 +69,7 @@ void GetMindImageDescriptorCore(const nifti_image *inputImage,
     // Create a pointer to the descriptor image
     DataType* mindImgDataPtr = static_cast<DataType*>(mindImage->data);
 
-    // Allocate an image to store the current timepoint reference image
+    // Allocate an image to store the current time point reference image
     nifti_image *currentInputImage = nifti_copy_nim_info(inputImage);
     currentInputImage->ndim = currentInputImage->dim[0] = inputImage->nz > 1 ? 3 : 2;
     currentInputImage->nt = currentInputImage->dim[4] = 1;
@@ -174,7 +174,7 @@ void GetMindSscImageDescriptorCore(const nifti_image *inputImage,
     // Create a pointer to the descriptor image
     DataType* mindSscImgDataPtr = static_cast<DataType*>(mindSscImage->data);
 
-    // Allocate an image to store the current timepoint reference image
+    // Allocate an image to store the current time point reference image
     nifti_image *currentInputImage = nifti_copy_nim_info(inputImage);
     currentInputImage->ndim = currentInputImage->dim[0] = inputImage->nz > 1 ? 3 : 2;
     currentInputImage->nt = currentInputImage->dim[4] = 1;

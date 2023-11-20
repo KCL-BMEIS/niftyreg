@@ -50,33 +50,33 @@ endif(NOT COMPILE_RESULT_VAR)
 #-----------------------------------------------------------------------------
 set(NAME _reg_cuda_kernels)
 cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
+    ../AladinContent.cpp
+    affineDeformationKernel.cu
+    blockMatchingKernel.cu
+    CudaAffineDeformationFieldKernel.cpp
     CudaAladinContent.cpp
+    CudaBlockMatchingKernel.cpp
     CudaCommon.cu
     CudaCompute.cu
     CudaContent.cpp
     CudaContext.cpp
+    CudaConvolutionKernel.cpp
     CudaDefContent.cpp
     CudaF3dContent.cpp
     CudaKernelConvolution.cu
     CudaKernelFactory.cpp
-    CudaMeasure.cpp
-    affineDeformationKernel.cu
-    blockMatchingKernel.cu
-    resampleKernel.cu
-    CudaAffineDeformationFieldKernel.cpp
-    CudaBlockMatchingKernel.cpp
-    CudaConvolutionKernel.cpp
-    CudaNormaliseGradient.cu
     CudaLtsKernel.cpp
+    CudaMeasure.cpp
+    CudaNormaliseGradient.cu
     CudaResampleImageKernel.cpp
-    ../AladinContent.cpp
-    _reg_resampling_gpu.cu
-    _reg_tools_gpu.cu
+    CudaResampling.cu
+    resampleKernel.cu
     _reg_globalTransformation_gpu.cu
     _reg_localTransformation_gpu.cu
     _reg_nmi_gpu.cu
-    _reg_ssd_gpu.cu
     _reg_optimiser_gpu.cu
+    _reg_ssd_gpu.cu
+    _reg_tools_gpu.cu
 )
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
 install(TARGETS ${NAME}

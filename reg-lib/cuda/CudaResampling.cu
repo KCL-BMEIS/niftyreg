@@ -1,5 +1,5 @@
 /*
- *  _reg_resampling_gpu.cu
+ *  CudaResampling.cu
  *
  *
  *  Created by Marc Modat on 24/03/2009.
@@ -10,8 +10,8 @@
  *
  */
 
-#include "_reg_resampling_gpu.h"
-#include "_reg_resampling_kernels.cu"
+#include "CudaResampling.hpp"
+#include "CudaResamplingKernels.cu"
 
 /* *************************************************************** */
 void reg_resampleImage_gpu(const nifti_image *floatingImage,

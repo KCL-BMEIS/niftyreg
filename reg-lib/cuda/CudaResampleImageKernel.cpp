@@ -24,13 +24,13 @@ CudaResampleImageKernel::CudaResampleImageKernel(Content *conIn) : ResampleImage
 /* *************************************************************** */
 void CudaResampleImageKernel::Calculate(int interp,
                                         float paddingValue,
-                                        bool *dti_timepoint,
+                                        bool *dtiTimePoint,
                                         mat33 * jacMat) {
     launchResample(floatingImage,
                    warpedImage,
                    interp,
                    paddingValue,
-                   dti_timepoint,
+                   dtiTimePoint,
                    jacMat,
                    &floatingImageArray_d,
                    &warpedImageArray_d,

@@ -65,7 +65,7 @@ void Usage(char *exec)
    NR_INFO("\t-blank <filename>\n\t\tFilename of the resampled blank grid [none]");
    NR_INFO("\t-inter <int>\n\t\tInterpolation order (0, 1, 3, 4)[3] (0=NN, 1=LIN; 3=CUB, 4=SINC)");
    NR_INFO("\t-pad <int>\n\t\tInterpolation padding value [0]");
-   NR_INFO("\t-tensor\n\t\tThe last six timepoints of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]");
+   NR_INFO("\t-tensor\n\t\tThe last six time points of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]");
    NR_INFO("\t-psf\n\t\tPerform the resampling in two steps to resample an image to a lower resolution [off]");
    NR_INFO("\t-psf_alg <0/1>\n\t\tMinimise the matrix metric (0) or the determinant (1) when estimating the PSF [0]");
    NR_INFO("\t-voff\n\t\tTurns verbose off [on]");
@@ -459,16 +459,16 @@ int main(int argc, char **argv)
          mat33 *jacobian = (mat33 *)malloc(NiftiImage::calcVoxelNumber(deformationFieldImage, 3) * sizeof(mat33));
          reg_defField_getJacobianMatrix(deformationFieldImage, jacobian);
          // resample the DTI image
-         bool timepoints[7];
-         for(int i=0; i<7; ++i) timepoints[i]=true;
-         if(floatingImage->dim[4]==7) timepoints[0]=false;
+         bool timePoints[7];
+         for(int i=0; i<7; ++i) timePoints[i]=true;
+         if(floatingImage->dim[4]==7) timePoints[0]=false;
          reg_resampleImage(floatingImage,
                            warpedImage,
                            deformationFieldImage,
                            nullptr,
                            param->interpolation,
                            std::numeric_limits<float>::quiet_NaN(),
-                           timepoints,
+                           timePoints,
                            jacobian
                            );
       }

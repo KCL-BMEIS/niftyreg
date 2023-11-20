@@ -174,33 +174,33 @@ void reg_intensityRescale_core(nifti_image *image,
 }
 /* *************************************************************** */
 void reg_intensityRescale(nifti_image *image,
-                          int timepoint,
+                          int timePoint,
                           float newMin,
                           float newMax) {
     switch (image->datatype) {
     case NIFTI_TYPE_UINT8:
-        reg_intensityRescale_core<unsigned char>(image, timepoint, newMin, newMax);
+        reg_intensityRescale_core<unsigned char>(image, timePoint, newMin, newMax);
         break;
     case NIFTI_TYPE_INT8:
-        reg_intensityRescale_core<char>(image, timepoint, newMin, newMax);
+        reg_intensityRescale_core<char>(image, timePoint, newMin, newMax);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_intensityRescale_core<unsigned short>(image, timepoint, newMin, newMax);
+        reg_intensityRescale_core<unsigned short>(image, timePoint, newMin, newMax);
         break;
     case NIFTI_TYPE_INT16:
-        reg_intensityRescale_core<short>(image, timepoint, newMin, newMax);
+        reg_intensityRescale_core<short>(image, timePoint, newMin, newMax);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_intensityRescale_core<unsigned>(image, timepoint, newMin, newMax);
+        reg_intensityRescale_core<unsigned>(image, timePoint, newMin, newMax);
         break;
     case NIFTI_TYPE_INT32:
-        reg_intensityRescale_core<int>(image, timepoint, newMin, newMax);
+        reg_intensityRescale_core<int>(image, timePoint, newMin, newMax);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_intensityRescale_core<float>(image, timepoint, newMin, newMax);
+        reg_intensityRescale_core<float>(image, timePoint, newMin, newMax);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_intensityRescale_core<double>(image, timepoint, newMin, newMax);
+        reg_intensityRescale_core<double>(image, timePoint, newMin, newMax);
         break;
     default:
         NR_FATAL_ERROR("The image data type is not supported");
@@ -1097,7 +1097,7 @@ void reg_tools_kernelConvolution(nifti_image *image,
                     } // radius > 0
                 } // active axis
             } // axes
-            // Normalise per timepoint
+            // Normalise per time point
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(voxelNumber, intensityPtr, densityPtr, nanImagePtr)
@@ -1251,7 +1251,7 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
                     }
                 }
             }
-            // Normalise per timepoint
+            // Normalise per time point
             for (index = 0; index < voxelNumber; ++index) {
                 if (nanImagePtr[index] == 0)
                     intensityPtr[index] = std::numeric_limits<DataType>::quiet_NaN();
@@ -1872,8 +1872,8 @@ int reg_tools_removeNanFromMask(const nifti_image *image, int *mask) {
 }
 /* *************************************************************** */
 template <class DataType>
-DataType reg_tools_getMinMaxValue(const nifti_image *image, int timepoint, bool isMin = true) {
-    if (timepoint < -1 || timepoint >= image->nt)
+DataType reg_tools_getMinMaxValue(const nifti_image *image, int timePoint, bool isMin = true) {
+    if (timePoint < -1 || timePoint >= image->nt)
         NR_FATAL_ERROR("The required time point does not exist");
 
     const DataType *imgPtr = static_cast<DataType*>(image->data);
@@ -1887,7 +1887,7 @@ DataType reg_tools_getMinMaxValue(const nifti_image *image, int timepoint, bool 
     else minMax = std::max<DataType>;
 
     for (int time = 0; time < image->nt; ++time) {
-        if (time == timepoint || timepoint == -1) {
+        if (time == timePoint || timePoint == -1) {
             for (int u = 0; u < image->nu; ++u) {
                 const DataType *currentVolumePtr = &imgPtr[(u * image->nt + time) * voxelNumber];
                 for (size_t i = 0; i < voxelNumber; ++i) {
@@ -1900,50 +1900,50 @@ DataType reg_tools_getMinMaxValue(const nifti_image *image, int timepoint, bool 
     return retValue;
 }
 /* *************************************************************** */
-float reg_tools_getMinValue(const nifti_image *image, int timepoint) {
+float reg_tools_getMinValue(const nifti_image *image, int timePoint) {
     // Check the image data type
     switch (image->datatype) {
     case NIFTI_TYPE_UINT8:
-        return reg_tools_getMinMaxValue<unsigned char>(image, timepoint);
+        return reg_tools_getMinMaxValue<unsigned char>(image, timePoint);
     case NIFTI_TYPE_INT8:
-        return reg_tools_getMinMaxValue<char>(image, timepoint);
+        return reg_tools_getMinMaxValue<char>(image, timePoint);
     case NIFTI_TYPE_UINT16:
-        return reg_tools_getMinMaxValue<unsigned short>(image, timepoint);
+        return reg_tools_getMinMaxValue<unsigned short>(image, timePoint);
     case NIFTI_TYPE_INT16:
-        return reg_tools_getMinMaxValue<short>(image, timepoint);
+        return reg_tools_getMinMaxValue<short>(image, timePoint);
     case NIFTI_TYPE_UINT32:
-        return (float)reg_tools_getMinMaxValue<unsigned>(image, timepoint);
+        return (float)reg_tools_getMinMaxValue<unsigned>(image, timePoint);
     case NIFTI_TYPE_INT32:
-        return (float)reg_tools_getMinMaxValue<int>(image, timepoint);
+        return (float)reg_tools_getMinMaxValue<int>(image, timePoint);
     case NIFTI_TYPE_FLOAT32:
-        return reg_tools_getMinMaxValue<float>(image, timepoint);
+        return reg_tools_getMinMaxValue<float>(image, timePoint);
     case NIFTI_TYPE_FLOAT64:
-        return (float)reg_tools_getMinMaxValue<double>(image, timepoint);
+        return (float)reg_tools_getMinMaxValue<double>(image, timePoint);
     default:
         NR_FATAL_ERROR("The image data type is not supported");
         return 0;
     }
 }
 /* *************************************************************** */
-float reg_tools_getMaxValue(const nifti_image *image, int timepoint) {
+float reg_tools_getMaxValue(const nifti_image *image, int timePoint) {
     // Check the image data type
     switch (image->datatype) {
     case NIFTI_TYPE_UINT8:
-        return reg_tools_getMinMaxValue<unsigned char>(image, timepoint, false);
+        return reg_tools_getMinMaxValue<unsigned char>(image, timePoint, false);
     case NIFTI_TYPE_INT8:
-        return reg_tools_getMinMaxValue<char>(image, timepoint, false);
+        return reg_tools_getMinMaxValue<char>(image, timePoint, false);
     case NIFTI_TYPE_UINT16:
-        return reg_tools_getMinMaxValue<unsigned short>(image, timepoint, false);
+        return reg_tools_getMinMaxValue<unsigned short>(image, timePoint, false);
     case NIFTI_TYPE_INT16:
-        return reg_tools_getMinMaxValue<short>(image, timepoint, false);
+        return reg_tools_getMinMaxValue<short>(image, timePoint, false);
     case NIFTI_TYPE_UINT32:
-        return (float)reg_tools_getMinMaxValue<unsigned>(image, timepoint, false);
+        return (float)reg_tools_getMinMaxValue<unsigned>(image, timePoint, false);
     case NIFTI_TYPE_INT32:
-        return (float)reg_tools_getMinMaxValue<int>(image, timepoint, false);
+        return (float)reg_tools_getMinMaxValue<int>(image, timePoint, false);
     case NIFTI_TYPE_FLOAT32:
-        return reg_tools_getMinMaxValue<float>(image, timepoint, false);
+        return reg_tools_getMinMaxValue<float>(image, timePoint, false);
     case NIFTI_TYPE_FLOAT64:
-        return (float)reg_tools_getMinMaxValue<double>(image, timepoint, false);
+        return (float)reg_tools_getMinMaxValue<double>(image, timePoint, false);
     default:
         NR_FATAL_ERROR("The image data type is not supported");
         return 0;

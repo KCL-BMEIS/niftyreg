@@ -21,7 +21,7 @@
 
 #ifdef USE_CUDA
 #include "_reg_cudaCommon.h"
-#include "_reg_resampling_gpu.h"
+#include "CudaResampling.hpp"
 #include "_reg_affineTransformation_gpu.h"
 #include "_reg_bspline_gpu.h"
 #include "_reg_mutualinformation_gpu.h"

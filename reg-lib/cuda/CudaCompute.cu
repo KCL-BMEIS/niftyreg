@@ -2,7 +2,7 @@
 #include "CudaF3dContent.h"
 #include "CudaKernelConvolution.hpp"
 #include "CudaNormaliseGradient.hpp"
-#include "_reg_resampling_gpu.h"
+#include "CudaResampling.hpp"
 #include "_reg_localTransformation_gpu.h"
 #include "_reg_optimiser_gpu.h"
 
@@ -123,8 +123,8 @@ void CudaCompute::UpdateControlPointPosition(float *currentDof,
                                        optimiseZ);
 }
 /* *************************************************************** */
-void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) {
-    // TODO Fix reg_getImageGradient_gpu to accept activeTimepoint
+void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimePoint) {
+    // TODO Fix reg_getImageGradient_gpu to accept activeTimePoint
     CudaDefContent& con = dynamic_cast<CudaDefContent&>(this->con);
     reg_getImageGradient_gpu(con.Content::GetFloating(),
                              con.GetFloatingCuda(),

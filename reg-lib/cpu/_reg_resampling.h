@@ -39,7 +39,7 @@ void reg_resampleImage(nifti_image *floatingImage,
                        const int *mask,
                        const int interpolation,
                        const float paddingValue,
-                       const bool *dtiTimepoint = nullptr,
+                       const bool *dtiTimePoint = nullptr,
                        const mat33 *jacMat = nullptr);
 /* *************************************************************** */
 void reg_resampleImage_PSF(const nifti_image *floatingImage,
@@ -63,8 +63,8 @@ void reg_getImageGradient(nifti_image *floatingImage,
                           const int *mask,
                           const int interpolation,
                           const float paddingValue,
-                          const int activeTimepoint,
-                          const bool *dtiTimepoint = nullptr,
+                          const int activeTimePoint,
+                          const bool *dtiTimePoint = nullptr,
                           const mat33 *jacMat = nullptr,
                           const nifti_image *warpedImage = nullptr);
 /* *************************************************************** */
@@ -72,7 +72,7 @@ void reg_getImageGradient_symDiff(const nifti_image *img,
                                   nifti_image *gradImg,
                                   const int *mask,
                                   const float paddingValue,
-                                  const int timepoint);
+                                  const int timePoint);
 /* *************************************************************** */
 nifti_image* reg_makeIsotropic(nifti_image*, int);
 /* *************************************************************** */

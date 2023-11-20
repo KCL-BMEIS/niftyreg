@@ -174,7 +174,7 @@ void reg_f3d2<T>::WarpFloatingImage(int inter) {
                           floatingMask, // mask
                           inter, // interpolation type
                           this->warpedPaddingValue, // padding value
-                          this->measure_dti->GetActiveTimepoints(),
+                          this->measure_dti->GetActiveTimePoints(),
                           backwardJacobianMatrix);*/
     }
     NR_FUNC_CALLED();
@@ -255,7 +255,7 @@ void reg_f3d2<T>::GetVoxelBasedGradient() {
     //                             this->currentMask,
     //                             this->interpolation,
     //                             this->warpedPaddingValue,
-    //                             this->measure_dti->GetActiveTimepoints(),
+    //                             this->measure_dti->GetActiveTimePoints(),
     //                             this->forwardJacobianMatrix,
     //                             this->warped);
 
@@ -265,7 +265,7 @@ void reg_f3d2<T>::GetVoxelBasedGradient() {
     //                             floatingMask,
     //                             this->interpolation,
     //                             this->warpedPaddingValue,
-    //                             this->measure_dti->GetActiveTimepoints(),
+    //                             this->measure_dti->GetActiveTimePoints(),
     //                             backwardJacobianMatrix,
     //                             backwardWarped);
     //   if(this->measure_dti)

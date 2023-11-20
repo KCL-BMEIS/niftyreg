@@ -74,7 +74,7 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImg,
 #endif
 #ifndef NDEBUG
     for (int i = 0; i < this->referenceTimePoints; ++i)
-        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeights[i]);
+        NR_DEBUG("Weight for time point " << i << ": " << this->timePointWeights[i]);
     std::string msg = "Normalize time point:";
     for (int i = 0; i < this->referenceTimePoints; ++i)
         if (this->normaliseTimePoint[i])
@@ -84,8 +84,8 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImg,
 #endif
 }
 /* *************************************************************** */
-void reg_ssd::SetNormaliseTimepoint(int timepoint, bool normalise) {
-    this->normaliseTimePoint[timepoint] = normalise;
+void reg_ssd::SetNormaliseTimePoint(int timePoint, bool normalise) {
+    this->normaliseTimePoint[timePoint] = normalise;
 }
 /* *************************************************************** */
 template<class DataType>
@@ -136,7 +136,7 @@ double reg_getSsdValue(const nifti_image *referenceImage,
 #ifdef MRF_USE_SAD
                         const double diff = fabs(refValue - warValue);
 #else
-                        const double diff = std::pow(refValue - warValue, 2.0);
+                        const double diff = Square(refValue - warValue);
 #endif
                         // Jacobian determinant modulation of the ssd if required
                         const DataType val = jacDetPtr ? jacDetPtr[voxel] : (localWeightPtr ? localWeightPtr[voxel] : 1);

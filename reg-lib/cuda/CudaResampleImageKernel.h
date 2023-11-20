@@ -11,7 +11,7 @@ public:
     CudaResampleImageKernel(Content *conIn);
     void Calculate(int interp,
                    float paddingValue,
-                   bool *dti_timepoint = nullptr,
+                   bool *dtiTimePoint = nullptr,
                    mat33 *jacMat = nullptr);
 
 private:

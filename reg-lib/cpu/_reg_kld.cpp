@@ -58,7 +58,7 @@ void reg_kld::InitialiseMeasure(nifti_image *refImg,
     }
 
     for (int i = 0; i < this->referenceTimePoints; ++i)
-        NR_DEBUG("Weight for timepoint " << i << ": " << this->timePointWeights[i]);
+        NR_DEBUG("Weight for time point " << i << ": " << this->timePointWeights[i]);
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
@@ -164,7 +164,7 @@ double reg_kld::GetSimilarityMeasureValueBw() {
  * @param mask Array that contains a mask to specify which voxel
  * should be considered
  * @param currentTimePoint Specified which time point volumes have to be considered
- * @param timepointWeight Weight of the current time point
+ * @param timePointWeight Weight of the current time point
  */
 template <class DataType>
 void reg_getKLDivergenceVoxelBasedGradient(const nifti_image *referenceImage,
@@ -174,7 +174,7 @@ void reg_getKLDivergenceVoxelBasedGradient(const nifti_image *referenceImage,
                                            const nifti_image *jacobianDetImg,
                                            const int *mask,
                                            const int currentTimePoint,
-                                           const double timepointWeight) {
+                                           const double timePointWeight) {
 #ifdef _WIN32
     long voxel;
     const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
@@ -206,7 +206,7 @@ void reg_getKLDivergenceVoxelBasedGradient(const nifti_image *referenceImage,
                 activeVoxelNumber++;
         }
     }
-    const double adjustedWeight = timepointWeight / activeVoxelNumber;
+    const double adjustedWeight = timePointWeight / activeVoxelNumber;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -263,7 +263,7 @@ void GetVoxelBasedSimilarityMeasureGradient(nifti_image *referenceImage,
                                             nifti_image *jacobianDetImg,
                                             int *mask,
                                             int currentTimePoint,
-                                            double timepointWeight) {
+                                            double timePointWeight) {
     std::visit([&](auto&& refImgDataType) {
         using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
         reg_getKLDivergenceVoxelBasedGradient<RefImgDataType>(referenceImage,
@@ -273,7 +273,7 @@ void GetVoxelBasedSimilarityMeasureGradient(nifti_image *referenceImage,
                                                               jacobianDetImg,
                                                               mask,
                                                               currentTimePoint,
-                                                              timepointWeight);
+                                                              timePointWeight);
     }, NiftiImage::getFloatingDataType(referenceImage));
 }
 /* *************************************************************** */

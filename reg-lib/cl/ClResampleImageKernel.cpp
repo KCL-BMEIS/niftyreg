@@ -55,11 +55,11 @@ ClResampleImageKernel::ClResampleImageKernel(Content *conIn) : ResampleImageKern
 /* *************************************************************** */
 void ClResampleImageKernel::Calculate(int interp,
                                       float paddingValue,
-                                      bool *dti_timepoint,
+                                      bool *dtiTimePoint,
                                       mat33 *jacMat) {
     cl_int errNum;
     // Define the DTI indices if required
-    if (dti_timepoint != nullptr || jacMat != nullptr)
+    if (dtiTimePoint != nullptr || jacMat != nullptr)
         NR_FATAL_ERROR("The DTI resampling has not yet been implemented with the OpenCL platform");
 
     if (this->floatingImage->nz > 1) {

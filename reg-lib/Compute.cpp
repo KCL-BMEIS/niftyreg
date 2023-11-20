@@ -126,7 +126,7 @@ void Compute::UpdateControlPointPosition(float *currentDof,
     }
 }
 /* *************************************************************** */
-void Compute::GetImageGradient(int interpolation, float paddingValue, int activeTimepoint) {
+void Compute::GetImageGradient(int interpolation, float paddingValue, int activeTimePoint) {
     DefContent& con = dynamic_cast<DefContent&>(this->con);
     reg_getImageGradient(con.GetFloating(),
                          con.GetWarpedGradient(),
@@ -134,7 +134,7 @@ void Compute::GetImageGradient(int interpolation, float paddingValue, int active
                          con.GetReferenceMask(),
                          interpolation,
                          paddingValue,
-                         activeTimepoint);
+                         activeTimePoint);
 }
 /* *************************************************************** */
 double Compute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ) {

@@ -204,11 +204,11 @@ void reg_f3d<T>::Initialise() {
     NR_VERBOSE("\t* image spacing: " << this->inputReference->dx << " x " << this->inputReference->dy << " x " <<
                this->inputReference->dz << " mm");
     for (int i = 0; i < this->inputReference->nt; i++) {
-        NR_VERBOSE("\t* intensity threshold for timepoint " << i << "/" << this->inputReference->nt - 1 << ": [" <<
+        NR_VERBOSE("\t* intensity threshold for time point " << i << "/" << this->inputReference->nt - 1 << ": [" <<
                    this->referenceThresholdLow[i] << " " << this->referenceThresholdUp[i] << "]");
         if (this->measure_nmi) {
             if (this->measure_nmi->GetTimePointWeights()[i] > 0) {
-                NR_VERBOSE("\t* binning size for timepoint " << i << "/" << this->inputReference->nt - 1 << ": " <<
+                NR_VERBOSE("\t* binning size for time point " << i << "/" << this->inputReference->nt - 1 << ": " <<
                            this->measure_nmi->GetReferenceBinNumber()[i] - 4);
             }
         }
@@ -222,11 +222,11 @@ void reg_f3d<T>::Initialise() {
     NR_VERBOSE("\t* image spacing: " << this->inputFloating->dx << " x " << this->inputFloating->dy << " x " <<
                this->inputFloating->dz << " mm");
     for (int i = 0; i < this->inputFloating->nt; i++) {
-        NR_VERBOSE("\t* intensity threshold for timepoint " << i << "/" << this->inputFloating->nt - 1 << ": [" <<
+        NR_VERBOSE("\t* intensity threshold for time point " << i << "/" << this->inputFloating->nt - 1 << ": [" <<
                    this->floatingThresholdLow[i] << " " << this->floatingThresholdUp[i] << "]");
         if (this->measure_nmi) {
             if (this->measure_nmi->GetTimePointWeights()[i] > 0) {
-                NR_VERBOSE("\t* binning size for timepoint " << i << "/" << this->inputFloating->nt - 1 << ": " <<
+                NR_VERBOSE("\t* binning size for time point " << i << "/" << this->inputFloating->nt - 1 << ": " <<
                            this->measure_nmi->GetFloatingBinNumber()[i] - 4);
             }
         }

@@ -59,7 +59,7 @@ bool reg_isAnImageFileName(const char *name);
  * @param upThr Intensity to use as higher threshold
  */
 void reg_intensityRescale(nifti_image *image,
-                          int timepoint,
+                          int timePoint,
                           float newMin,
                           float newMax);
 /* *************************************************************** */
@@ -274,17 +274,17 @@ int reg_tools_removeNanFromMask(const nifti_image *image, int *mask);
 /* *************************************************************** */
 /** @brief Get the minimal value of an image
  * @param img Input image
- * @param timepoint active time point. All time points are used if set to -1
+ * @param timePoint active time point. All time points are used if set to -1
  * @return min value
  */
-float reg_tools_getMinValue(const nifti_image *img, int timepoint);
+float reg_tools_getMinValue(const nifti_image *img, int timePoint);
 /* *************************************************************** */
 /** @brief Get the maximal value of an image
  * @param img Input image
- * @param timepoint active time point. All time points are used if set to -1
+ * @param timePoint active time point. All time points are used if set to -1
  * @return max value
  */
-float reg_tools_getMaxValue(const nifti_image *img, int timepoint);
+float reg_tools_getMaxValue(const nifti_image *img, int timePoint);
 /* *************************************************************** */
 /** @brief Get the mean value of an image
  * @param img Input image

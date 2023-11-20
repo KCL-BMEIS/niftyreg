@@ -6,7 +6,7 @@
 class CpuResampleImageKernel: public ResampleImageKernel {
 public:
     CpuResampleImageKernel(Content *con);
-    void Calculate(int interp, float paddingValue, bool *dti_timepoint = nullptr, mat33 *jacMat = nullptr);
+    void Calculate(int interp, float paddingValue, bool *dtiTimePoint = nullptr, mat33 *jacMat = nullptr);
 
 private:
     nifti_image *floatingImage;

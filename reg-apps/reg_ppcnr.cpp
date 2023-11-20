@@ -1,7 +1,7 @@
 /**
  * @file reg_ppcnr.cpp
  * @author Andrew Melbourne
- * @brief Executable for 4D non-rigid and affine registration (Registration to a single timepoint, timeseries mean, local mean or Progressive Principal Component Registration)
+ * @brief Executable for 4D non-rigid and affine registration (Registration to a single time point, timeseries mean, local mean or Progressive Principal Component Registration)
  * @date 17/07/2013
  *
  *  Copyright (c) 2009-2018, University College London
@@ -110,7 +110,7 @@ void Usage(char *exec)
    NR_INFO("\n*** Alternative Registration Options:");
    NR_INFO("\t-mean \t\t\tIterative registration to the mean image only (no PPCR)."); // registration to the mean is quite inefficient as it uses the ppcr 4D->4D model.
    NR_INFO("\t-locality <int>\t\tIterative registration to the local mean image (pm <int> images - no PPCR).");
-   NR_INFO("\t-tp       <int>\t\tIterative registration to single timepoint (no PPCR).");
+   NR_INFO("\t-tp       <int>\t\tIterative registration to single time point (no PPCR).");
    NR_INFO("\t-noinit \t\tTurn off cpp initialisation from previous iteration.");
    //NR_INFO("\t-flirt \t\t\tfor PPCNR using Flirt affine registration (not tested)");
    NR_INFO("\n*** reg_f3d/reg_aladin options are carried through (use reg_f3d -h or reg_aladin -h to see these options).");
@@ -438,12 +438,12 @@ int main(int argc, char **argv)
    else if(flag->meanonly && flag->locality)
       NR_COUT << "Iterative registration to local mean only (pm" << param->locality << ") (Algorithm will ignore PCA results)----------------" << std::endl;
    else if(flag->tp)
-      NR_COUT << "Iterative registration to single timepoint only (" << param->tp << ") (Algorithm will ignore PCA results)----------------" << std::endl;
+      NR_COUT << "Iterative registration to single time point only (" << param->tp << ") (Algorithm will ignore PCA results)----------------" << std::endl;
    else
       NR_COUT << "PPCNR Parameters\n----------------" << std::endl;
    NR_COUT << "Source image name: " << param->sourceImageName << std::endl;
    if(flag->pmask) NR_COUT << "PCA Mask image name: " << param->pcaMaskName << std::endl;
-   NR_COUT << "Number of timepoints: " << image->nt << std::endl;
+   NR_COUT << "Number of time points: " << image->nt << std::endl;
    NR_COUT << "Number of principal components: " << param->prinComp << std::endl;
    NR_COUT << "Registration max iterations: " << param->maxIteration << std::endl;
 
@@ -718,7 +718,7 @@ int main(int argc, char **argv)
                z[i+image->nt*j]=1.0/sqrtf(image->nt*prinCompNumber); // is this right?! - if using NMI it's rather moot so I'm not too bothered at the moment...
       }
       if(flag->locality) NR_COUT << "Iterative registration to local mean only (pm " << param->locality << " images).\n";
-      if(flag->tp) NR_COUT << "Registration to single timepoint (" << param->tp << ").\n";
+      if(flag->tp) NR_COUT << "Registration to single time point (" << param->tp << ").\n";
 
       // 4. rebuild images
       nifti_image *imagep=nifti_dup(*image, false); // Need to make a new image that has the same info as the original.
@@ -742,7 +742,7 @@ int main(int argc, char **argv)
             }
          }
       }
-      else if(flag->tp)  // single timepoint
+      else if(flag->tp)  // single time point
       {
          PrecisionType *intensityPtr1 = static_cast<PrecisionType *>(image->data);
          PrecisionType *intensityPtr2 = static_cast<PrecisionType *>(imagep->data);
@@ -969,7 +969,7 @@ int main(int argc, char **argv)
    if(flag->locality)
       NR_COUT << "Registration to " << param->locality << "-local mean with " << param->prinComp << " iterations performed in " << minutes << " min " << seconds << " sec\n";
    if(flag->tp)
-      NR_COUT << "Single timepoint registration to image " << param->tp << " performed in " << minutes << " min " << seconds << " sec\n";
+      NR_COUT << "Single time point registration to image " << param->tp << " performed in " << minutes << " min " << seconds << " sec\n";
    if(flag->meanonly & !flag->locality)
       NR_COUT << "Registration to mean image with " << param->prinComp << " iterations performed in " << minutes << " min " << seconds << " sec\n";
    if(!flag->locality & !flag->meanonly & !flag->tp)

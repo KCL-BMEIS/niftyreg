@@ -49,9 +49,9 @@ public:
 
     virtual void SetRefAndFloatBinNumbers(unsigned short refBinNumber,
                                           unsigned short floBinNumber,
-                                          int timepoint) {
-        this->referenceBinNumber[timepoint] = refBinNumber;
-        this->floatingBinNumber[timepoint] = floBinNumber;
+                                          int timePoint) {
+        this->referenceBinNumber[timePoint] = refBinNumber;
+        this->floatingBinNumber[timePoint] = floBinNumber;
     }
     virtual void SetReferenceBinNumber(int b, int t) {
         this->referenceBinNumber[t] = b;

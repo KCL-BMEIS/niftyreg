@@ -115,7 +115,7 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
                                       float4 *ssdGradientCuda,
                                       const int *maskCuda,
                                       const size_t activeVoxelNumber,
-                                      const float timepointWeight) {
+                                      const float timePointWeight) {
     // Copy the constant memory variables
     const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
@@ -138,7 +138,7 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
         if (warValue != warValue) return false;
         return true;
     });
-    const float adjustedWeight = timepointWeight / static_cast<float>(validVoxelNumber);
+    const float adjustedWeight = timePointWeight / static_cast<float>(validVoxelNumber);
 
     const unsigned blocks = CudaContext::GetBlockSize()->GetSsdGradient;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));

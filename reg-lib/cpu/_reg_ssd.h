@@ -38,7 +38,7 @@ public:
                                    nifti_image *warpedGradBw = nullptr,
                                    nifti_image *voxelBasedGradBw = nullptr) override;
     /// @brief Define if the specified time point should be normalised
-    void SetNormaliseTimepoint(int timepoint, bool normalise);
+    void SetNormaliseTimePoint(int timePoint, bool normalise);
     /// @brief Returns the ssd value forwards
     virtual double GetSimilarityMeasureValueFw() override;
     /// @brief Returns the ssd value backwards
@@ -92,7 +92,7 @@ double reg_getSsdValue(const nifti_image *referenceImage,
  * @param mask Array that contains a mask to specify which voxel
  * should be considered
  * @param currentTimePoint Specifies which time point volumes have to be considered
- * @param timepointWeight Weight of the specified time point
+ * @param timePointWeight Weight of the specified time point
  * @param localWeightSim Image that contains the local weight similarity
  */
 template <class DataType>
@@ -103,6 +103,6 @@ void reg_getVoxelBasedSsdGradient(const nifti_image *referenceImage,
                                   const nifti_image *jacobianDetImage,
                                   const int *mask,
                                   const int currentTimePoint,
-                                  const double timepointWeight,
+                                  const double timePointWeight,
                                   const nifti_image *localWeightSim);
 /* *************************************************************** */
