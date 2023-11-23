@@ -1,10 +1,12 @@
-#include "_reg_optimiser_gpu.h"
-#include "_reg_optimiser_kernels.cu"
+#include "CudaOptimiser.hpp"
+#include "CudaOptimiserKernels.cu"
 #include "_reg_common_cuda_kernels.cu"
 #include <curand_kernel.h>
 
 /* *************************************************************** */
-reg_optimiser_gpu::reg_optimiser_gpu(): reg_optimiser<float>::reg_optimiser() {
+namespace NiftyReg {
+/* *************************************************************** */
+CudaOptimiser::CudaOptimiser(): Optimiser<float>::Optimiser() {
     this->currentDofCuda = nullptr;
     this->currentDofBwCuda = nullptr;
     this->bestDofCuda = nullptr;
@@ -14,7 +16,7 @@ reg_optimiser_gpu::reg_optimiser_gpu(): reg_optimiser<float>::reg_optimiser() {
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-reg_optimiser_gpu::~reg_optimiser_gpu() {
+CudaOptimiser::~CudaOptimiser() {
     if (this->bestDofCuda) {
         Cuda::Free(this->bestDofCuda);
         this->bestDofCuda = nullptr;
@@ -26,19 +28,19 @@ reg_optimiser_gpu::~reg_optimiser_gpu() {
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-void reg_optimiser_gpu::Initialise(size_t nvox,
-                                   int ndim,
-                                   bool optX,
-                                   bool optY,
-                                   bool optZ,
-                                   size_t maxIt,
-                                   size_t startIt,
-                                   InterfaceOptimiser *intOpt,
-                                   float *cppData,
-                                   float *gradData,
-                                   size_t nvoxBw,
-                                   float *cppDataBw,
-                                   float *gradDataBw) {
+void CudaOptimiser::Initialise(size_t nvox,
+                               int ndim,
+                               bool optX,
+                               bool optY,
+                               bool optZ,
+                               size_t maxIt,
+                               size_t startIt,
+                               InterfaceOptimiser *intOpt,
+                               float *cppData,
+                               float *gradData,
+                               size_t nvoxBw,
+                               float *cppDataBw,
+                               float *gradDataBw) {
     this->dofNumber = nvox;
     this->ndim = ndim;
     this->optimiseX = optX;
@@ -69,7 +71,7 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-void reg_optimiser_gpu::RestoreBestDof() {
+void CudaOptimiser::RestoreBestDof() {
     // Restore forward transformation
     NR_CUDA_SAFE_CALL(cudaMemcpy(this->currentDofCuda, this->bestDofCuda, this->GetVoxNumber() * sizeof(float4), cudaMemcpyDeviceToDevice));
     // Restore backward transformation if required
@@ -77,7 +79,7 @@ void reg_optimiser_gpu::RestoreBestDof() {
         NR_CUDA_SAFE_CALL(cudaMemcpy(this->currentDofBwCuda, this->bestDofBwCuda, this->GetVoxNumberBw() * sizeof(float4), cudaMemcpyDeviceToDevice));
 }
 /* *************************************************************** */
-void reg_optimiser_gpu::StoreCurrentDof() {
+void CudaOptimiser::StoreCurrentDof() {
     // Store forward transformation
     NR_CUDA_SAFE_CALL(cudaMemcpy(this->bestDofCuda, this->currentDofCuda, this->GetVoxNumber() * sizeof(float4), cudaMemcpyDeviceToDevice));
     // Store backward transformation if required
@@ -85,7 +87,7 @@ void reg_optimiser_gpu::StoreCurrentDof() {
         NR_CUDA_SAFE_CALL(cudaMemcpy(this->bestDofBwCuda, this->currentDofBwCuda, this->GetVoxNumberBw() * sizeof(float4), cudaMemcpyDeviceToDevice));
 }
 /* *************************************************************** */
-void reg_optimiser_gpu::Perturbation(float length) {
+void CudaOptimiser::Perturbation(float length) {
     // Reset the number of iteration
     this->currentIterationNumber = 0;
 
@@ -122,7 +124,7 @@ void reg_optimiser_gpu::Perturbation(float length) {
     this->currentObjFunctionValue = this->bestObjFunctionValue = this->intOpt->GetObjectiveFunctionValue();
 }
 /* *************************************************************** */
-reg_conjugateGradient_gpu::reg_conjugateGradient_gpu(): reg_optimiser_gpu::reg_optimiser_gpu() {
+CudaConjugateGradient::CudaConjugateGradient(): CudaOptimiser::CudaOptimiser() {
     this->array1 = nullptr;
     this->array1Bw = nullptr;
     this->array2 = nullptr;
@@ -130,7 +132,7 @@ reg_conjugateGradient_gpu::reg_conjugateGradient_gpu(): reg_optimiser_gpu::reg_o
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() {
+CudaConjugateGradient::~CudaConjugateGradient() {
     if (this->array1) {
         Cuda::Free(this->array1);
         this->array1 = nullptr;
@@ -150,20 +152,20 @@ reg_conjugateGradient_gpu::~reg_conjugateGradient_gpu() {
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-void reg_conjugateGradient_gpu::Initialise(size_t nvox,
-                                           int ndim,
-                                           bool optX,
-                                           bool optY,
-                                           bool optZ,
-                                           size_t maxIt,
-                                           size_t startIt,
-                                           InterfaceOptimiser *intOpt,
-                                           float *cppData,
-                                           float *gradData,
-                                           size_t nvoxBw,
-                                           float *cppDataBw,
-                                           float *gradDataBw) {
-    reg_optimiser_gpu::Initialise(nvox, ndim, optX, optY, optZ, maxIt, startIt, intOpt, cppData, gradData, nvoxBw, cppDataBw, gradDataBw);
+void CudaConjugateGradient::Initialise(size_t nvox,
+                                       int ndim,
+                                       bool optX,
+                                       bool optY,
+                                       bool optZ,
+                                       size_t maxIt,
+                                       size_t startIt,
+                                       InterfaceOptimiser *intOpt,
+                                       float *cppData,
+                                       float *gradData,
+                                       size_t nvoxBw,
+                                       float *cppDataBw,
+                                       float *gradDataBw) {
+    CudaOptimiser::Initialise(nvox, ndim, optX, optY, optZ, maxIt, startIt, intOpt, cppData, gradData, nvoxBw, cppDataBw, gradDataBw);
     this->firstCall = true;
     Cuda::Free(this->array1); Cuda::Free(this->array2);
     Cuda::Allocate<float4>(&this->array1, this->GetVoxNumber());
@@ -176,36 +178,36 @@ void reg_conjugateGradient_gpu::Initialise(size_t nvox,
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-void reg_conjugateGradient_gpu::UpdateGradientValues() {
+void CudaConjugateGradient::UpdateGradientValues() {
     if (this->firstCall) {
         NR_DEBUG("Conjugate gradient initialisation");
-        reg_initialiseConjugateGradient_gpu(this->gradientCuda, this->array1, this->array2, this->GetVoxNumber());
+        InitialiseConjugateGradient(this->gradientCuda, this->array1, this->array2, this->GetVoxNumber());
         if (this->isSymmetric)
-            reg_initialiseConjugateGradient_gpu(this->gradientBwCuda, this->array1Bw, this->array2Bw, this->GetVoxNumberBw());
+            InitialiseConjugateGradient(this->gradientBwCuda, this->array1Bw, this->array2Bw, this->GetVoxNumberBw());
         this->firstCall = false;
     } else {
         NR_DEBUG("Conjugate gradient update");
-        reg_getConjugateGradient_gpu(this->gradientCuda, this->array1, this->array2, this->GetVoxNumber(),
-                                     this->isSymmetric, this->gradientBwCuda, this->array1Bw, this->array2Bw, this->GetVoxNumberBw());
+        GetConjugateGradient(this->gradientCuda, this->array1, this->array2, this->GetVoxNumber(),
+                             this->isSymmetric, this->gradientBwCuda, this->array1Bw, this->array2Bw, this->GetVoxNumberBw());
     }
 }
 /* *************************************************************** */
-void reg_conjugateGradient_gpu::Optimise(float maxLength,
+void CudaConjugateGradient::Optimise(float maxLength,
                                          float smallLength,
                                          float& startLength) {
     this->UpdateGradientValues();
-    reg_optimiser_gpu::Optimise(maxLength, smallLength, startLength);
+    CudaOptimiser::Optimise(maxLength, smallLength, startLength);
 }
 /* *************************************************************** */
-void reg_conjugateGradient_gpu::Perturbation(float length) {
-    reg_optimiser_gpu::Perturbation(length);
+void CudaConjugateGradient::Perturbation(float length) {
+    CudaOptimiser::Perturbation(length);
     this->firstCall = true;
 }
 /* *************************************************************** */
-void reg_initialiseConjugateGradient_gpu(float4 *gradientImageCuda,
-                                         float4 *conjugateGCuda,
-                                         float4 *conjugateHCuda,
-                                         const size_t nVoxels) {
+void CudaConjugateGradient::InitialiseConjugateGradient(float4 *gradientImageCuda,
+                                                        float4 *conjugateGCuda,
+                                                        float4 *conjugateHCuda,
+                                                        const size_t nVoxels) {
     auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
 
     const unsigned blocks = CudaContext::GetBlockSize()->reg_initialiseConjugateGradient;
@@ -213,7 +215,7 @@ void reg_initialiseConjugateGradient_gpu(float4 *gradientImageCuda,
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
 
-    reg_initialiseConjugateGradient_kernel<<<gridDims, blockDims>>>(conjugateGCuda, *gradientImageTexture, (unsigned)nVoxels);
+    Cuda::InitialiseConjugateGradientKernel<<<gridDims, blockDims>>>(conjugateGCuda, *gradientImageTexture, (unsigned)nVoxels);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     NR_CUDA_SAFE_CALL(cudaMemcpy(conjugateHCuda, conjugateGCuda, nVoxels * sizeof(float4), cudaMemcpyDeviceToDevice));
 }
@@ -224,15 +226,15 @@ struct Float2Sum {
     }
 };
 /* *************************************************************** */
-void reg_getConjugateGradient_gpu(float4 *gradientImageCuda,
-                                  float4 *conjugateGCuda,
-                                  float4 *conjugateHCuda,
-                                  const size_t nVoxels,
-                                  const bool isSymmetric,
-                                  float4 *gradientImageBwCuda,
-                                  float4 *conjugateGBwCuda,
-                                  float4 *conjugateHBwCuda,
-                                  const size_t nVoxelsBw) {
+void CudaConjugateGradient::GetConjugateGradient(float4 *gradientImageCuda,
+                                                 float4 *conjugateGCuda,
+                                                 float4 *conjugateHCuda,
+                                                 const size_t nVoxels,
+                                                 const bool isSymmetric,
+                                                 float4 *gradientImageBwCuda,
+                                                 float4 *conjugateGBwCuda,
+                                                 float4 *conjugateHBwCuda,
+                                                 const size_t nVoxelsBw) {
     auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
     auto conjugateGTexture = Cuda::CreateTextureObject(conjugateGCuda, nVoxels, cudaChannelFormatKindFloat, 4);
     auto conjugateHTexture = Cuda::CreateTextureObject(conjugateHCuda, nVoxels, cudaChannelFormatKindFloat, 4);
@@ -250,8 +252,8 @@ void reg_getConjugateGradient_gpu(float4 *gradientImageCuda,
     dim3 gridDims(grids, grids, 1);
 
     thrust::device_vector<float2> sumsCuda(nVoxels + nVoxels % 2);  // Make it even for thrust::inner_product
-    reg_getConjugateGradient1_kernel<<<gridDims, blockDims>>>(sumsCuda.data().get(), *gradientImageTexture,
-                                                              *conjugateGTexture, *conjugateHTexture, (unsigned)nVoxels);
+    Cuda::GetConjugateGradientKernel1<<<gridDims, blockDims>>>(sumsCuda.data().get(), *gradientImageTexture,
+                                                         *conjugateGTexture, *conjugateHTexture, (unsigned)nVoxels);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     const size_t sumsSizeHalf = sumsCuda.size() / 2;
     const double2 gg = thrust::inner_product(sumsCuda.begin(), sumsCuda.begin() + sumsSizeHalf, sumsCuda.begin() + sumsSizeHalf,
@@ -262,8 +264,8 @@ void reg_getConjugateGradient_gpu(float4 *gradientImageCuda,
         gridDims = dim3(blocks, 1, 1);
         blockDims = dim3(grids, grids, 1);
         thrust::device_vector<float2> sumsBwCuda(nVoxelsBw + nVoxelsBw % 2);  // Make it even for thrust::inner_product
-        reg_getConjugateGradient1_kernel<<<gridDims, blockDims>>>(sumsBwCuda.data().get(), *gradientImageBwTexture,
-                                                                  *conjugateGBwTexture, *conjugateHBwTexture, (unsigned)nVoxelsBw);
+        Cuda::GetConjugateGradientKernel1<<<gridDims, blockDims>>>(sumsBwCuda.data().get(), *gradientImageBwTexture,
+                                                             *conjugateGBwTexture, *conjugateHBwTexture, (unsigned)nVoxelsBw);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         const size_t sumsBwSizeHalf = sumsBwCuda.size() / 2;
         const double2 ggBw = thrust::inner_product(sumsBwCuda.begin(), sumsBwCuda.begin() + sumsBwSizeHalf, sumsBwCuda.begin() + sumsBwSizeHalf,
@@ -275,25 +277,25 @@ void reg_getConjugateGradient_gpu(float4 *gradientImageCuda,
     grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
     gridDims = dim3(blocks, 1, 1);
     blockDims = dim3(grids, grids, 1);
-    reg_getConjugateGradient2_kernel<<<blockDims, gridDims>>>(gradientImageCuda, conjugateGCuda, conjugateHCuda, (unsigned)nVoxels, gam);
+    Cuda::GetConjugateGradientKernel2<<<blockDims, gridDims>>>(gradientImageCuda, conjugateGCuda, conjugateHCuda, (unsigned)nVoxels, gam);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     if (isSymmetric) {
         grids = (unsigned)Ceil(sqrtf((float)nVoxelsBw / (float)blocks));
         gridDims = dim3(blocks, 1, 1);
         blockDims = dim3(grids, grids, 1);
-        reg_getConjugateGradient2_kernel<<<blockDims, gridDims>>>(gradientImageBwCuda, conjugateGBwCuda, conjugateHBwCuda, (unsigned)nVoxelsBw, gam);
+        Cuda::GetConjugateGradientKernel2<<<blockDims, gridDims>>>(gradientImageBwCuda, conjugateGBwCuda, conjugateHBwCuda, (unsigned)nVoxelsBw, gam);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
 }
 /* *************************************************************** */
-void reg_updateControlPointPosition_gpu(const size_t nVoxels,
-                                        float4 *controlPointImageCuda,
-                                        const float4 *bestControlPointCuda,
-                                        const float4 *gradientImageCuda,
-                                        const float scale,
-                                        const bool optimiseX,
-                                        const bool optimiseY,
-                                        const bool optimiseZ) {
+void Cuda::UpdateControlPointPosition(const size_t nVoxels,
+                                      float4 *controlPointImageCuda,
+                                      const float4 *bestControlPointCuda,
+                                      const float4 *gradientImageCuda,
+                                      const float scale,
+                                      const bool optimiseX,
+                                      const bool optimiseY,
+                                      const bool optimiseZ) {
     auto bestControlPointTexture = Cuda::CreateTextureObject(bestControlPointCuda, nVoxels, cudaChannelFormatKindFloat, 4);
     auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
 
@@ -301,8 +303,10 @@ void reg_updateControlPointPosition_gpu(const size_t nVoxels,
     const unsigned grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
     const dim3 blockDims(blocks, 1, 1);
     const dim3 gridDims(grids, grids, 1);
-    reg_updateControlPointPosition_kernel<<<gridDims, blockDims>>>(controlPointImageCuda, *bestControlPointTexture, *gradientImageTexture,
-                                                                   (unsigned)nVoxels, scale, optimiseX, optimiseY, optimiseZ);
+    UpdateControlPointPositionKernel<<<gridDims, blockDims>>>(controlPointImageCuda, *bestControlPointTexture, *gradientImageTexture,
+                                                              (unsigned)nVoxels, scale, optimiseX, optimiseY, optimiseZ);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
+/* *************************************************************** */
+} // namespace NiftyReg
 /* *************************************************************** */

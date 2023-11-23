@@ -1,15 +1,14 @@
-/** @file _reg_optimiser.h
+/** @file Optimiser.hpp
  * @author Marc Modat
  * @date 20/07/2012
  */
 
 #pragma once
 
-#include "_reg_maths.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
+#include "_reg_tools.h"
 
+/* *************************************************************** */
+namespace NiftyReg {
 /* *************************************************************** */
 /** @brief Interface between the registration class and the optimiser
  */
@@ -23,11 +22,11 @@ public:
     virtual void UpdateBestObjFunctionValue() = 0;
 };
 /* *************************************************************** */
-/** @class reg_optimiser
+/** @class Optimiser
  * @brief Standard gradient ascent optimisation
  */
 template <class T>
-class reg_optimiser {
+class Optimiser {
 protected:
     bool isSymmetric;
     size_t dofNumber;
@@ -55,8 +54,8 @@ public:
     virtual void UpdateGradientValues() {}
 
 public:
-    reg_optimiser();
-    virtual ~reg_optimiser();
+    Optimiser();
+    virtual ~Optimiser();
     virtual void StoreCurrentDof();
     virtual void RestoreBestDof();
     virtual size_t GetDofNumber() {
@@ -141,11 +140,11 @@ public:
     virtual void Perturbation(float length);
 };
 /* *************************************************************** */
-/** @class reg_conjugateGradient
+/** @class ConjugateGradient
  * @brief Conjugate gradient ascent optimisation
  */
 template <class T>
-class reg_conjugateGradient: public reg_optimiser<T> {
+class ConjugateGradient: public Optimiser<T> {
 protected:
     T *array1;
     T *array1Bw;
@@ -159,8 +158,8 @@ public:
     virtual void UpdateGradientValues() override;
 
 public:
-    reg_conjugateGradient();
-    virtual ~reg_conjugateGradient();
+    ConjugateGradient();
+    virtual ~ConjugateGradient();
     virtual void Initialise(size_t nvox,
                             int ndim,
                             bool optX,
@@ -184,7 +183,7 @@ public:
  * @brief
  */
 template <class T>
-class reg_lbfgs: public reg_optimiser<T> {
+class Lbfgs: public Optimiser<T> {
 protected:
     size_t stepToKeep;
     T *oldDof;
@@ -198,8 +197,8 @@ public:
     virtual void UpdateGradientValues() override;
 
 public:
-    reg_lbfgs();
-    virtual ~reg_lbfgs();
+    Lbfgs();
+    virtual ~Lbfgs();
     virtual void Initialise(size_t nvox,
                             int ndim,
                             bool optX,
@@ -218,4 +217,5 @@ public:
                           T& startLength) override;
 };
 /* *************************************************************** */
-#include "_reg_optimiser.cpp"
+} // namespace NiftyReg
+/* *************************************************************** */

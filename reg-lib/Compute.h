@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Content.h"
-#include "_reg_optimiser.h"
+#include "Optimiser.hpp"
 
 class Compute {
 public:

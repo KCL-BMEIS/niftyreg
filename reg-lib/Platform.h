@@ -5,7 +5,7 @@
 #include "ContentCreatorFactory.h"
 #include "KernelFactory.h"
 #include "MeasureFactory.h"
-#include "_reg_optimiser.h"
+#include "Optimiser.hpp"
 
 enum class PlatformType { Cpu, Cuda, OpenCl };
 constexpr PlatformType PlatformTypes[] = {
@@ -33,14 +33,14 @@ public:
     Kernel* CreateKernel(const std::string& name, Content *con) const;
     Measure* CreateMeasure() const;
     template<typename Type>
-    reg_optimiser<Type>* CreateOptimiser(F3dContent& con,
-                                         InterfaceOptimiser& opt,
-                                         size_t maxIterationNumber,
-                                         bool useConjGradient,
-                                         bool optimiseX,
-                                         bool optimiseY,
-                                         bool optimiseZ,
-                                         F3dContent *conBw = nullptr) const;
+    Optimiser<Type>* CreateOptimiser(F3dContent& con,
+                                     InterfaceOptimiser& opt,
+                                     size_t maxIterationNumber,
+                                     bool useConjGradient,
+                                     bool optimiseX,
+                                     bool optimiseY,
+                                     bool optimiseZ,
+                                     F3dContent *conBw = nullptr) const;
 
     static constexpr bool IsCudaEnabled() {
 #ifdef USE_CUDA

@@ -25,7 +25,7 @@
 #include "_reg_lncc.h"
 #include "_reg_tools.h"
 #include "_reg_ReadWriteImage.h"
-#include "_reg_optimiser.h"
+#include "Optimiser.hpp"
 #include "Platform.h"
 
 /// @brief Base registration class
@@ -45,7 +45,7 @@ protected:
     unique_ptr<Measure> measure;
 
     // Optimiser-related variables
-    unique_ptr<reg_optimiser<T>> optimiser;
+    unique_ptr<Optimiser<T>> optimiser;
     size_t maxIterationNumber;
     size_t perturbationNumber;
     bool optimiseX;

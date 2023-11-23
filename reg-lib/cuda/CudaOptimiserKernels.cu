@@ -1,7 +1,9 @@
 /* *************************************************************** */
-__global__ void reg_initialiseConjugateGradient_kernel(float4 *conjugateGCuda,
-                                                       cudaTextureObject_t gradientImageTexture,
-                                                       const unsigned nVoxels) {
+namespace NiftyReg::Cuda {
+/* *************************************************************** */
+__global__ void InitialiseConjugateGradientKernel(float4 *conjugateGCuda,
+                                                  cudaTextureObject_t gradientImageTexture,
+                                                  const unsigned nVoxels) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < nVoxels) {
         const float4 gradValue = tex1Dfetch<float4>(gradientImageTexture, tid);
@@ -9,11 +11,11 @@ __global__ void reg_initialiseConjugateGradient_kernel(float4 *conjugateGCuda,
     }
 }
 /* *************************************************************** */
-__global__ void reg_getConjugateGradient1_kernel(float2 *sums,
-                                                 cudaTextureObject_t gradientImageTexture,
-                                                 cudaTextureObject_t conjugateGTexture,
-                                                 cudaTextureObject_t conjugateHTexture,
-                                                 const unsigned nVoxels) {
+__global__ void GetConjugateGradientKernel1(float2 *sums,
+                                            cudaTextureObject_t gradientImageTexture,
+                                            cudaTextureObject_t conjugateGTexture,
+                                            cudaTextureObject_t conjugateHTexture,
+                                            const unsigned nVoxels) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < nVoxels) {
         const float4 valueH = tex1Dfetch<float4>(conjugateHTexture, tid);
@@ -27,11 +29,11 @@ __global__ void reg_getConjugateGradient1_kernel(float2 *sums,
     }
 }
 /* *************************************************************** */
-__global__ void reg_getConjugateGradient2_kernel(float4 *gradientImageCuda,
-                                                 float4 *conjugateGCuda,
-                                                 float4 *conjugateHCuda,
-                                                 const unsigned nVoxels,
-                                                 const float scale) {
+__global__ void GetConjugateGradientKernel2(float4 *gradientImageCuda,
+                                            float4 *conjugateGCuda,
+                                            float4 *conjugateHCuda,
+                                            const unsigned nVoxels,
+                                            const float scale) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < nVoxels) {
         // G = - grad
@@ -51,14 +53,14 @@ __global__ void reg_getConjugateGradient2_kernel(float4 *gradientImageCuda,
     }
 }
 /* *************************************************************** */
-__global__ void reg_updateControlPointPosition_kernel(float4 *controlPointImageCuda,
-                                                      cudaTextureObject_t bestControlPointTexture,
-                                                      cudaTextureObject_t gradientImageTexture,
-                                                      const unsigned nVoxels,
-                                                      const float scale,
-                                                      const bool optimiseX,
-                                                      const bool optimiseY,
-                                                      const bool optimiseZ) {
+__global__ void UpdateControlPointPositionKernel(float4 *controlPointImageCuda,
+                                                 cudaTextureObject_t bestControlPointTexture,
+                                                 cudaTextureObject_t gradientImageTexture,
+                                                 const unsigned nVoxels,
+                                                 const float scale,
+                                                 const bool optimiseX,
+                                                 const bool optimiseY,
+                                                 const bool optimiseZ) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < nVoxels) {
         float4 value = controlPointImageCuda[tid];
@@ -73,4 +75,6 @@ __global__ void reg_updateControlPointPosition_kernel(float4 *controlPointImageC
         controlPointImageCuda[tid] = value;
     }
 }
+/* *************************************************************** */
+} // namespace NiftyReg::Cuda
 /* *************************************************************** */

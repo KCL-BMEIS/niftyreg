@@ -1,13 +1,15 @@
-/** @file _reg_optimiser.cpp
+/** @file Optimiser.cpp
  * @author Marc Modat
  * @date 20/07/2012
  */
 
-#include "_reg_optimiser.h"
+#include "Optimiser.hpp"
 
 /* *************************************************************** */
+namespace NiftyReg {
+/* *************************************************************** */
 template <class T>
-reg_optimiser<T>::reg_optimiser() {
+Optimiser<T>::Optimiser() {
     this->dofNumber = 0;
     this->dofNumberBw = 0;
     this->ndim = 3;
@@ -30,7 +32,7 @@ reg_optimiser<T>::reg_optimiser() {
 }
 /* *************************************************************** */
 template <class T>
-reg_optimiser<T>::~reg_optimiser() {
+Optimiser<T>::~Optimiser() {
     if (this->bestDof) {
         free(this->bestDof);
         this->bestDof = nullptr;
@@ -43,19 +45,19 @@ reg_optimiser<T>::~reg_optimiser() {
 }
 /* *************************************************************** */
 template <class T>
-void reg_optimiser<T>::Initialise(size_t nvox,
-                                  int ndim,
-                                  bool optX,
-                                  bool optY,
-                                  bool optZ,
-                                  size_t maxIt,
-                                  size_t startIt,
-                                  InterfaceOptimiser *intOpt,
-                                  T *cppData,
-                                  T *gradData,
-                                  size_t nvoxBw,
-                                  T *cppDataBw,
-                                  T *gradDataBw) {
+void Optimiser<T>::Initialise(size_t nvox,
+                              int ndim,
+                              bool optX,
+                              bool optY,
+                              bool optZ,
+                              size_t maxIt,
+                              size_t startIt,
+                              InterfaceOptimiser *intOpt,
+                              T *cppData,
+                              T *gradData,
+                              size_t nvoxBw,
+                              T *cppDataBw,
+                              T *gradDataBw) {
     this->dofNumber = nvox;
     this->ndim = ndim;
     this->optimiseX = optX;
@@ -87,7 +89,7 @@ void reg_optimiser<T>::Initialise(size_t nvox,
 }
 /* *************************************************************** */
 template <class T>
-void reg_optimiser<T>::RestoreBestDof() {
+void Optimiser<T>::RestoreBestDof() {
     // Restore forward transformation
     memcpy(this->currentDof, this->bestDof, this->dofNumber * sizeof(T));
     // Restore backward transformation if required
@@ -96,7 +98,7 @@ void reg_optimiser<T>::RestoreBestDof() {
 }
 /* *************************************************************** */
 template <class T>
-void reg_optimiser<T>::StoreCurrentDof() {
+void Optimiser<T>::StoreCurrentDof() {
     // Save forward transformation
     memcpy(this->bestDof, this->currentDof, this->dofNumber * sizeof(T));
     // Save backward transformation if required
@@ -105,7 +107,7 @@ void reg_optimiser<T>::StoreCurrentDof() {
 }
 /* *************************************************************** */
 template <class T>
-void reg_optimiser<T>::Perturbation(float length) {
+void Optimiser<T>::Perturbation(float length) {
     // Initialise the randomiser
     srand((unsigned)time(nullptr));
     // Reset the number of iteration
@@ -124,7 +126,7 @@ void reg_optimiser<T>::Perturbation(float length) {
 }
 /* *************************************************************** */
 template <class T>
-void reg_optimiser<T>::Optimise(T maxLength, T smallLength, T& startLength) {
+void Optimiser<T>::Optimise(T maxLength, T smallLength, T& startLength) {
     size_t lineIteration = 0;
     float addedLength = 0;
     float currentLength = static_cast<float>(startLength);
@@ -170,8 +172,11 @@ void reg_optimiser<T>::Optimise(T maxLength, T smallLength, T& startLength) {
     this->RestoreBestDof();
 }
 /* *************************************************************** */
+template class Optimiser<float>;
+template class Optimiser<double>;
+/* *************************************************************** */
 template <class T>
-reg_conjugateGradient<T>::reg_conjugateGradient(): reg_optimiser<T>::reg_optimiser() {
+ConjugateGradient<T>::ConjugateGradient(): Optimiser<T>::Optimiser() {
     this->array1 = nullptr;
     this->array1Bw = nullptr;
     this->array2 = nullptr;
@@ -180,7 +185,7 @@ reg_conjugateGradient<T>::reg_conjugateGradient(): reg_optimiser<T>::reg_optimis
 }
 /* *************************************************************** */
 template <class T>
-reg_conjugateGradient<T>::~reg_conjugateGradient() {
+ConjugateGradient<T>::~ConjugateGradient() {
     if (this->array1) {
         free(this->array1);
         this->array1 = nullptr;
@@ -201,20 +206,20 @@ reg_conjugateGradient<T>::~reg_conjugateGradient() {
 }
 /* *************************************************************** */
 template <class T>
-void reg_conjugateGradient<T>::Initialise(size_t nvox,
-                                          int ndim,
-                                          bool optX,
-                                          bool optY,
-                                          bool optZ,
-                                          size_t maxIt,
-                                          size_t startIt,
-                                          InterfaceOptimiser *intOpt,
-                                          T *cppData,
-                                          T *gradData,
-                                          size_t nvoxBw,
-                                          T *cppDataBw,
-                                          T *gradDataBw) {
-    reg_optimiser<T>::Initialise(nvox, ndim, optX, optY, optZ, maxIt, startIt, intOpt, cppData, gradData, nvoxBw, cppDataBw, gradDataBw);
+void ConjugateGradient<T>::Initialise(size_t nvox,
+                                      int ndim,
+                                      bool optX,
+                                      bool optY,
+                                      bool optZ,
+                                      size_t maxIt,
+                                      size_t startIt,
+                                      InterfaceOptimiser *intOpt,
+                                      T *cppData,
+                                      T *gradData,
+                                      size_t nvoxBw,
+                                      T *cppDataBw,
+                                      T *gradDataBw) {
+    Optimiser<T>::Initialise(nvox, ndim, optX, optY, optZ, maxIt, startIt, intOpt, cppData, gradData, nvoxBw, cppDataBw, gradDataBw);
     this->firstCall = true;
     if (this->array1) free(this->array1);
     if (this->array2) free(this->array2);
@@ -232,7 +237,7 @@ void reg_conjugateGradient<T>::Initialise(size_t nvox,
 }
 /* *************************************************************** */
 template <class T>
-void reg_conjugateGradient<T>::UpdateGradientValues() {
+void ConjugateGradient<T>::UpdateGradientValues() {
 #ifdef WIN32
     long i;
     long num = (long)this->dofNumber;
@@ -321,21 +326,22 @@ void reg_conjugateGradient<T>::UpdateGradientValues() {
 }
 /* *************************************************************** */
 template <class T>
-void reg_conjugateGradient<T>::Optimise(T maxLength,
-                                        T smallLength,
-                                        T &startLength) {
+void ConjugateGradient<T>::Optimise(T maxLength, T smallLength, T& startLength) {
     this->UpdateGradientValues();
-    reg_optimiser<T>::Optimise(maxLength, smallLength, startLength);
+    Optimiser<T>::Optimise(maxLength, smallLength, startLength);
 }
 /* *************************************************************** */
 template <class T>
-void reg_conjugateGradient<T>::Perturbation(float length) {
-    reg_optimiser<T>::Perturbation(length);
+void ConjugateGradient<T>::Perturbation(float length) {
+    Optimiser<T>::Perturbation(length);
     this->firstCall = true;
 }
 /* *************************************************************** */
+template class ConjugateGradient<float>;
+template class ConjugateGradient<double>;
+/* *************************************************************** */
 template <class T>
-reg_lbfgs<T>::reg_lbfgs(): reg_optimiser<T>::reg_optimiser() {
+Lbfgs<T>::Lbfgs(): Optimiser<T>::Optimiser() {
     this->stepToKeep = 5;
     this->oldDof = nullptr;
     this->oldGrad = nullptr;
@@ -344,7 +350,7 @@ reg_lbfgs<T>::reg_lbfgs(): reg_optimiser<T>::reg_optimiser() {
 }
 /* *************************************************************** */
 template <class T>
-reg_lbfgs<T>::~reg_lbfgs() {
+Lbfgs<T>::~Lbfgs() {
     if (this->oldDof) {
         free(this->oldDof);
         this->oldDof = nullptr;
@@ -374,20 +380,20 @@ reg_lbfgs<T>::~reg_lbfgs() {
 }
 /* *************************************************************** */
 template <class T>
-void reg_lbfgs<T>::Initialise(size_t nvox,
-                              int ndim,
-                              bool optX,
-                              bool optY,
-                              bool optZ,
-                              size_t maxIt,
-                              size_t startIt,
-                              InterfaceOptimiser *intOpt,
-                              T *cppData,
-                              T *gradData,
-                              size_t nvoxBw,
-                              T *cppDataBw,
-                              T *gradDataBw) {
-    reg_optimiser<T>::Initialise(nvox, ndim, optX, optY, optZ, maxIt, startIt, intOpt, cppData, gradData, nvoxBw, cppDataBw, gradDataBw);
+void Lbfgs<T>::Initialise(size_t nvox,
+                          int ndim,
+                          bool optX,
+                          bool optY,
+                          bool optZ,
+                          size_t maxIt,
+                          size_t startIt,
+                          InterfaceOptimiser *intOpt,
+                          T *cppData,
+                          T *gradData,
+                          size_t nvoxBw,
+                          T *cppDataBw,
+                          T *gradDataBw) {
+    Optimiser<T>::Initialise(nvox, ndim, optX, optY, optZ, maxIt, startIt, intOpt, cppData, gradData, nvoxBw, cppDataBw, gradDataBw);
     this->stepToKeep = 5;
     this->diffDof = (T**)malloc(this->stepToKeep * sizeof(T*));
     this->diffGrad = (T**)malloc(this->stepToKeep * sizeof(T*));
@@ -404,17 +410,15 @@ void reg_lbfgs<T>::Initialise(size_t nvox,
 }
 /* *************************************************************** */
 template <class T>
-void reg_lbfgs<T>::UpdateGradientValues() {
-
+void Lbfgs<T>::UpdateGradientValues() {
+    NR_FATAL_ERROR("Not implemented");
 }
 /* *************************************************************** */
 template <class T>
-void reg_lbfgs<T>::Optimise(T maxLength,
-                            T smallLength,
-                            T &startLength) {
+void Lbfgs<T>::Optimise(T maxLength, T smallLength, T& startLength) {
     this->UpdateGradientValues();
-    reg_optimiser<T>::Optimise(maxLength,
-                               smallLength,
-                               startLength);
+    Optimiser<T>::Optimise(maxLength, smallLength, startLength);
 }
+/* *************************************************************** */
+} // namespace NiftyReg
 /* *************************************************************** */

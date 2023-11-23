@@ -3,8 +3,8 @@
 #include "CudaKernelConvolution.hpp"
 #include "CudaNormaliseGradient.hpp"
 #include "CudaResampling.hpp"
+#include "CudaOptimiser.hpp"
 #include "_reg_localTransformation_gpu.h"
-#include "_reg_optimiser_gpu.h"
 
 /* *************************************************************** */
 void CudaCompute::ResampleImage(int interpolation, float paddingValue) {
@@ -116,14 +116,14 @@ void CudaCompute::UpdateControlPointPosition(float *currentDof,
                                              const bool optimiseX,
                                              const bool optimiseY,
                                              const bool optimiseZ) {
-    reg_updateControlPointPosition_gpu(NiftiImage::calcVoxelNumber(dynamic_cast<CudaF3dContent&>(con).F3dContent::GetControlPointGrid(), 3),
-                                       reinterpret_cast<float4*>(currentDof),
-                                       reinterpret_cast<const float4*>(bestDof),
-                                       reinterpret_cast<const float4*>(gradient),
-                                       scale,
-                                       optimiseX,
-                                       optimiseY,
-                                       optimiseZ);
+    Cuda::UpdateControlPointPosition(NiftiImage::calcVoxelNumber(dynamic_cast<CudaF3dContent&>(con).F3dContent::GetControlPointGrid(), 3),
+                                     reinterpret_cast<float4*>(currentDof),
+                                     reinterpret_cast<const float4*>(bestDof),
+                                     reinterpret_cast<const float4*>(gradient),
+                                     scale,
+                                     optimiseX,
+                                     optimiseY,
+                                     optimiseZ);
 }
 /* *************************************************************** */
 void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimePoint) {

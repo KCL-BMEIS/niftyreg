@@ -68,13 +68,13 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaLtsKernel.cpp
     CudaMeasure.cpp
     CudaNormaliseGradient.cu
+    CudaOptimiser.cu
     CudaResampleImageKernel.cpp
     CudaResampling.cu
     resampleKernel.cu
     _reg_globalTransformation_gpu.cu
     _reg_localTransformation_gpu.cu
     _reg_nmi_gpu.cu
-    _reg_optimiser_gpu.cu
     _reg_ssd_gpu.cu
     _reg_tools_gpu.cu
 )

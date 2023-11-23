@@ -15,7 +15,7 @@
 #pragma once
 
 #include "_reg_measure.h"
-#include "_reg_optimiser.h"
+#include "Optimiser.hpp"
 #include "_reg_localTrans_regul.h"
 #include "_reg_localTrans.h"
 #include "_reg_ReadWriteImage.h"

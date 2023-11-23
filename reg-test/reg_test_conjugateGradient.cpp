@@ -263,7 +263,7 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
             NiftiImage controlPointGridExpected = bestControlPointGrid;
 
             // Update the control point position
-            unique_ptr<reg_optimiser<float>> optimiser{ platform->template CreateOptimiser<float>(*content, *this, 0, true, optimiseX, optimiseY, optimiseZ) };
+            unique_ptr<Optimiser<float>> optimiser{ platform->template CreateOptimiser<float>(*content, *this, 0, true, optimiseX, optimiseY, optimiseZ) };
             unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
             compute->UpdateControlPointPosition(optimiser->GetCurrentDof(), optimiser->GetBestDof(), optimiser->GetGradient(), scale, optimiseX, optimiseY, optimiseZ);
             UpdateControlPointPosition(controlPointGridExpected, bestControlPointGrid, transGrad, scale, optimiseX, optimiseY, optimiseZ);

@@ -110,6 +110,7 @@ add_library(_reg_compute ${NIFTYREG_LIBRARY_TYPE}
   Content.cpp
   DefContent.cpp
   F3dContent.cpp
+  Optimiser.cpp
   Platform.cpp
   Measure.cpp
 )
