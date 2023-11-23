@@ -1,6 +1,7 @@
 #include "_reg_optimiser_gpu.h"
 #include "_reg_optimiser_kernels.cu"
 #include "_reg_common_cuda_kernels.cu"
+#include <curand_kernel.h>
 
 /* *************************************************************** */
 reg_optimiser_gpu::reg_optimiser_gpu(): reg_optimiser<float>::reg_optimiser() {
@@ -85,7 +86,40 @@ void reg_optimiser_gpu::StoreCurrentDof() {
 }
 /* *************************************************************** */
 void reg_optimiser_gpu::Perturbation(float length) {
-    // TODO: Implement reg_optimiser_gpu::Perturbation()
+    // Reset the number of iteration
+    this->currentIterationNumber = 0;
+
+    auto perturbate = []__device__(float4 *currentDofCuda, cudaTextureObject_t bestDofTexture, const float length, const size_t index) {
+        curandState_t state;
+        curand_init(clock64(), index, 0, &state);
+        const float4 bestDofVal = tex1Dfetch<float4>(bestDofTexture, index);
+        float4 curDofVal = currentDofCuda[index];
+        curDofVal.x = bestDofVal.x + length * curand_uniform(&state);
+        curDofVal.y = bestDofVal.y + length * curand_uniform(&state);
+        curDofVal.z = bestDofVal.z + length * curand_uniform(&state);
+        curDofVal.w = bestDofVal.w + length * curand_uniform(&state);
+        currentDofCuda[index] = curDofVal;
+    };
+
+    // Create some perturbation for degree of freedom
+    const size_t voxNumber = this->GetVoxNumber();
+    auto currentDofCuda = this->currentDofCuda;
+    auto bestDofTexturePtr = Cuda::CreateTextureObject(this->bestDofCuda, voxNumber, cudaChannelFormatKindFloat, 4);
+    auto bestDofTexture = *bestDofTexturePtr;
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxNumber, [=]__device__(const size_t index) {
+        perturbate(currentDofCuda, bestDofTexture, length, index);
+    });
+    if (this->isSymmetric) {
+        const size_t voxNumberBw = this->GetVoxNumberBw();
+        auto currentDofBwCuda = this->currentDofBwCuda;
+        auto bestDofBwTexturePtr = Cuda::CreateTextureObject(this->bestDofBwCuda, voxNumberBw, cudaChannelFormatKindFloat, 4);
+        auto bestDofBwTexture = *bestDofBwTexturePtr;
+        thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxNumberBw, [=]__device__(const size_t index) {
+            perturbate(currentDofBwCuda, bestDofBwTexture, length, index);
+        });
+    }
+    this->StoreCurrentDof();
+    this->currentObjFunctionValue = this->bestObjFunctionValue = this->intOpt->GetObjectiveFunctionValue();
 }
 /* *************************************************************** */
 reg_conjugateGradient_gpu::reg_conjugateGradient_gpu(): reg_optimiser_gpu::reg_optimiser_gpu() {
@@ -160,7 +194,7 @@ void reg_conjugateGradient_gpu::Optimise(float maxLength,
                                          float smallLength,
                                          float& startLength) {
     this->UpdateGradientValues();
-    reg_optimiser::Optimise(maxLength, smallLength, startLength);
+    reg_optimiser_gpu::Optimise(maxLength, smallLength, startLength);
 }
 /* *************************************************************** */
 void reg_conjugateGradient_gpu::Perturbation(float length) {
