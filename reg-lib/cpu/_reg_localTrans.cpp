@@ -13,7 +13,8 @@
 #include "_reg_localTrans.h"
 #include "_reg_maths_eigen.h"
 
-#ifdef BUILD_TESTS
+// Due to SSE usage creates incorrect test results
+#if defined(BUILD_TESTS) && !defined(NDEBUG)
 #undef USE_SSE
 #endif
 

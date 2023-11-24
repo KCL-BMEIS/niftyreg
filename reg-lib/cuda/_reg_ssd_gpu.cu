@@ -83,7 +83,7 @@ double reg_getSsdValue_gpu(const nifti_image *referenceImage,
             const double weight = localWeightSimTexture ? tex1Dfetch<float>(localWeightSimTexture, index) : 1.f;
             const double diff = refValue - warValue;
             return { Square(diff) * weight, weight };  // ssd and count
-        }, make_double2(0.0, 0.0), thrust::plus<double2>());
+        }, make_double2(0, 0), thrust::plus<double2>());
 
         ssd += (ssdAndCount.x * timePointWeights[t]) / ssdAndCount.y;
     }
