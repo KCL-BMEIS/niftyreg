@@ -67,19 +67,6 @@ protected:
     float4 *array2, *array2Bw;
     bool firstCall;
 
-    void InitialiseConjugateGradient(float4 *gradientImageCuda,
-                                     float4 *conjugateGCuda,
-                                     float4 *conjugateHCuda,
-                                     const size_t nVoxels);
-    void GetConjugateGradient(float4 *gradientImageCuda,
-                              float4 *conjugateGCuda,
-                              float4 *conjugateHCuda,
-                              const size_t nVoxels,
-                              const bool isSymmetric,
-                              float4 *gradientImageBwCuda,
-                              float4 *conjugateGBwCuda,
-                              float4 *conjugateHBwCuda,
-                              const size_t nVoxelsBw);
 #ifdef NR_TESTING
 public:
 #endif
@@ -107,19 +94,6 @@ public:
                           float& startLength) override;
     virtual void Perturbation(float length) override;
 };
-/* *************************************************************** */
-namespace Cuda {
-/* *************************************************************** */
-void UpdateControlPointPosition(const size_t nVoxels,
-                                float4 *controlPointImageCuda,
-                                const float4 *bestControlPointCuda,
-                                const float4 *gradientImageCuda,
-                                const float scale,
-                                const bool optimiseX,
-                                const bool optimiseY,
-                                const bool optimiseZ);
-/* *************************************************************** */
-} // namespace Cuda
 /* *************************************************************** */
 } // namespace NiftyReg
 /* *************************************************************** */

@@ -1,5 +1,4 @@
 #include "CudaOptimiser.hpp"
-#include "CudaOptimiserKernels.cu"
 #include "_reg_common_cuda_kernels.cu"
 #include <curand_kernel.h>
 
@@ -178,20 +177,6 @@ void CudaConjugateGradient::Initialise(size_t nvox,
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-void CudaConjugateGradient::UpdateGradientValues() {
-    if (this->firstCall) {
-        NR_DEBUG("Conjugate gradient initialisation");
-        InitialiseConjugateGradient(this->gradientCuda, this->array1, this->array2, this->GetVoxNumber());
-        if (this->isSymmetric)
-            InitialiseConjugateGradient(this->gradientBwCuda, this->array1Bw, this->array2Bw, this->GetVoxNumberBw());
-        this->firstCall = false;
-    } else {
-        NR_DEBUG("Conjugate gradient update");
-        GetConjugateGradient(this->gradientCuda, this->array1, this->array2, this->GetVoxNumber(),
-                             this->isSymmetric, this->gradientBwCuda, this->array1Bw, this->array2Bw, this->GetVoxNumberBw());
-    }
-}
-/* *************************************************************** */
 void CudaConjugateGradient::Optimise(float maxLength,
                                          float smallLength,
                                          float& startLength) {
@@ -204,108 +189,107 @@ void CudaConjugateGradient::Perturbation(float length) {
     this->firstCall = true;
 }
 /* *************************************************************** */
-void CudaConjugateGradient::InitialiseConjugateGradient(float4 *gradientImageCuda,
-                                                        float4 *conjugateGCuda,
-                                                        float4 *conjugateHCuda,
-                                                        const size_t nVoxels) {
-    auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
-
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_initialiseConjugateGradient;
-    const unsigned grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
-    const dim3 gridDims(grids, grids, 1);
-    const dim3 blockDims(blocks, 1, 1);
-
-    Cuda::InitialiseConjugateGradientKernel<<<gridDims, blockDims>>>(conjugateGCuda, *gradientImageTexture, (unsigned)nVoxels);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-    NR_CUDA_SAFE_CALL(cudaMemcpy(conjugateHCuda, conjugateGCuda, nVoxels * sizeof(float4), cudaMemcpyDeviceToDevice));
+void InitialiseConjugateGradient(float4 *gradientCuda, float4 *conjugateGCuda, float4 *conjugateHCuda, const size_t nVoxels) {
+    auto gradientTexturePtr = Cuda::CreateTextureObject(gradientCuda, nVoxels, cudaChannelFormatKindFloat, 4);
+    auto gradientTexture = *gradientTexturePtr;
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), nVoxels, [=]__device__(const int index) {
+        const float4 gradValue = tex1Dfetch<float4>(gradientTexture, index);
+        conjugateGCuda[index] = conjugateHCuda[index] = make_float4(-gradValue.x, -gradValue.y, -gradValue.z, 0);
+    });
 }
 /* *************************************************************** */
-struct Float2Sum {
-    __host__ __device__ double2 operator()(const float2& a, const float2& b) const {
-        return make_double2((double)a.x + (double)b.x, (double)a.y + (double)b.y);
-    }
-};
-/* *************************************************************** */
-void CudaConjugateGradient::GetConjugateGradient(float4 *gradientImageCuda,
-                                                 float4 *conjugateGCuda,
-                                                 float4 *conjugateHCuda,
-                                                 const size_t nVoxels,
-                                                 const bool isSymmetric,
-                                                 float4 *gradientImageBwCuda,
-                                                 float4 *conjugateGBwCuda,
-                                                 float4 *conjugateHBwCuda,
-                                                 const size_t nVoxelsBw) {
-    auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
-    auto conjugateGTexture = Cuda::CreateTextureObject(conjugateGCuda, nVoxels, cudaChannelFormatKindFloat, 4);
-    auto conjugateHTexture = Cuda::CreateTextureObject(conjugateHCuda, nVoxels, cudaChannelFormatKindFloat, 4);
-    Cuda::UniqueTextureObjectPtr gradientImageBwTexture, conjugateGBwTexture, conjugateHBwTexture;
+void GetConjugateGradient(float4 *gradientCuda,
+                          float4 *conjugateGCuda,
+                          float4 *conjugateHCuda,
+                          const size_t nVoxels,
+                          const bool isSymmetric,
+                          float4 *gradientBwCuda,
+                          float4 *conjugateGBwCuda,
+                          float4 *conjugateHBwCuda,
+                          const size_t nVoxelsBw) {
+    auto gradientTexturePtr = Cuda::CreateTextureObject(gradientCuda, nVoxels, cudaChannelFormatKindFloat, 4);
+    auto conjugateGTexturePtr = Cuda::CreateTextureObject(conjugateGCuda, nVoxels, cudaChannelFormatKindFloat, 4);
+    auto conjugateHTexturePtr = Cuda::CreateTextureObject(conjugateHCuda, nVoxels, cudaChannelFormatKindFloat, 4);
+    auto gradientTexture = *gradientTexturePtr;
+    auto conjugateGTexture = *conjugateGTexturePtr;
+    auto conjugateHTexture = *conjugateHTexturePtr;
+    Cuda::UniqueTextureObjectPtr gradientBwTexturePtr, conjugateGBwTexturePtr, conjugateHBwTexturePtr;
+    cudaTextureObject_t gradientBwTexture = 0, conjugateGBwTexture = 0, conjugateHBwTexture = 0;
     if (isSymmetric) {
-        gradientImageBwTexture = Cuda::CreateTextureObject(gradientImageBwCuda, nVoxelsBw, cudaChannelFormatKindFloat, 4);
-        conjugateGBwTexture = Cuda::CreateTextureObject(conjugateGBwCuda, nVoxelsBw, cudaChannelFormatKindFloat, 4);
-        conjugateHBwTexture = Cuda::CreateTextureObject(conjugateHBwCuda, nVoxelsBw, cudaChannelFormatKindFloat, 4);
+        gradientBwTexturePtr = Cuda::CreateTextureObject(gradientBwCuda, nVoxelsBw, cudaChannelFormatKindFloat, 4);
+        conjugateGBwTexturePtr = Cuda::CreateTextureObject(conjugateGBwCuda, nVoxelsBw, cudaChannelFormatKindFloat, 4);
+        conjugateHBwTexturePtr = Cuda::CreateTextureObject(conjugateHBwCuda, nVoxelsBw, cudaChannelFormatKindFloat, 4);
+        gradientBwTexture = *gradientBwTexturePtr;
+        conjugateGBwTexture = *conjugateGBwTexturePtr;
+        conjugateHBwTexture = *conjugateHBwTexturePtr;
     }
 
     // gam = sum((grad+g)*grad)/sum(HxG);
-    unsigned blocks = CudaContext::GetBlockSize()->reg_getConjugateGradient1;
-    unsigned grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
-    dim3 blockDims(blocks, 1, 1);
-    dim3 gridDims(grids, grids, 1);
+    auto calcGam = []__device__(cudaTextureObject_t gradientTexture, cudaTextureObject_t conjugateGTexture,
+                                cudaTextureObject_t conjugateHTexture, const int index) {
+        const float4 hValue = tex1Dfetch<float4>(conjugateHTexture, index);
+        const float4 gValue = tex1Dfetch<float4>(conjugateGTexture, index);
+        const float gg = gValue.x * hValue.x + gValue.y * hValue.y + gValue.z * hValue.z;
 
-    thrust::device_vector<float2> sumsCuda(nVoxels + nVoxels % 2);  // Make it even for thrust::inner_product
-    Cuda::GetConjugateGradientKernel1<<<gridDims, blockDims>>>(sumsCuda.data().get(), *gradientImageTexture,
-                                                         *conjugateGTexture, *conjugateHTexture, (unsigned)nVoxels);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-    const size_t sumsSizeHalf = sumsCuda.size() / 2;
-    const double2 gg = thrust::inner_product(sumsCuda.begin(), sumsCuda.begin() + sumsSizeHalf, sumsCuda.begin() + sumsSizeHalf,
-                                             make_double2(0, 0), thrust::plus<double2>(), Float2Sum());
-    float gam = static_cast<float>(gg.x / gg.y);
-    if (isSymmetric) {
-        grids = (unsigned)Ceil(sqrtf((float)nVoxelsBw / (float)blocks));
-        gridDims = dim3(blocks, 1, 1);
-        blockDims = dim3(grids, grids, 1);
-        thrust::device_vector<float2> sumsBwCuda(nVoxelsBw + nVoxelsBw % 2);  // Make it even for thrust::inner_product
-        Cuda::GetConjugateGradientKernel1<<<gridDims, blockDims>>>(sumsBwCuda.data().get(), *gradientImageBwTexture,
-                                                             *conjugateGBwTexture, *conjugateHBwTexture, (unsigned)nVoxelsBw);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-        const size_t sumsBwSizeHalf = sumsBwCuda.size() / 2;
-        const double2 ggBw = thrust::inner_product(sumsBwCuda.begin(), sumsBwCuda.begin() + sumsBwSizeHalf, sumsBwCuda.begin() + sumsBwSizeHalf,
-                                                   make_double2(0, 0), thrust::plus<double2>(), Float2Sum());
-        gam = static_cast<float>((gg.x + ggBw.x) / (gg.y + ggBw.y));
-    }
+        const float4 grad = tex1Dfetch<float4>(gradientTexture, index);
+        const float dgg = (grad.x + gValue.x) * grad.x + (grad.y + gValue.y) * grad.y + (grad.z + gValue.z) * grad.z;
 
-    blocks = (unsigned)CudaContext::GetBlockSize()->reg_getConjugateGradient2;
-    grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
-    gridDims = dim3(blocks, 1, 1);
-    blockDims = dim3(grids, grids, 1);
-    Cuda::GetConjugateGradientKernel2<<<blockDims, gridDims>>>(gradientImageCuda, conjugateGCuda, conjugateHCuda, (unsigned)nVoxels, gam);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+        return make_double2(dgg, gg);
+    };
+
+    double gam;
+    thrust::counting_iterator<int> it(0);
+    const double2 gg = thrust::transform_reduce(thrust::device, it, it + nVoxels, [=]__device__(const int index) {
+        return calcGam(gradientTexture, conjugateGTexture, conjugateHTexture, index);
+    }, make_double2(0, 0), thrust::plus<double2>());
     if (isSymmetric) {
-        grids = (unsigned)Ceil(sqrtf((float)nVoxelsBw / (float)blocks));
-        gridDims = dim3(blocks, 1, 1);
-        blockDims = dim3(grids, grids, 1);
-        Cuda::GetConjugateGradientKernel2<<<blockDims, gridDims>>>(gradientImageBwCuda, conjugateGBwCuda, conjugateHBwCuda, (unsigned)nVoxelsBw, gam);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+        it = thrust::counting_iterator<int>(0);
+        const double2 ggBw = thrust::transform_reduce(thrust::device, it, it + nVoxelsBw, [=]__device__(const int index) {
+            return calcGam(gradientBwTexture, conjugateGBwTexture, conjugateHBwTexture, index);
+        }, make_double2(0, 0), thrust::plus<double2>());
+        gam = (gg.x + ggBw.x) / (gg.y + ggBw.y);
+    } else gam = gg.x / gg.y;
+
+    // Conjugate gradient
+    auto conjugate = [gam]__device__(float4 *gradientCuda, float4 *conjugateGCuda, float4 *conjugateHCuda,
+                                     cudaTextureObject_t gradientTexture, cudaTextureObject_t conjugateHTexture, const int index) {
+        // G = -grad
+        float4 gradGValue = tex1Dfetch<float4>(gradientTexture, index);
+        gradGValue = make_float4(-gradGValue.x, -gradGValue.y, -gradGValue.z, 0);
+        conjugateGCuda[index] = gradGValue;
+
+        // H = G + gam * H
+        float4 gradHValue = tex1Dfetch<float4>(conjugateHTexture, index);
+        gradHValue = make_float4(gradGValue.x + gam * gradHValue.x,
+                                 gradGValue.y + gam * gradHValue.y,
+                                 gradGValue.z + gam * gradHValue.z, 0);
+        conjugateHCuda[index] = gradHValue;
+
+        gradientCuda[index] = make_float4(-gradHValue.x, -gradHValue.y, -gradHValue.z, 0);
+    };
+
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), nVoxels, [=]__device__(const int index) {
+        conjugate(gradientCuda, conjugateGCuda, conjugateHCuda, gradientTexture, conjugateHTexture, index);
+    });
+    if (isSymmetric) {
+        thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), nVoxelsBw, [=]__device__(const int index) {
+            conjugate(gradientBwCuda, conjugateGBwCuda, conjugateHBwCuda, gradientBwTexture, conjugateHBwTexture, index);
+        });
     }
 }
 /* *************************************************************** */
-void Cuda::UpdateControlPointPosition(const size_t nVoxels,
-                                      float4 *controlPointImageCuda,
-                                      const float4 *bestControlPointCuda,
-                                      const float4 *gradientImageCuda,
-                                      const float scale,
-                                      const bool optimiseX,
-                                      const bool optimiseY,
-                                      const bool optimiseZ) {
-    auto bestControlPointTexture = Cuda::CreateTextureObject(bestControlPointCuda, nVoxels, cudaChannelFormatKindFloat, 4);
-    auto gradientImageTexture = Cuda::CreateTextureObject(gradientImageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
-
-    const unsigned blocks = (unsigned)CudaContext::GetBlockSize()->reg_updateControlPointPosition;
-    const unsigned grids = (unsigned)Ceil(sqrtf((float)nVoxels / (float)blocks));
-    const dim3 blockDims(blocks, 1, 1);
-    const dim3 gridDims(grids, grids, 1);
-    UpdateControlPointPositionKernel<<<gridDims, blockDims>>>(controlPointImageCuda, *bestControlPointTexture, *gradientImageTexture,
-                                                              (unsigned)nVoxels, scale, optimiseX, optimiseY, optimiseZ);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+void CudaConjugateGradient::UpdateGradientValues() {
+    if (this->firstCall) {
+        NR_DEBUG("Conjugate gradient initialisation");
+        InitialiseConjugateGradient(this->gradientCuda, this->array1, this->array2, this->GetVoxNumber());
+        if (this->isSymmetric)
+            InitialiseConjugateGradient(this->gradientBwCuda, this->array1Bw, this->array2Bw, this->GetVoxNumberBw());
+        this->firstCall = false;
+    } else {
+        NR_DEBUG("Conjugate gradient update");
+        GetConjugateGradient(this->gradientCuda, this->array1, this->array2, this->GetVoxNumber(),
+                             this->isSymmetric, this->gradientBwCuda, this->array1Bw, this->array2Bw, this->GetVoxNumberBw());
+    }
 }
 /* *************************************************************** */
 } // namespace NiftyReg

@@ -109,6 +109,51 @@ void CudaCompute::GetDeformationField(bool composition, bool bspline) {
                                        bspline);
 }
 /* *************************************************************** */
+template<bool optimiseX, bool optimiseY, bool optimiseZ>
+inline void UpdateControlPointPosition(float4 *currentDofCuda,
+                                       cudaTextureObject_t bestDofTexture,
+                                       cudaTextureObject_t gradientTexture,
+                                       const size_t nVoxels,
+                                       const float scale) {
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), nVoxels, [=]__device__(const int index) {
+        float4 dofValue = currentDofCuda[index]; scale; // To capture scale
+        const float4 bestValue = tex1Dfetch<float4>(bestDofTexture, index);
+        const float4 gradValue = tex1Dfetch<float4>(gradientTexture, index);
+        if constexpr (optimiseX)
+            dofValue.x = bestValue.x + scale * gradValue.x;
+        if constexpr (optimiseY)
+            dofValue.y = bestValue.y + scale * gradValue.y;
+        if constexpr (optimiseZ)
+            dofValue.z = bestValue.z + scale * gradValue.z;
+        currentDofCuda[index] = dofValue;
+    });
+}
+/* *************************************************************** */
+template<bool optimiseX, bool optimiseY>
+static inline void UpdateControlPointPosition(float4 *currentDofCuda,
+                                              cudaTextureObject_t bestDofTexture,
+                                              cudaTextureObject_t gradientTexture,
+                                              const size_t nVoxels,
+                                              const float scale,
+                                              const bool optimiseZ) {
+    auto updateControlPointPosition = UpdateControlPointPosition<optimiseX, optimiseY, true>;
+    if (!optimiseZ) updateControlPointPosition = UpdateControlPointPosition<optimiseX, optimiseY, false>;
+    updateControlPointPosition(currentDofCuda, bestDofTexture, gradientTexture, nVoxels, scale);
+}
+/* *************************************************************** */
+template<bool optimiseX>
+static inline void UpdateControlPointPosition(float4 *currentDofCuda,
+                                              cudaTextureObject_t bestDofTexture,
+                                              cudaTextureObject_t gradientTexture,
+                                              const size_t nVoxels,
+                                              const float scale,
+                                              const bool optimiseY,
+                                              const bool optimiseZ) {
+    auto updateControlPointPosition = UpdateControlPointPosition<optimiseX, true>;
+    if (!optimiseY) updateControlPointPosition = UpdateControlPointPosition<optimiseX, false>;
+    updateControlPointPosition(currentDofCuda, bestDofTexture, gradientTexture, nVoxels, scale, optimiseZ);
+}
+/* *************************************************************** */
 void CudaCompute::UpdateControlPointPosition(float *currentDof,
                                              const float *bestDof,
                                              const float *gradient,
@@ -116,14 +161,16 @@ void CudaCompute::UpdateControlPointPosition(float *currentDof,
                                              const bool optimiseX,
                                              const bool optimiseY,
                                              const bool optimiseZ) {
-    Cuda::UpdateControlPointPosition(NiftiImage::calcVoxelNumber(dynamic_cast<CudaF3dContent&>(con).F3dContent::GetControlPointGrid(), 3),
-                                     reinterpret_cast<float4*>(currentDof),
-                                     reinterpret_cast<const float4*>(bestDof),
-                                     reinterpret_cast<const float4*>(gradient),
-                                     scale,
-                                     optimiseX,
-                                     optimiseY,
-                                     optimiseZ);
+    const nifti_image *controlPointGrid = dynamic_cast<CudaF3dContent&>(con).F3dContent::GetControlPointGrid();
+    const bool is3d = controlPointGrid->nz > 1;
+    const size_t nVoxels = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
+    auto bestDofTexturePtr = Cuda::CreateTextureObject(reinterpret_cast<const float4*>(bestDof), nVoxels, cudaChannelFormatKindFloat, 4);
+    auto gradientTexturePtr = Cuda::CreateTextureObject(reinterpret_cast<const float4*>(gradient), nVoxels, cudaChannelFormatKindFloat, 4);
+
+    auto updateControlPointPosition = ::UpdateControlPointPosition<true>;
+    if (!optimiseX) updateControlPointPosition = ::UpdateControlPointPosition<false>;
+    updateControlPointPosition(reinterpret_cast<float4*>(currentDof), *bestDofTexturePtr, *gradientTexturePtr,
+                               nVoxels, scale, optimiseY, is3d ? optimiseZ : false);
 }
 /* *************************************************************** */
 void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimePoint) {

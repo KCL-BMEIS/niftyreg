@@ -32,10 +32,6 @@ struct BlockSize {
     unsigned reg_defField_compose2D;
     unsigned reg_defField_compose3D;
     unsigned reg_defField_getJacobianMatrix;
-    unsigned reg_initialiseConjugateGradient;
-    unsigned reg_getConjugateGradient1;
-    unsigned reg_getConjugateGradient2;
-    unsigned reg_updateControlPointPosition;
     unsigned reg_voxelCentricToNodeCentric;
     unsigned reg_convertNmiGradientFromVoxelToRealSpace;
     unsigned reg_ApplyConvolutionWindowAlongX;
@@ -68,10 +64,6 @@ struct BlockSize100: public BlockSize {
         reg_defField_compose2D = 512; // 15 reg - 24 smem - 08 cmem - 16 lmem
         reg_defField_compose3D = 384; // 21 reg - 24 smem - 08 cmem - 24 lmem
         reg_defField_getJacobianMatrix = 512; // 16 reg - 24 smem - 04 cmem
-        reg_initialiseConjugateGradient = 384; // 09 reg - 24 smem
-        reg_getConjugateGradient1 = 320; // 12 reg - 24 smem
-        reg_getConjugateGradient2 = 384; // 10 reg - 40 smem
-        reg_updateControlPointPosition = 384; // 08 reg - 24 smem
         reg_voxelCentricToNodeCentric = 320; // 11 reg - 24 smem - 16 cmem
         reg_convertNmiGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
         reg_ApplyConvolutionWindowAlongX = 512; // 14 reg - 28 smem - 08 cmem
@@ -106,10 +98,6 @@ struct BlockSize300: public BlockSize {
         reg_defField_compose2D = 1024; // 23 reg
         reg_defField_compose3D = 1024; // 24 reg
         reg_defField_getJacobianMatrix = 768; // 34 reg
-        reg_initialiseConjugateGradient = 1024; // 20 reg
-        reg_getConjugateGradient1 = 1024; // 22 reg
-        reg_getConjugateGradient2 = 1024; // 25 reg
-        reg_updateControlPointPosition = 1024; // 22 reg
         reg_voxelCentricToNodeCentric = 1024; // 23 reg
         reg_convertNmiGradientFromVoxelToRealSpace = 1024; // 23 reg
         reg_ApplyConvolutionWindowAlongX = 1024; // 25 reg
