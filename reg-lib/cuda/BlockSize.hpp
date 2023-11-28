@@ -38,10 +38,6 @@ struct BlockSize {
     unsigned reg_ApplyConvolutionWindowAlongY;
     unsigned reg_ApplyConvolutionWindowAlongZ;
     unsigned Arithmetic;
-    unsigned reg_resampleImage2D;
-    unsigned reg_resampleImage3D;
-    unsigned reg_getImageGradient2D;
-    unsigned reg_getImageGradient3D;
 };
 /* *************************************************************** */
 struct BlockSize100: public BlockSize {
@@ -70,10 +66,6 @@ struct BlockSize100: public BlockSize {
         reg_ApplyConvolutionWindowAlongY = 512; // 14 reg - 28 smem - 08 cmem
         reg_ApplyConvolutionWindowAlongZ = 512; // 15 reg - 28 smem - 08 cmem
         Arithmetic = 384; // 5 reg - 24 smem
-        reg_resampleImage2D = 320; // 10 reg - 24 smem - 12 cmem
-        reg_resampleImage3D = 512; // 16 reg - 24 smem - 12 cmem
-        reg_getImageGradient2D = 512; // 16 reg - 24 smem - 20 cmem - 24 lmem
-        reg_getImageGradient3D = 320; // 24 reg - 24 smem - 16 cmem - 32 lmem
         NR_FUNC_CALLED();
     }
 };
@@ -104,10 +96,6 @@ struct BlockSize300: public BlockSize {
         reg_ApplyConvolutionWindowAlongY = 1024; // 25 reg
         reg_ApplyConvolutionWindowAlongZ = 1024; // 25 reg
         Arithmetic = 1024; //
-        reg_resampleImage2D = 1024; // 23 reg
-        reg_resampleImage3D = 1024; // 24 reg
-        reg_getImageGradient2D = 1024; // 34 reg
-        reg_getImageGradient3D = 1024; // 34 reg
         NR_FUNC_CALLED();
     }
 };

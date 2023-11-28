@@ -28,6 +28,7 @@ void ResampleImage(const nifti_image *floatingImage,
                    const int interpolation,
                    const float paddingValue);
 /* *************************************************************** */
+template<bool is3d>
 void GetImageGradient(const nifti_image *floatingImage,
                       const float *floatingImageCuda,
                       const float4 *deformationFieldCuda,

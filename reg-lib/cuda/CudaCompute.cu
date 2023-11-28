@@ -175,14 +175,16 @@ void CudaCompute::UpdateControlPointPosition(float *currentDof,
 /* *************************************************************** */
 void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimePoint) {
     CudaDefContent& con = dynamic_cast<CudaDefContent&>(this->con);
-    Cuda::GetImageGradient(con.Content::GetFloating(),
-                           con.GetFloatingCuda(),
-                           con.GetDeformationFieldCuda(),
-                           con.GetWarpedGradientCuda(),
-                           con.GetActiveVoxelNumber(),
-                           interpolation,
-                           paddingValue,
-                           activeTimePoint);
+    const nifti_image *floating = con.Content::GetFloating();
+    auto getImageGradient = floating->nz > 1 ? Cuda::GetImageGradient<true> : Cuda::GetImageGradient<false>;
+    getImageGradient(floating,
+                     con.GetFloatingCuda(),
+                     con.GetDeformationFieldCuda(),
+                     con.GetWarpedGradientCuda(),
+                     con.GetActiveVoxelNumber(),
+                     interpolation,
+                     paddingValue,
+                     activeTimePoint);
 }
 /* *************************************************************** */
 double CudaCompute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ) {
