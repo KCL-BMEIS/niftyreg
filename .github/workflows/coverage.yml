@@ -2,7 +2,7 @@ name: Coverage
 on: [push, pull_request]
 jobs:
   Coverage:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Clone NiftyReg
         uses: actions/checkout@v3
@@ -27,7 +27,7 @@ jobs:
                 -DBUILD_ALL_DEP=ON \
                 -DUSE_CUDA=OFF \
                 -DUSE_OPENCL=OFF \
-                -DUSE_SSE=ON \
+                -DUSE_SSE=OFF \
                 -DUSE_OPENMP=OFF \
                 -DBUILD_TESTING=ON \
                 -DWITH_COVERAGE=ON \
