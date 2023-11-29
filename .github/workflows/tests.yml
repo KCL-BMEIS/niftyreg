@@ -1,16 +1,20 @@
-name: linux
+name: Tests
 on: [push, pull_request]
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    strategy: 
-      max-parallel: 1
+    strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         include:
-          - os: ubuntu-20.04
+          - sudo: "sudo"        # For ubuntu and macos
             c-compiler: "gcc"
             cxx-compiler: "g++"
+          - os: windows-latest  # For windows only
+            sudo: ""
+            c-compiler: "cl.exe"
+            cxx-compiler: "cl.exe"
+          - build_type: "Debug" # For all platforms
             use_cuda: "OFF"
             use_opencl: "OFF"
             use_openmp: "ON"
@@ -18,15 +22,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get CMake
-        uses: lukka/get-cmake@latest
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v1.3
+        if: matrix.os == 'windows-latest'
 
       - name: Install Catch2
         run:  |
           git clone https://github.com/catchorg/Catch2.git
           cd Catch2
           cmake -Bbuild -H. -DBUILD_TESTING=OFF
-          sudo cmake --build build/ --target install --config Release
+          ${{ matrix.sudo }} cmake --build build/ --target install --config ${{ matrix.build_type }}
         shell: bash
 
       - name: Configure NiftyReg
@@ -35,7 +40,7 @@ jobs:
           cd build
           cmake -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} \
                 -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
-                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -DBUILD_ALL_DEP=ON \
                 -DUSE_CUDA=${{ matrix.use_cuda }} \
                 -DUSE_OPENCL=${{ matrix.use_opencl }} \
@@ -46,7 +51,7 @@ jobs:
         shell: bash
 
       - name: Build NiftyReg
-        run: cmake --build build --config Release
+        run: cmake --build build --config ${{ matrix.build_type }}
         shell: bash
 
       - name: Run tests
