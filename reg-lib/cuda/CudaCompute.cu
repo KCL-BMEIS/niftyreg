@@ -1,10 +1,10 @@
 #include "CudaCompute.h"
 #include "CudaF3dContent.h"
 #include "CudaKernelConvolution.hpp"
+#include "CudaLocalTransformation.hpp"
 #include "CudaNormaliseGradient.hpp"
 #include "CudaResampling.hpp"
 #include "CudaOptimiser.hpp"
-#include "_reg_localTransformation_gpu.h"
 
 /* *************************************************************** */
 void CudaCompute::ResampleImage(int interpolation, float paddingValue) {
@@ -24,43 +24,43 @@ void CudaCompute::ResampleImage(int interpolation, float paddingValue) {
 /* *************************************************************** */
 double CudaCompute::GetJacobianPenaltyTerm(bool approx) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    return reg_spline_getJacobianPenaltyTerm_gpu(con.F3dContent::GetReference(),
-                                                 con.F3dContent::GetControlPointGrid(),
-                                                 con.GetControlPointGridCuda(),
-                                                 approx);
+    return Cuda::GetJacobianPenaltyTerm(con.F3dContent::GetReference(),
+                                        con.F3dContent::GetControlPointGrid(),
+                                        con.GetControlPointGridCuda(),
+                                        approx);
 }
 /* *************************************************************** */
 void CudaCompute::JacobianPenaltyTermGradient(float weight, bool approx) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    reg_spline_getJacobianPenaltyTermGradient_gpu(con.F3dContent::GetReference(),
-                                                  con.F3dContent::GetControlPointGrid(),
-                                                  con.GetControlPointGridCuda(),
-                                                  con.GetTransformationGradientCuda(),
-                                                  weight,
-                                                  approx);
+    Cuda::GetJacobianPenaltyTermGradient(con.F3dContent::GetReference(),
+                                         con.F3dContent::GetControlPointGrid(),
+                                         con.GetControlPointGridCuda(),
+                                         con.GetTransformationGradientCuda(),
+                                         weight,
+                                         approx);
 }
 /* *************************************************************** */
 double CudaCompute::CorrectFolding(bool approx) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    return reg_spline_correctFolding_gpu(con.F3dContent::GetReference(),
-                                         con.F3dContent::GetControlPointGrid(),
-                                         con.GetControlPointGridCuda(),
-                                         approx);
+    return Cuda::CorrectFolding(con.F3dContent::GetReference(),
+                                con.F3dContent::GetControlPointGrid(),
+                                con.GetControlPointGridCuda(),
+                                approx);
 }
 /* *************************************************************** */
 double CudaCompute::ApproxBendingEnergy() {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     const nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
-    auto approxBendingEnergy = controlPointGrid->nz > 1 ? reg_spline_approxBendingEnergy_gpu<true> :
-                                                          reg_spline_approxBendingEnergy_gpu<false>;
+    auto approxBendingEnergy = controlPointGrid->nz > 1 ? Cuda::ApproxBendingEnergy<true> :
+                                                          Cuda::ApproxBendingEnergy<false>;
     return approxBendingEnergy(controlPointGrid, con.GetControlPointGridCuda());
 }
 /* *************************************************************** */
 void CudaCompute::ApproxBendingEnergyGradient(float weight) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
-    auto approxBendingEnergyGradient = controlPointGrid->nz > 1 ? reg_spline_approxBendingEnergyGradient_gpu<true> :
-                                                                  reg_spline_approxBendingEnergyGradient_gpu<false>;
+    auto approxBendingEnergyGradient = controlPointGrid->nz > 1 ? Cuda::ApproxBendingEnergyGradient<true> :
+                                                                  Cuda::ApproxBendingEnergyGradient<false>;
     approxBendingEnergyGradient(controlPointGrid,
                                 con.GetControlPointGridCuda(),
                                 con.GetTransformationGradientCuda(),
@@ -70,16 +70,16 @@ void CudaCompute::ApproxBendingEnergyGradient(float weight) {
 double CudaCompute::ApproxLinearEnergy() {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     const nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
-    auto approxLinearEnergy = controlPointGrid->nz > 1 ? reg_spline_approxLinearEnergy_gpu<true> :
-                                                         reg_spline_approxLinearEnergy_gpu<false>;
+    auto approxLinearEnergy = controlPointGrid->nz > 1 ? Cuda::ApproxLinearEnergy<true> :
+                                                         Cuda::ApproxLinearEnergy<false>;
     return approxLinearEnergy(controlPointGrid, con.GetControlPointGridCuda());
 }
 /* *************************************************************** */
 void CudaCompute::ApproxLinearEnergyGradient(float weight) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     const nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
-    auto approxLinearEnergyGradient = controlPointGrid->nz > 1 ? reg_spline_approxLinearEnergyGradient_gpu<true> :
-                                                                 reg_spline_approxLinearEnergyGradient_gpu<false>;
+    auto approxLinearEnergyGradient = controlPointGrid->nz > 1 ? Cuda::ApproxLinearEnergyGradient<true> :
+                                                                 Cuda::ApproxLinearEnergyGradient<false>;
     approxLinearEnergyGradient(controlPointGrid, con.GetControlPointGridCuda(), con.GetTransformationGradientCuda(), weight);
 }
 /* *************************************************************** */
@@ -99,14 +99,14 @@ void CudaCompute::LandmarkDistanceGradient(size_t landmarkNumber, float *landmar
 /* *************************************************************** */
 void CudaCompute::GetDeformationField(bool composition, bool bspline) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    reg_spline_getDeformationField_gpu(con.F3dContent::GetControlPointGrid(),
-                                       con.F3dContent::GetReference(),
-                                       con.GetControlPointGridCuda(),
-                                       con.GetDeformationFieldCuda(),
-                                       con.GetReferenceMaskCuda(),
-                                       con.GetActiveVoxelNumber(),
-                                       composition,
-                                       bspline);
+    Cuda::GetDeformationField(con.F3dContent::GetControlPointGrid(),
+                              con.F3dContent::GetReference(),
+                              con.GetControlPointGridCuda(),
+                              con.GetDeformationFieldCuda(),
+                              con.GetReferenceMaskCuda(),
+                              con.GetActiveVoxelNumber(),
+                              composition,
+                              bspline);
 }
 /* *************************************************************** */
 template<bool optimiseX, bool optimiseY, bool optimiseZ>
@@ -220,11 +220,11 @@ void CudaCompute::GetApproximatedGradient(InterfaceOptimiser& opt) {
 /* *************************************************************** */
 void CudaCompute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    reg_spline_getDefFieldFromVelocityGrid_gpu(con.F3dContent::GetControlPointGrid(),
-                                               con.F3dContent::GetDeformationField(),
-                                               con.GetControlPointGridCuda(),
-                                               con.GetDeformationFieldCuda(),
-                                               updateStepNumber);
+    Cuda::GetDefFieldFromVelocityGrid(con.F3dContent::GetControlPointGrid(),
+                                      con.F3dContent::GetDeformationField(),
+                                      con.GetControlPointGridCuda(),
+                                      con.GetDeformationFieldCuda(),
+                                      updateStepNumber);
 }
 /* *************************************************************** */
 void CudaCompute::ConvolveImage(const nifti_image *image, float4 *imageCuda) {
@@ -316,6 +316,6 @@ void CudaCompute::DefFieldCompose(const nifti_image *defField) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(defField, 3);
     thrust::device_vector<float4> defFieldCuda(voxelNumber);
     Cuda::TransferNiftiToDevice(defFieldCuda.data().get(), defField);
-    reg_defField_compose_gpu(defField, defFieldCuda.data().get(), con.GetDeformationFieldCuda());
+    Cuda::DefFieldCompose(defField, defFieldCuda.data().get(), con.GetDeformationFieldCuda());
 }
 /* *************************************************************** */

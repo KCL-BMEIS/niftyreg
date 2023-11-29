@@ -15,23 +15,23 @@ namespace NiftyReg {
 /* *************************************************************** */
 struct BlockSize {
     unsigned reg_affine_getDeformationField;
-    unsigned reg_spline_getDeformationField2D;
-    unsigned reg_spline_getDeformationField3D;
-    unsigned reg_spline_getApproxJacobianValues2D;
-    unsigned reg_spline_getApproxJacobianValues3D;
-    unsigned reg_spline_approxLinearEnergyGradient;
-    unsigned reg_spline_getJacobianValues2D;
-    unsigned reg_spline_getJacobianValues3D;
-    unsigned reg_spline_logSquaredValues;
-    unsigned reg_spline_computeApproxJacGradient2D;
-    unsigned reg_spline_computeApproxJacGradient3D;
-    unsigned reg_spline_computeJacGradient2D;
-    unsigned reg_spline_computeJacGradient3D;
-    unsigned reg_spline_approxCorrectFolding3D;
-    unsigned reg_spline_correctFolding3D;
-    unsigned reg_defField_compose2D;
-    unsigned reg_defField_compose3D;
-    unsigned reg_defField_getJacobianMatrix;
+    unsigned GetDeformationField2d;
+    unsigned GetDeformationField3d;
+    unsigned GetApproxJacobianValues2d;
+    unsigned GetApproxJacobianValues3d;
+    unsigned ApproxLinearEnergyGradient;
+    unsigned GetJacobianValues2d;
+    unsigned GetJacobianValues3d;
+    unsigned LogSquaredValues;
+    unsigned ComputeApproxJacGradient2d;
+    unsigned ComputeApproxJacGradient3d;
+    unsigned ComputeJacGradient2d;
+    unsigned ComputeJacGradient3d;
+    unsigned ApproxCorrectFolding3d;
+    unsigned CorrectFolding3d;
+    unsigned DefFieldCompose2d;
+    unsigned DefFieldCompose3d;
+    unsigned GetJacobianMatrix;
     unsigned reg_voxelCentricToNodeCentric;
     unsigned reg_convertNmiGradientFromVoxelToRealSpace;
     unsigned reg_ApplyConvolutionWindowAlongX;
@@ -43,23 +43,23 @@ struct BlockSize {
 struct BlockSize100: public BlockSize {
     BlockSize100() {
         reg_affine_getDeformationField = 512; // 16 reg - 24 smem
-        reg_spline_getDeformationField2D = 384; // 20 reg - 6168 smem - 28 cmem
-        reg_spline_getDeformationField3D = 192; // 37 reg - 6168 smem - 28 cmem
-        reg_spline_getApproxJacobianValues2D = 384; // 17 reg - 104 smem - 36 cmem
-        reg_spline_getApproxJacobianValues3D = 256; // 27 reg - 356 smem - 108 cmem
-        reg_spline_approxLinearEnergyGradient = 384; // 40 reg
-        reg_spline_getJacobianValues2D = 256; // 29 reg - 32 smem - 16 cmem - 32 lmem
-        reg_spline_getJacobianValues3D = 192; // 41 reg - 6176 smem - 20 cmem - 32 lmem
-        reg_spline_logSquaredValues = 384; // 07 reg - 24 smem - 36 cmem
-        reg_spline_computeApproxJacGradient2D = 320; // 23 reg - 96 smem - 72 cmem
-        reg_spline_computeApproxJacGradient3D = 256; // 32 reg - 384 smem - 144 cmem
-        reg_spline_computeJacGradient2D = 384; // 21 reg - 24 smem - 64 cmem
-        reg_spline_computeJacGradient3D = 256; // 32 reg - 24 smem - 64 cmem
-        reg_spline_approxCorrectFolding3D = 256; // 32 reg - 24 smem - 24 cmem
-        reg_spline_correctFolding3D = 256; // 31 reg - 24 smem - 32 cmem
-        reg_defField_compose2D = 512; // 15 reg - 24 smem - 08 cmem - 16 lmem
-        reg_defField_compose3D = 384; // 21 reg - 24 smem - 08 cmem - 24 lmem
-        reg_defField_getJacobianMatrix = 512; // 16 reg - 24 smem - 04 cmem
+        GetDeformationField2d = 384; // 20 reg - 6168 smem - 28 cmem
+        GetDeformationField3d = 192; // 37 reg - 6168 smem - 28 cmem
+        GetApproxJacobianValues2d = 384; // 17 reg - 104 smem - 36 cmem
+        GetApproxJacobianValues3d = 256; // 27 reg - 356 smem - 108 cmem
+        ApproxLinearEnergyGradient = 384; // 40 reg
+        GetJacobianValues2d = 256; // 29 reg - 32 smem - 16 cmem - 32 lmem
+        GetJacobianValues3d = 192; // 41 reg - 6176 smem - 20 cmem - 32 lmem
+        LogSquaredValues = 384; // 07 reg - 24 smem - 36 cmem
+        ComputeApproxJacGradient2d = 320; // 23 reg - 96 smem - 72 cmem
+        ComputeApproxJacGradient3d = 256; // 32 reg - 384 smem - 144 cmem
+        ComputeJacGradient2d = 384; // 21 reg - 24 smem - 64 cmem
+        ComputeJacGradient3d = 256; // 32 reg - 24 smem - 64 cmem
+        ApproxCorrectFolding3d = 256; // 32 reg - 24 smem - 24 cmem
+        CorrectFolding3d = 256; // 31 reg - 24 smem - 32 cmem
+        DefFieldCompose2d = 512; // 15 reg - 24 smem - 08 cmem - 16 lmem
+        DefFieldCompose3d = 384; // 21 reg - 24 smem - 08 cmem - 24 lmem
+        GetJacobianMatrix = 512; // 16 reg - 24 smem - 04 cmem
         reg_voxelCentricToNodeCentric = 320; // 11 reg - 24 smem - 16 cmem
         reg_convertNmiGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
         reg_ApplyConvolutionWindowAlongX = 512; // 14 reg - 28 smem - 08 cmem
@@ -73,29 +73,29 @@ struct BlockSize100: public BlockSize {
 struct BlockSize300: public BlockSize {
     BlockSize300() {
         reg_affine_getDeformationField = 1024; // 23 reg
-        reg_spline_getDeformationField2D = 1024; // 34 reg
-        reg_spline_getDeformationField3D = 1024; // 34 reg
-        reg_spline_getApproxJacobianValues2D = 768; // 34 reg
-        reg_spline_getApproxJacobianValues3D = 640; // 46 reg
-        reg_spline_approxLinearEnergyGradient = 768; // 40 reg
-        reg_spline_getJacobianValues2D = 768; // 34 reg
-        reg_spline_getJacobianValues3D = 768; // 34 reg
-        reg_spline_logSquaredValues = 1024; // 23 reg
-        reg_spline_computeApproxJacGradient2D = 768; // 34 reg
-        reg_spline_computeApproxJacGradient3D = 768; // 38 reg
-        reg_spline_computeJacGradient2D = 768; // 34 reg
-        reg_spline_computeJacGradient3D = 768; // 37 reg
-        reg_spline_approxCorrectFolding3D = 768; // 34 reg
-        reg_spline_correctFolding3D = 768; // 34 reg
-        reg_defField_compose2D = 1024; // 23 reg
-        reg_defField_compose3D = 1024; // 24 reg
-        reg_defField_getJacobianMatrix = 768; // 34 reg
+        GetDeformationField2d = 1024; // 34 reg
+        GetDeformationField3d = 1024; // 34 reg
+        GetApproxJacobianValues2d = 768; // 34 reg
+        GetApproxJacobianValues3d = 640; // 46 reg
+        ApproxLinearEnergyGradient = 768; // 40 reg
+        GetJacobianValues2d = 768; // 34 reg
+        GetJacobianValues3d = 768; // 34 reg
+        LogSquaredValues = 1024; // 23 reg
+        ComputeApproxJacGradient2d = 768; // 34 reg
+        ComputeApproxJacGradient3d = 768; // 38 reg
+        ComputeJacGradient2d = 768; // 34 reg
+        ComputeJacGradient3d = 768; // 37 reg
+        ApproxCorrectFolding3d = 768; // 34 reg
+        CorrectFolding3d = 768; // 34 reg
+        DefFieldCompose2d = 1024; // 23 reg
+        DefFieldCompose3d = 1024; // 24 reg
+        GetJacobianMatrix = 768; // 34 reg
         reg_voxelCentricToNodeCentric = 1024; // 23 reg
         reg_convertNmiGradientFromVoxelToRealSpace = 1024; // 23 reg
         reg_ApplyConvolutionWindowAlongX = 1024; // 25 reg
         reg_ApplyConvolutionWindowAlongY = 1024; // 25 reg
         reg_ApplyConvolutionWindowAlongZ = 1024; // 25 reg
-        Arithmetic = 1024; //
+        Arithmetic = 1024;
         NR_FUNC_CALLED();
     }
 };

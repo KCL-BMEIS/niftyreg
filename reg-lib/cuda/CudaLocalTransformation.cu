@@ -1,5 +1,5 @@
 /*
- *  _reg_spline_gpu.cu
+ *  CudaLocalTransformation.cu
  *
  *
  *  Created by Marc Modat on 24/03/2009.
@@ -10,20 +10,22 @@
  *
  */
 
-#include "_reg_localTransformation_gpu.h"
-#include "_reg_localTransformation_kernels.cu"
+#include "CudaLocalTransformation.hpp"
+#include "CudaLocalTransformationKernels.cu"
 #include "_reg_globalTransformation_gpu.h"
 #include "_reg_splineBasis.h"
 
 /* *************************************************************** */
-void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
-                                        const nifti_image *referenceImage,
-                                        const float4 *controlPointImageCuda,
-                                        float4 *deformationFieldCuda,
-                                        const int *maskCuda,
-                                        const size_t activeVoxelNumber,
-                                        const bool composition,
-                                        const bool bspline) {
+namespace NiftyReg::Cuda {
+/* *************************************************************** */
+void GetDeformationField(const nifti_image *controlPointImage,
+                         const nifti_image *referenceImage,
+                         const float4 *controlPointImageCuda,
+                         float4 *deformationFieldCuda,
+                         const int *maskCuda,
+                         const size_t activeVoxelNumber,
+                         const bool composition,
+                         const bool bspline) {
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -42,38 +44,38 @@ void reg_spline_getDeformationField_gpu(const nifti_image *controlPointImage,
     }
 
     if (referenceImage->nz > 1) {
-        const unsigned blocks = CudaContext::GetBlockSize()->reg_spline_getDeformationField3D;
+        const unsigned blocks = CudaContext::GetBlockSize()->GetDeformationField3d;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         // 8 floats of shared memory are allocated per thread
-        reg_spline_getDeformationField3D<<<gridDims, blockDims, blocks * 8 * sizeof(float)>>>(deformationFieldCuda,
-                                                                                              *controlPointTexture,
-                                                                                              *maskTexture,
-                                                                                              realToVoxel.data().get(),
-                                                                                              referenceImageDim,
-                                                                                              controlPointImageDim,
-                                                                                              controlPointVoxelSpacing,
-                                                                                              (unsigned)activeVoxelNumber,
-                                                                                              composition,
-                                                                                              bspline);
+        GetDeformationField3d<<<gridDims, blockDims, blocks * 8 * sizeof(float)>>>(deformationFieldCuda,
+                                                                                   *controlPointTexture,
+                                                                                   *maskTexture,
+                                                                                   realToVoxel.data().get(),
+                                                                                   referenceImageDim,
+                                                                                   controlPointImageDim,
+                                                                                   controlPointVoxelSpacing,
+                                                                                   (unsigned)activeVoxelNumber,
+                                                                                   composition,
+                                                                                   bspline);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
-        const unsigned blocks = CudaContext::GetBlockSize()->reg_spline_getDeformationField2D;
+        const unsigned blocks = CudaContext::GetBlockSize()->GetDeformationField2d;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         // 4 floats of shared memory are allocated per thread
-        reg_spline_getDeformationField2D<<<gridDims, blockDims, blocks * 4 * sizeof(float)>>>(deformationFieldCuda,
-                                                                                              *controlPointTexture,
-                                                                                              *maskTexture,
-                                                                                              realToVoxel.data().get(),
-                                                                                              referenceImageDim,
-                                                                                              controlPointImageDim,
-                                                                                              controlPointVoxelSpacing,
-                                                                                              (unsigned)activeVoxelNumber,
-                                                                                              composition,
-                                                                                              bspline);
+        GetDeformationField2d<<<gridDims, blockDims, blocks * 4 * sizeof(float)>>>(deformationFieldCuda,
+                                                                                   *controlPointTexture,
+                                                                                   *maskTexture,
+                                                                                   realToVoxel.data().get(),
+                                                                                   referenceImageDim,
+                                                                                   controlPointImageDim,
+                                                                                   controlPointVoxelSpacing,
+                                                                                   (unsigned)activeVoxelNumber,
+                                                                                   composition,
+                                                                                   bspline);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
 }
@@ -146,7 +148,7 @@ __device__ SecondDerivative<is3d> GetApproxSecondDerivative(const unsigned index
 }
 /* *************************************************************** */
 template<bool is3d>
-double reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage, const float4 *controlPointImageCuda) {
+double ApproxBendingEnergy(const nifti_image *controlPointImage, const float4 *controlPointImageCuda) {
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
     auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
@@ -174,15 +176,14 @@ double reg_spline_approxBendingEnergy_gpu(const nifti_image *controlPointImage, 
                     Square(secondDerivative.yy.y) + 2.f * (Square(secondDerivative.xy.x) + Square(secondDerivative.xy.y)));
     }, 0.0, thrust::plus<double>()) / static_cast<double>(controlPointImage->nvox);
 }
-template double reg_spline_approxBendingEnergy_gpu<false>(const nifti_image*, const float4*);
-template double reg_spline_approxBendingEnergy_gpu<true>(const nifti_image*, const float4*);
+template double ApproxBendingEnergy<false>(const nifti_image*, const float4*);
+template double ApproxBendingEnergy<true>(const nifti_image*, const float4*);
 /* *************************************************************** */
 template<bool is3d>
-void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
-                                                float4 *controlPointImageCuda,
-                                                float4 *transGradientCuda,
-                                                float bendingEnergyWeight) {
-    auto blockSize = CudaContext::GetBlockSize();
+void ApproxBendingEnergyGradient(nifti_image *controlPointImage,
+                                 float4 *controlPointImageCuda,
+                                 float4 *transGradientCuda,
+                                 float bendingEnergyWeight) {
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
     auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
@@ -195,7 +196,7 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
     else
         set_second_order_bspline_basis_values(basis.xx, basis.yy, basis.xy);
 
-    reg_getDisplacementFromDeformation_gpu(controlPointImage, controlPointImageCuda);
+    GetDisplacementFromDeformation(controlPointImage, controlPointImageCuda);
 
     // First compute all the second derivatives
     thrust::device_vector<typename SecondDerivative<is3d>::TextureType> secondDerivativesCudaVec((is3d ? 6 : 3) * controlPointNumber);
@@ -276,15 +277,15 @@ void reg_spline_approxBendingEnergyGradient_gpu(nifti_image *controlPointImage,
         transGradientCuda[index] = nodeGradVal;
     });
 
-    reg_getDeformationFromDisplacement_gpu(controlPointImage, controlPointImageCuda);
+    GetDeformationFromDisplacement(controlPointImage, controlPointImageCuda);
 }
-template void reg_spline_approxBendingEnergyGradient_gpu<false>(nifti_image*, float4*, float4*, float);
-template void reg_spline_approxBendingEnergyGradient_gpu<true>(nifti_image*, float4*, float4*, float);
+template void ApproxBendingEnergyGradient<false>(nifti_image*, float4*, float4*, float);
+template void ApproxBendingEnergyGradient<true>(nifti_image*, float4*, float4*, float);
 /* *************************************************************** */
-void reg_spline_ComputeApproxJacobianValues(const nifti_image *controlPointImage,
-                                            const float4 *controlPointImageCuda,
-                                            float *jacobianMatricesCuda,
-                                            float *jacobianDetCuda) {
+void ComputeApproxJacobianValues(const nifti_image *controlPointImage,
+                                 const float4 *controlPointImageCuda,
+                                 float *jacobianMatricesCuda,
+                                 float *jacobianDetCuda) {
     auto blockSize = CudaContext::GetBlockSize();
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -295,29 +296,29 @@ void reg_spline_ComputeApproxJacobianValues(const nifti_image *controlPointImage
 
     // The Jacobian matrix is computed for every control point
     if (controlPointImage->nz > 1) {
-        const unsigned blocks = blockSize->reg_spline_getApproxJacobianValues3D;
+        const unsigned blocks = blockSize->GetApproxJacobianValues3d;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
-        reg_spline_getApproxJacobianValues3D_kernel<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
-                                                                             controlPointImageDim, (unsigned)controlPointNumber, reorientation);
+        GetApproxJacobianValues3d<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
+                                                           controlPointImageDim, (unsigned)controlPointNumber, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
-        const unsigned blocks = blockSize->reg_spline_getApproxJacobianValues2D;
+        const unsigned blocks = blockSize->GetApproxJacobianValues2d;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
-        reg_spline_getApproxJacobianValues2D_kernel<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
-                                                                             controlPointImageDim, (unsigned)controlPointNumber, reorientation);
+        GetApproxJacobianValues2d<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
+                                                           controlPointImageDim, (unsigned)controlPointNumber, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
 }
 /* *************************************************************** */
-void reg_spline_ComputeJacobianValues(const nifti_image *controlPointImage,
-                                      const nifti_image *referenceImage,
-                                      const float4 *controlPointImageCuda,
-                                      float *jacobianMatricesCuda,
-                                      float *jacobianDetCuda) {
+void ComputeJacobianValues(const nifti_image *controlPointImage,
+                           const nifti_image *referenceImage,
+                           const float4 *controlPointImageCuda,
+                           float *jacobianMatricesCuda,
+                           float *jacobianDetCuda) {
     auto blockSize = CudaContext::GetBlockSize();
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
@@ -331,32 +332,32 @@ void reg_spline_ComputeJacobianValues(const nifti_image *controlPointImage,
 
     // The Jacobian matrix is computed for every voxel
     if (controlPointImage->nz > 1) {
-        const unsigned blocks = blockSize->reg_spline_getJacobianValues3D;
+        const unsigned blocks = blockSize->GetJacobianValues3d;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         // 8 floats of shared memory are allocated per thread
         const unsigned sharedMemSize = blocks * 8 * sizeof(float);
-        reg_spline_getJacobianValues3D_kernel<<<gridDims, blockDims, sharedMemSize>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
-                                                                                      controlPointImageDim, controlPointSpacing, referenceImageDim,
-                                                                                      (unsigned)voxelNumber, reorientation);
+        GetJacobianValues3d<<<gridDims, blockDims, sharedMemSize>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
+                                                                    controlPointImageDim, controlPointSpacing, referenceImageDim,
+                                                                    (unsigned)voxelNumber, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
-        const unsigned blocks = blockSize->reg_spline_getJacobianValues2D;
+        const unsigned blocks = blockSize->GetJacobianValues2d;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
-        reg_spline_getJacobianValues2D_kernel<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
-                                                                       controlPointImageDim, controlPointSpacing, referenceImageDim,
-                                                                       (unsigned)voxelNumber, reorientation);
+        GetJacobianValues2d<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
+                                                     controlPointImageDim, controlPointSpacing, referenceImageDim,
+                                                     (unsigned)voxelNumber, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
 }
 /* *************************************************************** */
-double reg_spline_getJacobianPenaltyTerm_gpu(const nifti_image *referenceImage,
-                                             const nifti_image *controlPointImage,
-                                             const float4 *controlPointImageCuda,
-                                             const bool approx) {
+double GetJacobianPenaltyTerm(const nifti_image *referenceImage,
+                              const nifti_image *controlPointImage,
+                              const float4 *controlPointImageCuda,
+                              const bool approx) {
     // The Jacobian matrices and determinants are computed
     float *jacobianMatricesCuda, *jacobianDetCuda;
     size_t jacNumber; double jacSum;
@@ -368,23 +369,23 @@ double reg_spline_getJacobianPenaltyTerm_gpu(const nifti_image *referenceImage,
         // Allocate 3x3 matrices for 3D, and 2x2 matrices for 2D
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatricesCuda, (controlPointImage->nz > 1 ? 9 : 4) * jacNumber * sizeof(float)));
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDetCuda, jacNumber * sizeof(float)));
-        reg_spline_ComputeApproxJacobianValues(controlPointImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
+        ComputeApproxJacobianValues(controlPointImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
     } else {
         jacNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
         jacSum = static_cast<double>(jacNumber);
         // Allocate 3x3 matrices for 3D, and 2x2 matrices for 2D
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatricesCuda, (controlPointImage->nz > 1 ? 9 : 4) * jacNumber * sizeof(float)));
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDetCuda, jacNumber * sizeof(float)));
-        reg_spline_ComputeJacobianValues(controlPointImage, referenceImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
+        ComputeJacobianValues(controlPointImage, referenceImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
     }
     NR_CUDA_SAFE_CALL(cudaFree(jacobianMatricesCuda));
 
     // The Jacobian determinant are squared and logged (might not be english but will do)
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_spline_logSquaredValues;
+    const unsigned blocks = CudaContext::GetBlockSize()->LogSquaredValues;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)jacNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
-    reg_spline_logSquaredValues_kernel<<<gridDims, blockDims>>>(jacobianDetCuda, (unsigned)jacNumber);
+    LogSquaredValues<<<gridDims, blockDims>>>(jacobianDetCuda, (unsigned)jacNumber);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 
     // Perform the reduction
@@ -393,12 +394,12 @@ double reg_spline_getJacobianPenaltyTerm_gpu(const nifti_image *referenceImage,
     return penaltyTermValue / jacSum;
 }
 /* *************************************************************** */
-void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceImage,
-                                                   const nifti_image *controlPointImage,
-                                                   const float4 *controlPointImageCuda,
-                                                   float4 *transGradientCuda,
-                                                   const float jacobianWeight,
-                                                   const bool approx) {
+void GetJacobianPenaltyTermGradient(const nifti_image *referenceImage,
+                                    const nifti_image *controlPointImage,
+                                    const float4 *controlPointImageCuda,
+                                    float4 *transGradientCuda,
+                                    const float jacobianWeight,
+                                    const bool approx) {
     auto blockSize = CudaContext::GetBlockSize();
 
     // The Jacobian matrices and determinants are computed
@@ -409,13 +410,13 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceI
         // Allocate 3x3 matrices for 3D, and 2x2 matrices for 2D
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatricesCuda, (controlPointImage->nz > 1 ? 9 : 4) * jacNumber * sizeof(float)));
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDetCuda, jacNumber * sizeof(float)));
-        reg_spline_ComputeApproxJacobianValues(controlPointImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
+        ComputeApproxJacobianValues(controlPointImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
     } else {
         jacNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
         // Allocate 3x3 matrices for 3D, and 2x2 matrices for 2D
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatricesCuda, (controlPointImage->nz > 1 ? 9 : 4) * jacNumber * sizeof(float)));
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDetCuda, jacNumber * sizeof(float)));
-        reg_spline_ComputeJacobianValues(controlPointImage, referenceImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
+        ComputeJacobianValues(controlPointImage, referenceImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
     }
 
     // Need to disorient the Jacobian matrix using the header information - voxel to real conversion
@@ -432,22 +433,22 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceI
                                                              cudaChannelFormatKindFloat, 1);
     if (approx) {
         if (controlPointImage->nz > 1) {
-            const unsigned blocks = blockSize->reg_spline_computeApproxJacGradient3D;
+            const unsigned blocks = blockSize->ComputeApproxJacGradient3d;
             const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
-            reg_spline_computeApproxJacGradient3D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
-                                                                                  *jacobianMatricesTexture, controlPointImageDim,
-                                                                                  (unsigned)controlPointNumber, reorientation, weight);
+            ComputeApproxJacGradient3d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
+                                                                *jacobianMatricesTexture, controlPointImageDim,
+                                                                (unsigned)controlPointNumber, reorientation, weight);
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         } else {
-            const unsigned blocks = blockSize->reg_spline_computeApproxJacGradient2D;
+            const unsigned blocks = blockSize->ComputeApproxJacGradient2d;
             const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
-            reg_spline_computeApproxJacGradient2D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
-                                                                                  *jacobianMatricesTexture, controlPointImageDim,
-                                                                                  (unsigned)controlPointNumber, reorientation, weight);
+            ComputeApproxJacGradient2d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
+                                                                *jacobianMatricesTexture, controlPointImageDim,
+                                                                (unsigned)controlPointNumber, reorientation, weight);
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         }
     } else {
@@ -456,24 +457,24 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceI
                                                             controlPointImage->dy / referenceImage->dy,
                                                             controlPointImage->dz / referenceImage->dz);
         if (controlPointImage->nz > 1) {
-            const unsigned blocks = blockSize->reg_spline_computeJacGradient3D;
+            const unsigned blocks = blockSize->ComputeJacGradient3d;
             const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
-            reg_spline_computeJacGradient3D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
-                                                                            *jacobianMatricesTexture, controlPointImageDim,
-                                                                            controlPointVoxelSpacing, (unsigned)controlPointNumber,
-                                                                            referenceImageDim, reorientation, weight);
+            ComputeJacGradient3d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
+                                                          *jacobianMatricesTexture, controlPointImageDim,
+                                                          controlPointVoxelSpacing, (unsigned)controlPointNumber,
+                                                          referenceImageDim, reorientation, weight);
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         } else {
-            const unsigned blocks = blockSize->reg_spline_computeJacGradient2D;
+            const unsigned blocks = blockSize->ComputeJacGradient2d;
             const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
-            reg_spline_computeJacGradient2D_kernel<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
-                                                                            *jacobianMatricesTexture, controlPointImageDim,
-                                                                            controlPointVoxelSpacing, (unsigned)controlPointNumber,
-                                                                            referenceImageDim, reorientation, weight);
+            ComputeJacGradient2d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
+                                                          *jacobianMatricesTexture, controlPointImageDim,
+                                                          controlPointVoxelSpacing, (unsigned)controlPointNumber,
+                                                          referenceImageDim, reorientation, weight);
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         }
     }
@@ -481,10 +482,10 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(const nifti_image *referenceI
     NR_CUDA_SAFE_CALL(cudaFree(jacobianMatricesCuda));
 }
 /* *************************************************************** */
-double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
-                                     const nifti_image *controlPointImage,
-                                     float4 *controlPointImageCuda,
-                                     const bool approx) {
+double CorrectFolding(const nifti_image *referenceImage,
+                      const nifti_image *controlPointImage,
+                      float4 *controlPointImageCuda,
+                      const bool approx) {
     auto blockSize = CudaContext::GetBlockSize();
 
     // The Jacobian matrices and determinants are computed
@@ -497,25 +498,25 @@ double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
         jacobianDetSize = jacNumber * sizeof(float);
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatricesCuda, 9 * jacobianDetSize));
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDetCuda, jacobianDetSize));
-        reg_spline_ComputeApproxJacobianValues(controlPointImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
+        ComputeApproxJacobianValues(controlPointImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
     } else {
         jacNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
         jacSum = static_cast<double>(jacNumber);
         jacobianDetSize = jacNumber * sizeof(float);
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianMatricesCuda, 9 * jacobianDetSize));
         NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDetCuda, jacobianDetSize));
-        reg_spline_ComputeJacobianValues(controlPointImage, referenceImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
+        ComputeJacobianValues(controlPointImage, referenceImage, controlPointImageCuda, jacobianMatricesCuda, jacobianDetCuda);
     }
 
     // Check if the Jacobian determinant average
     float *jacobianDet2Cuda;
     NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDet2Cuda, jacobianDetSize));
     NR_CUDA_SAFE_CALL(cudaMemcpy(jacobianDet2Cuda, jacobianDetCuda, jacobianDetSize, cudaMemcpyDeviceToDevice));
-    const unsigned blocks = blockSize->reg_spline_logSquaredValues;
+    const unsigned blocks = blockSize->LogSquaredValues;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)jacNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
-    reg_spline_logSquaredValues_kernel<<<gridDims, blockDims>>>(jacobianDet2Cuda, (unsigned)jacNumber);
+    LogSquaredValues<<<gridDims, blockDims>>>(jacobianDet2Cuda, (unsigned)jacNumber);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     float *jacobianDet;
     NR_CUDA_SAFE_CALL(cudaMallocHost(&jacobianDet, jacobianDetSize));
@@ -540,27 +541,27 @@ double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
     auto jacobianDeterminantTexture = Cuda::CreateTextureObject(jacobianDetCuda, jacNumber, cudaChannelFormatKindFloat, 1);
     auto jacobianMatricesTexture = Cuda::CreateTextureObject(jacobianMatricesCuda, 9 * jacNumber, cudaChannelFormatKindFloat, 1);
     if (approx) {
-        const unsigned blocks = blockSize->reg_spline_approxCorrectFolding3D;
+        const unsigned blocks = blockSize->ApproxCorrectFolding3d;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
-        reg_spline_approxCorrectFolding3D_kernel<<<gridDims, blockDims>>>(controlPointImageCuda, *jacobianDeterminantTexture,
-                                                                          *jacobianMatricesTexture, controlPointImageDim,
-                                                                          controlPointSpacing, (unsigned)controlPointNumber, reorientation);
+        ApproxCorrectFolding3d<<<gridDims, blockDims>>>(controlPointImageCuda, *jacobianDeterminantTexture,
+                                                        *jacobianMatricesTexture, controlPointImageDim,
+                                                        controlPointSpacing, (unsigned)controlPointNumber, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
         const float3 controlPointVoxelSpacing = make_float3(controlPointImage->dx / referenceImage->dx,
                                                             controlPointImage->dy / referenceImage->dy,
                                                             controlPointImage->dz / referenceImage->dz);
-        const unsigned blocks = blockSize->reg_spline_correctFolding3D;
+        const unsigned blocks = blockSize->CorrectFolding3d;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
-        reg_spline_correctFolding3D_kernel<<<gridDims, blockDims>>>(controlPointImageCuda, *jacobianDeterminantTexture,
-                                                                    *jacobianMatricesTexture, controlPointImageDim, controlPointSpacing,
-                                                                    controlPointVoxelSpacing, (unsigned)controlPointNumber,
-                                                                    referenceImageDim, reorientation);
+        CorrectFolding3d<<<gridDims, blockDims>>>(controlPointImageCuda, *jacobianDeterminantTexture,
+                                                  *jacobianMatricesTexture, controlPointImageDim, controlPointSpacing,
+                                                  controlPointVoxelSpacing, (unsigned)controlPointNumber,
+                                                  referenceImageDim, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
     NR_CUDA_SAFE_CALL(cudaFree(jacobianDetCuda));
@@ -569,7 +570,7 @@ double reg_spline_correctFolding_gpu(const nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template<bool is3d, bool reverse = false>
-void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageCuda) {
+void GetDeformationFromDisplacement(nifti_image *image, float4 *imageCuda) {
     // Bind the qform or sform
     const mat44& affineMatrix = image->sform_code > 0 ? image->sto_xyz : image->qto_xyz;
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
@@ -578,7 +579,7 @@ void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageCud
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), voxelNumber, [=]__device__(const unsigned index) {
         auto&& [x, y, z] = reg_indexToDims_cuda<is3d>(index, imageDim);
 
-        const float4 initialPosition = {
+        const float4 initialPosition{
             float(x) * affineMatrix.m[0][0] + float(y) * affineMatrix.m[0][1] + (is3d ? float(z) * affineMatrix.m[0][2] : 0.f) + affineMatrix.m[0][3],
             float(x) * affineMatrix.m[1][0] + float(y) * affineMatrix.m[1][1] + (is3d ? float(z) * affineMatrix.m[1][2] : 0.f) + affineMatrix.m[1][3],
             is3d ? float(x) * affineMatrix.m[2][0] + float(y) * affineMatrix.m[2][1] + float(z) * affineMatrix.m[2][2] + affineMatrix.m[2][3] : 0.f,
@@ -605,35 +606,35 @@ void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageCud
     }
 }
 /* *************************************************************** */
-void reg_getDeformationFromDisplacement_gpu(nifti_image *image, float4 *imageCuda) {
+void GetDeformationFromDisplacement(nifti_image *image, float4 *imageCuda) {
     if (image->nu == 2)
-        reg_getDeformationFromDisplacement_gpu<false>(image, imageCuda);
+        GetDeformationFromDisplacement<false>(image, imageCuda);
     else if (image->nu == 3)
-        reg_getDeformationFromDisplacement_gpu<true>(image, imageCuda);
+        GetDeformationFromDisplacement<true>(image, imageCuda);
     else NR_FATAL_ERROR("Only implemented for 2D or 3D deformation fields");
 }
 /* *************************************************************** */
-void reg_getDisplacementFromDeformation_gpu(nifti_image *image, float4 *imageCuda) {
+void GetDisplacementFromDeformation(nifti_image *image, float4 *imageCuda) {
     if (image->nu == 2)
-        reg_getDeformationFromDisplacement_gpu<false, true>(image, imageCuda);
+        GetDeformationFromDisplacement<false, true>(image, imageCuda);
     else if (image->nu == 3)
-        reg_getDeformationFromDisplacement_gpu<true, true>(image, imageCuda);
+        GetDeformationFromDisplacement<true, true>(image, imageCuda);
     else NR_FATAL_ERROR("Only implemented for 2D or 3D deformation fields");
 }
 /* *************************************************************** */
-void reg_spline_getFlowFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
-                                                 nifti_image *flowField,
-                                                 float4 *velocityFieldGridCuda,
-                                                 float4 *flowFieldCuda,
-                                                 const int *maskCuda,
-                                                 const size_t activeVoxelNumber) {
+void GetFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
+                                  nifti_image *flowField,
+                                  float4 *velocityFieldGridCuda,
+                                  float4 *flowFieldCuda,
+                                  const int *maskCuda,
+                                  const size_t activeVoxelNumber) {
     // Check first if the velocity field is actually a velocity field
     if (velocityFieldGrid->intent_p1 != SPLINE_VEL_GRID)
         NR_FATAL_ERROR("The provided grid is not a velocity field");
 
     // Initialise the flow field with an identity transformation
     flowField->intent_p1 = DISP_VEL_FIELD;
-    reg_getDeformationFromDisplacement_gpu(flowField, flowFieldCuda);
+    GetDeformationFromDisplacement(flowField, flowFieldCuda);
 
     // fake the number of extension here to avoid the second half of the affine
     const auto oldNumExt = velocityFieldGrid->num_ext;
@@ -643,21 +644,21 @@ void reg_spline_getFlowFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
     // Copy over the number of required squaring steps
     flowField->intent_p2 = velocityFieldGrid->intent_p2;
     // The initial flow field is generated using cubic B-Spline interpolation/approximation
-    reg_spline_getDeformationField_gpu(velocityFieldGrid,
-                                       flowField,
-                                       velocityFieldGridCuda,
-                                       flowFieldCuda,
-                                       maskCuda,
-                                       activeVoxelNumber,
-                                       true,  // composition
-                                       true); // bspline
+    GetDeformationField(velocityFieldGrid,
+                        flowField,
+                        velocityFieldGridCuda,
+                        flowFieldCuda,
+                        maskCuda,
+                        activeVoxelNumber,
+                        true,  // composition
+                        true); // bspline
 
     velocityFieldGrid->num_ext = oldNumExt;
 }
 /* *************************************************************** */
-void reg_defField_compose_gpu(const nifti_image *deformationField,
-                              const float4 *deformationFieldCuda,
-                              float4 *deformationFieldCudaOut) {
+void DefFieldCompose(const nifti_image *deformationField,
+                     const float4 *deformationFieldCuda,
+                     float4 *deformationFieldCudaOut) {
     auto blockSize = CudaContext::GetBlockSize();
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
     const int3 referenceImageDim{ deformationField->nx, deformationField->ny, deformationField->nz };
@@ -666,30 +667,30 @@ void reg_defField_compose_gpu(const nifti_image *deformationField,
     auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
 
     if (deformationField->nz > 1) {
-        const unsigned blocks = blockSize->reg_defField_compose3D;
+        const unsigned blocks = blockSize->DefFieldCompose3d;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
-        reg_defField_compose3D_kernel<<<gridDims, blockDims>>>(deformationFieldCudaOut, *deformationFieldTexture, referenceImageDim,
-                                                               (unsigned)voxelNumber, affineMatrixB, affineMatrixC);
+        DefFieldCompose3d<<<gridDims, blockDims>>>(deformationFieldCudaOut, *deformationFieldTexture, referenceImageDim,
+                                                   (unsigned)voxelNumber, affineMatrixB, affineMatrixC);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
-        const unsigned blocks = blockSize->reg_defField_compose2D;
+        const unsigned blocks = blockSize->DefFieldCompose2d;
         const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
-        reg_defField_compose2D_kernel<<<gridDims, blockDims>>>(deformationFieldCudaOut, *deformationFieldTexture, referenceImageDim,
-                                                               (unsigned)voxelNumber, affineMatrixB, affineMatrixC);
+        DefFieldCompose2d<<<gridDims, blockDims>>>(deformationFieldCudaOut, *deformationFieldTexture, referenceImageDim,
+                                                   (unsigned)voxelNumber, affineMatrixB, affineMatrixC);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
 }
 /* *************************************************************** */
-void reg_defField_getDeformationFieldFromFlowField_gpu(nifti_image *flowField,
-                                                       nifti_image *deformationField,
-                                                       float4 *flowFieldCuda,
-                                                       float4 *deformationFieldCuda,
-                                                       const int *maskCuda,
-                                                       const bool updateStepNumber) {
+void GetDeformationFieldFromFlowField(nifti_image *flowField,
+                                      nifti_image *deformationField,
+                                      float4 *flowFieldCuda,
+                                      float4 *deformationFieldCuda,
+                                      const int *maskCuda,
+                                      const bool updateStepNumber) {
     // Check first if the velocity field is actually a velocity field
     if (flowField->intent_p1 != DEF_VEL_FIELD)
         NR_FATAL_ERROR("The provided field is not a velocity field");
@@ -708,7 +709,7 @@ void reg_defField_getDeformationFieldFromFlowField_gpu(nifti_image *flowField,
                                                affineOnly, affineOnlyCuda.data().get());
             reg_subtractImages_gpu(flowField, flowFieldCuda, affineOnlyCuda.data().get());
         }
-    } else reg_getDisplacementFromDeformation_gpu(flowField, flowFieldCuda);
+    } else GetDisplacementFromDeformation(flowField, flowFieldCuda);
 
     // Compute the number of scaling value to ensure unfolded transformation
     int squaringNumber = 1;
@@ -740,7 +741,7 @@ void reg_defField_getDeformationFieldFromFlowField_gpu(nifti_image *flowField,
     reg_multiplyValue_gpu(voxelNumber, flowFieldCuda, flowField->intent_p2 < 0 ? -scalingValue : scalingValue);
 
     // Conversion from displacement to deformation
-    reg_getDeformationFromDisplacement_gpu(flowField, flowFieldCuda);
+    GetDeformationFromDisplacement(flowField, flowFieldCuda);
 
     // The computed scaled deformation field is copied over
     thrust::copy(thrust::device, flowFieldCuda, flowFieldCuda + voxelNumber, deformationFieldCuda);
@@ -748,14 +749,14 @@ void reg_defField_getDeformationFieldFromFlowField_gpu(nifti_image *flowField,
     // The deformation field is squared
     for (int i = 0; i < squaringNumber; ++i) {
         // The deformation field is applied to itself
-        reg_defField_compose_gpu(deformationField, deformationFieldCuda, flowFieldCuda);
+        DefFieldCompose(deformationField, deformationFieldCuda, flowFieldCuda);
         // The computed scaled deformation field is copied over
         thrust::copy(thrust::device, flowFieldCuda, flowFieldCuda + voxelNumber, deformationFieldCuda);
         NR_DEBUG("Squaring (composition) step " << i + 1 << "/" << squaringNumber);
     }
     // The affine component of the transformation is restored
     if (affineOnly) {
-        reg_getDisplacementFromDeformation_gpu(deformationField, deformationFieldCuda);
+        GetDisplacementFromDeformation(deformationField, deformationFieldCuda);
         reg_addImages_gpu(deformationField, deformationFieldCuda, affineOnlyCuda.data().get());
     }
     deformationField->intent_p1 = DEF_FIELD;
@@ -766,11 +767,11 @@ void reg_defField_getDeformationFieldFromFlowField_gpu(nifti_image *flowField,
                                            deformationField, deformationFieldCuda, true);
 }
 /* *************************************************************** */
-void reg_spline_getDefFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
-                                                nifti_image *deformationField,
-                                                float4 *velocityFieldGridCuda,
-                                                float4 *deformationFieldCuda,
-                                                const bool updateStepNumber) {
+void GetDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
+                                 nifti_image *deformationField,
+                                 float4 *velocityFieldGridCuda,
+                                 float4 *deformationFieldCuda,
+                                 const bool updateStepNumber) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
 
     // Create a mask array where no voxel is excluded
@@ -783,14 +784,14 @@ void reg_spline_getDefFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
     // Check if the velocity field is actually a velocity field
     if (velocityFieldGrid->intent_p1 == CUB_SPLINE_GRID) {
         // Use the spline approximation to generate the deformation field
-        reg_spline_getDeformationField_gpu(velocityFieldGrid,
-                                           deformationField,
-                                           velocityFieldGridCuda,
-                                           deformationFieldCuda,
-                                           maskCuda.data().get(),
-                                           voxelNumber,
-                                           false, // composition
-                                           true); // bspline
+        GetDeformationField(velocityFieldGrid,
+                            deformationField,
+                            velocityFieldGridCuda,
+                            deformationFieldCuda,
+                            maskCuda.data().get(),
+                            voxelNumber,
+                            false, // composition
+                            true); // bspline
     } else if (velocityFieldGrid->intent_p1 == SPLINE_VEL_GRID) {
         // Create an image to store the flow field
         NiftiImage flowField(deformationField, NiftiImage::Copy::ImageInfo);
@@ -805,36 +806,36 @@ void reg_spline_getDefFieldFromVelocityGrid_gpu(nifti_image *velocityFieldGrid,
         thrust::device_vector<float4> flowFieldCuda(flowField.nVoxelsPerVolume());
 
         // Generate the velocity field
-        reg_spline_getFlowFieldFromVelocityGrid_gpu(velocityFieldGrid, flowField, velocityFieldGridCuda,
-                                                    flowFieldCuda.data().get(), maskCuda.data().get(), voxelNumber);
+        GetFlowFieldFromVelocityGrid(velocityFieldGrid, flowField, velocityFieldGridCuda,
+                                     flowFieldCuda.data().get(), maskCuda.data().get(), voxelNumber);
         // Exponentiate the flow field
-        reg_defField_getDeformationFieldFromFlowField_gpu(flowField, deformationField, flowFieldCuda.data().get(),
-                                                          deformationFieldCuda, maskCuda.data().get(), updateStepNumber);
+        GetDeformationFieldFromFlowField(flowField, deformationField, flowFieldCuda.data().get(),
+                                         deformationFieldCuda, maskCuda.data().get(), updateStepNumber);
         // Update the number of step required. No action otherwise
         velocityFieldGrid->intent_p2 = flowField->intent_p2;
     } else NR_FATAL_ERROR("The provided input image is not a spline parametrised transformation");
 }
 /* *************************************************************** */
-void reg_defField_getJacobianMatrix_gpu(const nifti_image *deformationField,
-                                        const float4 *deformationFieldCuda,
-                                        float *jacobianMatricesCuda) {
+void GetJacobianMatrix(const nifti_image *deformationField,
+                       const float4 *deformationFieldCuda,
+                       float *jacobianMatricesCuda) {
     const int3 referenceImageDim = make_int3(deformationField->nx, deformationField->ny, deformationField->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
     const mat33 reorientation = reg_mat44_to_mat33(deformationField->sform_code > 0 ? &deformationField->sto_xyz : &deformationField->qto_xyz);
     auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
 
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_defField_getJacobianMatrix;
+    const unsigned blocks = CudaContext::GetBlockSize()->GetJacobianMatrix;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
-    reg_defField_getJacobianMatrix3D_kernel<<<gridDims, blockDims>>>(jacobianMatricesCuda, *deformationFieldTexture, referenceImageDim,
-                                                                     (unsigned)voxelNumber, reorientation);
+    GetJacobianMatrix3d<<<gridDims, blockDims>>>(jacobianMatricesCuda, *deformationFieldTexture, referenceImageDim,
+                                                 (unsigned)voxelNumber, reorientation);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
 /* *************************************************************** */
 template<bool is3d>
-double reg_spline_approxLinearEnergy_gpu(const nifti_image *controlPointGrid,
-                                         const float4 *controlPointGridCuda) {
+double ApproxLinearEnergy(const nifti_image *controlPointGrid,
+                          const float4 *controlPointGridCuda) {
     const int3 cppDims = make_int3(controlPointGrid->nx, controlPointGrid->ny, controlPointGrid->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
 
@@ -863,14 +864,14 @@ double reg_spline_approxLinearEnergy_gpu(const nifti_image *controlPointGrid,
         return currentValue;
     }, 0.0, thrust::plus<double>()) / static_cast<double>(controlPointGrid->nvox);
 }
-template double reg_spline_approxLinearEnergy_gpu<false>(const nifti_image*, const float4*);
-template double reg_spline_approxLinearEnergy_gpu<true>(const nifti_image*, const float4*);
+template double ApproxLinearEnergy<false>(const nifti_image*, const float4*);
+template double ApproxLinearEnergy<true>(const nifti_image*, const float4*);
 /* *************************************************************** */
 template<bool is3d>
-void reg_spline_approxLinearEnergyGradient_gpu(const nifti_image *controlPointGrid,
-                                               const float4 *controlPointGridCuda,
-                                               float4 *transGradCuda,
-                                               const float weight) {
+void ApproxLinearEnergyGradient(const nifti_image *controlPointGrid,
+                                const float4 *controlPointGridCuda,
+                                float4 *transGradCuda,
+                                const float weight) {
     const int3 cppDims = make_int3(controlPointGrid->nx, controlPointGrid->ny, controlPointGrid->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
     const float approxRatio = weight / static_cast<float>(voxelNumber);
@@ -887,7 +888,7 @@ void reg_spline_approxLinearEnergyGradient_gpu(const nifti_image *controlPointGr
         set_first_order_basis_values(basis.x, basis.y);
 
     // Kernel dims
-    const unsigned blocks = CudaContext::GetBlockSize()->reg_spline_approxLinearEnergyGradient;
+    const unsigned blocks = CudaContext::GetBlockSize()->ApproxLinearEnergyGradient;
     const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
@@ -900,15 +901,17 @@ void reg_spline_approxLinearEnergyGradient_gpu(const nifti_image *controlPointGr
     auto dispMatricesTexture = Cuda::CreateTextureObject(dispMatricesCuda.data().get(), voxelNumber, cudaChannelFormatKindFloat, 1);
 
     // Create the displacement matrices
-    reg_spline_createDisplacementMatrices_kernel<is3d><<<gridDims, blockDims>>>(dispMatricesCuda.data().get(), *controlPointTexture,
-                                                                                cppDims, basis, reorientation, (unsigned)voxelNumber);
+    CreateDisplacementMatrices<is3d><<<gridDims, blockDims>>>(dispMatricesCuda.data().get(), *controlPointTexture,
+                                                              cppDims, basis, reorientation, (unsigned)voxelNumber);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 
     // Compute the gradient
-    reg_spline_approxLinearEnergyGradient_kernel<is3d><<<gridDims, blockDims>>>(transGradCuda, *dispMatricesTexture, cppDims,
-                                                                                approxRatio, basis, invReorientation, (unsigned)voxelNumber);
+    ApproxLinearEnergyGradientKernel<is3d><<<gridDims, blockDims>>>(transGradCuda, *dispMatricesTexture, cppDims,
+                                                                    approxRatio, basis, invReorientation, (unsigned)voxelNumber);
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 }
-template void reg_spline_approxLinearEnergyGradient_gpu<false>(const nifti_image*, const float4*, float4*, const float);
-template void reg_spline_approxLinearEnergyGradient_gpu<true>(const nifti_image*, const float4*, float4*, const float);
+template void ApproxLinearEnergyGradient<false>(const nifti_image*, const float4*, float4*, const float);
+template void ApproxLinearEnergyGradient<true>(const nifti_image*, const float4*, float4*, const float);
+/* *************************************************************** */
+} // namespace NiftyReg::Cuda
 /* *************************************************************** */

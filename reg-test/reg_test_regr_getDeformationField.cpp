@@ -272,13 +272,13 @@ public:
     template<class DataType>
     void GetDeformationField(const NiftiImage& controlPointGrid, NiftiImage& defField, const int *mask, const bool composition, const bool bspline) {
         if (controlPointGrid->nz > 1)
-            GetDeformationField3D<DataType>(controlPointGrid, defField, mask, composition, bspline);
+            GetDeformationField3d<DataType>(controlPointGrid, defField, mask, composition, bspline);
         else
-            GetDeformationField2D<DataType>(controlPointGrid, defField, mask, composition, bspline);
+            GetDeformationField2d<DataType>(controlPointGrid, defField, mask, composition, bspline);
     }
 
     template<class DataType>
-    void GetDeformationField2D(const NiftiImage& controlPointGrid, NiftiImage& defField, const int *mask, const bool composition, const bool bspline) {
+    void GetDeformationField2d(const NiftiImage& controlPointGrid, NiftiImage& defField, const int *mask, const bool composition, const bool bspline) {
         auto defFieldPtr = defField.data();
         auto defFieldPtrX = defFieldPtr.begin();
         auto defFieldPtrY = defFieldPtrX + defField.nVoxelsPerSlice();
@@ -386,7 +386,7 @@ public:
     }
 
     template<class DataType>
-    void GetDeformationField3D(const NiftiImage& controlPointGrid, NiftiImage& defField, const int *mask, const bool composition, const bool bspline) {
+    void GetDeformationField3d(const NiftiImage& controlPointGrid, NiftiImage& defField, const int *mask, const bool composition, const bool bspline) {
         DataType xBasis[4], yBasis[4], zBasis[4];
         DataType xControlPointCoordinates[64];
         DataType yControlPointCoordinates[64];

@@ -65,6 +65,7 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaF3dContent.cpp
     CudaKernelConvolution.cu
     CudaKernelFactory.cpp
+    CudaLocalTransformation.cu
     CudaLtsKernel.cpp
     CudaMeasure.cpp
     CudaNormaliseGradient.cu
@@ -73,7 +74,6 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaResampling.cu
     resampleKernel.cu
     _reg_globalTransformation_gpu.cu
-    _reg_localTransformation_gpu.cu
     _reg_nmi_gpu.cu
     _reg_ssd_gpu.cu
     _reg_tools_gpu.cu

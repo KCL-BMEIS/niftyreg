@@ -1,5 +1,5 @@
 /*
- *  _reg_localTransformation_kernels.cu
+ *  CudaLocalTransformationKernels.cu
  *
  *
  *  Created by Marc Modat on 24/03/2009.
@@ -12,6 +12,8 @@
 
 #include "_reg_common_cuda_kernels.cu"
 
+/* *************************************************************** */
+namespace NiftyReg::Cuda {
 /* *************************************************************** */
 __device__ void GetBasisBSplineValues(const float basis, float *values) {
     const float ff = Square(basis);
@@ -166,16 +168,16 @@ __device__ float4 GetSlidedValues(int x, int y, int z,
     return slidedValues + tex1Dfetch<float4>(deformationFieldTexture, (newZ * referenceImageDim.y + newY) * referenceImageDim.x + newX);
 }
 /* *************************************************************** */
-__global__ void reg_spline_getDeformationField3D(float4 *deformationField,
-                                                 cudaTextureObject_t controlPointTexture,
-                                                 cudaTextureObject_t maskTexture,
-                                                 const mat44 *realToVoxel,
-                                                 const int3 referenceImageDim,
-                                                 const int3 controlPointImageDim,
-                                                 const float3 controlPointVoxelSpacing,
-                                                 const unsigned activeVoxelNumber,
-                                                 const bool composition,
-                                                 const bool bspline) {
+__global__ void GetDeformationField3d(float4 *deformationField,
+                                      cudaTextureObject_t controlPointTexture,
+                                      cudaTextureObject_t maskTexture,
+                                      const mat44 *realToVoxel,
+                                      const int3 referenceImageDim,
+                                      const int3 controlPointImageDim,
+                                      const float3 controlPointVoxelSpacing,
+                                      const unsigned activeVoxelNumber,
+                                      const bool composition,
+                                      const bool bspline) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid >= activeVoxelNumber) return;
     int3 nodePre;
@@ -254,16 +256,16 @@ __global__ void reg_spline_getDeformationField3D(float4 *deformationField,
     deformationField[tid] = displacement;
 }
 /* *************************************************************** */
-__global__ void reg_spline_getDeformationField2D(float4 *deformationField,
-                                                 cudaTextureObject_t controlPointTexture,
-                                                 cudaTextureObject_t maskTexture,
-                                                 const mat44 *realToVoxel,
-                                                 const int3 referenceImageDim,
-                                                 const int3 controlPointImageDim,
-                                                 const float3 controlPointVoxelSpacing,
-                                                 const unsigned activeVoxelNumber,
-                                                 const bool composition,
-                                                 const bool bspline) {
+__global__ void GetDeformationField2d(float4 *deformationField,
+                                      cudaTextureObject_t controlPointTexture,
+                                      cudaTextureObject_t maskTexture,
+                                      const mat44 *realToVoxel,
+                                      const int3 referenceImageDim,
+                                      const int3 controlPointImageDim,
+                                      const float3 controlPointVoxelSpacing,
+                                      const unsigned activeVoxelNumber,
+                                      const bool composition,
+                                      const bool bspline) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid >= activeVoxelNumber) return;
     int2 nodePre;
@@ -322,12 +324,12 @@ __global__ void reg_spline_getDeformationField2D(float4 *deformationField,
     deformationField[tid] = displacement;
 }
 /* *************************************************************** */
-__global__ void reg_spline_getApproxJacobianValues2D_kernel(float *jacobianMatrices,
-                                                            float *jacobianDet,
-                                                            cudaTextureObject_t controlPointTexture,
-                                                            const int3 controlPointImageDim,
-                                                            const unsigned controlPointNumber,
-                                                            const mat33 reorientation) {
+__global__ void GetApproxJacobianValues2d(float *jacobianMatrices,
+                                          float *jacobianDet,
+                                          cudaTextureObject_t controlPointTexture,
+                                          const int3 controlPointImageDim,
+                                          const unsigned controlPointNumber,
+                                          const mat33 reorientation) {
     __shared__ float xbasis[9];
     __shared__ float ybasis[9];
 
@@ -383,12 +385,12 @@ __global__ void reg_spline_getApproxJacobianValues2D_kernel(float *jacobianMatri
     }
 }
 /* *************************************************************** */
-__global__ void reg_spline_getApproxJacobianValues3D_kernel(float *jacobianMatrices,
-                                                            float *jacobianDet,
-                                                            cudaTextureObject_t controlPointTexture,
-                                                            const int3 controlPointImageDim,
-                                                            const unsigned controlPointNumber,
-                                                            const mat33 reorientation) {
+__global__ void GetApproxJacobianValues3d(float *jacobianMatrices,
+                                          float *jacobianDet,
+                                          cudaTextureObject_t controlPointTexture,
+                                          const int3 controlPointImageDim,
+                                          const unsigned controlPointNumber,
+                                          const mat33 reorientation) {
     __shared__ float xbasis[27];
     __shared__ float ybasis[27];
     __shared__ float zbasis[27];
@@ -474,14 +476,14 @@ __global__ void reg_spline_getApproxJacobianValues3D_kernel(float *jacobianMatri
     }
 }
 /* *************************************************************** */
-__global__ void reg_spline_getJacobianValues2D_kernel(float *jacobianMatrices,
-                                                      float *jacobianDet,
-                                                      cudaTextureObject_t controlPointTexture,
-                                                      const int3 controlPointImageDim,
-                                                      const float3 controlPointSpacing,
-                                                      const int3 referenceImageDim,
-                                                      const unsigned voxelNumber,
-                                                      const mat33 reorientation) {
+__global__ void GetJacobianValues2d(float *jacobianMatrices,
+                                    float *jacobianDet,
+                                    cudaTextureObject_t controlPointTexture,
+                                    const int3 controlPointImageDim,
+                                    const float3 controlPointSpacing,
+                                    const int3 referenceImageDim,
+                                    const unsigned voxelNumber,
+                                    const mat33 reorientation) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
         int quot, rem;
@@ -543,14 +545,14 @@ __global__ void reg_spline_getJacobianValues2D_kernel(float *jacobianMatrices,
     }
 }
 /* *************************************************************** */
-__global__ void reg_spline_getJacobianValues3D_kernel(float *jacobianMatrices,
-                                                      float *jacobianDet,
-                                                      cudaTextureObject_t controlPointTexture,
-                                                      const int3 controlPointImageDim,
-                                                      const float3 controlPointSpacing,
-                                                      const int3 referenceImageDim,
-                                                      const unsigned voxelNumber,
-                                                      const mat33 reorientation) {
+__global__ void GetJacobianValues3d(float *jacobianMatrices,
+                                    float *jacobianDet,
+                                    cudaTextureObject_t controlPointTexture,
+                                    const int3 controlPointImageDim,
+                                    const float3 controlPointSpacing,
+                                    const int3 referenceImageDim,
+                                    const unsigned voxelNumber,
+                                    const mat33 reorientation) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
         int quot, rem;
@@ -647,7 +649,7 @@ __global__ void reg_spline_getJacobianValues3D_kernel(float *jacobianMatrices,
     }
 }
 /* *************************************************************** */
-__global__ void reg_spline_logSquaredValues_kernel(float *det, const unsigned voxelNumber) {
+__global__ void LogSquaredValues(float *det, const unsigned voxelNumber) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
         const float val = logf(det[tid]);
@@ -655,7 +657,7 @@ __global__ void reg_spline_logSquaredValues_kernel(float *det, const unsigned vo
     }
 }
 /* *************************************************************** */
-__device__ void GetJacobianGradientValues2D(float *jacobianMatrix,
+__device__ void GetJacobianGradientValues2d(float *jacobianMatrix,
                                             float detJac,
                                             float basisX,
                                             float basisY,
@@ -664,7 +666,7 @@ __device__ void GetJacobianGradientValues2D(float *jacobianMatrix,
     jacobianConstraint->y += detJac * (basisY * jacobianMatrix[0] - basisX * jacobianMatrix[1]);
 }
 /* *************************************************************** */
-__device__ void GetJacobianGradientValues3D(float *jacobianMatrix,
+__device__ void GetJacobianGradientValues3d(float *jacobianMatrix,
                                             float detJac,
                                             float basisX,
                                             float basisY,
@@ -686,13 +688,13 @@ __device__ void GetJacobianGradientValues3D(float *jacobianMatrix,
         basisZ * (jacobianMatrix[0] * jacobianMatrix[4] - jacobianMatrix[1] * jacobianMatrix[3]));
 }
 /* *************************************************************** */
-__global__ void reg_spline_computeApproxJacGradient2D_kernel(float4 *gradient,
-                                                             cudaTextureObject_t jacobianDeterminantTexture,
-                                                             cudaTextureObject_t jacobianMatricesTexture,
-                                                             const int3 controlPointImageDim,
-                                                             const unsigned controlPointNumber,
-                                                             const mat33 reorientation,
-                                                             const float3 weight) {
+__global__ void ComputeApproxJacGradient2d(float4 *gradient,
+                                           cudaTextureObject_t jacobianDeterminantTexture,
+                                           cudaTextureObject_t jacobianMatricesTexture,
+                                           const int3 controlPointImageDim,
+                                           const unsigned controlPointNumber,
+                                           const mat33 reorientation,
+                                           const float3 weight) {
     __shared__ float xbasis[9];
     __shared__ float ybasis[9];
 
@@ -721,7 +723,7 @@ __global__ void reg_spline_computeApproxJacGradient2D_kernel(float4 *gradient,
                             jacobianMatrix[1] = tex1Dfetch<float>(jacobianMatricesTexture, jacIndex * 4 + 1);
                             jacobianMatrix[2] = tex1Dfetch<float>(jacobianMatricesTexture, jacIndex * 4 + 2);
                             jacobianMatrix[3] = tex1Dfetch<float>(jacobianMatricesTexture, jacIndex * 4 + 3);
-                            GetJacobianGradientValues2D(jacobianMatrix, detJac, xbasis[index], ybasis[index], &jacobianGradient);
+                            GetJacobianGradientValues2d(jacobianMatrix, detJac, xbasis[index], ybasis[index], &jacobianGradient);
                         }
                     }
                     jacIndex++;
@@ -737,13 +739,13 @@ __global__ void reg_spline_computeApproxJacGradient2D_kernel(float4 *gradient,
     }
 }
 /* *************************************************************** */
-__global__ void reg_spline_computeApproxJacGradient3D_kernel(float4 *gradient,
-                                                             cudaTextureObject_t jacobianDeterminantTexture,
-                                                             cudaTextureObject_t jacobianMatricesTexture,
-                                                             const int3 controlPointImageDim,
-                                                             const unsigned controlPointNumber,
-                                                             const mat33 reorientation,
-                                                             const float3 weight) {
+__global__ void ComputeApproxJacGradient3d(float4 *gradient,
+                                           cudaTextureObject_t jacobianDeterminantTexture,
+                                           cudaTextureObject_t jacobianMatricesTexture,
+                                           const int3 controlPointImageDim,
+                                           const unsigned controlPointNumber,
+                                           const mat33 reorientation,
+                                           const float3 weight) {
     __shared__ float xbasis[27];
     __shared__ float ybasis[27];
     __shared__ float zbasis[27];
@@ -782,7 +784,7 @@ __global__ void reg_spline_computeApproxJacGradient3D_kernel(float4 *gradient,
                                     jacobianMatrix[6] = tex1Dfetch<float>(jacobianMatricesTexture, jacIndex * 9 + 6);
                                     jacobianMatrix[7] = tex1Dfetch<float>(jacobianMatricesTexture, jacIndex * 9 + 7);
                                     jacobianMatrix[8] = tex1Dfetch<float>(jacobianMatricesTexture, jacIndex * 9 + 8);
-                                    GetJacobianGradientValues3D(jacobianMatrix, detJac, xbasis[index], ybasis[index], zbasis[index], &jacobianGradient);
+                                    GetJacobianGradientValues3d(jacobianMatrix, detJac, xbasis[index], ybasis[index], zbasis[index], &jacobianGradient);
                                 }
                             }
                             jacIndex++;
@@ -801,15 +803,15 @@ __global__ void reg_spline_computeApproxJacGradient3D_kernel(float4 *gradient,
     }
 }
 /* *************************************************************** */
-__global__ void reg_spline_computeJacGradient2D_kernel(float4 *gradient,
-                                                       cudaTextureObject_t jacobianDeterminantTexture,
-                                                       cudaTextureObject_t jacobianMatricesTexture,
-                                                       const int3 controlPointImageDim,
-                                                       const float3 controlPointVoxelSpacing,
-                                                       const unsigned controlPointNumber,
-                                                       const int3 referenceImageDim,
-                                                       const mat33 reorientation,
-                                                       const float3 weight) {
+__global__ void ComputeJacGradient2d(float4 *gradient,
+                                     cudaTextureObject_t jacobianDeterminantTexture,
+                                     cudaTextureObject_t jacobianMatricesTexture,
+                                     const int3 controlPointImageDim,
+                                     const float3 controlPointVoxelSpacing,
+                                     const unsigned controlPointNumber,
+                                     const int3 referenceImageDim,
+                                     const mat33 reorientation,
+                                     const float3 weight) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
@@ -843,7 +845,7 @@ __global__ void reg_spline_computeJacGradient2D_kernel(float4 *gradient,
                             jacobianMatrix[2] = tex1Dfetch<float>(jacobianMatricesTexture, jacIndex++);
                             jacobianMatrix[3] = tex1Dfetch<float>(jacobianMatricesTexture, jacIndex);
                             const float2 basisValues = { xFirst * yBasis, xBasis * yFirst };
-                            GetJacobianGradientValues2D(jacobianMatrix, detJac, basisValues.x, basisValues.y, &jacobianGradient);
+                            GetJacobianGradientValues2d(jacobianMatrix, detJac, basisValues.x, basisValues.y, &jacobianGradient);
                         }
                     }
                 }
@@ -856,15 +858,15 @@ __global__ void reg_spline_computeJacGradient2D_kernel(float4 *gradient,
     }
 }
 /* *************************************************************** */
-__global__ void reg_spline_computeJacGradient3D_kernel(float4 *gradient,
-                                                       cudaTextureObject_t jacobianDeterminantTexture,
-                                                       cudaTextureObject_t jacobianMatricesTexture,
-                                                       const int3 controlPointImageDim,
-                                                       const float3 controlPointVoxelSpacing,
-                                                       const unsigned controlPointNumber,
-                                                       const int3 referenceImageDim,
-                                                       const mat33 reorientation,
-                                                       const float3 weight) {
+__global__ void ComputeJacGradient3d(float4 *gradient,
+                                     cudaTextureObject_t jacobianDeterminantTexture,
+                                     cudaTextureObject_t jacobianMatricesTexture,
+                                     const int3 controlPointImageDim,
+                                     const float3 controlPointVoxelSpacing,
+                                     const unsigned controlPointNumber,
+                                     const int3 referenceImageDim,
+                                     const mat33 reorientation,
+                                     const float3 weight) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
@@ -917,7 +919,7 @@ __global__ void reg_spline_computeJacGradient3D_kernel(float4 *gradient,
                                         xBasis * yFirst * zBasis,
                                         xBasis * yBasis * zFirst
                                     };
-                                    GetJacobianGradientValues3D(jacobianMatrix, detJac, basisValues.x, basisValues.y, basisValues.z, &jacobianGradient);
+                                    GetJacobianGradientValues3d(jacobianMatrix, detJac, basisValues.x, basisValues.y, basisValues.z, &jacobianGradient);
                                 }
                             }
                         }
@@ -933,13 +935,13 @@ __global__ void reg_spline_computeJacGradient3D_kernel(float4 *gradient,
     }
 }
 /* *************************************************************** */
-__global__ void reg_spline_approxCorrectFolding3D_kernel(float4 *controlPointGrid,
-                                                         cudaTextureObject_t jacobianDeterminantTexture,
-                                                         cudaTextureObject_t jacobianMatricesTexture,
-                                                         const int3 controlPointImageDim,
-                                                         const float3 controlPointSpacing,
-                                                         const unsigned controlPointNumber,
-                                                         const mat33 reorientation) {
+__global__ void ApproxCorrectFolding3d(float4 *controlPointGrid,
+                                       cudaTextureObject_t jacobianDeterminantTexture,
+                                       cudaTextureObject_t jacobianMatricesTexture,
+                                       const int3 controlPointImageDim,
+                                       const float3 controlPointSpacing,
+                                       const unsigned controlPointNumber,
+                                       const mat33 reorientation) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
@@ -980,7 +982,7 @@ __global__ void reg_spline_approxCorrectFolding3D_kernel(float4 *controlPointGri
                                         xBasis * yFirst * zBasis,
                                         xBasis * yBasis * zFirst
                                     };
-                                    GetJacobianGradientValues3D(jacobianMatrix, 1.f, basisValue.x, basisValue.y, basisValue.z, &foldingCorrection);
+                                    GetJacobianGradientValues3d(jacobianMatrix, 1.f, basisValue.x, basisValue.y, basisValue.z, &foldingCorrection);
                                 }
                             }
                         }
@@ -1002,15 +1004,15 @@ __global__ void reg_spline_approxCorrectFolding3D_kernel(float4 *controlPointGri
     }
 }
 /* *************************************************************** */
-__global__ void reg_spline_correctFolding3D_kernel(float4 *controlPointGrid,
-                                                   cudaTextureObject_t jacobianDeterminantTexture,
-                                                   cudaTextureObject_t jacobianMatricesTexture,
-                                                   const int3 controlPointImageDim,
-                                                   const float3 controlPointSpacing,
-                                                   const float3 controlPointVoxelSpacing,
-                                                   const unsigned controlPointNumber,
-                                                   const int3 referenceImageDim,
-                                                   const mat33 reorientation) {
+__global__ void CorrectFolding3d(float4 *controlPointGrid,
+                                 cudaTextureObject_t jacobianDeterminantTexture,
+                                 cudaTextureObject_t jacobianMatricesTexture,
+                                 const int3 controlPointImageDim,
+                                 const float3 controlPointSpacing,
+                                 const float3 controlPointVoxelSpacing,
+                                 const unsigned controlPointNumber,
+                                 const int3 referenceImageDim,
+                                 const mat33 reorientation) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
@@ -1057,7 +1059,7 @@ __global__ void reg_spline_correctFolding3D_kernel(float4 *controlPointGrid,
                                         xBasis * yFirst * zBasis,
                                         xBasis * yBasis * zFirst
                                     };
-                                    GetJacobianGradientValues3D(jacobianMatrix, 1.f, basisValue.x, basisValue.y, basisValue.z, &foldingCorrection);
+                                    GetJacobianGradientValues3d(jacobianMatrix, 1.f, basisValue.x, basisValue.y, basisValue.z, &foldingCorrection);
                                 }
                             }
                         }
@@ -1079,19 +1081,19 @@ __global__ void reg_spline_correctFolding3D_kernel(float4 *controlPointGrid,
     }
 }
 /* *************************************************************** */
-__global__ void reg_defField_compose2D_kernel(float4 *deformationField,
-                                              cudaTextureObject_t deformationFieldTexture,
-                                              const int3 referenceImageDim,
-                                              const unsigned voxelNumber,
-                                              const mat44 affineMatrixB,
-                                              const mat44 affineMatrixC) {
+__global__ void DefFieldCompose2d(float4 *deformationField,
+                                  cudaTextureObject_t deformationFieldTexture,
+                                  const int3 referenceImageDim,
+                                  const unsigned voxelNumber,
+                                  const mat44 affineMatrixB,
+                                  const mat44 affineMatrixC) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
         // Extract the original voxel position
         float4 position = deformationField[tid];
 
         // Conversion from real position to voxel coordinate
-        float4 voxelPosition = {
+        const float4 voxelPosition{
             position.x * affineMatrixB.m[0][0] + position.y * affineMatrixB.m[0][1] + affineMatrixB.m[0][3],
             position.x * affineMatrixB.m[1][0] + position.y * affineMatrixB.m[1][1] + affineMatrixB.m[1][3],
             0.f,
@@ -1123,19 +1125,19 @@ __global__ void reg_defField_compose2D_kernel(float4 *deformationField,
     }
 }
 /* *************************************************************** */
-__global__ void reg_defField_compose3D_kernel(float4 *deformationField,
-                                              cudaTextureObject_t deformationFieldTexture,
-                                              const int3 referenceImageDim,
-                                              const unsigned voxelNumber,
-                                              const mat44 affineMatrixB,
-                                              const mat44 affineMatrixC) {
+__global__ void DefFieldCompose3d(float4 *deformationField,
+                                  cudaTextureObject_t deformationFieldTexture,
+                                  const int3 referenceImageDim,
+                                  const unsigned voxelNumber,
+                                  const mat44 affineMatrixB,
+                                  const mat44 affineMatrixC) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
         // Extract the original voxel position
         float4 position = deformationField[tid];
 
         // Conversion from real position to voxel coordinate
-        const float4 voxelPosition = {
+        const float4 voxelPosition{
             position.x * affineMatrixB.m[0][0] + position.y * affineMatrixB.m[0][1] + position.z * affineMatrixB.m[0][2] + affineMatrixB.m[0][3],
             position.x * affineMatrixB.m[1][0] + position.y * affineMatrixB.m[1][1] + position.z * affineMatrixB.m[1][2] + affineMatrixB.m[1][3],
             position.x * affineMatrixB.m[2][0] + position.y * affineMatrixB.m[2][1] + position.z * affineMatrixB.m[2][2] + affineMatrixB.m[2][3],
@@ -1171,11 +1173,11 @@ __global__ void reg_defField_compose3D_kernel(float4 *deformationField,
     }
 }
 /* *************************************************************** */
-__global__ void reg_defField_getJacobianMatrix3D_kernel(float *jacobianMatrices,
-                                                        cudaTextureObject_t deformationFieldTexture,
-                                                        const int3 referenceImageDim,
-                                                        const unsigned voxelNumber,
-                                                        const mat33 reorientation) {
+__global__ void GetJacobianMatrix3d(float *jacobianMatrices,
+                                    cudaTextureObject_t deformationFieldTexture,
+                                    const int3 referenceImageDim,
+                                    const unsigned voxelNumber,
+                                    const mat33 reorientation) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
         int quot, rem;
@@ -1304,25 +1306,25 @@ __device__ static mat33 CreateDisplacementMatrix(const unsigned index,
 }
 /* *************************************************************** */
 template<bool is3d>
-__global__ void reg_spline_createDisplacementMatrices_kernel(mat33 *dispMatrices,
-                                                             cudaTextureObject_t controlPointGridTexture,
-                                                             const int3 cppDims,
-                                                             const Basis1st<is3d> basis,
-                                                             const mat33 reorientation,
-                                                             const unsigned voxelNumber) {
+__global__ void CreateDisplacementMatrices(mat33 *dispMatrices,
+                                           cudaTextureObject_t controlPointGridTexture,
+                                           const int3 cppDims,
+                                           const Basis1st<is3d> basis,
+                                           const mat33 reorientation,
+                                           const unsigned voxelNumber) {
     const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (index < voxelNumber)
         dispMatrices[index] = CreateDisplacementMatrix<is3d>(index, controlPointGridTexture, cppDims, basis, reorientation);
 }
 /* *************************************************************** */
 template<bool is3d>
-__global__ void reg_spline_approxLinearEnergyGradient_kernel(float4 *transGradient,
-                                                             cudaTextureObject_t dispMatricesTexture,
-                                                             const int3 cppDims,
-                                                             const float approxRatio,
-                                                             const Basis1st<is3d> basis,
-                                                             const mat33 invReorientation,
-                                                             const unsigned voxelNumber) {
+__global__ void ApproxLinearEnergyGradientKernel(float4 *transGradient,
+                                                 cudaTextureObject_t dispMatricesTexture,
+                                                 const int3 cppDims,
+                                                 const float approxRatio,
+                                                 const Basis1st<is3d> basis,
+                                                 const mat33 invReorientation,
+                                                 const unsigned voxelNumber) {
     const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (index >= voxelNumber) return;
     const auto [x, y, z] = reg_indexToDims_cuda<is3d>((int)index, cppDims);
@@ -1374,4 +1376,6 @@ __global__ void reg_spline_approxLinearEnergyGradient_kernel(float4 *transGradie
 
     transGradient[index] = gradVal;
 }
+/* *************************************************************** */
+} // namespace NiftyReg::Cuda
 /* *************************************************************** */
