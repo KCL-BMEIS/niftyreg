@@ -854,8 +854,8 @@ double ApproxLinearEnergy(const nifti_image *controlPointGrid,
     auto controlPointTexture = *controlPointTexturePtr;
 
     constexpr int matSize = is3d ? 3 : 2;
-    thrust::counting_iterator<unsigned> index(0);
-    return thrust::transform_reduce(thrust::device, index, index + voxelNumber, [=]__device__(const unsigned index) {
+    thrust::counting_iterator index(0);
+    return thrust::transform_reduce(thrust::device, index, index + voxelNumber, [=]__device__(const int index) {
         const mat33 matrix = CreateDisplacementMatrix<is3d>(index, controlPointTexture, cppDims, basis, reorientation);
         double currentValue = 0;
         for (int b = 0; b < matSize; b++)
@@ -887,28 +887,74 @@ void ApproxLinearEnergyGradient(const nifti_image *controlPointGrid,
     else
         set_first_order_basis_values(basis.x, basis.y);
 
-    // Kernel dims
-    const unsigned blocks = CudaContext::GetBlockSize()->ApproxLinearEnergyGradient;
-    const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
-    const dim3 gridDims(grids, grids, 1);
-    const dim3 blockDims(blocks, 1, 1);
-
     // Create the variable to store the displacement matrices
-    thrust::device_vector<mat33> dispMatricesCuda(voxelNumber);
+    thrust::device_vector<mat33> dispMatricesCudaVec(voxelNumber);
+    auto dispMatricesCuda = dispMatricesCudaVec.data().get();
 
     // Create the textures
-    auto controlPointTexture = Cuda::CreateTextureObject(controlPointGridCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
-    auto dispMatricesTexture = Cuda::CreateTextureObject(dispMatricesCuda.data().get(), voxelNumber, cudaChannelFormatKindFloat, 1);
+    auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointGridCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+    auto dispMatricesTexturePtr = Cuda::CreateTextureObject(dispMatricesCuda, voxelNumber, cudaChannelFormatKindFloat, 1);
+    auto controlPointTexture = *controlPointTexturePtr;
+    auto dispMatricesTexture = *dispMatricesTexturePtr;
 
     // Create the displacement matrices
-    CreateDisplacementMatrices<is3d><<<gridDims, blockDims>>>(dispMatricesCuda.data().get(), *controlPointTexture,
-                                                              cppDims, basis, reorientation, (unsigned)voxelNumber);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), voxelNumber, [=]__device__(const int index) {
+        dispMatricesCuda[index] = CreateDisplacementMatrix<is3d>(index, controlPointTexture, cppDims, basis, reorientation);
+    });
 
     // Compute the gradient
-    ApproxLinearEnergyGradientKernel<is3d><<<gridDims, blockDims>>>(transGradCuda, *dispMatricesTexture, cppDims,
-                                                                    approxRatio, basis, invReorientation, (unsigned)voxelNumber);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), voxelNumber, [
+        transGradCuda, dispMatricesTexture, cppDims, approxRatio, basis, invReorientation
+    ]__device__(const int index) {
+        const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, cppDims);
+        auto gradVal = transGradCuda[index];
+
+        if constexpr (is3d) {
+            for (int c = -1, basInd = 0; c < 2; c++) {
+                const int zInd = (z + c) * cppDims.y;
+                for (int b = -1; b < 2; b++) {
+                    const int yInd = (zInd + y + b) * cppDims.x;
+                    for (int a = -1; a < 2; a++, basInd++) {
+                        const int matInd = (yInd + x + a) * 9;   // Multiply with the item count of mat33
+                        const float dispMatrix[3]{ tex1Dfetch<float>(dispMatricesTexture, matInd),       // m[0][0]
+                                                   tex1Dfetch<float>(dispMatricesTexture, matInd + 4),   // m[1][1]
+                                                   tex1Dfetch<float>(dispMatricesTexture, matInd + 8) }; // m[2][2]
+                        const float gradValues[3]{ -2.f * dispMatrix[0] * basis.x[basInd],
+                                                   -2.f * dispMatrix[1] * basis.y[basInd],
+                                                   -2.f * dispMatrix[2] * basis.z[basInd] };
+
+                        gradVal.x += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
+                                                    invReorientation.m[0][1] * gradValues[1] +
+                                                    invReorientation.m[0][2] * gradValues[2]);
+                        gradVal.y += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
+                                                    invReorientation.m[1][1] * gradValues[1] +
+                                                    invReorientation.m[1][2] * gradValues[2]);
+                        gradVal.z += approxRatio * (invReorientation.m[2][0] * gradValues[0] +
+                                                    invReorientation.m[2][1] * gradValues[1] +
+                                                    invReorientation.m[2][2] * gradValues[2]);
+                    }
+                }
+            }
+        } else {
+            for (int b = -1, basInd = 0; b < 2; b++) {
+                const int yInd = (y + b) * cppDims.x;
+                for (int a = -1; a < 2; a++, basInd++) {
+                    const int matInd = (yInd + x + a) * 9;   // Multiply with the item count of mat33
+                    const float dispMatrix[2]{ tex1Dfetch<float>(dispMatricesTexture, matInd),       // m[0][0]
+                                               tex1Dfetch<float>(dispMatricesTexture, matInd + 4) }; // m[1][1]
+                    const float gradValues[2]{ -2.f * dispMatrix[0] * basis.x[basInd],
+                                               -2.f * dispMatrix[1] * basis.y[basInd] };
+
+                    gradVal.x += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
+                                                invReorientation.m[0][1] * gradValues[1]);
+                    gradVal.y += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
+                                                invReorientation.m[1][1] * gradValues[1]);
+                }
+            }
+        }
+
+        transGradCuda[index] = gradVal;
+    });
 }
 template void ApproxLinearEnergyGradient<false>(const nifti_image*, const float4*, float4*, const float);
 template void ApproxLinearEnergyGradient<true>(const nifti_image*, const float4*, float4*, const float);

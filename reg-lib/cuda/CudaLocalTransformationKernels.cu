@@ -1245,12 +1245,12 @@ struct Basis1st<false> {
 };
 /* *************************************************************** */
 template<bool is3d>
-__device__ static mat33 CreateDisplacementMatrix(const unsigned index,
+__device__ static mat33 CreateDisplacementMatrix(const int index,
                                                  cudaTextureObject_t controlPointGridTexture,
                                                  const int3& cppDims,
                                                  const Basis1st<is3d>& basis,
                                                  const mat33& reorientation) {
-    const auto [x, y, z] = reg_indexToDims_cuda<is3d>((int)index, cppDims);
+    const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, cppDims);
     if (x < 1 || x >= cppDims.x - 1 || y < 1 || y >= cppDims.y - 1 ||
         (is3d && (z < 1 || z >= cppDims.z - 1))) return {};
 
@@ -1303,78 +1303,6 @@ __device__ static mat33 CreateDisplacementMatrix(const unsigned index,
     matrix.m[0][0]--; matrix.m[1][1]--;
     if constexpr (is3d) matrix.m[2][2]--;
     return matrix;
-}
-/* *************************************************************** */
-template<bool is3d>
-__global__ void CreateDisplacementMatrices(mat33 *dispMatrices,
-                                           cudaTextureObject_t controlPointGridTexture,
-                                           const int3 cppDims,
-                                           const Basis1st<is3d> basis,
-                                           const mat33 reorientation,
-                                           const unsigned voxelNumber) {
-    const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (index < voxelNumber)
-        dispMatrices[index] = CreateDisplacementMatrix<is3d>(index, controlPointGridTexture, cppDims, basis, reorientation);
-}
-/* *************************************************************** */
-template<bool is3d>
-__global__ void ApproxLinearEnergyGradientKernel(float4 *transGradient,
-                                                 cudaTextureObject_t dispMatricesTexture,
-                                                 const int3 cppDims,
-                                                 const float approxRatio,
-                                                 const Basis1st<is3d> basis,
-                                                 const mat33 invReorientation,
-                                                 const unsigned voxelNumber) {
-    const unsigned index = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (index >= voxelNumber) return;
-    const auto [x, y, z] = reg_indexToDims_cuda<is3d>((int)index, cppDims);
-    auto gradVal = transGradient[index];
-
-    if constexpr (is3d) {
-        for (int c = -1, basInd = 0; c < 2; c++) {
-            const int zInd = (z + c) * cppDims.y;
-            for (int b = -1; b < 2; b++) {
-                const int yInd = (zInd + y + b) * cppDims.x;
-                for (int a = -1; a < 2; a++, basInd++) {
-                    const int matInd = (yInd + x + a) * 9;   // Multiply with the item count of mat33
-                    const float dispMatrix[3]{ tex1Dfetch<float>(dispMatricesTexture, matInd),       // m[0][0]
-                                               tex1Dfetch<float>(dispMatricesTexture, matInd + 4),   // m[1][1]
-                                               tex1Dfetch<float>(dispMatricesTexture, matInd + 8) }; // m[2][2]
-                    const float gradValues[3]{ -2.f * dispMatrix[0] * basis.x[basInd],
-                                               -2.f * dispMatrix[1] * basis.y[basInd],
-                                               -2.f * dispMatrix[2] * basis.z[basInd] };
-
-                    gradVal.x += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
-                                                invReorientation.m[0][1] * gradValues[1] +
-                                                invReorientation.m[0][2] * gradValues[2]);
-                    gradVal.y += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
-                                                invReorientation.m[1][1] * gradValues[1] +
-                                                invReorientation.m[1][2] * gradValues[2]);
-                    gradVal.z += approxRatio * (invReorientation.m[2][0] * gradValues[0] +
-                                                invReorientation.m[2][1] * gradValues[1] +
-                                                invReorientation.m[2][2] * gradValues[2]);
-                }
-            }
-        }
-    } else {
-        for (int b = -1, basInd = 0; b < 2; b++) {
-            const int yInd = (y + b) * cppDims.x;
-            for (int a = -1; a < 2; a++, basInd++) {
-                const int matInd = (yInd + x + a) * 9;   // Multiply with the item count of mat33
-                const float dispMatrix[2]{ tex1Dfetch<float>(dispMatricesTexture, matInd),       // m[0][0]
-                                           tex1Dfetch<float>(dispMatricesTexture, matInd + 4) }; // m[1][1]
-                const float gradValues[2]{ -2.f * dispMatrix[0] * basis.x[basInd],
-                                           -2.f * dispMatrix[1] * basis.y[basInd] };
-
-                gradVal.x += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
-                                            invReorientation.m[0][1] * gradValues[1]);
-                gradVal.y += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
-                                            invReorientation.m[1][1] * gradValues[1]);
-            }
-        }
-    }
-
-    transGradient[index] = gradVal;
 }
 /* *************************************************************** */
 } // namespace NiftyReg::Cuda
