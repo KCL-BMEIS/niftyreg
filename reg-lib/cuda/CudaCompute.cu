@@ -98,15 +98,20 @@ void CudaCompute::LandmarkDistanceGradient(size_t landmarkNumber, float *landmar
 }
 /* *************************************************************** */
 void CudaCompute::GetDeformationField(bool composition, bool bspline) {
+    decltype(Cuda::GetDeformationField<true, true>) *getDeformationField;
+    if (composition)
+        getDeformationField = bspline ? Cuda::GetDeformationField<true, true> :
+                                        Cuda::GetDeformationField<true, false>;
+    else
+        getDeformationField = bspline ? Cuda::GetDeformationField<false, true> :
+                                        Cuda::GetDeformationField<false, false>;
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    Cuda::GetDeformationField(con.F3dContent::GetControlPointGrid(),
-                              con.F3dContent::GetReference(),
-                              con.GetControlPointGridCuda(),
-                              con.GetDeformationFieldCuda(),
-                              con.GetReferenceMaskCuda(),
-                              con.GetActiveVoxelNumber(),
-                              composition,
-                              bspline);
+    getDeformationField(con.F3dContent::GetControlPointGrid(),
+                        con.F3dContent::GetReference(),
+                        con.GetControlPointGridCuda(),
+                        con.GetDeformationFieldCuda(),
+                        con.GetReferenceMaskCuda(),
+                        con.GetActiveVoxelNumber());
 }
 /* *************************************************************** */
 template<bool optimiseX, bool optimiseY, bool optimiseZ>

@@ -15,7 +15,8 @@
 /* *************************************************************** */
 namespace NiftyReg::Cuda {
 /* *************************************************************** */
-__device__ void GetBasisBSplineValues(const float basis, float *values) {
+template<bool bspline>
+__device__ __inline__ void GetBasisSplineValues(const float basis, float *values) {
     const float ff = Square(basis);
     const float fff = ff * basis;
     const float mf = 1.f - basis;
@@ -25,20 +26,21 @@ __device__ void GetBasisBSplineValues(const float basis, float *values) {
     values[3] = fff / 6.f;
 }
 /* *************************************************************** */
-__device__ void GetFirstBSplineValues(const float basis, float *values, float *first) {
-    GetBasisBSplineValues(basis, values);
-    first[3] = Square(basis) / 2.f;
-    first[0] = basis - 0.5f - first[3];
-    first[2] = 1.f + first[0] - 2.f * first[3];
-    first[1] = -first[0] - first[2] - first[3];
-}
-/* *************************************************************** */
-__device__ void GetBasisSplineValues(const float basis, float *values) {
+template<>
+__device__ __inline__ void GetBasisSplineValues<false>(const float basis, float *values) {
     const float ff = Square(basis);
     values[0] = (basis * ((2.f - basis) * basis - 1.f)) / 2.f;
     values[1] = (ff * (3.f * basis - 5.f) + 2.f) / 2.f;
     values[2] = (basis * ((4.f - 3.f * basis) * basis + 1.f)) / 2.f;
     values[3] = (basis - 1.f) * ff / 2.f;
+}
+/* *************************************************************** */
+__device__ __inline__ void GetFirstBSplineValues(const float basis, float *values, float *first) {
+    GetBasisSplineValues<true>(basis, values);
+    first[3] = Square(basis) / 2.f;
+    first[0] = basis - 0.5f - first[3];
+    first[2] = 1.f + first[0] - 2.f * first[3];
+    first[1] = -first[0] - first[2] - first[3];
 }
 /* *************************************************************** */
 __device__ void GetBSplineBasisValue(const float basis, const int index, float *value, float *first) {
@@ -168,24 +170,21 @@ __device__ float4 GetSlidedValues(int x, int y, int z,
     return slidedValues + tex1Dfetch<float4>(deformationFieldTexture, (newZ * referenceImageDim.y + newY) * referenceImageDim.x + newX);
 }
 /* *************************************************************** */
-__global__ void GetDeformationField3d(float4 *deformationField,
+template<bool composition, bool bspline>
+__device__ void GetDeformationField3d(float4 *deformationField,
                                       cudaTextureObject_t controlPointTexture,
                                       cudaTextureObject_t maskTexture,
                                       const mat44 *realToVoxel,
                                       const int3 referenceImageDim,
                                       const int3 controlPointImageDim,
                                       const float3 controlPointVoxelSpacing,
-                                      const unsigned activeVoxelNumber,
-                                      const bool composition,
-                                      const bool bspline) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid >= activeVoxelNumber) return;
+                                      const int index) {
     int3 nodePre;
     float3 basis;
 
-    if (composition) { // Composition of deformation fields
+    if constexpr (composition) { // Composition of deformation fields
         // The previous position at the current pixel position is read
-        const float4 node = deformationField[tid];
+        const float4 node = deformationField[index];
 
         // From real to pixel position in the CPP
         const float xVoxel = (realToVoxel->m[0][0] * node.x +
@@ -208,8 +207,8 @@ __global__ void GetDeformationField3d(float4 *deformationField,
         nodePre = { Floor(xVoxel), Floor(yVoxel), Floor(zVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--), zVoxel - float(nodePre.z--) };
     } else { // starting deformation field is blank - !composition
-        const int tid2 = tex1Dfetch<int>(maskTexture, tid);
-        const auto [x, y, z] = reg_indexToDims_cuda<true>(tid2, referenceImageDim);
+        const int voxel = tex1Dfetch<int>(maskTexture, index);
+        const auto [x, y, z] = reg_indexToDims_cuda<true>(voxel, referenceImageDim);
         // The "nearest previous" node is determined [0,0,0]
         const float xVoxel = float(x) / controlPointVoxelSpacing.x;
         const float yVoxel = float(y) / controlPointVoxelSpacing.y;
@@ -217,33 +216,20 @@ __global__ void GetDeformationField3d(float4 *deformationField,
         nodePre = { int(xVoxel), int(yVoxel), int(zVoxel) };
         basis = { xVoxel - float(nodePre.x), yVoxel - float(nodePre.y), zVoxel - float(nodePre.z) };
     }
-    // Z basis values
-    extern __shared__ float yBasis[];   // Shared memory
-    const unsigned sharedMemIndex = 4 * threadIdx.x;
-    // Compute the shared memory offset which corresponds to four times the number of threads per block
-    float *zBasis = &yBasis[4 * blockDim.x * blockDim.y * blockDim.z];
-    if (basis.z < 0) basis.z = 0; // rounding error
-    if (bspline) GetBasisBSplineValues(basis.z, &zBasis[sharedMemIndex]);
-    else GetBasisSplineValues(basis.z, &zBasis[sharedMemIndex]);
 
-    // Y basis values
-    if (basis.y < 0) basis.y = 0; // rounding error
-    if (bspline) GetBasisBSplineValues(basis.y, &yBasis[sharedMemIndex]);
-    else GetBasisSplineValues(basis.y, &yBasis[sharedMemIndex]);
-
-    // X basis values
-    float xBasis[4];
-    if (basis.x < 0) basis.x = 0; // rounding error
-    if (bspline) GetBasisBSplineValues(basis.x, xBasis);
-    else GetBasisSplineValues(basis.x, xBasis);
+    // Basis values
+    float xBasis[4], yBasis[4], zBasis[4];
+    GetBasisSplineValues<bspline>(basis.x, xBasis);
+    GetBasisSplineValues<bspline>(basis.y, yBasis);
+    GetBasisSplineValues<bspline>(basis.z, zBasis);
 
     float4 displacement{};
     for (char c = 0; c < 4; c++) {
         int indexYZ = ((nodePre.z + c) * controlPointImageDim.y + nodePre.y) * controlPointImageDim.x;
-        const float basisZ = zBasis[sharedMemIndex + c];
+        const float basisZ = zBasis[c];
         for (char b = 0; b < 4; b++, indexYZ += controlPointImageDim.x) {
             int indexXYZ = indexYZ + nodePre.x;
-            const float basisY = yBasis[sharedMemIndex + b];
+            const float basisY = yBasis[b];
             for (char a = 0; a < 4; a++, indexXYZ++) {
                 const float4 nodeCoeff = tex1Dfetch<float4>(controlPointTexture, indexXYZ);
                 const float xyzBasis = xBasis[a] * basisY * basisZ;
@@ -253,27 +239,24 @@ __global__ void GetDeformationField3d(float4 *deformationField,
             }
         }
     }
-    deformationField[tid] = displacement;
+    deformationField[index] = displacement;
 }
 /* *************************************************************** */
-__global__ void GetDeformationField2d(float4 *deformationField,
+template<bool composition, bool bspline>
+__device__ void GetDeformationField2d(float4 *deformationField,
                                       cudaTextureObject_t controlPointTexture,
                                       cudaTextureObject_t maskTexture,
                                       const mat44 *realToVoxel,
                                       const int3 referenceImageDim,
                                       const int3 controlPointImageDim,
                                       const float3 controlPointVoxelSpacing,
-                                      const unsigned activeVoxelNumber,
-                                      const bool composition,
-                                      const bool bspline) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid >= activeVoxelNumber) return;
+                                      const int index) {
     int2 nodePre;
     float2 basis;
 
-    if (composition) { // Composition of deformation fields
+    if constexpr (composition) { // Composition of deformation fields
         // The previous position at the current pixel position is read
-        const float4 node = deformationField[tid];
+        const float4 node = deformationField[index];
 
         // From real to pixel position in the CPP
         const float xVoxel = (realToVoxel->m[0][0] * node.x +
@@ -289,31 +272,24 @@ __global__ void GetDeformationField2d(float4 *deformationField,
         nodePre = { Floor(xVoxel), Floor(yVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--) };
     } else { // starting deformation field is blank - !composition
-        const int tid2 = tex1Dfetch<int>(maskTexture, tid);
-        const auto [x, y, z] = reg_indexToDims_cuda<false>(tid2, referenceImageDim);
+        const int voxel = tex1Dfetch<int>(maskTexture, index);
+        const auto [x, y, z] = reg_indexToDims_cuda<false>(voxel, referenceImageDim);
         // The "nearest previous" node is determined [0,0,0]
         const float xVoxel = float(x) / controlPointVoxelSpacing.x;
         const float yVoxel = float(y) / controlPointVoxelSpacing.y;
         nodePre = { int(xVoxel), int(yVoxel) };
         basis = { xVoxel - float(nodePre.x), yVoxel - float(nodePre.y) };
     }
-    // Y basis values
-    extern __shared__ float yBasis[]; // Shared memory
-    const unsigned sharedMemIndex = 4 * threadIdx.x;
-    if (basis.y < 0) basis.y = 0; // rounding error
-    if (bspline) GetBasisBSplineValues(basis.y, &yBasis[sharedMemIndex]);
-    else GetBasisSplineValues(basis.y, &yBasis[sharedMemIndex]);
 
-    // X basis values
-    float xBasis[4];
-    if (basis.x < 0) basis.x = 0; // rounding error
-    if (bspline) GetBasisBSplineValues(basis.x, xBasis);
-    else GetBasisSplineValues(basis.x, xBasis);
+    // Basis values
+    float xBasis[4], yBasis[4];
+    GetBasisSplineValues<bspline>(basis.x, xBasis);
+    GetBasisSplineValues<bspline>(basis.y, yBasis);
 
     float4 displacement{};
     for (char b = 0; b < 4; b++) {
         int index = (nodePre.y + b) * controlPointImageDim.x + nodePre.x;
-        const float basis = yBasis[sharedMemIndex + b];
+        const float basis = yBasis[b];
         for (char a = 0; a < 4; a++, index++) {
             const float4 nodeCoeff = tex1Dfetch<float4>(controlPointTexture, index);
             const float xyBasis = xBasis[a] * basis;
@@ -321,7 +297,7 @@ __global__ void GetDeformationField2d(float4 *deformationField,
             displacement.y += xyBasis * nodeCoeff.y;
         }
     }
-    deformationField[tid] = displacement;
+    deformationField[index] = displacement;
 }
 /* *************************************************************** */
 __global__ void GetApproxJacobianValues2d(float *jacobianMatrices,

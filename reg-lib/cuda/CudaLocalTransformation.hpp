@@ -21,14 +21,13 @@ void GetDeformationFromDisplacement(nifti_image *image, float4 *imageCuda);
 /* *************************************************************** */
 void GetDisplacementFromDeformation(nifti_image *image, float4 *imageCuda);
 /* *************************************************************** */
+template<bool composition, bool bspline>
 void GetDeformationField(const nifti_image *controlPointImage,
                          const nifti_image *referenceImage,
                          const float4 *controlPointImageCuda,
                          float4 *deformationFieldCuda,
                          const int *maskCuda,
-                         const size_t activeVoxelNumber,
-                         const bool composition,
-                         const bool bspline);
+                         const size_t activeVoxelNumber);
 /* *************************************************************** */
 template<bool is3d>
 double ApproxBendingEnergy(const nifti_image *controlPointImage,

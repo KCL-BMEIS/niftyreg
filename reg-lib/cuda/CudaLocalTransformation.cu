@@ -18,14 +18,13 @@
 /* *************************************************************** */
 namespace NiftyReg::Cuda {
 /* *************************************************************** */
+template<bool composition, bool bspline>
 void GetDeformationField(const nifti_image *controlPointImage,
                          const nifti_image *referenceImage,
                          const float4 *controlPointImageCuda,
                          float4 *deformationFieldCuda,
                          const int *maskCuda,
-                         const size_t activeVoxelNumber,
-                         const bool composition,
-                         const bool bspline) {
+                         const size_t activeVoxelNumber) {
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -33,52 +32,33 @@ void GetDeformationField(const nifti_image *controlPointImage,
                                                         controlPointImage->dy / referenceImage->dy,
                                                         controlPointImage->dz / referenceImage->dz);
 
-    auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
-    auto maskTexture = Cuda::CreateTextureObject(maskCuda, activeVoxelNumber, cudaChannelFormatKindSigned, 1);
+    auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
+    auto maskTexturePtr = Cuda::CreateTextureObject(maskCuda, activeVoxelNumber, cudaChannelFormatKindSigned, 1);
+    auto controlPointTexture = *controlPointTexturePtr;
+    auto maskTexture = *maskTexturePtr;
 
     // Get the reference matrix if composition is required
-    thrust::device_vector<mat44> realToVoxel;
-    if (composition) {
+    thrust::device_vector<mat44> realToVoxelCudaVec;
+    if constexpr (composition) {
         const mat44 *matPtr = controlPointImage->sform_code > 0 ? &controlPointImage->sto_ijk : &controlPointImage->qto_ijk;
-        realToVoxel = thrust::device_vector<mat44>(matPtr, matPtr + 1);
+        realToVoxelCudaVec = thrust::device_vector<mat44>(matPtr, matPtr + 1);
     }
+    const auto realToVoxelCuda = composition ? realToVoxelCudaVec.data().get() : nullptr;
 
     if (referenceImage->nz > 1) {
-        const unsigned blocks = CudaContext::GetBlockSize()->GetDeformationField3d;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        // 8 floats of shared memory are allocated per thread
-        GetDeformationField3d<<<gridDims, blockDims, blocks * 8 * sizeof(float)>>>(deformationFieldCuda,
-                                                                                   *controlPointTexture,
-                                                                                   *maskTexture,
-                                                                                   realToVoxel.data().get(),
-                                                                                   referenceImageDim,
-                                                                                   controlPointImageDim,
-                                                                                   controlPointVoxelSpacing,
-                                                                                   (unsigned)activeVoxelNumber,
-                                                                                   composition,
-                                                                                   bspline);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+        thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), activeVoxelNumber, [=]__device__(const int index) {
+            GetDeformationField3d<composition, bspline>(deformationFieldCuda, controlPointTexture, maskTexture, realToVoxelCuda,
+                                                        referenceImageDim, controlPointImageDim, controlPointVoxelSpacing, index);
+        });
     } else {
-        const unsigned blocks = CudaContext::GetBlockSize()->GetDeformationField2d;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)activeVoxelNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        // 4 floats of shared memory are allocated per thread
-        GetDeformationField2d<<<gridDims, blockDims, blocks * 4 * sizeof(float)>>>(deformationFieldCuda,
-                                                                                   *controlPointTexture,
-                                                                                   *maskTexture,
-                                                                                   realToVoxel.data().get(),
-                                                                                   referenceImageDim,
-                                                                                   controlPointImageDim,
-                                                                                   controlPointVoxelSpacing,
-                                                                                   (unsigned)activeVoxelNumber,
-                                                                                   composition,
-                                                                                   bspline);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+        thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), activeVoxelNumber, [=]__device__(const int index) {
+            GetDeformationField2d<composition, bspline>(deformationFieldCuda, controlPointTexture, maskTexture, realToVoxelCuda,
+                                                        referenceImageDim, controlPointImageDim, controlPointVoxelSpacing, index);
+        });
     }
 }
+template void GetDeformationField<false, false>(const nifti_image*, const nifti_image*, const float4*, float4*, const int*, const size_t);
+template void GetDeformationField<true, false>(const nifti_image*, const nifti_image*, const float4*, float4*, const int*, const size_t);
 /* *************************************************************** */
 template<bool is3d>
 struct Basis2nd {
@@ -644,14 +624,12 @@ void GetFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
     // Copy over the number of required squaring steps
     flowField->intent_p2 = velocityFieldGrid->intent_p2;
     // The initial flow field is generated using cubic B-Spline interpolation/approximation
-    GetDeformationField(velocityFieldGrid,
-                        flowField,
-                        velocityFieldGridCuda,
-                        flowFieldCuda,
-                        maskCuda,
-                        activeVoxelNumber,
-                        true,  // composition
-                        true); // bspline
+    GetDeformationField<true, true>(velocityFieldGrid,
+                                    flowField,
+                                    velocityFieldGridCuda,
+                                    flowFieldCuda,
+                                    maskCuda,
+                                    activeVoxelNumber);
 
     velocityFieldGrid->num_ext = oldNumExt;
 }
@@ -784,14 +762,12 @@ void GetDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
     // Check if the velocity field is actually a velocity field
     if (velocityFieldGrid->intent_p1 == CUB_SPLINE_GRID) {
         // Use the spline approximation to generate the deformation field
-        GetDeformationField(velocityFieldGrid,
-                            deformationField,
-                            velocityFieldGridCuda,
-                            deformationFieldCuda,
-                            maskCuda.data().get(),
-                            voxelNumber,
-                            false, // composition
-                            true); // bspline
+        GetDeformationField<false, true>(velocityFieldGrid,
+                                         deformationField,
+                                         velocityFieldGridCuda,
+                                         deformationFieldCuda,
+                                         maskCuda.data().get(),
+                                         voxelNumber);
     } else if (velocityFieldGrid->intent_p1 == SPLINE_VEL_GRID) {
         // Create an image to store the flow field
         NiftiImage flowField(deformationField, NiftiImage::Copy::ImageInfo);
