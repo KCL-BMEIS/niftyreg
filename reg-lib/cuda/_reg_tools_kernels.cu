@@ -23,7 +23,7 @@ __global__ void reg_voxelCentricToNodeCentric_kernel(float4 *nodeImageCuda,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid >= nodeNumber) return;
     // Calculate the node coordinates
-    auto&& [x, y, z] = reg_indexToDims_cuda<is3d>(tid, nodeImageDims);
+    const auto [x, y, z] = reg_indexToDims_cuda<is3d>(tid, nodeImageDims);
     // Transform into voxel coordinates
     float voxelCoord[3], nodeCoord[3] = { static_cast<float>(x), static_cast<float>(y), static_cast<float>(z) };
     reg_mat44_mul_cuda<is3d>(transformation, nodeCoord, voxelCoord);

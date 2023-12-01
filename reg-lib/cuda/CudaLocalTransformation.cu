@@ -102,11 +102,11 @@ struct SecondDerivative<false> {
 };
 /* *************************************************************** */
 template<bool is3d, bool isGradient>
-__device__ SecondDerivative<is3d> GetApproxSecondDerivative(const unsigned index,
+__device__ SecondDerivative<is3d> GetApproxSecondDerivative(const int index,
                                                             cudaTextureObject_t controlPointTexture,
-                                                            const int3& controlPointImageDim,
-                                                            const Basis2nd<is3d>& basis) {
-    auto&& [x, y, z] = reg_indexToDims_cuda<is3d>(index, controlPointImageDim);
+                                                            const int3 controlPointImageDim,
+                                                            const Basis2nd<is3d> basis) {
+    const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, controlPointImageDim);
     if (!isGradient && (x < 1 || x >= controlPointImageDim.x - 1 ||
                         y < 1 || y >= controlPointImageDim.y - 1 ||
                         (is3d && (z < 1 || z >= controlPointImageDim.z - 1)))) return {};
@@ -161,9 +161,9 @@ double ApproxBendingEnergy(const nifti_image *controlPointImage, const float4 *c
     else
         set_second_order_bspline_basis_values(basis.xx, basis.yy, basis.xy);
 
-    thrust::counting_iterator<unsigned> index(0);
-    return thrust::transform_reduce(thrust::device, index, index + controlPointNumber, [=]__device__(const unsigned index) {
-        const auto& secondDerivative = GetApproxSecondDerivative<is3d, false>(index, controlPointTexture, controlPointImageDim, basis);
+    thrust::counting_iterator index(0);
+    return thrust::transform_reduce(thrust::device, index, index + controlPointNumber, [=]__device__(const int index) {
+        const auto secondDerivative = GetApproxSecondDerivative<is3d, false>(index, controlPointTexture, controlPointImageDim, basis);
         if constexpr (is3d)
             return (Square(secondDerivative.xx.x) + Square(secondDerivative.xx.y) + Square(secondDerivative.xx.z) +
                     Square(secondDerivative.yy.x) + Square(secondDerivative.yy.y) + Square(secondDerivative.yy.z) +
@@ -201,9 +201,9 @@ void ApproxBendingEnergyGradient(nifti_image *controlPointImage,
     // First compute all the second derivatives
     thrust::device_vector<typename SecondDerivative<is3d>::TextureType> secondDerivativesCudaVec((is3d ? 6 : 3) * controlPointNumber);
     auto secondDerivativesCuda = secondDerivativesCudaVec.data().get();
-    thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), controlPointNumber,
-                       [controlPointTexture, controlPointImageDim, basis, secondDerivativesCuda]__device__(const unsigned index) {
-        const auto& secondDerivative = GetApproxSecondDerivative<is3d, true>(index, controlPointTexture, controlPointImageDim, basis);
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), controlPointNumber,
+                       [controlPointTexture, controlPointImageDim, basis, secondDerivativesCuda]__device__(const int index) {
+        const auto secondDerivative = GetApproxSecondDerivative<is3d, true>(index, controlPointTexture, controlPointImageDim, basis);
         if constexpr (is3d) {
             int derInd = 6 * index;
             secondDerivativesCuda[derInd++] = make_float4(secondDerivative.xx);
@@ -226,9 +226,9 @@ void ApproxBendingEnergyGradient(nifti_image *controlPointImage,
 
     // Compute the gradient
     const float approxRatio = bendingEnergyWeight / (float)controlPointNumber;
-    thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), controlPointNumber,
-                       [controlPointImageDim, basis, secondDerivativesTexture, transGradientCuda, approxRatio]__device__(const unsigned index) {
-        auto&& [x, y, z] = reg_indexToDims_cuda<is3d>(index, controlPointImageDim);
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), controlPointNumber,
+                       [controlPointImageDim, basis, secondDerivativesTexture, transGradientCuda, approxRatio]__device__(const int index) {
+        const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, controlPointImageDim);
         typename SecondDerivative<is3d>::Type gradientValue{};
         if constexpr (is3d) {
             for (int c = z - 1, basInd = 0; c < z + 2; c++) {
@@ -576,8 +576,8 @@ void GetDeformationFromDisplacement(nifti_image *image, float4 *imageCuda) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
     const int3 imageDim{ image->nx, image->ny, image->nz };
 
-    thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), voxelNumber, [=]__device__(const unsigned index) {
-        auto&& [x, y, z] = reg_indexToDims_cuda<is3d>(index, imageDim);
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), voxelNumber, [=]__device__(const int index) {
+        const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, imageDim);
 
         const float4 initialPosition{
             float(x) * affineMatrix.m[0][0] + float(y) * affineMatrix.m[0][1] + (is3d ? float(z) * affineMatrix.m[0][2] : 0.f) + affineMatrix.m[0][3],
