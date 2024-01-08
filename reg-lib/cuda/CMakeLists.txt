@@ -72,11 +72,11 @@ cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaOptimiser.cu
     CudaResampleImageKernel.cpp
     CudaResampling.cu
+    CudaTools.cu
     resampleKernel.cu
     _reg_globalTransformation_gpu.cu
     _reg_nmi_gpu.cu
     _reg_ssd_gpu.cu
-    _reg_tools_gpu.cu
 )
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
 install(TARGETS ${NAME}

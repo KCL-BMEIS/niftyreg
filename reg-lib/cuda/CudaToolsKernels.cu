@@ -1,5 +1,5 @@
 /*
- *  _reg_tools_kernels.cu
+ *  CudaToolsKernels.cu
  *
  *  Created by Marc Modat and Pankaj Daga on 24/03/2009.
  *  Copyright (c) 2009-2018, University College London
@@ -11,15 +11,17 @@
 #include "_reg_common_cuda_kernels.cu"
 
 /* *************************************************************** */
+namespace NiftyReg::Cuda {
+/* *************************************************************** */
 template<bool is3d>
-__global__ void reg_voxelCentricToNodeCentric_kernel(float4 *nodeImageCuda,
-                                                     cudaTextureObject_t voxelImageTexture,
-                                                     const unsigned nodeNumber,
-                                                     const int3 nodeImageDims,
-                                                     const int3 voxelImageDims,
-                                                     const float weight,
-                                                     const mat44 transformation,
-                                                     const mat33 reorientation) {
+__global__ void VoxelCentricToNodeCentricKernel(float4 *nodeImageCuda,
+                                                cudaTextureObject_t voxelImageTexture,
+                                                const unsigned nodeNumber,
+                                                const int3 nodeImageDims,
+                                                const int3 voxelImageDims,
+                                                const float weight,
+                                                const mat44 transformation,
+                                                const mat33 reorientation) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid >= nodeNumber) return;
     // Calculate the node coordinates
@@ -68,7 +70,7 @@ __global__ void reg_voxelCentricToNodeCentric_kernel(float4 *nodeImageCuda,
     nodeImageCuda[tid] = { reorientedValue[0], reorientedValue[1], reorientedValue[2], 0 };
 }
 /* *************************************************************** */
-__global__ void reg_convertNmiGradientFromVoxelToRealSpace_kernel(float4 *gradient, const mat44 matrix, const unsigned nodeNumber) {
+__global__ void ConvertNmiGradientFromVoxelToRealSpaceKernel(float4 *gradient, const mat44 matrix, const unsigned nodeNumber) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < nodeNumber) {
         const float4 voxelGradient = gradient[tid];
@@ -80,12 +82,12 @@ __global__ void reg_convertNmiGradientFromVoxelToRealSpace_kernel(float4 *gradie
     }
 }
 /* *************************************************************** */
-__global__ void reg_applyConvolutionWindowAlongX_kernel(float4 *smoothedImage,
-                                                        cudaTextureObject_t imageTexture,
-                                                        cudaTextureObject_t kernelTexture,
-                                                        const int kernelSize,
-                                                        const int3 imageSize,
-                                                        const unsigned voxelNumber) {
+__global__ void ApplyConvolutionWindowAlongXKernel(float4 *smoothedImage,
+                                                   cudaTextureObject_t imageTexture,
+                                                   cudaTextureObject_t kernelTexture,
+                                                   const int kernelSize,
+                                                   const int3 imageSize,
+                                                   const unsigned voxelNumber) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
         int quot, rem;
@@ -125,12 +127,12 @@ __global__ void reg_applyConvolutionWindowAlongX_kernel(float4 *smoothedImage,
     }
 }
 /* *************************************************************** */
-__global__ void reg_applyConvolutionWindowAlongY_kernel(float4 *smoothedImage,
-                                                        cudaTextureObject_t imageTexture,
-                                                        cudaTextureObject_t kernelTexture,
-                                                        const int kernelSize,
-                                                        const int3 imageSize,
-                                                        const unsigned voxelNumber) {
+__global__ void ApplyConvolutionWindowAlongYKernel(float4 *smoothedImage,
+                                                   cudaTextureObject_t imageTexture,
+                                                   cudaTextureObject_t kernelTexture,
+                                                   const int kernelSize,
+                                                   const int3 imageSize,
+                                                   const unsigned voxelNumber) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
         int quot, rem;
@@ -169,12 +171,12 @@ __global__ void reg_applyConvolutionWindowAlongY_kernel(float4 *smoothedImage,
     }
 }
 /* *************************************************************** */
-__global__ void reg_applyConvolutionWindowAlongZ_kernel(float4 *smoothedImage,
-                                                        cudaTextureObject_t imageTexture,
-                                                        cudaTextureObject_t kernelTexture,
-                                                        const int kernelSize,
-                                                        const int3 imageSize,
-                                                        const unsigned voxelNumber) {
+__global__ void ApplyConvolutionWindowAlongZKernel(float4 *smoothedImage,
+                                                   cudaTextureObject_t imageTexture,
+                                                   cudaTextureObject_t kernelTexture,
+                                                   const int kernelSize,
+                                                   const int3 imageSize,
+                                                   const unsigned voxelNumber) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
         int z = (int)tid / (imageSize.x * imageSize.y);
@@ -211,61 +213,5 @@ __global__ void reg_applyConvolutionWindowAlongZ_kernel(float4 *smoothedImage,
     }
 }
 /* *************************************************************** */
-__global__ void reg_multiplyValue_kernel_float(float *array, const float value, const unsigned count) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < count)
-        array[tid] *= value;
-}
-/* *************************************************************** */
-__global__ void reg_multiplyValue_kernel_float4(float4 *array, const float value, const unsigned count) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < count) {
-        const float4 temp = array[tid];
-        array[tid] = make_float4(temp.x * value, temp.y * value, temp.z * value, temp.w * value);
-    }
-}
-/* *************************************************************** */
-__global__ void reg_addValue_kernel_float(float *array, const float value, const unsigned count) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < count)
-        array[tid] += value;
-}
-/* *************************************************************** */
-__global__ void reg_addValue_kernel_float4(float4 *array, const float value, const unsigned count) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < count) {
-        const float4 temp = array[tid];
-        array[tid] = make_float4(temp.x + value, temp.y + value, temp.z + value, temp.w + value);
-    }
-}
-/* *************************************************************** */
-__global__ void reg_multiplyArrays_kernel_float(float *array1, float *array2, const unsigned count) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < count)
-        array1[tid] *= array2[tid];
-}
-/* *************************************************************** */
-__global__ void reg_multiplyArrays_kernel_float4(float4 *array1, float4 *array2, const unsigned count) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < count) {
-        const float4 a = array1[tid];
-        const float4 b = array2[tid];
-        array1[tid] = make_float4(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
-    }
-}
-/* *************************************************************** */
-__global__ void reg_addArrays_kernel_float(float *array1, float *array2, const unsigned count) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < count)
-        array1[tid] += array2[tid];
-}
-/* *************************************************************** */
-__global__ void reg_addArrays_kernel_float4(float4 *array1, float4 *array2, const unsigned count) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < count) {
-        const float4 a = array1[tid];
-        const float4 b = array2[tid];
-        array1[tid] = make_float4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
-    }
-}
+} // namespace NiftyReg::Cuda
 /* *************************************************************** */

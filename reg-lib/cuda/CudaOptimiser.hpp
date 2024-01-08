@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CudaCommon.hpp"
+#include "CudaTools.hpp"
 #include "Optimiser.hpp"
-#include "_reg_tools_gpu.h"
 
 /* *************************************************************** */
 namespace NiftyReg {

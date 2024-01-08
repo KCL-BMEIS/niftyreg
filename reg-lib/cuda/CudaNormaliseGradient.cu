@@ -1,5 +1,5 @@
 #include "CudaNormaliseGradient.hpp"
-#include "_reg_tools_gpu.h"
+#include "CudaTools.hpp"
 
 /* *************************************************************** */
 template<bool optimiseX, bool optimiseY, bool optimiseZ>

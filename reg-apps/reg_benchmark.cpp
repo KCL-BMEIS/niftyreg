@@ -25,7 +25,7 @@
 #include "_reg_affineTransformation_gpu.h"
 #include "_reg_bspline_gpu.h"
 #include "_reg_mutualinformation_gpu.h"
-#include "_reg_tools_gpu.h"
+#include "CudaTools.hpp"
 #include "_reg_blockMatching_gpu.h"
 #endif
 
@@ -609,14 +609,14 @@ int main(int argc, char **argv)
          time(&start);
          for(int i=0; i<maxIt; ++i)
          {
-            reg_smoothImageForCubicSpline_gpu(resultImage,
-                                              &voxelNmiGradientArray_d,
-                                              smoothingRadius);
-            reg_voxelCentricToNodeCentric_gpu(targetImage,
-                                              controlPointImage,
-                                              &voxelNmiGradientArray_d,
-                                              &nodeNmiGradientArray_d,
-                                              1.0f);
+            Cuda::SmoothImageForCubicSpline(resultImage,
+                                            &voxelNmiGradientArray_d,
+                                            smoothingRadius);
+            Cuda::VoxelCentricToNodeCentric(targetImage,
+                                            controlPointImage,
+                                            &voxelNmiGradientArray_d,
+                                            &nodeNmiGradientArray_d,
+                                            1.0f);
          }
          time(&end);
          gpuTime=(end-start);

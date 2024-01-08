@@ -369,7 +369,7 @@ double GetJacobianPenaltyTerm(const nifti_image *referenceImage,
     NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
 
     // Perform the reduction
-    const double penaltyTermValue = reg_sumReduction_gpu(jacobianDetCuda, jacNumber);
+    const double penaltyTermValue = SumReduction(jacobianDetCuda, jacNumber);
     NR_CUDA_SAFE_CALL(cudaFree(jacobianDetCuda));
     return penaltyTermValue / jacSum;
 }
@@ -685,7 +685,7 @@ void GetDeformationFieldFromFlowField(nifti_image *flowField,
             affineOnlyCuda.resize(voxelNumber);
             reg_affine_getDeformationField_gpu(reinterpret_cast<mat44*>(flowField->ext_list[0].edata),
                                                affineOnly, affineOnlyCuda.data().get());
-            reg_subtractImages_gpu(flowField, flowFieldCuda, affineOnlyCuda.data().get());
+            SubtractImages(flowField, flowFieldCuda, affineOnlyCuda.data().get());
         }
     } else GetDisplacementFromDeformation(flowField, flowFieldCuda);
 
@@ -693,8 +693,8 @@ void GetDeformationFieldFromFlowField(nifti_image *flowField,
     int squaringNumber = 1;
     if (updateStepNumber || flowField->intent_p2 == 0) {
         // Check the largest value
-        float extrema = fabsf(reg_getMinValue_gpu(flowField, flowFieldCuda, -1));
-        const float temp = reg_getMaxValue_gpu(flowField, flowFieldCuda, -1);
+        float extrema = fabsf(GetMinValue(flowField, flowFieldCuda, -1));
+        const float temp = GetMaxValue(flowField, flowFieldCuda, -1);
         extrema = std::max(extrema, temp);
         // Check the values for scaling purpose
         float maxLength;
@@ -716,7 +716,7 @@ void GetDeformationFieldFromFlowField(nifti_image *flowField,
     // The displacement field is scaled
     const float scalingValue = 1.f / pow(2.f, static_cast<float>(std::abs(squaringNumber)));
     // Backward/forward deformation field is scaled down
-    reg_multiplyValue_gpu(voxelNumber, flowFieldCuda, flowField->intent_p2 < 0 ? -scalingValue : scalingValue);
+    MultiplyValue(voxelNumber, flowFieldCuda, flowField->intent_p2 < 0 ? -scalingValue : scalingValue);
 
     // Conversion from displacement to deformation
     GetDeformationFromDisplacement(flowField, flowFieldCuda);
@@ -735,7 +735,7 @@ void GetDeformationFieldFromFlowField(nifti_image *flowField,
     // The affine component of the transformation is restored
     if (affineOnly) {
         GetDisplacementFromDeformation(deformationField, deformationFieldCuda);
-        reg_addImages_gpu(deformationField, deformationFieldCuda, affineOnlyCuda.data().get());
+        AddImages(deformationField, deformationFieldCuda, affineOnlyCuda.data().get());
     }
     deformationField->intent_p1 = DEF_FIELD;
     deformationField->intent_p2 = 0;

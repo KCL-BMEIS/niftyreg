@@ -1,4 +1,4 @@
-#include"_reg_tools_gpu.h"
+#include "CudaTools.hpp"
 
 /* *************************************************************** */
 __device__ __inline__ double getPosition(float* matrix, double* voxel, const unsigned idx)

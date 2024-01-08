@@ -30,12 +30,11 @@ struct BlockSize {
     unsigned DefFieldCompose2d;
     unsigned DefFieldCompose3d;
     unsigned GetJacobianMatrix;
-    unsigned reg_voxelCentricToNodeCentric;
-    unsigned reg_convertNmiGradientFromVoxelToRealSpace;
-    unsigned reg_ApplyConvolutionWindowAlongX;
-    unsigned reg_ApplyConvolutionWindowAlongY;
-    unsigned reg_ApplyConvolutionWindowAlongZ;
-    unsigned Arithmetic;
+    unsigned VoxelCentricToNodeCentric;
+    unsigned ConvertNmiGradientFromVoxelToRealSpace;
+    unsigned ApplyConvolutionWindowAlongX;
+    unsigned ApplyConvolutionWindowAlongY;
+    unsigned ApplyConvolutionWindowAlongZ;
 };
 /* *************************************************************** */
 struct BlockSize100: public BlockSize {
@@ -56,12 +55,11 @@ struct BlockSize100: public BlockSize {
         DefFieldCompose2d = 512; // 15 reg - 24 smem - 08 cmem - 16 lmem
         DefFieldCompose3d = 384; // 21 reg - 24 smem - 08 cmem - 24 lmem
         GetJacobianMatrix = 512; // 16 reg - 24 smem - 04 cmem
-        reg_voxelCentricToNodeCentric = 320; // 11 reg - 24 smem - 16 cmem
-        reg_convertNmiGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
-        reg_ApplyConvolutionWindowAlongX = 512; // 14 reg - 28 smem - 08 cmem
-        reg_ApplyConvolutionWindowAlongY = 512; // 14 reg - 28 smem - 08 cmem
-        reg_ApplyConvolutionWindowAlongZ = 512; // 15 reg - 28 smem - 08 cmem
-        Arithmetic = 384; // 5 reg - 24 smem
+        VoxelCentricToNodeCentric = 320; // 11 reg - 24 smem - 16 cmem
+        ConvertNmiGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
+        ApplyConvolutionWindowAlongX = 512; // 14 reg - 28 smem - 08 cmem
+        ApplyConvolutionWindowAlongY = 512; // 14 reg - 28 smem - 08 cmem
+        ApplyConvolutionWindowAlongZ = 512; // 15 reg - 28 smem - 08 cmem
         NR_FUNC_CALLED();
     }
 };
@@ -84,12 +82,11 @@ struct BlockSize300: public BlockSize {
         DefFieldCompose2d = 1024; // 23 reg
         DefFieldCompose3d = 1024; // 24 reg
         GetJacobianMatrix = 768; // 34 reg
-        reg_voxelCentricToNodeCentric = 1024; // 23 reg
-        reg_convertNmiGradientFromVoxelToRealSpace = 1024; // 23 reg
-        reg_ApplyConvolutionWindowAlongX = 1024; // 25 reg
-        reg_ApplyConvolutionWindowAlongY = 1024; // 25 reg
-        reg_ApplyConvolutionWindowAlongZ = 1024; // 25 reg
-        Arithmetic = 1024;
+        VoxelCentricToNodeCentric = 1024; // 23 reg
+        ConvertNmiGradientFromVoxelToRealSpace = 1024; // 23 reg
+        ApplyConvolutionWindowAlongX = 1024; // 25 reg
+        ApplyConvolutionWindowAlongY = 1024; // 25 reg
+        ApplyConvolutionWindowAlongZ = 1024; // 25 reg
         NR_FUNC_CALLED();
     }
 };

@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "_reg_tools_gpu.h"
+#include "CudaTools.hpp"
 #include "_reg_measure_gpu.h"
 #include "_reg_ssd.h"
 

@@ -268,12 +268,12 @@ void CudaCompute::ConvolveImage(const nifti_image *image, float4 *imageCuda) {
 void CudaCompute::VoxelCentricToNodeCentric(float weight) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     const mat44 *reorientation = Content::GetIJKMatrix(*con.Content::GetFloating());
-    reg_voxelCentricToNodeCentric_gpu(con.F3dContent::GetTransformationGradient(),
-                                      con.F3dContent::GetVoxelBasedMeasureGradient(),
-                                      con.GetTransformationGradientCuda(),
-                                      con.GetVoxelBasedMeasureGradientCuda(),
-                                      weight,
-                                      reorientation);
+    Cuda::VoxelCentricToNodeCentric(con.F3dContent::GetTransformationGradient(),
+                                    con.F3dContent::GetVoxelBasedMeasureGradient(),
+                                    con.GetTransformationGradientCuda(),
+                                    con.GetVoxelBasedMeasureGradientCuda(),
+                                    weight,
+                                    reorientation);
 }
 /* *************************************************************** */
 void CudaCompute::ConvolveVoxelBasedMeasureGradient(float weight) {

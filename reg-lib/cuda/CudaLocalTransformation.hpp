@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "_reg_tools_gpu.h"
+#include "CudaTools.hpp"
 
 /* *************************************************************** */
 namespace NiftyReg::Cuda {
