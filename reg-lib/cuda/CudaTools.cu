@@ -17,18 +17,19 @@
 /* *************************************************************** */
 namespace NiftyReg::Cuda {
 /* *************************************************************** */
+template<bool is3d>
 void VoxelCentricToNodeCentric(const nifti_image *nodeImage,
                                const nifti_image *voxelImage,
                                float4 *nodeImageCuda,
                                float4 *voxelImageCuda,
                                float weight,
                                const mat44 *voxelToMillimetre) {
-    const bool is3d = nodeImage->nz > 1;
     const size_t nodeNumber = NiftiImage::calcVoxelNumber(nodeImage, 3);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(voxelImage, 3);
     const int3 nodeImageDims = make_int3(nodeImage->nx, nodeImage->ny, nodeImage->nz);
     const int3 voxelImageDims = make_int3(voxelImage->nx, voxelImage->ny, voxelImage->nz);
-    auto voxelImageTexture = Cuda::CreateTextureObject(voxelImageCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+    auto voxelImageTexturePtr = Cuda::CreateTextureObject(voxelImageCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+    auto voxelImageTexture = *voxelImageTexturePtr;
 
     // The transformation between the image and the grid
     mat44 transformation;
@@ -69,15 +70,12 @@ void VoxelCentricToNodeCentric(const nifti_image *nodeImage,
         weight *= ratio[i];
     }
 
-    const unsigned blocks = CudaContext::GetBlockSize()->VoxelCentricToNodeCentric;
-    const unsigned grids = (unsigned)Ceil(sqrtf((float)nodeNumber / (float)blocks));
-    const dim3 gridDims(grids, grids, 1);
-    const dim3 blockDims(blocks, 1, 1);
-    auto voxelCentricToNodeCentricKernel = is3d ? VoxelCentricToNodeCentricKernel<true> : VoxelCentricToNodeCentricKernel<false>;
-    voxelCentricToNodeCentricKernel<<<gridDims, blockDims>>>(nodeImageCuda, *voxelImageTexture, (unsigned)nodeNumber, nodeImageDims,
-                                                             voxelImageDims, weight, transformation, reorientation);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), nodeNumber, [=]__device__(const int index) {
+        VoxelCentricToNodeCentricKernel<is3d>(nodeImageCuda, voxelImageTexture, nodeImageDims, voxelImageDims, weight, transformation, reorientation, index);
+    });
 }
+template void VoxelCentricToNodeCentric<false>(const nifti_image*, const nifti_image*, float4*, float4*, float, const mat44*);
+template void VoxelCentricToNodeCentric<true>(const nifti_image*, const nifti_image*, float4*, float4*, float, const mat44*);
 /* *************************************************************** */
 void ConvertNmiGradientFromVoxelToRealSpace(const mat44 *sourceMatrixXYZ,
                                             const nifti_image *controlPointImage,

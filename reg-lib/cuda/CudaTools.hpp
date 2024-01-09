@@ -18,6 +18,7 @@
 /* *************************************************************** */
 namespace NiftyReg::Cuda {
 /* *************************************************************** */
+template<bool is3d>
 void VoxelCentricToNodeCentric(const nifti_image *nodeImage,
                                const nifti_image *voxelImage,
                                float4 *nodeImageCuda,

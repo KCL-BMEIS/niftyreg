@@ -14,18 +14,16 @@
 namespace NiftyReg::Cuda {
 /* *************************************************************** */
 template<bool is3d>
-__global__ void VoxelCentricToNodeCentricKernel(float4 *nodeImageCuda,
+__device__ void VoxelCentricToNodeCentricKernel(float4 *nodeImageCuda,
                                                 cudaTextureObject_t voxelImageTexture,
-                                                const unsigned nodeNumber,
                                                 const int3 nodeImageDims,
                                                 const int3 voxelImageDims,
                                                 const float weight,
                                                 const mat44 transformation,
-                                                const mat33 reorientation) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid >= nodeNumber) return;
+                                                const mat33 reorientation,
+                                                const int index) {
     // Calculate the node coordinates
-    const auto [x, y, z] = reg_indexToDims_cuda<is3d>(tid, nodeImageDims);
+    const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, nodeImageDims);
     // Transform into voxel coordinates
     float voxelCoord[3], nodeCoord[3] = { static_cast<float>(x), static_cast<float>(y), static_cast<float>(z) };
     reg_mat44_mul_cuda<is3d>(transformation, nodeCoord, voxelCoord);
@@ -67,7 +65,7 @@ __global__ void VoxelCentricToNodeCentricKernel(float4 *nodeImageCuda,
 
     float reorientedValue[3];
     reg_mat33_mul_cuda<is3d>(reorientation, interpolatedValue, weight, reorientedValue);
-    nodeImageCuda[tid] = { reorientedValue[0], reorientedValue[1], reorientedValue[2], 0 };
+    nodeImageCuda[index] = { reorientedValue[0], reorientedValue[1], reorientedValue[2], 0 };
 }
 /* *************************************************************** */
 __global__ void ConvertNmiGradientFromVoxelToRealSpaceKernel(float4 *gradient, const mat44 matrix, const unsigned nodeNumber) {

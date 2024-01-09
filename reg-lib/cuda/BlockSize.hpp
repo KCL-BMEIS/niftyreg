@@ -17,7 +17,6 @@ struct BlockSize {
     unsigned reg_affine_getDeformationField;
     unsigned GetApproxJacobianValues2d;
     unsigned GetApproxJacobianValues3d;
-    unsigned ApproxLinearEnergyGradient;
     unsigned GetJacobianValues2d;
     unsigned GetJacobianValues3d;
     unsigned LogSquaredValues;
@@ -30,7 +29,6 @@ struct BlockSize {
     unsigned DefFieldCompose2d;
     unsigned DefFieldCompose3d;
     unsigned GetJacobianMatrix;
-    unsigned VoxelCentricToNodeCentric;
     unsigned ConvertNmiGradientFromVoxelToRealSpace;
     unsigned ApplyConvolutionWindowAlongX;
     unsigned ApplyConvolutionWindowAlongY;
@@ -42,7 +40,6 @@ struct BlockSize100: public BlockSize {
         reg_affine_getDeformationField = 512; // 16 reg - 24 smem
         GetApproxJacobianValues2d = 384; // 17 reg - 104 smem - 36 cmem
         GetApproxJacobianValues3d = 256; // 27 reg - 356 smem - 108 cmem
-        ApproxLinearEnergyGradient = 384; // 40 reg
         GetJacobianValues2d = 256; // 29 reg - 32 smem - 16 cmem - 32 lmem
         GetJacobianValues3d = 192; // 41 reg - 6176 smem - 20 cmem - 32 lmem
         LogSquaredValues = 384; // 07 reg - 24 smem - 36 cmem
@@ -55,7 +52,6 @@ struct BlockSize100: public BlockSize {
         DefFieldCompose2d = 512; // 15 reg - 24 smem - 08 cmem - 16 lmem
         DefFieldCompose3d = 384; // 21 reg - 24 smem - 08 cmem - 24 lmem
         GetJacobianMatrix = 512; // 16 reg - 24 smem - 04 cmem
-        VoxelCentricToNodeCentric = 320; // 11 reg - 24 smem - 16 cmem
         ConvertNmiGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
         ApplyConvolutionWindowAlongX = 512; // 14 reg - 28 smem - 08 cmem
         ApplyConvolutionWindowAlongY = 512; // 14 reg - 28 smem - 08 cmem
@@ -69,7 +65,6 @@ struct BlockSize300: public BlockSize {
         reg_affine_getDeformationField = 1024; // 23 reg
         GetApproxJacobianValues2d = 768; // 34 reg
         GetApproxJacobianValues3d = 640; // 46 reg
-        ApproxLinearEnergyGradient = 768; // 40 reg
         GetJacobianValues2d = 768; // 34 reg
         GetJacobianValues3d = 768; // 34 reg
         LogSquaredValues = 1024; // 23 reg
@@ -82,7 +77,6 @@ struct BlockSize300: public BlockSize {
         DefFieldCompose2d = 1024; // 23 reg
         DefFieldCompose3d = 1024; // 24 reg
         GetJacobianMatrix = 768; // 34 reg
-        VoxelCentricToNodeCentric = 1024; // 23 reg
         ConvertNmiGradientFromVoxelToRealSpace = 1024; // 23 reg
         ApplyConvolutionWindowAlongX = 1024; // 25 reg
         ApplyConvolutionWindowAlongY = 1024; // 25 reg
