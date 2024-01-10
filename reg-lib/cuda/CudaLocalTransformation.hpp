@@ -56,6 +56,7 @@ double CorrectFolding(const nifti_image *referenceImage,
                       float4 *controlPointImageCuda,
                       const bool approx);
 /* *************************************************************** */
+template<bool is3d>
 void DefFieldCompose(const nifti_image *deformationField,
                      const float4 *deformationFieldCuda,
                      float4 *deformationFieldOutCuda);

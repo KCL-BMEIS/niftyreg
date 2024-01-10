@@ -324,6 +324,7 @@ void CudaCompute::DefFieldCompose(const nifti_image *defField) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(defField, 3);
     thrust::device_vector<float4> defFieldCuda(voxelNumber);
     Cuda::TransferNiftiToDevice(defFieldCuda.data().get(), defField);
-    Cuda::DefFieldCompose(defField, defFieldCuda.data().get(), con.GetDeformationFieldCuda());
+    auto defFieldCompose = defField->nz > 1 ? Cuda::DefFieldCompose<true> : Cuda::DefFieldCompose<false>;
+    defFieldCompose(defField, defFieldCuda.data().get(), con.GetDeformationFieldCuda());
 }
 /* *************************************************************** */

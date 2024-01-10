@@ -26,8 +26,6 @@ struct BlockSize {
     unsigned ComputeJacGradient3d;
     unsigned ApproxCorrectFolding3d;
     unsigned CorrectFolding3d;
-    unsigned DefFieldCompose2d;
-    unsigned DefFieldCompose3d;
     unsigned GetJacobianMatrix;
     unsigned ConvertNmiGradientFromVoxelToRealSpace;
     unsigned ApplyConvolutionWindowAlongX;
@@ -49,8 +47,6 @@ struct BlockSize100: public BlockSize {
         ComputeJacGradient3d = 256; // 32 reg - 24 smem - 64 cmem
         ApproxCorrectFolding3d = 256; // 32 reg - 24 smem - 24 cmem
         CorrectFolding3d = 256; // 31 reg - 24 smem - 32 cmem
-        DefFieldCompose2d = 512; // 15 reg - 24 smem - 08 cmem - 16 lmem
-        DefFieldCompose3d = 384; // 21 reg - 24 smem - 08 cmem - 24 lmem
         GetJacobianMatrix = 512; // 16 reg - 24 smem - 04 cmem
         ConvertNmiGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
         ApplyConvolutionWindowAlongX = 512; // 14 reg - 28 smem - 08 cmem
@@ -74,8 +70,6 @@ struct BlockSize300: public BlockSize {
         ComputeJacGradient3d = 768; // 37 reg
         ApproxCorrectFolding3d = 768; // 34 reg
         CorrectFolding3d = 768; // 34 reg
-        DefFieldCompose2d = 1024; // 23 reg
-        DefFieldCompose3d = 1024; // 24 reg
         GetJacobianMatrix = 768; // 34 reg
         ConvertNmiGradientFromVoxelToRealSpace = 1024; // 23 reg
         ApplyConvolutionWindowAlongX = 1024; // 25 reg

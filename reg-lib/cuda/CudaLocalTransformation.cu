@@ -634,33 +634,20 @@ void GetFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
     velocityFieldGrid->num_ext = oldNumExt;
 }
 /* *************************************************************** */
+template<bool is3d>
 void DefFieldCompose(const nifti_image *deformationField,
                      const float4 *deformationFieldCuda,
-                     float4 *deformationFieldCudaOut) {
-    auto blockSize = CudaContext::GetBlockSize();
+                     float4 *deformationFieldOutCuda) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
-    const int3 referenceImageDim{ deformationField->nx, deformationField->ny, deformationField->nz };
+    const int3 referenceImageDims{ deformationField->nx, deformationField->ny, deformationField->nz };
     const mat44& affineMatrixB = deformationField->sform_code > 0 ? deformationField->sto_ijk : deformationField->qto_ijk;
     const mat44& affineMatrixC = deformationField->sform_code > 0 ? deformationField->sto_xyz : deformationField->qto_xyz;
-    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+    auto deformationFieldTexturePtr = Cuda::CreateTextureObject(deformationFieldCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+    auto deformationFieldTexture = *deformationFieldTexturePtr;
 
-    if (deformationField->nz > 1) {
-        const unsigned blocks = blockSize->DefFieldCompose3d;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        DefFieldCompose3d<<<gridDims, blockDims>>>(deformationFieldCudaOut, *deformationFieldTexture, referenceImageDim,
-                                                   (unsigned)voxelNumber, affineMatrixB, affineMatrixC);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-    } else {
-        const unsigned blocks = blockSize->DefFieldCompose2d;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
-        const dim3 gridDims(grids, grids, 1);
-        const dim3 blockDims(blocks, 1, 1);
-        DefFieldCompose2d<<<gridDims, blockDims>>>(deformationFieldCudaOut, *deformationFieldTexture, referenceImageDim,
-                                                   (unsigned)voxelNumber, affineMatrixB, affineMatrixC);
-        NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-    }
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), voxelNumber, [=]__device__(const int index) {
+        DefFieldComposeKernel<is3d>(deformationFieldOutCuda, deformationFieldTexture, referenceImageDims, affineMatrixB, affineMatrixC, index);
+    });
 }
 /* *************************************************************** */
 void GetDeformationFieldFromFlowField(nifti_image *flowField,
@@ -725,9 +712,10 @@ void GetDeformationFieldFromFlowField(nifti_image *flowField,
     thrust::copy(thrust::device, flowFieldCuda, flowFieldCuda + voxelNumber, deformationFieldCuda);
 
     // The deformation field is squared
+    auto defFieldCompose = deformationField->nz > 1 ? DefFieldCompose<true> : DefFieldCompose<false>;
     for (int i = 0; i < squaringNumber; ++i) {
         // The deformation field is applied to itself
-        DefFieldCompose(deformationField, deformationFieldCuda, flowFieldCuda);
+        defFieldCompose(deformationField, deformationFieldCuda, flowFieldCuda);
         // The computed scaled deformation field is copied over
         thrust::copy(thrust::device, flowFieldCuda, flowFieldCuda + voxelNumber, deformationFieldCuda);
         NR_DEBUG("Squaring (composition) step " << i + 1 << "/" << squaringNumber);

@@ -1057,67 +1057,22 @@ __global__ void CorrectFolding3d(float4 *controlPointGrid,
     }
 }
 /* *************************************************************** */
-__global__ void DefFieldCompose2d(float4 *deformationField,
-                                  cudaTextureObject_t deformationFieldTexture,
-                                  const int3 referenceImageDim,
-                                  const unsigned voxelNumber,
-                                  const mat44 affineMatrixB,
-                                  const mat44 affineMatrixC) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < voxelNumber) {
-        // Extract the original voxel position
-        float4 position = deformationField[tid];
+template<bool is3d>
+__device__ void DefFieldComposeKernel(float4 *deformationField,
+                                      cudaTextureObject_t deformationFieldTexture,
+                                      const int3 referenceImageDims,
+                                      const mat44 affineMatrixB,
+                                      const mat44 affineMatrixC,
+                                      const int index) {
+    // Extract the original voxel position
+    float4 position = deformationField[index];
 
+    if constexpr (is3d) {
         // Conversion from real position to voxel coordinate
-        const float4 voxelPosition{
-            position.x * affineMatrixB.m[0][0] + position.y * affineMatrixB.m[0][1] + affineMatrixB.m[0][3],
-            position.x * affineMatrixB.m[1][0] + position.y * affineMatrixB.m[1][1] + affineMatrixB.m[1][3],
-            0.f,
-            0.f
-        };
-
-        // Linear interpolation
-        const int2 ante = { Floor(voxelPosition.x), Floor(voxelPosition.y) };
-        float relX[2], relY[2];
-        relX[1] = voxelPosition.x - (float)ante.x; relX[0] = 1.f - relX[1];
-        relY[1] = voxelPosition.y - (float)ante.y; relY[0] = 1.f - relY[1];
-
-        position = make_float4(0.f, 0.f, 0.f, 0.f);
-        for (short b = 0; b < 2; ++b) {
-            for (short a = 0; a < 2; ++a) {
-                float4 deformation;
-                if (-1 < ante.x + a && ante.x + a < referenceImageDim.x &&
-                    -1 < ante.y + b && ante.y + b < referenceImageDim.y) {
-                    const int index = (ante.y + b) * referenceImageDim.x + ante.x + a;
-                    deformation = tex1Dfetch<float4>(deformationFieldTexture, index);
-                } else {
-                    deformation = GetSlidedValues(ante.x + a, ante.y + b, deformationFieldTexture, referenceImageDim, affineMatrixC);
-                }
-                const float basis = relX[a] * relY[b];
-                position = position + basis * deformation;
-            }
-        }
-        deformationField[tid] = position;
-    }
-}
-/* *************************************************************** */
-__global__ void DefFieldCompose3d(float4 *deformationField,
-                                  cudaTextureObject_t deformationFieldTexture,
-                                  const int3 referenceImageDim,
-                                  const unsigned voxelNumber,
-                                  const mat44 affineMatrixB,
-                                  const mat44 affineMatrixC) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < voxelNumber) {
-        // Extract the original voxel position
-        float4 position = deformationField[tid];
-
-        // Conversion from real position to voxel coordinate
-        const float4 voxelPosition{
+        const float3 voxelPosition{
             position.x * affineMatrixB.m[0][0] + position.y * affineMatrixB.m[0][1] + position.z * affineMatrixB.m[0][2] + affineMatrixB.m[0][3],
             position.x * affineMatrixB.m[1][0] + position.y * affineMatrixB.m[1][1] + position.z * affineMatrixB.m[1][2] + affineMatrixB.m[1][3],
-            position.x * affineMatrixB.m[2][0] + position.y * affineMatrixB.m[2][1] + position.z * affineMatrixB.m[2][2] + affineMatrixB.m[2][3],
-            0.f
+            position.x * affineMatrixB.m[2][0] + position.y * affineMatrixB.m[2][1] + position.z * affineMatrixB.m[2][2] + affineMatrixB.m[2][3]
         };
 
         // Linear interpolation
@@ -1132,21 +1087,50 @@ __global__ void DefFieldCompose3d(float4 *deformationField,
             for (short b = 0; b < 2; ++b) {
                 for (short a = 0; a < 2; ++a) {
                     float4 deformation;
-                    if (-1 < ante.x + a && ante.x + a < referenceImageDim.x &&
-                        -1 < ante.y + b && ante.y + b < referenceImageDim.y &&
-                        -1 < ante.z + c && ante.z + c < referenceImageDim.z) {
-                        const int index = ((ante.z + c) * referenceImageDim.y + ante.y + b) * referenceImageDim.x + ante.x + a;
+                    if (-1 < ante.x + a && ante.x + a < referenceImageDims.x &&
+                        -1 < ante.y + b && ante.y + b < referenceImageDims.y &&
+                        -1 < ante.z + c && ante.z + c < referenceImageDims.z) {
+                        const int index = ((ante.z + c) * referenceImageDims.y + ante.y + b) * referenceImageDims.x + ante.x + a;
                         deformation = tex1Dfetch<float4>(deformationFieldTexture, index);
                     } else {
-                        deformation = GetSlidedValues(ante.x + a, ante.y + b, ante.z + c, deformationFieldTexture, referenceImageDim, affineMatrixC);
+                        deformation = GetSlidedValues(ante.x + a, ante.y + b, ante.z + c, deformationFieldTexture, referenceImageDims, affineMatrixC);
                     }
                     const float basis = relX[a] * relY[b] * relZ[c];
                     position = position + basis * deformation;
                 }
             }
         }
-        deformationField[tid] = position;
+    } else {
+        // Conversion from real position to voxel coordinate
+        const float2 voxelPosition{
+            position.x * affineMatrixB.m[0][0] + position.y * affineMatrixB.m[0][1] + affineMatrixB.m[0][3],
+            position.x * affineMatrixB.m[1][0] + position.y * affineMatrixB.m[1][1] + affineMatrixB.m[1][3]
+        };
+
+        // Linear interpolation
+        const int2 ante = { Floor(voxelPosition.x), Floor(voxelPosition.y) };
+        float relX[2], relY[2];
+        relX[1] = voxelPosition.x - (float)ante.x; relX[0] = 1.f - relX[1];
+        relY[1] = voxelPosition.y - (float)ante.y; relY[0] = 1.f - relY[1];
+
+        position = make_float4(0.f, 0.f, 0.f, 0.f);
+        for (short b = 0; b < 2; ++b) {
+            for (short a = 0; a < 2; ++a) {
+                float4 deformation;
+                if (-1 < ante.x + a && ante.x + a < referenceImageDims.x &&
+                    -1 < ante.y + b && ante.y + b < referenceImageDims.y) {
+                    const int index = (ante.y + b) * referenceImageDims.x + ante.x + a;
+                    deformation = tex1Dfetch<float4>(deformationFieldTexture, index);
+                } else {
+                    deformation = GetSlidedValues(ante.x + a, ante.y + b, deformationFieldTexture, referenceImageDims, affineMatrixC);
+                }
+                const float basis = relX[a] * relY[b];
+                position = position + basis * deformation;
+            }
+        }
     }
+
+    deformationField[index] = position;
 }
 /* *************************************************************** */
 __global__ void GetJacobianMatrix3d(float *jacobianMatrices,
