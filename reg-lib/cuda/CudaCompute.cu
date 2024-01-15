@@ -311,12 +311,37 @@ void CudaCompute::BchUpdate(float scale, int bchUpdateValue) {
 }
 /* *************************************************************** */
 void CudaCompute::SymmetriseVelocityFields(Content& conBwIn) {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
-    Compute::SymmetriseVelocityFields(conBwIn);
-    // Transfer the data back to the CUDA device
-    dynamic_cast<CudaF3dContent&>(con).UpdateControlPointGrid();
-    dynamic_cast<CudaF3dContent&>(conBwIn).UpdateControlPointGrid();
+    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
+    CudaF3dContent& conBw = dynamic_cast<CudaF3dContent&>(conBwIn);
+
+    nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
+    nifti_image *controlPointGridBw = conBw.F3dContent::GetControlPointGrid();
+    float4 *controlPointGridCuda = con.GetControlPointGridCuda();
+    float4 *controlPointGridBwCuda = conBw.GetControlPointGridCuda();
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
+
+    // In order to ensure symmetry, the forward and backward velocity fields
+    // are averaged in both image spaces: reference and floating
+
+    // Both parametrisations are converted into displacement
+    Cuda::GetDisplacementFromDeformation(controlPointGrid, controlPointGridCuda);
+    Cuda::GetDisplacementFromDeformation(controlPointGridBw, controlPointGridBwCuda);
+
+    // Backup the backward displacement field
+    thrust::device_ptr<float4> controlPointGridBwCudaPtr(controlPointGridBwCuda);
+    thrust::device_vector<float4> controlPointGridBwOrgCudaVec(controlPointGridBwCudaPtr, controlPointGridBwCudaPtr + voxelNumber);
+
+    // Both parametrisations are subtracted (sum and negation)
+    Cuda::SubtractImages(controlPointGridBw, controlPointGridBwCuda, controlPointGridCuda);
+    Cuda::SubtractImages(controlPointGrid, controlPointGridCuda, controlPointGridBwOrgCudaVec.data().get());
+
+    // Divide by 2
+    Cuda::MultiplyValue(voxelNumber, controlPointGridCuda, 0.5f);
+    Cuda::MultiplyValue(voxelNumber, controlPointGridBwCuda, 0.5f);
+
+    // Convert the velocity field from displacement to deformation
+    Cuda::GetDeformationFromDisplacement(controlPointGrid, controlPointGridCuda);
+    Cuda::GetDeformationFromDisplacement(controlPointGridBw, controlPointGridBwCuda);
 }
 /* *************************************************************** */
 void CudaCompute::DefFieldCompose(const nifti_image *defField) {
