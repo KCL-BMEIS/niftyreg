@@ -131,6 +131,7 @@ if(USE_CUDA)
   set(EXEC_LIST reg_test_regr_lts ${EXEC_LIST})
   set(EXEC_LIST reg_test_regr_measure ${EXEC_LIST})
   set(EXEC_LIST reg_test_regr_symmetriseVelocityFields ${EXEC_LIST})
+  set(EXEC_LIST reg_test_regr_updateVelocityField ${EXEC_LIST})
 endif(USE_CUDA)
 
 foreach(EXEC ${EXEC_LIST})
