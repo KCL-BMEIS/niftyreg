@@ -43,6 +43,8 @@ void AddValue(const size_t count, float4 *arrayCuda, const float value);
 /* *************************************************************** */
 void MultiplyValue(const size_t count, float4 *arrayCuda, const float value);
 /* *************************************************************** */
+void MultiplyValue(const size_t count, const float4 *arrayCuda, float4 *arrayOutCuda, const float value);
+/* *************************************************************** */
 float SumReduction(float *arrayCuda, const size_t size);
 /* *************************************************************** */
 float MaxReduction(float *arrayCuda, const size_t size);
@@ -60,6 +62,12 @@ void DivideImages(const nifti_image *img, float4 *img1Cuda, const float4 *img2Cu
 float GetMinValue(const nifti_image *img, const float4 *imgCuda, const int timePoint = -1);
 /* *************************************************************** */
 float GetMaxValue(const nifti_image *img, const float4 *imgCuda, const int timePoint = -1);
+/* *************************************************************** */
+void SetGradientToZero(float4 *gradCuda,
+                       const size_t voxelNumber,
+                       const bool xAxis,
+                       const bool yAxis,
+                       const bool zAxis);
 /* *************************************************************** */
 } // namespace NiftyReg::Cuda
 /* *************************************************************** */

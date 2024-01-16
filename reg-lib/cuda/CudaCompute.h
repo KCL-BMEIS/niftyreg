@@ -39,4 +39,5 @@ protected:
 
 private:
     void ConvolveImage(const nifti_image*, float4*);
+    Cuda::UniquePtr<float4> ScaleGradient(const float4*, const size_t, const float);
 };

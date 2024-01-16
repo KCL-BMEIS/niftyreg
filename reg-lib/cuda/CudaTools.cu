@@ -261,6 +261,15 @@ void MultiplyValue(const size_t count, float4 *arrayCuda, const float multiplier
     });
 }
 /* *************************************************************** */
+void MultiplyValue(const size_t count, const float4 *arrayCuda, float4 *arrayOutCuda, const float multiplier) {
+    auto arrayTexturePtr = Cuda::CreateTextureObject(arrayCuda, count, cudaChannelFormatKindFloat, 4);
+    auto arrayTexture = *arrayTexturePtr;
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), count, [=]__device__(const int index) {
+        float4 val = tex1Dfetch<float4>(arrayTexture, index);
+        arrayOutCuda[index] = val * multiplier;
+    });
+}
+/* *************************************************************** */
 float SumReduction(float *arrayCuda, const size_t size) {
     thrust::device_ptr<float> dptr(arrayCuda);
     return thrust::reduce(thrust::device, dptr, dptr + size, 0.f, thrust::plus<float>());
@@ -365,6 +374,36 @@ float GetMinValue(const nifti_image *img, const float4 *imgCuda, const int timeP
 /* *************************************************************** */
 float GetMaxValue(const nifti_image *img, const float4 *imgCuda, const int timePoint) {
     return GetMinMaxValue<false>(img, imgCuda, timePoint);
+}
+/* *************************************************************** */
+template<bool xAxis, bool yAxis, bool zAxis>
+void SetGradientToZero(float4 *gradCuda, const size_t voxelNumber) {
+    auto gradTexturePtr = Cuda::CreateTextureObject(gradCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+    auto gradTexture = *gradTexturePtr;
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), voxelNumber, [gradCuda, gradTexture]__device__(const int index) {
+        if constexpr (xAxis && yAxis && zAxis) {
+            gradCuda[index] = make_float4(0.f, 0.f, 0.f, 0.f);
+        } else {
+            float4 val = tex1Dfetch<float4>(gradTexture, index);
+            if constexpr (xAxis) val.x = 0;
+            if constexpr (yAxis) val.y = 0;
+            if constexpr (zAxis) val.z = 0;
+            gradCuda[index] = val;
+        }
+    });
+}
+/* *************************************************************** */
+void SetGradientToZero(float4 *gradCuda, const size_t voxelNumber, const bool xAxis, const bool yAxis, const bool zAxis) {
+    if (!xAxis && !yAxis && !zAxis) return;
+    decltype(SetGradientToZero<true, true, true>) *setGradientToZero;
+    if (xAxis && yAxis && zAxis) setGradientToZero = SetGradientToZero<true, true, true>;
+    else if (xAxis && yAxis) setGradientToZero = SetGradientToZero<true, true, false>;
+    else if (xAxis && zAxis) setGradientToZero = SetGradientToZero<true, false, true>;
+    else if (yAxis && zAxis) setGradientToZero = SetGradientToZero<false, true, true>;
+    else if (xAxis) setGradientToZero = SetGradientToZero<true, false, false>;
+    else if (yAxis) setGradientToZero = SetGradientToZero<false, true, false>;
+    else if (zAxis) setGradientToZero = SetGradientToZero<false, false, true>;
+    setGradientToZero(gradCuda, voxelNumber);
 }
 /* *************************************************************** */
 } // namespace NiftyReg::Cuda

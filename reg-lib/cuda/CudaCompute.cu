@@ -294,12 +294,27 @@ void CudaCompute::ExponentiateGradient(Content& conBwIn) {
     dynamic_cast<CudaDefContent&>(con).UpdateVoxelBasedMeasureGradient();
 }
 /* *************************************************************** */
+Cuda::UniquePtr<float4> CudaCompute::ScaleGradient(const float4 *transGradCuda, const size_t voxelNumber, const float scale) {
+    float4 *scaledGradient;
+    Cuda::Allocate(&scaledGradient, voxelNumber);
+    Cuda::MultiplyValue(voxelNumber, transGradCuda, scaledGradient, scale);
+    return Cuda::UniquePtr<float4>(scaledGradient);
+}
+/* *************************************************************** */
 void CudaCompute::UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ) {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
-    Compute::UpdateVelocityField(scale, optimiseX, optimiseY, optimiseZ);
-    // Transfer the data back to the CUDA device
-    dynamic_cast<CudaF3dContent&>(con).UpdateControlPointGrid();
+    if (!optimiseX && !optimiseY && !optimiseZ) return;
+
+    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
+    const nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
+    auto scaledGradientCudaPtr = ScaleGradient(con.GetTransformationGradientCuda(), voxelNumber, scale);
+
+    // Reset the gradient along the axes if appropriate
+    if (controlPointGrid->nu < 3) optimiseZ = true;
+    Cuda::SetGradientToZero(scaledGradientCudaPtr.get(), voxelNumber, !optimiseX, !optimiseY, !optimiseZ);
+
+    // Update the velocity field
+    Cuda::AddImages(controlPointGrid, con.GetControlPointGridCuda(), scaledGradientCudaPtr.get());
 }
 /* *************************************************************** */
 void CudaCompute::BchUpdate(float scale, int bchUpdateValue) {
