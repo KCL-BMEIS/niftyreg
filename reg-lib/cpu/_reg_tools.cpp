@@ -2565,10 +2565,12 @@ nifti_image* nifti_dup(const nifti_image& image, const bool copyData) {
 }
 /* *************************************************************** */
 void PrintCmdLine(const int argc, const char *const *argv, const bool verbose) {
+    // Print the version
+    NR_INFO(argv[0] << " v" << NR_VERSION);
+    NR_INFO("");
 #ifdef NDEBUG
     if (!verbose) return;
 #endif
-    NR_INFO("");
     NR_INFO("Command line:");
     std::string text("\t");
     for (int i = 0; i < argc; i++)
