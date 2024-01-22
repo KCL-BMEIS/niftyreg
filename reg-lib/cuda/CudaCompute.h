@@ -35,6 +35,7 @@ public:
 protected:
 #endif
     virtual void DefFieldCompose(const nifti_image *defField) override;
+    virtual NiftiImage ResampleGradient(int interpolation, float padding) override;
     virtual void VoxelCentricToNodeCentric(float weight) override;
 
 private:

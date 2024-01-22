@@ -368,3 +368,20 @@ void CudaCompute::DefFieldCompose(const nifti_image *defField) {
     defFieldCompose(defField, defFieldCuda.data().get(), con.GetDeformationFieldCuda());
 }
 /* *************************************************************** */
+NiftiImage CudaCompute::ResampleGradient(int interpolation, float padding) {
+    CudaDefContent& con = dynamic_cast<CudaDefContent&>(this->con);
+    const nifti_image *voxelBasedMeasureGradient = con.DefContent::GetVoxelBasedMeasureGradient();
+    auto resampleGradient = voxelBasedMeasureGradient->nz > 1 ? Cuda::ResampleGradient<true> : Cuda::ResampleGradient<false>;
+    resampleGradient(voxelBasedMeasureGradient,
+                     con.GetVoxelBasedMeasureGradientCuda(),
+                     voxelBasedMeasureGradient,
+                     con.GetWarpedGradientCuda(),
+                     con.Content::GetDeformationField(),
+                     con.GetDeformationFieldCuda(),
+                     con.GetReferenceMaskCuda(),
+                     con.GetActiveVoxelNumber(),
+                     interpolation,
+                     padding);
+    return NiftiImage(con.GetWarpedGradient(), NiftiImage::Copy::Image);
+}
+/* *************************************************************** */

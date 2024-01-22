@@ -1691,7 +1691,7 @@ void reg_trilinearResampleGradient(const nifti_image *floatingImage,
     if (floatingImage->sform_code != 0)
         floating_mm_to_voxel = &floatingImage->sto_ijk;
 
-    // The spacing is computed in case the sform if defined
+    // The spacing is computed if the sform is defined
     float realSpacing[3];
     if (warpedImage->sform_code > 0) {
         reg_getRealImageSpacing(warpedImage, realSpacing);

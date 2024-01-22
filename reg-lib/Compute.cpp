@@ -413,3 +413,11 @@ void Compute::DefFieldCompose(const nifti_image *defField) {
     reg_defField_compose(defField, con.GetDeformationField(), nullptr);
 }
 /* *************************************************************** */
+NiftiImage Compute::ResampleGradient(int interpolation, float padding) {
+    DefContent& con = dynamic_cast<DefContent&>(this->con);
+    nifti_image *voxelBasedMeasureGradient = con.GetVoxelBasedMeasureGradient();
+    NiftiImage warpedImage = NiftiImage(voxelBasedMeasureGradient, NiftiImage::Copy::ImageInfoAndAllocData);
+    reg_resampleGradient(voxelBasedMeasureGradient, warpedImage, con.GetDeformationField(), interpolation, padding);
+    return warpedImage;
+}
+/* *************************************************************** */

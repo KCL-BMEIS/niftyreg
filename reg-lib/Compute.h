@@ -39,6 +39,7 @@ protected:
 public:
 #endif
     virtual void DefFieldCompose(const nifti_image *defField);
+    virtual NiftiImage ResampleGradient(int interpolation, float padding);
     virtual void VoxelCentricToNodeCentric(float weight);
 
 private:
