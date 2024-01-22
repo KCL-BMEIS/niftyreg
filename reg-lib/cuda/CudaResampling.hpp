@@ -38,5 +38,17 @@ void GetImageGradient(const nifti_image *floatingImage,
                       float paddingValue,
                       const int activeTimePoint);
 /* *************************************************************** */
+template<bool is3d>
+void ResampleGradient(const nifti_image *floatingImage,
+                      const float4 *floatingImageCuda,
+                      const nifti_image *warpedImage,
+                      float4 *warpedImageCuda,
+                      const nifti_image *deformationField,
+                      const float4 *deformationFieldCuda,
+                      const int *maskCuda,
+                      const size_t activeVoxelNumber,
+                      const int interpolation,
+                      const float paddingValue);
+/* *************************************************************** */
 } // namespace NiftyReg::Cuda
 /* *************************************************************** */
