@@ -67,6 +67,11 @@ void GetDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                  float4 *deformationFieldCuda,
                                  const bool updateStepNumber);
 /* *************************************************************** */
+void GetIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
+                                        float4 *velocityFieldGridCuda,
+                                        vector<NiftiImage>& deformationFields,
+                                        vector<thrust::device_vector<float4>>& deformationFieldCudaVecs);
+/* *************************************************************** */
 void GetJacobianMatrix(const nifti_image *deformationField,
                        const float4 *deformationFieldCuda,
                        float *jacobianMatricesCuda);
