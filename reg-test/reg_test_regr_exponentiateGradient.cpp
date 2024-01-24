@@ -1,19 +1,19 @@
 #include "reg_test_common.h"
-#include "CudaDefContent.h"
+#include "CudaF3dContent.h"
 
 /**
- *  Resample gradient regression test to ensure the CPU and CUDA versions yield the same output
+ *  Exponentiate gradient regression test to ensure the CPU and CUDA versions yield the same output
 **/
 
-class ResampleGradientTest {
+class ExponentiateGradientTest {
 protected:
-    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage>;
+    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, NiftiImage, NiftiImage>;
     using TestCase = std::tuple<std::string, NiftiImage, NiftiImage>;
 
     inline static vector<TestCase> testCases;
 
 public:
-    ResampleGradientTest() {
+    ExponentiateGradientTest() {
         if (!testCases.empty())
             return;
 
@@ -26,24 +26,38 @@ public:
         NiftiImage reference2d({ dimSize, dimSize }, NIFTI_TYPE_FLOAT32);
         NiftiImage reference3d({ dimSize, dimSize, dimSize }, NIFTI_TYPE_FLOAT32);
 
-        // Create deformation fields and fill them with random values
+        // Create deformation fields
         NiftiImage deformationField2d = CreateDeformationField(reference2d);
         NiftiImage deformationField3d = CreateDeformationField(reference3d);
-        auto deformationField2dPtr = deformationField2d.data();
-        auto deformationField3dPtr = deformationField3d.data();
-        for (size_t i = 0; i < deformationField2d.nVoxels(); i++)
-            deformationField2dPtr[i] = distr(gen);
-        for (size_t i = 0; i < deformationField3d.nVoxels(); i++)
-            deformationField3dPtr[i] = distr(gen);
+
+        // Create control point grids and fill them with random values
+        NiftiImage controlPointGrid2d = CreateControlPointGrid(reference2d);
+        NiftiImage controlPointGridBw2d = CreateControlPointGrid(reference2d);
+        NiftiImage controlPointGrid3d = CreateControlPointGrid(reference3d);
+        NiftiImage controlPointGridBw3d = CreateControlPointGrid(reference3d);
+        controlPointGridBw2d->intent_p1 = SPLINE_VEL_GRID;
+        controlPointGridBw3d->intent_p1 = SPLINE_VEL_GRID;
+        auto cpp2dPtr = controlPointGrid2d.data();
+        auto cppBw2dPtr = controlPointGridBw2d.data();
+        auto cpp3dPtr = controlPointGrid3d.data();
+        auto cppBw3dPtr = controlPointGridBw3d.data();
+        for (auto i = 0; i < controlPointGrid2d.nVoxels(); i++) {
+            cpp2dPtr[i] = distr(gen);
+            cppBw2dPtr[i] = distr(gen);
+        }
+        for (auto i = 0; i < controlPointGrid3d.nVoxels(); i++) {
+            cpp3dPtr[i] = distr(gen);
+            cppBw3dPtr[i] = distr(gen);
+        }
 
         // Create voxel-based measure gradients and fill them with random values
         NiftiImage voxelBasedGrad2d(deformationField2d, NiftiImage::Copy::ImageInfoAndAllocData);
         NiftiImage voxelBasedGrad3d(deformationField3d, NiftiImage::Copy::ImageInfoAndAllocData);
         auto voxelBasedGrad2dPtr = voxelBasedGrad2d.data();
         auto voxelBasedGrad3dPtr = voxelBasedGrad3d.data();
-        for (size_t i = 0; i < voxelBasedGrad2d.nVoxels(); i++)
+        for (auto i = 0; i < voxelBasedGrad2d.nVoxels(); i++)
             voxelBasedGrad2dPtr[i] = distr(gen);
-        for (size_t i = 0; i < voxelBasedGrad3d.nVoxels(); i++)
+        for (auto i = 0; i < voxelBasedGrad3d.nVoxels(); i++)
             voxelBasedGrad3dPtr[i] = distr(gen);
 
         // Fill the matrices with random values
@@ -66,12 +80,16 @@ public:
             "2D",
             std::move(reference2d),
             std::move(deformationField2d),
+            std::move(controlPointGrid2d),
+            std::move(controlPointGridBw2d),
             std::move(voxelBasedGrad2d)
         ));
         testData.emplace_back(TestData(
             "3D",
             std::move(reference3d),
             std::move(deformationField3d),
+            std::move(controlPointGrid3d),
+            std::move(controlPointGridBw3d),
             std::move(voxelBasedGrad3d)
         ));
 
@@ -81,15 +99,20 @@ public:
 
         for (auto&& testData : testData) {
             // Get the test data
-            auto&& [testName, reference, defField, voxelBasedGrad] = testData;
+            auto&& [testName, reference, defField, controlPointGrid, controlPointGridBw, voxelBasedGrad] = testData;
 
             // Create images
             NiftiImage referenceCpu(reference), referenceCuda(reference);
+            NiftiImage referenceBwCpu(reference), referenceBwCuda(reference);
             NiftiImage defFieldCpu(defField), defFieldCuda(defField);
+            NiftiImage cppCpu(controlPointGrid), cppCuda(controlPointGrid);
+            NiftiImage cppBwCpu(controlPointGridBw), cppBwCuda(controlPointGridBw);
 
             // Create the contents
-            unique_ptr<DefContent> contentCpu{ new DefContent(referenceCpu, referenceCpu) };
-            unique_ptr<DefContent> contentCuda{ new CudaDefContent(referenceCuda, referenceCuda) };
+            unique_ptr<F3dContent> contentCpu{ new F3dContent(referenceCpu, referenceCpu, cppCpu) };
+            unique_ptr<F3dContent> contentCuda{ new CudaF3dContent(referenceCuda, referenceCuda, cppCuda) };
+            unique_ptr<F3dContent> contentBwCpu{ new F3dContent(referenceBwCpu, referenceBwCpu, cppBwCpu) };
+            unique_ptr<F3dContent> contentBwCuda{ new CudaF3dContent(referenceBwCuda, referenceBwCuda, cppBwCuda) };
 
             // Set the deformation fields
             contentCpu->SetDeformationField(defFieldCpu.disown());
@@ -120,20 +143,24 @@ public:
             unique_ptr<Compute> computeCuda{ platformCuda.CreateCompute(*contentCuda) };
 
             // Resample gradient
-            NiftiImage warpedCpu = computeCpu->ResampleGradient(1, -2.f);
-            NiftiImage warpedCuda = computeCuda->ResampleGradient(1, -2.f);
+            computeCpu->ExponentiateGradient(*contentBwCpu);
+            computeCuda->ExponentiateGradient(*contentBwCuda);
+
+            // Get the results
+            NiftiImage voxelGradCpu(contentCpu->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
+            NiftiImage voxelGradCuda(contentCuda->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
 
             // Save for testing
-            testCases.push_back({ testName, std::move(warpedCpu), std::move(warpedCuda) });
+            testCases.push_back({ testName, std::move(voxelGradCpu), std::move(voxelGradCuda) });
         }
     }
 };
 
-TEST_CASE_METHOD(ResampleGradientTest, "Regression Resample Gradient", "[regression]") {
+TEST_CASE_METHOD(ExponentiateGradientTest, "Regression Exponentiate Gradient", "[regression]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
-        auto&& [sectionName, warpedCpu, warpedCuda] = testCase;
+        auto&& [sectionName, voxelGradCpu, voxelGradCuda] = testCase;
 
         SECTION(sectionName) {
             NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
@@ -142,17 +169,17 @@ TEST_CASE_METHOD(ResampleGradientTest, "Regression Resample Gradient", "[regress
             NR_COUT << std::fixed << std::setprecision(10);
 
             // Check the results
-            const auto warpedCpuPtr = warpedCpu.data();
-            const auto warpedCudaPtr = warpedCuda.data();
-            for (size_t i = 0; i < warpedCpu.nVoxels(); i++) {
-                const float warpedCpuVal = warpedCpuPtr[i];
-                const float warpedCudaVal = warpedCudaPtr[i];
-                const float diff = abs(warpedCpuVal - warpedCudaVal);
+            const auto voxelGradCpuPtr = voxelGradCpu.data();
+            const auto voxelGradCudaPtr = voxelGradCuda.data();
+            for (size_t i = 0; i < voxelGradCpu.nVoxels(); i++) {
+                const float voxelGradCpuVal = voxelGradCpuPtr[i];
+                const float voxelGradCudaVal = voxelGradCudaPtr[i];
+                const float diff = abs(voxelGradCpuVal - voxelGradCudaVal);
                 if (diff > 0) {
                     NR_COUT << "[i]=" << i;
                     NR_COUT << " | diff=" << diff;
-                    NR_COUT << " | CPU=" << warpedCpuVal;
-                    NR_COUT << " | CUDA=" << warpedCudaVal << std::endl;
+                    NR_COUT << " | CPU=" << voxelGradCpuVal;
+                    NR_COUT << " | CUDA=" << voxelGradCudaVal << std::endl;
                 }
                 REQUIRE(diff == 0);
             }
