@@ -5,6 +5,7 @@
 #include "CudaNormaliseGradient.hpp"
 #include "CudaResampling.hpp"
 #include "CudaOptimiser.hpp"
+#include "_reg_globalTransformation_gpu.h"
 
 /* *************************************************************** */
 void CudaCompute::ResampleImage(int interpolation, float paddingValue) {
@@ -287,11 +288,55 @@ void CudaCompute::ConvolveVoxelBasedMeasureGradient(float weight) {
 }
 /* *************************************************************** */
 void CudaCompute::ExponentiateGradient(Content& conBwIn) {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
-    Compute::ExponentiateGradient(conBwIn);
-    // Transfer the data back to the CUDA device
-    dynamic_cast<CudaDefContent&>(con).UpdateVoxelBasedMeasureGradient();
+    CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
+    CudaF3dContent& conBw = dynamic_cast<CudaF3dContent&>(conBwIn);
+    nifti_image *deformationField = con.Content::GetDeformationField();
+    nifti_image *voxelBasedMeasureGradient = con.DefContent::GetVoxelBasedMeasureGradient();
+    float4 *voxelBasedMeasureGradientCuda = con.GetVoxelBasedMeasureGradientCuda();
+    nifti_image *controlPointGridBw = conBw.F3dContent::GetControlPointGrid();
+    float4 *controlPointGridBwCuda = conBw.GetControlPointGridCuda();
+    mat44 *affineTransformationBw = conBw.Content::GetTransformationMatrix();
+    const int compNum = std::abs(static_cast<int>(controlPointGridBw->intent_p2)); // The number of composition
+
+    /* Allocate a temporary gradient image to store the backward gradient */
+    const size_t voxelGradNumber = NiftiImage::calcVoxelNumber(voxelBasedMeasureGradient, 3);
+    NiftiImage warped(voxelBasedMeasureGradient, NiftiImage::Copy::ImageInfo);
+    thrust::device_vector<float4> warpedCudaVec(voxelGradNumber);
+
+    // Create all deformation field images needed for resampling
+    const size_t defFieldNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
+    vector<NiftiImage> defFields(compNum + 1, NiftiImage(deformationField, NiftiImage::Copy::ImageInfo));
+    vector<thrust::device_vector<float4>> defFieldCudaVecs(compNum + 1, thrust::device_vector<float4>(defFieldNumber));
+
+    // Generate all intermediate deformation fields
+    Cuda::GetIntermediateDefFieldFromVelGrid(controlPointGridBw, controlPointGridBwCuda, defFields, defFieldCudaVecs);
+
+    // Remove the affine component
+    NiftiImage affineDisp;
+    thrust::device_vector<float4> affineDispCudaVec;
+    if (affineTransformationBw) {
+        affineDisp = NiftiImage(deformationField, NiftiImage::Copy::ImageInfo);
+        affineDispCudaVec.resize(defFieldNumber);
+        reg_affine_getDeformationField_gpu(affineTransformationBw, affineDisp, affineDispCudaVec.data().get());
+        Cuda::GetDisplacementFromDeformation(affineDisp, affineDispCudaVec.data().get());
+    }
+
+    auto resampleGradient = voxelBasedMeasureGradient->nz > 1 ? Cuda::ResampleGradient<true> : Cuda::ResampleGradient<false>;
+    for (int i = 0; i < compNum; i++) {
+        if (affineTransformationBw)
+            Cuda::SubtractImages(defFields[i], defFieldCudaVecs[i].data().get(), affineDispCudaVec.data().get());
+        resampleGradient(voxelBasedMeasureGradient, voxelBasedMeasureGradientCuda,    // Floating
+                         warped, warpedCudaVec.data().get(),  // Output
+                         defFields[i], defFieldCudaVecs[i].data().get(),
+                         con.GetReferenceMaskCuda(),
+                         con.GetActiveVoxelNumber(),
+                         1,   // Interpolation type - linear
+                         0);  // Padding value
+        Cuda::AddImages(voxelBasedMeasureGradient, voxelBasedMeasureGradientCuda, warpedCudaVec.data().get());
+    }
+
+    // Normalise the forward gradient
+    Cuda::MultiplyValue(voxelGradNumber, voxelBasedMeasureGradientCuda, 1.f / powf(2.f, static_cast<float>(compNum)));
 }
 /* *************************************************************** */
 Cuda::UniquePtr<float4> CudaCompute::ScaleGradient(const float4 *transGradCuda, const size_t voxelNumber, const float scale) {
