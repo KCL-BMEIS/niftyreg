@@ -1,11 +1,11 @@
 #include "CudaCompute.h"
 #include "CudaF3dContent.h"
+#include "CudaGlobalTransformation.hpp"
 #include "CudaKernelConvolution.hpp"
 #include "CudaLocalTransformation.hpp"
 #include "CudaNormaliseGradient.hpp"
 #include "CudaResampling.hpp"
 #include "CudaOptimiser.hpp"
-#include "_reg_globalTransformation_gpu.h"
 
 /* *************************************************************** */
 void CudaCompute::ResampleImage(int interpolation, float paddingValue) {
@@ -317,7 +317,7 @@ void CudaCompute::ExponentiateGradient(Content& conBwIn) {
     if (affineTransformationBw) {
         affineDisp = NiftiImage(deformationField, NiftiImage::Copy::ImageInfo);
         affineDispCudaVec.resize(defFieldNumber);
-        reg_affine_getDeformationField_gpu(affineTransformationBw, affineDisp, affineDispCudaVec.data().get());
+        Cuda::GetAffineDeformationField(affineTransformationBw, affineDisp, affineDispCudaVec.data().get());
         Cuda::GetDisplacementFromDeformation(affineDisp, affineDispCudaVec.data().get());
     }
 

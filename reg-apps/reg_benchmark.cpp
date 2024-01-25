@@ -255,9 +255,9 @@ int main(int argc, char **argv)
          time(&start);
          for(int i=0; i<maxIt; ++i)
          {
-            reg_affine_getDeformationField_gpu(affineTransformation,
-                                               targetImage,
-                                               &deformationFieldImageArray_d);
+            Cuda::GetAffineDeformationField(affineTransformation,
+                                            targetImage,
+                                            &deformationFieldImageArray_d);
          }
          time(&end);
          gpuTime=(end-start);

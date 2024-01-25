@@ -12,7 +12,7 @@
 
 #include "CudaLocalTransformation.hpp"
 #include "CudaLocalTransformationKernels.cu"
-#include "_reg_globalTransformation_gpu.h"
+#include "CudaGlobalTransformation.hpp"
 #include "_reg_splineBasis.h"
 
 /* *************************************************************** */
@@ -669,8 +669,8 @@ void GetDeformationFieldFromFlowField(nifti_image *flowField,
             // Create a field that contains the affine component only
             affineOnly = NiftiImage(deformationField, NiftiImage::Copy::ImageInfo);
             affineOnlyCudaVec.resize(voxelNumber);
-            reg_affine_getDeformationField_gpu(reinterpret_cast<mat44*>(flowField->ext_list[0].edata),
-                                               affineOnly, affineOnlyCudaVec.data().get());
+            Cuda::GetAffineDeformationField(reinterpret_cast<mat44*>(flowField->ext_list[0].edata),
+                                            affineOnly, affineOnlyCudaVec.data().get());
             SubtractImages(flowField, flowFieldCuda, affineOnlyCudaVec.data().get());
         }
     } else GetDisplacementFromDeformation(flowField, flowFieldCuda);
@@ -728,8 +728,8 @@ void GetDeformationFieldFromFlowField(nifti_image *flowField,
     deformationField->intent_p2 = 0;
     // If required an affine component is composed
     if (flowField->num_ext > 1)
-        reg_affine_getDeformationField_gpu(reinterpret_cast<mat44*>(flowField->ext_list[1].edata),
-                                           deformationField, deformationFieldCuda, true);
+        Cuda::GetAffineDeformationField<true>(reinterpret_cast<mat44*>(flowField->ext_list[1].edata),
+                                              deformationField, deformationFieldCuda);
 }
 /* *************************************************************** */
 void GetDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
@@ -816,8 +816,8 @@ void GetIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
             // Create a field that contains the affine component only
             affineOnly = NiftiImage(deformationFields[0], NiftiImage::Copy::ImageInfo);
             affineOnlyCudaVec.resize(voxelNumber);
-            reg_affine_getDeformationField_gpu(reinterpret_cast<mat44*>(flowField->ext_list[0].edata),
-                                               affineOnly, affineOnlyCudaVec.data().get());
+            Cuda::GetAffineDeformationField(reinterpret_cast<mat44*>(flowField->ext_list[0].edata),
+                                            affineOnly, affineOnlyCudaVec.data().get());
             SubtractImages(flowField, flowFieldCuda, affineOnlyCudaVec.data().get());
         }
     } else GetDisplacementFromDeformation(flowField, flowFieldCuda);
@@ -856,8 +856,8 @@ void GetIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
     // If required an affine component is composed
     if (velocityFieldGrid->num_ext > 1) {
         for (int i = 0; i <= squaringNumber; i++)
-            reg_affine_getDeformationField_gpu(reinterpret_cast<mat44*>(velocityFieldGrid->ext_list[1].edata),
-                                               deformationFields[i], deformationFieldCudaVecs[i].data().get(), true);
+            Cuda::GetAffineDeformationField<true>(reinterpret_cast<mat44*>(velocityFieldGrid->ext_list[1].edata),
+                                                  deformationFields[i], deformationFieldCudaVecs[i].data().get());
     }
 }
 /* *************************************************************** */

@@ -14,7 +14,6 @@
 namespace NiftyReg {
 /* *************************************************************** */
 struct BlockSize {
-    unsigned reg_affine_getDeformationField;
     unsigned GetApproxJacobianValues2d;
     unsigned GetApproxJacobianValues3d;
     unsigned GetJacobianValues2d;
@@ -35,7 +34,6 @@ struct BlockSize {
 /* *************************************************************** */
 struct BlockSize100: public BlockSize {
     BlockSize100() {
-        reg_affine_getDeformationField = 512; // 16 reg - 24 smem
         GetApproxJacobianValues2d = 384; // 17 reg - 104 smem - 36 cmem
         GetApproxJacobianValues3d = 256; // 27 reg - 356 smem - 108 cmem
         GetJacobianValues2d = 256; // 29 reg - 32 smem - 16 cmem - 32 lmem
@@ -58,7 +56,6 @@ struct BlockSize100: public BlockSize {
 /* *************************************************************** */
 struct BlockSize300: public BlockSize {
     BlockSize300() {
-        reg_affine_getDeformationField = 1024; // 23 reg
         GetApproxJacobianValues2d = 768; // 34 reg
         GetApproxJacobianValues3d = 640; // 46 reg
         GetJacobianValues2d = 768; // 34 reg
