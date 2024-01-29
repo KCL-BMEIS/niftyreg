@@ -19,7 +19,7 @@ namespace NiftyReg::Cuda {
 /* *************************************************************** */
 template<bool compose=false>
 void GetAffineDeformationField(const mat44 *affineMatrix,
-                               const nifti_image *targetImage,
+                               const nifti_image *deformationField,
                                float4 *deformationFieldCuda);
 /* *************************************************************** */
 } // namespace NiftyReg::Cuda

@@ -430,3 +430,12 @@ NiftiImage CudaCompute::ResampleGradient(int interpolation, float padding) {
     return NiftiImage(con.GetWarpedGradient(), NiftiImage::Copy::Image);
 }
 /* *************************************************************** */
+void CudaCompute::GetAffineDeformationField(bool compose) {
+    CudaContent& con = dynamic_cast<CudaContent&>(this->con);
+    auto getAffineDeformationField = compose ? Cuda::GetAffineDeformationField<true> :
+                                               Cuda::GetAffineDeformationField<false>;
+    getAffineDeformationField(con.Content::GetTransformationMatrix(),
+                              con.Content::GetDeformationField(),
+                              con.GetDeformationFieldCuda());
+}
+/* *************************************************************** */

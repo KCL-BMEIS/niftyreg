@@ -179,7 +179,30 @@ public:
                 NiftiImage resDefField(aladinContent->GetDeformationField(), NiftiImage::Copy::Image);
 
                 // Save for testing
-                testCases.push_back({ testName + " - Aladin", std::move(resDefField), std::move(expRes) });
+                testCases.push_back({ testName + " - Aladin", std::move(resDefField), expRes });
+
+                // Do the calculation also for Compute using Content
+                // Skip OpenCL as it is not supported
+                if (platform->GetPlatformType() == PlatformType::OpenCl)
+                    continue;
+
+                // Create the content
+                unique_ptr<ContentCreator> contentCreator{ platform->CreateContentCreator() };
+                unique_ptr<Content> content{ contentCreator->Create(reference, reference, nullptr, &transMat, sizeof(float)) };
+
+                // Set the deformation field if composition is required
+                if (defField)
+                    content->SetDeformationField(NiftiImage(defField).disown());
+
+                // Do the calculation
+                unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
+                compute->GetAffineDeformationField(defField);
+
+                // Get the result
+                resDefField = NiftiImage(content->GetDeformationField(), NiftiImage::Copy::Image);
+
+                // Save for testing
+                testCases.push_back({ testName, std::move(resDefField), std::move(expRes) });
             }
         }
     }

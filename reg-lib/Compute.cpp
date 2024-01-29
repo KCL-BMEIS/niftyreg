@@ -421,3 +421,10 @@ NiftiImage Compute::ResampleGradient(int interpolation, float padding) {
     return warpedImage;
 }
 /* *************************************************************** */
+void Compute::GetAffineDeformationField(bool compose) {
+    reg_affine_getDeformationField(con.GetTransformationMatrix(),
+                                   con.GetDeformationField(),
+                                   compose,
+                                   con.GetReferenceMask());
+}
+/* *************************************************************** */

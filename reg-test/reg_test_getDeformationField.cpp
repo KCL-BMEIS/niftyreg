@@ -24,10 +24,6 @@ public:
         if (!testCases.empty())
             return;
 
-        // Create a random number generator
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<float> distr(0, 1);
-
         // Create reference images
         constexpr NiftiImage::dim_t size = 5;
         NiftiImage reference2d({ size, size }, NIFTI_TYPE_FLOAT32);

@@ -30,6 +30,7 @@ public:
     virtual void UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ) override;
     virtual void BchUpdate(float scale, int bchUpdateValue) override;
     virtual void SymmetriseVelocityFields(Content& conBw) override;
+    virtual void GetAffineDeformationField(bool compose) override;
 
 #ifndef NR_TESTING
 protected:

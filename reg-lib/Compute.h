@@ -31,6 +31,7 @@ public:
     virtual void UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ);
     virtual void BchUpdate(float scale, int bchUpdateValue);
     virtual void SymmetriseVelocityFields(Content& conBw);
+    virtual void GetAffineDeformationField(bool compose);
 
 protected:
     Content& con;
