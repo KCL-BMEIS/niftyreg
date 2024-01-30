@@ -149,13 +149,11 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
     const double adjustedWeight = timePointWeight / validVoxelNumber;
 
     // Calculate the SSD gradient
-    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), activeVoxelNumber, [=]__device__(const int index) {
-        const int voxel = maskCuda[index];
-
-        const double refValue = tex1Dfetch<float>(referenceTexture, voxel);
+    thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
+        const double refValue = tex1Dfetch<float>(referenceTexture, index);
         if (refValue != refValue) return;
 
-        const double warValue = tex1Dfetch<float>(warpedTexture, voxel);
+        const double warValue = tex1Dfetch<float>(warpedTexture, index);
         if (warValue != warValue) return;
 
         const float4 spaGradientValue = tex1Dfetch<float4>(spatialGradTexture, index);
@@ -164,14 +162,14 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
             spaGradientValue.z != spaGradientValue.z)
             return;
 
-        const double weight = localWeightSimTexture ? tex1Dfetch<float>(localWeightSimTexture, voxel) : 1.f;
+        const double weight = localWeightSimTexture ? tex1Dfetch<float>(localWeightSimTexture, index) : 1.f;
         const double common = -2.0 * (refValue - warValue) * adjustedWeight * weight;
 
-        float4 ssdGradientValue = ssdGradientCuda[voxel];
+        float4 ssdGradientValue = ssdGradientCuda[index];
         ssdGradientValue.x += common * spaGradientValue.x;
         ssdGradientValue.y += common * spaGradientValue.y;
         ssdGradientValue.z += common * spaGradientValue.z;
-        ssdGradientCuda[voxel] = ssdGradientValue;
+        ssdGradientCuda[index] = ssdGradientValue;
     });
 }
 /* *************************************************************** */

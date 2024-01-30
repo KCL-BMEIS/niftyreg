@@ -173,7 +173,6 @@ __device__ float4 GetSlidedValues(int x, int y, int z,
 template<bool composition, bool bspline>
 __device__ void GetDeformationField3d(float4 *deformationField,
                                       cudaTextureObject_t controlPointTexture,
-                                      cudaTextureObject_t maskTexture,
                                       const mat44 *realToVoxel,
                                       const int3 referenceImageDim,
                                       const int3 controlPointImageDim,
@@ -207,8 +206,7 @@ __device__ void GetDeformationField3d(float4 *deformationField,
         nodePre = { Floor(xVoxel), Floor(yVoxel), Floor(zVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--), zVoxel - float(nodePre.z--) };
     } else { // starting deformation field is blank - !composition
-        const int voxel = tex1Dfetch<int>(maskTexture, index);
-        const auto [x, y, z] = reg_indexToDims_cuda<true>(voxel, referenceImageDim);
+        const auto [x, y, z] = reg_indexToDims_cuda<true>(index, referenceImageDim);
         // The "nearest previous" node is determined [0,0,0]
         const float xVoxel = float(x) / controlPointVoxelSpacing.x;
         const float yVoxel = float(y) / controlPointVoxelSpacing.y;
@@ -245,7 +243,6 @@ __device__ void GetDeformationField3d(float4 *deformationField,
 template<bool composition, bool bspline>
 __device__ void GetDeformationField2d(float4 *deformationField,
                                       cudaTextureObject_t controlPointTexture,
-                                      cudaTextureObject_t maskTexture,
                                       const mat44 *realToVoxel,
                                       const int3 referenceImageDim,
                                       const int3 controlPointImageDim,
@@ -272,8 +269,7 @@ __device__ void GetDeformationField2d(float4 *deformationField,
         nodePre = { Floor(xVoxel), Floor(yVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--) };
     } else { // starting deformation field is blank - !composition
-        const int voxel = tex1Dfetch<int>(maskTexture, index);
-        const auto [x, y, z] = reg_indexToDims_cuda<false>(voxel, referenceImageDim);
+        const auto [x, y, z] = reg_indexToDims_cuda<false>(index, referenceImageDim);
         // The "nearest previous" node is determined [0,0,0]
         const float xVoxel = float(x) / controlPointVoxelSpacing.x;
         const float yVoxel = float(y) / controlPointVoxelSpacing.y;

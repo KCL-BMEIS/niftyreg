@@ -65,6 +65,7 @@ void ResampleImage(const nifti_image *floatingImage,
                    const float *floatingImageCuda,
                    const nifti_image *warpedImage,
                    float *warpedImageCuda,
+                   const nifti_image *deformationField,
                    const float4 *deformationFieldCuda,
                    const int *maskCuda,
                    const size_t activeVoxelNumber,
@@ -73,25 +74,23 @@ void ResampleImage(const nifti_image *floatingImage,
     if (interpolation != 1)
         NR_FATAL_ERROR("Only linear interpolation is supported on the GPU");
 
-    const size_t voxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
+    const size_t floVoxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
+    const size_t defVoxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
     const int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
-    auto deformationFieldTexturePtr = Cuda::CreateTextureObject(deformationFieldCuda, activeVoxelNumber, cudaChannelFormatKindFloat, 4);
-    auto maskTexturePtr = Cuda::CreateTextureObject(maskCuda, activeVoxelNumber, cudaChannelFormatKindSigned, 1);
+    auto deformationFieldTexturePtr = Cuda::CreateTextureObject(deformationFieldCuda, defVoxelNumber, cudaChannelFormatKindFloat, 4);
     auto deformationFieldTexture = *deformationFieldTexturePtr;
-    auto maskTexture = *maskTexturePtr;
     // Get the real to voxel matrix
     const mat44& floatingMatrix = floatingImage->sform_code > 0 ? floatingImage->sto_ijk : floatingImage->qto_ijk;
 
     for (int t = 0; t < warpedImage->nt * warpedImage->nu; t++) {
         NR_DEBUG((is3d ? "3" : "2") << "D resampling of volume number " << t);
-        auto curWarpedCuda = warpedImageCuda + t * voxelNumber;
-        auto floatingTexturePtr = Cuda::CreateTextureObject(floatingImageCuda + t * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
+        auto curWarpedCuda = warpedImageCuda + t * floVoxelNumber;
+        auto floatingTexturePtr = Cuda::CreateTextureObject(floatingImageCuda + t * floVoxelNumber, floVoxelNumber, cudaChannelFormatKindFloat, 1);
         auto floatingTexture = *floatingTexturePtr;
-        thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), activeVoxelNumber, [
-            curWarpedCuda, floatingTexture, deformationFieldTexture, maskTexture, floatingMatrix, floatingDim, paddingValue
+        thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [
+            curWarpedCuda, floatingTexture, deformationFieldTexture, floatingMatrix, floatingDim, paddingValue
         ]__device__(const int index) {
             // Get the real world deformation in the floating space
-            const int voxel = tex1Dfetch<int>(maskTexture, index);
             const float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, index);
 
             // Get the voxel-based deformation in the floating space and compute the linear interpolation
@@ -141,36 +140,37 @@ void ResampleImage(const nifti_image *floatingImage,
                 }
             }
 
-            curWarpedCuda[voxel] = intensity;
+            curWarpedCuda[index] = intensity;
         });
     }
 }
-template void ResampleImage<false>(const nifti_image*, const float*, const nifti_image*, float*, const float4*, const int*, const size_t, const int, const float);
-template void ResampleImage<true>(const nifti_image*, const float*, const nifti_image*, float*, const float4*, const int*, const size_t, const int, const float);
+template void ResampleImage<false>(const nifti_image*, const float*, const nifti_image*, float*, const nifti_image*, const float4*, const int*, const size_t, const int, const float);
+template void ResampleImage<true>(const nifti_image*, const float*, const nifti_image*, float*, const nifti_image*, const float4*, const int*, const size_t, const int, const float);
 /* *************************************************************** */
 template<bool is3d>
 void GetImageGradient(const nifti_image *floatingImage,
                       const float *floatingImageCuda,
                       const float4 *deformationFieldCuda,
+                      const nifti_image *warpedGradient,
                       float4 *warpedGradientCuda,
-                      const size_t activeVoxelNumber,
                       const int interpolation,
                       float paddingValue,
                       const int activeTimePoint) {
     if (interpolation != 1)
         NR_FATAL_ERROR("Only linear interpolation is supported on the GPU");
 
-    const size_t voxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
+    const size_t refVoxelNumber = NiftiImage::calcVoxelNumber(warpedGradient, 3);
+    const size_t floVoxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
     const int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
     if (paddingValue != paddingValue) paddingValue = 0;
-    auto floatingTexturePtr = Cuda::CreateTextureObject(floatingImageCuda + activeTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
-    auto deformationFieldTexturePtr = Cuda::CreateTextureObject(deformationFieldCuda, activeVoxelNumber, cudaChannelFormatKindFloat, 4);
+    auto floatingTexturePtr = Cuda::CreateTextureObject(floatingImageCuda + activeTimePoint * floVoxelNumber, floVoxelNumber, cudaChannelFormatKindFloat, 1);
+    auto deformationFieldTexturePtr = Cuda::CreateTextureObject(deformationFieldCuda, refVoxelNumber, cudaChannelFormatKindFloat, 4);
     auto floatingTexture = *floatingTexturePtr;
     auto deformationFieldTexture = *deformationFieldTexturePtr;
     // Get the real to voxel matrix
     const mat44& floatingMatrix = floatingImage->sform_code > 0 ? floatingImage->sto_ijk : floatingImage->qto_ijk;
 
-    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), activeVoxelNumber, [
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), refVoxelNumber, [
         warpedGradientCuda, floatingTexture, deformationFieldTexture, floatingMatrix, floatingDim, paddingValue
     ]__device__(const int index) {
             // Get the real world deformation in the floating space
@@ -230,8 +230,8 @@ void GetImageGradient(const nifti_image *floatingImage,
             warpedGradientCuda[index] = gradientValue;
     });
 }
-template void GetImageGradient<false>(const nifti_image*, const float*, const float4*, float4*, const size_t, const int, float, const int);
-template void GetImageGradient<true>(const nifti_image*, const float*, const float4*, float4*, const size_t, const int, float, const int);
+template void GetImageGradient<false>(const nifti_image*, const float*, const float4*, const nifti_image*, float4*, const int, float, const int);
+template void GetImageGradient<true>(const nifti_image*, const float*, const float4*, const nifti_image*, float4*, const int, float, const int);
 /* *************************************************************** */
 template<bool is3d>
 static float3 GetRealImageSpacing(const nifti_image *image) {
@@ -273,15 +273,14 @@ void ResampleGradient(const nifti_image *floatingImage,
     if (interpolation != 1)
         NR_FATAL_ERROR("Only linear interpolation is supported");
 
-    const size_t voxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
+    const size_t floVoxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
+    const size_t defVoxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
     const int3 floatingDims = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
     const int3 defFieldDims = make_int3(deformationField->nx, deformationField->ny, deformationField->nz);
-    auto floatingTexturePtr = Cuda::CreateTextureObject(floatingImageCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
-    auto deformationFieldTexturePtr = Cuda::CreateTextureObject(deformationFieldCuda, activeVoxelNumber, cudaChannelFormatKindFloat, 4);
-    auto maskTexturePtr = Cuda::CreateTextureObject(maskCuda, activeVoxelNumber, cudaChannelFormatKindSigned, 1);
+    auto floatingTexturePtr = Cuda::CreateTextureObject(floatingImageCuda, floVoxelNumber, cudaChannelFormatKindFloat, 4);
+    auto deformationFieldTexturePtr = Cuda::CreateTextureObject(deformationFieldCuda, defVoxelNumber, cudaChannelFormatKindFloat, 4);
     auto floatingTexture = *floatingTexturePtr;
     auto deformationFieldTexture = *deformationFieldTexturePtr;
-    auto maskTexture = *maskTexturePtr;
 
     // Get the real to voxel matrix
     const mat44& floatingMatrix = floatingImage->sform_code != 0 ? floatingImage->sto_ijk : floatingImage->qto_ijk;
@@ -293,11 +292,10 @@ void ResampleGradient(const nifti_image *floatingImage,
     // Reorientation matrix is assessed in order to remove the rigid component
     const mat33 reorient = nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->sto_xyz)));
 
-    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), activeVoxelNumber, [
-        warpedImageCuda, floatingTexture, deformationFieldTexture, maskTexture, floatingMatrix, floatingDims, defFieldDims, realSpacing, reorient, paddingValue
+    thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [
+        warpedImageCuda, floatingTexture, deformationFieldTexture, floatingMatrix, floatingDims, defFieldDims, realSpacing, reorient, paddingValue
     ]__device__(const int index) {
         // Get the real world deformation in the floating space
-        const int voxel = tex1Dfetch<int>(maskTexture, index);
         const float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, index);
 
         // Get the voxel-based deformation in the floating space and compute the linear interpolation
@@ -346,7 +344,7 @@ void ResampleGradient(const nifti_image *floatingImage,
         // Compute the Jacobian matrix
         constexpr float basis[] = { 1.f, 0.f };
         constexpr float deriv[] = { -1.f, 1.f };
-        auto [x, y, z] = reg_indexToDims_cuda<is3d>(voxel, defFieldDims);
+        auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, defFieldDims);
         mat33 jacMat{};
         for (char c = 0; c < (is3d ? 2 : 1); c++) {
             if constexpr (is3d) {
@@ -432,7 +430,7 @@ void ResampleGradient(const nifti_image *floatingImage,
             warpedValue.x = jacMat.m[0][0] * gradientValue.x + jacMat.m[0][1] * gradientValue.y;
             warpedValue.y = jacMat.m[1][0] * gradientValue.x + jacMat.m[1][1] * gradientValue.y;
         }
-        warpedImageCuda[voxel] = warpedValue;
+        warpedImageCuda[index] = warpedValue;
     });
 }
 template void ResampleGradient<false>(const nifti_image*, const float4*, const nifti_image*, float4*, const nifti_image*, const float4*, const int*, const size_t, const int, const float);

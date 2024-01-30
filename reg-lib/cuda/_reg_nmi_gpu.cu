@@ -320,11 +320,10 @@ void reg_getVoxelBasedNmiGradient_gpu(const nifti_image *referenceImage,
     auto warpedImageTexture = *warpedImageTexturePtr;
     auto warpedGradientTexture = *warpedGradientTexturePtr;
 
-    thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), activeVoxelNumber, [=]__device__(const unsigned index) {
-        const int voxel = maskCuda[index];
-        const float refValue = tex1Dfetch<float>(referenceImageTexture, voxel);
+    thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
+        const float refValue = tex1Dfetch<float>(referenceImageTexture, index);
         if (refValue != refValue) return;
-        const float warValue = tex1Dfetch<float>(warpedImageTexture, voxel);
+        const float warValue = tex1Dfetch<float>(warpedImageTexture, index);
         if (warValue != warValue) return;
         const float4 warGradValue = tex1Dfetch<float4>(warpedGradientTexture, index);
 
@@ -367,12 +366,12 @@ void reg_getVoxelBasedNmiGradient_gpu(const nifti_image *referenceImage,
         }
 
         // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
-        float4 gradValue = voxelBasedGradientCuda[voxel];
+        float4 gradValue = voxelBasedGradientCuda[index];
         gradValue.x += static_cast<float>(timePointWeight * (refDeriv.x + warDeriv.x - nmi * jointDeriv.x) / normalisedJE);
         gradValue.y += static_cast<float>(timePointWeight * (refDeriv.y + warDeriv.y - nmi * jointDeriv.y) / normalisedJE);
         if constexpr (is3d)
             gradValue.z += static_cast<float>(timePointWeight * (refDeriv.z + warDeriv.z - nmi * jointDeriv.z) / normalisedJE);
-        voxelBasedGradientCuda[voxel] = gradValue;
+        voxelBasedGradientCuda[index] = gradValue;
     });
 }
 /* *************************************************************** */

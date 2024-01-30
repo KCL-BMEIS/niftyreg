@@ -16,6 +16,7 @@ void CudaCompute::ResampleImage(int interpolation, float paddingValue) {
                   con.GetFloatingCuda(),
                   con.Content::GetWarped(),
                   con.GetWarpedCuda(),
+                  con.Content::GetDeformationField(),
                   con.GetDeformationFieldCuda(),
                   con.GetReferenceMaskCuda(),
                   con.GetActiveVoxelNumber(),
@@ -186,8 +187,8 @@ void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int ac
     getImageGradient(floating,
                      con.GetFloatingCuda(),
                      con.GetDeformationFieldCuda(),
+                     con.DefContent::GetWarpedGradient(),
                      con.GetWarpedGradientCuda(),
-                     con.GetActiveVoxelNumber(),
                      interpolation,
                      paddingValue,
                      activeTimePoint);

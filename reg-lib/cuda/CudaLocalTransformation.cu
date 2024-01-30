@@ -33,9 +33,7 @@ void GetDeformationField(const nifti_image *controlPointImage,
                                                         controlPointImage->dz / referenceImage->dz);
 
     auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
-    auto maskTexturePtr = Cuda::CreateTextureObject(maskCuda, activeVoxelNumber, cudaChannelFormatKindSigned, 1);
     auto controlPointTexture = *controlPointTexturePtr;
-    auto maskTexture = *maskTexturePtr;
 
     // Get the reference matrix if composition is required
     thrust::device_vector<mat44> realToVoxelCudaVec;
@@ -46,13 +44,13 @@ void GetDeformationField(const nifti_image *controlPointImage,
     const auto realToVoxelCuda = composition ? realToVoxelCudaVec.data().get() : nullptr;
 
     if (referenceImage->nz > 1) {
-        thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), activeVoxelNumber, [=]__device__(const int index) {
-            GetDeformationField3d<composition, bspline>(deformationFieldCuda, controlPointTexture, maskTexture, realToVoxelCuda,
+        thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
+            GetDeformationField3d<composition, bspline>(deformationFieldCuda, controlPointTexture, realToVoxelCuda,
                                                         referenceImageDim, controlPointImageDim, controlPointVoxelSpacing, index);
         });
     } else {
-        thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), activeVoxelNumber, [=]__device__(const int index) {
-            GetDeformationField2d<composition, bspline>(deformationFieldCuda, controlPointTexture, maskTexture, realToVoxelCuda,
+        thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
+            GetDeformationField2d<composition, bspline>(deformationFieldCuda, controlPointTexture, realToVoxelCuda,
                                                         referenceImageDim, controlPointImageDim, controlPointVoxelSpacing, index);
         });
     }
