@@ -3,10 +3,8 @@
 # NiftyReg
 
 [![License](https://img.shields.io/github/license/KCL-BMEIS/NiftyReg)](https://github.com/KCL-BMEIS/niftyreg/blob/master/LICENSE.txt)
-[![GitHub Actions](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/linux.yml/badge.svg?branch=master)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/linux.yml?query=branch%3Amaster)
-[![GitHub Actions](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/macos.yml?query=branch%3Amaster)
-[![GitHub Actions](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/windows.yml/badge.svg?branch=master)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/windows.yml?query=branch%3Amaster)
-[![Coverage Status](https://coveralls.io/repos/github/KCL-BMEIS/niftyreg/badge.svg?branch=master)](https://coveralls.io/github/KCL-BMEIS/niftyreg?branch=master)
+[![Tests](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/tests.yml/badge.svg)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/tests.yml)
+[![Coverage Status](https://codecov.io/gh/KCL-BMEIS/niftyreg/graph/badge.svg?token=lgLtkSC7kX)](https://codecov.io/gh/KCL-BMEIS/niftyreg)
 
 
 

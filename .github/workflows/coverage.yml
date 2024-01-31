@@ -44,7 +44,9 @@ jobs:
         run: make coverage
         working-directory: build
 
-      - name: Upload coverage to Coveralls
-        uses: coverallsapp/github-action@v1
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
         with:
-          path-to-lcov: build/coverage.info
+          directory: build
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
