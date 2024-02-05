@@ -1,9 +1,4 @@
-cmake_minimum_required(VERSION 3.2.2)
-if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^3\\.2\\.2$")
-  mark_as_advanced(FORCE CMAKE_BACKWARDS_COMPATIBILITY)
-else("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^3\\.2\\.2$")
-  mark_as_advanced(CLEAR CMAKE_BACKWARDS_COMPATIBILITY)
-endif("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^3\\.2\\.2$")
+cmake_minimum_required(VERSION 3.18)
 #-----------------------------------------------------------------------------
 project(NiftyReg)
 #-----------------------------------------------------------------------------
@@ -157,19 +152,19 @@ if(USE_OPENCL)
 endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
-  # Check if the CUDA drivers are available
-  find_package(CUDA REQUIRED)
-  mark_as_advanced(CUDA_SDK_ROOT_DIR)
+  # Check if the CUDA Toolkit is available
+  enable_language(CUDA)
+  find_package(CUDAToolkit)
   option(CUDA_FAST_MATH "To use the fast math flag" OFF)
   mark_as_advanced(CUDA_FAST_MATH)
-  if(NOT CUDA_FOUND)
+  if(NOT CMAKE_CUDA_COMPILER)
     set(USE_CUDA OFF CACHE BOOL "To use the CUDA platform" FORCE)
     message(SEND_ERROR "CUDA not found. The USE_CUDA flag is turned OFF")
-  else(NOT CUDA_FOUND)
+  else(NOT CMAKE_CUDA_COMPILER)
     include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
-    include_directories(${CUDA_INCLUDE_DIRS})
+    include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
     add_definitions(-DUSE_CUDA)
-  endif(NOT CUDA_FOUND)
+  endif(NOT CMAKE_CUDA_COMPILER)
 endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 if(USE_SSE)
