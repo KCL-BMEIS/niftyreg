@@ -67,6 +67,7 @@ option(USE_CUDA "To use the CUDA platform" OFF)
 option(USE_OPENCL "To use the OpenCL platform" OFF)
 option(USE_OPENMP "To use openMP for multi-CPU processing" ON)
 option(USE_SSE "To enable SSE computation in some case" ON)
+option(CHECK_GPU "To check if a GPU is available" ON)
 #-----------------------------------------------------------------------------
 option(USE_NRRD "To use the NRRD file format" OFF)
 mark_as_advanced(USE_NRRD)

@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-latest, windows-2019]
+        platform: [cpu, cuda]
+        include:
+          - platform: cpu
+            platform-name: ""
+            use-cuda: "OFF"
+            use-opencl: "OFF"
+          - platform: cuda
+            platform-name: "-CUDA"
+            use-cuda: "ON"
+            use-opencl: "ON"
+          - os: ubuntu-20.04    # For Ubuntu only
+            os-name: "Ubuntu"
+          - os: macos-latest    # For macOS only
+            os-name: "macOS"
+            use-opencl: "ON"
+          - sudo: "sudo"        # For Ubuntu and macOS
+            c-compiler: "gcc"
+            cxx-compiler: "g++"
+          - os: windows-2019    # For Windows only
+            os-name: "Windows"
+            sudo: ""
+            c-compiler: "cl.exe"
+            cxx-compiler: "cl.exe"
+          - build_type: "Release" # For all platforms
+        exclude:
+          - os: macos-latest
+            platform: cuda
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v1.3
+        if: matrix.os-name == 'Windows'
+
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.14
+        id: cuda-toolkit
+        if: matrix.platform == 'cuda'
+        with:
+          cuda: '11.8.0'
+          method: network
+          use-github-cache: false
+          use-local-cache: false
+
+      - name: Configure NiftyReg
+        shell: bash
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
+                -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                -DBUILD_ALL_DEP=ON \
+                -DCHECK_GPU=OFF \
+                -DUSE_CUDA=${{ matrix.use-cuda }} \
+                -DUSE_OPENCL=${{ matrix.use-opencl }} \
+                -DUSE_SSE=ON \
+                -DUSE_OPENMP=ON \
+                -DBUILD_TESTING=OFF \
+                ..
+
+      - name: Build NiftyReg
+        shell: bash
+        run: cmake --build build --config ${{ matrix.build_type }}
+
+      - name: Prepare the variables
+        id: vars
+        shell: bash
+        run: echo "output-folder=NiftyReg-${{ matrix.os-name }}${{ matrix.platform-name }}-${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Prepare the package
+        if: matrix.os-name == 'Windows'
+        shell: powershell
+        working-directory: build/reg-apps/Release
+        run: |
+          New-Item -ItemType Directory -Force -Path ${{ steps.vars.outputs.output-folder }}
+          Move-Item -Path *.exe -Destination ${{ steps.vars.outputs.output-folder }}
+          Compress-Archive -Path ${{ steps.vars.outputs.output-folder }} -DestinationPath ../../NiftyReg.zip
+
+      - name: Prepare the package
+        if: matrix.os-name == 'Ubuntu'
+        working-directory: build/reg-apps
+        run: |
+          mkdir -p ${{ steps.vars.outputs.output-folder }}
+          find . -maxdepth 1 -type f -executable -exec mv {} ${{ steps.vars.outputs.output-folder }} \;
+          zip -r ../NiftyReg.zip ${{ steps.vars.outputs.output-folder }}
+
+      - name: Prepare the package
+        if: matrix.os-name == 'macOS'
+        working-directory: build/reg-apps
+        run: |
+          mkdir -p ${{ steps.vars.outputs.output-folder }}
+          find . -maxdepth 1 -type f -perm +111 -exec mv {} ${{ steps.vars.outputs.output-folder }} \;
+          zip -r ../NiftyReg.zip ${{ steps.vars.outputs.output-folder }}
+
+      - name: Upload the package
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ github.token }}
+          file: build/NiftyReg.zip
+          asset_name: ${{ steps.vars.outputs.output-folder }}.zip
