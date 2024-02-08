@@ -15,9 +15,6 @@ jobs:
             c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
           - build_type: "Debug" # For all platforms
-            use_cuda: "OFF"
-            use_opencl: "OFF"
-            use_openmp: "ON"
 
     steps:
       - uses: actions/checkout@v3
@@ -27,34 +24,34 @@ jobs:
         if: matrix.os == 'windows-latest'
 
       - name: Install Catch2
+        shell: bash
         run:  |
           git clone https://github.com/catchorg/Catch2.git
           cd Catch2
           cmake -Bbuild -H. -DBUILD_TESTING=OFF
           ${{ matrix.sudo }} cmake --build build/ --target install --config ${{ matrix.build_type }}
-        shell: bash
 
       - name: Configure NiftyReg
+        shell: bash
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} \
-                -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
+          cmake -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
+                -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -DBUILD_ALL_DEP=ON \
-                -DUSE_CUDA=${{ matrix.use_cuda }} \
-                -DUSE_OPENCL=${{ matrix.use_opencl }} \
+                -DUSE_CUDA=OFF \
+                -DUSE_OPENCL=OFF \
                 -DUSE_SSE=ON \
-                -DUSE_OPENMP=${{ matrix.use_openmp }} \
+                -DUSE_OPENMP=ON \
                 -DBUILD_TESTING=ON \
                 ..
-        shell: bash
 
       - name: Build NiftyReg
-        run: cmake --build build --config ${{ matrix.build_type }}
         shell: bash
+        run: cmake --build build --config ${{ matrix.build_type }}
 
       - name: Run tests
-        run: ctest -V
-        working-directory: build
         shell: bash
+        working-directory: build
+        run: ctest -V
