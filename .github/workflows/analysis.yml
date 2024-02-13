@@ -1,0 +1,61 @@
+name: Code Analysis
+on: [push, pull_request]
+jobs:
+  Code-Analysis:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Cppcheck
+        run: |
+          sudo apt-get update && sudo apt-get install libpcre3-dev
+          git clone https://github.com/danmar/cppcheck.git
+          cd cppcheck
+          git checkout 2.13.x
+          # Disable color output of cppcheck
+          sed -i 's/ *bool *gDisableColors *= *false;/bool gDisableColors = true;/' lib/color.cpp
+          sudo make -j4 MATCHCOMPILER=yes FILESDIR=/usr/share/cppcheck HAVE_RULES=yes CXXFLAGS="-O2 -DNDEBUG -Wall -Wno-sign-compare -Wno-unused-function" install
+
+      - name: Install Python dependencies
+        run: pip3 install --upgrade setuptools urllib3 chardet pyOpenSSL pygithub
+
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.14
+        with:
+          method: network
+          use-github-cache: false
+          use-local-cache: false
+
+      - name: Configure NiftyReg
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_C_COMPILER=gcc \
+                -DCMAKE_CXX_COMPILER=g++ \
+                -DCMAKE_BUILD_TYPE=Debug \
+                -DBUILD_ALL_DEP=ON \
+                -DCHECK_GPU=OFF \
+                -DUSE_CUDA=ON \
+                -DUSE_OPENCL=ON \
+                -DUSE_SSE=ON \
+                -DUSE_OPENMP=ON \
+                -DBUILD_TESTING=OFF \
+                -DWITH_COVERAGE=OFF \
+                -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+                ..
+
+      - name: Code Analysis
+        env:
+            COMMENT_TITLE: Code Analysis Results
+            GITHUB_TOKEN: ${{ github.token }}
+            PR_NUMBER: ${{ github.event.pull_request.number }}
+            REPO: ${{ github.repository }}
+            REPORT_PR_CHANGES_ONLY: false
+        run: |
+            analysis_file="analysis.txt"
+            cppcheck_params="--enable=warning --check-level=exhaustive --suppress=internalError --suppress=internalAstError"
+            cppcheck -j4 $cppcheck_params --project=$(pwd)/build/compile_commands.json --output-file=$analysis_file
+            # Since cppcheck does not support OpenCL and CUDA, we need to check these files separately
+            find $(pwd)/reg-lib/cl/. -name "*.cl" -print0 | while IFS= read -r -d '' file; do cppcheck "$file" $cppcheck_params --language=c++ 2>> $analysis_file; done
+            find $(pwd)/reg-lib/cuda/. -name "*.cu" -print0 | while IFS= read -r -d '' file; do cppcheck "$file" $cppcheck_params --language=c++ 2>> $analysis_file; done
+            python3 .github/code_analysis.py -cc $analysis_file -o ${{ github.event_name == 'push' }} -fk false
