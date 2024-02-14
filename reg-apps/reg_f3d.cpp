@@ -301,7 +301,8 @@ int main(int argc, char **argv) {
         if (strcmp(argv[i], "-ref") == 0 || strcmp(argv[i], "-target") == 0 ||
             strcmp(argv[i], "--ref") == 0 || strcmp(argv[i], "-flo") == 0 ||
             strcmp(argv[i], "-source") == 0 || strcmp(argv[i], "--flo") == 0 ||
-            strcmp(argv[i], "-platf") == 0 || strcmp(argv[i], "--platf") == 0) {
+            strcmp(argv[i], "-platf") == 0 || strcmp(argv[i], "--platf") == 0 ||
+            strcmp(argv[i], "-gpuid") == 0 || strcmp(argv[i], "--gpuid") == 0) {
             // argument has already been parsed
             ++i;
         } else if (strcmp(argv[i], "-voff") == 0) {
