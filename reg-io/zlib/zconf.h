@@ -475,7 +475,7 @@ typedef uLong FAR uLongf;
 #  endif
 #endif
 #ifndef Z_HAVE_UNISTD_H
-#  if defined(_LARGEFILE64_SOURCE) && !defined(_WIN32)
+#  ifndef _WIN32
 #    define Z_HAVE_UNISTD_H
 #  endif
 #endif
