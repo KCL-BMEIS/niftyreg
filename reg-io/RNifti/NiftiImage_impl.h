@@ -75,7 +75,9 @@ inline int stringToDatatype (const std::string &datatype)
         datatypeCodes["uint32"] = DT_UINT32;
         datatypeCodes["int64"] = DT_INT64;
         datatypeCodes["uint64"] = DT_UINT64;
+        datatypeCodes["cfloat"] = DT_COMPLEX64;
         datatypeCodes["complex64"] = DT_COMPLEX64;
+        datatypeCodes["cdouble"] = DT_COMPLEX128;
         datatypeCodes["complex128"] = DT_COMPLEX128;
         datatypeCodes["complex"] = DT_COMPLEX128;
         datatypeCodes["rgb24"] = DT_RGB24;
@@ -91,9 +93,7 @@ inline int stringToDatatype (const std::string &datatype)
 
     if (datatypeCodes.count(lowerCaseDatatype) == 0)
     {
-        std::ostringstream message;
-        message << "Datatype \"" << datatype << "\" is not valid";
-        Rf_warning(message.str().c_str());
+        Rf_warning("Datatype \"%s\" is not valid", datatype.c_str());
         return DT_NONE;
     }
     else
@@ -233,16 +233,10 @@ inline void copyIfPresent (const Rcpp::List &list, const std::set<std::string> n
         const Rcpp::RObject object = list[name];
         const int length = Rf_length(object);
         if (length == 0)
-        {
-            std::ostringstream message;
-            message << "Field \"" << name << "\" is empty and will be ignored";
-            Rf_warning(message.str().c_str());
-        }
+            Rf_warning("Field \"%s\" is empty and will be ignored", name.c_str());
         else if (length > 1)
         {
-            std::ostringstream message;
-            message << "Field \"" << name << "\" has " << length << "elements, but only the first will be used";
-            Rf_warning(message.str().c_str());
+            Rf_warning("Field \"%s\" has %d elements, but only the first will be used", name.c_str(), length);
             target = Rcpp::as< std::vector<TargetType> >(object)[0];
         }
         else
@@ -624,7 +618,7 @@ inline NiftiImage::Xform::Vector4 NiftiImage::Xform::quaternion () const
 #elif RNIFTI_NIFTILIB_VERSION == 2
     nifti_dmat44_to_quatern(mat, &q[1], &q[2], &q[3], nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
 #endif
-    q[0] = 1 - (q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
+    q[0] = 1.0 - (q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
     return q;
 }
 
@@ -788,6 +782,13 @@ inline void NiftiImage::copy (const nifti_image *source, const Copy copy)
     }
 }
 
+inline void NiftiImage::copy (const NiftiImage &source)
+{
+    const nifti_image *sourceStruct = source;
+
+    copy(sourceStruct, Copy::Image);
+}
+
 inline void NiftiImage::copy (const Block &source)
 {
     const nifti_image *sourceStruct = source.image;
@@ -942,7 +943,12 @@ inline void NiftiImage::initFromMriImage (const Rcpp::RObject &object, const boo
         data = call.eval();
     }
 
-    const int datatype = (Rf_isNull(data) ? DT_INT32 : sexpTypeToNiftiType(data.sexp_type()));
+    int datatype = (Rf_isNull(data) ? DT_INT32 : sexpTypeToNiftiType(data.sexp_type()));
+    if (data.inherits("rgbArray"))
+    {
+        const int channels = (data.hasAttribute("channels") ? data.attr("channels") : 3);
+        datatype = (channels == 4 ? DT_RGBA32 : DT_RGB24);
+    }
 
     dim_t dims[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
     const std::vector<dim_t> dimVector = mriImage.field("imageDims");
@@ -975,8 +981,15 @@ inline void NiftiImage::initFromMriImage (const Rcpp::RObject &object, const boo
         // NB: nifti_get_volsize() will not be right here if there were tags
         const size_t dataSize = nVoxels * image->nbyper;
         this->image->data = calloc(1, dataSize);
-        if (datatype == DT_INT32)
+        if (datatype == DT_INT32 || datatype == DT_RGBA32)
             memcpy(this->image->data, INTEGER(data), dataSize);
+        else if (datatype == DT_RGB24)
+        {
+            NiftiImageData newData(image);
+            std::copy(INTEGER(data), INTEGER(data)+nVoxels, newData.begin());
+        }
+        else if (datatype == DT_COMPLEX128)
+            memcpy(this->image->data, COMPLEX(data), dataSize);
         else
             memcpy(this->image->data, REAL(data), dataSize);
     }
@@ -1273,7 +1286,7 @@ inline NiftiImage::NiftiImage (const std::string &path, const std::vector<dim_t>
     nifti_brick_list brickList;
 
 #if RNIFTI_NIFTILIB_VERSION == 1
-    acquire(nifti_image_read_bricks(internal::stringToPath(path), static_cast<int>(volumes.size()), &volumes.front(), &brickList));
+    acquire(nifti_image_read_bricks(internal::stringToPath(path), volumes.size(), &volumes.front(), &brickList));
 
     if (image == nullptr)
         throw std::runtime_error("Failed to read image from path " + path);
@@ -1311,7 +1324,7 @@ inline void NiftiImage::updatePixDim (const std::vector<pixdim_t> &pixDims)
     for (int i=1; i<8; i++)
         image->pixdim[i] = 0.0;
 
-    const int pixdimLength = static_cast<int>(pixDims.size());
+    const int pixdimLength = pixDims.size();
     for (int i=0; i<std::min(pixdimLength,nDims); i++)
         image->pixdim[i+1] = pixDims[i];
 
@@ -1465,7 +1478,7 @@ inline NiftiImage & NiftiImage::reorient (const int icode, const int jcode, cons
         for (int j=0; j<3; j++)
             result(i,j) = nativeMat(i,0) * transform(0,j) + nativeMat(i,1) * transform(1,j) + nativeMat(i,2) * transform(2,j);
 
-        result(3,i) = (i == 3 ? 1.f : 0.f);
+        result(3,i) = (i == 3 ? 1.0 : 0.0);
     }
 
     // Extract the mapping between dimensions and the signs
@@ -1497,7 +1510,7 @@ inline NiftiImage & NiftiImage::reorient (const int icode, const int jcode, cons
 
         // Flip and/or permute the origin
         if (signs[j] < 0)
-            offset[j] = image->dim[locs[j]+1] - origin[locs[j]] - 1;
+            offset[j] = image->dim[locs[j]+1] - origin[locs[j]] - 1.0;
         else
             offset[j] = origin[locs[j]];
     }
@@ -1565,7 +1578,7 @@ inline NiftiImage & NiftiImage::reorient (const int icode, const int jcode, cons
             for (size_t i=0; i<supervolSize; i++, ++it)
             {
                 for (int j=0; j<3; j++)
-                    oldVec[j] = *(it + j*supervolSize);
+                    oldVec[j] = double(*(it + j*supervolSize));
                 const Xform::Vector3 newVec = transform * oldVec;
                 for (int j=0; j<3; j++)
                     *(it + j*supervolSize) = newVec[j];
@@ -1746,7 +1759,7 @@ inline const NiftiImage::Xform NiftiImage::xform (const bool preferQuaternion) c
         // No qform or sform so use pixdim (NB: other software may assume differently)
         Xform::Matrix matrix;
         for (int i=0; i<3; i++)
-            matrix(i,i) = (image->pixdim[i+1]==0 ? 1 : image->pixdim[i+1]);
+            matrix(i,i) = (image->pixdim[i+1]==0.0 ? 1.0 : image->pixdim[i+1]);
         matrix(3,3) = 1.0;
         return Xform(matrix);
     }
@@ -1874,36 +1887,43 @@ inline NiftiImage & NiftiImage::copyData (const nifti_image *other)
     return *this;
 }
 
-inline std::pair<std::string,std::string> NiftiImage::toFile (const std::string fileName, const int datatype, const int filetype) const
+inline std::pair<std::string,std::string> NiftiImage::toFile (const std::string &fileName, const int datatype, const int filetype, const int compression) const
 {
     const bool changingDatatype = (datatype != DT_NONE && !this->isNull() && datatype != image->datatype);
 
     // Copy the source image only if the datatype will be changed
-    NiftiImage imageToWrite(*this, Copy(changingDatatype));
+    NiftiImage imageToWrite(*this, changingDatatype ? Copy::Image : Copy::None);
 
     if (changingDatatype)
         imageToWrite.changeDatatype(datatype, true);
     if (filetype >= 0 && filetype <= NIFTI_MAX_FTYPE)
         imageToWrite->nifti_type = filetype;
 
+    const char *path = internal::stringToPath(fileName);
+
+    // If we're writing a gzipped file (only), append a compression level to the mode string
+    std::string mode = "wb";
+    if (nifti_is_gzfile(path) && compression >= 0 && compression <= 9)
+        mode += std::to_string(compression);
+
 #if RNIFTI_NIFTILIB_VERSION == 1
-    const int status = nifti_set_filenames(imageToWrite, internal::stringToPath(fileName), false, true);
+    const int status = nifti_set_filenames(imageToWrite, path, false, true);
     if (status != 0)
         throw std::runtime_error("Failed to set filenames for NIfTI object");
-    nifti_image_write(imageToWrite);
+    nifti_image_write_hdr_img(imageToWrite, 1, mode.c_str());
 #elif RNIFTI_NIFTILIB_VERSION == 2
-    const int status = nifti2_set_filenames(imageToWrite, internal::stringToPath(fileName), false, true);
+    const int status = nifti2_set_filenames(imageToWrite, path, false, true);
     if (status != 0)
         throw std::runtime_error("Failed to set filenames for NIfTI object");
-    nifti2_image_write(imageToWrite);
+    nifti2_image_write_hdr_img(imageToWrite, 1, mode.c_str());
 #endif
 
     return std::pair<std::string,std::string>(std::string(imageToWrite->fname), std::string(imageToWrite->iname));
 }
 
-inline std::pair<std::string,std::string> NiftiImage::toFile (const std::string fileName, const std::string &datatype, const int filetype) const
+inline std::pair<std::string,std::string> NiftiImage::toFile (const std::string &fileName, const std::string &datatype, const int filetype, const int compression) const
 {
-    return toFile(fileName, internal::stringToDatatype(datatype), filetype);
+    return toFile(fileName, internal::stringToDatatype(datatype), filetype, compression);
 }
 
 #ifdef USING_R

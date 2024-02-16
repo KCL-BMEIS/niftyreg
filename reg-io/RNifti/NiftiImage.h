@@ -134,7 +134,7 @@ protected:
         double getDouble (void *ptr) const { return static_cast<double>(getNative(ptr).real()); }
         int getInt (void *ptr) const { return static_cast<int>(getNative(ptr).real()); }
         void setComplex (void *ptr, const complex128_t value) const { setNative(ptr, std::complex<ElementType>(value)); }
-        void setDouble (void *ptr, const double value) const { setNative(ptr, std::complex<ElementType>(static_cast<ElementType>(value), 0.0)); }
+        void setDouble (void *ptr, const double value) const { setNative(ptr, std::complex<ElementType>(value, 0.0)); }
         void setInt (void *ptr, const int value) const { setNative(ptr, std::complex<ElementType>(static_cast<ElementType>(value), 0.0)); }
         void minmax (void *ptr, const size_t length, double *min, double *max) const;
     };
@@ -329,7 +329,9 @@ public:
         operator Rcomplex() const
         {
             const complex128_t value = parent.handler->getComplex(ptr);
-            Rcomplex rValue = { value.real(), value.imag() };
+            Rcomplex rValue;
+            rValue.r = value.real();
+            rValue.i = value.imag();
             if (parent.isScaled())
             {
                 rValue.r = rValue.r * parent.slope + parent.intercept;
@@ -351,7 +353,9 @@ public:
     class Iterator
     {
     private:
-        const NiftiImageData &parent;
+        // NB: "parent" cannot be a reference because reference members are immutable. That renders
+        // the class non-copy-assignable, which is a requirement for iterators (issue #31)
+        const NiftiImageData *parent;
         void *ptr;
         size_t step;
 
@@ -365,16 +369,17 @@ public:
 
         /**
          * Primary constructor
-         * @param parent A reference to the parent object
-         * @param ptr An opaque pointer to the memory underpinning the iterator
+         * @param parent A pointer to the parent object
+         * @param ptr An opaque pointer to the memory underpinning the iterator. The default,
+         *   \c nullptr, corresponds to the start of the parent object's data blob.
          * @param step The increment between elements within the blob, in bytes. If zero, the
          *   default, the width associated with the stored datatype will be used.
         **/
-        Iterator (const NiftiImageData &parent, void *ptr = nullptr, const size_t step = 0)
+        Iterator (const NiftiImageData *parent = nullptr, void *ptr = nullptr, const size_t step = 0)
             : parent(parent)
         {
-            this->ptr = (ptr == nullptr ? parent.dataPtr : ptr);
-            this->step = (step == 0 ? parent.handler->size() : step);
+            this->ptr = (ptr == nullptr ? parent->dataPtr : ptr);
+            this->step = (step == 0 ? parent->handler->size() : step);
         }
 
         /**
@@ -387,7 +392,7 @@ public:
         /**
          * Reset the iterator to point to the start of the data blob
         **/
-        void reset () { ptr = parent.dataPtr; }
+        void reset () { ptr = parent->dataPtr; }
 
         Iterator & operator++ () { ptr = static_cast<char*>(ptr) + step; return *this; }
         Iterator operator++ (int) { Iterator copy(*this); ptr = static_cast<char*>(ptr) + step; return copy; }
@@ -415,10 +420,10 @@ public:
         bool operator> (const Iterator &other) const { return (ptr > other.ptr); }
         bool operator< (const Iterator &other) const { return (ptr < other.ptr); }
 
-        const Element operator* () const { return Element(parent, ptr); }
-        Element operator* () { return Element(parent, ptr); }
-        const Element operator[] (const size_t i) const { return Element(parent, static_cast<char*>(ptr) + (i * step)); }
-        Element operator[] (const size_t i) { return Element(parent, static_cast<char*>(ptr) + (i * step)); }
+        const Element operator* () const { return Element(*parent, ptr); }
+        Element operator* () { return Element(*parent, ptr); }
+        const Element operator[] (const size_t i) const { return Element(*parent, static_cast<char*>(ptr) + (i * step)); }
+        Element operator[] (const size_t i) { return Element(*parent, static_cast<char*>(ptr) + (i * step)); }
     };
 
     /**
@@ -479,8 +484,7 @@ public:
         else
         {
             calibrateFrom(source);
-            for (size_t i = 0; i < source.length(); ++i)
-                (*this)[i] = source[i];
+            std::copy(source.begin(), source.end(), this->begin());
         }
     }
 
@@ -591,16 +595,16 @@ public:
     NiftiImageData & disown ()       { this->owner = false; return *this; }
 
     /** Obtain a constant iterator corresponding to the start of the blob */
-    const Iterator begin () const { return Iterator(*this); }
+    const Iterator begin () const { return Iterator(this); }
 
     /** Obtain a constant iterator corresponding to the end of the blob */
-    const Iterator end () const { return Iterator(*this, static_cast<char*>(dataPtr) + totalBytes()); }
+    const Iterator end () const { return Iterator(this, static_cast<char*>(dataPtr) + totalBytes()); }
 
     /** Obtain a mutable iterator corresponding to the start of the blob */
-    Iterator begin () { return Iterator(*this); }
+    Iterator begin () { return Iterator(this); }
 
     /** Obtain a mutable iterator corresponding to the end of the blob */
-    Iterator end () { return Iterator(*this, static_cast<char*>(dataPtr) + totalBytes()); }
+    Iterator end () { return Iterator(this, static_cast<char*>(dataPtr) + totalBytes()); }
 
     /**
      * Indexing operator, returning a constant element
@@ -1306,6 +1310,16 @@ protected:
     void acquire (nifti_image * const image);
 
     /**
+     * Acquire the same pointer as another \c NiftiImage, incrementing the shared reference count
+     * @param source A reference to a \c NiftiImage
+    **/
+    void acquire (const NiftiImage &source)
+    {
+        refCount = source.refCount;
+        acquire(source.image);
+    }
+
+    /**
      * Release the currently wrapped pointer, if it is not \c nullptr, decrementing the reference
      * count and releasing memory if there are no remaining references to the pointer
     **/
@@ -1317,6 +1331,12 @@ protected:
      * @param copy A \ref Copy value indicating which part of the image data to copy
     **/
     void copy (const nifti_image *source, const Copy copy);
+
+    /**
+     * Copy the contents of another \c NiftiImage to create a new image, acquiring a new pointer
+     * @param source A reference to a \c NiftiImage
+    **/
+    void copy (const NiftiImage &source);
 
     /**
      * Copy the contents of a \ref Block to create a new image, acquiring a new pointer
@@ -1408,8 +1428,7 @@ public:
         if (copy != Copy::None) {
             this->copy(source, copy);
         } else {
-            refCount = source.refCount;
-            acquire(source.image);
+            acquire(source);
         }
         RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from NiftiImage)", RNIFTI_NIFTILIB_VERSION, this->image);
     }
@@ -1450,6 +1469,34 @@ public:
             acquire(image);
         RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from pointer)", RNIFTI_NIFTILIB_VERSION, this->image);
     }
+
+    /**
+     * Initialise using a NIfTI-1 header
+     * @param header A reference to a NIfTI-1 header struct
+    **/
+    NiftiImage (const nifti_1_header &header)
+        : NiftiImage()
+    {
+#if RNIFTI_NIFTILIB_VERSION == 1
+        acquire(nifti_convert_nhdr2nim(header, nullptr));
+#elif RNIFTI_NIFTILIB_VERSION == 2
+        acquire(nifti_convert_n1hdr2nim(header, nullptr));
+#endif
+        RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from header)", RNIFTI_NIFTILIB_VERSION, this->image);
+    }
+
+#if RNIFTI_NIFTILIB_VERSION == 2
+    /**
+     * Initialise using a NIfTI-2 header
+     * @param header A reference to a NIfTI-2 header struct
+    **/
+    NiftiImage (const nifti_2_header &header)
+        : NiftiImage()
+    {
+        acquire(nifti_convert_n2hdr2nim(header, nullptr));
+        RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from header)", RNIFTI_NIFTILIB_VERSION, this->image);
+    }
+#endif
 
     /**
      * Initialise from basic metadata, allocating and zeroing pixel data
@@ -2021,11 +2068,12 @@ public:
      * @param dimCount Number of dimensions to consider
      * @return The number of voxels in the image
      */
-    static size_t calcVoxelNumber(const nifti_image *image, const int dimCount) {
+    static size_t calcVoxelNumber (const nifti_image *image, const int dimCount) {
         if (image == nullptr)
             return 0;
         size_t voxelNumber = 1;
-        for (int i = 1; i <= dimCount; i++) {
+        for (int i = 1; i <= dimCount; i++)
+        {
             const size_t dim = static_cast<size_t>(std::abs(image->dim[i]));
             voxelNumber *= dim > 0 ? dim : 1;
         }
@@ -2035,7 +2083,7 @@ public:
     /**
      * Recalculate the number of voxels in the image and update the nvox field
     */
-    void recalcVoxelNumber() {
+    void recalcVoxelNumber () {
         if (image != nullptr)
             image->nvox = calcVoxelNumber(image, image->ndim);
     }
@@ -2061,7 +2109,7 @@ public:
     /**
      * Return the total size of the image data in bytes
     */
-    size_t totalBytes() const
+    size_t totalBytes () const
     {
 #if RNIFTI_NIFTILIB_VERSION == 1
         return nifti_get_volsize(image);
@@ -2120,7 +2168,7 @@ public:
      * @param A list of \ref Extension objects
      * @return Self, with the new extensions attached
     **/
-    NiftiImage & replaceExtensions (const std::list<Extension> extensions)
+    NiftiImage & replaceExtensions (const std::list<Extension> &extensions)
     {
         dropExtensions();
         for (std::list<Extension>::const_iterator it=extensions.begin(); it!=extensions.end(); ++it)
@@ -2147,7 +2195,7 @@ public:
      * Set the intent name of the image
      * @param name A string giving the new intent name
     **/
-    void setIntentName(const std::string& name) {
+    void setIntentName (const std::string &name) {
         if (image != nullptr)
         {
             constexpr size_t intentNameLength = sizeof(image->intent_name) / sizeof(*image->intent_name);
@@ -2162,9 +2210,11 @@ public:
      * @param datatype The datatype to use when writing the file
      * @param filetype The file type to create: a \c NIFTI_FTYPE constant or -1. In the latter case
      * the file name is used to determine the file type
+     * @param compression The \c zlib compression level to use, if appropriate. Valid values are
+      * between 0 and 9
      * @return A pair of strings, giving the final header and image paths in that order
     **/
-    std::pair<std::string,std::string> toFile (const std::string fileName, const int datatype = DT_NONE, const int filetype = -1) const;
+    std::pair<std::string,std::string> toFile (const std::string &fileName, const int datatype = DT_NONE, const int filetype = -1, const int compression = 6) const;
 
     /**
      * Write the image to a NIfTI-1 file
@@ -2172,9 +2222,11 @@ public:
      * @param datatype The datatype to use when writing the file, or "auto"
      * @param filetype The file type to create: a \c NIFTI_FTYPE constant or -1. In the latter case
      * the file name is used to determine the file type
+     * @param compression The \c zlib compression level to use, if appropriate. Valid values are
+     * between 0 and 9
      * @return A pair of strings, giving the final header and image paths in that order
     **/
-    std::pair<std::string,std::string> toFile (const std::string fileName, const std::string &datatype, const int filetype = -1) const;
+    std::pair<std::string,std::string> toFile (const std::string &fileName, const std::string &datatype, const int filetype = -1, const int compression = 6) const;
 
 #ifdef USING_R
 
@@ -2189,7 +2241,7 @@ public:
      * @param label A string labelling the image
      * @return An R character string with additional attributes
     **/
-    Rcpp::RObject toPointer (const std::string label) const;
+    Rcpp::RObject toPointer (const std::string &label) const;
 
     /**
      * A conditional method that calls either \ref toArray or \ref toPointer
@@ -2197,7 +2249,7 @@ public:
      * @param label A string labelling the image
      * @return An R object
     **/
-    Rcpp::RObject toArrayOrPointer (const bool internal, const std::string label) const;
+    Rcpp::RObject toArrayOrPointer (const bool internal, const std::string &label) const;
 
 #endif
 

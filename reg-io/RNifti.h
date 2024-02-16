@@ -7,7 +7,7 @@
 
 // Defined since RNifti v0.10.0, and equal to 100 * (major version) + (minor version). May not
 // change if the API does not change, and in particular never changes with patch level
-#define RNIFTI_VERSION 104
+#define RNIFTI_VERSION 106
 
 // Versions 1 and 2 of the NIfTI reference library are mutually incompatible, but RNifti does some
 // work to get them to play nicely:

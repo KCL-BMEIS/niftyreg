@@ -143,7 +143,7 @@ size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file)
     /* gzread/write take unsigned int length, so maybe read in int pieces
        (noted by M Hanke, example given by M Adler)   6 July 2010 [rickr] */
     while( remain > 0 ) {
-       n2read = (remain < ZNZ_MAX_BLOCK_SIZE) ? remain : ZNZ_MAX_BLOCK_SIZE;
+       n2read = (remain < ZNZ_MAX_BLOCK_SIZE) ? (unsigned)remain : ZNZ_MAX_BLOCK_SIZE;
        nread = gzread(file->zfptr, (void *)cbuf, n2read);
        if( nread < 0 ) return nread; /* returns -1 on error */
 
@@ -175,7 +175,7 @@ size_t znzwrite(const void* buf, size_t size, size_t nmemb, znzFile file)
 #ifdef HAVE_ZLIB
   if (file->zfptr!=NULL) {
     while( remain > 0 ) {
-       n2write = (remain < ZNZ_MAX_BLOCK_SIZE) ? remain : ZNZ_MAX_BLOCK_SIZE;
+       n2write = (remain < ZNZ_MAX_BLOCK_SIZE) ? (unsigned)remain : ZNZ_MAX_BLOCK_SIZE;
        nwritten = gzwrite(file->zfptr, (const void *)cbuf, n2write);
 
        /* gzread returns 0 on error, but in case that ever changes... */
@@ -198,11 +198,11 @@ size_t znzwrite(const void* buf, size_t size, size_t nmemb, znzFile file)
   return fwrite(buf,size,nmemb,file->nzfptr);
 }
 
-long znzseek(znzFile file, long offset, int whence)
+znz_off_t znzseek(znzFile file, znz_off_t offset, int whence)
 {
   if (file==NULL) { return 0; }
 #ifdef HAVE_ZLIB
-  if (file->zfptr!=NULL) return (long) gzseek(file->zfptr,offset,whence);
+  if (file->zfptr!=NULL) return (znz_off_t) gzseek(file->zfptr,offset,whence);
 #endif
   return fseek(file->nzfptr,offset,whence);
 }
@@ -223,11 +223,11 @@ int znzrewind(znzFile stream)
   return 0;
 }
 
-long znztell(znzFile file)
+znz_off_t znztell(znzFile file)
 {
   if (file==NULL) { return 0; }
 #ifdef HAVE_ZLIB
-  if (file->zfptr!=NULL) return (long) gztell(file->zfptr);
+  if (file->zfptr!=NULL) return (znz_off_t) gztell(file->zfptr);
 #endif
   return ftell(file->nzfptr);
 }

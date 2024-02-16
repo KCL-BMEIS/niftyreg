@@ -54,7 +54,7 @@ extern "C" {
 
       Mainly adding low-level IO and changing things to allow gzipped files
       to be read and written
-      Full backwards compatability should have been maintained
+      Full backwards compatibility should have been maintained
 
    ......................................................................
    Modified by: Rick Reynolds (SSCC/DIRP/NIMH, National Institutes of Health)
@@ -69,7 +69,7 @@ extern "C" {
 
       Converted to be based on nifti_2_header.
 
-      ** NOT BACKWARD COMPATABLE **
+      ** NOT BACKWARD COMPATIBLE **
 
       These routines will read/write both NIFTI-1 and NIFTI-2 image files,
       but modification to the _calling_ routies is necessary, since:
@@ -78,6 +78,11 @@ extern "C" {
         b. some image field types have been altered (to have larger size)
         c. some routines have been changed to apply to multiple NIFTI types
 */
+
+/********************** file identification magic ****************************/
+
+extern char nifti1_magic[4];
+extern char nifti2_magic[8];
 
 /********************** Some sample data structures **************************/
 
@@ -462,8 +467,12 @@ int64_t      nifti2_read_subregion_image(nifti_image *nim, const int64_t *start_
                                         const int64_t *region_size, void ** data);
 
 void         nifti2_image_write   ( nifti_image * nim ) ;
+int          nifti2_image_write_status( nifti_image *nim ) ;  /* 7 Jun 2022 */
+
 void         nifti2_image_write_bricks(nifti_image * nim,
                                       const nifti_brick_list * NBL);
+int          nifti2_image_write_bricks_status(nifti_image * nim,
+                                             const nifti_brick_list * NBL);
 void         nifti2_image_infodump( const nifti_image * nim ) ;
 
 void         nifti2_disp_lib_hist( int ver ) ;  /* to display library history */
@@ -635,7 +644,9 @@ int    nifti_valid_header_size(int ni_ver, int whine);
 #define nifti_read_subregion_image      nifti2_read_subregion_image
 
 #define nifti_image_write               nifti2_image_write
+#define nifti_image_write_status        nifti2_image_write_status
 #define nifti_image_write_bricks        nifti2_image_write_bricks
+#define nifti_image_write_bricks_status nifti2_image_write_bricks_status
 #define nifti_image_infodump            nifti2_image_infodump
 
 #define nifti_disp_lib_hist             nifti2_disp_lib_hist
@@ -774,7 +785,7 @@ typedef struct {
     char const * const name;           /* text string to match #define */
 } nifti_type_ele;
 
-#undef  LNI_FERR /* local nifti file error, to be compact and repetative */
+#undef  LNI_FERR /* local nifti file error, to be compact and repetitive */
 #ifdef USING_R
 #define LNI_FERR(func,msg,file)                                      \
             Rf_warning("%s: %s '%s'\n",func,msg,file)
