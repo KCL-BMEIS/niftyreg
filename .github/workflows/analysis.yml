@@ -53,7 +53,7 @@ jobs:
             REPORT_PR_CHANGES_ONLY: false
         run: |
             analysis_file="analysis.txt"
-            cppcheck_params="--enable=warning --check-level=exhaustive --inline-suppr --suppress=internalError --suppress=internalAstError"
+            cppcheck_params="--enable=warning --check-level=exhaustive --inline-suppr --suppress=internalError --suppress=internalAstError --suppress=*:*third-party/eigen3/*"
             cppcheck -j4 $cppcheck_params --project=$(pwd)/build/compile_commands.json --output-file=$analysis_file
             # Since cppcheck does not support OpenCL and CUDA, we need to check these files separately
             find $(pwd)/reg-lib/cl/. -name "*.cl" -print0 | while IFS= read -r -d '' file; do cppcheck "$file" $cppcheck_params --language=c++ 2>> $analysis_file; done
