@@ -54,7 +54,7 @@ if(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
     install(FILES ${png_hdrs} ${CMAKE_BINARY_DIR}/pnglibconf.h DESTINATION include COMPONENT Development)
 endif(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
 
-add_library(reg_png reg_png.cpp readpng.cpp)
+add_library(reg_png reg_png.cpp)
 target_link_libraries(reg_png ${PNG_LIBRARY} _reg_tools)
 install(TARGETS reg_png
         RUNTIME DESTINATION bin COMPONENT Development
