@@ -3229,12 +3229,13 @@ static int fileext_compare(const char * test_ext, const char * known_ext)
 {
    char caps[8] = "";
    size_t c,len;
+
+   /* if anything odd, use default */
+   if( !test_ext || !known_ext ) return -1;
+
    /* if equal, don't need to check case (store to avoid multiple calls) */
    const int cmp = strcmp(test_ext, known_ext);
    if( cmp == 0 ) return cmp;
-
-   /* if anything odd, use default */
-   if( !test_ext || !known_ext ) return cmp;
 
    len = strlen(known_ext);
    if( len > 7 ) return cmp;
@@ -3254,12 +3255,13 @@ static int fileext_n_compare(const char * test_ext,
 {
    char caps[8] = "";
    size_t c,len;
+
+   /* if anything odd, use default */
+   if( !test_ext || !known_ext ) return -1;
+
    /* if equal, don't need to check case (store to avoid multiple calls) */
    const int  cmp = strncmp(test_ext, known_ext, maxlen);
    if( cmp == 0 ) return cmp;
-
-   /* if anything odd, use default */
-   if( !test_ext || !known_ext ) return cmp;
 
    len = strlen(known_ext);
    if( len > maxlen ) len = maxlen;     /* ignore anything past maxlen */
@@ -6437,8 +6439,11 @@ char *nifti_image_to_ascii( const nifti_image *nim )
    snprintf( buf+strlen(buf) , bufLen-strlen(buf) , "/>\n" ) ;   /* XML-ish closer */
 
    nbuf = (int)strlen(buf) ;
-   buf  = (char *)realloc((void *)buf, nbuf+1); /* cut back to proper length */
-   if( !buf ) Rc_fprintf_stderr("** NITA: failed to realloc %d bytes\n",nbuf+1);
+   char *temp = (char *)realloc((void *)buf, nbuf+1); /* cut back to proper length */
+   if (temp)
+      buf = temp; // cppcheck-suppress memleak // false negative
+   else
+      Rc_fprintf_stderr("** NITA: failed to realloc %d bytes\n", nbuf+1);
    return buf ;
 #endif
 }
