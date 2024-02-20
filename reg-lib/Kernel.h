@@ -5,10 +5,8 @@
 
 class Kernel {
 public:
-    Kernel() {}
-    virtual ~Kernel() {}
-
-    std::string GetName() const;
+    Kernel() = default;
+    virtual ~Kernel() = default;
 
     template <class T>
     T* castTo() { return dynamic_cast<T*>(this); }

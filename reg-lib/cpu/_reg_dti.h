@@ -48,8 +48,8 @@ public:
 
 protected:
     // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ
-    unsigned dtIndicies[6];
-    float currentValue;
+    unsigned dtIndicies[6]{};
+    float currentValue = 0;
 };
 /* *************************************************************** */
 /** @brief Computes and returns the SSD between two input image

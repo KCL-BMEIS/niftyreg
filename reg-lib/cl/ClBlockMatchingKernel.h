@@ -6,8 +6,8 @@
 class ClBlockMatchingKernel: public BlockMatchingKernel {
 public:
     ClBlockMatchingKernel(Content *conIn);
-    ~ClBlockMatchingKernel();
-    void Calculate();
+    virtual ~ClBlockMatchingKernel();
+    virtual void Calculate() override;
 
 private:
     ClContextSingleton *sContext;

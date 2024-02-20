@@ -118,7 +118,7 @@ mat44 compute_average_matrices(size_t matrixNumber,
    for(size_t m=0; m<matrixNumber; ++m)
       reg_tool_ReadAffineFile(&matrices[m],inputAffName[m]);
    // Matrix to store the final result is created
-   mat44 average_matrix;
+   mat44 average_matrix{};
    // An array to store the weight given to each matrix is generated
    float *matrixWeight = (float *)malloc(matrixNumber*sizeof(float));
    int *matrixIndexSorted = (int *)malloc(matrixNumber*sizeof(int));
@@ -133,11 +133,7 @@ mat44 compute_average_matrices(size_t matrixNumber,
    if(lts_inlier<1.f && lts_inlier>0)
       iterationNumber=10;
    for(size_t it=0; it<iterationNumber; ++it){
-      double tempValue[16]= {0,0,0,0,
-                             0,0,0,0,
-                             0,0,0,0,
-                             0,0,0,0
-                            };
+      double tempValue[16]{};
       double weightSum=0;
       // The (weighted) average matrix is computed
       for(size_t m=0; m<matrixNumber; ++m)

@@ -150,15 +150,13 @@ void ClAladinContent::SetReferenceMask(int *referenceMaskIn) {
     sContext->CheckErrNum(errNum, "ClAladinContent::SetReferenceMask failed to allocate memory (maskClmem): ");
 }
 /* *************************************************************** */
-void ClAladinContent::SetWarped(nifti_image *warped) {
-    if (warped != nullptr) {
+void ClAladinContent::SetWarped(nifti_image *warpedIn) {
+    if (warpedIn->nbyper != NIFTI_TYPE_FLOAT32)
+        reg_tools_changeDatatype<float>(warpedIn);
+    if (warped != nullptr)
         clReleaseMemObject(warpedImageClmem);
-    }
-    if (warped->nbyper != NIFTI_TYPE_FLOAT32) {
-        reg_tools_changeDatatype<float>(warped);
-    }
-    AladinContent::SetWarped(warped);
-    warpedImageClmem = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, warped->nvox * sizeof(float), warped->data, &errNum);
+    AladinContent::SetWarped(warpedIn);
+    warpedImageClmem = clCreateBuffer(clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, warpedIn->nvox * sizeof(float), warpedIn->data, &errNum);
     sContext->CheckErrNum(errNum, "ClAladinContent::SetWarped failed to allocate memory (warpedImageClmem): ");
 }
 /* *************************************************************** */
@@ -222,14 +220,6 @@ cl_mem ClAladinContent::GetRefMatClmem() {
 /* *************************************************************** */
 cl_mem ClAladinContent::GetFloMatClmem() {
     return floMatClmem;
-}
-/* *************************************************************** */
-int *ClAladinContent::GetReferenceDims() {
-    return referenceDims;
-}
-/* *************************************************************** */
-int *ClAladinContent::GetFloatingDims() {
-    return floatingDims;
 }
 /* *************************************************************** */
 template<class DataType>

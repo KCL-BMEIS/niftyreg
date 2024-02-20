@@ -14,17 +14,11 @@
 #include <filesystem>
 
 /* *************************************************************** */
-void reg_hack_filename(nifti_image *image, std::string filename) {
-    filename.append("\0");
-    // Free the char arrays if already allocated
+void reg_hack_filename(nifti_image *image, const char *filename) {
     if (image->fname) free(image->fname);
     if (image->iname) free(image->iname);
-    // Allocate the char arrays
-    image->fname = (char *)malloc((filename.size() + 1) * sizeof(char));
-    image->iname = (char *)malloc((filename.size() + 1) * sizeof(char));
-    // Copy the new name in the char arrays
-    strcpy(image->fname, filename.c_str());
-    strcpy(image->iname, filename.c_str());
+    image->fname = strdup(filename);
+    image->iname = strdup(filename);
 }
 /* *************************************************************** */
 int reg_io_checkFileFormat(const std::string& filename) {

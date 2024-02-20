@@ -18,14 +18,14 @@ CudaF3dContent::CudaF3dContent(nifti_image *referenceIn,
 }
 /* *************************************************************** */
 CudaF3dContent::~CudaF3dContent() {
-    GetControlPointGrid();  // Transfer device data back to nifti
+    CudaF3dContent::GetControlPointGrid();  // Transfer device data back to nifti
     DeallocateControlPointGrid();
     DeallocateTransformationGradient();
 }
 /* *************************************************************** */
 void CudaF3dContent::AllocateControlPointGrid() {
     Cuda::Allocate(&controlPointGridCuda, controlPointGrid->dim);
-    UpdateControlPointGrid();
+    CudaF3dContent::UpdateControlPointGrid();
 }
 /* *************************************************************** */
 void CudaF3dContent::DeallocateControlPointGrid() {

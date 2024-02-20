@@ -35,8 +35,6 @@ public:
     virtual cl_mem GetMaskClmem();
     virtual cl_mem GetRefMatClmem();
     virtual cl_mem GetFloMatClmem();
-    virtual int* GetReferenceDims();
-    virtual int* GetFloatingDims();
 
     // CPU getters with data downloaded from device
     virtual _reg_blockMatchingParam* GetBlockMatchingParams() override;
@@ -64,11 +62,6 @@ private:
     cl_mem refMatClmem;
     cl_mem floMatClmem;
 
-    int referenceDims[4];
-    int floatingDims[4];
-
-    unsigned nVoxels;
-
     void DownloadImage(nifti_image *image, cl_mem memoryObject, int datatype);
     template<class T>
     void FillImageData(nifti_image *image, cl_mem memoryObject, int type);
@@ -82,8 +75,8 @@ protected:
 #endif
     // Functions for testing
     virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
-    virtual void SetWarped(nifti_image *warpedImageIn) override;
+    virtual void SetWarped(nifti_image *warpedIn) override;
     virtual void SetDeformationField(nifti_image *deformationFieldIn) override;
     virtual void SetReferenceMask(int *referenceMaskIn) override;
-    virtual void SetBlockMatchingParams(_reg_blockMatchingParam* bmp) override;
+    virtual void SetBlockMatchingParams(_reg_blockMatchingParam *bmp) override;
 };

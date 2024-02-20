@@ -6441,7 +6441,7 @@ char *nifti_image_to_ascii( const nifti_image *nim )
    nbuf = (int)strlen(buf) ;
    char *temp = (char *)realloc((void *)buf, nbuf+1); /* cut back to proper length */
    if (temp)
-      buf = temp; // cppcheck-suppress memleak // false negative
+      buf = temp; // cppcheck-suppress memleak // false positive
    else
       Rc_fprintf_stderr("** NITA: failed to realloc %d bytes\n", nbuf+1);
    return buf ;

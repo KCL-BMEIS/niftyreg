@@ -72,7 +72,7 @@ __global__ void ConvertNmiGradientFromVoxelToRealSpaceKernel(float4 *gradient, c
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < nodeNumber) {
         const float4 voxelGradient = gradient[tid];
-        float4 realGradient;
+        float4 realGradient{};
         realGradient.x = matrix.m[0][0] * voxelGradient.x + matrix.m[0][1] * voxelGradient.y + matrix.m[0][2] * voxelGradient.z;
         realGradient.y = matrix.m[1][0] * voxelGradient.x + matrix.m[1][1] * voxelGradient.y + matrix.m[1][2] * voxelGradient.z;
         realGradient.z = matrix.m[2][0] * voxelGradient.x + matrix.m[2][1] * voxelGradient.y + matrix.m[2][2] * voxelGradient.z;

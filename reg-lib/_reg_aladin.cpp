@@ -251,9 +251,9 @@ void reg_aladin<T>::InitialiseRegistration() {
             referenceCentre[0] /= referenceCount;
             referenceCentre[1] /= referenceCount;
             referenceCentre[2] /= referenceCount;
-            float refCOM[3];
+            float refCOM[3]{};
             if (this->inputReference->sform_code > 0)
-                reg_mat44_mul(&(this->inputReference->sto_xyz), referenceCentre, refCOM);
+                reg_mat44_mul(&this->inputReference->sto_xyz, referenceCentre, refCOM);
 
             float floatingCentre[3] = { 0, 0, 0 };
             float floatingCount = 0;
@@ -275,9 +275,9 @@ void reg_aladin<T>::InitialiseRegistration() {
             floatingCentre[0] /= floatingCount;
             floatingCentre[1] /= floatingCount;
             floatingCentre[2] /= floatingCount;
-            float floCOM[3];
+            float floCOM[3]{};
             if (this->inputFloating->sform_code > 0)
-                reg_mat44_mul(&(this->inputFloating->sto_xyz), floatingCentre, floCOM);
+                reg_mat44_mul(&this->inputFloating->sto_xyz, floatingCentre, floCOM);
             reg_mat44_eye(this->affineTransformation.get());
             this->affineTransformation->m[0][3] = floCOM[0] - refCOM[0];
             this->affineTransformation->m[1][3] = floCOM[1] - refCOM[1];

@@ -127,20 +127,20 @@ public:
     }
 
 protected:
-    nifti_image *referenceImage;
-    int *referenceMask;
-    nifti_image *warpedImage;
-    nifti_image *warpedGradient;
-    nifti_image *voxelBasedGradient;
-    nifti_image *localWeightSim;
+    nifti_image *referenceImage = nullptr;
+    int *referenceMask = nullptr;
+    nifti_image *warpedImage = nullptr;
+    nifti_image *warpedGradient = nullptr;
+    nifti_image *voxelBasedGradient = nullptr;
+    nifti_image *localWeightSim = nullptr;
 
-    bool isSymmetric;
-    nifti_image *floatingImage;
-    int *floatingMask;
-    nifti_image *warpedImageBw;
-    nifti_image *warpedGradientBw;
-    nifti_image *voxelBasedGradientBw;
+    bool isSymmetric = false;
+    nifti_image *floatingImage = nullptr;
+    int *floatingMask = nullptr;
+    nifti_image *warpedImageBw = nullptr;
+    nifti_image *warpedGradientBw = nullptr;
+    nifti_image *voxelBasedGradientBw = nullptr;
 
     double timePointWeights[255]{};
-    int referenceTimePoints;
+    int referenceTimePoints = 0;
 };

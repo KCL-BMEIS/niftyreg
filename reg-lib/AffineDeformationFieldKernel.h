@@ -7,7 +7,5 @@ public:
     static std::string GetName() {
         return "AffineDeformationFieldKernel";
     }
-    AffineDeformationFieldKernel() : Kernel() {}
-    virtual ~AffineDeformationFieldKernel() {}
     virtual void Calculate(bool compose = false) = 0;
 };

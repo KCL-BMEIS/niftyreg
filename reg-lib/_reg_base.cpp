@@ -15,7 +15,7 @@
 /* *************************************************************** */
 template<class T>
 reg_base<T>::reg_base(int refTimePoints, int floTimePoints) {
-    SetPlatformType(PlatformType::Cpu);
+    reg_base::SetPlatformType(PlatformType::Cpu);
 
     maxIterationNumber = 150;
     optimiseX = true;
@@ -58,6 +58,13 @@ reg_base<T>::reg_base(int refTimePoints, int floTimePoints) {
     landmarkRegNumber = 0;
     landmarkReference = nullptr;
     landmarkFloating = nullptr;
+
+    bestWMeasure = 0;
+    currentWMeasure = 0;
+    currentWLand = 0;
+    bestWLand = 0;
+    funcProgressCallback = nullptr;
+    paramsProgressCallback = nullptr;
 
     NR_FUNC_CALLED();
 }

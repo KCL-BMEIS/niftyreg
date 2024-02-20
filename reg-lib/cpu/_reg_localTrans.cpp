@@ -1109,7 +1109,7 @@ void reg_cubic_spline_getDeformationField3D(nifti_image *splineControlPoint,
 #endif // USE_SSE
 
         // Assess if lookup table can be used
-        if (gridVoxelSpacing[0] == 5. && gridVoxelSpacing[0] == 5. && gridVoxelSpacing[0] == 5. && forceNoLut == false) {
+        if (gridVoxelSpacing[0] == 5.f && gridVoxelSpacing[1] == 5.f && gridVoxelSpacing[2] == 5.f && forceNoLut == false) {
             // Assign a single array that will contain all coefficients
             DataType *coefficients = (DataType*)malloc(125 * 64 * sizeof(DataType));
             // Compute and store all required coefficients
@@ -1706,14 +1706,14 @@ void reg_voxelCentricToNodeCentric(nifti_image *nodeImage,
 }
 /* *************************************************************** */
 template<class SplineTYPE>
-SplineTYPE GetValue(SplineTYPE *array, int *dim, int x, int y, int z) {
+SplineTYPE GetValue(const SplineTYPE *array, const int (&dim)[4], const int x, const int y, const int z) {
     if (x < 0 || x >= dim[1] || y < 0 || y >= dim[2] || z < 0 || z >= dim[3])
         return 0;
     return array[(z * dim[2] + y) * dim[1] + x];
 }
 /* *************************************************************** */
 template<class SplineTYPE>
-void SetValue(SplineTYPE *array, int *dim, int x, int y, int z, SplineTYPE value) {
+void SetValue(SplineTYPE *array, const int *dim, const int x, const int y, const int z, const SplineTYPE value) {
     if (x < 0 || x >= dim[1] || y < 0 || y >= dim[2] || z < 0 || z >= dim[3])
         return;
     array[(z * dim[2] + y) * dim[1] + x] = value;
@@ -1723,15 +1723,10 @@ template<class SplineTYPE>
 void reg_spline_refineControlPointGrid2D(nifti_image *splineControlPoint,
                                          nifti_image *referenceImage) {
     // The input grid is first saved
-    SplineTYPE *oldGrid = (SplineTYPE*)malloc(splineControlPoint->nvox * splineControlPoint->nbyper);
-    SplineTYPE *gridPtrX = static_cast<SplineTYPE*>(splineControlPoint->data);
-    memcpy(oldGrid, gridPtrX, splineControlPoint->nvox * splineControlPoint->nbyper);
-    if (splineControlPoint->data != nullptr) free(splineControlPoint->data);
-    int oldDim[4];
-    oldDim[0] = splineControlPoint->dim[0];
-    oldDim[1] = splineControlPoint->dim[1];
-    oldDim[2] = splineControlPoint->dim[2];
-    oldDim[3] = splineControlPoint->dim[3];
+    const int oldDim[4]{ splineControlPoint->dim[0], splineControlPoint->dim[1], splineControlPoint->dim[2], splineControlPoint->dim[3] };
+    SplineTYPE *oldGridPtrX = static_cast<SplineTYPE*>(splineControlPoint->data);
+    SplineTYPE *oldGridPtrY = &oldGridPtrX[oldDim[1] * oldDim[2]];
+    splineControlPoint->data = nullptr;
 
     splineControlPoint->dx = splineControlPoint->pixdim[1] = splineControlPoint->dx / 2.0f;
     splineControlPoint->dy = splineControlPoint->pixdim[2] = splineControlPoint->dy / 2.0f;
@@ -1747,10 +1742,8 @@ void reg_spline_refineControlPointGrid2D(nifti_image *splineControlPoint,
 
     splineControlPoint->nvox = NiftiImage::calcVoxelNumber(splineControlPoint, splineControlPoint->ndim);
     splineControlPoint->data = calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
-    gridPtrX = static_cast<SplineTYPE*>(splineControlPoint->data);
+    SplineTYPE *gridPtrX = static_cast<SplineTYPE*>(splineControlPoint->data);
     SplineTYPE *gridPtrY = &gridPtrX[NiftiImage::calcVoxelNumber(splineControlPoint, 2)];
-    SplineTYPE *oldGridPtrX = &oldGrid[0];
-    SplineTYPE *oldGridPtrY = &oldGridPtrX[oldDim[1] * oldDim[2]];
 
     for (int y = 0; y < oldDim[2]; y++) {
         int Y = 2 * y - 1;
@@ -1810,21 +1803,17 @@ void reg_spline_refineControlPointGrid2D(nifti_image *splineControlPoint,
         }
     }
 
-    free(oldGrid);
+    free(oldGridPtrX);
 }
 /* *************************************************************** */
 template<class SplineTYPE>
 void reg_spline_refineControlPointGrid3D(nifti_image *splineControlPoint, nifti_image *referenceImage) {
     // The input grid is first saved
-    SplineTYPE *oldGrid = (SplineTYPE*)malloc(splineControlPoint->nvox * splineControlPoint->nbyper);
-    SplineTYPE *gridPtrX = static_cast<SplineTYPE*>(splineControlPoint->data);
-    memcpy(oldGrid, gridPtrX, splineControlPoint->nvox * splineControlPoint->nbyper);
-    if (splineControlPoint->data != nullptr) free(splineControlPoint->data);
-    int oldDim[4];
-    oldDim[0] = splineControlPoint->dim[0];
-    oldDim[1] = splineControlPoint->dim[1];
-    oldDim[2] = splineControlPoint->dim[2];
-    oldDim[3] = splineControlPoint->dim[3];
+    const int oldDim[4]{ splineControlPoint->dim[0], splineControlPoint->dim[1], splineControlPoint->dim[2], splineControlPoint->dim[3] };
+    SplineTYPE *oldGridPtrX = static_cast<SplineTYPE*>(splineControlPoint->data);
+    SplineTYPE *oldGridPtrY = &oldGridPtrX[oldDim[1] * oldDim[2] * oldDim[3]];
+    SplineTYPE *oldGridPtrZ = &oldGridPtrY[oldDim[1] * oldDim[2] * oldDim[3]];
+    splineControlPoint->data = nullptr;
 
     splineControlPoint->dx = splineControlPoint->pixdim[1] = splineControlPoint->dx / 2.0f;
     splineControlPoint->dy = splineControlPoint->pixdim[2] = splineControlPoint->dy / 2.0f;
@@ -1843,12 +1832,9 @@ void reg_spline_refineControlPointGrid3D(nifti_image *splineControlPoint, nifti_
     splineControlPoint->data = calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
 
     const size_t splineControlPointVoxelNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
-    gridPtrX = static_cast<SplineTYPE*>(splineControlPoint->data);
+    SplineTYPE *gridPtrX = static_cast<SplineTYPE*>(splineControlPoint->data);
     SplineTYPE *gridPtrY = &gridPtrX[splineControlPointVoxelNumber];
     SplineTYPE *gridPtrZ = &gridPtrY[splineControlPointVoxelNumber];
-    SplineTYPE *oldGridPtrX = &oldGrid[0];
-    SplineTYPE *oldGridPtrY = &oldGridPtrX[oldDim[1] * oldDim[2] * oldDim[3]];
-    SplineTYPE *oldGridPtrZ = &oldGridPtrY[oldDim[1] * oldDim[2] * oldDim[3]];
 
     for (int z = 0; z < oldDim[3]; z++) {
         int Z = 2 * z - 1;
@@ -2130,7 +2116,7 @@ void reg_spline_refineControlPointGrid3D(nifti_image *splineControlPoint, nifti_
             }
         }
     }
-    free(oldGrid);
+    free(oldGridPtrX);
 }
 /* *************************************************************** */
 void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
@@ -3724,8 +3710,8 @@ void compute_lie_bracket(nifti_image *img1,
 #endif
     // Lie bracket using Jacobian for testing
     if (use_jac) {
-        mat33 *jacImg1 = (mat33*)malloc(voxNumber * sizeof(mat33));
-        mat33 *jacImg2 = (mat33*)malloc(voxNumber * sizeof(mat33));
+        mat33 *jacImg1 = (mat33*)calloc(voxNumber, sizeof(mat33));
+        mat33 *jacImg2 = (mat33*)calloc(voxNumber, sizeof(mat33));
 
         reg_getDeformationFromDisplacement(img1);
         reg_getDeformationFromDisplacement(img2);

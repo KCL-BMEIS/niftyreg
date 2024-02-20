@@ -20,8 +20,12 @@ constexpr PlatformType PlatformTypes[] = {
 
 class Platform {
 public:
+    Platform() = delete;
+    Platform(const Platform&) = delete;
     Platform(const PlatformType platformTypeIn);
     ~Platform();
+
+    Platform& operator=(const Platform&) = delete;
 
     std::string GetName() const;
     PlatformType GetPlatformType() const;

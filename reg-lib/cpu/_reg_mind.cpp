@@ -282,16 +282,6 @@ void GetMindSscImageDescriptor(const nifti_image *inputImage,
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-reg_mind::reg_mind(): reg_ssd() {
-    this->referenceImageDescriptor = nullptr;
-    this->floatingImageDescriptor = nullptr;
-    this->warpedFloatingImageDescriptor = nullptr;
-    this->warpedReferenceImageDescriptor = nullptr;
-    this->mindType = MIND_TYPE;
-    this->descriptorOffset = 1;
-    NR_FUNC_CALLED();
-}
-/* *************************************************************** */
 reg_mind::~reg_mind() {
     if (this->referenceImageDescriptor != nullptr) {
         nifti_image_free(this->referenceImageDescriptor);

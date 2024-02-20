@@ -7,7 +7,7 @@
 class CudaBlockMatchingKernel: public BlockMatchingKernel {
 public:
     explicit CudaBlockMatchingKernel(Content *conIn);
-    void Calculate();
+    virtual void Calculate() override;
 
 private:
     nifti_image *reference;

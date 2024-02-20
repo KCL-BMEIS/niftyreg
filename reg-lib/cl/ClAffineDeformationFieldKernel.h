@@ -6,8 +6,8 @@
 class ClAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:
     ClAffineDeformationFieldKernel(Content *conIn);
-    ~ClAffineDeformationFieldKernel();
-    void Calculate(bool compose = false);
+    virtual ~ClAffineDeformationFieldKernel();
+    virtual void Calculate(bool compose = false) override;
 
 private:
     mat44 *affineTransformation, *referenceMatrix;

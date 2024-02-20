@@ -394,7 +394,6 @@ void SetGradientToZero(float4 *gradCuda, const size_t voxelNumber) {
 }
 /* *************************************************************** */
 void SetGradientToZero(float4 *gradCuda, const size_t voxelNumber, const bool xAxis, const bool yAxis, const bool zAxis) {
-    if (!xAxis && !yAxis && !zAxis) return;
     decltype(SetGradientToZero<true, true, true>) *setGradientToZero;
     if (xAxis && yAxis && zAxis) setGradientToZero = SetGradientToZero<true, true, true>;
     else if (xAxis && yAxis) setGradientToZero = SetGradientToZero<true, true, false>;
@@ -403,6 +402,7 @@ void SetGradientToZero(float4 *gradCuda, const size_t voxelNumber, const bool xA
     else if (xAxis) setGradientToZero = SetGradientToZero<true, false, false>;
     else if (yAxis) setGradientToZero = SetGradientToZero<false, true, false>;
     else if (zAxis) setGradientToZero = SetGradientToZero<false, false, true>;
+    else return;
     setGradientToZero(gradCuda, voxelNumber);
 }
 /* *************************************************************** */

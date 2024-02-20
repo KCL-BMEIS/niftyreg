@@ -29,6 +29,12 @@ reg_f3d<T>::reg_f3d(int refTimePoints, int floTimePoints):
     this->useConjGradient = true;
     this->useApproxGradient = false;
     gridRefinement = true;
+    currentWJac = 0;
+    currentWBE = 0;
+    currentWLE = 0;
+    bestWJac = 0;
+    bestWBE = 0;
+    bestWLE = 0;
 
     NR_FUNC_CALLED();
 }

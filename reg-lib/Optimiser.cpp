@@ -176,15 +176,6 @@ template class Optimiser<float>;
 template class Optimiser<double>;
 /* *************************************************************** */
 template <class T>
-ConjugateGradient<T>::ConjugateGradient(): Optimiser<T>::Optimiser() {
-    this->array1 = nullptr;
-    this->array1Bw = nullptr;
-    this->array2 = nullptr;
-    this->array2Bw = nullptr;
-    NR_FUNC_CALLED();
-}
-/* *************************************************************** */
-template <class T>
 ConjugateGradient<T>::~ConjugateGradient() {
     if (this->array1) {
         free(this->array1);

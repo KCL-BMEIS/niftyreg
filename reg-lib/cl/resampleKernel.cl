@@ -83,7 +83,7 @@ __inline void interpCubicSplineKernel(real_t relative, real_t *basis)
 __inline void interpLinearKernel(real_t relative, real_t *basis)
 {
     if (relative < (real_t) 0.0) relative = (real_t) 0.0; //reg_rounding error
-    basis[1] = relative;
+    basis[1] = relative;  // cppcheck-suppress ctuArrayIndex // false positive
     basis[0] = (real_t) 1.0 - relative;
 }
 /* *************************************************************** */
@@ -188,9 +188,9 @@ __inline void reg_mat44_mul_cl(__global float const* mat,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-float cl_reg_round(float a)
-{
-    return (float)((a) > 0.0f ? (int)((a)+0.5) : (int)((a)-0.5));
+__inline int Floor(float x) {
+    const int i = (int)x;
+    return i - (x < i);
 }
 /* *************************************************************** */
 /* *************************************************************** */

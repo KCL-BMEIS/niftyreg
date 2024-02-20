@@ -29,18 +29,8 @@ public:
     virtual float* GetReferenceMat_d();
     virtual float* GetFloIJKMat_d();
 
-    //	float* GetAR_d(); // Removed until CUDA SVD is added back
-    //	float* GetU_d(); // Removed until CUDA SVD is added back
-    //	float* GetVT_d(); // Removed until CUDA SVD is added back
-    //	float* GetSigma_d(); // Removed until CUDA SVD is added back
-    //	float* GetLengths_d(); // Removed until CUDA SVD is added back
-    //	float* GetNewWarpedPos_d(); // Removed until CUDA SVD is added back
-
     virtual int* GetTotalBlock_d();
     virtual int* GetMask_d();
-
-    virtual int* GetReferenceDims();
-    virtual int* GetFloatingDims();
 
     // CPU getters with data downloaded from device
     virtual _reg_blockMatchingParam* GetBlockMatchingParams() override;
@@ -64,17 +54,6 @@ private:
     float *referenceMat_d;
     float *floIJKMat_d;
 
-    //svd
-    //	float *AR_d;//A and then pseudoinverse  // Removed until CUDA SVD is added back
-    //	float *U_d; // Removed until CUDA SVD is added back
-    //	float *VT_d; // Removed until CUDA SVD is added back
-    //	float *Sigma_d; // Removed until CUDA SVD is added back
-    //	float *lengths_d; // Removed until CUDA SVD is added back
-    //	float *newWarpedPos_d; // Removed until CUDA SVD is added back
-
-    int referenceDims[4];
-    int floatingDims[4];
-
     void DownloadImage(nifti_image *image, float* memoryObject, int datatype);
     template<class T>
     void FillImageData(nifti_image *image, float* memoryObject, int type);
@@ -89,8 +68,8 @@ protected:
 #endif
     // Functions for testing
     virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
-    virtual void SetWarped(nifti_image *warpedImageIn) override;
+    virtual void SetWarped(nifti_image *warpedIn) override;
     virtual void SetDeformationField(nifti_image *deformationFieldIn) override;
     virtual void SetReferenceMask(int *referenceMaskIn) override;
-    virtual void SetBlockMatchingParams(_reg_blockMatchingParam* bmp) override;
+    virtual void SetBlockMatchingParams(_reg_blockMatchingParam *bmp) override;
 };

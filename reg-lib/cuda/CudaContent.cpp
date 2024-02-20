@@ -11,15 +11,15 @@ CudaContent::CudaContent(nifti_image *referenceIn,
     AllocateFloating();
     AllocateWarped();
     AllocateDeformationField();
-    SetReferenceMask(referenceMask);
-    SetTransformationMatrix(transformationMatrix);
+    CudaContent::SetReferenceMask(referenceMask);
+    CudaContent::SetTransformationMatrix(transformationMatrix);
 }
 /* *************************************************************** */
 CudaContent::~CudaContent() {
     DeallocateWarped();
     DeallocateDeformationField();
-    SetReferenceMask(nullptr);
-    SetTransformationMatrix(nullptr);
+    CudaContent::SetReferenceMask(nullptr);
+    CudaContent::SetTransformationMatrix(nullptr);
 }
 /* *************************************************************** */
 void CudaContent::AllocateReference() {
@@ -40,7 +40,7 @@ void CudaContent::AllocateFloating() {
 /* *************************************************************** */
 void CudaContent::AllocateDeformationField() {
     Cuda::Allocate(&deformationFieldCuda, deformationField->dim);
-    UpdateDeformationField();
+    CudaContent::UpdateDeformationField();
 }
 /* *************************************************************** */
 void CudaContent::DeallocateDeformationField() {

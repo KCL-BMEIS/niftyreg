@@ -7,7 +7,7 @@
 class CpuAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:
     CpuAffineDeformationFieldKernel(Content *conIn);
-    void Calculate(bool compose = false);
+    virtual void Calculate(bool compose = false) override;
 
 private:
     mat44 *affineTransformation;

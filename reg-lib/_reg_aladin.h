@@ -82,7 +82,6 @@ protected:
 
     bool performRigid;
     bool performAffine;
-    int captureRangeVox;
 
     int blockPercentage;
     int inlierLts;
@@ -241,9 +240,6 @@ public:
     }
     void SetInterpolationToCubic() {
         this->SetInterpolation(3);
-    }
-    void SetCaptureRangeVox(int captureRangeIn) {
-        this->captureRangeVox = captureRangeIn;
     }
 
     virtual int Check();

@@ -13,15 +13,15 @@ void ClContextSingleton::Init() {
     cl_int errNum = clGetPlatformIDs(0, nullptr, &this->numPlatforms);
     CheckErrNum(errNum, "Failed to find CL platforms.");
 
-    this->platformIds = (cl_platform_id *)alloca(sizeof(cl_platform_id) * this->numPlatforms);
-    errNum = clGetPlatformIDs(this->numPlatforms, this->platformIds, nullptr);
+    this->platformIds = std::make_unique<cl_platform_id[]>(this->numPlatforms);
+    errNum = clGetPlatformIDs(this->numPlatforms, this->platformIds.get(), nullptr);
     CheckErrNum(errNum, "Failed to find any OpenCL platforms.");
 
     errNum = clGetDeviceIDs(this->platformIds[0], CL_DEVICE_TYPE_ALL, 0, nullptr, &this->numDevices);
     CheckErrNum(errNum, "Failed to find OpenCL devices.");
 
-    this->devices = new cl_device_id[this->numDevices];
-    errNum = clGetDeviceIDs(this->platformIds[0], CL_DEVICE_TYPE_ALL, this->numDevices, this->devices, nullptr);
+    this->devices = std::make_unique<cl_device_id[]>(this->numDevices);
+    errNum = clGetDeviceIDs(this->platformIds[0], CL_DEVICE_TYPE_ALL, this->numDevices, this->devices.get(), nullptr);
 
     PickCard(this->clIdx);
 
@@ -50,56 +50,34 @@ void ClContextSingleton::SetClIdx(int clIdxIn) {
 }
 /* *************************************************************** */
 void ClContextSingleton::QueryGridDims() {
-    std::size_t paramValueSize;
-    cl_int errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_WORK_GROUP_SIZE, 0, nullptr, &paramValueSize);
-    CheckErrNum(errNum, "Failed to find OpenCL device info  CL_DEVICE_MAX_WORK_GROUP_SIZE");
-
-    size_t *info = (size_t*)alloca(sizeof(size_t) * paramValueSize);
-    errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_WORK_GROUP_SIZE, paramValueSize, info, nullptr);
-    CheckErrNum(errNum, "Failed to find OpenCL device info  CL_DEVICE_MAX_WORK_GROUP_SIZE2");
-    this->maxThreads = *info;
+    size_t maxWorkGroupSize;
+    auto errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(maxWorkGroupSize), &maxWorkGroupSize, nullptr);
+    CheckErrNum(errNum, "Failed to find OpenCL device info CL_DEVICE_MAX_WORK_GROUP_SIZE");
+    this->maxThreads = maxWorkGroupSize;
     this->maxBlocks = 65535;
 }
 /* *************************************************************** */
 void ClContextSingleton::PickCard(cl_uint deviceId) {
     cl_int errNum;
-    std::size_t paramValueSize;
+    size_t paramValueSize;
     cl_uint maxProcs = 0;
     this->clIdx = 0;
-    this->isCardDoubleCapable = 0;
-
-    std::size_t paramValueSizeDOUBE1;
-    std::size_t paramValueSizeDOUBE2;
+    this->isCardDoubleCapable = false;
 
     if (deviceId < this->numDevices) {
         this->clIdx = deviceId;
-        errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_COMPUTE_UNITS, 0, nullptr, &paramValueSize);
-        CheckErrNum(errNum, "Failed to find OpenCL device info ");
-        cl_uint *info = (cl_uint*)alloca(sizeof(cl_uint) * paramValueSize);
-        errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, nullptr);
-        CheckErrNum(errNum, "Failed to find OpenCL device info ");
-        cl_uint numProcs = *info;
-        maxProcs = numProcs;
+        errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxProcs), &maxProcs, nullptr);
+        CheckErrNum(errNum, "Failed to find OpenCL device info");
 
-        errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, 0, nullptr, &paramValueSizeDOUBE1);
-        CheckErrNum(errNum, "Failed to find OpenCL device info ");
-        cl_uint *infoD1 = (cl_uint*)alloca(sizeof(cl_uint) * paramValueSizeDOUBE1);
-        errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, paramValueSizeDOUBE1, infoD1, nullptr);
-        CheckErrNum(errNum, "Failed to find OpenCL device info ");
-        cl_uint numD1 = *infoD1;
+        cl_uint numD1;
+        errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, sizeof(numD1), &numD1, nullptr);
+        CheckErrNum(errNum, "Failed to find OpenCL device info");
 
-        errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, 0, nullptr, &paramValueSizeDOUBE2);
-        CheckErrNum(errNum, "Failed to find OpenCL device info ");
-        cl_uint *infoD2 = (cl_uint*)alloca(sizeof(cl_uint) * paramValueSizeDOUBE2);
-        errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, paramValueSizeDOUBE2, infoD2, nullptr);
-        CheckErrNum(errNum, "Failed to find OpenCL device info ");
-        cl_uint numD2 = *infoD2;
+        cl_uint numD2;
+        errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, sizeof(numD2), &numD2, nullptr);
+        CheckErrNum(errNum, "Failed to find OpenCL device info");
 
-        if (numD1 > 0 || numD2 > 0) {
-            this->isCardDoubleCapable = true;
-        } else {
-            this->isCardDoubleCapable = false;
-        }
+        this->isCardDoubleCapable = numD1 > 0 || numD2 > 0;
         return;
     } else if (deviceId != 999)
         NR_FATAL_ERROR("The specified OpenCL card ID is not defined! Run reg_gpuinfo to get the proper ID.");
@@ -108,36 +86,24 @@ void ClContextSingleton::PickCard(cl_uint deviceId) {
         cl_device_type dev_type;
         clGetDeviceInfo(this->devices[i], CL_DEVICE_TYPE, sizeof(dev_type), &dev_type, nullptr);
         if (dev_type == CL_DEVICE_TYPE_GPU) {
-            errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, 0, nullptr, &paramValueSize);
-            CheckErrNum(errNum, "Failed to find OpenCL device info ");
-            cl_uint *info = (cl_uint*)alloca(sizeof(cl_uint) * paramValueSize);
-            errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, nullptr);
-            CheckErrNum(errNum, "Failed to find OpenCL device info ");
-            cl_uint numProcs = *info;
+            cl_uint numProcs;
+            errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(numProcs), &numProcs, nullptr);
+            CheckErrNum(errNum, "Failed to find OpenCL device info");
+
             const bool found = numProcs > maxProcs;
             this->clIdx = found ? i : this->clIdx;
             maxProcs = found ? numProcs : maxProcs;
 
             if (found) {
-                errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, 0, nullptr, &paramValueSizeDOUBE1);
-                CheckErrNum(errNum, "Failed to find OpenCL device info ");
-                cl_uint *infoD1 = (cl_uint*)alloca(sizeof(cl_uint) * paramValueSizeDOUBE1);
-                errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, paramValueSizeDOUBE1, infoD1, nullptr);
-                CheckErrNum(errNum, "Failed to find OpenCL device info ");
-                cl_uint numD1 = *infoD1;
+                cl_uint numD1;
+                errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, sizeof(numD1), &numD1, nullptr);
+                CheckErrNum(errNum, "Failed to find OpenCL device info");
 
-                errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, 0, nullptr, &paramValueSizeDOUBE2);
-                CheckErrNum(errNum, "Failed to find OpenCL device info ");
-                cl_uint *infoD2 = (cl_uint*)alloca(sizeof(cl_uint) * paramValueSizeDOUBE2);
-                errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, paramValueSizeDOUBE2, infoD2, nullptr);
-                CheckErrNum(errNum, "Failed to find OpenCL device info ");
-                cl_uint numD2 = *infoD2;
+                cl_uint numD2;
+                errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, sizeof(numD2), &numD2, nullptr);
+                CheckErrNum(errNum, "Failed to find OpenCL device info");
 
-                if (numD1 > 0 || numD2 > 0) {
-                    this->isCardDoubleCapable = true;
-                } else {
-                    this->isCardDoubleCapable = false;
-                }
+                this->isCardDoubleCapable = numD1 > 0 || numD2 > 0;
             }
         }
     }
@@ -173,7 +139,6 @@ cl_program ClContextSingleton::CreateProgram(const char *fileName) {
 ClContextSingleton::~ClContextSingleton() {
     if (this->context != 0) clReleaseContext(this->context);
     if (this->commandQueue != 0) clReleaseCommandQueue(this->commandQueue);
-    delete[] this->devices;
 }
 /* *************************************************************** */
 void ClContextSingleton::CheckDebugKernelInfo(cl_program program, cl_device_id devIdIn, const char *message) {
@@ -259,7 +224,7 @@ cl_device_id ClContextSingleton::GetDeviceId() {
 }
 /* *************************************************************** */
 cl_device_id* ClContextSingleton::GetDevices() {
-    return this->devices;
+    return this->devices.get();
 }
 /* *************************************************************** */
 cl_command_queue ClContextSingleton::GetCommandQueue() {
@@ -271,7 +236,7 @@ cl_uint ClContextSingleton::GetNumPlatforms() {
 }
 /* *************************************************************** */
 cl_platform_id* ClContextSingleton::GetPlatformIds() {
-    return this->platformIds;
+    return this->platformIds.get();
 }
 /* *************************************************************** */
 cl_uint ClContextSingleton::GetNumDevices() {

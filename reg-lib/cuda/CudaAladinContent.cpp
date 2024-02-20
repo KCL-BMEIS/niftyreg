@@ -111,26 +111,6 @@ void CudaAladinContent::AllocateCuPtrs() {
             Cuda::Allocate<int>(&totalBlock_d, blockMatchingParams->totalBlockNumber);
             Cuda::TransferNiftiToDevice(totalBlock_d, blockMatchingParams->totalBlock, blockMatchingParams->totalBlockNumber);
         }
-        /* // Removed until CUDA SVD is added back
-        if (blockMatchingParams->activeBlockNumber > 0 ) {
-           unsigned m = blockMatchingParams->activeBlockNumber * blockMatchingParams->dim;
-           unsigned n = 0;
-
-           if (blockMatchingParams->dim == 2) {
-              n = 6;
-           }
-           else {
-              n = 12;
-           }
-
-           Cuda::Allocate<float>(&AR_d, m * n);
-           Cuda::Allocate<float>(&U_d, m * m); //only the singular vectors output is needed
-           Cuda::Allocate<float>(&VT_d, n * n);
-           Cuda::Allocate<float>(&Sigma_d, std::min(m, n));
-           Cuda::Allocate<float>(&lengths_d, blockMatchingParams->activeBlockNumber);
-           Cuda::Allocate<float>(&newWarpedPos_d, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
-        }
-        */
     }
 }
 /* *************************************************************** */
@@ -210,26 +190,6 @@ void CudaAladinContent::SetBlockMatchingParams(_reg_blockMatchingParam* bmp) {
         Cuda::Allocate<int>(&totalBlock_d, blockMatchingParams->totalBlockNumber);
         Cuda::TransferFromHostToDevice<int>(totalBlock_d, blockMatchingParams->totalBlock, blockMatchingParams->totalBlockNumber);
     }
-    /* // Removed until CUDA SVD is added back
-     if (blockMatchingParams->activeBlockNumber > 0) {
-         unsigned m = blockMatchingParams->activeBlockNumber * blockMatchingParams->dim;
-         unsigned n = 0;
-
-         if (blockMatchingParams->dim == 2) {
-             n = 6;
-         }
-         else {
-             n = 12;
-         }
-
-         Cuda::Allocate<float>(&AR_d, m * n);
-         Cuda::Allocate<float>(&U_d, m * m); //only the singular vectors output is needed
-         Cuda::Allocate<float>(&VT_d, n * n);
-         Cuda::Allocate<float>(&Sigma_d, std::min(m, n));
-         Cuda::Allocate<float>(&lengths_d, blockMatchingParams->activeBlockNumber);
-         Cuda::Allocate<float>(&newWarpedPos_d, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
-     }
-     */
 }
 /* *************************************************************** */
 template<class DataType>
@@ -343,62 +303,12 @@ float* CudaAladinContent::GetFloIJKMat_d() {
     return floIJKMat_d;
 }
 /* *************************************************************** */
-/* // Removed until CUDA SVD is added back
-float* CudaAladinContent::GetAR_d()
-{
-   return AR_d;
-}
-*/
-/* *************************************************************** */
-/* // Removed until CUDA SVD is added back
-float* CudaAladinContent::GetU_d()
-{
-   return U_d;
-}
-*/
-/* *************************************************************** */
-/* // Removed until CUDA SVD is added back
-float* CudaAladinContent::GetVT_d()
-{
-   return VT_d;
-}
-*/
-/* *************************************************************** */
-/* // Removed until CUDA SVD is added back
-float* CudaAladinContent::GetSigma_d()
-{
-   return Sigma_d;
-}
-*/
-/* *************************************************************** */
-/* // Removed until CUDA SVD is added back
-float* CudaAladinContent::GetLengths_d()
-{
-   return lengths_d;
-}
-*/
-/* *************************************************************** */
-/* // Removed until CUDA SVD is added back
-float* CudaAladinContent::GetNewWarpedPos_d()
-{
-   return newWarpedPos_d;
-}
-*/
-/* *************************************************************** */
 int* CudaAladinContent::GetTotalBlock_d() {
     return totalBlock_d;
 }
 /* *************************************************************** */
 int* CudaAladinContent::GetMask_d() {
     return mask_d;
-}
-/* *************************************************************** */
-int* CudaAladinContent::GetReferenceDims() {
-    return referenceDims;
-}
-/* *************************************************************** */
-int* CudaAladinContent::GetFloatingDims() {
-    return floatingDims;
 }
 /* *************************************************************** */
 void CudaAladinContent::FreeCuPtrs() {
@@ -430,14 +340,6 @@ void CudaAladinContent::FreeCuPtrs() {
         Cuda::Free(referencePosition_d);
     if (warpedPosition_d != nullptr)
         Cuda::Free(warpedPosition_d);
-        /*
-        Cuda::Free(AR_d);
-        Cuda::Free(U_d);
-        Cuda::Free(VT_d);
-        Cuda::Free(Sigma_d);
-        Cuda::Free(lengths_d);
-        Cuda::Free(newWarpedPos_d);
-        */
 }
 /* *************************************************************** */
 bool CudaAladinContent::IsCurrentComputationDoubleCapable() {

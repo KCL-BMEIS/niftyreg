@@ -7,7 +7,8 @@
 class CudaAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:
     CudaAffineDeformationFieldKernel(Content *conIn);
-    void Calculate(bool compose = false);
+    virtual void Calculate(bool compose = false) override;
+
 private:
     mat44 *affineTransformation;
     nifti_image *deformationFieldImage;

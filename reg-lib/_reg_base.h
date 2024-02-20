@@ -105,7 +105,7 @@ protected:
 
     // For the NiftyReg plugin in NiftyView
     void (*funcProgressCallback)(float pcntProgress, void *params);
-    void* paramsProgressCallback;
+    void *paramsProgressCallback;
 
     virtual void WarpFloatingImage(int);
     virtual double ComputeSimilarityMeasure();

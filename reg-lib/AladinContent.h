@@ -11,6 +11,7 @@
 
 class AladinContent: public Content {
 public:
+    AladinContent(const AladinContent&) = delete;
     AladinContent(nifti_image *referenceIn,
                   nifti_image *floatingIn,
                   int *referenceMaskIn = nullptr,
@@ -20,6 +21,8 @@ public:
                   const unsigned inlierLts = 0,
                   int blockStepSize = 0);
     virtual ~AladinContent();
+
+    AladinContent& operator=(const AladinContent&) = delete;
 
     // Getters
     virtual _reg_blockMatchingParam* GetBlockMatchingParams() { return blockMatchingParams; }

@@ -6,7 +6,7 @@
 class CpuLtsKernel: public LtsKernel {
 public:
     CpuLtsKernel(Content *con);
-    void Calculate(bool affine);
+    virtual void Calculate(bool affine) override;
 
 private:
     _reg_blockMatchingParam *blockMatchingParams;

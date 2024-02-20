@@ -62,15 +62,9 @@ ClAffineDeformationFieldKernel::ClAffineDeformationFieldKernel(Content *conIn) :
 /* *************************************************************** */
 void ClAffineDeformationFieldKernel::Calculate(bool compose) {
     //localWorkSize[0]*localWorkSize[1]*localWorkSize[2]... should be lower than the value specified by CL_DEVICE_MAX_WORK_GROUP_SIZE
-    cl_uint maxWG = 0;
-    cl_int errNum;
-    std::size_t paramValueSize;
-    errNum = clGetDeviceInfo(sContext->GetDeviceId(), CL_DEVICE_MAX_WORK_GROUP_SIZE, 0, nullptr, &paramValueSize);
-    sContext->CheckErrNum(errNum, "Failed to GetDeviceId() OpenCL device info ");
-    cl_uint * info = (cl_uint *)alloca(sizeof(cl_uint) * paramValueSize);
-    errNum = clGetDeviceInfo(sContext->GetDeviceId(), CL_DEVICE_MAX_WORK_GROUP_SIZE, paramValueSize, info, nullptr);
-    sContext->CheckErrNum(errNum, "Failed to GetDeviceId() OpenCL device info ");
-    maxWG = *info;
+    size_t maxWG = 0;
+    auto errNum = clGetDeviceInfo(sContext->GetDeviceId(), CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(maxWG), &maxWG, nullptr);
+    sContext->CheckErrNum(errNum, "Failed to GetDeviceId() OpenCL device info");
 
     //8=default value
     unsigned xThreads = 8;
@@ -126,7 +120,6 @@ void ClAffineDeformationFieldKernel::Calculate(bool compose) {
 
     free(trans);
     clReleaseMemObject(cltransMat);
-    return;
 }
 /* *************************************************************** */
 ClAffineDeformationFieldKernel::~ClAffineDeformationFieldKernel() {

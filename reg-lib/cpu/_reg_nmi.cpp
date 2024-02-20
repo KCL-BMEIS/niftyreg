@@ -14,13 +14,6 @@
 
 /* *************************************************************** */
 reg_nmi::reg_nmi(): reg_measure() {
-    this->jointHistogramPro = nullptr;
-    this->jointHistogramLog = nullptr;
-    this->entropyValues = nullptr;
-    this->jointHistogramProBw = nullptr;
-    this->jointHistogramLogBw = nullptr;
-    this->entropyValuesBw = nullptr;
-    this->approximatePw = true;
     for (int i = 0; i < 255; ++i) {
         this->referenceBinNumber[i] = 68;
         this->floatingBinNumber[i] = 68;

@@ -6,10 +6,9 @@
 class ClLtsKernel: public LtsKernel {
 public:
     ClLtsKernel(Content *con);
-    ~ClLtsKernel() {}
-    void Calculate(bool affine);
+    virtual void Calculate(bool affine) override;
 
 private:
-    _reg_blockMatchingParam * blockMatchingParams;
+    _reg_blockMatchingParam *blockMatchingParams;
     mat44 *transformationMatrix;
 };

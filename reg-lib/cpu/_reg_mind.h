@@ -24,7 +24,7 @@
 class reg_mind: public reg_ssd {
 public:
     /// @brief reg_mind class constructor
-    reg_mind();
+    reg_mind() { NR_FUNC_CALLED(); }
     /// @brief Measure class destructor
     virtual ~reg_mind();
 
@@ -52,14 +52,14 @@ public:
     virtual int GetDescriptorOffset() { return this->descriptorOffset; }
 
 protected:
-    nifti_image *referenceImageDescriptor;
-    nifti_image *floatingImageDescriptor;
-    nifti_image *warpedReferenceImageDescriptor;
-    nifti_image *warpedFloatingImageDescriptor;
+    nifti_image *referenceImageDescriptor = nullptr;
+    nifti_image *floatingImageDescriptor = nullptr;
+    nifti_image *warpedReferenceImageDescriptor = nullptr;
+    nifti_image *warpedFloatingImageDescriptor = nullptr;
     double timePointWeightsDescriptor[255]{};
-    int descriptorOffset;
-    int mindType;
-    int descriptorNumber;
+    int mindType = MIND_TYPE;
+    int descriptorOffset = 1;
+    int descriptorNumber = 0;
 };
 /* *************************************************************** */
 /// @brief MIND-SSC measure of similarity class

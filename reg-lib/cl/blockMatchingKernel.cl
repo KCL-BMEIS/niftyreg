@@ -136,9 +136,9 @@ __kernel void blockMatchingKernel2D(__local float *sWarpedValues,
 
 		// Populate shared memory with the warped image values
 		for (int y=-1; y<2; ++y) {
-			const int yImageIn = yImage + y * 4;
+			const int yImageIn = yImage + y * 4;  // cppcheck-suppress integerOverflow
 			for (int x=-1; x<2; ++x) {
-				const int xImageIn = xImage + x * 4;
+				const int xImageIn = xImage + x * 4;  // cppcheck-suppress integerOverflow
 
 				// Compute the index in the local shared memory
 				const int sharedIndex = ((y+1)*4+idy)*12+(x+1)*4+idx;
@@ -292,11 +292,11 @@ __kernel void blockMatchingKernel3D(__local float *sWarpedValues,
 
 		// Populate shared memory with the warped image values
 		for (int n=-1; n<2; ++n) {
-			const int zImageIn = zImage + n * 4;
+			const int zImageIn = zImage + n * 4;  // cppcheck-suppress integerOverflow
 			for (int m=-1; m<2; ++m) {
-				const int yImageIn = yImage + m * 4;
+				const int yImageIn = yImage + m * 4;  // cppcheck-suppress integerOverflow
 				for (int l=-1; l<2; ++l) {
-					const int xImageIn = xImage + l * 4;
+					const int xImageIn = xImage + l * 4;  // cppcheck-suppress integerOverflow
 
 					// Compute the index in the local shared memory
 					const int sharedIndex = (((n+1)*4+idz)*12+(m+1)*4+idy)*12+(l+1)*4+idx;

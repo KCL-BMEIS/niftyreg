@@ -123,9 +123,9 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 
         //populate shared memory with resultImageArray's values
         for (int y = -1; y < 2; ++y) {
-            const int yImageIn = yImage + y * 4;
+            const int yImageIn = yImage + y * 4;  // cppcheck-suppress integerOverflow
             for (int x = -1; x < 2; ++x) {
-                const int xImageIn = xImage + x * 4;
+                const int xImageIn = xImage + x * 4;  // cppcheck-suppress integerOverflow
                 const int sharedIndex = ((y + 1) * 4 + idy) * 12 + (x + 1) * 4 + idx;
                 const int indexXYIn = yImageIn * imageSize.x + xImageIn;
                 const bool valid =
@@ -233,11 +233,11 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 
         //populate shared memory with resultImageArray's values
         for (int z = -1; z < 2; ++z) {
-            const int zImageIn = zImage + z * 4;
+            const int zImageIn = zImage + z * 4;  // cppcheck-suppress integerOverflow
             for (int y = -1; y < 2; ++y) {
-                const int yImageIn = yImage + y * 4;
+                const int yImageIn = yImage + y * 4;  // cppcheck-suppress integerOverflow
                 for (int x = -1; x < 2; ++x) {
-                    const int xImageIn = xImage + x * 4;
+                    const int xImageIn = xImage + x * 4;  // cppcheck-suppress integerOverflow
                     const int sharedIndex = (((z + 1) * 4 + idz) * 12 + (y + 1) * 4 + idy) * 12 + (x + 1) * 4 + idx;
                     const unsigned indexXYZIn = xImageIn + imageSize.x * (yImageIn + zImageIn * imageSize.y);
                     const bool valid =

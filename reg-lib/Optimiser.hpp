@@ -146,11 +146,11 @@ public:
 template <class T>
 class ConjugateGradient: public Optimiser<T> {
 protected:
-    T *array1;
-    T *array1Bw;
-    T *array2;
-    T *array2Bw;
-    bool firstCall;
+    T *array1 = nullptr;
+    T *array1Bw = nullptr;
+    T *array2 = nullptr;
+    T *array2Bw = nullptr;
+    bool firstCall = true;
 
 #ifdef NR_TESTING
 public:
@@ -158,7 +158,7 @@ public:
     virtual void UpdateGradientValues() override;
 
 public:
-    ConjugateGradient();
+    ConjugateGradient() { NR_FUNC_CALLED(); }
     virtual ~ConjugateGradient();
     virtual void Initialise(size_t nvox,
                             int ndim,

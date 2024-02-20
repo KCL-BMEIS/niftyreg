@@ -6,7 +6,7 @@
 class CpuBlockMatchingKernel: public BlockMatchingKernel {
 public:
     CpuBlockMatchingKernel(Content *con);
-    void Calculate();
+    virtual void Calculate() override;
 
 private:
     nifti_image *reference;

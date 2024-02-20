@@ -75,19 +75,19 @@ public:
     }
 
 protected:
-    float *referenceImageCuda;
-    float *floatingImageCuda;
-    int *referenceMaskCuda;
-    size_t activeVoxelNumber;
-    float *warpedImageCuda;
-    float4 *warpedGradientCuda;
-    float4 *voxelBasedGradientCuda;
-    float *localWeightSimCuda;
+    float *referenceImageCuda = nullptr;
+    float *floatingImageCuda = nullptr;
+    int *referenceMaskCuda = nullptr;
+    size_t activeVoxelNumber = 0;
+    float *warpedImageCuda = nullptr;
+    float4 *warpedGradientCuda = nullptr;
+    float4 *voxelBasedGradientCuda = nullptr;
+    float *localWeightSimCuda = nullptr;
 
-    int *floatingMaskCuda;
-    float *warpedImageBwCuda;
-    float4 *warpedGradientBwCuda;
-    float4 *voxelBasedGradientBwCuda;
+    int *floatingMaskCuda = nullptr;
+    float *warpedImageBwCuda = nullptr;
+    float4 *warpedGradientBwCuda = nullptr;
+    float4 *voxelBasedGradientBwCuda = nullptr;
 };
 /* *************************************************************** */
 class reg_lncc_gpu: public reg_lncc, public reg_measure_gpu {

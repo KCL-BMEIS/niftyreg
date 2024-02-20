@@ -53,10 +53,10 @@ private:
 
     cl_context context;
     cl_device_id deviceId;
-    cl_device_id *devices;
+    unique_ptr<cl_device_id[]> devices;
     cl_command_queue commandQueue;
     cl_uint numPlatforms;
-    cl_platform_id *platformIds;
+    unique_ptr<cl_platform_id[]> platformIds;
     cl_uint numDevices;
     size_t maxThreads;
 

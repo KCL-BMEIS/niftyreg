@@ -122,8 +122,10 @@ inline void UpdateControlPointPosition(float4 *currentDofCuda,
                                        cudaTextureObject_t gradientTexture,
                                        const size_t nVoxels,
                                        const float scale) {
-    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), nVoxels, [=]__device__(const int index) {
-        float4 dofValue = currentDofCuda[index]; scale; // To capture scale
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), nVoxels, [
+        currentDofCuda, bestDofTexture, gradientTexture, scale
+    ]__device__(const int index) {
+        float4 dofValue = currentDofCuda[index];
         const float4 bestValue = tex1Dfetch<float4>(bestDofTexture, index);
         const float4 gradValue = tex1Dfetch<float4>(gradientTexture, index);
         if constexpr (optimiseX)

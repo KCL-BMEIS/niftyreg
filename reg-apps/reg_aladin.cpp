@@ -93,7 +93,6 @@ void Usage(char *exec) {
         NR_INFO("\t\t\t\tPlease run reg_gpuinfo first to get platform information and their corresponding ids");
     }
 
-    //   NR_INFO("\t-crv\t\t\tChoose custom capture range for the block matching alg");
 #ifdef _OPENMP
     int defaultOpenMPValue = omp_get_num_procs();
     if (getenv("OMP_NUM_THREADS") != nullptr)
@@ -161,7 +160,6 @@ int main(int argc, char **argv) {
 
     bool iso = false;
     bool verbose = true;
-    int captureRangeVox = 3;
     PlatformType platformType(PlatformType::Cpu);
     unsigned gpuIdx = 999;
 
@@ -300,8 +298,6 @@ int main(int argc, char **argv) {
             platformType = value;
         } else if (strcmp(argv[i], "-gpuid") == 0 || strcmp(argv[i], "--gpuid") == 0) {
             gpuIdx = unsigned(atoi(argv[++i]));
-        } else if (strcmp(argv[i], "-crv") == 0 || strcmp(argv[i], "--crv") == 0) {
-            captureRangeVox = atoi(argv[++i]);
         } else if (strcmp(argv[i], "-omp") == 0 || strcmp(argv[i], "--omp") == 0) {
 #ifdef _OPENMP
             omp_set_num_threads(atoi(argv[++i]));
@@ -406,7 +402,6 @@ int main(int argc, char **argv) {
     reg->SetBlockPercentage(blockPercentage);
     reg->SetInlierLts(inlierLts);
     reg->SetInterpolation(interpolation);
-    reg->SetCaptureRangeVox(captureRangeVox);
     reg->SetPlatformType(platformType);
     reg->SetGpuIdx(gpuIdx);
 

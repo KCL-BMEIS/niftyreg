@@ -7,7 +7,5 @@ public:
     static std::string GetName() {
         return "BlockMatchingKernel";
     }
-    BlockMatchingKernel() : Kernel() {}
-    virtual ~BlockMatchingKernel() {}
     virtual void Calculate() = 0;
 };
