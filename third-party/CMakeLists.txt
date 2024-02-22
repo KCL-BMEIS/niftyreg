@@ -1,24 +1,17 @@
 #-----------------------------------------------------------------------------
-# Eigen version 3.3.3 - 67e894c6cd8f
-if(NOT EXISTS ${CMAKE_BINARY_DIR}/third-party/eigen3)
+# Eigen version 3.3.*
+if(NOT EXISTS ${CMAKE_BINARY_DIR}/third-party/eigen)
+  message(STATUS "Cloning Eigen...")
   execute_process(
-    COMMAND ${CMAKE_COMMAND} -E tar x ${CMAKE_SOURCE_DIR}/third-party/eigen_3.3.3.tar.gz
+    COMMAND git clone -q -b 3.3 https://gitlab.com/libeigen/eigen.git
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/third-party
+    RESULT_VARIABLE result
   )
-  execute_process(
-    COMMAND ${CMAKE_COMMAND} -E rename
-    ${CMAKE_BINARY_DIR}/third-party/eigen-eigen-67e894c6cd8f
-    ${CMAKE_BINARY_DIR}/third-party/eigen3
-  )
-  message(STATUS "Eigen3 files are copied in ${CMAKE_BINARY_DIR}/third-party/eigen3")
-endif(NOT EXISTS ${CMAKE_BINARY_DIR}/third-party/eigen3)
-#-----------------------------------------------------------------------------
-if(MSVC)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj" )
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /bigobj" )
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /wd4127 /wd4505 /wd4714")
-	string(REGEX REPLACE "/W[0-9]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-endif()
+  if(result)
+    message(FATAL_ERROR "Failed to clone Eigen!")
+  endif(result)
+  message(STATUS "Eigen is cloned into ${CMAKE_BINARY_DIR}/third-party/eigen")
+endif(NOT EXISTS ${CMAKE_BINARY_DIR}/third-party/eigen)
 #-----------------------------------------------------------------------------
 if(OPENMP_FOUND)
 	if(USE_OPENMP)

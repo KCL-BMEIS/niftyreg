@@ -134,7 +134,7 @@ include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cpu)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io)
 include_directories(${CMAKE_SOURCE_DIR}/third-party)
 include_directories(${CMAKE_BINARY_DIR})
-include_directories(${CMAKE_BINARY_DIR}/third-party/eigen3)
+include_directories(${CMAKE_BINARY_DIR}/third-party/eigen)
 #-----------------------------------------------------------------------------
 if(USE_OPENCL)
   # Find the OpenCL package
