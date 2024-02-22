@@ -16,7 +16,6 @@
 #include "_reg_globalTrans.h"
 #include "_reg_localTrans.h"
 #include "_reg_tools.h"
-#include "_reg_thinPlateSpline.h"
 #include "_reg_maths_eigen.h"
 
 #include "reg_transform.h"

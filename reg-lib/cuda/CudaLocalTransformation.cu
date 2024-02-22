@@ -859,23 +859,6 @@ void GetIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
     }
 }
 /* *************************************************************** */
-void GetJacobianMatrix(const nifti_image *deformationField,
-                       const float4 *deformationFieldCuda,
-                       float *jacobianMatricesCuda) {
-    const int3 referenceImageDim = make_int3(deformationField->nx, deformationField->ny, deformationField->nz);
-    const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
-    const mat33 reorientation = reg_mat44_to_mat33(deformationField->sform_code > 0 ? &deformationField->sto_xyz : &deformationField->qto_xyz);
-    auto deformationFieldTexture = Cuda::CreateTextureObject(deformationFieldCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
-
-    const unsigned blocks = CudaContext::GetBlockSize()->GetJacobianMatrix;
-    const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
-    const dim3 gridDims(grids, grids, 1);
-    const dim3 blockDims(blocks, 1, 1);
-    GetJacobianMatrix3d<<<gridDims, blockDims>>>(jacobianMatricesCuda, *deformationFieldTexture, referenceImageDim,
-                                                 (unsigned)voxelNumber, reorientation);
-    NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
-}
-/* *************************************************************** */
 template<bool is3d>
 double ApproxLinearEnergy(const nifti_image *controlPointGrid,
                           const float4 *controlPointGridCuda) {

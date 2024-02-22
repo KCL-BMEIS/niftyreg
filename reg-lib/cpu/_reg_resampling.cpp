@@ -1131,7 +1131,6 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
                     ASAt = A * S * reg_mat33_trans(A);
 
                     TmS = T - ASAt;
-                    //reg_mat33_disp(&TmS, "matTmS");
 
                     reg_mat33_diagonalize(&TmS, &TmS_EigVec, &TmS_EigVal);
 

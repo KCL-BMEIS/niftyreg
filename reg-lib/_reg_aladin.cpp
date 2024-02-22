@@ -51,54 +51,8 @@ reg_aladin<T>::reg_aladin() {
 }
 /* *************************************************************** */
 template<class T>
-bool reg_aladin<T>::TestMatrixConvergence(mat44 *mat) {
-    bool convergence = true;
-    if ((fabsf(mat->m[0][0]) - 1.0f) > CONVERGENCE_EPS)
-        convergence = false;
-    if ((fabsf(mat->m[1][1]) - 1.0f) > CONVERGENCE_EPS)
-        convergence = false;
-    if ((fabsf(mat->m[2][2]) - 1.0f) > CONVERGENCE_EPS)
-        convergence = false;
-
-    if ((fabsf(mat->m[0][1]) - 0.0f) > CONVERGENCE_EPS)
-        convergence = false;
-    if ((fabsf(mat->m[0][2]) - 0.0f) > CONVERGENCE_EPS)
-        convergence = false;
-    if ((fabsf(mat->m[0][3]) - 0.0f) > CONVERGENCE_EPS)
-        convergence = false;
-
-    if ((fabsf(mat->m[1][0]) - 0.0f) > CONVERGENCE_EPS)
-        convergence = false;
-    if ((fabsf(mat->m[1][2]) - 0.0f) > CONVERGENCE_EPS)
-        convergence = false;
-    if ((fabsf(mat->m[1][3]) - 0.0f) > CONVERGENCE_EPS)
-        convergence = false;
-
-    if ((fabsf(mat->m[2][0]) - 0.0f) > CONVERGENCE_EPS)
-        convergence = false;
-    if ((fabsf(mat->m[2][1]) - 0.0f) > CONVERGENCE_EPS)
-        convergence = false;
-    if ((fabsf(mat->m[2][3]) - 0.0f) > CONVERGENCE_EPS)
-        convergence = false;
-
-    return convergence;
-}
-/* *************************************************************** */
-template<class T>
 void reg_aladin<T>::SetVerbose(bool _verbose) {
     this->verbose = _verbose;
-}
-/* *************************************************************** */
-template<class T>
-int reg_aladin<T>::Check() {
-    //This does all the initial checking
-    if (!this->inputReference)
-        NR_FATAL_ERROR("No reference image has been specified or it can not be read");
-
-    if (!this->inputFloating)
-        NR_FATAL_ERROR("No floating image has been specified or it can not be read");
-
-    return EXIT_SUCCESS;
 }
 /* *************************************************************** */
 template<class T>

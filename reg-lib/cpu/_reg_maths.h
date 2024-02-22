@@ -76,38 +76,14 @@ DEVICE inline int Round(const T& x) {
 /* *************************************************************** */
 } // namespace NiftyReg
 /* *************************************************************** */
-template <class T>
-void reg_LUdecomposition(T *inputMatrix,
-                         size_t dim,
-                         size_t *index);
-/* *************************************************************** */
-template <class T>
-void reg_matrixMultiply(T *mat1,
-                        T *mat2,
-                        size_t *dim1,
-                        size_t *dim2,
-                        T * &res);
-/* *************************************************************** */
-template <class T>
-void reg_matrixInvertMultiply(T *mat,
-                              size_t dim,
-                              size_t *index,
-                              T *vec);
-/* *************************************************************** */
 template<class T>
 T* reg_matrix1DAllocate(size_t arraySize);
-/* *************************************************************** */
-template<class T>
-T* reg_matrix1DAllocateAndInitToZero(size_t arraySize);
 /* *************************************************************** */
 template<class T>
 void reg_matrix1DDeallocate(T* mat);
 /* *************************************************************** */
 template<class T>
 T** reg_matrix2DAllocate(size_t arraySizeX, size_t arraySizeY);
-/* *************************************************************** */
-template<class T>
-T** reg_matrix2DAllocateAndInitToZero(size_t arraySizeX, size_t arraySizeY);
 /* *************************************************************** */
 template<class T>
 void reg_matrix2DDeallocate(size_t arraySizeX, T** mat);
@@ -157,10 +133,6 @@ void reg_mat33_diagonalize(mat33 const* A, mat33 * Q, mat33 * D);
 /** @brief Set up a 3-by-3 matrix with an identity
 */
 void reg_mat33_eye(mat33 *mat);
-/* *************************************************************** */
-/** @brief Compute the determinant of a 3-by-3 matrix
-*/
-template<class T> T reg_mat33_det(mat33 const* A);
 /* *************************************************************** */
 /** @brief Compute the determinant of a 3-by-3 matrix
 */
@@ -218,15 +190,9 @@ void reg_mat44_eye(mat44 *mat);
  */
 template<class T> T reg_mat44_det(mat44 const* A);
 /* *************************************************************** */
-float reg_mat44_norm_inf(mat44 const* mat);
-/* *************************************************************** */
 /** @brief Display a mat44 matrix
  */
 void reg_mat44_disp(const mat44& mat, const std::string& title);
-/* *************************************************************** */
-/** @brief Display a mat33 matrix
- */
-void reg_mat33_disp(const mat33& mat, const std::string& title);
 /* *************************************************************** */
 double get_square_distance3D(float * first_point3D, float * second_point3D);
 /* *************************************************************** */

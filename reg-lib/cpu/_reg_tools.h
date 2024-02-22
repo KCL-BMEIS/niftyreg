@@ -343,17 +343,6 @@ void reg_thresholdImage(nifti_image *image,
                         T lowThr,
                         T upThr);
 /* *************************************************************** */
-/** @brief This function flip the specified axis
- * @param image Input image to be flipped
- * @param array Array that will contain the flipped
- * input image->data array
- * @param cmd String that contains the letter(s) of the axis
- * to flip (xyztuvw)
- */
-void reg_flipAxis(const nifti_image *image,
-                  void **outputArray,
-                  const std::string& cmd);
-/* *************************************************************** */
 /** @brief This function converts an image containing deformation
  * field into a displacement field
  * The conversion is done using the appropriate qform/sform
@@ -381,42 +370,7 @@ void reg_setGradientToZero(nifti_image *image,
                            bool yAxis,
                            bool zAxis);
 /* *************************************************************** */
-/* *************************************************************** */
-/** @brief The functions returns the largest ratio between two arrays
- * The returned value is the largest value computed as ((A/B)-1)
- * If A or B are zeros then the (A-B) value is returned.
- */
-template<class DataType>
-double reg_test_compare_arrays(const DataType *ptrA,
-                               const DataType *ptrB,
-                               size_t nvox);
-/* *************************************************************** */
-/** @brief The functions returns the largest ratio between input image intensities
- * The returned value is the largest value computed as ((A/B)-1)
- * If A or B are zeros then the (A-B) value is returned.
- */
-double reg_test_compare_images(const nifti_image *imgA,
-                               const nifti_image *imgB);
-/* *************************************************************** */
-/** @brief The absolute operator is applied to the input image
- */
-void reg_tools_abs_image(nifti_image *img);
-/* *************************************************************** */
 void mat44ToCptr(const mat44& mat, float *cMat);
-/* *************************************************************** */
-void cPtrToMat44(mat44 *mat, const float *cMat);
-/* *************************************************************** */
-void mat33ToCptr(const mat33 *mat, float *cMat, const unsigned numMats);
-/* *************************************************************** */
-void cPtrToMat33(mat33 *mat, const float *cMat);
-/* *************************************************************** */
-template<typename T>
-void matmnToCptr(const T **mat, T *cMat, unsigned m, unsigned n);
-/* *************************************************************** */
-template<typename T>
-void cPtrToMatmn(T **mat, const T *cMat, unsigned m, unsigned n);
-/* *************************************************************** */
-void coordinateFromLinearIndex(int index, int maxValue_x, int maxValue_y, int& x, int& y, int& z);
 /* *************************************************************** */
 /** @brief Duplicates the nifti image
  * @param image Input image

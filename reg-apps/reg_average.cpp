@@ -70,19 +70,6 @@ void usage(char *exec)
    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
-void average_norm_intensity(nifti_image *image)
-{
-   PrecisionType *rankedIntensities = (PrecisionType *)malloc(image->nvox*sizeof(PrecisionType));
-   memcpy(rankedIntensities,image->data,image->nvox*sizeof(PrecisionType));
-   reg_heapSort(rankedIntensities,static_cast<int>(image->nvox));
-   PrecisionType lowerValue=rankedIntensities[static_cast<unsigned>(static_cast<float>(image->nvox)*0.03f)];
-   PrecisionType higherValue=rankedIntensities[static_cast<unsigned>(static_cast<float>(image->nvox)*0.97f)];
-   reg_tools_subtractValueFromImage(image,image,lowerValue);
-   reg_tools_multiplyValueToImage(image,image,255.f/(higherValue-lowerValue));
-   free(rankedIntensities);
-   return;
-}
-
 int remove_nan_and_add(nifti_image *averageImage,
                         nifti_image *toAddImage,
                         nifti_image *definedNumImage)

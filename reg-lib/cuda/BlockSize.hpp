@@ -25,11 +25,6 @@ struct BlockSize {
     unsigned ComputeJacGradient3d;
     unsigned ApproxCorrectFolding3d;
     unsigned CorrectFolding3d;
-    unsigned GetJacobianMatrix;
-    unsigned ConvertNmiGradientFromVoxelToRealSpace;
-    unsigned ApplyConvolutionWindowAlongX;
-    unsigned ApplyConvolutionWindowAlongY;
-    unsigned ApplyConvolutionWindowAlongZ;
 };
 /* *************************************************************** */
 struct BlockSize100: public BlockSize {
@@ -45,11 +40,6 @@ struct BlockSize100: public BlockSize {
         ComputeJacGradient3d = 256; // 32 reg - 24 smem - 64 cmem
         ApproxCorrectFolding3d = 256; // 32 reg - 24 smem - 24 cmem
         CorrectFolding3d = 256; // 31 reg - 24 smem - 32 cmem
-        GetJacobianMatrix = 512; // 16 reg - 24 smem - 04 cmem
-        ConvertNmiGradientFromVoxelToRealSpace = 512; // 16 reg - 24 smem
-        ApplyConvolutionWindowAlongX = 512; // 14 reg - 28 smem - 08 cmem
-        ApplyConvolutionWindowAlongY = 512; // 14 reg - 28 smem - 08 cmem
-        ApplyConvolutionWindowAlongZ = 512; // 15 reg - 28 smem - 08 cmem
         NR_FUNC_CALLED();
     }
 };
@@ -67,11 +57,6 @@ struct BlockSize300: public BlockSize {
         ComputeJacGradient3d = 768; // 37 reg
         ApproxCorrectFolding3d = 768; // 34 reg
         CorrectFolding3d = 768; // 34 reg
-        GetJacobianMatrix = 768; // 34 reg
-        ConvertNmiGradientFromVoxelToRealSpace = 1024; // 23 reg
-        ApplyConvolutionWindowAlongX = 1024; // 25 reg
-        ApplyConvolutionWindowAlongY = 1024; // 25 reg
-        ApplyConvolutionWindowAlongZ = 1024; // 25 reg
         NR_FUNC_CALLED();
     }
 };

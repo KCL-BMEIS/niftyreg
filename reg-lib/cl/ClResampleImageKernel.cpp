@@ -83,15 +83,9 @@ void ClResampleImageKernel::Calculate(int interp,
     const size_t globalWorkSize[dims] = {blocks * maxThreads};
     const size_t localWorkSize[dims] = {maxThreads};
 
-    //    int numMats = 0; //needs to be a parameter
-    //    float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
-
     cl_long2 voxelNumber = {{(cl_long)NiftiImage::calcVoxelNumber(warpedImage, 3), (cl_long)NiftiImage::calcVoxelNumber(this->floatingImage, 3)}};
     cl_uint3 fi_xyz = {{(cl_uint)floatingImage->nx, (cl_uint)floatingImage->ny, (cl_uint)floatingImage->nz}};
     cl_uint2 wi_tu = {{(cl_uint)warpedImage->nt, (cl_uint)warpedImage->nu}};
-
-    //    if (numMats)
-    //        mat33ToCptr(jacMat, jacMat_h, numMats);
 
     int datatype = this->floatingImage->datatype;
 

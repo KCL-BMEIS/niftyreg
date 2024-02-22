@@ -72,10 +72,6 @@ void GetIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
                                         vector<NiftiImage>& deformationFields,
                                         vector<thrust::device_vector<float4>>& deformationFieldCudaVecs);
 /* *************************************************************** */
-void GetJacobianMatrix(const nifti_image *deformationField,
-                       const float4 *deformationFieldCuda,
-                       float *jacobianMatricesCuda);
-/* *************************************************************** */
 template<bool is3d>
 double ApproxLinearEnergy(const nifti_image *controlPointGrid,
                           const float4 *controlPointGridCuda);

@@ -193,9 +193,3 @@ void compute_BCH_update(nifti_image *img1,
                         nifti_image *img2,
                         int type);
 /* *************************************************************** */
-/** @brief This function deconvolve an image by a cubic B-Spline kernel
- * in order to get cubic B-Spline coefficient
- * @param img Image to be deconvolved
- */
-void reg_spline_getDeconvolvedCoefficents(nifti_image *img);
-/* *************************************************************** */

@@ -63,10 +63,6 @@ PlatformType Platform::GetPlatformType() const {
     return platformType;
 }
 /* *************************************************************** */
-unsigned Platform::GetGpuIdx() const {
-    return gpuIdx;
-}
-/* *************************************************************** */
 void Platform::SetGpuIdx(unsigned gpuIdxIn) {
     if (platformType == PlatformType::Cpu) {
         gpuIdx = 999;

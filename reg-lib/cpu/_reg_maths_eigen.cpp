@@ -66,117 +66,6 @@ void svd(T **in, size_t size_m, size_t size_n, T * w, T **v) {
 template void svd<float>(float **in, size_t m, size_t n, float * w, float **v);
 template void svd<double>(double **in, size_t m, size_t n, double * w, double **v);
 /* *************************************************************** */
-/**
-* @brief SVD
-* @param in input matrix to decompose
-* @param size_m row
-* @param size_n colomn
-* @param U unitary matrices
-* @param S diagonal matrix
-* @param V unitary matrices
-*  X = U*S*V'
-*/
-template<class T>
-void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
-   if (in == nullptr)
-      NR_FATAL_ERROR("The specified matrix is empty");
-
-#ifdef _WIN32
-   long sm, sn, min_dim, i, j;
-   long size__m = (long)size_m, size__n = (long)size_n;
-#else
-   size_t sm, sn, min_dim, i, j;
-   size_t size__m = size_m, size__n = size_n;
-#endif
-   Eigen::MatrixXd m(size__m, size__n);
-
-   //Convert to Eigen matrix
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(in, m, size__m, size__n) \
-   private(sn)
-#endif
-   for (sm = 0; sm < size__m; sm++)
-   {
-      for (sn = 0; sn < size__n; sn++)
-      {
-         m(sm, sn) = static_cast<double>(in[sm][sn]);
-      }
-   }
-
-   Eigen::JacobiSVD<Eigen::MatrixXd> svd(m, Eigen::ComputeThinU | Eigen::ComputeThinV);
-
-   min_dim = std::min(size__m, size__n);
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(svd, min_dim, S) \
-   private(j)
-#endif
-   //Convert to C matrix
-   for (i = 0; i < min_dim; i++) {
-      for (j = 0; j < min_dim; j++) {
-         if (i == j) {
-            (*S)[i][j] = static_cast<T>(svd.singularValues()(i));
-         }
-         else {
-            (*S)[i][j] = 0;
-         }
-      }
-   }
-
-   if (size__m > size__n) {
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(svd, min_dim, V) \
-   private(j)
-#endif
-      //Convert to C matrix
-      for (i = 0; i < min_dim; i++) {
-         for (j = 0; j < min_dim; j++) {
-            (*V)[i][j] = static_cast<T>(svd.matrixV()(i, j));
-
-         }
-      }
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(svd, size__m, size__n, U) \
-   private(j)
-#endif
-      for (i = 0; i < size__m; i++) {
-         for (j = 0; j < size__n; j++) {
-            (*U)[i][j] = static_cast<T>(svd.matrixU()(i, j));
-         }
-      }
-   }
-   else {
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(svd, min_dim, U) \
-   private(j)
-#endif
-      //Convert to C matrix
-      for (i = 0; i < min_dim; i++) {
-         for (j = 0; j < min_dim; j++) {
-            (*U)[i][j] = static_cast<T>(svd.matrixU()(i, j));
-
-         }
-      }
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(svd, size__m, size__n, V) \
-   private(j)
-#endif
-      for (i = 0; i < size__n; i++) {
-         for (j = 0; j < size__m; j++) {
-            (*V)[i][j] = static_cast<T>(svd.matrixV()(i, j));
-         }
-      }
-   }
-
-}
-template void svd<float>(float **in, size_t size_m, size_t size_n, float ***U, float ***S, float ***V);
-template void svd<double>(double **in, size_t size_m, size_t size_n, double ***U, double ***S, double ***V);
-/* *************************************************************** */
 template<class T>
 T reg_matrix2DDet(T** mat, size_t m, size_t n) {
    if (m != n)
@@ -205,24 +94,6 @@ T reg_matrix2DDet(T** mat, size_t m, size_t n) {
 }
 template float reg_matrix2DDet<float>(float** mat, size_t m, size_t n);
 template double reg_matrix2DDet<double>(double** mat, size_t m, size_t n);
-/* *************************************************************** */
-mat44 reg_mat44_sqrt(mat44 const* mat)
-{
-   mat44 X;
-   Eigen::Matrix4d m;
-   for (size_t i = 0; i < 4; ++i)
-   {
-      for (size_t j = 0; j < 4; ++j)
-      {
-         m(i, j) = static_cast<double>(mat->m[i][j]);
-      }
-   }
-   m = m.sqrt();
-   for (size_t i = 0; i < 4; ++i)
-      for (size_t j = 0; j < 4; ++j)
-         X.m[i][j] = static_cast<float>(m(i, j));
-   return X;
-}
 /* *************************************************************** */
 void reg_mat33_expm(mat33 *in_tensor)
 {
@@ -316,24 +187,6 @@ mat44 reg_mat44_logm(mat44 const* mat)
       for (size_t j = 0; j < 4; ++j)
          X.m[i][j] = static_cast<float>(m(i, j));
    return X;
-}
-/* *************************************************************** */
-mat44 reg_mat44_inv(mat44 const* mat)
-{
-   mat44 out;
-   Eigen::Matrix4d m, m_inv;
-   for (size_t i = 0; i < 4; ++i) {
-      for (size_t j = 0; j < 4; ++j) {
-         m(i, j) = static_cast<double>(mat->m[i][j]);
-      }
-   }
-   m_inv = m.inverse();
-   for (size_t i = 0; i < 4; ++i)
-      for (size_t j = 0; j < 4; ++j)
-         out.m[i][j] = static_cast<float>(m_inv(i, j));
-   //
-   return out;
-
 }
 /* *************************************************************** */
 mat44 reg_mat44_avg2(mat44 const* A, mat44 const* B)

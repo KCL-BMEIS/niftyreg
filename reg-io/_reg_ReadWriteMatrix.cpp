@@ -201,30 +201,3 @@ T** reg_tool_ReadMatrixFile(char *filename, size_t nbLine, size_t nbColumn) {
 template float** reg_tool_ReadMatrixFile<float>(char *filename, size_t nbLine, size_t nbColumn);
 template double** reg_tool_ReadMatrixFile<double>(char *filename, size_t nbLine, size_t nbColumn);
 /* *************************************************************** */
-mat44* reg_tool_ReadMat44File(char *fileName) {
-    mat44 *mat = (mat44 *)malloc(sizeof(mat44));
-    std::ifstream matrixFile;
-    matrixFile.open(fileName);
-    if (matrixFile.is_open()) {
-        int i = 0;
-        double value1, value2, value3, value4;
-        while (!matrixFile.eof()) {
-            matrixFile >> value1 >> value2 >> value3 >> value4;
-
-            mat->m[i][0] = (float)value1;
-            mat->m[i][1] = (float)value2;
-            mat->m[i][2] = (float)value3;
-            mat->m[i][3] = (float)value4;
-            i++;
-            if (i > 3) break;
-        }
-    } else {
-        NR_FATAL_ERROR("The mat44 file can not be read: "s + fileName);
-    }
-    matrixFile.close();
-
-    NR_MAT44_DEBUG(*mat, "mat44 matrix");
-
-    return mat;
-}
-/* *************************************************************** */

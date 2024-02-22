@@ -179,43 +179,5 @@ public:
     virtual void Perturbation(float length) override;
 };
 /* *************************************************************** */
-/** @class Global optimisation class
- * @brief
- */
-template <class T>
-class Lbfgs: public Optimiser<T> {
-protected:
-    size_t stepToKeep;
-    T *oldDof;
-    T *oldGrad;
-    T **diffDof;
-    T **diffGrad;
-
-#ifdef NR_TESTING
-public:
-#endif
-    virtual void UpdateGradientValues() override;
-
-public:
-    Lbfgs();
-    virtual ~Lbfgs();
-    virtual void Initialise(size_t nvox,
-                            int ndim,
-                            bool optX,
-                            bool optY,
-                            bool optZ,
-                            size_t maxIt,
-                            size_t startIt,
-                            InterfaceOptimiser *intOpt,
-                            T *cppData,
-                            T *gradData,
-                            size_t nvoxBw,
-                            T *cppDataBw,
-                            T *gradDataBw) override;
-    virtual void Optimise(T maxLength,
-                          T smallLength,
-                          T& startLength) override;
-};
-/* *************************************************************** */
 } // namespace NiftyReg
 /* *************************************************************** */

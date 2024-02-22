@@ -1129,68 +1129,6 @@ __device__ void DefFieldComposeKernel(float4 *deformationField,
     deformationField[index] = position;
 }
 /* *************************************************************** */
-__global__ void GetJacobianMatrix3d(float *jacobianMatrices,
-                                    cudaTextureObject_t deformationFieldTexture,
-                                    const int3 referenceImageDim,
-                                    const unsigned voxelNumber,
-                                    const mat33 reorientation) {
-    const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (tid < voxelNumber) {
-        int quot, rem;
-        reg_div_cuda(tid, referenceImageDim.x * referenceImageDim.y, quot, rem);
-        const int z = quot;
-        reg_div_cuda(rem, referenceImageDim.x, quot, rem);
-        const int y = quot, x = rem;
-
-        if (x == referenceImageDim.x - 1 || y == referenceImageDim.y - 1 || z == referenceImageDim.z - 1) {
-            int index = tid * 9;
-            jacobianMatrices[index++] = 1;
-            jacobianMatrices[index++] = 0;
-            jacobianMatrices[index++] = 0;
-            jacobianMatrices[index++] = 0;
-            jacobianMatrices[index++] = 1;
-            jacobianMatrices[index++] = 0;
-            jacobianMatrices[index++] = 0;
-            jacobianMatrices[index++] = 0;
-            jacobianMatrices[index] = 1;
-            return;
-        }
-
-        int index = (z * referenceImageDim.y + y) * referenceImageDim.x + x;
-        float4 deformation = tex1Dfetch<float4>(deformationFieldTexture, index);
-        float matrix[9] = {
-            -deformation.x, -deformation.x, -deformation.x,
-            -deformation.y, -deformation.y, -deformation.y,
-            -deformation.z, -deformation.z, -deformation.z
-        };
-        deformation = tex1Dfetch<float4>(deformationFieldTexture, index + 1);
-        matrix[0] += deformation.x;
-        matrix[3] += deformation.y;
-        matrix[6] += deformation.z;
-        index = (z * referenceImageDim.y + y + 1) * referenceImageDim.x + x;
-        deformation = tex1Dfetch<float4>(deformationFieldTexture, index);
-        matrix[1] += deformation.x;
-        matrix[4] += deformation.y;
-        matrix[7] += deformation.z;
-        index = ((z + 1) * referenceImageDim.y + y) * referenceImageDim.x + x;
-        deformation = tex1Dfetch<float4>(deformationFieldTexture, index);
-        matrix[2] += deformation.x;
-        matrix[5] += deformation.y;
-        matrix[8] += deformation.z;
-
-        index = tid * 9;
-        jacobianMatrices[index++] = reorientation.m[0][0] * matrix[0] + reorientation.m[0][1] * matrix[3] + reorientation.m[0][2] * matrix[6];
-        jacobianMatrices[index++] = reorientation.m[0][0] * matrix[1] + reorientation.m[0][1] * matrix[4] + reorientation.m[0][2] * matrix[7];
-        jacobianMatrices[index++] = reorientation.m[0][0] * matrix[2] + reorientation.m[0][1] * matrix[5] + reorientation.m[0][2] * matrix[8];
-        jacobianMatrices[index++] = reorientation.m[1][0] * matrix[0] + reorientation.m[1][1] * matrix[3] + reorientation.m[1][2] * matrix[6];
-        jacobianMatrices[index++] = reorientation.m[1][0] * matrix[1] + reorientation.m[1][1] * matrix[4] + reorientation.m[1][2] * matrix[7];
-        jacobianMatrices[index++] = reorientation.m[1][0] * matrix[2] + reorientation.m[1][1] * matrix[5] + reorientation.m[1][2] * matrix[8];
-        jacobianMatrices[index++] = reorientation.m[2][0] * matrix[0] + reorientation.m[2][1] * matrix[3] + reorientation.m[2][2] * matrix[6];
-        jacobianMatrices[index++] = reorientation.m[2][0] * matrix[1] + reorientation.m[2][1] * matrix[4] + reorientation.m[2][2] * matrix[7];
-        jacobianMatrices[index] = reorientation.m[2][0] * matrix[2] + reorientation.m[2][1] * matrix[5] + reorientation.m[2][2] * matrix[8];
-    }
-}
-/* *************************************************************** */
 template<bool is3d>
 struct Basis1st {
     float x[27], y[27], z[27];

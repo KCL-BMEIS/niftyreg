@@ -21,7 +21,7 @@
 class reg_ssd: public reg_measure {
 public:
     /// @brief reg_ssd class constructor
-    reg_ssd();
+    reg_ssd() { NR_FUNC_CALLED(); }
     /// @brief reg_ssd class destructor
     virtual ~reg_ssd() {}
 
@@ -54,7 +54,7 @@ public:
                                      int discretiseStep) override;
 
 protected:
-    bool normaliseTimePoint[255];
+    bool normaliseTimePoint[255]{};
 };
 /* *************************************************************** */
 /** @brief Computes and returns the SSD between two input images

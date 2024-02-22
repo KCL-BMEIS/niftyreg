@@ -65,9 +65,3 @@ nifti_image *reg_io_ReadImageHeader(const char *filename);
   */
 void reg_io_WriteImageFile(nifti_image *image, const char *filename);
 /* *************************************************************** */
-/** The function expects a nifti_image structure
-  * The image will be displayed on the standard output
-  * @param Nifti image to be displayed
-  */
-void reg_io_displayImageData(nifti_image *image);
-/* *************************************************************** */

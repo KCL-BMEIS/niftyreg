@@ -95,15 +95,6 @@ install(TARGETS _reg_blockMatching
 )
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_blockMatching")
 #-----------------------------------------------------------------------------
-add_library(_reg_femTrans ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_femTrans.cpp)
-target_link_libraries(_reg_femTrans _reg_globalTrans)
-install(TARGETS _reg_femTrans
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-)
-set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_femTrans")
-#-----------------------------------------------------------------------------
 add_library(_reg_compute ${NIFTYREG_LIBRARY_TYPE}
   Compute.cpp
   AladinContent.cpp
@@ -189,36 +180,6 @@ install(TARGETS _reg_f3d
   ARCHIVE DESTINATION lib
 )
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_f3d")
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-# BUILD THE TPS LIBRARY
-#set(NAME _reg_thinPlateSpline)
-#if(APPLE)
-#	add_library(${NAME} SHARED cpu/${NAME}.cpp)
-#else(APPLE)
-#	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/${NAME}.cpp)
-#endif(APPLE)
-#target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
-#install(TARGETS ${NAME}
-#	RUNTIME DESTINATION bin
-#	LIBRARY DESTINATION lib
-#	ARCHIVE DESTINATION lib
-#	)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-## BUILD THE POLYAFFINE LIBRARY
-#set(NAME _reg_polyAffine)
-#if(APPLE)
-#	add_library(${NAME} SHARED _reg_base.cpp ${NAME}.cpp)
-#else(APPLE)
-#	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} _reg_base.cpp ${NAME}.cpp)
-#endif(APPLE)
-#target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
-#install(TARGETS ${NAME}
-#	RUNTIME DESTINATION bin
-#	LIBRARY DESTINATION lib
-#	ARCHIVE DESTINATION lib
-#	)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES}" PARENT_SCOPE)

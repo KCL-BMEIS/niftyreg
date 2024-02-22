@@ -46,14 +46,6 @@ void reg_tool_ReadAffineFile(mat44 *mat,
 void reg_tool_ReadAffineFile(mat44 *mat,
                              char *filename);
 
-/**
-* @brief Read a file that contains a 4-by-4 matrix and store it into
-* a mat44 structure
-* @param filename Filename of the text file that contains the matrix to read
-* @return mat44 structure that store the matrix
-**/
-mat44* reg_tool_ReadMat44File(char *fileName);
-
 /** @brief This function save a 4-by-4 matrix to the disk as a text file
  * @param mat Matrix to be saved on the disk
  * @param filename Name of the text file to save on the disk

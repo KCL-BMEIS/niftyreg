@@ -106,8 +106,6 @@ protected:
     PlatformType platformType;
     unsigned gpuIdx;
 
-    bool TestMatrixConvergence(mat44 *mat);
-
     virtual void InitialiseRegistration();
     virtual void DeallocateCurrentInputImage();
 
@@ -242,7 +240,6 @@ public:
         this->SetInterpolation(3);
     }
 
-    virtual int Check();
     virtual void Print();
     virtual void Run();
 
