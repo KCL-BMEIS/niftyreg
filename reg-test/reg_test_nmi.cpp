@@ -82,12 +82,12 @@ public:
                 unique_ptr<DefContent> content{ contentCreator->Create(reference, floating) };
                 // Initialise the warped image using floating image
                 content->SetWarped(floating.disown());
-                // Create the measure
-                unique_ptr<Measure> measure{ platform->CreateMeasure() };
+                // Create the measure creator
+                unique_ptr<MeasureCreator> measureCreator{ platform->CreateMeasureCreator() };
                 // Use NMI as a measure
-                unique_ptr<reg_nmi> measure_nmi{ dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)) };
+                unique_ptr<reg_nmi> measure_nmi{ dynamic_cast<reg_nmi*>(measureCreator->Create(MeasureType::Nmi)) };
                 measure_nmi->SetTimePointWeight(0, 1.0); // weight initially set to default value of 1.0
-                measure->Initialise(*measure_nmi, *content);
+                measureCreator->Initialise(*measure_nmi, *content);
                 const double nmi = measure_nmi->GetSimilarityMeasureValue();
 
                 testCases.push_back({ testName + " " + platform->GetName(), nmi, expected });

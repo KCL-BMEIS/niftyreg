@@ -90,14 +90,14 @@ public:
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 compute->ResampleImage(1, padding);
                 compute->GetImageGradient(1, padding, 0);
-                // Create the measure
-                unique_ptr<Measure> measure{ platform->CreateMeasure() };
+                // Create the measure creator
+                unique_ptr<MeasureCreator> measureCreator{ platform->CreateMeasureCreator() };
                 // Use NMI as a measure
-                unique_ptr<reg_nmi> measure_nmi{ dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)) };
+                unique_ptr<reg_nmi> measure_nmi{ dynamic_cast<reg_nmi*>(measureCreator->Create(MeasureType::Nmi)) };
                 measure_nmi->DoNotApproximatePw();
                 measure_nmi->SetTimePointWeight(0, 1.0); // weight initially set to default value of 1.0
                 measure_nmi->SetRefAndFloatBinNumbers(binNumber, binNumber, 0);
-                measure->Initialise(*measure_nmi, *content);
+                measureCreator->Initialise(*measure_nmi, *content);
                 // Compute the NMI gradient
                 measure_nmi->GetVoxelBasedSimilarityMeasureGradient(0);
                 // Create an image to store the gradient values

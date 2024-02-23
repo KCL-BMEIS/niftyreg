@@ -6,7 +6,7 @@
 #include "CudaComputeFactory.h"
 #include "CudaContentCreatorFactory.h"
 #include "CudaKernelFactory.h"
-#include "CudaMeasureFactory.h"
+#include "CudaMeasureCreatorFactory.hpp"
 #include "CudaOptimiser.hpp"
 #endif
 #ifdef USE_OPENCL
@@ -24,7 +24,7 @@ Platform::Platform(const PlatformType platformTypeIn) {
         computeFactory = new ComputeFactory();
         contentCreatorFactory = new ContentCreatorFactory();
         kernelFactory = new CpuKernelFactory();
-        measureFactory = new MeasureFactory();
+        measureCreatorFactory = new MeasureCreatorFactory();
     }
 #ifdef USE_CUDA
     else if (platformType == PlatformType::Cuda) {
@@ -33,7 +33,7 @@ Platform::Platform(const PlatformType platformTypeIn) {
         computeFactory = new CudaComputeFactory();
         contentCreatorFactory = new CudaContentCreatorFactory();
         kernelFactory = new CudaKernelFactory();
-        measureFactory = new CudaMeasureFactory();
+        measureCreatorFactory = new CudaMeasureCreatorFactory();
     }
 #endif
 #ifdef USE_OPENCL
@@ -52,7 +52,7 @@ Platform::~Platform() {
     delete computeFactory;
     delete contentCreatorFactory;
     delete kernelFactory;
-    delete measureFactory;
+    delete measureCreatorFactory;
 }
 /* *************************************************************** */
 std::string Platform::GetName() const {
@@ -104,8 +104,8 @@ Kernel* Platform::CreateKernel(const std::string& name, Content *con) const {
     return kernelFactory->Produce(name, con);
 }
 /* *************************************************************** */
-Measure* Platform::CreateMeasure() const {
-    return measureFactory->Produce();
+MeasureCreator* Platform::CreateMeasureCreator() const {
+    return measureCreatorFactory->Produce();
 }
 /* *************************************************************** */
 template<typename Type>

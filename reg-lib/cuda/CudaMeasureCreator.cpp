@@ -1,10 +1,10 @@
-#include "CudaMeasure.h"
+#include "CudaMeasureCreator.hpp"
 #include "CudaDefContent.h"
 #include "_reg_nmi_gpu.h"
 #include "_reg_ssd_gpu.h"
 
 /* *************************************************************** */
-reg_measure* CudaMeasure::Create(const MeasureType measureType) {
+reg_measure* CudaMeasureCreator::Create(const MeasureType measureType) {
     switch (measureType) {
     case MeasureType::Nmi:
         return new reg_nmi_gpu();
@@ -26,7 +26,7 @@ reg_measure* CudaMeasure::Create(const MeasureType measureType) {
     }
 }
 /* *************************************************************** */
-void CudaMeasure::Initialise(reg_measure& measure, DefContent& con, DefContent *conBw) {
+void CudaMeasureCreator::Initialise(reg_measure& measure, DefContent& con, DefContent *conBw) {
     reg_measure_gpu& measureGpu = dynamic_cast<reg_measure_gpu&>(measure);
     CudaDefContent& cudaCon = dynamic_cast<CudaDefContent&>(con);
     CudaDefContent *cudaConBw = dynamic_cast<CudaDefContent*>(conBw);

@@ -4,7 +4,7 @@
 #include "ComputeFactory.h"
 #include "ContentCreatorFactory.h"
 #include "KernelFactory.h"
-#include "MeasureFactory.h"
+#include "MeasureCreatorFactory.hpp"
 #include "Optimiser.hpp"
 
 enum class PlatformType { Cpu, Cuda, OpenCl };
@@ -34,7 +34,7 @@ public:
     Compute* CreateCompute(Content& con) const;
     ContentCreator* CreateContentCreator(const ContentType conType = ContentType::Base) const;
     Kernel* CreateKernel(const std::string& name, Content *con) const;
-    Measure* CreateMeasure() const;
+    MeasureCreator* CreateMeasureCreator() const;
     template<typename Type>
     Optimiser<Type>* CreateOptimiser(F3dContent& con,
                                      InterfaceOptimiser& opt,
@@ -62,8 +62,8 @@ private:
     ComputeFactory *computeFactory = nullptr;
     ContentCreatorFactory *contentCreatorFactory = nullptr;
     KernelFactory *kernelFactory = nullptr;
-    MeasureFactory *measureFactory = nullptr;
+    MeasureCreatorFactory *measureCreatorFactory = nullptr;
     std::string platformName;
     PlatformType platformType;
-    unsigned gpuIdx;
+    unsigned gpuIdx = 0;
 };

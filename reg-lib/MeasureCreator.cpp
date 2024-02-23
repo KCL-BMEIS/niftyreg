@@ -1,4 +1,4 @@
-#include "Measure.h"
+#include "MeasureCreator.hpp"
 #include "_reg_nmi.h"
 #include "_reg_ssd.h"
 #include "_reg_dti.h"
@@ -7,7 +7,7 @@
 #include "_reg_mind.h"
 
 /* *************************************************************** */
-reg_measure* Measure::Create(const MeasureType measureType) {
+reg_measure* MeasureCreator::Create(const MeasureType measureType) {
     switch (measureType) {
     case MeasureType::Nmi:
         return new reg_nmi();
@@ -29,7 +29,7 @@ reg_measure* Measure::Create(const MeasureType measureType) {
     }
 }
 /* *************************************************************** */
-void Measure::Initialise(reg_measure& measure, DefContent& con, DefContent *conBw) {
+void MeasureCreator::Initialise(reg_measure& measure, DefContent& con, DefContent *conBw) {
     measure.InitialiseMeasure(con.GetReference(),
                               con.GetFloating(),
                               con.GetReferenceMask(),

@@ -267,7 +267,7 @@ void reg_base<T>::CheckParameters() {
     // Set the default similarity measure if none has been set
     if (!measure_nmi && !measure_ssd && !measure_dti && !measure_lncc &&
         !measure_kld && !measure_mind && !measure_mindssc) {
-        measure_nmi.reset(dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)));
+        measure_nmi.reset(dynamic_cast<reg_nmi*>(measureCreator->Create(MeasureType::Nmi)));
         for (int i = 0; i < inputReference->nt; ++i)
             measure_nmi->SetTimePointWeight(i, 1.0);
     }
@@ -360,25 +360,25 @@ void reg_base<T>::InitialiseSimilarity() {
     DefContent& con = dynamic_cast<DefContent&>(*this->con);
 
     if (measure_nmi)
-        measure->Initialise(*measure_nmi, con);
+        measureCreator->Initialise(*measure_nmi, con);
 
     if (measure_ssd)
-        measure->Initialise(*measure_ssd, con);
+        measureCreator->Initialise(*measure_ssd, con);
 
     if (measure_kld)
-        measure->Initialise(*measure_kld, con);
+        measureCreator->Initialise(*measure_kld, con);
 
     if (measure_lncc)
-        measure->Initialise(*measure_lncc, con);
+        measureCreator->Initialise(*measure_lncc, con);
 
     if (measure_dti)
-        measure->Initialise(*measure_dti, con);
+        measureCreator->Initialise(*measure_dti, con);
 
     if (measure_mind)
-        measure->Initialise(*measure_mind, con);
+        measureCreator->Initialise(*measure_mind, con);
 
     if (measure_mindssc)
-        measure->Initialise(*measure_mindssc, con);
+        measureCreator->Initialise(*measure_mindssc, con);
 
     NR_FUNC_CALLED();
 }
@@ -551,7 +551,7 @@ void reg_base<T>::GetVoxelBasedGradient() {
 //void reg_base<T>::ApproximateParzenWindow()
 //{
 //    if(!measure_nmi)
-//        measure_nmi.reset(dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)));
+//        measure_nmi.reset(dynamic_cast<reg_nmi*>(measureCreator->Create(MeasureType::Nmi)));
 //    measure_nmi=approxParzenWindow = true;
 //}
 ///* *************************************************************** */
@@ -559,14 +559,14 @@ void reg_base<T>::GetVoxelBasedGradient() {
 //void reg_base<T>::DoNotApproximateParzenWindow()
 //{
 //    if(!measure_nmi)
-//        measure_nmi.reset(dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)));
+//        measure_nmi.reset(dynamic_cast<reg_nmi*>(measureCreator->Create(MeasureType::Nmi)));
 //    measure_nmi=approxParzenWindow = false;
 //}
 /* *************************************************************** */
 template<class T>
 void reg_base<T>::UseNMISetReferenceBinNumber(int timePoint, int refBinNumber) {
     if (!measure_nmi)
-        measure_nmi.reset(dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)));
+        measure_nmi.reset(dynamic_cast<reg_nmi*>(measureCreator->Create(MeasureType::Nmi)));
     measure_nmi->SetTimePointWeight(timePoint, 1.0);//weight initially set to default value of 1.0
     // I am here adding 4 to the specified bin number to accommodate for
     // the spline support
@@ -577,7 +577,7 @@ void reg_base<T>::UseNMISetReferenceBinNumber(int timePoint, int refBinNumber) {
 template<class T>
 void reg_base<T>::UseNMISetFloatingBinNumber(int timePoint, int floBinNumber) {
     if (!measure_nmi)
-        measure_nmi.reset(dynamic_cast<reg_nmi*>(measure->Create(MeasureType::Nmi)));
+        measure_nmi.reset(dynamic_cast<reg_nmi*>(measureCreator->Create(MeasureType::Nmi)));
     measure_nmi->SetTimePointWeight(timePoint, 1.0);//weight initially set to default value of 1.0
     // I am here adding 4 to the specified bin number to accommodate for
     // the spline support
@@ -588,7 +588,7 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timePoint, int floBinNumber) {
 template<class T>
 void reg_base<T>::UseSSD(int timePoint, bool normalise) {
     if (!measure_ssd)
-        measure_ssd.reset(dynamic_cast<reg_ssd*>(measure->Create(MeasureType::Ssd)));
+        measure_ssd.reset(dynamic_cast<reg_ssd*>(measureCreator->Create(MeasureType::Ssd)));
     measure_ssd->SetTimePointWeight(timePoint, 1.0);//weight initially set to default value of 1.0
     measure_ssd->SetNormaliseTimePoint(timePoint, normalise);
     NR_FUNC_CALLED();
@@ -597,7 +597,7 @@ void reg_base<T>::UseSSD(int timePoint, bool normalise) {
 template<class T>
 void reg_base<T>::UseMIND(int timePoint, int offset) {
     if (!measure_mind)
-        measure_mind.reset(dynamic_cast<reg_mind*>(measure->Create(MeasureType::Mind)));
+        measure_mind.reset(dynamic_cast<reg_mind*>(measureCreator->Create(MeasureType::Mind)));
     measure_mind->SetTimePointWeight(timePoint, 1.0);//weight set to 1.0 to indicate time point is active
     measure_mind->SetDescriptorOffset(offset);
     NR_FUNC_CALLED();
@@ -606,7 +606,7 @@ void reg_base<T>::UseMIND(int timePoint, int offset) {
 template<class T>
 void reg_base<T>::UseMINDSSC(int timePoint, int offset) {
     if (!measure_mindssc)
-        measure_mindssc.reset(dynamic_cast<reg_mindssc*>(measure->Create(MeasureType::MindSsc)));
+        measure_mindssc.reset(dynamic_cast<reg_mindssc*>(measureCreator->Create(MeasureType::MindSsc)));
     measure_mindssc->SetTimePointWeight(timePoint, 1.0);//weight set to 1.0 to indicate time point is active
     measure_mindssc->SetDescriptorOffset(offset);
     NR_FUNC_CALLED();
@@ -615,7 +615,7 @@ void reg_base<T>::UseMINDSSC(int timePoint, int offset) {
 template<class T>
 void reg_base<T>::UseKLDivergence(int timePoint) {
     if (!measure_kld)
-        measure_kld.reset(dynamic_cast<reg_kld*>(measure->Create(MeasureType::Kld)));
+        measure_kld.reset(dynamic_cast<reg_kld*>(measureCreator->Create(MeasureType::Kld)));
     measure_kld->SetTimePointWeight(timePoint, 1.0);//weight initially set to default value of 1.0
     NR_FUNC_CALLED();
 }
@@ -623,7 +623,7 @@ void reg_base<T>::UseKLDivergence(int timePoint) {
 template<class T>
 void reg_base<T>::UseLNCC(int timePoint, float stddev) {
     if (!measure_lncc)
-        measure_lncc.reset(dynamic_cast<reg_lncc*>(measure->Create(MeasureType::Lncc)));
+        measure_lncc.reset(dynamic_cast<reg_lncc*>(measureCreator->Create(MeasureType::Lncc)));
     measure_lncc->SetKernelStandardDeviation(timePoint, stddev);
     measure_lncc->SetTimePointWeight(timePoint, 1.0); // weight initially set to default value of 1.0
     NR_FUNC_CALLED();
@@ -642,7 +642,7 @@ void reg_base<T>::UseDTI(bool *timePoint) {
     NR_FATAL_ERROR("The use of DTI has been deactivated as it requires some refactoring");
 
     if (!measure_dti)
-        measure_dti.reset(dynamic_cast<reg_dti*>(measure->Create(MeasureType::Dti)));
+        measure_dti.reset(dynamic_cast<reg_dti*>(measureCreator->Create(MeasureType::Dti)));
     for (int i = 0; i < inputReference->nt; ++i) {
         if (timePoint[i])
             measure_dti->SetTimePointWeight(i, 1.0);  // weight set to 1.0 to indicate time point is active

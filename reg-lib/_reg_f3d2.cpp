@@ -489,25 +489,25 @@ void reg_f3d2<T>::InitialiseSimilarity() {
     F3dContent& con = dynamic_cast<F3dContent&>(*this->con);
 
     if (this->measure_nmi)
-        this->measure->Initialise(*this->measure_nmi, con, conBw.get());
+        this->measureCreator->Initialise(*this->measure_nmi, con, conBw.get());
 
     if (this->measure_ssd)
-        this->measure->Initialise(*this->measure_ssd, con, conBw.get());
+        this->measureCreator->Initialise(*this->measure_ssd, con, conBw.get());
 
     if (this->measure_kld)
-        this->measure->Initialise(*this->measure_kld, con, conBw.get());
+        this->measureCreator->Initialise(*this->measure_kld, con, conBw.get());
 
     if (this->measure_lncc)
-        this->measure->Initialise(*this->measure_lncc, con, conBw.get());
+        this->measureCreator->Initialise(*this->measure_lncc, con, conBw.get());
 
     if (this->measure_dti)
-        this->measure->Initialise(*this->measure_dti, con, conBw.get());
+        this->measureCreator->Initialise(*this->measure_dti, con, conBw.get());
 
     if (this->measure_mind)
-        this->measure->Initialise(*this->measure_mind, con, conBw.get());
+        this->measureCreator->Initialise(*this->measure_mind, con, conBw.get());
 
     if (this->measure_mindssc)
-        this->measure->Initialise(*this->measure_mindssc, con, conBw.get());
+        this->measureCreator->Initialise(*this->measure_mindssc, con, conBw.get());
 
     NR_FUNC_CALLED();
 }

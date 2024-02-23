@@ -103,7 +103,7 @@ add_library(_reg_compute ${NIFTYREG_LIBRARY_TYPE}
   F3dContent.cpp
   Optimiser.cpp
   Platform.cpp
-  Measure.cpp
+  MeasureCreator.cpp
 )
 target_link_libraries(_reg_compute _reg_measure)
 install(TARGETS _reg_compute

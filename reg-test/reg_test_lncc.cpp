@@ -151,13 +151,13 @@ public:
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 compute->ResampleImage(0, 0);
                 content->SetWarped(floating.disown());
-                // Create the measure
-                unique_ptr<Measure> measure{ platform->CreateMeasure() };
+                // Create the measure creator
+                unique_ptr<MeasureCreator> measureCreator{ platform->CreateMeasureCreator() };
                 // Use LNCC as a measure
-                unique_ptr<reg_lncc> measure_lncc{ dynamic_cast<reg_lncc*>(measure->Create(MeasureType::Lncc)) };
+                unique_ptr<reg_lncc> measure_lncc{ dynamic_cast<reg_lncc*>(measureCreator->Create(MeasureType::Lncc)) };
                 measure_lncc->SetKernelStandardDeviation(0, sigma);
                 measure_lncc->SetTimePointWeight(0, 1.0); // weight initially set to default value of 1.0
-                measure->Initialise(*measure_lncc, *content);
+                measureCreator->Initialise(*measure_lncc, *content);
                 const double lncc = measure_lncc->GetSimilarityMeasureValue();
                 // Save for testing
                 testCases.push_back({ testName, lncc, expLncc });

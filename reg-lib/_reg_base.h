@@ -42,7 +42,7 @@ protected:
     unique_ptr<Compute> compute;
 
     // Measure
-    unique_ptr<Measure> measure;
+    unique_ptr<MeasureCreator> measureCreator;
 
     // Optimiser-related variables
     unique_ptr<Optimiser<T>> optimiser;
@@ -143,7 +143,7 @@ public:
     // Platform
     virtual void SetPlatformType(const PlatformType platformType) {
         platform.reset(new Platform(platformType));
-        measure.reset(platform->CreateMeasure());
+        measureCreator.reset(platform->CreateMeasureCreator());
     }
     virtual void SetGpuIdx(const unsigned gpuIdx) { platform->SetGpuIdx(gpuIdx); }
 

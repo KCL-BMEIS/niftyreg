@@ -1,7 +1,7 @@
 #include "reg_test_common.h"
 #include "_reg_nmi.h"
 #include "CudaF3dContent.h"
-#include "CudaMeasure.h"
+#include "CudaMeasureCreator.hpp"
 
 /**
  *  Measure regression tests to ensure the CPU and CUDA versions yield the same output
@@ -94,8 +94,8 @@ public:
         Platform platformCuda(PlatformType::Cuda);
 
         // Create the measures
-        unique_ptr<Measure> measureCreatorCpu{ new Measure() };
-        unique_ptr<Measure> measureCreatorCuda{ new CudaMeasure() };
+        unique_ptr<MeasureCreator> measureCreatorCpu{ new MeasureCreator() };
+        unique_ptr<MeasureCreator> measureCreatorCuda{ new CudaMeasureCreator() };
 
         // Create the content creators
         unique_ptr<F3d2ContentCreator> contentCreatorCpu{ dynamic_cast<F3d2ContentCreator*>(platformCpu.CreateContentCreator(ContentType::F3d2)) };

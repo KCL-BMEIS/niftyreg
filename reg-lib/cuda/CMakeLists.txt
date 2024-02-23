@@ -76,7 +76,7 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaKernelFactory.cpp
     CudaLocalTransformation.cu
     CudaLtsKernel.cpp
-    CudaMeasure.cpp
+    CudaMeasureCreator.cpp
     CudaNormaliseGradient.cu
     CudaOptimiser.cu
     CudaResampleImageKernel.cpp
