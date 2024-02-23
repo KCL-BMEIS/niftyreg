@@ -16,7 +16,7 @@
 #include "_reg_globalTrans.h"
 #include "_reg_resampling.h"
 
-#define MIND_TYPE 0
+#define MIND_TYPE    0
 #define MINDSSC_TYPE 1
 
 /* *************************************************************** */
@@ -66,9 +66,10 @@ protected:
 class reg_mindssc: public reg_mind {
 public:
     /// @brief reg_mind class constructor
-    reg_mindssc();
-    /// @brief Measure class destructor
-    virtual ~reg_mindssc();
+    reg_mindssc() {
+        this->mindType = MINDSSC_TYPE;
+        NR_FUNC_CALLED();
+    }
 };
 /* *************************************************************** */
 void GetMindImageDescriptor(const nifti_image *inputImage,

@@ -10,7 +10,7 @@ if(NOT EXISTS ${CMAKE_BINARY_DIR}/third-party/eigen)
   if(result)
     message(FATAL_ERROR "Failed to clone Eigen!")
   endif(result)
-  message(STATUS "Eigen is cloned into ${CMAKE_BINARY_DIR}/third-party/eigen")
+  message(STATUS "Eigen has been cloned into ${CMAKE_BINARY_DIR}/third-party/eigen")
 endif(NOT EXISTS ${CMAKE_BINARY_DIR}/third-party/eigen)
 #-----------------------------------------------------------------------------
 if(OPENMP_FOUND)

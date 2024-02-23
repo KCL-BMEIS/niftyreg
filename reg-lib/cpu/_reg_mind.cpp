@@ -399,7 +399,7 @@ double GetSimilarityMeasureValue(nifti_image *referenceImage,
     double mind = 0;
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
     unique_ptr<int[]> combinedMask(new int[voxelNumber]);
-    auto GetMindImgDesc = mindType == MIND_TYPE ? GetMindImageDescriptor : GetMindSscImageDescriptor;
+    auto getMindImgDesc = mindType == MIND_TYPE ? GetMindImageDescriptor : GetMindSscImageDescriptor;
 
     for (int currentTimePoint = 0; currentTimePoint < referenceTimePoints; ++currentTimePoint) {
         if (timePointWeights[currentTimePoint] > 0) {
@@ -407,8 +407,8 @@ double GetSimilarityMeasureValue(nifti_image *referenceImage,
             reg_tools_removeNanFromMask(referenceImage, combinedMask.get());
             reg_tools_removeNanFromMask(warpedImage, combinedMask.get());
 
-            GetMindImgDesc(referenceImage, referenceImageDescriptor, combinedMask.get(), descriptorOffset, currentTimePoint);
-            GetMindImgDesc(warpedImage, warpedFloatingImageDescriptor, combinedMask.get(), descriptorOffset, currentTimePoint);
+            getMindImgDesc(referenceImage, referenceImageDescriptor, combinedMask.get(), descriptorOffset, currentTimePoint);
+            getMindImgDesc(warpedImage, warpedFloatingImageDescriptor, combinedMask.get(), descriptorOffset, currentTimePoint);
 
             std::visit([&](auto&& refImgDataType) {
                 using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
@@ -469,11 +469,11 @@ void GetVoxelBasedSimilarityMeasureGradient(nifti_image *referenceImage,
     reg_tools_removeNanFromMask(referenceImage, combinedMask.data());
     reg_tools_removeNanFromMask(warpedImage, combinedMask.data());
 
-    auto GetMindImgDesc = mindType == MIND_TYPE ? GetMindImageDescriptor : GetMindSscImageDescriptor;
+    auto getMindImgDesc = mindType == MIND_TYPE ? GetMindImageDescriptor : GetMindSscImageDescriptor;
     // Compute the reference image descriptors
-    GetMindImgDesc(referenceImage, referenceImageDescriptor, combinedMask.data(), descriptorOffset, currentTimePoint);
+    getMindImgDesc(referenceImage, referenceImageDescriptor, combinedMask.data(), descriptorOffset, currentTimePoint);
     // Compute the warped floating image descriptors
-    GetMindImgDesc(warpedImage, warpedFloatingImageDescriptor, combinedMask.data(), descriptorOffset, currentTimePoint);
+    getMindImgDesc(warpedImage, warpedFloatingImageDescriptor, combinedMask.data(), descriptorOffset, currentTimePoint);
 
     for (int descIndex = 0; descIndex < descriptorNumber; ++descIndex) {
         // Compute the warped image descriptors gradient
@@ -525,14 +525,5 @@ void reg_mind::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) {
                                              this->descriptorOffset,
                                              this->descriptorNumber,
                                              currentTimePoint);
-}
-/* *************************************************************** */
-reg_mindssc::reg_mindssc(): reg_mind() {
-    this->mindType = MINDSSC_TYPE;
-    NR_FUNC_CALLED();
-}
-/* *************************************************************** */
-reg_mindssc::~reg_mindssc() {
-    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
