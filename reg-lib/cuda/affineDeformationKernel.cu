@@ -61,7 +61,7 @@ void launchAffine(mat44 *affineTransformation,
 
    float* trans = (float *)malloc(16 * sizeof(float));
    const mat44 *targetMatrix = (deformationField->sform_code > 0) ? &(deformationField->sto_xyz) : &(deformationField->qto_xyz);
-   mat44 transformationMatrix = compose ? *affineTransformation : reg_mat44_mul(affineTransformation, targetMatrix);
+   mat44 transformationMatrix = compose ? *affineTransformation : *affineTransformation * *targetMatrix;
    mat44ToCptr(transformationMatrix, trans);
    NR_CUDA_SAFE_CALL(cudaMemcpy(trans_d, trans, 16 * sizeof(float), cudaMemcpyHostToDevice));
    free(trans);

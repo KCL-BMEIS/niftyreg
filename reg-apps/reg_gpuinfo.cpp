@@ -1,4 +1,4 @@
-#include "_reg_maths.h"
+#include "Maths.hpp"
 #include "Platform.h"
 
 #ifdef USE_CUDA

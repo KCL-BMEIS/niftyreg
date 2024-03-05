@@ -18,7 +18,6 @@
 #include "_reg_resampling.h"
 #include "_reg_globalTrans.h"
 #include "_reg_localTrans.h"
-#include "_reg_maths_eigen.h"
 
 using PrecisionType = float;
 
@@ -112,7 +111,7 @@ mat44 compute_average_matrices(size_t matrixNumber,
    // Input matrices are logged in place
    for(size_t m=0; m<matrixNumber; ++m)
    {
-      matrices[m] = reg_mat44_logm(&matrices[m]);
+      matrices[m] = Mat44Logm(&matrices[m]);
       matrixWeight[m]=1.;
    }
    // The number of iteration to perform is defined based on the use of lts
@@ -196,7 +195,7 @@ mat44 compute_average_matrices(size_t matrixNumber,
             matrixIndexSorted[m]=m;
          }
          // Sort the computed distances
-         reg_heapSort(matrixWeight, matrixIndexSorted, matrixNumber);
+         HeapSort(matrixWeight, matrixIndexSorted, matrixNumber);
          // Re-assign the weights for the next iteration
          memset(matrixWeight, 0, matrixNumber*sizeof(float));
          for(size_t m=matrixNumber-1; m>lts_inlier * matrixNumber; --m)
@@ -205,7 +204,7 @@ mat44 compute_average_matrices(size_t matrixNumber,
          }
       }
       // The average matrix is exponentiated
-      average_matrix = reg_mat44_expm(&average_matrix);
+      average_matrix = Mat44Expm(&average_matrix);
    } // iteration number
    // Free the allocated array
    free(matrixWeight);
@@ -230,15 +229,15 @@ mat44 compute_affine_demean(size_t matrixNumber,
       tempMatrix=nifti_quatern_to_mat44(qb,qc,qd,qx,qy,qz,1.f,1.f,1.f,qfac);
       // remove the rigid componenent from the affine matrix
       tempMatrix=nifti_mat44_inverse(tempMatrix);
-      tempMatrix=reg_mat44_mul(&tempMatrix,&current_affine);
+      tempMatrix=tempMatrix * current_affine;
       // sum up all the affine matrices
-      tempMatrix = reg_mat44_logm(&tempMatrix);
+      tempMatrix = Mat44Logm(&tempMatrix);
       demeanMatrix = demeanMatrix + tempMatrix;
    }
    // The average matrix is normalised
-   demeanMatrix = reg_mat44_mul(&demeanMatrix,1.f/(float)matrixNumber);
+   demeanMatrix = demeanMatrix * (1.f / (float)matrixNumber);
    // The average matrix is exponentiated
-   demeanMatrix = reg_mat44_expm(&demeanMatrix);
+   demeanMatrix = Mat44Expm(&demeanMatrix);
    // The average matrix is inverted
    demeanMatrix = nifti_mat44_inverse(demeanMatrix);
    return demeanMatrix;
@@ -293,11 +292,7 @@ int compute_nrr_demean(nifti_image *demean_field,
             affineTransformation=*reinterpret_cast<mat44 *>(transformation->ext_list[0].edata);
             // Note that if the transformation is a flow field, only half-of the affine has be used
             if(transformation->num_ext>1 && deformationField->intent_p1!=DEF_VEL_FIELD)
-            {
-               affineTransformation=reg_mat44_mul(
-                                       reinterpret_cast<mat44 *>(transformation->ext_list[1].edata),
-                                       &affineTransformation);
-            }
+               affineTransformation=reinterpret_cast<mat44&>(*transformation->ext_list[1].edata) * affineTransformation;
          }
          else reg_tool_ReadAffineFile(&affineTransformation,inputAffName[t]);
          // The affine component is substracted

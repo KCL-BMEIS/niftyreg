@@ -1,5 +1,4 @@
 #include "_reg_aladin_sym.h"
-#include "_reg_maths_eigen.h"
 
 /* *************************************************************** */
 template <class T>
@@ -81,7 +80,7 @@ void reg_aladin_sym<T>::InitialiseRegistration() {
         referenceCentre[2] /= referenceCount;
         float refCOG[3]{};
         if (this->inputReference->sform_code > 0)
-            reg_mat44_mul(&(this->inputReference->sto_xyz), referenceCentre, refCOG);
+            Mat44Mul(this->inputReference->sto_xyz, referenceCentre, refCOG);
 
         float floatingCentre[3] = { 0, 0, 0 };
         float floatingCount = 0;
@@ -106,8 +105,8 @@ void reg_aladin_sym<T>::InitialiseRegistration() {
         floatingCentre[2] /= floatingCount;
         float floCOG[3]{};
         if (this->inputFloating->sform_code > 0)
-            reg_mat44_mul(&(this->inputFloating->sto_xyz), floatingCentre, floCOG);
-        reg_mat44_eye(this->affineTransformation.get());
+            Mat44Mul(this->inputFloating->sto_xyz, floatingCentre, floCOG);
+        Mat44Eye(this->affineTransformation.get());
         this->affineTransformation->m[0][3] = floCOG[0] - refCOG[0];
         this->affineTransformation->m[1][3] = floCOG[1] - refCOG[1];
         this->affineTransformation->m[2][3] = floCOG[2] - refCOG[2];
@@ -143,9 +142,9 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type) {
     mat44 bInverted = nifti_mat44_inverse(*this->affineTransformationBw);
 
     // We average the forward and inverted backward matrix
-    *this->affineTransformation = reg_mat44_avg2(this->affineTransformation.get(), &bInverted);
+    *this->affineTransformation = Mat44Avg2(this->affineTransformation.get(), &bInverted);
     // We average the inverted forward and backward matrix
-    *this->affineTransformationBw = reg_mat44_avg2(&fInverted, this->affineTransformationBw.get());
+    *this->affineTransformationBw = Mat44Avg2(&fInverted, this->affineTransformationBw.get());
     for (int i = 0; i < 3; ++i) {
         this->affineTransformation->m[3][i] = 0.f;
         this->affineTransformationBw->m[3][i] = 0.f;

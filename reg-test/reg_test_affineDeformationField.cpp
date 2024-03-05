@@ -39,7 +39,7 @@ public:
 
         // Identity use case - 2D
         mat44 identity;
-        reg_mat44_eye(&identity);
+        Mat44Eye(&identity);
         // Test order [0,0] [1,0] [0,1] [1,1]
         vector<float3> identityResult2d{ { 0, 0, 0 }, { 1, 0, 0 }, { 0, 1, 0 }, { 1, 1, 0 } };
         testData.emplace_back(TestData(
@@ -63,7 +63,7 @@ public:
 
         // Translation - 2D
         mat44 translation;
-        reg_mat44_eye(&translation);
+        Mat44Eye(&translation);
         translation.m[0][3] = -0.5;
         translation.m[1][3] = 1.5;
         translation.m[2][3] = 0.75;
@@ -109,7 +109,7 @@ public:
         // Full affine - 2D
         // Test order [0,0] [1,0] [0,1] [1,1]
         mat44 affine;
-        reg_mat44_eye(&affine);
+        Mat44Eye(&affine);
         affine.m[0][3] = -0.5;
         affine.m[1][3] = 1.5;
         affine.m[2][3] = 0.75;

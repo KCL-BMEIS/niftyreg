@@ -74,8 +74,8 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
    // Define a matrix to reorient the Jacobian matrices and normalise them by the grid spacing
    mat33 reorientation,jacobianMatrix;
    if(splineControlPoint->sform_code>0)
-      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
-   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
+      reorientation = Mat44ToMat33(&splineControlPoint->sto_ijk);
+   else reorientation = Mat44ToMat33(&splineControlPoint->qto_ijk);
 
    // Useful variables
    int x, y, z;
@@ -143,13 +143,11 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
          else transformation=referenceImage->qto_xyz;
          // affine: mm to mm
          if(splineControlPoint->num_ext>0)
-            transformation=reg_mat44_mul(
-                     reinterpret_cast<mat44 *>(splineControlPoint->ext_list[0].edata),
-                  &transformation);
+            transformation=reinterpret_cast<mat44&>(*splineControlPoint->ext_list[0].edata) * transformation;
          // grid: mm to voxel
          if(splineControlPoint->sform_code>0)
-            transformation=reg_mat44_mul(&(splineControlPoint->sto_ijk), &transformation);
-         else transformation=reg_mat44_mul(&(splineControlPoint->qto_ijk), &transformation);
+            transformation=splineControlPoint->sto_ijk * transformation;
+         else transformation=splineControlPoint->qto_ijk * transformation;
 
          float imageCoord[3], gridCoord[3];
          for(z=0; z<referenceImage->nz; z++)
@@ -163,7 +161,7 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
                {
                   imageCoord[0]=x;
                   // Compute the position in the grid
-                  reg_mat44_mul(&transformation,imageCoord,gridCoord);
+                  Mat44Mul(transformation,imageCoord,gridCoord);
                   // Compute the anterior node coord
                   pre[0]=Floor(gridCoord[0]);
                   pre[1]=Floor(gridCoord[1]);
@@ -265,8 +263,8 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
    // Define a matrice to reorient the Jacobian matrices and normalise them by the grid spacing
    mat33 reorientation,jacobianMatrix;
    if(splineControlPoint->sform_code>0)
-      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
-   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
+      reorientation = Mat44ToMat33(&splineControlPoint->sto_ijk);
+   else reorientation = Mat44ToMat33(&splineControlPoint->qto_ijk);
 
    // Useful variables
    int x, y, incr0;
@@ -361,13 +359,11 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
          else transformation=referenceImage->qto_xyz;
          // affine: mm to mm
          if(splineControlPoint->num_ext>0)
-            transformation=reg_mat44_mul(
-                     reinterpret_cast<mat44 *>(splineControlPoint->ext_list[0].edata),
-                  &transformation);
+            transformation=reinterpret_cast<mat44&>(*splineControlPoint->ext_list[0].edata) * transformation;
          // grid: mm to voxel
          if(splineControlPoint->sform_code>0)
-            transformation=reg_mat44_mul(&(splineControlPoint->sto_ijk), &transformation);
-         else transformation=reg_mat44_mul(&(splineControlPoint->qto_ijk), &transformation);
+            transformation=splineControlPoint->sto_ijk * transformation;
+         else transformation=splineControlPoint->qto_ijk * transformation;
 
          float imageCoord[3], gridCoord[3], basis;
          imageCoord[2]=0;
@@ -380,7 +376,7 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
             {
                imageCoord[0]=x;
                // Compute the position in the grid
-               reg_mat44_mul(&transformation,imageCoord,gridCoord);
+               Mat44Mul(transformation,imageCoord,gridCoord);
                // Compute the anterior node coord
                pre[0]=Floor(gridCoord[0]);
                pre[1]=Floor(gridCoord[1]);
@@ -539,8 +535,8 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
    // Define a matrice to reorient the Jacobian matrices and normalise them by the grid spacing
    mat33 reorientation,jacobianMatrix;
    if(splineControlPoint->sform_code>0)
-      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
-   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
+      reorientation = Mat44ToMat33(&splineControlPoint->sto_ijk);
+   else reorientation = Mat44ToMat33(&splineControlPoint->qto_ijk);
 
    // Useful variables
    int x, y, z, incr0;
@@ -771,13 +767,11 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
          else transformation=referenceImage->qto_xyz;
          // affine: mm to mm
          if(splineControlPoint->num_ext>0)
-            transformation=reg_mat44_mul(
-                     reinterpret_cast<mat44 *>(splineControlPoint->ext_list[0].edata),
-                  &transformation);
+            transformation=reinterpret_cast<mat44&>(*splineControlPoint->ext_list[0].edata) * transformation;
          // grid: mm to voxel
          if(splineControlPoint->sform_code>0)
-            transformation=reg_mat44_mul(&(splineControlPoint->sto_ijk), &transformation);
-         else transformation=reg_mat44_mul(&(splineControlPoint->qto_ijk), &transformation);
+            transformation=splineControlPoint->sto_ijk * transformation;
+         else transformation=splineControlPoint->qto_ijk * transformation;
 
          float imageCoord[3], gridCoord[3], basis;
          for(z=0; z<referenceImage->nz; z++)
@@ -792,7 +786,7 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                {
                   imageCoord[0]=x;
                   // Compute the position in the grid
-                  reg_mat44_mul(&transformation,imageCoord,gridCoord);
+                  Mat44Mul(transformation,imageCoord,gridCoord);
                   // Compute the anterior node coord
                   pre[0]=Floor(gridCoord[0]);
                   pre[1]=Floor(gridCoord[1]);
@@ -1342,8 +1336,8 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
    // Matrices to be used to convert the gradient from voxel to mm
    mat33 jacobianMatrix, reorientation;
    if(splineControlPoint->sform_code>0)
-      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_xyz);
-   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_xyz);
+      reorientation = Mat44ToMat33(&splineControlPoint->sto_xyz);
+   else reorientation = Mat44ToMat33(&splineControlPoint->qto_xyz);
 
    // Ratio to be used for normalisation
    size_t jacobianNumber;
@@ -1580,8 +1574,8 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
    // Matrices to be used to convert the gradient from voxel to mm
    mat33 jacobianMatrix, reorientation;
    if(splineControlPoint->sform_code>0)
-      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_xyz);
-   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_xyz);
+      reorientation = Mat44ToMat33(&splineControlPoint->sto_xyz);
+   else reorientation = Mat44ToMat33(&splineControlPoint->qto_xyz);
 
    // Ratio to be used for normalisation
    size_t jacobianNumber;
@@ -1946,8 +1940,8 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
 
    mat33 jacobianMatrix, reorientation;
    if(splineControlPoint->sform_code>0)
-      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_xyz);
-   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_xyz);
+      reorientation = Mat44ToMat33(&splineControlPoint->sto_xyz);
+   else reorientation = Mat44ToMat33(&splineControlPoint->qto_xyz);
 
    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
    DataType *controlPointPtrX = static_cast<DataType *>(splineControlPoint->data);
@@ -2195,8 +2189,8 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
 
    mat33 jacobianMatrix, reorientation;
    if(splineControlPoint->sform_code>0)
-      reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_xyz);
-   else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_xyz);
+      reorientation = Mat44ToMat33(&splineControlPoint->sto_xyz);
+   else reorientation = Mat44ToMat33(&splineControlPoint->qto_xyz);
 
    const size_t nodeNumber = NiftiImage::calcVoxelNumber(splineControlPoint, 3);
    DataType *controlPointPtrX = static_cast<DataType *>(splineControlPoint->data);
@@ -2629,13 +2623,13 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
    if(deformationField->sform_code>0)
    {
       reg_getRealImageSpacing(deformationField,spacing);
-      reorientation=nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->sto_xyz)));
+      reorientation=nifti_mat33_inverse(nifti_mat33_polar(Mat44ToMat33(&deformationField->sto_xyz)));
    }
    else
    {
       spacing[0]=deformationField->dx;
       spacing[1]=deformationField->dy;
-      reorientation=nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->qto_xyz)));
+      reorientation=nifti_mat33_inverse(nifti_mat33_polar(Mat44ToMat33(&deformationField->qto_xyz)));
    }
 
    DataType *deformationPtrX = static_cast<DataType *>(deformationField->data);
@@ -2738,14 +2732,14 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
    if(deformationField->sform_code>0)
    {
       reg_getRealImageSpacing(deformationField,spacing);
-      reorientation=nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->sto_xyz)));
+      reorientation=nifti_mat33_inverse(nifti_mat33_polar(Mat44ToMat33(&deformationField->sto_xyz)));
    }
    else
    {
       spacing[0]=deformationField->dx;
       spacing[1]=deformationField->dy;
       spacing[2]=deformationField->dz;
-      reorientation=nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->qto_xyz)));
+      reorientation=nifti_mat33_inverse(nifti_mat33_polar(Mat44ToMat33(&deformationField->qto_xyz)));
    }
 
    DataType *deformationPtrX = static_cast<DataType *>(deformationField->data);
@@ -2943,11 +2937,11 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
 
    // The Jacobian matrices are initialised with identity or the initial affine
    mat33 affineMatrix;
-   reg_mat33_eye(&affineMatrix);
+   Mat33Eye(&affineMatrix);
    if(flowFieldImage->num_ext>0)
    {
       if(flowFieldImage->ext_list[0].edata!=nullptr)
-         affineMatrix = reg_mat44_to_mat33(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata));
+         affineMatrix = Mat44ToMat33(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata));
       else NR_FATAL_ERROR("The affine matrix is expected to be stored in the flow field");
    }
    const size_t voxelNumber = NiftiImage::calcVoxelNumber(flowFieldImage, 3);
@@ -2982,7 +2976,7 @@ void reg_defField_GetJacobianMatFromFlowField_core(mat33* jacobianMatrices,
    if(flowFieldImage->num_ext>1)
    {
       if(flowFieldImage->ext_list[1].edata!=nullptr)
-         affineMatrix = reg_mat44_to_mat33(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[1].edata));
+         affineMatrix = Mat44ToMat33(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[1].edata));
       else NR_FATAL_ERROR("The affine matrix is expected to be stored in the flow field");
       for(size_t i=0; i<voxelNumber; ++i)
          jacobianMatrices[i]=nifti_mat33_mul(affineMatrix,jacobianMatrices[i]);

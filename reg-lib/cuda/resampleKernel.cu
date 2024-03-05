@@ -3,7 +3,7 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include"_reg_resampling.h"
-#include"_reg_maths.h"
+#include"Maths.hpp"
 #include "resampleKernel.h"
 #include "CudaCommon.hpp"
 #include"_reg_tools.h"
@@ -57,18 +57,6 @@ __device__ __inline__ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *ba
     basis[1] = (FieldTYPE) ((FF * ((double)3.0 * ratio - 5.0) + 2.0) / (double)2.0);
     basis[2] = (FieldTYPE) ((ratio * (((double)4.0 - (double)3.0 * ratio) * ratio + (double)1.0)) / (double)2.0);
     basis[3] = (FieldTYPE) ((ratio - (double)1.0) * FF / (double)2.0);
-}
-/* *************************************************************** */
-__device__ __inline__
-void reg_mat44_eye(float *mat) {
-	mat[0 * 4 + 0] = 1.f;
-	mat[0 * 4 + 1] = mat[0 * 4 + 2] = mat[0 * 4 + 3] = 0.f;
-	mat[1 * 4 + 1] = 1.f;
-	mat[1 * 4 + 0] = mat[1 * 4 + 2] = mat[1 * 4 + 3] = 0.f;
-	mat[2 * 4 + 2] = 1.f;
-	mat[2 * 4 + 0] = mat[2 * 4 + 1] = mat[2 * 4 + 3] = 0.f;
-	mat[3 * 4 + 3] = 1.f;
-	mat[3 * 4 + 0] = mat[3 * 4 + 1] = mat[3 * 4 + 2] = 0.f;
 }
 /* *************************************************************** */
 __inline__ __device__ void interpWindowedSincKernel(double relative, double *basis)

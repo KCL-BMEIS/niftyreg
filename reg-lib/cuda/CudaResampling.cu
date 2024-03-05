@@ -11,7 +11,6 @@
  */
 
 #include "CudaResampling.hpp"
-#include "_reg_common_cuda_kernels.cu"
 
 /* *************************************************************** */
 namespace NiftyReg::Cuda {
@@ -237,19 +236,19 @@ template<bool is3d>
 static float3 GetRealImageSpacing(const nifti_image *image) {
     float3 spacing{};
     float indexVoxel1[3]{}, indexVoxel2[3], realVoxel1[3], realVoxel2[3];
-    reg_mat44_mul(&image->sto_xyz, indexVoxel1, realVoxel1);
+    Mat44Mul(image->sto_xyz, indexVoxel1, realVoxel1);
 
     indexVoxel2[1] = indexVoxel2[2] = 0; indexVoxel2[0] = 1;
-    reg_mat44_mul(&image->sto_xyz, indexVoxel2, realVoxel2);
+    Mat44Mul(image->sto_xyz, indexVoxel2, realVoxel2);
     spacing.x = sqrtf(Square(realVoxel1[0] - realVoxel2[0]) + Square(realVoxel1[1] - realVoxel2[1]) + Square(realVoxel1[2] - realVoxel2[2]));
 
     indexVoxel2[0] = indexVoxel2[2] = 0; indexVoxel2[1] = 1;
-    reg_mat44_mul(&image->sto_xyz, indexVoxel2, realVoxel2);
+    Mat44Mul(image->sto_xyz, indexVoxel2, realVoxel2);
     spacing.y = sqrtf(Square(realVoxel1[0] - realVoxel2[0]) + Square(realVoxel1[1] - realVoxel2[1]) + Square(realVoxel1[2] - realVoxel2[2]));
 
     if constexpr (is3d) {
         indexVoxel2[0] = indexVoxel2[1] = 0; indexVoxel2[2] = 1;
-        reg_mat44_mul(&image->sto_xyz, indexVoxel2, realVoxel2);
+        Mat44Mul(image->sto_xyz, indexVoxel2, realVoxel2);
         spacing.z = sqrtf(Square(realVoxel1[0] - realVoxel2[0]) + Square(realVoxel1[1] - realVoxel2[1]) + Square(realVoxel1[2] - realVoxel2[2]));
     }
 
@@ -290,7 +289,7 @@ void ResampleGradient(const nifti_image *floatingImage,
                                                              make_float3(warpedImage->dx, warpedImage->dy, warpedImage->dz);
 
     // Reorientation matrix is assessed in order to remove the rigid component
-    const mat33 reorient = nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->sto_xyz)));
+    const mat33 reorient = nifti_mat33_inverse(nifti_mat33_polar(Mat44ToMat33(&deformationField->sto_xyz)));
 
     thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [
         warpedImageCuda, floatingTexture, deformationFieldTexture, floatingMatrix, floatingDims, defFieldDims, realSpacing, reorient, paddingValue
@@ -344,7 +343,7 @@ void ResampleGradient(const nifti_image *floatingImage,
         // Compute the Jacobian matrix
         constexpr float basis[] = { 1.f, 0.f };
         constexpr float deriv[] = { -1.f, 1.f };
-        auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, defFieldDims);
+        auto [x, y, z] = IndexToDims<is3d>(index, defFieldDims);
         mat33 jacMat{};
         for (char c = 0; c < (is3d ? 2 : 1); c++) {
             if constexpr (is3d) {
@@ -407,7 +406,7 @@ void ResampleGradient(const nifti_image *floatingImage,
             }
         }
         // reorient and scale the Jacobian matrix
-        jacMat = reg_mat33_mul_cuda(reorient, jacMat);
+        jacMat = reorient * jacMat;
         jacMat.m[0][0] /= realSpacing.x;
         jacMat.m[0][1] /= realSpacing.y;
         jacMat.m[1][0] /= realSpacing.x;

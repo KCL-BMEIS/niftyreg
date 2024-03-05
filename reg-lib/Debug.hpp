@@ -68,11 +68,11 @@ inline std::string StripFunctionName(const std::string& funcName) {
 #define NR_INFO(msg)        NR_COUT << "[NiftyReg INFO] " << msg << std::endl
 /* *************************************************************** */
 #ifndef NDEBUG
-#define NR_MAT44(mat, title)          reg_mat44_disp(mat, "[NiftyReg DEBUG] "s + (title))
+#define NR_MAT44(mat, title)          Mat44Disp(mat, "[NiftyReg DEBUG] "s + (title))
 #define NR_MAT44_DEBUG(mat, title)    NR_MAT44(mat, title)
 #define NR_MAT44_VERBOSE(mat, title)  NR_MAT44(mat, title)
 #else
-#define NR_MAT44(mat, title)          reg_mat44_disp(mat, title)
+#define NR_MAT44(mat, title)          Mat44Disp(mat, title)
 #define NR_MAT44_DEBUG(mat, title)
 #define NR_MAT44_VERBOSE(mat, title)  if (this->verbose) NR_MAT44(mat, "[NiftyReg INFO] "s + (title))
 #endif

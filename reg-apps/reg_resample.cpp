@@ -307,7 +307,7 @@ int main(int argc, char **argv)
    else
    {
       // No transformation is specified, an identity transformation is used
-      reg_mat44_eye(&inputAffineTransformation);
+      Mat44Eye(&inputAffineTransformation);
    }
 
    // Create a deformation field

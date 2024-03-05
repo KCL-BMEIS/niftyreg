@@ -20,7 +20,7 @@
 #include <cmath>
 #include <algorithm>
 #include <functional>
-#include "_reg_maths.h"
+#include "Maths.hpp"
 #include "Debug.hpp"
 
 using namespace NiftyReg;

@@ -185,7 +185,7 @@ void _reg_set_active_blocks(nifti_image *referenceImage, _reg_blockMatchingParam
    params->activeBlockNumber = params->activeBlockNumber < ((int)params->totalBlockNumber - unusableBlock) ? params->activeBlockNumber : (params->totalBlockNumber - unusableBlock);
    //params->activeBlockNumber = params->totalBlockNumber - unusableBlock;
 
-   reg_heapSort(varianceArray, indexArray, params->totalBlockNumber);
+   HeapSort(varianceArray, indexArray, params->totalBlockNumber);
    int *indexArrayPtr = &indexArray[params->totalBlockNumber - 1];
    int count = 0;
    for (int i = 0; i < params->activeBlockNumber; i++) {
@@ -432,13 +432,13 @@ void block_matching_method2D(nifti_image * reference, nifti_image * warped, _reg
             bestDisplacement[1] += referencePosition_temp[1];
             bestDisplacement[2] = 0.0f;
 
-            reg_mat44_mul(referenceMatrix_xyz, referencePosition_temp, tempPosition);
+            Mat44Mul(*referenceMatrix_xyz, referencePosition_temp, tempPosition);
             z = 2 * params->totalBlock[blockIndex];
 
             params->referencePosition[z] = tempPosition[0];
             params->referencePosition[z + 1] = tempPosition[1];
 
-            reg_mat44_mul(referenceMatrix_xyz, bestDisplacement, tempPosition);
+            Mat44Mul(*referenceMatrix_xyz, bestDisplacement, tempPosition);
 
             params->warpedPosition[z] = tempPosition[0];
             params->warpedPosition[z + 1] = tempPosition[1];
@@ -664,13 +664,13 @@ void block_matching_method3D(nifti_image * reference,
                bestDisplacement[1] += referencePosition_temp[1];
                bestDisplacement[2] += referencePosition_temp[2];
 
-               reg_mat44_mul(referenceMatrix_xyz, referencePosition_temp, tempPosition);
+               Mat44Mul(*referenceMatrix_xyz, referencePosition_temp, tempPosition);
                z = 3 * params->totalBlock[blockIndex];
                params->referencePosition[z] = tempPosition[0];
                params->referencePosition[z+1] = tempPosition[1];
                params->referencePosition[z+2] = tempPosition[2];
 
-               reg_mat44_mul(referenceMatrix_xyz, bestDisplacement, tempPosition);
+               Mat44Mul(*referenceMatrix_xyz, bestDisplacement, tempPosition);
                params->warpedPosition[z] = tempPosition[0];
                params->warpedPosition[z + 1] = tempPosition[1];
                params->warpedPosition[z + 2] = tempPosition[2];
@@ -757,7 +757,7 @@ void optimize(_reg_blockMatchingParam *params,
          //Can have undefined = NaN in the warped image now -
          //to not loose the correspondence - so check that:
          if(in[0] == in[0]){
-            reg_mat33_mul(transformation_matrix, in, out);
+            Mat33Mul(*transformation_matrix, in, out);
 
             referencePositionVect.push_back(params->referencePosition[index]);
             referencePositionVect.push_back(params->referencePosition[index+1]);
@@ -802,7 +802,7 @@ void optimize(_reg_blockMatchingParam *params,
          //Can have undefined = NaN in the warped image now -
          //to not loose the correspondence - so check that:
          if(in[0] == in[0]){
-            reg_mat44_mul(transformation_matrix, in, out);
+            Mat44Mul(*transformation_matrix, in, out);
 
             referencePositionVect.push_back(params->referencePosition[index]);
             referencePositionVect.push_back(params->referencePosition[index+1]);

@@ -79,8 +79,8 @@ public:
             auto&& [testName, reference, floating, ttype, inlier] = data;
 
             // Create identity transformations
-            unique_ptr<mat44> matCpu{ new mat44 }; reg_mat44_eye(matCpu.get());
-            unique_ptr<mat44> matCuda{ new mat44 }; reg_mat44_eye(matCuda.get());
+            unique_ptr<mat44> matCpu{ new mat44 }; Mat44Eye(matCpu.get());
+            unique_ptr<mat44> matCuda{ new mat44 }; Mat44Eye(matCuda.get());
 
             // Create images
             NiftiImage referenceCpu(reference), referenceCuda(reference);

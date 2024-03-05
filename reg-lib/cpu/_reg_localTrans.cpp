@@ -11,7 +11,6 @@
  */
 
 #include "_reg_localTrans.h"
-#include "_reg_maths_eigen.h"
 
 // Due to SSE usage creates incorrect test results
 #if defined(BUILD_TESTS) && !defined(NDEBUG)
@@ -82,7 +81,7 @@ void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
     originIndex[1] = -1.0f;
     originIndex[2] = 0.0f;
     if (referenceImage->nz > 1) originIndex[2] = -1.0f;
-    reg_mat44_mul(&controlPointGridImage->qto_xyz, originIndex, originReal);
+    Mat44Mul(controlPointGridImage->qto_xyz, originIndex, originReal);
     controlPointGridImage->qto_xyz.m[0][3] = controlPointGridImage->qoffset_x = originReal[0];
     controlPointGridImage->qto_xyz.m[1][3] = controlPointGridImage->qoffset_y = originReal[1];
     controlPointGridImage->qto_xyz.m[2][3] = controlPointGridImage->qoffset_z = originReal[2];
@@ -114,7 +113,7 @@ void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
         controlPointGridImage->sto_xyz.m[3][3] = referenceImage->sto_xyz.m[3][3];
 
         // Origin is shifted from 1 control point in the sform
-        reg_mat44_mul(&controlPointGridImage->sto_xyz, originIndex, originReal);
+        Mat44Mul(controlPointGridImage->sto_xyz, originIndex, originReal);
         controlPointGridImage->sto_xyz.m[0][3] = originReal[0];
         controlPointGridImage->sto_xyz.m[1][3] = originReal[1];
         controlPointGridImage->sto_xyz.m[2][3] = originReal[2];
@@ -152,24 +151,24 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
     mat44 halfForwardAffine, halfBackwardAffine;
     if (forwardAffineTrans != nullptr) {
         // Compute half of the affine transformation - ref to flo
-        halfForwardAffine = reg_mat44_logm(forwardAffineTrans);
-        halfForwardAffine = reg_mat44_mul(&halfForwardAffine, .5f);
-        halfForwardAffine = reg_mat44_expm(&halfForwardAffine);
+        halfForwardAffine = Mat44Logm(forwardAffineTrans);
+        halfForwardAffine = halfForwardAffine * 0.5f;
+        halfForwardAffine = Mat44Expm(&halfForwardAffine);
         // Compute half of the affine transformation - flo to ref
         // Note that this is done twice for symmetry consideration
         halfBackwardAffine = nifti_mat44_inverse(*forwardAffineTrans);
-        halfBackwardAffine = reg_mat44_logm(&halfBackwardAffine);
-        halfBackwardAffine = reg_mat44_mul(&halfBackwardAffine, .5f);
-        halfBackwardAffine = reg_mat44_expm(&halfBackwardAffine);
+        halfBackwardAffine = Mat44Logm(&halfBackwardAffine);
+        halfBackwardAffine = halfBackwardAffine * 0.5f;
+        halfBackwardAffine = Mat44Expm(&halfBackwardAffine);
         NR_WARN("Note that the symmetry of the registration is affected by the input affine transformation");
     } else {
-        reg_mat44_eye(&halfForwardAffine);
-        reg_mat44_eye(&halfBackwardAffine);
+        Mat44Eye(&halfForwardAffine);
+        Mat44Eye(&halfBackwardAffine);
     }
 
     // Update the reference and floating transformation to propagate to a mid space
-    referenceImageSpace = reg_mat44_mul(&halfForwardAffine, &referenceImageSpace);
-    floatingImageSpace = reg_mat44_mul(&halfBackwardAffine, &floatingImageSpace);
+    referenceImageSpace = halfForwardAffine * referenceImageSpace;
+    floatingImageSpace = halfBackwardAffine * floatingImageSpace;
 
     // Define the largest field of view in the mid space
     float minPosition[3] = { 0, 0, 0 }, maxPosition[3] = { 0, 0, 0 };
@@ -197,11 +196,11 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
         };
         float out[3];
         for (int c = 0; c < 8; ++c) {
-            reg_mat44_mul(&referenceImageSpace, referenceImageCorners[c], out);
+            Mat44Mul(referenceImageSpace, referenceImageCorners[c], out);
             referenceImageCorners[c][0] = out[0];
             referenceImageCorners[c][1] = out[1];
             referenceImageCorners[c][2] = out[2];
-            reg_mat44_mul(&floatingImageSpace, floatingImageCorners[c], out);
+            Mat44Mul(floatingImageSpace, floatingImageCorners[c], out);
             floatingImageCorners[c][0] = out[0];
             floatingImageCorners[c][1] = out[1];
             floatingImageCorners[c][2] = out[2];
@@ -299,10 +298,10 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
     // Set the control point grid image orientation
     forwardGridImage->qform_code = backwardGridImage->qform_code = 0;
     forwardGridImage->sform_code = backwardGridImage->sform_code = 1;
-    reg_mat44_eye(&forwardGridImage->sto_xyz);
-    reg_mat44_eye(&backwardGridImage->sto_xyz);
-    reg_mat44_eye(&forwardGridImage->sto_ijk);
-    reg_mat44_eye(&backwardGridImage->sto_ijk);
+    Mat44Eye(&forwardGridImage->sto_xyz);
+    Mat44Eye(&backwardGridImage->sto_xyz);
+    Mat44Eye(&forwardGridImage->sto_ijk);
+    Mat44Eye(&backwardGridImage->sto_ijk);
     for (unsigned i = 0; i < 3; ++i) {
         if (referenceImage->nz > 1 || i < 2) {
             forwardGridImage->sto_xyz.m[i][i] = backwardGridImage->sto_xyz.m[i][i] = spacing[i];
@@ -320,7 +319,7 @@ void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
     forwardGridImage->intent_p1 = backwardGridImage->intent_p1 = CUB_SPLINE_GRID;
     // Set the affine matrices
     mat44 identity;
-    reg_mat44_eye(&identity);
+    Mat44Eye(&identity);
     if (forwardGridImage->ext_list != nullptr)
         free(forwardGridImage->ext_list);
     if (backwardGridImage->ext_list != nullptr)
@@ -1570,28 +1569,28 @@ void reg_voxelCentricToNodeCentric(nifti_image *nodeImage,
         if (nodeImage->ext_list[0].edata != nullptr) {
             mat44 temp = *(reinterpret_cast<mat44*>(nodeImage->ext_list[0].edata));
             temp = nifti_mat44_inverse(temp);
-            transformation = reg_mat44_mul(&temp, &transformation);
+            transformation = temp * transformation;
         }
     }
     // millimetre to voxel in the reference image
     if (voxelImage->sform_code > 0)
-        transformation = reg_mat44_mul(&voxelImage->sto_ijk, &transformation);
-    else transformation = reg_mat44_mul(&voxelImage->qto_ijk, &transformation);
+        transformation = voxelImage->sto_ijk * transformation;
+    else transformation = voxelImage->qto_ijk * transformation;
 
     // The information has to be reoriented
     mat33 reorientation;
     // Voxel to millimetre contains the orientation of the image that is used
     // to compute the spatial gradient (floating image)
     if (voxelToMillimetre != nullptr) {
-        reorientation = reg_mat44_to_mat33(voxelToMillimetre);
+        reorientation = Mat44ToMat33(voxelToMillimetre);
         if (nodeImage->num_ext > 0) {
             if (nodeImage->ext_list[0].edata != nullptr) {
-                mat33 temp = reg_mat44_to_mat33(reinterpret_cast<mat44*>(nodeImage->ext_list[0].edata));
+                mat33 temp = Mat44ToMat33(reinterpret_cast<mat44*>(nodeImage->ext_list[0].edata));
                 temp = nifti_mat33_inverse(temp);
                 reorientation = nifti_mat33_mul(temp, reorientation);
             }
         }
-    } else reg_mat33_eye(&reorientation);
+    } else Mat33Eye(&reorientation);
     // The information has to be weighted
     float ratio[3] = { nodeImage->dx, nodeImage->dy, nodeImage->dz };
     for (int i = 0; i < (nodeImage->nz > 1 ? 3 : 2); ++i) {
@@ -1611,7 +1610,7 @@ void reg_voxelCentricToNodeCentric(nifti_image *nodeImage,
             nodeCoord[1] = static_cast<float>(y);
             for (int x = 0; x < nodeImage->nx; x++) {
                 nodeCoord[0] = static_cast<float>(x);
-                reg_mat44_mul(&transformation, nodeCoord, voxelCoord);
+                Mat44Mul(transformation, nodeCoord, voxelCoord);
                 // linear interpolation is performed
                 DataType basisX[2], basisY[2], basisZ[2] = { 0, 0 };
                 int pre[3] = {
@@ -2173,7 +2172,7 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
         originIndex[1] = -1.0f;
         originIndex[2] = 0.0f;
         if (referenceImage->nz > 1) originIndex[2] = -1.0f;
-        reg_mat44_mul(&(controlPointGrid->qto_xyz), originIndex, originReal);
+        Mat44Mul(controlPointGrid->qto_xyz, originIndex, originReal);
         if (controlPointGrid->qform_code == 0 && controlPointGrid->sform_code == 0)
             controlPointGrid->qform_code = 1;
         controlPointGrid->qto_xyz.m[0][3] = controlPointGrid->qoffset_x = originReal[0];
@@ -2211,7 +2210,7 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
             float originIndex[3];
             originIndex[0] = originIndex[1] = originIndex[2] = -1;
             if (referenceImage->nz <= 1) originIndex[2] = 0;
-            reg_mat44_mul(&(controlPointGrid->sto_xyz), originIndex, originReal);
+            Mat44Mul(controlPointGrid->sto_xyz, originIndex, originReal);
             controlPointGrid->sto_xyz.m[0][3] = originReal[0];
             controlPointGrid->sto_xyz.m[1][3] = originReal[1];
             controlPointGrid->sto_xyz.m[2][3] = originReal[2];
@@ -2228,7 +2227,7 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
         // The origin is shifted by one node when compared to the previous origin
         float nodeCoord[3] = { 1, 1, 1 };
         float newOrigin[3];
-        reg_mat44_mul(&controlPointGrid->sto_xyz, nodeCoord, newOrigin);
+        Mat44Mul(controlPointGrid->sto_xyz, nodeCoord, newOrigin);
         controlPointGrid->sto_xyz.m[0][3] = newOrigin[0];
         controlPointGrid->sto_xyz.m[1][3] = newOrigin[1];
         if (controlPointGrid->nz > 1)
@@ -2398,7 +2397,6 @@ void reg_defField_compose3D(const nifti_image *deformationField,
                 df_real2Voxel.m[2][1] * realDef[1] +
                 df_real2Voxel.m[2][2] * realDef[2] +
                 df_real2Voxel.m[2][3];
-            //reg_mat44_mul(df_real2Voxel, realDef, voxel);
 
             // Linear interpolation to compute the new deformation
             pre[0] = Floor(voxel[0]);
@@ -2501,7 +2499,7 @@ inline static int FastWarp(double x, double y, double z, nifti_image *deformatio
     FieldTYPE *wpz;
     int   xw, yw, zw, dxw, dyw, dxyw, dxyzw;
     double wxf, wyf, wzf, wyzf;
-    double world[4], position[4];
+    double world[3], position[3];
 
     FieldTYPE *warpdata = static_cast<FieldTYPE*>(deformationField->data);
 
@@ -2527,8 +2525,7 @@ inline static int FastWarp(double x, double y, double z, nifti_image *deformatio
     world[0] = x;
     world[1] = y;
     world[2] = z;
-    world[3] = 1;
-    reg_mat44_mul(deformationFieldIJKMatrix, world, position);
+    Mat44Mul(*deformationFieldIJKMatrix, world, position);
     x = position[0];
     y = position[1];
     z = position[2];
@@ -2947,13 +2944,12 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
     if (inputDeformationField->sform_code > 0)
         InXYZMatrix = &inputDeformationField->sto_xyz;
     else InXYZMatrix = &inputDeformationField->qto_xyz;
-    float center[4], center2[4];
-    double centerout[4], delta[4];
+    float center[3], center2[3];
+    double centerout[3], delta[3];
     center[0] = static_cast<float>(inputDeformationField->nx / 2);
     center[1] = static_cast<float>(inputDeformationField->ny / 2);
     center[2] = static_cast<float>(inputDeformationField->nz / 2);
-    center[3] = 1;
-    reg_mat44_mul(InXYZMatrix, center, center2);
+    Mat44Mul(*InXYZMatrix, center, center2);
     FastWarp<float>(center2[0], center2[1], center2[2], inputDeformationField, &centerout[0], &centerout[1], &centerout[2]);
     delta[0] = center2[0] - centerout[0];
     delta[1] = center2[1] - centerout[1];
@@ -2962,7 +2958,7 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
 
 
     int i, x, y, z;
-    double position[4], pars[4], arrayy[4][3];
+    double position[3], pars[3], arrayy[4][3];
     struct ddata dat;
     DataType *outData;
 #ifdef _OPENMP
@@ -2986,8 +2982,7 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
                 position[0] = x;
                 position[1] = y;
                 position[2] = z;
-                position[3] = 1;
-                reg_mat44_mul(OutXYZMatrix, position, pars);
+                Mat44Mul(*OutXYZMatrix, position, pars);
                 dat.gx = pars[0];
                 dat.gy = pars[1];
                 dat.gz = pars[2];

@@ -10,10 +10,111 @@
  *
  */
 
-#include "_reg_common_cuda_kernels.cu"
+#include "CudaCommon.hpp"
 
 /* *************************************************************** */
 namespace NiftyReg::Cuda {
+/* *************************************************************** */
+__device__ __inline__ mat33 Mat33Inverse(const mat33 r) {
+    /*  INPUT MATRIX:  */
+    const double r11 = r.m[0][0]; const double r12 = r.m[0][1]; const double r13 = r.m[0][2];  /* [ r11 r12 r13 ] */
+    const double r21 = r.m[1][0]; const double r22 = r.m[1][1]; const double r23 = r.m[1][2];  /* [ r21 r22 r23 ] */
+    const double r31 = r.m[2][0]; const double r32 = r.m[2][1]; const double r33 = r.m[2][2];  /* [ r31 r32 r33 ] */
+
+    double deti = (r11 * r22 * r33 - r11 * r32 * r23 - r21 * r12 * r33 +
+                   r21 * r32 * r13 + r31 * r12 * r23 - r31 * r22 * r13);
+
+    if (deti != 0.0) deti = 1.0 / deti;
+
+    mat33 q;
+    q.m[0][0] = float(deti * (r22 * r33 - r32 * r23));
+    q.m[0][1] = float(deti * (-r12 * r33 + r32 * r13));
+    q.m[0][2] = float(deti * (r12 * r23 - r22 * r13));
+
+    q.m[1][0] = float(deti * (-r21 * r33 + r31 * r23));
+    q.m[1][1] = float(deti * (r11 * r33 - r31 * r13));
+    q.m[1][2] = float(deti * (-r11 * r23 + r21 * r13));
+
+    q.m[2][0] = float(deti * (r21 * r32 - r31 * r22));
+    q.m[2][1] = float(deti * (-r11 * r32 + r31 * r12));
+    q.m[2][2] = float(deti * (r11 * r22 - r21 * r12));
+
+    return q;
+}
+/* *************************************************************** */
+__device__ __inline__ float Mat33Determ(const mat33 r) {
+    /*  INPUT MATRIX:  */
+    const double r11 = r.m[0][0]; const double r12 = r.m[0][1]; const double r13 = r.m[0][2];  /* [ r11 r12 r13 ] */
+    const double r21 = r.m[1][0]; const double r22 = r.m[1][1]; const double r23 = r.m[1][2];  /* [ r21 r22 r23 ] */
+    const double r31 = r.m[2][0]; const double r32 = r.m[2][1]; const double r33 = r.m[2][2];  /* [ r31 r32 r33 ] */
+
+    return float(r11 * r22 * r33 - r11 * r32 * r23 - r21 * r12 * r33 +
+                 r21 * r32 * r13 + r31 * r12 * r23 - r31 * r22 * r13);
+}
+/* *************************************************************** */
+__device__ __inline__ float Mat33RowNorm(const mat33 a) {
+    float r1 = fabs(a.m[0][0]) + fabs(a.m[0][1]) + fabs(a.m[0][2]);
+    const float r2 = fabs(a.m[1][0]) + fabs(a.m[1][1]) + fabs(a.m[1][2]);
+    const float r3 = fabs(a.m[2][0]) + fabs(a.m[2][1]) + fabs(a.m[2][2]);
+    if (r1 < r2) r1 = r2;
+    if (r1 < r3) r1 = r3;
+    return r1;
+}
+/* *************************************************************** */
+__device__ __inline__ float Mat33ColNorm(const mat33 a) {
+    float r1 = fabs(a.m[0][0]) + fabs(a.m[1][0]) + fabs(a.m[2][0]);
+    const float r2 = fabs(a.m[0][1]) + fabs(a.m[1][1]) + fabs(a.m[2][1]);
+    const float r3 = fabs(a.m[0][2]) + fabs(a.m[1][2]) + fabs(a.m[2][2]);
+    if (r1 < r2) r1 = r2;
+    if (r1 < r3) r1 = r3;
+    return r1;
+}
+/* *************************************************************** */
+__device__ __inline__ mat33 Mat33Polar(mat33 x) {
+    // Force matrix to be nonsingular
+    float gam = Mat33Determ(x);
+    while (gam == 0.0) {        // Perturb matrix
+        gam = 0.00001f * (0.001f + Mat33RowNorm(x));
+        x.m[0][0] += gam; x.m[1][1] += gam; x.m[2][2] += gam;
+        gam = Mat33Determ(x);
+    }
+
+    mat33 z;
+    float gmi, dif = 1.0f;
+    int k = 0;
+    while (1) {
+        const mat33 y = Mat33Inverse(x);
+        if (dif > 0.3) {     // Far from convergence
+            const float alp = sqrt(Mat33RowNorm(x) * Mat33ColNorm(x));
+            const float bet = sqrt(Mat33RowNorm(y) * Mat33ColNorm(y));
+            gam = sqrt(bet / alp);
+            gmi = 1.f / gam;
+        } else {
+            gam = gmi = 1.0f;  // Close to convergence
+        }
+        z.m[0][0] = 0.5f * (gam * x.m[0][0] + gmi * y.m[0][0]);
+        z.m[0][1] = 0.5f * (gam * x.m[0][1] + gmi * y.m[1][0]);
+        z.m[0][2] = 0.5f * (gam * x.m[0][2] + gmi * y.m[2][0]);
+        z.m[1][0] = 0.5f * (gam * x.m[1][0] + gmi * y.m[0][1]);
+        z.m[1][1] = 0.5f * (gam * x.m[1][1] + gmi * y.m[1][1]);
+        z.m[1][2] = 0.5f * (gam * x.m[1][2] + gmi * y.m[2][1]);
+        z.m[2][0] = 0.5f * (gam * x.m[2][0] + gmi * y.m[0][2]);
+        z.m[2][1] = 0.5f * (gam * x.m[2][1] + gmi * y.m[1][2]);
+        z.m[2][2] = 0.5f * (gam * x.m[2][2] + gmi * y.m[2][2]);
+
+        dif = (fabs(z.m[0][0] - x.m[0][0]) + fabs(z.m[0][1] - x.m[0][1]) +
+               fabs(z.m[0][2] - x.m[0][2]) + fabs(z.m[1][0] - x.m[1][0]) +
+               fabs(z.m[1][1] - x.m[1][1]) + fabs(z.m[1][2] - x.m[1][2]) +
+               fabs(z.m[2][0] - x.m[2][0]) + fabs(z.m[2][1] - x.m[2][1]) +
+               fabs(z.m[2][2] - x.m[2][2]));
+
+        k = k + 1;
+        if (k > 100 || dif < 3.e-6) break;  // Convergence or exhaustion
+        x = z;
+    }
+
+    return z;
+}
 /* *************************************************************** */
 template<bool bspline>
 __device__ __inline__ void GetBasisSplineValues(const float basis, float *values) {
@@ -206,7 +307,7 @@ __device__ void GetDeformationField3d(float4 *deformationField,
         nodePre = { Floor(xVoxel), Floor(yVoxel), Floor(zVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--), zVoxel - float(nodePre.z--) };
     } else { // starting deformation field is blank - !composition
-        const auto [x, y, z] = reg_indexToDims_cuda<true>(index, referenceImageDim);
+        const auto [x, y, z] = IndexToDims<true>(index, referenceImageDim);
         // The "nearest previous" node is determined [0,0,0]
         const float xVoxel = float(x) / controlPointVoxelSpacing.x;
         const float yVoxel = float(y) / controlPointVoxelSpacing.y;
@@ -269,7 +370,7 @@ __device__ void GetDeformationField2d(float4 *deformationField,
         nodePre = { Floor(xVoxel), Floor(yVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--) };
     } else { // starting deformation field is blank - !composition
-        const auto [x, y, z] = reg_indexToDims_cuda<false>(index, referenceImageDim);
+        const auto [x, y, z] = IndexToDims<false>(index, referenceImageDim);
         // The "nearest previous" node is determined [0,0,0]
         const float xVoxel = float(x) / controlPointVoxelSpacing.x;
         const float yVoxel = float(y) / controlPointVoxelSpacing.y;
@@ -312,7 +413,7 @@ __global__ void GetApproxJacobianValues2d(float *jacobianMatrices,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
-        reg_div_cuda(tid, controlPointImageDim.x, quot, rem);
+        Divide(tid, controlPointImageDim.x, quot, rem);
         const int y = quot, x = rem;
 
         if (0 < x && x < controlPointImageDim.x - 1 && 0 < y && y < controlPointImageDim.y - 1) {
@@ -374,9 +475,9 @@ __global__ void GetApproxJacobianValues3d(float *jacobianMatrices,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
-        reg_div_cuda(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
+        Divide(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
         const int z = quot;
-        reg_div_cuda(rem, controlPointImageDim.x, quot, rem);
+        Divide(rem, controlPointImageDim.x, quot, rem);
         const int y = quot, x = rem;
 
         if (0 < x && x < controlPointImageDim.x - 1 && 0 < y && y < controlPointImageDim.y - 1 && 0 < z && z < controlPointImageDim.z - 1) {
@@ -459,7 +560,7 @@ __global__ void GetJacobianValues2d(float *jacobianMatrices,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
         int quot, rem;
-        reg_div_cuda(tid, referenceImageDim.x, quot, rem);
+        Divide(tid, referenceImageDim.x, quot, rem);
         const int y = quot, x = rem;
 
         // the "nearest previous" node is determined [0,0,0]
@@ -528,9 +629,9 @@ __global__ void GetJacobianValues3d(float *jacobianMatrices,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
         int quot, rem;
-        reg_div_cuda(tid, referenceImageDim.x * referenceImageDim.y, quot, rem);
+        Divide(tid, referenceImageDim.x * referenceImageDim.y, quot, rem);
         const int z = quot;
-        reg_div_cuda(rem, referenceImageDim.x, quot, rem);
+        Divide(rem, referenceImageDim.x, quot, rem);
         const int y = quot, x = rem;
 
         // the "nearest previous" node is determined [0,0,0]
@@ -677,7 +778,7 @@ __global__ void ComputeApproxJacGradient2d(float4 *gradient,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
-        reg_div_cuda(tid, controlPointImageDim.x, quot, rem);
+        Divide(tid, controlPointImageDim.x, quot, rem);
         const int y = quot, x = rem;
 
         float2 jacobianGradient{};
@@ -729,9 +830,9 @@ __global__ void ComputeApproxJacGradient3d(float4 *gradient,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
-        reg_div_cuda(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
+        Divide(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
         const int z = quot;
-        reg_div_cuda(rem, controlPointImageDim.x, quot, rem);
+        Divide(rem, controlPointImageDim.x, quot, rem);
         const int y = quot, x = rem;
 
         float3 jacobianGradient{};
@@ -787,7 +888,7 @@ __global__ void ComputeJacGradient2d(float4 *gradient,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
-        reg_div_cuda(tid, controlPointImageDim.x, quot, rem);
+        Divide(tid, controlPointImageDim.x, quot, rem);
         const int y = quot, x = rem;
 
         float2 jacobianGradient{};
@@ -842,9 +943,9 @@ __global__ void ComputeJacGradient3d(float4 *gradient,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
-        reg_div_cuda(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
+        Divide(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
         const int z = quot;
-        reg_div_cuda(rem, controlPointImageDim.x, quot, rem);
+        Divide(rem, controlPointImageDim.x, quot, rem);
         const int y = quot, x = rem;
 
         float3 jacobianGradient{};
@@ -917,9 +1018,9 @@ __global__ void ApproxCorrectFolding3d(float4 *controlPointGrid,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
-        reg_div_cuda(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
+        Divide(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
         const int z = quot;
-        reg_div_cuda(rem, controlPointImageDim.x, quot, rem);
+        Divide(rem, controlPointImageDim.x, quot, rem);
         const int y = quot, x = rem;
 
         float3 foldingCorrection{};
@@ -988,9 +1089,9 @@ __global__ void CorrectFolding3d(float4 *controlPointGrid,
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
         int quot, rem;
-        reg_div_cuda(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
+        Divide(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
         const int z = quot;
-        reg_div_cuda(rem, controlPointImageDim.x, quot, rem);
+        Divide(rem, controlPointImageDim.x, quot, rem);
         const int y = quot, x = rem;
 
         float3 foldingCorrection{};
@@ -1144,7 +1245,7 @@ __device__ static mat33 CreateDisplacementMatrix(const int index,
                                                  const int3& cppDims,
                                                  const Basis1st<is3d>& basis,
                                                  const mat33& reorientation) {
-    const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, cppDims);
+    const auto [x, y, z] = IndexToDims<is3d>(index, cppDims);
     if (x < 1 || x >= cppDims.x - 1 || y < 1 || y >= cppDims.y - 1 ||
         (is3d && (z < 1 || z >= cppDims.z - 1))) return {};
 
@@ -1189,10 +1290,10 @@ __device__ static mat33 CreateDisplacementMatrix(const int index,
         }
     }
     // Convert from mm to voxel
-    matrix = reg_mat33_mul_cuda(reorientation, matrix);
+    matrix = reorientation * matrix;
     // Removing the rotation component
-    const mat33 r = reg_mat33_inverse_cuda(reg_mat33_polar_cuda(matrix));
-    matrix = reg_mat33_mul_cuda(r, matrix);
+    const mat33 r = Mat33Inverse(Mat33Polar(matrix));
+    matrix = r * matrix;
     // Convert to displacement
     matrix.m[0][0]--; matrix.m[1][1]--;
     if constexpr (is3d) matrix.m[2][2]--;

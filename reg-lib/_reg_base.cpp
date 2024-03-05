@@ -402,7 +402,7 @@ void reg_base<T>::Initialise() {
         reg_tools_changeDatatype<T>(tmpReference);
         // Extract the robust range of the reference image
         T *refDataPtr = static_cast<T *>(tmpReference->data);
-        reg_heapSort(refDataPtr, tmpReference->nvox);
+        HeapSort(refDataPtr, tmpReference->nvox);
         // Update the reference threshold values if no value has been setup by the user
         if (referenceThresholdLow[0] == std::numeric_limits<T>::lowest())
             referenceThresholdLow[0] = refDataPtr[Round((float)tmpReference->nvox * 0.02f)];
@@ -414,7 +414,7 @@ void reg_base<T>::Initialise() {
         reg_tools_changeDatatype<T>(tmpFloating);
         // Extract the robust range of the floating image
         T *floDataPtr = static_cast<T *>(tmpFloating->data);
-        reg_heapSort(floDataPtr, tmpFloating->nvox);
+        HeapSort(floDataPtr, tmpFloating->nvox);
         // Update the floating threshold values if no value has been setup by the user
         if (floatingThresholdLow[0] == std::numeric_limits<T>::lowest())
             floatingThresholdLow[0] = floDataPtr[Round((float)tmpFloating->nvox * 0.02f)];

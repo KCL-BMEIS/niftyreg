@@ -349,7 +349,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
     mat44 *image_mm2vox = &refImage->qto_ijk;
     if (refImage->sform_code > 0)
         image_mm2vox = &refImage->sto_ijk;
-    mat44 grid2img_vox = reg_mat44_mul(image_mm2vox, grid_vox2mm);
+    mat44 grid2img_vox = *image_mm2vox * *grid_vox2mm;
 
     // Compute the block size
     const int blockSize[3] = {
@@ -404,7 +404,7 @@ void GetDiscretisedValueSSD_core3D(nifti_image *controlPointGridImage,
                     controlPointGridImage->nx * cpy + cpx;
 
                 // Compute the corresponding image voxel position
-                reg_mat44_mul(&grid2img_vox, gridVox, imageVox);
+                Mat44Mul(grid2img_vox, gridVox, imageVox);
                 imageVox[0] = static_cast<float>(Round(imageVox[0]));
                 imageVox[1] = static_cast<float>(Round(imageVox[1]));
                 imageVox[2] = static_cast<float>(Round(imageVox[2]));

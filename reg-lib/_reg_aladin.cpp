@@ -177,9 +177,9 @@ void reg_aladin<T>::InitialiseRegistration() {
             referenceCenter[2] = (float)(this->inputReference->nz) / 2.0f;
             //From pixel coordinates to real coordinates
             float floatingRealPosition[3];
-            reg_mat44_mul(floatingMatrix, floatingCenter, floatingRealPosition);
+            Mat44Mul(*floatingMatrix, floatingCenter, floatingRealPosition);
             float referenceRealPosition[3];
-            reg_mat44_mul(referenceMatrix, referenceCenter, referenceRealPosition);
+            Mat44Mul(*referenceMatrix, referenceCenter, referenceRealPosition);
             //Set translation to the transformation matrix
             this->affineTransformation->m[0][3] = floatingRealPosition[0] - referenceRealPosition[0];
             this->affineTransformation->m[1][3] = floatingRealPosition[1] - referenceRealPosition[1];
@@ -207,7 +207,7 @@ void reg_aladin<T>::InitialiseRegistration() {
             referenceCentre[2] /= referenceCount;
             float refCOM[3]{};
             if (this->inputReference->sform_code > 0)
-                reg_mat44_mul(&this->inputReference->sto_xyz, referenceCentre, refCOM);
+                Mat44Mul(this->inputReference->sto_xyz, referenceCentre, refCOM);
 
             float floatingCentre[3] = { 0, 0, 0 };
             float floatingCount = 0;
@@ -231,8 +231,8 @@ void reg_aladin<T>::InitialiseRegistration() {
             floatingCentre[2] /= floatingCount;
             float floCOM[3]{};
             if (this->inputFloating->sform_code > 0)
-                reg_mat44_mul(&this->inputFloating->sto_xyz, floatingCentre, floCOM);
-            reg_mat44_eye(this->affineTransformation.get());
+                Mat44Mul(this->inputFloating->sto_xyz, floatingCentre, floCOM);
+            Mat44Eye(this->affineTransformation.get());
             this->affineTransformation->m[0][3] = floCOM[0] - refCOM[0];
             this->affineTransformation->m[1][3] = floCOM[1] - refCOM[1];
             this->affineTransformation->m[2][3] = floCOM[2] - refCOM[2];

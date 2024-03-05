@@ -253,22 +253,22 @@ void reg_tools_removeSCLInfo(nifti_image *image) {
 void reg_getRealImageSpacing(nifti_image *image, float *spacingValues) {
     float indexVoxel1[3] = { 0, 0, 0 };
     float indexVoxel2[3], realVoxel1[3], realVoxel2[3];
-    reg_mat44_mul(&(image->sto_xyz), indexVoxel1, realVoxel1);
+    Mat44Mul(image->sto_xyz, indexVoxel1, realVoxel1);
 
     indexVoxel2[1] = indexVoxel2[2] = 0;
     indexVoxel2[0] = 1;
-    reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
+    Mat44Mul(image->sto_xyz, indexVoxel2, realVoxel2);
     spacingValues[0] = sqrtf(Square(realVoxel1[0] - realVoxel2[0]) + Square(realVoxel1[1] - realVoxel2[1]) + Square(realVoxel1[2] - realVoxel2[2]));
 
     indexVoxel2[0] = indexVoxel2[2] = 0;
     indexVoxel2[1] = 1;
-    reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
+    Mat44Mul(image->sto_xyz, indexVoxel2, realVoxel2);
     spacingValues[1] = sqrtf(Square(realVoxel1[0] - realVoxel2[0]) + Square(realVoxel1[1] - realVoxel2[1]) + Square(realVoxel1[2] - realVoxel2[2]));
 
     if (image->nz > 1) {
         indexVoxel2[0] = indexVoxel2[1] = 0;
         indexVoxel2[2] = 1;
-        reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
+        Mat44Mul(image->sto_xyz, indexVoxel2, realVoxel2);
         spacingValues[2] = sqrtf(Square(realVoxel1[0] - realVoxel2[0]) + Square(realVoxel1[1] - realVoxel2[1]) + Square(realVoxel1[2] - realVoxel2[2]));
     }
 }

@@ -498,7 +498,7 @@ int main(int argc, char **argv)
     {
         reg_tools_changeDatatype<float>(image);
         nifti_image *normImage = nifti_dup(*image);
-        reg_heapSort(static_cast<float *>(normImage->data), normImage->nvox);
+        HeapSort(static_cast<float *>(normImage->data), normImage->nvox);
         float minValue = static_cast<float *>(normImage->data)[Floor(03*(int)normImage->nvox/100)];
         float maxValue = static_cast<float *>(normImage->data)[Floor(97*(int)normImage->nvox/100)];
         reg_tools_subtractValueFromImage(image,normImage,minValue);
@@ -892,7 +892,7 @@ int main(int argc, char **argv)
         const size_t jacobianVoxelNumber = NiftiImage::calcVoxelNumber(def, 3);
         mat33 *jacobian = (mat33 *)malloc(jacobianVoxelNumber * sizeof(mat33));
         for (size_t i = 0; i < jacobianVoxelNumber; ++i)
-            reg_mat33_eye(&jacobian[i]);
+            Mat33Eye(&jacobian[i]);
         // resample the original image into the space of the new image
         if(flag->interpFlag == 0){
             param->interpOrder = 3;

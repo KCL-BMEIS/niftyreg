@@ -41,23 +41,23 @@ void VoxelCentricToNodeCentric(const nifti_image *nodeImage,
     if (nodeImage->num_ext > 0 && nodeImage->ext_list[0].edata) {
         mat44 temp = *(reinterpret_cast<mat44*>(nodeImage->ext_list[0].edata));
         temp = nifti_mat44_inverse(temp);
-        transformation = reg_mat44_mul(&temp, &transformation);
+        transformation = temp * transformation;
     }
     // Millimetre to voxel in the reference image
-    transformation = reg_mat44_mul(voxelImage->sform_code > 0 ? &voxelImage->sto_ijk : &voxelImage->qto_ijk, &transformation);
+    transformation = (voxelImage->sform_code > 0 ? voxelImage->sto_ijk : voxelImage->qto_ijk) * transformation;
 
     // The information has to be reoriented
     // Voxel to millimetre contains the orientation of the image that is used
     // to compute the spatial gradient (floating image)
     mat33 reorientation;
     if (voxelToMillimetre) {
-        reorientation = reg_mat44_to_mat33(voxelToMillimetre);
+        reorientation = Mat44ToMat33(voxelToMillimetre);
         if (nodeImage->num_ext > 0 && nodeImage->ext_list[0].edata) {
-            mat33 temp = reg_mat44_to_mat33(reinterpret_cast<mat44*>(nodeImage->ext_list[0].edata));
+            mat33 temp = Mat44ToMat33(reinterpret_cast<mat44*>(nodeImage->ext_list[0].edata));
             temp = nifti_mat33_inverse(temp);
             reorientation = nifti_mat33_mul(temp, reorientation);
         }
-    } else reg_mat33_eye(&reorientation);
+    } else Mat33Eye(&reorientation);
     // The information has to be weighted
     float ratio[3] = { nodeImage->dx, nodeImage->dy, nodeImage->dz };
     for (int i = 0; i < (is3d ? 3 : 2); ++i) {

@@ -70,11 +70,11 @@ void reg_tool_ReadAffineFile(mat44 *mat,
         absoluteFloating = nifti_mat44_inverse(absoluteFloating);
         *mat = nifti_mat44_inverse(*mat);
 
-        *mat = reg_mat44_mul(&absoluteFloating, mat);
-        *mat = reg_mat44_mul(mat, &absoluteReference);
-        *mat = reg_mat44_mul(floatingMatrix, mat);
+        *mat = absoluteFloating * *mat;
+        *mat = *mat * absoluteReference;
+        *mat = *floatingMatrix * *mat;
         mat44 tmp = nifti_mat44_inverse(*referenceMatrix);
-        *mat = reg_mat44_mul(mat, &tmp);
+        *mat = *mat * tmp;
     }
 
     NR_MAT44_DEBUG(*mat, "Affine matrix");
@@ -168,7 +168,7 @@ template<class T>
 T** reg_tool_ReadMatrixFile(char *filename, size_t nbLine, size_t nbColumn) {
     //THEN CONSTRUCT THE MATRIX
     // Allocate the matrices
-    T** mat = reg_matrix2DAllocate<T>(nbLine, nbColumn);
+    T** mat = Matrix2dAlloc<T>(nbLine, nbColumn);
     //STORE THE VALUES
     std::string line;
     std::ifstream matrixFile(filename);

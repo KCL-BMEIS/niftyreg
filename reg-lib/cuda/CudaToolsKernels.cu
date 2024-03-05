@@ -8,7 +8,7 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  */
 
-#include "_reg_common_cuda_kernels.cu"
+#include "CudaCommon.hpp"
 
 /* *************************************************************** */
 namespace NiftyReg::Cuda {
@@ -23,10 +23,10 @@ __device__ void VoxelCentricToNodeCentricKernel(float4 *nodeImageCuda,
                                                 const mat33 reorientation,
                                                 const int index) {
     // Calculate the node coordinates
-    const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, nodeImageDims);
+    const auto [x, y, z] = IndexToDims<is3d>(index, nodeImageDims);
     // Transform into voxel coordinates
     float voxelCoord[3], nodeCoord[3] = { static_cast<float>(x), static_cast<float>(y), static_cast<float>(z) };
-    reg_mat44_mul_cuda<is3d>(transformation, nodeCoord, voxelCoord);
+    Mat44Mul<float, is3d>(transformation, nodeCoord, voxelCoord);
 
     // Linear interpolation
     float basisX[2], basisY[2], basisZ[2], interpolatedValue[3]{};
@@ -64,7 +64,7 @@ __device__ void VoxelCentricToNodeCentricKernel(float4 *nodeImageCuda,
     }
 
     float reorientedValue[3];
-    reg_mat33_mul_cuda<is3d>(reorientation, interpolatedValue, weight, reorientedValue);
+    Mat33Mul<is3d>(reorientation, interpolatedValue, weight, reorientedValue);
     nodeImageCuda[index] = { reorientedValue[0], reorientedValue[1], reorientedValue[2], 0 };
 }
 /* *************************************************************** */

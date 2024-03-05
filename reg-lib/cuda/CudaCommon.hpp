@@ -118,5 +118,21 @@ UniqueTextureObjectPtr CreateTextureObject(const DataType *devPtr,
                                            const cudaChannelFormatKind channelFormat,
                                            const unsigned channelCount);
 /* *************************************************************** */
+template<bool is3d>
+__device__ __inline__ int3 IndexToDims(const int index, const int3 dims) {
+    int quot = 0, rem;
+    if constexpr (is3d)
+        Divide(index, dims.x * dims.y, quot, rem);
+    else rem = index;
+    const int z = quot;
+    Divide(rem, dims.x, quot, rem);
+    const int y = quot, x = rem;
+    return { x, y, z };
+}
+/* *************************************************************** */
+__device__ __inline__ int3 IndexToDims(const int index, const int3 dims) {
+    return dims.z > 1 ? IndexToDims<true>(index, dims) : IndexToDims<false>(index, dims);
+}
+/* *************************************************************** */
 } // namespace NiftyReg::Cuda
 /* *************************************************************** */

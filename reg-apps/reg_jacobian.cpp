@@ -233,7 +233,7 @@ int main(int argc, char **argv)
       if(!reg_isAnImageFileName(param->inputTransName)){
          mat44 *affineTransformation=(mat44 *)malloc(sizeof(mat44));
          reg_tool_ReadAffineFile(affineTransformation,param->inputTransName);
-         NR_COUT << reg_mat44_det<double>(affineTransformation) << std::endl;
+         NR_COUT << Mat44Det<double>(affineTransformation) << std::endl;
          return EXIT_SUCCESS;
       }
 

@@ -1,5 +1,4 @@
 #include "CudaOptimiser.hpp"
-#include "_reg_common_cuda_kernels.cu"
 #include <curand_kernel.h>
 
 /* *************************************************************** */

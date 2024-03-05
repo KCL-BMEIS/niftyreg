@@ -154,19 +154,19 @@ public:
         if (nodeGrad->num_ext > 0 && nodeGrad->ext_list[0].edata) {
             mat44 temp = *(reinterpret_cast<mat44*>(nodeGrad->ext_list[0].edata));
             temp = nifti_mat44_inverse(temp);
-            transformation = reg_mat44_mul(&temp, &transformation);
+            transformation = temp * transformation;
         }
         // Millimetre to voxel in the reference image
         if (voxelGrad->sform_code > 0)
-            transformation = reg_mat44_mul(&voxelGrad->sto_ijk, &transformation);
-        else transformation = reg_mat44_mul(&voxelGrad->qto_ijk, &transformation);
+            transformation = voxelGrad->sto_ijk * transformation;
+        else transformation = voxelGrad->qto_ijk * transformation;
 
         // The information has to be reoriented
         // Voxel to millimetre contains the orientation of the image that is used
         // to compute the spatial gradient (floating image)
-        mat33 reorientation = reg_mat44_to_mat33(voxelToMillimetre);
+        mat33 reorientation = Mat44ToMat33(voxelToMillimetre);
         if (nodeGrad->num_ext > 0 && nodeGrad->ext_list[0].edata) {
-            mat33 temp = reg_mat44_to_mat33(reinterpret_cast<mat44*>(nodeGrad->ext_list[0].edata));
+            mat33 temp = Mat44ToMat33(reinterpret_cast<mat44*>(nodeGrad->ext_list[0].edata));
             temp = nifti_mat33_inverse(temp);
             reorientation = nifti_mat33_mul(temp, reorientation);
         }
@@ -189,7 +189,7 @@ public:
                 nodeCoord[1] = static_cast<float>(y);
                 for (int x = 0; x < nodeGrad->nx; x++) {
                     nodeCoord[0] = static_cast<float>(x);
-                    reg_mat44_mul(&transformation, nodeCoord, voxelCoord);
+                    Mat44Mul(transformation, nodeCoord, voxelCoord);
                     // Linear interpolation
                     DataType basisX[2], basisY[2], basisZ[2];
                     const int pre[3] = { Floor(voxelCoord[0]), Floor(voxelCoord[1]), Floor(voxelCoord[2]) };

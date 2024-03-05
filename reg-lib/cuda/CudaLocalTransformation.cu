@@ -84,7 +84,7 @@ __device__ SecondDerivative<is3d> GetApproxSecondDerivative(const int index,
                                                             cudaTextureObject_t controlPointTexture,
                                                             const int3 controlPointImageDim,
                                                             const Basis2nd<is3d> basis) {
-    const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, controlPointImageDim);
+    const auto [x, y, z] = IndexToDims<is3d>(index, controlPointImageDim);
     if (!isGradient && (x < 1 || x >= controlPointImageDim.x - 1 ||
                         y < 1 || y >= controlPointImageDim.y - 1 ||
                         (is3d && (z < 1 || z >= controlPointImageDim.z - 1)))) return {};
@@ -206,7 +206,7 @@ void ApproxBendingEnergyGradient(nifti_image *controlPointImage,
     const float approxRatio = bendingEnergyWeight / (float)controlPointNumber;
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), controlPointNumber,
                        [controlPointImageDim, basis, secondDerivativesTexture, transGradientCuda, approxRatio]__device__(const int index) {
-        const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, controlPointImageDim);
+        const auto [x, y, z] = IndexToDims<is3d>(index, controlPointImageDim);
         typename SecondDerivative<is3d>::Type gradientValue{};
         if constexpr (is3d) {
             for (int c = z - 1, basInd = 0; c < z + 2; c++) {
@@ -270,7 +270,7 @@ void ComputeApproxJacobianValues(const nifti_image *controlPointImage,
     auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
 
     // Need to reorient the Jacobian matrix using the header information - real to voxel conversion
-    const mat33 reorientation = reg_mat44_to_mat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_xyz : &controlPointImage->qto_xyz);
+    const mat33 reorientation = Mat44ToMat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_xyz : &controlPointImage->qto_xyz);
 
     // The Jacobian matrix is computed for every control point
     if (controlPointImage->nz > 1) {
@@ -306,7 +306,7 @@ void ComputeJacobianValues(const nifti_image *controlPointImage,
     auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
 
     // Need to reorient the Jacobian matrix using the header information - real to voxel conversion
-    const mat33 reorientation = reg_mat44_to_mat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_xyz : &controlPointImage->qto_xyz);
+    const mat33 reorientation = Mat44ToMat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_xyz : &controlPointImage->qto_xyz);
 
     // The Jacobian matrix is computed for every voxel
     if (controlPointImage->nz > 1) {
@@ -398,7 +398,7 @@ void GetJacobianPenaltyTermGradient(const nifti_image *referenceImage,
     }
 
     // Need to disorient the Jacobian matrix using the header information - voxel to real conversion
-    const mat33 reorientation = reg_mat44_to_mat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_ijk : &controlPointImage->qto_ijk);
+    const mat33 reorientation = Mat44ToMat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_ijk : &controlPointImage->qto_ijk);
 
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -511,7 +511,7 @@ double CorrectFolding(const nifti_image *referenceImage,
     }
 
     // Need to disorient the Jacobian matrix using the header information - voxel to real conversion
-    const mat33 reorientation = reg_mat44_to_mat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_ijk : &controlPointImage->qto_ijk);
+    const mat33 reorientation = Mat44ToMat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_ijk : &controlPointImage->qto_ijk);
 
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -555,7 +555,7 @@ void GetDeformationFromDisplacement(nifti_image *image, float4 *imageCuda) {
     const int3 imageDim{ image->nx, image->ny, image->nz };
 
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), voxelNumber, [=]__device__(const int index) {
-        const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, imageDim);
+        const auto [x, y, z] = IndexToDims<is3d>(index, imageDim);
 
         const float4 initialPosition{
             float(x) * affineMatrix.m[0][0] + float(y) * affineMatrix.m[0][1] + (is3d ? float(z) * affineMatrix.m[0][2] : 0.f) + affineMatrix.m[0][3],
@@ -866,7 +866,7 @@ double ApproxLinearEnergy(const nifti_image *controlPointGrid,
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
 
     // Matrix to use to convert the gradient from mm to voxel
-    const mat33 reorientation = reg_mat44_to_mat33(controlPointGrid->sform_code > 0 ? &controlPointGrid->sto_ijk : &controlPointGrid->qto_ijk);
+    const mat33 reorientation = Mat44ToMat33(controlPointGrid->sform_code > 0 ? &controlPointGrid->sto_ijk : &controlPointGrid->qto_ijk);
 
     // Store the basis values since they are constant as the value is approximated at the control point positions only
     Basis1st<is3d> basis;
@@ -903,7 +903,7 @@ void ApproxLinearEnergyGradient(const nifti_image *controlPointGrid,
     const float approxRatio = weight / static_cast<float>(voxelNumber);
 
     // Matrix to use to convert the gradient from mm to voxel
-    const mat33 reorientation = reg_mat44_to_mat33(controlPointGrid->sform_code > 0 ? &controlPointGrid->sto_ijk : &controlPointGrid->qto_ijk);
+    const mat33 reorientation = Mat44ToMat33(controlPointGrid->sform_code > 0 ? &controlPointGrid->sto_ijk : &controlPointGrid->qto_ijk);
     const mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
     // Store the basis values since they are constant as the value is approximated at the control point positions only
@@ -932,7 +932,7 @@ void ApproxLinearEnergyGradient(const nifti_image *controlPointGrid,
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), voxelNumber, [
         transGradCuda, dispMatricesTexture, cppDims, approxRatio, basis, invReorientation
     ]__device__(const int index) {
-        const auto [x, y, z] = reg_indexToDims_cuda<is3d>(index, cppDims);
+        const auto [x, y, z] = IndexToDims<is3d>(index, cppDims);
         auto gradVal = transGradCuda[index];
 
         if constexpr (is3d) {

@@ -153,7 +153,7 @@ int main(int argc, char **argv)
    originIndex[0] = -1.0f;
    originIndex[1] = -1.0f;
    originIndex[2] = -1.0f;
-   reg_mat44_mul(&(controlPointImage->qto_xyz), originIndex, originReal);
+   Mat44Mul(controlPointImage->qto_xyz, originIndex, originReal);
    controlPointImage->qto_xyz.m[0][3] = controlPointImage->qoffset_x = originReal[0];
    controlPointImage->qto_xyz.m[1][3] = controlPointImage->qoffset_y = originReal[1];
    controlPointImage->qto_xyz.m[2][3] = controlPointImage->qoffset_z = originReal[2];

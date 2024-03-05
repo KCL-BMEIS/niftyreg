@@ -506,8 +506,8 @@ double reg_spline_approxLinearEnergyValue2D(const nifti_image *splineControlPoin
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
     if (splineControlPoint->sform_code > 0)
-        reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
-    else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
+        reorientation = Mat44ToMat33(&splineControlPoint->sto_ijk);
+    else reorientation = Mat44ToMat33(&splineControlPoint->qto_ijk);
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -583,8 +583,8 @@ double reg_spline_approxLinearEnergyValue3D(const nifti_image *splineControlPoin
     // Matrix to use to convert the gradient from mm to voxel
     mat33 reorientation;
     if (splineControlPoint->sform_code > 0)
-        reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_ijk);
-    else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_ijk);
+        reorientation = Mat44ToMat33(&splineControlPoint->sto_ijk);
+    else reorientation = Mat44ToMat33(&splineControlPoint->qto_ijk);
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -688,7 +688,7 @@ void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoi
     set_first_order_basis_values(basisX, basisY);
 
     // Matrix to use to convert the gradient from mm to voxel
-    const mat33 reorientation = reg_mat44_to_mat33(splineControlPoint->sform_code > 0 ? &splineControlPoint->sto_ijk : &splineControlPoint->qto_ijk);
+    const mat33 reorientation = Mat44ToMat33(splineControlPoint->sform_code > 0 ? &splineControlPoint->sto_ijk : &splineControlPoint->qto_ijk);
     const mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
     const DataType approxRatio = weight / static_cast<DataType>(nodeNumber);
@@ -756,7 +756,7 @@ void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoi
     set_first_order_basis_values(basisX, basisY, basisZ);
 
     // Matrix to use to convert the gradient from mm to voxel
-    const mat33 reorientation = reg_mat44_to_mat33(splineControlPoint->sform_code > 0 ? &splineControlPoint->sto_ijk : &splineControlPoint->qto_ijk);
+    const mat33 reorientation = Mat44ToMat33(splineControlPoint->sform_code > 0 ? &splineControlPoint->sto_ijk : &splineControlPoint->qto_ijk);
     const mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
     const DataType approxRatio = weight / static_cast<DataType>(nodeNumber);
@@ -863,9 +863,9 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     double constraintValue = 0;
     size_t l, index;
-    float refPosition[4];
-    float defPosition[4];
-    float floPosition[4];
+    float refPosition[3];
+    float defPosition[3];
+    float floPosition[3];
     int previous[3], a, b, c;
     DataType basisX[4], basisY[4], basisZ[4], basis;
     const mat44 *gridRealToVox = &(controlPointImage->qto_ijk);
@@ -888,9 +888,8 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
             refPosition[2] = landmarkReference[l * imageDim + 2];
             floPosition[2] = landmarkFloating[l * imageDim + 2];
         } else refPosition[2] = floPosition[2] = 0;
-        refPosition[3] = floPosition[3] = 1;
         // Convert the reference position to voxel in the control point grid space
-        reg_mat44_mul(gridRealToVox, refPosition, defPosition);
+        Mat44Mul(*gridRealToVox, refPosition, defPosition);
 
         // Extract the corresponding nodes
         previous[0] = Floor(defPosition[0]) - 1;
@@ -1003,7 +1002,7 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
             floPosition[2] = landmarkFloating[l * imageDim + 2];
         } else refPosition[2] = floPosition[2] = 0;
         // Convert the reference position to voxel in the control point grid space
-        reg_mat44_mul(gridRealToVox, refPosition, defPosition);
+        Mat44Mul(*gridRealToVox, refPosition, defPosition);
         if (imageDim == 2) defPosition[2] = 0;
         // Extract the corresponding nodes
         previous[0] = Floor(defPosition[0]) - 1;

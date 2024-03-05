@@ -75,8 +75,8 @@ public:
 
         // Set some scaling transformation in the transformations
         mat44 affine2d, affine3d;
-        reg_mat44_eye(&affine2d);
-        reg_mat44_eye(&affine3d);
+        Mat44Eye(&affine2d);
+        Mat44Eye(&affine3d);
         affine3d.m[0][0] = affine2d.m[0][0] = 0.8f;
         affine3d.m[1][1] = affine2d.m[1][1] = 1.2f;
         affine3d.m[2][2] = 1.1f;

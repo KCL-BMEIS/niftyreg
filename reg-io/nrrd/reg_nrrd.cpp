@@ -167,7 +167,7 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
 
    // The space orientation is extracted and converted into a matrix
    mat44 qform_orientation_matrix;
-   reg_mat44_eye(&qform_orientation_matrix);
+   Mat44Eye(&qform_orientation_matrix);
    if(nrrdImage->space==nrrdSpaceRightAnteriorSuperior ||
          nrrdImage->space==nrrdSpaceRightAnteriorSuperiorTime ||
          nrrdImage->space==nrrdSpace3DRightHanded ||
@@ -251,7 +251,7 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
    if(nrrdImage->axis[1].spaceDirection[0]!=std::numeric_limits<double>::quiet_NaN())
    {
       niiImage->sform_code=1;
-      reg_mat44_eye(&niiImage->sto_xyz);
+      Mat44Eye(&niiImage->sto_xyz);
       for(int i=0; i<(niiImage->ndim<3?niiImage->ndim:3); ++i)
       {
          for(int j=0; j<(niiImage->ndim<3?niiImage->ndim:3); ++j)

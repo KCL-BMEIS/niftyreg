@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "_reg_maths.h"
+#include "Maths.hpp"
 
 #define TOLERANCE 0.001
 #define MAX_ITERATIONS 30

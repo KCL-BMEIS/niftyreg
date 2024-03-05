@@ -16,7 +16,6 @@
 #include "_reg_globalTrans.h"
 #include "_reg_localTrans.h"
 #include "_reg_tools.h"
-#include "_reg_maths_eigen.h"
 
 #include "reg_transform.h"
 
@@ -532,7 +531,7 @@ int main(int argc, char **argv) {
         if (affine1Trans != nullptr && affine2Trans != nullptr) {
             NR_INFO("Transformation 2 is an affine parametrisation:");
             NR_INFO(param->input2TransName);
-            *affine1Trans = reg_mat44_mul(affine2Trans, affine1Trans);
+            *affine1Trans = *affine2Trans * *affine1Trans;
             reg_tool_WriteAffineFile(affine1Trans, param->outputTransName);
         } else {
             // Check if the reference image is required
@@ -955,10 +954,10 @@ int main(int argc, char **argv) {
 
         // Update the sform
         if (image->sform_code > 0) {
-            image->sto_xyz = reg_mat44_mul(affineTransformation, &(image->sto_xyz));
+            image->sto_xyz = *affineTransformation * image->sto_xyz;
         } else {
             image->sform_code = 1;
-            image->sto_xyz = reg_mat44_mul(affineTransformation, &(image->qto_xyz));
+            image->sto_xyz = *affineTransformation * image->qto_xyz;
         }
         image->sto_ijk = nifti_mat44_inverse(image->sto_xyz);
 
@@ -980,9 +979,9 @@ int main(int argc, char **argv) {
             affineTrans = (mat44 *)malloc(sizeof(mat44));
             reg_tool_ReadAffineFile(affineTrans, param->inputTransName);
             // The affine transformation is halfed
-            *affineTrans = reg_mat44_logm(affineTrans);
-            *affineTrans = reg_mat44_mul(affineTrans, 0.5);
-            *affineTrans = reg_mat44_expm(affineTrans);
+            *affineTrans = Mat44Logm(affineTrans);
+            *affineTrans = *affineTrans * 0.5;
+            *affineTrans = Mat44Expm(affineTrans);
             // The affine transformation is saved
             reg_tool_WriteAffineFile(affineTrans, param->outputTransName);
         } else {
@@ -1183,17 +1182,17 @@ int main(int argc, char **argv) {
     if (flag->makeAffFlag) {
         // Create all the required matrices
         mat44 rotationX;
-        reg_mat44_eye(&rotationX);
+        Mat44Eye(&rotationX);
         mat44 translation;
-        reg_mat44_eye(&translation);
+        Mat44Eye(&translation);
         mat44 rotationY;
-        reg_mat44_eye(&rotationY);
+        Mat44Eye(&rotationY);
         mat44 rotationZ;
-        reg_mat44_eye(&rotationZ);
+        Mat44Eye(&rotationZ);
         mat44 scaling;
-        reg_mat44_eye(&scaling);
+        Mat44Eye(&scaling);
         mat44 shearing;
-        reg_mat44_eye(&shearing);
+        Mat44Eye(&shearing);
         // Set up the rotation matrix along the YZ plane
         rotationX.m[1][1] = cosf(param->affTransParam[0]);
         rotationX.m[1][2] = -sinf(param->affTransParam[0]);
@@ -1222,11 +1221,11 @@ int main(int argc, char **argv) {
         shearing.m[2][0] = param->affTransParam[10];
         shearing.m[2][1] = param->affTransParam[11];
         // Combine all the transformations
-        mat44 affine = reg_mat44_mul(&rotationY, &rotationZ);
-        affine = reg_mat44_mul(&rotationX, &affine);
-        affine = reg_mat44_mul(&scaling, &affine);
-        affine = reg_mat44_mul(&shearing, &affine);
-        affine = reg_mat44_mul(&translation, &affine);
+        mat44 affine = rotationY * rotationZ;
+        affine = rotationX * affine;
+        affine = scaling * affine;
+        affine = shearing * affine;
+        affine = translation * affine;
         // Save the new matrix
         reg_tool_WriteAffineFile(&affine, param->outputTransName);
     }

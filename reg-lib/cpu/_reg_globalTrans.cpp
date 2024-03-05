@@ -11,8 +11,7 @@
  */
 
 #include "_reg_globalTrans.h"
-#include "_reg_maths.h"
-#include "_reg_maths_eigen.h"
+#include "Maths.hpp"
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -28,15 +27,13 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
 
    mat44 *referenceMatrix;
    if(deformationFieldImage->sform_code>0)
-   {
-      referenceMatrix=&(deformationFieldImage->sto_xyz);
-   }
-   else referenceMatrix=&(deformationFieldImage->qto_xyz);
+      referenceMatrix=&deformationFieldImage->sto_xyz;
+   else referenceMatrix=&deformationFieldImage->qto_xyz;
 
    mat44 transformationMatrix;
    if(composition)
       transformationMatrix = *affineTransformation;
-   else transformationMatrix = reg_mat44_mul(affineTransformation, referenceMatrix);
+   else transformationMatrix = *affineTransformation * *referenceMatrix;
 
    double voxel[3]={0,0,0}, position[3]={0,0,0};
    int x=0, y=0;
@@ -61,9 +58,9 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
             {
                voxel[0] = (double) deformationFieldPtrX[index];
                voxel[1] = (double) deformationFieldPtrY[index];
-               reg_mat44_mul(&transformationMatrix, voxel, position);
+               Mat44Mul(transformationMatrix, voxel, position);
             }
-            else reg_mat44_mul(&transformationMatrix, voxel, position);
+            else Mat44Mul(transformationMatrix, voxel, position);
 
             /* the deformation field (real coordinates) is stored */
             deformationFieldPtrX[index] = (FieldTYPE) position[0];
@@ -87,15 +84,13 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
 
    mat44 *referenceMatrix;
    if(deformationFieldImage->sform_code>0)
-   {
-      referenceMatrix=&(deformationFieldImage->sto_xyz);
-   }
-   else referenceMatrix=&(deformationFieldImage->qto_xyz);
+      referenceMatrix=&deformationFieldImage->sto_xyz;
+   else referenceMatrix=&deformationFieldImage->qto_xyz;
 
    mat44 transformationMatrix;
    if(composition)
       transformationMatrix = *affineTransformation;
-   else transformationMatrix = reg_mat44_mul(affineTransformation, referenceMatrix);
+   else transformationMatrix = *affineTransformation * *referenceMatrix;
 
    double voxel[3]={0,0,0}, position[3]={0,0,0};
    int x=0, y=0, z=0;
@@ -124,7 +119,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
                   voxel[1]= (double) deformationFieldPtrY[index];
                   voxel[2]= (double) deformationFieldPtrZ[index];
                }
-               reg_mat44_mul(&transformationMatrix, voxel, position);
+               Mat44Mul(transformationMatrix, voxel, position);
 
                /* the deformation field (real coordinates) is stored */
                deformationFieldPtrX[index] = (FieldTYPE) position[0];
@@ -207,9 +202,9 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
    centroid_warpedFloat[0] = static_cast<float>(centroid_warped[0]);
    centroid_warpedFloat[1] = static_cast<float>(centroid_warped[1]);
 
-   float * w = reg_matrix1DAllocate<float>(2);
-   float **v = reg_matrix2DAllocate<float>(2, 2);
-   float **r = reg_matrix2DAllocate<float>(2, 2);
+   float * w = Matrix1dAlloc<float>(2);
+   float **v = Matrix2dAlloc<float>(2, 2);
+   float **r = Matrix2dAlloc<float>(2, 2);
 
    // Demean the input points
    for (int j = 0; j < num_points; ++j) {
@@ -220,24 +215,24 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
       points2[j][1] = static_cast<float>(static_cast<double>(points2[j][1]) - static_cast<double>(centroid_warpedFloat[1]));
    }
 
-   float **p1t = reg_matrix2DTranspose<float>(points1, num_points, 2);
-   float **u = reg_matrix2DMultiply<float>(p1t,2, num_points, points2, num_points, 2, false);
+   float **p1t = Matrix2dTranspose<float>(points1, num_points, 2);
+   float **u = Matrix2dMultiply<float>(p1t,2, num_points, points2, num_points, 2, false);
 
-   svd(u, 2, 2, w, v);
+   Svd(u, 2, 2, w, v);
 
    // Calculate transpose
-   float **ut = reg_matrix2DTranspose<float>(u, 2, 2);
+   float **ut = Matrix2dTranspose<float>(u, 2, 2);
 
    // Calculate the rotation matrix
-   reg_matrix2DMultiply<float>(v, 2, 2, ut, 2, 2, r, false);
+   Matrix2dMultiply<float>(v, 2, 2, ut, 2, 2, r, false);
 
-   float det = reg_matrix2DDet<float>(r, 2, 2);
+   float det = Matrix2dDet<float>(r, 2, 2);
 
    // Take care of possible reflection
    if (det < 0) {
       v[0][1] = -v[0][1];
       v[1][1] = -v[1][1];
-      reg_matrix2DMultiply<float>(v, 2, 2, ut, 2, 2, r, false);
+      Matrix2dMultiply<float>(v, 2, 2, ut, 2, 2, r, false);
    }
 
    // Calculate the translation
@@ -271,12 +266,12 @@ void estimate_rigid_transformation2D(float** points1, float** points2, int num_p
    transformation->m[3][3] = 1.0f;
 
    // Do the deletion here
-   reg_matrix2DDeallocate(2, u);
-   reg_matrix1DDeallocate(w);
-   reg_matrix2DDeallocate(2, v);
-   reg_matrix2DDeallocate(2, ut);
-   reg_matrix2DDeallocate(2, r);
-   //    reg_matrix2DDeallocate(2, p1t);
+   Matrix2dDealloc(2, u);
+   Matrix1dDealloc(w);
+   Matrix2dDealloc(2, v);
+   Matrix2dDealloc(2, ut);
+   Matrix2dDealloc(2, r);
+   //    Matrix2dDealloc(2, p1t);
    for(size_t dance=0;dance<2;++dance) free(p1t[dance]); free(p1t);
 }
 /* *************************************************************** */
@@ -284,8 +279,8 @@ void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, m
 {
 
    unsigned num_points = points.size();
-   float** points1 = reg_matrix2DAllocate<float>(num_points, 2);
-   float** points2 = reg_matrix2DAllocate<float>(num_points, 2);
+   float** points1 = Matrix2dAlloc<float>(num_points, 2);
+   float** points2 = Matrix2dAlloc<float>(num_points, 2);
    for (unsigned i = 0; i < num_points; i++) {
       points1[i][0] = points[i].reference[0];
       points1[i][1] = points[i].reference[1];
@@ -294,8 +289,8 @@ void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, m
    }
    estimate_rigid_transformation2D(points1, points2, num_points, transformation);
    //FREE MEMORY
-   reg_matrix2DDeallocate(num_points, points1);
-   reg_matrix2DDeallocate(num_points, points2);
+   Matrix2dDealloc(num_points, points1);
+   Matrix2dDealloc(num_points, points2);
 }
 /* *************************************************************** */
 void estimate_rigid_transformation3D(float** points1, float** points2, int num_points, mat44 * transformation)
@@ -335,9 +330,9 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
    centroid_warpedFloat[1] = static_cast<float>(centroid_warped[1]);
    centroid_warpedFloat[2] = static_cast<float>(centroid_warped[2]);
 
-   float * w = reg_matrix1DAllocate<float>(3);
-   float **v  = reg_matrix2DAllocate<float>(3, 3);
-   float **r  = reg_matrix2DAllocate<float>(3, 3);
+   float * w = Matrix1dAlloc<float>(3);
+   float **v  = Matrix2dAlloc<float>(3, 3);
+   float **r  = Matrix2dAlloc<float>(3, 3);
 
    // Demean the input points
    for (int j = 0; j < num_points; ++j) {
@@ -349,27 +344,27 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
       points2[j][1] = static_cast<float>(static_cast<double>(points2[j][1]) - static_cast<double>(centroid_warpedFloat[1]));
       points2[j][2] = static_cast<float>(static_cast<double>(points2[j][2]) - static_cast<double>(centroid_warpedFloat[2]));
    }
-   //T** reg_matrix2DTranspose(T** mat, size_t arraySizeX, size_t arraySizeY);
-   //T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, bool transposeMat2);
-   float **p1t = reg_matrix2DTranspose<float>(points1, num_points, 3);
-   float **u = reg_matrix2DMultiply<float>(p1t,3, num_points, points2, num_points, 3, false);
+   //T** Matrix2dTranspose(T** mat, size_t arraySizeX, size_t arraySizeY);
+   //T** Matrix2dMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y, bool transposeMat2);
+   float **p1t = Matrix2dTranspose<float>(points1, num_points, 3);
+   float **u = Matrix2dMultiply<float>(p1t,3, num_points, points2, num_points, 3, false);
 
-   svd(u, 3, 3, w, v);
+   Svd(u, 3, 3, w, v);
 
    // Calculate transpose
-   float **ut = reg_matrix2DTranspose<float>(u, 3, 3);
+   float **ut = Matrix2dTranspose<float>(u, 3, 3);
 
    // Calculate the rotation matrix
-   reg_matrix2DMultiply<float>(v, 3, 3, ut, 3, 3, r, false);
+   Matrix2dMultiply<float>(v, 3, 3, ut, 3, 3, r, false);
 
-   float det = reg_matrix2DDet<float>(r, 3, 3);
+   float det = Matrix2dDet<float>(r, 3, 3);
 
    // Take care of possible reflection
    if (det < 0) {
       v[0][2] = -v[0][2];
       v[1][2] = -v[1][2];
       v[2][2] = -v[2][2];
-      reg_matrix2DMultiply<float>(v, 3, 3, ut, 3, 3, r, false);
+      Matrix2dMultiply<float>(v, 3, 3, ut, 3, 3, r, false);
    }
 
    // Calculate the translation
@@ -407,19 +402,19 @@ void estimate_rigid_transformation3D(float** points1, float** points2, int num_p
    transformation->m[3][3] = 1.0f;
 
    // Do the deletion here
-   reg_matrix2DDeallocate(3, u);
-   reg_matrix1DDeallocate(w);
-   reg_matrix2DDeallocate(3, v);
-   reg_matrix2DDeallocate(3, ut);
-   reg_matrix2DDeallocate(3, r);
-   reg_matrix2DDeallocate(3, p1t);
+   Matrix2dDealloc(3, u);
+   Matrix1dDealloc(w);
+   Matrix2dDealloc(3, v);
+   Matrix2dDealloc(3, ut);
+   Matrix2dDealloc(3, r);
+   Matrix2dDealloc(3, p1t);
 }
 /* *************************************************************** */
 void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44 * transformation)
 {
    unsigned num_points = points.size();
-   float** points1 = reg_matrix2DAllocate<float>(num_points, 3);
-   float** points2 = reg_matrix2DAllocate<float>(num_points, 3);
+   float** points1 = Matrix2dAlloc<float>(num_points, 3);
+   float** points2 = Matrix2dAlloc<float>(num_points, 3);
    for (unsigned i = 0; i < num_points; i++) {
       points1[i][0] = points[i].reference[0];
       points1[i][1] = points[i].reference[1];
@@ -430,8 +425,8 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, m
    }
    estimate_rigid_transformation3D(points1, points2, num_points, transformation);
    //FREE MEMORY
-   reg_matrix2DDeallocate(num_points, points1);
-   reg_matrix2DDeallocate(num_points, points2);
+   Matrix2dDealloc(num_points, points1);
+   Matrix2dDealloc(num_points, points2);
 }
 /* *************************************************************** */
 void estimate_affine_transformation2D(float** points1, float** points2, int num_points, mat44 * transformation)
@@ -439,7 +434,7 @@ void estimate_affine_transformation2D(float** points1, float** points2, int num_
    //We assume same number of points in both arrays
    int num_equations = num_points * 2;
    unsigned c = 0;
-   float** A = reg_matrix2DAllocate<float>(num_equations, 6);
+   float** A = Matrix2dAlloc<float>(num_equations, 6);
 
    for (int k = 0; k < num_points; ++k) {
       c = k * 2;
@@ -455,10 +450,10 @@ void estimate_affine_transformation2D(float** points1, float** points2, int num_
       A[c + 1][5] = 1.0f;
    }
 
-   float* w  = reg_matrix1DAllocate<float>(6);
-   float** v = reg_matrix2DAllocate<float>(6, 6);
+   float* w  = Matrix1dAlloc<float>(6);
+   float** v = Matrix2dAlloc<float>(6, 6);
 
-   svd(A, num_equations, 6, w, v);
+   Svd(A, num_equations, 6, w, v);
 
    for (unsigned k = 0; k < 6; ++k) {
       if (w[k] < 0.0001) {
@@ -479,19 +474,19 @@ void estimate_affine_transformation2D(float** points1, float** points2, int num_
       }
    }
 
-   float** r = reg_matrix2DAllocate<float>(6, num_equations);
-   reg_matrix2DMultiply<float>(v, 6, 6, A, num_equations, 6, r, true);
+   float** r = Matrix2dAlloc<float>(6, num_equations);
+   Matrix2dMultiply<float>(v, 6, 6, A, num_equations, 6, r, true);
    // Now r contains the pseudoinverse
    // Create vector b and then multiple r*b to get the affine paramsA
-   float* b = reg_matrix1DAllocate<float>(num_equations);
+   float* b = Matrix1dAlloc<float>(num_equations);
    for (int k = 0; k < num_points; ++k) {
       c = k * 2;
       b[c] = points2[k][0];
       b[c + 1] = points2[k][1];
    }
 
-   float* transform = reg_matrix1DAllocate<float>(6);
-   reg_matrix2DVectorMultiply<float>(r, 6, num_equations, b, transform);
+   float* transform = Matrix1dAlloc<float>(6);
+   Matrix2dVectorMultiply<float>(r, 6, num_equations, b, transform);
 
    transformation->m[0][0] = transform[0];
    transformation->m[0][1] = transform[1];
@@ -514,19 +509,19 @@ void estimate_affine_transformation2D(float** points1, float** points2, int num_
    transformation->m[3][3] = 1.0f;
 
    // Do the deletion here
-   reg_matrix1DDeallocate(transform);
-   reg_matrix1DDeallocate(b);
-   reg_matrix2DDeallocate(6, r);
-   reg_matrix2DDeallocate(6, v);
-   reg_matrix1DDeallocate(w);
-   reg_matrix2DDeallocate(num_equations, A);
+   Matrix1dDealloc(transform);
+   Matrix1dDealloc(b);
+   Matrix2dDealloc(6, r);
+   Matrix2dDealloc(6, v);
+   Matrix1dDealloc(w);
+   Matrix2dDealloc(num_equations, A);
 }
 /* *************************************************************** */
 void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44 * transformation)
 {
    unsigned num_points = points.size();
-   float** points1 = reg_matrix2DAllocate<float>(num_points, 2);
-   float** points2 = reg_matrix2DAllocate<float>(num_points, 2);
+   float** points1 = Matrix2dAlloc<float>(num_points, 2);
+   float** points2 = Matrix2dAlloc<float>(num_points, 2);
    for (unsigned i = 0; i < num_points; i++) {
       points1[i][0] = points[i].reference[0];
       points1[i][1] = points[i].reference[1];
@@ -535,8 +530,8 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, 
    }
    estimate_affine_transformation2D(points1, points2, num_points, transformation);
    //FREE MEMORY
-   reg_matrix2DDeallocate(num_points, points1);
-   reg_matrix2DDeallocate(num_points, points2);
+   Matrix2dDealloc(num_points, points1);
+   Matrix2dDealloc(num_points, points2);
 }
 /* *************************************************************** */
 // estimate an affine transformation using least square
@@ -548,7 +543,7 @@ void estimate_affine_transformation3D(float** points1, float** points2, int num_
    // we need at least 4 points. Assuming we have that here.
    int num_equations = num_points * 3;
    unsigned c = 0;
-   float** A = reg_matrix2DAllocate<float>(num_equations, 12);
+   float** A = Matrix2dAlloc<float>(num_equations, 12);
 
    for (int k = 0; k < num_points; ++k) {
       c = k * 3;
@@ -571,10 +566,10 @@ void estimate_affine_transformation3D(float** points1, float** points2, int num_
       A[c + 2][11] = 1.0f;
    }
 
-   float* w = reg_matrix1DAllocate<float>(12);
-   float** v = reg_matrix2DAllocate<float>(12, 12);
-   // Now we can compute our svd
-   svd(A, num_equations, 12, w, v);
+   float* w = Matrix1dAlloc<float>(12);
+   float** v = Matrix2dAlloc<float>(12, 12);
+   // Now we can compute our Svd
+   Svd(A, num_equations, 12, w, v);
 
    // First we make sure that the really small singular values
    // are set to 0. and compute the inverse by taking the reciprocal
@@ -600,11 +595,11 @@ void estimate_affine_transformation3D(float** points1, float** points2, int num_
 
    // Now multiply the matrices together
    // Pseudoinverse = v * w * A(transpose)
-   float** r = reg_matrix2DAllocate<float>(12, num_equations);
-   reg_matrix2DMultiply<float>(v, 12, 12, A, num_equations, 12, r, true);
+   float** r = Matrix2dAlloc<float>(12, num_equations);
+   Matrix2dMultiply<float>(v, 12, 12, A, num_equations, 12, r, true);
    // Now r contains the pseudoinverse
    // Create vector b and then multiple rb to get the affine paramsA
-   float* b = reg_matrix1DAllocate<float>(num_equations);
+   float* b = Matrix1dAlloc<float>(num_equations);
    for (int k = 0; k < num_points; ++k) {
       c = k * 3;
       b[c] = points2[k][0];
@@ -612,9 +607,9 @@ void estimate_affine_transformation3D(float** points1, float** points2, int num_
       b[c + 2] = points2[k][2];
    }
 
-   float * transform = reg_matrix1DAllocate<float>(12);
+   float * transform = Matrix1dAlloc<float>(12);
    //mul_matvec(r, 12, num_equations, b, transform);
-   reg_matrix2DVectorMultiply<float>(r, 12, num_equations, b, transform);
+   Matrix2dVectorMultiply<float>(r, 12, num_equations, b, transform);
 
    transformation->m[0][0] = transform[0];
    transformation->m[0][1] = transform[1];
@@ -637,20 +632,20 @@ void estimate_affine_transformation3D(float** points1, float** points2, int num_
    transformation->m[3][3] = 1.0f;
 
    // Do the deletion here
-   reg_matrix1DDeallocate(transform);
-   reg_matrix1DDeallocate(b);
-   reg_matrix2DDeallocate(12, r);
-   reg_matrix2DDeallocate(12, v);
-   reg_matrix1DDeallocate(w);
-   reg_matrix2DDeallocate(num_equations, A);
+   Matrix1dDealloc(transform);
+   Matrix1dDealloc(b);
+   Matrix2dDealloc(12, r);
+   Matrix2dDealloc(12, v);
+   Matrix1dDealloc(w);
+   Matrix2dDealloc(num_equations, A);
 }
 /* *************************************************************** */
 // estimate an affine transformation using least square
 void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44 * transformation)
 {
    unsigned num_points = points.size();
-   float** points1 = reg_matrix2DAllocate<float>(num_points, 3);
-   float** points2 = reg_matrix2DAllocate<float>(num_points, 3);
+   float** points1 = Matrix2dAlloc<float>(num_points, 3);
+   float** points2 = Matrix2dAlloc<float>(num_points, 3);
    for (unsigned i = 0; i < num_points; i++) {
       points1[i][0] = points[i].reference[0];
       points1[i][1] = points[i].reference[1];
@@ -661,8 +656,8 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
    }
    estimate_affine_transformation3D(points1, points2, num_points, transformation);
    //FREE MEMORY
-   reg_matrix2DDeallocate(num_points, points1);
-   reg_matrix2DDeallocate(num_points, points2);
+   Matrix2dDealloc(num_points, points1);
+   Matrix2dDealloc(num_points, points2);
 }
 /* *************************************************************** */
 ///LTS 2D
@@ -671,7 +666,7 @@ void optimize_2D(float* referencePosition, float* warpedPosition,
                  mat44 * final, bool affine) {
 
    // Set the current transformation to identity
-   reg_mat44_eye(final);
+   Mat44Eye(final);
 
    const unsigned num_points = activeBlockNumber;
    unsigned long num_equations = num_points * 2;
@@ -705,13 +700,11 @@ void optimize_2D(float* referencePosition, float* warpedPosition,
    {
       // Transform the points in the reference
       for (unsigned j = 0; j < num_points * 2; j += 2)
-      {
-         reg_mat33_mul(final, &referencePosition[j], &newWarpedPosition[j]);
-      }
+         Mat33Mul(*final, reinterpret_cast<float(&)[2]>(referencePosition[j]), reinterpret_cast<float(&)[2]>(newWarpedPosition[j]));
       queue = std::multimap<double, _reg_sorted_point2D>();
       for (unsigned j = 0; j < num_points * 2; j += 2)
       {
-         distance = get_square_distance2D(&newWarpedPosition[j], &warpedPosition[j]);
+         distance = SquareDistance2d(&newWarpedPosition[j], &warpedPosition[j]);
          queue.insert(std::pair<double, _reg_sorted_point2D>(distance,
                                                              _reg_sorted_point2D(&referencePosition[j], &warpedPosition[j], distance)));
       }
@@ -754,7 +747,7 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
                  mat44 *final, bool affine) {
 
    // Set the current transformation to identity
-   reg_mat44_eye(final);
+   Mat44Eye(final);
 
    const unsigned num_points = activeBlockNumber;
    unsigned long num_equations = num_points * 3;
@@ -785,13 +778,12 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
    for (int count = 0; count < max_iter; ++count)
    {
       // Transform the points in the reference
-      for (unsigned j = 0; j < num_points * 3; j+=3) {
-         reg_mat44_mul(final, &referencePosition[j], &newWarpedPosition[j]);
-      }
+      for (unsigned j = 0; j < num_points * 3; j+=3)
+         Mat44Mul(*final, reinterpret_cast<float(&)[3]>(referencePosition[j]), reinterpret_cast<float(&)[3]>(newWarpedPosition[j]));
       queue = std::multimap<double, _reg_sorted_point3D>();
       for (unsigned j = 0; j < num_points * 3; j+= 3)
       {
-         distance = get_square_distance3D(&newWarpedPosition[j], &warpedPosition[j]);
+         distance = SquareDistance3d(&newWarpedPosition[j], &warpedPosition[j]);
          queue.insert(std::pair<double,
                       _reg_sorted_point3D>(distance,
                                            _reg_sorted_point3D(&referencePosition[j],
@@ -823,6 +815,6 @@ void optimize_3D(float *referencePosition, float *warpedPosition,
          estimate_rigid_transformation3D(top_points, final);
       }
    }
-   delete [] newWarpedPosition;
+   delete[] newWarpedPosition;
 }
 /* *************************************************************** */

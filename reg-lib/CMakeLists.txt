@@ -12,8 +12,7 @@ endif(USE_OPENCL)
 ##BUILD THE CPU LIBRARIES
 #-----------------------------------------------------------------------------
 add_library(_reg_maths ${NIFTYREG_LIBRARY_TYPE}
-  cpu/_reg_maths.cpp
-  cpu/_reg_maths_eigen.cpp
+  cpu/Maths.cpp
 )
 install(TARGETS _reg_maths
   RUNTIME DESTINATION bin

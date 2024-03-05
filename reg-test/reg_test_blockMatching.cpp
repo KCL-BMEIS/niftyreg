@@ -46,7 +46,7 @@ public:
 
         // Create a translation matrix to apply OFFSET voxels along each axis
         mat44 translationMatrix;
-        reg_mat44_eye(&translationMatrix);
+        Mat44Eye(&translationMatrix);
         translationMatrix.m[0][3] = -OFFSET;
         translationMatrix.m[1][3] = -OFFSET;
         translationMatrix.m[2][3] = -OFFSET;

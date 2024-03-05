@@ -11,7 +11,6 @@
  */
 
 #include "_reg_nmi_gpu.h"
-#include "_reg_common_cuda_kernels.cu"
 
 /* *************************************************************** */
 reg_nmi_gpu::reg_nmi_gpu(): reg_nmi::reg_nmi() {

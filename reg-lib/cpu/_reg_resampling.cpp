@@ -11,8 +11,7 @@
  */
 
 #include "_reg_resampling.h"
-#include "_reg_maths.h"
-#include "_reg_maths_eigen.h"
+#include "Maths.hpp"
 #include "_reg_tools.h"
 
 #define SINC_KERNEL_RADIUS 3
@@ -165,7 +164,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
             diffTensor[tid].m[2][2] = static_cast<float>(floatingIntensityZZ[floatingIndex]);
 
             // Compute the log of the diffusion tensor.
-            reg_mat33_logm(&diffTensor[tid]);
+            Mat33Logm(&diffTensor[tid]);
 
             // Write this out as a new image
             floatingIntensityXX[floatingIndex] = static_cast<DataType>(diffTensor[tid].m[0][0]);
@@ -257,10 +256,10 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                     inputTensor[tid].m[2][2] = static_cast<float>(inputIntensityZZ[warpedIndex]);
                     // Exponentiate the warped tensor
                     if (warpedImage == nullptr) {
-                        reg_mat33_expm(&inputTensor[tid]);
+                        Mat33Expm(&inputTensor[tid]);
                         testSum = 0;
                     } else {
-                        reg_mat33_eye(&warpedTensor[tid]);
+                        Mat33Eye(&warpedTensor[tid]);
                         warpedTensor[tid].m[0][0] = static_cast<float>(warpedXX[warpedIndex]);
                         warpedTensor[tid].m[0][1] = static_cast<float>(warpedXY[warpedIndex]);
                         warpedTensor[tid].m[1][0] = warpedTensor[tid].m[0][1];
@@ -396,7 +395,7 @@ void ResampleImage3D(const nifti_image *floatingImage,
                 world[2] = static_cast<float>(deformationFieldPtrZ[index]);
 
                 // real -> voxel; floating space
-                reg_mat44_mul(floatingIJKMatrix, world, position);
+                Mat44Mul(*floatingIJKMatrix, world, position);
 
                 previous[0] = Floor(position[0]);
                 previous[1] = Floor(position[1]);
@@ -576,7 +575,7 @@ void ResampleImage2D(const nifti_image *floatingImage,
                 world[2] = 0;
 
                 // real -> voxel; floating space
-                reg_mat44_mul(floatingIJKMatrix, world, position);
+                Mat44Mul(*floatingIJKMatrix, world, position);
 
                 previous[0] = Floor(position[0]);
                 previous[1] = Floor(position[1]);
@@ -921,7 +920,7 @@ void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
                                     psfWorld[2] /= resamplingWeightSum;
 
                                     // real -> voxel; floating space
-                                    reg_mat44_mul(floatingIJKMatrix, psfWorld, position);
+                                    Mat44Mul(*floatingIJKMatrix, psfWorld, position);
 
                                     previous[0] = Floor(position[0]);
                                     previous[1] = Floor(position[1]);
@@ -1128,11 +1127,11 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
                     // T=P+A*S*At
                     A = nifti_mat33_inverse(jacMat[index]);
 
-                    ASAt = A * S * reg_mat33_trans(A);
+                    ASAt = A * S * Mat33Trans(A);
 
                     TmS = T - ASAt;
 
-                    reg_mat33_diagonalize(&TmS, &TmS_EigVec, &TmS_EigVal);
+                    Mat33Diagonalize(&TmS, &TmS_EigVec, &TmS_EigVal);
 
                     // If eigen values are less than 0, set them to 0.
                     // Also, invert the eigenvalues to estimate the inverse.
@@ -1148,7 +1147,7 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
                         }
                     }
 
-                    TmS_EigVec_trans = reg_mat33_trans(TmS_EigVec);
+                    TmS_EigVec_trans = Mat33Trans(TmS_EigVec);
                     P = TmS_EigVec * TmS_EigVal * TmS_EigVec_trans;
                     invP = TmS_EigVec * TmS_EigVal_inv * TmS_EigVec_trans;
                     currentDeterminant = TmS_EigVal.m[0][0] * TmS_EigVal.m[1][1] * TmS_EigVal.m[2][2];
@@ -1157,16 +1156,16 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
 
                     A = nifti_mat33_inverse(jacMat[index]);
 
-                    ASAt = A * S * reg_mat33_trans(A);
+                    ASAt = A * S * Mat33Trans(A);
 
                     mat33 S_EigVec, S_EigVal;
 
                     //                % rotate S
                     //                [ZS, DS] = eig(S);
-                    reg_mat33_diagonalize(&ASAt, &S_EigVec, &S_EigVal);
+                    Mat33Diagonalize(&ASAt, &S_EigVec, &S_EigVal);
 
                     //                T1 = ZS'*T*ZS;
-                    mat33 T1 = reg_mat33_trans(S_EigVec) * T * S_EigVec;
+                    mat33 T1 = Mat33Trans(S_EigVec) * T * S_EigVec;
 
                     //                % Volume-preserving scale of S to make it isotropic
                     //                detS = prod(diag(DS));
@@ -1191,12 +1190,12 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
                     }
 
                     //                T2 = LambdaN*T1*LambdaN';
-                    mat33 T2 = LambdaN * T1 * reg_mat33_trans(LambdaN);
+                    mat33 T2 = LambdaN * T1 * Mat33Trans(LambdaN);
 
                     //                % Rotate to make thing axis-aligned
                     //                [ZT2, DT2] = eig(T2);
                     mat33 T2_EigVec, T2_EigVal;
-                    reg_mat33_diagonalize(&T2, &T2_EigVec, &T2_EigVal);
+                    Mat33Diagonalize(&T2, &T2_EigVec, &T2_EigVal);
 
                     //                % Optimal solution in the transformed axis-aligned space
                     //                DP2 = diag(max(sqrt(detS),diag(DT2)));
@@ -1213,11 +1212,11 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
 
                     //                % Roll back the transforms
                     //                Q = ZS*invLambdaN*ZT2*DQ2*ZT2'*invLambdaN*ZS'
-                    mat33 Q = S_EigVec * invLambdaN * T2_EigVec * DP2 * reg_mat33_trans(T2_EigVec) * invLambdaN * reg_mat33_trans(S_EigVec);
+                    mat33 Q = S_EigVec * invLambdaN * T2_EigVec * DP2 * Mat33Trans(T2_EigVec) * invLambdaN * Mat33Trans(S_EigVec);
                     //                P=Q-S
                     TmS = Q - S;
                     invP = nifti_mat33_inverse(TmS);
-                    reg_mat33_diagonalize(&TmS, &TmS_EigVec, &TmS_EigVal);
+                    Mat33Diagonalize(&TmS, &TmS_EigVec, &TmS_EigVal);
 
                     currentDeterminant = TmS_EigVal.m[0][0] * TmS_EigVal.m[1][1] * TmS_EigVal.m[2][2];
                     currentDeterminant = currentDeterminant < 0.000001f ? 0.000001f : currentDeterminant;
@@ -1322,7 +1321,7 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
                                         psfWorld[2] /= resamplingWeightSum;
 
                                         // real -> voxel; floating space
-                                        reg_mat44_mul(floatingIJKMatrix, psfWorld, position);
+                                        Mat44Mul(*floatingIJKMatrix, psfWorld, position);
 
                                         previous[0] = Floor(position[0]);
                                         previous[1] = Floor(position[1]);
@@ -1531,7 +1530,7 @@ void reg_bilinearResampleGradient(const nifti_image *floatingImage,
     }
 
     // Reorientation matrix is assessed in order to remove the rigid component
-    mat33 reorient = nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->sto_xyz)));
+    mat33 reorient = nifti_mat33_inverse(nifti_mat33_polar(Mat44ToMat33(&deformationField->sto_xyz)));
 
     // Some useful variables
     mat33 jacMat;
@@ -1701,7 +1700,7 @@ void reg_trilinearResampleGradient(const nifti_image *floatingImage,
     }
 
     // Reorientation matrix is assessed in order to remove the rigid component
-    mat33 reorient = nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->sto_xyz)));
+    mat33 reorient = nifti_mat33_inverse(nifti_mat33_polar(Mat44ToMat33(&deformationField->sto_xyz)));
 
     // Some useful variables
     mat33 jacMat;
@@ -1980,7 +1979,7 @@ void TrilinearImageGradient(const nifti_image *floatingImage,
             world[2] = (FieldType)deformationFieldPtrZ[index];
 
             /* real -> voxel; floating space */
-            reg_mat44_mul(floatingIJKMatrix, world, position);
+            Mat44Mul(*floatingIJKMatrix, world, position);
 
             previous[0] = Floor(position[0]);
             previous[1] = Floor(position[1]);
@@ -2257,7 +2256,7 @@ void CubicSplineImageGradient3D(const nifti_image *floatingImage,
             world[2] = (FieldType)deformationFieldPtrZ[index];
 
             /* real -> voxel; floating space */
-            reg_mat44_mul(floatingIJKMatrix, world, position);
+            Mat44Mul(*floatingIJKMatrix, world, position);
 
             previous[0] = Floor(position[0]);
             previous[1] = Floor(position[1]);
