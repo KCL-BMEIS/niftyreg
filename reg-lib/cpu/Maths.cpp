@@ -2,7 +2,7 @@
 
 #include "_reg_tools.h"
 #include "Eigen/Core"
-#include "unsupported/Eigen/MatrixFunctions"
+#include "Eigen/MatrixFunctions"
 
 /* *************************************************************** */
 namespace NiftyReg {

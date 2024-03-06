@@ -129,12 +129,11 @@ endif(NOT BUILD_ALL_DEP)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/png)
 include_directories(${PNG_INCLUDE_DIR})
 #-----------------------------------------------------------------------------
+include_directories(${CMAKE_BINARY_DIR})
+include_directories(${CMAKE_SOURCE_DIR}/reg-io)
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib)
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cpu)
-include_directories(${CMAKE_SOURCE_DIR}/reg-io)
 include_directories(${CMAKE_SOURCE_DIR}/third-party)
-include_directories(${CMAKE_BINARY_DIR})
-include_directories(${CMAKE_BINARY_DIR}/third-party/eigen)
 #-----------------------------------------------------------------------------
 if(USE_OPENCL)
   # Find the OpenCL package
@@ -203,7 +202,6 @@ if(BUILD_TESTING)
   add_definitions(-DBUILD_TESTS)
 endif(BUILD_TESTING)
 #-----------------------------------------------------------------------------
-add_subdirectory(third-party)
 add_subdirectory(reg-io)
 add_subdirectory(reg-lib)
 add_subdirectory(reg-apps)
