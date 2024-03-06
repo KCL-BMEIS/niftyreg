@@ -57,7 +57,7 @@ double reg_getSsdValue_gpu(const nifti_image *referenceImage,
                            const size_t activeVoxelNumber,
                            const double *timePointWeights,
                            const int referenceTimePoints) {
-    const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
+    const int3 referenceImageDims = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 
     Cuda::UniqueTextureObjectPtr localWeightSimTexturePtr; cudaTextureObject_t localWeightSimTexture = 0;
@@ -123,7 +123,7 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
                                       const size_t activeVoxelNumber,
                                       const double timePointWeight,
                                       const int currentTimePoint) {
-    const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
+    const int3 referenceImageDims = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 
     auto referenceTexturePtr = Cuda::CreateTextureObject(referenceImageCuda + currentTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);

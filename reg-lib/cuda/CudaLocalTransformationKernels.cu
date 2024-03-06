@@ -217,49 +217,49 @@ __device__ void GetFirstDerivativeBasisValues3D(const int index, float *xBasis, 
 /* *************************************************************** */
 __device__ float4 GetSlidedValues(int x, int y,
                                   cudaTextureObject_t deformationFieldTexture,
-                                  const int3& referenceImageDim,
+                                  const int3& referenceImageDims,
                                   const mat44& affineMatrix) {
     int newX = x;
     if (x < 0)
         newX = 0;
-    else if (x >= referenceImageDim.x)
-        newX = referenceImageDim.x - 1;
+    else if (x >= referenceImageDims.x)
+        newX = referenceImageDims.x - 1;
 
     int newY = y;
     if (y < 0)
         newY = 0;
-    else if (y >= referenceImageDim.y)
-        newY = referenceImageDim.y - 1;
+    else if (y >= referenceImageDims.y)
+        newY = referenceImageDims.y - 1;
 
     x -= newX;
     y -= newY;
     const float4 slidedValues = make_float4(x * affineMatrix.m[0][0] + y * affineMatrix.m[0][1],
                                             x * affineMatrix.m[1][0] + y * affineMatrix.m[1][1],
                                             0.f, 0.f);
-    return slidedValues + tex1Dfetch<float4>(deformationFieldTexture, newY * referenceImageDim.x + newX);
+    return slidedValues + tex1Dfetch<float4>(deformationFieldTexture, newY * referenceImageDims.x + newX);
 }
 /* *************************************************************** */
 __device__ float4 GetSlidedValues(int x, int y, int z,
                                   cudaTextureObject_t deformationFieldTexture,
-                                  const int3& referenceImageDim,
+                                  const int3& referenceImageDims,
                                   const mat44& affineMatrix) {
     int newX = x;
     if (x < 0)
         newX = 0;
-    else if (x >= referenceImageDim.x)
-        newX = referenceImageDim.x - 1;
+    else if (x >= referenceImageDims.x)
+        newX = referenceImageDims.x - 1;
 
     int newY = y;
     if (y < 0)
         newY = 0;
-    else if (y >= referenceImageDim.y)
-        newY = referenceImageDim.y - 1;
+    else if (y >= referenceImageDims.y)
+        newY = referenceImageDims.y - 1;
 
     int newZ = z;
     if (z < 0)
         newZ = 0;
-    else if (z >= referenceImageDim.z)
-        newZ = referenceImageDim.z - 1;
+    else if (z >= referenceImageDims.z)
+        newZ = referenceImageDims.z - 1;
 
     x -= newX;
     y -= newY;
@@ -268,15 +268,15 @@ __device__ float4 GetSlidedValues(int x, int y, int z,
                                             x * affineMatrix.m[1][0] + y * affineMatrix.m[1][1] + z * affineMatrix.m[1][2],
                                             x * affineMatrix.m[2][0] + y * affineMatrix.m[2][1] + z * affineMatrix.m[2][2],
                                             0.f);
-    return slidedValues + tex1Dfetch<float4>(deformationFieldTexture, (newZ * referenceImageDim.y + newY) * referenceImageDim.x + newX);
+    return slidedValues + tex1Dfetch<float4>(deformationFieldTexture, (newZ * referenceImageDims.y + newY) * referenceImageDims.x + newX);
 }
 /* *************************************************************** */
 template<bool composition, bool bspline>
 __device__ void GetDeformationField3d(float4 *deformationField,
                                       cudaTextureObject_t controlPointTexture,
                                       const mat44 *realToVoxel,
-                                      const int3 referenceImageDim,
-                                      const int3 controlPointImageDim,
+                                      const int3 referenceImageDims,
+                                      const int3 controlPointImageDims,
                                       const float3 controlPointVoxelSpacing,
                                       const int index) {
     int3 nodePre;
@@ -300,14 +300,14 @@ __device__ void GetDeformationField3d(float4 *deformationField,
                               realToVoxel->m[2][2] * node.z +
                               realToVoxel->m[2][3]);
 
-        if (xVoxel < 0 || xVoxel >= referenceImageDim.x ||
-            yVoxel < 0 || yVoxel >= referenceImageDim.y ||
-            zVoxel < 0 || zVoxel >= referenceImageDim.z) return;
+        if (xVoxel < 0 || xVoxel >= referenceImageDims.x ||
+            yVoxel < 0 || yVoxel >= referenceImageDims.y ||
+            zVoxel < 0 || zVoxel >= referenceImageDims.z) return;
 
         nodePre = { Floor(xVoxel), Floor(yVoxel), Floor(zVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--), zVoxel - float(nodePre.z--) };
     } else { // starting deformation field is blank - !composition
-        const auto [x, y, z] = IndexToDims<true>(index, referenceImageDim);
+        const auto [x, y, z] = IndexToDims<true>(index, referenceImageDims);
         // The "nearest previous" node is determined [0,0,0]
         const float xVoxel = float(x) / controlPointVoxelSpacing.x;
         const float yVoxel = float(y) / controlPointVoxelSpacing.y;
@@ -324,9 +324,9 @@ __device__ void GetDeformationField3d(float4 *deformationField,
 
     float4 displacement{};
     for (char c = 0; c < 4; c++) {
-        int indexYZ = ((nodePre.z + c) * controlPointImageDim.y + nodePre.y) * controlPointImageDim.x;
+        int indexYZ = ((nodePre.z + c) * controlPointImageDims.y + nodePre.y) * controlPointImageDims.x;
         const float basisZ = zBasis[c];
-        for (char b = 0; b < 4; b++, indexYZ += controlPointImageDim.x) {
+        for (char b = 0; b < 4; b++, indexYZ += controlPointImageDims.x) {
             int indexXYZ = indexYZ + nodePre.x;
             const float basisY = yBasis[b];
             for (char a = 0; a < 4; a++, indexXYZ++) {
@@ -345,8 +345,8 @@ template<bool composition, bool bspline>
 __device__ void GetDeformationField2d(float4 *deformationField,
                                       cudaTextureObject_t controlPointTexture,
                                       const mat44 *realToVoxel,
-                                      const int3 referenceImageDim,
-                                      const int3 controlPointImageDim,
+                                      const int3 referenceImageDims,
+                                      const int3 controlPointImageDims,
                                       const float3 controlPointVoxelSpacing,
                                       const int index) {
     int2 nodePre;
@@ -364,13 +364,13 @@ __device__ void GetDeformationField2d(float4 *deformationField,
                               realToVoxel->m[1][1] * node.y +
                               realToVoxel->m[1][3]);
 
-        if (xVoxel < 0 || xVoxel >= referenceImageDim.x ||
-            yVoxel < 0 || yVoxel >= referenceImageDim.y) return;
+        if (xVoxel < 0 || xVoxel >= referenceImageDims.x ||
+            yVoxel < 0 || yVoxel >= referenceImageDims.y) return;
 
         nodePre = { Floor(xVoxel), Floor(yVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--) };
     } else { // starting deformation field is blank - !composition
-        const auto [x, y, z] = IndexToDims<false>(index, referenceImageDim);
+        const auto [x, y, z] = IndexToDims<false>(index, referenceImageDims);
         // The "nearest previous" node is determined [0,0,0]
         const float xVoxel = float(x) / controlPointVoxelSpacing.x;
         const float yVoxel = float(y) / controlPointVoxelSpacing.y;
@@ -385,7 +385,7 @@ __device__ void GetDeformationField2d(float4 *deformationField,
 
     float4 displacement{};
     for (char b = 0; b < 4; b++) {
-        int index = (nodePre.y + b) * controlPointImageDim.x + nodePre.x;
+        int index = (nodePre.y + b) * controlPointImageDims.x + nodePre.x;
         const float basis = yBasis[b];
         for (char a = 0; a < 4; a++, index++) {
             const float4 nodeCoeff = tex1Dfetch<float4>(controlPointTexture, index);
@@ -400,7 +400,7 @@ __device__ void GetDeformationField2d(float4 *deformationField,
 __global__ void GetApproxJacobianValues2d(float *jacobianMatrices,
                                           float *jacobianDet,
                                           cudaTextureObject_t controlPointTexture,
-                                          const int3 controlPointImageDim,
+                                          const int3 controlPointImageDims,
                                           const unsigned controlPointNumber,
                                           const mat33 reorientation) {
     __shared__ float xbasis[9];
@@ -412,16 +412,14 @@ __global__ void GetApproxJacobianValues2d(float *jacobianMatrices,
 
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
-        int quot, rem;
-        Divide(tid, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
+        const auto [x, y, z] = IndexToDims<false>(tid, controlPointImageDims);
 
-        if (0 < x && x < controlPointImageDim.x - 1 && 0 < y && y < controlPointImageDim.y - 1) {
+        if (0 < x && x < controlPointImageDims.x - 1 && 0 < y && y < controlPointImageDims.y - 1) {
             float2 tx{}, ty{};
             unsigned index = 0;
             for (int b = y - 1; b < y + 2; ++b) {
                 for (int a = x - 1; a < x + 2; ++a) {
-                    const int indexXY = b * controlPointImageDim.x + a;
+                    const int indexXY = b * controlPointImageDims.x + a;
                     const float4 controlPointValues = tex1Dfetch<float4>(controlPointTexture, indexXY);
                     tx.x += xbasis[index] * controlPointValues.x;
                     tx.y += ybasis[index] * controlPointValues.x;
@@ -461,7 +459,7 @@ __global__ void GetApproxJacobianValues2d(float *jacobianMatrices,
 __global__ void GetApproxJacobianValues3d(float *jacobianMatrices,
                                           float *jacobianDet,
                                           cudaTextureObject_t controlPointTexture,
-                                          const int3 controlPointImageDim,
+                                          const int3 controlPointImageDims,
                                           const unsigned controlPointNumber,
                                           const mat33 reorientation) {
     __shared__ float xbasis[27];
@@ -474,19 +472,15 @@ __global__ void GetApproxJacobianValues3d(float *jacobianMatrices,
 
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
-        int quot, rem;
-        Divide(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
-        const int z = quot;
-        Divide(rem, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
+        const auto [x, y, z] = IndexToDims<true>(tid, controlPointImageDims);
 
-        if (0 < x && x < controlPointImageDim.x - 1 && 0 < y && y < controlPointImageDim.y - 1 && 0 < z && z < controlPointImageDim.z - 1) {
+        if (0 < x && x < controlPointImageDims.x - 1 && 0 < y && y < controlPointImageDims.y - 1 && 0 < z && z < controlPointImageDims.z - 1) {
             float3 tx{}, ty{}, tz{};
             unsigned index = 0;
             for (int c = z - 1; c < z + 2; ++c) {
                 for (int b = y - 1; b < y + 2; ++b) {
                     for (int a = x - 1; a < x + 2; ++a) {
-                        const int indexXYZ = (c * controlPointImageDim.y + b) * controlPointImageDim.x + a;
+                        const int indexXYZ = (c * controlPointImageDims.y + b) * controlPointImageDims.x + a;
                         const float4 controlPointValues = tex1Dfetch<float4>(controlPointTexture, indexXYZ);
                         tx.x += xbasis[index] * controlPointValues.x;
                         tx.y += ybasis[index] * controlPointValues.x;
@@ -552,16 +546,14 @@ __global__ void GetApproxJacobianValues3d(float *jacobianMatrices,
 __global__ void GetJacobianValues2d(float *jacobianMatrices,
                                     float *jacobianDet,
                                     cudaTextureObject_t controlPointTexture,
-                                    const int3 controlPointImageDim,
+                                    const int3 controlPointImageDims,
                                     const float3 controlPointSpacing,
-                                    const int3 referenceImageDim,
+                                    const int3 referenceImageDims,
                                     const unsigned voxelNumber,
                                     const mat33 reorientation) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
-        int quot, rem;
-        Divide(tid, referenceImageDim.x, quot, rem);
-        const int y = quot, x = rem;
+        const auto [x, y, z] = IndexToDims<false>(tid, referenceImageDims);
 
         // the "nearest previous" node is determined [0,0,0]
         const int2 nodePre = { Floor((float)x / controlPointSpacing.x), Floor((float)y / controlPointSpacing.y) };
@@ -576,7 +568,7 @@ __global__ void GetJacobianValues2d(float *jacobianMatrices,
 
         float2 tx{}, ty{};
         for (int b = 0; b < 4; ++b) {
-            int indexXY = (nodePre.y + b) * controlPointImageDim.x + nodePre.x;
+            int indexXY = (nodePre.y + b) * controlPointImageDims.x + nodePre.x;
 
             float4 nodeCoefficient = tex1Dfetch<float4>(controlPointTexture, indexXY++);
             float2 basis = make_float2(xFirst[0] * yBasis[b], xBasis[0] * yFirst[b]);
@@ -621,18 +613,14 @@ __global__ void GetJacobianValues2d(float *jacobianMatrices,
 __global__ void GetJacobianValues3d(float *jacobianMatrices,
                                     float *jacobianDet,
                                     cudaTextureObject_t controlPointTexture,
-                                    const int3 controlPointImageDim,
+                                    const int3 controlPointImageDims,
                                     const float3 controlPointSpacing,
-                                    const int3 referenceImageDim,
+                                    const int3 referenceImageDims,
                                     const unsigned voxelNumber,
                                     const mat33 reorientation) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < voxelNumber) {
-        int quot, rem;
-        Divide(tid, referenceImageDim.x * referenceImageDim.y, quot, rem);
-        const int z = quot;
-        Divide(rem, referenceImageDim.x, quot, rem);
-        const int y = quot, x = rem;
+        const auto [x, y, z] = IndexToDims<true>(tid, referenceImageDims);
 
         // the "nearest previous" node is determined [0,0,0]
         const int3 nodePre = {
@@ -659,7 +647,7 @@ __global__ void GetJacobianValues3d(float *jacobianMatrices,
         float3 tx{}, ty{}, tz{};
         for (int c = 0; c < 4; ++c) {
             for (int b = 0; b < 4; ++b) {
-                int indexXYZ = ((nodePre.z + c) * controlPointImageDim.y + nodePre.y + b) * controlPointImageDim.x + nodePre.x;
+                int indexXYZ = ((nodePre.z + c) * controlPointImageDims.y + nodePre.y + b) * controlPointImageDims.x + nodePre.x;
                 float3 basisXY{ yBasis[b] * zBasis[c], yFirst[sharedMemIndex + b] * zBasis[c], yBasis[b] * zFirst[sharedMemIndex + c] };
 
                 float4 nodeCoefficient = tex1Dfetch<float4>(controlPointTexture, indexXYZ++);
@@ -764,7 +752,7 @@ __device__ void GetJacobianGradientValues3d(float *jacobianMatrix,
 __global__ void ComputeApproxJacGradient2d(float4 *gradient,
                                            cudaTextureObject_t jacobianDeterminantTexture,
                                            cudaTextureObject_t jacobianMatricesTexture,
-                                           const int3 controlPointImageDim,
+                                           const int3 controlPointImageDims,
                                            const unsigned controlPointNumber,
                                            const mat33 reorientation,
                                            const float3 weight) {
@@ -777,17 +765,15 @@ __global__ void ComputeApproxJacGradient2d(float4 *gradient,
 
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
-        int quot, rem;
-        Divide(tid, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
+        const auto [x, y, z] = IndexToDims<false>(tid, controlPointImageDims);
 
         float2 jacobianGradient{};
         unsigned index = 8;
         for (int pixelY = y - 1; pixelY < y + 2; ++pixelY) {
-            if (0 < pixelY && pixelY < controlPointImageDim.y - 1) {
-                int jacIndex = pixelY * controlPointImageDim.x + x - 1;
+            if (0 < pixelY && pixelY < controlPointImageDims.y - 1) {
+                int jacIndex = pixelY * controlPointImageDims.x + x - 1;
                 for (int pixelX = (int)(x - 1); pixelX < (int)(x + 2); ++pixelX) {
-                    if (0 < pixelX && pixelX < controlPointImageDim.x - 1) {
+                    if (0 < pixelX && pixelX < controlPointImageDims.x - 1) {
                         float detJac = tex1Dfetch<float>(jacobianDeterminantTexture, jacIndex);
                         if (detJac > 0.f) {
                             detJac = 2.f * logf(detJac) / detJac;
@@ -815,7 +801,7 @@ __global__ void ComputeApproxJacGradient2d(float4 *gradient,
 __global__ void ComputeApproxJacGradient3d(float4 *gradient,
                                            cudaTextureObject_t jacobianDeterminantTexture,
                                            cudaTextureObject_t jacobianMatricesTexture,
-                                           const int3 controlPointImageDim,
+                                           const int3 controlPointImageDims,
                                            const unsigned controlPointNumber,
                                            const mat33 reorientation,
                                            const float3 weight) {
@@ -829,21 +815,17 @@ __global__ void ComputeApproxJacGradient3d(float4 *gradient,
 
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
-        int quot, rem;
-        Divide(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
-        const int z = quot;
-        Divide(rem, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
+        const auto [x, y, z] = IndexToDims<true>(tid, controlPointImageDims);
 
         float3 jacobianGradient{};
         unsigned index = 26;
         for (int pixelZ = z - 1; pixelZ < z + 2; ++pixelZ) {
-            if (0 < pixelZ && pixelZ < controlPointImageDim.z - 1) {
+            if (0 < pixelZ && pixelZ < controlPointImageDims.z - 1) {
                 for (int pixelY = y - 1; pixelY < y + 2; ++pixelY) {
-                    if (0 < pixelY && pixelY < controlPointImageDim.y - 1) {
-                        int jacIndex = (pixelZ * controlPointImageDim.y + pixelY) * controlPointImageDim.x + x - 1;
+                    if (0 < pixelY && pixelY < controlPointImageDims.y - 1) {
+                        int jacIndex = (pixelZ * controlPointImageDims.y + pixelY) * controlPointImageDims.x + x - 1;
                         for (int pixelX = x - 1; pixelX < x + 2; ++pixelX) {
-                            if (0 < pixelX && pixelX < controlPointImageDim.x - 1) {
+                            if (0 < pixelX && pixelX < controlPointImageDims.x - 1) {
                                 float detJac = tex1Dfetch<float>(jacobianDeterminantTexture, jacIndex);
                                 if (detJac > 0.f) {
                                     detJac = 2.f * logf(detJac) / detJac;
@@ -879,34 +861,32 @@ __global__ void ComputeApproxJacGradient3d(float4 *gradient,
 __global__ void ComputeJacGradient2d(float4 *gradient,
                                      cudaTextureObject_t jacobianDeterminantTexture,
                                      cudaTextureObject_t jacobianMatricesTexture,
-                                     const int3 controlPointImageDim,
+                                     const int3 controlPointImageDims,
                                      const float3 controlPointVoxelSpacing,
                                      const unsigned controlPointNumber,
-                                     const int3 referenceImageDim,
+                                     const int3 referenceImageDims,
                                      const mat33 reorientation,
                                      const float3 weight) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
-        int quot, rem;
-        Divide(tid, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
+        const auto [x, y, z] = IndexToDims<false>(tid, controlPointImageDims);
 
         float2 jacobianGradient{};
         for (int pixelY = Ceil((y - 3) * controlPointVoxelSpacing.y); pixelY <= Ceil((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
-            if (-1 < pixelY && pixelY < referenceImageDim.y) {
+            if (-1 < pixelY && pixelY < referenceImageDims.y) {
                 const int yPre = (int)((float)pixelY / controlPointVoxelSpacing.y);
                 float basis = (float)pixelY / controlPointVoxelSpacing.y - (float)yPre;
                 float yBasis, yFirst;
                 GetBSplineBasisValue(basis, y - yPre, &yBasis, &yFirst);
 
                 for (int pixelX = Ceil((x - 3) * controlPointVoxelSpacing.x); pixelX <= Ceil((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
-                    if (-1 < pixelX && pixelX < referenceImageDim.x && (yFirst != 0.f || yBasis != 0.f)) {
+                    if (-1 < pixelX && pixelX < referenceImageDims.x && (yFirst != 0.f || yBasis != 0.f)) {
                         const int xPre = (int)((float)pixelX / controlPointVoxelSpacing.x);
                         basis = (float)pixelX / controlPointVoxelSpacing.x - (float)xPre;
                         float xBasis, xFirst;
                         GetBSplineBasisValue(basis, x - xPre, &xBasis, &xFirst);
 
-                        int jacIndex = pixelY * referenceImageDim.x + pixelX;
+                        int jacIndex = pixelY * referenceImageDims.x + pixelX;
                         float detJac = tex1Dfetch<float>(jacobianDeterminantTexture, jacIndex);
 
                         if (detJac > 0.f && (xFirst != 0.f || xBasis != 0.f)) {
@@ -934,43 +914,39 @@ __global__ void ComputeJacGradient2d(float4 *gradient,
 __global__ void ComputeJacGradient3d(float4 *gradient,
                                      cudaTextureObject_t jacobianDeterminantTexture,
                                      cudaTextureObject_t jacobianMatricesTexture,
-                                     const int3 controlPointImageDim,
+                                     const int3 controlPointImageDims,
                                      const float3 controlPointVoxelSpacing,
                                      const unsigned controlPointNumber,
-                                     const int3 referenceImageDim,
+                                     const int3 referenceImageDims,
                                      const mat33 reorientation,
                                      const float3 weight) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
-        int quot, rem;
-        Divide(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
-        const int z = quot;
-        Divide(rem, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
+        const auto [x, y, z] = IndexToDims<true>(tid, controlPointImageDims);
 
         float3 jacobianGradient{};
         for (int pixelZ = Ceil((z - 3) * controlPointVoxelSpacing.z); pixelZ <= Ceil((z + 1) * controlPointVoxelSpacing.z); ++pixelZ) {
-            if (-1 < pixelZ && pixelZ < referenceImageDim.z) {
+            if (-1 < pixelZ && pixelZ < referenceImageDims.z) {
                 const int zPre = (int)((float)pixelZ / controlPointVoxelSpacing.z);
                 float basis = (float)pixelZ / controlPointVoxelSpacing.z - (float)zPre;
                 float zBasis, zFirst;
                 GetBSplineBasisValue(basis, z - zPre, &zBasis, &zFirst);
 
                 for (int pixelY = Ceil((y - 3) * controlPointVoxelSpacing.y); pixelY <= Ceil((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
-                    if (-1 < pixelY && pixelY < referenceImageDim.y && (zFirst != 0.f || zBasis != 0.f)) {
+                    if (-1 < pixelY && pixelY < referenceImageDims.y && (zFirst != 0.f || zBasis != 0.f)) {
                         const int yPre = (int)((float)pixelY / controlPointVoxelSpacing.y);
                         basis = (float)pixelY / controlPointVoxelSpacing.y - (float)yPre;
                         float yBasis, yFirst;
                         GetBSplineBasisValue(basis, y - yPre, &yBasis, &yFirst);
 
                         for (int pixelX = Ceil((x - 3) * controlPointVoxelSpacing.x); pixelX <= Ceil((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
-                            if (-1 < pixelX && pixelX < referenceImageDim.x && (yFirst != 0.f || yBasis != 0.f)) {
+                            if (-1 < pixelX && pixelX < referenceImageDims.x && (yFirst != 0.f || yBasis != 0.f)) {
                                 const int xPre = (int)((float)pixelX / controlPointVoxelSpacing.x);
                                 basis = (float)pixelX / controlPointVoxelSpacing.x - (float)xPre;
                                 float xBasis, xFirst;
                                 GetBSplineBasisValue(basis, x - xPre, &xBasis, &xFirst);
 
-                                int jacIndex = (pixelZ * referenceImageDim.y + pixelY) * referenceImageDim.x + pixelX;
+                                int jacIndex = (pixelZ * referenceImageDims.y + pixelY) * referenceImageDims.x + pixelX;
                                 float detJac = tex1Dfetch<float>(jacobianDeterminantTexture, jacIndex);
 
                                 if (detJac > 0.f && (xFirst != 0.f || xBasis != 0.f)) {
@@ -1011,26 +987,22 @@ __global__ void ComputeJacGradient3d(float4 *gradient,
 __global__ void ApproxCorrectFolding3d(float4 *controlPointGrid,
                                        cudaTextureObject_t jacobianDeterminantTexture,
                                        cudaTextureObject_t jacobianMatricesTexture,
-                                       const int3 controlPointImageDim,
+                                       const int3 controlPointImageDims,
                                        const float3 controlPointSpacing,
                                        const unsigned controlPointNumber,
                                        const mat33 reorientation) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
-        int quot, rem;
-        Divide(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
-        const int z = quot;
-        Divide(rem, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
+        const auto [x, y, z] = IndexToDims<true>(tid, controlPointImageDims);
 
         float3 foldingCorrection{};
         for (int pixelZ = z - 1; pixelZ < z + 2; ++pixelZ) {
-            if (0 < pixelZ && pixelZ < controlPointImageDim.z - 1) {
+            if (0 < pixelZ && pixelZ < controlPointImageDims.z - 1) {
                 for (int pixelY = y - 1; pixelY < y + 2; ++pixelY) {
-                    if (0 < pixelY && pixelY < controlPointImageDim.y - 1) {
+                    if (0 < pixelY && pixelY < controlPointImageDims.y - 1) {
                         for (int pixelX = x - 1; pixelX < x + 2; ++pixelX) {
-                            if (0 < pixelX && pixelX < controlPointImageDim.x - 1) {
-                                int jacIndex = (pixelZ * controlPointImageDim.y + pixelY) * controlPointImageDim.x + pixelX;
+                            if (0 < pixelX && pixelX < controlPointImageDims.x - 1) {
+                                int jacIndex = (pixelZ * controlPointImageDims.y + pixelY) * controlPointImageDims.x + pixelX;
                                 float detJac = tex1Dfetch<float>(jacobianDeterminantTexture, jacIndex);
                                 if (detJac <= 0.f) {
                                     float jacobianMatrix[9];
@@ -1080,28 +1052,24 @@ __global__ void ApproxCorrectFolding3d(float4 *controlPointGrid,
 __global__ void CorrectFolding3d(float4 *controlPointGrid,
                                  cudaTextureObject_t jacobianDeterminantTexture,
                                  cudaTextureObject_t jacobianMatricesTexture,
-                                 const int3 controlPointImageDim,
+                                 const int3 controlPointImageDims,
                                  const float3 controlPointSpacing,
                                  const float3 controlPointVoxelSpacing,
                                  const unsigned controlPointNumber,
-                                 const int3 referenceImageDim,
+                                 const int3 referenceImageDims,
                                  const mat33 reorientation) {
     const unsigned tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (tid < controlPointNumber) {
-        int quot, rem;
-        Divide(tid, controlPointImageDim.x * controlPointImageDim.y, quot, rem);
-        const int z = quot;
-        Divide(rem, controlPointImageDim.x, quot, rem);
-        const int y = quot, x = rem;
+        const auto [x, y, z] = IndexToDims<true>(tid, controlPointImageDims);
 
         float3 foldingCorrection{};
         for (int pixelZ = Ceil((z - 3) * controlPointVoxelSpacing.z); pixelZ < Ceil((z + 1) * controlPointVoxelSpacing.z); ++pixelZ) {
-            if (-1 < pixelZ && pixelZ < referenceImageDim.z) {
+            if (-1 < pixelZ && pixelZ < referenceImageDims.z) {
                 for (int pixelY = Ceil((y - 3) * controlPointVoxelSpacing.y); pixelY < Ceil((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
-                    if (-1 < pixelY && pixelY < referenceImageDim.y) {
+                    if (-1 < pixelY && pixelY < referenceImageDims.y) {
                         for (int pixelX = Ceil((x - 3) * controlPointVoxelSpacing.x); pixelX < Ceil((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
-                            if (-1 < pixelX && pixelX < referenceImageDim.x) {
-                                int jacIndex = (pixelZ * referenceImageDim.y + pixelY) * referenceImageDim.x + pixelX;
+                            if (-1 < pixelX && pixelX < referenceImageDims.x) {
+                                int jacIndex = (pixelZ * referenceImageDims.y + pixelY) * referenceImageDims.x + pixelX;
                                 float detJac = tex1Dfetch<float>(jacobianDeterminantTexture, jacIndex);
                                 if (detJac <= 0.f) {
                                     float jacobianMatrix[9];

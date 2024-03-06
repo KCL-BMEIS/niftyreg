@@ -26,8 +26,8 @@ void GetDeformationField(const nifti_image *controlPointImage,
                          const int *maskCuda,
                          const size_t activeVoxelNumber) {
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
-    const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
-    const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
+    const int3 referenceImageDims = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
+    const int3 controlPointImageDims = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
     const float3 controlPointVoxelSpacing = make_float3(controlPointImage->dx / referenceImage->dx,
                                                         controlPointImage->dy / referenceImage->dy,
                                                         controlPointImage->dz / referenceImage->dz);
@@ -46,12 +46,12 @@ void GetDeformationField(const nifti_image *controlPointImage,
     if (referenceImage->nz > 1) {
         thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
             GetDeformationField3d<composition, bspline>(deformationFieldCuda, controlPointTexture, realToVoxelCuda,
-                                                        referenceImageDim, controlPointImageDim, controlPointVoxelSpacing, index);
+                                                        referenceImageDims, controlPointImageDims, controlPointVoxelSpacing, index);
         });
     } else {
         thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
             GetDeformationField2d<composition, bspline>(deformationFieldCuda, controlPointTexture, realToVoxelCuda,
-                                                        referenceImageDim, controlPointImageDim, controlPointVoxelSpacing, index);
+                                                        referenceImageDims, controlPointImageDims, controlPointVoxelSpacing, index);
         });
     }
 }
@@ -82,23 +82,23 @@ struct SecondDerivative<false> {
 template<bool is3d, bool isGradient>
 __device__ SecondDerivative<is3d> GetApproxSecondDerivative(const int index,
                                                             cudaTextureObject_t controlPointTexture,
-                                                            const int3 controlPointImageDim,
+                                                            const int3 controlPointImageDims,
                                                             const Basis2nd<is3d> basis) {
-    const auto [x, y, z] = IndexToDims<is3d>(index, controlPointImageDim);
-    if (!isGradient && (x < 1 || x >= controlPointImageDim.x - 1 ||
-                        y < 1 || y >= controlPointImageDim.y - 1 ||
-                        (is3d && (z < 1 || z >= controlPointImageDim.z - 1)))) return {};
+    const auto [x, y, z] = IndexToDims<is3d>(index, controlPointImageDims);
+    if (!isGradient && (x < 1 || x >= controlPointImageDims.x - 1 ||
+                        y < 1 || y >= controlPointImageDims.y - 1 ||
+                        (is3d && (z < 1 || z >= controlPointImageDims.z - 1)))) return {};
 
     SecondDerivative<is3d> secondDerivative{};
     if constexpr (is3d) {
         for (int c = z - 1, basInd = 0; c < z + 2; c++) {
-            if (isGradient && (c < 0 || c >= controlPointImageDim.z)) { basInd += 9; continue; }
-            const int indexZ = c * controlPointImageDim.y;
+            if (isGradient && (c < 0 || c >= controlPointImageDims.z)) { basInd += 9; continue; }
+            const int indexZ = c * controlPointImageDims.y;
             for (int b = y - 1; b < y + 2; b++) {
-                if (isGradient && (b < 0 || b >= controlPointImageDim.y)) { basInd += 3; continue; }
-                int indexXYZ = (indexZ + b) * controlPointImageDim.x + x - 1;
+                if (isGradient && (b < 0 || b >= controlPointImageDims.y)) { basInd += 3; continue; }
+                int indexXYZ = (indexZ + b) * controlPointImageDims.x + x - 1;
                 for (int a = x - 1; a < x + 2; a++, basInd++, indexXYZ++) {
-                    if (isGradient && (a < 0 || a >= controlPointImageDim.x)) continue;
+                    if (isGradient && (a < 0 || a >= controlPointImageDims.x)) continue;
                     const float3 controlPointValue = make_float3(tex1Dfetch<float4>(controlPointTexture, indexXYZ));
                     secondDerivative.xx = secondDerivative.xx + basis.xx[basInd] * controlPointValue;
                     secondDerivative.yy = secondDerivative.yy + basis.yy[basInd] * controlPointValue;
@@ -111,10 +111,10 @@ __device__ SecondDerivative<is3d> GetApproxSecondDerivative(const int index,
         }
     } else {
         for (int b = y - 1, basInd = 0; b < y + 2; b++) {
-            if (isGradient && (b < 0 || b >= controlPointImageDim.y)) { basInd += 3; continue; }
-            int indexXY = b * controlPointImageDim.x + x - 1;
+            if (isGradient && (b < 0 || b >= controlPointImageDims.y)) { basInd += 3; continue; }
+            int indexXY = b * controlPointImageDims.x + x - 1;
             for (int a = x - 1; a < x + 2; a++, basInd++, indexXY++) {
-                if (isGradient && (a < 0 || a >= controlPointImageDim.x)) continue;
+                if (isGradient && (a < 0 || a >= controlPointImageDims.x)) continue;
                 const float2 controlPointValue = make_float2(tex1Dfetch<float4>(controlPointTexture, indexXY));
                 secondDerivative.xx = secondDerivative.xx + basis.xx[basInd] * controlPointValue;
                 secondDerivative.yy = secondDerivative.yy + basis.yy[basInd] * controlPointValue;
@@ -128,7 +128,7 @@ __device__ SecondDerivative<is3d> GetApproxSecondDerivative(const int index,
 template<bool is3d>
 double ApproxBendingEnergy(const nifti_image *controlPointImage, const float4 *controlPointImageCuda) {
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
-    const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
+    const int3 controlPointImageDims = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
     auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
     auto controlPointTexture = *controlPointTexturePtr;
 
@@ -141,7 +141,7 @@ double ApproxBendingEnergy(const nifti_image *controlPointImage, const float4 *c
 
     thrust::counting_iterator index(0);
     return thrust::transform_reduce(thrust::device, index, index + controlPointNumber, [=]__device__(const int index) {
-        const auto secondDerivative = GetApproxSecondDerivative<is3d, false>(index, controlPointTexture, controlPointImageDim, basis);
+        const auto secondDerivative = GetApproxSecondDerivative<is3d, false>(index, controlPointTexture, controlPointImageDims, basis);
         if constexpr (is3d)
             return (Square(secondDerivative.xx.x) + Square(secondDerivative.xx.y) + Square(secondDerivative.xx.z) +
                     Square(secondDerivative.yy.x) + Square(secondDerivative.yy.y) + Square(secondDerivative.yy.z) +
@@ -163,7 +163,7 @@ void ApproxBendingEnergyGradient(nifti_image *controlPointImage,
                                  float4 *transGradientCuda,
                                  float bendingEnergyWeight) {
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
-    const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
+    const int3 controlPointImageDims = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
     auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
     auto controlPointTexture = *controlPointTexturePtr;
 
@@ -180,8 +180,8 @@ void ApproxBendingEnergyGradient(nifti_image *controlPointImage,
     thrust::device_vector<typename SecondDerivative<is3d>::TextureType> secondDerivativesCudaVec((is3d ? 6 : 3) * controlPointNumber);
     auto secondDerivativesCuda = secondDerivativesCudaVec.data().get();
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), controlPointNumber,
-                       [controlPointTexture, controlPointImageDim, basis, secondDerivativesCuda]__device__(const int index) {
-        const auto secondDerivative = GetApproxSecondDerivative<is3d, true>(index, controlPointTexture, controlPointImageDim, basis);
+                       [controlPointTexture, controlPointImageDims, basis, secondDerivativesCuda]__device__(const int index) {
+        const auto secondDerivative = GetApproxSecondDerivative<is3d, true>(index, controlPointTexture, controlPointImageDims, basis);
         if constexpr (is3d) {
             int derInd = 6 * index;
             secondDerivativesCuda[derInd++] = make_float4(secondDerivative.xx);
@@ -205,18 +205,18 @@ void ApproxBendingEnergyGradient(nifti_image *controlPointImage,
     // Compute the gradient
     const float approxRatio = bendingEnergyWeight / (float)controlPointNumber;
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), controlPointNumber,
-                       [controlPointImageDim, basis, secondDerivativesTexture, transGradientCuda, approxRatio]__device__(const int index) {
-        const auto [x, y, z] = IndexToDims<is3d>(index, controlPointImageDim);
+                       [controlPointImageDims, basis, secondDerivativesTexture, transGradientCuda, approxRatio]__device__(const int index) {
+        const auto [x, y, z] = IndexToDims<is3d>(index, controlPointImageDims);
         typename SecondDerivative<is3d>::Type gradientValue{};
         if constexpr (is3d) {
             for (int c = z - 1, basInd = 0; c < z + 2; c++) {
-                if (c < 0 || c >= controlPointImageDim.z) { basInd += 9; continue; }
-                const int indexZ = c * controlPointImageDim.y;
+                if (c < 0 || c >= controlPointImageDims.z) { basInd += 9; continue; }
+                const int indexZ = c * controlPointImageDims.y;
                 for (int b = y - 1; b < y + 2; b++) {
-                    if (b < 0 || b >= controlPointImageDim.y) { basInd += 3; continue; }
-                    int indexXYZ = ((indexZ + b) * controlPointImageDim.x + x - 1) * 6;
+                    if (b < 0 || b >= controlPointImageDims.y) { basInd += 3; continue; }
+                    int indexXYZ = ((indexZ + b) * controlPointImageDims.x + x - 1) * 6;
                     for (int a = x - 1; a < x + 2; a++, basInd++) {
-                        if (a < 0 || a >= controlPointImageDim.x) { indexXYZ += 6; continue; }
+                        if (a < 0 || a >= controlPointImageDims.x) { indexXYZ += 6; continue; }
                         const float3 secondDerivativeXX = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
                         gradientValue = gradientValue + secondDerivativeXX * basis.xx[basInd];
                         const float3 secondDerivativeYY = make_float3(tex1Dfetch<float4>(secondDerivativesTexture, indexXYZ++));
@@ -234,10 +234,10 @@ void ApproxBendingEnergyGradient(nifti_image *controlPointImage,
             }
         } else {
             for (int b = y - 1, basInd = 0; b < y + 2; b++) {
-                if (b < 0 || b >= controlPointImageDim.y) { basInd += 3; continue; }
-                int indexXY = (b * controlPointImageDim.x + x - 1) * 3;
+                if (b < 0 || b >= controlPointImageDims.y) { basInd += 3; continue; }
+                int indexXY = (b * controlPointImageDims.x + x - 1) * 3;
                 for (int a = x - 1; a < x + 2; a++, basInd++) {
-                    if (a < 0 || a >= controlPointImageDim.x) { indexXY += 3; continue; }
+                    if (a < 0 || a >= controlPointImageDims.x) { indexXY += 3; continue; }
                     const float2 secondDerivativeXX = tex1Dfetch<float2>(secondDerivativesTexture, indexXY++);
                     gradientValue = gradientValue + secondDerivativeXX * basis.xx[basInd];
                     const float2 secondDerivativeYY = tex1Dfetch<float2>(secondDerivativesTexture, indexXY++);
@@ -266,7 +266,7 @@ void ComputeApproxJacobianValues(const nifti_image *controlPointImage,
                                  float *jacobianDetCuda) {
     auto blockSize = CudaContext::GetBlockSize();
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
-    const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
+    const int3 controlPointImageDims = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
     auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
 
     // Need to reorient the Jacobian matrix using the header information - real to voxel conversion
@@ -279,7 +279,7 @@ void ComputeApproxJacobianValues(const nifti_image *controlPointImage,
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         GetApproxJacobianValues3d<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
-                                                           controlPointImageDim, (unsigned)controlPointNumber, reorientation);
+                                                           controlPointImageDims, (unsigned)controlPointNumber, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = blockSize->GetApproxJacobianValues2d;
@@ -287,7 +287,7 @@ void ComputeApproxJacobianValues(const nifti_image *controlPointImage,
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         GetApproxJacobianValues2d<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
-                                                           controlPointImageDim, (unsigned)controlPointNumber, reorientation);
+                                                           controlPointImageDims, (unsigned)controlPointNumber, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
 }
@@ -300,8 +300,8 @@ void ComputeJacobianValues(const nifti_image *controlPointImage,
     auto blockSize = CudaContext::GetBlockSize();
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
-    const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
-    const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
+    const int3 referenceImageDims = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
+    const int3 controlPointImageDims = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
     const float3 controlPointSpacing = make_float3(controlPointImage->dx, controlPointImage->dy, controlPointImage->dz);
     auto controlPointTexture = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
 
@@ -317,7 +317,7 @@ void ComputeJacobianValues(const nifti_image *controlPointImage,
         // 8 floats of shared memory are allocated per thread
         const unsigned sharedMemSize = blocks * 8 * sizeof(float);
         GetJacobianValues3d<<<gridDims, blockDims, sharedMemSize>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
-                                                                    controlPointImageDim, controlPointSpacing, referenceImageDim,
+                                                                    controlPointImageDims, controlPointSpacing, referenceImageDims,
                                                                     (unsigned)voxelNumber, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
@@ -326,7 +326,7 @@ void ComputeJacobianValues(const nifti_image *controlPointImage,
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         GetJacobianValues2d<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
-                                                     controlPointImageDim, controlPointSpacing, referenceImageDim,
+                                                     controlPointImageDims, controlPointSpacing, referenceImageDims,
                                                      (unsigned)voxelNumber, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
@@ -401,7 +401,7 @@ void GetJacobianPenaltyTermGradient(const nifti_image *referenceImage,
     const mat33 reorientation = Mat44ToMat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_ijk : &controlPointImage->qto_ijk);
 
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
-    const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
+    const int3 controlPointImageDims = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
     const float3 controlPointSpacing = make_float3(controlPointImage->dx, controlPointImage->dy, controlPointImage->dz);
     const float3 weight = make_float3(referenceImage->dx * jacobianWeight / ((float)jacNumber * controlPointImage->dx),
                                       referenceImage->dy * jacobianWeight / ((float)jacNumber * controlPointImage->dy),
@@ -416,7 +416,7 @@ void GetJacobianPenaltyTermGradient(const nifti_image *referenceImage,
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             ComputeApproxJacGradient3d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
-                                                                *jacobianMatricesTexture, controlPointImageDim,
+                                                                *jacobianMatricesTexture, controlPointImageDims,
                                                                 (unsigned)controlPointNumber, reorientation, weight);
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         } else {
@@ -425,12 +425,12 @@ void GetJacobianPenaltyTermGradient(const nifti_image *referenceImage,
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             ComputeApproxJacGradient2d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
-                                                                *jacobianMatricesTexture, controlPointImageDim,
+                                                                *jacobianMatricesTexture, controlPointImageDims,
                                                                 (unsigned)controlPointNumber, reorientation, weight);
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         }
     } else {
-        const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
+        const int3 referenceImageDims = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
         const float3 controlPointVoxelSpacing = make_float3(controlPointImage->dx / referenceImage->dx,
                                                             controlPointImage->dy / referenceImage->dy,
                                                             controlPointImage->dz / referenceImage->dz);
@@ -440,9 +440,9 @@ void GetJacobianPenaltyTermGradient(const nifti_image *referenceImage,
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             ComputeJacGradient3d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
-                                                          *jacobianMatricesTexture, controlPointImageDim,
+                                                          *jacobianMatricesTexture, controlPointImageDims,
                                                           controlPointVoxelSpacing, (unsigned)controlPointNumber,
-                                                          referenceImageDim, reorientation, weight);
+                                                          referenceImageDims, reorientation, weight);
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         } else {
             const unsigned blocks = blockSize->ComputeJacGradient2d;
@@ -450,9 +450,9 @@ void GetJacobianPenaltyTermGradient(const nifti_image *referenceImage,
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             ComputeJacGradient2d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
-                                                          *jacobianMatricesTexture, controlPointImageDim,
+                                                          *jacobianMatricesTexture, controlPointImageDims,
                                                           controlPointVoxelSpacing, (unsigned)controlPointNumber,
-                                                          referenceImageDim, reorientation, weight);
+                                                          referenceImageDims, reorientation, weight);
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         }
     }
@@ -514,7 +514,7 @@ double CorrectFolding(const nifti_image *referenceImage,
     const mat33 reorientation = Mat44ToMat33(controlPointImage->sform_code > 0 ? &controlPointImage->sto_ijk : &controlPointImage->qto_ijk);
 
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
-    const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
+    const int3 controlPointImageDims = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
     const float3 controlPointSpacing = make_float3(controlPointImage->dx, controlPointImage->dy, controlPointImage->dz);
     auto jacobianDeterminantTexture = Cuda::CreateTextureObject(jacobianDetCuda, jacNumber, cudaChannelFormatKindFloat, 1);
     auto jacobianMatricesTexture = Cuda::CreateTextureObject(jacobianMatricesCuda, 9 * jacNumber, cudaChannelFormatKindFloat, 1);
@@ -524,11 +524,11 @@ double CorrectFolding(const nifti_image *referenceImage,
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         ApproxCorrectFolding3d<<<gridDims, blockDims>>>(controlPointImageCuda, *jacobianDeterminantTexture,
-                                                        *jacobianMatricesTexture, controlPointImageDim,
+                                                        *jacobianMatricesTexture, controlPointImageDims,
                                                         controlPointSpacing, (unsigned)controlPointNumber, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
-        const int3 referenceImageDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
+        const int3 referenceImageDims = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
         const float3 controlPointVoxelSpacing = make_float3(controlPointImage->dx / referenceImage->dx,
                                                             controlPointImage->dy / referenceImage->dy,
                                                             controlPointImage->dz / referenceImage->dz);
@@ -537,9 +537,9 @@ double CorrectFolding(const nifti_image *referenceImage,
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         CorrectFolding3d<<<gridDims, blockDims>>>(controlPointImageCuda, *jacobianDeterminantTexture,
-                                                  *jacobianMatricesTexture, controlPointImageDim, controlPointSpacing,
+                                                  *jacobianMatricesTexture, controlPointImageDims, controlPointSpacing,
                                                   controlPointVoxelSpacing, (unsigned)controlPointNumber,
-                                                  referenceImageDim, reorientation);
+                                                  referenceImageDims, reorientation);
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     }
     NR_CUDA_SAFE_CALL(cudaFree(jacobianDetCuda));
