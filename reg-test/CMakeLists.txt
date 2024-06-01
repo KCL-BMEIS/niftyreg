@@ -13,7 +13,7 @@ endif(NOT Catch2_FOUND)
 # Build the coverage test
 option(WITH_COVERAGE "Set up the C, CXX and linker flags to run the coverage test" OFF)
 if(WITH_COVERAGE)
-  if(NOT MSVC)
+  if(UNIX)
     # Check prerequisites
     find_program(LCOV lcov REQUIRED)
     find_program(GENHTML genhtml REQUIRED)
@@ -53,7 +53,7 @@ if(WITH_COVERAGE)
     add_custom_target(clean_coverage
       COMMAND ${LCOV} --directory . --zerocounters
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-  else(NOT MSVC)
+  else(UNIX)
     # Check prerequisites
     find_program(OPENCPPCOVERAGE OpenCppCoverage REQUIRED)
 
@@ -76,7 +76,7 @@ if(WITH_COVERAGE)
       # Gather data only for the reg-lib directory
       COMMAND ${OPENCPPCOVERAGE} --sources=${COVERAGE_SOURCE} --cover_children -- ctest -C Debug
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-  endif(NOT MSVC)
+  endif(UNIX)
 endif(WITH_COVERAGE)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
@@ -94,14 +94,14 @@ endif(USE_CUDA)
 if(USE_OPENCL)
   set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_opencl")
 endif(USE_OPENCL)
-if(NOT MSVC)
+if(UNIX)
   unset(BUILDNAME CACHE)
   unset(BUILDNAME)
   set(BUILDNAME ${CTEST_BUILD_NAME} CACHE STRING "Build name variable for CDash" FORCE)
-else(MSVC)
+else(UNIX)
   set(BUILDNAME ${CTEST_BUILD_NAME} CACHE STRING "Build name variable for CDash")
-  message(STATUS "The buildname might need manual editing")
-endif(NOT MSVC)
+  message(STATUS "The build name might need manual editing")
+endif(UNIX)
 mark_as_advanced(BUILDNAME)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

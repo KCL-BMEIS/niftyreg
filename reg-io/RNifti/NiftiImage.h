@@ -1721,6 +1721,7 @@ public:
         if (image == nullptr)
             return;
         switch (dim) {
+        case Dim::NDim: break;
         case Dim::X:
             image->pixdim[1] = image->dx = value;
             break;
