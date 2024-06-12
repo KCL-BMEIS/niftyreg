@@ -2,7 +2,7 @@ name: Coverage
 on: [push, pull_request]
 jobs:
   Coverage:
-    runs-on: [self-hosted, linux, gpu]
+    runs-on: [self-hosted, ubuntu-22.04, gpu]
     steps:
       - uses: actions/checkout@v3
 
