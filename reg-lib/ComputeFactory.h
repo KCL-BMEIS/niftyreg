@@ -4,5 +4,6 @@
 
 class ComputeFactory {
 public:
+    virtual ~ComputeFactory() = default;
     virtual Compute* Produce(Content& con) { return new Compute(con); }
 };
