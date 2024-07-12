@@ -251,7 +251,7 @@ int main(int argc, char **argv)
    }
 
    /* Read the reference image */
-   nifti_image *referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
+   NiftiImage referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
    if(referenceImage == nullptr)
    {
       NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
    }
 
    /* Read the floating image */
-   nifti_image *floatingImage = reg_io_ReadImageFile(param->floatingImageName);
+   NiftiImage floatingImage = reg_io_ReadImageFile(param->floatingImageName);
    if(floatingImage == nullptr)
    {
       NR_ERROR("Error when reading the floating image: " << param->floatingImageName);
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
    /* *********************** */
    /* READ THE TRANSFORMATION */
    /* *********************** */
-   nifti_image *inputTransformationImage = nullptr;
+   NiftiImage inputTransformationImage;
    mat44 inputAffineTransformation;
    // Check if a transformation has been specified
    if(flag->inputTransFlag)
@@ -395,8 +395,6 @@ int main(int argc, char **argv)
                                nullptr);
           break;
       }
-      nifti_image_free(inputTransformationImage);
-      inputTransformationImage=nullptr;
    }
    else
    {
@@ -602,8 +600,6 @@ int main(int argc, char **argv)
    //   // Tell the CLI that we finished
    //   closeProgress("reg_resample", "Normal exit");
 
-   nifti_image_free(referenceImage);
-   nifti_image_free(floatingImage);
    nifti_image_free(deformationFieldImage);
 
    free(flag);

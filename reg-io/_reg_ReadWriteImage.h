@@ -36,28 +36,20 @@
 /** The function checks the file format using the provided filename
   * Nifti is returned by default if no format are specified
   * @param filename Filename of the input images
-  * @return Code, NIFTYREG_FILEFORMAT_TYPE,  that encode the file format
+  * @return Code, NIFTYREG_FILEFORMAT_TYPE, that encode the file format
   */
 int reg_io_checkFileFormat(const std::string& filename);
 /* *************************************************************** */
-/** The function expects a filename and returns a nifti_image structure
-  * The function will use to correct library and will return a NULL image
+/** The function expects a filename and returns a NiftiImage
+  * The function will use to correct library and will return an empty image
   * if the image can not be read
   * @param filename Filename of the input images
-  * @return Image as a nifti image
+  * @param onlyHeader If true, only the header information is read and the actual data is not stored
+  * @return Image as a NiftiImage
   */
-nifti_image *reg_io_ReadImageFile(const char *filename);
+NiftiImage reg_io_ReadImageFile(const char *filename, const bool onlyHeader = false);
 /* *************************************************************** */
-/** The function expects a filename and returns a nifti_image structure
-  * The function will use to correct library and will return a NULL image
-  * if the image can not be read
-  * Only the header information is read and the actual data is not store
-  * @param filename Filename of the input images
-  * @return Image as a nifti image
-  */
-nifti_image *reg_io_ReadImageHeader(const char *filename);
-/* *************************************************************** */
-/** The function expects a filename and nifti_image structure
+/** The function expects a filename and a nifti_image
   * The image will be converted to the format specified in the
   * filename before being saved
   * @param image Nifti image to be saved

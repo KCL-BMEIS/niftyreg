@@ -275,8 +275,8 @@ int main(int argc, char **argv) {
     if (flag->outputDefFlag || flag->outputDispFlag || flag->outputFlowFlag) {
         // Create some variables
         mat44 *affineTransformation = nullptr;
-        nifti_image *referenceImage = nullptr;
-        nifti_image *inputTransformationImage = nullptr;
+        NiftiImage referenceImage;
+        NiftiImage inputTransformationImage;
         nifti_image *outputTransformationImage = nullptr;
         // First check if the input filename is an image
         if (reg_isAnImageFileName(param->inputTransName)) {
@@ -294,7 +294,7 @@ int main(int argc, char **argv) {
                              " a reference image should be specified (-ref flag)");
                     return EXIT_FAILURE;
                 }
-                referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
+                referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
                 if (referenceImage == nullptr) {
                     NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
                     return EXIT_FAILURE;
@@ -309,7 +309,7 @@ int main(int argc, char **argv) {
                          " a reference image should be specified (-ref flag)");
                 return EXIT_FAILURE;
             }
-            referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
+            referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
             if (referenceImage == nullptr) {
                 NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
                 return EXIT_FAILURE;
@@ -484,8 +484,6 @@ int main(int argc, char **argv) {
         }
         // Free the allocated images and arrays
         if (affineTransformation != nullptr) free(affineTransformation);
-        if (referenceImage != nullptr) nifti_image_free(referenceImage);
-        if (inputTransformationImage != nullptr) nifti_image_free(inputTransformationImage);
         nifti_image_free(outputTransformationImage);
     }
 
@@ -497,10 +495,10 @@ int main(int argc, char **argv) {
         // Create some variables
         mat44 *affine1Trans = nullptr;
         mat44 *affine2Trans = nullptr;
-        nifti_image *referenceImage = nullptr;
-        nifti_image *referenceImage2 = nullptr;
-        nifti_image *input1TransImage = nullptr;
-        nifti_image *input2TransImage = nullptr;
+        NiftiImage referenceImage;
+        NiftiImage referenceImage2;
+        NiftiImage input1TransImage;
+        NiftiImage input2TransImage;
         nifti_image *output1TransImage = nullptr;
         nifti_image *output2TransImage = nullptr;
         // Read the first transformation
@@ -541,7 +539,7 @@ int main(int argc, char **argv) {
                              " a reference image should be specified (-res flag).");
                     return EXIT_FAILURE;
                 }
-                referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
+                referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
                 if (referenceImage == nullptr) {
                     NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
                     return EXIT_FAILURE;
@@ -554,7 +552,7 @@ int main(int argc, char **argv) {
                              " a reference image should be specified (-ref flag).");
                     return EXIT_FAILURE;
                 }
-                referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
+                referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
                 if (referenceImage == nullptr) {
                     NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
                     return EXIT_FAILURE;
@@ -562,7 +560,7 @@ int main(int argc, char **argv) {
             }
             // Read the second reference image if specified
             if (flag->referenceImage2Flag) {
-                referenceImage2 = reg_io_ReadImageHeader(param->referenceImage2Name);
+                referenceImage2 = reg_io_ReadImageFile(param->referenceImage2Name, true);
                 if (referenceImage2 == nullptr) {
                     NR_ERROR("Error when reading the second reference image: " << param->referenceImage2Name);
                     return EXIT_FAILURE;
@@ -744,10 +742,6 @@ int main(int argc, char **argv) {
         // Free allocated object
         if (affine1Trans != nullptr) free(affine1Trans);
         if (affine2Trans != nullptr) free(affine2Trans);
-        if (referenceImage != nullptr) nifti_image_free(referenceImage);
-        if (referenceImage2 != nullptr) nifti_image_free(referenceImage2);
-        if (input1TransImage != nullptr) nifti_image_free(input1TransImage);
-        if (input2TransImage != nullptr) nifti_image_free(input2TransImage);
         if (output1TransImage != nullptr) nifti_image_free(output1TransImage);
         if (output2TransImage != nullptr) nifti_image_free(output2TransImage);
     }
@@ -759,8 +753,8 @@ int main(int argc, char **argv) {
     if (flag->outputLandFlag) {
         // Create some variables
         mat44 *affineTransformation = nullptr;
-        nifti_image *referenceImage = nullptr;
-        nifti_image *inputTransformationImage = nullptr;
+        NiftiImage referenceImage;
+        NiftiImage inputTransformationImage;
         nifti_image *deformationFieldImage = nullptr;
         // First check if the input filename is an image
         if (reg_isAnImageFileName(param->inputTransName)) {
@@ -778,7 +772,7 @@ int main(int argc, char **argv) {
                              " a reference image should be specified (-ref flag).");
                     return EXIT_FAILURE;
                 }
-                referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
+                referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
                 if (referenceImage == nullptr) {
                     NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
                     return EXIT_FAILURE;
@@ -793,7 +787,7 @@ int main(int argc, char **argv) {
                          " a reference image should be specified (-ref flag).");
                 return EXIT_FAILURE;
             }
-            referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
+            referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
             if (referenceImage == nullptr) {
                 NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
                 return EXIT_FAILURE;
@@ -894,8 +888,6 @@ int main(int argc, char **argv) {
         deformationFieldImage->intent_p2 = 0;
         // Free all allocated input
         if (affineTransformation != nullptr) free(affineTransformation);
-        if (referenceImage != nullptr) nifti_image_free(referenceImage);
-        if (inputTransformationImage != nullptr) nifti_image_free(inputTransformationImage);
         // Read the landmark file
         std::pair<size_t, size_t> inputMatrixSize = reg_tool_sizeInputMatrixFile(param->inputLandmarkName);
         size_t landmarkNumber = inputMatrixSize.first;
@@ -941,7 +933,7 @@ int main(int argc, char **argv) {
     /* **************************************** */
     if (flag->updSFormFlag) {
         // Read the input image
-        nifti_image *image = reg_io_ReadImageFile(param->inputTransName);
+        NiftiImage image = reg_io_ReadImageFile(param->inputTransName);
         if (image == nullptr) {
             NR_ERROR("Error when reading the input image: " << param->inputTransName);
             return EXIT_FAILURE;
@@ -964,7 +956,6 @@ int main(int argc, char **argv) {
         // Write the output image
         reg_io_WriteImageFile(image, param->outputTransName);
         // Free the allocated image and array
-        nifti_image_free(image);
         free(affineTransformation);
     }
     /* ******************************** */
@@ -973,7 +964,7 @@ int main(int argc, char **argv) {
     if (flag->halfTransFlag) {
         // Read the input transformation
         mat44 *affineTrans = nullptr;
-        nifti_image *inputTransImage = nullptr;
+        NiftiImage inputTransImage;
         if (!reg_isAnImageFileName(param->inputTransName)) {
             // An affine transformation is considered
             affineTrans = (mat44 *)malloc(sizeof(mat44));
@@ -1039,13 +1030,13 @@ int main(int argc, char **argv) {
     /* ******************************************** */
     if (flag->invertNRRFlag) {
         // Read the provided transformation
-        nifti_image *inputTransImage = reg_io_ReadImageFile(param->inputTransName);
+        NiftiImage inputTransImage = reg_io_ReadImageFile(param->inputTransName);
         if (inputTransImage == nullptr) {
             NR_ERROR("Error when reading the input image: " << param->inputTransName);
             return EXIT_FAILURE;
         }
         // Read the provided floating space image
-        nifti_image *floatingImage = reg_io_ReadImageFile(param->input2TransName);
+        NiftiImage floatingImage = reg_io_ReadImageFile(param->input2TransName);
         if (floatingImage == nullptr) {
             NR_ERROR("Error when reading the input image: " << param->input2TransName);
             return EXIT_FAILURE;
@@ -1060,13 +1051,13 @@ int main(int argc, char **argv) {
                          " a reference image should be specified (-ref flag).");
                 return EXIT_FAILURE;
             }
-            nifti_image *referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
+            NiftiImage referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
             if (referenceImage == nullptr) {
                 NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
                 return EXIT_FAILURE;
             }
             // Create a deformation field or a flow field
-            nifti_image *tempField = nifti_copy_nim_info(referenceImage);
+            NiftiImage tempField(referenceImage, NiftiImage::Copy::ImageInfo);
             tempField->ndim = tempField->dim[0] = 5;
             tempField->nt = tempField->dim[4] = 1;
             tempField->nu = tempField->dim[5] = tempField->nz > 1 ? 3 : 2;
@@ -1091,10 +1082,7 @@ int main(int argc, char **argv) {
             else
                 reg_spline_getFlowFieldFromVelocityGrid(inputTransImage, tempField);
             // The provided transformation file is replaced by the compute dense field
-            nifti_image_free(referenceImage);
-            nifti_image_free(inputTransImage);
-            inputTransImage = tempField;
-            tempField = nullptr;
+            inputTransImage = std::move(tempField);
         }
         // Create a field to store the transformation
         nifti_image *outputTransImage = nifti_copy_nim_info(floatingImage);
@@ -1161,7 +1149,6 @@ int main(int argc, char **argv) {
         // Save the inverted transformation
         reg_io_WriteImageFile(outputTransImage, param->outputTransName);
         // Free the allocated images
-        nifti_image_free(inputTransImage);
         nifti_image_free(outputTransImage);
     }
     /* ***************************************** */
@@ -1246,12 +1233,10 @@ int main(int argc, char **argv) {
     /* ********************************************************** */
     if (flag->flirtAff2NRFlag) {
         mat44 affine;
-        nifti_image *referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
-        nifti_image *floatingImage = reg_io_ReadImageHeader(param->referenceImage2Name);
+        NiftiImage referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
+        NiftiImage floatingImage = reg_io_ReadImageFile(param->referenceImage2Name, true);
         reg_tool_ReadAffineFile(&affine, referenceImage, floatingImage, param->inputTransName, true);
         reg_tool_WriteAffineFile(&affine, param->outputTransName);
-        nifti_image_free(referenceImage);
-        nifti_image_free(floatingImage);
     }
     // Free allocated object
     free(param);

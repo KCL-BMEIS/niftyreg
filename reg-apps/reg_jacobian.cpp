@@ -226,7 +226,7 @@ int main(int argc, char **argv)
    /* ******************* */
    /* READ TRANSFORMATION */
    /* ******************* */
-   nifti_image *inputTransformation=nullptr;
+   NiftiImage inputTransformation;
    if(flag->inputTransFlag)
    {
       // Check of the input transformation is an affine
@@ -254,7 +254,7 @@ int main(int argc, char **argv)
    /* COMPUTE JACOBIAN MAT OR DET */
    /* *************************** */
    // Create a deformation field if needed
-   nifti_image *referenceImage=nullptr;
+   NiftiImage referenceImage;
    if(inputTransformation->intent_p1==LIN_SPLINE_GRID ||
          inputTransformation->intent_p1==CUB_SPLINE_GRID ||
          inputTransformation->intent_p1==SPLINE_VEL_GRID){
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
          return EXIT_FAILURE;
       }
       // Read the reference image
-      referenceImage = reg_io_ReadImageHeader(param->refImageName);
+      referenceImage = reg_io_ReadImageFile(param->refImageName, true);
       if(referenceImage == nullptr)
       {
          NR_ERROR("Error when reading the reference image.");
@@ -277,7 +277,6 @@ int main(int argc, char **argv)
       nifti_image *jacobianImage=nullptr;
       if(referenceImage!=nullptr){
          jacobianImage=nifti_copy_nim_info(referenceImage);
-         nifti_image_free(referenceImage);referenceImage=nullptr;
       }
       else jacobianImage=nifti_copy_nim_info(inputTransformation);
       jacobianImage->ndim=jacobianImage->dim[0]=jacobianImage->nz>1?3:2;
@@ -331,7 +330,6 @@ int main(int argc, char **argv)
       nifti_image *jacobianImage=nullptr;
       if(referenceImage!=nullptr){
          jacobianImage=nifti_copy_nim_info(referenceImage);
-         nifti_image_free(referenceImage);referenceImage=nullptr;
       }
       else jacobianImage=nifti_copy_nim_info(inputTransformation);
       jacobianImage->ndim=jacobianImage->dim[0]=5;
@@ -379,9 +377,6 @@ int main(int argc, char **argv)
       reg_io_WriteImageFile(jacobianImage,param->outputJacMatName);
       nifti_image_free(jacobianImage);jacobianImage=nullptr;
    }
-
-   // Free the allocated image
-   nifti_image_free(inputTransformation);inputTransformation=nullptr;
 
    return EXIT_SUCCESS;
 }

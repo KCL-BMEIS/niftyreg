@@ -253,7 +253,7 @@ int compute_nrr_demean(nifti_image *demean_field,
    // iterate over all transformations
    for(size_t t=0; t<transformationNumber; ++t){
       // read the transformation
-      nifti_image *transformation = reg_io_ReadImageFile(inputNRRName[t]);
+      NiftiImage transformation = reg_io_ReadImageFile(inputNRRName[t]);
       // Generate the deformation or flow field
       nifti_image *deformationField = nifti_dup(*demean_field, false);
       reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
@@ -308,7 +308,6 @@ int compute_nrr_demean(nifti_image *demean_field,
             deformationField->intent_p1=DISP_VEL_FIELD;
       }
       else reg_getDisplacementFromDeformation(deformationField);
-      nifti_image_free(transformation);
       // The current field is added to the average image
       reg_tools_addImageToImage(demean_field,deformationField,demean_field);
       nifti_image_free(deformationField);
@@ -364,7 +363,7 @@ int compute_average_image(nifti_image *averageImage,
       reg_createDeformationField<float>(deformationField, averageImage);
       // Compute the transformation if required
       if(inputNRRName!=nullptr){
-         nifti_image *current_transformation = reg_io_ReadImageFile(inputNRRName[i]);
+         NiftiImage current_transformation = reg_io_ReadImageFile(inputNRRName[i]);
          switch(static_cast<int>(current_transformation->intent_p1)){
          case DISP_FIELD:
             reg_getDeformationFromDisplacement(current_transformation);
@@ -388,7 +387,6 @@ int compute_average_image(nifti_image *averageImage,
             NR_ERROR("Unsupported transformation type");
             return EXIT_FAILURE;
          }
-         nifti_image_free(current_transformation);
          if(demeanField!=nullptr){
             if(deformationField->intent_p1==DEF_VEL_FIELD){
                reg_tools_subtractImageFromImage(deformationField,demeanField,deformationField);
@@ -419,7 +417,7 @@ int compute_average_image(nifti_image *averageImage,
       warpedImage->nbyper = sizeof(float);
       warpedImage->data = malloc(warpedImage->nvox*warpedImage->nbyper);
       // Read the input image
-      nifti_image *current_input_image = reg_io_ReadImageFile(inputImageName[i]);
+      NiftiImage current_input_image = reg_io_ReadImageFile(inputImageName[i]);
       reg_tools_changeDatatype<PrecisionType>(current_input_image);
       // Apply the transformation
       reg_resampleImage(current_input_image,
@@ -428,7 +426,6 @@ int compute_average_image(nifti_image *averageImage,
                         nullptr,
                         interpolation_order,
                         std::numeric_limits<float>::quiet_NaN());
-      nifti_image_free(current_input_image);
       // Add the image to the average
       remove_nan_and_add(averageImage, warpedImage, definedValue);
       nifti_image_free(warpedImage);
@@ -668,7 +665,7 @@ int main(int argc, char **argv)
    }
 
    mat44 avg_output_matrix;
-   nifti_image *avg_output_image=nullptr;
+   NiftiImage avg_output_image;
 
    // Go over the different operations
    if(operation==AVG_INPUT && trans_is_affine){
@@ -716,8 +713,6 @@ int main(int argc, char **argv)
          free(pointer_to_command[i]);
       free(pointer_to_command);
    }
-   if(avg_output_image!=nullptr)
-      nifti_image_free(avg_output_image);
    if(input_image_names!=nullptr){
       free(input_image_names);
    }

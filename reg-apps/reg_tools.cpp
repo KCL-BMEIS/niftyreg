@@ -463,7 +463,7 @@ int main(int argc, char **argv)
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
     /* Read the image */
-    nifti_image *image = reg_io_ReadImageFile(param->inputImageName);
+    NiftiImage image = reg_io_ReadImageFile(param->inputImageName);
     if(image == nullptr)
     {
         NR_ERROR("Error when reading the input image: " << param->inputImageName);
@@ -573,7 +573,7 @@ int main(int argc, char **argv)
 
     if(flag->operationTypeFlag>-1)
     {
-        nifti_image *image2=nullptr;
+        NiftiImage image2;
         if(param->operationImageName!=nullptr)
         {
             image2 = reg_io_ReadImageFile(param->operationImageName);
@@ -668,14 +668,13 @@ int main(int argc, char **argv)
         else reg_io_WriteImageFile(outputImage,"output.nii");
 
         nifti_image_free(outputImage);
-        if(image2!=nullptr) nifti_image_free(image2);
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
     if(flag->rmsImageFlag)
     {
-        nifti_image *image2 = reg_io_ReadImageFile(param->rmsImageName);
+        NiftiImage image2 = reg_io_ReadImageFile(param->rmsImageName);
         if(image2 == nullptr)
         {
             NR_ERROR("Error when reading the image: " << param->rmsImageName);
@@ -697,7 +696,6 @@ int main(int argc, char **argv)
 
         double meanRMSerror = reg_tools_getMeanRMS(image, image2);
         NR_COUT << "Mean RMS error: " << meanRMSerror << std::endl;
-        nifti_image_free(image2);
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->binarisedImageFlag)
@@ -720,7 +718,7 @@ int main(int argc, char **argv)
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->nanMaskFlag)
     {
-        nifti_image *maskImage = reg_io_ReadImageFile(param->operationImageName);
+        NiftiImage maskImage = reg_io_ReadImageFile(param->operationImageName);
         if(maskImage == nullptr)
         {
             NR_ERROR("Error when reading the image: " << param->operationImageName);
@@ -736,7 +734,6 @@ int main(int argc, char **argv)
         else reg_io_WriteImageFile(outputImage,"output.nii");
 
         nifti_image_free(outputImage);
-        nifti_image_free(maskImage);
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->iso)
@@ -1173,6 +1170,5 @@ int main(int argc, char **argv)
         outputImage=nullptr;
     }
 
-    nifti_image_free(image);
     return EXIT_SUCCESS;
 }

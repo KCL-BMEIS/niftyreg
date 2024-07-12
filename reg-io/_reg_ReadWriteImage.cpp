@@ -10,7 +10,6 @@
  */
 
 #include "_reg_ReadWriteImage.h"
-#include "_reg_tools.h"
 #include <filesystem>
 
 /* *************************************************************** */
@@ -49,52 +48,21 @@ int reg_io_checkFileFormat(const std::string& filename) {
     return NR_NII_FORMAT;
 }
 /* *************************************************************** */
-nifti_image* reg_io_ReadImageFile(const char *filename) {
+NiftiImage reg_io_ReadImageFile(const char *filename, const bool onlyHeader) {
     // First read the file format in order to use the correct library
     const int fileFormat = reg_io_checkFileFormat(filename);
 
-    // Create the nifti image pointer
-    nifti_image *image = nullptr;
+    // Create a nifti image
+    nifti_image *image;
 
     // Read the image and convert it to nifti format if required
     switch (fileFormat) {
     case NR_NII_FORMAT:
-        image = nifti_image_read(filename, true);
+        image = nifti_image_read(filename, !onlyHeader);
         reg_hack_filename(image, filename);
         break;
     case NR_PNG_FORMAT:
-        image = reg_io_readPNGfile(filename, true);
-        reg_hack_filename(image, filename);
-        break;
-#ifdef USE_NRRD
-    case NR_NRRD_FORMAT:
-        Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
-        image = reg_io_nrdd2nifti(nrrdImage);
-        nrrdNuke(nrrdImage);
-        reg_hack_filename(image, filename);
-        break;
-#endif
-    }
-    reg_checkAndCorrectDimension(image);
-
-    // Return the nifti image
-    return image;
-}
-/* *************************************************************** */
-nifti_image* reg_io_ReadImageHeader(const char *filename) {
-    // First read the file format in order to use the correct library
-    const int fileFormat = reg_io_checkFileFormat(filename);
-
-    // Create the nifti image pointer
-    nifti_image *image = nullptr;
-
-    // Read the image and convert it to nifti format if required
-    switch (fileFormat) {
-    case NR_NII_FORMAT:
-        image = nifti_image_read(filename, false);
-        break;
-    case NR_PNG_FORMAT:
-        image = reg_io_readPNGfile(filename, false);
+        image = reg_io_readPNGfile(filename, !onlyHeader);
         reg_hack_filename(image, filename);
         break;
 #ifdef USE_NRRD
@@ -130,8 +98,7 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename) {
          image->nv > 1 ||
          image->nw > 1) &&
         fileFormat == NR_PNG_FORMAT) {
-        // If the image has more than two dimension,
-        // the filename is converted to nifti
+        // If the image has more than two dimensions, the filename is converted to nifti
         fname = filename;
         fname.replace(fname.find(".png"), 4, ".nii.gz");
         NR_WARN("The file can not be saved as png and is converted to nifti " << filename << " -> " << fname);
