@@ -705,7 +705,7 @@ inline int NiftiImage::fileVersion (const std::string &path)
 #endif
 }
 
-inline void NiftiImage::acquire (nifti_image * const image)
+inline void NiftiImage::acquire (nifti_image * const image, const bool own)
 {
     // If we're taking ownership of a new image, release the old one
     if (this->image != nullptr && this->image != image)
@@ -715,11 +715,16 @@ inline void NiftiImage::acquire (nifti_image * const image)
     this->image = image;
     if (image != nullptr)
     {
-        if (this->refCount == nullptr)
-            this->refCount = new int(1);
+        if (own) {
+            if (this->refCount == nullptr)
+                this->refCount = new int(1);
+            else
+                (*this->refCount)++;
+        }
+        if (this->refCount != nullptr)
+            RN_DEBUG("Acquiring pointer %p (v%d; reference count is %d)", this->image, RNIFTI_NIFTILIB_VERSION, *this->refCount);
         else
-            (*this->refCount)++;
-        RN_DEBUG("Acquiring pointer %p (v%d; reference count is %d)", this->image, RNIFTI_NIFTILIB_VERSION, *this->refCount);
+            RN_DEBUG("Acquiring pointer %p without ownership (v%d)", this->image, RNIFTI_NIFTILIB_VERSION);
     }
 }
 

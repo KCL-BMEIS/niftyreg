@@ -100,7 +100,6 @@ public:
                             // Set the transformation gradient image to host the computation
                             NiftiImage transGrad = content->GetTransformationGradient();
                             transGrad.copyData(expTransGrad);
-                            transGrad.disown();
                             content->UpdateTransformationGradient();
 
                             // Calculate the maximal length

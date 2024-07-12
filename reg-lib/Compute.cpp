@@ -167,8 +167,6 @@ void Compute::NormaliseGradient(double maxGradLength, bool optimiseX, bool optim
     const size_t voxelsPerVolume = transformationGradient.nVoxelsPerVolume();
 #endif
 
-    transformationGradient.disown();
-
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelsPerVolume, ptrX, ptrY, ptrZ, hasZ, optimiseX, optimiseY, optimiseZ, maxGradLenInv)

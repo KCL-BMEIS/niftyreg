@@ -126,7 +126,6 @@ public:
             voxelGrad->sto_ijk = voxelBasedGrad->sto_ijk;
             voxelGrad->sto_xyz = voxelBasedGrad->sto_xyz;
             voxelGrad.copyData(voxelBasedGrad);
-            voxelGrad.disown();
             contentCpu->UpdateVoxelBasedMeasureGradient();
             voxelGrad = contentCuda->DefContent::GetVoxelBasedMeasureGradient();
             voxelGrad->sform_code = voxelBasedGrad->sform_code;
@@ -135,7 +134,6 @@ public:
             voxelGrad->sto_ijk = voxelBasedGrad->sto_ijk;
             voxelGrad->sto_xyz = voxelBasedGrad->sto_xyz;
             voxelGrad.copyData(voxelBasedGrad);
-            voxelGrad.disown();
             contentCuda->UpdateVoxelBasedMeasureGradient();
 
             // Create the computes

@@ -226,7 +226,6 @@ TEST_CASE("Interpolation", "[unit]") {
                 warped = content->GetWarped();
                 const auto warpedPtr = warped.data();
                 const size_t nVoxels = warped.nVoxels();
-                warped.disown();
                 for (size_t i = 0; i < nVoxels; ++i) {
                     const float warpedValue = warpedPtr[i];
                     const float diff = abs(warpedValue - testResult[i]);

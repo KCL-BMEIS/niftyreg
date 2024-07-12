@@ -186,7 +186,6 @@ TEST_CASE("Image Gradient", "[unit]") {
                 warpedGradient.setDim(NiftiDim::Z, 1);
                 warpedGradient.setDim(NiftiDim::U, defField->nu);
                 warpedGradient.recalcVoxelNumber();
-                warpedGradient.disown();
 
                 // Set the deformation field
                 content->SetDeformationField(defField.disown());
@@ -199,7 +198,6 @@ TEST_CASE("Image Gradient", "[unit]") {
                 warpedGradient = content->GetWarpedGradient();
                 const auto warpedGradPtr = warpedGradient.data();
                 const size_t nVoxels = warpedGradient.nVoxels();
-                warpedGradient.disown();
                 for (size_t i = 0; i < nVoxels; ++i) {
                     const float warpedGradVal = warpedGradPtr[i];
                     const auto diff = abs(warpedGradVal - testResult[i]);

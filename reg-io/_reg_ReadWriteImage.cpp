@@ -77,7 +77,7 @@ NiftiImage reg_io_ReadImageFile(const char *filename, const bool onlyHeader) {
     reg_checkAndCorrectDimension(image);
 
     // Return the nifti image
-    return image;
+    return NiftiImage(image, NiftiImage::Copy::Acquire);
 }
 /* *************************************************************** */
 void reg_io_WriteImageFile(nifti_image *image, const char *filename) {

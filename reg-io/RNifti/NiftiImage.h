@@ -876,7 +876,8 @@ public:
     enum class Dim { NDim, X, Y, Z, T, U, V, W };    /**< Dimension enumeration */
 
     enum class Copy {           /**< Enumeration of copy options of the constructor */
-        None,                   /**< Do not copy the image */
+        None,                   /**< Do not copy the image but acquire the pointer without ownership */
+        Acquire,                /**< Do not copy the image but acquire the pointer with ownership */
         Image,                  /**< Copy the entire image */
         ImageInfo,              /**< Copy only the image info, and do not allocate data */
         ImageInfoAndAllocData   /**< Copy only the image info, and allocate and zero the data */
@@ -1306,8 +1307,9 @@ protected:
      * responsibility for freeing the associated memory. If the object currently wraps another
      * pointer, it will be released
      * @param image The pointer to wrap
+     * @param own If \c true, the object will take responsibility for freeing the memory
     **/
-    void acquire (nifti_image * const image);
+    void acquire (nifti_image * const image, const bool own = true);
 
     /**
      * Acquire the same pointer as another \c NiftiImage, incrementing the shared reference count
@@ -1316,7 +1318,7 @@ protected:
     void acquire (const NiftiImage &source)
     {
         refCount = source.refCount;
-        acquire(source.image);
+        acquire(source.image, refCount);
     }
 
     /**
@@ -1420,12 +1422,12 @@ public:
     /**
      * Copy constructor
      * @param source Another \c NiftiImage object
-     * @param copy If \c Copy::None, the new object just wraps the same pointer as \c source; otherwise the image data is copied
+     * @param copy If \c Copy::None or \c Copy::Acquire, the new object just wraps the same pointer as \c source; otherwise the image data is copied
     **/
     NiftiImage (const NiftiImage &source, const Copy copy = Copy::Image)
         : NiftiImage()
     {
-        if (copy != Copy::None) {
+        if (copy != Copy::None && copy != Copy::Acquire) {
             this->copy(source, copy);
         } else {
             acquire(source);
@@ -1458,15 +1460,15 @@ public:
     /**
      * Initialise using an existing \c nifti_image pointer
      * @param image An existing \c nifti_image pointer, possibly \c nullptr
-     * @param copy If \c Copy::None, the new object just wraps the pointer passed to it; otherwise the image data is copied
+     * @param copy If \c Copy::None or \c Copy::Acquire, the new object just wraps the pointer passed to it with or without ownership; otherwise the image data is copied
     **/
     NiftiImage (nifti_image * const image, const Copy copy = Copy::None)
         : NiftiImage()
     {
-        if (copy != Copy::None)
+        if (copy != Copy::None && copy != Copy::Acquire)
             this->copy(image, copy);
         else
-            acquire(image);
+            acquire(image, copy == Copy::Acquire);
         RN_DEBUG("Creating NiftiImage (v%d) with pointer %p (from pointer)", RNIFTI_NIFTILIB_VERSION, this->image);
     }
 

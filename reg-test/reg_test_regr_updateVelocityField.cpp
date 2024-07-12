@@ -80,11 +80,9 @@ public:
                         // Set the transformation gradient image to host the computation
                         NiftiImage transGradCpu = contentCpu->GetTransformationGradient();
                         transGradCpu.copyData(transGrad);
-                        transGradCpu.disown();
                         contentCpu->UpdateTransformationGradient();
                         NiftiImage transGradCuda = contentCuda->GetTransformationGradient();
                         transGradCuda.copyData(transGrad);
-                        transGradCuda.disown();
                         contentCuda->UpdateTransformationGradient();
 
                         // Create the computes

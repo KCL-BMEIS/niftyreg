@@ -246,17 +246,14 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
             NiftiImage img = content->GetControlPointGrid();
             // Use bestControlPointGrid to store bestDof during initialisation of the optimiser
             img.copyData(bestControlPointGrid);
-            img.disown();
             content->UpdateControlPointGrid();
 
             // Set the transformation gradients
             img = content->GetTransformationGradient();
             img.copyData(transGrad);
-            img.disown();
             content->UpdateTransformationGradient();
             img = contentBw->GetTransformationGradient();
             img.copyData(transGradBw);
-            img.disown();
             contentBw->UpdateTransformationGradient();
 
             // Create a copy of the control point grid for expected results
@@ -272,7 +269,6 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
             img = content->GetControlPointGrid();
             const auto cppPtr = img.data();
             const auto cppExpPtr = controlPointGridExpected.data();
-            img.disown();
             for (size_t i = 0; i < controlPointGridExpected.nVoxels(); ++i) {
                 const float cppVal = cppPtr[i];
                 const float cppExpVal = cppExpPtr[i];
@@ -312,12 +308,10 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
                     // Update the transformation gradients
                     img = content->GetTransformationGradient();
                     img.copyData(transGrad);
-                    img.disown();
                     content->UpdateTransformationGradient();
                     if (isSymmetric) {
                         img = contentBw->GetTransformationGradient();
                         img.copyData(transGradBw);
-                        img.disown();
                         contentBw->UpdateTransformationGradient();
                     }
 
@@ -329,13 +323,11 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
                     img = content->GetTransformationGradient();
                     const auto gradPtr = img.data();
                     const auto gradExpPtr = transGrad.data();
-                    img.disown();
                     NiftiImageData gradBwPtr, gradExpBwPtr;
                     if (isSymmetric) {
                         img = contentBw->GetTransformationGradient();
                         gradBwPtr = img.data();
                         gradExpBwPtr = transGradBw.data();
-                        img.disown();
                     }
                     for (size_t i = 0; i < transGrad.nVoxels(); ++i) {
                         const float gradVal = gradPtr[i];

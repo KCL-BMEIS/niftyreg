@@ -115,7 +115,6 @@ public:
                 const float weight = distr(gen);
                 NiftiImage expTransGrad(transGrad, NiftiImage::Copy::ImageInfoAndAllocData);
                 VoxelCentricToNodeCentric<float>(floating, expTransGrad, voxelGrad, weight);
-                transGrad.disown(); voxelGrad.disown();
 
                 // Extract the node-based NMI gradient from the voxel-based NMI gradient
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };

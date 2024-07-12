@@ -184,7 +184,7 @@ int main(int argc, char **argv)
          nifti_image_free(source);
          makesource->ndim=makesource->dim[0] = 4;
          makesource->nt = makesource->dim[4] = atoi(argv[++i]);
-         makesource->nvox = NiftiImage::calcVoxelNumber(makesource->nx, makesource->ndim);
+         makesource->nvox = NiftiImage::calcVoxelNumber(makesource, makesource->ndim);
          makesource->data = malloc(makesource->nvox * makesource->nbyper);
          char *temp_data = reinterpret_cast<char *>(makesource->data);
          for(int ii=0; ii<makesource->nt; ii++) // fill with file data
