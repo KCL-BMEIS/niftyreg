@@ -192,48 +192,20 @@ void CudaAladinContent::SetBlockMatchingParams(_reg_blockMatchingParam* bmp) {
     }
 }
 /* *************************************************************** */
-template<class DataType>
-DataType CudaAladinContent::FillWarpedImageData(float intensity, int datatype) {
-    switch (datatype) {
-    case NIFTI_TYPE_FLOAT32:
-        return static_cast<float>(intensity);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        return static_cast<double>(intensity);
-        break;
-    case NIFTI_TYPE_UINT8:
-        intensity = (intensity <= 255 ? Round(intensity) : 255); // 255=2^8-1
-        return static_cast<unsigned char>(intensity > 0 ? Round(intensity) : 0);
-        break;
-    case NIFTI_TYPE_UINT16:
-        intensity = (intensity <= 65535 ? Round(intensity) : 65535); // 65535=2^16-1
-        return static_cast<unsigned short>(intensity > 0 ? Round(intensity) : 0);
-        break;
-    case NIFTI_TYPE_UINT32:
-        intensity = (intensity <= 4294967295 ? Round(intensity) : 4294967295); // 4294967295=2^32-1
-        return static_cast<unsigned>(intensity > 0 ? Round(intensity) : 0);
-        break;
-    default:
-        return static_cast<DataType>(Round(intensity));
-        break;
-    }
-}
-/* *************************************************************** */
-template<class T>
-void CudaAladinContent::FillImageData(nifti_image *image, float *memoryObject, int type) {
-    size_t size = image->nvox;
-    float *buffer = (float*)malloc(size * sizeof(float));
+template<typename DataType>
+void CudaAladinContent::FillImageData(nifti_image *image, float *memoryObject, int datatype) {
+    const size_t size = image->nvox;
+    unique_ptr<float[]> buffer(new float[size]);
 
-    Cuda::TransferFromDeviceToHost<float>(buffer, memoryObject, size);
+    Cuda::TransferFromDeviceToHost(buffer.get(), memoryObject, size);
 
     free(image->data);
-    image->datatype = type;
-    image->nbyper = sizeof(T);
-    image->data = malloc(image->nvox * image->nbyper);
-    T* dataT = static_cast<T*>(image->data);
+    image->datatype = datatype;
+    image->nbyper = sizeof(DataType);
+    image->data = malloc(size * image->nbyper);
+    DataType *data = static_cast<DataType*>(image->data);
     for (size_t i = 0; i < size; ++i)
-        dataT[i] = FillWarpedImageData<T>(buffer[i], type);
-    free(buffer);
+        data[i] = static_cast<DataType>(NiftiImage::clampData(image, buffer[i]));
 }
 /* *************************************************************** */
 void CudaAladinContent::DownloadImage(nifti_image *image, float *memoryObject, int datatype) {
@@ -263,7 +235,7 @@ void CudaAladinContent::DownloadImage(nifti_image *image, float *memoryObject, i
         FillImageData<int>(image, memoryObject, datatype);
         break;
     default:
-        NR_FATAL_ERROR("CUDA: unsupported type");
+        NR_FATAL_ERROR("Unsupported type");
     }
 }
 /* *************************************************************** */

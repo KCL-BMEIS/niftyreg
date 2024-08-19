@@ -46,8 +46,7 @@ private:
     void DeallocateDeformationField();
     void AllocateWarped();
     void DeallocateWarped();
-    template<class DataType> DataType CastImageData(float intensity, int datatype);
-    template<class DataType> void FillImageData(nifti_image *image, float *memoryObject, int datatype);
+    template<typename DataType> void FillImageData(nifti_image *image, float *memoryObject, int datatype);
     void DownloadImage(nifti_image *image, float *memoryObject, int datatype);
     void SetReferenceCuda(float *referenceCudaIn) { referenceCudaManaged = nullptr; referenceCuda = referenceCudaIn; }
     void SetFloatingCuda(float *floatingCudaIn) { floatingCudaManaged = nullptr; floatingCuda = floatingCudaIn; }

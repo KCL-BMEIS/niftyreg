@@ -458,37 +458,7 @@ void ResampleImage3D(const nifti_image *floatingImage,
                 }
             }
 
-            switch (floatingImage->datatype) {
-            case NIFTI_TYPE_FLOAT32:
-                warpedIntensity[index] = static_cast<FloatingType>(intensity);
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                warpedIntensity[index] = static_cast<FloatingType>(intensity);
-                break;
-            case NIFTI_TYPE_UINT8:
-                if (intensity != intensity)
-                    intensity = 0;
-                intensity = (intensity <= 255 ? Round(intensity) : 255); // 255=2^8-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                break;
-            case NIFTI_TYPE_UINT16:
-                if (intensity != intensity)
-                    intensity = 0;
-                intensity = (intensity <= 65535 ? Round(intensity) : 65535); // 65535=2^16-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                break;
-            case NIFTI_TYPE_UINT32:
-                if (intensity != intensity)
-                    intensity = 0;
-                intensity = (intensity <= 4294967295 ? Round(intensity) : 4294967295); // 4294967295=2^32-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                break;
-            default:
-                if (intensity != intensity)
-                    intensity = 0;
-                warpedIntensity[index] = static_cast<FloatingType>(Round(intensity));
-                break;
-            }
+            warpedIntensity[index] = static_cast<FloatingType>(NiftiImage::clampData(floatingImage, intensity));
         }
     }
 }
@@ -606,29 +576,7 @@ void ResampleImage2D(const nifti_image *floatingImage,
                     intensity += xTempNewValue * yBasis[b];
                 }
 
-                switch (floatingImage->datatype) {
-                case NIFTI_TYPE_FLOAT32:
-                    warpedIntensity[index] = static_cast<FloatingType>(intensity);
-                    break;
-                case NIFTI_TYPE_FLOAT64:
-                    warpedIntensity[index] = static_cast<FloatingType>(intensity);
-                    break;
-                case NIFTI_TYPE_UINT8:
-                    intensity = (intensity <= 255 ? Round(intensity) : 255); // 255=2^8-1
-                    warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                    break;
-                case NIFTI_TYPE_UINT16:
-                    intensity = (intensity <= 65535 ? Round(intensity) : 65535); // 65535=2^16-1
-                    warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                    break;
-                case NIFTI_TYPE_UINT32:
-                    intensity = (intensity <= 4294967295 ? Round(intensity) : 4294967295); // 4294967295=2^32-1
-                    warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                    break;
-                default:
-                    warpedIntensity[index] = static_cast<FloatingType>(Round(intensity));
-                    break;
-                }
+                warpedIntensity[index] = static_cast<FloatingType>(NiftiImage::clampData(floatingImage, intensity));
             }
         }
     }
@@ -976,37 +924,8 @@ void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
                     intensity = paddingValue;
                 }
             } // if in mask
-            switch (floatingImage->datatype) {
-            case NIFTI_TYPE_FLOAT32:
-                warpedIntensity[index] = static_cast<FloatingType>(intensity);
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                warpedIntensity[index] = static_cast<FloatingType>(intensity);
-                break;
-            case NIFTI_TYPE_UINT8:
-                if (intensity != intensity)
-                    intensity = 0;
-                intensity = (intensity <= 255 ? Round(intensity) : 255); // 255=2^8-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                break;
-            case NIFTI_TYPE_UINT16:
-                if (intensity != intensity)
-                    intensity = 0;
-                intensity = (intensity <= 65535 ? Round(intensity) : 65535); // 65535=2^16-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                break;
-            case NIFTI_TYPE_UINT32:
-                if (intensity != intensity)
-                    intensity = 0;
-                intensity = (intensity <= 4294967295 ? Round(intensity) : 4294967295); // 4294967295=2^32-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                break;
-            default:
-                if (intensity != intensity)
-                    intensity = 0;
-                warpedIntensity[index] = static_cast<FloatingType>(Round(intensity));
-                break;
-            }
+
+            warpedIntensity[index] = static_cast<FloatingType>(NiftiImage::clampData(floatingImage, intensity));
         }
     }
 }
@@ -1379,49 +1298,8 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
                     intensity = paddingValue;
                 }
             } // if in mask
-            switch (floatingImage->datatype) {
-            case NIFTI_TYPE_FLOAT32:
-                warpedIntensity[index] = static_cast<FloatingType>(intensity);
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                warpedIntensity[index] = static_cast<FloatingType>(intensity);
-                break;
-            case NIFTI_TYPE_UINT8:
-                if (intensity != intensity)
-                    intensity = 0;
-                intensity = (intensity <= 255 ? Round(intensity) : 255); // 255=2^8-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                break;
-            case NIFTI_TYPE_UINT16:
-                if (intensity != intensity)
-                    intensity = 0;
-                intensity = (intensity <= 65535 ? Round(intensity) : 65535); // 65535=2^16-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                break;
-            case NIFTI_TYPE_UINT32:
-                if (intensity != intensity)
-                    intensity = 0;
-                intensity = (intensity <= 4294967295 ? Round(intensity) : 4294967295); // 4294967295=2^32-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity > 0 ? Round(intensity) : 0);
-                break;
-            case NIFTI_TYPE_INT16:
-                if (intensity != intensity)
-                    intensity = 0;
-                intensity = (intensity <= 32767 ? Round(intensity) : 32767); // 32767=2^15-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity);
-                break;
-            case NIFTI_TYPE_INT32:
-                if (intensity != intensity)
-                    intensity = 0;
-                intensity = (intensity <= 2147483647 ? Round(intensity) : 2147483647); // 2147483647=2^31-1
-                warpedIntensity[index] = static_cast<FloatingType>(intensity);
-                break;
-            default:
-                if (intensity != intensity)
-                    intensity = 0;
-                warpedIntensity[index] = static_cast<FloatingType>(Round(intensity));
-                break;
-            }
+
+            warpedIntensity[index] = static_cast<FloatingType>(NiftiImage::clampData(floatingImage, intensity));
         }
     }
 }

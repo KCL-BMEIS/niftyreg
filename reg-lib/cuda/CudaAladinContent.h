@@ -54,12 +54,8 @@ private:
     float *referenceMat_d;
     float *floIJKMat_d;
 
-    void DownloadImage(nifti_image *image, float* memoryObject, int datatype);
-    template<class T>
-    void FillImageData(nifti_image *image, float* memoryObject, int type);
-
-    template<class FloatingTYPE>
-    FloatingTYPE FillWarpedImageData(float intensity, int datatype);
+    template<typename DataType> void FillImageData(nifti_image *image, float *memoryObject, int datatype);
+    void DownloadImage(nifti_image *image, float *memoryObject, int datatype);
 
 #ifdef NR_TESTING
 public:

@@ -222,55 +222,22 @@ cl_mem ClAladinContent::GetFloMatClmem() {
     return floMatClmem;
 }
 /* *************************************************************** */
-template<class DataType>
-DataType ClAladinContent::FillWarpedImageData(float intensity, int datatype) {
-    switch (datatype) {
-    case NIFTI_TYPE_FLOAT32:
-        return static_cast<DataType>(intensity);
-    case NIFTI_TYPE_FLOAT64:
-        return static_cast<DataType>(intensity);
-    case NIFTI_TYPE_UINT8:
-        if (intensity != intensity)
-            intensity = 0;
-        intensity = (intensity <= 255 ? Round(intensity) : 255); // 255=2^8-1
-        return static_cast<unsigned char>(intensity > 0 ? Round(intensity) : 0);
-    case NIFTI_TYPE_UINT16:
-        if (intensity != intensity)
-            intensity = 0;
-        intensity = (intensity <= 65535 ? Round(intensity) : 65535); // 65535=2^16-1
-        return static_cast<unsigned short>(intensity > 0 ? Round(intensity) : 0);
-    case NIFTI_TYPE_UINT32:
-        if (intensity != intensity)
-            intensity = 0;
-        intensity = (intensity <= 4294967295 ? Round(intensity) : 4294967295); // 4294967295=2^32-1
-        return static_cast<unsigned>(intensity > 0 ? Round(intensity) : 0);
-    default:
-        if (intensity != intensity)
-            intensity = 0;
-        return static_cast<DataType>(Round(intensity));
-    }
-}
-/* *************************************************************** */
-template<class T>
-void ClAladinContent::FillImageData(nifti_image *image, cl_mem memoryObject, int type) {
-    size_t size = image->nvox;
-    float* buffer = nullptr;
-    buffer = (float*)malloc(size * sizeof(float));
-    if (buffer == nullptr)
-        NR_FATAL_ERROR("Memory allocation did not complete successfully");
+template<typename DataType>
+void ClAladinContent::FillImageData(nifti_image *image, cl_mem memoryObject, int datatype) {
+    const size_t size = image->nvox;
+    unique_ptr<float[]> buffer(new float[size]);
 
     errNum = clEnqueueReadBuffer(commandQueue, memoryObject, CL_TRUE, 0,
-                                 size * sizeof(float), buffer, 0, nullptr, nullptr);
+                                 size * sizeof(float), buffer.get(), 0, nullptr, nullptr);
     sContext->CheckErrNum(errNum, "Error reading warped buffer.");
 
     free(image->data);
-    image->datatype = type;
-    image->nbyper = sizeof(T);
-    image->data = malloc(image->nvox * image->nbyper);
-    T* dataT = static_cast<T*>(image->data);
+    image->datatype = datatype;
+    image->nbyper = sizeof(DataType);
+    image->data = malloc(size * image->nbyper);
+    DataType *data = static_cast<DataType*>(image->data);
     for (size_t i = 0; i < size; ++i)
-        dataT[i] = FillWarpedImageData<T>(buffer[i], type);
-    free(buffer);
+        data[i] = static_cast<DataType>(NiftiImage::clampData(image, buffer[i]));
 }
 /* *************************************************************** */
 void ClAladinContent::DownloadImage(nifti_image *image, cl_mem memoryObject, int datatype) {

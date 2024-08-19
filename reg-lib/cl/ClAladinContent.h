@@ -62,11 +62,8 @@ private:
     cl_mem refMatClmem;
     cl_mem floMatClmem;
 
+    template<typename DataType> void FillImageData(nifti_image *image, cl_mem memoryObject, int datatype);
     void DownloadImage(nifti_image *image, cl_mem memoryObject, int datatype);
-    template<class T>
-    void FillImageData(nifti_image *image, cl_mem memoryObject, int type);
-    template<class T>
-    T FillWarpedImageData(float intensity, int datatype);
 
 #ifdef NR_TESTING
 public:

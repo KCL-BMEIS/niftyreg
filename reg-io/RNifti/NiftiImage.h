@@ -1814,8 +1814,8 @@ public:
     /**
      * Return the datatype of the image
      * @return A variant holding a NIfTI datatype
-    */
-    static DataType getDataType(const nifti_image *image)
+    **/
+    static DataType getDataType (const nifti_image *image)
     {
         if (image == nullptr)
             throw std::runtime_error("Cannot get datatype of null image");
@@ -1840,14 +1840,14 @@ public:
     /**
      * Return the datatype of the image
      * @return A variant holding a NIfTI datatype
-    */
-    DataType getDataType() const { return getDataType(image); }
+    **/
+    DataType getDataType () const { return getDataType(image); }
 
     /**
      * Return the datatype of the image, if it is a floating-point type
      * @return A variant holding a NIfTI datatype
-    */
-    static std::variant<float, double> getFloatingDataType(const nifti_image *image)
+    **/
+    static std::variant<float, double> getFloatingDataType (const nifti_image *image)
     {
         if (image == nullptr)
             throw std::runtime_error("Cannot get datatype of null image");
@@ -1864,8 +1864,8 @@ public:
     /**
      * Return the datatype of the image, if it is a floating-point type
      * @return A variant holding a NIfTI datatype
-    */
-    std::variant<float, double> getFloatingDataType() const { return getFloatingDataType(image); }
+    **/
+    std::variant<float, double> getFloatingDataType () const { return getFloatingDataType(image); }
 
     /**
      * Replace the pixel data in the image with the contents of a vector
@@ -1891,7 +1891,7 @@ public:
      * @param other The image from which to copy the data
      * @exception runtime_error If the lengths and datatypes of the two images do not match
      * @return Self, after copying the data
-    */
+    **/
     NiftiImage & copyData (const nifti_image *other);
 
     /**
@@ -1908,6 +1908,39 @@ public:
 #endif
         return *this;
     }
+
+    /**
+     * Clamp an image value to the range of the datatype of the image
+     * @param image The image holding the datatype information
+     * @param value The image value to be clamped
+     * @return The clamped value
+    **/
+    static long double clampData(const nifti_image *image, const long double value)
+    {
+        return std::visit([&](auto&& dataType) -> long double {
+            using DataType = std::decay_t<decltype(dataType)>;
+
+            if (image->datatype == DT_FLOAT32 || image->datatype == DT_FLOAT64)
+                return value;
+            if (value != value) return 0; // Check for NaN
+            if (value < std::numeric_limits<DataType>::min())
+                return std::numeric_limits<DataType>::min();
+            else if (value > static_cast<long double>(std::numeric_limits<DataType>::max()))
+                return static_cast<long double>(std::numeric_limits<DataType>::max());
+            else
+                return value;
+        }, NiftiImage::getDataType(image));
+    }
+
+    // Delete the overload that accepts NiftiImage; use the member function instead
+    static long double clampData (const NiftiImage& image, const long double value) = delete;
+
+    /**
+     * Clamp an image value to the range of the datatype of the image
+     * @param value The image value to be clamped
+     * @return The clamped value
+     */
+    long double clampData (const long double value) const { return clampData(image, value); }
 
     /**
      * Reallocate the image data, preserving the metadata
