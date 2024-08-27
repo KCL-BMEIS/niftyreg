@@ -166,8 +166,8 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                             nifti_image *deformationFieldImage,
                                             const bool updateStepNumber);
 /* *************************************************************** */
-void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
-                                                   nifti_image **deformationFieldImage);
+void reg_spline_getIntermediateDefFieldFromVelGrid(NiftiImage& velocityFieldGrid,
+                                                   NiftiImage deformationFields[]);
 /* *************************************************************** */
 void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              nifti_image *flowField);

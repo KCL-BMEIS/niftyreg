@@ -6,18 +6,18 @@
 class CudaDefContent: public virtual DefContent, public virtual CudaContent {
 public:
     CudaDefContent() = delete;
-    CudaDefContent(nifti_image *referenceIn,
-                   nifti_image *floatingIn,
-                   nifti_image *localWeightSimIn = nullptr,
+    CudaDefContent(NiftiImage& referenceIn,
+                   NiftiImage& floatingIn,
+                   NiftiImage *localWeightSimIn = nullptr,
                    int *referenceMaskIn = nullptr,
                    mat44 *transformationMatrixIn = nullptr,
                    size_t bytesIn = sizeof(float));
     virtual ~CudaDefContent();
 
     // Getters
-    virtual nifti_image* GetLocalWeightSim() override;
-    virtual nifti_image* GetVoxelBasedMeasureGradient() override;
-    virtual nifti_image* GetWarpedGradient() override;
+    virtual NiftiImage& GetLocalWeightSim() override;
+    virtual NiftiImage& GetVoxelBasedMeasureGradient() override;
+    virtual NiftiImage& GetWarpedGradient() override;
     virtual float* GetLocalWeightSimCuda() { return localWeightSimCuda; }
     virtual float4* GetVoxelBasedMeasureGradientCuda() { return voxelBasedMeasureGradientCuda; }
     virtual float4* GetWarpedGradientCuda() { return warpedGradientCuda; }

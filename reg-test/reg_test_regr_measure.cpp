@@ -113,8 +113,8 @@ public:
             NiftiImage localWeightSimCpu(localWeightSim), localWeightSimCuda(localWeightSim);
 
             // Create the contents
-            auto contentsCpu = contentCreatorCpu->Create(referenceCpu, floatingCpu, controlPointGridCpu, controlPointGridCpuBw, localWeightSimCpu, nullptr, nullptr, nullptr, nullptr, sizeof(float));
-            auto contentsCuda = contentCreatorCuda->Create(referenceCuda, floatingCuda, controlPointGridCuda, controlPointGridCudaBw, localWeightSimCuda, nullptr, nullptr, nullptr, nullptr, sizeof(float));
+            auto contentsCpu = contentCreatorCpu->Create(referenceCpu, floatingCpu, controlPointGridCpu, controlPointGridCpuBw, &localWeightSimCpu, nullptr, nullptr, nullptr, nullptr, sizeof(float));
+            auto contentsCuda = contentCreatorCuda->Create(referenceCuda, floatingCuda, controlPointGridCuda, controlPointGridCudaBw, &localWeightSimCuda, nullptr, nullptr, nullptr, nullptr, sizeof(float));
             if (!isSymmetric) {
                 delete contentsCpu.second;
                 delete contentsCuda.second;
@@ -184,12 +184,9 @@ public:
                 measureCuda->GetVoxelBasedSimilarityMeasureGradient(t);
             }
 
-            // Get the voxel-based similarity measure gradients
-            NiftiImage voxelBasedGradCpu(contentCpu->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
-            NiftiImage voxelBasedGradCuda(contentCuda->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
-
-            // Save for testing
-            testCases.push_back({ testName, simMeasureCpu, simMeasureCuda, std::move(voxelBasedGradCpu), std::move(voxelBasedGradCuda) });
+            // Save the results for testing
+            testCases.push_back({ testName, simMeasureCpu, simMeasureCuda, std::move(contentCpu->GetVoxelBasedMeasureGradient()),
+                                std::move(contentCuda->GetVoxelBasedMeasureGradient()) });
         }
     }
 };

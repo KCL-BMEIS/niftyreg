@@ -5,11 +5,11 @@
 
 class F3d2ContentCreator: public ContentCreator {
 public:
-    virtual std::pair<F3dContent*, F3dContent*> Create(nifti_image *reference,
-                                                       nifti_image *floating,
-                                                       nifti_image *controlPointGrid,
-                                                       nifti_image *controlPointGridBw,
-                                                       nifti_image *localWeightSim = nullptr,
+    virtual std::pair<F3dContent*, F3dContent*> Create(NiftiImage& reference,
+                                                       NiftiImage& floating,
+                                                       NiftiImage& controlPointGrid,
+                                                       NiftiImage& controlPointGridBw,
+                                                       NiftiImage *localWeightSim = nullptr,
                                                        int *referenceMask = nullptr,
                                                        int *floatingMask = nullptr,
                                                        mat44 *transformationMatrix = nullptr,

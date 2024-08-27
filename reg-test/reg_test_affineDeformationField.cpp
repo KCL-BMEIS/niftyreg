@@ -169,17 +169,14 @@ public:
 
                 // Set the deformation field if composition is required
                 if (defField)
-                    aladinContent->SetDeformationField(NiftiImage(defField).disown());
+                    aladinContent->SetDeformationField(NiftiImage(defField));
 
                 // Do the calculation for Aladin
                 unique_ptr<Kernel> affineDeformKernel{ platform->CreateKernel(AffineDeformationFieldKernel::GetName(), aladinContent.get()) };
                 affineDeformKernel->castTo<AffineDeformationFieldKernel>()->Calculate(defField);
 
-                // Get the result
-                NiftiImage resDefField(aladinContent->GetDeformationField(), NiftiImage::Copy::Image);
-
-                // Save for testing
-                testCases.push_back({ testName + " - Aladin", std::move(resDefField), expRes });
+                // Save the results for testing
+                testCases.push_back({ testName + " - Aladin", std::move(aladinContent->GetDeformationField()), expRes });
 
                 // Do the calculation also for Compute using Content
                 // Skip OpenCL as it is not supported
@@ -192,17 +189,14 @@ public:
 
                 // Set the deformation field if composition is required
                 if (defField)
-                    content->SetDeformationField(NiftiImage(defField).disown());
+                    content->SetDeformationField(NiftiImage(defField));
 
                 // Do the calculation
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 compute->GetAffineDeformationField(defField);
 
-                // Get the result
-                resDefField = NiftiImage(content->GetDeformationField(), NiftiImage::Copy::Image);
-
-                // Save for testing
-                testCases.push_back({ testName, std::move(resDefField), std::move(expRes) });
+                // Save the results for testing
+                testCases.push_back({ testName, std::move(content->GetDeformationField()), std::move(expRes) });
             }
         }
     }

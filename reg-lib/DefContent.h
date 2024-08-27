@@ -5,18 +5,17 @@
 class DefContent: public virtual Content {
 public:
     DefContent() = delete;
-    DefContent(nifti_image *referenceIn,
-               nifti_image *floatingIn,
-               nifti_image *localWeightSimIn = nullptr,
+    DefContent(NiftiImage& referenceIn,
+               NiftiImage& floatingIn,
+               NiftiImage *localWeightSimIn = nullptr,
                int *referenceMaskIn = nullptr,
                mat44 *transformationMatrixIn = nullptr,
                size_t bytesIn = sizeof(float));
-    virtual ~DefContent();
 
     // Getters
-    virtual nifti_image* GetLocalWeightSim() { return localWeightSim; }
-    virtual nifti_image* GetVoxelBasedMeasureGradient() { return voxelBasedMeasureGradient; }
-    virtual nifti_image* GetWarpedGradient() { return warpedGradient; }
+    virtual NiftiImage& GetLocalWeightSim() { return localWeightSim; }
+    virtual NiftiImage& GetVoxelBasedMeasureGradient() { return voxelBasedMeasureGradient; }
+    virtual NiftiImage& GetWarpedGradient() { return warpedGradient; }
 
     // Methods for transferring data from nifti to device
     virtual void UpdateVoxelBasedMeasureGradient() {}
@@ -26,15 +25,10 @@ public:
     virtual void ZeroVoxelBasedMeasureGradient();
 
 protected:
-    nifti_image *localWeightSim = nullptr;
-    nifti_image *voxelBasedMeasureGradient = nullptr;
-    nifti_image *warpedGradient = nullptr;
+    NiftiImage localWeightSim;
+    NiftiImage voxelBasedMeasureGradient;
+    NiftiImage warpedGradient;
 
 private:
-    void AllocateLocalWeightSim(nifti_image*);
-    void DeallocateLocalWeightSim();
-    void AllocateVoxelBasedMeasureGradient();
-    void DeallocateVoxelBasedMeasureGradient();
-    void AllocateWarpedGradient();
-    void DeallocateWarpedGradient();
+    void AllocateLocalWeightSim(NiftiImage&);
 };

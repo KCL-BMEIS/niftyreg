@@ -112,12 +112,9 @@ public:
             computeCpu->ApproxBendingEnergyGradient(weight);
             computeCuda->ApproxBendingEnergyGradient(weight);
 
-            // Get the transformation gradients
-            NiftiImage transGradCpu(contentCpu->GetTransformationGradient(), NiftiImage::Copy::Image);
-            NiftiImage transGradCuda(contentCuda->GetTransformationGradient(), NiftiImage::Copy::Image);
-
-            // Save for testing
-            testCases.push_back({ testName, approxBendingEnergyCpu, approxBendingEnergyCuda, std::move(transGradCpu), std::move(transGradCuda) });
+            // Save the results for testing
+            testCases.push_back({ testName, approxBendingEnergyCpu, approxBendingEnergyCuda,
+                                std::move(contentCpu->GetTransformationGradient()), std::move(contentCuda->GetTransformationGradient()) });
         }
     }
 };

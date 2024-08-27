@@ -5,9 +5,9 @@
 
 class CudaDefContentCreator: public DefContentCreator {
 public:
-    virtual DefContent* Create(nifti_image *reference,
-                               nifti_image *floating,
-                               nifti_image *localWeightSim = nullptr,
+    virtual DefContent* Create(NiftiImage& reference,
+                               NiftiImage& floating,
+                               NiftiImage *localWeightSim = nullptr,
                                int *referenceMask = nullptr,
                                mat44 *transformationMatrix = nullptr,
                                size_t bytes = sizeof(float)) override {

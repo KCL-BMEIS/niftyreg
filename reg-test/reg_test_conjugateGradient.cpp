@@ -242,18 +242,14 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
             // Increase the precision for the output
             NR_COUT << std::fixed << std::setprecision(10);
 
-            // Set the control point grid
-            NiftiImage img = content->GetControlPointGrid();
-            // Use bestControlPointGrid to store bestDof during initialisation of the optimiser
-            img.copyData(bestControlPointGrid);
+            // Set the control point grid by using bestControlPointGrid to store bestDof during initialisation of the optimiser
+            content->F3dContent::GetControlPointGrid().copyData(bestControlPointGrid);
             content->UpdateControlPointGrid();
 
             // Set the transformation gradients
-            img = content->GetTransformationGradient();
-            img.copyData(transGrad);
+            content->F3dContent::GetTransformationGradient().copyData(transGrad);
             content->UpdateTransformationGradient();
-            img = contentBw->GetTransformationGradient();
-            img.copyData(transGradBw);
+            contentBw->F3dContent::GetTransformationGradient().copyData(transGradBw);
             contentBw->UpdateTransformationGradient();
 
             // Create a copy of the control point grid for expected results
@@ -266,8 +262,7 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
             UpdateControlPointPosition(controlPointGridExpected, bestControlPointGrid, transGrad, scale, optimiseX, optimiseY, optimiseZ);
 
             // Check the results
-            img = content->GetControlPointGrid();
-            const auto cppPtr = img.data();
+            const auto cppPtr = content->GetControlPointGrid().data();
             const auto cppExpPtr = controlPointGridExpected.data();
             for (size_t i = 0; i < controlPointGridExpected.nVoxels(); ++i) {
                 const float cppVal = cppPtr[i];
@@ -306,12 +301,10 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
                             gradientBwPtr[i] = distr(gen);
                     }
                     // Update the transformation gradients
-                    img = content->GetTransformationGradient();
-                    img.copyData(transGrad);
+                    content->F3dContent::GetTransformationGradient().copyData(transGrad);
                     content->UpdateTransformationGradient();
                     if (isSymmetric) {
-                        img = contentBw->GetTransformationGradient();
-                        img.copyData(transGradBw);
+                        contentBw->F3dContent::GetTransformationGradient().copyData(transGradBw);
                         contentBw->UpdateTransformationGradient();
                     }
 
@@ -320,13 +313,11 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
                     UpdateGradientValues(transGrad, false, isSymmetric, &transGradBw);
 
                     // Check the results
-                    img = content->GetTransformationGradient();
-                    const auto gradPtr = img.data();
+                    const auto gradPtr = content->GetTransformationGradient().data();
                     const auto gradExpPtr = transGrad.data();
                     NiftiImageData gradBwPtr, gradExpBwPtr;
                     if (isSymmetric) {
-                        img = contentBw->GetTransformationGradient();
-                        gradBwPtr = img.data();
+                        gradBwPtr = contentBw->GetTransformationGradient().data();
                         gradExpBwPtr = transGradBw.data();
                     }
                     for (size_t i = 0; i < transGrad.nVoxels(); ++i) {

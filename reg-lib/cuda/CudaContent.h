@@ -6,8 +6,8 @@
 class CudaContent: public virtual Content {
 public:
     CudaContent() = delete;
-    CudaContent(nifti_image *referenceIn,
-                nifti_image *floatingIn,
+    CudaContent(NiftiImage& referenceIn,
+                NiftiImage& floatingIn,
                 int *referenceMaskIn = nullptr,
                 mat44 *transformationMatrixIn = nullptr,
                 size_t bytesIn = sizeof(float));
@@ -16,8 +16,8 @@ public:
     virtual bool IsCurrentComputationDoubleCapable() override;
 
     // Getters
-    virtual nifti_image* GetDeformationField() override;
-    virtual nifti_image* GetWarped() override;
+    virtual NiftiImage& GetDeformationField() override;
+    virtual NiftiImage& GetWarped() override;
     virtual float* GetReferenceCuda() { return referenceCuda; }
     virtual float* GetFloatingCuda() { return floatingCuda; }
     virtual float4* GetDeformationFieldCuda() { return deformationFieldCuda; }
@@ -46,8 +46,7 @@ private:
     void DeallocateDeformationField();
     void AllocateWarped();
     void DeallocateWarped();
-    template<typename DataType> void FillImageData(nifti_image *image, float *memoryObject, int datatype);
-    void DownloadImage(nifti_image *image, float *memoryObject, int datatype);
+    void DownloadImage(NiftiImage& image, float *memoryObject, int datatype);
     void SetReferenceCuda(float *referenceCudaIn) { referenceCudaManaged = nullptr; referenceCuda = referenceCudaIn; }
     void SetFloatingCuda(float *floatingCudaIn) { floatingCudaManaged = nullptr; floatingCuda = floatingCudaIn; }
 
@@ -60,8 +59,8 @@ public:
 protected:
 #endif
     // Functions for testing
-    virtual void SetDeformationField(nifti_image *deformationFieldIn) override;
+    virtual void SetDeformationField(NiftiImage&& deformationFieldIn) override;
     virtual void SetReferenceMask(int *referenceMaskIn) override;
     virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
-    virtual void SetWarped(nifti_image *warpedIn) override;
+    virtual void SetWarped(NiftiImage&& warpedIn) override;
 };

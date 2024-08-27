@@ -121,8 +121,8 @@ public:
             ) };
 
             // Use deformation fields to store images
-            contentCpu->SetDeformationField(imageCpu.disown());
-            contentCuda->SetDeformationField(imageCuda.disown());
+            contentCpu->SetDeformationField(std::move(imageCpu));
+            contentCuda->SetDeformationField(std::move(imageCuda));
 
             // Create the kernel convolution function for CUDA
             auto cudaKernelConvolution = Cuda::KernelConvolution<ConvKernelType(0)>;
@@ -136,12 +136,8 @@ public:
             reg_tools_kernelConvolution(contentCpu->GetDeformationField(), sigmaValues.data(), ConvKernelType(kernelType), nullptr, activeTimePoints, activeAxes);
             cudaKernelConvolution(contentCuda->Content::GetDeformationField(), contentCuda->GetDeformationFieldCuda(), sigmaValues.data(), activeTimePoints, activeAxes);
 
-            // Get the images
-            imageCpu = NiftiImage(contentCpu->GetDeformationField(), NiftiImage::Copy::Image);
-            imageCuda = NiftiImage(contentCuda->GetDeformationField(), NiftiImage::Copy::Image);
-
-            // Save for testing
-            testCases.push_back({ testName, std::move(imageCpu), std::move(imageCuda) });
+            // Save the results for testing
+            testCases.push_back({ testName, std::move(contentCpu->GetDeformationField()), std::move(contentCuda->GetDeformationField()) });
         }
     }
 };

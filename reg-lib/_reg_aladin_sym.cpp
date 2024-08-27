@@ -157,8 +157,8 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type) {
 }
 /* *************************************************************** */
 template <class T>
-void reg_aladin_sym<T>::InitAladinContent(nifti_image *ref,
-                                          nifti_image *flo,
+void reg_aladin_sym<T>::InitAladinContent(NiftiImage& ref,
+                                          NiftiImage& flo,
                                           int *mask,
                                           mat44 *transMat,
                                           size_t bytes,
@@ -203,8 +203,8 @@ void reg_aladin_sym<T>::DeallocateKernels() {
 /* *************************************************************** */
 template <class T>
 void reg_aladin_sym<T>::DebugPrintLevelInfoStart() {
-    const nifti_image *ref = this->con->Content::GetReference();
-    const nifti_image *flo = this->con->Content::GetFloating();
+    const NiftiImage& ref = this->con->Content::GetReference();
+    const NiftiImage& flo = this->con->Content::GetFloating();
     NR_VERBOSE("Current level " << this->currentLevel + 1 << " / " << this->numberOfLevels);
     NR_VERBOSE("Reference image size:\t" << ref->nx << "x" << ref->ny << "x" << ref->nz << " voxels\t" <<
                ref->dx << "x" << ref->dy << "x" << ref->dz << " mm");

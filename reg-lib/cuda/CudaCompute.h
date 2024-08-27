@@ -35,11 +35,11 @@ public:
 #ifndef NR_TESTING
 protected:
 #endif
-    virtual void DefFieldCompose(const nifti_image *defField) override;
+    virtual void DefFieldCompose(const NiftiImage& defField) override;
     virtual NiftiImage ResampleGradient(int interpolation, float padding) override;
     virtual void VoxelCentricToNodeCentric(float weight) override;
 
 private:
-    void ConvolveImage(const nifti_image*, float4*);
+    void ConvolveImage(const NiftiImage&, float4*);
     Cuda::UniquePtr<float4> ScaleGradient(const float4*, const size_t, const float);
 };

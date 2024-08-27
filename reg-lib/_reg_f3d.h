@@ -33,7 +33,7 @@ protected:
     double bestWBE;
     double bestWLE;
 
-    void InitContent(nifti_image*, nifti_image*, int*);
+    void InitContent(NiftiImage&, NiftiImage&, int*);
     virtual T InitCurrentLevel(int) override;
     virtual void DeinitCurrentLevel(int) override;
     virtual T NormaliseGradient() override;

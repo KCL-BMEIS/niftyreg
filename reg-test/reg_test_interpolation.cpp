@@ -208,10 +208,10 @@ TEST_CASE("Interpolation", "[unit]") {
                 warped.setDim(NiftiDim::Z, 1);
                 warped.setDim(NiftiDim::U, 1);
                 warped.realloc();
-                content->SetWarped(warped.disown());
+                content->SetWarped(std::move(warped));
 
                 // Set the deformation field
-                content->SetDeformationField(defField.disown());
+                content->SetDeformationField(std::move(defField));
 
                 // Do the computation
                 if (isAladinContent) {
@@ -223,7 +223,7 @@ TEST_CASE("Interpolation", "[unit]") {
                 }
 
                 // Check all values
-                warped = content->GetWarped();
+                warped = std::move(content->GetWarped());
                 const auto warpedPtr = warped.data();
                 const size_t nVoxels = warped.nVoxels();
                 for (size_t i = 0; i < nVoxels; ++i) {

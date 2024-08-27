@@ -287,8 +287,8 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_aladin<T>::InitAladinContent(nifti_image *ref,
-                                      nifti_image *flo,
+void reg_aladin<T>::InitAladinContent(NiftiImage& ref,
+                                      NiftiImage& flo,
                                       int *mask,
                                       mat44 *transMat,
                                       size_t bytes,
@@ -384,7 +384,7 @@ NiftiImage reg_aladin<T>::GetFinalWarpedImage() {
 
     reg_aladin<T>::GetWarpedImage(3, this->warpedPaddingValue); // cubic spline interpolation
 
-    NiftiImage warpedImage(this->con->GetWarped(), NiftiImage::Copy::Image);
+    NiftiImage warpedImage(this->con->GetWarped());
     warpedImage->cal_min = this->inputFloating->cal_min;
     warpedImage->cal_max = this->inputFloating->cal_max;
     warpedImage->scl_slope = this->inputFloating->scl_slope;
@@ -397,8 +397,8 @@ NiftiImage reg_aladin<T>::GetFinalWarpedImage() {
 /* *************************************************************** */
 template<class T>
 void reg_aladin<T>::DebugPrintLevelInfoStart() {
-    const nifti_image *ref = this->con->Content::GetReference();
-    const nifti_image *flo = this->con->Content::GetFloating();
+    const NiftiImage& ref = this->con->Content::GetReference();
+    const NiftiImage& flo = this->con->Content::GetFloating();
     NR_VERBOSE("Current level " << this->currentLevel + 1 << " / " << this->numberOfLevels);
     NR_VERBOSE("Reference image size:\t" << ref->nx << "x" << ref->ny << "x" << ref->nz << " voxels\t" <<
                ref->dx << "x" << ref->dy << "x" << ref->dz << " mm");

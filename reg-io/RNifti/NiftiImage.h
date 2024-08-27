@@ -1551,17 +1551,6 @@ public:
     virtual ~NiftiImage () { release(); }
 
     /**
-     * Disown the wrapped pointer, removing responsibility for freeing it upon destruction
-     * @return The wrapped pointer
-    */
-    nifti_image* disown ()
-    {
-        nifti_image *img = image;
-        image = nullptr;
-        return img;
-    }
-
-    /**
      * Allows a \c NiftiImage object to be treated as a pointer to a \c const \c nifti_image
     **/
     operator const nifti_image* () const { return image; }
@@ -1813,6 +1802,7 @@ public:
 
     /**
      * Return the datatype of the image
+     * @param image A pointer to a NIfTI image
      * @return A variant holding a NIfTI datatype
     **/
     static DataType getDataType (const nifti_image *image)
@@ -1837,6 +1827,9 @@ public:
         }
     }
 
+    // Delete the overload that accepts NiftiImage; use the member function instead
+    static DataType getDataType(const NiftiImage&) = delete;
+
     /**
      * Return the datatype of the image
      * @return A variant holding a NIfTI datatype
@@ -1845,6 +1838,7 @@ public:
 
     /**
      * Return the datatype of the image, if it is a floating-point type
+     * @param image A pointer to a NIfTI image
      * @return A variant holding a NIfTI datatype
     **/
     static std::variant<float, double> getFloatingDataType (const nifti_image *image)
@@ -1860,6 +1854,9 @@ public:
             throw std::runtime_error("Unsupported data type (" + std::string(nifti_datatype_string(image->datatype)) + ")");
         }
     }
+
+    // Delete the overload that accepts NiftiImage; use the member function instead
+    static std::variant<float, double> getFloatingDataType(const NiftiImage&) = delete;
 
     /**
      * Return the datatype of the image, if it is a floating-point type
@@ -1888,11 +1885,11 @@ public:
 
     /**
      * Copy the pixel data from another image
-     * @param other The image from which to copy the data
+     * @param source The image from which to copy the data
      * @exception runtime_error If the lengths and datatypes of the two images do not match
      * @return Self, after copying the data
     **/
-    NiftiImage & copyData (const nifti_image *other);
+    NiftiImage & copyData (const nifti_image *source);
 
     /**
      * Drop the data from the image, retaining only the metadata. This method invalidates any
@@ -2115,6 +2112,16 @@ public:
         }
         return voxelNumber;
     }
+
+    // Delete the overload that accepts NiftiImage; use the member function instead
+    static size_t calcVoxelNumber(const NiftiImage&, const int) = delete;
+
+    /**
+     * Calculate the number of voxels in the image
+     * @param dimCount Number of dimensions to consider
+     * @return The number of voxels in the image
+     */
+    size_t calcVoxelNumber(const int dimCount) const { return calcVoxelNumber(image, dimCount); }
 
     /**
      * Recalculate the number of voxels in the image and update the nvox field

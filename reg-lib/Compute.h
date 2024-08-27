@@ -39,11 +39,11 @@ protected:
 #ifdef NR_TESTING
 public:
 #endif
-    virtual void DefFieldCompose(const nifti_image *defField);
+    virtual void DefFieldCompose(const NiftiImage& defField);
     virtual NiftiImage ResampleGradient(int interpolation, float padding);
     virtual void VoxelCentricToNodeCentric(float weight);
 
 private:
-    void ConvolveImage(nifti_image*);
-    nifti_image* ScaleGradient(const nifti_image&, float);
+    void ConvolveImage(NiftiImage&);
+    NiftiImage ScaleGradient(const NiftiImage&, float);
 };

@@ -6,18 +6,18 @@
 class CudaF3dContent: public F3dContent, public CudaDefContent {
 public:
     CudaF3dContent() = delete;
-    CudaF3dContent(nifti_image *referenceIn,
-                   nifti_image *floatingIn,
-                   nifti_image *controlPointGridIn,
-                   nifti_image *localWeightSimIn = nullptr,
+    CudaF3dContent(NiftiImage& referenceIn,
+                   NiftiImage& floatingIn,
+                   NiftiImage& controlPointGridIn,
+                   NiftiImage *localWeightSimIn = nullptr,
                    int *referenceMaskIn = nullptr,
                    mat44 *transformationMatrixIn = nullptr,
                    size_t bytesIn = sizeof(float));
     virtual ~CudaF3dContent();
 
     // Getters
-    virtual nifti_image* GetControlPointGrid() override;
-    virtual nifti_image* GetTransformationGradient() override;
+    virtual NiftiImage& GetControlPointGrid() override;
+    virtual NiftiImage& GetTransformationGradient() override;
     virtual float4* GetControlPointGridCuda() { return controlPointGridCuda; }
     virtual float4* GetTransformationGradientCuda() { return transformationGradientCuda; }
 

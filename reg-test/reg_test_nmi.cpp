@@ -81,7 +81,7 @@ public:
                 // Create the content
                 unique_ptr<DefContent> content{ contentCreator->Create(reference, floating) };
                 // Initialise the warped image using floating image
-                content->SetWarped(floating.disown());
+                content->SetWarped(NiftiImage(floating));
                 // Create the measure creator
                 unique_ptr<MeasureCreator> measureCreator{ platform->CreateMeasureCreator() };
                 // Use NMI as a measure
@@ -89,7 +89,7 @@ public:
                 measure_nmi->SetTimePointWeight(0, 1.0); // weight initially set to default value of 1.0
                 measureCreator->Initialise(*measure_nmi, *content);
                 const double nmi = measure_nmi->GetSimilarityMeasureValue();
-
+                // Save the results for testing
                 testCases.push_back({ testName + " " + platform->GetName(), nmi, expected });
             }
         }

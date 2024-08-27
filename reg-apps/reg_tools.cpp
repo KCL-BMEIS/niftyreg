@@ -1071,7 +1071,7 @@ int main(int argc, char **argv)
         if(image->datatype!=NIFTI_TYPE_FLOAT32)
             reg_tools_changeDatatype<float>(image);
         // Create a temporary mask
-        const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
+        const size_t voxelNumber = image.nVoxelsPerVolume();
         int *temp_mask = (int *)malloc(voxelNumber * sizeof(int));
         for (size_t i = 0; i < voxelNumber; ++i)
             temp_mask[i]=i;

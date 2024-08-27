@@ -1,8 +1,8 @@
 #include "CudaContent.h"
 
 /* *************************************************************** */
-CudaContent::CudaContent(nifti_image *referenceIn,
-                         nifti_image *floatingIn,
+CudaContent::CudaContent(NiftiImage& referenceIn,
+                         NiftiImage& floatingIn,
                          int *referenceMaskIn,
                          mat44 *transformationMatrixIn,
                          size_t bytesIn):
@@ -24,7 +24,7 @@ CudaContent::~CudaContent() {
 /* *************************************************************** */
 void CudaContent::AllocateReference() {
     if (reference->nbyper != NIFTI_TYPE_FLOAT32)
-        reg_tools_changeDatatype<float>(reference);
+        reference.changeDatatype(NIFTI_TYPE_FLOAT32);
     Cuda::Allocate(&referenceCuda, reference->nvox);
     referenceCudaManaged.reset(referenceCuda);
     Cuda::TransferNiftiToDevice(referenceCuda, reference);
@@ -32,7 +32,7 @@ void CudaContent::AllocateReference() {
 /* *************************************************************** */
 void CudaContent::AllocateFloating() {
     if (floating->nbyper != NIFTI_TYPE_FLOAT32)
-        reg_tools_changeDatatype<float>(floating);
+        floating.changeDatatype(NIFTI_TYPE_FLOAT32);
     Cuda::Allocate(&floatingCuda, floating->nvox);
     floatingCudaManaged.reset(floatingCuda);
     Cuda::TransferNiftiToDevice(floatingCuda, floating);
@@ -65,13 +65,13 @@ bool CudaContent::IsCurrentComputationDoubleCapable() {
     return CudaContext::GetInstance().IsCardDoubleCapable();
 }
 /* *************************************************************** */
-nifti_image* CudaContent::GetDeformationField() {
+NiftiImage& CudaContent::GetDeformationField() {
     Cuda::TransferFromDeviceToNifti(deformationField, deformationFieldCuda);
     return deformationField;
 }
 /* *************************************************************** */
-void CudaContent::SetDeformationField(nifti_image *deformationFieldIn) {
-    Content::SetDeformationField(deformationFieldIn);
+void CudaContent::SetDeformationField(NiftiImage&& deformationFieldIn) {
+    Content::SetDeformationField(std::move(deformationFieldIn));
     DeallocateDeformationField();
     if (!deformationField) return;
 
@@ -94,7 +94,7 @@ void CudaContent::SetReferenceMask(int *referenceMaskIn) {
     activeVoxelNumber = 0;
     if (!referenceMask) return;
 
-    const size_t voxelNumber = NiftiImage::calcVoxelNumber(reference, 3);
+    const size_t voxelNumber = reference.nVoxelsPerVolume();
     thrust::host_vector<int> mask(voxelNumber);
     int *maskPtr = mask.data();
     for (size_t i = 0; i < voxelNumber; i++) {
@@ -125,17 +125,19 @@ void CudaContent::SetTransformationMatrix(mat44 *transformationMatrixIn) {
     free(transformationMatrixCptr);
 }
 /* *************************************************************** */
-nifti_image* CudaContent::GetWarped() {
+NiftiImage& CudaContent::GetWarped() {
     DownloadImage(warped, warpedCuda, warped->datatype);
     return warped;
 }
 /* *************************************************************** */
-void CudaContent::SetWarped(nifti_image *warpedIn) {
-    Content::SetWarped(warpedIn);
+void CudaContent::SetWarped(NiftiImage&& warpedIn) {
+    Content::SetWarped(std::move(warpedIn));
     DeallocateWarped();
     if (!warped) return;
 
-    reg_tools_changeDatatype<float>(warped);
+    if (warped->nbyper != NIFTI_TYPE_FLOAT32)
+        warped.changeDatatype(NIFTI_TYPE_FLOAT32);
+
     AllocateWarped();
     Cuda::TransferNiftiToDevice(warpedCuda, warped);
 }
@@ -144,50 +146,20 @@ void CudaContent::UpdateWarped() {
     Cuda::TransferNiftiToDevice(warpedCuda, warped);
 }
 /* *************************************************************** */
-template<typename DataType>
-void CudaContent::FillImageData(nifti_image *image, float *memoryObject, int datatype) {
+void CudaContent::DownloadImage(NiftiImage& image, float *memoryObject, int datatype) {
     const size_t size = image->nvox;
     unique_ptr<float[]> buffer(new float[size]);
 
     Cuda::TransferFromDeviceToHost(buffer.get(), memoryObject, size);
 
-    free(image->data);
-    image->datatype = datatype;
-    image->nbyper = sizeof(DataType);
-    image->data = malloc(size * image->nbyper);
-    DataType *data = static_cast<DataType*>(image->data);
-    for (size_t i = 0; i < size; ++i)
-        data[i] = static_cast<DataType>(NiftiImage::clampData(image, buffer[i]));
-}
-/* *************************************************************** */
-void CudaContent::DownloadImage(nifti_image *image, float *memoryObject, int datatype) {
-    switch (datatype) {
-    case NIFTI_TYPE_FLOAT32:
-        FillImageData<float>(image, memoryObject, datatype);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        FillImageData<double>(image, memoryObject, datatype);
-        break;
-    case NIFTI_TYPE_UINT8:
-        FillImageData<unsigned char>(image, memoryObject, datatype);
-        break;
-    case NIFTI_TYPE_INT8:
-        FillImageData<char>(image, memoryObject, datatype);
-        break;
-    case NIFTI_TYPE_UINT16:
-        FillImageData<unsigned short>(image, memoryObject, datatype);
-        break;
-    case NIFTI_TYPE_INT16:
-        FillImageData<short>(image, memoryObject, datatype);
-        break;
-    case NIFTI_TYPE_UINT32:
-        FillImageData<unsigned>(image, memoryObject, datatype);
-        break;
-    case NIFTI_TYPE_INT32:
-        FillImageData<int>(image, memoryObject, datatype);
-        break;
-    default:
-        NR_FATAL_ERROR("Unsupported type");
-    }
+    std::visit([&](auto&& dataType) {
+        using DataType = std::decay_t<decltype(dataType)>;
+        image->datatype = datatype;
+        image->nbyper = sizeof(DataType);
+        image.realloc();
+        DataType *data = static_cast<DataType*>(image->data);
+        for (size_t i = 0; i < size; ++i)
+            data[i] = static_cast<DataType>(image.clampData(buffer[i]));
+    }, image.getDataType());
 }
 /* *************************************************************** */

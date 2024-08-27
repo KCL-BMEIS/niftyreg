@@ -114,10 +114,8 @@ public:
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 // Compute the deformation field
                 compute->GetDeformationField(false, true); // no composition - use bspline
-                // Retrieve the deformation field
-                NiftiImage defField(content->GetDeformationField(), NiftiImage::Copy::Image);
-                // Save for testing
-                testCases.push_back({ testName + " "s + platform->GetName(), std::move(defField), std::move(expDefField) });
+                // Save the results for testing
+                testCases.push_back({ testName + " "s + platform->GetName(), std::move(content->GetDeformationField()), std::move(expDefField) });
             }
         }
 
@@ -186,12 +184,10 @@ public:
                 unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 // Compute the deformation field
-                content->SetDeformationField(defField.disown());
+                content->SetDeformationField(std::move(defField));
                 compute->GetDeformationField(true, true); // with composition - use bspline
-                // Retrieve the deformation field
-                defField = NiftiImage(content->GetDeformationField(), NiftiImage::Copy::Image);
-                // Save for testing
-                testCases.push_back({ testName + " "s + platform->GetName(), std::move(defField), std::move(expDefField) });
+                // Save the results for testing
+                testCases.push_back({ testName + " "s + platform->GetName(), std::move(content->GetDeformationField()), std::move(expDefField) });
             }
         }
     }

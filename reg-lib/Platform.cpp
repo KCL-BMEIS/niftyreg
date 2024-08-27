@@ -119,27 +119,27 @@ Optimiser<Type>* Platform::CreateOptimiser(F3dContent& con,
                                            F3dContent *conBw) const {
     Optimiser<Type> *optimiser;
     nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
-    nifti_image *controlPointGridBw = conBw ? conBw->F3dContent::GetControlPointGrid() : nullptr;
+    nifti_image *controlPointGridBw = conBw ? static_cast<nifti_image*>(conBw->F3dContent::GetControlPointGrid()) : nullptr;
     Type *controlPointGridData, *transformationGradientData;
     Type *controlPointGridDataBw = nullptr, *transformationGradientDataBw = nullptr;
 
     if (platformType == PlatformType::Cpu) {
         optimiser = useConjGradient ? new ConjugateGradient<Type>() : new Optimiser<Type>();
-        controlPointGridData = (Type*)controlPointGrid->data;
-        transformationGradientData = (Type*)con.GetTransformationGradient()->data;
+        controlPointGridData = static_cast<Type*>(controlPointGrid->data);
+        transformationGradientData = static_cast<Type*>(con.GetTransformationGradient()->data);
         if (conBw) {
-            controlPointGridDataBw = (Type*)controlPointGridBw->data;
-            transformationGradientDataBw = (Type*)conBw->GetTransformationGradient()->data;
+            controlPointGridDataBw = static_cast<Type*>(controlPointGridBw->data);
+            transformationGradientDataBw = static_cast<Type*>(conBw->GetTransformationGradient()->data);
         }
     }
 #ifdef USE_CUDA
     else if (platformType == PlatformType::Cuda) {
         optimiser = dynamic_cast<Optimiser<Type>*>(useConjGradient ? new CudaConjugateGradient() : new CudaOptimiser());
-        controlPointGridData = (Type*)dynamic_cast<CudaF3dContent&>(con).GetControlPointGridCuda();
-        transformationGradientData = (Type*)dynamic_cast<CudaF3dContent&>(con).GetTransformationGradientCuda();
+        controlPointGridData = reinterpret_cast<Type*>(dynamic_cast<CudaF3dContent&>(con).GetControlPointGridCuda());
+        transformationGradientData = reinterpret_cast<Type*>(dynamic_cast<CudaF3dContent&>(con).GetTransformationGradientCuda());
         if (conBw) {
-            controlPointGridDataBw = (Type*)dynamic_cast<CudaF3dContent*>(conBw)->GetControlPointGridCuda();
-            transformationGradientDataBw = (Type*)dynamic_cast<CudaF3dContent*>(conBw)->GetTransformationGradientCuda();
+            controlPointGridDataBw = reinterpret_cast<Type*>(dynamic_cast<CudaF3dContent*>(conBw)->GetControlPointGridCuda());
+            transformationGradientDataBw = reinterpret_cast<Type*>(dynamic_cast<CudaF3dContent*>(conBw)->GetTransformationGradientCuda());
         }
     }
 #endif

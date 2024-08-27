@@ -114,12 +114,9 @@ public:
             computeCpu->ApproxLinearEnergyGradient(weight);
             computeCuda->ApproxLinearEnergyGradient(weight);
 
-            // Get the transformation gradients
-            NiftiImage transGradCpu(contentCpu->GetTransformationGradient(), NiftiImage::Copy::Image);
-            NiftiImage transGradCuda(contentCuda->GetTransformationGradient(), NiftiImage::Copy::Image);
-
-            // Save for testing
-            testCases.push_back({ testName, approxLinearEnergyCpu, approxLinearEnergyCuda, std::move(transGradCpu), std::move(transGradCuda) });
+            // Save the results for testing
+            testCases.push_back({ testName, approxLinearEnergyCpu, approxLinearEnergyCuda,
+                                std::move(contentCpu->GetTransformationGradient()), std::move(contentCuda->GetTransformationGradient()) });
         }
     }
 };

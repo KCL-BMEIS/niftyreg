@@ -1,9 +1,9 @@
 #include "CudaDefContent.h"
 
 /* *************************************************************** */
-CudaDefContent::CudaDefContent(nifti_image *referenceIn,
-                               nifti_image *floatingIn,
-                               nifti_image *localWeightSimIn,
+CudaDefContent::CudaDefContent(NiftiImage& referenceIn,
+                               NiftiImage& floatingIn,
+                               NiftiImage *localWeightSimIn,
                                int *referenceMaskIn,
                                mat44 *transformationMatrixIn,
                                size_t bytesIn):
@@ -56,12 +56,12 @@ void CudaDefContent::DeallocateVoxelBasedMeasureGradient() {
     }
 }
 /* *************************************************************** */
-nifti_image* CudaDefContent::GetLocalWeightSim() {
+NiftiImage& CudaDefContent::GetLocalWeightSim() {
     Cuda::TransferFromDeviceToNifti(localWeightSim, localWeightSimCuda);
     return localWeightSim;
 }
 /* *************************************************************** */
-nifti_image* CudaDefContent::GetVoxelBasedMeasureGradient() {
+NiftiImage& CudaDefContent::GetVoxelBasedMeasureGradient() {
     Cuda::TransferFromDeviceToNifti(voxelBasedMeasureGradient, voxelBasedMeasureGradientCuda);
     return voxelBasedMeasureGradient;
 }
@@ -70,7 +70,7 @@ void CudaDefContent::UpdateVoxelBasedMeasureGradient() {
     Cuda::TransferNiftiToDevice(voxelBasedMeasureGradientCuda, voxelBasedMeasureGradient);
 }
 /* *************************************************************** */
-nifti_image* CudaDefContent::GetWarpedGradient() {
+NiftiImage& CudaDefContent::GetWarpedGradient() {
     Cuda::TransferFromDeviceToNifti(warpedGradient, warpedGradientCuda);
     return warpedGradient;
 }
@@ -80,6 +80,6 @@ void CudaDefContent::UpdateWarpedGradient() {
 }
 /* *************************************************************** */
 void CudaDefContent::ZeroVoxelBasedMeasureGradient() {
-    cudaMemset(voxelBasedMeasureGradientCuda, 0, NiftiImage::calcVoxelNumber(voxelBasedMeasureGradient, 3) * sizeof(float4));
+    cudaMemset(voxelBasedMeasureGradientCuda, 0, voxelBasedMeasureGradient.nVoxelsPerVolume() * sizeof(float4));
 }
 /* *************************************************************** */

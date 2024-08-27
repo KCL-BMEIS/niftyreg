@@ -47,11 +47,11 @@ void CudaMeasureCreator::Initialise(reg_measure& measure, DefContent& con, DefCo
                                  cudaCon.GetLocalWeightSimCuda(),
                                  cudaConBw ? cudaConBw->Content::GetReferenceMask() : nullptr,
                                  cudaConBw ? cudaConBw->GetReferenceMaskCuda() : nullptr,
-                                 cudaConBw ? cudaConBw->Content::GetWarped() : nullptr,
+                                 cudaConBw ? static_cast<nifti_image*>(cudaConBw->Content::GetWarped()) : nullptr,
                                  cudaConBw ? cudaConBw->GetWarpedCuda() : nullptr,
-                                 cudaConBw ? cudaConBw->DefContent::GetWarpedGradient() : nullptr,
+                                 cudaConBw ? static_cast<nifti_image*>(cudaConBw->DefContent::GetWarpedGradient()) : nullptr,
                                  cudaConBw ? cudaConBw->GetWarpedGradientCuda() : nullptr,
-                                 cudaConBw ? cudaConBw->DefContent::GetVoxelBasedMeasureGradient() : nullptr,
+                                 cudaConBw ? static_cast<nifti_image*>(cudaConBw->DefContent::GetVoxelBasedMeasureGradient()) : nullptr,
                                  cudaConBw ? cudaConBw->GetVoxelBasedMeasureGradientCuda() : nullptr);
 }
 /* *************************************************************** */

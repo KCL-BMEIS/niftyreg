@@ -1,10 +1,10 @@
 #include "CudaF3dContent.h"
 
 /* *************************************************************** */
-CudaF3dContent::CudaF3dContent(nifti_image *referenceIn,
-                               nifti_image *floatingIn,
-                               nifti_image *controlPointGridIn,
-                               nifti_image *localWeightSimIn,
+CudaF3dContent::CudaF3dContent(NiftiImage& referenceIn,
+                               NiftiImage& floatingIn,
+                               NiftiImage& controlPointGridIn,
+                               NiftiImage *localWeightSimIn,
                                int *referenceMaskIn,
                                mat44 *transformationMatrixIn,
                                size_t bytesIn):
@@ -46,7 +46,7 @@ void CudaF3dContent::DeallocateTransformationGradient() {
     }
 }
 /* *************************************************************** */
-nifti_image* CudaF3dContent::GetControlPointGrid() {
+NiftiImage& CudaF3dContent::GetControlPointGrid() {
     Cuda::TransferFromDeviceToNifti(controlPointGrid, controlPointGridCuda);
     return controlPointGrid;
 }
@@ -55,7 +55,7 @@ void CudaF3dContent::UpdateControlPointGrid() {
     Cuda::TransferNiftiToDevice(controlPointGridCuda, controlPointGrid);
 }
 /* *************************************************************** */
-nifti_image* CudaF3dContent::GetTransformationGradient() {
+NiftiImage& CudaF3dContent::GetTransformationGradient() {
     Cuda::TransferFromDeviceToNifti(transformationGradient, transformationGradientCuda);
     return transformationGradient;
 }
@@ -65,6 +65,6 @@ void CudaF3dContent::UpdateTransformationGradient() {
 }
 /* *************************************************************** */
 void CudaF3dContent::ZeroTransformationGradient() {
-    cudaMemset(transformationGradientCuda, 0, NiftiImage::calcVoxelNumber(transformationGradient, 3) * sizeof(float4));
+    cudaMemset(transformationGradientCuda, 0, transformationGradient.nVoxelsPerVolume() * sizeof(float4));
 }
 /* *************************************************************** */

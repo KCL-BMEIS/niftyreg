@@ -95,7 +95,7 @@ void Compute::UpdateControlPointPosition(float *currentDof,
                                          const bool optimiseX,
                                          const bool optimiseY,
                                          const bool optimiseZ) {
-    const nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
+    const NiftiImage& controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
     if (optimiseX && optimiseY && optimiseZ) {
         // Update the values for all axis displacement
         for (size_t i = 0; i < controlPointGrid->nvox; ++i)
@@ -139,7 +139,7 @@ void Compute::GetImageGradient(int interpolation, float paddingValue, int active
 /* *************************************************************** */
 double Compute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ) {
     if (!optimiseX && !optimiseY && !optimiseZ) return 0;
-    const nifti_image *transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
+    const NiftiImage& transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
     switch (transformationGradient->datatype) {
     case NIFTI_TYPE_FLOAT32:
         return reg_getMaximalLength<float>(transformationGradient, optimiseX, optimiseY, optimiseZ);
@@ -151,7 +151,7 @@ double Compute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ)
 /* *************************************************************** */
 void Compute::NormaliseGradient(double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ) {
     if (maxGradLength == 0 || (!optimiseX && !optimiseY && !optimiseZ)) return;
-    NiftiImage transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
+    NiftiImage& transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
     const bool hasZ = transformationGradient->nz > 1;
     if (!hasZ) optimiseZ = false;
     NiftiImageData ptrX = transformationGradient.data(0);
@@ -191,8 +191,8 @@ void Compute::SmoothGradient(float sigma) {
 /* *************************************************************** */
 void Compute::GetApproximatedGradient(InterfaceOptimiser& opt) {
     F3dContent& con = dynamic_cast<F3dContent&>(this->con);
-    nifti_image *controlPointGrid = con.GetControlPointGrid();
-    nifti_image *transformationGradient = con.GetTransformationGradient();
+    NiftiImage& controlPointGrid = con.GetControlPointGrid();
+    NiftiImage& transformationGradient = con.GetTransformationGradient();
     std::visit([&](auto&& cppDataType) {
         using Type = std::decay_t<decltype(cppDataType)>;
 
@@ -217,7 +217,7 @@ void Compute::GetApproximatedGradient(InterfaceOptimiser& opt) {
         // Update the changes for GPU
         con.UpdateControlPointGrid();
         con.UpdateTransformationGradient();
-    }, NiftiImage::getFloatingDataType(controlPointGrid));
+    }, controlPointGrid.getFloatingDataType());
 }
 /* *************************************************************** */
 void Compute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
@@ -227,8 +227,8 @@ void Compute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
                                            updateStepNumber);
 }
 /* *************************************************************** */
-void Compute::ConvolveImage(nifti_image *image) {
-    const nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
+void Compute::ConvolveImage(NiftiImage& image) {
+    const NiftiImage& controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
     constexpr ConvKernelType kernelType = ConvKernelType::Cubic;
     float currentNodeSpacing[3];
     currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dx;
@@ -283,27 +283,27 @@ void Compute::ConvolveVoxelBasedMeasureGradient(float weight) {
 void Compute::ExponentiateGradient(Content& conBwIn) {
     F3dContent& con = dynamic_cast<F3dContent&>(this->con);
     F3dContent& conBw = dynamic_cast<F3dContent&>(conBwIn);
-    const nifti_image *deformationField = con.Content::GetDeformationField();
-    nifti_image *voxelBasedMeasureGradient = con.GetVoxelBasedMeasureGradient();
-    nifti_image *controlPointGridBw = conBw.GetControlPointGrid();
+    const NiftiImage& deformationField = con.Content::GetDeformationField();
+    NiftiImage& voxelBasedMeasureGradient = con.GetVoxelBasedMeasureGradient();
+    NiftiImage& controlPointGridBw = conBw.GetControlPointGrid();
     mat44 *affineTransformationBw = conBw.GetTransformationMatrix();
     const size_t compNum = size_t(fabs(controlPointGridBw->intent_p2)); // The number of composition
 
     /* Allocate a temporary gradient image to store the backward gradient */
-    nifti_image *tempGrad = nifti_dup(*voxelBasedMeasureGradient, false);
+    NiftiImage tempGrad(voxelBasedMeasureGradient, NiftiImage::Copy::ImageInfoAndAllocData);
 
     // Create all deformation field images needed for resampling
-    nifti_image **tempDef = (nifti_image**)malloc((compNum + 1) * sizeof(nifti_image*));
+    unique_ptr<NiftiImage[]> tempDef(new NiftiImage[compNum + 1]);
     for (size_t i = 0; i <= compNum; ++i)
-        tempDef[i] = nifti_dup(*deformationField, false);
+        tempDef[i] = NiftiImage(deformationField, NiftiImage::Copy::ImageInfoAndAllocData);
 
     // Generate all intermediate deformation fields
-    reg_spline_getIntermediateDefFieldFromVelGrid(controlPointGridBw, tempDef);
+    reg_spline_getIntermediateDefFieldFromVelGrid(controlPointGridBw, tempDef.get());
 
     // Remove the affine component
-    nifti_image *affineDisp = nullptr;
+    NiftiImage affineDisp;
     if (affineTransformationBw) {
-        affineDisp = nifti_dup(*deformationField, false);
+        affineDisp = NiftiImage(deformationField, NiftiImage::Copy::ImageInfoAndAllocData);
         reg_affine_getDeformationField(affineTransformationBw, affineDisp);
         reg_getDisplacementFromDeformation(affineDisp);
     }
@@ -325,25 +325,18 @@ void Compute::ExponentiateGradient(Content& conBwIn) {
     reg_tools_divideValueToImage(voxelBasedMeasureGradient, // in
                                  voxelBasedMeasureGradient, // out
                                  pow(2, compNum)); // value
-
-    for (size_t i = 0; i <= compNum; ++i)
-        nifti_image_free(tempDef[i]);
-    free(tempDef);
-    nifti_image_free(tempGrad);
-    if (affineDisp)
-        nifti_image_free(affineDisp);
 }
 /* *************************************************************** */
-nifti_image* Compute::ScaleGradient(const nifti_image& transformationGradient, float scale) {
-    nifti_image *scaledGradient = nifti_dup(transformationGradient, false);
-    reg_tools_multiplyValueToImage(&transformationGradient, scaledGradient, scale);
+NiftiImage Compute::ScaleGradient(const NiftiImage& transformationGradient, float scale) {
+    NiftiImage scaledGradient(transformationGradient, NiftiImage::Copy::ImageInfoAndAllocData);
+    reg_tools_multiplyValueToImage(transformationGradient, scaledGradient, scale);
     return scaledGradient;
 }
 /* *************************************************************** */
 void Compute::UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ) {
     F3dContent& con = dynamic_cast<F3dContent&>(this->con);
-    nifti_image *scaledGradient = ScaleGradient(*con.GetTransformationGradient(), scale);
-    nifti_image *controlPointGrid = con.GetControlPointGrid();
+    NiftiImage scaledGradient = ScaleGradient(con.GetTransformationGradient(), scale);
+    NiftiImage& controlPointGrid = con.GetControlPointGrid();
 
     // Reset the gradient along the axes if appropriate
     reg_setGradientToZero(scaledGradient, !optimiseX, !optimiseY, !optimiseZ);
@@ -352,36 +345,31 @@ void Compute::UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, b
     reg_tools_addImageToImage(controlPointGrid,  // in
                               scaledGradient,    // in
                               controlPointGrid); // out
-
-    nifti_image_free(scaledGradient);
 }
 /* *************************************************************** */
 void Compute::BchUpdate(float scale, int bchUpdateValue) {
     F3dContent& con = dynamic_cast<F3dContent&>(this->con);
-    nifti_image *scaledGradient = ScaleGradient(*con.GetTransformationGradient(), scale);
-    nifti_image *controlPointGrid = con.GetControlPointGrid();
-
+    NiftiImage scaledGradient = ScaleGradient(con.GetTransformationGradient(), scale);
+    NiftiImage& controlPointGrid = con.GetControlPointGrid();
     compute_BCH_update(controlPointGrid, scaledGradient, bchUpdateValue);
-
-    nifti_image_free(scaledGradient);
 }
 /* *************************************************************** */
 void Compute::SymmetriseVelocityFields(Content& conBwIn) {
-    nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(this->con).GetControlPointGrid();
-    nifti_image *controlPointGridBw = dynamic_cast<F3dContent&>(conBwIn).GetControlPointGrid();
+    NiftiImage& controlPointGrid = dynamic_cast<F3dContent&>(this->con).GetControlPointGrid();
+    NiftiImage& controlPointGridBw = dynamic_cast<F3dContent&>(conBwIn).GetControlPointGrid();
 
     // In order to ensure symmetry, the forward and backward velocity fields
     // are averaged in both image spaces: reference and floating
-    nifti_image *warpedTrans = nifti_dup(*controlPointGridBw, false);
-    nifti_image *warpedTransBw = nifti_dup(*controlPointGrid, false);
+    NiftiImage warpedTrans(controlPointGridBw, NiftiImage::Copy::ImageInfoAndAllocData);
+    NiftiImage warpedTransBw(controlPointGrid, NiftiImage::Copy::ImageInfoAndAllocData);
 
     // Both parametrisations are converted into displacement
     reg_getDisplacementFromDeformation(controlPointGrid);
     reg_getDisplacementFromDeformation(controlPointGridBw);
 
     // Both parametrisations are copied over
-    memcpy(warpedTransBw->data, controlPointGridBw->data, warpedTransBw->nvox * warpedTransBw->nbyper);
-    memcpy(warpedTrans->data, controlPointGrid->data, warpedTrans->nvox * warpedTrans->nbyper);
+    warpedTrans.copyData(controlPointGrid);
+    warpedTransBw.copyData(controlPointGridBw);
 
     // and subtracted (sum and negation)
     reg_tools_subtractImageFromImage(controlPointGridBw,  // displacement
@@ -402,19 +390,16 @@ void Compute::SymmetriseVelocityFields(Content& conBwIn) {
     // Convert the velocity field from displacement to deformation
     reg_getDeformationFromDisplacement(controlPointGrid);
     reg_getDeformationFromDisplacement(controlPointGridBw);
-
-    nifti_image_free(warpedTrans);
-    nifti_image_free(warpedTransBw);
 }
 /* *************************************************************** */
-void Compute::DefFieldCompose(const nifti_image *defField) {
+void Compute::DefFieldCompose(const NiftiImage& defField) {
     reg_defField_compose(defField, con.GetDeformationField(), nullptr);
 }
 /* *************************************************************** */
 NiftiImage Compute::ResampleGradient(int interpolation, float padding) {
     DefContent& con = dynamic_cast<DefContent&>(this->con);
-    nifti_image *voxelBasedMeasureGradient = con.GetVoxelBasedMeasureGradient();
-    NiftiImage warpedImage = NiftiImage(voxelBasedMeasureGradient, NiftiImage::Copy::ImageInfoAndAllocData);
+    NiftiImage& voxelBasedMeasureGradient = con.GetVoxelBasedMeasureGradient();
+    NiftiImage warpedImage(voxelBasedMeasureGradient, NiftiImage::Copy::ImageInfoAndAllocData);
     reg_resampleGradient(voxelBasedMeasureGradient, warpedImage, con.GetDeformationField(), interpolation, padding);
     return warpedImage;
 }

@@ -72,14 +72,13 @@ public:
                         testName += " "s + platform->GetName() + " Composition="s + std::to_string(composition) + " Bspline="s + std::to_string(bspline);
                         unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
                         unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
-                        NiftiImage expDefField(content->Content::GetDeformationField(), NiftiImage::Copy::Image);
+                        NiftiImage expDefField(content->Content::GetDeformationField());
                         // Compute the deformation field
                         compute->GetDeformationField(composition, bspline);
-                        NiftiImage defField(content->GetDeformationField(), NiftiImage::Copy::Image);
                         // Compute the expected deformation field
                         GetDeformationField<float>(controlPointGrid, expDefField, content->GetReferenceMask(), composition, bspline);
-                        // Save for testing
-                        testCases.push_back({ std::move(testName), std::move(defField), std::move(expDefField) });
+                        // Save the results for testing
+                        testCases.push_back({ std::move(testName), std::move(content->GetDeformationField()), std::move(expDefField) });
                     }
                 }
             }

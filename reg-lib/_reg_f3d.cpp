@@ -82,29 +82,29 @@ void reg_f3d<T>::SetSpacing(unsigned i, T s) {
 }
 /* *************************************************************** */
 template<class T>
-void reg_f3d<T>::InitContent(nifti_image *reference, nifti_image *floating, int *mask) {
+void reg_f3d<T>::InitContent(NiftiImage& reference, NiftiImage& floating, int *mask) {
     unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d)) };
-    this->con.reset(contentCreator->Create(reference, floating, controlPointGrid, this->localWeightSimInput, mask, this->affineTransformation.get(), sizeof(T)));
+    this->con.reset(contentCreator->Create(reference, floating, controlPointGrid, &this->localWeightSimInput, mask, this->affineTransformation.get(), sizeof(T)));
     this->compute.reset(this->platform->CreateCompute(*this->con));
 }
 /* *************************************************************** */
 template<class T>
 T reg_f3d<T>::InitCurrentLevel(int currentLevel) {
     // Set the current input images
-    nifti_image *reference, *floating;
+    NiftiImage reference, floating;
     int *mask;
     if (currentLevel < 0) {
         // Settings for GetWarpedImage()
         // Use CPU for warping since CUDA isn't supporting Cubic interpolation
         // TODO Remove this when CUDA supports Cubic interpolation
         this->SetPlatformType(PlatformType::Cpu);
-        reference = this->inputReference;
-        floating = this->inputFloating;
+        reference = NiftiImage(this->inputReference, NiftiImage::Copy::Acquire);
+        floating = NiftiImage(this->inputFloating, NiftiImage::Copy::Acquire);
         mask = nullptr;
     } else {
         const int index = this->usePyramid ? currentLevel : 0;
-        reference = this->referencePyramid[index];
-        floating = this->floatingPyramid[index];
+        reference = NiftiImage(this->referencePyramid[index], NiftiImage::Copy::Acquire);
+        floating = NiftiImage(this->floatingPyramid[index], NiftiImage::Copy::Acquire);
         mask = this->maskPyramid[index].get();
     }
 
@@ -411,8 +411,8 @@ T reg_f3d<T>::NormaliseGradient() {
 /* *************************************************************** */
 template<class T>
 void reg_f3d<T>::DisplayCurrentLevelParameters(int currentLevel) {
-    const nifti_image *reference = this->con->Content::GetReference();
-    const nifti_image *floating = this->con->Content::GetFloating();
+    const NiftiImage& reference = this->con->Content::GetReference();
+    const NiftiImage& floating = this->con->Content::GetFloating();
     NR_VERBOSE("Current level: " << currentLevel + 1 << " / " << this->levelNumber);
     NR_VERBOSE("Maximum iteration number: " << this->maxIterationNumber);
     NR_VERBOSE("Current reference image");
@@ -507,11 +507,11 @@ vector<NiftiImage> reg_f3d<T>::GetWarpedImage() {
 
     InitCurrentLevel(-1);
     this->WarpFloatingImage(3); // cubic spline interpolation
-    NiftiImage warpedImage = NiftiImage(this->con->GetWarped(), NiftiImage::Copy::Image);
+    NiftiImage warpedImage = std::move(this->con->GetWarped());
     DeinitCurrentLevel(-1);
 
     NR_FUNC_CALLED();
-    return { warpedImage };
+    return { std::move(warpedImage) };
 }
 /* *************************************************************** */
 template<class T>

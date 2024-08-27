@@ -150,7 +150,7 @@ public:
                 // Initialise the warped image using the nearest-neighbour interpolation
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 compute->ResampleImage(0, 0);
-                content->SetWarped(floating.disown());
+                content->SetWarped(NiftiImage(floating));
                 // Create the measure creator
                 unique_ptr<MeasureCreator> measureCreator{ platform->CreateMeasureCreator() };
                 // Use LNCC as a measure
@@ -159,7 +159,7 @@ public:
                 measure_lncc->SetTimePointWeight(0, 1.0); // weight initially set to default value of 1.0
                 measureCreator->Initialise(*measure_lncc, *content);
                 const double lncc = measure_lncc->GetSimilarityMeasureValue();
-                // Save for testing
+                // Save the results for testing
                 testCases.push_back({ testName, lncc, expLncc });
             }
         }

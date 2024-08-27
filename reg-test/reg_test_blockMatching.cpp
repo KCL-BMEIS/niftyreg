@@ -101,14 +101,14 @@ public:
         testData.emplace_back(TestData(
             "BlockMatching 2D",
             reference2d,
-            NiftiImage(contentResampling2d->GetWarped()),
+            contentResampling2d->GetWarped(),
             mask2d.get()
         ));
         contentResampling2d.release();
         testData.emplace_back(TestData(
             "BlockMatching 3D",
             reference3d,
-            NiftiImage(contentResampling3d->GetWarped()),
+            contentResampling3d->GetWarped(),
             mask3d.get()
         ));
         contentResampling3d.release();
@@ -120,7 +120,6 @@ public:
             for (auto&& platformType : PlatformTypes) {
                 // Create images
                 NiftiImage referenceTest(reference);
-                NiftiImage warpedTest(warped);
 
                 // Create the contents
                 shared_ptr<Platform> platform{ new Platform(platformType) };
@@ -137,7 +136,7 @@ public:
                     100,
                     1
                 ) };
-                content->SetWarped(warpedTest.disown());
+                content->SetWarped(NiftiImage(warped));
 
                 // Initialise the block matching
                 unique_ptr<Kernel> bmKernel{ platform->CreateKernel(BlockMatchingKernel::GetName(), content.get()) };

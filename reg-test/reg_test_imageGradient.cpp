@@ -179,7 +179,7 @@ TEST_CASE("Image Gradient", "[unit]") {
                 NR_COUT << std::fixed << std::setprecision(10);
 
                 // Set the warped gradient image to host the computation
-                NiftiImage warpedGradient(content->GetWarpedGradient());
+                NiftiImage& warpedGradient = content->GetWarpedGradient();
                 warpedGradient.setDim(NiftiDim::NDim, defField->ndim);
                 warpedGradient.setDim(NiftiDim::X, 1);
                 warpedGradient.setDim(NiftiDim::Y, 1);
@@ -188,14 +188,14 @@ TEST_CASE("Image Gradient", "[unit]") {
                 warpedGradient.recalcVoxelNumber();
 
                 // Set the deformation field
-                content->SetDeformationField(defField.disown());
+                content->SetDeformationField(std::move(defField));
 
                 // Do the computation
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 compute->GetImageGradient(interp, 0, 0);
 
                 // Check all values
-                warpedGradient = content->GetWarpedGradient();
+                content->GetWarpedGradient();
                 const auto warpedGradPtr = warpedGradient.data();
                 const size_t nVoxels = warpedGradient.nVoxels();
                 for (size_t i = 0; i < nVoxels; ++i) {

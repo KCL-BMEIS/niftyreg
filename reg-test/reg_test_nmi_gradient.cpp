@@ -81,7 +81,7 @@ public:
                 // Create the content
                 unique_ptr<DefContent> content{ contentCreator->Create(reference, floating) };
                 // Add some displacements to the deformation field to avoid grid effect
-                nifti_image *defField = content->Content::GetDeformationField();
+                NiftiImage& defField = content->Content::GetDeformationField();
                 float *defPtr = static_cast<float*>(defField->data);
                 for (size_t index = 0; index < defField->nvox; ++index)
                     defPtr[index] += 0.1f;
@@ -101,9 +101,9 @@ public:
                 // Compute the NMI gradient
                 measure_nmi->GetVoxelBasedSimilarityMeasureGradient(0);
                 // Create an image to store the gradient values
-                NiftiImage gradientImage(content->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
+                NiftiImage gradientImage(content->GetVoxelBasedMeasureGradient());
                 // Create an image to store the expected gradient values
-                NiftiImage expectedGradientImage(content->GetDeformationField(), NiftiImage::Copy::Image);
+                NiftiImage expectedGradientImage(content->GetDeformationField());
                 // Apply perturbations to each value in the deformation field
                 float *gradPtr = static_cast<float*>(expectedGradientImage->data);
                 constexpr float delta = 0.00001f;

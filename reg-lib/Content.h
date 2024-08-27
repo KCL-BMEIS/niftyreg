@@ -5,23 +5,23 @@
 class Content {
 public:
     Content() = delete; // Can't be initialised without reference and floating images
-    Content(nifti_image *referenceIn,
-            nifti_image *floatingIn,
+    Content(NiftiImage& referenceIn,
+            NiftiImage& floatingIn,
             int *referenceMaskIn = nullptr,
             mat44 *transformationMatrixIn = nullptr,
             size_t bytesIn = sizeof(float));
-    virtual ~Content();
+    virtual ~Content() = default;
 
     virtual bool IsCurrentComputationDoubleCapable() { return true; }
 
     // Getters
     virtual size_t GetActiveVoxelNumber() { return activeVoxelNumber; }
-    virtual nifti_image* GetReference() { return reference; }
-    virtual nifti_image* GetFloating() { return floating; }
-    virtual nifti_image* GetDeformationField() { return deformationField; }
+    virtual NiftiImage& GetReference() { return reference; }
+    virtual NiftiImage& GetFloating() { return floating; }
+    virtual NiftiImage& GetDeformationField() { return deformationField; }
     virtual int* GetReferenceMask() { return referenceMask; }
     virtual mat44* GetTransformationMatrix() { return transformationMatrix; }
-    virtual nifti_image* GetWarped() { return warped; }
+    virtual NiftiImage& GetWarped() { return warped; }
 
     // Methods for transferring data from nifti to device
     virtual void UpdateDeformationField() {}
@@ -37,19 +37,17 @@ public:
 
 protected:
     size_t activeVoxelNumber = 0;
-    nifti_image *reference = nullptr;
-    nifti_image *floating = nullptr;
-    nifti_image *deformationField = nullptr;
+    NiftiImage reference;
+    NiftiImage floating;
+    NiftiImage deformationField;
     int *referenceMask = nullptr;
     unique_ptr<int[]> referenceMaskManaged;
     mat44 *transformationMatrix = nullptr;
-    nifti_image *warped = nullptr;
+    NiftiImage warped;
 
 private:
     void AllocateWarped();
-    void DeallocateWarped();
     void AllocateDeformationField(size_t bytes);
-    void DeallocateDeformationField();
 
 #ifdef NR_TESTING
 public:
@@ -57,8 +55,8 @@ public:
 protected:
 #endif
     // Functions for testing
-    virtual void SetDeformationField(nifti_image *deformationFieldIn) { DeallocateDeformationField(); deformationField = deformationFieldIn; }
+    virtual void SetDeformationField(NiftiImage&& deformationFieldIn) { deformationField = std::move(deformationFieldIn); }
     virtual void SetReferenceMask(int *referenceMaskIn) { referenceMask = referenceMaskIn; }
     virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) { transformationMatrix = transformationMatrixIn; }
-    virtual void SetWarped(nifti_image *warpedIn) { DeallocateWarped(); warped = warpedIn; }
+    virtual void SetWarped(NiftiImage&& warpedIn) { warped = std::move(warpedIn); }
 };

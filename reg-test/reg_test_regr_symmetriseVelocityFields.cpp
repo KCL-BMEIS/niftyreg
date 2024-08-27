@@ -103,11 +103,11 @@ public:
             computeCpu->SymmetriseVelocityFields(*contentBwCpu);
             computeCuda->SymmetriseVelocityFields(*contentBwCuda);
 
-            // Get the results of CUDA since CPU results are already inplace
-            contentCuda->GetControlPointGrid();
-            contentBwCuda->GetControlPointGrid();
+            // Since CPU results are already inplace, get CUDA results by destructing their contents
+            contentCuda = nullptr;
+            contentBwCuda = nullptr;
 
-            // Save for testing
+            // Save the results for testing
             testCases.push_back({ testName, std::move(cppCpu), std::move(cppBwCpu), std::move(cppCuda), std::move(cppBwCuda) });
         }
     }

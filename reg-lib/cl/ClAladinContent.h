@@ -12,8 +12,8 @@
 class ClAladinContent: public AladinContent {
 public:
     //constructors
-    ClAladinContent(nifti_image *referenceIn,
-                    nifti_image *floatingIn,
+    ClAladinContent(NiftiImage& referenceIn,
+                    NiftiImage& floatingIn,
                     int *referenceMaskIn = nullptr,
                     mat44 *transformationMatrixIn = nullptr,
                     size_t bytesIn = sizeof(float),
@@ -38,8 +38,8 @@ public:
 
     // CPU getters with data downloaded from device
     virtual _reg_blockMatchingParam* GetBlockMatchingParams() override;
-    virtual nifti_image* GetDeformationField() override;
-    virtual nifti_image* GetWarped() override;
+    virtual NiftiImage& GetDeformationField() override;
+    virtual NiftiImage& GetWarped() override;
 
 private:
     void InitVars();
@@ -62,8 +62,7 @@ private:
     cl_mem refMatClmem;
     cl_mem floMatClmem;
 
-    template<typename DataType> void FillImageData(nifti_image *image, cl_mem memoryObject, int datatype);
-    void DownloadImage(nifti_image *image, cl_mem memoryObject, int datatype);
+    void DownloadImage(NiftiImage& image, cl_mem memoryObject, int datatype);
 
 #ifdef NR_TESTING
 public:
@@ -72,8 +71,8 @@ protected:
 #endif
     // Functions for testing
     virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
-    virtual void SetWarped(nifti_image *warpedIn) override;
-    virtual void SetDeformationField(nifti_image *deformationFieldIn) override;
+    virtual void SetWarped(NiftiImage&& warpedIn) override;
+    virtual void SetDeformationField(NiftiImage&& deformationFieldIn) override;
     virtual void SetReferenceMask(int *referenceMaskIn) override;
     virtual void SetBlockMatchingParams(_reg_blockMatchingParam *bmp) override;
 };

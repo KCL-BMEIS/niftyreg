@@ -98,8 +98,8 @@ public:
             ) };
 
             // Initialise the warped images
-            contentCpu->SetWarped(warpedCpu.disown());
-            contentCuda->SetWarped(warpedCuda.disown());
+            contentCpu->SetWarped(std::move(warpedCpu));
+            contentCuda->SetWarped(std::move(warpedCuda));
 
             // Initialise the block matching
             unique_ptr<BlockMatchingKernel> kernelCpu{ new CpuBlockMatchingKernel(contentCpu.get()) };

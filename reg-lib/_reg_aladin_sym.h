@@ -21,8 +21,8 @@ private:
     unique_ptr<AladinContent> backCon;
     unique_ptr<Kernel> bAffineTransformation3DKernel, bConvolutionKernel, bBlockMatchingKernel, bLtsKernel, bResamplingKernel;
 
-    virtual void InitAladinContent(nifti_image *ref,
-                                   nifti_image *flo,
+    virtual void InitAladinContent(NiftiImage& ref,
+                                   NiftiImage& flo,
                                    int *mask,
                                    mat44 *transMat,
                                    size_t bytes,

@@ -12,8 +12,8 @@
 class AladinContent: public Content {
 public:
     AladinContent(const AladinContent&) = delete;
-    AladinContent(nifti_image *referenceIn,
-                  nifti_image *floatingIn,
+    AladinContent(NiftiImage& referenceIn,
+                  NiftiImage& floatingIn,
                   int *referenceMaskIn = nullptr,
                   mat44 *transformationMatrixIn = nullptr,
                   size_t bytesIn = sizeof(float),
@@ -28,7 +28,7 @@ public:
     virtual _reg_blockMatchingParam* GetBlockMatchingParams() { return blockMatchingParams; }
 
 protected:
-    _reg_blockMatchingParam* blockMatchingParams;
+    _reg_blockMatchingParam *blockMatchingParams;
     unsigned currentPercentageOfBlockToUse;
     unsigned inlierLts;
     int stepSizeBlock;

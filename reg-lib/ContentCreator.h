@@ -4,8 +4,8 @@
 
 class ContentCreator {
 public:
-    virtual Content* Create(nifti_image *reference,
-                            nifti_image *floating,
+    virtual Content* Create(NiftiImage& reference,
+                            NiftiImage& floating,
                             int *referenceMask = nullptr,
                             mat44 *transformationMatrix = nullptr,
                             size_t bytes = sizeof(float)) {

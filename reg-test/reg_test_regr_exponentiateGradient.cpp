@@ -115,25 +115,25 @@ public:
             unique_ptr<F3dContent> contentBwCuda{ new CudaF3dContent(referenceBwCuda, referenceBwCuda, cppBwCuda) };
 
             // Set the deformation fields
-            contentCpu->SetDeformationField(defFieldCpu.disown());
-            contentCuda->SetDeformationField(defFieldCuda.disown());
+            contentCpu->SetDeformationField(std::move(defFieldCpu));
+            contentCuda->SetDeformationField(std::move(defFieldCuda));
 
             // Set the voxel-based measure gradient images
-            NiftiImage voxelGrad = contentCpu->GetVoxelBasedMeasureGradient();
-            voxelGrad->sform_code = voxelBasedGrad->sform_code;
-            voxelGrad->qto_ijk = voxelBasedGrad->qto_ijk;
-            voxelGrad->qto_xyz = voxelBasedGrad->qto_xyz;
-            voxelGrad->sto_ijk = voxelBasedGrad->sto_ijk;
-            voxelGrad->sto_xyz = voxelBasedGrad->sto_xyz;
-            voxelGrad.copyData(voxelBasedGrad);
+            NiftiImage& voxelGradCpu = contentCpu->GetVoxelBasedMeasureGradient();
+            voxelGradCpu->sform_code = voxelBasedGrad->sform_code;
+            voxelGradCpu->qto_ijk = voxelBasedGrad->qto_ijk;
+            voxelGradCpu->qto_xyz = voxelBasedGrad->qto_xyz;
+            voxelGradCpu->sto_ijk = voxelBasedGrad->sto_ijk;
+            voxelGradCpu->sto_xyz = voxelBasedGrad->sto_xyz;
+            voxelGradCpu.copyData(voxelBasedGrad);
             contentCpu->UpdateVoxelBasedMeasureGradient();
-            voxelGrad = contentCuda->DefContent::GetVoxelBasedMeasureGradient();
-            voxelGrad->sform_code = voxelBasedGrad->sform_code;
-            voxelGrad->qto_ijk = voxelBasedGrad->qto_ijk;
-            voxelGrad->qto_xyz = voxelBasedGrad->qto_xyz;
-            voxelGrad->sto_ijk = voxelBasedGrad->sto_ijk;
-            voxelGrad->sto_xyz = voxelBasedGrad->sto_xyz;
-            voxelGrad.copyData(voxelBasedGrad);
+            NiftiImage& voxelGradCuda = contentCuda->DefContent::GetVoxelBasedMeasureGradient();
+            voxelGradCuda->sform_code = voxelBasedGrad->sform_code;
+            voxelGradCuda->qto_ijk = voxelBasedGrad->qto_ijk;
+            voxelGradCuda->qto_xyz = voxelBasedGrad->qto_xyz;
+            voxelGradCuda->sto_ijk = voxelBasedGrad->sto_ijk;
+            voxelGradCuda->sto_xyz = voxelBasedGrad->sto_xyz;
+            voxelGradCuda.copyData(voxelBasedGrad);
             contentCuda->UpdateVoxelBasedMeasureGradient();
 
             // Create the computes
@@ -144,12 +144,8 @@ public:
             computeCpu->ExponentiateGradient(*contentBwCpu);
             computeCuda->ExponentiateGradient(*contentBwCuda);
 
-            // Get the results
-            NiftiImage voxelGradCpu(contentCpu->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
-            NiftiImage voxelGradCuda(contentCuda->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
-
-            // Save for testing
-            testCases.push_back({ testName, std::move(voxelGradCpu), std::move(voxelGradCuda) });
+            // Save the results for testing
+            testCases.push_back({ testName, std::move(contentCpu->GetVoxelBasedMeasureGradient()), std::move(contentCuda->GetVoxelBasedMeasureGradient()) });
         }
     }
 };

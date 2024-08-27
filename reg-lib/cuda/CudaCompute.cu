@@ -10,7 +10,7 @@
 /* *************************************************************** */
 void CudaCompute::ResampleImage(int interpolation, float paddingValue) {
     CudaContent& con = dynamic_cast<CudaContent&>(this->con);
-    const nifti_image *floating = con.Content::GetFloating();
+    const NiftiImage& floating = con.Content::GetFloating();
     auto resampleImage = floating->nz > 1 ? Cuda::ResampleImage<true> : Cuda::ResampleImage<false>;
     resampleImage(floating,
                   con.GetFloatingCuda(),
@@ -52,7 +52,7 @@ double CudaCompute::CorrectFolding(bool approx) {
 /* *************************************************************** */
 double CudaCompute::ApproxBendingEnergy() {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    const nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
+    const NiftiImage& controlPointGrid = con.F3dContent::GetControlPointGrid();
     auto approxBendingEnergy = controlPointGrid->nz > 1 ? Cuda::ApproxBendingEnergy<true> :
                                                           Cuda::ApproxBendingEnergy<false>;
     return approxBendingEnergy(controlPointGrid, con.GetControlPointGridCuda());
@@ -60,7 +60,7 @@ double CudaCompute::ApproxBendingEnergy() {
 /* *************************************************************** */
 void CudaCompute::ApproxBendingEnergyGradient(float weight) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
+    NiftiImage& controlPointGrid = con.F3dContent::GetControlPointGrid();
     auto approxBendingEnergyGradient = controlPointGrid->nz > 1 ? Cuda::ApproxBendingEnergyGradient<true> :
                                                                   Cuda::ApproxBendingEnergyGradient<false>;
     approxBendingEnergyGradient(controlPointGrid,
@@ -71,7 +71,7 @@ void CudaCompute::ApproxBendingEnergyGradient(float weight) {
 /* *************************************************************** */
 double CudaCompute::ApproxLinearEnergy() {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    const nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
+    const NiftiImage& controlPointGrid = con.F3dContent::GetControlPointGrid();
     auto approxLinearEnergy = controlPointGrid->nz > 1 ? Cuda::ApproxLinearEnergy<true> :
                                                          Cuda::ApproxLinearEnergy<false>;
     return approxLinearEnergy(controlPointGrid, con.GetControlPointGridCuda());
@@ -79,7 +79,7 @@ double CudaCompute::ApproxLinearEnergy() {
 /* *************************************************************** */
 void CudaCompute::ApproxLinearEnergyGradient(float weight) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    const nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
+    const NiftiImage& controlPointGrid = con.F3dContent::GetControlPointGrid();
     auto approxLinearEnergyGradient = controlPointGrid->nz > 1 ? Cuda::ApproxLinearEnergyGradient<true> :
                                                                  Cuda::ApproxLinearEnergyGradient<false>;
     approxLinearEnergyGradient(controlPointGrid, con.GetControlPointGridCuda(), con.GetTransformationGradientCuda(), weight);
@@ -145,9 +145,9 @@ void CudaCompute::UpdateControlPointPosition(float *currentDof,
                                              const bool optimiseX,
                                              const bool optimiseY,
                                              const bool optimiseZ) {
-    const nifti_image *controlPointGrid = dynamic_cast<CudaF3dContent&>(con).F3dContent::GetControlPointGrid();
+    const NiftiImage& controlPointGrid = dynamic_cast<CudaF3dContent&>(con).F3dContent::GetControlPointGrid();
     const bool optZ = optimiseZ && controlPointGrid->nz > 1;
-    const size_t nVoxels = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
+    const size_t nVoxels = controlPointGrid.nVoxelsPerVolume();
     auto bestDofTexturePtr = Cuda::CreateTextureObject(reinterpret_cast<const float4*>(bestDof), nVoxels, cudaChannelFormatKindFloat, 4);
     auto gradientTexturePtr = Cuda::CreateTextureObject(reinterpret_cast<const float4*>(gradient), nVoxels, cudaChannelFormatKindFloat, 4);
 
@@ -172,7 +172,7 @@ void CudaCompute::UpdateControlPointPosition(float *currentDof,
 /* *************************************************************** */
 void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int activeTimePoint) {
     CudaDefContent& con = dynamic_cast<CudaDefContent&>(this->con);
-    const nifti_image *floating = con.Content::GetFloating();
+    const NiftiImage& floating = con.Content::GetFloating();
     auto getImageGradient = floating->nz > 1 ? Cuda::GetImageGradient<true> : Cuda::GetImageGradient<false>;
     getImageGradient(floating,
                      con.GetFloatingCuda(),
@@ -187,8 +187,8 @@ void CudaCompute::GetImageGradient(int interpolation, float paddingValue, int ac
 double CudaCompute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimiseZ) {
     if (!optimiseX && !optimiseY && !optimiseZ) return 0;
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    nifti_image *transGrad = con.F3dContent::GetTransformationGradient();
-    const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(transGrad, 3);
+    NiftiImage& transGrad = con.F3dContent::GetTransformationGradient();
+    const size_t voxelsPerVolume = transGrad.nVoxelsPerVolume();
     if (transGrad->nz <= 1) optimiseZ = false;
     return Cuda::GetMaximalLength(con.GetTransformationGradientCuda(), voxelsPerVolume, optimiseX, optimiseY, optimiseZ);
 }
@@ -196,8 +196,8 @@ double CudaCompute::GetMaximalLength(bool optimiseX, bool optimiseY, bool optimi
 void CudaCompute::NormaliseGradient(double maxGradLength, bool optimiseX, bool optimiseY, bool optimiseZ) {
     if (maxGradLength == 0 || (!optimiseX && !optimiseY && !optimiseZ)) return;
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    nifti_image *transGrad = con.F3dContent::GetTransformationGradient();
-    const size_t voxelsPerVolume = NiftiImage::calcVoxelNumber(transGrad, 3);
+    NiftiImage& transGrad = con.F3dContent::GetTransformationGradient();
+    const size_t voxelsPerVolume = transGrad.nVoxelsPerVolume();
     if (transGrad->nz <= 1) optimiseZ = false;
     Cuda::NormaliseGradient(con.GetTransformationGradientCuda(), voxelsPerVolume, maxGradLength, optimiseX, optimiseY, optimiseZ);
 }
@@ -224,8 +224,8 @@ void CudaCompute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
                                       updateStepNumber);
 }
 /* *************************************************************** */
-void CudaCompute::ConvolveImage(const nifti_image *image, float4 *imageCuda) {
-    const nifti_image *controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
+void CudaCompute::ConvolveImage(const NiftiImage& image, float4 *imageCuda) {
+    const NiftiImage& controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
     constexpr ConvKernelType kernelType = ConvKernelType::Cubic;
     float currentNodeSpacing[3];
     currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dx;
@@ -260,7 +260,7 @@ void CudaCompute::ConvolveImage(const nifti_image *image, float4 *imageCuda) {
 void CudaCompute::VoxelCentricToNodeCentric(float weight) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     const mat44 *reorientation = Content::GetIJKMatrix(*con.Content::GetFloating());
-    const nifti_image *transGrad = con.F3dContent::GetTransformationGradient();
+    const NiftiImage& transGrad = con.F3dContent::GetTransformationGradient();
     auto voxelCentricToNodeCentric = transGrad->nz > 1 ? Cuda::VoxelCentricToNodeCentric<true> :
                                                          Cuda::VoxelCentricToNodeCentric<false>;
     voxelCentricToNodeCentric(transGrad,
@@ -281,21 +281,21 @@ void CudaCompute::ConvolveVoxelBasedMeasureGradient(float weight) {
 void CudaCompute::ExponentiateGradient(Content& conBwIn) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     CudaF3dContent& conBw = dynamic_cast<CudaF3dContent&>(conBwIn);
-    nifti_image *deformationField = con.Content::GetDeformationField();
-    nifti_image *voxelBasedMeasureGradient = con.DefContent::GetVoxelBasedMeasureGradient();
+    NiftiImage& deformationField = con.Content::GetDeformationField();
+    NiftiImage& voxelBasedMeasureGradient = con.DefContent::GetVoxelBasedMeasureGradient();
     float4 *voxelBasedMeasureGradientCuda = con.GetVoxelBasedMeasureGradientCuda();
-    nifti_image *controlPointGridBw = conBw.F3dContent::GetControlPointGrid();
+    NiftiImage& controlPointGridBw = conBw.F3dContent::GetControlPointGrid();
     float4 *controlPointGridBwCuda = conBw.GetControlPointGridCuda();
     mat44 *affineTransformationBw = conBw.Content::GetTransformationMatrix();
     const int compNum = std::abs(static_cast<int>(controlPointGridBw->intent_p2)); // The number of composition
 
     /* Allocate a temporary gradient image to store the backward gradient */
-    const size_t voxelGradNumber = NiftiImage::calcVoxelNumber(voxelBasedMeasureGradient, 3);
+    const size_t voxelGradNumber = voxelBasedMeasureGradient.nVoxelsPerVolume();
     NiftiImage warped(voxelBasedMeasureGradient, NiftiImage::Copy::ImageInfo);
     thrust::device_vector<float4> warpedCudaVec(voxelGradNumber);
 
     // Create all deformation field images needed for resampling
-    const size_t defFieldNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
+    const size_t defFieldNumber = deformationField.nVoxelsPerVolume();
     vector<NiftiImage> defFields(compNum + 1, NiftiImage(deformationField, NiftiImage::Copy::ImageInfo));
     vector<thrust::device_vector<float4>> defFieldCudaVecs(compNum + 1, thrust::device_vector<float4>(defFieldNumber));
 
@@ -341,8 +341,8 @@ void CudaCompute::UpdateVelocityField(float scale, bool optimiseX, bool optimise
     if (!optimiseX && !optimiseY && !optimiseZ) return;
 
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    const nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
-    const size_t voxelNumber = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
+    const NiftiImage& controlPointGrid = con.F3dContent::GetControlPointGrid();
+    const size_t voxelNumber = controlPointGrid.nVoxelsPerVolume();
     auto scaledGradientCudaPtr = ScaleGradient(con.GetTransformationGradientCuda(), voxelNumber, scale);
 
     // Reset the gradient along the axes if appropriate
@@ -365,11 +365,11 @@ void CudaCompute::SymmetriseVelocityFields(Content& conBwIn) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
     CudaF3dContent& conBw = dynamic_cast<CudaF3dContent&>(conBwIn);
 
-    nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
-    nifti_image *controlPointGridBw = conBw.F3dContent::GetControlPointGrid();
+    NiftiImage& controlPointGrid = con.F3dContent::GetControlPointGrid();
+    NiftiImage& controlPointGridBw = conBw.F3dContent::GetControlPointGrid();
     float4 *controlPointGridCuda = con.GetControlPointGridCuda();
     float4 *controlPointGridBwCuda = conBw.GetControlPointGridCuda();
-    const size_t voxelNumber = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
+    const size_t voxelNumber = controlPointGrid.nVoxelsPerVolume();
 
     // In order to ensure symmetry, the forward and backward velocity fields
     // are averaged in both image spaces: reference and floating
@@ -395,9 +395,9 @@ void CudaCompute::SymmetriseVelocityFields(Content& conBwIn) {
     Cuda::GetDeformationFromDisplacement(controlPointGridBw, controlPointGridBwCuda);
 }
 /* *************************************************************** */
-void CudaCompute::DefFieldCompose(const nifti_image *defField) {
+void CudaCompute::DefFieldCompose(const NiftiImage& defField) {
     CudaContent& con = dynamic_cast<CudaContent&>(this->con);
-    const size_t voxelNumber = NiftiImage::calcVoxelNumber(defField, 3);
+    const size_t voxelNumber = defField.nVoxelsPerVolume();
     thrust::device_vector<float4> defFieldCuda(voxelNumber);
     Cuda::TransferNiftiToDevice(defFieldCuda.data().get(), defField);
     auto defFieldCompose = defField->nz > 1 ? Cuda::DefFieldCompose<true> : Cuda::DefFieldCompose<false>;
@@ -406,7 +406,7 @@ void CudaCompute::DefFieldCompose(const nifti_image *defField) {
 /* *************************************************************** */
 NiftiImage CudaCompute::ResampleGradient(int interpolation, float padding) {
     CudaDefContent& con = dynamic_cast<CudaDefContent&>(this->con);
-    const nifti_image *voxelBasedMeasureGradient = con.DefContent::GetVoxelBasedMeasureGradient();
+    const NiftiImage& voxelBasedMeasureGradient = con.DefContent::GetVoxelBasedMeasureGradient();
     auto resampleGradient = voxelBasedMeasureGradient->nz > 1 ? Cuda::ResampleGradient<true> : Cuda::ResampleGradient<false>;
     resampleGradient(voxelBasedMeasureGradient,
                      con.GetVoxelBasedMeasureGradientCuda(),
@@ -418,7 +418,7 @@ NiftiImage CudaCompute::ResampleGradient(int interpolation, float padding) {
                      con.GetActiveVoxelNumber(),
                      interpolation,
                      padding);
-    return NiftiImage(con.GetWarpedGradient(), NiftiImage::Copy::Image);
+    return con.GetWarpedGradient();
 }
 /* *************************************************************** */
 void CudaCompute::GetAffineDeformationField(bool compose) {

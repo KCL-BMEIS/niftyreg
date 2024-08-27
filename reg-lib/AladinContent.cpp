@@ -3,8 +3,8 @@
 using namespace std;
 
 /* *************************************************************** */
-AladinContent::AladinContent(nifti_image *referenceIn,
-                             nifti_image *floatingIn,
+AladinContent::AladinContent(NiftiImage& referenceIn,
+                             NiftiImage& floatingIn,
                              int *referenceMaskIn,
                              mat44 *transformationMatrixIn,
                              size_t bytesIn,

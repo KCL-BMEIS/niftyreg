@@ -137,12 +137,10 @@ public:
                 unique_ptr<Content> content{ contentCreator->Create(reference, reference) };
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
                 // Run the compose
-                content->SetDeformationField(NiftiImage(outDefField).disown());
+                content->SetDeformationField(NiftiImage(outDefField));
                 compute->DefFieldCompose(defField);
-                // Get the result
-                NiftiImage resDefField(content->GetDeformationField(), NiftiImage::Copy::Image);
-                // Save for testing
-                testCases.push_back({ testName + " "s + platform->GetName(), std::move(resDefField), expDefField });
+                // Save the results for testing
+                testCases.push_back({ testName + " "s + platform->GetName(), std::move(content->GetDeformationField()), expDefField });
             }
         }
     }

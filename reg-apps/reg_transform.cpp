@@ -1061,12 +1061,11 @@ int main(int argc, char **argv) {
             tempField->ndim = tempField->dim[0] = 5;
             tempField->nt = tempField->dim[4] = 1;
             tempField->nu = tempField->dim[5] = tempField->nz > 1 ? 3 : 2;
-            tempField->nvox = NiftiImage::calcVoxelNumber(tempField, tempField->ndim);
             tempField->nbyper = inputTransImage->nbyper;
             tempField->datatype = inputTransImage->datatype;
+            tempField.realloc();
             tempField->intent_code = NIFTI_INTENT_VECTOR;
-            memset(tempField->intent_name, 0, 16);
-            strcpy(tempField->intent_name, "NREG_TRANS");
+            tempField.setIntentName("NREG_TRANS"s);
             tempField->intent_p1 = DEF_FIELD;
             if (inputTransImage->intent_p1 == SPLINE_VEL_GRID) {
                 tempField->intent_p1 = DEF_VEL_FIELD;
@@ -1074,7 +1073,6 @@ int main(int argc, char **argv) {
             }
             tempField->scl_slope = 1.f;
             tempField->scl_inter = 0.f;
-            tempField->data = calloc(tempField->nvox, tempField->nbyper);
             // Compute the dense field
             if (inputTransImage->intent_p1 == LIN_SPLINE_GRID ||
                 inputTransImage->intent_p1 == CUB_SPLINE_GRID)

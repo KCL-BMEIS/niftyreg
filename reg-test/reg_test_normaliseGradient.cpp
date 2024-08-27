@@ -98,8 +98,7 @@ public:
                             unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
 
                             // Set the transformation gradient image to host the computation
-                            NiftiImage transGrad = content->GetTransformationGradient();
-                            transGrad.copyData(expTransGrad);
+                            content->F3dContent::GetTransformationGradient().copyData(expTransGrad);
                             content->UpdateTransformationGradient();
 
                             // Calculate the maximal length
@@ -111,11 +110,8 @@ public:
                             compute->NormaliseGradient(expMaxLength, optimiseX, optimiseY, optimiseZ);
                             NormaliseGradient<float>(expTransGrad, expMaxLength, optimiseX, optimiseY, optimiseZ);
 
-                            // Get the results
-                            transGrad = NiftiImage(content->GetTransformationGradient(), NiftiImage::Copy::Image);
-
-                            // Save for testing
-                            testCases.push_back({ testName, maxLength, expMaxLength, std::move(transGrad), std::move(expTransGrad) });
+                            // Save the results for testing
+                            testCases.push_back({ testName, maxLength, expMaxLength, std::move(content->GetTransformationGradient()), std::move(expTransGrad) });
                         }
                     }
                 }

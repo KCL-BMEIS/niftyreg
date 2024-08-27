@@ -5,8 +5,8 @@
 
 class ClAladinContentCreator: public AladinContentCreator {
 public:
-    virtual AladinContent* Create(nifti_image *reference,
-                                  nifti_image *floating,
+    virtual AladinContent* Create(NiftiImage& reference,
+                                  NiftiImage& floating,
                                   int *referenceMask = nullptr,
                                   mat44 *transformationMatrix = nullptr,
                                   size_t bytes = sizeof(float),

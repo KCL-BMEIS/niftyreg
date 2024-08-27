@@ -57,7 +57,6 @@ ClBlockMatchingKernel::ClBlockMatchingKernel(Content *conIn) : BlockMatchingKern
    //get cpu ptrs
    reference = con->AladinContent::GetReference();
    params = con->AladinContent::GetBlockMatchingParams();
-
 }
 /* *************************************************************** */
 void ClBlockMatchingKernel::Calculate() {

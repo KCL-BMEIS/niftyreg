@@ -38,8 +38,8 @@ void MeasureCreator::Initialise(reg_measure& measure, DefContent& con, DefConten
                               con.GetVoxelBasedMeasureGradient(),
                               con.GetLocalWeightSim(),
                               conBw ? conBw->GetReferenceMask() : nullptr,
-                              conBw ? conBw->GetWarped() : nullptr,
-                              conBw ? conBw->GetWarpedGradient() : nullptr,
-                              conBw ? conBw->GetVoxelBasedMeasureGradient() : nullptr);
+                              conBw ? static_cast<nifti_image*>(conBw->GetWarped()) : nullptr,
+                              conBw ? static_cast<nifti_image*>(conBw->GetWarpedGradient()) : nullptr,
+                              conBw ? static_cast<nifti_image*>(conBw->GetVoxelBasedMeasureGradient()) : nullptr);
 }
 /* *************************************************************** */

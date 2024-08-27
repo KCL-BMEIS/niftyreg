@@ -78,11 +78,9 @@ public:
                         unique_ptr<F3dContent> contentCuda{ new CudaF3dContent(referenceCuda, referenceCuda, cppCuda) };
 
                         // Set the transformation gradient image to host the computation
-                        NiftiImage transGradCpu = contentCpu->GetTransformationGradient();
-                        transGradCpu.copyData(transGrad);
+                        contentCpu->GetTransformationGradient().copyData(transGrad);
                         contentCpu->UpdateTransformationGradient();
-                        NiftiImage transGradCuda = contentCuda->GetTransformationGradient();
-                        transGradCuda.copyData(transGrad);
+                        contentCuda->F3dContent::GetTransformationGradient().copyData(transGrad);
                         contentCuda->UpdateTransformationGradient();
 
                         // Create the computes
@@ -93,12 +91,9 @@ public:
                         computeCpu->UpdateVelocityField(scale, optimiseX, optimiseY, optimiseZ);
                         computeCuda->UpdateVelocityField(scale, optimiseX, optimiseY, optimiseZ);
 
-                        // Get the results
-                        transGradCpu = NiftiImage(contentCpu->GetTransformationGradient(), NiftiImage::Copy::Image);
-                        transGradCuda = NiftiImage(contentCuda->GetTransformationGradient(), NiftiImage::Copy::Image);
-
-                        // Save for testing
-                        testCases.push_back({ testName, std::move(transGradCpu), std::move(transGradCuda) });
+                        // Save the results for testing
+                        testCases.push_back({ testName, std::move(contentCpu->GetTransformationGradient()),
+                                            std::move(contentCuda->GetTransformationGradient()) });
                     }
                 }
             }

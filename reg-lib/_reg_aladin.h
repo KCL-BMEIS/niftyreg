@@ -117,8 +117,8 @@ protected:
     void *paramsProgressCallback;
 
     //platform factory methods
-    virtual void InitAladinContent(nifti_image *ref,
-                                   nifti_image *flo,
+    virtual void InitAladinContent(NiftiImage& ref,
+                                   NiftiImage& flo,
                                    int *mask,
                                    mat44 *transMat,
                                    size_t bytes,
