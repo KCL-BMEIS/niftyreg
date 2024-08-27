@@ -236,7 +236,7 @@ void GetConjugateGradient(float4 *gradientCuda,
         return make_double2(dgg, gg);
     };
 
-    float gam;
+    double gam;
     thrust::counting_iterator<int> it(0);
     const double2 gg = thrust::transform_reduce(thrust::device, it, it + nVoxels, [=]__device__(const int index) {
         return calcGam(gradientTexture, conjugateGTexture, conjugateHTexture, index);
@@ -246,8 +246,8 @@ void GetConjugateGradient(float4 *gradientCuda,
         const double2 ggBw = thrust::transform_reduce(thrust::device, it, it + nVoxelsBw, [=]__device__(const int index) {
             return calcGam(gradientBwTexture, conjugateGBwTexture, conjugateHBwTexture, index);
         }, make_double2(0, 0), thrust::plus<double2>());
-        gam = static_cast<float>((gg.x + ggBw.x) / (gg.y + ggBw.y));
-    } else gam = static_cast<float>(gg.x / gg.y);
+        gam = (gg.x + ggBw.x) / (gg.y + ggBw.y);
+    } else gam = gg.x / gg.y;
 
     // Conjugate gradient
     auto conjugate = [gam]__device__(float4 *gradientCuda, float4 *conjugateGCuda, float4 *conjugateHCuda,
