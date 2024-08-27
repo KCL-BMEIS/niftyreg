@@ -963,7 +963,7 @@ int main(int argc, char **argv)
 
    time_t end;
    time( &end );
-   int minutes = Floor(float(end-start)/60.0f);
+   int minutes = Floor<int>(float(end-start)/60.0f);
    int seconds = (int)(end-start - 60*minutes);
    NR_COUT << "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n";
    if(flag->locality)

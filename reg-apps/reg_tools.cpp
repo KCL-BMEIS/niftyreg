@@ -499,8 +499,8 @@ int main(int argc, char **argv)
         reg_tools_changeDatatype<float>(image);
         nifti_image *normImage = nifti_dup(*image);
         HeapSort(static_cast<float *>(normImage->data), normImage->nvox);
-        float minValue = static_cast<float *>(normImage->data)[Floor(03*(int)normImage->nvox/100)];
-        float maxValue = static_cast<float *>(normImage->data)[Floor(97*(int)normImage->nvox/100)];
+        float minValue = static_cast<float *>(normImage->data)[Floor<size_t>(0.03*normImage->nvox)];
+        float maxValue = static_cast<float *>(normImage->data)[Floor<size_t>(0.97*normImage->nvox)];
         reg_tools_subtractValueFromImage(image,normImage,minValue);
         reg_tools_divideValueToImage(normImage,normImage,maxValue-minValue);
         if(flag->outputImageFlag)
@@ -803,10 +803,10 @@ int main(int argc, char **argv)
         // Define the size of the new image
         int newDim[8];
         for(size_t i=0; i<8; ++i) newDim[i]=image->dim[i];
-        newDim[1]=Ceil((float)image->dim[1]*image->pixdim[1]/param->pixdimX);
-        newDim[2]=Ceil((float)image->dim[2]*image->pixdim[2]/param->pixdimY);
+        newDim[1]=Ceil<int>((float)image->dim[1]*image->pixdim[1]/param->pixdimX);
+        newDim[2]=Ceil<int>((float)image->dim[2]*image->pixdim[2]/param->pixdimY);
         if(image->nz>1)
-            newDim[3]=Ceil((float)image->dim[3]*image->pixdim[3]/param->pixdimZ);
+            newDim[3]=Ceil<int>((float)image->dim[3]*image->pixdim[3]/param->pixdimZ);
         // Create the new image
         nifti_image *newImg=nifti_make_new_nim(newDim,image->datatype,true);
         newImg->pixdim[1]=newImg->dx=param->pixdimX;
@@ -954,7 +954,7 @@ int main(int argc, char **argv)
                 for(int y=0; y<image->ny; ++y){
                     for(int x=0; x<image->nx; ++x){
                         size_t outIndex = ((z*image->ny+y)*image->nx+x)*image->nt*image->nu+t;
-                        outPtr[outIndex] = Round(*inPtr);
+                        outPtr[outIndex] = Round<unsigned char>(*inPtr);
                         ++inPtr;
                     }
                 }
@@ -997,8 +997,8 @@ int main(int argc, char **argv)
                     float value = *inPtr * 255.f;
                     size_t outIndex = ((z*image->ny+y)*image->nx+x)*3;
                     if (value > 0)
-                        outPtr[outIndex] = static_cast<unsigned char>(Round(value>255?255:value));
-                    else outPtr[outIndex+1] = static_cast<unsigned char>(Round(-value<-255?-255:-value));
+                        outPtr[outIndex] = Round<unsigned char>(value > 255 ? 255 : value);
+                    else outPtr[outIndex + 1] = Round<unsigned char>(-value < -255 ? -255 : -value);
                     outPtr[outIndex+2] = 0;
                     ++inPtr;
                 }

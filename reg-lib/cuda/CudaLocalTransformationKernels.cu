@@ -304,7 +304,7 @@ __device__ void GetDeformationField3d(float4 *deformationField,
             yVoxel < 0 || yVoxel >= referenceImageDims.y ||
             zVoxel < 0 || zVoxel >= referenceImageDims.z) return;
 
-        nodePre = { Floor(xVoxel), Floor(yVoxel), Floor(zVoxel) };
+        nodePre = { Floor<int>(xVoxel), Floor<int>(yVoxel), Floor<int>(zVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--), zVoxel - float(nodePre.z--) };
     } else { // starting deformation field is blank - !composition
         const auto [x, y, z] = IndexToDims<true>(index, referenceImageDims);
@@ -367,7 +367,7 @@ __device__ void GetDeformationField2d(float4 *deformationField,
         if (xVoxel < 0 || xVoxel >= referenceImageDims.x ||
             yVoxel < 0 || yVoxel >= referenceImageDims.y) return;
 
-        nodePre = { Floor(xVoxel), Floor(yVoxel) };
+        nodePre = { Floor<int>(xVoxel), Floor<int>(yVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--) };
     } else { // starting deformation field is blank - !composition
         const auto [x, y, z] = IndexToDims<false>(index, referenceImageDims);
@@ -556,7 +556,7 @@ __global__ void GetJacobianValues2d(float *jacobianMatrices,
         const auto [x, y, z] = IndexToDims<false>(tid, referenceImageDims);
 
         // the "nearest previous" node is determined [0,0,0]
-        const int2 nodePre = { Floor((float)x / controlPointSpacing.x), Floor((float)y / controlPointSpacing.y) };
+        const int2 nodePre = { Floor<int>((float)x / controlPointSpacing.x), Floor<int>((float)y / controlPointSpacing.y) };
 
         float xBasis[4], yBasis[4], xFirst[4], yFirst[4], relative;
 
@@ -624,9 +624,9 @@ __global__ void GetJacobianValues3d(float *jacobianMatrices,
 
         // the "nearest previous" node is determined [0,0,0]
         const int3 nodePre = {
-            Floor((float)x / controlPointSpacing.x),
-            Floor((float)y / controlPointSpacing.y),
-            Floor((float)z / controlPointSpacing.z)
+            Floor<int>((float)x / controlPointSpacing.x),
+            Floor<int>((float)y / controlPointSpacing.y),
+            Floor<int>((float)z / controlPointSpacing.z)
         };
 
         extern __shared__ float yFirst[];
@@ -872,14 +872,14 @@ __global__ void ComputeJacGradient2d(float4 *gradient,
         const auto [x, y, z] = IndexToDims<false>(tid, controlPointImageDims);
 
         float2 jacobianGradient{};
-        for (int pixelY = Ceil((y - 3) * controlPointVoxelSpacing.y); pixelY <= Ceil((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
+        for (int pixelY = Ceil<int>((y - 3) * controlPointVoxelSpacing.y); pixelY <= Ceil<int>((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
             if (-1 < pixelY && pixelY < referenceImageDims.y) {
                 const int yPre = (int)((float)pixelY / controlPointVoxelSpacing.y);
                 float basis = (float)pixelY / controlPointVoxelSpacing.y - (float)yPre;
                 float yBasis, yFirst;
                 GetBSplineBasisValue(basis, y - yPre, &yBasis, &yFirst);
 
-                for (int pixelX = Ceil((x - 3) * controlPointVoxelSpacing.x); pixelX <= Ceil((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
+                for (int pixelX = Ceil<int>((x - 3) * controlPointVoxelSpacing.x); pixelX <= Ceil<int>((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
                     if (-1 < pixelX && pixelX < referenceImageDims.x && (yFirst != 0.f || yBasis != 0.f)) {
                         const int xPre = (int)((float)pixelX / controlPointVoxelSpacing.x);
                         basis = (float)pixelX / controlPointVoxelSpacing.x - (float)xPre;
@@ -925,21 +925,21 @@ __global__ void ComputeJacGradient3d(float4 *gradient,
         const auto [x, y, z] = IndexToDims<true>(tid, controlPointImageDims);
 
         float3 jacobianGradient{};
-        for (int pixelZ = Ceil((z - 3) * controlPointVoxelSpacing.z); pixelZ <= Ceil((z + 1) * controlPointVoxelSpacing.z); ++pixelZ) {
+        for (int pixelZ = Ceil<int>((z - 3) * controlPointVoxelSpacing.z); pixelZ <= Ceil<int>((z + 1) * controlPointVoxelSpacing.z); ++pixelZ) {
             if (-1 < pixelZ && pixelZ < referenceImageDims.z) {
                 const int zPre = (int)((float)pixelZ / controlPointVoxelSpacing.z);
                 float basis = (float)pixelZ / controlPointVoxelSpacing.z - (float)zPre;
                 float zBasis, zFirst;
                 GetBSplineBasisValue(basis, z - zPre, &zBasis, &zFirst);
 
-                for (int pixelY = Ceil((y - 3) * controlPointVoxelSpacing.y); pixelY <= Ceil((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
+                for (int pixelY = Ceil<int>((y - 3) * controlPointVoxelSpacing.y); pixelY <= Ceil<int>((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
                     if (-1 < pixelY && pixelY < referenceImageDims.y && (zFirst != 0.f || zBasis != 0.f)) {
                         const int yPre = (int)((float)pixelY / controlPointVoxelSpacing.y);
                         basis = (float)pixelY / controlPointVoxelSpacing.y - (float)yPre;
                         float yBasis, yFirst;
                         GetBSplineBasisValue(basis, y - yPre, &yBasis, &yFirst);
 
-                        for (int pixelX = Ceil((x - 3) * controlPointVoxelSpacing.x); pixelX <= Ceil((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
+                        for (int pixelX = Ceil<int>((x - 3) * controlPointVoxelSpacing.x); pixelX <= Ceil<int>((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
                             if (-1 < pixelX && pixelX < referenceImageDims.x && (yFirst != 0.f || yBasis != 0.f)) {
                                 const int xPre = (int)((float)pixelX / controlPointVoxelSpacing.x);
                                 basis = (float)pixelX / controlPointVoxelSpacing.x - (float)xPre;
@@ -1063,11 +1063,11 @@ __global__ void CorrectFolding3d(float4 *controlPointGrid,
         const auto [x, y, z] = IndexToDims<true>(tid, controlPointImageDims);
 
         float3 foldingCorrection{};
-        for (int pixelZ = Ceil((z - 3) * controlPointVoxelSpacing.z); pixelZ < Ceil((z + 1) * controlPointVoxelSpacing.z); ++pixelZ) {
+        for (int pixelZ = Ceil<int>((z - 3) * controlPointVoxelSpacing.z); pixelZ < Ceil<int>((z + 1) * controlPointVoxelSpacing.z); ++pixelZ) {
             if (-1 < pixelZ && pixelZ < referenceImageDims.z) {
-                for (int pixelY = Ceil((y - 3) * controlPointVoxelSpacing.y); pixelY < Ceil((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
+                for (int pixelY = Ceil<int>((y - 3) * controlPointVoxelSpacing.y); pixelY < Ceil<int>((y + 1) * controlPointVoxelSpacing.y); ++pixelY) {
                     if (-1 < pixelY && pixelY < referenceImageDims.y) {
-                        for (int pixelX = Ceil((x - 3) * controlPointVoxelSpacing.x); pixelX < Ceil((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
+                        for (int pixelX = Ceil<int>((x - 3) * controlPointVoxelSpacing.x); pixelX < Ceil<int>((x + 1) * controlPointVoxelSpacing.x); ++pixelX) {
                             if (-1 < pixelX && pixelX < referenceImageDims.x) {
                                 int jacIndex = (pixelZ * referenceImageDims.y + pixelY) * referenceImageDims.x + pixelX;
                                 float detJac = tex1Dfetch<float>(jacobianDeterminantTexture, jacIndex);
@@ -1141,7 +1141,7 @@ __device__ void DefFieldComposeKernel(float4 *deformationField,
         };
 
         // Linear interpolation
-        const int3 ante = { Floor(voxelPosition.x), Floor(voxelPosition.y), Floor(voxelPosition.z) };
+        const int3 ante = { Floor<int>(voxelPosition.x), Floor<int>(voxelPosition.y), Floor<int>(voxelPosition.z) };
         float relX[2], relY[2], relZ[2];
         relX[1] = voxelPosition.x - (float)ante.x; relX[0] = 1.f - relX[1];
         relY[1] = voxelPosition.y - (float)ante.y; relY[0] = 1.f - relY[1];
@@ -1173,7 +1173,7 @@ __device__ void DefFieldComposeKernel(float4 *deformationField,
         };
 
         // Linear interpolation
-        const int2 ante = { Floor(voxelPosition.x), Floor(voxelPosition.y) };
+        const int2 ante = { Floor<int>(voxelPosition.x), Floor<int>(voxelPosition.y) };
         float relX[2], relY[2];
         relX[1] = voxelPosition.x - (float)ante.x; relX[0] = 1.f - relX[1];
         relY[1] = voxelPosition.y - (float)ante.y; relY[0] = 1.f - relY[1];

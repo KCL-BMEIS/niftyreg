@@ -214,8 +214,8 @@ __global__ void ResampleImage2D(float* floatingImage,
                 // real -> voxel; floating space
                 reg_mat44_mul_cuda<float>(sourceIJKMatrix, world, position);
 
-                previous[0] = Floor(position[0]);
-                previous[1] = Floor(position[1]);
+                previous[0] = Floor<int>(position[0]);
+                previous[1] = Floor<int>(position[1]);
 
                 relative[0] = (double)(position[0]) - (double)(previous[0]);
                 relative[1] = (double)(position[1]) - (double)(previous[1]);
@@ -307,9 +307,9 @@ __global__ void ResampleImage3D(float* floatingImage,
 				// real -> voxel; floating space
 				reg_mat44_mul_cuda<float>(sourceIJKMatrix, world, position);
 
-				previous[0] = Floor(position[0]);
-				previous[1] = Floor(position[1]);
-				previous[2] = Floor(position[2]);
+				previous[0] = Floor<int>(position[0]);
+				previous[1] = Floor<int>(position[1]);
+				previous[2] = Floor<int>(position[2]);
 
                 relative[0] = (double)(position[0]) - (double)(previous[0]);
                 relative[1] = (double)(position[1]) - (double)(previous[1]);

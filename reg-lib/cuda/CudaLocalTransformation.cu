@@ -275,7 +275,7 @@ void ComputeApproxJacobianValues(const nifti_image *controlPointImage,
     // The Jacobian matrix is computed for every control point
     if (controlPointImage->nz > 1) {
         const unsigned blocks = blockSize->GetApproxJacobianValues3d;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = Ceil<unsigned>(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         GetApproxJacobianValues3d<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
@@ -283,7 +283,7 @@ void ComputeApproxJacobianValues(const nifti_image *controlPointImage,
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = blockSize->GetApproxJacobianValues2d;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = Ceil<unsigned>(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         GetApproxJacobianValues2d<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
@@ -311,7 +311,7 @@ void ComputeJacobianValues(const nifti_image *controlPointImage,
     // The Jacobian matrix is computed for every voxel
     if (controlPointImage->nz > 1) {
         const unsigned blocks = blockSize->GetJacobianValues3d;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
+        const unsigned grids = Ceil<unsigned>(sqrtf((float)voxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         // 8 floats of shared memory are allocated per thread
@@ -322,7 +322,7 @@ void ComputeJacobianValues(const nifti_image *controlPointImage,
         NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
     } else {
         const unsigned blocks = blockSize->GetJacobianValues2d;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)voxelNumber / (float)blocks));
+        const unsigned grids = Ceil<unsigned>(sqrtf((float)voxelNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         GetJacobianValues2d<<<gridDims, blockDims>>>(jacobianMatricesCuda, jacobianDetCuda, *controlPointTexture,
@@ -360,7 +360,7 @@ double GetJacobianPenaltyTerm(const nifti_image *referenceImage,
 
     // The Jacobian determinant are squared and logged (might not be english but will do)
     const unsigned blocks = CudaContext::GetBlockSize()->LogSquaredValues;
-    const unsigned grids = (unsigned)Ceil(sqrtf((float)jacNumber / (float)blocks));
+    const unsigned grids = Ceil<unsigned>(sqrtf((float)jacNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     LogSquaredValues<<<gridDims, blockDims>>>(jacobianDetCuda, (unsigned)jacNumber);
@@ -412,7 +412,7 @@ void GetJacobianPenaltyTermGradient(const nifti_image *referenceImage,
     if (approx) {
         if (controlPointImage->nz > 1) {
             const unsigned blocks = blockSize->ComputeApproxJacGradient3d;
-            const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
+            const unsigned grids = Ceil<unsigned>(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             ComputeApproxJacGradient3d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
@@ -421,7 +421,7 @@ void GetJacobianPenaltyTermGradient(const nifti_image *referenceImage,
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         } else {
             const unsigned blocks = blockSize->ComputeApproxJacGradient2d;
-            const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
+            const unsigned grids = Ceil<unsigned>(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             ComputeApproxJacGradient2d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
@@ -436,7 +436,7 @@ void GetJacobianPenaltyTermGradient(const nifti_image *referenceImage,
                                                             controlPointImage->dz / referenceImage->dz);
         if (controlPointImage->nz > 1) {
             const unsigned blocks = blockSize->ComputeJacGradient3d;
-            const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
+            const unsigned grids = Ceil<unsigned>(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             ComputeJacGradient3d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
@@ -446,7 +446,7 @@ void GetJacobianPenaltyTermGradient(const nifti_image *referenceImage,
             NR_CUDA_CHECK_KERNEL(gridDims, blockDims);
         } else {
             const unsigned blocks = blockSize->ComputeJacGradient2d;
-            const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
+            const unsigned grids = Ceil<unsigned>(sqrtf((float)controlPointNumber / (float)blocks));
             const dim3 gridDims(grids, grids, 1);
             const dim3 blockDims(blocks, 1, 1);
             ComputeJacGradient2d<<<gridDims, blockDims>>>(transGradientCuda, *jacobianDeterminantTexture,
@@ -491,7 +491,7 @@ double CorrectFolding(const nifti_image *referenceImage,
     NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDet2Cuda, jacobianDetSize));
     NR_CUDA_SAFE_CALL(cudaMemcpy(jacobianDet2Cuda, jacobianDetCuda, jacobianDetSize, cudaMemcpyDeviceToDevice));
     const unsigned blocks = blockSize->LogSquaredValues;
-    const unsigned grids = (unsigned)Ceil(sqrtf((float)jacNumber / (float)blocks));
+    const unsigned grids = Ceil<unsigned>(sqrtf((float)jacNumber / (float)blocks));
     const dim3 gridDims(grids, grids, 1);
     const dim3 blockDims(blocks, 1, 1);
     LogSquaredValues<<<gridDims, blockDims>>>(jacobianDet2Cuda, (unsigned)jacNumber);
@@ -520,7 +520,7 @@ double CorrectFolding(const nifti_image *referenceImage,
     auto jacobianMatricesTexture = Cuda::CreateTextureObject(jacobianMatricesCuda, 9 * jacNumber, cudaChannelFormatKindFloat, 1);
     if (approx) {
         const unsigned blocks = blockSize->ApproxCorrectFolding3d;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = Ceil<unsigned>(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         ApproxCorrectFolding3d<<<gridDims, blockDims>>>(controlPointImageCuda, *jacobianDeterminantTexture,
@@ -533,7 +533,7 @@ double CorrectFolding(const nifti_image *referenceImage,
                                                             controlPointImage->dy / referenceImage->dy,
                                                             controlPointImage->dz / referenceImage->dz);
         const unsigned blocks = blockSize->CorrectFolding3d;
-        const unsigned grids = (unsigned)Ceil(sqrtf((float)controlPointNumber / (float)blocks));
+        const unsigned grids = Ceil<unsigned>(sqrtf((float)controlPointNumber / (float)blocks));
         const dim3 gridDims(grids, grids, 1);
         const dim3 blockDims(blocks, 1, 1);
         CorrectFolding3d<<<gridDims, blockDims>>>(controlPointImageCuda, *jacobianDeterminantTexture,
@@ -691,7 +691,7 @@ void GetDeformationFieldFromFlowField(nifti_image *flowField,
         squaringNumber = squaringNumber < 6 ? 6 : squaringNumber;
         // Set the number of squaring step in the flow field
         if (fabs(flowField->intent_p2) != squaringNumber)
-            NR_WARN("Changing from " << Round(fabs(flowField->intent_p2)) << " to " << abs(squaringNumber) <<
+            NR_WARN("Changing from " << Round<int>(fabs(flowField->intent_p2)) << " to " << abs(squaringNumber) <<
                     " squaring step (equivalent to scaling down by " << (int)pow(2.0f, squaringNumber) << ")");
         // Update the number of squaring step required
         flowField->intent_p2 = static_cast<float>(flowField->intent_p2 >= 0 ? squaringNumber : -squaringNumber);

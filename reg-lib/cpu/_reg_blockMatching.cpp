@@ -232,10 +232,10 @@ void initialise_block_matching_method(nifti_image * reference,
    }
 
    params->voxelCaptureRange = 3;
-   params->blockNumber[0] = Ceil((double)reference->nx / (double)BLOCK_WIDTH);
-   params->blockNumber[1] = Ceil((double)reference->ny / (double)BLOCK_WIDTH);
+   params->blockNumber[0] = Ceil<unsigned>((double)reference->nx / (double)BLOCK_WIDTH);
+   params->blockNumber[1] = Ceil<unsigned>((double)reference->ny / (double)BLOCK_WIDTH);
    if (reference->nz > 1) {
-      params->blockNumber[2] = Ceil((double)reference->nz / (double)BLOCK_WIDTH);
+      params->blockNumber[2] = Ceil<unsigned>((double)reference->nz / (double)BLOCK_WIDTH);
       params->dim = 3;
    }
    else {

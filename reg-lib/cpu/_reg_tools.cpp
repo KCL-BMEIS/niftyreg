@@ -1368,7 +1368,7 @@ void reg_downsampleImage(nifti_image *image, int type, bool *downsampleAxis) {
     int oldDim[4];
     for (int i = 1; i < 4; i++) {
         oldDim[i] = image->dim[i];
-        if (image->dim[i] > 1 && downsampleAxis[i]) image->dim[i] = Ceil(image->dim[i] / 2.0);
+        if (image->dim[i] > 1 && downsampleAxis[i]) image->dim[i] = Ceil<int>(image->dim[i] / 2.0);
         if (image->pixdim[i] > 0 && downsampleAxis[i]) image->pixdim[i] = image->pixdim[i] * 2.0f;
     }
     image->nx = image->dim[1];
@@ -1446,9 +1446,9 @@ void reg_downsampleImage(nifti_image *image, int type, bool *downsampleAxis) {
                         z * image->qto_xyz.m[2][2] +
                         image->qto_xyz.m[2][3];
                     // Extract the position in voxel in the old image;
-                    position[0] = Round(real[0] * real2Voxel_qform.m[0][0] + real[1] * real2Voxel_qform.m[0][1] + real[2] * real2Voxel_qform.m[0][2] + real2Voxel_qform.m[0][3]);
-                    position[1] = Round(real[0] * real2Voxel_qform.m[1][0] + real[1] * real2Voxel_qform.m[1][1] + real[2] * real2Voxel_qform.m[1][2] + real2Voxel_qform.m[1][3]);
-                    position[2] = Round(real[0] * real2Voxel_qform.m[2][0] + real[1] * real2Voxel_qform.m[2][1] + real[2] * real2Voxel_qform.m[2][2] + real2Voxel_qform.m[2][3]);
+                    position[0] = Round<int>(real[0] * real2Voxel_qform.m[0][0] + real[1] * real2Voxel_qform.m[0][1] + real[2] * real2Voxel_qform.m[0][2] + real2Voxel_qform.m[0][3]);
+                    position[1] = Round<int>(real[0] * real2Voxel_qform.m[1][0] + real[1] * real2Voxel_qform.m[1][1] + real[2] * real2Voxel_qform.m[1][2] + real2Voxel_qform.m[1][3]);
+                    position[2] = Round<int>(real[0] * real2Voxel_qform.m[2][0] + real[1] * real2Voxel_qform.m[2][1] + real[2] * real2Voxel_qform.m[2][2] + real2Voxel_qform.m[2][3]);
                     if (oldDim[3] == 1) position[2] = 0;
                     // Nearest neighbour is used as downsampling ratio is constant
                     intensity = std::numeric_limits<ImageType>::quiet_NaN();

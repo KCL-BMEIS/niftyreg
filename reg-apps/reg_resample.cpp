@@ -483,7 +483,7 @@ int main(int argc, char **argv)
                                   param->interpolation,
                                   param->paddingValue,
                                   jacobian,
-                                  (char)Round(param->PSF_Algorithm));
+                                  Round<char>(param->PSF_Algorithm));
             NR_DEBUG("PSF resampling completed");
             free(jacobian);
          }

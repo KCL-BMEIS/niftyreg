@@ -892,9 +892,9 @@ double reg_spline_getLandmarkDistance_core(const nifti_image *controlPointImage,
         Mat44Mul(*gridRealToVox, refPosition, defPosition);
 
         // Extract the corresponding nodes
-        previous[0] = Floor(defPosition[0]) - 1;
-        previous[1] = Floor(defPosition[1]) - 1;
-        previous[2] = Floor(defPosition[2]) - 1;
+        previous[0] = Floor<int>(defPosition[0]) - 1;
+        previous[1] = Floor<int>(defPosition[1]) - 1;
+        previous[2] = Floor<int>(defPosition[2]) - 1;
         // Check that the specified landmark belongs to the input image
         if (previous[0] > -1 && previous[0] + 3 < controlPointImage->nx &&
             previous[1] > -1 && previous[1] + 3 < controlPointImage->ny &&
@@ -1005,9 +1005,9 @@ void reg_spline_getLandmarkDistanceGradient_core(const nifti_image *controlPoint
         Mat44Mul(*gridRealToVox, refPosition, defPosition);
         if (imageDim == 2) defPosition[2] = 0;
         // Extract the corresponding nodes
-        previous[0] = Floor(defPosition[0]) - 1;
-        previous[1] = Floor(defPosition[1]) - 1;
-        previous[2] = Floor(defPosition[2]) - 1;
+        previous[0] = Floor<int>(defPosition[0]) - 1;
+        previous[1] = Floor<int>(defPosition[1]) - 1;
+        previous[2] = Floor<int>(defPosition[2]) - 1;
         // Check that the specified landmark belongs to the input image
         if (previous[0] > -1 && previous[0] + 3 < controlPointImage->nx &&
             previous[1] > -1 && previous[1] + 3 < controlPointImage->ny &&

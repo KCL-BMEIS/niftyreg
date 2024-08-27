@@ -397,9 +397,9 @@ void ResampleImage3D(const nifti_image *floatingImage,
                 // real -> voxel; floating space
                 Mat44Mul(*floatingIJKMatrix, world, position);
 
-                previous[0] = Floor(position[0]);
-                previous[1] = Floor(position[1]);
-                previous[2] = Floor(position[2]);
+                previous[0] = Floor<int>(position[0]);
+                previous[1] = Floor<int>(position[1]);
+                previous[2] = Floor<int>(position[2]);
 
                 relative[0] = static_cast<double>(position[0]) - static_cast<double>(previous[0]);
                 relative[1] = static_cast<double>(position[1]) - static_cast<double>(previous[1]);
@@ -547,8 +547,8 @@ void ResampleImage2D(const nifti_image *floatingImage,
                 // real -> voxel; floating space
                 Mat44Mul(*floatingIJKMatrix, world, position);
 
-                previous[0] = Floor(position[0]);
-                previous[1] = Floor(position[1]);
+                previous[0] = Floor<int>(position[0]);
+                previous[1] = Floor<int>(position[1]);
 
                 relative[0] = static_cast<double>(position[0]) - static_cast<double>(previous[0]);
                 relative[1] = static_cast<double>(position[1]) - static_cast<double>(previous[1]);
@@ -818,13 +818,13 @@ void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
 
                             // Interpolate (trilinearly) the deformation field for non-integer positions
                             float scalling = 1.0f;
-                            currentAPre = (float)Floor(currentA + (shiftSamp[0] / warpedImage->pixdim[1]) * scalling);
+                            currentAPre = Floor<float>(currentA + (shiftSamp[0] / warpedImage->pixdim[1]) * scalling);
                             currentARel = currentA + (shiftSamp[0] / warpedImage->pixdim[1] * scalling) - (float)(currentAPre);
 
-                            currentBPre = (float)Floor(currentB + (shiftSamp[1] / warpedImage->pixdim[2]));
+                            currentBPre = Floor<float>(currentB + (shiftSamp[1] / warpedImage->pixdim[2]));
                             currentBRel = currentB + (shiftSamp[1] / warpedImage->pixdim[2] * scalling) - (float)(currentBPre);
 
-                            currentCPre = (float)Floor(currentC + (shiftSamp[2] / warpedImage->pixdim[3] * scalling));
+                            currentCPre = Floor<float>(currentC + (shiftSamp[2] / warpedImage->pixdim[3] * scalling));
                             currentCRel = currentC + (shiftSamp[2] / warpedImage->pixdim[3] * scalling) - (float)(currentCPre);
 
                             // Interpolate the PSF world coordinates
@@ -870,9 +870,9 @@ void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
                                     // real -> voxel; floating space
                                     Mat44Mul(*floatingIJKMatrix, psfWorld, position);
 
-                                    previous[0] = Floor(position[0]);
-                                    previous[1] = Floor(position[1]);
-                                    previous[2] = Floor(position[2]);
+                                    previous[0] = Floor<int>(position[0]);
+                                    previous[1] = Floor<int>(position[1]);
+                                    previous[2] = Floor<int>(position[2]);
 
                                     relative[0] = position[0] - static_cast<double>(previous[0]);
                                     relative[1] = position[1] - static_cast<double>(previous[1]);
@@ -1191,13 +1191,13 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
 
                                 if (psfWeight != 0.f) { // If the relative weight is above 0
                                     // Interpolate (trilinearly) the deformation field for non-integer positions
-                                    currentAPre = (size_t)(currentA + (size_t)Floor(psf_xyz[0] / (float)warpedImage->pixdim[1]));
+                                    currentAPre = currentA + Floor<size_t>(psf_xyz[0] / (float)warpedImage->pixdim[1]);
                                     currentARel = (float)currentA + (float)(psf_xyz[0] / (float)warpedImage->pixdim[1]) - (float)(currentAPre);
 
-                                    currentBPre = (size_t)(currentB + (size_t)Floor(psf_xyz[1] / (float)warpedImage->pixdim[2]));
+                                    currentBPre = currentB + Floor<size_t>(psf_xyz[1] / (float)warpedImage->pixdim[2]);
                                     currentBRel = (float)currentB + (float)(psf_xyz[1] / (float)warpedImage->pixdim[2]) - (float)(currentBPre);
 
-                                    currentCPre = (size_t)(currentC + (size_t)Floor(psf_xyz[2] / (float)warpedImage->pixdim[3]));
+                                    currentCPre = currentC + Floor<size_t>(psf_xyz[2] / (float)warpedImage->pixdim[3]);
                                     currentCRel = (float)currentC + (float)(psf_xyz[2] / (float)warpedImage->pixdim[3]) - (float)(currentCPre);
 
                                     // Interpolate the PSF world coordinates
@@ -1242,9 +1242,9 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
                                         // real -> voxel; floating space
                                         Mat44Mul(*floatingIJKMatrix, psfWorld, position);
 
-                                        previous[0] = Floor(position[0]);
-                                        previous[1] = Floor(position[1]);
-                                        previous[2] = Floor(position[2]);
+                                        previous[0] = Floor<int>(position[0]);
+                                        previous[1] = Floor<int>(position[1]);
+                                        previous[2] = Floor<int>(position[2]);
 
                                         relative[0] = position[0] - static_cast<double>(previous[0]);
                                         relative[1] = position[1] - static_cast<double>(previous[1]);
@@ -1453,10 +1453,10 @@ void reg_bilinearResampleGradient(const nifti_image *floatingImage,
                 floating_mm_to_voxel->m[1][3];
 
             // Extract the floating value using bilinear interpolation
-            anteIntX[0] = Floor(xFloCoord);
-            anteIntX[1] = Ceil(xFloCoord);
-            anteIntY[0] = Floor(yFloCoord);
-            anteIntY[1] = Ceil(yFloCoord);
+            anteIntX[0] = Floor<int>(xFloCoord);
+            anteIntX[1] = Ceil<int>(xFloCoord);
+            anteIntY[0] = Floor<int>(yFloCoord);
+            anteIntY[1] = Ceil<int>(yFloCoord);
             val_x = 0;
             val_y = 0;
             basisX[1] = fabs(xFloCoord - (DataType)anteIntX[0]);
@@ -1633,12 +1633,12 @@ void reg_trilinearResampleGradient(const nifti_image *floatingImage,
                     floating_mm_to_voxel->m[2][3];
 
                 // Extract the floating value using bilinear interpolation
-                anteIntX[0] = Floor(xFloCoord);
-                anteIntX[1] = Ceil(xFloCoord);
-                anteIntY[0] = Floor(yFloCoord);
-                anteIntY[1] = Ceil(yFloCoord);
-                anteIntZ[0] = Floor(zFloCoord);
-                anteIntZ[1] = Ceil(zFloCoord);
+                anteIntX[0] = Floor<int>(xFloCoord);
+                anteIntX[1] = Ceil<int>(xFloCoord);
+                anteIntY[0] = Floor<int>(yFloCoord);
+                anteIntY[1] = Ceil<int>(yFloCoord);
+                anteIntZ[0] = Floor<int>(zFloCoord);
+                anteIntZ[1] = Ceil<int>(zFloCoord);
                 val_x = 0;
                 val_y = 0;
                 val_z = 0;
@@ -1859,9 +1859,9 @@ void TrilinearImageGradient(const nifti_image *floatingImage,
             /* real -> voxel; floating space */
             Mat44Mul(*floatingIJKMatrix, world, position);
 
-            previous[0] = Floor(position[0]);
-            previous[1] = Floor(position[1]);
-            previous[2] = Floor(position[2]);
+            previous[0] = Floor<int>(position[0]);
+            previous[1] = Floor<int>(position[1]);
+            previous[2] = Floor<int>(position[2]);
             // basis values along the x axis
             relative = position[0] - (FieldType)previous[0];
             xBasis[0] = (FieldType)(1.0 - relative);
@@ -2026,8 +2026,8 @@ void BilinearImageGradient(const nifti_image *floatingImage,
             position[0] = world[0] * floatingIJKMatrix->m[0][0] + world[1] * floatingIJKMatrix->m[0][1] + floatingIJKMatrix->m[0][3];
             position[1] = world[0] * floatingIJKMatrix->m[1][0] + world[1] * floatingIJKMatrix->m[1][1] + floatingIJKMatrix->m[1][3];
 
-            previous[0] = Floor(position[0]);
-            previous[1] = Floor(position[1]);
+            previous[0] = Floor<int>(position[0]);
+            previous[1] = Floor<int>(position[1]);
             // basis values along the x axis
             relative = position[0] - (FieldType)previous[0];
             relative = relative > 0 ? relative : 0;
@@ -2136,9 +2136,9 @@ void CubicSplineImageGradient3D(const nifti_image *floatingImage,
             /* real -> voxel; floating space */
             Mat44Mul(*floatingIJKMatrix, world, position);
 
-            previous[0] = Floor(position[0]);
-            previous[1] = Floor(position[1]);
-            previous[2] = Floor(position[2]);
+            previous[0] = Floor<int>(position[0]);
+            previous[1] = Floor<int>(position[1]);
+            previous[2] = Floor<int>(position[2]);
 
             // basis values along the x axis
             relative = position[0] - (FieldType)previous[0];
@@ -2273,8 +2273,8 @@ void CubicSplineImageGradient2D(const nifti_image *floatingImage,
             position[0] = world[0] * floatingIJKMatrix->m[0][0] + world[1] * floatingIJKMatrix->m[0][1] + floatingIJKMatrix->m[0][3];
             position[1] = world[0] * floatingIJKMatrix->m[1][0] + world[1] * floatingIJKMatrix->m[1][1] + floatingIJKMatrix->m[1][3];
 
-            previous[0] = Floor(position[0]);
-            previous[1] = Floor(position[1]);
+            previous[0] = Floor<int>(position[0]);
+            previous[1] = Floor<int>(position[1]);
             // basis values along the x axis
             relative = position[0] - (FieldType)previous[0];
             relative = relative > 0 ? relative : 0;
@@ -2530,7 +2530,7 @@ nifti_image* reg_makeIsotropic(nifti_image *img, int inter) {
     for (size_t i = 0; i < 8; ++i) newDim[i] = img->dim[i];
     for (size_t i = 1; i < 4; ++i) {
         if (i < static_cast<size_t>(img->dim[0] + 1))
-            newDim[i] = Ceil(img->dim[i] * img->pixdim[i] / smallestPixDim);
+            newDim[i] = Ceil<int>(img->dim[i] * img->pixdim[i] / smallestPixDim);
     }
     // Create the new image
     nifti_image *newImg = nifti_make_new_nim(newDim, img->datatype, true);

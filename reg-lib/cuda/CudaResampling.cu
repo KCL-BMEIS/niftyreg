@@ -49,12 +49,12 @@ __inline__ __device__ void TransformInterpolate(const mat44 matrix, const float4
     }
 
     // Compute the linear interpolation
-    previous.x = Floor(voxelDeformation[0]);
-    previous.y = Floor(voxelDeformation[1]);
+    previous.x = Floor<int>(voxelDeformation[0]);
+    previous.y = Floor<int>(voxelDeformation[1]);
     InterpLinearKernel(voxelDeformation[0] - static_cast<T>(previous.x), xBasis);
     InterpLinearKernel(voxelDeformation[1] - static_cast<T>(previous.y), yBasis);
     if constexpr (is3d) {
-        previous.z = Floor(voxelDeformation[2]);
+        previous.z = Floor<int>(voxelDeformation[2]);
         InterpLinearKernel(voxelDeformation[2] - static_cast<T>(previous.z), zBasis);
     }
 }

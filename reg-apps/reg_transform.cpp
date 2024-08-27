@@ -398,7 +398,7 @@ int main(int argc, char **argv) {
             if (affineTransformation != nullptr) {
                 reg_affine_getDeformationField(affineTransformation, outputTransformationImage);
             } else {
-                switch (Round(inputTransformationImage->intent_p1)) {
+                switch (Round<int>(inputTransformationImage->intent_p1)) {
                 case DEF_FIELD:
                     NR_INFO("The specified transformation is a deformation field:");
                     NR_INFO(inputTransformationImage->fname);
@@ -468,7 +468,7 @@ int main(int argc, char **argv) {
         }
         // Save the generated transformation
         reg_io_WriteImageFile(outputTransformationImage, param->outputTransName);
-        switch (Round(outputTransformationImage->intent_p1)) {
+        switch (Round<int>(outputTransformationImage->intent_p1)) {
         case DEF_FIELD:
             NR_INFO("The deformation field has been saved as:");
             NR_INFO(param->outputTransName);
@@ -593,7 +593,7 @@ int main(int argc, char **argv) {
             output1TransImage->data = calloc(output1TransImage->nvox, output1TransImage->nbyper);
             if (affine1Trans != nullptr) {
                 reg_affine_getDeformationField(affine1Trans, output1TransImage);
-            } else switch (Round(input1TransImage->intent_p1)) {
+            } else switch (Round<int>(input1TransImage->intent_p1)) {
             case LIN_SPLINE_GRID:
             case CUB_SPLINE_GRID:
                 NR_INFO("Transformation 1 is a spline parametrisation:");
@@ -659,7 +659,7 @@ int main(int argc, char **argv) {
                 reg_affine_getDeformationField(affine2Trans, output2TransImage);
                 reg_defField_compose(output2TransImage, output1TransImage, nullptr);
             } else {
-                switch (Round(input2TransImage->intent_p1)) {
+                switch (Round<int>(input2TransImage->intent_p1)) {
                 case LIN_SPLINE_GRID:
                 case CUB_SPLINE_GRID:
                     NR_INFO("Transformation 2 is a spline parametrisation:");
@@ -821,7 +821,7 @@ int main(int argc, char **argv) {
         if (affineTransformation != nullptr) {
             reg_affine_getDeformationField(affineTransformation, deformationFieldImage);
         } else if (inputTransformationImage != nullptr) {
-            switch (Round(inputTransformationImage->intent_p1)) {
+            switch (Round<int>(inputTransformationImage->intent_p1)) {
             case DEF_FIELD:
                 NR_INFO("The specified transformation is a deformation field:");
                 NR_INFO(inputTransformationImage->fname);
@@ -982,7 +982,7 @@ int main(int argc, char **argv) {
                 NR_ERROR("Error when reading the input image: " << param->inputTransName);
                 return EXIT_FAILURE;
             }
-            switch (Round(inputTransImage->intent_p1)) {
+            switch (Round<int>(inputTransImage->intent_p1)) {
             case LIN_SPLINE_GRID:
             case CUB_SPLINE_GRID:
                 reg_getDisplacementFromDeformation(inputTransImage);
@@ -1099,7 +1099,7 @@ int main(int argc, char **argv) {
         outputTransImage->scl_inter = 0.f;
         outputTransImage->data = malloc(outputTransImage->nvox * outputTransImage->nbyper);
         // Invert the provided
-        switch (Round(inputTransImage->intent_p1)) {
+        switch (Round<int>(inputTransImage->intent_p1)) {
         case DEF_FIELD:
             reg_defFieldInvert(inputTransImage, outputTransImage, 1.0e-6f);
             memset(outputTransImage->descrip, 0, 80);

@@ -59,19 +59,19 @@ template<typename T>
 DEVICE inline T Cube(const T& x) {
     return x * x * x;
 }
-template<typename T>
-DEVICE inline int Floor(const T& x) {
-    const int i = static_cast<int>(x);
-    return i - (x < i);
+template<typename RetT, typename T>
+DEVICE inline RetT Floor(const T& x) {
+    const int64_t i = static_cast<int64_t>(x);
+    return static_cast<RetT>(i - (x < i));
 }
-template<typename T>
-DEVICE inline int Ceil(const T& x) {
-    const int i = static_cast<int>(x);
-    return i + (x > i);
+template<typename RetT, typename T>
+DEVICE inline RetT Ceil(const T& x) {
+    const int64_t i = static_cast<int64_t>(x);
+    return static_cast<RetT>(i + (x > i));
 }
-template<typename T>
-DEVICE inline int Round(const T& x) {
-    return static_cast<int>(x + (x >= 0 ? 0.5 : -0.5));
+template<typename RetT, typename T>
+DEVICE inline RetT Round(const T& x) {
+    return static_cast<RetT>(static_cast<int64_t>(x + (x >= 0 ? 0.5 : -0.5)));
 }
 /* *************************************************************** */
 DEVICE inline void Divide(const int num, const int denom, int& quot, int& rem) {

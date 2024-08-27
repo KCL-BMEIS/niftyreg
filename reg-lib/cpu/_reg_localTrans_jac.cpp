@@ -163,9 +163,9 @@ void reg_linear_spline_jacobian3D(nifti_image *splineControlPoint,
                   // Compute the position in the grid
                   Mat44Mul(transformation,imageCoord,gridCoord);
                   // Compute the anterior node coord
-                  pre[0]=Floor(gridCoord[0]);
-                  pre[1]=Floor(gridCoord[1]);
-                  pre[2]=Floor(gridCoord[2]);
+                  pre[0]=Floor<DataType>(gridCoord[0]);
+                  pre[1]=Floor<DataType>(gridCoord[1]);
+                  pre[2]=Floor<DataType>(gridCoord[2]);
                   int controlPoint_index=(pre[2]*splineControlPoint->ny+pre[1])*splineControlPoint->nx+pre[0];
 
                   jacobianMatrix.m[0][0] = (coeffPtrX[controlPoint_index+1] - coeffPtrX[controlPoint_index]);
@@ -378,8 +378,8 @@ void reg_cubic_spline_jacobian2D(nifti_image *splineControlPoint,
                // Compute the position in the grid
                Mat44Mul(transformation,imageCoord,gridCoord);
                // Compute the anterior node coord
-               pre[0]=Floor(gridCoord[0]);
-               pre[1]=Floor(gridCoord[1]);
+               pre[0]=Floor<int>(gridCoord[0]);
+               pre[1]=Floor<int>(gridCoord[1]);
                // Compute the basis values and their first derivatives
                basis = gridCoord[0] - pre[0];
                get_BSplineBasisValues<DataType>(basis, xBasis, xFirst);
@@ -788,9 +788,9 @@ void reg_cubic_spline_jacobian3D(nifti_image *splineControlPoint,
                   // Compute the position in the grid
                   Mat44Mul(transformation,imageCoord,gridCoord);
                   // Compute the anterior node coord
-                  pre[0]=Floor(gridCoord[0]);
-                  pre[1]=Floor(gridCoord[1]);
-                  pre[2]=Floor(gridCoord[2]);
+                  pre[0]=Floor<int>(gridCoord[0]);
+                  pre[1]=Floor<int>(gridCoord[1]);
+                  pre[2]=Floor<int>(gridCoord[2]);
                   // Compute the basis values and their first derivatives
                   basis = gridCoord[0] - pre[0];
                   get_BSplineBasisValues<DataType>(basis, xBasis, xFirst);
@@ -1476,7 +1476,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
 
                // Loop over all the control points in the surrounding area
 
-               for(pixelY=Ceil((y-3)*gridVoxelSpacing[1]); pixelY<=Ceil((y+1)*gridVoxelSpacing[1]); pixelY++)
+               for(pixelY=Ceil<int>((y-3)*gridVoxelSpacing[1]); pixelY<=Ceil<int>((y+1)*gridVoxelSpacing[1]); pixelY++)
                {
                   if(pixelY>-1 && pixelY<referenceImage->ny)
                   {
@@ -1485,9 +1485,9 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
                      basis=(DataType)pixelY/gridVoxelSpacing[1]-(DataType)yPre;
                      get_BSplineBasisValue<DataType>(basis,y-yPre,yBasis,yFirst);
 
-                     jacIndex = pixelY*referenceImage->nx+Ceil((x-3)*gridVoxelSpacing[0]);
+                     jacIndex = pixelY*referenceImage->nx+Ceil<int>((x-3)*gridVoxelSpacing[0]);
 
-                     for(pixelX=Ceil((x-3)*gridVoxelSpacing[0]); pixelX<=Ceil((x+1)*gridVoxelSpacing[0]); pixelX++)
+                     for(pixelX=Ceil<int>((x-3)*gridVoxelSpacing[0]); pixelX<=Ceil<int>((x+1)*gridVoxelSpacing[0]); pixelX++)
                      {
                         if(pixelX>-1 && pixelX<referenceImage->nx && (yFirst!=0 || yBasis!=0))
                         {
@@ -1740,7 +1740,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
                   jacobianConstraint[0]=jacobianConstraint[1]=jacobianConstraint[2]=0.;
 
                   // Loop over all the control points in the surrounding area
-                  for(pixelZ=Ceil((z-3)*gridVoxelSpacing[2]); pixelZ<=Ceil((z+1)*gridVoxelSpacing[2]); pixelZ++)
+                  for(pixelZ=Ceil<int>((z-3)*gridVoxelSpacing[2]); pixelZ<=Ceil<int>((z+1)*gridVoxelSpacing[2]); pixelZ++)
                   {
                      if(pixelZ>-1 && pixelZ<referenceImage->nz)
                      {
@@ -1749,7 +1749,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
                         basis=(DataType)pixelZ/gridVoxelSpacing[2]-(DataType)zPre;
                         get_BSplineBasisValue<DataType>(basis,z-zPre,zBasis,zFirst);
 
-                        for(pixelY=Ceil((y-3)*gridVoxelSpacing[1]); pixelY<=Ceil((y+1)*gridVoxelSpacing[1]); pixelY++)
+                        for(pixelY=Ceil<int>((y-3)*gridVoxelSpacing[1]); pixelY<=Ceil<int>((y+1)*gridVoxelSpacing[1]); pixelY++)
                         {
                            if(pixelY>-1 && pixelY<referenceImage->ny && (zFirst!=0 || zBasis!=0))
                            {
@@ -1758,9 +1758,9 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
                               basis=(DataType)pixelY/gridVoxelSpacing[1]-(DataType)yPre;
                               get_BSplineBasisValue<DataType>(basis,y-yPre,yBasis,yFirst);
 
-                              jacIndex = (pixelZ*referenceImage->ny+pixelY)*referenceImage->nx+Ceil((x-3)*gridVoxelSpacing[0]);
+                              jacIndex = (pixelZ*referenceImage->ny+pixelY)*referenceImage->nx+Ceil<int>((x-3)*gridVoxelSpacing[0]);
 
-                              for(pixelX=Ceil((x-3)*gridVoxelSpacing[0]); pixelX<=Ceil((x+1)*gridVoxelSpacing[0]); pixelX++)
+                              for(pixelX=Ceil<int>((x-3)*gridVoxelSpacing[0]); pixelX<=Ceil<int>((x+1)*gridVoxelSpacing[0]); pixelX++)
                               {
                                  if(pixelX>-1 && pixelX<referenceImage->nx && (yFirst!=0 || yBasis!=0))
                                  {
@@ -2068,12 +2068,12 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
 
                // Loop over all the control points in the surrounding area
 
-               for(pixelY=Ceil((y-3)*gridVoxelSpacing[1]); pixelY<Floor((y+1)*gridVoxelSpacing[1]); pixelY++)
+               for(pixelY=Ceil<int>((y-3)*gridVoxelSpacing[1]); pixelY<Floor<int>((y+1)*gridVoxelSpacing[1]); pixelY++)
                {
                   if(pixelY>-1 && pixelY<referenceImage->ny)
                   {
 
-                     for(pixelX=Ceil((x-3)*gridVoxelSpacing[0]); pixelX<Floor((x+1)*gridVoxelSpacing[0]); pixelX++)
+                     for(pixelX=Ceil<int>((x-3)*gridVoxelSpacing[0]); pixelX<Floor<int>((x+1)*gridVoxelSpacing[0]); pixelX++)
                      {
                         if(pixelX>-1 && pixelX<referenceImage->nx)
                         {
@@ -2340,17 +2340,17 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
                   correctFolding=false;
 
                   // Loop over all the control points in the surrounding area
-                  for(pixelZ=Ceil((z-3)*gridVoxelSpacing[2]); pixelZ<Floor((z+1)*gridVoxelSpacing[2]); pixelZ++)
+                  for(pixelZ=Ceil<int>((z-3)*gridVoxelSpacing[2]); pixelZ<Floor<int>((z+1)*gridVoxelSpacing[2]); pixelZ++)
                   {
                      if(pixelZ>-1 && pixelZ<referenceImage->nz)
                      {
 
-                        for(pixelY=Ceil((y-3)*gridVoxelSpacing[1]); pixelY<Floor((y+1)*gridVoxelSpacing[1]); pixelY++)
+                        for(pixelY=Ceil<int>((y-3)*gridVoxelSpacing[1]); pixelY<Floor<int>((y+1)*gridVoxelSpacing[1]); pixelY++)
                         {
                            if(pixelY>-1 && pixelY<referenceImage->ny)
                            {
 
-                              for(pixelX=Ceil((x-3)*gridVoxelSpacing[0]); pixelX<Floor((x+1)*gridVoxelSpacing[0]); pixelX++)
+                              for(pixelX=Ceil<int>((x-3)*gridVoxelSpacing[0]); pixelX<Floor<int>((x+1)*gridVoxelSpacing[0]); pixelX++)
                               {
                                  if(pixelX>-1 && pixelX<referenceImage->nx)
                                  {
