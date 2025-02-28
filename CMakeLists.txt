@@ -39,15 +39,20 @@ endif(NOT MSVC)
 # Set the NiftyReg version
 set(NR_VERSION_MAJOR 1)
 set(NR_VERSION_MINOR 6)
-file(STRINGS "niftyreg_build_version.txt" NR_VERSION_BUILD)
-set(NR_VERSION "${NR_VERSION_MAJOR}.${NR_VERSION_MINOR}.${NR_VERSION_BUILD}")
-add_definitions(-DNR_VERSION="${NR_VERSION}")
-# Define the pre-commit hook for developer
+# Use Git commit hash as the build number
 find_package(Git)
 if(GIT_FOUND)
-  message(STATUS "Found Git")
-  execute_process(COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/update_version_hook" "${CMAKE_SOURCE_DIR}/.git/hooks/pre-commit")
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE NR_VERSION_BUILD
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+else(GIT_FOUND)
+  set(NR_VERSION_BUILD "unknown")
 endif(GIT_FOUND)
+set(NR_VERSION "${NR_VERSION_MAJOR}.${NR_VERSION_MINOR}.${NR_VERSION_BUILD}")
+add_definitions(-DNR_VERSION="${NR_VERSION}")
 #-----------------------------------------------------------------------------
 if(MSVC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D_CRT_SECURE_NO_WARNINGS")
