@@ -13,6 +13,12 @@ endif(NOT Catch2_FOUND)
 # Build the coverage test
 option(WITH_COVERAGE "Set up the C, CXX and linker flags to run the coverage test" OFF)
 if(WITH_COVERAGE)
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message(FATAL_ERROR "Coverage testing aborted. Reconfigure with -DCMAKE_BUILD_TYPE=Debug")
+  endif()
+  set(BUILD_ALL_DEP ON CACHE BOOL "All the dependencies are build" FORCE)
+  set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY_ONCE TRUE)
+
   if(UNIX)
     # Check prerequisites
     find_program(LCOV lcov REQUIRED)
@@ -25,13 +31,6 @@ if(WITH_COVERAGE)
     if(NOT GENHTML)
       message(FATAL_ERROR "genhtml not found! Aborting...")
     endif()
-
-    # Set the build type to debug
-    set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY_ONCE TRUE)
-    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
-      "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
-      FORCE)
-    set(BUILD_ALL_DEP ON CACHE BOOL "All the dependencies are build" FORCE)
 
     # Set the flags for coverage
     set(CMAKE_CXX_FLAGS_DEBUG
@@ -60,13 +59,6 @@ if(WITH_COVERAGE)
     if(NOT OPENCPPCOVERAGE)
       message(FATAL_ERROR "OpenCppCoverage not found! Aborting...")
     endif()
-
-    # Set the build type to debug
-    set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY_ONCE TRUE)
-    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
-      "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
-      FORCE)
-    set(BUILD_ALL_DEP ON CACHE BOOL "All the dependencies are build" FORCE)
 
     # Only include the reg-lib directory as coverage source
     string(REPLACE "/" "\\" COVERAGE_SOURCE "${CMAKE_SOURCE_DIR}/reg-lib")
