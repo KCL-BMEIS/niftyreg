@@ -16,26 +16,6 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(FATAL_ERROR "You may need to remove CMakeCache.txt and CMakeFiles.")
 endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 #-----------------------------------------------------------------------------
-if(NOT MSVC)
-  if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release")
-  endif(NOT CMAKE_BUILD_TYPE)
-  string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_tolower)
-  if(NOT cmake_build_type_tolower STREQUAL "debug"
-     AND NOT cmake_build_type_tolower STREQUAL "release"
-     AND NOT cmake_build_type_tolower STREQUAL "relwithdebinfo")
-    message("Unknown build type \"${CMAKE_BUILD_TYPE}\".")
-    message(FATAL_ERROR "Allowed values are Debug, Release, RelWithDebInfo (case-insensitive).")
-  endif(NOT cmake_build_type_tolower STREQUAL "debug"
-     AND NOT cmake_build_type_tolower STREQUAL "release"
-     AND NOT cmake_build_type_tolower STREQUAL "relwithdebinfo")
-  if(cmake_build_type_tolower STREQUAL "debug")
-    set(DEBUG_MODE ON)
-  elseif(cmake_build_type_tolower STREQUAL "release")
-    set(DEBUG_MODE OFF)
-  endif(cmake_build_type_tolower STREQUAL "debug")
-endif(NOT MSVC)
-#-----------------------------------------------------------------------------
 # Set the NiftyReg version
 set(NR_VERSION_MAJOR 1)
 set(NR_VERSION_MINOR 6)
