@@ -59,18 +59,32 @@ template<typename T>
 DEVICE inline T Cube(const T& x) {
     return x * x * x;
 }
-template<typename RetT, typename T>
-DEVICE inline RetT Floor(const T& x) {
+template<typename RetT>
+DEVICE inline RetT Floor(const float x) {
+    const int i = static_cast<int>(x);
+    return static_cast<RetT>(i - (x < i));
+}
+template<typename RetT>
+DEVICE inline RetT Floor(const double x) {
     const int64_t i = static_cast<int64_t>(x);
     return static_cast<RetT>(i - (x < i));
 }
-template<typename RetT, typename T>
-DEVICE inline RetT Ceil(const T& x) {
+template<typename RetT>
+DEVICE inline RetT Ceil(const float x) {
+    const int i = static_cast<int>(x);
+    return static_cast<RetT>(i + (x > i));
+}
+template<typename RetT>
+DEVICE inline RetT Ceil(const double x) {
     const int64_t i = static_cast<int64_t>(x);
     return static_cast<RetT>(i + (x > i));
 }
-template<typename RetT, typename T>
-DEVICE inline RetT Round(const T& x) {
+template<typename RetT>
+DEVICE inline RetT Round(const float x) {
+    return static_cast<RetT>(static_cast<int>(x + (x >= 0 ? 0.5f : -0.5f)));
+}
+template<typename RetT>
+DEVICE inline RetT Round(const double x) {
     return static_cast<RetT>(static_cast<int64_t>(x + (x >= 0 ? 0.5 : -0.5)));
 }
 /* *************************************************************** */
@@ -129,7 +143,7 @@ template<class T>
 void Matrix2dVectorMultiply(T **mat, const size_t m, const size_t n, T *vect, T *res);
 /* *************************************************************** */
 /// @brief Subtract two 3-by-3 matrices
-DEVICE inline mat33 operator-(const mat33 A, const mat33 B) {
+DEVICE inline mat33 operator-(const mat33& A, const mat33& B) {
     mat33 R;
     for (int i = 0; i < 3; i++)
         for (int j = 0; j < 3; j++)
@@ -138,7 +152,7 @@ DEVICE inline mat33 operator-(const mat33 A, const mat33 B) {
 }
 /* *************************************************************** */
 /// @brief Multiply two 3-by-3 matrices
-DEVICE inline mat33 operator*(const mat33 A, const mat33 B) {
+DEVICE inline mat33 operator*(const mat33& A, const mat33& B) {
     mat33 R;
     for (int i = 0; i < 3; i++)
         for (int j = 0; j < 3; j++)
@@ -149,7 +163,7 @@ DEVICE inline mat33 operator*(const mat33 A, const mat33 B) {
 }
 /* *************************************************************** */
 /// @brief Multiply a vector with a 3-by-3 matrix
-DEVICE inline void Mat33Mul(const mat33 mat, const float(&in)[2], float(&out)[2]) {
+DEVICE inline void Mat33Mul(const mat33& mat, const float (&in)[2], float (&out)[2]) {
     out[0] = static_cast<float>(static_cast<double>(in[0]) * static_cast<double>(mat.m[0][0]) +
                                 static_cast<double>(in[1]) * static_cast<double>(mat.m[0][1]) +
                                 static_cast<double>(mat.m[0][2]));
@@ -159,7 +173,7 @@ DEVICE inline void Mat33Mul(const mat33 mat, const float(&in)[2], float(&out)[2]
 }
 /* *************************************************************** */
 /// @brief Multiply a vector with a 3-by-3 matrix
-DEVICE inline void Mat33Mul(const mat44 mat, const float (&in)[2], float (&out)[2]) {
+DEVICE inline void Mat33Mul(const mat44& mat, const float (&in)[2], float (&out)[2]) {
     out[0] = static_cast<float>(static_cast<double>(in[0]) * static_cast<double>(mat.m[0][0]) +
                                 static_cast<double>(in[1]) * static_cast<double>(mat.m[0][1]) +
                                 static_cast<double>(mat.m[0][3]));
@@ -170,7 +184,7 @@ DEVICE inline void Mat33Mul(const mat44 mat, const float (&in)[2], float (&out)[
 /* *************************************************************** */
 /// @brief Multiply a scalar with a 3-by-3 matrix multiplied by a vector
 template<bool is3d>
-DEVICE inline void Mat33Mul(const mat33 mat, const float (&in)[3], const float weight, float (&out)[3]) {
+DEVICE inline void Mat33Mul(const mat33& mat, const float (&in)[3], const float weight, float (&out)[3]) {
     out[0] = weight * (mat.m[0][0] * in[0] + mat.m[1][0] * in[1] + mat.m[2][0] * in[2]);
     out[1] = weight * (mat.m[0][1] * in[0] + mat.m[1][1] * in[1] + mat.m[2][1] * in[2]);
     if constexpr (is3d)
@@ -224,7 +238,7 @@ template<class T>
 void HeapSort(T *array_tmp, int blockNum);
 void HeapSort(float *array_tmp, int *index_tmp, int blockNum);
 /* *************************************************************** */
-DEVICE inline bool operator==(const mat44 A, const mat44 B) {
+DEVICE inline bool operator==(const mat44& A, const mat44& B) {
     for (char i = 0; i < 4; ++i)
         for (char j = 0; j < 4; ++j)
             if (A.m[i][j] != B.m[i][j])
@@ -232,12 +246,12 @@ DEVICE inline bool operator==(const mat44 A, const mat44 B) {
     return true;
 }
 /* *************************************************************** */
-DEVICE inline bool operator!=(const mat44 A, const mat44 B) {
+DEVICE inline bool operator!=(const mat44& A, const mat44& B) {
     return !(A == B);
 }
 /* *************************************************************** */
 /// @brief Multiply two 4-by-4 matrices
-DEVICE inline mat44 operator*(const mat44 A, const mat44 B) {
+DEVICE inline mat44 operator*(const mat44& A, const mat44& B) {
     mat44 R;
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
@@ -249,7 +263,7 @@ DEVICE inline mat44 operator*(const mat44 A, const mat44 B) {
 }
 /* *************************************************************** */
 /// @brief Multiply a 4-by-4 matrix with a scalar
-DEVICE inline mat44 operator*(const mat44 mat, const double scalar) {
+DEVICE inline mat44 operator*(const mat44& mat, const double scalar) {
     mat44 out;
     out.m[0][0] = mat.m[0][0] * scalar;
     out.m[0][1] = mat.m[0][1] * scalar;
@@ -272,7 +286,7 @@ DEVICE inline mat44 operator*(const mat44 mat, const double scalar) {
 /* *************************************************************** */
 /// @brief Multiply a vector with a 4-by-4 matrix
 template<class T, bool is3d=true>
-DEVICE inline void Mat44Mul(const mat44 mat, const T(&in)[3], T(&out)[3]) {
+DEVICE inline void Mat44Mul(const mat44& mat, const T (&in)[3], T (&out)[3]) {
     out[0] = static_cast<T>(static_cast<double>(mat.m[0][0]) * static_cast<double>(in[0]) +
                             static_cast<double>(mat.m[0][1]) * static_cast<double>(in[1]) +
                             static_cast<double>(mat.m[0][2]) * static_cast<double>(in[2]) +
@@ -289,7 +303,7 @@ DEVICE inline void Mat44Mul(const mat44 mat, const T(&in)[3], T(&out)[3]) {
 }
 /* *************************************************************** */
 /// @brief Add two 4-by-4 matrices
-DEVICE inline mat44 operator+(const mat44 A, const mat44 B) {
+DEVICE inline mat44 operator+(const mat44& A, const mat44& B) {
     mat44 R;
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
@@ -298,7 +312,7 @@ DEVICE inline mat44 operator+(const mat44 A, const mat44 B) {
 }
 /* *************************************************************** */
 /// @brief Subtract two 4-by-4 matrices
-DEVICE inline mat44 operator-(const mat44 A, const mat44 B) {
+DEVICE inline mat44 operator-(const mat44& A, const mat44& B) {
     mat44 R;
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
@@ -323,7 +337,7 @@ template<class T>
 T Mat44Det(const mat44 *A);
 /* *************************************************************** */
 /// @brief Display a mat44 matrix
-void Mat44Disp(const mat44 mat, const std::string& title);
+void Mat44Disp(const mat44& mat, const std::string& title);
 /* *************************************************************** */
 //is it square distance or just distance?
 DEVICE inline double SquareDistance2d(const float *first_point2D, const float *second_point2D) {

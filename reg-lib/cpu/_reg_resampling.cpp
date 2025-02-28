@@ -458,7 +458,7 @@ void ResampleImage3D(const nifti_image *floatingImage,
                 }
             }
 
-            warpedIntensity[index] = static_cast<FloatingType>(NiftiImage::clampData(floatingImage, intensity));
+            warpedIntensity[index] = NiftiImage::clampData<FloatingType>(floatingImage, intensity);
         }
     }
 }
@@ -576,7 +576,7 @@ void ResampleImage2D(const nifti_image *floatingImage,
                     intensity += xTempNewValue * yBasis[b];
                 }
 
-                warpedIntensity[index] = static_cast<FloatingType>(NiftiImage::clampData(floatingImage, intensity));
+                warpedIntensity[index] = NiftiImage::clampData<FloatingType>(floatingImage, intensity);
             }
         }
     }
@@ -925,7 +925,7 @@ void ResampleImage3D_PSF_Sinc(const nifti_image *floatingImage,
                 }
             } // if in mask
 
-            warpedIntensity[index] = static_cast<FloatingType>(NiftiImage::clampData(floatingImage, intensity));
+            warpedIntensity[index] = NiftiImage::clampData<FloatingType>(floatingImage, intensity);
         }
     }
 }
@@ -1299,7 +1299,7 @@ void ResampleImage3D_PSF(const nifti_image *floatingImage,
                 }
             } // if in mask
 
-            warpedIntensity[index] = static_cast<FloatingType>(NiftiImage::clampData(floatingImage, intensity));
+            warpedIntensity[index] = NiftiImage::clampData<FloatingType>(floatingImage, intensity);
         }
     }
 }

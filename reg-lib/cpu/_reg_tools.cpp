@@ -1881,18 +1881,13 @@ DataType reg_tools_getMinMaxValue(const nifti_image *image, int timePoint, bool 
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(image, 3);
     const float sclSlope = image->scl_slope == 0 ? 1 : image->scl_slope;
 
-    // The min/max function
-    const DataType& (*minMax)(const DataType&, const DataType&);
-    if (isMin) minMax = std::min<DataType>;
-    else minMax = std::max<DataType>;
-
     for (int time = 0; time < image->nt; ++time) {
         if (time == timePoint || timePoint == -1) {
             for (int u = 0; u < image->nu; ++u) {
                 const DataType *currentVolumePtr = &imgPtr[(u * image->nt + time) * voxelNumber];
                 for (size_t i = 0; i < voxelNumber; ++i) {
                     DataType currentVal = (DataType)((float)currentVolumePtr[i] * sclSlope + image->scl_inter);
-                    retValue = minMax(currentVal, retValue);
+                    retValue = isMin ? std::min<DataType>(retValue, currentVal) : std::max<DataType>(retValue, currentVal);
                 }
             }
         }

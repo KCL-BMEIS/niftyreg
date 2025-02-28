@@ -314,7 +314,7 @@ void Mat33Diagonalize(const mat33 *A, mat33 *Q, mat33 *D) {
     }
 }
 /* *************************************************************** */
-void Mat44Disp(const mat44 mat, const std::string& title) {
+void Mat44Disp(const mat44& mat, const std::string& title) {
     NR_COUT << title << ":\n"
         << mat.m[0][0] << "\t" << mat.m[0][1] << "\t" << mat.m[0][2] << "\t" << mat.m[0][3] << "\n"
         << mat.m[1][0] << "\t" << mat.m[1][1] << "\t" << mat.m[1][2] << "\t" << mat.m[1][3] << "\n"

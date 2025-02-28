@@ -236,7 +236,7 @@ void ClAladinContent::DownloadImage(NiftiImage& image, cl_mem memoryObject, int 
         image.realloc();
         DataType *data = static_cast<DataType*>(image->data);
         for (size_t i = 0; i < size; ++i)
-            data[i] = static_cast<DataType>(image.clampData(buffer[i]));
+            data[i] = image.clampData<DataType>(buffer[i]);
     }, image.getDataType());
 }
 /* *************************************************************** */

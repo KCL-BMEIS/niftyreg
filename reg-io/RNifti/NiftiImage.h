@@ -1912,32 +1912,37 @@ public:
      * @param value The image value to be clamped
      * @return The clamped value
     **/
-    static long double clampData(const nifti_image *image, const long double value)
+    template<typename RetT, typename T>
+    static RetT clampData (const nifti_image *image, const T value)
     {
-        return std::visit([&](auto&& dataType) -> long double {
+        return std::visit([&](auto&& dataType) -> RetT {
             using DataType = std::decay_t<decltype(dataType)>;
 
-            if (image->datatype == DT_FLOAT32 || image->datatype == DT_FLOAT64)
-                return value;
+            if constexpr (std::is_floating_point_v<DataType>)
+                return static_cast<RetT>(value);
             if (value != value) return 0; // Check for NaN
             if (value < std::numeric_limits<DataType>::min())
-                return std::numeric_limits<DataType>::min();
-            else if (value > static_cast<long double>(std::numeric_limits<DataType>::max()))
-                return static_cast<long double>(std::numeric_limits<DataType>::max());
-            else
-                return value;
+                return static_cast<RetT>(std::numeric_limits<DataType>::min());
+            // To handle the case, implicit conversion from 'long long' to 'float/double' changes value from 9223372036854775807 to 9223372036854775808
+            // To handle the case, implicit conversion from 'unsigned long long' to 'float/double' changes value from 18446744073709551615 to 18446744073709551616
+            constexpr auto maxVal = std::is_floating_point_v<T> ? static_cast<T>(std::numeric_limits<DataType>::max()) : std::numeric_limits<DataType>::max();
+            if (value > maxVal)
+                return static_cast<RetT>(std::numeric_limits<DataType>::max());
+            return static_cast<RetT>(value);
         }, NiftiImage::getDataType(image));
     }
 
     // Delete the overload that accepts NiftiImage; use the member function instead
-    static long double clampData (const NiftiImage& image, const long double value) = delete;
+    template<typename RetT, typename T>
+    static RetT clampData (const NiftiImage& image, const T value) = delete;
 
     /**
      * Clamp an image value to the range of the datatype of the image
      * @param value The image value to be clamped
      * @return The clamped value
      */
-    long double clampData (const long double value) const { return clampData(image, value); }
+    template<typename RetT, typename T>
+    RetT clampData (const T value) const { return clampData<RetT>(image, value); }
 
     /**
      * Reallocate the image data, preserving the metadata
