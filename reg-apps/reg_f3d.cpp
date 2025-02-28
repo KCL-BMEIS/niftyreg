@@ -193,8 +193,7 @@ int main(int argc, char **argv) {
             strcmp(argv[i], "-HELP") == 0 ||
             strcmp(argv[i], "--HELP") == 0 ||
             strcmp(argv[i], "-Help") == 0 ||
-            strcmp(argv[i], "--Help") == 0
-            ) {
+            strcmp(argv[i], "--Help") == 0) {
             Usage((argv[0]));
             return EXIT_SUCCESS;
         }

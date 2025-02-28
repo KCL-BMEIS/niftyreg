@@ -65,7 +65,7 @@ option(BUILD_SHARED_LIBS "Build the libraries as shared" OFF)
 option(BUILD_TESTING "To build the unit tests" OFF)
 option(USE_CUDA "To use the CUDA platform" OFF)
 option(USE_OPENCL "To use the OpenCL platform" OFF)
-option(USE_OPENMP "To use openMP for multi-CPU processing" ON)
+option(USE_OPENMP "To use OpenMP for multi-CPU processing" ON)
 option(USE_SSE "To enable SSE computation in some case" ON)
 option(CHECK_GPU "To check if a GPU is available" ON)
 #-----------------------------------------------------------------------------
@@ -73,10 +73,10 @@ option(USE_NRRD "To use the NRRD file format" OFF)
 mark_as_advanced(USE_NRRD)
 #-----------------------------------------------------------------------------
 if(WIN32)
-  set(BUILD_ALL_DEP ON CACHE BOOL "All the dependencies are build" FORCE)
+  set(BUILD_ALL_DEP ON CACHE BOOL "All the dependencies are built" FORCE)
 endif(WIN32)
 #-----------------------------------------------------------------------------
-# All dependencies are build to create the 3DSlicer package
+# All dependencies are built to create the 3DSlicer package
 if(BUILD_NR_SLICER_EXT)
   set(BUILD_ALL_DEP ON)
   mark_as_advanced(FORCE BUILD_ALL_DEP)
@@ -85,7 +85,7 @@ else(BUILD_NR_SLICER_EXT)
 endif(BUILD_NR_SLICER_EXT)
 #-----------------------------------------------------------------------------
 # Z library
-# Try first to find the z library on the system and built is from the sources if it can not be find
+# Try first to find the z library on the system and build it from the sources if it can not be found
 if(NOT BUILD_ALL_DEP)
   find_package(ZLIB)
   if(ZLIB_FOUND)
@@ -178,7 +178,7 @@ endif(USE_SSE)
 if(USE_OPENMP)
   find_package(OpenMP)
   if(NOT OPENMP_FOUND)
-    set(USE_OPENMP OFF CACHE BOOL "To use openMP for multi-CPU processing" FORCE)
+    set(USE_OPENMP OFF CACHE BOOL "To use OpenMP for multi-CPU processing" FORCE)
     message(WARNING "OpenMP does not appear to be supported by your compiler, forcing USE_OPENMP to OFF")
   else(NOT OPENMP_FOUND)
     message(STATUS "Found OpenMP")
