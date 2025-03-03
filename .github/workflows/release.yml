@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-12, windows-2019]
+        os: [ubuntu-20.04, macos-13, windows-2019]
         platform: [cpu, cuda]
         include:
           - platform: cpu
@@ -22,7 +22,7 @@ jobs:
             use-opencl: "ON"
           - os: ubuntu-20.04    # For Ubuntu only
             os-name: "Ubuntu"
-          - os: macos-12        # For macOS only
+          - os: macos-13        # For macOS only
             os-name: "macOS"
             use-opencl: "ON"
           - sudo: "sudo"        # For Ubuntu and macOS
@@ -35,7 +35,7 @@ jobs:
             cxx-compiler: "cl.exe"
           - build_type: "Release" # For all platforms
         exclude:
-          - os: macos-12
+          - os: macos-13
             platform: cuda
 
     steps:
