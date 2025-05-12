@@ -398,9 +398,9 @@ inline void addAttributes (const SEXP pointer, const NiftiImage &source, const b
 template <typename Type, bool alpha>
 inline void NiftiImageData::ConcreteTypeHandler<Type,alpha>::minmax (void *ptr, const size_t length, double *min, double *max) const
 {
-    if (ptr == nullptr || length < 1)
+    if (ptr == nullptr || length == 0)
     {
-        *min = static_cast<double>(std::numeric_limits<Type>::min());
+        *min = static_cast<double>(std::numeric_limits<Type>::lowest());
         *max = static_cast<double>(std::numeric_limits<Type>::max());
     }
     else
@@ -423,9 +423,9 @@ inline void NiftiImageData::ConcreteTypeHandler<Type,alpha>::minmax (void *ptr, 
 template <typename ElementType>
 inline void NiftiImageData::ConcreteTypeHandler<std::complex<ElementType>,false>::minmax (void *ptr, const size_t length, double *min, double *max) const
 {
-    if (ptr == nullptr || length < 1)
+    if (ptr == nullptr || length == 0)
     {
-        *min = static_cast<double>(std::numeric_limits<ElementType>::min());
+        *min = static_cast<double>(std::numeric_limits<ElementType>::lowest());
         *max = static_cast<double>(std::numeric_limits<ElementType>::max());
     }
     else
