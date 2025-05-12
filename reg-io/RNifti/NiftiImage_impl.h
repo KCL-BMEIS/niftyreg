@@ -1859,13 +1859,8 @@ inline NiftiImage & NiftiImage::replaceData (const NiftiImageData &data)
     image->datatype = copy.datatype();
     image->scl_slope = static_cast<scale_t>(copy.slope);
     image->scl_inter = static_cast<scale_t>(copy.intercept);
+    image->cal_min = image->cal_max = 0;
     nifti_datatype_sizes(image->datatype, &image->nbyper, &image->swapsize);
-
-    double min, max;
-    copy.minmax(&min, &max);
-    image->cal_min = static_cast<scale_t>(min);
-    image->cal_max = static_cast<scale_t>(max);
-
     copy.disown();
 
     return *this;
