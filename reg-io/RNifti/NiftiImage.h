@@ -82,15 +82,15 @@ protected:
         virtual ~TypeHandler() {}
         virtual size_t size () const { return 0; }
         virtual bool hasNaN () const { return false; }
-        virtual complex128_t getComplex (void *ptr) const { return complex128_t(0.0, 0.0); }
-        virtual double getDouble (void *ptr) const { return 0.0; }
-        virtual int getInt (void *ptr) const { return 0; }
-        virtual rgba32_t getRgb (void *ptr) const { return rgba32_t(); }
+        virtual complex128_t getComplex (const void *ptr) const { return complex128_t(0.0, 0.0); }
+        virtual double getDouble (const void *ptr) const { return 0.0; }
+        virtual int getInt (const void *ptr) const { return 0; }
+        virtual rgba32_t getRgb (const void *ptr) const { return rgba32_t(); }
         virtual void setComplex (void *ptr, const complex128_t value) const {}
         virtual void setDouble (void *ptr, const double value) const {}
         virtual void setInt (void *ptr, const int value) const {}
         virtual void setRgb (void *ptr, const rgba32_t value) const {}
-        virtual void minmax (void *ptr, const size_t length, double *min, double *max) const { *min = 0.0; *max = 0.0; }
+        virtual std::pair<double, double> minmax (const void *ptr, const size_t length) const { return {0.0, 0.0}; }
     };
 
     /**
@@ -101,9 +101,9 @@ protected:
     {
         size_t size () const { return (sizeof(Type)); }
         bool hasNaN () const { return std::numeric_limits<Type>::has_quiet_NaN; }
-        complex128_t getComplex (void *ptr) const { return complex128_t(static_cast<double>(*static_cast<Type*>(ptr)), 0.0); }
-        double getDouble (void *ptr) const { return static_cast<double>(*static_cast<Type*>(ptr)); }
-        int getInt (void *ptr) const { return static_cast<int>(*static_cast<Type*>(ptr)); }
+        complex128_t getComplex (const void *ptr) const { return complex128_t(static_cast<double>(*static_cast<const Type*>(ptr)), 0.0); }
+        double getDouble (const void *ptr) const { return static_cast<double>(*static_cast<const Type*>(ptr)); }
+        int getInt (const void *ptr) const { return static_cast<int>(*static_cast<const Type*>(ptr)); }
         void setComplex (void *ptr, const complex128_t value) const
         {
             *(static_cast<Type*>(ptr)) = Type(value.real());
@@ -111,7 +111,7 @@ protected:
         }
         void setDouble (void *ptr, const double value) const { *(static_cast<Type*>(ptr)) = Type(value); }
         void setInt (void *ptr, const int value) const { *(static_cast<Type*>(ptr)) = Type(value); }
-        void minmax (void *ptr, const size_t length, double *min, double *max) const;
+        std::pair<double, double> minmax (const void *ptr, const size_t length) const;
     };
 
     template <typename ElementType>
@@ -119,10 +119,10 @@ protected:
     {
         size_t size () const { return (sizeof(ElementType) * 2); }
         bool hasNaN () const { return std::numeric_limits<ElementType>::has_quiet_NaN; }
-        std::complex<ElementType> getNative (void *ptr) const
+        std::complex<ElementType> getNative (const void *ptr) const
         {
-            const ElementType real = *static_cast<ElementType*>(ptr);
-            const ElementType imag = *(static_cast<ElementType*>(ptr) + 1);
+            const ElementType real = *static_cast<const ElementType*>(ptr);
+            const ElementType imag = *(static_cast<const ElementType*>(ptr) + 1);
             return std::complex<ElementType>(real, imag);
         }
         void setNative (void *ptr, const std::complex<ElementType> native) const
@@ -130,24 +130,24 @@ protected:
             *(static_cast<ElementType*>(ptr)) = native.real();
             *(static_cast<ElementType*>(ptr) + 1) = native.imag();
         }
-        complex128_t getComplex (void *ptr) const { return complex128_t(getNative(ptr)); }
-        double getDouble (void *ptr) const { return static_cast<double>(getNative(ptr).real()); }
-        int getInt (void *ptr) const { return static_cast<int>(getNative(ptr).real()); }
+        complex128_t getComplex (const void *ptr) const { return complex128_t(getNative(ptr)); }
+        double getDouble (const void *ptr) const { return static_cast<double>(getNative(ptr).real()); }
+        int getInt (const void *ptr) const { return static_cast<int>(getNative(ptr).real()); }
         void setComplex (void *ptr, const complex128_t value) const { setNative(ptr, std::complex<ElementType>(value)); }
         void setDouble (void *ptr, const double value) const { setNative(ptr, std::complex<ElementType>(value, 0.0)); }
         void setInt (void *ptr, const int value) const { setNative(ptr, std::complex<ElementType>(static_cast<ElementType>(value), 0.0)); }
-        void minmax (void *ptr, const size_t length, double *min, double *max) const;
+        std::pair<double, double> minmax (const void *ptr, const size_t length) const;
     };
 
     template <bool alpha>
     struct ConcreteTypeHandler<rgba32_t,alpha> : public TypeHandler
     {
         size_t size () const { return alpha ? 4 : 3; }
-        int getInt (void *ptr) const { return getRgb(ptr).value.packed; }
-        rgba32_t getRgb (void *ptr) const
+        int getInt (const void *ptr) const { return getRgb(ptr).value.packed; }
+        rgba32_t getRgb (const void *ptr) const
         {
             rgba32_t value;
-            unsigned char *source = static_cast<unsigned char *>(ptr);
+            const unsigned char *source = static_cast<const unsigned char *>(ptr);
             std::copy(source, source + (alpha ? 4 : 3), value.value.bytes);
             return value;
         }
@@ -162,7 +162,7 @@ protected:
             unsigned char *target = static_cast<unsigned char *>(ptr);
             std::copy(value.value.bytes, value.value.bytes + (alpha ? 4 : 3), target);
         }
-        void minmax (void *ptr, const size_t length, double *min, double *max) const { *min = 0.0; *max = 255.0; }
+        std::pair<double, double> minmax (const void *ptr, const size_t length) const { return {0.0, 255.0}; }
     };
 
     /**
@@ -246,9 +246,8 @@ protected:
 
         if (this->isInteger())
         {
-            double dataMin, dataMax, typeMin, typeMax;
-            data.minmax(&dataMin, &dataMax);
-            handler->minmax(nullptr, 0, &typeMin, &typeMax);
+            auto [dataMin, dataMax] = data.minmax();
+            auto [typeMin, typeMax] = handler->minmax(nullptr, 0);
 
             // If the source type is floating-point but values are in range, we will just round them
             if (dataMin < typeMin || dataMax > typeMax)
@@ -622,20 +621,17 @@ public:
 
     /**
      * Calculate the minimum and maximum values in the blob, as doubles
-     * @param min Pointer to the minimum value (output parameter). Will be set to zero if the
-     *   datatype is unknown or the data is empty
-     * @param max Pointer to the maximum value (output parameter). Will be set to zero if the
-     *   datatype is unknown or the data is empty
+     * @return A pair containing the minimum and maximum values. Both values will be zero
+     *   if the datatype is unknown or the data is empty
     **/
-    void minmax (double *min, double *max) const
+    std::pair<double, double> minmax () const
     {
         if (handler == nullptr)
         {
-            *min = 0.0;
-            *max = 0.0;
+            return {0.0, 0.0};
         }
         else
-            handler->minmax(dataPtr, _length, min, max);
+            return handler->minmax(dataPtr, _length);
     }
 };
 

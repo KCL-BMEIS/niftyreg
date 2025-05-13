@@ -396,16 +396,18 @@ inline void addAttributes (const SEXP pointer, const NiftiImage &source, const b
 } // internal namespace
 
 template <typename Type, bool alpha>
-inline void NiftiImageData::ConcreteTypeHandler<Type,alpha>::minmax (void *ptr, const size_t length, double *min, double *max) const
+inline std::pair<double, double> NiftiImageData::ConcreteTypeHandler<Type,alpha>::minmax (const void *ptr, const size_t length) const
 {
     if (ptr == nullptr || length == 0)
     {
-        *min = static_cast<double>(std::numeric_limits<Type>::lowest());
-        *max = static_cast<double>(std::numeric_limits<Type>::max());
+        return {
+            static_cast<double>(std::numeric_limits<Type>::lowest()),
+            static_cast<double>(std::numeric_limits<Type>::max())
+        };
     }
     else
     {
-        Type *loc = static_cast<Type*>(ptr);
+        const Type *loc = static_cast<const Type*>(ptr);
         Type currentMin = *loc, currentMax = *loc;
         for (size_t i=1; i<length; i++)
         {
@@ -415,22 +417,23 @@ inline void NiftiImageData::ConcreteTypeHandler<Type,alpha>::minmax (void *ptr, 
             if (internal::lessThan(currentMax, *loc))
                 currentMax = *loc;
         }
-        *min = static_cast<double>(currentMin);
-        *max = static_cast<double>(currentMax);
+        return {static_cast<double>(currentMin), static_cast<double>(currentMax)};
     }
 }
 
 template <typename ElementType>
-inline void NiftiImageData::ConcreteTypeHandler<std::complex<ElementType>,false>::minmax (void *ptr, const size_t length, double *min, double *max) const
+inline std::pair<double, double> NiftiImageData::ConcreteTypeHandler<std::complex<ElementType>,false>::minmax (const void *ptr, const size_t length) const
 {
     if (ptr == nullptr || length == 0)
     {
-        *min = 0.0;  // Magnitude is always non-negative
-        *max = static_cast<double>(std::numeric_limits<ElementType>::max());
+        return {
+            0.0,  // Magnitude is always non-negative
+            static_cast<double>(std::numeric_limits<ElementType>::max())
+        };
     }
     else
     {
-        std::complex<ElementType> *loc = static_cast<std::complex<ElementType>*>(ptr);
+        const std::complex<ElementType> *loc = static_cast<const std::complex<ElementType>*>(ptr);
 
         // Initialize with magnitude of first element
         double currentMin = std::abs(*loc);
@@ -448,8 +451,7 @@ inline void NiftiImageData::ConcreteTypeHandler<std::complex<ElementType>,false>
                 currentMax = magnitude;
         }
 
-        *min = currentMin;
-        *max = currentMax;
+        return {currentMin, currentMax};
     }
 }
 
