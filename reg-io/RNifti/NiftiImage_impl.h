@@ -425,23 +425,31 @@ inline void NiftiImageData::ConcreteTypeHandler<std::complex<ElementType>,false>
 {
     if (ptr == nullptr || length == 0)
     {
-        *min = static_cast<double>(std::numeric_limits<ElementType>::lowest());
+        *min = 0.0;  // Magnitude is always non-negative
         *max = static_cast<double>(std::numeric_limits<ElementType>::max());
     }
     else
     {
-        ElementType *loc = static_cast<ElementType*>(ptr);
-        ElementType currentMin = *loc, currentMax = *loc;
-        for (size_t i=1; i<(2*length); i++)
+        std::complex<ElementType> *loc = static_cast<std::complex<ElementType>*>(ptr);
+
+        // Initialize with magnitude of first element
+        double currentMin = std::abs(*loc);
+        double currentMax = currentMin;
+
+        // Iterate through remaining complex numbers
+        for (size_t i=1; i<length; i++)
         {
             loc++;
-            if (internal::lessThan(*loc, currentMin))
-                currentMin = *loc;
-            if (internal::lessThan(currentMax, *loc))
-                currentMax = *loc;
+            double magnitude = std::abs(*loc);
+
+            if (magnitude < currentMin)
+                currentMin = magnitude;
+            if (magnitude > currentMax)
+                currentMax = magnitude;
         }
-        *min = static_cast<double>(currentMin);
-        *max = static_cast<double>(currentMax);
+
+        *min = currentMin;
+        *max = currentMax;
     }
 }
 
