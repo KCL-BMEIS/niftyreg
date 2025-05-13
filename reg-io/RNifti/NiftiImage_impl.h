@@ -30,9 +30,6 @@ template <>
 inline bool isNA<double> (const double x) { return ISNA(x); }
 #endif
 
-template <typename Type>
-inline bool lessThan (Type a, Type b) { return (!isNaN(a) && !isNaN(b) && a < b); }
-
 inline double roundEven (const double value)
 {
     if (isNaN(value))
@@ -412,9 +409,9 @@ inline std::pair<double, double> NiftiImageData::ConcreteTypeHandler<Type,alpha>
         for (size_t i=1; i<length; i++)
         {
             loc++;
-            if (internal::lessThan(*loc, currentMin))
+            if (*loc < currentMin)
                 currentMin = *loc;
-            if (internal::lessThan(currentMax, *loc))
+            if (*loc > currentMax)
                 currentMax = *loc;
         }
         return {static_cast<double>(currentMin), static_cast<double>(currentMax)};
