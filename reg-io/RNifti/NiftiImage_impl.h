@@ -396,60 +396,31 @@ template <typename Type, bool alpha>
 inline std::pair<double, double> NiftiImageData::ConcreteTypeHandler<Type,alpha>::minmax (const void *ptr, const size_t length) const
 {
     if (ptr == nullptr || length == 0)
-    {
         return {
             static_cast<double>(std::numeric_limits<Type>::lowest()),
             static_cast<double>(std::numeric_limits<Type>::max())
         };
-    }
-    else
-    {
-        const Type *loc = static_cast<const Type*>(ptr);
-        Type currentMin = *loc, currentMax = *loc;
-        for (size_t i=1; i<length; i++)
-        {
-            loc++;
-            if (*loc < currentMin)
-                currentMin = *loc;
-            if (*loc > currentMax)
-                currentMax = *loc;
-        }
-        return {static_cast<double>(currentMin), static_cast<double>(currentMax)};
-    }
+
+    auto [minElem, maxElem] = std::minmax_element(static_cast<const Type*>(ptr), static_cast<const Type*>(ptr) + length);
+    return {static_cast<double>(*minElem), static_cast<double>(*maxElem)};
 }
 
 template <typename ElementType>
 inline std::pair<double, double> NiftiImageData::ConcreteTypeHandler<std::complex<ElementType>,false>::minmax (const void *ptr, const size_t length) const
 {
     if (ptr == nullptr || length == 0)
-    {
         return {
             0.0,  // Magnitude is always non-negative
             static_cast<double>(std::numeric_limits<ElementType>::max())
         };
-    }
-    else
-    {
-        const std::complex<ElementType> *loc = static_cast<const std::complex<ElementType>*>(ptr);
 
-        // Initialize with magnitude of first element
-        double currentMin = std::abs(*loc);
-        double currentMax = currentMin;
-
-        // Iterate through remaining complex numbers
-        for (size_t i=1; i<length; i++)
-        {
-            loc++;
-            double magnitude = std::abs(*loc);
-
-            if (magnitude < currentMin)
-                currentMin = magnitude;
-            if (magnitude > currentMax)
-                currentMax = magnitude;
-        }
-
-        return {currentMin, currentMax};
-    }
+    // Use the magnitude of the complex number to find the min and max
+    const std::complex<ElementType> *data = static_cast<const std::complex<ElementType>*>(ptr);
+    auto [minElem, maxElem] = std::minmax_element(data, data + length,
+        [](const std::complex<ElementType>& left, const std::complex<ElementType>& right) {
+            return std::abs(left) < std::abs(right);
+        });
+    return {static_cast<double>(std::abs(*minElem)), static_cast<double>(std::abs(*maxElem))};
 }
 
 template <typename SourceType>
