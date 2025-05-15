@@ -627,11 +627,18 @@ public:
     std::pair<double, double> minmax () const
     {
         if (handler == nullptr)
-        {
             return {0.0, 0.0};
+
+        auto [minVal, maxVal] = handler->minmax(dataPtr, _length);
+        if (dataPtr && _length && isScaled())
+        {
+            // TODO: Handle overflow and underflow
+            minVal = minVal * slope + intercept;
+            maxVal = maxVal * slope + intercept;
+            if (minVal > maxVal)
+                std::swap(minVal, maxVal);
         }
-        else
-            return handler->minmax(dataPtr, _length);
+        return {minVal, maxVal};
     }
 };
 
