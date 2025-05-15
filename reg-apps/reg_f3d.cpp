@@ -182,7 +182,6 @@ int main(int argc, char **argv) {
     omp_set_num_threads(defaultOpenMPValue);
 #endif
 
-    std::string text;
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Check if any information is required
     for (int i = 1; i < argc; i++) {
