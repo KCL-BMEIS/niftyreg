@@ -48,11 +48,9 @@ void reg_kld::InitialiseMeasure(nifti_image *refImg,
     // Input images are expected to be bounded between 0 and 1 as they are meant to be probabilities
     for (int t = 0; t < this->referenceTimePoints; ++t) {
         if (this->timePointWeights[t] > 0) {
-            const float minRef = reg_tools_getMinValue(this->referenceImage, t);
-            const float maxRef = reg_tools_getMaxValue(this->referenceImage, t);
-            const float minFlo = reg_tools_getMinValue(this->floatingImage, t);
-            const float maxFlo = reg_tools_getMaxValue(this->floatingImage, t);
-            if (minRef < 0.f || minFlo < 0.f || maxRef > 1.f || maxFlo > 1.f)
+            const auto [minRef, maxRef] = NiftiImage(this->referenceImage).data(t).minmax();
+            const auto [minFlo, maxFlo] = NiftiImage(this->floatingImage).data(t).minmax();
+            if (minRef < 0 || minFlo < 0 || maxRef > 1 || maxFlo > 1)
                 NR_FATAL_ERROR("The input images are expected to be probabilities to use the kld measure");
         }
     }

@@ -162,8 +162,7 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
    niiImage->scl_slope=1;
 
    // Set the min and max intensities
-   niiImage->cal_min=reg_tools_getMinValue(niiImage);
-   niiImage->cal_max=reg_tools_getMaxValue(niiImage);
+   std::tie(niiImage->cal_min, niiImage->cal_max)=NiftiImage(niiImage).data().minmax();
 
    // The space orientation is extracted and converted into a matrix
    mat44 qform_orientation_matrix;

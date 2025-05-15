@@ -158,10 +158,10 @@ TEST_CASE_METHOD(NmiGradientTest, "NMI Gradient", "[unit]") {
 
             corr /= resStd * expStd * result.nVoxels();
             NR_COUT << "Correlation = " << corr << std::endl;
-            const double norm = std::max(fabs(reg_tools_getMinValue(expected, 0)),
-                                         fabs(reg_tools_getMaxValue(expected, 0)));
+            const auto [expMin, expMax] = expected.data(0).minmax();
+            const double norm = std::max(std::abs(expMin), std::abs(expMax));
             for (size_t i = 0; i < expected.nVoxels(); ++i) {
-                const double ratio = abs(resPtr[i] - expPtr[i]) / norm;
+                const double ratio = std::abs(resPtr[i] - expPtr[i]) / norm;
                 if (ratio > .1) {
                     NR_COUT << "[i]=" << i;
                     NR_COUT << " | ratio=" << ratio;

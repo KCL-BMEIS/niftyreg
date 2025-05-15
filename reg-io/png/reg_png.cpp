@@ -126,8 +126,7 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename) {
         NR_FATAL_ERROR("Image with dimension larger than 2 can be saved as png");
 
     // Check the min and max values of the nifti image
-    float minValue = reg_tools_getMinValue(image, -1);
-    float maxValue = reg_tools_getMaxValue(image, -1);
+    const auto [minValue, maxValue] = NiftiImage(image).data().minmax();
 
     // Rescale the image intensities if they are outside of the range
     if (minValue < 0 || maxValue > 255) {

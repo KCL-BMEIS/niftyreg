@@ -934,8 +934,8 @@ int main(int argc, char **argv)
         // Create a temporary scaled image
         nifti_image *scaledImage = nifti_dup(*image, false);
         // Rescale the input image
-        float min_value = reg_tools_getMinValue(image, -1);
-        float max_value = reg_tools_getMaxValue(image, -1);
+        float min_value, max_value;
+        std::tie(min_value, max_value) = image.data().minmax();
         reg_tools_subtractValueFromImage(image, scaledImage, min_value);
         reg_tools_multiplyValueToImage(scaledImage, scaledImage, 255.f/(max_value-min_value));
         // Create the rgb image
@@ -1158,7 +1158,7 @@ int main(int argc, char **argv)
                 } // bx
             } // by
         } // bz
-        outputImage->cal_max=reg_tools_getMaxValue(outputImage, -1);
+        std::tie(outputImage->cal_min, outputImage->cal_max) = NiftiImage(outputImage).data().minmax();
 
         free(temp_mask);
 

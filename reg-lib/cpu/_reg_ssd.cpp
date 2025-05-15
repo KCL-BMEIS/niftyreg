@@ -47,13 +47,11 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImg,
         if (this->timePointWeights[i] > 0 && normaliseTimePoint[i]) {
             //sets max value over both images to be 1 and min value over both images to be 0
             //scales values such that identical values in the images are still identical after scaling
-            float maxF = reg_tools_getMaxValue(this->floatingImage, i);
-            float maxR = reg_tools_getMaxValue(this->referenceImage, i);
-            float minF = reg_tools_getMinValue(this->floatingImage, i);
-            float minR = reg_tools_getMinValue(this->referenceImage, i);
-            float maxFR = fmax(maxF, maxR);
-            float minFR = fmin(minF, minR);
-            float rangeFR = maxFR - minFR;
+            const auto [minR, maxR] = NiftiImage(this->referenceImage).data(i).minmax();
+            const auto [minF, maxF] = NiftiImage(this->floatingImage).data(i).minmax();
+            const auto maxFR = std::max(maxF, maxR);
+            const auto minFR = std::min(minF, minR);
+            const auto rangeFR = maxFR - minFR;
             reg_intensityRescale(this->referenceImage,
                                  i,
                                  (minR - minFR) / rangeFR,

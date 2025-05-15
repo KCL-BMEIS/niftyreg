@@ -272,20 +272,6 @@ int reg_tools_nanMask_image(const nifti_image *img,
  */
 int reg_tools_removeNanFromMask(const nifti_image *image, int *mask);
 /* *************************************************************** */
-/** @brief Get the minimal value of an image
- * @param img Input image
- * @param timePoint active time point. All time points are used if set to -1
- * @return min value
- */
-float reg_tools_getMinValue(const nifti_image *img, int timePoint);
-/* *************************************************************** */
-/** @brief Get the maximal value of an image
- * @param img Input image
- * @param timePoint active time point. All time points are used if set to -1
- * @return max value
- */
-float reg_tools_getMaxValue(const nifti_image *img, int timePoint);
-/* *************************************************************** */
 /** @brief Get the mean value of an image
  * @param img Input image
  * @return mean value
