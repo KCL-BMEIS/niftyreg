@@ -1,0 +1,26 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/cpp
+{
+	"name": "NiftyReg Latest",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"runArgs": [
+		"--gpus=all"
+	],
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+	// More info: https://aka.ms/dev-containers-non-root.
+	"remoteUser": "vscode",
+	"mounts": [
+		"source=${localWorkspaceFolderBasename}-Latest-build,target=${containerWorkspaceFolder}/build,type=volume"
+	],
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "sudo chown vscode build"
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+}
