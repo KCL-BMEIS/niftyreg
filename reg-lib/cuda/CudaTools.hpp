@@ -36,9 +36,7 @@ void AddImages(const nifti_image *img, float4 *img1Cuda, const float4 *img2Cuda)
 /* *************************************************************** */
 void SubtractImages(const nifti_image *img, float4 *img1Cuda, const float4 *img2Cuda);
 /* *************************************************************** */
-float GetMinValue(const nifti_image *img, const float4 *imgCuda, const int timePoint = -1);
-/* *************************************************************** */
-float GetMaxValue(const nifti_image *img, const float4 *imgCuda, const int timePoint = -1);
+thrust::pair<float, float> GetMinMaxValue(const nifti_image *img, const float4 *imgCuda, int timePoint = -1);
 /* *************************************************************** */
 void SetGradientToZero(float4 *gradCuda,
                        const size_t voxelNumber,

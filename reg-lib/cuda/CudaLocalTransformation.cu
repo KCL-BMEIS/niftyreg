@@ -677,9 +677,8 @@ void GetDeformationFieldFromFlowField(nifti_image *flowField,
     int squaringNumber = 1;
     if (updateStepNumber || flowField->intent_p2 == 0) {
         // Check the largest value
-        float extrema = fabsf(GetMinValue(flowField, flowFieldCuda, -1));
-        const float temp = GetMaxValue(flowField, flowFieldCuda, -1);
-        extrema = std::max(extrema, temp);
+        auto [extrema, temp] = GetMinMaxValue(flowField, flowFieldCuda);
+        extrema = std::max(std::abs(extrema), temp);
         // Check the values for scaling purpose
         float maxLength;
         if (deformationField->nz > 1)

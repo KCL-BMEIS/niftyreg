@@ -111,73 +111,89 @@ void SubtractImages(const nifti_image *img, float4 *img1Cuda, const float4 *img2
     OperationOnImages(img, img1Cuda, img2Cuda, thrust::minus<float4>());
 }
 /* *************************************************************** */
-template<bool isMin>
-DEVICE static inline float MinMax(const float lhs, const float rhs) {
-    if constexpr (isMin) return lhs < rhs ? lhs : rhs;
-    else return lhs > rhs ? lhs : rhs;
-}
-/* *************************************************************** */
-template<bool isMin, bool isSingleTimePoint, int timePoints>
-inline float GetMinMaxValue(const nifti_image *img, const float4 *imgCuda) {
-    const size_t voxelNumber = NiftiImage::calcVoxelNumber(img, 3);
-    constexpr float initVal = isMin ? std::numeric_limits<float>::max() : std::numeric_limits<float>::lowest();
-
-    const float4 result = thrust::reduce(thrust::device, imgCuda, imgCuda + voxelNumber, make_float4(initVal, initVal, initVal, initVal),
-                                         [=]DEVICE(const float4& lhs, const float4& rhs) {
-        float4 result{ initVal, initVal, initVal, initVal };
-        switch (timePoints) {
+template<bool isSingleTimePoint, int timePoint>
+inline thrust::pair<float, float> GetMinMaxValue(const nifti_image *img, const float4 *imgCuda) {
+    auto minMaxOp = []DEVICE(const float4& value) -> thrust::pair<float, float> {
+        float minVal = std::numeric_limits<float>::max();
+        float maxVal = std::numeric_limits<float>::lowest();
+        switch (timePoint) {
         case 4:
-            result.w = MinMax<isMin>(lhs.w, rhs.w);
+            minVal = std::min(minVal, value.w);
+            maxVal = std::max(maxVal, value.w);
             if constexpr (isSingleTimePoint) break;
         case 3:
-            result.z = MinMax<isMin>(lhs.z, rhs.z);
+            minVal = std::min(minVal, value.z);
+            maxVal = std::max(maxVal, value.z);
             if constexpr (isSingleTimePoint) break;
         case 2:
-            result.y = MinMax<isMin>(lhs.y, rhs.y);
+            minVal = std::min(minVal, value.y);
+            maxVal = std::max(maxVal, value.y);
             if constexpr (isSingleTimePoint) break;
         case 1:
-            result.x = MinMax<isMin>(lhs.x, rhs.x);
+            minVal = std::min(minVal, value.x);
+            maxVal = std::max(maxVal, value.x);
         }
-        return result;
-    });
+        return thrust::make_pair(minVal, maxVal);
+    };
 
-    return MinMax<isMin>(MinMax<isMin>(result.x, result.y), MinMax<isMin>(result.z, result.w));
+    auto minMaxReduce = []DEVICE(const thrust::pair<float, float>& lhs,
+                                 const thrust::pair<float, float>& rhs) -> thrust::pair<float, float> {
+        return {std::min(lhs.first, rhs.first), std::max(lhs.second, rhs.second)};
+    };
+
+    const thrust::pair<float, float> initVal(
+        std::numeric_limits<float>::max(),     // Initial min
+        std::numeric_limits<float>::lowest()   // Initial max
+    );
+
+    return thrust::transform_reduce(
+        thrust::device,
+        imgCuda,
+        imgCuda + NiftiImage::calcVoxelNumber(img, 3),
+        minMaxOp,
+        initVal,
+        minMaxReduce
+    );
 }
 /* *************************************************************** */
-template<bool isMin, bool isSingleTimePoint>
-static inline float GetMinMaxValue(const nifti_image *img, const float4 *imgCuda, const int timePoints) {
-    auto getMinMaxValue = GetMinMaxValue<isMin, isSingleTimePoint, 1>;
-    switch (timePoints) {
-    case 2:
-        getMinMaxValue = GetMinMaxValue<isMin, isSingleTimePoint, 2>;
-        break;
-    case 3:
-        getMinMaxValue = GetMinMaxValue<isMin, isSingleTimePoint, 3>;
-        break;
-    case 4:
-        getMinMaxValue = GetMinMaxValue<isMin, isSingleTimePoint, 4>;
-        break;
-    }
-    return getMinMaxValue(img, imgCuda);
-}
-/* *************************************************************** */
-template<bool isMin>
-static inline float GetMinMaxValue(const nifti_image *img, const float4 *imgCuda, const int timePoint) {
-    if (timePoint < -1 || timePoint >= img->nt)
+thrust::pair<float, float> GetMinMaxValue(const nifti_image *img, const float4 *imgCuda, int timePoint) {
+    if (timePoint < -1 || timePoint >= img->nt * img->nu)
         NR_FATAL_ERROR("The required time point does not exist");
     const bool isSingleTimePoint = timePoint > -1;
-    const int timePoints = std::clamp(isSingleTimePoint ? timePoint + 1 : img->nt * img->nu, 1, 4);
-    auto getMinMaxValue = GetMinMaxValue<isMin, false>;
-    if (isSingleTimePoint) getMinMaxValue = GetMinMaxValue<isMin, true>;
-    return getMinMaxValue(img, imgCuda, timePoints);
-}
-/* *************************************************************** */
-float GetMinValue(const nifti_image *img, const float4 *imgCuda, const int timePoint) {
-    return GetMinMaxValue<true>(img, imgCuda, timePoint);
-}
-/* *************************************************************** */
-float GetMaxValue(const nifti_image *img, const float4 *imgCuda, const int timePoint) {
-    return GetMinMaxValue<false>(img, imgCuda, timePoint);
+    timePoint = std::clamp(isSingleTimePoint ? timePoint + 1 : img->nt * img->nu, 1, 4);
+    auto getMinMaxValue = GetMinMaxValue<false, 1>;
+    if (isSingleTimePoint) {
+        switch (timePoint) {
+        case 1:
+            getMinMaxValue = GetMinMaxValue<true, 1>;
+            break;
+        case 2:
+            getMinMaxValue = GetMinMaxValue<true, 2>;
+            break;
+        case 3:
+            getMinMaxValue = GetMinMaxValue<true, 3>;
+            break;
+        case 4:
+            getMinMaxValue = GetMinMaxValue<true, 4>;
+            break;
+        }
+    } else {
+        switch (timePoint) {
+        case 1:
+            getMinMaxValue = GetMinMaxValue<false, 1>;
+            break;
+        case 2:
+            getMinMaxValue = GetMinMaxValue<false, 2>;
+            break;
+        case 3:
+            getMinMaxValue = GetMinMaxValue<false, 3>;
+            break;
+        case 4:
+            getMinMaxValue = GetMinMaxValue<false, 4>;
+            break;
+        }
+    }
+    return getMinMaxValue(img, imgCuda);
 }
 /* *************************************************************** */
 template<bool xAxis, bool yAxis, bool zAxis>
@@ -211,4 +227,4 @@ void SetGradientToZero(float4 *gradCuda, const size_t voxelNumber, const bool xA
 }
 /* *************************************************************** */
 } // namespace NiftyReg::Cuda
-/* *************************************************************** */
+    /* *************************************************************** */
