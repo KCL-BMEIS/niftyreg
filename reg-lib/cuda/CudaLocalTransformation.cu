@@ -685,20 +685,20 @@ void GetDeformationFieldFromFlowField(nifti_image *flowField,
         if (deformationField->nz > 1)
             maxLength = 0.28f;  // sqrt(0.5^2/3)
         else maxLength = 0.35f; // sqrt(0.5^2/2)
-        while (extrema / pow(2.0f, squaringNumber) >= maxLength)
+        while (extrema / static_cast<float>(std::pow(2, squaringNumber)) >= maxLength)
             squaringNumber++;
         // The minimal number of step is set to 6 by default
-        squaringNumber = squaringNumber < 6 ? 6 : squaringNumber;
+        squaringNumber = std::max(squaringNumber, 6);
         // Set the number of squaring step in the flow field
-        if (fabs(flowField->intent_p2) != squaringNumber)
-            NR_WARN("Changing from " << Round<int>(fabs(flowField->intent_p2)) << " to " << abs(squaringNumber) <<
-                    " squaring step (equivalent to scaling down by " << (int)pow(2.0f, squaringNumber) << ")");
+        if (std::abs(flowField->intent_p2) != squaringNumber)
+            NR_WARN("Changing from " << Round<int>(std::abs(flowField->intent_p2)) << " to " << std::abs(squaringNumber) <<
+                    " squaring step (equivalent to scaling down by " << std::pow(2, squaringNumber) << ")");
         // Update the number of squaring step required
         flowField->intent_p2 = static_cast<float>(flowField->intent_p2 >= 0 ? squaringNumber : -squaringNumber);
-    } else squaringNumber = static_cast<int>(fabsf(flowField->intent_p2));
+    } else squaringNumber = static_cast<int>(std::abs(flowField->intent_p2));
 
     // The displacement field is scaled
-    const float scalingValue = 1.f / pow(2.f, static_cast<float>(std::abs(squaringNumber)));
+    const float scalingValue = 1.f / static_cast<float>(std::pow(2, squaringNumber));
     // Backward/forward deformation field is scaled down
     MultiplyValue(voxelNumber, flowFieldCuda, flowField->intent_p2 < 0 ? -scalingValue : scalingValue);
 
