@@ -16,23 +16,45 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(FATAL_ERROR "You may need to remove CMakeCache.txt and CMakeFiles.")
 endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 #-----------------------------------------------------------------------------
-# Set the NiftyReg version
-set(NR_VERSION_MAJOR 1)
-set(NR_VERSION_MINOR 6)
-# Use Git commit hash as the build number
+# Set the NiftyReg version using Git tags in the format:
+# <tag>+<commits since tag>.<commit hash> or <tag> if no commits since tag
+# Example: 1.0.0+2.abc1234 or 1.0.0 if no commits since tag
 find_package(Git)
 if(GIT_FOUND)
-  execute_process(
-    COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+  # Get last tag from git
+  execute_process(COMMAND ${GIT_EXECUTABLE} describe --abbrev=0 --tags
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE NR_VERSION_BUILD
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
+    OUTPUT_VARIABLE ${PROJECT_NAME}_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  # How many commits since last tag
+  execute_process(COMMAND ${GIT_EXECUTABLE} rev-list ${${PROJECT_NAME}_VERSION}..HEAD --count
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE ${PROJECT_NAME}_VERSION_AHEAD
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  # Get current commit hash from git
+  execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE ${PROJECT_NAME}_VERSION_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  # Remove 'v' prefix from the version string if present
+  if(${PROJECT_NAME}_VERSION MATCHES "^v")
+    string(SUBSTRING ${${PROJECT_NAME}_VERSION} 1 -1 ${PROJECT_NAME}_VERSION)
+  endif()
+
+  # Set full project version string
+  if(NOT ${${PROJECT_NAME}_VERSION_AHEAD} EQUAL 0)
+    set(${PROJECT_NAME}_VERSION
+      ${${PROJECT_NAME}_VERSION}+${${PROJECT_NAME}_VERSION_AHEAD}.${${PROJECT_NAME}_VERSION_HASH})
+  endif()
 else(GIT_FOUND)
-  set(NR_VERSION_BUILD "unknown")
+  message(FATAL_ERROR "Git not found. Please install Git to get the version information.")
 endif(GIT_FOUND)
-set(NR_VERSION "${NR_VERSION_MAJOR}.${NR_VERSION_MINOR}.${NR_VERSION_BUILD}")
+set(NR_VERSION ${${PROJECT_NAME}_VERSION})
 add_definitions(-DNR_VERSION="${NR_VERSION}")
+message(STATUS "NiftyReg version: ${NR_VERSION}")
 #-----------------------------------------------------------------------------
 if(MSVC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D_CRT_SECURE_NO_WARNINGS")
