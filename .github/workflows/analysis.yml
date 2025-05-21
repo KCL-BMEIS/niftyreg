@@ -10,10 +10,9 @@ jobs:
 
       - name: Install Cppcheck
         run: |
-          sudo apt-get update && sudo apt-get install libpcre3-dev
-          git clone https://github.com/danmar/cppcheck.git
+          sudo apt-get update && sudo apt-get install -y libpcre3-dev
+          git clone -b 2.13.x https://github.com/danmar/cppcheck.git
           cd cppcheck
-          git checkout 2.13.x
           # Disable color output of cppcheck
           sed -i 's/ *bool *gDisableColors *= *false;/bool gDisableColors = true;/' lib/color.cpp
           sudo make -j4 MATCHCOMPILER=yes FILESDIR=/usr/share/cppcheck HAVE_RULES=yes CXXFLAGS="-O2 -DNDEBUG -Wall -Wno-sign-compare -Wno-unused-function" install
