@@ -2,9 +2,11 @@ name: Code Analysis
 on: [push, pull_request]
 jobs:
   Code-Analysis:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Install Cppcheck
         run: |
@@ -20,16 +22,16 @@ jobs:
         run: pip3 install --upgrade setuptools urllib3 chardet pyOpenSSL pygithub
 
       - name: Install CUDA Toolkit
-        uses: Jimver/cuda-toolkit@v0.2.14
+        uses: Jimver/cuda-toolkit@master
         with:
+          cuda: '11.8.0'
           method: network
           use-github-cache: false
           use-local-cache: false
 
       - name: Configure NiftyReg
         run: |
-          mkdir build
-          cd build
+          mkdir build && cd build
           cmake -DCMAKE_C_COMPILER=gcc \
                 -DCMAKE_CXX_COMPILER=g++ \
                 -DCMAKE_BUILD_TYPE=Debug \
@@ -40,7 +42,6 @@ jobs:
                 -DUSE_SSE=ON \
                 -DUSE_OPENMP=ON \
                 -DBUILD_TESTING=OFF \
-                -DWITH_COVERAGE=OFF \
                 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
                 ..
 

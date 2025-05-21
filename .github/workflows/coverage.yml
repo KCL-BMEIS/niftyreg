@@ -5,6 +5,8 @@ jobs:
     runs-on: [self-hosted, ubuntu-22.04, gpu]
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake git lcov
@@ -18,8 +20,7 @@ jobs:
 
       - name: Configure NiftyReg
         run: |
-          mkdir build
-          cd build
+          mkdir build && cd build
           cmake -DCMAKE_C_COMPILER=gcc \
                 -DCMAKE_CXX_COMPILER=g++ \
                 -DCMAKE_BUILD_TYPE=Debug \

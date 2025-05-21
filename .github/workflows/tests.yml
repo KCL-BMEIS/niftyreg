@@ -5,23 +5,28 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-13, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         include:
-          - sudo: "sudo"        # For Ubuntu and macOS
+          - sudo: "sudo"
             c-compiler: "gcc"
             cxx-compiler: "g++"
-          - os: windows-latest  # For Windows only
+            cmake-extra: ""
+            build-all-dep: "ON"
+            build-type: "Debug"
+            use-sse: "ON"
+          - os: macos-latest
+            build-all-dep: "OFF"
+            use-sse: "OFF"
+          - os: windows-latest
             sudo: ""
-            c-compiler: "cl.exe"
-            cxx-compiler: "cl.exe"
-          - build_type: "Debug" # For all platforms
+            c-compiler: "clang-cl"
+            cxx-compiler: "clang-cl"
+            cmake-extra: "-G Ninja"
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v1.3
-        if: matrix.os == 'windows-latest'
+        with:
+          fetch-depth: 0
 
       - name: Install Catch2
         shell: bash
@@ -29,27 +34,27 @@ jobs:
           git clone https://github.com/catchorg/Catch2.git
           cd Catch2
           cmake -Bbuild -H. -DBUILD_TESTING=OFF
-          ${{ matrix.sudo }} cmake --build build/ --target install --config ${{ matrix.build_type }}
+          ${{ matrix.sudo }} cmake --build build/ --target install --config ${{ matrix.build-type }}
 
       - name: Configure NiftyReg
         shell: bash
         run: |
-          mkdir build
-          cd build
+          mkdir build && cd build
           cmake -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
                 -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} \
-                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-                -DBUILD_ALL_DEP=ON \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DBUILD_ALL_DEP=${{ matrix.build-all-dep }} \
                 -DUSE_CUDA=OFF \
                 -DUSE_OPENCL=OFF \
-                -DUSE_SSE=ON \
+                -DUSE_SSE=${{ matrix.use-sse }} \
                 -DUSE_OPENMP=ON \
                 -DBUILD_TESTING=ON \
+                ${{ matrix.cmake-extra }} \
                 ..
 
       - name: Build NiftyReg
         shell: bash
-        run: cmake --build build --config ${{ matrix.build_type }}
+        run: cmake --build build --config ${{ matrix.build-type }}
 
       - name: Run tests
         shell: bash
