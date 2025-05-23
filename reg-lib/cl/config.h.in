@@ -1,7 +1,4 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
 #define CL_KERNELS_PATH "@CMAKE_INSTALL_PREFIX@/include/cl/"
 #define CL_KERNELS_SRC_PATH "@CMAKE_SOURCE_DIR@/reg-lib/cl/"
-
-#endif // CONFIG_H

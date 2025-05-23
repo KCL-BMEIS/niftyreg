@@ -1,24 +1,25 @@
-#include "_reg_maths.h"
+#include "Maths.hpp"
 #include "Platform.h"
 
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
   #include "../reg-lib/cuda/_reg_cudainfo.h"
 #endif
-#ifdef _USE_OPENCL
+#ifdef USE_OPENCL
   #include "../reg-lib/cl/_reg_openclinfo.h"
 #endif
 
 /* *************************************************************** */
 int main()
 {
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    showCUDAInfo();
-#ifndef _USE_OPENCL
-   reg_print_msg_warn("NiftyReg has not been compiled with CUDA or OpenCL");
-   reg_print_msg_warn("No GPU device information to display");
+#else
+#ifndef USE_OPENCL
+   NR_WARN("NiftyReg has not been compiled with CUDA or OpenCL");
+   NR_WARN("No GPU device information to display");
 #endif
 #endif
-#ifdef _USE_OPENCL
+#ifdef USE_OPENCL
    showCLInfo();
 #endif
 

@@ -19,13 +19,13 @@
 #include "_reg_tools.h"
 #include "_reg_blockMatching.h"
 
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
 #include "_reg_cudaCommon.h"
-#include "_reg_resampling_gpu.h"
+#include "CudaResampling.hpp"
 #include "_reg_affineTransformation_gpu.h"
 #include "_reg_bspline_gpu.h"
 #include "_reg_mutualinformation_gpu.h"
-#include "_reg_tools_gpu.h"
+#include "CudaTools.hpp"
 #include "_reg_blockMatching_gpu.h"
 #endif
 
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 {
    int dimension = 100;
    float gridSpacing = 10.0f;
-   unsigned int binning = 68;
+   unsigned binning = 68;
    char *outputFileName = (char *)"benchmark_result.txt";
    bool runGPU=1;
 
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+         NR_ERROR("Unknown parameter: " << argv[i]);
          Usage(argv[0]);
          return 1;
       }
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
    float *targetPtr=static_cast<float *>(targetImage->data);
    float *sourcePtr=static_cast<float *>(sourceImage->data);
    srand((unsigned)time(0));
-   for(unsigned int i=0; i<targetImage->nvox; ++i)
+   for(unsigned i=0; i<targetImage->nvox; ++i)
    {
       *targetPtr++ = (float)(binning-4)*(float)rand()/(float)RAND_MAX + 2.0f;
       *sourcePtr++ = (float)(binning-4)*(float)rand()/(float)RAND_MAX + 2.0f;
@@ -122,9 +122,9 @@ int main(int argc, char **argv)
 
    // A control point image is created
    dim_img[0]=5;
-   dim_img[1]=(int)floor(targetImage->nx*targetImage->dx/gridSpacing)+4;
-   dim_img[2]=(int)floor(targetImage->ny*targetImage->dy/gridSpacing)+4;
-   dim_img[3]=(int)floor(targetImage->nz*targetImage->dz/gridSpacing)+4;
+   dim_img[1]=Floor<int>(targetImage->nx*targetImage->dx/gridSpacing)+4;
+   dim_img[2]=Floor<int>(targetImage->ny*targetImage->dy/gridSpacing)+4;
+   dim_img[3]=Floor<int>(targetImage->nz*targetImage->dz/gridSpacing)+4;
    dim_img[5]=3;
    dim_img[4]=dim_img[6]=dim_img[7]=1;
    nifti_image *controlPointImage = nifti_make_new_nim(dim_img, NIFTI_TYPE_FLOAT32, true);
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
    originIndex[0] = -1.0f;
    originIndex[1] = -1.0f;
    originIndex[2] = -1.0f;
-   reg_mat44_mul(&(controlPointImage->qto_xyz), originIndex, originReal);
+   Mat44Mul(controlPointImage->qto_xyz, originIndex, originReal);
    controlPointImage->qto_xyz.m[0][3] = controlPointImage->qoffset_x = originReal[0];
    controlPointImage->qto_xyz.m[1][3] = controlPointImage->qoffset_y = originReal[1];
    controlPointImage->qto_xyz.m[2][3] = controlPointImage->qoffset_z = originReal[2];
@@ -163,42 +163,42 @@ int main(int argc, char **argv)
    nifti_image *velocityFieldImage = nifti_copy_nim_info(controlPointImage);
    velocityFieldImage->datatype = NIFTI_TYPE_FLOAT32;
    velocityFieldImage->nbyper = sizeof(float);
-   velocityFieldImage->data = (void *)calloc(velocityFieldImage->nvox, velocityFieldImage->nbyper);
+   velocityFieldImage->data = calloc(velocityFieldImage->nvox, velocityFieldImage->nbyper);
 
    // Different gradient images
    nifti_image *resultGradientImage = nifti_copy_nim_info(deformationFieldImage);
    resultGradientImage->datatype = NIFTI_TYPE_FLOAT32;
    resultGradientImage->nbyper = sizeof(float);
-   resultGradientImage->data = (void *)calloc(resultGradientImage->nvox, resultGradientImage->nbyper);
-   nifti_image *voxelNMIGradientImage = nifti_copy_nim_info(deformationFieldImage);
-   voxelNMIGradientImage->datatype = NIFTI_TYPE_FLOAT32;
-   voxelNMIGradientImage->nbyper = sizeof(float);
-   voxelNMIGradientImage->data = (void *)calloc(voxelNMIGradientImage->nvox, voxelNMIGradientImage->nbyper);
-   nifti_image *nodeNMIGradientImage = nifti_copy_nim_info(controlPointImage);
-   nodeNMIGradientImage->datatype = NIFTI_TYPE_FLOAT32;
-   nodeNMIGradientImage->nbyper = sizeof(float);
-   nodeNMIGradientImage->data = (void *)calloc(nodeNMIGradientImage->nvox, nodeNMIGradientImage->nbyper);
+   resultGradientImage->data = calloc(resultGradientImage->nvox, resultGradientImage->nbyper);
+   nifti_image *voxelNmiGradientImage = nifti_copy_nim_info(deformationFieldImage);
+   voxelNmiGradientImage->datatype = NIFTI_TYPE_FLOAT32;
+   voxelNmiGradientImage->nbyper = sizeof(float);
+   voxelNmiGradientImage->data = calloc(voxelNmiGradientImage->nvox, voxelNmiGradientImage->nbyper);
+   nifti_image *nodeNmiGradientImage = nifti_copy_nim_info(controlPointImage);
+   nodeNmiGradientImage->datatype = NIFTI_TYPE_FLOAT32;
+   nodeNmiGradientImage->nbyper = sizeof(float);
+   nodeNmiGradientImage->data = calloc(nodeNmiGradientImage->nvox, nodeNmiGradientImage->nbyper);
 
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    float *targetImageArray_d;
-   cudaArray *sourceImageArray_d;
+   float *sourceImageArray_d;
    int *targetMask_d;
    float4 *deformationFieldImageArray_d;
    if(runGPU)
    {
-      if(cudaCommon_allocateArrayToDevice<float>(&targetImageArray_d, targetImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float>(&targetImageArray_d, targetImage)) return 1;
-      if(cudaCommon_allocateArrayToDevice<float>(&sourceImageArray_d, sourceImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float>(&sourceImageArray_d,sourceImage)) return 1;
-      CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, targetImage->nvox*sizeof(int)));
+      Cuda::Allocate(&targetImageArray_d, targetImage->nvox);
+      Cuda::TransferNiftiToDevice(targetImageArray_d, targetImage);
+      Cuda::Allocate<float>(&sourceImageArray_d, sourceImage->nvox);
+      Cuda::TransferNiftiToDevice(sourceImageArray_d,sourceImage);
+      CUDA_SAFE_CALL(cudaMalloc((void**)&targetMask_d, targetImage->nvox*sizeof(int)));
       CUDA_SAFE_CALL(cudaMemcpy(targetMask_d, maskImage, targetImage->nvox*sizeof(int), cudaMemcpyHostToDevice));
-      CUDA_SAFE_CALL(cudaMalloc((void **)&deformationFieldImageArray_d, targetImage->nvox*sizeof(float4)));
+      CUDA_SAFE_CALL(cudaMalloc((void**)&deformationFieldImageArray_d, targetImage->nvox*sizeof(float4)));
    }
 #endif
 
    time_t start,end;
    int minutes, seconds, cpuTime, maxIt;
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    int gpuTime
 #endif
 
@@ -245,23 +245,23 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf( "CPU - %i affine deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i affine deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       if(runGPU)
       {
          time(&start);
          for(int i=0; i<maxIt; ++i)
          {
-            reg_affine_positionField_gpu(   affineTransformation,
+            Cuda::GetAffineDeformationField(affineTransformation,
                                             targetImage,
                                             &deformationFieldImageArray_d);
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i affine deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i affine deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -273,12 +273,12 @@ int main(int argc, char **argv)
    }
 
    // SPLINE DEFORMATION FIELD CREATION
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    float4 *controlPointImageArray_d;
    if(runGPU)
    {
-      if(cudaCommon_allocateArrayToDevice<float4>(&controlPointImageArray_d, controlPointImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&controlPointImageArray_d,controlPointImage)) return 1;
+      Cuda::Allocate(&controlPointImageArray_d, controlPointImage->dim);
+      Cuda::TransferNiftiToDevice(controlPointImageArray_d, controlPointImage);
    }
 #endif
    {
@@ -295,11 +295,11 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i spline deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i spline deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       if(runGPU)
       {
          time(&start);
@@ -314,7 +314,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i spline deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i spline deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -326,12 +326,12 @@ int main(int argc, char **argv)
    }
 
    // SCALING-AND-SQUARING APPROACH
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    float4 *velocityFieldImageArray_d;
    if(runGPU)
    {
-      if(cudaCommon_allocateArrayToDevice<float4>(&velocityFieldImageArray_d, velocityFieldImage->dim)) return 1;
-      if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&velocityFieldImageArray_d,velocityFieldImage)) return 1;
+      Cuda::Allocate(&velocityFieldImageArray_d, velocityFieldImage->dim);
+      Cuda::TransferNiftiToDevice(velocityFieldImageArray_d, velocityFieldImage);
    }
 #endif
    {
@@ -345,12 +345,12 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i scaling-and-squaring - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i scaling-and-squarings - %i min %i sec\n", maxIt, minutes, seconds);
       time(&start);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       if(runGPU)
       {
          for(int i=0; i<maxIt; ++i)
@@ -362,7 +362,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i scaling-and-squaring - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i scaling-and-squarings - %i min %i sec\n", maxIt, minutes, seconds);
@@ -374,10 +374,10 @@ int main(int argc, char **argv)
    }
 
    // LINEAR INTERPOLATION
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    float *resultImageArray_d;
    if(runGPU)
-      if(cudaCommon_allocateArrayToDevice<float>(&resultImageArray_d, targetImage->dim)) return 1;
+      Cuda::Allocate<float>(&resultImageArray_d, targetImage->dim);
 #endif
    {
       maxIt=100000 / dimension;
@@ -395,11 +395,11 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i linear interpolation computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i linear interpolation computations - %i min %i sec\n", maxIt, minutes, seconds);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       if(runGPU)
       {
          time(&start);
@@ -416,7 +416,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i linear interpolation computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i linear interpolation computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -428,7 +428,7 @@ int main(int argc, char **argv)
    }
 
    // SPATIAL GRADIENT COMPUTATION
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    float4 *resultGradientArray_d;
    CUDA_SAFE_CALL(cudaMalloc((void **)&resultGradientArray_d, targetImage->nvox*sizeof(float4)));
 #endif
@@ -447,11 +447,11 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       if(runGPU)
       {
          time(&start);
@@ -466,23 +466,23 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          printf("Spatial gradient ratio - %g time(s)\n", (float)cpuTime/(float)gpuTime);
          fprintf(outputFile, "Spatial gradient ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
-         cudaCommon_free( &sourceImageArray_d );
+         Cuda::Free(sourceImageArray_d);
       }
 #endif
       printf("Spatial gradient done\n\n");
    }
    nifti_image_free(sourceImage);
 
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free( (void **)&deformationFieldImageArray_d );
+      Cuda::Free(deformationFieldImageArray_d);
    }
 #endif
 
@@ -501,12 +501,10 @@ int main(int argc, char **argv)
    }
 
    // VOXEL-BASED NMI GRADIENT COMPUTATION
-#ifdef _USE_CUDA
-   float4 *voxelNMIGradientArray_d;
+#ifdef USE_CUDA
+   float4 *voxelNmiGradientArray_d;
    if(runGPU)
-   {
-      if(cudaCommon_allocateArrayToDevice(&voxelNMIGradientArray_d, resultImage->dim)) return 1;
-   }
+      Cuda::Allocate(&voxelNmiGradientArray_d, resultImage->dim);
 #endif
    {
       maxIt=100000 / dimension;
@@ -514,7 +512,7 @@ int main(int argc, char **argv)
       time(&start);
       for(int i=0; i<maxIt; ++i)
       {
-         reg_getVoxelBasedNMIGradientUsingPW<double>(targetImage,
+         reg_getVoxelBasedNmiGradientUsingPw<double>(targetImage,
                resultImage,
                2,
                resultGradientImage,
@@ -522,16 +520,16 @@ int main(int argc, char **argv)
                &binning,
                logJointHistogram,
                entropies,
-               voxelNMIGradientImage,
+               voxelNmiGradientImage,
                maskImage);
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       float *logJointHistogram_d;
       if(runGPU)
       {
@@ -546,13 +544,13 @@ int main(int argc, char **argv)
          time(&start);
          for(int i=0; i<maxIt; ++i)
          {
-            reg_getVoxelBasedNMIGradientUsingPW_gpu(targetImage,
+            reg_getVoxelBasedNmiGradientUsingPw_gpu(targetImage,
                                                     resultImage,
                                                     &targetImageArray_d,
                                                     &resultImageArray_d,
                                                     &resultGradientArray_d,
                                                     &logJointHistogram_d,
-                                                    &voxelNMIGradientArray_d,
+                                                    &voxelNmiGradientArray_d,
                                                     &targetMask_d,
                                                     targetImage->nvox,
                                                     entropies,
@@ -560,71 +558,69 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          printf("Voxel-based NMI gradient ratio - %g time(s)\n", (float)cpuTime/(float)gpuTime);
          fprintf(outputFile, "Voxel-based NMI gradient ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
-         cudaCommon_free((void **)&logJointHistogram_d);
+         Cuda::Free(logJointHistogram_d);
       }
       CUDA_SAFE_CALL(cudaFree(targetMask_d));
 #endif
       printf("Voxel-based NMI gradient done\n\n");
    }
 
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free((void **)&resultGradientArray_d);
+      Cuda::Free(resultGradientArray_d);
    }
 #endif
 
    // NODE-BASED NMI GRADIENT COMPUTATION
-#ifdef _USE_CUDA
-   float4 *nodeNMIGradientArray_d;
+#ifdef USE_CUDA
+   float4 *nodeNmiGradientArray_d;
    if(runGPU)
-   {
-      if(cudaCommon_allocateArrayToDevice(&nodeNMIGradientArray_d, controlPointImage->dim)) return 1;
-   }
+      Cuda::Allocate(&nodeNmiGradientArray_d, controlPointImage->dim);
 #endif
    {
       maxIt=10000 / dimension;
 //        maxIt=1;
       int smoothingRadius[3];
-      smoothingRadius[0] = (int)floor( 2.0*controlPointImage->dx/targetImage->dx );
-      smoothingRadius[1] = (int)floor( 2.0*controlPointImage->dy/targetImage->dy );
-      smoothingRadius[2] = (int)floor( 2.0*controlPointImage->dz/targetImage->dz );
+      smoothingRadius[0] = Floor<int>( 2.0*controlPointImage->dx/targetImage->dx );
+      smoothingRadius[1] = Floor<int>( 2.0*controlPointImage->dy/targetImage->dy );
+      smoothingRadius[2] = Floor<int>( 2.0*controlPointImage->dz/targetImage->dz );
       time(&start);
       for(int i=0; i<maxIt; ++i)
       {
-         reg_smoothImageForCubicSpline<float>(voxelNMIGradientImage,smoothingRadius);
-         reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage,1.0f);
+         reg_smoothImageForCubicSpline<float>(voxelNmiGradientImage,smoothingRadius);
+         reg_voxelCentricToNodeCentric(nodeNmiGradientImage,voxelNmiGradientImage,1.0f);
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i node-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i node-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       if(runGPU)
       {
          time(&start);
          for(int i=0; i<maxIt; ++i)
          {
-            reg_smoothImageForCubicSpline_gpu(  resultImage,
-                                                &voxelNMIGradientArray_d,
-                                                smoothingRadius);
-            reg_voxelCentric2NodeCentric_gpu(   targetImage,
-                                                controlPointImage,
-                                                &voxelNMIGradientArray_d,
-                                                &nodeNMIGradientArray_d,
-                                                1.0f);
+            Cuda::SmoothImageForCubicSpline(resultImage,
+                                            &voxelNmiGradientArray_d,
+                                            smoothingRadius);
+            Cuda::VoxelCentricToNodeCentric(targetImage,
+                                            controlPointImage,
+                                            &voxelNmiGradientArray_d,
+                                            &nodeNmiGradientArray_d,
+                                            1.0f);
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i node-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i node-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -635,11 +631,11 @@ int main(int argc, char **argv)
       printf("Node-based NMI gradient done\n\n");
    }
 
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free((void **)&voxelNMIGradientArray_d);
-      cudaCommon_free((void **)&nodeNMIGradientArray_d);
+      Cuda::Free(voxelNmiGradientArray_d);
+      Cuda::Free(nodeNmiGradientArray_d);
    }
 #endif
 
@@ -654,11 +650,11 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i BE computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i BE computations - %i min %i sec\n", maxIt, minutes, seconds);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       if(runGPU)
       {
          time(&start);
@@ -669,7 +665,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i BE computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i BE computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -689,16 +685,16 @@ int main(int argc, char **argv)
       {
          reg_bspline_bendingEnergyGradient<float>(   controlPointImage,
                targetImage,
-               nodeNMIGradientImage,
+               nodeNmiGradientImage,
                0.01f);
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       if(runGPU)
       {
          time(&start);
@@ -707,12 +703,12 @@ int main(int argc, char **argv)
             reg_bspline_ApproxBendingEnergyGradient_gpu(targetImage,
                   controlPointImage,
                   &controlPointImageArray_d,
-                  &nodeNMIGradientArray_d,
+                  &nodeNmiGradientArray_d,
                   0.01f);
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -733,11 +729,11 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       if(runGPU)
       {
          time(&start);
@@ -747,7 +743,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -768,11 +764,11 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i Approx. |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i Approx. |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       if(runGPU)
       {
          time(&start);
@@ -782,7 +778,7 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i Approx. |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i Approx. |Jac| penalty term computations - %i min %i sec\n", maxIt, minutes, seconds);
@@ -793,10 +789,10 @@ int main(int argc, char **argv)
       printf("Approx. |Jac| penalty term done\n\n");
    }
 
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free( (void **)&controlPointImageArray_d );
+      Cuda::Free(controlPointImageArray_d );
    }
 #endif
 
@@ -810,7 +806,7 @@ int main(int argc, char **argv)
                                           100,    // percentage of block kept
                                           50,     // percentage of inlier in the optimisation process
                                           maskImage);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       int *activeBlock_d;
       float *targetPosition_d;
       float *resultPosition_d;
@@ -835,11 +831,11 @@ int main(int argc, char **argv)
       }
       time(&end);
       cpuTime=(end-start);
-      minutes = (int)floorf(float(cpuTime)/60.0f);
+      minutes = Floor<int>(float(cpuTime)/60.0f);
       seconds = (int)(cpuTime - 60*minutes);
       printf("CPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
       fprintf(outputFile, "CPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
       if(runGPU)
       {
          time(&start);
@@ -856,15 +852,15 @@ int main(int argc, char **argv)
          }
          time(&end);
          gpuTime=(end-start);
-         minutes = (int)floorf(float(gpuTime)/60.0f);
+         minutes = Floor<int>(float(gpuTime)/60.0f);
          seconds = (int)(gpuTime - 60*minutes);
          printf("GPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
          fprintf(outputFile, "GPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
          printf("Block-Matching ratio - %g time(s)\n", (float)cpuTime/(float)gpuTime);
          fprintf(outputFile, "Block-Matching ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
-         cudaCommon_free((void **)&targetPosition_d);
-         cudaCommon_free((void **)&resultPosition_d);
-         cudaCommon_free((void **)&activeBlock_d);
+         Cuda::Free(targetPosition_d);
+         Cuda::Free(resultPosition_d);
+         Cuda::Free(activeBlock_d);
       }
 #endif
       printf("Block-matching done\n");
@@ -878,17 +874,17 @@ int main(int argc, char **argv)
    nifti_image_free(controlPointImage);
    nifti_image_free(deformationFieldImage);
    nifti_image_free(resultGradientImage);
-   nifti_image_free(voxelNMIGradientImage);
-   nifti_image_free(nodeNMIGradientImage);
+   nifti_image_free(voxelNmiGradientImage);
+   nifti_image_free(nodeNmiGradientImage);
    free(maskImage);
    free(probaJointHistogram);
    free(logJointHistogram);
 
-#ifdef _USE_CUDA
+#ifdef USE_CUDA
    if(runGPU)
    {
-      cudaCommon_free( (void **)&targetImageArray_d );
-      cudaCommon_free( (void **)&resultImageArray_d );
+      Cuda::Free(targetImageArray_d);
+      Cuda::Free(resultImageArray_d);
    }
 #endif
 

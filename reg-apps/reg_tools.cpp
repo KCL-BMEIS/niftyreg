@@ -29,10 +29,10 @@ std::vector<float> splitFloatVector(char* input)
 {
     std::vector<float> floatVector;
     char* charArray = strtok(input, ",");
-    while (charArray != NULL)
+    while (charArray != nullptr)
     {
         floatVector.push_back(atof(charArray));
-        charArray = strtok(NULL, ",");
+        charArray = strtok(nullptr, ",");
     }
 
     return floatVector;
@@ -40,7 +40,7 @@ std::vector<float> splitFloatVector(char* input)
 
 int isNumeric (const char *s)
 {
-    if(s==NULL || *s=='\0' || isspace(*s))
+    if(s==nullptr || *s=='\0' || isspace(*s))
         return EXIT_SUCCESS;
     char * p;
     strtod (s, &p);
@@ -95,49 +95,47 @@ typedef struct
 
 void PetitUsage(char *exec)
 {
-    fprintf(stderr,"Usage:\t%s -in  <filename> [OPTIONS].\n",exec);
-    fprintf(stderr,"\tSee the help for more details (-h).\n");
-    return;
+    NR_INFO("Usage:\t" << exec << " -in  <filename> [OPTIONS]");
+    NR_INFO("\tSee the help for more details (-h)");
 }
+
 void Usage(char *exec)
 {
-    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-    printf("Usage:\t%s -in <filename> -out <filename> [OPTIONS].\n",exec);
-    printf("\t-in <filename>\tFilename of the input image image (mandatory)\n");
-    printf("* * OPTIONS * *\n");
-    printf("\t-out <filename>\t\tFilename out the output image [output.nii]\n");
-    printf("\t-float\t\t\tThe input image is converted to float\n");
-    printf("\t-down\t\t\tThe input image is downsampled 2 times\n");
-    printf("\t-smoS <float> <float> <float>\n\t\t\t\tThe input image is smoothed using a cubic b-spline kernel\n");
-    printf("\t-smoG <float> <float> <float>\n\t\t\t\tThe input image is smoothed using Gaussian kernel\n");
-    printf("\t-smoL <float> <float> <float>\n\t\t\t\tThe input label image is smoothed using Gaussian kernel\n");
-    printf("\t-add <filename/float>\tThis image (or value) is added to the input\n");
-    printf("\t-sub <filename/float>\tThis image (or value) is subtracted to the input\n");
-    printf("\t-mul <filename/float>\tThis image (or value) is multiplied to the input\n");
-    printf("\t-div <filename/float>\tThis image (or value) is divided to the input\n");
-    printf("\t-rms <filename>\t\tCompute the mean rms between both image\n");
-    printf("\t-bin \t\t\tBinarise the input image (val!=0?val=1:val=0)\n");
-    printf("\t-thr <float>\t\tThreshold the input image (val<thr?val=0:val=1)\n");
-    printf("\t-nan <filename>\t\tThis image is used to mask the input image.\n\t\t\t\tVoxels outside of the mask are set to nan\n");
-    printf("\t-iso\t\t\tThe resulting image is made isotropic\n");
-    printf("\t-chgres <float> <float> <float>\n\t\t\t\tResample the input image to the specified resolution (in mm)\n");
-    printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
-    printf("\t-rmNanInf <float>\tRemove the nan and inf from the input image and replace them by the specified value\n");
-    printf("\t-4d2rgb\t\t\tConvert a 4D (or 5D) to rgb nifti file\n");
-    printf("\t-testActiveBlocks\tGenerate an image highlighting the active blocks for reg_aladin (block variance is shown)\n");
-    printf("\t-mind\t\t\tCreate a MIND descriptor image\n");
-    printf("\t-mindssc\t\tCreate a MIND-SSC descriptor image\n");
-    printf("\t-interp\t\t\tInterpolation order to use to warp the floating image\n");
-#if defined (_OPENMP)
+    NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+    NR_INFO("Usage:\t" << exec << " -in <filename> -out <filename> [OPTIONS]");
+    NR_INFO("\t-in <filename>\tFilename of the input image image (mandatory)");
+    NR_INFO("* * OPTIONS * *");
+    NR_INFO("\t-out <filename>\t\tFilename out the output image [output.nii]");
+    NR_INFO("\t-float\t\t\tThe input image is converted to float");
+    NR_INFO("\t-down\t\t\tThe input image is downsampled 2 times");
+    NR_INFO("\t-smoS <float> <float> <float>\n\t\t\t\tThe input image is smoothed using a cubic b-spline kernel");
+    NR_INFO("\t-smoG <float> <float> <float>\n\t\t\t\tThe input image is smoothed using Gaussian kernel");
+    NR_INFO("\t-smoL <float> <float> <float>\n\t\t\t\tThe input label image is smoothed using Gaussian kernel");
+    NR_INFO("\t-add <filename/float>\tThis image (or value) is added to the input");
+    NR_INFO("\t-sub <filename/float>\tThis image (or value) is subtracted to the input");
+    NR_INFO("\t-mul <filename/float>\tThis image (or value) is multiplied to the input");
+    NR_INFO("\t-div <filename/float>\tThis image (or value) is divided to the input");
+    NR_INFO("\t-rms <filename>\t\tCompute the mean rms between both image");
+    NR_INFO("\t-bin \t\t\tBinarise the input image (val!=0?val=1:val=0)");
+    NR_INFO("\t-thr <float>\t\tThreshold the input image (val<thr?val=0:val=1)");
+    NR_INFO("\t-nan <filename>\t\tThis image is used to mask the input image.\n\t\t\t\tVoxels outside of the mask are set to nan");
+    NR_INFO("\t-iso\t\t\tThe resulting image is made isotropic");
+    NR_INFO("\t-chgres <float> <float> <float>\n\t\t\t\tResample the input image to the specified resolution (in mm)");
+    NR_INFO("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively");
+    NR_INFO("\t-rmNanInf <float>\tRemove the nan and inf from the input image and replace them by the specified value");
+    NR_INFO("\t-4d2rgb\t\t\tConvert a 4D (or 5D) to rgb nifti file");
+    NR_INFO("\t-testActiveBlocks\tGenerate an image highlighting the active blocks for reg_aladin (block variance is shown)");
+    NR_INFO("\t-mind\t\t\tCreate a MIND descriptor image");
+    NR_INFO("\t-mindssc\t\tCreate a MIND-SSC descriptor image");
+    NR_INFO("\t-interp\t\t\tInterpolation order to use to warp the floating image");
+#ifdef _OPENMP
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i/%i]\n",
-          defaultOpenMPValue, omp_get_num_procs());
+   NR_INFO("\t-omp <int>\t\tNumber of threads to use with OpenMP. [" << defaultOpenMPValue << "/" << omp_get_num_procs() << "]");
 #endif
-   printf("\t--version\t\tPrint current version and exit (%s)\n",NR_VERSION);
-    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-    return;
+   NR_INFO("\t--version\t\tPrint current version and exit (" << NR_VERSION << ")");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 int main(int argc, char **argv)
@@ -149,13 +147,15 @@ int main(int argc, char **argv)
     if (argc < 2)
     {
         PetitUsage(argv[0]);
+        free(param);
+        free(flag);
         return EXIT_FAILURE;
     }
 
-#if defined (_OPENMP)
-    // Set the default number of thread
+#ifdef _OPENMP
+    // Set the default number of threads
     int defaultOpenMPValue=omp_get_num_procs();
-    if(getenv("OMP_NUM_THREADS")!=NULL)
+    if(getenv("OMP_NUM_THREADS")!=nullptr)
         defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
     omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -178,15 +178,15 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "--xml")==0)
         {
-            printf("%s",xml_tools);
+            NR_COUT << xml_tools << std::endl;
             return EXIT_SUCCESS;
         }
         else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
         {
-#if defined (_OPENMP)
+#ifdef _OPENMP
             omp_set_num_threads(atoi(argv[++i]));
 #else
-            reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+            NR_WARN("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
             ++i;
 #endif
         }
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
                 strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
                 strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
         {
-            printf("%s\n",NR_VERSION);
+            NR_COUT << NR_VERSION << std::endl;
             return EXIT_SUCCESS;
         }
         else if(strcmp(argv[i], "-in") == 0 || strcmp(argv[i], "--in") == 0)
@@ -454,7 +454,7 @@ int main(int argc, char **argv)
         }
         else
         {
-            fprintf(stderr, "Err:\tParameter %s unknown.\n", argv[i]);
+            NR_ERROR("Unknown parameter: " << argv[i]);
             PetitUsage(argv[0]);
             return EXIT_FAILURE;
         }
@@ -463,10 +463,10 @@ int main(int argc, char **argv)
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
     /* Read the image */
-    nifti_image *image = reg_io_ReadImageFile(param->inputImageName);
-    if(image == NULL)
+    NiftiImage image = reg_io_ReadImageFile(param->inputImageName);
+    if(image == nullptr)
     {
-        fprintf(stderr,"** ERROR Error when reading the input image: %s\n",param->inputImageName);
+        NR_ERROR("Error when reading the input image: " << param->inputImageName);
         return EXIT_FAILURE;
     }
 
@@ -497,13 +497,11 @@ int main(int argc, char **argv)
     if(flag->normFlag)
     {
         reg_tools_changeDatatype<float>(image);
-        nifti_image *normImage = nifti_copy_nim_info(image);
-        normImage->data = (void *)malloc(normImage->nvox * normImage->nbyper);
-        memcpy(normImage->data, image->data, normImage->nvox*normImage->nbyper);
-        reg_heapSort(static_cast<float *>(normImage->data), normImage->nvox);
-        float minValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(03*(int)normImage->nvox/100))];
-        float maxValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(97*(int)normImage->nvox/100))];
-        reg_tools_substractValueToImage(image,normImage,minValue);
+        nifti_image *normImage = nifti_dup(*image);
+        HeapSort(static_cast<float *>(normImage->data), normImage->nvox);
+        float minValue = static_cast<float *>(normImage->data)[Floor<size_t>(0.03*normImage->nvox)];
+        float maxValue = static_cast<float *>(normImage->data)[Floor<size_t>(0.97*normImage->nvox)];
+        reg_tools_subtractValueFromImage(image,normImage,minValue);
         reg_tools_divideValueToImage(normImage,normImage,maxValue-minValue);
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(normImage, param->outputImageName);
@@ -515,33 +513,31 @@ int main(int argc, char **argv)
 
     if(flag->smoothGaussianFlag || flag->smoothSplineFlag || flag->smoothMeanFlag)
     {
-        nifti_image *smoothImg = nifti_copy_nim_info(image);
-        smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
-        memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
+        nifti_image *smoothImg = nifti_dup(*image);
         float *kernelSize = new float[smoothImg->nt*smoothImg->nu];
         bool *timePoint = new bool[smoothImg->nt*smoothImg->nu];
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) timePoint[i]=true;
         bool boolX[3]= {1,0,0};
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) kernelSize[i]=param->smoothValueX;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,NULL,timePoint,boolX);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Mean,nullptr,timePoint,boolX);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,NULL,timePoint,boolX);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,NULL,timePoint,boolX);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Cubic,nullptr,timePoint,boolX);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Gaussian,nullptr,timePoint,boolX);
         bool boolY[3]= {0,1,0};
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) kernelSize[i]=param->smoothValueY;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,NULL,timePoint,boolY);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Mean,nullptr,timePoint,boolY);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,NULL,timePoint,boolY);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,NULL,timePoint,boolY);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Cubic,nullptr,timePoint,boolY);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Gaussian,nullptr,timePoint,boolY);
         bool boolZ[3]= {0,0,1};
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) kernelSize[i]=param->smoothValueZ;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,MEAN_KERNEL,NULL,timePoint,boolZ);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Mean,nullptr,timePoint,boolZ);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,CUBIC_SPLINE_KERNEL,NULL,timePoint,boolZ);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,GAUSSIAN_KERNEL,NULL,timePoint,boolZ);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Cubic,nullptr,timePoint,boolZ);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,ConvKernelType::Gaussian,nullptr,timePoint,boolZ);
         delete []kernelSize;
         delete []timePoint;
         if(flag->outputImageFlag)
@@ -555,9 +551,7 @@ int main(int argc, char **argv)
 
     if(flag->smoothLabFlag)
     {
-        nifti_image *smoothImg = nifti_copy_nim_info(image);
-        smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
-        memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
+        nifti_image *smoothImg = nifti_dup(*image);
 
         bool *timePoint = new bool[smoothImg->nt*smoothImg->nu];
         for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) timePoint[i]=true;
@@ -566,7 +560,7 @@ int main(int argc, char **argv)
         float varY=param->smoothValueY;
         float varZ=param->smoothValueZ;
 
-        reg_tools_labelKernelConvolution(smoothImg,varX,varY,varZ,NULL,timePoint);
+        reg_tools_labelKernelConvolution(smoothImg,varX,varY,varZ,nullptr,timePoint);
 
         delete []timePoint;
         if(flag->outputImageFlag)
@@ -579,18 +573,18 @@ int main(int argc, char **argv)
 
     if(flag->operationTypeFlag>-1)
     {
-        nifti_image *image2=NULL;
-        if(param->operationImageName!=NULL)
+        NiftiImage image2;
+        if(param->operationImageName!=nullptr)
         {
             image2 = reg_io_ReadImageFile(param->operationImageName);
-            if(image2 == NULL)
+            if(image2 == nullptr)
             {
-                fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
+                NR_ERROR("Error when reading the image: " << param->operationImageName);
                 return EXIT_FAILURE;
             }
         }
         // Images are converted to the higher datatype
-        if(image2!=NULL){
+        if(image2!=nullptr){
             switch(image->datatype>image2->datatype?image->datatype:image2->datatype)
             {
             case NIFTI_TYPE_UINT8:
@@ -610,8 +604,8 @@ int main(int argc, char **argv)
                 reg_tools_changeDatatype<short>(image2,NIFTI_TYPE_INT16);
                 break;
             case NIFTI_TYPE_UINT32:
-                reg_tools_changeDatatype<unsigned int>(image,NIFTI_TYPE_UINT32);
-                reg_tools_changeDatatype<unsigned int>(image2,NIFTI_TYPE_UINT32);
+                reg_tools_changeDatatype<unsigned>(image,NIFTI_TYPE_UINT32);
+                reg_tools_changeDatatype<unsigned>(image2,NIFTI_TYPE_UINT32);
                 break;
             case NIFTI_TYPE_INT32:
                 reg_tools_changeDatatype<int>(image,NIFTI_TYPE_INT32);
@@ -626,15 +620,14 @@ int main(int argc, char **argv)
                 reg_tools_changeDatatype<double>(image2,NIFTI_TYPE_FLOAT64);
                 break;
             default:
-                reg_print_msg_error("Unsurported data type.");
-                reg_exit();
+                NR_ERROR("Unsupported data type!");
+                return EXIT_FAILURE;
             }
         }
 
-        nifti_image *outputImage = nifti_copy_nim_info(image);
-        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
+        nifti_image *outputImage = nifti_dup(*image, false);
 
-        if(image2!=NULL)
+        if(image2!=nullptr)
         {
             switch(flag->operationTypeFlag)
             {
@@ -642,7 +635,7 @@ int main(int argc, char **argv)
                 reg_tools_addImageToImage(image, image2, outputImage);
                 break;
             case 1:
-                reg_tools_substractImageToImage(image, image2, outputImage);
+                reg_tools_subtractImageFromImage(image, image2, outputImage);
                 break;
             case 2:
                 reg_tools_multiplyImageToImage(image, image2, outputImage);
@@ -660,7 +653,7 @@ int main(int argc, char **argv)
                 reg_tools_addValueToImage(image, outputImage, param->operationValue);
                 break;
             case 1:
-                reg_tools_substractValueToImage(image, outputImage, param->operationValue);
+                reg_tools_subtractValueFromImage(image, outputImage, param->operationValue);
                 break;
             case 2:
                 reg_tools_multiplyValueToImage(image, outputImage, param->operationValue);
@@ -675,17 +668,16 @@ int main(int argc, char **argv)
         else reg_io_WriteImageFile(outputImage,"output.nii");
 
         nifti_image_free(outputImage);
-        if(image2!=NULL) nifti_image_free(image2);
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
     if(flag->rmsImageFlag)
     {
-        nifti_image *image2 = reg_io_ReadImageFile(param->rmsImageName);
-        if(image2 == NULL)
+        NiftiImage image2 = reg_io_ReadImageFile(param->rmsImageName);
+        if(image2 == nullptr)
         {
-            fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->rmsImageName);
+            NR_ERROR("Error when reading the image: " << param->rmsImageName);
             return EXIT_FAILURE;
         }
         // Check image dimension
@@ -698,13 +690,12 @@ int main(int argc, char **argv)
                 image->dim[6]!=image2->dim[6] ||
                 image->dim[7]!=image2->dim[7])
         {
-            fprintf(stderr,"Both images do not have the same dimension\n");
+            NR_ERROR("Both images do not have the same dimension");
             return EXIT_FAILURE;
         }
 
         double meanRMSerror = reg_tools_getMeanRMS(image, image2);
-        printf("%g\n", meanRMSerror);
-        nifti_image_free(image2);
+        NR_COUT << "Mean RMS error: " << meanRMSerror << std::endl;
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->binarisedImageFlag)
@@ -727,15 +718,14 @@ int main(int argc, char **argv)
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->nanMaskFlag)
     {
-        nifti_image *maskImage = reg_io_ReadImageFile(param->operationImageName);
-        if(maskImage == NULL)
+        NiftiImage maskImage = reg_io_ReadImageFile(param->operationImageName);
+        if(maskImage == nullptr)
         {
-            fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
+            NR_ERROR("Error when reading the image: " << param->operationImageName);
             return EXIT_FAILURE;
         }
 
-        nifti_image *outputImage = nifti_copy_nim_info(image);
-        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
+        nifti_image *outputImage = nifti_dup(*image, false);
 
         reg_tools_nanMask_image(image,maskImage,outputImage);
 
@@ -744,7 +734,6 @@ int main(int argc, char **argv)
         else reg_io_WriteImageFile(outputImage,"output.nii");
 
         nifti_image_free(outputImage);
-        nifti_image_free(maskImage);
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->iso)
@@ -800,11 +789,10 @@ int main(int argc, char **argv)
             }
         }
         else{
-            reg_print_msg_error("Nan and Inf value can only be removed when the input image is of float or double datatype");
+            NR_ERROR("Nan and Inf value can only be removed when the input image is of float or double datatype");
             return EXIT_FAILURE;
         }
-        printf("The input image contained %zu NaN, %zu Inf and %zu finite values\n",
-               nanNumber, infNumber, finNumber);
+        NR_COUT << "The input image contained " << nanNumber << " NaN, " << infNumber << " Inf and " << finNumber << " finite values" << std::endl;
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(image,param->outputImageName);
         else reg_io_WriteImageFile(image,"output.nii");
@@ -815,10 +803,10 @@ int main(int argc, char **argv)
         // Define the size of the new image
         int newDim[8];
         for(size_t i=0; i<8; ++i) newDim[i]=image->dim[i];
-        newDim[1]=(int)ceilf((float)image->dim[1]*image->pixdim[1]/param->pixdimX);
-        newDim[2]=(int)ceilf((float)image->dim[2]*image->pixdim[2]/param->pixdimY);
+        newDim[1]=Ceil<int>((float)image->dim[1]*image->pixdim[1]/param->pixdimX);
+        newDim[2]=Ceil<int>((float)image->dim[2]*image->pixdim[2]/param->pixdimY);
         if(image->nz>1)
-            newDim[3]=(int)ceilf((float)image->dim[3]*image->pixdim[3]/param->pixdimZ);
+            newDim[3]=Ceil<int>((float)image->dim[3]*image->pixdim[3]/param->pixdimZ);
         // Create the new image
         nifti_image *newImg=nifti_make_new_nim(newDim,image->datatype,true);
         newImg->pixdim[1]=newImg->dx=param->pixdimX;
@@ -891,20 +879,17 @@ int main(int argc, char **argv)
         def->pixdim[6]=def->dv=1.f;
         def->dim[7]=def->nw=1;
         def->pixdim[7]=def->dw=1.f;
-        def->nvox = (size_t)def->nx * def->ny *
-                    def->nz * def->nt * def->nu;
+        def->nvox = NiftiImage::calcVoxelNumber(def, def->ndim);
         def->nbyper = sizeof(float);
         def->datatype = NIFTI_TYPE_FLOAT32;
-        def->data = (void *)calloc(def->nvox,def->nbyper);
+        def->data = calloc(def->nvox,def->nbyper);
         // Fill the deformation field with an identity transformation
         reg_getDeformationFromDisplacement(def);
         // Allocate and compute the Jacobian matrices
-        mat33 *jacobian = (mat33 *)malloc(def->nx *
-                                          def->ny *
-                                          def->nz *
-                                          sizeof(mat33));
-        for(size_t i=0;i<(size_t)def->nx*def->ny*def->nz;++i)
-            reg_mat33_eye(&jacobian[i]);
+        const size_t jacobianVoxelNumber = NiftiImage::calcVoxelNumber(def, 3);
+        mat33 *jacobian = (mat33 *)malloc(jacobianVoxelNumber * sizeof(mat33));
+        for (size_t i = 0; i < jacobianVoxelNumber; ++i)
+            Mat33Eye(&jacobian[i]);
         // resample the original image into the space of the new image
         if(flag->interpFlag == 0){
             param->interpOrder = 3;
@@ -916,25 +901,21 @@ int main(int argc, char **argv)
             reg_resampleImage_PSF(image,
                                   newImg,
                                   def,
-                                  NULL,
+                                  nullptr,
                                   param->interpOrder,
                                   0.f,
                                   jacobian,
                                   0);
-#ifndef NDEBUG
-        reg_print_msg_debug("PSF resampling completed\n");
-#endif
+            NR_DEBUG("PSF resampling completed");
         }
         else{
             reg_resampleImage(image,
                               newImg,
                               def,
-                              NULL,
+                              nullptr,
                               param->interpOrder,
                               0.f);
-#ifndef NDEBUG
-        reg_print_msg_debug("Resampling completed\n");
-#endif
+            NR_DEBUG("Resampling completed");
         }
         free(jacobian);
         nifti_image_free(def);
@@ -951,22 +932,20 @@ int main(int argc, char **argv)
         if(image->datatype!=NIFTI_TYPE_FLOAT32)
             reg_tools_changeDatatype<float>(image);
         // Create a temporary scaled image
-        nifti_image *scaledImage = nifti_copy_nim_info(image);
-        scaledImage->data = (void *)malloc(scaledImage->nvox * scaledImage->nbyper);
+        nifti_image *scaledImage = nifti_dup(*image, false);
         // Rescale the input image
-        float min_value = reg_tools_getMinValue(image, -1);
-        float max_value = reg_tools_getMaxValue(image, -1);
-        reg_tools_substractValueToImage(image, scaledImage, min_value);
+        float min_value, max_value;
+        std::tie(min_value, max_value) = image.data().minmax();
+        reg_tools_subtractValueFromImage(image, scaledImage, min_value);
         reg_tools_multiplyValueToImage(scaledImage, scaledImage, 255.f/(max_value-min_value));
         // Create the rgb image
         nifti_image *outputImage = nifti_copy_nim_info(image);
         outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
         outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
-        outputImage->nvox=(size_t)outputImage->nx*
-                          outputImage->ny*outputImage->nz;
+        outputImage->nvox = NiftiImage::calcVoxelNumber(outputImage, outputImage->ndim);
         outputImage->datatype = NIFTI_TYPE_RGB24;
         outputImage->nbyper = 3 * sizeof(unsigned char);
-        outputImage->data = (void *)malloc(outputImage->nbyper*outputImage->nvox);
+        outputImage->data = malloc(outputImage->nbyper*outputImage->nvox);
         // Convert the image
         float *inPtr = static_cast<float *>(scaledImage->data);
         unsigned char *outPtr = static_cast<unsigned char *>(outputImage->data);
@@ -975,7 +954,7 @@ int main(int argc, char **argv)
                 for(int y=0; y<image->ny; ++y){
                     for(int x=0; x<image->nx; ++x){
                         size_t outIndex = ((z*image->ny+y)*image->nx+x)*image->nt*image->nu+t;
-                        outPtr[outIndex] = reg_round(*inPtr);
+                        outPtr[outIndex] = Round<unsigned char>(*inPtr);
                         ++inPtr;
                     }
                 }
@@ -983,13 +962,13 @@ int main(int argc, char **argv)
         }
         // Free the scaled image
         nifti_image_free(scaledImage);
-        scaledImage=NULL;
+        scaledImage=nullptr;
         // Save the rgb image
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(outputImage,param->outputImageName);
         else reg_io_WriteImageFile(outputImage,"output.nii");
         nifti_image_free(outputImage);
-        outputImage=NULL;
+        outputImage=nullptr;
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->bsi2rgbFlag)
@@ -1001,15 +980,14 @@ int main(int argc, char **argv)
         nifti_image *outputImage = nifti_copy_nim_info(image);
         outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
         outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
-        outputImage->nvox=(size_t)outputImage->nx*
-                          outputImage->ny*outputImage->nz;
+        outputImage->nvox = NiftiImage::calcVoxelNumber(outputImage, outputImage->ndim);
         outputImage->datatype = NIFTI_TYPE_RGB24;
         outputImage->nbyper = 3 * sizeof(unsigned char);
         outputImage->scl_slope = 1.f;
         outputImage->scl_inter = 0.f;
         outputImage->cal_min = 0.f;
         outputImage->cal_max = 255.f;
-        outputImage->data = (void *)malloc(outputImage->nbyper*outputImage->nvox);
+        outputImage->data = malloc(outputImage->nbyper*outputImage->nvox);
         // Convert the image
         float *inPtr = static_cast<float *>(image->data);
         unsigned char *outPtr = static_cast<unsigned char *>(outputImage->data);
@@ -1019,8 +997,8 @@ int main(int argc, char **argv)
                     float value = *inPtr * 255.f;
                     size_t outIndex = ((z*image->ny+y)*image->nx+x)*3;
                     if (value > 0)
-                        outPtr[outIndex] = static_cast<unsigned char>(reg_round(value>255?255:value));
-                    else outPtr[outIndex+1] = static_cast<unsigned char>(reg_round(-value<-255?-255:-value));
+                        outPtr[outIndex] = Round<unsigned char>(value > 255 ? 255 : value);
+                    else outPtr[outIndex + 1] = Round<unsigned char>(-value < -255 ? -255 : -value);
                     outPtr[outIndex+2] = 0;
                     ++inPtr;
                 }
@@ -1031,14 +1009,14 @@ int main(int argc, char **argv)
             reg_io_WriteImageFile(outputImage,param->outputImageName);
         else reg_io_WriteImageFile(outputImage,"output.nii");
         nifti_image_free(outputImage);
-        outputImage=NULL;
+        outputImage=nullptr;
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->mindFlag)
     {
         if(image->ndim>3){
-            reg_print_msg_error("MIND only support 2D or 3D image for now");
-            reg_exit();
+            NR_ERROR("MIND only support 2D or 3D image for now");
+            return EXIT_FAILURE;
         }
         // Convert the input image to float if needed
         if(image->datatype!=NIFTI_TYPE_FLOAT32)
@@ -1048,24 +1026,24 @@ int main(int argc, char **argv)
         outputImage->dim[0]=outputImage->ndim=4;
         outputImage->dim[4]=outputImage->nt=image->nz>1?6:4;
         outputImage->nvox=(size_t)image->nvox*outputImage->nt;
-        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
+        outputImage->data = malloc(outputImage->nvox * outputImage->nbyper);
         // Compute the MIND descriptor
         int *mask = (int *)calloc(image->nvox, sizeof(int));
-        GetMINDImageDesciptor(image, outputImage, mask, 1, 0);
+        GetMindImageDescriptor(image, outputImage, mask, 1, 0);
         free(mask);
         // Save the MIND descriptor image
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(outputImage,param->outputImageName);
         else reg_io_WriteImageFile(outputImage,"output.nii");
         nifti_image_free(outputImage);
-        outputImage=NULL;
+        outputImage=nullptr;
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->mindSSCFlag)
     {
         if(image->ndim>3){
-            reg_print_msg_error("MIND-SSC only support 2D or 3D image for now");
-            reg_exit();
+            NR_ERROR("MIND-SSC only support 2D or 3D image for now");
+            return EXIT_FAILURE;
         }
         // Convert the input image to float if needed
         if(image->datatype!=NIFTI_TYPE_FLOAT32)
@@ -1075,17 +1053,17 @@ int main(int argc, char **argv)
         outputImage->dim[0]=outputImage->ndim=4;
         outputImage->dim[4]=outputImage->nt=image->nz>1?12:4;
         outputImage->nvox=(size_t)image->nvox*outputImage->nt;
-        outputImage->data = (void *)malloc(outputImage->nvox * outputImage->nbyper);
+        outputImage->data = malloc(outputImage->nvox * outputImage->nbyper);
         // Compute the MIND-SSC descriptor
         int *mask = (int *)calloc(image->nvox, sizeof(int));
-        GetMINDSSCImageDesciptor(image, outputImage, mask, 1, 0);
+        GetMindSscImageDescriptor(image, outputImage, mask, 1, 0);
         free(mask);
         // Save the MIND descriptor image
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(outputImage,param->outputImageName);
         else reg_io_WriteImageFile(outputImage,"output.nii");
         nifti_image_free(outputImage);
-        outputImage=NULL;
+        outputImage=nullptr;
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->testActiveBlocksFlag){
@@ -1093,8 +1071,9 @@ int main(int argc, char **argv)
         if(image->datatype!=NIFTI_TYPE_FLOAT32)
             reg_tools_changeDatatype<float>(image);
         // Create a temporary mask
-        int *temp_mask = (int *)malloc(image->nx*image->ny*image->nz*sizeof(int));
-        for(size_t i=0; i<(size_t)image->nx*image->ny*image->nz; ++i)
+        const size_t voxelNumber = image.nVoxelsPerVolume();
+        int *temp_mask = (int *)malloc(voxelNumber * sizeof(int));
+        for (size_t i = 0; i < voxelNumber; ++i)
             temp_mask[i]=i;
         // Initialise the block matching
         _reg_blockMatchingParam bm_param;
@@ -1110,10 +1089,9 @@ int main(int argc, char **argv)
         nifti_image *outputImage = nifti_copy_nim_info(image);
         outputImage->nt=outputImage->nu=outputImage->dim[4]=outputImage->dim[5]=1;
         outputImage->ndim=outputImage->dim[0]=outputImage->nz>1?3:2;
-        outputImage->nvox=(size_t)outputImage->nx*
-                          outputImage->ny*outputImage->nz;
+        outputImage->nvox = NiftiImage::calcVoxelNumber(outputImage, outputImage->ndim);
         outputImage->cal_min=0;
-        outputImage->data = (void *)calloc(outputImage->nbyper, outputImage->nvox);
+        outputImage->data = calloc(outputImage->nbyper, outputImage->nvox);
         float *inPtr = static_cast<float *>(image->data);
         float *outPtr = static_cast<float *>(outputImage->data);
         // Iterate through the blocks
@@ -1152,7 +1130,7 @@ int main(int argc, char **argv)
                                         size_t voxelIndex = (z*outputImage->ny+y)*outputImage->nx+vx;
                                         for(size_t x=vx;x<vx+4;++x){
                                             if(x<(size_t)outputImage->nx){
-                                                variance += reg_pow2(meanValue - inPtr[voxelIndex]);
+                                                variance += Square(meanValue - inPtr[voxelIndex]);
                                             }
                                             voxelIndex++;
                                         } // x
@@ -1180,7 +1158,7 @@ int main(int argc, char **argv)
                 } // bx
             } // by
         } // bz
-        outputImage->cal_max=reg_tools_getMaxValue(outputImage, -1);
+        std::tie(outputImage->cal_min, outputImage->cal_max) = NiftiImage(outputImage).data().minmax();
 
         free(temp_mask);
 
@@ -1189,9 +1167,8 @@ int main(int argc, char **argv)
             reg_io_WriteImageFile(outputImage,param->outputImageName);
         else reg_io_WriteImageFile(outputImage,"output.nii");
         nifti_image_free(outputImage);
-        outputImage=NULL;
+        outputImage=nullptr;
     }
 
-    nifti_image_free(image);
     return EXIT_SUCCESS;
 }

@@ -10,60 +10,52 @@
  *
  */
 
-#ifndef _REG_SSD_GPU_H
-#define _REG_SSD_GPU_H
+#pragma once
 
-#include "_reg_tools_gpu.h"
+#include "CudaTools.hpp"
 #include "_reg_measure_gpu.h"
 #include "_reg_ssd.h"
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+
+/* *************************************************************** */
 /// @brief SSD measure of similarity class on the device
-class reg_ssd_gpu : public reg_ssd , public reg_measure_gpu
-{
+class reg_ssd_gpu: public reg_ssd, public reg_measure_gpu {
 public:
-   /// @brief reg_ssd class constructor
-   reg_ssd_gpu();
-   /// @brief Initialise the reg_ssd object
-   virtual void InitialiseMeasure(nifti_image *refImgPtr,
-                                  nifti_image *floImgPtr,
-                                  int *maskRefPtr,
-                                  int activeVoxNum,
-                                  nifti_image *warFloImgPtr,
-                                  nifti_image *warFloGraPtr,
-                                  nifti_image *forVoxBasedGraPtr,
-                                  cudaArray **refDevicePtr,
-                                  cudaArray **floDevicePtr,
-                                  int **refMskDevicePtr,
-                                  float **warFloDevicePtr,
-                                  float4 **warFloGradDevicePtr,
-                                  float4 **forVoxBasedGraDevicePtr);
-   /// @brief Returns the ssd value
-   double GetSimilarityMeasureValue();
-   /// @brief Compute the voxel based ssd gradient
-   void GetVoxelBasedSimilarityMeasureGradient();
-   /// @brief Measure class desstructor
-   ~reg_ssd_gpu() {}
+    /// @brief reg_ssd class constructor
+    reg_ssd_gpu();
+    /// @brief Measure class destructor
+    virtual ~reg_ssd_gpu();
+
+    /// @brief Initialise the reg_ssd object
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   float *refImgCuda,
+                                   nifti_image *floImg,
+                                   float *floImgCuda,
+                                   int *refMask,
+                                   int *refMaskCuda,
+                                   size_t activeVoxNum,
+                                   nifti_image *warpedImg,
+                                   float *warpedImgCuda,
+                                   nifti_image *warpedGrad,
+                                   float4 *warpedGradCuda,
+                                   nifti_image *voxelBasedGrad,
+                                   float4 *voxelBasedGradCuda,
+                                   nifti_image *localWeightSim = nullptr,
+                                   float *localWeightSimCuda = nullptr,
+                                   int *floMask = nullptr,
+                                   int *floMaskCuda = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   float *warpedImgBwCuda = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   float4 *warpedGradBwCuda = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr,
+                                   float4 *voxelBasedGradBwCuda = nullptr) override;
+    /// @brief Returns the ssd value forwards
+    virtual double GetSimilarityMeasureValueFw() override;
+    /// @brief Returns the ssd value backwards
+    virtual double GetSimilarityMeasureValueBw() override;
+    /// @brief Compute the voxel-based ssd gradient forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) override;
+    /// @brief Compute the voxel-based ssd gradient backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) override;
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-extern "C++"
-float reg_getSSDValue_gpu(nifti_image *referenceImage,
-                          cudaArray **reference_d,
-                          float **warped_d,
-                          int **mask_d,
-                          int activeVoxelNumber
-                         );
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-extern "C++"
-void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
-                                      cudaArray **reference_d,
-                                      float **warped_d,
-                                      float4 **spaGradient_d,
-                                      float4 **ssdGradient_d,
-                                      float maxSD,
-                                      int **mask_d,
-                                      int activeVoxelNumber
-                                     );
-#endif
+/* *************************************************************** */

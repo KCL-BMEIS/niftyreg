@@ -35,7 +35,7 @@ typedef float16 real16_t;
 /* *************************************************************** */
 __inline__ real_t getPosition(__global float* matrix,
                               real_t* voxel,
-                              const unsigned int idx)
+                              const unsigned idx)
 {
    size_t index = idx*4;
    return (real_t)matrix[index++] * voxel[0] +
@@ -49,11 +49,11 @@ __kernel void affineKernel2D(__global float* transformationMatrix,
 									  __global float* defField,
 									  __global int *mask,
 									  const uint3 params,
-									  const unsigned int composition)
+									  const unsigned composition)
 {
 	// Get the current coordinate
-	const unsigned int x = get_group_id(0)*get_local_size(0) + get_local_id(0);
-	const unsigned int y = get_group_id(1)*get_local_size(1) + get_local_id(1);
+	const unsigned x = get_group_id(0)*get_local_size(0) + get_local_id(0);
+	const unsigned y = get_group_id(1)*get_local_size(1) + get_local_id(1);
 	const unsigned long index = x + params.x * y;
 
 	if(y<params.y && x<params.x &&  mask[index] >= 0 )
@@ -78,12 +78,12 @@ __kernel void affineKernel3D(__global float* transformationMatrix,
 									  __global float* defField,
 									  __global int *mask,
 									  const uint3 params,
-									  const unsigned int composition)
+									  const unsigned composition)
 {
 	// Get the current coordinate
-	const unsigned int x = get_group_id(0)*get_local_size(0) + get_local_id(0);
-	const unsigned int y = get_group_id(1)*get_local_size(1) + get_local_id(1);
-	const unsigned int z = get_group_id(2)*get_local_size(2) + get_local_id(2);
+	const unsigned x = get_group_id(0)*get_local_size(0) + get_local_id(0);
+	const unsigned y = get_group_id(1)*get_local_size(1) + get_local_id(1);
+	const unsigned z = get_group_id(2)*get_local_size(2) + get_local_id(2);
 	const unsigned long index = x + params.x * ( y + z * params.y);
 
 	if( z<params.z && y<params.y && x<params.x &&  mask[index] >= 0 )

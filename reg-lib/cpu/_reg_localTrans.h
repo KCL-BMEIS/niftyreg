@@ -14,17 +14,14 @@
  * Marcel van Herk (CMIC / NKI / AVL)
  */
 
-#ifndef _REG_TRANS_H
-#define _REG_TRANS_H
+#pragma once
 
-#include "float.h"
 #include "_reg_globalTrans.h"
 #include "_reg_splineBasis.h"
 
-/* *********************************************** */
-/* ****      CUBIC SPLINE BASED FUNCTIONS     **** */
-/* *********************************************** */
-
+/* *************************************************************** */
+/* ****              CUBIC SPLINE BASED FUNCTIONS             **** */
+/* *************************************************************** */
 /* *************************************************************** */
 /** @brief Generate a control point grid image based on the dimension of a
  * reference image and on a spacing.
@@ -34,21 +31,30 @@
  * store in this pointer
  * @param referenceImage Reference image which dimension will be used to
  * define the control point grid image space
- * @param spacingMillimeter Control point spacing along each axis
+ * @param spacing Control point spacing along each axis
  */
-extern "C++" template <class DTYPE>
-void reg_createControlPointGrid(nifti_image **controlPointGridImage,
-                                nifti_image *referenceImage,
-                                float *spacingMillimeter);
+template <class DataType>
+void reg_createControlPointGrid(NiftiImage& controlPointGridImage,
+                                const NiftiImage& referenceImage,
+                                const float *spacing);
 
-extern "C++" template <class DTYPE>
-void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
-                                          nifti_image **backwardGridImage,
-                                          nifti_image *referenceImage,
-                                          nifti_image *floatingImage,
-                                          mat44 *forwardAffineTrans,
-                                          float *spacing);
-
+template <class DataType>
+void reg_createSymmetricControlPointGrids(NiftiImage& forwardGridImage,
+                                          NiftiImage& backwardGridImage,
+                                          const NiftiImage& referenceImage,
+                                          const NiftiImage& floatingImage,
+                                          const mat44 *forwardAffineTrans,
+                                          const float *spacing);
+/* *************************************************************** */
+/** @brief Create a deformation field given a provided reference image.
+* @param deformationFieldImage Pointer to the newly created deformation
+* field
+* @param referenceImage Image used to specify the deformation field
+* size and orientation.
+*/
+template <class DataType>
+void reg_createDeformationField(NiftiImage& deformationFieldImage,
+                                const nifti_image *referenceImage);
 /* *************************************************************** */
 /** @brief Compute a dense deformation field in the space of a reference
  * image from a grid of control point.
@@ -62,16 +68,15 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
  * @param bspline A cubic B-Spline scheme is used if the value is set to true,
  * a cubic spline scheme is used otherwise (interpolant spline).
  */
-extern "C++"
 void reg_spline_getDeformationField(nifti_image *controlPointGridImage,
                                     nifti_image *deformationField,
-                                    int *mask = NULL,
+                                    int *mask = nullptr,
                                     bool composition = false,
                                     bool bspline = true,
-                                    bool force_no_lut = false);
+                                    bool forceNoLut = false);
 /* *************************************************************** */
 /** @brief Upsample an image from voxel space to node space using
- * millimiter correspendences.
+ * millimetre correspondences.
  * @param nodeImage This image is a coarse representation of the
  * transformation (typically a grid of control point). This image
  * values are going to be updated
@@ -82,13 +87,11 @@ void reg_spline_getDeformationField(nifti_image *controlPointGridImage,
  * @param update The values in node image will be incremented if
  * update is set to true; a blank node image is considered otherwise
  */
-extern "C++"
-void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
-                                  nifti_image *voxelImage,
-                                  float weight,
-                                  bool update,
-                                  mat44 *voxelToMillimeter = NULL
-      );
+void reg_voxelCentricToNodeCentric(nifti_image *nodeImage,
+                                   nifti_image *voxelImage,
+                                   float weight,
+                                   bool update,
+                                   const mat44 *voxelToMillimetre = nullptr);
 /* *************************************************************** */
 /** @brief Refine a grid of control points
  * @param referenceImage Image that defined the space of the reference
@@ -96,10 +99,8 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
  * @param controlPointGridImage This control point grid will be refined
  * by dividing the control point spacing by a ratio of 2
  */
-extern "C++"
 void reg_spline_refineControlPointGrid(nifti_image *controlPointGridImage,
-                                       nifti_image *referenceImage = NULL
-      );
+                                       nifti_image *referenceImage = nullptr);
 /* *************************************************************** */
 /** @brief This function compose the a first control point image with a second one:
  * Grid2(x) <= Grid1(Grid2(x)).
@@ -115,13 +116,11 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGridImage,
  * @param Cubic B-Spline can be used (bspline==true)
  * or cubic Spline (bspline==false)
  */
-extern "C++"
 int reg_spline_cppComposition(nifti_image *grid1,
                               nifti_image *grid2,
                               bool displacement1,
                               bool displacement2,
-                              bool bspline
-                              );
+                              bool bspline);
 /* *************************************************************** */
 /** @brief Preforms the composition of two deformation fields
  * The deformation field image is applied to the second image:
@@ -132,13 +131,12 @@ int reg_spline_cppComposition(nifti_image *grid1,
  * @param dfToUpdate Image that contains the deformation field that
  * is being updated
  * @param mask Mask overlaid on the dfToUpdate field where only voxel
- * within the mask will be updated. All positive values in the maks
+ * within the mask will be updated. All positive values in the mask
  * are considered as belonging to the mask.
  */
-extern "C++"
-void reg_defField_compose(nifti_image *deformationField,
+void reg_defField_compose(const nifti_image *deformationField,
                           nifti_image *dfToUpdate,
-                          int *mask);
+                          const int *mask);
 /* *************************************************************** */
 /** @brief Compute the inverse of a deformation field
  * @author Marcel van Herk (CMIC / NKI / AVL)
@@ -149,16 +147,13 @@ void reg_defField_compose(nifti_image *deformationField,
  * @param tolerance Tolerance value for the optimisation. Set to nan
  * for the default value.
  */
-extern "C++"
 void reg_defFieldInvert(nifti_image *inputDeformationField,
                         nifti_image *outputDeformationField,
                         float tolerance);
 /* *************************************************************** */
-extern "C++"
 void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
                                                    nifti_image *deformationFieldImage,
-                                                   bool updateStepNumber);
-
+                                                   const bool updateStepNumber);
 /* *************************************************************** */
 /** @brief The deformation field (img2) is computed by integrating
  * a velocity Grid (img1)
@@ -167,33 +162,26 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
  * @param deformationFieldImage Deformation field image that will
  * be filled using the exponentiation of the velocity field.
  */
-extern "C++"
 void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                             nifti_image *deformationFieldImage,
-                                            bool updateStepNumber);
+                                            const bool updateStepNumber);
 /* *************************************************************** */
-extern "C++"
-void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
-                                                   nifti_image **deformationFieldImage);
+void reg_spline_getIntermediateDefFieldFromVelGrid(NiftiImage& velocityFieldGrid,
+                                                   NiftiImage deformationFields[]);
 /* *************************************************************** */
-extern "C++"
 void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              nifti_image *flowField);
-
 /* *************************************************************** */
-
-
-/* *********************************************** */
-/* ****            OTHER FUNCTIONS            **** */
-/* *********************************************** */
-
 /* *************************************************************** */
-/** @brief This function compute the BCH update using an initial verlocity field
+/* ****                    OTHER FUNCTIONS                    **** */
+/* *************************************************************** */
+/* *************************************************************** */
+/** @brief This function compute the BCH update using an initial velocity field
  * and its gradient.
  * @param img1 Image that contains the velocity field parametrisation
  * This image is updated
  * @param img2 This image contains the gradient to use
- * @param type The type encodes the number of component of the serie
+ * @param type The type encodes the number of component of the series
  * to be considered:
  * 0 - w=u+v
  * 1 - w=u+v+0.5*[u,v]
@@ -201,16 +189,7 @@ void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
  * 3 - w=u+v+0.5*[u,v]+[u,[u,v]]/12-[v,[u,v]]/12
  * 4 - w=u+v+0.5*[u,v]+[u,[u,v]]/12-[v,[u,v]]/12-[v,[u,[u,g]]]/24
  */
-extern "C++"
 void compute_BCH_update(nifti_image *img1,
                         nifti_image *img2,
                         int type);
 /* *************************************************************** */
-/** @brief This function deconvolve an image by a cubic B-Spline kernel
- * in order to get cubic B-Spline coefficient
- * @param img Image to be deconvolved
- */
-extern "C++"
-void reg_spline_GetDeconvolvedCoefficents(nifti_image *img);
-/* *************************************************************** */
-#endif

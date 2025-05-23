@@ -1,20 +1,14 @@
-#ifndef RESAMPLEIMAGEKERNEL_H
-#define RESAMPLEIMAGEKERNEL_H
+#pragma once
 
 #include "Kernel.h"
-#include "nifti1_io.h"
+#include "RNifti.h"
 
-class ResampleImageKernel : public Kernel {
+class ResampleImageKernel: public Kernel {
 public:
-    static std::string getName() {
+    static std::string GetName() {
         return "ResampleImageKernel";
     }
-    ResampleImageKernel( std::string name) : Kernel(name) {
-    }
-
-    virtual ~ResampleImageKernel(){}
-
-    virtual void calculate(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL) = 0;
+    ResampleImageKernel() : Kernel() {}
+    virtual ~ResampleImageKernel() {}
+    virtual void Calculate(int interp, float paddingValue, bool *dtiTimePoint = nullptr, mat33 *jacMat = nullptr) = 0;
 };
-
-#endif // RESAMPLEIMAGEKERNEL_H

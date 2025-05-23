@@ -83,7 +83,7 @@ __inline void interpCubicSplineKernel(real_t relative, real_t *basis)
 __inline void interpLinearKernel(real_t relative, real_t *basis)
 {
     if (relative < (real_t) 0.0) relative = (real_t) 0.0; //reg_rounding error
-    basis[1] = relative;
+    basis[1] = relative;  // cppcheck-suppress ctuArrayIndex // false positive
     basis[0] = (real_t) 1.0 - relative;
 }
 /* *************************************************************** */
@@ -110,20 +110,20 @@ __inline real_t interpLoop2D(__global float* floatingIntensity,
     int *previous,
     uint3 fi_xyz,
     float paddingValue,
-    unsigned int kernel_size)
+    unsigned kernel_size)
 {
     real_t intensity = (real_t) 0.0;
-    
-        for (unsigned int b = 0; b < kernel_size; b++) {
+
+        for (unsigned b = 0; b < kernel_size; b++) {
             int Y = previous[1] + b;
             bool yInBounds = -1 < Y && Y < fi_xyz.y;
             real_t xTempNewValue = (real_t) 0.0;
-            
-            for (unsigned int a = 0; a < kernel_size; a++) {
+
+            for (unsigned a = 0; a < kernel_size; a++) {
                 int X = previous[0] + a;
                 bool xInBounds = -1 < X && X < fi_xyz.x;
 
-                const unsigned int idx = Y * fi_xyz.x + X;
+                const unsigned idx = Y * fi_xyz.x + X;
 
                 xTempNewValue += (xInBounds && yInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
             }
@@ -141,21 +141,21 @@ __inline real_t interpLoop3D(__global float* floatingIntensity,
     int *previous,
     uint3 fi_xyz,
     float paddingValue,
-    unsigned int kernel_size)
+    unsigned kernel_size)
 {
     real_t intensity = (real_t) 0.0;
-    for (unsigned int c = 0; c < kernel_size; c++) {
+    for (unsigned c = 0; c < kernel_size; c++) {
         int Z = previous[2] + c;
         bool zInBounds = -1 < Z && Z < fi_xyz.z;
         real_t yTempNewValue = (real_t) 0.0;
-        for (unsigned int b = 0; b < kernel_size; b++) {
+        for (unsigned b = 0; b < kernel_size; b++) {
             int Y = previous[1] + b;
             bool yInBounds = -1 < Y && Y < fi_xyz.y;
             real_t xTempNewValue = (real_t) 0.0;
-            for (unsigned int a = 0; a < kernel_size; a++) {
+            for (unsigned a = 0; a < kernel_size; a++) {
                 int X = previous[0] + a;
                 bool xInBounds = -1 < X && X < fi_xyz.x;
-                const unsigned int idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
+                const unsigned idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
 
                 xTempNewValue += (xInBounds && yInBounds  && zInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
             }
@@ -165,12 +165,6 @@ __inline real_t interpLoop3D(__global float* floatingIntensity,
     }
 
     return intensity;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-__inline int cl_reg_floor(real_t a)
-{
-    return a > 0.0 ? (int)a : (int)(a - 1);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -194,9 +188,9 @@ __inline void reg_mat44_mul_cl(__global float const* mat,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-float cl_reg_round(float a)
-{
-    return (float)((a) > 0.0f ? (int)((a)+0.5) : (int)((a)-0.5));
+__inline int Floor(float x) {
+    const int i = (int)x;
+    return i - (x < i);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -223,7 +217,7 @@ __kernel void ResampleImage2D(__global float* floatingImage,
     long index = get_group_id(0)*get_local_size(0) + get_local_id(0);
     while (index < voxelNumber.x) {
 
-        for (unsigned int t = 0; t < wi_tu.x * wi_tu.y; t++) {
+        for (unsigned t = 0; t < wi_tu.x * wi_tu.y; t++) {
 
             __global float *resultIntensity = &resultIntensityPtr[t * voxelNumber.x];
             __global float *floatingIntensity = &sourceIntensityPtr[t * voxelNumber.y];
@@ -241,8 +235,8 @@ __kernel void ResampleImage2D(__global float* floatingImage,
                 // real -> voxel; floating space
                 reg_mat44_mul_cl(sourceIJKMatrix, world, position);
 
-                previous[0] = cl_reg_floor(position[0]);
-                previous[1] = cl_reg_floor(position[1]);
+                previous[0] = Floor(position[0]);
+                previous[1] = Floor(position[1]);
 
                 relative[0] = (real_t)position[0] - (real_t)(previous[0]);
                 relative[1] = (real_t)position[1] - (real_t)(previous[1]);
@@ -315,7 +309,7 @@ __kernel void ResampleImage3D(__global float* floatingImage,
     long index = get_group_id(0)*get_local_size(0) + get_local_id(0);
     while (index < voxelNumber.x) {
 
-        for (unsigned int t = 0; t < wi_tu.x * wi_tu.y; t++) {
+        for (unsigned t = 0; t < wi_tu.x * wi_tu.y; t++) {
 
             __global float *resultIntensity = &resultIntensityPtr[t * voxelNumber.x];
             __global float *floatingIntensity = &sourceIntensityPtr[t * voxelNumber.y];
@@ -333,9 +327,9 @@ __kernel void ResampleImage3D(__global float* floatingImage,
                 // real -> voxel; floating space
                 reg_mat44_mul_cl(sourceIJKMatrix, world, position);
 
-                previous[0] = cl_reg_floor(position[0]);
-                previous[1] = cl_reg_floor(position[1]);
-                previous[2] = cl_reg_floor(position[2]);
+                previous[0] = Floor(position[0]);
+                previous[1] = Floor(position[1]);
+                previous[2] = Floor(position[2]);
 
                 relative[0] = (real_t)position[0] - (real_t)(previous[0]);
                 relative[1] = (real_t)position[1] - (real_t)(previous[1]);

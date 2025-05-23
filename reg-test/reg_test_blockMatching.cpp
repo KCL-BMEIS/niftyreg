@@ -1,219 +1,183 @@
-#include "_reg_ReadWriteImage.h"
-#include "_reg_ReadWriteMatrix.h"
+#include "reg_test_common.h"
 #include "_reg_blockMatching.h"
-#include "_reg_tools.h"
-#include "_reg_globalTrans.h"
-
 #include "BlockMatchingKernel.h"
-#include "Platform.h"
-
-#include "AladinContent.h"
-#ifdef _USE_CUDA
-#include "CUDAAladinContent.h"
-#endif
-#ifdef _USE_OPENCL
-#include "CLAladinContent.h"
-#endif
-
-#include <algorithm>
-
-#define EPS 0.000001
-
-void check_matching_difference(int dim,
-                               float* referencePosition,
-                               float* warpedPosition,
-                               float* expectedReferencePositions,
-                               float* expectedWarpedPosition,
-                               float &max_difference)
-{
-   float difference;
-   for (int i = 0; i < dim; ++i) {
-      difference = fabsf(referencePosition[i] - expectedReferencePositions[i]);
-      max_difference = std::max(difference, max_difference);
-      if (difference > EPS){
-#ifndef NDEBUG
-         fprintf(stderr, "reg_test_blockMatching reference position failed %g>%g\n", difference, EPS);
-         if(dim==2){
-            fprintf(stderr, "Reference. NR [%g %g] Expected [%g %g]\n",
-                    referencePosition[0], referencePosition[1],
-                  expectedReferencePositions[0], expectedReferencePositions[1]);
-            fprintf(stderr, "Warped. NR [%g %g] Expected [%g %g]\n",
-                    warpedPosition[0], warpedPosition[1],
-                  expectedWarpedPosition[0], expectedWarpedPosition[1]);
-         }
-         else{
-            fprintf(stderr, "Reference. NR [%g %g %g] Expected [%g %g %g]\n",
-                    referencePosition[0], referencePosition[1], referencePosition[2],
-                  expectedReferencePositions[0], expectedReferencePositions[1], expectedReferencePositions[2]);
-            fprintf(stderr, "Warped. NR [%g %g %g] Expected [%g %g %g]\n",
-                    warpedPosition[0], warpedPosition[1], warpedPosition[2],
-                  expectedWarpedPosition[0], expectedWarpedPosition[1], expectedWarpedPosition[2]);
-         }
-         reg_exit();
-#endif
-      }
-      difference = fabsf(warpedPosition[i] - expectedWarpedPosition[i]);
-      max_difference = std::max(difference, max_difference);
-      if (difference > EPS){
-#ifndef NDEBUG
-         fprintf(stderr, "reg_test_blockMatching warped position failed %g>%g\n", difference, EPS);
-         if(dim==2){
-            fprintf(stderr, "Reference. NR [%g %g] Expected [%g %g]\n",
-                    referencePosition[0], referencePosition[1],
-                  expectedReferencePositions[0], expectedReferencePositions[1]);
-            fprintf(stderr, "Warped. NR [%g %g] Expected [%g %g]\n",
-                    warpedPosition[0], warpedPosition[1],
-                  expectedWarpedPosition[0], expectedWarpedPosition[1]);
-         }
-         else{
-            fprintf(stderr, "Reference. NR [%g %g %g] Expected [%g %g %g]\n",
-                    referencePosition[0], referencePosition[1], referencePosition[2],
-                  expectedReferencePositions[0], expectedReferencePositions[1], expectedReferencePositions[2]);
-            fprintf(stderr, "Warped. NR [%g %g %g] Expected [%g %g %g]\n",
-                    warpedPosition[0], warpedPosition[1], warpedPosition[2],
-                  expectedWarpedPosition[0], expectedWarpedPosition[1], expectedWarpedPosition[2]);
-         }
-         reg_exit();
-#endif
-      }
-   }
-}
-
-void test(AladinContent *con, int platformCode) {
-
-   Platform *platform = new Platform(platformCode);
-
-   Kernel *blockMatchingKernel = platform->createKernel(BlockMatchingKernel::getName(), con);
-   blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
-
-   delete blockMatchingKernel;
-   delete platform;
-}
-
-int main(int argc, char **argv)
-{
-
-   if (argc != 5) {
-      fprintf(stderr, "Usage: %s <refImage> <warpedImage> <expectedBlockMatchingMatrix> <platformCode>\n", argv[0]);
-      return EXIT_FAILURE;
-   }
-
-   char *inputRefImageName = argv[1];
-   char *inputWarpedImageName = argv[2];
-   char* expectedBlockMatchingMatrixName = argv[3];
-   int   platformCode = atoi(argv[4]);
-
-   // Read the input reference image
-   nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
-   if (referenceImage == NULL){
-      reg_print_msg_error("The input reference image could not be read");
-      return EXIT_FAILURE;
-   }
-   reg_tools_changeDatatype<float>(referenceImage);
-   //dim
-   int imgDim = referenceImage->dim[0];
-
-   // Read the input floating image
-   nifti_image *warpedImage = reg_io_ReadImageFile(inputWarpedImageName);
-   if (warpedImage == NULL){
-      reg_print_msg_error("The input warped image could not be read");
-      return EXIT_FAILURE;
-   }
-   reg_tools_changeDatatype<float>(warpedImage);
-
-   // Read the expected block matching matrix
-   std::pair<size_t, size_t> inputMatrixSize = reg_tool_sizeInputMatrixFile(expectedBlockMatchingMatrixName);
-   size_t m = inputMatrixSize.first;
-   size_t n = inputMatrixSize.second;
-   float **expectedBlockMatchingMatrix = reg_tool_ReadMatrixFile<float>(expectedBlockMatchingMatrixName, m, n);
-
-   // Create a mask
-   int *mask = (int *)malloc(referenceImage->nvox*sizeof(int));
-   for (size_t i = 0; i < referenceImage->nvox; ++i) {
-      mask[i] = i;
-   }
-
-   _reg_blockMatchingParam* blockMatchingParams;
-
-   // Platforms
-   AladinContent *con = NULL;
-   if (platformCode == NR_PLATFORM_CPU) {
-      con = new AladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
-   }
-#ifdef _USE_CUDA
-   else if (platformCode == NR_PLATFORM_CUDA) {
-      con = new CudaAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
-   }
-#endif
-#ifdef _USE_OPENCL
-   else if (platformCode == NR_PLATFORM_CL) {
-      con = new ClAladinContent(referenceImage, NULL, mask, sizeof(float), 100, 100, 1);
-   }
-#endif
-   else {
-      reg_print_msg_error("The platform code is not suppoted");
-      return EXIT_FAILURE;
-   }
-   con->setCurrentWarped(warpedImage);
-   //con->setCurrentWarped(referenceImage);
-   test(con, platformCode);
-   blockMatchingParams = con->getBlockMatchingParams();
-
-#ifndef NDEBUG
-   std::cout << "blockMatchingParams->definedActiveBlock = " << blockMatchingParams->definedActiveBlockNumber << std::endl;
-#endif
-
-   float max_difference = 0;
-
-   int blockIndex = 0;
-   int positionIndex = 0;
-   int matrixIndex = 0;
-
-   unsigned int zMax = 2;
-   if (imgDim == 3)
-      zMax = blockMatchingParams->blockNumber[2] - 1;
+#include "CpuAffineDeformationFieldKernel.h"
+#include "CpuResampleImageKernel.h"
 
 
-   for (unsigned int z = 1; z < zMax; z += 3) {
-      for (unsigned int y = 1; y < blockMatchingParams->blockNumber[1] - 1; y += 3) {
-         for (unsigned int x = 1; x < blockMatchingParams->blockNumber[0] - 1; x += 3) {
+/**
+ *  Block matching regression test to ensure the CPU and CUDA versions yield the same output
+ */
 
-            if (imgDim == 3) {
-               blockIndex = (z * blockMatchingParams->blockNumber[1] + y) * blockMatchingParams->blockNumber[0] + x;
+#define OFFSET 1
+
+class BMTest {
+protected:
+    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, int*>;
+    using TestCase = std::tuple<std::string, unique_ptr<_reg_blockMatchingParam>>;
+
+    inline static vector<TestCase> testCases;
+
+public:
+    BMTest() {
+        if (!testCases.empty())
+            return;
+
+        // Create a random number generator
+        std::mt19937 gen(0);
+        std::uniform_real_distribution<float> distr(0, 1);
+
+        // Create 2D and 3D reference images
+        constexpr NiftiImage::dim_t size = 64;
+        vector<NiftiImage::dim_t> dim{ size, size };
+        NiftiImage reference2d(dim, NIFTI_TYPE_FLOAT32);
+        dim.push_back(size);
+        NiftiImage reference3d(dim, NIFTI_TYPE_FLOAT32);
+
+        // Fill images with random values
+        const auto ref2dPtr = reference2d.data();
+        for (auto ref2dItr = ref2dPtr.begin(); ref2dItr != ref2dPtr.end(); ++ref2dItr) {
+            *ref2dItr = distr(gen);
+        }
+        const auto ref3dPtr = reference3d.data();
+        for (auto ref3dItr = ref3dPtr.begin(); ref3dItr != ref3dPtr.end(); ++ref3dItr) {
+            *ref3dItr = distr(gen);
+        }
+
+        // Create a translation matrix to apply OFFSET voxels along each axis
+        mat44 translationMatrix;
+        Mat44Eye(&translationMatrix);
+        translationMatrix.m[0][3] = -OFFSET;
+        translationMatrix.m[1][3] = -OFFSET;
+        translationMatrix.m[2][3] = -OFFSET;
+
+        // Create a mask so that voxel at the boundary are ignored
+        unique_ptr<int[]> mask2d{ new int[reference2d.nVoxels()] };
+        unique_ptr<int[]> mask3d{ new int[reference3d.nVoxels()] };
+        int *mask2dPtr = mask2d.get();
+        int *mask3dPtr = mask3d.get();
+        // set all values to -1
+        for (int y = 0; y < reference2d->ny; ++y)
+            for (int x = 0; x < reference2d->nx; ++x)
+                *mask2dPtr++ = -1;
+        for (int z = 0; z < reference3d->nz; ++z)
+            for (int y = 0; y < reference3d->ny; ++y)
+                for (int x = 0; x < reference3d->nx; ++x)
+                    *mask3dPtr++ = -1;
+        // Set the internal values to 1
+        for (int y = OFFSET; y < reference2d->ny - OFFSET; ++y) {
+            mask2dPtr = &mask2d[y * reference2d->nx + OFFSET];
+            for (int x = OFFSET; x < reference2d->nx - OFFSET; ++x) {
+                *mask2dPtr++ = 1;
             }
-            else {
-               blockIndex = y * blockMatchingParams->blockNumber[0] + x;
+        }
+        for (int z = OFFSET; z < reference3d->nz - OFFSET; ++z) {
+            for (int y = OFFSET; y < reference3d->ny - OFFSET; ++y) {
+                mask3dPtr = &mask3d[(z * reference3d->ny + y) * reference3d->nx + OFFSET];
+                for (int x = OFFSET; x < reference3d->nx - OFFSET; ++x) {
+                    *mask3dPtr++ = 1;
+                }
             }
+        }
 
-            positionIndex = imgDim * blockMatchingParams->totalBlock[blockIndex];
+        // Apply the transformation in 2D
+        unique_ptr<AladinContent> contentResampling2d{ new AladinContent(reference2d, reference2d) };
+        contentResampling2d->SetTransformationMatrix(&translationMatrix);
+        unique_ptr<AffineDeformationFieldKernel> affineDeformKernel2d{ new CpuAffineDeformationFieldKernel(contentResampling2d.get()) };
+        affineDeformKernel2d->Calculate();
+        unique_ptr<ResampleImageKernel> resampleKernel2d{ new CpuResampleImageKernel(contentResampling2d.get()) };
+        resampleKernel2d->Calculate(0, std::numeric_limits<float>::quiet_NaN());
 
-            if (positionIndex > -1) {
-               check_matching_difference(imgDim,
-                                         &blockMatchingParams->referencePosition[positionIndex],
-                                         &blockMatchingParams->warpedPosition[positionIndex],
-                                         &expectedBlockMatchingMatrix[matrixIndex][0],
-                     &expectedBlockMatchingMatrix[matrixIndex][3],
-                     max_difference);
-               matrixIndex++;
+        // Apply the transformation in 3D
+        unique_ptr<AladinContent> contentResampling3d{ new AladinContent(reference3d, reference3d) };
+        contentResampling3d->SetTransformationMatrix(&translationMatrix);
+        unique_ptr<AffineDeformationFieldKernel> affineDeformKernel3d{ new CpuAffineDeformationFieldKernel(contentResampling3d.get()) };
+        affineDeformKernel3d->Calculate();
+        unique_ptr<ResampleImageKernel> resampleKernel3d{ new CpuResampleImageKernel(contentResampling3d.get()) };
+        resampleKernel3d->Calculate(0, 0);
+
+        // Create the data container for the regression test
+        vector<TestData> testData;
+        testData.emplace_back(TestData(
+            "BlockMatching 2D",
+            reference2d,
+            contentResampling2d->GetWarped(),
+            mask2d.get()
+        ));
+        contentResampling2d.release();
+        testData.emplace_back(TestData(
+            "BlockMatching 3D",
+            reference3d,
+            contentResampling3d->GetWarped(),
+            mask3d.get()
+        ));
+        contentResampling3d.release();
+
+        for (auto&& data : testData) {
+            // Get the test data
+            auto&& [testName, reference, warped, mask] = data;
+
+            for (auto&& platformType : PlatformTypes) {
+                // Create images
+                NiftiImage referenceTest(reference);
+
+                // Create the contents
+                shared_ptr<Platform> platform{ new Platform(platformType) };
+                unique_ptr<AladinContentCreator> contentCreator{
+                    dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin))
+                };
+                unique_ptr<AladinContent> content{ contentCreator->Create(
+                    referenceTest,
+                    referenceTest,
+                    mask,
+                    nullptr,
+                    sizeof(float),
+                    100,
+                    100,
+                    1
+                ) };
+                content->SetWarped(NiftiImage(warped));
+
+                // Initialise the block matching
+                unique_ptr<Kernel> bmKernel{ platform->CreateKernel(BlockMatchingKernel::GetName(), content.get()) };
+
+                // Do the computation
+                bmKernel->castTo<BlockMatchingKernel>()->Calculate();
+
+                // Retrieve the information
+                unique_ptr<_reg_blockMatchingParam> blockMatchingParams{ new _reg_blockMatchingParam(content->GetBlockMatchingParams()) };
+
+                testCases.push_back({ testName + " " + platform->GetName(), std::move(blockMatchingParams) });
+            } // loop over platforms
+        }
+    }
+};
+
+TEST_CASE_METHOD(BMTest, "Block Matching", "[unit]") {
+    // Loop over all generated test cases
+    for (auto&& testCase : this->testCases) {
+        // Retrieve test information
+        auto&& [testName, blockMatchingParams] = testCase;
+
+        SECTION(testName) {
+            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
+
+            // Increase the precision for the output
+            NR_COUT << std::fixed << std::setprecision(10);
+
+            // Loop over the block and ensure all values are identical
+            for (int b = 0; b < blockMatchingParams->activeBlockNumber; ++b) {
+                for (int d = 0; d < (int)blockMatchingParams->dim; ++d) {
+                    const int i = b * (int)blockMatchingParams->dim + d;
+                    const auto diffPos = blockMatchingParams->warpedPosition[i] - blockMatchingParams->referencePosition[i];
+                    const auto diff = abs(diffPos - OFFSET);
+                    if (diff > 0) {
+                        NR_COUT << "[" << b << "/" << blockMatchingParams->activeBlockNumber << ":" << d << "] ";
+                        NR_COUT << diffPos << std::endl;
+                    }
+                    REQUIRE(diff < EPS);
+                }
             }
-         }
-      }
-   }
-
-   delete con;
-   free(mask);
-   reg_matrix2DDeallocate(m, expectedBlockMatchingMatrix);
-   nifti_image_free(referenceImage);
-
-   if(max_difference>EPS){
-#ifndef NDEBUG
-      fprintf(stdout, "reg_test_blockMatching failed: %g (>%g)\n", max_difference, EPS);
-#endif
-      return EXIT_FAILURE;
-   }
-#ifndef NDEBUG
-   printf("All good (%g<%g)\n", max_difference, EPS);
-#endif
-   return EXIT_SUCCESS;
+        }
+    }
 }
-

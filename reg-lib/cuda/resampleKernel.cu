@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <assert.h>
-#include "cuda_runtime.h"
-#include "cuda.h"
+#include <cuda_runtime.h>
+#include <cuda.h>
 #include"_reg_resampling.h"
-#include"_reg_maths.h"
+#include"Maths.hpp"
 #include "resampleKernel.h"
-#include "_reg_common_cuda.h"
+#include "CudaCommon.hpp"
 #include"_reg_tools.h"
 #include"_reg_ReadWriteImage.h"
 
@@ -13,7 +13,7 @@
 #define SINC_KERNEL_SIZE SINC_KERNEL_RADIUS*2
 
 /* *************************************************************** */
-unsigned int min1(unsigned int a, unsigned int b)
+unsigned min1(unsigned a, unsigned b)
 {
 	return (a < b) ? a : b;
 }
@@ -29,34 +29,29 @@ void reg_mat44_logm_cuda(float* mat)
 	//todo
 }
 /* *************************************************************** */
-template<class DTYPE>
-__device__ __inline__ void reg_mat44_mul_cuda(DTYPE const* mat, DTYPE const* in, DTYPE *out)
+template<class DataType>
+__device__ __inline__ void reg_mat44_mul_cuda(DataType const* mat, DataType const* in, DataType *out)
 {
-    out[0] = (DTYPE)((double)mat[0 * 4 + 0] * (double)in[0] + (double)mat[0 * 4 + 1] * (double)in[1] + (double)mat[0 * 4 + 2] * (double)in[2] + (double)mat[0 * 4 + 3]);
-    out[1] = (DTYPE)((double)mat[1 * 4 + 0] * (double)in[0] + (double)mat[1 * 4 + 1] * (double)in[1] + (double)mat[1 * 4 + 2] * (double)in[2] + (double)mat[1 * 4 + 3]);
-    out[2] = (DTYPE)((double)mat[2 * 4 + 0] * (double)in[0] + (double)mat[2 * 4 + 1] * (double)in[1] + (double)mat[2 * 4 + 2] * (double)in[2] + (double)mat[2 * 4 + 3]);
+    out[0] = (DataType)((double)mat[0 * 4 + 0] * (double)in[0] + (double)mat[0 * 4 + 1] * (double)in[1] + (double)mat[0 * 4 + 2] * (double)in[2] + (double)mat[0 * 4 + 3]);
+    out[1] = (DataType)((double)mat[1 * 4 + 0] * (double)in[0] + (double)mat[1 * 4 + 1] * (double)in[1] + (double)mat[1 * 4 + 2] * (double)in[2] + (double)mat[1 * 4 + 3]);
+    out[2] = (DataType)((double)mat[2 * 4 + 0] * (double)in[0] + (double)mat[2 * 4 + 1] * (double)in[1] + (double)mat[2 * 4 + 2] * (double)in[2] + (double)mat[2 * 4 + 3]);
    return;
 }
 /* *************************************************************** */
-template<class DTYPE>
-__device__ __inline__ void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out)
+template<class DataType>
+__device__ __inline__ void reg_mat44_mul_cuda(float* mat, DataType const* in, DataType *out)
 {
-    out[0] = (DTYPE)((double)mat[0 * 4 + 0] * (double)in[0] + (double)mat[0 * 4 + 1] * (double)in[1] + (double)mat[0 * 4 + 2] * (double)in[2] + (double)mat[0 * 4 + 3]);
-    out[1] = (DTYPE)((double)mat[1 * 4 + 0] * (double)in[0] + (double)mat[1 * 4 + 1] * (double)in[1] + (double)mat[1 * 4 + 2] * (double)in[2] + (double)mat[1 * 4 + 3]);
-    out[2] = (DTYPE)((double)mat[2 * 4 + 0] * (double)in[0] + (double)mat[2 * 4 + 1] * (double)in[1] + (double)mat[2 * 4 + 2] * (double)in[2] + (double)mat[2 * 4 + 3]);
+    out[0] = (DataType)((double)mat[0 * 4 + 0] * (double)in[0] + (double)mat[0 * 4 + 1] * (double)in[1] + (double)mat[0 * 4 + 2] * (double)in[2] + (double)mat[0 * 4 + 3]);
+    out[1] = (DataType)((double)mat[1 * 4 + 0] * (double)in[0] + (double)mat[1 * 4 + 1] * (double)in[1] + (double)mat[1 * 4 + 2] * (double)in[2] + (double)mat[1 * 4 + 3]);
+    out[2] = (DataType)((double)mat[2 * 4 + 0] * (double)in[0] + (double)mat[2 * 4 + 1] * (double)in[1] + (double)mat[2 * 4 + 2] * (double)in[2] + (double)mat[2 * 4 + 3]);
    return;
-}
-/* *************************************************************** */
-__device__ __inline__ int cuda_reg_floor(double a)
-{
-   return (int) (floor(a));
 }
 /* *************************************************************** */
 template<class FieldTYPE>
 __device__ __inline__ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
 {
-    if (ratio < 0.0)
-        ratio = 0.0; //reg_rounding error
+    if (ratio < 0)
+        ratio = 0; //reg_rounding error
     double FF = (double) ratio * ratio;
     basis[0] = (FieldTYPE) ((ratio * (((double)2.0 - ratio) * ratio - (double)1.0)) / (double)2.0);
     basis[1] = (FieldTYPE) ((FF * ((double)3.0 * ratio - 5.0) + 2.0) / (double)2.0);
@@ -64,27 +59,15 @@ __device__ __inline__ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *ba
     basis[3] = (FieldTYPE) ((ratio - (double)1.0) * FF / (double)2.0);
 }
 /* *************************************************************** */
-__device__ __inline__
-void reg_mat44_eye(float *mat) {
-	mat[0 * 4 + 0] = 1.f;
-	mat[0 * 4 + 1] = mat[0 * 4 + 2] = mat[0 * 4 + 3] = 0.f;
-	mat[1 * 4 + 1] = 1.f;
-	mat[1 * 4 + 0] = mat[1 * 4 + 2] = mat[1 * 4 + 3] = 0.f;
-	mat[2 * 4 + 2] = 1.f;
-	mat[2 * 4 + 0] = mat[2 * 4 + 1] = mat[2 * 4 + 3] = 0.f;
-	mat[3 * 4 + 3] = 1.f;
-	mat[3 * 4 + 0] = mat[3 * 4 + 1] = mat[3 * 4 + 2] = 0.f;
-}
-/* *************************************************************** */
 __inline__ __device__ void interpWindowedSincKernel(double relative, double *basis)
 {
-	if (relative < 0.0)
-		relative = 0.0; //reg_rounding error
+	if (relative < 0)
+		relative = 0; //reg_rounding error
 	int j = 0;
 	double sum = 0.;
 	for (int i = -SINC_KERNEL_RADIUS; i < SINC_KERNEL_RADIUS; ++i) {
 		double x = relative - (double) (i);
-		if (x == 0.0)
+		if (x == 0)
 			basis[j] = 1.0;
 		else if (abs(x) >= (double) (SINC_KERNEL_RADIUS))
 			basis[j] = 0;
@@ -101,8 +84,8 @@ __inline__ __device__ void interpWindowedSincKernel(double relative, double *bas
 /* *************************************************************** */
 __inline__ __device__ void interpCubicSplineKernel(double relative, double *basis)
 {
-	if (relative < 0.0)
-		relative = 0.0; //reg_rounding error
+	if (relative < 0)
+		relative = 0; //reg_rounding error
 	double FF = relative * relative;
 	basis[0] = (relative * ((2.0 - relative) * relative - 1.0)) / 2.0;
 	basis[1] = (FF * (3.0 * relative - 5.0) + 2.0) / 2.0;
@@ -112,17 +95,17 @@ __inline__ __device__ void interpCubicSplineKernel(double relative, double *basi
 /* *************************************************************** */
 __inline__ __device__ void interpLinearKernel(double relative, double *basis)
 {
-	if (relative < 0.0)
-		relative = 0.0; //reg_rounding error
+	if (relative < 0)
+		relative = 0; //reg_rounding error
 	basis[1] = relative;
 	basis[0] = 1.0 - relative;
 }
 /* *************************************************************** */
 __inline__ __device__ void interpNearestNeighKernel(double relative, double *basis)
 {
-	if (relative < 0.0)
-		relative = 0.0; //reg_rounding error
-	basis[0] = basis[1] = 0.0;
+	if (relative < 0)
+		relative = 0; //reg_rounding error
+	basis[0] = basis[1] = 0;
     if (relative >= 0.5)
 		basis[1] = 1;
 	else
@@ -136,20 +119,20 @@ __inline__ __device__ double interpLoop2D(float* floatingIntensity,
     int *previous,
     uint3 fi_xyz,
     float paddingValue,
-    unsigned int kernel_size)
+    unsigned kernel_size)
 {
-    double intensity = (double)(0.0);
+    double intensity = 0;
 
         for (int b = 0; b < kernel_size; b++) {
             int Y = previous[1] + b;
             bool yInBounds = -1 < Y && Y < fi_xyz.y;
-            double xTempNewValue = 0.0;
+            double xTempNewValue = 0;
 
             for (int a = 0; a < kernel_size; a++) {
                 int X = previous[0] + a;
                 bool xInBounds = -1 < X && X < fi_xyz.x;
 
-                const unsigned int idx = Y * fi_xyz.x + X;
+                const unsigned idx = Y * fi_xyz.x + X;
 
                 xTempNewValue += (xInBounds && yInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
             }
@@ -165,21 +148,21 @@ __inline__ __device__ double interpLoop3D(float* floatingIntensity,
                                           int *previous,
                                           uint3 fi_xyz,
                                           float paddingValue,
-                                          unsigned int kernel_size)
+                                          unsigned kernel_size)
 {
-	double intensity = (double)(0.0);
+	double intensity = 0;
 	for (int c = 0; c < kernel_size; c++) {
 		int Z = previous[2] + c;
 		bool zInBounds = -1 < Z && Z < fi_xyz.z;
-		double yTempNewValue = 0.0;
+		double yTempNewValue = 0;
 		for (int b = 0; b < kernel_size; b++) {
 			int Y = previous[1] + b;
 			bool yInBounds = -1 < Y && Y < fi_xyz.y;
-			double xTempNewValue = 0.0;
+			double xTempNewValue = 0;
 			for (int a = 0; a < kernel_size; a++) {
 				int X = previous[0] + a;
 				bool xInBounds = -1 < X && X < fi_xyz.x;
-				const unsigned int idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
+				const unsigned idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
 
 				xTempNewValue += (xInBounds && yInBounds && zInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
 			}
@@ -212,7 +195,7 @@ __global__ void ResampleImage2D(float* floatingImage,
 
     while (index < voxelNumber.x) {
 
-        for (unsigned int t = 0; t < wi_tu.x * wi_tu.y; t++) {
+        for (unsigned t = 0; t < wi_tu.x * wi_tu.y; t++) {
 
             float *resultIntensity = &resultIntensityPtr[t * voxelNumber.x];
             float *floatingIntensity = &sourceIntensityPtr[t * voxelNumber.y];
@@ -231,8 +214,8 @@ __global__ void ResampleImage2D(float* floatingImage,
                 // real -> voxel; floating space
                 reg_mat44_mul_cuda<float>(sourceIJKMatrix, world, position);
 
-                previous[0] = cuda_reg_floor(position[0]);
-                previous[1] = cuda_reg_floor(position[1]);
+                previous[0] = Floor<int>(position[0]);
+                previous[1] = Floor<int>(position[1]);
 
                 relative[0] = (double)(position[0]) - (double)(previous[0]);
                 relative[1] = (double)(position[1]) - (double)(previous[1]);
@@ -305,7 +288,7 @@ __global__ void ResampleImage3D(float* floatingImage,
 
 	while (index < voxelNumber.x) {
 
-		for (unsigned int t = 0; t < wi_tu.x * wi_tu.y; t++) {
+		for (unsigned t = 0; t < wi_tu.x * wi_tu.y; t++) {
 
 			float *resultIntensity = &resultIntensityPtr[t * voxelNumber.x];
 			float *floatingIntensity = &sourceIntensityPtr[t * voxelNumber.y];
@@ -324,9 +307,9 @@ __global__ void ResampleImage3D(float* floatingImage,
 				// real -> voxel; floating space
 				reg_mat44_mul_cuda<float>(sourceIJKMatrix, world, position);
 
-				previous[0] = cuda_reg_floor(position[0]);
-				previous[1] = cuda_reg_floor(position[1]);
-				previous[2] = cuda_reg_floor(position[2]);
+				previous[0] = Floor<int>(position[0]);
+				previous[1] = Floor<int>(position[1]);
+				previous[2] = Floor<int>(position[2]);
 
                 relative[0] = (double)(position[0]) - (double)(previous[0]);
                 relative[1] = (double)(position[1]) - (double)(previous[1]);
@@ -382,66 +365,57 @@ void launchResample(nifti_image *floatingImage,
 						  nifti_image *warpedImage,
 						  int interp,
 						  float paddingValue,
-						  bool *dti_timepoint,
+						  bool *dtiTimePoint,
 						  mat33 *jacMat,
 						  float **floatingImage_d,
 						  float **warpedImage_d,
 						  float **deformationFieldImage_d,
 						  int **mask_d,
 						  float **sourceIJKMatrix_d) {
-
 	// Define the DTI indices if required
-	if(dti_timepoint!=NULL || jacMat!=NULL){
-		reg_print_fct_error("launchResample");
-		reg_print_msg_error("The DTI resampling has not yet been implemented with the CUDA platform. Exit.");
-		reg_exit();
-	}
+	if (dtiTimePoint != nullptr || jacMat != nullptr)
+		NR_FATAL_ERROR("The DTI resampling has not yet been implemented with the CUDA platform");
 
-	long targetVoxelNumber = (long) warpedImage->nx * warpedImage->ny * warpedImage->nz;
+	const size_t targetVoxelNumber = NiftiImage::calcVoxelNumber(warpedImage, 3);
 
 	//the below lines need to be moved to cu common
 	cudaDeviceProp prop;
 	cudaGetDeviceProperties(&prop, 0);
-	unsigned int maxThreads = 512;
-	unsigned int maxBlocks = 65365;
-	unsigned int blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
+	unsigned maxThreads = 512;
+	unsigned maxBlocks = 65365;
+	unsigned blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
 	blocks = min1(blocks, maxBlocks);
 
 	dim3 mygrid(blocks, 1, 1);
 	dim3 myblocks(maxThreads, 1, 1);
 
-	ulong2 voxelNumber = make_ulong2(warpedImage->nx * warpedImage->ny * warpedImage->nz, floatingImage->nx * floatingImage->ny * floatingImage->nz);
+	ulong2 voxelNumber = make_ulong2(targetVoxelNumber, NiftiImage::calcVoxelNumber(floatingImage, 3));
 	uint3 fi_xyz = make_uint3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 	uint2 wi_tu = make_uint2(warpedImage->nt, warpedImage->nu);
-	 if (floatingImage->nz > 1) {
-		  ResampleImage3D <<<mygrid, myblocks >>>(*floatingImage_d,
-																*deformationFieldImage_d,
-																*warpedImage_d,
-																*mask_d,
-																*sourceIJKMatrix_d,
-																voxelNumber,
-																fi_xyz,
-																wi_tu,
-																paddingValue,
-																interp);
-	 }
-	 else{
-		  ResampleImage2D <<<mygrid, myblocks >>>(*floatingImage_d,
-																*deformationFieldImage_d,
-																*warpedImage_d,
-																*mask_d,
-																*sourceIJKMatrix_d,
-																voxelNumber,
-																fi_xyz,
-																wi_tu,
-																paddingValue,
-																interp);
-	 }
-#ifndef NDEBUG
-	NR_CUDA_CHECK_KERNEL(mygrid, myblocks)
-#else
-	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
-#endif
+    if (floatingImage->nz > 1) {
+        ResampleImage3D<<<mygrid, myblocks>>>(*floatingImage_d,
+                                              *deformationFieldImage_d,
+                                              *warpedImage_d,
+                                              *mask_d,
+                                              *sourceIJKMatrix_d,
+                                              voxelNumber,
+                                              fi_xyz,
+                                              wi_tu,
+                                              paddingValue,
+                                              interp);
+    } else {
+        ResampleImage2D<<<mygrid, myblocks>>>(*floatingImage_d,
+                                              *deformationFieldImage_d,
+                                              *warpedImage_d,
+                                              *mask_d,
+                                              *sourceIJKMatrix_d,
+                                              voxelNumber,
+                                              fi_xyz,
+                                              wi_tu,
+                                              paddingValue,
+                                              interp);
+    }
+    NR_CUDA_CHECK_KERNEL(mygrid, myblocks);
 }
 /* *************************************************************** */
 void identityConst()

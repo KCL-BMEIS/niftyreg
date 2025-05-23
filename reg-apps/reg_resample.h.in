@@ -127,7 +127,7 @@ char xml_resample[] =
    "    <boolean>\n"
    "      <name>tensorImage</name>\n"
    "      <longflag>tensor</longflag>\n"
-   "      <description>The last six timepoints of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ</description>\n"
+   "      <description>The last six time points of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ</description>\n"
    "      <label>Tensor Image</label>\n"
    "      <default>false</default>\n"
    "    </boolean>\n"

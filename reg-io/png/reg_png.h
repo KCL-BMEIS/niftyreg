@@ -12,15 +12,13 @@
  *
  */
 
-#ifndef _REG_PNG_H
-#define _REG_PNG_H
+#pragma once
 
-#include "nifti1_io.h"
 #include "_reg_tools.h"
 
 /* *************************************************************** */
-/** @brief This function read a png file from the hard-drive and convert
-  * it into a nifti_structure. using this function, you can either
+/** @brief This function reads a png file from the hard-drive and converts
+  * it into a nifti_structure. Using this function, you can either
   * read the full image or only the header information
   * @param filename Filename of the png file to read
   * @param readData The actual data is read if the flag is set to true
@@ -28,7 +26,7 @@
   */
 nifti_image *reg_io_readPNGfile(const char *filename, bool readData);
 /* *************************************************************** */
-/** @brief This function first convert a nifti image into a png and then
+/** @brief This function first converts a nifti image into a png and then
   * save the png file.
   * @param image Nifti image that will first be converted to a png file
   * and then will be saved on the disk
@@ -36,5 +34,3 @@ nifti_image *reg_io_readPNGfile(const char *filename, bool readData);
   */
 void reg_io_writePNGfile(nifti_image *image, const char *filename);
 /* *************************************************************** */
-
-#endif

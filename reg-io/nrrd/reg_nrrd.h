@@ -12,14 +12,10 @@
  *
  */
 
-#ifndef _REG_NRRD_H
-#define _REG_NRRD_H
+#pragma once
 
-#include "nifti1_io.h"
 #include "NrrdIO.h"
 #include "_reg_tools.h"
-#include "_reg_maths.h"
-#include <limits>
 
 /* *************************************************************** */
 /** @brief Convert a NRRD image into a nifti image
@@ -48,6 +44,3 @@ Nrrd *reg_io_readNRRDfile(const char *filename);
  */
 void reg_io_writeNRRDfile(Nrrd *image, const char *filename);
 /* *************************************************************** */
-
-
-#endif

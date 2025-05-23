@@ -11,10 +11,9 @@
  *
  */
 
-#ifndef _REG_RESAMPLING_H
-#define _REG_RESAMPLING_H
+#pragma once
 
-#include "nifti1_io.h"
+#include "RNifti.h"
 
 /** @brief This function resample a floating image into the space of a reference/warped image.
  * The deformation is provided by a 4D nifti image which is in the space of the reference image.
@@ -26,60 +25,54 @@
  * @param warpedImage Warped image that is being generated
  * @param deformationField Vector field image that contains the dense correspondences
  * @param mask Array that contains information about the mask. Only voxel with mask value different
- * from zero are being considered. If NULL, all voxels are considered
- * @param interp Interpolation type. 0, 1 or 3 correspond to nearest neighbor, linear or cubic
+ * from zero are being considered. If nullptr, all voxels are considered
+ * @param interpolation Interpolation type. 0, 1 or 3 correspond to nearest neighbor, linear or cubic
  * interpolation
  * @param paddingValue Value to be used for padding when the correspondences are outside of the
  * reference image space.
  * @param dtIndicies Array of 6 integers that correspond to the "time" indicies of the diffusion tensor
  * components in the order xx,yy,zz,xy,xz,yz. If there are no DT images, pass an array of -1's
  */
-extern "C++"
 void reg_resampleImage(nifti_image *floatingImage,
                        nifti_image *warpedImage,
-                       nifti_image *deformationField,
-                       int *mask,
-                       int interp,
-                       float paddingValue,
-                       bool *dti_timepoint = NULL,
-                       mat33 * jacMat = NULL);
-extern "C++"
-void reg_resampleImage_PSF(nifti_image *floatingImage,
+                       const nifti_image *deformationField,
+                       const int *mask,
+                       const int interpolation,
+                       const float paddingValue,
+                       const bool *dtiTimePoint = nullptr,
+                       const mat33 *jacMat = nullptr);
+/* *************************************************************** */
+void reg_resampleImage_PSF(const nifti_image *floatingImage,
                            nifti_image *warpedImage,
-                           nifti_image *deformationField,
-                           int *mask,
-                           int interp,
-                           float paddingValue,
-                           mat33 * jacMat,
-                           char algorithm);
-
-
-extern "C++"
-void reg_resampleGradient(nifti_image *gradientImage,
-                          nifti_image *warImgGradient,
-                          nifti_image *deformationField,
-                          int interp,
-                          float paddingValue);
-
-extern "C++"
+                           const nifti_image *deformationField,
+                           const int *mask,
+                           const int interpolation,
+                           const float paddingValue,
+                           const mat33 *jacMat,
+                           const char algorithm);
+/* *************************************************************** */
+void reg_resampleGradient(const nifti_image *gradientImage,
+                          nifti_image *warpedGradient,
+                          const nifti_image *deformationField,
+                          const int interpolation,
+                          const float paddingValue);
+/* *************************************************************** */
 void reg_getImageGradient(nifti_image *floatingImage,
-                          nifti_image *warImgGradient,
-                          nifti_image *deformationField,
-                          int *mask,
-                          int interp,
-                          float paddingValue,
-                          int active_timepoint,
-                          bool *dti_timepoint = NULL,
-                          mat33 *jacMat = NULL,
-                          nifti_image *warpedImage = NULL);
-
-extern "C++"
-void reg_getImageGradient_symDiff(nifti_image* inputImg,
-                                  nifti_image* gradImg,
-                                  int *mask,
-                                  float padding_value,
-                                  int timepoint);
-extern "C++"
-nifti_image *reg_makeIsotropic(nifti_image *, int);
-
-#endif
+                          nifti_image *warpedGradient,
+                          const nifti_image *deformationField,
+                          const int *mask,
+                          const int interpolation,
+                          const float paddingValue,
+                          const int activeTimePoint,
+                          const bool *dtiTimePoint = nullptr,
+                          const mat33 *jacMat = nullptr,
+                          const nifti_image *warpedImage = nullptr);
+/* *************************************************************** */
+void reg_getImageGradient_symDiff(const nifti_image *img,
+                                  nifti_image *gradImg,
+                                  const int *mask,
+                                  const float paddingValue,
+                                  const int timePoint);
+/* *************************************************************** */
+nifti_image* reg_makeIsotropic(nifti_image*, int);
+/* *************************************************************** */
