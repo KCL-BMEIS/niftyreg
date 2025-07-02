@@ -93,6 +93,6 @@ void launchAffine(mat44 *affineTransformation,
 #ifndef NDEBUG
    NR_CUDA_CHECK_KERNEL(G1_b, B1_b)
 #else
-   NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+   NR_CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #endif
 }

@@ -440,7 +440,7 @@ void launchResample(nifti_image *floatingImage,
 #ifndef NDEBUG
 	NR_CUDA_CHECK_KERNEL(mygrid, myblocks)
 #else
-	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+	NR_CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #endif
 }
 /* *************************************************************** */

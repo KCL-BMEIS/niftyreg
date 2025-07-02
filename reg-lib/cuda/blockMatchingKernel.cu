@@ -51,10 +51,9 @@ __device__          __constant__ float4 t_m_c;
 #define OVERLAP_SIZE 3
 #define STEP_SIZE 1
 
+// Use modern CUDA texture object API
+#include <cuda_runtime.h>
 
-texture<float, 1, cudaReadModeElementType> referenceImageArray_texture;
-texture<float, 1, cudaReadModeElementType> warpedImageArray_texture;
-texture<int, 1, cudaReadModeElementType> totalBlock_texture;
 /* *************************************************************** */
 template<class DTYPE>
 __inline__ __device__
@@ -106,7 +105,7 @@ float blockReduceSum(float val, int tid)
    shared[tid] = val;
    __syncthreads();
 
-	for (unsigned int i = 32; i > 0; i >>= 1){
+	for (unsigned int i = 32, j = 16; i > 0; i >>= 1, j >>= 1){
         if (tid < i) {
             shared[tid] += shared[tid + i];
         }
@@ -119,13 +118,16 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
                                       float *referencePosition,
                                       int *mask,
                                       float* referenceMatrix_xyz,
-                                      unsigned int *definedBlock)
+                                      unsigned int *definedBlock,
+                                      cudaTextureObject_t referenceImageArray_texObj,
+                                      cudaTextureObject_t warpedImageArray_texObj,
+                                      cudaTextureObject_t totalBlock_texObj)
 {
 	extern __shared__ float sWarpedValues[];
 	// Compute the current block index
     const unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
 
-	const int currentBlockIndex = tex1Dfetch(totalBlock_texture, bid);
+	const int currentBlockIndex = tex1Dfetch<int>(totalBlock_texObj, bid);
 	if (currentBlockIndex > -1) {
 
 		const unsigned int idy = threadIdx.x;
@@ -149,7 +151,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 						(xImageIn > -1 && xImageIn < (int)c_ImageSize.x) &&
 						(yImageIn > -1 && yImageIn < (int)c_ImageSize.y);
 				sWarpedValues[sharedIndex] = (valid && mask[indexXYIn] > -1) ?
-							tex1Dfetch(warpedImageArray_texture, indexXYIn) : nanf("sNaN");
+							tex1Dfetch<float>(warpedImageArray_texObj, indexXYIn) : nanf("sNaN");
 			}
 		}
 
@@ -160,7 +162,7 @@ __global__ void blockMatchingKernel2D(float *warpedPosition,
 				xImage < c_ImageSize.x &&
 				yImage < c_ImageSize.y;
 		float rReferenceValue = (referenceInBounds && mask[voxIndex] > -1) ?
-					tex1Dfetch(referenceImageArray_texture, voxIndex) : nanf("sNaN");
+					tex1Dfetch<float>(referenceImageArray_texObj, voxIndex) : nanf("sNaN");
 		const bool finiteReference = isfinite(rReferenceValue);
 		rReferenceValue = finiteReference ? rReferenceValue : 0.f;
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
@@ -253,7 +255,10 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                                       float *referencePosition,
                                       int *mask,
                                       float* referenceMatrix_xyz,
-                                      unsigned int *definedBlock)
+                                      unsigned int *definedBlock,
+                                      cudaTextureObject_t referenceImageArray_texObj,
+                                      cudaTextureObject_t warpedImageArray_texObj,
+                                      cudaTextureObject_t totalBlock_texObj)
 {
    extern __shared__ float sWarpedValues[];
    float *sData = &sWarpedValues[12*12*16];
@@ -292,7 +297,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                      (yImageIn > -1 && yImageIn < (int)c_ImageSize.y) &&
                      (zImageIn > -1 && zImageIn < (int)c_ImageSize.z);
                sWarpedValues[sharedIndex] = (valid && mask[indexXYZIn] > -1) ?
-                        tex1Dfetch(warpedImageArray_texture, indexXYZIn) : nanf("sNaN");
+                        tex1Dfetch<float>(warpedImageArray_texObj, indexXYZIn) : nanf("sNaN");
             }
          }
       }
@@ -304,7 +309,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
             yImage < c_ImageSize.y &&
             zImage < c_ImageSize.z;
       float rReferenceValue = (referenceInBounds && mask[voxIndex] > -1) ?
-               tex1Dfetch(referenceImageArray_texture, voxIndex) : nanf("sNaN");
+               tex1Dfetch<float>(referenceImageArray_texObj, voxIndex) : nanf("sNaN");
       const bool finiteReference = isfinite(rReferenceValue);
       rReferenceValue = finiteReference ? rReferenceValue : 0.f;
       float2 tempVal = REDUCE_TEST(sData, finiteReference ? 1.0f : 0.0f, tid);
@@ -433,13 +438,16 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
                                       float *referencePosition,
                                       int *mask,
                                       float* referenceMatrix_xyz,
-                                      unsigned int *definedBlock)
+                                      unsigned int *definedBlock,
+                                      cudaTextureObject_t referenceImageArray_texObj,
+                                      cudaTextureObject_t warpedImageArray_texObj,
+                                      cudaTextureObject_t totalBlock_texObj)
 {
 	extern __shared__ float sWarpedValues[];
 	// Compute the current block index
 	const unsigned int bid = (blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x ;
 
-	const int currentBlockIndex = tex1Dfetch(totalBlock_texture, bid);
+	const int currentBlockIndex = tex1Dfetch<int>(totalBlock_texObj, bid);
 	if (currentBlockIndex > -1) {
 		const unsigned int idx = threadIdx.x;
 		const unsigned int idy = threadIdx.y;
@@ -467,7 +475,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 							(yImageIn > -1 && yImageIn < (int)c_ImageSize.y) &&
 							(zImageIn > -1 && zImageIn < (int)c_ImageSize.z);
 					sWarpedValues[sharedIndex] = (valid && mask[indexXYZIn] > -1) ?
-								tex1Dfetch(warpedImageArray_texture, indexXYZIn) : nanf("sNaN");     //for some reason the mask here creates probs
+								tex1Dfetch<float>(warpedImageArray_texObj, indexXYZIn) : nanf("sNaN");     //for some reason the mask here creates probs
 				}
 			}
 		}
@@ -481,7 +489,7 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 				yImage < c_ImageSize.y &&
 				zImage < c_ImageSize.z;
 		float rReferenceValue = (referenceInBounds && mask[voxIndex] > -1) ?
-					tex1Dfetch(referenceImageArray_texture, voxIndex) : nanf("sNaN");
+					tex1Dfetch<float>(referenceImageArray_texObj, voxIndex) : nanf("sNaN");
 		const bool finiteReference = isfinite(rReferenceValue);
 		rReferenceValue = finiteReference ? rReferenceValue : 0.f;
 		const unsigned int referenceSize = __syncthreads_count(finiteReference);
@@ -556,50 +564,70 @@ __global__ void blockMatchingKernel3D(float *warpedPosition,
 #endif
 /* *************************************************************** */
 void block_matching_method_gpu(nifti_image *targetImage,
-										 _reg_blockMatchingParam *params,
-										 float **targetImageArray_d,
-										 float **resultImageArray_d,
-										 float **referencePosition_d,
-										 float **warpedPosition_d,
-										 int **totalBlock_d,
-										 int **mask_d,
-										 float** referenceMat_d)
+                                         _reg_blockMatchingParam *params,
+                                         float **targetImageArray_d,
+                                         float **resultImageArray_d,
+                                         float **referencePosition_d,
+                                         float **warpedPosition_d,
+                                         int **totalBlock_d,
+                                         int **mask_d,
+                                         float** referenceMat_d)
 {
-	// Copy some required parameters over to the device
+    // Copy some required parameters over to the device
     uint3 imageSize = make_uint3(targetImage->nx,
                                  targetImage->ny,
                                  targetImage->nz);
-	uint3 blockSize = make_uint3(params->blockNumber[0],
-			params->blockNumber[1],
-			params->blockNumber[2]);
-	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize,&imageSize,sizeof(uint3)));
-	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_BlockDim,&blockSize,sizeof(uint3)));
+    uint3 blockSize = make_uint3(params->blockNumber[0],
+            params->blockNumber[1],
+            params->blockNumber[2]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize,&imageSize,sizeof(uint3)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_BlockDim,&blockSize,sizeof(uint3)));
 
-	// Texture binding
-	const unsigned int numBlocks = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, referenceImageArray_texture, *targetImageArray_d, targetImage->nvox * sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, warpedImageArray_texture, *resultImageArray_d, targetImage->nvox * sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, totalBlock_texture, *totalBlock_d, numBlocks * sizeof(int)));
+    // Set up resource and texture descriptors for each array
+    cudaResourceDesc resDesc = {};
+    cudaTextureDesc texDesc = {};
+    texDesc.readMode = cudaReadModeElementType;
 
-	unsigned int *definedBlock_d;
-	unsigned int *definedBlock_h = (unsigned int*) malloc(sizeof(unsigned int));
-	*definedBlock_h = 0;
-	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&definedBlock_d), sizeof(unsigned int)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(definedBlock_d, definedBlock_h, sizeof(unsigned int), cudaMemcpyHostToDevice));
+    // Reference image texture object
+    resDesc.resType = cudaResourceTypeLinear;
+    resDesc.res.linear.devPtr = *targetImageArray_d;
+    resDesc.res.linear.desc = cudaCreateChannelDesc<float>();
+    resDesc.res.linear.sizeInBytes = targetImage->nvox * sizeof(float);
+    cudaTextureObject_t referenceImageArray_texObj = 0;
+    cudaCreateTextureObject(&referenceImageArray_texObj, &resDesc, &texDesc, nullptr);
 
+    // Warped image texture object
+    resDesc.res.linear.devPtr = *resultImageArray_d;
+    resDesc.res.linear.desc = cudaCreateChannelDesc<float>();
+    resDesc.res.linear.sizeInBytes = targetImage->nvox * sizeof(float);
+    cudaTextureObject_t warpedImageArray_texObj = 0;
+    cudaCreateTextureObject(&warpedImageArray_texObj, &resDesc, &texDesc, nullptr);
 
-	if (params->stepSize!=1 || params->voxelCaptureRange!=3){
+    // totalBlock texture object (int array)
+    resDesc.res.linear.devPtr = *totalBlock_d;
+    resDesc.res.linear.desc = cudaCreateChannelDesc<int>();
+    resDesc.res.linear.sizeInBytes = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2] * sizeof(int);
+    cudaTextureObject_t totalBlock_texObj = 0;
+    cudaCreateTextureObject(&totalBlock_texObj, &resDesc, &texDesc, nullptr);
+
+    unsigned int *definedBlock_d;
+    unsigned int *definedBlock_h = (unsigned int*) malloc(sizeof(unsigned int));
+    *definedBlock_h = 0;
+    NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&definedBlock_d), sizeof(unsigned int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpy(definedBlock_d, definedBlock_h, sizeof(unsigned int), cudaMemcpyHostToDevice));
+
+    if (params->stepSize!=1 || params->voxelCaptureRange!=3){
         reg_print_msg_error("The block Mathching CUDA kernel supports only a stepsize of 1");
-		reg_exit();
-	}
+        reg_exit();
+    }
 
 #ifdef USE_TEST_KERNEL
-	dim3 BlockDims1D(4,4,8);
-	dim3 BlocksGrid3D(
-				params->blockNumber[0],
-			params->blockNumber[1],
-			(unsigned int)reg_ceil((float)params->blockNumber[2]/2.f));
-	unsigned int sMem = (128 + 4*3 * 4*3 * 4*4) * sizeof(float);
+    dim3 BlockDims1D(4,4,8);
+    dim3 BlocksGrid3D(
+                params->blockNumber[0],
+            params->blockNumber[1],
+            (unsigned int)reg_ceil((float)params->blockNumber[2]/2.f));
+    unsigned int sMem = (128 + 4*3 * 4*3 * 4*4) * sizeof(float);
 #else
     dim3 BlockDims1D(4,4,4);
     dim3 BlocksGrid3D(
@@ -609,38 +637,50 @@ void block_matching_method_gpu(nifti_image *targetImage,
     unsigned int sMem = (64 + 4*3 * 4*3 * 4*3) * sizeof(float); // (3*4)^3
 #endif
 
-	if (targetImage->nz == 1){
-		BlockDims1D.z=1;
-		BlocksGrid3D.z=1;
-		sMem = (16 + 144) * sizeof(float); // // (3*4)^2
-		blockMatchingKernel2D << <BlocksGrid3D, BlockDims1D, sMem >> >(*warpedPosition_d,
-																							*referencePosition_d,
-																							*mask_d,
-																							*referenceMat_d,
-																							definedBlock_d);
-	}
-	else {
-		blockMatchingKernel3D <<<BlocksGrid3D, BlockDims1D, sMem>>>(*warpedPosition_d,
-																						*referencePosition_d,
-																						*mask_d,
-																						*referenceMat_d,
-																						definedBlock_d);
-	}
+    if (targetImage->nz == 1){
+        BlockDims1D.z=1;
+        BlocksGrid3D.z=1;
+        sMem = (16 + 144) * sizeof(float); // // (3*4)^2
+        blockMatchingKernel2D << <BlocksGrid3D, BlockDims1D, sMem >> >(*warpedPosition_d,
+                                                                                            *referencePosition_d,
+                                                                                            *mask_d,
+                                                                                            *referenceMat_d,
+                                                                                            definedBlock_d,
+                                                                                            referenceImageArray_texObj,
+                                                                                            warpedImageArray_texObj,
+                                                                                            totalBlock_texObj);
+    }
+    else {
+        blockMatchingKernel3D <<<BlocksGrid3D, BlockDims1D, sMem>>>(*warpedPosition_d,
+                                                                                        *referencePosition_d,
+                                                                                        *mask_d,
+                                                                                        *referenceMat_d,
+                                                                                        definedBlock_d,
+                                                                                        referenceImageArray_texObj,
+                                                                                        warpedImageArray_texObj,
+                                                                                        totalBlock_texObj);
+    }
 #ifndef NDEBUG
     NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D);
-        #else
-    NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+#else
+    NR_CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #endif
 
-	NR_CUDA_SAFE_CALL(cudaMemcpy((void * )definedBlock_h, (void * )definedBlock_d, sizeof(unsigned int), cudaMemcpyDeviceToHost));
-	params->definedActiveBlockNumber = *definedBlock_h;
-	NR_CUDA_SAFE_CALL(cudaUnbindTexture(referenceImageArray_texture));
-	NR_CUDA_SAFE_CALL(cudaUnbindTexture(warpedImageArray_texture));
-	NR_CUDA_SAFE_CALL(cudaUnbindTexture(totalBlock_texture));
+    NR_CUDA_SAFE_CALL(cudaMemcpy((void * )definedBlock_h, (void * )definedBlock_d, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+    params->definedActiveBlockNumber = *definedBlock_h;
 
-	free(definedBlock_h);
-	cudaFree(definedBlock_d);
+    // Remove legacy cudaUnbindTexture calls (not needed with texture objects)
+    // NR_CUDA_SAFE_CALL(cudaUnbindTexture(referenceImageArray_texture));
+    // NR_CUDA_SAFE_CALL(cudaUnbindTexture(warpedImageArray_texture));
+    // NR_CUDA_SAFE_CALL(cudaUnbindTexture(totalBlock_texture));
 
+    free(definedBlock_h);
+    cudaFree(definedBlock_d);
+
+    // Destroy all created texture objects
+    cudaDestroyTextureObject(referenceImageArray_texObj);
+    cudaDestroyTextureObject(warpedImageArray_texObj);
+    cudaDestroyTextureObject(totalBlock_texObj);
 }
 /* *************************************************************** */
 #endif //_REG_BLOCKMATCHING_GPU_CU

@@ -36,7 +36,7 @@ struct __attribute__((aligned(4))) float4
 		} \
 	}
 #   define NR_CUDA_CHECK_KERNEL(grid,block) { \
-		cudaThreadSynchronize(); \
+		cudaDeviceSynchronize(); \
 		cudaError err = cudaPeekAtLastError(); \
 		if( err != cudaSuccess) { \
 			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
@@ -52,7 +52,7 @@ struct __attribute__((aligned(4))) float4
 #else //CUDART_VERSION >= 3200
 #   define NR_CUDA_SAFE_CALL(call) { \
 		call; \
-		cudaError err = cudaThreadSynchronize(); \
+		cudaError err = cudaDeviceSynchronize(); \
 		if( cudaSuccess != err) { \
 			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
 			__FILE__, __LINE__, cudaGetErrorString(err)); \
@@ -60,7 +60,7 @@ struct __attribute__((aligned(4))) float4
 		} \
 	}
 #   define NR_CUDA_CHECK_KERNEL(grid,block) { \
-		cudaError err = cudaThreadSynchronize(); \
+		cudaError err = cudaDeviceSynchronize(); \
 		if( err != cudaSuccess) { \
 			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
 			__FILE__, __LINE__, cudaGetErrorString(err)); \
