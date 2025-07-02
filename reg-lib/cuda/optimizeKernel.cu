@@ -291,7 +291,7 @@ void cublasPseudoInverse(float* transformation, float *R_d, float* warped_d, flo
     checkCublasStatus(cublasSgemv(handle, CUBLAS_OP_N, n, m, &alpha, R_d, ldr, warped_d, 1, &beta, transformation, 1));
     checkCublasStatus(cublasDestroy(handle));
     permuteAffineMatrix <<<1, 16 >>>(transformation);
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
 
 }
 /* *************************************************************** */

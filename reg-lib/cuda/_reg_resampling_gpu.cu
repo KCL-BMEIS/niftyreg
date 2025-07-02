@@ -75,7 +75,7 @@ void reg_resampleImage_gpu(nifti_image *floatingImage,
         dim3 B1(NR_BLOCK->Block_reg_resampleImage3D,1,1);
         dim3 G1(Grid_reg_resamplefloatingImage3D,Grid_reg_resamplefloatingImage3D,1);
         reg_resampleImage3D_kernel <<< G1, B1 >>> (*warpedImageArray_d);
-		cudaThreadSynchronize();
+		cudaDeviceSynchronize();
 		NR_CUDA_CHECK_KERNEL(G1,B1)
 	}
 	else{
