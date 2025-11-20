@@ -299,7 +299,7 @@ double reg_getLnccValue(const nifti_image *referenceImage,
         // Check if the current voxel belongs to the mask
         if (combinedMask[voxel] > -1) {
             const double lncc = (correlationPtr[voxel] - (meanImgPtr[voxel] * warMeanPtr[voxel])) / (sdevImgPtr[voxel] * warSdevPtr[voxel]);
-            if (lncc == lncc && !isinf(lncc)) {
+            if (lncc == lncc && !std::isinf(lncc)) {
                 lnccSum += fabs(lncc);
                 ++activeVoxelNumber;
             }
@@ -450,9 +450,9 @@ void reg_getVoxelBasedLnccGradient(const nifti_image *referenceImage,
             double temp2 = correlaValue / (refSdevValue * warSdevValue * warSdevValue * warSdevValue);
             double temp3 = (correlaValue * warMeanValue) / (refSdevValue * warSdevValue * warSdevValue * warSdevValue)
                 - refMeanValue / (refSdevValue * warSdevValue);
-            if (temp1 == temp1 && !isinf(temp1) &&
-                temp2 == temp2 && !isinf(temp2) &&
-                temp3 == temp3 && !isinf(temp3)) {
+            if (temp1 == temp1 && !std::isinf(temp1) &&
+                temp2 == temp2 && !std::isinf(temp2) &&
+                temp3 == temp3 && !std::isinf(temp3)) {
                 // Derivative of the absolute function
                 if (correlaValue < 0) {
                     temp1 *= -1;
@@ -512,7 +512,7 @@ void reg_getVoxelBasedLnccGradient(const nifti_image *referenceImage,
 #endif
     for (voxel = 0; voxel < voxelNumber; ++voxel) {
         const DataType val = measureGradPtrX[voxel];
-        if (val != val || isinf(val))
+        if (val != val || std::isinf(val))
             measureGradPtrX[voxel] = 0;
     }
 }
