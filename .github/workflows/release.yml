@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-14, windows-2019]
+        os: [ubuntu-22.04, macos-13, macos-14, windows-2022]
         platform: [cpu, cuda]
         include:
           - sudo: "sudo"
@@ -37,14 +37,15 @@ jobs:
             os-name: "macOS"
             c-compiler: "gcc-14"
             cxx-compiler: "g++-14"
+            cmake-extra: "-DCMAKE_C_FLAGS=-D__FLT_EVAL_METHOD__=0"
             build-all-dep: "OFF"
             use-sse: "OFF"
-          - os: windows-2019
+          - os: windows-2022
             os-name: "Windows"
             sudo: ""
             c-compiler: "clang-cl"
             cxx-compiler: "clang-cl"
-            cmake-extra: "-G Ninja"
+            cmake-extra: "-DCMAKE_CUDA_FLAGS=\"-allow-unsupported-compiler -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH\" -G Ninja"
         exclude:
           - os: macos-13
             platform: cuda
